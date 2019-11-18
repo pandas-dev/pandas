@@ -721,12 +721,13 @@ class SeriesGroupBy(GroupBy):
         minlength = ngroups or 0
         out = np.bincount(ids[mask], minlength=minlength)
 
-        return Series(
+        result = Series(
             out,
             index=self.grouper.result_index,
             name=self._selection_name,
             dtype="int64",
         )
+        return self._reindex_output(result)
 
     def _apply_to_column_groupbys(self, func):
         """ return a pass thru """
