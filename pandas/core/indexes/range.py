@@ -14,7 +14,6 @@ from pandas.util._decorators import Appender, cache_readonly
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     ensure_python_int,
-    is_int64_dtype,
     is_integer,
     is_integer_dtype,
     is_list_like,
@@ -165,12 +164,6 @@ class RangeIndex(Int64Index):
 
     # --------------------------------------------------------------------
 
-    @staticmethod
-    def _validate_dtype(dtype):
-        """ require dtype to be None or int64 """
-        if not (dtype is None or is_int64_dtype(dtype)):
-            raise TypeError("Invalid to pass a non-int64 dtype to RangeIndex")
-
     @cache_readonly
     def _constructor(self):
         """ return the class to use for construction """
@@ -302,7 +295,7 @@ class RangeIndex(Int64Index):
         return self.step
 
     @cache_readonly
-    def nbytes(self):
+    def nbytes(self) -> int:
         """
         Return the number of bytes in the underlying data.
         """
@@ -312,7 +305,7 @@ class RangeIndex(Int64Index):
             for attr_name in ["start", "stop", "step"]
         )
 
-    def memory_usage(self, deep=False):
+    def memory_usage(self, deep: bool = False) -> int:
         """
         Memory usage of my values
 
@@ -338,16 +331,16 @@ class RangeIndex(Int64Index):
         return self.nbytes
 
     @property
-    def dtype(self):
+    def dtype(self) -> np.dtype:
         return np.dtype(np.int64)
 
     @property
-    def is_unique(self):
+    def is_unique(self) -> bool:
         """ return if the index has unique values """
         return True
 
     @cache_readonly
-    def is_monotonic_increasing(self):
+    def is_monotonic_increasing(self) -> bool:
         return self._range.step > 0 or len(self) <= 1
 
     @cache_readonly
@@ -703,7 +696,7 @@ class RangeIndex(Int64Index):
         return len(self._range)
 
     @property
-    def size(self):
+    def size(self) -> int:
         return len(self)
 
     def __getitem__(self, key):

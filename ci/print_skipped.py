@@ -27,14 +27,13 @@ def main(filename):
 if __name__ == "__main__":
     print("SKIPPED TESTS:")
     i = 1
-    for file_type in ("-single", "-multiple", ""):
-        for test_data in main("test-data{}.xml".format(file_type)):
-            if test_data is None:
-                print("-" * 80)
-            else:
-                print(
-                    "#{i} {class_name}.{test_name}: {message}".format(
-                        **dict(test_data, i=i)
-                    )
+    for test_data in main("test-data.xml"):
+        if test_data is None:
+            print("-" * 80)
+        else:
+            print(
+                "#{i} {class_name}.{test_name}: {message}".format(
+                    **dict(test_data, i=i)
                 )
-                i += 1
+            )
+            i += 1

@@ -604,7 +604,7 @@ class TimedeltaIndex(
 
         return self.values.searchsorted(value, side=side, sorter=sorter)
 
-    def is_type_compatible(self, typ):
+    def is_type_compatible(self, typ) -> bool:
         return typ == self.inferred_type or typ == "timedelta"
 
     @property
@@ -699,7 +699,7 @@ TimedeltaIndex._add_logical_methods_disabled()
 TimedeltaIndex._add_datetimelike_methods()
 
 
-def _is_convertible_to_index(other):
+def _is_convertible_to_index(other) -> bool:
     """
     return a boolean whether I can attempt conversion to a TimedeltaIndex
     """
@@ -719,7 +719,7 @@ def _is_convertible_to_index(other):
 
 def timedelta_range(
     start=None, end=None, periods=None, freq=None, name=None, closed=None
-):
+) -> TimedeltaIndex:
     """
     Return a fixed frequency TimedeltaIndex, with day as the default
     frequency.
