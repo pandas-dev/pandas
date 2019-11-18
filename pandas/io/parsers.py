@@ -257,7 +257,7 @@ date_parser : function, optional
     arguments.
 dayfirst : bool, default False
     DD/MM format dates, international and European format.
-cache_dates : boolean, default True
+cache_dates : bool, default True
     If True, use a cache of unique, converted dates to apply the datetime
     conversion. May produce significant speed-up when parsing duplicate
     date strings, especially ones with timezone offsets.
@@ -707,7 +707,7 @@ def read_fwf(
     colspecs="infer",
     widths=None,
     infer_nrows=100,
-    **kwds
+    **kwds,
 ):
 
     r"""
@@ -1605,7 +1605,7 @@ class ParserBase:
 
         # remove index items from content and columns, don't pop in
         # loop
-        for i in reversed(sorted(to_remove)):
+        for i in sorted(to_remove, reverse=True):
             data.pop(i)
             if not self._implicit_index:
                 columns.pop(i)
@@ -1637,7 +1637,7 @@ class ParserBase:
 
         # remove index items from content and columns, don't pop in
         # loop
-        for c in reversed(sorted(to_remove)):
+        for c in sorted(to_remove, reverse=True):
             data.pop(c)
             col_names.remove(c)
 
@@ -1782,14 +1782,17 @@ class ParserBase:
                 np.putmask(values, mask, np.nan)
             return values, na_count
 
-        if try_num_bool:
+        if try_num_bool and is_object_dtype(values.dtype):
+            # exclude e.g DatetimeIndex here
             try:
                 result = lib.maybe_convert_numeric(values, na_values, False)
-                na_count = isna(result).sum()
-            except Exception:
+            except (ValueError, TypeError):
+                # e.g. encountering datetime string gets ValueError
+                #  TypeError can be raised in floatify
                 result = values
-                if values.dtype == np.object_:
-                    na_count = parsers.sanitize_objects(result, na_values, False)
+                na_count = parsers.sanitize_objects(result, na_values, False)
+            else:
+                na_count = isna(result).sum()
         else:
             result = values
             if values.dtype == np.object_:
@@ -1915,7 +1918,12 @@ class CParserWrapper(ParserBase):
         else:
             if len(self._reader.header) > 1:
                 # we have a multi index in the columns
-                self.names, self.index_names, self.col_names, passed_names = self._extract_multi_indexer_columns(  # noqa: E501
+                (
+                    self.names,
+                    self.index_names,
+                    self.col_names,
+                    passed_names,
+                ) = self._extract_multi_indexer_columns(
                     self._reader.header, self.index_names, self.col_names, passed_names
                 )
             else:
@@ -2304,7 +2312,12 @@ class PythonParser(ParserBase):
         # The original set is stored in self.original_columns.
         if len(self.columns) > 1:
             # we are processing a multi index column
-            self.columns, self.index_names, self.col_names, _ = self._extract_multi_indexer_columns(  # noqa: E501
+            (
+                self.columns,
+                self.index_names,
+                self.col_names,
+                _,
+            ) = self._extract_multi_indexer_columns(
                 self.columns, self.index_names, self.col_names
             )
             # Update list of original names to include all indices.
@@ -2926,7 +2939,7 @@ class PythonParser(ParserBase):
             if self.warn_bad_lines or self.error_bad_lines:
                 msg = str(e)
 
-                if "NULL byte" in msg:
+                if "NULL byte" in msg or "line contains NUL" in msg:
                     msg = (
                         "NULL byte detected. This byte "
                         "cannot be processed in Python's "

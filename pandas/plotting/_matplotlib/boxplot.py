@@ -4,13 +4,13 @@ import warnings
 from matplotlib.artist import setp
 import numpy as np
 
+from pandas.core.dtypes.common import is_dict_like
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import remove_na_arraylike
 
 import pandas as pd
 
 from pandas.io.formats.printing import pprint_thing
-from pandas.plotting._matplotlib import converter
 from pandas.plotting._matplotlib.core import LinePlot, MPLPlot
 from pandas.plotting._matplotlib.style import _get_standard_colors
 from pandas.plotting._matplotlib.tools import _flatten, _subplots
@@ -184,7 +184,7 @@ def _grouped_plot_by_column(
     ax=None,
     layout=None,
     return_type=None,
-    **kwargs
+    **kwargs,
 ):
     grouped = data.groupby(by)
     if columns is None:
@@ -234,7 +234,7 @@ def boxplot(
     figsize=None,
     layout=None,
     return_type=None,
-    **kwds
+    **kwds,
 ):
 
     import matplotlib.pyplot as plt
@@ -250,13 +250,38 @@ def boxplot(
     def _get_colors():
         #  num_colors=3 is required as method maybe_color_bp takes the colors
         #  in positions 0 and 2.
-        return _get_standard_colors(color=kwds.get("color"), num_colors=3)
+        #  if colors not provided, use same defaults as DataFrame.plot.box
+        result = _get_standard_colors(num_colors=3)
+        result = np.take(result, [0, 0, 2])
+        result = np.append(result, "k")
+
+        colors = kwds.pop("color", None)
+        if colors:
+            if is_dict_like(colors):
+                # replace colors in result array with user-specified colors
+                # taken from the colors dict parameter
+                # "boxes" value placed in position 0, "whiskers" in 1, etc.
+                valid_keys = ["boxes", "whiskers", "medians", "caps"]
+                key_to_index = dict(zip(valid_keys, range(4)))
+                for key, value in colors.items():
+                    if key in valid_keys:
+                        result[key_to_index[key]] = value
+                    else:
+                        raise ValueError(
+                            "color dict contains invalid "
+                            "key '{0}' "
+                            "The key must be either {1}".format(key, valid_keys)
+                        )
+            else:
+                result.fill(colors)
+
+        return result
 
     def maybe_color_bp(bp):
-        if "color" not in kwds:
-            setp(bp["boxes"], color=colors[0], alpha=1)
-            setp(bp["whiskers"], color=colors[0], alpha=1)
-            setp(bp["medians"], color=colors[2], alpha=1)
+        setp(bp["boxes"], color=colors[0], alpha=1)
+        setp(bp["whiskers"], color=colors[1], alpha=1)
+        setp(bp["medians"], color=colors[2], alpha=1)
+        setp(bp["caps"], color=colors[3], alpha=1)
 
     def plot_group(keys, values, ax):
         keys = [pprint_thing(x) for x in keys]
@@ -305,9 +330,7 @@ def boxplot(
         if return_type is None:
             return_type = "axes"
         if layout is not None:
-            raise ValueError(
-                "The 'layout' keyword is not supported when " "'by' is None"
-            )
+            raise ValueError("The 'layout' keyword is not supported when 'by' is None")
 
         if ax is None:
             rc = {"figure.figsize": figsize} if figsize is not None else {}
@@ -336,11 +359,10 @@ def boxplot_frame(
     figsize=None,
     layout=None,
     return_type=None,
-    **kwds
+    **kwds,
 ):
     import matplotlib.pyplot as plt
 
-    converter._WARN = False  # no warning for pandas plots
     ax = boxplot(
         self,
         column=column,
@@ -352,7 +374,7 @@ def boxplot_frame(
         figsize=figsize,
         layout=layout,
         return_type=return_type,
-        **kwds
+        **kwds,
     )
     plt.draw_if_interactive()
     return ax
@@ -370,9 +392,8 @@ def boxplot_frame_groupby(
     layout=None,
     sharex=False,
     sharey=True,
-    **kwds
+    **kwds,
 ):
-    converter._WARN = False  # no warning for pandas plots
     if subplots is True:
         naxes = len(grouped)
         fig, axes = _subplots(
@@ -411,6 +432,6 @@ def boxplot_frame_groupby(
             ax=ax,
             figsize=figsize,
             layout=layout,
-            **kwds
+            **kwds,
         )
     return ret

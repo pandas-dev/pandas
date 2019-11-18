@@ -19,7 +19,7 @@ from pandas import (
     date_range,
     period_range,
 )
-from pandas.core.groupby.groupby import SpecificationError
+from pandas.core.base import SpecificationError
 import pandas.util.testing as tm
 
 from pandas.io.formats.printing import pprint_thing
@@ -454,6 +454,31 @@ def test_agg_over_numpy_arrays():
     tm.assert_frame_equal(result, expected)
 
 
+def test_agg_tzaware_non_datetime_result():
+    # discussed in GH#29589, fixed in GH#29641, operating on tzaware values
+    #  with function that is not dtype-preserving
+    dti = pd.date_range("2012-01-01", periods=4, tz="UTC")
+    df = pd.DataFrame({"a": [0, 0, 1, 1], "b": dti})
+    gb = df.groupby("a")
+
+    # Case that _does_ preserve the dtype
+    result = gb["b"].agg(lambda x: x.iloc[0])
+    expected = pd.Series(dti[::2], name="b")
+    expected.index.name = "a"
+    tm.assert_series_equal(result, expected)
+
+    # Cases that do _not_ preserve the dtype
+    result = gb["b"].agg(lambda x: x.iloc[0].year)
+    expected = pd.Series([2012, 2012], name="b")
+    expected.index.name = "a"
+    tm.assert_series_equal(result, expected)
+
+    result = gb["b"].agg(lambda x: x.iloc[-1] - x.iloc[0])
+    expected = pd.Series([pd.Timedelta(days=1), pd.Timedelta(days=1)], name="b")
+    expected.index.name = "a"
+    tm.assert_series_equal(result, expected)
+
+
 def test_agg_timezone_round_trip():
     # GH 15426
     ts = pd.Timestamp("2016-01-01 12:00:00", tz="US/Pacific")
@@ -602,3 +627,41 @@ def test_agg_lambda_with_timezone():
         columns=["date"],
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "err_cls",
+    [
+        NotImplementedError,
+        RuntimeError,
+        KeyError,
+        IndexError,
+        OSError,
+        ValueError,
+        ArithmeticError,
+        AttributeError,
+    ],
+)
+def test_groupby_agg_err_catching(err_cls):
+    # make sure we suppress anything other than TypeError or AssertionError
+    #  in _python_agg_general
+
+    # Use a non-standard EA to make sure we don't go down ndarray paths
+    from pandas.tests.extension.decimal.array import DecimalArray, make_data, to_decimal
+
+    data = make_data()[:5]
+    df = pd.DataFrame(
+        {"id1": [0, 0, 0, 1, 1], "id2": [0, 1, 0, 1, 1], "decimals": DecimalArray(data)}
+    )
+
+    expected = pd.Series(to_decimal([data[0], data[3]]))
+
+    def weird_func(x):
+        # weird function that raise something other than TypeError or IndexError
+        #  in _python_agg_general
+        if len(x) == 0:
+            raise err_cls
+        return x.iloc[0]
+
+    result = df["decimals"].groupby(df["id1"]).agg(weird_func)
+    tm.assert_series_equal(result, expected, check_names=False)

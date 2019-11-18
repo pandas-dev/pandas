@@ -184,38 +184,6 @@ def test_round_trip_current(current_pickle_data):
                     compare_element(result, expected, typ)
 
 
-def test_pickle_v0_14_1(datapath):
-
-    cat = pd.Categorical(
-        values=["a", "b", "c"], ordered=False, categories=["a", "b", "c", "d"]
-    )
-    pickle_path = datapath("io", "data", "categorical_0_14_1.pickle")
-    # This code was executed once on v0.14.1 to generate the pickle:
-    #
-    # cat = Categorical(labels=np.arange(3), levels=['a', 'b', 'c', 'd'],
-    #                   name='foobar')
-    # with open(pickle_path, 'wb') as f: pickle.dump(cat, f)
-    #
-    tm.assert_categorical_equal(cat, pd.read_pickle(pickle_path))
-
-
-def test_pickle_v0_15_2(datapath):
-    # ordered -> _ordered
-    # GH 9347
-
-    cat = pd.Categorical(
-        values=["a", "b", "c"], ordered=False, categories=["a", "b", "c", "d"]
-    )
-    pickle_path = datapath("io", "data", "categorical_0_15_2.pickle")
-    # This code was executed once on v0.15.2 to generate the pickle:
-    #
-    # cat = Categorical(labels=np.arange(3), levels=['a', 'b', 'c', 'd'],
-    #                   name='foobar')
-    # with open(pickle_path, 'wb') as f: pickle.dump(cat, f)
-    #
-    tm.assert_categorical_equal(cat, pd.read_pickle(pickle_path))
-
-
 def test_pickle_path_pathlib():
     df = tm.makeDataFrame()
     result = tm.round_trip_pathlib(df.to_pickle, pd.read_pickle)
@@ -234,23 +202,25 @@ def test_legacy_sparse_warning(datapath):
     Generated with
 
     >>> df = pd.DataFrame({"A": [1, 2, 3, 4], "B": [0, 0, 1, 1]}).to_sparse()
-    >>> df.to_pickle("pandas/tests/io/data/sparseframe-0.20.3.pickle.gz",
+    >>> df.to_pickle("pandas/tests/io/data/pickle/sparseframe-0.20.3.pickle.gz",
     ...              compression="gzip")
 
     >>> s = df['B']
-    >>> s.to_pickle("pandas/tests/io/data/sparseseries-0.20.3.pickle.gz",
+    >>> s.to_pickle("pandas/tests/io/data/pickle/sparseseries-0.20.3.pickle.gz",
     ...             compression="gzip")
     """
     with tm.assert_produces_warning(FutureWarning):
         simplefilter("ignore", DeprecationWarning)  # from boto
         pd.read_pickle(
-            datapath("io", "data", "sparseseries-0.20.3.pickle.gz"), compression="gzip"
+            datapath("io", "data", "pickle", "sparseseries-0.20.3.pickle.gz"),
+            compression="gzip",
         )
 
     with tm.assert_produces_warning(FutureWarning):
         simplefilter("ignore", DeprecationWarning)  # from boto
         pd.read_pickle(
-            datapath("io", "data", "sparseframe-0.20.3.pickle.gz"), compression="gzip"
+            datapath("io", "data", "pickle", "sparseframe-0.20.3.pickle.gz"),
+            compression="gzip",
         )
 
 
@@ -409,3 +379,14 @@ class TestProtocol:
             df.to_pickle(path, protocol=protocol)
             df2 = pd.read_pickle(path)
             tm.assert_frame_equal(df, df2)
+
+
+def test_unicode_decode_error():
+    # pickle file written with py27, should be readable without raising
+    #  UnicodeDecodeError, see GH#28645
+    path = os.path.join(os.path.dirname(__file__), "data", "pickle", "test_py27.pkl")
+    df = pd.read_pickle(path)
+
+    # just test the columns are correct since the values are random
+    excols = pd.Index(["a", "b", "c"])
+    tm.assert_index_equal(df.columns, excols)

@@ -7,7 +7,7 @@ from pandas.errors import AbstractMethodError
 
 from pandas import DataFrame, get_option
 
-from pandas.io.common import get_filepath_or_buffer, is_s3_url
+from pandas.io.common import get_filepath_or_buffer, is_gcs_url, is_s3_url
 
 
 def get_engine(engine):
@@ -89,7 +89,7 @@ class PyArrowImpl(BaseImpl):
         coerce_timestamps="ms",
         index=None,
         partition_cols=None,
-        **kwargs
+        **kwargs,
     ):
         self.validate_dataframe(df)
         path, _, _, _ = get_filepath_or_buffer(path, mode="wb")
@@ -106,7 +106,7 @@ class PyArrowImpl(BaseImpl):
                 compression=compression,
                 coerce_timestamps=coerce_timestamps,
                 partition_cols=partition_cols,
-                **kwargs
+                **kwargs,
             )
         else:
             self.api.parquet.write_table(
@@ -114,7 +114,7 @@ class PyArrowImpl(BaseImpl):
                 path,
                 compression=compression,
                 coerce_timestamps=coerce_timestamps,
-                **kwargs
+                **kwargs,
             )
 
     def read(self, path, columns=None, **kwargs):
@@ -159,12 +159,12 @@ class FastParquetImpl(BaseImpl):
         if partition_cols is not None:
             kwargs["file_scheme"] = "hive"
 
-        if is_s3_url(path):
-            # path is s3:// so we need to open the s3file in 'wb' mode.
+        if is_s3_url(path) or is_gcs_url(path):
+            # if path is s3:// or gs:// we need to open the file in 'wb' mode.
             # TODO: Support 'ab'
 
             path, _, _, _ = get_filepath_or_buffer(path, mode="wb")
-            # And pass the opened s3file to the fastparquet internal impl.
+            # And pass the opened file to the fastparquet internal impl.
             kwargs["open_with"] = lambda path, _: path
         else:
             path, _, _, _ = get_filepath_or_buffer(path)
@@ -176,7 +176,7 @@ class FastParquetImpl(BaseImpl):
                 compression=compression,
                 write_index=index,
                 partition_on=partition_cols,
-                **kwargs
+                **kwargs,
             )
 
     def read(self, path, columns=None, **kwargs):
@@ -205,7 +205,7 @@ def to_parquet(
     compression="snappy",
     index=None,
     partition_cols=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Write a DataFrame to the parquet format.
@@ -252,7 +252,7 @@ def to_parquet(
         compression=compression,
         index=index,
         partition_cols=partition_cols,
-        **kwargs
+        **kwargs,
     )
 
 

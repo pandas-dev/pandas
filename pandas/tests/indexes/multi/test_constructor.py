@@ -294,6 +294,7 @@ def test_from_arrays_empty():
     assert isinstance(result, MultiIndex)
     expected = Index([], name="A")
     tm.assert_index_equal(result.levels[0], expected)
+    assert result.names == ["A"]
 
     # N levels
     for N in [2, 3]:
@@ -441,6 +442,7 @@ def test_from_product_empty_one_level():
     result = MultiIndex.from_product([[]], names=["A"])
     expected = pd.Index([], name="A")
     tm.assert_index_equal(result.levels[0], expected)
+    assert result.names == ["A"]
 
 
 @pytest.mark.parametrize(
@@ -607,12 +609,11 @@ def test_create_index_existing_name(idx):
                 ("qux", "two"),
             ],
             dtype="object",
-        ),
-        names=["foo", "bar"],
+        )
     )
     tm.assert_index_equal(result, expected)
 
-    result = pd.Index(index, names=["A", "B"])
+    result = pd.Index(index, name="A")
     expected = Index(
         Index(
             [
@@ -625,7 +626,7 @@ def test_create_index_existing_name(idx):
             ],
             dtype="object",
         ),
-        names=["A", "B"],
+        name="A",
     )
     tm.assert_index_equal(result, expected)
 
@@ -720,3 +721,10 @@ def test_from_frame_invalid_names(names, expected_error_msg):
     )
     with pytest.raises(ValueError, match=expected_error_msg):
         pd.MultiIndex.from_frame(df, names=names)
+
+
+def test_index_equal_empty_iterable():
+    # #16844
+    a = MultiIndex(levels=[[], []], codes=[[], []], names=["a", "b"])
+    b = MultiIndex.from_arrays(arrays=[[], []], names=["a", "b"])
+    tm.assert_index_equal(a, b)

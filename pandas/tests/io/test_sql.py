@@ -295,7 +295,7 @@ class PandasSQLTest:
         else:
             return self.conn.cursor()
 
-    @pytest.fixture(params=[("io", "data", "iris.csv")])
+    @pytest.fixture(params=[("data", "iris.csv")])
     def load_iris_data(self, datapath, request):
         import io
 
@@ -635,13 +635,16 @@ class PandasSQLTest:
         with self.pandasSQL.run_transaction() as trans:
             trans.execute("CREATE TABLE test_trans (A INT, B TEXT)")
 
+        class DummyException(Exception):
+            pass
+
         # Make sure when transaction is rolled back, no rows get inserted
         ins_sql = "INSERT INTO test_trans (A,B) VALUES (1, 'blah')"
         try:
             with self.pandasSQL.run_transaction() as trans:
                 trans.execute(ins_sql)
-                raise Exception("error")
-        except Exception:
+                raise DummyException("error")
+        except DummyException:
             # ignore raised exception
             pass
         res = self.pandasSQL.read_query("SELECT * FROM test_trans")
@@ -676,7 +679,7 @@ class _TestSQLApi(PandasSQLTest):
     """
 
     flavor = "sqlite"
-    mode = None
+    mode = None  # type: str
 
     def setup_connect(self):
         self.conn = self.connect()
@@ -1328,7 +1331,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     """
 
-    flavor = None
+    flavor = None  # type: str
 
     @pytest.fixture(autouse=True, scope="class")
     def setup_class(cls):

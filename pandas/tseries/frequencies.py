@@ -71,7 +71,7 @@ _name_to_offset_map = {
 def to_offset(freq):
     """
     Return DateOffset object from string or tuple representation
-    or datetime.timedelta object
+    or datetime.timedelta object.
 
     Parameters
     ----------
@@ -138,7 +138,7 @@ def to_offset(freq):
                         delta = offset
                     else:
                         delta = delta + offset
-        except Exception:
+        except ValueError:
             raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq))
 
     else:
@@ -170,7 +170,7 @@ def to_offset(freq):
                     delta = offset
                 else:
                     delta = delta + offset
-        except Exception:
+        except (ValueError, TypeError):
             raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq))
 
     if delta is None:
@@ -222,8 +222,8 @@ def infer_freq(index, warn=True):
     Parameters
     ----------
     index : DatetimeIndex or TimedeltaIndex
-      if passed a Series will use the values of the series (NOT THE INDEX)
-    warn : boolean, default True
+      if passed a Series will use the values of the series (NOT THE INDEX).
+    warn : bool, default True
 
     Returns
     -------
@@ -308,7 +308,7 @@ class _FrequencyInferer:
         return unique_deltas(self.index.asi8)
 
     @cache_readonly
-    def is_unique(self):
+    def is_unique(self) -> bool:
         return len(self.deltas) == 1
 
     @cache_readonly

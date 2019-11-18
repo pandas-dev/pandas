@@ -8,7 +8,6 @@ from pandas._libs.tslib import iNaT
 import pandas as pd
 from pandas import Series, TimedeltaIndex, isna, to_timedelta
 import pandas.util.testing as tm
-from pandas.util.testing import assert_series_equal
 
 
 class TestTimedeltas:
@@ -192,10 +191,10 @@ class TestTimedeltas:
         expected = Series(
             [np.timedelta64(1000000000, "ns"), timedelta_NaT], dtype="<m8[ns]"
         )
-        assert_series_equal(actual, expected)
+        tm.assert_series_equal(actual, expected)
 
         actual = pd.to_timedelta(Series(["00:00:01", pd.NaT]))
-        assert_series_equal(actual, expected)
+        tm.assert_series_equal(actual, expected)
 
         actual = pd.to_timedelta(np.nan)
         assert actual.value == timedelta_NaT.astype("int64")
