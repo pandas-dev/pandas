@@ -190,21 +190,13 @@ jobs:
         - 5432/tcp
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
 
-      #mysql:
-      #  image: mysql:latest
-      #  ports:
-      #  - 3306/tcp
-      #  env:
-      #    MYSQL_ROOT_PASSWORD: password
-      #  options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries 5
-
       mysql:
-        image: mysql:5.7
+        image: mysql:latest
+        ports:
+        - 3306/tcp
         env:
           MYSQL_ROOT_PASSWORD: password
-        ports:
-        - 3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries 5
 
     strategy:
       fail-fast: false
@@ -232,12 +224,6 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v1
-
-    - name: Verify MySQL connection from host
-      run: |
-        sudo apt-get install -y mysql-client libmysqlclient-dev
-        mysql --host 127.0.0.1 --port ${{ job.services.mysql.ports[3306] }} -uroot -ppassword -e "SHOW GRANTS FOR 'root'@'localhost'"
-        mysql --host 127.0.0.1 --port ${{ job.services.mysql.ports[3306] }} --user root -ppassword --execute "CREATE DATABASE pandas_nosetest;"
 
     - name: Create PostgreSQL database
       run: |
