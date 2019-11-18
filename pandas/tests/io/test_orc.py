@@ -6,6 +6,8 @@ import os
 import numpy as np
 import pytest
 
+from pandas.compat import is_platform_windows
+
 import pandas as pd
 import pandas.util.testing as tm
 
@@ -50,6 +52,8 @@ def engine(request):
 def pa():
     if not _HAVE_PYARROW:
         pytest.skip("pyarrow is not installed")
+    if is_platform_windows():
+        pytest.skip("pyarrow orc not available by default on windows")
     return "pyarrow"
 
 
