@@ -596,7 +596,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         if date_format:
             formatter = lambda dt: dt.strftime(date_format)
         else:
-            formatter = lambda dt: "%s" % dt
+            formatter = lambda dt: str(dt)
 
         if self._hasnans:
             mask = self._isnan
