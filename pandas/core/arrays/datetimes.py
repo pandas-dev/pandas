@@ -31,7 +31,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_ns_dtype,
     is_datetime64tz_dtype,
     is_dtype_equal,
-    is_extension_type,
+    is_extension_array_dtype,
     is_float_dtype,
     is_object_dtype,
     is_period_dtype,
@@ -40,12 +40,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCIndexClass,
-    ABCPandasArray,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCIndexClass, ABCPandasArray, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
@@ -53,6 +48,7 @@ from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
+from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.ops.invalid import invalid_comparison
 
 from pandas.tseries.frequencies import get_period_alias, to_offset
@@ -157,11 +153,8 @@ def _dt_array_cmp(cls, op):
     opname = "__{name}__".format(name=op.__name__)
     nat_result = opname == "__ne__"
 
+    @unpack_zerodim_and_defer(opname)
     def wrapper(self, other):
-        if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
-            return NotImplemented
-
-        other = lib.item_from_zerodim(other)
 
         if isinstance(other, (datetime, np.datetime64, str)):
             if isinstance(other, (datetime, np.datetime64)):
@@ -2131,7 +2124,7 @@ def maybe_convert_dtype(data, copy):
         data = data.categories.take(data.codes, fill_value=NaT)._values
         copy = False
 
-    elif is_extension_type(data) and not is_datetime64tz_dtype(data):
+    elif is_extension_array_dtype(data) and not is_datetime64tz_dtype(data):
         # Includes categorical
         # TODO: We have no tests for these
         data = np.array(data, dtype=np.object_)

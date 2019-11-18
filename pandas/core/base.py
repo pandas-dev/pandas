@@ -4,7 +4,7 @@ Base and utility classes for pandas objects.
 import builtins
 from collections import OrderedDict
 import textwrap
-from typing import Dict, FrozenSet, Optional
+from typing import Dict, FrozenSet, List, Optional
 import warnings
 
 import numpy as np
@@ -21,9 +21,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64_ns_dtype,
     is_datetime64tz_dtype,
-    is_datetimelike,
     is_extension_array_dtype,
-    is_extension_type,
     is_list_like,
     is_object_dtype,
     is_scalar,
@@ -55,7 +53,7 @@ class PandasObject(DirNamesMixin):
         """class constructor (for this class it's just `__class__`"""
         return self.__class__
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         Return a string representation for a particular object.
         """
@@ -207,7 +205,7 @@ class SelectionMixin:
             return self.obj[self._selection]
 
     @cache_readonly
-    def ndim(self):
+    def ndim(self) -> int:
         return self._selected_obj.ndim
 
     @cache_readonly
@@ -339,7 +337,7 @@ class SelectionMixin:
 
             obj = self._selected_obj
 
-            def nested_renaming_depr(level=4):
+            def nested_renaming_depr(level: int = 4):
                 # deprecation of nested renaming
                 # GH 15931
                 msg = textwrap.dedent(
@@ -488,11 +486,11 @@ class SelectionMixin:
 
             # combine results
 
-            def is_any_series():
+            def is_any_series() -> bool:
                 # return a boolean if we have *any* nested series
                 return any(isinstance(r, ABCSeries) for r in result.values())
 
-            def is_any_frame():
+            def is_any_frame() -> bool:
                 # return a boolean if we have *any* nested series
                 return any(isinstance(r, ABCDataFrame) for r in result.values())
 
@@ -569,7 +567,7 @@ class SelectionMixin:
                 try:
                     new_res = colg.aggregate(a)
 
-                except (TypeError, DataError):
+                except TypeError:
                     pass
                 else:
                     results.append(new_res)
@@ -586,9 +584,16 @@ class SelectionMixin:
                     new_res = colg.aggregate(arg)
                 except (TypeError, DataError):
                     pass
-                except ValueError:
+                except ValueError as err:
                     # cannot aggregate
-                    continue
+                    if "Must produce aggregated value" in str(err):
+                        # raised directly in _aggregate_named
+                        pass
+                    elif "no results" in str(err):
+                        # raised direcly in _aggregate_multiple_funcs
+                        pass
+                    else:
+                        raise
                 else:
                     results.append(new_res)
                     keys.append(col)
@@ -597,9 +602,9 @@ class SelectionMixin:
         if not len(results):
             raise ValueError("no results")
 
-        try:
+        if all(np.ndim(x) > 0 for x in results):
             return concat(results, keys=keys, axis=1, sort=False)
-        except TypeError:
+        else:
 
             # we are concatting non-NDFrame objects,
             # e.g. a list of scalars
@@ -610,21 +615,6 @@ class SelectionMixin:
             if is_nested_object(result):
                 raise ValueError("cannot combine transform and aggregation operations")
             return result
-
-    def _shallow_copy(self, obj=None, obj_type=None, **kwargs):
-        """
-        return a new object with the replacement attributes
-        """
-        if obj is None:
-            obj = self._selected_obj.copy()
-        if obj_type is None:
-            obj_type = self._constructor
-        if isinstance(obj, obj_type):
-            obj = obj.obj
-        for attr in self._attributes:
-            if attr not in kwargs:
-                kwargs[attr] = getattr(self, attr)
-        return obj_type(obj, **kwargs)
 
     def _get_cython_func(self, arg: str) -> Optional[str]:
         """
@@ -638,6 +628,24 @@ class SelectionMixin:
         otherwise return the arg
         """
         return self._builtin_table.get(arg, arg)
+
+
+class ShallowMixin:
+    _attributes = []  # type: List[str]
+
+    def _shallow_copy(self, obj=None, **kwargs):
+        """
+        return a new object with the replacement attributes
+        """
+        if obj is None:
+            obj = self._selected_obj.copy()
+
+        if isinstance(obj, self._constructor):
+            obj = obj.obj
+        for attr in self._attributes:
+            if attr not in kwargs:
+                kwargs[attr] = getattr(self, attr)
+        return self._constructor(obj, **kwargs)
 
 
 class IndexOpsMixin:
@@ -678,7 +686,7 @@ class IndexOpsMixin:
     )
 
     @property
-    def _is_homogeneous_type(self):
+    def _is_homogeneous_type(self) -> bool:
         """
         Whether the object has a single dtype.
 
@@ -703,7 +711,7 @@ class IndexOpsMixin:
         return self._values.shape
 
     @property
-    def ndim(self):
+    def ndim(self) -> int:
         """
         Number of dimensions of the underlying data, by definition 1.
         """
@@ -1066,7 +1074,7 @@ class IndexOpsMixin:
         Parameters
         ----------
         axis : {None}
-            Dummy argument for consistency with Series
+            Dummy argument for consistency with Series.
         skipna : bool, default True
 
         Returns
@@ -1089,7 +1097,7 @@ class IndexOpsMixin:
         Parameters
         ----------
         axis : {None}
-            Dummy argument for consistency with Series
+            Dummy argument for consistency with Series.
         skipna : bool, default True
 
         Returns
@@ -1130,7 +1138,7 @@ class IndexOpsMixin:
         Parameters
         ----------
         axis : {None}
-            Dummy argument for consistency with Series
+            Dummy argument for consistency with Series.
         skipna : bool, default True
 
         Returns
@@ -1161,7 +1169,7 @@ class IndexOpsMixin:
         --------
         numpy.ndarray.tolist
         """
-        if is_datetimelike(self._values):
+        if self.dtype.kind in ["m", "M"]:
             return [com.maybe_box_datetimelike(x) for x in self._values]
         elif is_extension_array_dtype(self._values):
             return list(self._values)
@@ -1183,7 +1191,7 @@ class IndexOpsMixin:
         iterator
         """
         # We are explicitly making element iterators.
-        if is_datetimelike(self._values):
+        if self.dtype.kind in ["m", "M"]:
             return map(com.maybe_box_datetimelike, self._values)
         elif is_extension_array_dtype(self._values):
             return iter(self._values)
@@ -1257,7 +1265,7 @@ class IndexOpsMixin:
                 # use the built in categorical series mapper which saves
                 # time by mapping the categories instead of all values
                 return self._values.map(mapper)
-            if is_extension_type(self.dtype):
+            if is_extension_array_dtype(self.dtype):
                 values = self._values
             else:
                 values = self.values
@@ -1268,7 +1276,8 @@ class IndexOpsMixin:
             return new_values
 
         # we must convert to python types
-        if is_extension_type(self.dtype):
+        if is_extension_array_dtype(self.dtype) and hasattr(self._values, "map"):
+            # GH#23179 some EAs do not have `map`
             values = self._values
             if na_action is not None:
                 raise NotImplementedError
@@ -1458,7 +1467,7 @@ class IndexOpsMixin:
     is_monotonic_increasing = is_monotonic
 
     @property
-    def is_monotonic_decreasing(self):
+    def is_monotonic_decreasing(self) -> bool:
         """
         Return boolean if values in the object are
         monotonic_decreasing.
@@ -1479,7 +1488,7 @@ class IndexOpsMixin:
         ----------
         deep : bool
             Introspect the data deeply, interrogate
-            `object` dtypes for system-level memory consumption
+            `object` dtypes for system-level memory consumption.
 
         Returns
         -------
@@ -1509,7 +1518,7 @@ class IndexOpsMixin:
         sort=textwrap.dedent(
             """\
             sort : bool, default False
-                Sort `uniques` and shuffle `labels` to maintain the
+                Sort `uniques` and shuffle `codes` to maintain the
                 relationship.
             """
         ),

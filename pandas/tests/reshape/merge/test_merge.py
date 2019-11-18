@@ -134,6 +134,18 @@ class TestMerge:
         exp = merge(self.df, self.df2, on=["key1", "key2"])
         tm.assert_frame_equal(joined, exp)
 
+    def test_merge_non_string_columns(self):
+        # https://github.com/pandas-dev/pandas/issues/17962
+        # Checks that method runs for non string column names
+        left = pd.DataFrame(
+            {0: [1, 0, 1, 0], 1: [0, 1, 0, 0], 2: [0, 0, 2, 0], 3: [1, 0, 0, 3]}
+        )
+
+        right = left.astype(float)
+        expected = left
+        result = pd.merge(left, right)
+        tm.assert_frame_equal(expected, result)
+
     def test_merge_index_as_on_arg(self):
         # GH14355
 
@@ -848,7 +860,7 @@ class TestMerge:
     def test_merge_non_unique_period_index(self):
         # GH #16871
         index = pd.period_range("2016-01-01", periods=16, freq="M")
-        df = DataFrame([i for i in range(len(index))], index=index, columns=["pnum"])
+        df = DataFrame(list(range(len(index))), index=index, columns=["pnum"])
         df2 = concat([df, df])
         result = df.merge(df2, left_index=True, right_index=True, how="inner")
         expected = DataFrame(

@@ -113,29 +113,29 @@ class BaseMethodsTests(BaseExtensionTests):
 
     @pytest.mark.parametrize("na_sentinel", [-1, -2])
     def test_factorize(self, data_for_grouping, na_sentinel):
-        labels, uniques = pd.factorize(data_for_grouping, na_sentinel=na_sentinel)
-        expected_labels = np.array(
+        codes, uniques = pd.factorize(data_for_grouping, na_sentinel=na_sentinel)
+        expected_codes = np.array(
             [0, 0, na_sentinel, na_sentinel, 1, 1, 0, 2], dtype=np.intp
         )
         expected_uniques = data_for_grouping.take([0, 4, 7])
 
-        tm.assert_numpy_array_equal(labels, expected_labels)
+        tm.assert_numpy_array_equal(codes, expected_codes)
         self.assert_extension_array_equal(uniques, expected_uniques)
 
     @pytest.mark.parametrize("na_sentinel", [-1, -2])
     def test_factorize_equivalence(self, data_for_grouping, na_sentinel):
-        l1, u1 = pd.factorize(data_for_grouping, na_sentinel=na_sentinel)
-        l2, u2 = data_for_grouping.factorize(na_sentinel=na_sentinel)
+        codes_1, uniques_1 = pd.factorize(data_for_grouping, na_sentinel=na_sentinel)
+        codes_2, uniques_2 = data_for_grouping.factorize(na_sentinel=na_sentinel)
 
-        tm.assert_numpy_array_equal(l1, l2)
-        self.assert_extension_array_equal(u1, u2)
+        tm.assert_numpy_array_equal(codes_1, codes_2)
+        self.assert_extension_array_equal(uniques_1, uniques_2)
 
     def test_factorize_empty(self, data):
-        labels, uniques = pd.factorize(data[:0])
-        expected_labels = np.array([], dtype=np.intp)
+        codes, uniques = pd.factorize(data[:0])
+        expected_codes = np.array([], dtype=np.intp)
         expected_uniques = type(data)._from_sequence([], dtype=data[:0].dtype)
 
-        tm.assert_numpy_array_equal(labels, expected_labels)
+        tm.assert_numpy_array_equal(codes, expected_codes)
         self.assert_extension_array_equal(uniques, expected_uniques)
 
     def test_fillna_copy_frame(self, data_missing):

@@ -7,7 +7,6 @@ These are used for:
 - .levels & .codes (FrozenNDArray)
 
 """
-
 import warnings
 
 import numpy as np
@@ -31,7 +30,7 @@ class FrozenList(PandasObject, list):
     # Side note: This has to be of type list. Otherwise,
     #            it messes up PyTables type checks.
 
-    def union(self, other):
+    def union(self, other) -> "FrozenList":
         """
         Returns a FrozenList with other concatenated to the end of self.
 
@@ -49,7 +48,7 @@ class FrozenList(PandasObject, list):
             other = list(other)
         return type(self)(super().__add__(other))
 
-    def difference(self, other):
+    def difference(self, other) -> "FrozenList":
         """
         Returns a FrozenList with elements from other removed from self.
 
@@ -101,14 +100,16 @@ class FrozenList(PandasObject, list):
     def _disabled(self, *args, **kwargs):
         """This method will not function because object is immutable."""
         raise TypeError(
-            "'%s' does not support mutable operations." % self.__class__.__name__
+            "'{cls}' does not support mutable operations.".format(
+                cls=self.__class__.__name__
+            )
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return pprint_thing(self, quote_strings=True, escape_chars=("\t", "\r", "\n"))
 
-    def __repr__(self):
-        return "%s(%s)" % (self.__class__.__name__, str(self))
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({str(self)})"
 
     __setitem__ = __setslice__ = __delitem__ = __delslice__ = _disabled
     pop = append = extend = remove = sort = insert = _disabled
@@ -132,7 +133,9 @@ class FrozenNDArray(PandasObject, np.ndarray):
 
     def _disabled(self, *args, **kwargs):
         """This method will not function because object is immutable."""
-        raise TypeError("'%s' does not support mutable operations." % self.__class__)
+        raise TypeError(
+            "'{cls}' does not support mutable operations.".format(cls=self.__class__)
+        )
 
     __setitem__ = __setslice__ = __delitem__ = __delslice__ = _disabled
     put = itemset = fill = _disabled
@@ -145,12 +148,12 @@ class FrozenNDArray(PandasObject, np.ndarray):
         arr = self.view(np.ndarray).copy()
         return arr
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         Return a string representation for this object.
         """
         prepr = pprint_thing(self, escape_chars=("\t", "\r", "\n"), quote_strings=True)
-        return "%s(%s, dtype='%s')" % (type(self).__name__, prepr, self.dtype)
+        return f"{type(self).__name__}({prepr}, dtype='{self.dtype}')"
 
     @deprecate_kwarg(old_arg_name="v", new_arg_name="value")
     def searchsorted(self, value, side="left", sorter=None):

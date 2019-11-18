@@ -19,7 +19,6 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_re,
     is_scalar,
-    is_string_like,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -123,8 +122,8 @@ def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
         arr = np.asarray(arr, dtype=object)
     if na_mask:
         mask = isna(arr)
+        convert = not np.all(mask)
         try:
-            convert = not all(mask)
             result = lib.map_infer_mask(arr, f, mask.view(np.uint8), convert)
         except (TypeError, AttributeError) as e:
             # Reraise the exception if callable `f` got wrong number of args.
@@ -135,6 +134,7 @@ def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
             )
 
             if len(e.args) >= 1 and re.search(p_err, e.args[0]):
+                # FIXME: this should be totally avoidable
                 raise e
 
             def g(x):
@@ -600,7 +600,7 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     """
 
     # Check whether repl is valid (GH 13438, GH 15055)
-    if not (is_string_like(repl) or callable(repl)):
+    if not (isinstance(repl, str) or callable(repl)):
         raise TypeError("repl must be a string or callable")
 
     is_compiled_re = is_re(pat)
@@ -1875,7 +1875,7 @@ def _noarg_wrapper(
     docstring=None,
     forbidden_types=["bytes"],
     returns_string=True,
-    **kargs
+    **kargs,
 ):
     @forbid_nonstring_types(forbidden_types, name=name)
     def wrapper(self):
@@ -1898,7 +1898,7 @@ def _pat_wrapper(
     name=None,
     forbidden_types=["bytes"],
     returns_string=True,
-    **kwargs
+    **kwargs,
 ):
     @forbid_nonstring_types(forbidden_types, name=name)
     def wrapper1(self, pat):
@@ -3401,59 +3401,69 @@ class StringMethods(NoNewAttributesMixin):
     _doc_args["istitle"] = dict(type="titlecase", method="istitle")
     _doc_args["isnumeric"] = dict(type="numeric", method="isnumeric")
     _doc_args["isdecimal"] = dict(type="decimal", method="isdecimal")
+    # force _noarg_wrapper return type with dtype=bool (GH 29624)
     isalnum = _noarg_wrapper(
         lambda x: x.isalnum(),
         name="isalnum",
         docstring=_shared_docs["ismethods"] % _doc_args["isalnum"],
         returns_string=False,
+        dtype=bool,
     )
     isalpha = _noarg_wrapper(
         lambda x: x.isalpha(),
         name="isalpha",
         docstring=_shared_docs["ismethods"] % _doc_args["isalpha"],
         returns_string=False,
+        dtype=bool,
     )
     isdigit = _noarg_wrapper(
         lambda x: x.isdigit(),
         name="isdigit",
         docstring=_shared_docs["ismethods"] % _doc_args["isdigit"],
         returns_string=False,
+        dtype=bool,
     )
     isspace = _noarg_wrapper(
         lambda x: x.isspace(),
         name="isspace",
         docstring=_shared_docs["ismethods"] % _doc_args["isspace"],
         returns_string=False,
+        dtype=bool,
     )
     islower = _noarg_wrapper(
         lambda x: x.islower(),
         name="islower",
         docstring=_shared_docs["ismethods"] % _doc_args["islower"],
         returns_string=False,
+        dtype=bool,
     )
     isupper = _noarg_wrapper(
         lambda x: x.isupper(),
         name="isupper",
         docstring=_shared_docs["ismethods"] % _doc_args["isupper"],
         returns_string=False,
+        dtype=bool,
     )
     istitle = _noarg_wrapper(
         lambda x: x.istitle(),
         name="istitle",
         docstring=_shared_docs["ismethods"] % _doc_args["istitle"],
         returns_string=False,
+        dtype=bool,
     )
     isnumeric = _noarg_wrapper(
         lambda x: x.isnumeric(),
         name="isnumeric",
         docstring=_shared_docs["ismethods"] % _doc_args["isnumeric"],
         returns_string=False,
+        dtype=bool,
     )
     isdecimal = _noarg_wrapper(
         lambda x: x.isdecimal(),
         name="isdecimal",
         docstring=_shared_docs["ismethods"] % _doc_args["isdecimal"],
         returns_string=False,
+        dtype=bool,
     )
 
     @classmethod

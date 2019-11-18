@@ -7,7 +7,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, lib, tslib, writers
+from pandas._libs import NaT, algos as libalgos, lib, tslib, writers
 from pandas._libs.index import convert_scalar
 import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import Timedelta, conversion
@@ -37,7 +37,6 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
-    is_extension_type,
     is_float_dtype,
     is_integer,
     is_integer_dtype,
@@ -268,7 +267,7 @@ class Block(PandasObject):
             values, placement=placement, ndim=ndim, klass=self.__class__, dtype=dtype
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         # don't want to print out all of the items here
         name = pprint_thing(self.__class__.__name__)
         if self._is_single_block:
@@ -289,7 +288,7 @@ class Block(PandasObject):
 
         return result
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.values)
 
     def __getstate__(self):
@@ -393,10 +392,7 @@ class Block(PandasObject):
 
         mask = isna(self.values)
         if limit is not None:
-            if not is_integer(limit):
-                raise ValueError("Limit must be an integer")
-            if limit < 1:
-                raise ValueError("Limit must be greater than 0")
+            limit = libalgos._validate_limit(None, limit=limit)
             mask[mask.cumsum(self.ndim - 1) > limit] = False
 
         if not self._can_hold_na:
@@ -1092,7 +1088,7 @@ class Block(PandasObject):
         fill_value=None,
         coerce=False,
         downcast=None,
-        **kwargs
+        **kwargs,
     ):
 
         inplace = validate_bool_kwarg(inplace, "inplace")
@@ -1142,7 +1138,7 @@ class Block(PandasObject):
             fill_value=fill_value,
             inplace=inplace,
             downcast=downcast,
-            **kwargs
+            **kwargs,
         )
 
     def _interpolate_with_fill(
@@ -1197,7 +1193,7 @@ class Block(PandasObject):
         limit_area=None,
         inplace=False,
         downcast=None,
-        **kwargs
+        **kwargs,
     ):
         """ interpolate using scipy wrappers """
 
@@ -1235,7 +1231,7 @@ class Block(PandasObject):
                 limit_area=limit_area,
                 fill_value=fill_value,
                 bounds_error=False,
-                **kwargs
+                **kwargs,
             )
 
         # interp each column independently
@@ -2020,7 +2016,7 @@ class FloatBlock(FloatOrComplexBlock):
         float_format=None,
         decimal=".",
         quoting=None,
-        **kwargs
+        **kwargs,
     ):
         """ convert to our native types format, slicing if desired """
 
@@ -2608,10 +2604,6 @@ class ObjectBlock(Block):
                 value.dtype.type,
                 (np.integer, np.floating, np.complexfloating, np.datetime64, np.bool_),
             )
-            or
-            # TODO(ExtensionArray): remove is_extension_type
-            # when all extension arrays have been ported.
-            is_extension_type(value)
             or is_extension_array_dtype(value)
         )
 
@@ -2932,6 +2924,30 @@ class CategoricalBlock(ExtensionBlock):
             )
         return result
 
+    def replace(
+        self,
+        to_replace,
+        value,
+        inplace: bool = False,
+        filter=None,
+        regex: bool = False,
+        convert: bool = True,
+    ):
+        inplace = validate_bool_kwarg(inplace, "inplace")
+        result = self if inplace else self.copy()
+        if filter is None:  # replace was called on a series
+            result.values.replace(to_replace, value, inplace=True)
+            if convert:
+                return result.convert(numeric=False, copy=not inplace)
+            else:
+                return result
+        else:  # replace was called on a DataFrame
+            if not isna(value):
+                result.values.add_categories(value, inplace=True)
+            return super(CategoricalBlock, result).replace(
+                to_replace, value, inplace, filter, regex, convert
+            )
+
 
 # -----------------------------------------------------------------
 # Constructor Helpers
@@ -3171,7 +3187,7 @@ def _putmask_smart(v, mask, n):
     # change the dtype if needed
     dtype, _ = maybe_promote(n.dtype)
 
-    if is_extension_type(v.dtype) and is_object_dtype(dtype):
+    if is_extension_array_dtype(v.dtype) and is_object_dtype(dtype):
         v = v._internal_get_values(dtype)
     else:
         v = v.astype(dtype)
