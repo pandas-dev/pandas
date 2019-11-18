@@ -233,7 +233,7 @@ class TestSeriesAlterAxes:
     def test_rename_axis_mapper(self):
         # GH 19978
         mi = MultiIndex.from_product([["a", "b", "c"], [1, 2]], names=["ll", "nn"])
-        s = Series([i for i in range(len(mi))], index=mi)
+        s = Series(list(range(len(mi))), index=mi)
 
         result = s.rename_axis(index={"ll": "foo"})
         assert result.index.names == ["foo", "nn"]

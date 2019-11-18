@@ -410,7 +410,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     tzinfo = tz
 
     @cache_readonly
-    def _is_dates_only(self):
+    def _is_dates_only(self) -> bool:
         """Return a boolean if we are only dates (and don't have a timezone)"""
         from pandas.io.formats.format import _is_dates_only
 
@@ -491,7 +491,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         from pandas.io.formats.format import _get_format_datetime64
 
         formatter = _get_format_datetime64(is_dates_only=self._is_dates_only)
-        return lambda x: "'%s'" % formatter(x, tz=self.tz)
+        return lambda x: f"'{formatter(x, tz=self.tz)}'"
 
     # --------------------------------------------------------------------
     # Set Operation Methods
@@ -1237,7 +1237,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
         return self.values.searchsorted(value, side=side)
 
-    def is_type_compatible(self, typ):
+    def is_type_compatible(self, typ) -> bool:
         return typ == self.inferred_type or typ == "datetime"
 
     @property
