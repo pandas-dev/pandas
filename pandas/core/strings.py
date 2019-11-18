@@ -127,6 +127,28 @@ def _na_map(f, arr, na_result=np.nan, dtype=object):
 def _stringarray_map(
     func: Callable[[str], Any], arr: "StringArray", na_value: Any, dtype: Dtype
 ) -> ArrayLike:
+    """
+    Map a callable over valid elements of a StringArrray.
+
+    Parameters
+    ----------
+    func : Callable[[str], Any]
+        Apply to each valid element.
+    arr : StringArray
+    na_value : Any
+        The value to use for missing values. By default, this is
+        the original value (NA).
+    dtype : Dtype
+        The result dtype to use. Specifying this aviods an intermediate
+        object-dtype allocation.
+
+    Returns
+    -------
+    ArrayLike
+        An ExtensionArray for integer or string dtypes, otherwise
+        an ndarray.
+
+    """
     from pandas.arrays import IntegerArray, StringArray
 
     mask = isna(arr)
@@ -160,6 +182,10 @@ def _stringarray_map(
         return StringArray(result)
     # TODO: BooleanArray
     else:
+        # This is when the result type is object. We reach this when
+        # -> We know the result type is truly object (e.g. .encode returns bytes
+        #    or .findall returns a list).
+        # -> We don't know the result type. E.g. `.get` can return anything.
         return lib.map_infer_mask(arr, func, mask.view("uint8"))
 
 
