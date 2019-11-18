@@ -326,10 +326,30 @@ jobs:
   finalize:
     name: Finalize build
     runs-on: ubuntu-latest
+    if: true
     needs: [checks, web_and_docs, tests]
     steps:
 
-    - name: Report build status
+    - name: Download checks artifact
+      uses: actions/download-artifact@master
+      with:
+        name: build_output_checks
+        path: build_output_checks.json
+
+    - name: Extract errors from checks artifact
+      shell: python
       run: |
-        echo "Download the artifacts with the output of each job"
-        echo "Create a comment in the PR with the errors"
+        import os
+        import json
+        data = json.load(open('build_output_checks.json'))
+        # TODO: Replace sample errors by actual errors in data
+        errors = ['<a href="#">This will be replaced</a>',
+                  '<a href="#">By an actual list of errors</a>']
+        msg = ('Hi @{os.environ["AUTHOR"]}, thanks for your contribution.'
+               'We found the next list of errors in your pull request:')
+        json.dump({'body': ['\n- '.join([msg, *errors])}, open('payload.json')])
+
+
+      - name:
+        run: |
+            curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -d "$(<payload.json)" https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/comments
