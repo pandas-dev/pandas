@@ -20,7 +20,7 @@ jobs:
       mysql:
         image: mysql:latest
         ports:
-        - 8888:3306
+        - 3306:3306
         env:
           MYSQL_ROOT_PASSWORD: password
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries 5
@@ -41,8 +41,12 @@ jobs:
     - name: Create PostgreSQL database
       run: |
         sudo apt-get install -y postgresql-client
-        psql -c 'CREATE DATABASE pandas_nosetest;' -U postgres
-      if: matrix.coverage
+        psql --host 127.0.0.1
+             --port ${{ job.services.postgres.ports['5432'] }} \
+             --username postgres \
+             --command 'CREATE DATABASE pandas_nosetest;'
+      # if: matrix.coverage
+      if: true
 
     - name: Create MySQL database
       run: |
