@@ -454,6 +454,31 @@ def test_agg_over_numpy_arrays():
     tm.assert_frame_equal(result, expected)
 
 
+def test_agg_tzaware_non_datetime_result():
+    # discussed in GH#29589, fixed in GH#29641, operating on tzaware values
+    #  with function that is not dtype-preserving
+    dti = pd.date_range("2012-01-01", periods=4, tz="UTC")
+    df = pd.DataFrame({"a": [0, 0, 1, 1], "b": dti})
+    gb = df.groupby("a")
+
+    # Case that _does_ preserve the dtype
+    result = gb["b"].agg(lambda x: x.iloc[0])
+    expected = pd.Series(dti[::2], name="b")
+    expected.index.name = "a"
+    tm.assert_series_equal(result, expected)
+
+    # Cases that do _not_ preserve the dtype
+    result = gb["b"].agg(lambda x: x.iloc[0].year)
+    expected = pd.Series([2012, 2012], name="b")
+    expected.index.name = "a"
+    tm.assert_series_equal(result, expected)
+
+    result = gb["b"].agg(lambda x: x.iloc[-1] - x.iloc[0])
+    expected = pd.Series([pd.Timedelta(days=1), pd.Timedelta(days=1)], name="b")
+    expected.index.name = "a"
+    tm.assert_series_equal(result, expected)
+
+
 def test_agg_timezone_round_trip():
     # GH 15426
     ts = pd.Timestamp("2016-01-01 12:00:00", tz="US/Pacific")
