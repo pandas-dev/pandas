@@ -3044,7 +3044,9 @@ class MultiIndex(Index):
                 if not need_sort:
                     k_codes = self.levels[i].get_indexer(k)
                     k_codes = k_codes[k_codes >= 0]  # Filter absent keys
-                    need_sort = not (k_codes[:-1] < k_codes[1:]).all()
+                    # True if the given codes are not ordered
+                    need_sort = (k_codes[:-1] > k_codes[1:]).any()
+
                 indexers = None
                 for x in k:
                     try:
@@ -3103,11 +3105,11 @@ class MultiIndex(Index):
         Parameters
         ----------
         seq : label/slice/list/mask or a sequence of such
-        indexer: an Int64Index for element of self
+        indexer: an Int64Index indexer of self
 
         Returns
         -------
-        indexer : a sorted Int64Index of element of self ordered as seq
+        indexer : a sorted Int64Index indexer of self ordered as seq
         """
         from typing import Tuple
 
