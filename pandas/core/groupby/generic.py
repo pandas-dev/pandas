@@ -885,13 +885,6 @@ class DataFrameGroupBy(GroupBy):
                         # raised directly by _aggregate_multiple_funcs
                         raise
                     result = self._aggregate_frame(func)
-                except NotImplementedError as err:
-                    if "decimal does not support skipna=True" in str(err):
-                        # FIXME: kludge for DecimalArray tests
-                        pass
-                    else:
-                        raise
-                    result = self._aggregate_frame(func)
                 else:
                     result.columns = Index(
                         result.columns.levels[0], name=self._selected_obj.columns.name
