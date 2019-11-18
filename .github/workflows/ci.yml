@@ -208,9 +208,10 @@ jobs:
 
     - name: Create MySQL database
       run: |
-        mysql --host 127.0.0.1 \
+        netstat -an
+        mysql --host localhost \
               --port ${{ job.services.mysql.ports['3306'] }} \
-              --user pandas \
+              --user root \
               --password password \
               --execute "CREATE DATABASE pandas_nosetest;"
       # if: matrix.coverage
