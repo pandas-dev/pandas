@@ -523,10 +523,10 @@ class HDFStore:
     def __getitem__(self, key: str):
         return self.get(key)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value):
         self.put(key, value)
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: str):
         return self.remove(key)
 
     def __getattr__(self, name: str):
@@ -3411,7 +3411,7 @@ class Table(Fixed):
             [(a.cname, a) for a in self.index_axes]
             + [
                 (self.storage_obj_type._AXIS_NAMES[axis], None)
-                for axis, values in self.non_index_axes
+                for axis, _ in self.non_index_axes
             ]
             + [
                 (v.cname, v)
