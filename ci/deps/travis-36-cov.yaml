@@ -29,7 +29,7 @@ dependencies:
   - python-snappy
   - python=3.6.*
   - pytz
-  - s3fs<0.3
+  - s3fs
   - scikit-learn
   - scipy
   - sqlalchemy

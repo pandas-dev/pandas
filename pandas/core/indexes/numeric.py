@@ -22,6 +22,7 @@ from pandas.core.dtypes.generic import (
     ABCFloat64Index,
     ABCInt64Index,
     ABCRangeIndex,
+    ABCSeries,
     ABCUInt64Index,
 )
 from pandas.core.dtypes.missing import isna
@@ -55,8 +56,16 @@ class NumericIndex(Index):
             if fastpath:
                 return cls._simple_new(data, name=name)
 
-        # is_scalar, generators handled in coerce_to_ndarray
-        data = cls._coerce_to_ndarray(data)
+        # Coerce to ndarray if not already ndarray or Index
+        if not isinstance(data, (np.ndarray, Index)):
+            if is_scalar(data):
+                raise cls._scalar_data_error(data)
+
+            # other iterable of some kind
+            if not isinstance(data, (ABCSeries, list, tuple)):
+                data = list(data)
+
+            data = np.asarray(data, dtype=dtype)
 
         if issubclass(data.dtype.type, str):
             cls._string_data_error(data)
@@ -206,7 +215,7 @@ class IntegerIndex(NumericIndex):
     This is an abstract class for Int64Index, UInt64Index.
     """
 
-    def __contains__(self, key):
+    def __contains__(self, key) -> bool:
         """
         Check if key is a float and has a decimal. If it has, return False.
         """
@@ -233,7 +242,7 @@ class Int64Index(IntegerIndex):
         return "integer"
 
     @property
-    def asi8(self):
+    def asi8(self) -> np.ndarray:
         # do not cache or you'll create a memory leak
         return self.values.view("i8")
 
@@ -288,7 +297,7 @@ class UInt64Index(IntegerIndex):
         return "integer"
 
     @property
-    def asi8(self):
+    def asi8(self) -> np.ndarray:
         # do not cache or you'll create a memory leak
         return self.values.view("u8")
 
@@ -425,7 +434,7 @@ class Float64Index(NumericIndex):
 
         return new_values
 
-    def equals(self, other):
+    def equals(self, other) -> bool:
         """
         Determines if two Index objects contain the same elements.
         """
@@ -447,7 +456,7 @@ class Float64Index(NumericIndex):
         except (TypeError, ValueError):
             return False
 
-    def __contains__(self, other):
+    def __contains__(self, other) -> bool:
         if super().__contains__(other):
             return True
 
@@ -482,7 +491,7 @@ class Float64Index(NumericIndex):
         return super().get_loc(key, method=method, tolerance=tolerance)
 
     @cache_readonly
-    def is_unique(self):
+    def is_unique(self) -> bool:
         return super().is_unique and self._nan_idxs.size < 2
 
     @Appender(Index.isin.__doc__)
