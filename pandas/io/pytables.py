@@ -2836,7 +2836,7 @@ class GenericFixed(Fixed):
         self.write_array("{key}_blengths".format(key=key), index.blengths)
         setattr(self.attrs, "{key}_length".format(key=key), index.length)
 
-    def read_block_index(self, key, **kwargs):
+    def read_block_index(self, key, **kwargs) -> BlockIndex:
         length = getattr(self.attrs, "{key}_length".format(key=key))
         blocs = self.read_array("{key}_blocs".format(key=key), **kwargs)
         blengths = self.read_array("{key}_blengths".format(key=key), **kwargs)
@@ -2846,7 +2846,7 @@ class GenericFixed(Fixed):
         self.write_array("{key}_indices".format(key=key), index.indices)
         setattr(self.attrs, "{key}_length".format(key=key), index.length)
 
-    def read_sparse_intindex(self, key, **kwargs):
+    def read_sparse_intindex(self, key, **kwargs) -> IntIndex:
         length = getattr(self.attrs, "{key}_length".format(key=key))
         indices = self.read_array("{key}_indices".format(key=key), **kwargs)
         return IntIndex(length, indices)
@@ -2878,7 +2878,7 @@ class GenericFixed(Fixed):
             label_key = "{key}_label{idx}".format(key=key, idx=i)
             self.write_array(label_key, level_codes)
 
-    def read_multi_index(self, key, **kwargs):
+    def read_multi_index(self, key, **kwargs) -> MultiIndex:
         nlevels = getattr(self.attrs, "{key}_nlevels".format(key=key))
 
         levels = []
@@ -2953,7 +2953,7 @@ class GenericFixed(Fixed):
 
         return name, index
 
-    def write_array_empty(self, key, value):
+    def write_array_empty(self, key: str, value):
         """ write a 0-len array """
 
         # ugly hack for length 0 axes
@@ -2966,7 +2966,7 @@ class GenericFixed(Fixed):
         """Returns true if any axis is zero length."""
         return any(x == 0 for x in shape)
 
-    def write_array(self, key, value, items=None):
+    def write_array(self, key: str, value, items=None):
         if key in self.group:
             self._handle.remove_node(self.group, key)
 
@@ -4913,7 +4913,7 @@ class Selection:
 
     """
 
-    def __init__(self, table, where=None, start=None, stop=None):
+    def __init__(self, table: Table, where=None, start=None, stop=None):
         self.table = table
         self.where = where
         self.start = start
