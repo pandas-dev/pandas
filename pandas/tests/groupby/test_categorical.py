@@ -1246,25 +1246,27 @@ def test_get_nonexistent_category():
         )
 
 
-@pytest.mark.parametrize("aggregation", [
-    "sum",
-    "mean",
-    "min",
-    "count",
-])
-def test_series_groupby_on_2_categoricals_unobserved(aggregation):
+@pytest.mark.parametrize("aggregation", ["sum", "mean", "min", "count"])
+@pytest.mark.parametrize("observed", [True, False])
+def test_series_groupby_on_2_categoricals_unobserved(aggregation: str, observed: bool):
     # GH 17605
-    df = pd.DataFrame({
-        "cat_1": pd.Categorical(list("AABB"), categories=list("ABCD")),
-        "cat_2": pd.Categorical(list("AB") * 2, categories=list("ABCD")),
-        "value": [0.1] * 4
-    })
+    df = pd.DataFrame(
+        {
+            "cat_1": pd.Categorical(list("AABB"), categories=list("ABCD")),
+            "cat_2": pd.Categorical(list("AB") * 2, categories=list("ABCD")),
+            "value": [0.1] * 4,
+        }
+    )
 
     # Expect 1 observation for each combination of categories
-    expected_length = len(df["cat_1"].cat.categories) * len(df["cat_2"].cat.categories)
+    if observed:
+        expected_length = 4
+    else:
+        expected_length = len(df["cat_1"].cat.categories) * len(
+            df["cat_2"].cat.categories
+        )
 
-    series_groupby = df.groupby(["cat_1", "cat_2"], observed=False)["value"]
+    series_groupby = df.groupby(["cat_1", "cat_2"], observed=observed)["value"]
     agg = getattr(series_groupby, aggregation)
     result = agg()
-
     assert len(result) == expected_length
