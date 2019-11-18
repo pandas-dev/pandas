@@ -2096,7 +2096,8 @@ class DataCol(IndexCol):
         self.meta_attr = "{name}_meta".format(name=self.name)
         self.set_data(data)
         self.set_metadata(metadata)
-        assert isinstance(self.cname, str), type(self.cname)
+        # self.cname is a str here in all test cases but one, and that is a
+        #  call inside a pytest.raises context
 
     def __repr__(self) -> str:
         temp = tuple(
@@ -3241,6 +3242,7 @@ class Table(Fixed):
     is_shape_reversed = False
 
     data_columns: List[str]
+    selection: Optional["Selection"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -4569,7 +4571,7 @@ class AppendableMultiFrameTable(AppendableFrameTable):
     _re_levels = re.compile(r"^level_\d+$")
 
     @property
-    def table_type_short(self):
+    def table_type_short(self) -> str:
         return "appendable_multi"
 
     def write(self, obj, data_columns=None, **kwargs):
