@@ -520,7 +520,7 @@ class HDFStore:
     def filename(self):
         return self._path
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str):
         return self.get(key)
 
     def __setitem__(self, key, value):
@@ -529,7 +529,7 @@ class HDFStore:
     def __delitem__(self, key):
         return self.remove(key)
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str):
         """ allow attribute access to get stores """
         try:
             return self.get(name)
@@ -943,13 +943,13 @@ class HDFStore:
 
         return it.get_result(coordinates=True)
 
-    def put(self, key, value, format=None, append=False, **kwargs):
+    def put(self, key: str, value, format=None, append=False, **kwargs):
         """
         Store object in HDFStore.
 
         Parameters
         ----------
-        key : object
+        key : str
         value : {Series, DataFrame}
         format : 'fixed(f)|table(t)', default is 'fixed'
             fixed(f) : Fixed format
@@ -1028,7 +1028,14 @@ class HDFStore:
             return s.delete(where=where, start=start, stop=stop)
 
     def append(
-        self, key, value, format=None, append=True, columns=None, dropna=None, **kwargs
+        self,
+        key: str,
+        value,
+        format=None,
+        append=True,
+        columns=None,
+        dropna=None,
+        **kwargs,
     ):
         """
         Append to Table in file. Node must already exist and be Table
@@ -1036,7 +1043,7 @@ class HDFStore:
 
         Parameters
         ----------
-        key : object
+        key : str
         value : {Series, DataFrame}
         format : 'table' is the default
             table(t) : table format
