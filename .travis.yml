@@ -86,7 +86,7 @@ install:
 script:
   - echo "script start"
   - echo "$JOB"
-  - source activate pandas-dev; fi
+  - source activate pandas-dev
   - ci/run_tests.sh
 
 after_script:
