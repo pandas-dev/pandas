@@ -1160,7 +1160,7 @@ MultiIndex
 
 - Constructor for :class:`MultiIndex` verifies that the given ``sortorder`` is compatible with the actual ``lexsort_depth``  if ``verify_integrity`` parameter is ``True`` (the default) (:issue:`28735`)
 - Series and MultiIndex `.drop` with `MultiIndex` raise exception if labels not in given in level (:issue:`8594`)
--
+- Bug in :meth:`Dataframe.loc` when used with a :class:`MultiIndex`. The returned values were not in the same order as the given inputs (:issue:`22797`)
 
 I/O
 ^^^
