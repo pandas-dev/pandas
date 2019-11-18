@@ -173,6 +173,8 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --include="*.rst" -E "[a-zA-Z0-9]\`\`?[a-zA-Z0-9]" doc/source/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Check for extra blank lines after the class definition' ; echo $MSG
+
     MSG='Check for incorrect sphinx directives' ; echo $MSG
     invgrep -R --include="*.py" --include="*.pyx" --include="*.rst" -E "\.\. (autosummary|contents|currentmodule|deprecated|function|image|important|include|ipython|literalinclude|math|module|note|raw|seealso|toctree|versionadded|versionchanged|warning):[^:]" ./pandas ./doc/source
     RET=$(($RET + $?)) ; echo $MSG "DONE"
@@ -190,7 +192,7 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --include="*.rst" ".. ipython ::" doc/source
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Check for extra blank lines after the class definition' ; echo $MSG
+#    MSG='Check for extra blank lines after the class definition' ; echo $MSG
 #    invgrep -R --include="*.py" --include="*.pyx" -E 'class.*:\n\n( )+"""' .
 #    RET=$(($RET + $?)) ; echo $MSG "DONE"
 

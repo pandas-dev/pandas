@@ -12,91 +12,6 @@ env:
   # PATH: $HOME/miniconda3/bin:$PATH
 
 jobs:
-  tests:
-    name: Run tests
-    runs-on: ${{ matrix.os }}
-
-    services:
-      postgres:
-        image: postgres:latest
-        ports:
-        - 5432/tcp
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-
-      mysql:
-        image: mysql:latest
-        ports:
-        - 3306/tcp
-        env:
-          MYSQL_ROOT_PASSWORD: password
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries 5
-
-    strategy:
-      matrix:
-        name: [py36-cov, py36-locale-zh, py37]
-        include:
-        - name: py36-cov
-          os: ubuntu-latest
-          env_file: travis-36-cov.yaml
-          pattern: "((not slow and not network) or (single and db))"
-          pandas_testing_mode: deprecate
-          coverage: true
-
-        - name: py36-locale-zh
-          os: ubuntu-latest
-          env_file: travis-36-locale.yaml
-          pattern: "((not slow and not network) or (single and db))"
-          locale_override: zh_CN.UTF-8
-
-        - name: py37
-          os: ubuntu-latest
-          env_file: travis-37.yaml
-          pattern: "(not slow and not network)"
-
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v1
-
-    - name: Create PostgreSQL database
-      run: |
-        sudo apt-get install -y postgresql-client
-        psql --host 127.0.0.1 \
-             --port ${{ job.services.postgres.ports['5432'] }} \
-             --username postgres \
-             --command 'CREATE DATABASE pandas_nosetest;'
-      # if: matrix.coverage
-      if: true
-
-    - name: Create MySQL database
-      run: |
-        sudo apt-get install -y mysql-client
-        mysql --host 127.0.0.1 \
-              --port ${{ job.services.mysql.ports['3306'] }} \
-              --user root \
-              --password password \
-              --execute "CREATE DATABASE pandas_nosetest;"
-      # if: matrix.coverage
-      if: true
-
-    - name: Setup environment and build pandas
-      run: |
-        export PATH=$HOME/miniconda3/bin:$PATH
-        ci/setup_env.sh
-      env:
-        ENV_FILE: ci/deps/${{ matrix.env_file }}
-        LOCALE_OVERRIDE: ${{ matrix.locale_override }}
-
-    - name: Run tests
-      run: |
-        export PATH=$HOME/miniconda3/bin:$PATH
-        source activate pandas-dev
-        ci/run_tests.sh
-      env:
-        PATTERN: ${{ matrix.pattern }}
-        PANDAS_TESTING_MODE: ${{ matrix.pandas_testing_mode }}
-        COVERAGE: ${{ matrix.coverage }}
-        LOCALE_OVERRIDE: ${{ matrix.locale_override }}
-
   checks:
     name: Checks
     runs-on: ubuntu-latest
@@ -235,3 +150,87 @@ jobs:
       with:
         name: pandas_web
         path: pandas_web.tar.gz
+
+  tests:
+    name: Tests
+    runs-on: ${{ matrix.os }}
+
+    services:
+      postgres:
+        image: postgres:latest
+        ports:
+        - 5432/tcp
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
+      mysql:
+        image: mysql:latest
+        ports:
+        - 3306/tcp
+        env:
+          MYSQL_ROOT_PASSWORD: password
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries 5
+
+    strategy:
+      fail-fast: false
+      matrix:
+        name: [py36-cov, py36-locale-zh, py37]
+        include:
+        - name: py36-cov
+          os: ubuntu-latest
+          env_file: travis-36-cov.yaml
+          pattern: "((not slow and not network) or (single and db))"
+          pandas_testing_mode: deprecate
+          coverage: true
+
+        - name: py36-locale-zh
+          os: ubuntu-latest
+          env_file: travis-36-locale.yaml
+          pattern: "((not slow and not network) or (single and db))"
+          locale_override: zh_CN.UTF-8
+
+        - name: py37
+          os: ubuntu-latest
+          env_file: travis-37.yaml
+          pattern: "(not slow and not network)"
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v1
+
+    - name: Create PostgreSQL database
+      run: |
+        sudo apt-get install -y postgresql-client
+        psql --host 127.0.0.1 \
+             --port ${{ job.services.postgres.ports['5432'] }} \
+             --username postgres \
+             --command 'CREATE DATABASE pandas_nosetest;'
+      if: matrix.coverage
+
+    - name: Create MySQL database
+      run: |
+        mysql --host 127.0.0.1 \
+              --port ${{ job.services.mysql.ports['3306'] }} \
+              --user pandas \
+              --password password \
+              --execute "CREATE DATABASE pandas_nosetest;"
+      # if: matrix.coverage
+      if: true
+
+    - name: Setup environment and build pandas
+      run: |
+        export PATH=$HOME/miniconda3/bin:$PATH
+        ci/setup_env.sh
+      env:
+        ENV_FILE: ci/deps/${{ matrix.env_file }}
+        LOCALE_OVERRIDE: ${{ matrix.locale_override }}
+
+    - name: Run tests
+      run: |
+        export PATH=$HOME/miniconda3/bin:$PATH
+        source activate pandas-dev
+        ci/run_tests.sh
+      env:
+        PATTERN: ${{ matrix.pattern }}
+        PANDAS_TESTING_MODE: ${{ matrix.pandas_testing_mode }}
+        COVERAGE: ${{ matrix.coverage }}
+        LOCALE_OVERRIDE: ${{ matrix.locale_override }}
