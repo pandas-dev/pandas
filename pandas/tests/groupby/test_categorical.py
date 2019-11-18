@@ -6,8 +6,15 @@ import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas import (Categorical, CategoricalIndex, DataFrame, Index,
-                    MultiIndex, Series, qcut)
+from pandas import (
+    Categorical,
+    CategoricalIndex,
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    qcut,
+)
 from pandas.compat import PY37
 
 
