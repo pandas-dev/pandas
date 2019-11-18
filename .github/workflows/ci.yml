@@ -237,6 +237,7 @@ jobs:
       run: |
         sudo apt-get install -y mysql-client libmysqlclient-dev
         mysql --host 127.0.0.1 --port ${{ job.services.mysql.ports[3306] }} -uroot -proot -e "SHOW GRANTS FOR 'root'@'localhost'"
+        mysql --host 127.0.0.1 --port ${{ job.services.mysql.ports[3306] }} -uroot -proot -e "CREATE DATABASE pandas_nosetest;"
 
     - name: Create PostgreSQL database
       run: |
