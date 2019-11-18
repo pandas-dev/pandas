@@ -3856,3 +3856,36 @@ class TestDataFrameIndexingCategorical:
             df["group"] = pd.cut(
                 df.value, range(0, 105, 10), right=False, labels=labels
             )
+
+    def test_loc_indexing_preserves_index_category_dtype(self):
+        # GH 15166
+        df = DataFrame(
+            data=np.arange(2, 22, 2),
+            index=pd.MultiIndex(
+                levels=[pd.CategoricalIndex(["a", "b"]), range(10)],
+                codes=[[0] * 5 + [1] * 5, range(10)],
+                names=["Index1", "Index2"],
+            ),
+        )
+
+        expected = pd.CategoricalIndex(
+            ["a", "b"],
+            categories=["a", "b"],
+            ordered=False,
+            name="Index1",
+            dtype="category",
+        )
+
+        result = df.index.levels[0]
+        tm.assert_index_equal(result, expected)
+
+        result = df.loc[["a"]].index.levels[0]
+        tm.assert_index_equal(result, expected)
+
+    def test_wrong_length_cat_dtype_raises(self):
+        # GH29523
+        cat = pd.Categorical.from_codes([0, 1, 1, 0, 1, 2], ["a", "b", "c"])
+        df = pd.DataFrame({"bar": range(10)})
+        err = "Length of values does not match length of index"
+        with pytest.raises(ValueError, match=err):
+            df["foo"] = cat

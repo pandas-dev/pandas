@@ -489,7 +489,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def __iter__(self):
         return iter(np.asarray(self))
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.left)
 
     def __getitem__(self, value):

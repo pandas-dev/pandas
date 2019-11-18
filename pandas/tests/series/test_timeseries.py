@@ -370,6 +370,16 @@ class TestTimeSeries:
             rs, (filled / filled.shift(freq="5D") - 1).reindex_like(filled)
         )
 
+    def test_pct_change_with_duplicate_axis(self):
+        # GH 28664
+        common_idx = date_range("2019-11-14", periods=5, freq="D")
+        result = Series(range(5), common_idx).pct_change(freq="B")
+
+        # the reason that the expected should be like this is documented at PR 28681
+        expected = Series([np.NaN, np.inf, np.NaN, np.NaN, 3.0], common_idx)
+
+        tm.assert_series_equal(result, expected)
+
     def test_pct_change_shift_over_nas(self):
         s = Series([1.0, 1.5, np.nan, 2.5, 3.0])
 
@@ -594,7 +604,7 @@ class TestTimeSeries:
         # GH #9854
         index_name = "bar"
         index = pd.date_range("20130101", periods=20, name=index_name)
-        df = pd.DataFrame([x for x in range(20)], columns=["foo"], index=index)
+        df = pd.DataFrame(list(range(20)), columns=["foo"], index=index)
 
         assert index_name == df.index.name
         assert index_name == df.asfreq("10D").index.name

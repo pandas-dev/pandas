@@ -262,9 +262,9 @@ class TestFloat64Index(Numeric):
         # invalid
         for dtype in ["M8[ns]", "m8[ns]"]:
             msg = (
-                "Cannot convert Float64Index to dtype {}; integer values"
-                " are required for conversion"
-            ).format(pandas_dtype(dtype))
+                f"Cannot convert Float64Index to dtype {pandas_dtype(dtype)}; "
+                f"integer values are required for conversion"
+            )
             with pytest.raises(TypeError, match=re.escape(msg)):
                 i.astype(dtype)
 
@@ -605,7 +605,7 @@ class NumericInt(Numeric):
         tm.assert_index_equal(result, expected)
 
         name = self._holder.__name__
-        msg = "Unable to fill values because {name} cannot contain NA".format(name=name)
+        msg = f"Unable to fill values because {name} cannot contain NA"
 
         # fill_value=True
         with pytest.raises(ValueError, match=msg):
@@ -959,6 +959,11 @@ class TestUInt64Index(NumericInt):
 
         idx = Index([-1, 2 ** 63], dtype=object)
         res = Index(np.array([-1, 2 ** 63], dtype=object))
+        tm.assert_index_equal(res, idx)
+
+        # https://github.com/pandas-dev/pandas/issues/29526
+        idx = UInt64Index([1, 2 ** 63 + 1], dtype=np.uint64)
+        res = Index([1, 2 ** 63 + 1], dtype=np.uint64)
         tm.assert_index_equal(res, idx)
 
     def test_get_indexer(self, index_large):

@@ -14,7 +14,7 @@ from functools import partial, wraps
 import inspect
 import re
 import types
-from typing import FrozenSet, Hashable, Iterable, List, Optional, Tuple, Type, Union
+from typing import FrozenSet, Iterable, List, Optional, Tuple, Type, Union
 
 import numpy as np
 
@@ -26,13 +26,11 @@ from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
-from pandas.util._validators import validate_kwargs
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
     ensure_float,
     is_datetime64_dtype,
-    is_datetime64tz_dtype,
     is_extension_array_dtype,
     is_integer_dtype,
     is_numeric_dtype,
@@ -46,10 +44,9 @@ import pandas.core.algorithms as algorithms
 from pandas.core.arrays import Categorical, try_cast_to_ea
 from pandas.core.base import DataError, PandasObject, SelectionMixin
 import pandas.core.common as com
-from pandas.core.construction import extract_array
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.groupby import base
+from pandas.core.groupby import base, ops
 from pandas.core.index import CategoricalIndex, Index, MultiIndex
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
@@ -346,15 +343,15 @@ class _GroupBy(PandasObject, SelectionMixin):
         keys=None,
         axis: int = 0,
         level=None,
-        grouper=None,
+        grouper: "Optional[ops.BaseGrouper]" = None,
         exclusions=None,
         selection=None,
-        as_index=True,
-        sort=True,
-        group_keys=True,
-        squeeze=False,
-        observed=False,
-        **kwargs
+        as_index: bool = True,
+        sort: bool = True,
+        group_keys: bool = True,
+        squeeze: bool = False,
+        observed: bool = False,
+        mutated: bool = False,
     ):
 
         self._selection = selection
@@ -376,7 +373,7 @@ class _GroupBy(PandasObject, SelectionMixin):
         self.group_keys = group_keys
         self.squeeze = squeeze
         self.observed = observed
-        self.mutated = kwargs.pop("mutated", False)
+        self.mutated = mutated
 
         if grouper is None:
             from pandas.core.groupby.grouper import get_grouper
@@ -396,10 +393,7 @@ class _GroupBy(PandasObject, SelectionMixin):
         self.grouper = grouper
         self.exclusions = set(exclusions) if exclusions else set()
 
-        # we accept no other args
-        validate_kwargs("group", kwargs, {})
-
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.groups)
 
     def __repr__(self) -> str:
@@ -443,7 +437,7 @@ class _GroupBy(PandasObject, SelectionMixin):
         def get_converter(s):
             # possibly convert to the actual key types
             # in the indices, could be a Timestamp or a np.datetime64
-            if isinstance(s, (Timestamp, datetime.datetime)):
+            if isinstance(s, datetime.datetime):
                 return lambda key: Timestamp(key)
             elif isinstance(s, np.datetime64):
                 return lambda key: Timestamp(key).asm8
@@ -492,6 +486,7 @@ class _GroupBy(PandasObject, SelectionMixin):
 
     @cache_readonly
     def _selected_obj(self):
+        # Note: _selected_obj is always just `self.obj` for SeriesGroupBy
 
         if self._selection is None or isinstance(self.obj, Series):
             if self._group_selection is not None:
@@ -636,23 +631,13 @@ b  2""",
                     # TODO: is the above comment accurate?
                     raise
 
-            # related to : GH3688
-            # try item-by-item
-            # this can be called recursively, so need to raise
-            # ValueError
-            # if we don't have this method to indicated to aggregate to
-            # mark this column as an error
-            try:
-                result = self._aggregate_item_by_item(name, *args, **kwargs)
-                assert self.obj.ndim == 2
-                return result
-            except AttributeError:
-                # e.g. SparseArray has no flags attr
-                # FIXME: 'SeriesGroupBy' has no attribute '_aggregate_item_by_item'
-                #  occurs in idxmax() case
-                #  in tests.groupby.test_function.test_non_cython_api
-                assert self.obj.ndim == 1
+            if self.obj.ndim == 1:
+                # this can be called recursively, so need to raise ValueError
                 raise ValueError
+
+            # GH#3688 try to operate item-by-item
+            result = self._aggregate_item_by_item(name, *args, **kwargs)
+            return result
 
         wrapper.__name__ = name
         return wrapper
@@ -750,7 +735,7 @@ b  2""",
             keys, values, not_indexed_same=mutated or self.mutated
         )
 
-    def _iterate_slices(self) -> Iterable[Tuple[Optional[Hashable], Series]]:
+    def _iterate_slices(self) -> Iterable[Series]:
         raise AbstractMethodError(self)
 
     def transform(self, func, *args, **kwargs):
@@ -803,22 +788,11 @@ b  2""",
             dtype = obj.dtype
 
         if not is_scalar(result):
-            if is_datetime64tz_dtype(dtype):
-                # GH 23683
-                # Prior results _may_ have been generated in UTC.
-                # Ensure we localize to UTC first before converting
-                # to the target timezone
-                arr = extract_array(obj)
-                try:
-                    result = arr._from_sequence(result, dtype="datetime64[ns, UTC]")
-                    result = result.astype(dtype)
-                except TypeError:
-                    # _try_cast was called at a point where the result
-                    # was already tz-aware
-                    pass
-            elif is_extension_array_dtype(dtype):
+            if is_extension_array_dtype(dtype) and dtype.kind != "M":
                 # The function can return something of any type, so check
-                # if the type is compatible with the calling EA.
+                #  if the type is compatible with the calling EA.
+                # datetime64tz is handled correctly in agg_series,
+                #  so is excluded here.
 
                 # return the same type (Series) as our caller
                 cls = dtype.construct_array_type()
@@ -846,7 +820,8 @@ b  2""",
 
     def _cython_transform(self, how: str, numeric_only: bool = True, **kwargs):
         output = collections.OrderedDict()  # type: dict
-        for name, obj in self._iterate_slices():
+        for obj in self._iterate_slices():
+            name = obj.name
             is_numeric = is_numeric_dtype(obj.dtype)
             if numeric_only and not is_numeric:
                 continue
@@ -878,12 +853,15 @@ b  2""",
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
     ):
         output = {}
-        for name, obj in self._iterate_slices():
+        for obj in self._iterate_slices():
+            name = obj.name
             is_numeric = is_numeric_dtype(obj.dtype)
             if numeric_only and not is_numeric:
                 continue
 
-            result, names = self.grouper.aggregate(obj.values, how, min_count=min_count)
+            result, names = self.grouper.aggregate(
+                obj._values, how, min_count=min_count
+            )
             output[name] = self._try_cast(result, obj)
 
         if len(output) == 0:
@@ -897,7 +875,12 @@ b  2""",
 
         # iterate through "columns" ex exclusions to populate output dict
         output = {}
-        for name, obj in self._iterate_slices():
+        for obj in self._iterate_slices():
+            name = obj.name
+            if self.grouper.ngroups == 0:
+                # agg_series below assumes ngroups > 0
+                continue
+
             try:
                 # if this function is invalid for this dtype, we will ignore it.
                 func(obj[:0])
@@ -911,10 +894,8 @@ b  2""",
                 pass
 
             result, counts = self.grouper.agg_series(obj, f)
-            if result is not None:
-                # TODO: only 3 test cases get None here, do something
-                #  in those cases
-                output[name] = self._try_cast(result, obj, numeric_only=True)
+            assert result is not None
+            output[name] = self._try_cast(result, obj, numeric_only=True)
 
         if len(output) == 0:
             return self._python_apply_general(f)
@@ -1226,7 +1207,7 @@ class GroupBy(_GroupBy):
         return self._cython_agg_general(
             "median",
             alt=lambda x, axis: Series(x).median(axis=axis, **kwargs),
-            **kwargs
+            **kwargs,
         )
 
     @Substitution(name="groupby")
@@ -1369,14 +1350,6 @@ class GroupBy(_GroupBy):
 
                 # apply a non-cython aggregation
                 result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
-
-                # coerce the resulting columns if we can
-                if isinstance(result, DataFrame):
-                    for col in result.columns:
-                        result[col] = self._try_cast(result[col], self.obj[col])
-                else:
-                    result = self._try_cast(result, self.obj)
-
                 return result
 
             set_function_name(f, name, cls)
@@ -2193,7 +2166,7 @@ class GroupBy(_GroupBy):
         result_is_index: bool = False,
         pre_processing=None,
         post_processing=None,
-        **kwargs
+        **kwargs,
     ):
         """
         Get result for Cythonized functions.
@@ -2254,7 +2227,8 @@ class GroupBy(_GroupBy):
         output = collections.OrderedDict()  # type: dict
         base_func = getattr(libgroupby, how)
 
-        for name, obj in self._iterate_slices():
+        for obj in self._iterate_slices():
+            name = obj.name
             values = obj._data._values
 
             if aggregate:
@@ -2490,7 +2464,22 @@ GroupBy._add_numeric_operations()
 
 
 @Appender(GroupBy.__doc__)
-def groupby(obj: NDFrame, by, **kwds):
+def get_groupby(
+    obj: NDFrame,
+    by=None,
+    axis: int = 0,
+    level=None,
+    grouper: "Optional[ops.BaseGrouper]" = None,
+    exclusions=None,
+    selection=None,
+    as_index: bool = True,
+    sort: bool = True,
+    group_keys: bool = True,
+    squeeze: bool = False,
+    observed: bool = False,
+    mutated: bool = False,
+):
+
     if isinstance(obj, Series):
         from pandas.core.groupby.generic import SeriesGroupBy
 
@@ -2504,4 +2493,18 @@ def groupby(obj: NDFrame, by, **kwds):
     else:
         raise TypeError("invalid type: {obj}".format(obj=obj))
 
-    return klass(obj, by, **kwds)
+    return klass(
+        obj=obj,
+        keys=by,
+        axis=axis,
+        level=level,
+        grouper=grouper,
+        exclusions=exclusions,
+        selection=selection,
+        as_index=as_index,
+        sort=sort,
+        group_keys=group_keys,
+        squeeze=squeeze,
+        observed=observed,
+        mutated=mutated,
+    )
