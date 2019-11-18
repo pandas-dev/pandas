@@ -7,7 +7,6 @@ The SeriesGroupBy and DataFrameGroupBy sub-class
 expose these user-facing objects to provide specific functionailty.
 """
 
-import collections
 from contextlib import contextmanager
 import datetime
 from functools import partial, wraps
@@ -830,7 +829,7 @@ b  2""",
         )
 
     def _cython_transform(self, how: str, numeric_only: bool = True, **kwargs):
-        output: Dict[int, np.ndarray] = collections.OrderedDict()
+        output: Dict[int, np.ndarray] = {}
         names: List[Optional[Hashable]] = []
         for idx, obj in enumerate(self._iterate_slices()):
             name = obj.name
@@ -869,7 +868,7 @@ b  2""",
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
     ):
-        output: Dict[int, np.ndarray] = collections.OrderedDict()
+        output: Dict[int, np.ndarray] = {}
         names: List[Hashable] = []
 
         # Ideally we would be able to enumerate self._iterate_slices and use
@@ -892,7 +891,10 @@ b  2""",
                 assert len(agg_names) == result.shape[1]
             else:
                 assert result.ndim == 1
-                result = result.reshape(-1, 1)
+
+                breakpoint()
+                if isinstance(result, np.ndarray):
+                    result = result.reshape(-1, 1)
                 agg_names = [name]
 
             for result_column, result_name in zip(result.T, agg_names):
@@ -911,7 +913,7 @@ b  2""",
         f = lambda x: func(x, *args, **kwargs)
 
         # iterate through "columns" ex exclusions to populate output dict
-        output: Dict[int, np.ndarray] = collections.OrderedDict()
+        output: Dict[int, np.ndarray] = {}
         names: List[Hashable] = []
 
         for idx, obj in enumerate(self._iterate_slices()):
@@ -2265,7 +2267,7 @@ class GroupBy(_GroupBy):
         grouper = self.grouper
 
         labels, _, ngroups = grouper.group_info
-        output: Dict[int, np.ndarray] = collections.OrderedDict()
+        output: Dict[int, np.ndarray] = {}
         names: List[Optional[Hashable]] = []
         base_func = getattr(libgroupby, how)
 

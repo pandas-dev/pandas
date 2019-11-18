@@ -431,8 +431,7 @@ class SeriesGroupBy(GroupBy):
         )
 
         # No transformations increase the ndim of the result
-        # Unfortunately need to cast for mypy to know this
-        result = cast(Series, result)
+        assert isinstance(result, Series)
         return result
 
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
