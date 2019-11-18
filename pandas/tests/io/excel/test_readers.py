@@ -499,13 +499,9 @@ class TestReaders:
 
     @tm.network
     def test_read_from_http_url(self, read_ext):
-        if read_ext == ".ods":  # TODO: remove once on master
-            pytest.skip()
 
-        # TODO: alimcmaster1 - revert to master
         url = (
-            "https://raw.githubusercontent.com/alimcmaster1"
-            "/pandas/mcmali-tests-dir-struct/"
+            "https://raw.githubusercontent.com/pandas-dev/pandas/master/"
             "pandas/tests/io/data/excel/test1" + read_ext
         )
         url_table = pd.read_excel(url)
@@ -897,7 +893,7 @@ class TestExcelFileRead:
     def test_unexpected_kwargs_raises(self, read_ext, arg):
         # gh-17964
         kwarg = {arg: "Sheet1"}
-        msg = "unexpected keyword argument `{}`".format(arg)
+        msg = r"unexpected keyword argument `{}`".format(arg)
 
         with pd.ExcelFile("test1" + read_ext) as excel:
             with pytest.raises(TypeError, match=msg):

@@ -194,7 +194,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         dtype=None,
         copy=False,
         name=None,
-        **fields
+        **fields,
     ):
 
         valid_field_set = {
@@ -310,7 +310,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         return np.asarray(self)
 
     @property
-    def freq(self):
+    def freq(self) -> DateOffset:
         return self._data.freq
 
     @freq.setter
@@ -447,7 +447,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         return self._engine_type(period, len(self))
 
     @Appender(_index_shared_docs["contains"])
-    def __contains__(self, key):
+    def __contains__(self, key) -> bool:
         if isinstance(key, Period):
             if key.freq != self.freq:
                 return False
@@ -578,7 +578,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         return True
 
     @property
-    def is_full(self):
+    def is_full(self) -> bool:
         """
         Returns True if this PeriodIndex is range-like in that all Periods
         between start and end are present, in order.
@@ -995,7 +995,9 @@ PeriodIndex._add_logical_methods_disabled()
 PeriodIndex._add_datetimelike_methods()
 
 
-def period_range(start=None, end=None, periods=None, freq=None, name=None):
+def period_range(
+    start=None, end=None, periods=None, freq=None, name=None
+) -> PeriodIndex:
     """
     Return a fixed frequency PeriodIndex.
 

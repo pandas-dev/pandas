@@ -101,7 +101,7 @@ def _subplots(
     ax=None,
     layout=None,
     layout_type="box",
-    **fig_kw
+    **fig_kw,
 ):
     """Create a figure with a set of subplots already made.
 

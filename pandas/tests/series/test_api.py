@@ -261,11 +261,11 @@ class TestSeriesMisc(SharedWithSparse):
 
         def get_dir(s):
             results = [r for r in s.cat.__dir__() if not r.startswith("_")]
-            return list(sorted(set(results)))
+            return sorted(set(results))
 
         s = Series(list("aabbcde")).astype("category")
         results = get_dir(s)
-        tm.assert_almost_equal(results, list(sorted(set(ok_for_cat))))
+        tm.assert_almost_equal(results, sorted(set(ok_for_cat)))
 
     @pytest.mark.parametrize(
         "index",

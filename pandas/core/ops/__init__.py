@@ -29,6 +29,7 @@ from pandas.core.ops.array_ops import (
     logical_op,
 )
 from pandas.core.ops.array_ops import comp_method_OBJECT_ARRAY  # noqa:F401
+from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.ops.dispatch import maybe_dispatch_ufunc_to_dunder_op  # noqa:F401
 from pandas.core.ops.dispatch import should_series_dispatch
 from pandas.core.ops.docstrings import (
@@ -179,41 +180,6 @@ def maybe_upcast_for_op(obj, shape: Tuple[int, ...]):
 
 
 # -----------------------------------------------------------------------------
-
-
-def _gen_eval_kwargs(name):
-    """
-    Find the keyword arguments to pass to numexpr for the given operation.
-
-    Parameters
-    ----------
-    name : str
-
-    Returns
-    -------
-    eval_kwargs : dict
-
-    Examples
-    --------
-    >>> _gen_eval_kwargs("__add__")
-    {}
-
-    >>> _gen_eval_kwargs("rtruediv")
-    {'reversed': True, 'truediv': True}
-    """
-    kwargs = {}
-
-    # Series appear to only pass __add__, __radd__, ...
-    # but DataFrame gets both these dunder names _and_ non-dunder names
-    # add, radd, ...
-    name = name.replace("__", "")
-
-    if name.startswith("r"):
-        if name not in ["radd", "rand", "ror", "rxor"]:
-            # Exclude commutative operations
-            kwargs["reversed"] = True
-
-    return kwargs
 
 
 def _get_frame_op_default_axis(name):
@@ -487,17 +453,15 @@ def _arith_method_SERIES(cls, op, special):
     """
     str_rep = _get_opstr(op)
     op_name = _get_op_name(op, special)
-    eval_kwargs = _gen_eval_kwargs(op_name)
 
+    @unpack_zerodim_and_defer(op_name)
     def wrapper(left, right):
-        if isinstance(right, ABCDataFrame):
-            return NotImplemented
 
         left, right = _align_method_SERIES(left, right)
         res_name = get_op_result_name(left, right)
 
         lvalues = extract_array(left, extract_numpy=True)
-        result = arithmetic_op(lvalues, right, op, str_rep, eval_kwargs)
+        result = arithmetic_op(lvalues, right, op, str_rep)
 
         return _construct_result(left, result, index=left.index, name=res_name)
 
@@ -512,13 +476,10 @@ def _comp_method_SERIES(cls, op, special):
     """
     op_name = _get_op_name(op, special)
 
+    @unpack_zerodim_and_defer(op_name)
     def wrapper(self, other):
 
         res_name = get_op_result_name(self, other)
-
-        if isinstance(other, ABCDataFrame):  # pragma: no cover
-            # Defer to DataFrame implementation; fail early
-            return NotImplemented
 
         if isinstance(other, ABCSeries) and not self._indexed_same(other):
             raise ValueError("Can only compare identically-labeled Series objects")
@@ -541,13 +502,10 @@ def _bool_method_SERIES(cls, op, special):
     """
     op_name = _get_op_name(op, special)
 
+    @unpack_zerodim_and_defer(op_name)
     def wrapper(self, other):
         self, other = _align_method_SERIES(self, other, align_asobject=True)
         res_name = get_op_result_name(self, other)
-
-        if isinstance(other, ABCDataFrame):
-            # Defer to DataFrame implementation; fail early
-            return NotImplemented
 
         lvalues = extract_array(self, extract_numpy=True)
         rvalues = extract_array(other, extract_numpy=True)
@@ -688,10 +646,9 @@ def _align_method_FRAME(left, right, axis):
 def _arith_method_FRAME(cls, op, special):
     str_rep = _get_opstr(op)
     op_name = _get_op_name(op, special)
-    eval_kwargs = _gen_eval_kwargs(op_name)
     default_axis = _get_frame_op_default_axis(op_name)
 
-    na_op = define_na_arithmetic_op(op, str_rep, eval_kwargs)
+    na_op = define_na_arithmetic_op(op, str_rep)
     is_logical = str_rep in ["&", "|", "^"]
 
     if op_name in _op_descriptions:
