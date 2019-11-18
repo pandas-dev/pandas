@@ -4552,6 +4552,7 @@ class GenericTable(AppendableFrameTable):
             self._indexables = [GenericIndexCol(name="index", axis=0)]
 
             for i, n in enumerate(d._v_names):
+                n: str  # _v_names should all be strings
 
                 dc = GenericDataIndexableCol(
                     name=n, pos=i, values=[n], version=self.version
