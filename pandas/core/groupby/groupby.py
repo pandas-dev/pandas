@@ -889,16 +889,14 @@ b  2""",
             if agg_names:
                 # e.g. ohlc
                 assert len(agg_names) == result.shape[1]
+                for result_column, result_name in zip(result.T, agg_names):
+                    output[idx] = self._try_cast(result_column, obj)
+                    names.append(result_name)
+                    idx += 1
             else:
                 assert result.ndim == 1
-
-                if isinstance(result, np.ndarray):
-                    result = result.reshape(-1, 1)
-                agg_names = [name]
-
-            for result_column, result_name in zip(result.T, agg_names):
-                output[idx] = self._try_cast(result_column, obj)
-                names.append(result_name)
+                output[idx] = self._try_cast(result, obj)
+                names.append(name)
                 idx += 1
 
         if len(output) == 0:
