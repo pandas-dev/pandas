@@ -39,12 +39,21 @@ jobs:
       uses: actions/checkout@v1
 
     - name: Create PostgreSQL database
-      run: psql -c 'CREATE DATABASE pandas_nosetest;' -U postgres
+      run: |
+        sudo apt-get install -y postgresql-client
+        psql -c 'CREATE DATABASE pandas_nosetest;' -U postgres
       if: matrix.coverage
 
     - name: Create MySQL database
-      run: mysql --host 127.0.0.1 --port ${{ job.services.mysql.ports['3306'] }} --user root --password password -e "CREATE DATABASE pandas_nosetest;"
-      if: matrix.coverage
+      run: |
+        sudo apt-get install -y mysql-client
+        mysql --host 127.0.0.1 \
+              --port ${{ job.services.mysql.ports['3306'] }} \
+              --user root \
+              --password password \
+              --execute "CREATE DATABASE pandas_nosetest;"
+      # if: matrix.coverage
+      if: true
 
     - name: Setup environment and build pandas
       run: |
