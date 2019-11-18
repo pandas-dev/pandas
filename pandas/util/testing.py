@@ -1419,7 +1419,7 @@ def assert_frame_equal(
 def assert_equal(
     left: Union[DataFrame, AnyArrayLike],
     right: Union[DataFrame, AnyArrayLike],
-    **kwargs
+    **kwargs,
 ) -> None:
     """
     Wrapper for tm.assert_*_equal to dispatch to the appropriate test function.
