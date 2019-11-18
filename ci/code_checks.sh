@@ -190,7 +190,7 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --include="*.rst" ".. ipython ::" doc/source
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-#    MSG='Check for extra blank lines after the class definition' ; echo $MSG
+    MSG='Check for extra blank lines after the class definition' ; echo $MSG
 #    invgrep -R --include="*.py" --include="*.pyx" -E 'class.*:\n\n( )+"""' .
 #    RET=$(($RET + $?)) ; echo $MSG "DONE"
 

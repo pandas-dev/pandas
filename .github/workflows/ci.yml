@@ -33,22 +33,22 @@ jobs:
 
     strategy:
       matrix:
-        kind: ['main', 'zh-locale + db', 'py37']
+        name: [py36-cov, py36-locale-zh, py37]
         include:
-        - kind: 'main'
+        - name: py36-cov
           os: ubuntu-latest
           env_file: travis-36-cov.yaml
           pattern: "((not slow and not network) or (single and db))"
           pandas_testing_mode: deprecate
           coverage: true
 
-        - kind: 'zh-locale'
+        - name: py36-locale-zh
           os: ubuntu-latest
           env_file: travis-36-locale.yaml
           pattern: "((not slow and not network) or (single and db))"
           locale_override: zh_CN.UTF-8
 
-        - kind: 'py37'
+        - name: py37
           os: ubuntu-latest
           env_file: travis-37.yaml
           pattern: "(not slow and not network)"
