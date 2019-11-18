@@ -131,7 +131,9 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
                 # combine keeps boolean type
                 expected = expected.astype("Int8")
             elif op_name in ("__truediv__", "__rtruediv__"):
-                expected = expected.astype("float64")
+                # combine with bools does not generate the correct result
+                #  (numpy behaviour for div is to regard the bools as numeric)
+                expected = s.astype(float).combine(other, op)
             if op_name == "__rpow__":
                 # for rpow, combine does not propagate NaN
                 expected[result.isna()] = np.nan
