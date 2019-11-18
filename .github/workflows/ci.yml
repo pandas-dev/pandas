@@ -236,7 +236,7 @@ jobs:
     - name: Verify MySQL connection from host
       run: |
         sudo apt-get install -y mysql-client libmysqlclient-dev
-        mysql --host 127.0.0.1 --port ${{ job.services.mysql.ports[3306] }} -uroot -proot -e "SHOW GRANTS FOR 'root'@'localhost'"
+        mysql --host 127.0.0.1 --port ${{ job.services.mysql.ports[3306] }} -uroot -ppassword -e "SHOW GRANTS FOR 'root'@'localhost'"
         mysql --host 127.0.0.1 --port ${{ job.services.mysql.ports[3306] }} --username root --password password --execute "CREATE DATABASE pandas_nosetest;"
 
     - name: Create PostgreSQL database
