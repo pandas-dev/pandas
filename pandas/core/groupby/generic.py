@@ -448,8 +448,14 @@ class SeriesGroupBy(GroupBy):
         fast version of transform, only applicable to
         builtin/cythonizable functions
         """
+        if isinstance(func, str):
+            func = getattr(self, func)
+
         ids, _, ngroup = self.grouper.group_info
+        cast = self._transform_should_cast(func_nm)
         out = algorithms.take_1d(func()._values, ids)
+        if cast:
+            out = self._try_cast(out, self.obj)
         return Series(out, index=self.obj.index, name=self.obj.name)
 
     def filter(self, func, dropna=True, *args, **kwargs):
@@ -1369,7 +1375,7 @@ class DataFrameGroupBy(GroupBy):
         for i, _ in enumerate(result.columns):
             res = algorithms.take_1d(result.iloc[:, i].values, ids)
             # TODO: we have no test cases that get here with EA dtypes;
-            #  try_cast is not needed if EAs never get here
+            #  try_cast may not be needed if EAs never get here
             if cast:
                 res = self._try_cast(res, obj.iloc[:, i])
             output.append(res)
