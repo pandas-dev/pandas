@@ -17,7 +17,7 @@ The full license is in the LICENSE file, distributed with this software.
 #define O_BINARY 0
 #endif  // O_BINARY
 
-#ifdef(_WIN32)
+#ifdef _WIN32
 #define USE_WIN_UTF16
 #include <Windows.h>
 #endif
