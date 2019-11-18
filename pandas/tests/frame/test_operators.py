@@ -218,6 +218,42 @@ class TestDataFrameLogicalOperators:
         expected = Series([True, True])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "left, right, op, expected",
+        [
+            (
+                [True, False, np.nan],
+                [True, False, True],
+                operator.and_,
+                [True, False, False],
+            ),
+            (
+                [True, False, True],
+                [True, False, np.nan],
+                operator.and_,
+                [True, False, False],
+            ),
+            (
+                [True, False, np.nan],
+                [True, False, True],
+                operator.or_,
+                [True, False, False],
+            ),
+            (
+                [True, False, True],
+                [True, False, np.nan],
+                operator.or_,
+                [True, False, True],
+            ),
+        ],
+    )
+    def test_logical_operators_nans(self, left, right, op, expected):
+        # GH 13896
+        result = op(DataFrame(left), DataFrame(right))
+        expected = DataFrame(expected)
+
+        tm.assert_frame_equal(result, expected)
+
 
 class TestDataFrameOperators:
     @pytest.mark.parametrize(
@@ -529,6 +565,16 @@ class TestDataFrameOperators:
         test_comp(operator.gt)
         test_comp(operator.ge)
         test_comp(operator.le)
+
+    def test_strings_to_numbers_comparisons_raises(self, compare_operators_no_eq_ne):
+        # GH 11565
+        df = DataFrame(
+            {x: {"x": "foo", "y": "bar", "z": "baz"} for x in ["a", "b", "c"]}
+        )
+
+        f = getattr(operator, compare_operators_no_eq_ne)
+        with pytest.raises(TypeError):
+            f(df, 0)
 
     def test_comparison_protected_from_errstate(self):
         missing_df = tm.makeDataFrame()

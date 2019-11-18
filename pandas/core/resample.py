@@ -17,11 +17,11 @@ from pandas.util._decorators import Appender, Substitution
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 import pandas.core.algorithms as algos
-from pandas.core.base import DataError
+from pandas.core.base import DataError, ShallowMixin
 from pandas.core.generic import _shared_docs
 from pandas.core.groupby.base import GroupByMixin
 from pandas.core.groupby.generic import SeriesGroupBy
-from pandas.core.groupby.groupby import GroupBy, _GroupBy, _pipe_template, groupby
+from pandas.core.groupby.groupby import GroupBy, _GroupBy, _pipe_template, get_groupby
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.groupby.ops import BinGrouper
 from pandas.core.indexes.datetimes import DatetimeIndex, date_range
@@ -34,7 +34,7 @@ from pandas.tseries.offsets import DateOffset, Day, Nano, Tick
 _shared_docs_kwargs = dict()  # type: Dict[str, str]
 
 
-class Resampler(_GroupBy):
+class Resampler(_GroupBy, ShallowMixin):
     """
     Class for resampling datetimelike data, a groupby-like operation.
     See aggregate, transform, and apply functions on this object.
@@ -86,7 +86,7 @@ class Resampler(_GroupBy):
         if self.groupby is not None:
             self.groupby._set_grouper(self._convert_obj(obj), sort=True)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
         Provide a nice str repr of our rolling object.
         """
@@ -187,6 +187,7 @@ class Resampler(_GroupBy):
         """
 
         binner, bins, binlabels = self._get_binner_for_time()
+        assert len(bins) == len(binlabels)
         bin_grouper = BinGrouper(bins, binlabels, indexer=self.groupby.indexer)
         return binner, bin_grouper
 
@@ -334,7 +335,7 @@ class Resampler(_GroupBy):
         grouper = self.grouper
         if subset is None:
             subset = self.obj
-        grouped = groupby(subset, by=None, grouper=grouper, axis=self.axis)
+        grouped = get_groupby(subset, by=None, grouper=grouper, axis=self.axis)
 
         # try the key selection
         try:
@@ -353,7 +354,7 @@ class Resampler(_GroupBy):
 
         obj = self._selected_obj
 
-        grouped = groupby(obj, by=None, grouper=grouper, axis=self.axis)
+        grouped = get_groupby(obj, by=None, grouper=grouper, axis=self.axis)
 
         try:
             if isinstance(obj, ABCDataFrame) and callable(how):
@@ -441,7 +442,7 @@ class Resampler(_GroupBy):
         Parameters
         ----------
         limit : int, optional
-            limit of how many values to fill
+            Limit of how many values to fill.
 
         Returns
         -------
@@ -793,7 +794,7 @@ class Resampler(_GroupBy):
         limit_direction="forward",
         limit_area=None,
         downcast=None,
-        **kwargs
+        **kwargs,
     ):
         """
         Interpolate values according to different methods.
@@ -807,7 +808,7 @@ class Resampler(_GroupBy):
             limit_direction=limit_direction,
             limit_area=limit_area,
             downcast=downcast,
-            **kwargs
+            **kwargs,
         )
 
     def asfreq(self, fill_value=None):
@@ -856,7 +857,7 @@ class Resampler(_GroupBy):
         Parameters
         ----------
         ddof : int, default 1
-            degrees of freedom
+            Degrees of freedom.
 
         Returns
         -------
@@ -1237,11 +1238,11 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         Parameters
         ----------
         method : string {'backfill', 'bfill', 'pad', 'ffill'}
-            method for upsampling
+            Method for upsampling.
         limit : int, default None
-            Maximum size gap to fill when reindexing
+            Maximum size gap to fill when reindexing.
         fill_value : scalar, default None
-            Value to use for missing values
+            Value to use for missing values.
 
         See Also
         --------
@@ -1369,7 +1370,7 @@ class TimeGrouper(Grouper):
         kind=None,
         convention=None,
         base=0,
-        **kwargs
+        **kwargs,
     ):
         # Check for correctness of the keyword arguments which would
         # otherwise silently use the default if misspelled
