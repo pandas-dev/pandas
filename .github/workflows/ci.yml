@@ -201,25 +201,85 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        name: [py36-cov, py36-locale-zh, py37]
+        name: [py36-cov, py36-locale-zh, py37, py37-locale, py36-minimum-versions, py36-macos, py36-32bits, py36-locale-slow, py36-np15-windows, py37-np141-windows, py37-numpydev, py36-locale-slow-old-np]
         include:
+
+        # db tests
+
         - name: py36-cov
           os: ubuntu-latest
           env_file: travis-36-cov.yaml
-          pattern: "((not slow and not network) or (single and db))"
+          pattern: "(not slow and not network) or (single and db)"
           pandas_testing_mode: deprecate
           coverage: true
 
         - name: py36-locale-zh
           os: ubuntu-latest
           env_file: travis-36-locale.yaml
-          pattern: "((not slow and not network) or (single and db))"
+          pattern: "(not slow and not network) or (single and db)"
           locale_override: zh_CN.UTF-8
+
+        # regular tests
 
         - name: py37
           os: ubuntu-latest
           env_file: travis-37.yaml
-          pattern: "(not slow and not network)"
+          pattern: "not slow and not network"
+
+        - name: py37-locale
+          os: ubuntu-latest
+          env_file: azure-37-locale.yaml
+          pattern: "not slow and not network"
+          locale_override: zh_CN.UTF-8
+
+        - name: py36-minimum-versions
+          os: ubuntu-latest
+          env_file: azure-36-minimum_versions.yaml
+          pattern: "not slow and not network"
+
+        - name: py36-macos
+          os: macos-latest
+          env_file: azure-macos-36.yaml
+          pattern: "not slow and not network"
+
+        - name: py36-32bits
+          os: ubuntu-latest
+          env_file: azure-36-32bit.yaml
+          pattern: "not slow and not network"
+
+        - name: py36-locale-slow  # TODO: this is not slow, see pattern
+          os: ubuntu-latest
+          env_file: azure-36-locale_slow.yaml
+          pattern: "not slow and not network"
+          locale_override: it_IT.UTF-8
+
+        - name: py36-np15-windows
+          os: windows-latest
+          env_file: azure-windows-36.yaml
+          pattern: "not slow and not network"
+
+        - name: py37-np141-windows
+          os: windows-latest
+          env_file: azure-windows-37.yaml
+          pattern: "not slow and not network"
+
+        # TODO: This is commented in azure - https://github.com/pandas-dev/pandas/issues/29432
+        - name: py37-numpydev
+          os: ubuntu-latest
+          env_file: azure-37-numpydev.yaml
+          pattern: "not slow and not network"
+          pandas_testing_mode: deprecate
+          # TODO env vars pending to add and use in the workflow
+          # TEST_ARGS: "-W error"
+          # EXTRA_APT: "xsel"
+
+        # slow tests
+
+        - name: py36-locale-slow-old-np
+          os: ubuntu-latest
+          env_file: azure-36-locale.yaml
+          pattern: "slow"
+          locale_override: zh_CN.UTF-8
 
     steps:
     - name: Checkout
