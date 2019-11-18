@@ -3052,7 +3052,7 @@ class GenericFixed(Fixed):
 
 
 class LegacyFixed(GenericFixed):
-    def read_index_legacy(self, key, start=None, stop=None):
+    def read_index_legacy(self, key: str, start=None, stop=None):
         node = getattr(self.group, key)
         data = node[start:stop]
         kind = node._v_attrs.kind
@@ -3237,7 +3237,7 @@ class Table(Fixed):
         self.selection = None
 
     @property
-    def table_type_short(self):
+    def table_type_short(self) -> str:
         return self.table_type.split("_")[0]
 
     @property
@@ -3311,7 +3311,7 @@ class Table(Fixed):
                 )
 
     @property
-    def is_multi_index(self):
+    def is_multi_index(self) -> bool:
         """the levels attribute is 1 or a list in the case of a multi-index"""
         return isinstance(self.levels, list)
 
@@ -3335,7 +3335,7 @@ class Table(Fixed):
             )
 
     @property
-    def nrows_expected(self):
+    def nrows_expected(self) -> int:
         """ based on our axes, compute the expected nrows """
         return np.prod([i.cvalues.shape[0] for i in self.index_axes])
 
@@ -3691,7 +3691,7 @@ class Table(Fixed):
         self,
         axes,
         obj,
-        validate=True,
+        validate: bool = True,
         nan_rep=None,
         data_columns=None,
         min_itemsize=None,
