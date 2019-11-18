@@ -253,7 +253,7 @@ jobs:
         mysql --host 127.0.0.1 \
               --port ${{ job.services.mysql.ports[3306] }} \
               --user root \
-              --ppassword \
+              -ppassword \
               --execute "CREATE DATABASE pandas_nosetest;"
       if: matrix.coverage
 
