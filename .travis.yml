@@ -30,9 +30,7 @@ matrix:
       - python: 3.5
 
     include:
-    - dist: bionic
-      # 18.04
-      python: 3.8.0
+    - dist: trusty
       env:
         - JOB="3.8" ENV_FILE="ci/deps/travis-38.yaml" PATTERN="(not slow and not network)"
 
