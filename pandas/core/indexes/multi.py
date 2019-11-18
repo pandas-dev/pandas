@@ -42,6 +42,7 @@ from pandas.core.indexes.base import (
     ensure_index,
 )
 from pandas.core.indexes.frozen import FrozenList
+from pandas.core.indexes.numeric import Int64Index
 import pandas.core.missing as missing
 from pandas.core.sorting import (
     get_group_index,
@@ -3041,9 +3042,8 @@ class MultiIndex(Index):
                 # are or'd)
                 # Find out if the list_like label are sorted as the levels or not
                 if not need_sort:
-                    k_codes = np.array(
-                        [self.levels[i].get_loc(e) for e in k if e in self.levels[i]]
-                    )
+                    k_codes = self.levels[i].get_indexer(k)
+                    k_codes = k_codes[k_codes >= 0]  # Filter absent keys
                     need_sort = not (k_codes[:-1] < k_codes[1:]).all()
                 indexers = None
                 for x in k:
@@ -3090,33 +3090,52 @@ class MultiIndex(Index):
         if indexer is None:
             return Int64Index([])._ndarray_values
 
-        # Generate tuples of keys by which to order the results
         if need_sort:
-            keys = tuple()
-            for i, k in enumerate(seq):
-                if com.is_bool_indexer(k):
-                    new_order = np.arange(n)[indexer]
-                elif is_list_like(k):
-                    # Generate a map with all level codes as sorted initially
-                    key_order_map = np.ones(len(self.levels[i]), dtype=np.uint64) * len(
-                        self.levels[i]
-                    )
-                    # Set order as given in the indexer list
-                    for p, e in enumerate(k):
-                        if e in self.levels[i]:
-                            key_order_map[self.levels[i].get_loc(e)] = p
-                    new_order = key_order_map[self.codes[i][indexer]]
-                else:
-                    # For all other case, use the same order as the level
-                    new_order = np.arange(n)[indexer]
-                keys = (new_order,) + keys
-
-            ind = np.lexsort(keys)
-            indexer = indexer[ind]
+            indexer = self._reorder_indexer(seq, indexer)
 
         return indexer._ndarray_values
 
-    # --------------------------------------------------------------------
+    def _reorder_indexer(self, seq, indexer: Int64Index) -> Int64Index:
+        """
+        Reorder an indexer of a MultiIndex (self) so that the label are in the
+        same order as given in seq
+
+        Parameters
+        ----------
+        seq : label/slice/list/mask or a sequence of such
+        indexer: an Int64Index for element of self
+
+        Returns
+        -------
+        indexer : a sorted Int64Index of element of self ordered as seq
+        """
+        n = len(self)
+        keys = tuple()
+        # For each level of the sequence in seq, map the level codes with the
+        # order they appears in a list-like sequence
+        # This mapping is then use to reorder the indexer
+        for i, k in enumerate(seq):
+            if com.is_bool_indexer(k):
+                new_order = np.arange(n)[indexer]
+            elif is_list_like(k):
+                # Generate a map with all level codes as sorted initially
+                key_order_map = np.ones(len(self.levels[i]), dtype=np.uint64) * len(
+                    self.levels[i]
+                )
+                # Set order as given in the indexer list
+                level_indexer = self.levels[i].get_indexer(k)
+                level_indexer = level_indexer[level_indexer >= 0]  # Filter absent keys
+                key_order_map[level_indexer] = np.arange(len(level_indexer))
+
+                new_order = key_order_map[self.codes[i][indexer]]
+            else:
+                # For all other case, use the same order as the level
+                new_order = np.arange(n)[indexer]
+            keys = (new_order,) + keys
+
+        # Find the reordering using lexsort on the keys mapping
+        ind = np.lexsort(keys)
+        return indexer[ind]
 
     def truncate(self, before=None, after=None):
         """
