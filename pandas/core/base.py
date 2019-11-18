@@ -327,7 +327,6 @@ class SelectionMixin:
             return self._try_aggregate_string_function(arg, *args, **kwargs), None
 
         if isinstance(arg, dict):
-
             # aggregate based on the passed dict
             if _axis != 0:  # pragma: no cover
                 raise ValueError("Can only pass dict with axis=0")
@@ -355,7 +354,9 @@ class SelectionMixin:
 
                     # not ok
                     # {'ra' : { 'A' : 'mean' }}
-                    if isinstance(v, (dict, ABCSeries)):
+                    if isinstance(v, dict):
+                        raise SpecificationError("nested renamer is not supported")
+                    elif isinstance(obj, ABCSeries):
                         raise SpecificationError("nested renamer is not supported")
                     elif isinstance(obj, ABCDataFrame) and k not in obj.columns:
                         raise KeyError("Column '{col}' does not exist!".format(col=k))
