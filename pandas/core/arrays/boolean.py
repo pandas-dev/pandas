@@ -60,7 +60,7 @@ class BooleanDtype(ExtensionDtype):
     @property
     def na_value(self) -> "Scalar":
         """
-        StringDtype uses :attr:`numpy.nan` as the missing NA value.
+        BooleanDtype uses :attr:`numpy.nan` as the missing NA value.
 
         .. warning::
 
@@ -79,13 +79,13 @@ class BooleanDtype(ExtensionDtype):
     @property
     def name(self) -> str:
         """
-        The alias for StringDtype is ``'string'``.
+        The alias for BooleanDtype is ``'boolean'``.
         """
         return "boolean"
 
     @classmethod
     def construct_from_string(cls, string: str) -> ExtensionDtype:
-        if string == "boolean":
+        if string == cls.name:
             return cls()
         return super().construct_from_string(string)
 
