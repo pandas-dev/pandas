@@ -174,7 +174,7 @@ class Grouper:
             else:
                 if key not in obj._info_axis:
                     raise KeyError(
-                        "The grouper name {key} is not found".format(key=key)
+                        f"The grouper name {key} is not found"
                     )
                 ax = Index(obj[key], name=key)
 
@@ -192,7 +192,7 @@ class Grouper:
                 else:
                     if level not in (0, ax.name):
                         raise ValueError(
-                            "The level {level} is not valid".format(level=level)
+                            f"The level {level} is not valid"
                         )
 
         # possibly sort
@@ -212,13 +212,13 @@ class Grouper:
 
     def __repr__(self) -> str:
         attrs_list = (
-            "{name}={val!r}".format(name=attr_name, val=getattr(self, attr_name))
+            f"{attr_name}={getattr(self, attr_name)!r}"
             for attr_name in self._attributes
             if getattr(self, attr_name) is not None
         )
         attrs = ", ".join(attrs_list)
         cls_name = self.__class__.__name__
-        return "{cls}({attrs})".format(cls=cls_name, attrs=attrs)
+        return f"{cls_name}({attrs})"
 
 
 class Grouping:
@@ -281,7 +281,7 @@ class Grouping:
             if not isinstance(level, int):
                 if level not in index.names:
                     raise AssertionError(
-                        "Level {level} not in index".format(level=level)
+                        f"Level {level} not in index"
                     )
                 level = index.names.index(level)
 
@@ -350,7 +350,7 @@ class Grouping:
             ):
                 if getattr(self.grouper, "ndim", 1) != 1:
                     t = self.name or str(type(self.grouper))
-                    raise ValueError("Grouper for '{t}' not 1-dimensional".format(t=t))
+                    raise ValueError(f"Grouper for '{t}' not 1-dimensional")
                 self.grouper = self.index.map(self.grouper)
                 if not (
                     hasattr(self.grouper, "__len__")
@@ -358,9 +358,7 @@ class Grouping:
                 ):
                     errmsg = (
                         "Grouper result violates len(labels) == "
-                        "len(data)\nresult: {grper}".format(
-                            grper=pprint_thing(self.grouper)
-                        )
+                        f"len(data)\nresult: {pprint_thing(self.grouper)}"
                     )
                     self.grouper = None  # Try for sanity
                     raise AssertionError(errmsg)
@@ -375,7 +373,7 @@ class Grouping:
                 self.grouper = self.grouper.astype("timedelta64[ns]")
 
     def __repr__(self) -> str:
-        return "Grouping({name})".format(name=self.name)
+        return f"Grouping({self.name})"
 
     def __iter__(self):
         return iter(self.indices)
@@ -501,9 +499,7 @@ def get_grouper(
             if isinstance(level, str):
                 if obj.index.name != level:
                     raise ValueError(
-                        "level name {level} is not the name of the index".format(
-                            level=level
-                        )
+                        f"level name {level} is not the name of the index"
                     )
             elif level > 0 or level < -1:
                 raise ValueError("level > 0 or level < -1 only valid with MultiIndex")
@@ -636,12 +632,8 @@ def get_grouper(
 
         if is_categorical_dtype(gpr) and len(gpr) != obj.shape[axis]:
             raise ValueError(
-                (
-                    "Length of grouper ({len_gpr}) and axis ({len_axis})"
-                    " must be same length".format(
-                        len_gpr=len(gpr), len_axis=obj.shape[axis]
-                    )
-                )
+                f"Length of grouper ({len(gpr)}) and axis ({obj.shape[axis]})"
+                " must be same length"
             )
 
         # create the Grouping
