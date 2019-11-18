@@ -791,7 +791,12 @@ class HDFStore:
         return it.get_result()
 
     def select_as_coordinates(
-        self, key: str, where=None, start=None, stop=None, **kwargs
+        self,
+        key: str,
+        where=None,
+        start: Optional[int] = None,
+        stop: Optional[int] = None,
+        **kwargs,
     ):
         """
         return the selection as an Index
@@ -2009,7 +2014,15 @@ class GenericIndexCol(IndexCol):
     def is_indexed(self) -> bool:
         return False
 
-    def convert(self, values, nan_rep, encoding, errors, start=None, stop=None):
+    def convert(
+        self,
+        values,
+        nan_rep,
+        encoding,
+        errors,
+        start: Optional[int] = None,
+        stop: Optional[int] = None,
+    ):
         """ set the values from this selection: take = take ownership
 
         Parameters
@@ -2026,9 +2039,9 @@ class GenericIndexCol(IndexCol):
             the underlying table's row count are normalized to that.
         """
 
-        start = start if start is not None else 0
-        stop = min(stop, self.table.nrows) if stop is not None else self.table.nrows
-        self.values = Int64Index(np.arange(stop - start))
+        _start = start if start is not None else 0
+        _stop = min(stop, self.table.nrows) if stop is not None else self.table.nrows
+        self.values = Int64Index(np.arange(_stop - _start))
 
         return self
 
@@ -2763,7 +2776,9 @@ class GenericFixed(Fixed):
     def write(self, obj, **kwargs):
         self.set_attrs()
 
-    def read_array(self, key: str, start=None, stop=None):
+    def read_array(
+        self, key: str, start: Optional[int] = None, stop: Optional[int] = None
+    ):
         """ read an array for the specified node (off of group """
         import tables
 
@@ -2912,7 +2927,9 @@ class GenericFixed(Fixed):
             levels=levels, codes=codes, names=names, verify_integrity=True
         )
 
-    def read_index_node(self, node, start=None, stop=None):
+    def read_index_node(
+        self, node, start: Optional[int] = None, stop: Optional[int] = None
+    ):
         data = node[start:stop]
         # If the index was an empty array write_array_empty() will
         # have written a sentinel. Here we relace it with the original.
@@ -3066,7 +3083,9 @@ class GenericFixed(Fixed):
 
 
 class LegacyFixed(GenericFixed):
-    def read_index_legacy(self, key: str, start=None, stop=None):
+    def read_index_legacy(
+        self, key: str, start: Optional[int] = None, stop: Optional[int] = None
+    ):
         node = getattr(self.group, key)
         data = node[start:stop]
         kind = node._v_attrs.kind
@@ -4014,7 +4033,13 @@ class Table(Fixed):
 
         return d
 
-    def read_coordinates(self, where=None, start=None, stop=None, **kwargs):
+    def read_coordinates(
+        self,
+        where=None,
+        start: Optional[int] = None,
+        stop: Optional[int] = None,
+        **kwargs,
+    ):
         """select coordinates (row numbers) from a table; return the
         coordinates object
         """
@@ -4027,7 +4052,7 @@ class Table(Fixed):
             return False
 
         # create the selection
-        self.selection = Selection(self, where=where, start=start, stop=stop, **kwargs)
+        self.selection = Selection(self, where=where, start=start, stop=stop)
         coords = self.selection.select_coords()
         if self.selection.filter is not None:
             for field, op, filt in self.selection.filter.format():
@@ -4038,7 +4063,13 @@ class Table(Fixed):
 
         return Index(coords)
 
-    def read_column(self, column: str, where=None, start=None, stop=None):
+    def read_column(
+        self,
+        column: str,
+        where=None,
+        start: Optional[int] = None,
+        stop: Optional[int] = None,
+    ):
         """return a single column from the table, generally only indexables
         are interesting
         """
@@ -4316,7 +4347,13 @@ class AppendableTable(LegacyTable):
                 "tables cannot write this data -> {detail}".format(detail=detail)
             )
 
-    def delete(self, where=None, start=None, stop=None, **kwargs):
+    def delete(
+        self,
+        where=None,
+        start: Optional[int] = None,
+        stop: Optional[int] = None,
+        **kwargs,
+    ):
 
         # delete all rows (and return the nrows)
         if where is None or not len(where):
@@ -4337,7 +4374,7 @@ class AppendableTable(LegacyTable):
 
         # create the selection
         table = self.table
-        self.selection = Selection(self, where, start=start, stop=stop, **kwargs)
+        self.selection = Selection(self, where, start=start, stop=stop)
         values = self.selection.select_coords()
 
         # delete the rows in reverse order
@@ -4927,7 +4964,13 @@ class Selection:
 
     """
 
-    def __init__(self, table: Table, where=None, start=None, stop=None):
+    def __init__(
+        self,
+        table: Table,
+        where=None,
+        start: Optional[int] = None,
+        stop: Optional[int] = None,
+    ):
         self.table = table
         self.where = where
         self.start = start
