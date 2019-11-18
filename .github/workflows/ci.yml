@@ -102,6 +102,20 @@ jobs:
         fi
       if: true
 
+    - name: Create build output artifact
+      run: |
+        echo $STEPS_CONTEXT > build_output.json
+      env:
+        STEPS_CONTEXT: ${{ toJson(steps) }}
+      if: job.status == 'failure'
+
+    - name: Upload build output artifact
+      uses: actions/upload-artifact@master
+      with:
+        name: build_output_checks
+        path: build_output.json
+      if: job.status == 'failure'
+
   web_and_docs:
     name: Web and docs
     runs-on: ubuntu-latest
@@ -150,6 +164,20 @@ jobs:
       with:
         name: pandas_web
         path: pandas_web.tar.gz
+
+    - name: Create build output artifact
+      run: |
+        echo $STEPS_CONTEXT > build_output.json
+      env:
+        STEPS_CONTEXT: ${{ toJson(steps) }}
+      if: job.status == 'failure'
+
+    - name: Upload build output artifact
+      uses: actions/upload-artifact@master
+      with:
+        name: build_output_web_and_docs
+        path: build_output.json
+      if: job.status == 'failure'
 
   tests:
     name: Tests
@@ -223,9 +251,10 @@ jobs:
       run: |
         echo ${{ job.services.mysql.ports['3306'] }}
         netstat -an | grep LISTEN
-        mysql --host localhost \
-              --port ${{ job.services.mysql.ports['3306'] }} \
+        mysql --host 127.0.0.1 \
+              --port ${{ job.services.mysql.ports['3306'] }} \ # should quotes be removed?
               --user root \
+              --password root \
               --execute "CREATE DATABASE pandas_nosetest;"
       if: matrix.coverage
 
@@ -247,3 +276,15 @@ jobs:
         PANDAS_TESTING_MODE: ${{ matrix.pandas_testing_mode }}
         COVERAGE: ${{ matrix.coverage }}
         LOCALE_OVERRIDE: ${{ matrix.locale_override }}
+
+
+  finalize:
+    name: Finalize build
+    runs-on: ubuntu-latest
+    needs: [checks, web_and_docs, tests]
+    steps:
+
+    - name: Report build status
+      run: |
+        echo "Download the artifacts with the output of each job"
+        echo "Create a comment in the PR with the errors"
