@@ -1801,7 +1801,7 @@ class IndexCol:
         new_self = copy.copy(self)
         return new_self
 
-    def infer(self, handler):
+    def infer(self, handler: "Table"):
         """infer this column from the table: create and return a new object"""
         table = handler.table
         new_self = self.copy()
@@ -2969,7 +2969,7 @@ class GenericFixed(Fixed):
 
         return name, index
 
-    def write_array_empty(self, key, value):
+    def write_array_empty(self, key: str, value):
         """ write a 0-len array """
 
         # ugly hack for length 0 axes
@@ -2982,7 +2982,7 @@ class GenericFixed(Fixed):
         """Returns true if any axis is zero length."""
         return any(x == 0 for x in shape)
 
-    def write_array(self, key, value, items=None):
+    def write_array(self, key: str, value, items=None):
         if key in self.group:
             self._handle.remove_node(self.group, key)
 
@@ -3068,7 +3068,7 @@ class GenericFixed(Fixed):
 
 
 class LegacyFixed(GenericFixed):
-    def read_index_legacy(self, key, start=None, stop=None):
+    def read_index_legacy(self, key: str, start=None, stop=None):
         node = getattr(self.group, key)
         data = node[start:stop]
         kind = node._v_attrs.kind
@@ -3581,6 +3581,8 @@ class Table(Fixed):
             columns = [a.cname for a in self.axes if a.is_data_indexable]
         if not isinstance(columns, (tuple, list)):
             columns = [columns]
+        # At this point we must have all-str columns, or else we will
+        #  raise in getattr below.
 
         kw = dict()
         if optlevel is not None:
