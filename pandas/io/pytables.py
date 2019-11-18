@@ -1784,6 +1784,7 @@ class IndexCol:
             # e.g. if self.set_table hasn't been called yet, self.table
             #  will be None.
             return False
+        # GH#29692 mypy doesn't recognize self.table as having a "cols" attribute
         return getattr(self.table.cols, self.cname).is_indexed  # type: ignore
 
     def copy(self):
