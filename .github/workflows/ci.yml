@@ -243,19 +243,17 @@ jobs:
       run: |
         sudo apt-get install -y postgresql-client
         psql --host 127.0.0.1 \
-             --port ${{ job.services.postgres.ports['5432'] }} \
+             --port ${{ job.services.postgres.ports[5432] }} \
              --username postgres \
              --command 'CREATE DATABASE pandas_nosetest;'
       if: matrix.coverage
 
     - name: Create MySQL database
       run: |
-        echo ${{ job.services.mysql.ports['3306'] }}
-        netstat -an | grep LISTEN
         mysql --host 127.0.0.1 \
-              --port ${{ job.services.mysql.ports['3306'] }} \ # should quotes be removed?
+              --port ${{ job.services.mysql.ports[3306] }} \
               --user root \
-              --password root \
+              --ppassword \
               --execute "CREATE DATABASE pandas_nosetest;"
       if: matrix.coverage
 
