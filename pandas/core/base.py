@@ -602,9 +602,9 @@ class SelectionMixin:
         if not len(results):
             raise ValueError("no results")
 
-        if all(np.ndim(x) > 0 for x in results):
+        try:
             return concat(results, keys=keys, axis=1, sort=False)
-        else:
+        except TypeError:
 
             # we are concatting non-NDFrame objects,
             # e.g. a list of scalars
