@@ -201,7 +201,7 @@ jobs:
       mysql:
         image: mysql:5.7
         env:
-          MYSQL_ROOT_PASSWORD: root
+          MYSQL_ROOT_PASSWORD: password
         ports:
         - 3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
@@ -237,7 +237,7 @@ jobs:
       run: |
         sudo apt-get install -y mysql-client libmysqlclient-dev
         mysql --host 127.0.0.1 --port ${{ job.services.mysql.ports[3306] }} -uroot -proot -e "SHOW GRANTS FOR 'root'@'localhost'"
-        mysql --host 127.0.0.1 --port ${{ job.services.mysql.ports[3306] }} -uroot -proot -e "CREATE DATABASE pandas_nosetest;"
+        mysql --host 127.0.0.1 --port ${{ job.services.mysql.ports[3306] }} --username root --password password --execute "CREATE DATABASE pandas_nosetest;"
 
     - name: Create PostgreSQL database
       run: |
