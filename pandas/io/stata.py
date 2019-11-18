@@ -2640,7 +2640,7 @@ def _dtype_to_stata_type_117(dtype, column, force_strl):
     elif dtype == np.int8:
         return 65530
     else:  # pragma : no cover
-        raise NotImplementedError("Data type %s not supported." % dtype)
+        raise NotImplementedError(f"Data type {dtype} not supported.")
 
 
 def _pad_bytes_new(name, length):

@@ -1805,7 +1805,7 @@ class DataFrame(NDFrame):
             if isinstance(self.index, ABCMultiIndex):
                 for i, n in enumerate(index_names):
                     if n is None:
-                        index_names[i] = "level_%d" % count
+                        index_names[i] = f"level_{count}"
                         count += 1
             elif index_names[0] is None:
                 index_names = ["index"]
@@ -2454,7 +2454,7 @@ class DataFrame(NDFrame):
         exceeds_info_cols = len(self.columns) > max_cols
 
         def _verbose_repr():
-            lines.append("Data columns (total %d columns):" % len(self.columns))
+            lines.append(f"Data columns (total {len(self.columns)} columns):")
             space = max(len(pprint_thing(k)) for k in self.columns) + 4
             counts = None
 
@@ -2846,7 +2846,7 @@ class DataFrame(NDFrame):
             )
         elif len(key) != len(self.index):
             raise ValueError(
-                "Item wrong length %d instead of %d." % (len(key), len(self.index))
+                f"Item wrong length {len(key)} instead of {len(self.index)}."
             )
 
         # check_bool_indexer will throw exception if Series key cannot
@@ -2957,7 +2957,7 @@ class DataFrame(NDFrame):
         if com.is_bool_indexer(key):
             if len(key) != len(self.index):
                 raise ValueError(
-                    "Item wrong length %d instead of %d!" % (len(key), len(self.index))
+                    f"Item wrong length {len(key)} instead of {len(self.index)}!"
                 )
             key = check_bool_indexer(self.index, key)
             indexer = key.nonzero()[0]
@@ -4537,8 +4537,8 @@ class DataFrame(NDFrame):
         if not drop:
             if isinstance(self.index, ABCMultiIndex):
                 names = [
-                    n if n is not None else ("level_%d" % i)
-                    for (i, n) in enumerate(self.index.names)
+                    (n if n is not None else f"level_{i}")
+                    for i, n in enumerate(self.index.names)
                 ]
                 to_insert = zip(self.index.levels, self.index.codes)
             else:
@@ -4858,8 +4858,7 @@ class DataFrame(NDFrame):
             by = [by]
         if is_sequence(ascending) and len(by) != len(ascending):
             raise ValueError(
-                "Length of ascending (%d) != length of by (%d)"
-                % (len(ascending), len(by))
+                f"Length of ascending ({len(ascending)}) != length of by ({len(by)})"
             )
         if len(by) > 1:
             from pandas.core.sorting import lexsort_indexer

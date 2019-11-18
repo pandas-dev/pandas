@@ -134,7 +134,7 @@ def create_block(typestr, placement, item_shape=None, num_offset=0):
         arr = values.sp_values.view()
         arr += num_offset - 1
     else:
-        raise ValueError('Unsupported typestr: "%s"' % typestr)
+        raise ValueError(f'Unsupported typestr: "{typestr}"')
 
     return make_block(values, placement=placement, ndim=len(shape))
 

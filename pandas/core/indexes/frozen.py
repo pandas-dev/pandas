@@ -109,7 +109,7 @@ class FrozenList(PandasObject, list):
         return pprint_thing(self, quote_strings=True, escape_chars=("\t", "\r", "\n"))
 
     def __repr__(self) -> str:
-        return "%s(%s)" % (self.__class__.__name__, str(self))
+        return f"{self.__class__.__name__}({str(self)})"
 
     __setitem__ = __setslice__ = __delitem__ = __delslice__ = _disabled
     pop = append = extend = remove = sort = insert = _disabled
@@ -153,7 +153,7 @@ class FrozenNDArray(PandasObject, np.ndarray):
         Return a string representation for this object.
         """
         prepr = pprint_thing(self, escape_chars=("\t", "\r", "\n"), quote_strings=True)
-        return "%s(%s, dtype='%s')" % (type(self).__name__, prepr, self.dtype)
+        return f"{type(self).__name__}({prepr}, dtype='{self.dtype}')"
 
     @deprecate_kwarg(old_arg_name="v", new_arg_name="value")
     def searchsorted(self, value, side="left", sorter=None):

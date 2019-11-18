@@ -1008,7 +1008,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             self.name = name
 
         else:
-            raise Exception("cannot unpickle legacy formats -> [%s]" % state)
+            raise Exception(f"cannot unpickle legacy formats -> [{state}]")
 
     # indexers
     @property
@@ -1303,7 +1303,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         indexer = self.index.get_indexer(key)
         mask = indexer == -1
         if mask.any():
-            raise ValueError("%s not contained in the index" % str(key[mask]))
+            raise ValueError(f"{key[mask]} not contained in the index")
         self._set_values(indexer, value)
 
     def _set_values(self, key, value):
@@ -2591,7 +2591,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             rvals = np.asarray(other)
             if lvals.shape[0] != rvals.shape[0]:
                 raise Exception(
-                    "Dot product shape mismatch, %s vs %s" % (lvals.shape, rvals.shape)
+                    f"Dot product shape mismatch, {lvals.shape} vs {rvals.shape}"
                 )
 
         if isinstance(other, ABCDataFrame):
@@ -2603,7 +2603,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         elif isinstance(rvals, np.ndarray):
             return np.dot(lvals, rvals)
         else:  # pragma: no cover
-            raise TypeError("unsupported type: %s" % type(other))
+            raise TypeError(f"unsupported type: {type(other)}")
 
     def __matmul__(self, other):
         """
@@ -3083,8 +3083,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if is_list_like(ascending):
             if len(ascending) != 1:
                 raise ValueError(
-                    "Length of ascending (%d) must be 1 "
-                    "for Series" % (len(ascending))
+                    f"Length of ascending ({len(ascending)}) must be 1 for Series"
                 )
             ascending = ascending[0]
 

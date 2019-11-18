@@ -451,7 +451,7 @@ def pipe(obj, func, *args, **kwargs):
     if isinstance(func, tuple):
         func, target = func
         if target in kwargs:
-            msg = "%s is both the pipe target and a keyword argument" % target
+            msg = f"{target} is both the pipe target and a keyword argument"
             raise ValueError(msg)
         kwargs[target] = obj
         return func(*args, **kwargs)
