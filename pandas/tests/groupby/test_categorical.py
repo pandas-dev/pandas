@@ -4,19 +4,11 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas.compat import PY37
-
 import pandas as pd
-from pandas import (
-    Categorical,
-    CategoricalIndex,
-    DataFrame,
-    Index,
-    MultiIndex,
-    Series,
-    qcut,
-)
 import pandas.util.testing as tm
+from pandas import (Categorical, CategoricalIndex, DataFrame, Index,
+                    MultiIndex, Series, qcut)
+from pandas.compat import PY37
 
 
 def cartesian_product_for_groupers(result, args, names):
@@ -1252,3 +1244,27 @@ def test_get_nonexistent_category():
                 {"var": [rows.iloc[-1]["var"]], "val": [rows.iloc[-1]["vau"]]}
             )
         )
+
+
+@pytest.mark.parametrize("aggregation", [
+    "sum",
+    "mean",
+    "min",
+    "count",
+])
+def test_series_groupby_on_2_categoricals_unobserved(aggregation):
+    # GH 17605
+    df = pd.DataFrame({
+        "cat_1": pd.Categorical(list("AABB"), categories=list("ABCD")),
+        "cat_2": pd.Categorical(list("AB") * 2, categories=list("ABCD")),
+        "value": [0.1] * 4
+    })
+
+    # Expect 1 observation for each combination of categories
+    expected_length = len(df["cat_1"].cat.categories) * len(df["cat_2"].cat.categories)
+
+    series_groupby = df.groupby(["cat_1", "cat_2"], observed=False)["value"]
+    agg = getattr(series_groupby, aggregation)
+    result = agg()
+
+    assert len(result) == expected_length
