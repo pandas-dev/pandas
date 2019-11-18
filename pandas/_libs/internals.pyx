@@ -252,7 +252,7 @@ cpdef Py_ssize_t slice_len(
         raise TypeError("slc must be slice")
 
     PySlice_GetIndicesEx(slc, objlen,
-                      &start, &stop, &step, &length)
+                         &start, &stop, &step, &length)
 
     return length
 
@@ -272,7 +272,7 @@ cdef slice_get_indices_ex(slice slc, Py_ssize_t objlen=PY_SSIZE_T_MAX):
         raise TypeError("slc should be a slice")
 
     PySlice_GetIndicesEx(slc, objlen,
-                      &start, &stop, &step, &length)
+                         &start, &stop, &step, &length)
 
     return start, stop, step, length
 
