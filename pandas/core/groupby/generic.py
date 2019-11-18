@@ -1109,7 +1109,6 @@ class DataFrameGroupBy(GroupBy):
 
         return output_keys
 
-    # TODO: this function is way too big
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
         if len(keys) == 0:
             return DataFrame(index=keys)

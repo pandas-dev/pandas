@@ -245,7 +245,6 @@ class Grouping:
       * group_index : unique groups
       * groups : dict of {group -> label_list}
     """
-    # TODO: too much going on here
 
     def __init__(
         self,
@@ -432,7 +431,6 @@ class Grouping:
         return self.index.groupby(Categorical.from_codes(self.codes, self.group_index))
 
 
-# TODO: this function is way too big
 def get_grouper(
     obj: FrameOrSeries,
     key=None,
