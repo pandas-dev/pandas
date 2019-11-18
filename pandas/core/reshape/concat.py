@@ -13,11 +13,11 @@ from pandas.core.arrays.categorical import (
 )
 import pandas.core.common as com
 from pandas.core.generic import NDFrame
-from pandas.core.index import (
-    _all_indexes_same,
-    _get_consensus_names,
-    _get_objs_combined_axis,
+from pandas.core.indexes.api import (
+    all_indexes_same,
     ensure_index,
+    get_consensus_names,
+    get_objs_combined_axis,
 )
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import concatenate_block_managers
@@ -522,13 +522,9 @@ class _Concatenator:
 
     def _get_comb_axis(self, i):
         data_axis = self.objs[0]._get_block_manager_axis(i)
-        try:
-            return _get_objs_combined_axis(
-                self.objs, axis=data_axis, intersect=self.intersect, sort=self.sort
-            )
-        except IndexError:
-            types = [type(x).__name__ for x in self.objs]
-            raise TypeError("Cannot concatenate list of {types}".format(types=types))
+        return get_objs_combined_axis(
+            self.objs, axis=data_axis, intersect=self.intersect, sort=self.sort
+        )
 
     def _get_concat_axis(self):
         """
@@ -617,7 +613,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
         else:
             levels = [ensure_index(x) for x in levels]
 
-    if not _all_indexes_same(indexes):
+    if not all_indexes_same(indexes):
         codes_list = []
 
         # things are potentially different sizes, so compute the exact codes
@@ -660,7 +656,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
                 )
 
             # also copies
-            names = names + _get_consensus_names(indexes)
+            names = names + get_consensus_names(indexes)
 
         return MultiIndex(
             levels=levels, codes=codes_list, names=names, verify_integrity=False
