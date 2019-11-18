@@ -174,6 +174,8 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     OTHERVAR='Check for extra blank lines after the class definition' ; echo $OTHERVAR
+    MSG='Check for incorrect sphinx directives' ; echo $MSG
+    MSG='Check for extra blank lines' ; echo $MSG
     MSG='Check for extra blank lines after the class definition' ; echo $MSG
     MSG='Check' ; echo $MSG
 

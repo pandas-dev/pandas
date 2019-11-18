@@ -208,14 +208,13 @@ jobs:
 
     - name: Create MySQL database
       run: |
-        netstat -an
+        echo ${{ job.services.mysql.ports['3306'] }}
+        netstat -an | grep LISTEN
         mysql --host localhost \
               --port ${{ job.services.mysql.ports['3306'] }} \
               --user root \
-              --password password \
               --execute "CREATE DATABASE pandas_nosetest;"
-      # if: matrix.coverage
-      if: true
+      if: matrix.coverage
 
     - name: Setup environment and build pandas
       run: |
