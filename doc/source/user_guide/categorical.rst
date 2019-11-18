@@ -797,37 +797,52 @@ Assigning a ``Categorical`` to parts of a column of other types will use the val
     df.dtypes
 
 .. _categorical.merge:
+.. _categorical.concat:
 
-Merging
-~~~~~~~
+Merging / Concatenation
+~~~~~~~~~~~~~~~~~~~~~~~
 
-You can concat two ``DataFrames`` containing categorical data together,
-but the categories of these categoricals need to be the same:
-
-.. ipython:: python
-
-    cat = pd.Series(["a", "b"], dtype="category")
-    vals = [1, 2]
-    df = pd.DataFrame({"cats": cat, "vals": vals})
-    res = pd.concat([df, df])
-    res
-    res.dtypes
-
-In this case the categories are not the same, and therefore an error is raised:
+By default, combining ``Series`` or ``DataFrames`` which contain the same
+categories results in ``category`` dtype, otherwise results will depend on the
+dtype of the underlying categories. Merges that result in non-categorical
+dtypes will likely have higher memory usage. Use ``.astype`` or
+``union_categoricals`` to ensure ``category`` results.
 
 .. ipython:: python
 
-    df_different = df.copy()
-    df_different["cats"].cat.categories = ["c", "d"]
-    try:
-        pd.concat([df, df_different])
-    except ValueError as e:
-        print("ValueError:", str(e))
+   from pandas.api.types import union_categoricals
 
-The same applies to ``df.append(df_different)``.
+   # same categories
+   s1 = pd.Series(['a', 'b'], dtype='category')
+   s2 = pd.Series(['a', 'b', 'a'], dtype='category')
+   pd.concat([s1, s2])
 
-See also the section on :ref:`merge dtypes<merging.dtypes>` for notes about preserving merge dtypes and performance.
+   # different categories
+   s3 = pd.Series(['b', 'c'], dtype='category')
+   pd.concat([s1, s3])
 
+   # Output dtype is inferred based on categories values
+   int_cats = pd.Series([1, 2], dtype="category")
+   float_cats = pd.Series([3.0, 4.0], dtype="category")
+   pd.concat([int_cats, float_cats])
+
+   pd.concat([s1, s3]).astype('category')
+   union_categoricals([s1.array, s3.array])
+
+The following table summarizes the results of merging ``Categoricals``:
+
++-------------------+------------------------+----------------------+-----------------------------+
+| arg1              | arg2                   |      identical       | result                      |
++===================+========================+======================+=============================+
+| category          | category               | True                 | category                    |
++-------------------+------------------------+----------------------+-----------------------------+
+| category (object) | category (object)      | False                | object (dtype is inferred)  |
++-------------------+------------------------+----------------------+-----------------------------+
+| category (int)    | category (float)       | False                | float (dtype is inferred)   |
++-------------------+------------------------+----------------------+-----------------------------+
+
+See also the section on :ref:`merge dtypes<merging.dtypes>` for notes about
+preserving merge dtypes and performance.
 
 .. _categorical.union:
 
@@ -874,8 +889,6 @@ The below raises ``TypeError`` because the categories are ordered and not identi
    Out[3]:
    TypeError: to union ordered Categoricals, all categories must be the same
 
-.. versionadded:: 0.20.0
-
 Ordered categoricals with different categories or orderings can be combined by
 using the ``ignore_ordered=True`` argument.
 
@@ -919,46 +932,6 @@ the resulting array will always be a plain ``Categorical``:
       c
       # "b" is coded to 0 throughout, same as c1, different from c2
       c.codes
-
-.. _categorical.concat:
-
-Concatenation
-~~~~~~~~~~~~~
-
-This section describes concatenations specific to ``category`` dtype. See :ref:`Concatenating objects<merging.concat>` for general description.
-
-By default, ``Series`` or ``DataFrame`` concatenation which contains the same categories
-results in ``category`` dtype, otherwise results in ``object`` dtype.
-Use ``.astype`` or ``union_categoricals`` to get ``category`` result.
-
-.. ipython:: python
-
-   # same categories
-   s1 = pd.Series(['a', 'b'], dtype='category')
-   s2 = pd.Series(['a', 'b', 'a'], dtype='category')
-   pd.concat([s1, s2])
-
-   # different categories
-   s3 = pd.Series(['b', 'c'], dtype='category')
-   pd.concat([s1, s3])
-
-   pd.concat([s1, s3]).astype('category')
-   union_categoricals([s1.array, s3.array])
-
-
-Following table summarizes the results of ``Categoricals`` related concatenations.
-
-+----------+--------------------------------------------------------+----------------------------+
-| arg1     | arg2                                                   | result                     |
-+==========+========================================================+============================+
-| category | category (identical categories)                        | category                   |
-+----------+--------------------------------------------------------+----------------------------+
-| category | category (different categories, both not ordered)      | object (dtype is inferred) |
-+----------+--------------------------------------------------------+----------------------------+
-| category | category (different categories, either one is ordered) | object (dtype is inferred) |
-+----------+--------------------------------------------------------+----------------------------+
-| category | not category                                           | object (dtype is inferred) |
-+----------+--------------------------------------------------------+----------------------------+
 
 
 Getting data in/out

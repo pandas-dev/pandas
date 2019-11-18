@@ -10,7 +10,7 @@ from pandas.core.algorithms import _value_counts_arraylike
 import pandas.core.common as com
 from pandas.core.frame import _shared_docs
 from pandas.core.groupby import Grouper
-from pandas.core.index import Index, MultiIndex, _get_objs_combined_axis
+from pandas.core.index import Index, MultiIndex, get_objs_combined_axis
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.util import cartesian_product
 from pandas.core.series import Series
@@ -544,7 +544,10 @@ def crosstab(
     index = com.maybe_make_list(index)
     columns = com.maybe_make_list(columns)
 
-    common_idx = _get_objs_combined_axis(index + columns, intersect=True, sort=False)
+    common_idx = None
+    pass_objs = [x for x in index + columns if isinstance(x, (ABCSeries, ABCDataFrame))]
+    if pass_objs:
+        common_idx = get_objs_combined_axis(pass_objs, intersect=True, sort=False)
 
     rownames = _get_names(index, rownames, prefix="row")
     colnames = _get_names(columns, colnames, prefix="col")
@@ -634,7 +637,9 @@ def _normalize(table, normalize, margins, margins_name="All"):
         if (margins_name not in table.iloc[-1, :].name) | (
             margins_name != table.iloc[:, -1].name
         ):
-            raise ValueError("{} not in pivoted DataFrame".format(margins_name))
+            raise ValueError(
+                "{mname} not in pivoted DataFrame".format(mname=margins_name)
+            )
         column_margin = table.iloc[:-1, -1]
         index_margin = table.iloc[-1, :-1]
 

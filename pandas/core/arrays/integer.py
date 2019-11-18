@@ -21,12 +21,12 @@ from pandas.core.dtypes.common import (
     is_scalar,
 )
 from pandas.core.dtypes.dtypes import register_extension_dtype
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import nanops, ops
 from pandas.core.algorithms import take
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
+from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.tools.numeric import to_numeric
 
 
@@ -45,7 +45,7 @@ class _IntegerDtype(ExtensionDtype):
     type = None  # type: Type
     na_value = np.nan
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         sign = "U" if self.is_unsigned_integer else ""
         return "{sign}Int{size}Dtype()".format(sign=sign, size=8 * self.itemsize)
 
@@ -95,7 +95,7 @@ def integer_array(values, dtype=None, copy=False):
     values : 1D list-like
     dtype : dtype, optional
         dtype to coerce
-    copy : boolean, default False
+    copy : bool, default False
 
     Returns
     -------
@@ -140,8 +140,8 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
     ----------
     values : 1D list-like
     dtype : integer dtype
-    mask : boolean 1D array, optional
-    copy : boolean, default False
+    mask : bool 1D array, optional
+    copy : bool, default False
         if True, copy the input
 
     Returns
@@ -469,7 +469,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         self._data[key] = value
         self._mask[key] = mask
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._data)
 
     @property
@@ -542,7 +542,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         Parameters
         ----------
-        dropna : boolean, default True
+        dropna : bool, default True
             Don't include counts of NaN.
 
         Returns
@@ -602,13 +602,8 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
     def _create_comparison_method(cls, op):
         op_name = op.__name__
 
+        @unpack_zerodim_and_defer(op.__name__)
         def cmp_method(self, other):
-
-            if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
-                # Rely on pandas to unbox and dispatch to us.
-                return NotImplemented
-
-            other = lib.item_from_zerodim(other)
             mask = None
 
             if isinstance(other, IntegerArray):
@@ -697,14 +692,13 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
     def _create_arithmetic_method(cls, op):
         op_name = op.__name__
 
+        @unpack_zerodim_and_defer(op.__name__)
         def integer_arithmetic_method(self, other):
 
-            if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
-                # Rely on pandas to unbox and dispatch to us.
-                return NotImplemented
-
-            other = lib.item_from_zerodim(other)
             mask = None
+
+            if getattr(other, "ndim", 0) > 1:
+                raise NotImplementedError("can only perform ops with 1-d structures")
 
             if isinstance(other, IntegerArray):
                 other, mask = other._data, other._mask

@@ -230,16 +230,16 @@ cdef class _NaT(datetime):
         return NotImplemented
 
     @property
-    def asm8(self):
+    def asm8(self) -> np.datetime64:
         return np.datetime64(NPY_NAT, 'ns')
 
-    def to_datetime64(self):
+    def to_datetime64(self) -> np.datetime64:
         """
         Return a numpy.datetime64 object with 'ns' precision.
         """
         return np.datetime64('NaT', 'ns')
 
-    def to_numpy(self, dtype=None, copy=False):
+    def to_numpy(self, dtype=None, copy=False) -> np.datetime64:
         """
         Convert the Timestamp to a NumPy datetime64.
 
@@ -259,13 +259,13 @@ cdef class _NaT(datetime):
         """
         return self.to_datetime64()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return 'NaT'
 
-    def __str__(self):
+    def __str__(self) -> str:
         return 'NaT'
 
-    def isoformat(self, sep='T'):
+    def isoformat(self, sep='T') -> str:
         # This allows Timestamp(ts.isoformat()) to always correctly roundtrip.
         return 'NaT'
 
@@ -396,7 +396,7 @@ class NaTType(_NaT):
         Parameters
         ----------
         locale : string, default None (English locale)
-            locale determining the language in which to return the month name
+            Locale determining the language in which to return the month name.
 
         Returns
         -------
@@ -411,7 +411,7 @@ class NaTType(_NaT):
         Parameters
         ----------
         locale : string, default None (English locale)
-            locale determining the language in which to return the day name
+            Locale determining the language in which to return the day name.
 
         Returns
         -------
@@ -464,7 +464,7 @@ class NaTType(_NaT):
         """
         Timestamp.combine(date, time)
 
-        date, time -> datetime with same date and time fields
+        date, time -> datetime with same date and time fields.
         """
     )
     utcnow = _make_error_func('utcnow',  # noqa:E128
@@ -503,17 +503,17 @@ class NaTType(_NaT):
         """
         Timestamp.fromordinal(ordinal, freq=None, tz=None)
 
-        passed an ordinal, translate and convert to a ts
-        note: by definition there cannot be any tz info on the ordinal itself
+        Passed an ordinal, translate and convert to a ts.
+        Note: by definition there cannot be any tz info on the ordinal itself.
 
         Parameters
         ----------
         ordinal : int
-            date corresponding to a proleptic Gregorian ordinal
+            Date corresponding to a proleptic Gregorian ordinal.
         freq : str, DateOffset
-            Offset which Timestamp will have
+            Offset to apply to the Timestamp.
         tz : str, pytz.timezone, dateutil.tz.tzfile or None
-            Time zone for time which Timestamp will have.
+            Time zone for the Timestamp.
         """)
 
     # _nat_methods
@@ -534,7 +534,7 @@ class NaTType(_NaT):
         Parameters
         ----------
         tz : str or timezone object, default None
-            Timezone to localize to
+            Timezone to localize to.
         """)
     today = _make_nat_func('today',  # noqa:E128
         """
@@ -547,35 +547,38 @@ class NaTType(_NaT):
         Parameters
         ----------
         tz : str or timezone object, default None
-            Timezone to localize to
+            Timezone to localize to.
         """)
     round = _make_nat_func('round',  # noqa:E128
         """
-        Round the Timestamp to the specified resolution
+        Round the Timestamp to the specified resolution.
 
         Parameters
         ----------
-        freq : a freq string indicating the rounding resolution
-        ambiguous : bool, 'NaT', default 'raise'
-            - bool contains flags to determine if time is dst or not (note
-              that this flag is only applicable for ambiguous fall dst dates)
-            - 'NaT' will return NaT for an ambiguous time
-            - 'raise' will raise an AmbiguousTimeError for an ambiguous time
+        freq : str
+            Frequency string indicating the rounding resolution.
+        ambiguous : bool or {'raise', 'NaT'}, default 'raise'
+            The behavior is as follows:
+
+            * bool contains flags to determine if time is dst or not (note
+              that this flag is only applicable for ambiguous fall dst dates).
+            * 'NaT' will return NaT for an ambiguous time.
+            * 'raise' will raise an AmbiguousTimeError for an ambiguous time.
 
             .. versionadded:: 0.24.0
-        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta, \
-default 'raise'
+        nonexistent : {'raise', 'shift_forward', 'shift_backward, 'NaT', \
+timedelta}, default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
-            - 'shift_forward' will shift the nonexistent time forward to the
-              closest existing time
-            - 'shift_backward' will shift the nonexistent time backward to the
-              closest existing time
-            - 'NaT' will return NaT where there are nonexistent times
-            - timedelta objects will shift nonexistent times by the timedelta
-            - 'raise' will raise an NonExistentTimeError if there are
-              nonexistent times
+            * 'shift_forward' will shift the nonexistent time forward to the
+              closest existing time.
+            * 'shift_backward' will shift the nonexistent time backward to the
+              closest existing time.
+            * 'NaT' will return NaT where there are nonexistent times.
+            * timedelta objects will shift nonexistent times by the timedelta.
+            * 'raise' will raise an NonExistentTimeError if there are
+              nonexistent times.
 
             .. versionadded:: 0.24.0
 
@@ -589,71 +592,77 @@ default 'raise'
         """)
     floor = _make_nat_func('floor',  # noqa:E128
         """
-        return a new Timestamp floored to this resolution
+        return a new Timestamp floored to this resolution.
 
         Parameters
         ----------
-        freq : a freq string indicating the flooring resolution
-        ambiguous : bool, 'NaT', default 'raise'
-            - bool contains flags to determine if time is dst or not (note
-              that this flag is only applicable for ambiguous fall dst dates)
-            - 'NaT' will return NaT for an ambiguous time
-            - 'raise' will raise an AmbiguousTimeError for an ambiguous time
+        freq : str
+            Frequency string indicating the flooring resolution.
+        ambiguous : bool or {'raise', 'NaT'}, default 'raise'
+            The behavior is as follows:
+
+            * bool contains flags to determine if time is dst or not (note
+              that this flag is only applicable for ambiguous fall dst dates).
+            * 'NaT' will return NaT for an ambiguous time.
+            * 'raise' will raise an AmbiguousTimeError for an ambiguous time.
 
             .. versionadded:: 0.24.0
-        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta, \
-default 'raise'
+        nonexistent : {'raise', 'shift_forward', 'shift_backward, 'NaT', \
+timedelta}, default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
-            - 'shift_forward' will shift the nonexistent time forward to the
-              closest existing time
-            - 'shift_backward' will shift the nonexistent time backward to the
-              closest existing time
-            - 'NaT' will return NaT where there are nonexistent times
-            - timedelta objects will shift nonexistent times by the timedelta
-            - 'raise' will raise an NonExistentTimeError if there are
-              nonexistent times
+            * 'shift_forward' will shift the nonexistent time forward to the
+              closest existing time.
+            * 'shift_backward' will shift the nonexistent time backward to the
+              closest existing time.
+            * 'NaT' will return NaT where there are nonexistent times.
+            * timedelta objects will shift nonexistent times by the timedelta.
+            * 'raise' will raise an NonExistentTimeError if there are
+              nonexistent times.
 
             .. versionadded:: 0.24.0
 
         Raises
         ------
-        ValueError if the freq cannot be converted
+        ValueError if the freq cannot be converted.
         """)
     ceil = _make_nat_func('ceil',  # noqa:E128
         """
-        return a new Timestamp ceiled to this resolution
+        return a new Timestamp ceiled to this resolution.
 
         Parameters
         ----------
-        freq : a freq string indicating the ceiling resolution
-        ambiguous : bool, 'NaT', default 'raise'
-            - bool contains flags to determine if time is dst or not (note
-              that this flag is only applicable for ambiguous fall dst dates)
-            - 'NaT' will return NaT for an ambiguous time
-            - 'raise' will raise an AmbiguousTimeError for an ambiguous time
+        freq : str
+            Frequency string indicating the ceiling resolution.
+        ambiguous : bool or {'raise', 'NaT'}, default 'raise'
+            The behavior is as follows:
+
+            * bool contains flags to determine if time is dst or not (note
+              that this flag is only applicable for ambiguous fall dst dates).
+            * 'NaT' will return NaT for an ambiguous time.
+            * 'raise' will raise an AmbiguousTimeError for an ambiguous time.
 
             .. versionadded:: 0.24.0
-        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta, \
-default 'raise'
+        nonexistent : {'raise', 'shift_forward', 'shift_backward, 'NaT', \
+timedelta}, default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
-            - 'shift_forward' will shift the nonexistent time forward to the
-              closest existing time
-            - 'shift_backward' will shift the nonexistent time backward to the
-              closest existing time
-            - 'NaT' will return NaT where there are nonexistent times
-            - timedelta objects will shift nonexistent times by the timedelta
-            - 'raise' will raise an NonExistentTimeError if there are
-              nonexistent times
+            * 'shift_forward' will shift the nonexistent time forward to the
+              closest existing time.
+            * 'shift_backward' will shift the nonexistent time backward to the
+              closest existing time.
+            * 'NaT' will return NaT where there are nonexistent times.
+            * timedelta objects will shift nonexistent times by the timedelta.
+            * 'raise' will raise an NonExistentTimeError if there are
+              nonexistent times.
 
             .. versionadded:: 0.24.0
 
         Raises
         ------
-        ValueError if the freq cannot be converted
+        ValueError if the freq cannot be converted.
         """)
 
     tz_convert = _make_nat_func('tz_convert',  # noqa:E128
@@ -694,35 +703,42 @@ default 'raise'
             `ambiguous` parameter dictates how ambiguous times should be
             handled.
 
-            - bool contains flags to determine if time is dst or not (note
-              that this flag is only applicable for ambiguous fall dst dates)
-            - 'NaT' will return NaT for an ambiguous time
-            - 'raise' will raise an AmbiguousTimeError for an ambiguous time
+            The behavior is as follows:
+
+            * bool contains flags to determine if time is dst or not (note
+              that this flag is only applicable for ambiguous fall dst dates).
+            * 'NaT' will return NaT for an ambiguous time.
+            * 'raise' will raise an AmbiguousTimeError for an ambiguous time.
 
         nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta, \
 default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
-            - 'shift_forward' will shift the nonexistent time forward to the
-              closest existing time
-            - 'shift_backward' will shift the nonexistent time backward to the
-              closest existing time
-            - 'NaT' will return NaT where there are nonexistent times
-            - timedelta objects will shift nonexistent times by the timedelta
-            - 'raise' will raise an NonExistentTimeError if there are
-              nonexistent times
+            The behavior is as follows:
+
+            * 'shift_forward' will shift the nonexistent time forward to the
+              closest existing time.
+            * 'shift_backward' will shift the nonexistent time backward to the
+              closest existing time.
+            * 'NaT' will return NaT where there are nonexistent times.
+            * timedelta objects will shift nonexistent times by the timedelta.
+            * 'raise' will raise an NonExistentTimeError if there are
+              nonexistent times.
 
             .. versionadded:: 0.24.0
-
         errors : 'raise', 'coerce', default None
-            - 'raise' will raise a NonExistentTimeError if a timestamp is not
-               valid in the specified timezone (e.g. due to a transition from
-               or to DST time). Use ``nonexistent='raise'`` instead.
-            - 'coerce' will return NaT if the timestamp can not be converted
+            Determine how errors should be handled.
+
+            The behavior is as follows:
+
+            * 'raise' will raise a NonExistentTimeError if a timestamp is not
+              valid in the specified timezone (e.g. due to a transition from
+              or to DST time). Use ``nonexistent='raise'`` instead.
+            * 'coerce' will return NaT if the timestamp can not be converted
               into the specified timezone. Use ``nonexistent='NaT'`` instead.
 
-              .. deprecated:: 0.24.0
+            .. deprecated:: 0.24.0
 
         Returns
         -------
@@ -735,7 +751,7 @@ default 'raise'
         """)
     replace = _make_nat_func('replace',  # noqa:E128
         """
-        implements datetime.replace, handles nanoseconds
+        implements datetime.replace, handles nanoseconds.
 
         Parameters
         ----------

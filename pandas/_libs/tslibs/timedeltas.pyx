@@ -841,15 +841,15 @@ cdef class _Timedelta(timedelta):
         """
         return timedelta(microseconds=int(self.value) / 1000)
 
-    def to_timedelta64(self):
+    def to_timedelta64(self) -> np.timedelta64:
         """
         Return a numpy.timedelta64 object with 'ns' precision.
         """
         return np.timedelta64(self.value, 'ns')
 
-    def to_numpy(self, dtype=None, copy=False):
+    def to_numpy(self, dtype=None, copy=False) -> np.timedelta64:
         """
-        Convert the Timestamp to a NumPy timedelta64.
+        Convert the Timedelta to a NumPy timedelta64.
 
         .. versionadded:: 0.25.0
 
@@ -920,7 +920,7 @@ cdef class _Timedelta(timedelta):
         return self.value
 
     @property
-    def asm8(self):
+    def asm8(self) -> np.timedelta64:
         """
         Return a numpy timedelta64 array scalar view.
 
@@ -955,7 +955,7 @@ cdef class _Timedelta(timedelta):
         return np.int64(self.value).view('m8[ns]')
 
     @property
-    def resolution_string(self):
+    def resolution_string(self) -> str:
         """
         Return a string representing the lowest timedelta resolution.
 
@@ -1095,7 +1095,7 @@ cdef class _Timedelta(timedelta):
         self._ensure_components()
         return self._ns
 
-    def _repr_base(self, format=None):
+    def _repr_base(self, format=None) -> str:
         """
 
         Parameters
@@ -1142,22 +1142,20 @@ cdef class _Timedelta(timedelta):
 
         return fmt.format(**comp_dict)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "Timedelta('{val}')".format(val=self._repr_base(format='long'))
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self._repr_base(format='long')
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return self.value != 0
 
-    def isoformat(self):
+    def isoformat(self) -> str:
         """
         Format Timedelta as ISO 8601 Duration like
         ``P[n]Y[n]M[n]DT[n]H[n]M[n]S``, where the ``[n]`` s are replaced by the
-        values. See https://en.wikipedia.org/wiki/ISO_8601#Durations
-
-        .. versionadded:: 0.20.0
+        values. See https://en.wikipedia.org/wiki/ISO_8601#Durations.
 
         Returns
         -------
@@ -1215,14 +1213,20 @@ class Timedelta(_Timedelta):
     Parameters
     ----------
     value : Timedelta, timedelta, np.timedelta64, string, or integer
-    unit : str, optional
-        Denote the unit of the input, if input is an integer. Default 'ns'.
+    unit : str, default 'ns'
+        Denote the unit of the input, if input is an integer.
+
         Possible values:
-        {'Y', 'M', 'W', 'D', 'days', 'day', 'hours', hour', 'hr', 'h',
-        'm', 'minute', 'min', 'minutes', 'T', 'S', 'seconds', 'sec', 'second',
-        'ms', 'milliseconds', 'millisecond', 'milli', 'millis', 'L',
-        'us', 'microseconds', 'microsecond', 'micro', 'micros', 'U',
-        'ns', 'nanoseconds', 'nano', 'nanos', 'nanosecond', 'N'}
+
+        * 'Y', 'M', 'W', 'D', 'T', 'S', 'L', 'U', or 'N'
+        * 'days' or 'day'
+        * 'hours', 'hour', 'hr', or 'h'
+        * 'minutes', 'minute', 'min', or 'm'
+        * 'seconds', 'second', or 'sec'
+        * 'milliseconds', 'millisecond', 'millis', or 'milli'
+        * 'microseconds', 'microsecond', 'micros', or 'micro'
+        * 'nanoseconds', 'nanosecond', 'nanos', 'nano', or 'ns'.
+
     **kwargs
         Available kwargs: {days, seconds, microseconds,
         milliseconds, minutes, hours, weeks}.
@@ -1319,11 +1323,12 @@ class Timedelta(_Timedelta):
 
     def round(self, freq):
         """
-        Round the Timedelta to the specified resolution
+        Round the Timedelta to the specified resolution.
 
         Parameters
         ----------
-        freq : a freq string indicating the rounding resolution
+        freq : str
+            Frequency string indicating the rounding resolution.
 
         Returns
         -------
@@ -1337,21 +1342,23 @@ class Timedelta(_Timedelta):
 
     def floor(self, freq):
         """
-        return a new Timedelta floored to this resolution
+        Return a new Timedelta floored to this resolution.
 
         Parameters
         ----------
-        freq : a freq string indicating the flooring resolution
+        freq : str
+            Frequency string indicating the flooring resolution.
         """
         return self._round(freq, np.floor)
 
     def ceil(self, freq):
         """
-        return a new Timedelta ceiled to this resolution
+        Return a new Timedelta ceiled to this resolution.
 
         Parameters
         ----------
-        freq : a freq string indicating the ceiling resolution
+        freq : str
+            Frequency string indicating the ceiling resolution.
         """
         return self._round(freq, np.ceil)
 

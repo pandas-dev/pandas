@@ -257,7 +257,7 @@ class TestMultiLevel(Base):
         assert lines[2].startswith("a 0 foo")
 
     def test_delevel_infer_dtype(self):
-        tuples = [tuple for tuple in product(["foo", "bar"], [10, 20], [1.0, 1.1])]
+        tuples = list(product(["foo", "bar"], [10, 20], [1.0, 1.1]))
         index = MultiIndex.from_tuples(tuples, names=["prm0", "prm1", "prm2"])
         df = DataFrame(np.random.randn(8, 3), columns=["A", "B", "C"], index=index)
         deleveled = df.reset_index()
@@ -335,7 +335,7 @@ class TestMultiLevel(Base):
         df = self.frame[:0]
         result = df.count(level=0)
         expected = (
-            DataFrame(index=s.index.levels[0], columns=df.columns)
+            DataFrame(index=s.index.levels[0].set_names(["first"]), columns=df.columns)
             .fillna(0)
             .astype(np.int64)
         )
@@ -357,6 +357,49 @@ class TestMultiLevel(Base):
 
         # test that int32 work
         self.ymd.astype(np.int32).unstack()
+
+    @pytest.mark.parametrize(
+        "result_rows,result_columns,index_product,expected_row",
+        [
+            (
+                [[1, 1, None, None, 30.0, None], [2, 2, None, None, 30.0, None]],
+                ["ix1", "ix2", "col1", "col2", "col3", "col4"],
+                2,
+                [None, None, 30.0, None],
+            ),
+            (
+                [[1, 1, None, None, 30.0], [2, 2, None, None, 30.0]],
+                ["ix1", "ix2", "col1", "col2", "col3"],
+                2,
+                [None, None, 30.0],
+            ),
+            (
+                [[1, 1, None, None, 30.0], [2, None, None, None, 30.0]],
+                ["ix1", "ix2", "col1", "col2", "col3"],
+                None,
+                [None, None, 30.0],
+            ),
+        ],
+    )
+    def test_unstack_partial(
+        self, result_rows, result_columns, index_product, expected_row
+    ):
+        # check for regressions on this issue:
+        # https://github.com/pandas-dev/pandas/issues/19351
+        # make sure DataFrame.unstack() works when its run on a subset of the DataFrame
+        # and the Index levels contain values that are not present in the subset
+        result = pd.DataFrame(result_rows, columns=result_columns).set_index(
+            ["ix1", "ix2"]
+        )
+        result = result.iloc[1:2].unstack("ix2")
+        expected = pd.DataFrame(
+            [expected_row],
+            columns=pd.MultiIndex.from_product(
+                [result_columns[2:], [index_product]], names=[None, "ix2"]
+            ),
+            index=pd.Index([2], name="ix1"),
+        )
+        tm.assert_frame_equal(result, expected)
 
     def test_unstack_multiple_no_empty_columns(self):
         index = MultiIndex.from_tuples(
@@ -975,14 +1018,12 @@ Thur,Lunch,Yes,51.51,17"""
         series.index.names = ["a", "b"]
 
         result = series.count(level="b")
-        expect = self.series.count(level=1)
-        tm.assert_series_equal(result, expect, check_names=False)
-        assert result.index.name == "b"
+        expect = self.series.count(level=1).rename_axis("b")
+        tm.assert_series_equal(result, expect)
 
         result = series.count(level="a")
-        expect = self.series.count(level=0)
-        tm.assert_series_equal(result, expect, check_names=False)
-        assert result.index.name == "a"
+        expect = self.series.count(level=0).rename_axis("a")
+        tm.assert_series_equal(result, expect)
 
         msg = "Level x not found"
         with pytest.raises(KeyError, match=msg):
@@ -1014,6 +1055,8 @@ Thur,Lunch,Yes,51.51,17"""
         self.frame.iloc[1, [1, 2]] = np.nan
         self.frame.iloc[7, [0, 1]] = np.nan
 
+        level_name = self.frame.index.names[level]
+
         if axis == 0:
             frame = self.frame
         else:
@@ -1034,7 +1077,7 @@ Thur,Lunch,Yes,51.51,17"""
             frame = frame.sort_index(level=level, axis=axis)
 
         # for good measure, groupby detail
-        level_index = frame._get_axis(axis).levels[level]
+        level_index = frame._get_axis(axis).levels[level].rename(level_name)
 
         tm.assert_index_equal(leftside._get_axis(axis), level_index)
         tm.assert_index_equal(rightside._get_axis(axis), level_index)
@@ -1064,6 +1107,23 @@ Thur,Lunch,Yes,51.51,17"""
         result = df.all(level=0)
         ex = DataFrame({"data": [False, False]}, index=["one", "two"])
         tm.assert_frame_equal(result, ex)
+
+    def test_series_any_timedelta(self):
+        # GH 17667
+        df = DataFrame(
+            {
+                "a": Series([0, 0]),
+                "t": Series([pd.to_timedelta(0, "s"), pd.to_timedelta(1, "ms")]),
+            }
+        )
+
+        result = df.any(axis=0)
+        expected = Series(data=[False, True], index=["a", "t"])
+        tm.assert_series_equal(result, expected)
+
+        result = df.any(axis=1)
+        expected = Series(data=[False, True])
+        tm.assert_series_equal(result, expected)
 
     def test_std_var_pass_ddof(self):
         index = MultiIndex.from_arrays(
@@ -1473,19 +1533,30 @@ Thur,Lunch,Yes,51.51,17"""
         DataFrame({"foo": s1, "bar": s2, "baz": s3})
         DataFrame.from_dict({"foo": s1, "baz": s3, "bar": s2})
 
+    @pytest.mark.parametrize("d", [4, "d"])
+    def test_empty_frame_groupby_dtypes_consistency(self, d):
+        # GH 20888
+        group_keys = ["a", "b", "c"]
+        df = DataFrame({"a": [1], "b": [2], "c": [3], "d": [d]})
+
+        g = df[df.a == 2].groupby(group_keys)
+        result = g.first().index
+        expected = MultiIndex(
+            levels=[[1], [2], [3]], codes=[[], [], []], names=["a", "b", "c"]
+        )
+
+        tm.assert_index_equal(result, expected)
+
     def test_multiindex_na_repr(self):
         # only an issue with long columns
-
-        from numpy import nan
-
         df3 = DataFrame(
             {
                 "A" * 30: {("A", "A0006000", "nuit"): "A0006000"},
-                "B" * 30: {("A", "A0006000", "nuit"): nan},
-                "C" * 30: {("A", "A0006000", "nuit"): nan},
-                "D" * 30: {("A", "A0006000", "nuit"): nan},
+                "B" * 30: {("A", "A0006000", "nuit"): np.nan},
+                "C" * 30: {("A", "A0006000", "nuit"): np.nan},
+                "D" * 30: {("A", "A0006000", "nuit"): np.nan},
                 "E" * 30: {("A", "A0006000", "nuit"): "A"},
-                "F" * 30: {("A", "A0006000", "nuit"): nan},
+                "F" * 30: {("A", "A0006000", "nuit"): np.nan},
             }
         )
 
@@ -1625,10 +1696,14 @@ Thur,Lunch,Yes,51.51,17"""
         )
 
         result = MultiIndex.from_arrays([index, columns])
+
+        assert result.names == ["dt1", "dt2"]
         tm.assert_index_equal(result.levels[0], index)
         tm.assert_index_equal(result.levels[1], columns)
 
         result = MultiIndex.from_arrays([Series(index), Series(columns)])
+
+        assert result.names == ["dt1", "dt2"]
         tm.assert_index_equal(result.levels[0], index)
         tm.assert_index_equal(result.levels[1], columns)
 
@@ -1660,10 +1735,12 @@ Thur,Lunch,Yes,51.51,17"""
         df = df.set_index("label", append=True)
         tm.assert_index_equal(df.index.levels[0], expected)
         tm.assert_index_equal(df.index.levels[1], Index(["a", "b"], name="label"))
+        assert df.index.names == ["datetime", "label"]
 
         df = df.swaplevel(0, 1)
         tm.assert_index_equal(df.index.levels[0], Index(["a", "b"], name="label"))
         tm.assert_index_equal(df.index.levels[1], expected)
+        assert df.index.names == ["label", "datetime"]
 
         df = DataFrame(np.random.random(6))
         idx1 = pd.DatetimeIndex(
@@ -1912,6 +1989,15 @@ Thur,Lunch,Yes,51.51,17"""
         m_df = Series(data, index=m_idx)
         assert m_df.repeat(3).shape == (3 * len(data),)
 
+    def test_subsets_multiindex_dtype(self):
+        # GH 20757
+        data = [["x", 1]]
+        columns = [("a", "b", np.nan), ("a", "c", 0.0)]
+        df = DataFrame(data, columns=pd.MultiIndex.from_tuples(columns))
+        expected = df.dtypes.a.b
+        result = df.a.b.dtypes
+        tm.assert_series_equal(result, expected)
+
 
 class TestSorted(Base):
     """ everything you wanted to test about sorting """
@@ -2054,6 +2140,53 @@ class TestSorted(Base):
             levels=levels, codes=[[0, 0, 1, 0, 1, 1], [0, 1, 0, 2, 2, 1]]
         )
         assert not index.is_lexsorted()
+        assert index.lexsort_depth == 0
+
+    def test_raise_invalid_sortorder(self):
+        # Test that the MultiIndex constructor raise when a incorrect sortorder is given
+        # Issue #28518
+
+        levels = [[0, 1], [0, 1, 2]]
+
+        # Correct sortorder
+        MultiIndex(
+            levels=levels, codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]], sortorder=2
+        )
+
+        with pytest.raises(ValueError, match=r".* sortorder 2 with lexsort_depth 1.*"):
+            MultiIndex(
+                levels=levels,
+                codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 2, 1]],
+                sortorder=2,
+            )
+
+        with pytest.raises(ValueError, match=r".* sortorder 1 with lexsort_depth 0.*"):
+            MultiIndex(
+                levels=levels,
+                codes=[[0, 0, 1, 0, 1, 1], [0, 1, 0, 2, 2, 1]],
+                sortorder=1,
+            )
+
+    def test_lexsort_depth(self):
+        # Test that lexsort_depth return the  correct sortorder
+        # when it was given to the MultiIndex const.
+        # Issue #28518
+
+        levels = [[0, 1], [0, 1, 2]]
+
+        index = MultiIndex(
+            levels=levels, codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]], sortorder=2
+        )
+        assert index.lexsort_depth == 2
+
+        index = MultiIndex(
+            levels=levels, codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 2, 1]], sortorder=1
+        )
+        assert index.lexsort_depth == 1
+
+        index = MultiIndex(
+            levels=levels, codes=[[0, 0, 1, 0, 1, 1], [0, 1, 0, 2, 2, 1]], sortorder=0
+        )
         assert index.lexsort_depth == 0
 
     def test_sort_index_and_reconstruction(self):
