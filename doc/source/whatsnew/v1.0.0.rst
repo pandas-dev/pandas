@@ -438,6 +438,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupby.agg` not able to use lambda function with named aggregation (:issue:`27519`)
 - Bug in :meth:`DataFrame.groupby` losing column name information when grouping by a categorical column (:issue:`28787`)
 - Bug in :meth:`DataFrameGroupBy.rolling().quantile()` ignoring ``interpolation`` keyword argument (:issue:`28779`)
+- Bug in :meth:`DataFrameGroupBy.agg` with timezone-aware datetime64 column incorrect casting results to the original dtype (:issue:`29641`)
 
 Reshaping
 ^^^^^^^^^
