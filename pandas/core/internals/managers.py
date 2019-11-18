@@ -1394,8 +1394,8 @@ class BlockManager(PandasObject):
         if len(self.blocks) != len(other.blocks):
             return False
 
-        # canonicalize block order, using a tuple combining the type
-        # name and then mgr_locs because there might be unconsolidated
+        # canonicalize block order, using a tuple combining the mgr_locs
+        # then type name because there might be unconsolidated
         # blocks (say, Categorical) which can only be distinguished by
         # the iteration order
         def canonicalize(block):

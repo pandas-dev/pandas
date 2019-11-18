@@ -1300,6 +1300,7 @@ def test_make_block_no_pandas_array():
 
 
 def test_dataframe_not_equal():
+    # see GH28839
     df1 = pd.DataFrame({"a": [1, 2], "b": ["s", "d"]})
     df2 = pd.DataFrame({"a": ["s", "d"], "b": [1, 2]})
     assert df1.equals(df2) is False
