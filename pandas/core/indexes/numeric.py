@@ -22,6 +22,7 @@ from pandas.core.dtypes.generic import (
     ABCFloat64Index,
     ABCInt64Index,
     ABCRangeIndex,
+    ABCSeries,
     ABCUInt64Index,
 )
 from pandas.core.dtypes.missing import isna
@@ -56,8 +57,16 @@ class NumericIndex(Index):
             if fastpath:
                 return cls._simple_new(data, name=name)
 
-        # is_scalar, generators handled in coerce_to_ndarray
-        data = cls._coerce_to_ndarray(data)
+        # Coerce to ndarray if not already ndarray or Index
+        if not isinstance(data, (np.ndarray, Index)):
+            if is_scalar(data):
+                raise cls._scalar_data_error(data)
+
+            # other iterable of some kind
+            if not isinstance(data, (ABCSeries, list, tuple)):
+                data = list(data)
+
+            data = np.asarray(data, dtype=dtype)
 
         if issubclass(data.dtype.type, str):
             cls._string_data_error(data)
