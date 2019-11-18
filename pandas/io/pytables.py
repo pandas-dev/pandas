@@ -1890,7 +1890,7 @@ class IndexCol:
     def validate_names(self):
         pass
 
-    def validate_and_set(self, handler, append: bool):
+    def validate_and_set(self, handler: "AppendableTable", append: bool):
         self.set_table(handler.table)
         self.validate_col()
         self.validate_attr(append)
@@ -1986,7 +1986,7 @@ class IndexCol:
         """ retrieve the metadata for this columns """
         self.metadata = handler.read_metadata(self.cname)
 
-    def validate_metadata(self, handler):
+    def validate_metadata(self, handler: "AppendableTable"):
         """ validate that kind=category does not change the categories """
         if self.meta == "category":
             new_metadata = self.metadata
@@ -2001,7 +2001,7 @@ class IndexCol:
                     "different categories to the existing"
                 )
 
-    def write_metadata(self, handler):
+    def write_metadata(self, handler: "AppendableTable"):
         """ set the meta data """
         if self.metadata is not None:
             handler.write_metadata(self.cname, self.metadata)
