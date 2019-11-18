@@ -1077,7 +1077,14 @@ class HDFStore:
         self._write_to_group(key, value, append=append, dropna=dropna, **kwargs)
 
     def append_to_multiple(
-        self, d, value, selector, data_columns=None, axes=None, dropna=False, **kwargs
+        self,
+        d: Dict,
+        value,
+        selector,
+        data_columns=None,
+        axes=None,
+        dropna: bool = False,
+        **kwargs,
     ):
         """
         Append to multiple tables
@@ -1123,7 +1130,7 @@ class HDFStore:
 
         # figure out how to split the value
         remain_key = None
-        remain_values = []
+        remain_values: List = []
         for k, v in d.items():
             if v is None:
                 if remain_key is not None:
@@ -1385,7 +1392,7 @@ class HDFStore:
         if not self.is_open:
             raise ClosedFileError("{0} file is not open!".format(self._path))
 
-    def _validate_format(self, format, kwargs):
+    def _validate_format(self, format: str, kwargs: Dict[str, Any]) -> Dict[str, Any]:
         """ validate / deprecate formats; return the new kwargs """
         kwargs = kwargs.copy()
 
@@ -2082,6 +2089,7 @@ class DataCol(IndexCol):
         self.meta_attr = "{name}_meta".format(name=self.name)
         self.set_data(data)
         self.set_metadata(metadata)
+        assert isinstance(self.cname, str), type(self.cname)
 
     def __repr__(self) -> str:
         temp = tuple(
@@ -3225,6 +3233,8 @@ class Table(Fixed):
     is_table = True
     is_shape_reversed = False
 
+    data_columns: List[str]
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.index_axes = []
@@ -3237,7 +3247,7 @@ class Table(Fixed):
         self.selection = None
 
     @property
-    def table_type_short(self):
+    def table_type_short(self) -> str:
         return self.table_type.split("_")[0]
 
     @property
@@ -3311,7 +3321,7 @@ class Table(Fixed):
                 )
 
     @property
-    def is_multi_index(self):
+    def is_multi_index(self) -> bool:
         """the levels attribute is 1 or a list in the case of a multi-index"""
         return isinstance(self.levels, list)
 
@@ -3335,7 +3345,7 @@ class Table(Fixed):
             )
 
     @property
-    def nrows_expected(self):
+    def nrows_expected(self) -> int:
         """ based on our axes, compute the expected nrows """
         return np.prod([i.cvalues.shape[0] for i in self.index_axes])
 
@@ -3433,7 +3443,7 @@ class Table(Fixed):
             nan_rep=self.nan_rep,
         )
 
-    def read_metadata(self, key):
+    def read_metadata(self, key: str):
         """ return the meta data array for this key """
         if getattr(getattr(self.group, "meta", None), key, None) is not None:
             return self.parent.select(self._get_metadata_path(key))
@@ -4179,7 +4189,7 @@ class AppendableTable(LegacyTable):
         # add the rows
         self.write_data(chunksize, dropna=dropna)
 
-    def write_data(self, chunksize, dropna=False):
+    def write_data(self, chunksize, dropna: bool = False):
         """ we form the data into a 2-d including indexes,values,mask
             write chunk-by-chunk """
 
