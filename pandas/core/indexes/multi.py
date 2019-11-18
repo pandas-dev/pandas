@@ -3109,8 +3109,10 @@ class MultiIndex(Index):
         -------
         indexer : a sorted Int64Index of element of self ordered as seq
         """
+        from typing import Tuple
+
         n = len(self)
-        keys = tuple()
+        keys = tuple()  # type: Tuple[np.ndarray, ...]
         # For each level of the sequence in seq, map the level codes with the
         # order they appears in a list-like sequence
         # This mapping is then use to reorder the indexer
