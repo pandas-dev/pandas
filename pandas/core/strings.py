@@ -3458,59 +3458,69 @@ class StringMethods(NoNewAttributesMixin):
     _doc_args["istitle"] = dict(type="titlecase", method="istitle")
     _doc_args["isnumeric"] = dict(type="numeric", method="isnumeric")
     _doc_args["isdecimal"] = dict(type="decimal", method="isdecimal")
+    # force _noarg_wrapper return type with dtype=bool (GH 29624)
     isalnum = _noarg_wrapper(
         lambda x: x.isalnum(),
         name="isalnum",
         docstring=_shared_docs["ismethods"] % _doc_args["isalnum"],
         returns_string=False,
+        dtype=bool,
     )
     isalpha = _noarg_wrapper(
         lambda x: x.isalpha(),
         name="isalpha",
         docstring=_shared_docs["ismethods"] % _doc_args["isalpha"],
         returns_string=False,
+        dtype=bool,
     )
     isdigit = _noarg_wrapper(
         lambda x: x.isdigit(),
         name="isdigit",
         docstring=_shared_docs["ismethods"] % _doc_args["isdigit"],
         returns_string=False,
+        dtype=bool,
     )
     isspace = _noarg_wrapper(
         lambda x: x.isspace(),
         name="isspace",
         docstring=_shared_docs["ismethods"] % _doc_args["isspace"],
         returns_string=False,
+        dtype=bool,
     )
     islower = _noarg_wrapper(
         lambda x: x.islower(),
         name="islower",
         docstring=_shared_docs["ismethods"] % _doc_args["islower"],
         returns_string=False,
+        dtype=bool,
     )
     isupper = _noarg_wrapper(
         lambda x: x.isupper(),
         name="isupper",
         docstring=_shared_docs["ismethods"] % _doc_args["isupper"],
         returns_string=False,
+        dtype=bool,
     )
     istitle = _noarg_wrapper(
         lambda x: x.istitle(),
         name="istitle",
         docstring=_shared_docs["ismethods"] % _doc_args["istitle"],
         returns_string=False,
+        dtype=bool,
     )
     isnumeric = _noarg_wrapper(
         lambda x: x.isnumeric(),
         name="isnumeric",
         docstring=_shared_docs["ismethods"] % _doc_args["isnumeric"],
         returns_string=False,
+        dtype=bool,
     )
     isdecimal = _noarg_wrapper(
         lambda x: x.isdecimal(),
         name="isdecimal",
         docstring=_shared_docs["ismethods"] % _doc_args["isdecimal"],
         returns_string=False,
+        dtype=bool,
     )
 
     @classmethod

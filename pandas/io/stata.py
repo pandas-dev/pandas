@@ -614,7 +614,7 @@ def _cast_to_stata_types(data):
                 data[col] = data[col].astype(np.int32)
             else:
                 data[col] = data[col].astype(np.float64)
-                if data[col].max() >= 2 ** 53 or data[col].min() <= -2 ** 53:
+                if data[col].max() >= 2 ** 53 or data[col].min() <= -(2 ** 53):
                     ws = precision_loss_doc % ("int64", "float64")
         elif dtype in (np.float32, np.float64):
             value = data[col].max()
@@ -2640,7 +2640,7 @@ def _dtype_to_stata_type_117(dtype, column, force_strl):
     elif dtype == np.int8:
         return 65530
     else:  # pragma : no cover
-        raise NotImplementedError("Data type %s not supported." % dtype)
+        raise NotImplementedError(f"Data type {dtype} not supported.")
 
 
 def _pad_bytes_new(name, length):
