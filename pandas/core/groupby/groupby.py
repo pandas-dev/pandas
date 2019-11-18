@@ -51,7 +51,7 @@ from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import nanops
 import pandas.core.algorithms as algorithms
-from pandas.core.arrays import Categorical, try_cast_to_ea
+from pandas.core.arrays import Categorical, DatetimeArray, try_cast_to_ea
 from pandas.core.base import DataError, PandasObject, SelectionMixin
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
@@ -868,8 +868,8 @@ b  2""",
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
     ):
-        output: Dict[int, np.ndarray] = {}
-        names: List[Hashable] = []
+        output: Dict[int, Union[np.ndarray, DatetimeArray]] = {}
+        names: List[Optional[Hashable]] = []
 
         # Ideally we would be able to enumerate self._iterate_slices and use
         # the index from enumeration as the key of output, but ohlc in particular
