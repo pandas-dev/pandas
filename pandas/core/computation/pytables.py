@@ -2,7 +2,7 @@
 
 import ast
 from functools import partial
-from typing import Optional
+from typing import Any, Optional, Tuple
 
 import numpy as np
 
@@ -13,7 +13,7 @@ from pandas.core.dtypes.common import is_list_like
 
 import pandas as pd
 import pandas.core.common as com
-from pandas.core.computation import expr, ops
+from pandas.core.computation import expr, ops, scope as _scope
 from pandas.core.computation.common import _ensure_decoded
 from pandas.core.computation.expr import BaseExprVisitor
 from pandas.core.computation.ops import UndefinedVariableError, is_term
@@ -21,10 +21,10 @@ from pandas.core.computation.ops import UndefinedVariableError, is_term
 from pandas.io.formats.printing import pprint_thing, pprint_thing_encoded
 
 
-class Scope(expr.Scope):
+class Scope(_scope.Scope):
     __slots__ = ("queryables",)
 
-    def __init__(self, level, global_dict=None, local_dict=None, queryables=None):
+    def __init__(self, level: int, global_dict=None, local_dict=None, queryables=None):
         super().__init__(level + 1, global_dict=global_dict, local_dict=local_dict)
         self.queryables = queryables or dict()
 
@@ -40,6 +40,7 @@ class Term(ops.Term):
     def _resolve_name(self):
         # must be a queryables
         if self.side == "left":
+            # Note: The behavior of __new__ ensures that self.name is a str here
             if self.name not in self.env.queryables:
                 raise NameError("name {name!r} is not defined".format(name=self.name))
             return self.name
@@ -72,7 +73,6 @@ class BinOp(ops.BinOp):
         super().__init__(op, lhs, rhs)
         self.queryables = queryables
         self.encoding = encoding
-        self.filter = None
         self.condition = None
 
     def _disallow_scalar_only_bool_ops(self):
@@ -230,7 +230,11 @@ class BinOp(ops.BinOp):
 
 
 class FilterBinOp(BinOp):
+    filter: Optional[Tuple[Any, Any, pd.Index]] = None
+
     def __repr__(self) -> str:
+        if self.filter is None:
+            return "Filter: Not Initialized"
         return pprint_thing(
             "[Filter : [{lhs}] -> [{op}]".format(lhs=self.filter[0], op=self.filter[1])
         )

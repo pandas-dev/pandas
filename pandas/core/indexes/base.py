@@ -963,14 +963,14 @@ class Index(IndexOpsMixin, PandasObject):
         data = self._format_data()
         attrs = self._format_attrs()
         space = self._format_space()
-
-        prepr = (",%s" % space).join("%s=%s" % (k, v) for k, v in attrs)
+        attrs_str = [f"{k}={v}" for k, v in attrs]
+        prepr = f",{space}".join(attrs_str)
 
         # no data provided, just attributes
         if data is None:
             data = ""
 
-        res = "%s(%s%s)" % (klass, data, prepr)
+        res = f"{klass}({data}{prepr})"
 
         return res
 
@@ -1124,13 +1124,13 @@ class Index(IndexOpsMixin, PandasObject):
             tail = self[-1]
             if hasattr(tail, "format") and not isinstance(tail, str):
                 tail = tail.format()
-            index_summary = ", %s to %s" % (pprint_thing(head), pprint_thing(tail))
+            index_summary = f", {head} to {tail}"
         else:
             index_summary = ""
 
         if name is None:
             name = type(self).__name__
-        return "%s: %s entries%s" % (name, len(self), index_summary)
+        return f"{name}: {len(self)} entries{index_summary}"
 
     def summary(self, name=None):
         """
@@ -1304,7 +1304,7 @@ class Index(IndexOpsMixin, PandasObject):
         if not is_list_like(values):
             raise ValueError("Names must be a list-like")
         if len(values) != 1:
-            raise ValueError("Length of new names must be 1, got %d" % len(values))
+            raise ValueError(f"Length of new names must be 1, got {len(values)}")
 
         # GH 20527
         # All items in 'name' need to be hashable:
@@ -1475,8 +1475,8 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(level, int):
             if level < 0 and level != -1:
                 raise IndexError(
-                    "Too many levels: Index has only 1 level,"
-                    " %d is not a valid level number" % (level,)
+                    f"Too many levels: Index has only 1 level,"
+                    f" {level} is not a valid level number"
                 )
             elif level > 0:
                 raise IndexError(
@@ -4027,30 +4027,6 @@ class Index(IndexOpsMixin, PandasObject):
             "to explicitly cast to a numeric type"
         )
 
-    @classmethod
-    def _coerce_to_ndarray(cls, data):
-        """
-        Coerces data to ndarray.
-
-        Converts other iterables to list first and then to array.
-        Does not touch ndarrays.
-
-        Raises
-        ------
-        TypeError
-            When the data passed in is a scalar.
-        """
-
-        if not isinstance(data, (np.ndarray, Index)):
-            if data is None or is_scalar(data):
-                raise cls._scalar_data_error(data)
-
-            # other iterable of some kind
-            if not isinstance(data, (ABCSeries, list, tuple)):
-                data = list(data)
-            data = np.asarray(data)
-        return data
-
     def _coerce_scalar_to_index(self, item):
         """
         We need to coerce a scalar to a compat for our index type.
@@ -4564,7 +4540,7 @@ class Index(IndexOpsMixin, PandasObject):
                        '2012-03-01'],
                       dtype='datetime64[ns]', freq='MS')
         """
-        raise NotImplementedError("Not supported for type %s" % type(self).__name__)
+        raise NotImplementedError(f"Not supported for type {type(self).__name__}")
 
     def argsort(self, *args, **kwargs):
         """
@@ -5071,8 +5047,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         if side not in ("left", "right"):
             raise ValueError(
-                "Invalid value for side kwarg,"
-                " must be either 'left' or 'right': %s" % (side,)
+                f"Invalid value for side kwarg, must be either"
+                f" 'left' or 'right': {side}"
             )
 
         original_label = label
@@ -5626,7 +5602,7 @@ def _trim_front(strings):
 
 def _validate_join_method(method):
     if method not in ["left", "right", "inner", "outer"]:
-        raise ValueError("do not recognize join method %s" % method)
+        raise ValueError(f"do not recognize join method {method}")
 
 
 def default_index(n):
