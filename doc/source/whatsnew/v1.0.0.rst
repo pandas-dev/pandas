@@ -94,6 +94,30 @@ of the Series or columns of a DataFrame will also have string dtype.
 We recommend explicitly using the ``string`` data type when working with strings.
 See :ref:`text.types` for more.
 
+.. _whatsnew_100.boolean:
+
+Boolean data type with missing values support
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We've added :class:`BooleanDtype` / :class:`~arrays.BooleanArray`, an extension
+type dedicated to boolean data that can hold missing values. With the default
+``'bool`` data type based on a numpy bool array, the column can only hold
+True or False values and not missing values. This new :class:`BooleanDtype`
+can store missing values as well by keeping track of this in a separate mask.
+(:issue:`29555`)
+
+.. ipython:: python
+
+   pd.Series([True, False, None], dtype=pd.BooleanDtype())
+
+You can use the alias ``"boolean"`` as well.
+
+.. ipython:: python
+
+   s = pd.Series([True, False, None], dtype="boolean")
+   s
+
+
 .. _whatsnew_1000.enhancements.other:
 
 Other enhancements
