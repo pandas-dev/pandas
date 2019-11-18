@@ -520,16 +520,16 @@ class HDFStore:
     def filename(self):
         return self._path
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str):
         return self.get(key)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value):
         self.put(key, value)
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: str):
         return self.remove(key)
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str):
         """ allow attribute access to get stores """
         try:
             return self.get(name)
