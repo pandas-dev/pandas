@@ -179,7 +179,7 @@ def to_offset(freq):
     return delta
 
 
-def get_offset(name):
+def get_offset(name) -> DateOffset:
     """
     Return DateOffset object associated with rule name
 

@@ -915,7 +915,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         # https://github.com/python/mypy/issues/1021
         # error: "IntervalArray" has no attribute "_closed"
-        return self._closed  # type: ignore
+        return self._closed
 
     _interval_shared_docs["set_closed"] = textwrap.dedent(
         """
@@ -1037,7 +1037,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         mask = self.isna()
         # https://github.com/python/mypy/issues/1021
         # error: "IntervalArray" has no attribute "_closed"
-        closed = self._closed  # type: ignore
+        closed = self._closed
 
         result = np.empty(len(left), dtype=object)
         for i in range(len(left)):

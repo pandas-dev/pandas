@@ -251,8 +251,7 @@ class Holiday:
         # TODO: comparison ops are created dynamically
         # error: Unsupported left operand type for >= ("DatetimeIndex")  [operator]
         holiday_dates = holiday_dates[
-            (holiday_dates >= filter_start_date)  # type: ignore
-            & (holiday_dates <= filter_end_date)  # type: ignore
+            (holiday_dates >= filter_start_date) & (holiday_dates <= filter_end_date)
         ]
         if return_name:
             return Series(self.name, index=holiday_dates)

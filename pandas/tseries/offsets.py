@@ -249,7 +249,7 @@ class DateOffset(BaseOffset):
 
     # https://github.com/python/mypy/issues/6185
     # error: "Callable[[_BaseOffset], Tuple[Any, ...]]" has no attribute "fget"
-    _params = cache_readonly(BaseOffset._params.fget)  # type: ignore
+    _params = cache_readonly(BaseOffset._params.fget)
     _use_relativedelta = False
     _adjust_dst = False
     _attributes = frozenset(["n", "normalize"] + list(liboffsets.relativedelta_kwds))
@@ -1112,7 +1112,7 @@ class MonthOffset(SingleConstructorOffset):
     # error: Incompatible types in assignment (expression has type
     #  "Callable[[_BaseOffset, Any, Any], Any]", base class "object" defined the type
     #  as "Callable[[object], None]")  [assignment]
-    __init__ = BaseOffset.__init__  # type: ignore
+    __init__ = BaseOffset.__init__
 
     @property
     def name(self):
@@ -2492,7 +2492,7 @@ class Easter(DateOffset):
     # error: Incompatible types in assignment (expression has type
     #  "Callable[[_BaseOffset, Any, Any], Any]", base class "object" defined the type
     #  as "Callable[[object], None]")  [assignment]
-    __init__ = BaseOffset.__init__  # type: ignore
+    __init__ = BaseOffset.__init__
 
     @apply_wraps
     def apply(self, other):
