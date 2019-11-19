@@ -88,8 +88,16 @@ You can use the alias ``"string"`` as well.
 The usual string accessor methods work. Where appropriate, the return type
 of the Series or columns of a DataFrame will also have string dtype.
 
+.. ipython:: python
+
    s.str.upper()
    s.str.split('b', expand=True).dtypes
+
+String accessor methods returning integers will return a value with :class:`Int64Dtype`
+
+.. ipython:: python
+
+   s.str.count("a")
 
 We recommend explicitly using the ``string`` data type when working with strings.
 See :ref:`text.types` for more.
