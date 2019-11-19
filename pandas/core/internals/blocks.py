@@ -1175,7 +1175,6 @@ class Block(PandasObject):
         # We only get here for non-ExtensionBlock
         fill_value = convert_scalar(self.values, fill_value)
 
-
         # We have to distinguish two cases:
         # 1. When kwargs `max_gap` or `limit_area` are used: They are not
         #    supported by `missing.interpolate_2d()`. Using these kwargs only

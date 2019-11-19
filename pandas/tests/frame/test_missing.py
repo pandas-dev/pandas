@@ -552,8 +552,7 @@ class TestDataFrameMissingData:
 
     def test_frame_interp_max_gap(self):
         nan = np.nan
-        s = Series(
-            [nan, 1.0, nan, 2.0, nan, nan, 5.0, nan, nan, nan, -1.0, nan, nan])
+        s = Series([nan, 1.0, nan, 2.0, nan, nan, 5.0, nan, nan, nan, -1.0, nan, nan])
         df = pd.concat([s, s], axis=1)
 
         expected_s = Series(
