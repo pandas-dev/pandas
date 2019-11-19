@@ -6905,14 +6905,14 @@ class NDFrame(PandasObject, SelectionMixin):
             * 'outside': Only fill NaNs outside valid values (extrapolate).
 
             .. versionadded:: 0.23.0
-            
+
         max_gap : int, optional
             Maximum number of consecutive NaN values up to which a NaN-gap
             will be interpolated. For all NaN-gaps wider than that no
             interpolation is carried out. Must be greater than 0.
 
             .. versionadded:: 0.25.0
-            
+
         downcast : optional, 'infer' or None, defaults to None
             Downcast dtypes if possible.
         **kwargs
