@@ -1073,3 +1073,29 @@ def test_transform_lambda_with_datetimetz():
         name="time",
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_transform_fastpath_raises():
+    # GH#29631 case where fastpath defined in groupby.generic _choose_path
+    #  raises, but slow_path does not
+
+    df = pd.DataFrame({"A": [1, 1, 2, 2], "B": [1, -1, 1, 2]})
+    gb = df.groupby("A")
+
+    def replace(g):
+        mask = g < 0
+        return g.where(mask, g[~mask].mean())
+
+    # Check that the fastpath raises, see _transform_general
+    obj = gb._obj_with_exclusions
+    gen = gb.grouper.get_iterator(obj, axis=gb.axis)
+    fast_path, slow_path = gb._define_paths(replace)
+    _, group = next(gen)
+
+    with pytest.raises(ValueError, match="Must specify axis"):
+        fast_path(group)
+
+    result = gb.transform(replace)
+
+    expected = pd.DataFrame([1, -1, 1.5, 1.5], columns=["B"])
+    tm.assert_frame_equal(result, expected)

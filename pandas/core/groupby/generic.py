@@ -1401,7 +1401,14 @@ class DataFrameGroupBy(GroupBy):
         res = slow_path(group)
 
         # if we make it here, test if we can use the fast path
-        res_fast = fast_path(group)
+        try:
+            res_fast = fast_path(group)
+        except AssertionError:
+            raise
+        except Exception:
+            # GH#29631 For user-defined function, we cant predict what may be
+            #  raised; see test_transform.test_transform_fastpath_raises
+            return path, res
 
         # verify fast path does not change columns (and names), otherwise
         # its results cannot be joined with those of the slow path
