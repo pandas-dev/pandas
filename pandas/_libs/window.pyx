@@ -485,7 +485,7 @@ def roll_var_fixed(ndarray[float64_t] values, ndarray[int64_t] start, ndarray[in
 
 
 def roll_var_variable(ndarray[float64_t] values, ndarray[int64_t] start, ndarray[int64_t] end, int64_t minp,
-                      int64_t win, int ddof=1):
+                      int ddof=1):
     """
     Numerically stable implementation using Welford's method.
     """
@@ -497,9 +497,6 @@ def roll_var_variable(ndarray[float64_t] values, ndarray[int64_t] start, ndarray
         ndarray[float64_t] output
 
     output = np.empty(N, dtype=float)
-
-    # Check for windows larger than array, addresses #7297
-    win = min(win, N)
 
     with nogil:
 
@@ -832,10 +829,10 @@ def roll_median_c(ndarray[float64_t] values, ndarray[int64_t] start, ndarray[int
     # actual skiplist ops outweigh any window computation costs
     output = np.empty(N, dtype=float)
 
-    if win == 0:
+    if win == 0 or (end - start).max() == 0:
         output[:] = NaN
         return output
-
+    win = (end - start).max()
     sl = skiplist_init(<int>win)
     if sl == NULL:
         raise MemoryError("skiplist_init failed")
@@ -1232,10 +1229,10 @@ def roll_quantile(ndarray[float64_t, cast=True] values, ndarray[int64_t] start,
     # actual skiplist ops outweigh any window computation costs
     output = np.empty(N, dtype=float)
 
-    if win == 0:
+    if win == 0 or (end - start).max() == 0:
         output[:] = NaN
         return output
-
+    win = (end - start).max()
     skiplist = skiplist_init(<int>win)
     if skiplist == NULL:
         raise MemoryError("skiplist_init failed")
