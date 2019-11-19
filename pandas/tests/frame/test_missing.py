@@ -814,19 +814,6 @@ class TestDataFrameInterpolate:
         with pytest.raises(NotImplementedError):
             df.interpolate(method="values")
 
-    def test_interp_pad(self):
-        # Test for GH 12918
-        df = DataFrame(
-            {"A": [1, 2, np.nan, 4, 5, np.nan, 7], "C": [1, 2, 3, 5, 8, 13, 21]}
-        )
-        df = df.set_index("C")
-        expected = df.copy()
-
-        result = df.interpolate(method="pad")
-        expected.A.loc[3] = 2
-        expected.A.loc[13] = 5
-        tm.assert_frame_equal(result, expected)
-
     @td.skip_if_no_scipy
     def test_interp_various(self):
         df = DataFrame(
