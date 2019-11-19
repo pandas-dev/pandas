@@ -14,7 +14,7 @@ from pandas._libs.tslibs import Timestamp
 from pandas.core.dtypes.common import is_list_like, is_scalar
 
 import pandas.core.common as com
-from pandas.core.computation.common import _ensure_decoded, _result_type_many
+from pandas.core.computation.common import _ensure_decoded, result_type_many
 from pandas.core.computation.scope import _DEFAULT_GLOBALS
 
 from pandas.io.formats.printing import pprint_thing, pprint_thing_encoded
@@ -198,6 +198,8 @@ class Op:
     Hold an operator of arbitrary arity.
     """
 
+    op: str
+
     def __init__(self, op: str, operands: Iterable[Union[Term, "Op"]], encoding=None):
         self.op = _bool_op_map.get(op, op)
         self.operands = operands
@@ -219,7 +221,7 @@ class Op:
         # clobber types to bool if the op is a boolean operator
         if self.op in (_cmp_ops_syms + _bool_ops_syms):
             return np.bool_
-        return _result_type_many(*(term.type for term in com.flatten(self)))
+        return result_type_many(*(term.type for term in com.flatten(self)))
 
     @property
     def has_invalid_return_type(self) -> bool:

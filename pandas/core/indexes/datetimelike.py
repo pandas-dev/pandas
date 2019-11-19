@@ -36,7 +36,6 @@ import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.tools.timedeltas import to_timedelta
 
-import pandas.io.formats.printing as printing
 from pandas.tseries.frequencies import to_offset
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -512,7 +511,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin, _Base):
             if attrib == "freq":
                 freq = self.freqstr
                 if freq is not None:
-                    freq = "'%s'" % freq
+                    freq = f"{freq!r}"
                 attrs.append(("freq", freq))
         return attrs
 
@@ -702,17 +701,13 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin, _Base):
         """
         formatter = self._formatter_func
         if len(self) > 0:
-            index_summary = ", %s to %s" % (formatter(self[0]), formatter(self[-1]))
+            index_summary = f", {formatter(self[0])} to {formatter(self[-1])}"
         else:
             index_summary = ""
 
         if name is None:
             name = type(self).__name__
-        result = "%s: %s entries%s" % (
-            printing.pprint_thing(name),
-            len(self),
-            index_summary,
-        )
+        result = f"{name}: {len(self)} entries{index_summary}"
         if self.freq:
             result += "\nFreq: %s" % self.freqstr
 

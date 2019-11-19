@@ -1394,12 +1394,12 @@ class BlockManager(PandasObject):
         if len(self.blocks) != len(other.blocks):
             return False
 
-        # canonicalize block order, using a tuple combining the type
-        # name and then mgr_locs because there might be unconsolidated
+        # canonicalize block order, using a tuple combining the mgr_locs
+        # then type name because there might be unconsolidated
         # blocks (say, Categorical) which can only be distinguished by
         # the iteration order
         def canonicalize(block):
-            return (block.dtype.name, block.mgr_locs.as_array.tolist())
+            return (block.mgr_locs.as_array.tolist(), block.dtype.name)
 
         self_blocks = sorted(self.blocks, key=canonicalize)
         other_blocks = sorted(other.blocks, key=canonicalize)
@@ -1860,7 +1860,7 @@ def _stack_arrays(tuples, dtype):
 
 
 def _interleaved_dtype(
-    blocks: List[Block]
+    blocks: List[Block],
 ) -> Optional[Union[np.dtype, ExtensionDtype]]:
     """Find the common dtype for `blocks`.
 

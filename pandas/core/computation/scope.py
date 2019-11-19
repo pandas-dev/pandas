@@ -20,9 +20,9 @@ if TYPE_CHECKING:
     from collections import ChainMap
 
 
-def _ensure_scope(
-    level, global_dict=None, local_dict=None, resolvers=(), target=None, **kwargs
-):
+def ensure_scope(
+    level: int, global_dict=None, local_dict=None, resolvers=(), target=None, **kwargs
+) -> "Scope":
     """Ensure that we are grabbing the correct scope."""
     return Scope(
         level + 1,
@@ -129,7 +129,7 @@ class Scope:
             self.scope.update(local_dict.scope)
             if local_dict.target is not None:
                 self.target = local_dict.target
-            self.update(local_dict.level)
+            self._update(local_dict.level)
 
         frame = sys._getframe(self.level)
 
@@ -261,7 +261,7 @@ class Scope:
                 # scope after the loop
                 del frame
 
-    def update(self, level: int):
+    def _update(self, level: int):
         """
         Update the current scope by going back `level` levels.
 

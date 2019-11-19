@@ -26,8 +26,8 @@ import pandas.core.algorithms as algorithms
 from pandas.core.arrays import Categorical, ExtensionArray
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
+from pandas.core.groupby import ops
 from pandas.core.groupby.categorical import recode_for_groupby, recode_from_groupby
-from pandas.core.groupby.ops import BaseGrouper
 from pandas.core.index import CategoricalIndex, Index, MultiIndex
 from pandas.core.series import Series
 
@@ -291,9 +291,7 @@ class Grouping:
                 self.grouper,
                 self._codes,
                 self._group_index,
-            ) = index._get_grouper_for_level(  # noqa: E501
-                self.grouper, level
-            )
+            ) = index._get_grouper_for_level(self.grouper, level)
 
         # a passed Grouper like, directly get the grouper in the same way
         # as single grouper groupby, use the group_info to get codes
@@ -391,7 +389,7 @@ class Grouping:
     @cache_readonly
     def indices(self):
         # we have a list of groupers
-        if isinstance(self.grouper, BaseGrouper):
+        if isinstance(self.grouper, ops.BaseGrouper):
             return self.grouper.indices
 
         values = ensure_categorical(self.grouper)
@@ -418,7 +416,7 @@ class Grouping:
     def _make_codes(self) -> None:
         if self._codes is None or self._group_index is None:
             # we have a list of groupers
-            if isinstance(self.grouper, BaseGrouper):
+            if isinstance(self.grouper, ops.BaseGrouper):
                 codes = self.grouper.codes_info
                 uniques = self.grouper.result_index
             else:
@@ -441,7 +439,7 @@ def get_grouper(
     observed: bool = False,
     mutated: bool = False,
     validate: bool = True,
-) -> Tuple[BaseGrouper, List[Hashable], FrameOrSeries]:
+) -> "Tuple[ops.BaseGrouper, List[Hashable], FrameOrSeries]":
     """
     Create and return a BaseGrouper, which is an internal
     mapping of how to create the grouper indexers.
@@ -523,7 +521,7 @@ def get_grouper(
             return grouper, [key.key], obj
 
     # already have a BaseGrouper, just return it
-    elif isinstance(key, BaseGrouper):
+    elif isinstance(key, ops.BaseGrouper):
         return key, [], obj
 
     # In the future, a tuple key will always mean an actual key,
@@ -670,7 +668,7 @@ def get_grouper(
         groupings.append(Grouping(Index([], dtype="int"), np.array([], dtype=np.intp)))
 
     # create the internals grouper
-    grouper = BaseGrouper(group_axis, groupings, sort=sort, mutated=mutated)
+    grouper = ops.BaseGrouper(group_axis, groupings, sort=sort, mutated=mutated)
     return grouper, exclusions, obj
 
 

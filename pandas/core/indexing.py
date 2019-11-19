@@ -319,7 +319,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         # if there is only one block/type, still have to take split path
         # unless the block is one-dimensional or it can hold the value
         if not take_split_path and self.obj._data.blocks:
-            blk, = self.obj._data.blocks
+            (blk,) = self.obj._data.blocks
             if 1 < blk.ndim:  # in case of dict, keys are indices
                 val = list(value.values()) if isinstance(value, dict) else value
                 take_split_path = not blk._can_hold_element(val)
@@ -1111,7 +1111,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         if com.is_bool_indexer(key):
             # A boolean indexer
             key = check_bool_indexer(labels, key)
-            inds, = key.nonzero()
+            (inds,) = key.nonzero()
             return self.obj.take(inds, axis=axis)
         else:
             # A collection of keys
@@ -1255,7 +1255,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
             if com.is_bool_indexer(obj):
                 obj = check_bool_indexer(labels, obj)
-                inds, = obj.nonzero()
+                (inds,) = obj.nonzero()
                 return inds
             else:
                 # When setting, missing keys are not allowed, even with .loc:

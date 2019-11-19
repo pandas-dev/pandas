@@ -167,6 +167,23 @@ class TestFloat64Index(Numeric):
         result = Index(np.array([np.nan]))
         assert pd.isna(result.values).all()
 
+    @pytest.mark.parametrize(
+        "index, dtype",
+        [
+            (pd.Int64Index, "float64"),
+            (pd.UInt64Index, "categorical"),
+            (pd.Float64Index, "datetime64"),
+            (pd.RangeIndex, "float64"),
+        ],
+    )
+    def test_invalid_dtype(self, index, dtype):
+        # GH 29539
+        with pytest.raises(
+            ValueError,
+            match=rf"Incorrect `dtype` passed: expected \w+(?: \w+)?, received {dtype}",
+        ):
+            index([1, 2, 3], dtype=dtype)
+
     def test_constructor_invalid(self):
 
         # invalid
@@ -942,6 +959,11 @@ class TestUInt64Index(NumericInt):
 
         idx = Index([-1, 2 ** 63], dtype=object)
         res = Index(np.array([-1, 2 ** 63], dtype=object))
+        tm.assert_index_equal(res, idx)
+
+        # https://github.com/pandas-dev/pandas/issues/29526
+        idx = UInt64Index([1, 2 ** 63 + 1], dtype=np.uint64)
+        res = Index([1, 2 ** 63 + 1], dtype=np.uint64)
         tm.assert_index_equal(res, idx)
 
     def test_get_indexer(self, index_large):

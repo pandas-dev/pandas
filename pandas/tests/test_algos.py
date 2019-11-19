@@ -223,10 +223,10 @@ class TestFactorize:
         tm.assert_numpy_array_equal(uniques, expected_uniques)
 
     def test_int64_factorize(self, writable):
-        data = np.array([2 ** 63 - 1, -2 ** 63, 2 ** 63 - 1], dtype=np.int64)
+        data = np.array([2 ** 63 - 1, -(2 ** 63), 2 ** 63 - 1], dtype=np.int64)
         data.setflags(write=writable)
         expected_codes = np.array([0, 1, 0], dtype=np.intp)
-        expected_uniques = np.array([2 ** 63 - 1, -2 ** 63], dtype=np.int64)
+        expected_uniques = np.array([2 ** 63 - 1, -(2 ** 63)], dtype=np.int64)
 
         codes, uniques = algos.factorize(data)
         tm.assert_numpy_array_equal(codes, expected_codes)
@@ -265,7 +265,7 @@ class TestFactorize:
         "data",
         [
             np.array([0, 1, 0], dtype="u8"),
-            np.array([-2 ** 63, 1, -2 ** 63], dtype="i8"),
+            np.array([-(2 ** 63), 1, -(2 ** 63)], dtype="i8"),
             np.array(["__nan__", "foo", "__nan__"], dtype="object"),
         ],
     )
@@ -282,8 +282,8 @@ class TestFactorize:
         [
             (np.array([0, 1, 0, 2], dtype="u8"), 0),
             (np.array([1, 0, 1, 2], dtype="u8"), 1),
-            (np.array([-2 ** 63, 1, -2 ** 63, 0], dtype="i8"), -2 ** 63),
-            (np.array([1, -2 ** 63, 1, 0], dtype="i8"), 1),
+            (np.array([-(2 ** 63), 1, -(2 ** 63), 0], dtype="i8"), -(2 ** 63)),
+            (np.array([1, -(2 ** 63), 1, 0], dtype="i8"), 1),
             (np.array(["a", "", "a", "b"], dtype=object), "a"),
             (np.array([(), ("a", 1), (), ("a", 2)], dtype=object), ()),
             (np.array([("a", 1), (), ("a", 1), ("a", 2)], dtype=object), ("a", 1)),

@@ -993,7 +993,7 @@ class TestDataFrameQueryStrings:
         ops = {"<": operator.lt, ">": operator.gt, "<=": operator.le, ">=": operator.ge}
 
         for op, func in ops.items():
-            res = df.query('X %s "d"' % op, engine=engine, parser=parser)
+            res = df.query(f'X {op} "d"', engine=engine, parser=parser)
             expected = df[func(df.X, "d")]
             tm.assert_frame_equal(res, expected)
 

@@ -5,7 +5,7 @@ Engine classes for :func:`~pandas.eval`
 import abc
 from typing import Dict, Type
 
-from pandas.core.computation.align import _align, _reconstruct_object
+from pandas.core.computation.align import align_terms, reconstruct_object
 from pandas.core.computation.ops import UndefinedVariableError, _mathops, _reductions
 
 import pandas.io.formats.printing as printing
@@ -68,11 +68,11 @@ class AbstractEngine(metaclass=abc.ABCMeta):
             The result of the passed expression.
         """
         if not self._is_aligned:
-            self.result_type, self.aligned_axes = _align(self.expr.terms)
+            self.result_type, self.aligned_axes = align_terms(self.expr.terms)
 
         # make sure no names in resolvers and locals/globals clash
         res = self._evaluate()
-        return _reconstruct_object(
+        return reconstruct_object(
             self.result_type, res, self.aligned_axes, self.expr.terms.return_type
         )
 

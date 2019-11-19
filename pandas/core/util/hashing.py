@@ -134,7 +134,7 @@ def hash_pandas_object(
 
         h = Series(h, index=obj.index, dtype="uint64", copy=False)
     else:
-        raise TypeError("Unexpected type for hashing %s" % type(obj))
+        raise TypeError(f"Unexpected type for hashing {type(obj)}")
     return h
 
 
