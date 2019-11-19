@@ -1082,20 +1082,24 @@ def test_transform_fastpath_raises():
     df = pd.DataFrame({"A": [1, 1, 2, 2], "B": [1, -1, 1, 2]})
     gb = df.groupby("A")
 
-    def replace(g):
-        mask = g < 0
-        return g.where(mask, g[~mask].mean())
+    def func(grp):
+        # we want a function such that func(frame) fails but func.apply(frame)
+        #  works
+        if grp.ndim == 2:
+            # Ensure that fast_path fails
+            raise NotImplementedError("Don't cross the streams")
+        return grp * 2
 
     # Check that the fastpath raises, see _transform_general
     obj = gb._obj_with_exclusions
     gen = gb.grouper.get_iterator(obj, axis=gb.axis)
-    fast_path, slow_path = gb._define_paths(replace)
+    fast_path, slow_path = gb._define_paths(func)
     _, group = next(gen)
 
-    with pytest.raises(ValueError, match="Must specify axis"):
+    with pytest.raises(NotImplementedError, match="Don't cross the streams"):
         fast_path(group)
 
-    result = gb.transform(replace)
+    result = gb.transform(func)
 
-    expected = pd.DataFrame([1, -1, 1.5, 1.5], columns=["B"])
+    expected = pd.DataFrame([2, -2, 2, 4], columns=["B"])
     tm.assert_frame_equal(result, expected)
