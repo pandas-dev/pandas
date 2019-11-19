@@ -1959,5 +1959,5 @@ def test_groupby_duplicate_index():
     gb = ser.groupby(level=0)
 
     result = gb.mean()
-    expected = pd.Series([2, 5.5, 8], index=[2., 4., 5.])
+    expected = pd.Series([2, 5.5, 8], index=[2.0, 4.0, 5.0])
     tm.assert_series_equal(result, expected)
