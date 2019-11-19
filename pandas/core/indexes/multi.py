@@ -787,7 +787,8 @@ class MultiIndex(Index):
 
         If any of the levels passed to ``set_levels()`` exceeds the
         existing length, all of the values from that argument will
-        be stored though truncated in the MultiIndex output.
+        be stored in the MultiIndex levels, though the values will
+        be truncated in the MultiIndex output.
 
         >>> idx.set_levels([['a', 'b', 'c'], [1, 2, 3, 4]], level=[0, 1])
         MultiIndex([('a', 1),
