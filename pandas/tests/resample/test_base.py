@@ -114,6 +114,22 @@ def test_resample_empty_series(freq, empty_series, resample_method):
 
 @all_ts
 @pytest.mark.parametrize("freq", ["M", "D", "H"])
+@pytest.mark.parametrize("resample_method", ["count", "size"])
+def test_resample_count_empty_series(freq, empty_series, resample_method):
+    # GH28427
+    result = getattr(empty_series.resample(freq), resample_method)()
+
+    if isinstance(empty_series.index, PeriodIndex):
+        index = empty_series.index.asfreq(freq=freq)
+    else:
+        index = empty_series.index._shallow_copy(freq=freq)
+    expected = pd.Series([], dtype="int64", index=index, name=empty_series.name)
+
+    tm.assert_series_equal(result, expected)
+
+
+@all_ts
+@pytest.mark.parametrize("freq", ["M", "D", "H"])
 def test_resample_empty_dataframe(empty_frame, freq, resample_method):
     # GH13212
     df = empty_frame
@@ -134,6 +150,44 @@ def test_resample_empty_dataframe(empty_frame, freq, resample_method):
     tm.assert_almost_equal(result, expected, check_dtype=False)
 
     # test size for GH13212 (currently stays as df)
+
+
+@all_ts
+@pytest.mark.parametrize("freq", ["M", "D", "H"])
+def test_resample_count_empty_dataframe(freq, empty_frame):
+    # GH28427
+
+    empty_frame = empty_frame.copy()
+    empty_frame["a"] = []
+
+    result = empty_frame.resample(freq).count()
+
+    if isinstance(empty_frame.index, PeriodIndex):
+        index = empty_frame.index.asfreq(freq=freq)
+    else:
+        index = empty_frame.index._shallow_copy(freq=freq)
+    expected = pd.DataFrame({"a": []}, dtype="int64", index=index)
+
+    tm.assert_frame_equal(result, expected)
+
+
+@all_ts
+@pytest.mark.parametrize("freq", ["M", "D", "H"])
+def test_resample_size_empty_dataframe(freq, empty_frame):
+    # GH28427
+
+    empty_frame = empty_frame.copy()
+    empty_frame["a"] = []
+
+    result = empty_frame.resample(freq).size()
+
+    if isinstance(empty_frame.index, PeriodIndex):
+        index = empty_frame.index.asfreq(freq=freq)
+    else:
+        index = empty_frame.index._shallow_copy(freq=freq)
+    expected = pd.Series([], dtype="int64", index=index)
+
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("index", tm.all_timeseries_index_generator(0))
