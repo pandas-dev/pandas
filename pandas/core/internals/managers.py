@@ -18,8 +18,10 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     _NS_DTYPE,
+    is_datetimelike_v_numeric,
     is_extension_array_dtype,
     is_list_like,
+    is_numeric_v_string_like,
     is_scalar,
     is_sparse,
 )
@@ -166,7 +168,7 @@ class BlockManager(PandasObject):
         return tuple(len(ax) for ax in self.axes)
 
     @property
-    def ndim(self):
+    def ndim(self) -> int:
         return len(self.axes)
 
     def set_axis(self, axis, new_labels):
@@ -260,7 +262,7 @@ class BlockManager(PandasObject):
     def __getstate__(self):
         block_values = [b.values for b in self.blocks]
         block_items = [self.items[b.mgr_locs.indexer] for b in self.blocks]
-        axes_array = [ax for ax in self.axes]
+        axes_array = list(self.axes)
 
         extra_state = {
             "0.14.1": {
@@ -319,7 +321,7 @@ class BlockManager(PandasObject):
         self._known_consolidated = False
         self._rebuild_blknos_and_blklocs()
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.items)
 
     def __repr__(self) -> str:
@@ -354,7 +356,7 @@ class BlockManager(PandasObject):
         filter=None,
         do_integrity_check=False,
         consolidate=True,
-        **kwargs
+        **kwargs,
     ):
         """
         iterate over the blocks, collect and create a new block manager
@@ -1860,7 +1862,7 @@ def _stack_arrays(tuples, dtype):
 
 
 def _interleaved_dtype(
-    blocks: List[Block]
+    blocks: List[Block],
 ) -> Optional[Union[np.dtype, ExtensionDtype]]:
     """Find the common dtype for `blocks`.
 
@@ -1924,7 +1926,11 @@ def _compare_or_regex_search(a, b, regex=False):
     is_a_array = isinstance(a, np.ndarray)
     is_b_array = isinstance(b, np.ndarray)
 
-    result = op(a)
+    if is_datetimelike_v_numeric(a, b) or is_numeric_v_string_like(a, b):
+        # GH#29553 avoid deprecation warnings from numpy
+        result = False
+    else:
+        result = op(a)
 
     if is_scalar(result) and (is_a_array or is_b_array):
         type_names = [type(a).__name__, type(b).__name__]

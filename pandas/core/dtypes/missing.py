@@ -17,6 +17,7 @@ from .common import (
     is_complex_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
+    is_datetimelike_v_numeric,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float_dtype,
@@ -157,7 +158,8 @@ def _isna_new(obj):
 
 
 def _isna_old(obj):
-    """Detect missing values. Treat None, NaN, INF, -INF as null.
+    """
+    Detect missing values, treating None, NaN, INF, -INF as null.
 
     Parameters
     ----------
@@ -190,7 +192,9 @@ _isna = _isna_new
 
 
 def _use_inf_as_na(key):
-    """Option change callback for na/inf behaviour
+    """
+    Option change callback for na/inf behaviour.
+
     Choose which replacement for numpy.isnan / -numpy.isfinite is used.
 
     Parameters
@@ -372,7 +376,7 @@ def notna(obj):
 notnull = notna
 
 
-def _isna_compat(arr, fill_value=np.nan):
+def _isna_compat(arr, fill_value=np.nan) -> bool:
     """
     Parameters
     ----------
@@ -389,7 +393,7 @@ def _isna_compat(arr, fill_value=np.nan):
     return True
 
 
-def array_equivalent(left, right, strict_nan=False):
+def array_equivalent(left, right, strict_nan: bool = False) -> bool:
     """
     True if two arrays, left and right, have equal non-NaN elements, and NaNs
     in corresponding locations.  False otherwise. It is assumed that left and
@@ -462,6 +466,10 @@ def array_equivalent(left, right, strict_nan=False):
             return True
         return ((left == right) | (isna(left) & isna(right))).all()
 
+    elif is_datetimelike_v_numeric(left, right):
+        # GH#29553 avoid numpy deprecation warning
+        return False
+
     elif needs_i8_conversion(left) or needs_i8_conversion(right):
         # datetime64, timedelta64, Period
         if not is_dtype_equal(left.dtype, right.dtype):
@@ -508,7 +516,7 @@ def _maybe_fill(arr, fill_value=np.nan):
     return arr
 
 
-def na_value_for_dtype(dtype, compat=True):
+def na_value_for_dtype(dtype, compat: bool = True):
     """
     Return a dtype compat na value
 
@@ -566,7 +574,7 @@ def remove_na_arraylike(arr):
         return arr[notna(lib.values_from_object(arr))]
 
 
-def is_valid_nat_for_dtype(obj, dtype):
+def is_valid_nat_for_dtype(obj, dtype) -> bool:
     """
     isna check that excludes incompatible dtypes
 

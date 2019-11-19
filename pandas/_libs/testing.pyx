@@ -204,12 +204,12 @@ cpdef assert_almost_equal(a, b,
         # case for zero
         if abs(fa) < 1e-5:
             if not decimal_almost_equal(fa, fb, decimal):
-                assert False, ('(very low values) expected %.5f but '
-                               'got %.5f, with decimal %d' % (fb, fa, decimal))
+                assert False, (f'(very low values) expected {fb:.5f} '
+                               f'but got {fa:.5f}, with decimal {decimal}')
         else:
             if not decimal_almost_equal(1, fb / fa, decimal):
-                assert False, ('expected %.5f but got %.5f, '
-                               'with decimal %d' % (fb, fa, decimal))
+                assert False, (f'expected {fb:.5f} but got {fa:.5f}, '
+                               f'with decimal {decimal}')
         return True
 
     raise AssertionError(f"{a} != {b}")

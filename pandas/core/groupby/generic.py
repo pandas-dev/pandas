@@ -10,25 +10,12 @@ import copy
 from functools import partial
 from textwrap import dedent
 import typing
-from typing import (
-    Any,
-    Callable,
-    FrozenSet,
-    Hashable,
-    Iterable,
-    Optional,
-    Sequence,
-    Tuple,
-    Type,
-    Union,
-    cast,
-)
+from typing import Any, Callable, FrozenSet, Iterable, Sequence, Type, Union, cast
 import warnings
 
 import numpy as np
 
 from pandas._libs import Timestamp, lib
-from pandas.compat import PY36
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.cast import (
@@ -62,9 +49,9 @@ from pandas.core.groupby.groupby import (
     GroupBy,
     _apply_docs,
     _transform_template,
-    groupby,
+    get_groupby,
 )
-from pandas.core.index import Index, MultiIndex, _all_indexes_same
+from pandas.core.indexes.api import Index, MultiIndex, all_indexes_same
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
@@ -143,8 +130,8 @@ def pin_whitelisted_properties(klass: Type[FrameOrSeries], whitelist: FrozenSet[
 class SeriesGroupBy(GroupBy):
     _apply_whitelist = base.series_apply_whitelist
 
-    def _iterate_slices(self) -> Iterable[Tuple[Optional[Hashable], Series]]:
-        yield self._selection_name, self._selected_obj
+    def _iterate_slices(self) -> Iterable[Series]:
+        yield self._selected_obj
 
     @property
     def _selection_name(self):
@@ -233,10 +220,6 @@ class SeriesGroupBy(GroupBy):
         no_arg_message = "Must provide 'func' or named aggregation **kwargs."
         if relabeling:
             columns = list(kwargs)
-            if not PY36:
-                # sort for 3.5 and earlier
-                columns = list(sorted(columns))
-
             func = [kwargs[col] for col in columns]
             kwargs = {}
             if not columns:
@@ -262,10 +245,7 @@ class SeriesGroupBy(GroupBy):
 
             try:
                 return self._python_agg_general(func, *args, **kwargs)
-            except (ValueError, KeyError, AttributeError, IndexError):
-                # TODO: IndexError can be removed here following GH#29106
-                # TODO: AttributeError is caused by _index_data hijinx in
-                #  libreduction, can be removed after GH#29160
+            except (ValueError, KeyError):
                 # TODO: KeyError is raised in _python_agg_general,
                 #  see see test_groupby.test_basic
                 result = self._aggregate_named(func, *args, **kwargs)
@@ -405,7 +385,7 @@ class SeriesGroupBy(GroupBy):
             output = func(group, *args, **kwargs)
             if isinstance(output, (Series, Index, np.ndarray)):
                 raise ValueError("Must produce aggregated value")
-            result[name] = self._try_cast(output, group)
+            result[name] = output
 
         return result
 
@@ -888,6 +868,11 @@ class DataFrameGroupBy(GroupBy):
                 return self._python_agg_general(func, *args, **kwargs)
             elif args or kwargs:
                 result = self._aggregate_frame(func, *args, **kwargs)
+
+            elif self.axis == 1:
+                # _aggregate_multiple_funcs does not allow self.axis == 1
+                result = self._aggregate_frame(func)
+
             else:
 
                 # try to treat as if we are passing a list
@@ -899,19 +884,6 @@ class DataFrameGroupBy(GroupBy):
                     if "no results" not in str(err):
                         # raised directly by _aggregate_multiple_funcs
                         raise
-                    result = self._aggregate_frame(func)
-                except NotImplementedError as err:
-                    if "axis other than 0 is not supported" in str(err):
-                        # raised directly by _aggregate_multiple_funcs
-                        pass
-                    elif "decimal does not support skipna=True" in str(err):
-                        # FIXME: kludge for DecimalArray tests
-                        pass
-                    else:
-                        raise
-                    # FIXME: this is raised in a bunch of
-                    #  test_whitelist.test_regression_whitelist_methods tests,
-                    #  can be avoided
                     result = self._aggregate_frame(func)
                 else:
                     result.columns = Index(
@@ -932,20 +904,20 @@ class DataFrameGroupBy(GroupBy):
 
     agg = aggregate
 
-    def _iterate_slices(self) -> Iterable[Tuple[Optional[Hashable], Series]]:
+    def _iterate_slices(self) -> Iterable[Series]:
         obj = self._selected_obj
         if self.axis == 1:
             obj = obj.T
 
         if isinstance(obj, Series) and obj.name not in self.exclusions:
             # Occurs when doing DataFrameGroupBy(...)["X"]
-            yield obj.name, obj
+            yield obj
         else:
             for label, values in obj.items():
                 if label in self.exclusions:
                     continue
 
-                yield label, values
+                yield values
 
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
@@ -997,7 +969,7 @@ class DataFrameGroupBy(GroupBy):
                     #  reductions; see GH#28949
                     obj = obj.iloc[:, 0]
 
-                s = groupby(obj, self.grouper)
+                s = get_groupby(obj, self.grouper)
                 try:
                     result = s.aggregate(lambda x: alt(x, axis=self.axis))
                 except TypeError:
@@ -1067,14 +1039,14 @@ class DataFrameGroupBy(GroupBy):
 
         return new_items, new_blocks
 
-    def _aggregate_frame(self, func, *args, **kwargs):
+    def _aggregate_frame(self, func, *args, **kwargs) -> DataFrame:
         if self.grouper.nkeys != 1:
             raise AssertionError("Number of keys must be 1")
 
         axis = self.axis
         obj = self._obj_with_exclusions
 
-        result = OrderedDict()
+        result = OrderedDict()  # type: OrderedDict
         if axis != obj._info_axis_number:
             for name, data in self:
                 fres = func(data, *args, **kwargs)
@@ -1195,7 +1167,7 @@ class DataFrameGroupBy(GroupBy):
             if isinstance(v, (np.ndarray, Index, Series)):
                 if isinstance(v, Series):
                     applied_index = self._selected_obj._get_axis(self.axis)
-                    all_indexed_same = _all_indexes_same([x.index for x in values])
+                    all_indexed_same = all_indexes_same([x.index for x in values])
                     singular_series = len(values) == 1 and applied_index.nlevels == 1
 
                     # GH3596
@@ -1805,9 +1777,6 @@ def _normalize_keyword_aggregation(kwargs):
     >>> _normalize_keyword_aggregation({'output': ('input', 'sum')})
     (OrderedDict([('input', ['sum'])]), ('output',), [('input', 'sum')])
     """
-    if not PY36:
-        kwargs = OrderedDict(sorted(kwargs.items()))
-
     # Normalize the aggregation functions as Dict[column, List[func]],
     # process normally, then fixup the names.
     # TODO(Py35): When we drop python 3.5, change this to
