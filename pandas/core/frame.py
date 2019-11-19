@@ -66,7 +66,6 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     infer_dtype_from_object,
     is_bool_dtype,
-    is_datetime64_any_dtype,
     is_dict_like,
     is_dtype_equal,
     is_extension_array_dtype,
@@ -1685,9 +1684,7 @@ class DataFrame(NDFrame):
 
         return cls(mgr)
 
-    def to_records(
-        self, index=True, convert_datetime64=None, column_dtypes=None, index_dtypes=None
-    ):
+    def to_records(self, index=True, column_dtypes=None, index_dtypes=None):
         """
         Convert DataFrame to a NumPy record array.
 
@@ -1699,11 +1696,6 @@ class DataFrame(NDFrame):
         index : bool, default True
             Include index in resulting record array, stored in 'index'
             field or using the index label, if set.
-        convert_datetime64 : bool, default None
-            .. deprecated:: 0.23.0
-
-            Whether to convert the index to datetime.datetime if it is a
-            DatetimeIndex.
         column_dtypes : str, type, dict, default None
             .. versionadded:: 0.24.0
 
@@ -1778,24 +1770,12 @@ class DataFrame(NDFrame):
                   dtype=[('I', 'S1'), ('A', '<i8'), ('B', '<f8')])
         """
 
-        if convert_datetime64 is not None:
-            warnings.warn(
-                "The 'convert_datetime64' parameter is "
-                "deprecated and will be removed in a future "
-                "version",
-                FutureWarning,
-                stacklevel=2,
-            )
-
         if index:
-            if is_datetime64_any_dtype(self.index) and convert_datetime64:
-                ix_vals = [self.index.to_pydatetime()]
+            if isinstance(self.index, ABCMultiIndex):
+                # array of tuples to numpy cols. copy copy copy
+                ix_vals = list(map(np.array, zip(*self.index.values)))
             else:
-                if isinstance(self.index, ABCMultiIndex):
-                    # array of tuples to numpy cols. copy copy copy
-                    ix_vals = list(map(np.array, zip(*self.index.values)))
-                else:
-                    ix_vals = [self.index.values]
+                ix_vals = [self.index.values]
 
             arrays = ix_vals + [self[c]._internal_get_values() for c in self.columns]
 
