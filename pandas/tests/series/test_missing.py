@@ -1435,25 +1435,26 @@ class TestSeriesInterpolateData:
         tm.assert_series_equal(result, expected)
 
     def test_interp_max_gap(self):
+        nan = np.nan
         s = Series([nan, 1.0, nan, 2.0, nan, nan, 5.0, nan, nan, nan, -1.0, nan, nan])
 
         expected = Series(
             [1.0, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, nan, nan, nan, -1.0, -1, -1]
         )
         result = s.interpolate(method="linear", max_gap=2)
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         expected = Series(
             [nan, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, nan, nan, nan, -1.0, nan, nan]
         )
         result = s.interpolate(method="linear", max_gap=2, limit_area="inside")
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         expected = Series(
             [nan, 1.0, 1, 2.0, 2.0, 2.0, 5.0, nan, nan, nan, -1.0, nan, nan]
         )
         result = s.interpolate(method="pad", max_gap=2, limit_area="inside")
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_interp_max_gap_nat(self):
         series = Series([0, 1, 2, iNaT], dtype="M8[ns]")
@@ -1461,9 +1462,10 @@ class TestSeriesInterpolateData:
         result = series.interpolate(method="pad", max_gap=2)
         expected = Series([0, 1, 2, 2], dtype="M8[ns]")
 
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_interp_max_gap_errors(self):
+        nan = np.nan
         s = Series([nan, 1.0, nan, 2.0, nan, nan, 5.0, nan, nan, nan, -1.0, nan, nan])
 
         with pytest.raises(

@@ -11,6 +11,7 @@ from pandas.core.dtypes.common import (
     ensure_float64,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
+    is_integer,
     is_integer_dtype,
     is_scalar,
     is_timedelta64_dtype,
