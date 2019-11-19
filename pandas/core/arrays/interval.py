@@ -142,6 +142,10 @@ for more.
     )
 )
 class IntervalArray(IntervalMixin, ExtensionArray):
+    # TODO: generate stub for pandas._libs.interval
+    # the following attributes are defined in IntervalMixin
+    _check_closed_matches: Any
+
     ndim = 1
     can_hold_na = True
     _na_value = _fill_value = np.nan
@@ -909,7 +913,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Whether the intervals are closed on the left-side, right-side, both or
         neither.
         """
-        return self._closed
+        # https://github.com/python/mypy/issues/1021
+        # error: "IntervalArray" has no attribute "_closed"
+        return self._closed  # type: ignore
 
     _interval_shared_docs["set_closed"] = textwrap.dedent(
         """
@@ -1029,7 +1035,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         left = self.left
         right = self.right
         mask = self.isna()
-        closed = self._closed
+        # https://github.com/python/mypy/issues/1021
+        # error: "IntervalArray" has no attribute "_closed"
+        closed = self._closed  # type: ignore
 
         result = np.empty(len(left), dtype=object)
         for i in range(len(left)):
