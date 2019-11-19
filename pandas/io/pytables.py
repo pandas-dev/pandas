@@ -1785,6 +1785,7 @@ class IndexCol:
             #  will be None.
             return False
         # GH#29692 mypy doesn't recognize self.table as having a "cols" attribute
+        #  'error: "None" has no attribute "cols"'
         return getattr(self.table.cols, self.cname).is_indexed  # type: ignore
 
     def copy(self):
