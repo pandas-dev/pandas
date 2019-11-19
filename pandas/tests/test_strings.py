@@ -3527,14 +3527,6 @@ def test_string_array(any_string_method):
     tm.assert_equal(result, expected)
 
 
-@pytest.mark.xfail(reason="not implemented yet")
-def test_string_dtype_numeric():
-    s = Series(["a", "aa", None], dtype="string")
-    result = s.str.count("a")
-    expected = Series([1, 2, None], dtype="Int64")
-    tm.assert_series_equal(result, expected)
-
-
 @pytest.mark.parametrize(
     "method,expected",
     [
