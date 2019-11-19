@@ -939,7 +939,7 @@ class PlotAccessor(PandasObject):
         """
 
     @Appender(_line_docs % _shared_docs)
-    def line(self, x=None, y=None, figsize=None, subplots=False, sharex=None,
+    def line(self, x=None, y=None, *, figsize=None, subplots=False, sharex=None,
              sharey=False, layout=None, title=None, **kwargs):
         return self(kind="line", x=x, y=y, figsize=figsize, subplots=subplots,
                     sharex=sharex, sharey=sharey, layout=layout, title=title, **kwargs)
@@ -1029,7 +1029,7 @@ class PlotAccessor(PandasObject):
         """
 
     @Appender(_bar_docs % _shared_docs)
-    def bar(self, x=None, y=None, figsize=None, subplots=False, sharex=None,
+    def bar(self, x=None, y=None, *, figsize=None, subplots=False, sharex=None,
             sharey=False, layout=None, title=None, **kwargs):
         return self(kind="bar", x=x, y=y, figsize=figsize, subplots=subplots,
                     sharex=sharex, sharey=sharey, layout=layout, title=title, **kwargs)
@@ -1114,7 +1114,7 @@ class PlotAccessor(PandasObject):
     """
 
     @Appender(_barh_docs % _shared_docs)
-    def barh(self, x=None, y=None, figsize=None, subplots=False, sharex=None,
+    def barh(self, x=None, y=None, *, figsize=None, subplots=False, sharex=None,
              sharey=False, layout=None, title=None, **kwargs):
         return self(kind="barh", x=x, y=y, figsize=figsize, subplots=subplots,
                     sharex=sharex, sharey=sharey, layout=layout, title=title, **kwargs)
@@ -1141,7 +1141,7 @@ class PlotAccessor(PandasObject):
         by : str or sequence
             Column in the DataFrame to group by.
         %s
-        **kwargs : optional
+        **kwargs
             Additional keywords are documented in
             :meth:`DataFrame.plot`.
 
@@ -1169,7 +1169,7 @@ class PlotAccessor(PandasObject):
         """
 
     @Appender(_box_docs % _shared_docs)
-    def box(self, by=None, figsize=None, subplots=False, sharex=None, sharey=False,
+    def box(self, by=None, *, figsize=None, subplots=False, sharex=None, sharey=False,
             layout=None, title=None, **kwargs):
         return self(kind="box", by=by, figsize=figsize, subplots=subplots,
                     sharex=sharex, sharey=sharey, layout=layout, title=title, **kwargs)
@@ -1221,7 +1221,7 @@ class PlotAccessor(PandasObject):
         """
 
     @Appender(_hist_docs % _shared_docs)
-    def hist(self, by=None, bins=10, figsize=None, subplots=False, sharex=None,
+    def hist(self, by=None, bins=10, *, figsize=None, subplots=False, sharex=None,
              sharey=False, layout=None, title=None, **kwargs):
         return self(kind="hist", by=by, bins=bins, figsize=figsize, subplots=subplots,
                     sharex=sharex, sharey=sharey, layout=layout, title=title, **kwargs)
@@ -1249,7 +1249,7 @@ class PlotAccessor(PandasObject):
             KDE is evaluated at the points passed. If `ind` is an integer,
             `ind` number of equally spaced points are used.
         %s
-        **kwargs : optional
+        **kwargs
             Additional keyword arguments are documented in
             :meth:`pandas.%%(this-datatype)s.plot`.
 
@@ -1333,7 +1333,7 @@ class PlotAccessor(PandasObject):
         """
 
     @Appender(_kde_docs % _shared_docs)
-    def kde(self, bw_method=None, ind=None, figsize=None, subplots=False, sharex=None,
+    def kde(self, bw_method=None, ind=None, *, figsize=None, subplots=False, sharex=None,
             sharey=False, layout=None, title=None, **kwargs):
         return self(kind="kde", bw_method=bw_method, ind=ind, figsize=figsize,
                     subplots=subplots, sharex=sharex, sharey=sharey, layout=layout,
@@ -1357,7 +1357,7 @@ class PlotAccessor(PandasObject):
             Area plots are stacked by default. Set to False to create a
             unstacked plot.
         %s
-        **kwargs : optional
+        **kwargs
             Additional keyword arguments are documented in
             :meth:`DataFrame.plot`.
 
@@ -1414,7 +1414,7 @@ class PlotAccessor(PandasObject):
         """
 
     @Appender(_area_docs % _shared_docs)
-    def area(self, x=None, y=None, figsize=None, subplots=False, sharex=None,
+    def area(self, x=None, y=None, *, figsize=None, subplots=False, sharex=None,
              sharey=False, layout=None, title=None, **kwargs):
         return self(kind="area", x=x, y=y, figsize=figsize, subplots=subplots,
                     sharex=sharex, sharey=sharey, layout=layout, title=title, **kwargs)
@@ -1468,7 +1468,7 @@ class PlotAccessor(PandasObject):
         """
 
     @Appender(_pie_docs % _shared_docs)
-    def pie(self, y=None, figsize=None, subplots=False, sharex=None,
+    def pie(self, y=None, *, figsize=None, subplots=False, sharex=None,
             sharey=False, layout=None, title=None, **kwargs):
         if isinstance(self._parent, ABCDataFrame) and y is None and not subplots:
             raise ValueError("pie requires either y column or 'subplots=True'")
@@ -1555,7 +1555,7 @@ class PlotAccessor(PandasObject):
         """
 
     @Appender(_scatter_docs % _shared_docs)
-    def scatter(self, x, y, s=None, c=None, figsize=None, subplots=False, sharex=None,
+    def scatter(self, x, y, s=None, c=None, *, figsize=None, subplots=False, sharex=None,
                 sharey=False, layout=None, title=None, **kwargs):
         return self(kind="scatter", x=x, y=y, s=s, c=c, figsize=figsize,
                     subplots=subplots, sharex=sharex, sharey=sharey, layout=layout,
@@ -1645,7 +1645,7 @@ class PlotAccessor(PandasObject):
         """
 
     @Appender(_hexbin_docs % _shared_docs)
-    def hexbin(self, x, y, C=None, reduce_C_function=np.mean, gridsize=100,
+    def hexbin(self, x, y, C=None, reduce_C_function=np.mean, gridsize=100, *,
                figsize=None, subplots=False, sharex=None, sharey=False, layout=None,
                title=None, **kwargs):
         return self(kind="hexbin", x=x, y=y, C=C, reduce_C_function=reduce_C_function,
