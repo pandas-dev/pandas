@@ -10,6 +10,7 @@ Other items:
 import platform
 import struct
 import sys
+from typing import Any, Callable, TypeVar
 import warnings
 
 PY37 = sys.version_info >= (3, 7)
@@ -25,7 +26,11 @@ PYPY = platform.python_implementation() == "PyPy"
 # found at https://bitbucket.org/gutworth/six
 
 
-def set_function_name(f, name, cls):
+_FuncType = Callable[..., Any]
+_F = TypeVar("_F", bound=_FuncType)
+
+
+def set_function_name(f: _F, name: str, cls) -> _F:
     """
     Bind the name/qualname attributes of the function.
     """

@@ -4,7 +4,7 @@ SparseArray data structure
 from collections import abc
 import numbers
 import operator
-from typing import Any, Callable, List
+from typing import Any, Callable, List, Type, TypeVar
 import warnings
 
 import numpy as np
@@ -49,6 +49,8 @@ from pandas.core.ops.common import unpack_zerodim_and_defer
 import pandas.io.formats.printing as printing
 
 from .dtype import SparseDtype
+
+_SparseArrayT = TypeVar("_SparseArrayT", bound="SparseArray")
 
 # ----------------------------------------------------------------------------
 # Array
@@ -260,6 +262,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     _pandas_ftype = "sparse"
     _subtyp = "sparse_array"  # register ABCSparseArray
     _deprecations = PandasObject._deprecations | frozenset(["get_values"])
+    _sparse_index: SparseIndex
 
     def __init__(
         self,
@@ -372,8 +375,11 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     @classmethod
     def _simple_new(
-        cls, sparse_array: np.ndarray, sparse_index: SparseIndex, dtype: SparseDtype
-    ) -> ABCSparseArray:
+        cls: Type[_SparseArrayT],
+        sparse_array: np.ndarray,
+        sparse_index: SparseIndex,
+        dtype: SparseDtype,
+    ) -> _SparseArrayT:
         new = cls([])
         new._sparse_index = sparse_index
         new._sparse_values = sparse_array
@@ -1393,8 +1399,10 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     # ------------------------------------------------------------------------
 
     @classmethod
-    def _create_unary_method(cls, op):
-        def sparse_unary_method(self):
+    def _create_unary_method(
+        cls: Type[_SparseArrayT], op
+    ) -> Callable[[_SparseArrayT], _SparseArrayT]:
+        def sparse_unary_method(self: _SparseArrayT) -> _SparseArrayT:
             fill_value = op(np.array(self.fill_value)).item()
             values = op(self.sp_values)
             dtype = SparseDtype(values.dtype, fill_value)
@@ -1492,14 +1500,27 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     @classmethod
     def _add_unary_ops(cls):
-        cls.__pos__ = cls._create_unary_method(operator.pos)
-        cls.__neg__ = cls._create_unary_method(operator.neg)
-        cls.__invert__ = cls._create_unary_method(operator.invert)
+        # FIXME
+        # error: Unsupported operand type for unary + ("Type[SparseArray]")
+        cls.__pos__ = cls._create_unary_method(operator.pos)  # type: ignore
+
+        # FIXME
+        # error: Unsupported operand type for unary - ("Type[SparseArray]")
+        cls.__neg__ = cls._create_unary_method(operator.neg)  # type: ignore
+
+        # FIXME
+        # error: Unsupported operand type for ~ ("Type[SparseArray]")
+        cls.__invert__ = cls._create_unary_method(operator.invert)  # type: ignore
 
     @classmethod
     def _add_comparison_ops(cls):
-        cls.__and__ = cls._create_comparison_method(operator.and_)
-        cls.__or__ = cls._create_comparison_method(operator.or_)
+        # FIXME
+        # error: Unsupported left operand type for & ("Type[SparseArray]")
+        cls.__and__ = cls._create_comparison_method(operator.and_)  # type: ignore
+
+        # FIXME
+        # error: Unsupported left operand type for | ("Type[SparseArray]")
+        cls.__or__ = cls._create_comparison_method(operator.or_)  # type: ignore
         super()._add_comparison_ops()
 
     # ----------
