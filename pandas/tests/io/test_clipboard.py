@@ -10,12 +10,6 @@ import pandas.util.testing as tm
 
 from pandas.io.clipboard import PyperclipException, clipboard_get, clipboard_set
 
-try:
-    DataFrame({"A": [1, 2]}).to_clipboard()
-    _DEPS_INSTALLED = 1
-except (PyperclipException, RuntimeError):
-    _DEPS_INSTALLED = 0
-
 
 def build_kwargs(sep, excel):
     kwargs = {}
@@ -146,9 +140,17 @@ def test_mock_clipboard(mock_clipboard):
     assert result == "abc"
 
 
+@pytest.fixture(scope="module")
+def check_clipboard():
+    """Check if we have a clipboard, skipping if it's not present"""
+    try:
+        DataFrame({"A": [1, 2]}).to_clipboard()
+    except (PyperclipException, RuntimeError):
+        pytest.skip("Missing clipboard dependency")
+
+
 @pytest.mark.single
 @pytest.mark.clipboard
-@pytest.mark.skipif(not _DEPS_INSTALLED, reason="clipboard primitives not installed")
 @pytest.mark.usefixtures("mock_clipboard")
 class TestClipboard:
     def check_round_trip_frame(self, data, excel=None, sep=None, encoding=None):
@@ -256,8 +258,8 @@ class TestClipboard:
 
 @pytest.mark.single
 @pytest.mark.clipboard
-@pytest.mark.skipif(not _DEPS_INSTALLED, reason="clipboard primitives not installed")
 @pytest.mark.parametrize("data", ["\U0001f44d...", "Ωœ∑´...", "abcd..."])
+@pytest.mark.usefixtures("check_clipboard")
 def test_raw_roundtrip(data):
     # PR #25040 wide unicode wasn't copied correctly on PY3 on windows
     clipboard_set(data)
