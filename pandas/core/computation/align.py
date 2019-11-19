@@ -11,6 +11,7 @@ from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
+from pandas._typing import FrameOrSeries
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.computation.common import result_type_many
@@ -18,9 +19,9 @@ from pandas.core.computation.common import result_type_many
 
 def _align_core_single_unary_op(
     term
-) -> Tuple[Union[partial, Type[pd.core.generic.NDFrame]], Optional[Dict[str, int]]]:
+) -> Tuple[Union[partial, Type[FrameOrSeries]], Optional[Dict[str, int]]]:
 
-    typ: Union[partial, Type[pd.core.generic.NDFrame]]
+    typ: Union[partial, Type[FrameOrSeries]]
     axes: Optional[Dict] = None
 
     if isinstance(term.value, np.ndarray):
@@ -34,7 +35,7 @@ def _align_core_single_unary_op(
 
 
 def _zip_axes_from_type(
-    typ: Type[pd.core.generic.NDFrame], new_axes: Sequence[int]
+    typ: Type[FrameOrSeries], new_axes: Sequence[int]
 ) -> Dict[str, int]:
     axes = {name: new_axes[i] for i, name in typ._AXIS_NAMES.items()}
     return axes
