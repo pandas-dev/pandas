@@ -11,8 +11,8 @@ from pandas.io.formats.format import DataFrameFormatter, TableFormatter
 
 
 class LatexFormatter(TableFormatter):
-    """ Used to render a DataFrame to a LaTeX tabular/longtable environment
-    output.
+    """
+    Used to render a DataFrame to a LaTeX tabular/longtable environment output.
 
     Parameters
     ----------
@@ -106,18 +106,19 @@ class LatexFormatter(TableFormatter):
             # Get rid of old multiindex column and add new ones
             strcols = out + strcols[1:]
 
-        column_format = self.column_format
-        if column_format is None:
+        if self.column_format is None:
             dtypes = self.frame.dtypes._values
             column_format = "".join(map(get_col_type, dtypes))
             if self.fmt.index:
                 index_format = "l" * self.frame.index.nlevels
                 column_format = index_format + column_format
-        elif not isinstance(column_format, str):  # pragma: no cover
+        elif not isinstance(self.column_format, str):  # pragma: no cover
             raise AssertionError(
                 "column_format must be str or unicode, "
                 "not {typ}".format(typ=type(column_format))
             )
+        else:
+            column_format = self.column_format
 
         if self.longtable:
             self._write_longtable_begin(buf, column_format)
@@ -265,7 +266,7 @@ class LatexFormatter(TableFormatter):
 
     def _print_cline(self, buf: IO[str], i: int, icol: int) -> None:
         """
-        Print clines after multirow-blocks are finished
+        Print clines after multirow-blocks are finished.
         """
         for cl in self.clinebuf:
             if cl[0] == i:
@@ -273,7 +274,7 @@ class LatexFormatter(TableFormatter):
         # remove entries that have been written to buffer
         self.clinebuf = [x for x in self.clinebuf if x[0] != i]
 
-    def _write_tabular_begin(self, buf, column_format):
+    def _write_tabular_begin(self, buf, column_format: str):
         """
         Write the beginning of a tabular environment or
         nested table/tabular environments including caption and label.
@@ -283,11 +284,10 @@ class LatexFormatter(TableFormatter):
         buf : string or file handle
             File path or object. If not specified, the result is returned as
             a string.
-        column_format : str, default None
+        column_format : str
             The columns format as specified in `LaTeX table format
             <https://en.wikibooks.org/wiki/LaTeX/Tables>`__ e.g 'rcl'
             for 3 columns
-
         """
         if self.caption is not None or self.label is not None:
             # then write output in a nested table/tabular environment
@@ -327,7 +327,7 @@ class LatexFormatter(TableFormatter):
         else:
             pass
 
-    def _write_longtable_begin(self, buf, column_format):
+    def _write_longtable_begin(self, buf, column_format: str):
         """
         Write the beginning of a longtable environment including caption and
         label if provided by user.
@@ -337,11 +337,10 @@ class LatexFormatter(TableFormatter):
         buf : string or file handle
             File path or object. If not specified, the result is returned as
             a string.
-        column_format : str, default None
+        column_format : str
             The columns format as specified in `LaTeX table format
             <https://en.wikibooks.org/wiki/LaTeX/Tables>`__ e.g 'rcl'
             for 3 columns
-
         """
         buf.write("\\begin{{longtable}}{{{fmt}}}\n".format(fmt=column_format))
 

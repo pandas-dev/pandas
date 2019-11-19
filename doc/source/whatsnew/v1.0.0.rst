@@ -63,7 +63,7 @@ Previously, strings were typically stored in object-dtype NumPy arrays.
    ``StringDtype`` is currently considered experimental. The implementation
    and parts of the API may change without warning.
 
-The text extension type solves several issues with object-dtype NumPy arrays:
+The ``'string'`` extension type solves several issues with object-dtype NumPy arrays:
 
 1. You can accidentally store a *mixture* of strings and non-strings in an
    ``object`` dtype array. A ``StringArray`` can only store strings.
@@ -88,8 +88,16 @@ You can use the alias ``"string"`` as well.
 The usual string accessor methods work. Where appropriate, the return type
 of the Series or columns of a DataFrame will also have string dtype.
 
+.. ipython:: python
+
    s.str.upper()
    s.str.split('b', expand=True).dtypes
+
+String accessor methods returning integers will return a value with :class:`Int64Dtype`
+
+.. ipython:: python
+
+   s.str.count("a")
 
 We recommend explicitly using the ``string`` data type when working with strings.
 See :ref:`text.types` for more.
@@ -114,6 +122,9 @@ Other enhancements
 - Added ``encoding`` argument to :meth:`DataFrame.to_string` for non-ascii text (:issue:`28766`)
 - Added ``encoding`` argument to :func:`DataFrame.to_html` for non-ascii text (:issue:`28663`)
 - :meth:`Styler.background_gradient` now accepts ``vmin`` and ``vmax`` arguments (:issue:`12145`)
+- Roundtripping DataFrames with nullable integer or string data types to parquet
+  (:meth:`~DataFrame.to_parquet` / :func:`read_parquet`) using the `'pyarrow'` engine
+  now preserve those data types with pyarrow >= 1.0.0 (:issue:`20612`).
 
 Build Changes
 ^^^^^^^^^^^^^
@@ -130,34 +141,39 @@ Backwards incompatible API changes
 
 .. _whatsnew_1000.api_breaking.MultiIndex._names:
 
-``MultiIndex.levels`` do not hold level names any longer
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Avoid using names from ``MultiIndex.levels``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- A :class:`MultiIndex` previously stored the level names as attributes of each of its
-  :attr:`MultiIndex.levels`. From Pandas 1.0, the names are only accessed through
-  :attr:`MultiIndex.names` (which was also possible previously). This is done in order to
-  make :attr:`MultiIndex.levels` more similar to :attr:`CategoricalIndex.categories` (:issue:`27242`:).
+As part of a larger refactor to :class:`MultiIndex` the level names are now
+stored separately from the levels (:issue:`27242`). We recommend using
+:attr:`MultiIndex.names` to access the names, and :meth:`Index.set_names`
+to update the names.
 
-*pandas 0.25.x*
-
-.. code-block:: ipython
-
-   In [1]: mi = pd.MultiIndex.from_product([[1, 2], ['a', 'b']], names=['x', 'y'])
-   Out[2]: mi
-   MultiIndex([(1, 'a'),
-               (1, 'b'),
-               (2, 'a'),
-               (2, 'b')],
-              names=['x', 'y'])
-   Out[3]: mi.levels[0].name
-   'x'
-
-*pandas 1.0.0*
+For backwards compatibility, you can still *access* the names via the levels.
 
 .. ipython:: python
 
    mi = pd.MultiIndex.from_product([[1, 2], ['a', 'b']], names=['x', 'y'])
    mi.levels[0].name
+
+However, it is no longer possible to *update* the names of the ``MultiIndex``
+via the name of the level. The following will **silently** fail to update the
+name of the ``MultiIndex``
+
+.. ipython:: python
+
+   mi.levels[0].name = "new name"
+   mi.names
+
+To update, use ``MultiIndex.set_names``, which returns a new ``MultiIndex``.
+
+.. ipython:: python
+
+   mi2 = mi.set_names("new name", level=0)
+   mi2.names
+
+New repr for :class:`pandas.core.arrays.IntervalArray`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - :class:`pandas.core.arrays.IntervalArray` adopts a new ``__repr__`` in accordance with other array classes (:issue:`25022`)
 
@@ -183,6 +199,7 @@ Backwards incompatible API changes
 Other API changes
 ^^^^^^^^^^^^^^^^^
 
+- Bumpded the minimum supported version of ``s3fs`` from 0.0.8 to 0.3.0 (:issue:`28616`)
 - :class:`pandas.core.groupby.GroupBy.transform` now raises on invalid operation names (:issue:`27489`)
 - :meth:`pandas.api.types.infer_dtype` will now return "integer-na" for integer and ``np.nan`` mix (:issue:`27283`)
 - :meth:`MultiIndex.from_arrays` will no longer infer names from arrays if ``names=None`` is explicitly provided (:issue:`27292`)
@@ -262,6 +279,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - Removed the previously deprecated ``reduce`` and ``broadcast`` arguments from :meth:`DataFrame.apply` (:issue:`18577`)
 - Removed the previously deprecated ``assert_raises_regex`` function in ``pandas.util.testing`` (:issue:`29174`)
 - Removed :meth:`Index.is_lexsorted_for_tuple` (:issue:`29305`)
+- Removed support for nexted renaming in :meth:`DataFrame.aggregate`, :meth:`Series.aggregate`, :meth:`DataFrameGroupBy.aggregate`, :meth:`SeriesGroupBy.aggregate`, :meth:`Rolling.aggregate` (:issue:`29608`)
 -
 
 .. _whatsnew_1000.performance:
@@ -297,6 +315,7 @@ Categorical
 - Using date accessors on a categorical dtyped :class:`Series` of datetimes was not returning an object of the
   same type as if one used the :meth:`.str.` / :meth:`.dt.` on a :class:`Series` of that type. E.g. when accessing :meth:`Series.dt.tz_localize` on a
   :class:`Categorical` with duplicate entries, the accessor was skipping duplicates (:issue: `27952`)
+- Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` that would give incorrect results on categorical data (:issue:`26988`)
 
 
 Datetimelike
@@ -314,11 +333,11 @@ Datetimelike
 - Bug in :func:`pandas.core.groupby.generic.SeriesGroupBy.apply` raising ``ValueError`` when a column in the original DataFrame is a datetime and the column labels are not standard integers (:issue:`28247`)
 - Bug in :func:`pandas._config.localization.get_locales` where the ``locales -a`` encodes the locales list as windows-1252 (:issue:`23638`, :issue:`24760`, :issue:`27368`)
 - Bug in :meth:`Series.var` failing to raise ``TypeError`` when called with ``timedelta64[ns]`` dtype (:issue:`28289`)
--
+- Bug in :meth:`DatetimeIndex.strftime` and :meth:`Series.dt.strftime` where ``NaT`` was converted to the string ``'NaT'`` instead of ``np.nan`` (:issue:`29578`)
 
 Timedelta
 ^^^^^^^^^
-
+- Bug in subtracting a :class:`TimedeltaIndex` or :class:`TimedeltaArray` from a ``np.datetime64`` object (:issue:`29558`)
 -
 -
 
@@ -335,7 +354,10 @@ Numeric
 - :class:`DataFrame` flex inequality comparisons methods (:meth:`DataFrame.lt`, :meth:`DataFrame.le`, :meth:`DataFrame.gt`, :meth: `DataFrame.ge`) with object-dtype and ``complex`` entries failing to raise ``TypeError`` like their :class:`Series` counterparts (:issue:`28079`)
 - Bug in :class:`DataFrame` logical operations (`&`, `|`, `^`) not matching :class:`Series` behavior by filling NA values (:issue:`28741`)
 - Bug in :meth:`DataFrame.interpolate` where specifying axis by name references variable before it is assigned (:issue:`29142`)
+- Bug in :meth:`Series.var` not computing the right value with a nullable integer dtype series not passing through ddof argument (:issue:`29128`)
 - Improved error message when using `frac` > 1 and `replace` = False (:issue:`27451`)
+- Bug in numeric indexes resulted in it being possible to instantiate an :class:`Int64Index`, :class:`UInt64Index`, or :class:`Float64Index` with an invalid dtype (e.g. datetime-like) (:issue:`29539`)
+- Bug in :class:`UInt64Index` precision loss while constructing from a list with values in the ``np.uint64`` range (:issue:`29526`)
 -
 
 Conversion
@@ -347,7 +369,7 @@ Conversion
 Strings
 ^^^^^^^
 
--
+- Calling :meth:`Series.str.isalnum` (and other "ismethods") on an empty Series would return an object dtype instead of bool (:issue:`29624`)
 -
 
 
@@ -400,6 +422,8 @@ I/O
 - Bug in :meth:`DataFrame.to_html` when using ``formatters=<list>`` and ``max_cols`` together. (:issue:`25955`)
 - Bug in :meth:`Styler.background_gradient` not able to work with dtype ``Int64`` (:issue:`28869`)
 - Bug in :meth:`DataFrame.to_clipboard` which did not work reliably in ipython (:issue:`22707`)
+- Bug in :func:`read_json` where default encoding was not set to ``utf-8`` (:issue:`29565`)
+-
 
 Plotting
 ^^^^^^^^
@@ -414,18 +438,21 @@ Plotting
 - Bug in the ``xticks`` argument being ignored for :meth:`DataFrame.plot.bar` (:issue:`14119`)
 - :func:`set_option` now validates that the plot backend provided to ``'plotting.backend'`` implements the backend when the option is set, rather than when a plot is created (:issue:`28163`)
 - :meth:`DataFrame.plot` now allow a ``backend`` keyword arugment to allow changing between backends in one session (:issue:`28619`).
+- Bug in color validation incorrectly raising for non-color styles (:issue:`29122`).
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 -
 - Bug in :meth:`DataFrame.groupby` with multiple groups where an ``IndexError`` would be raised if any group contained all NA values (:issue:`20519`)
+- Bug in :meth:`pandas.core.resample.Resampler.size` and :meth:`pandas.core.resample.Resampler.count` returning wrong dtype when used with an empty series or dataframe (:issue:`28427`)
 - Bug in :meth:`DataFrame.rolling` not allowing for rolling over datetimes when ``axis=1`` (:issue: `28192`)
 - Bug in :meth:`DataFrame.rolling` not allowing rolling over multi-index levels (:issue: `15584`).
 - Bug in :meth:`DataFrame.rolling` not allowing rolling on monotonic decreasing time indexes (:issue: `19248`).
 - Bug in :meth:`DataFrame.groupby` not offering selection by column name when ``axis=1`` (:issue:`27614`)
 - Bug in :meth:`DataFrameGroupby.agg` not able to use lambda function with named aggregation (:issue:`27519`)
 - Bug in :meth:`DataFrame.groupby` losing column name information when grouping by a categorical column (:issue:`28787`)
+- Bug in :meth:`DataFrameGroupBy.rolling().quantile()` ignoring ``interpolation`` keyword argument (:issue:`28779`)
 
 Reshaping
 ^^^^^^^^^
@@ -437,6 +464,8 @@ Reshaping
 - :func:`qcut` and :func:`cut` now handle boolean input (:issue:`20303`)
 - Fix to ensure all int dtypes can be used in :func:`merge_asof` when using a tolerance value. Previously every non-int64 type would raise an erroneous ``MergeError`` (:issue:`28870`).
 - Better error message in :func:`get_dummies` when `columns` isn't a list-like value (:issue:`28383`)
+- Bug :meth:`Series.pct_change` where supplying an anchored frequency would throw a ValueError (:issue:`28664`)
+- Bug where :meth:`DataFrame.equals` returned True incorrectly in some cases when two DataFrames had the same columns in different orders (:issue:`28839`)
 
 Sparse
 ^^^^^^
@@ -461,6 +490,7 @@ Other
 - :meth:`Series.append` will no longer raise a ``TypeError`` when passed a tuple of ``Series`` (:issue:`28410`)
 - :meth:`SeriesGroupBy.value_counts` will be able to handle the case even when the :class:`Grouper` makes empty groups (:issue: 28479)
 - Fix corrupted error message when calling ``pandas.libs._json.encode()`` on a 0d array (:issue:`18878`)
+- Bug in :meth:`DataFrame.append` that raised ``IndexError`` when appending with empty list (:issue:`28769`)
 - Fix :class:`AbstractHolidayCalendar` to return correct results for
   years after 2030 (now goes up to 2200) (:issue:`27790`)
 
