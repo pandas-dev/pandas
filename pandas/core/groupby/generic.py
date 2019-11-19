@@ -1768,7 +1768,7 @@ def _is_multi_agg_with_relabel(**kwargs) -> bool:
 
 
 def _normalize_keyword_aggregation(
-    kwargs: Dict
+    kwargs: Dict,
 ) -> Tuple[Dict[str, List], List[str], List[int]]:
     """
     Normalize user-provided "named aggregation" kwargs.

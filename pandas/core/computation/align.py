@@ -18,7 +18,7 @@ from pandas.core.computation.common import result_type_many
 
 
 def _align_core_single_unary_op(
-    term
+    term,
 ) -> Tuple[Union[partial, Type[FrameOrSeries]], Optional[Dict[str, int]]]:
 
     typ: Union[partial, Type[FrameOrSeries]]
