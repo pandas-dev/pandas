@@ -829,6 +829,26 @@ def test_arrow_array(data):
     assert arr.equals(expected)
 
 
+@pytest.mark.parametrize(
+    "pandasmethname, kwargs",
+    [
+        ("var", {"ddof": 0}),
+        ("var", {"ddof": 1}),
+        ("kurtosis", {}),
+        ("skew", {}),
+        ("sem", {}),
+    ],
+)
+def test_stat_method(pandasmethname, kwargs):
+    s = pd.Series(data=[1, 2, 3, 4, 5, 6, np.nan, np.nan], dtype="Int64")
+    pandasmeth = getattr(s, pandasmethname)
+    result = pandasmeth(**kwargs)
+    s2 = pd.Series(data=[1, 2, 3, 4, 5, 6], dtype="Int64")
+    pandasmeth = getattr(s2, pandasmethname)
+    expected = pandasmeth(**kwargs)
+    assert expected == result
+
+
 # TODO(jreback) - these need testing / are broken
 
 # shift

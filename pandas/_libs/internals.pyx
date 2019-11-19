@@ -61,12 +61,12 @@ cdef class BlockPlacement:
         else:
             v = self._as_array
 
-        return '%s(%r)' % (self.__class__.__name__, v)
+        return f'{self.__class__.__name__}({v})'
 
     def __repr__(self) -> str:
         return str(self)
 
-    def __len__(self):
+    def __len__(self) -> int:
         cdef:
             slice s = self._ensure_has_slice()
         if s is not None:
@@ -85,7 +85,7 @@ cdef class BlockPlacement:
             return iter(self._as_array)
 
     @property
-    def as_slice(self):
+    def as_slice(self) -> slice:
         cdef:
             slice s = self._ensure_has_slice()
         if s is None:
@@ -118,7 +118,7 @@ cdef class BlockPlacement:
         return self._as_array
 
     @property
-    def is_slice_like(self):
+    def is_slice_like(self) -> bool:
         cdef:
             slice s = self._ensure_has_slice()
         return s is not None
@@ -441,7 +441,7 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
                 yield blkno, result
 
 
-def get_blkno_placements(blknos, group=True):
+def get_blkno_placements(blknos, group: bool = True):
     """
 
     Parameters
