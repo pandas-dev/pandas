@@ -829,6 +829,18 @@ def test_arrow_array(data):
     assert arr.equals(expected)
 
 
+@td.skip_if_no("pyarrow", min_version="0.15.1.dev")
+def test_arrow_roundtrip(data):
+    # roundtrip possible from arrow 1.0.0
+    import pyarrow as pa
+
+    df = pd.DataFrame({"a": data})
+    table = pa.table(df)
+    assert table.field("a").type == str(data.dtype.numpy_dtype)
+    result = table.to_pandas()
+    tm.assert_frame_equal(result, df)
+
+
 @pytest.mark.parametrize(
     "pandasmethname, kwargs",
     [
