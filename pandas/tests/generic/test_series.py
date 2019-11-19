@@ -243,11 +243,6 @@ class TestSeries(Generic):
         assert isinstance(result, DataArray)
         tm.assert_series_equal(result.to_series(), s)
 
-    def test_valid_deprecated(self):
-        # GH18800
-        with tm.assert_produces_warning(FutureWarning):
-            pd.Series([]).valid()
-
     @pytest.mark.parametrize(
         "s",
         [
