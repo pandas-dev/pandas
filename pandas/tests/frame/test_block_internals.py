@@ -313,10 +313,7 @@ class TestDataFrameBlockInternals:
         column = df.columns[0]
 
         # use the default copy=True, change a column
-
-        # deprecated 0.21.0
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            blocks = df.as_blocks()
+        blocks = df._to_dict_of_blocks(copy=True)
         for dtype, _df in blocks.items():
             if column in _df:
                 _df.loc[:, column] = _df[column] + 1
@@ -330,10 +327,7 @@ class TestDataFrameBlockInternals:
         column = df.columns[0]
 
         # use the copy=False, change a column
-
-        # deprecated 0.21.0
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            blocks = df.as_blocks(copy=False)
+        blocks = df._to_dict_of_blocks(copy=True)
         for dtype, _df in blocks.items():
             if column in _df:
                 _df.loc[:, column] = _df[column] + 1
