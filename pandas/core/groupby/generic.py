@@ -569,7 +569,8 @@ class SeriesGroupBy(GroupBy):
             res, out = np.zeros(len(ri), dtype=out.dtype), res
             res[ids[idx]] = out
 
-        return Series(res, index=ri, name=self._selection_name)
+        result = Series(res, index=ri, name=self._selection_name)
+        return self._reindex_output(result, fill_value=0)
 
     @Appender(Series.describe.__doc__)
     def describe(self, **kwargs):
@@ -727,7 +728,7 @@ class SeriesGroupBy(GroupBy):
             name=self._selection_name,
             dtype="int64",
         )
-        return self._reindex_output(result)
+        return self._reindex_output(result, fill_value=0)
 
     def _apply_to_column_groupbys(self, func):
         """ return a pass thru """
