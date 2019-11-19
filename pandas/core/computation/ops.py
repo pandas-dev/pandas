@@ -415,14 +415,20 @@ class BinOp(Op):
             res = self(env)
         else:
             # recurse over the left/right nodes
-            left = self.lhs.evaluate(
+
+            # FIXME
+            # error: Item "Op" of "Union[Term, Op]" has no attribute "evaluate"
+            left = self.lhs.evaluate(  # type: ignore
                 env,
                 engine=engine,
                 parser=parser,
                 term_type=term_type,
                 eval_in_python=eval_in_python,
             )
-            right = self.rhs.evaluate(
+
+            # FIXME
+            # error: Item "Op" of "Union[Term, Op]" has no attribute "evaluate"
+            right = self.rhs.evaluate(  # type: ignore
                 env,
                 engine=engine,
                 parser=parser,

@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import Any
 import warnings
 import weakref
 
@@ -166,6 +167,27 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     --------
     >>> idx = pd.PeriodIndex(year=year_arr, quarter=q_arr)
     """
+
+    # day
+    # dayofweek
+    # dayofyear
+    # days_in_month
+    # daysinmonth
+    # end_time
+    # freq
+    # freqstr
+    hour: Any
+    # is_leap_year
+    minute: Any
+    # month
+    # quarter
+    # qyear
+    second: Any
+    # start_time
+    # week
+    # weekday
+    # weekofyear
+    # year
 
     _typ = "periodindex"
     _attributes = ["name", "freq"]
