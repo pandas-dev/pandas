@@ -1972,13 +1972,11 @@ class DataFrame(NDFrame):
         mgr = arrays_to_mgr(arrays, columns, index, columns, dtype=dtype)
         return cls(mgr)
 
-    @deprecate_kwarg(old_arg_name="encoding", new_arg_name=None)
     def to_stata(
         self,
         fname,
         convert_dates=None,
         write_index=True,
-        encoding="latin-1",
         byteorder=None,
         time_stamp=None,
         data_label=None,
@@ -2008,8 +2006,6 @@ class DataFrame(NDFrame):
             a datetime column has timezone information.
         write_index : bool
             Write the index to Stata dataset.
-        encoding : str
-            Default is latin-1. Unicode is not supported.
         byteorder : str
             Can be ">", "<", "little", or "big". default is `sys.byteorder`.
         time_stamp : datetime
