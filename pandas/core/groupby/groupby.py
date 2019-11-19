@@ -2401,9 +2401,9 @@ class GroupBy(_GroupBy):
 
         Parameters
         ----------
-        output: Series or DataFrame
+        output : Series or DataFrame
             Object resulting from grouping and applying an operation.
-        fill_value: scalar, default np.NaN
+        fill_value : scalar, default np.NaN
             Value to use for unobserved categories if self.observed is False.
 
         Returns
