@@ -259,14 +259,7 @@ class Index(IndexOpsMixin, PandasObject):
     # Constructors
 
     def __new__(
-        cls,
-        data=None,
-        dtype=None,
-        copy=False,
-        name=None,
-        fastpath=None,
-        tupleize_cols=True,
-        **kwargs,
+        cls, data=None, dtype=None, copy=False, name=None, tupleize_cols=True, **kwargs,
     ) -> "Index":
 
         from .range import RangeIndex
@@ -277,16 +270,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         if name is None and hasattr(data, "name"):
             name = data.name
-
-        if fastpath is not None:
-            warnings.warn(
-                "The 'fastpath' keyword is deprecated, and will be "
-                "removed in a future version.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            if fastpath:
-                return cls._simple_new(data, name)
 
         if isinstance(data, ABCPandasArray):
             # ensure users don't accidentally put a PandasArray in an index.
@@ -1131,19 +1114,6 @@ class Index(IndexOpsMixin, PandasObject):
         if name is None:
             name = type(self).__name__
         return f"{name}: {len(self)} entries{index_summary}"
-
-    def summary(self, name=None):
-        """
-        Return a summarized representation.
-
-        .. deprecated:: 0.23.0
-        """
-        warnings.warn(
-            "'summary' is deprecated and will be removed in a future version.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._summary(name)
 
     # --------------------------------------------------------------------
     # Conversion Methods
