@@ -201,13 +201,6 @@ def _map_object(f, arr, na_mask=False, na_value=np.nan, dtype=object):
     if na_mask:
         mask = isna(arr)
         convert = not np.all(mask)
-        if convert:
-            # XXX: This converts pd.NA to np.nan to match the output of
-            # object-dtype ops that return numeric, like str.count
-            # We probably want to return Int64Dtype instead.
-            # NA -> nan
-            arr[mask] = np.nan
-
         try:
             result = lib.map_infer_mask(arr, f, mask.view(np.uint8), convert)
         except (TypeError, AttributeError) as e:
