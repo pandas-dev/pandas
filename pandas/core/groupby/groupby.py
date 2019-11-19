@@ -19,6 +19,7 @@ from typing import FrozenSet, Iterable, List, Optional, Tuple, Type, Union
 import numpy as np
 
 from pandas._config.config import option_context
+from pandas._typing import Scalar
 
 from pandas._libs import Timestamp
 import pandas._libs.groupby as libgroupby
@@ -2384,7 +2385,9 @@ class GroupBy(_GroupBy):
         mask = self._cumcount_array(ascending=False) < n
         return self._selected_obj[mask]
 
-    def _reindex_output(self, output, fill_value=np.NaN):
+    def _reindex_output(
+        self, output: Union[Series, DataFrame], fill_value: Scalar = np.NaN
+    ) -> Union[Series, DataFrame]:
         """
         If we have categorical groupers, then we might want to make sure that
         we have a fully re-indexed output to the levels. This means expanding
@@ -2400,6 +2403,8 @@ class GroupBy(_GroupBy):
         ----------
         output: Series or DataFrame
             Object resulting from grouping and applying an operation.
+        fill_value: scalar, default np.NaN
+            Value to use for unobserved categories if self.observed is False.
 
         Returns
         -------
