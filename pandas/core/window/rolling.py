@@ -478,7 +478,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                         window, self.min_periods, len(x), require_min_periods, floor
                     )
                     start, end = window_indexer(
-                        x, min(window, len(x)), self.closed, index_as_array
+                        x, window, self.closed, index_as_array
                     ).get_window_bounds()
                     return func(x, start, end, min_periods)
 
@@ -1364,7 +1364,7 @@ class _Rolling_and_Expanding(_Rolling):
 
     def median(self, **kwargs):
         window_func = self._get_roll_func("roll_median_c")
-        window_func = partial(window_func, win=self.window)
+        window_func = partial(window_func, win=self._get_window())
         return self._apply(window_func, center=self.center, name="median", **kwargs)
 
     def std(self, ddof=1, *args, **kwargs):

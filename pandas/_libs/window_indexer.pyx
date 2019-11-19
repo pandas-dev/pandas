@@ -60,11 +60,11 @@ class FixedWindowIndexer:
 
         start_s = np.zeros(win, dtype='int64')
         start_e = np.arange(win, N, dtype='int64') - win + 1
-        self.start = np.concatenate([start_s, start_e])
+        self.start = np.concatenate([start_s, start_e])[:N]
 
         end_s = np.arange(win, dtype='int64') + 1
         end_e = start_e + win
-        self.end = np.concatenate([end_s, end_e])
+        self.end = np.concatenate([end_s, end_e])[:N]
 
     def get_window_bounds(self):
         return self.start, self.end
