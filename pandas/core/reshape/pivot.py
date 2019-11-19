@@ -728,7 +728,7 @@ def _build_names_mapper(
     names_count = dict(zip(keys, counts))
 
     names_mapper = {}
-    unique_names = []
+    unique_names: List[str] = []
     # We reverse the names so the numbers are in the order given by the user
     for name in reversed(names):
         mapped_name = name
