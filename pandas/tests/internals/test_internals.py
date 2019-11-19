@@ -311,7 +311,8 @@ class TestBlock:
     def test_make_block_same_class(self):
         # issue 19431
         block = create_block("M8[ns, US/Eastern]", [3])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with pytest.raises(TypeError, match="unexpected keyword"):
+            # Deprecation enforced as of GH#????
             block.make_block_same_class(block.values, dtype=block.values.dtype)
 
 
@@ -1253,13 +1254,6 @@ class TestCanHoldElement:
 def test_holder(typestr, holder):
     blk = create_block(typestr, [1])
     assert blk._holder is holder
-
-
-def test_deprecated_fastpath():
-    # GH#19265
-    values = np.random.rand(3, 3)
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        make_block(values, placement=np.arange(3), fastpath=True)
 
 
 def test_validate_ndim():
