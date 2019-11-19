@@ -32,18 +32,6 @@ void coliter_setup(coliter_t *self, parser_t *parser, int i, int start) {
     self->line_start = parser->line_start + start;
 }
 
-coliter_t *coliter_new(parser_t *self, int i) {
-    // column i, starting at 0
-    coliter_t *iter = (coliter_t *)malloc(sizeof(coliter_t));
-
-    if (NULL == iter) {
-        return NULL;
-    }
-
-    coliter_setup(iter, self, i, 0);
-    return iter;
-}
-
 static void free_if_not_null(void **ptr) {
     TRACE(("free_if_not_null %p\n", *ptr))
     if (*ptr != NULL) {
