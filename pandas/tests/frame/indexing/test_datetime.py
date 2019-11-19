@@ -1,11 +1,5 @@
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    Series,
-    date_range,
-    notna,
-)
+from pandas import DataFrame, Index, Series, date_range, notna
 import pandas.util.testing as tm
 
 

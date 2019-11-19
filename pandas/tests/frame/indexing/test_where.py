@@ -6,20 +6,11 @@ import pytest
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-    Series,
-    Timestamp,
-    date_range,
-    isna,
-)
-
+from pandas import DataFrame, DatetimeIndex, Series, Timestamp, date_range, isna
 import pandas.util.testing as tm
 
 
 class TestDataFrameIndexingWhere:
-
     def test_where(self, float_string_frame, mixed_float_frame, mixed_int_frame):
         default_frame = DataFrame(np.random.randn(5, 3), columns=["A", "B", "C"])
 

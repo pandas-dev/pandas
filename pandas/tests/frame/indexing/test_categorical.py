@@ -4,12 +4,7 @@ import pytest
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    DataFrame,
-    Index,
-    Series,
-)
+from pandas import Categorical, DataFrame, Index, Series
 import pandas.util.testing as tm
 
 
@@ -391,4 +386,3 @@ class TestDataFrameIndexingCategorical:
         err = "Length of values does not match length of index"
         with pytest.raises(ValueError, match=err):
             df["foo"] = cat
-
