@@ -340,7 +340,7 @@ class SeriesGroupBy(GroupBy):
 
         Parameters
         ----------
-        output : Mapping[int, Union[Series, np.ndarray]]
+        output : Mapping[base.OutputKey, Union[Series, np.ndarray]]
             Data to wrap.
         index : pd.Index
             Index to apply to the output.
@@ -1642,7 +1642,7 @@ class DataFrameGroupBy(GroupBy):
 
         Parameters
         ----------
-        output : dict[int, Union[Series, np.ndarray]]
+        output : Mapping[base.OutputKey, Union[Series, np.ndarray]]
            Data to wrap.
 
         Returns
@@ -1675,7 +1675,7 @@ class DataFrameGroupBy(GroupBy):
 
         Parameters
         ----------
-        output : dict[int, Union[Series, np.ndarray]]
+        output : Mapping[base.OutputKey, Union[Series, np.ndarray]]
             Data to wrap.
 
         Returns
