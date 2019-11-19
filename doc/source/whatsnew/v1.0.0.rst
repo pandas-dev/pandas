@@ -195,7 +195,7 @@ The following methods now also correctly output values for unobserved categories
 
 .. ipython:: python
 
-   df = pd.DataFrame({
+    df = pd.DataFrame({
         "cat_1": pd.Categorical(list("AABB"), categories=list("ABC")),
         "cat_2": pd.Categorical(list("AB") * 2, categories=list("ABC")),
         "value": [0.1] * 4,
