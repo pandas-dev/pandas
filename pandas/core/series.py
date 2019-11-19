@@ -176,7 +176,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         base.IndexOpsMixin._deprecations
         | generic.NDFrame._deprecations
         | frozenset(
-            ["compress", "valid", "ftype", "real", "imag", "put", "ptp", "nonzero",]
+            ["compress", "valid", "ftype", "real", "imag", "put", "ptp", "nonzero"]
         )
     )
 
