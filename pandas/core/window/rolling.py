@@ -1382,7 +1382,7 @@ class _Rolling_and_Expanding(_Rolling):
             require_min_periods=1,
             name="std",
             ddof=ddof,
-            **kwargs
+            **kwargs,
         )
 
     def var(self, ddof=1, *args, **kwargs):
@@ -1396,7 +1396,7 @@ class _Rolling_and_Expanding(_Rolling):
             require_min_periods=1,
             name="var",
             ddof=ddof,
-            **kwargs
+            **kwargs,
         )
 
     _shared_docs[
@@ -1418,7 +1418,7 @@ class _Rolling_and_Expanding(_Rolling):
             center=self.center,
             require_min_periods=3,
             name="skew",
-            **kwargs
+            **kwargs,
         )
 
     _shared_docs["kurt"] = dedent(
@@ -1461,7 +1461,7 @@ class _Rolling_and_Expanding(_Rolling):
             center=self.center,
             require_min_periods=4,
             name="kurt",
-            **kwargs
+            **kwargs,
         )
 
     _shared_docs["quantile"] = dedent(
