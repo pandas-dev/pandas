@@ -381,7 +381,7 @@ class Index(IndexOpsMixin, PandasObject):
                             pass
 
                         # Return an actual float index.
-                        return Float64Index(data, copy=copy, dtype=dtype, name=name)
+                        return Float64Index(data, copy=copy, name=name)
 
                     elif inferred == "string":
                         pass
