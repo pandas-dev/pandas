@@ -337,16 +337,10 @@ jobs:
         path: build_output_checks.json
 
     - name: Extract errors from checks artifact
-      shell: python
       run: |
-        import os
-        import json
-        data = json.load(open('build_output_checks.json'))
-        # TODO: Replace sample errors by actual errors in data
-        errors = ['<a href="#">This will be replaced</a>', '<a href="#">By an actual list of errors</a>']
-        msg = ('Hi @{os.environ["AUTHOR"]}, thanks for your contribution. We found the next list of errors in your pull request.')
-        # FIXME: The colon makes this break
-        # json.dump({'body': ['\n- '.join([msg, *errors])}, open('payload.json')])
+        export MSG="Hi @$AUTHOR, thanks for your contribution. We found the next list of errors in your pull request:"
+        export MSG="$MSG\n- [Actual messages from the log are not yet extracted](https://github.com/pandas-dev/pandas/actions)"
+        echo "{\"body\": \"$MSG\"}" > payload.json
 
       - name:
         run: |
