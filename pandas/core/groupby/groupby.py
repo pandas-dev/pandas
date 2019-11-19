@@ -16,7 +16,6 @@ import types
 from typing import (
     Dict,
     FrozenSet,
-    Hashable,
     Iterable,
     List,
     Mapping,
@@ -829,8 +828,7 @@ b  2""",
         )
 
     def _cython_transform(self, how: str, numeric_only: bool = True, **kwargs):
-        output: Dict[int, np.ndarray] = {}
-        names: List[Optional[Hashable]] = []
+        output: Dict[base.OutputKey, np.ndarray] = {}
         for idx, obj in enumerate(self._iterate_slices()):
             name = obj.name
             is_numeric = is_numeric_dtype(obj.dtype)
@@ -845,14 +843,13 @@ b  2""",
             if self._transform_should_cast(how):
                 result = self._try_cast(result, obj)
 
-            output[idx] = result
-            names.append(name)
+            key = base.OutputKey(label=name, position=idx)
+            output[key] = result
 
         if len(output) == 0:
             raise DataError("No numeric types to aggregate")
 
-        columns = Index(names)
-        return self._wrap_transformed_output(output, columns)
+        return self._wrap_transformed_output(output)
 
     def _wrap_aggregated_output(self, output: Mapping[int, np.ndarray], columns: Index):
         raise AbstractMethodError(self)
@@ -868,9 +865,7 @@ b  2""",
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
     ):
-        output: Dict[int, Union[np.ndarray, DatetimeArray]] = {}
-        names: List[Optional[Hashable]] = []
-
+        output: Dict[base.OutputKey, Union[np.ndarray, DatetimeArray]] = {}
         # Ideally we would be able to enumerate self._iterate_slices and use
         # the index from enumeration as the key of output, but ohlc in particular
         # returns a (n x 4) array. Output requires 1D ndarrays as values, so we
@@ -890,28 +885,26 @@ b  2""",
                 # e.g. ohlc
                 assert len(agg_names) == result.shape[1]
                 for result_column, result_name in zip(result.T, agg_names):
-                    output[idx] = self._try_cast(result_column, obj)
-                    names.append(result_name)
+                    key = base.OutputKey(label=result_name, position=idx)
+                    output[key] = self._try_cast(result_column, obj)
                     idx += 1
             else:
                 assert result.ndim == 1
-                output[idx] = self._try_cast(result, obj)
-                names.append(name)
+                key = base.OutputKey(label=name, position=idx)
+                output[key] = self._try_cast(result, obj)
                 idx += 1
 
         if len(output) == 0:
             raise DataError("No numeric types to aggregate")
 
-        columns = Index(names)
-        return self._wrap_aggregated_output(output, columns)
+        return self._wrap_aggregated_output(output)
 
     def _python_agg_general(self, func, *args, **kwargs):
         func = self._is_builtin_func(func)
         f = lambda x: func(x, *args, **kwargs)
 
         # iterate through "columns" ex exclusions to populate output dict
-        output: Dict[int, np.ndarray] = {}
-        names: List[Hashable] = []
+        output: Dict[base.OutputKey, np.ndarray] = {}
 
         for idx, obj in enumerate(self._iterate_slices()):
             name = obj.name
@@ -933,8 +926,8 @@ b  2""",
 
             result, counts = self.grouper.agg_series(obj, f)
             assert result is not None
-            output[idx] = self._try_cast(result, obj, numeric_only=True)
-            names.append(name)
+            key = base.OutputKey(label=name, position=idx)
+            output[key] = self._try_cast(result, obj, numeric_only=True)
 
         if len(output) == 0:
             return self._python_apply_general(f)
@@ -942,17 +935,16 @@ b  2""",
         if self.grouper._filter_empty_groups:
 
             mask = counts.ravel() > 0
-            for idx, result in output.items():
+            for key, result in output.items():
 
                 # since we are masking, make sure that we have a float object
                 values = result
                 if is_numeric_dtype(values.dtype):
                     values = ensure_float(values)
 
-                output[idx] = self._try_cast(values[mask], result)
+                output[key] = self._try_cast(values[mask], result)
 
-        columns = Index(names)
-        return self._wrap_aggregated_output(output, columns)
+        return self._wrap_aggregated_output(output)
 
     def _concat_objects(self, keys, values, not_indexed_same: bool = False):
         from pandas.core.reshape.concat import concat
@@ -2261,8 +2253,7 @@ class GroupBy(_GroupBy):
         grouper = self.grouper
 
         labels, _, ngroups = grouper.group_info
-        output: Dict[int, np.ndarray] = {}
-        names: List[Optional[Hashable]] = []
+        output: Dict[base.OutputKey, np.ndarray] = {}
         base_func = getattr(libgroupby, how)
 
         for idx, obj in enumerate(self._iterate_slices()):
@@ -2299,14 +2290,13 @@ class GroupBy(_GroupBy):
             if post_processing:
                 result = post_processing(result, inferences)
 
-            output[idx] = result
-            names.append(name)
+            key = base.OutputKey(label=name, position=idx)
+            output[key] = result
 
-        columns = Index(names)
         if aggregate:
-            return self._wrap_aggregated_output(output, columns)
+            return self._wrap_aggregated_output(output)
         else:
-            return self._wrap_transformed_output(output, columns)
+            return self._wrap_transformed_output(output)
 
     @Substitution(name="groupby")
     @Appender(_common_see_also)
