@@ -267,16 +267,16 @@ def test_more_flexible_frame_multi_function(df):
         return np.std(x, ddof=1)
 
     # this uses column selection & renaming
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+    msg = r"nested renamer is not supported"
+    with pytest.raises(SpecificationError, match=msg):
         d = OrderedDict(
             [["C", np.mean], ["D", OrderedDict([["foo", np.mean], ["bar", np.std]])]]
         )
-        result = grouped.aggregate(d)
+        grouped.aggregate(d)
 
+    # But without renaming, these functions are OK
     d = OrderedDict([["C", [np.mean]], ["D", [foo, bar]]])
-    expected = grouped.aggregate(d)
-
-    tm.assert_frame_equal(result, expected)
+    grouped.aggregate(d)
 
 
 def test_multi_function_flexible_mix(df):
@@ -288,26 +288,25 @@ def test_multi_function_flexible_mix(df):
         [["C", OrderedDict([["foo", "mean"], ["bar", "std"]])], ["D", {"sum": "sum"}]]
     )
     # this uses column selection & renaming
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        expected = grouped.aggregate(d)
+    msg = r"nested renamer is not supported"
+    with pytest.raises(SpecificationError, match=msg):
+        grouped.aggregate(d)
 
     # Test 1
     d = OrderedDict(
         [["C", OrderedDict([["foo", "mean"], ["bar", "std"]])], ["D", "sum"]]
     )
     # this uses column selection & renaming
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        result = grouped.aggregate(d)
-    tm.assert_frame_equal(result, expected)
+    with pytest.raises(SpecificationError, match=msg):
+        grouped.aggregate(d)
 
     # Test 2
     d = OrderedDict(
         [["C", OrderedDict([["foo", "mean"], ["bar", "std"]])], ["D", ["sum"]]]
     )
     # this uses column selection & renaming
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        result = grouped.aggregate(d)
-    tm.assert_frame_equal(result, expected)
+    with pytest.raises(SpecificationError, match=msg):
+        grouped.aggregate(d)
 
 
 def test_groupby_agg_coercing_bools():
