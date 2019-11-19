@@ -647,7 +647,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             data[mask] = self._na_value
 
         op = getattr(nanops, "nan" + name)
-        result = op(data, axis=0, skipna=skipna, mask=mask)
+        result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)
 
         # if we have a boolean op, don't coerce
         if name in ["any", "all"]:
