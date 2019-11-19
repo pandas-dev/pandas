@@ -297,7 +297,7 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
              "self->words_cap=%d\n",
              nbytes, self->words_cap))
         newptr = realloc((void *)self->word_starts,
-			 sizeof(int64_t) * self->words_cap);
+                         sizeof(int64_t) * self->words_cap);
         if (newptr == NULL) {
             return PARSER_OUT_OF_MEMORY;
         } else {
@@ -325,7 +325,7 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
         TRACE(("make_stream_space: cap != self->lines_cap, nbytes = %d\n",
                nbytes))
         newptr = realloc((void *)self->line_fields,
-			 sizeof(int64_t) * self->lines_cap);
+                         sizeof(int64_t) * self->lines_cap);
         if (newptr == NULL) {
             return PARSER_OUT_OF_MEMORY;
         } else {
