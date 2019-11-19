@@ -2487,7 +2487,7 @@ class TestCrosstab:
 
     def test_crosstab_dup_index_names(self):
         # We test that duplicated column names do not produce issues
-        # GH Issue: #22529
+        # GH Issue: #22529, GH#13279
 
         # Duplicate name shared between rows and columns
         s1 = pd.Series(range(3), name="foo")

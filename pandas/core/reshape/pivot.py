@@ -1,3 +1,5 @@
+from typing import List, Set, Dict, Tuple
+
 import numpy as np
 
 from pandas.util._decorators import Appender, Substitution
@@ -699,7 +701,29 @@ def _get_names(arrs, names, prefix="row"):
     return names
 
 
-def _build_names_mapper(names, shared_col_row_names, suffix):
+def _build_names_mapper(
+    names: List[str], shared_col_row_names: Set[str], suffix: str
+) -> Tuple[Dict[str, str], List[str]]:
+    """
+    Given a list of row or column names, creates a mapper of unique names to
+    column/row names.
+
+    Parameters
+    ----------
+    names : list
+        Names to be deduplicated.
+    shared_col_row_names : set or list
+        Values used both in rows and columns, so need additional deduplication.
+    suffix : str
+        Suffix to deduplicate values in shared_col_row_names
+
+    Returns
+    -------
+    names_mapper: dict
+        The keys are the unique names and the values are the original names.
+    unique_names: list
+        Unique names in the same order that names came in
+    """
     keys, counts = _value_counts_arraylike(names, dropna=False)
     names_count = dict(zip(keys, counts))
 
