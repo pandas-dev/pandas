@@ -342,7 +342,9 @@ class DataFrame(NDFrame):
     --------
     DataFrame.from_records : Constructor from tuples, also record arrays.
     DataFrame.from_dict : From dicts of Series, arrays, or dicts.
-    pandas.read_csv, pandas.read_table, pandas.read_clipboard.
+    read_csv
+    read_table
+    read_clipboard
 
     Examples
     --------

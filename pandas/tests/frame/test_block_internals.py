@@ -327,7 +327,7 @@ class TestDataFrameBlockInternals:
         column = df.columns[0]
 
         # use the copy=False, change a column
-        blocks = df._to_dict_of_blocks(copy=True)
+        blocks = df._to_dict_of_blocks(copy=False)
         for dtype, _df in blocks.items():
             if column in _df:
                 _df.loc[:, column] = _df[column] + 1
