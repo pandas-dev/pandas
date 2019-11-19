@@ -342,6 +342,7 @@ Numeric
 - :class:`DataFrame` flex inequality comparisons methods (:meth:`DataFrame.lt`, :meth:`DataFrame.le`, :meth:`DataFrame.gt`, :meth: `DataFrame.ge`) with object-dtype and ``complex`` entries failing to raise ``TypeError`` like their :class:`Series` counterparts (:issue:`28079`)
 - Bug in :class:`DataFrame` logical operations (`&`, `|`, `^`) not matching :class:`Series` behavior by filling NA values (:issue:`28741`)
 - Bug in :meth:`DataFrame.interpolate` where specifying axis by name references variable before it is assigned (:issue:`29142`)
+- Bug in :meth:`Series.var` not computing the right value with a nullable integer dtype series not passing through ddof argument (:issue:`29128`)
 - Improved error message when using `frac` > 1 and `replace` = False (:issue:`27451`)
 - Bug in numeric indexes resulted in it being possible to instantiate an :class:`Int64Index`, :class:`UInt64Index`, or :class:`Float64Index` with an invalid dtype (e.g. datetime-like) (:issue:`29539`)
 - Bug in :class:`UInt64Index` precision loss while constructing from a list with values in the ``np.uint64`` range (:issue:`29526`)
@@ -432,6 +433,7 @@ Groupby/resample/rolling
 
 -
 - Bug in :meth:`DataFrame.groupby` with multiple groups where an ``IndexError`` would be raised if any group contained all NA values (:issue:`20519`)
+- Bug in :meth:`pandas.core.resample.Resampler.size` and :meth:`pandas.core.resample.Resampler.count` returning wrong dtype when used with an empty series or dataframe (:issue:`28427`)
 - Bug in :meth:`DataFrame.rolling` not allowing for rolling over datetimes when ``axis=1`` (:issue: `28192`)
 - Bug in :meth:`DataFrame.rolling` not allowing rolling over multi-index levels (:issue: `15584`).
 - Bug in :meth:`DataFrame.rolling` not allowing rolling on monotonic decreasing time indexes (:issue: `19248`).
@@ -451,6 +453,7 @@ Reshaping
 - Fix to ensure all int dtypes can be used in :func:`merge_asof` when using a tolerance value. Previously every non-int64 type would raise an erroneous ``MergeError`` (:issue:`28870`).
 - Better error message in :func:`get_dummies` when `columns` isn't a list-like value (:issue:`28383`)
 - Bug :meth:`Series.pct_change` where supplying an anchored frequency would throw a ValueError (:issue:`28664`)
+- Bug where :meth:`DataFrame.equals` returned True incorrectly in some cases when two DataFrames had the same columns in different orders (:issue:`28839`)
 
 Sparse
 ^^^^^^
