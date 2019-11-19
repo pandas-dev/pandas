@@ -1254,7 +1254,6 @@ def test_get_nonexistent_category():
         )
 
 
-@pytest.mark.parametrize("observed", [True, False])
 def test_series_groupby_on_2_categoricals_unobserved(
     reduction_func: str, observed: bool
 ):
