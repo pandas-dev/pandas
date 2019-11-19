@@ -81,7 +81,7 @@ cdef class Reducer:
 
         else:
 
-            # we passed a series-like
+            # we passed a Series
             typ = type(dummy)
             index = dummy.index
             dummy = dummy.values
@@ -99,7 +99,6 @@ cdef class Reducer:
             ndarray arr, result, chunk
             Py_ssize_t i
             flatiter it
-            bint has_labels
             object res, name, labels
             object cached_typ = None
 
@@ -108,8 +107,6 @@ cdef class Reducer:
         dummy_buf = chunk.data
         chunk.data = arr.data
         labels = self.labels
-        has_labels = labels is not None
-        has_index = self.index is not None
 
         result = np.empty(self.nresults, dtype='O')
         it = <flatiter>PyArray_IterNew(result)
@@ -117,33 +114,19 @@ cdef class Reducer:
         try:
             for i in range(self.nresults):
 
-                if has_labels:
-                    name = labels[i]
-                else:
-                    name = None
-
                 # create the cached type
                 # each time just reassign the data
                 if i == 0:
 
                     if self.typ is not None:
-
-                        # recreate with the index if supplied
-                        if has_index:
-
-                            cached_typ = self.typ(
-                                chunk, index=self.index, name=name)
-
-                        else:
-
-                            # use the passsed typ, sans index
-                            cached_typ = self.typ(chunk, name=name)
+                        # In this case, we also have self.index
+                        name = labels[i]
+                        cached_typ = self.typ(chunk, index=self.index, name=name)
 
                 # use the cached_typ if possible
                 if cached_typ is not None:
-
-                    if has_index:
-                        object.__setattr__(cached_typ, 'index', self.index)
+                    # In this case, we also have non-None labels
+                    name = labels[i]
 
                     object.__setattr__(
                         cached_typ._data._block, 'values', chunk)
@@ -206,6 +189,27 @@ cdef class _BaseGrouper:
 
         return cached_typ, cached_ityp
 
+    cdef inline object _apply_to_group(self,
+                                       object cached_typ, object cached_ityp,
+                                       Slider islider, Slider vslider,
+                                       Py_ssize_t group_size, bint initialized):
+        """
+        Call self.f on our new group, then update to the next group.
+        """
+        cached_ityp._engine.clear_mapping()
+        res = self.f(cached_typ)
+        res = _extract_result(res)
+        if not initialized:
+            # On the first pass, we check the output shape to see
+            #  if this looks like a reduction.
+            initialized = 1
+            _check_result_array(res, len(self.dummy_arr))
+
+        islider.advance(group_size)
+        vslider.advance(group_size)
+
+        return res, initialized
+
 
 cdef class SeriesBinGrouper(_BaseGrouper):
     """
@@ -234,7 +238,7 @@ cdef class SeriesBinGrouper(_BaseGrouper):
         self.typ = series._constructor
         self.ityp = series.index._constructor
         self.index = series.index.values
-        self.name = getattr(series, 'name', None)
+        self.name = series.name
 
         self.dummy_arr, self.dummy_index = self._check_dummy(dummy)
 
@@ -282,19 +286,11 @@ cdef class SeriesBinGrouper(_BaseGrouper):
                 cached_typ, cached_ityp = self._update_cached_objs(
                     cached_typ, cached_ityp, islider, vslider)
 
-                cached_ityp._engine.clear_mapping()
-                res = self.f(cached_typ)
-                res = _extract_result(res)
-                if not initialized:
-                    # On the first pass, we check the output shape to see
-                    #  if this looks like a reduction.
-                    initialized = 1
-                    _check_result_array(res, len(self.dummy_arr))
+                res, initialized = self._apply_to_group(cached_typ, cached_ityp,
+                                                        islider, vslider,
+                                                        group_size, initialized)
 
                 result[i] = res
-
-                islider.advance(group_size)
-                vslider.advance(group_size)
 
         finally:
             # so we don't free the wrong memory
@@ -339,7 +335,7 @@ cdef class SeriesGrouper(_BaseGrouper):
         self.typ = series._constructor
         self.ityp = series.index._constructor
         self.index = series.index.values
-        self.name = getattr(series, 'name', None)
+        self.name = series.name
 
         self.dummy_arr, self.dummy_index = self._check_dummy(dummy)
         self.ngroups = ngroups
@@ -384,20 +380,12 @@ cdef class SeriesGrouper(_BaseGrouper):
                     cached_typ, cached_ityp = self._update_cached_objs(
                         cached_typ, cached_ityp, islider, vslider)
 
-                    cached_ityp._engine.clear_mapping()
-                    res = self.f(cached_typ)
-                    res = _extract_result(res)
-                    if not initialized:
-                        # On the first pass, we check the output shape to see
-                        #  if this looks like a reduction.
-                        initialized = 1
-                        _check_result_array(res, len(self.dummy_arr))
+                    res, initialized = self._apply_to_group(cached_typ, cached_ityp,
+                                                            islider, vslider,
+                                                            group_size, initialized)
 
                     result[lab] = res
                     counts[lab] = group_size
-                    islider.advance(group_size)
-                    vslider.advance(group_size)
-
                     group_size = 0
 
         finally:
@@ -607,17 +595,21 @@ cdef class BlockSlider:
             arr.shape[1] = 0
 
 
-def compute_reduction(arr, f, axis=0, dummy=None, labels=None):
+def compute_reduction(arr: np.ndarray, f, axis: int = 0, dummy=None, labels=None):
     """
 
     Parameters
     -----------
-    arr : NDFrame object
+    arr : np.ndarray
     f : function
     axis : integer axis
     dummy : type of reduced output (series)
     labels : Index or None
     """
+
+    # We either have both dummy and labels, or neither of them
+    if (labels is None) ^ (dummy is None):
+        raise ValueError("Must pass either dummy and labels, or neither")
 
     if labels is not None:
         # Caller is responsible for ensuring we don't have MultiIndex

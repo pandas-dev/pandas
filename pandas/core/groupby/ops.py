@@ -201,7 +201,7 @@ class BaseGrouper:
                 continue
 
             # group might be modified
-            group_axes = _get_axes(group)
+            group_axes = group.axes
             res = f(group)
             if not _is_indexed_like(res, group_axes):
                 mutated = True
@@ -358,40 +358,33 @@ class BaseGrouper:
     def _get_cython_function(self, kind: str, how: str, values, is_numeric: bool):
 
         dtype_str = values.dtype.name
-
-        def get_func(fname):
-            # see if there is a fused-type version of function
-            # only valid for numeric
-            f = getattr(libgroupby, fname, None)
-            if f is not None and is_numeric:
-                return f
-
-            # otherwise find dtype-specific version, falling back to object
-            for dt in [dtype_str, "object"]:
-                f2 = getattr(
-                    libgroupby,
-                    "{fname}_{dtype_str}".format(fname=fname, dtype_str=dt),
-                    None,
-                )
-                if f2 is not None:
-                    return f2
-
-            if hasattr(f, "__signatures__"):
-                # inspect what fused types are implemented
-                if dtype_str == "object" and "object" not in f.__signatures__:
-                    # return None so we get a NotImplementedError below
-                    #  instead of a TypeError at runtime
-                    return None
-            return f
-
         ftype = self._cython_functions[kind][how]
 
-        func = get_func(ftype)
+        # see if there is a fused-type version of function
+        # only valid for numeric
+        f = getattr(libgroupby, ftype, None)
+        if f is not None and is_numeric:
+            return f
+
+        # otherwise find dtype-specific version, falling back to object
+        for dt in [dtype_str, "object"]:
+            f2 = getattr(libgroupby, f"{ftype}_{dt}", None)
+            if f2 is not None:
+                return f2
+
+        if hasattr(f, "__signatures__"):
+            # inspect what fused types are implemented
+            if dtype_str == "object" and "object" not in f.__signatures__:
+                # disallow this function so we get a NotImplementedError below
+                #  instead of a TypeError at runtime
+                f = None
+
+        func = f
 
         if func is None:
             raise NotImplementedError(
-                "function is not implemented for this dtype: "
-                "[how->{how},dtype->{dtype_str}]".format(how=how, dtype_str=dtype_str)
+                f"function is not implemented for this dtype: "
+                f"[how->{how},dtype->{dtype_str}]"
             )
 
         return func
@@ -611,11 +604,11 @@ class BaseGrouper:
             # SeriesGrouper would raise if we were to call _aggregate_series_fast
             return self._aggregate_series_pure_python(obj, func)
 
-        elif is_extension_array_dtype(obj.dtype) and obj.dtype.kind != "M":
+        elif is_extension_array_dtype(obj.dtype):
             # _aggregate_series_fast would raise TypeError when
             #  calling libreduction.Slider
+            # In the datetime64tz case it would incorrectly cast to tz-naive
             # TODO: can we get a performant workaround for EAs backed by ndarray?
-            # TODO: is the datetime64tz case supposed to go through here?
             return self._aggregate_series_pure_python(obj, func)
 
         elif isinstance(obj.index, MultiIndex):
@@ -664,7 +657,15 @@ class BaseGrouper:
             res = func(group)
             if result is None:
                 if isinstance(res, (Series, Index, np.ndarray)):
-                    raise ValueError("Function does not reduce")
+                    if len(res) == 1:
+                        # e.g. test_agg_lambda_with_timezone lambda e: e.head(1)
+                        # FIXME: are we potentially losing import res.index info?
+
+                        # TODO: use `.item()` if/when we un-deprecate it.
+                        # For non-Series we could just do `res[0]`
+                        res = next(iter(res))
+                    else:
+                        raise ValueError("Function does not reduce")
                 result = np.empty(ngroups, dtype="O")
 
             counts[label] = group.shape[0]
@@ -841,13 +842,6 @@ class BinGrouper(BaseGrouper):
         dummy = obj[:0]
         grouper = libreduction.SeriesBinGrouper(obj, func, self.bins, dummy)
         return grouper.get_result()
-
-
-def _get_axes(group):
-    if isinstance(group, Series):
-        return [group.index]
-    else:
-        return group.axes
 
 
 def _is_indexed_like(obj, axes) -> bool:
