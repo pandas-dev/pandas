@@ -121,11 +121,11 @@ def _na_map(f, arr, na_result=np.nan, dtype=object):
     if is_extension_array_dtype(arr.dtype):
         # just StringDtype
         arr = extract_array(arr)
-        return _stringarray_map(f, arr, na_value=na_result, dtype=dtype)
-    return _map(f, arr, na_mask=True, na_value=na_result, dtype=dtype)
+        return _map_stringarray(f, arr, na_value=na_result, dtype=dtype)
+    return _map_object(f, arr, na_mask=True, na_value=na_result, dtype=dtype)
 
 
-def _stringarray_map(
+def _map_stringarray(
     func: Callable[[str], Any], arr: "StringArray", na_value: Any, dtype: Dtype
 ) -> ArrayLike:
     """
@@ -190,7 +190,7 @@ def _stringarray_map(
         return lib.map_infer_mask(arr, func, mask.view("uint8"))
 
 
-def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
+def _map_object(f, arr, na_mask=False, na_value=np.nan, dtype=object):
     if not len(arr):
         return np.ndarray(0, dtype=dtype)
 
@@ -221,7 +221,7 @@ def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
                 except (TypeError, AttributeError):
                     return na_value
 
-            return _map(g, arr, dtype=dtype)
+            return _map_object(g, arr, dtype=dtype)
         if na_value is not np.nan:
             np.putmask(result, mask, na_value)
             if result.dtype == object:
