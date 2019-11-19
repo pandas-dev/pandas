@@ -19,7 +19,6 @@ from typing import FrozenSet, Iterable, List, Optional, Tuple, Type, Union
 import numpy as np
 
 from pandas._config.config import option_context
-from pandas._typing import Scalar
 
 from pandas._libs import Timestamp
 import pandas._libs.groupby as libgroupby
@@ -40,6 +39,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas._typing import Scalar
 from pandas.core import nanops
 import pandas.core.algorithms as algorithms
 from pandas.core.arrays import Categorical, try_cast_to_ea
