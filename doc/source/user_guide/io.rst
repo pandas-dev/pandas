@@ -4671,7 +4671,6 @@ See the `Full Documentation <https://github.com/wesm/feather>`__.
 Write to a feather file.
 
 .. ipython:: python
-   :okwarning:
 
    df.to_feather('example.feather')
 
@@ -4717,6 +4716,9 @@ Several caveats.
 * The ``pyarrow`` engine preserves the ``ordered`` flag of categorical dtypes with string types. ``fastparquet`` does not preserve the ``ordered`` flag.
 * Non supported types include ``Period`` and actual Python object types. These will raise a helpful error message
   on an attempt at serialization.
+* The ``pyarrow`` engine preserves extension data types such as the nullable integer and string data
+  type (requiring pyarrow >= 1.0.0, and requiring the extension type to implement the needed protocols,
+  see the :ref:`extension types documentation <extending.extension.arrow>`).
 
 You can specify an ``engine`` to direct the serialization. This can be one of ``pyarrow``, or ``fastparquet``, or ``auto``.
 If the engine is NOT specified, then the ``pd.options.io.parquet.engine`` option is checked; if this is also ``auto``,
@@ -4748,7 +4750,6 @@ See the documentation for `pyarrow <https://arrow.apache.org/docs/python/>`__ an
 Write to a parquet file.
 
 .. ipython:: python
-   :okwarning:
 
    df.to_parquet('example_pa.parquet', engine='pyarrow')
    df.to_parquet('example_fp.parquet', engine='fastparquet')
@@ -4765,7 +4766,6 @@ Read from a parquet file.
 Read only certain columns of a parquet file.
 
 .. ipython:: python
-   :okwarning:
 
    result = pd.read_parquet('example_fp.parquet',
                             engine='fastparquet', columns=['a', 'b'])
@@ -4788,7 +4788,6 @@ Serializing a ``DataFrame`` to parquet may include the implicit index as one or
 more columns in the output file. Thus, this code:
 
 .. ipython:: python
-   :okwarning:
 
     df = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
     df.to_parquet('test.parquet', engine='pyarrow')
@@ -4805,7 +4804,6 @@ If you want to omit a dataframe's indexes when writing, pass ``index=False`` to
 :func:`~pandas.DataFrame.to_parquet`:
 
 .. ipython:: python
-   :okwarning:
 
     df.to_parquet('test.parquet', index=False)
 

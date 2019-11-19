@@ -166,7 +166,7 @@ def interpolate_1d(
     fill_value=None,
     bounds_error=False,
     order=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Logic for the 1-d interpolation.  The result should be 1-d, inputs
@@ -287,7 +287,7 @@ def interpolate_1d(
             fill_value=fill_value,
             bounds_error=bounds_error,
             order=order,
-            **kwargs
+            **kwargs,
         )
         result[preserve_nans] = np.nan
         return result
