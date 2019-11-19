@@ -350,9 +350,10 @@ class Grouping:
                     hasattr(self.grouper, "__len__")
                     and len(self.grouper) == len(self.index)
                 ):
+                    grper = pprint_thing(self.grouper)
                     errmsg = (
                         "Grouper result violates len(labels) == "
-                        f"len(data)\nresult: {pprint_thing(self.grouper)}"
+                        f"len(data)\nresult: {grper}"
                     )
                     self.grouper = None  # Try for sanity
                     raise AssertionError(errmsg)
