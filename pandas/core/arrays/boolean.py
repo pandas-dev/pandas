@@ -85,7 +85,7 @@ class BooleanDtype(ExtensionDtype):
 
     @classmethod
     def construct_from_string(cls, string: str) -> ExtensionDtype:
-        if string == cls.name:
+        if string == "boolean":
             return cls()
         return super().construct_from_string(string)
 
@@ -189,10 +189,6 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
     copy : bool, default False
         Whether to copy the `values` and `mask` arrays.
 
-    Returns
-    -------
-    BooleanArray
-
     Attributes
     ----------
     None
@@ -200,6 +196,10 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
     Methods
     -------
     None
+
+    Returns
+    -------
+    BooleanArray
 
     Examples
     --------
