@@ -1535,6 +1535,7 @@ class _Rolling_and_Expanding(_Rolling):
 
         # Pass through for groupby.rolling
         kwargs["quantile"] = quantile
+        kwargs["interpolation"] = interpolation
         return self._apply(window_func, center=self.center, name="quantile", **kwargs)
 
     _shared_docs[
