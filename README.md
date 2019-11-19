@@ -2,8 +2,6 @@
   <img src="https://dev.pandas.io/static/img/pandas.svg"><br>
 </div>
 
------------------
-
 # pandas: powerful Python data analysis toolkit
 
 <table>
