@@ -270,6 +270,16 @@ class TestMelt:
         expected.columns = ["klass", "col", "attribute", "value"]
         tm.assert_frame_equal(result, expected)
 
+    def test_preserve_category(self):
+        # GH 15853
+        data = DataFrame({"A": [1, 2], "B": pd.Categorical(["X", "Y"])})
+        result = pd.melt(data, ["B"], ["A"])
+        expected = DataFrame(
+            {"B": pd.Categorical(["X", "Y"]), "variable": ["A", "A"], "value": [1, 2]}
+        )
+
+        tm.assert_frame_equal(result, expected)
+
     def test_melt_missing_columns_raises(self):
         # GH-23575
         # This test is to ensure that pandas raises an error if melting is
