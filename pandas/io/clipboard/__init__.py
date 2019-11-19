@@ -627,6 +627,8 @@ def lazy_load_stub_copy(text):
     """
     global copy, paste
     copy, paste = determine_clipboard()
+    print("*" * 40, " CLIPBOARDS ", "*" * 40)
+    print(copy.__name__, paste.__name__)
     return copy(text)
 
 
@@ -649,6 +651,8 @@ def lazy_load_stub_paste():
     """
     global copy, paste
     copy, paste = determine_clipboard()
+    print("*" * 40, " CLIPBOARDS ", "*" * 40)
+    print(copy.__name__, paste.__name__)
     return paste()
 
 
