@@ -333,7 +333,7 @@ class SeriesGroupBy(GroupBy):
         return DataFrame(results, columns=columns)
 
     def _wrap_series_output(
-        self, output: Mapping[int, Union[Series, np.ndarray]], index: Index,
+        self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]], index: Index,
     ) -> Union[Series, DataFrame]:
         """
         Wraps the output of a SeriesGroupBy operation into the expected result.
@@ -405,7 +405,13 @@ class SeriesGroupBy(GroupBy):
         Returns
         -------
         Series
+
+        Notes
+        -----
+        output should always contain one element. It is specified as a dict
+        for consistency with DataFrame methods and _wrap_aggregated_output.
         """
+        assert len(output) == 1
         result = self._wrap_series_output(output=output, index=self.obj.index)
 
         # No transformations increase the ndim of the result

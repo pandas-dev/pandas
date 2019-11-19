@@ -851,12 +851,10 @@ b  2""",
 
         return self._wrap_transformed_output(output)
 
-    def _wrap_aggregated_output(self, output: Mapping[int, np.ndarray], columns: Index):
+    def _wrap_aggregated_output(self, output: Mapping[base.OutputKey, np.ndarray]):
         raise AbstractMethodError(self)
 
-    def _wrap_transformed_output(
-        self, output: Mapping[int, np.ndarray], columns: Index
-    ):
+    def _wrap_transformed_output(self, output: Mapping[base.OutputKey, np.ndarray]):
         raise AbstractMethodError(self)
 
     def _wrap_applied_output(self, keys, values, not_indexed_same: bool = False):
