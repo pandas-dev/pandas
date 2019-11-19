@@ -1281,30 +1281,33 @@ def test_series_groupby_on_2_categoricals_unobserved(
     assert len(result) == expected_length
 
 
-@pytest.mark.parametrize("func, zero_or_nan", [
-    ("all", np.NaN),
-    ("any", np.NaN),
-    ("count", 0),
-    ("first", np.NaN),
-    ("idxmax", np.NaN),
-    ("idxmin", np.NaN),
-    ("last", np.NaN),
-    ("mad", np.NaN),
-    ("max", np.NaN),
-    ("mean", np.NaN),
-    ("median", np.NaN),
-    ("min", np.NaN),
-    ("nth", np.NaN),
-    ("nunique", 0),
-    ("prod", np.NaN),
-    ("quantile", np.NaN),
-    ("sem", np.NaN),
-    ("size", 0),
-    ("skew", np.NaN),
-    ("std", np.NaN),
-    ("sum", np.NaN),
-    ("var", np.NaN),
-])
+@pytest.mark.parametrize(
+    "func, zero_or_nan",
+    [
+        ("all", np.NaN),
+        ("any", np.NaN),
+        ("count", 0),
+        ("first", np.NaN),
+        ("idxmax", np.NaN),
+        ("idxmin", np.NaN),
+        ("last", np.NaN),
+        ("mad", np.NaN),
+        ("max", np.NaN),
+        ("mean", np.NaN),
+        ("median", np.NaN),
+        ("min", np.NaN),
+        ("nth", np.NaN),
+        ("nunique", 0),
+        ("prod", np.NaN),
+        ("quantile", np.NaN),
+        ("sem", np.NaN),
+        ("size", 0),
+        ("skew", np.NaN),
+        ("std", np.NaN),
+        ("sum", np.NaN),
+        ("var", np.NaN),
+    ],
+)
 def test_series_groupby_on_2_categoricals_unobserved_zeroes_or_nans(func, zero_or_nan):
     # GH 17605
     # Tests whether the unobserved categories in the result contain 0 or NaN
