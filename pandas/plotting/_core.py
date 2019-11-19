@@ -776,6 +776,11 @@ class PlotAccessor(PandasObject):
         )
 
         kind = self._kind_aliases.get(kind, kind)
+
+        # when using another backend, get out of the way
+        if plot_backend.__name__ != "pandas.plotting._matplotlib":
+            return plot_backend.plot(self._parent, x=x, y=y, kind=kind, **kwargs)
+
         if kind not in self._all_kinds:
             raise ValueError("{} is not a valid plot kind".format(kind))
 
