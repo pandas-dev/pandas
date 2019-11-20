@@ -524,6 +524,7 @@ Reshaping
 - Bug :meth:`Series.pct_change` where supplying an anchored frequency would throw a ValueError (:issue:`28664`)
 - Bug where :meth:`DataFrame.equals` returned True incorrectly in some cases when two DataFrames had the same columns in different orders (:issue:`28839`)
 - Bug in :meth:`DataFrame.replace` that caused non-numeric replacer's dtype not respected (:issue:`26632`)
+- Bug in :meth:`DataFrame.combine_first` returned incorrect dataframe when combining empty dataframes (:issue:`29562`)
 
 Sparse
 ^^^^^^
