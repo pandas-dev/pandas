@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING, Callable, Dict, Tuple, Union
+
 import numpy as np
 
 from pandas.util._decorators import Appender, Substitution
@@ -9,10 +11,13 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 import pandas.core.common as com
 from pandas.core.frame import _shared_docs
 from pandas.core.groupby import Grouper
-from pandas.core.index import Index, MultiIndex, _get_objs_combined_axis
+from pandas.core.index import Index, MultiIndex, get_objs_combined_axis
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.util import cartesian_product
 from pandas.core.series import Series
+
+if TYPE_CHECKING:
+    from pandas import DataFrame
 
 
 # Note: We need to make sure `frame` is imported before `pivot`, otherwise
@@ -180,14 +185,14 @@ def pivot_table(
 
 
 def _add_margins(
-    table,
+    table: Union["Series", "DataFrame"],
     data,
     values,
     rows,
     cols,
     aggfunc,
     observed=None,
-    margins_name="All",
+    margins_name: str = "All",
     fill_value=None,
 ):
     if not isinstance(margins_name, str):
@@ -200,14 +205,16 @@ def _add_margins(
 
     grand_margin = _compute_grand_margin(data, values, aggfunc, margins_name)
 
-    # could be passed a Series object with no 'columns'
-    if hasattr(table, "columns"):
+    if table.ndim == 2:
+        # i.e. DataFramae
         for level in table.columns.names[1:]:
             if margins_name in table.columns.get_level_values(level):
                 raise ValueError(msg)
 
     if len(rows) > 1:
-        key = (margins_name,) + ("",) * (len(rows) - 1)
+        key = (margins_name,) + ("",) * (
+            len(rows) - 1
+        )  # type: Union[str, Tuple[str, ...]]
     else:
         key = margins_name
 
@@ -216,7 +223,7 @@ def _add_margins(
         # one column in the data. Compute grand margin and return it.
         return table.append(Series({key: grand_margin[margins_name]}))
 
-    if values:
+    elif values:
         marginal_result_set = _generate_marginal_results(
             table,
             data,
@@ -232,12 +239,15 @@ def _add_margins(
             return marginal_result_set
         result, margin_keys, row_margin = marginal_result_set
     else:
+        # no values, and table is a DataFrame
+        assert isinstance(table, ABCDataFrame)
         marginal_result_set = _generate_marginal_results_without_values(
             table, data, rows, cols, aggfunc, observed, margins_name
         )
         if not isinstance(marginal_result_set, tuple):
             return marginal_result_set
         result, margin_keys, row_margin = marginal_result_set
+
     row_margin = row_margin.reindex(result.columns, fill_value=fill_value)
     # populate grand margin
     for k in margin_keys:
@@ -266,7 +276,7 @@ def _add_margins(
     return result
 
 
-def _compute_grand_margin(data, values, aggfunc, margins_name="All"):
+def _compute_grand_margin(data, values, aggfunc, margins_name: str = "All"):
 
     if values:
         grand_margin = {}
@@ -289,7 +299,15 @@ def _compute_grand_margin(data, values, aggfunc, margins_name="All"):
 
 
 def _generate_marginal_results(
-    table, data, values, rows, cols, aggfunc, observed, grand_margin, margins_name="All"
+    table,
+    data,
+    values,
+    rows,
+    cols,
+    aggfunc,
+    observed,
+    grand_margin,
+    margins_name: str = "All",
 ):
     if len(cols) > 0:
         # need to "interleave" the margins
@@ -353,7 +371,7 @@ def _generate_marginal_results(
 
 
 def _generate_marginal_results_without_values(
-    table, data, rows, cols, aggfunc, observed, margins_name="All"
+    table: "DataFrame", data, rows, cols, aggfunc, observed, margins_name: str = "All"
 ):
     if len(cols) > 0:
         # need to "interleave" the margins
@@ -406,7 +424,7 @@ def _convert_by(by):
 
 @Substitution("\ndata : DataFrame")
 @Appender(_shared_docs["pivot"], indents=1)
-def pivot(data, index=None, columns=None, values=None):
+def pivot(data: "DataFrame", index=None, columns=None, values=None):
     if values is None:
         cols = [columns] if index is None else [index, columns]
         append = index is None
@@ -436,8 +454,8 @@ def crosstab(
     colnames=None,
     aggfunc=None,
     margins=False,
-    margins_name="All",
-    dropna=True,
+    margins_name: str = "All",
+    dropna: bool = True,
     normalize=False,
 ):
     """
@@ -541,9 +559,12 @@ def crosstab(
     rownames = _get_names(index, rownames, prefix="row")
     colnames = _get_names(columns, colnames, prefix="col")
 
-    common_idx = _get_objs_combined_axis(index + columns, intersect=True, sort=False)
+    common_idx = None
+    pass_objs = [x for x in index + columns if isinstance(x, (ABCSeries, ABCDataFrame))]
+    if pass_objs:
+        common_idx = get_objs_combined_axis(pass_objs, intersect=True, sort=False)
 
-    data = {}
+    data = {}  # type: dict
     data.update(zip(rownames, index))
     data.update(zip(colnames, columns))
 
@@ -570,7 +591,7 @@ def crosstab(
         margins=margins,
         margins_name=margins_name,
         dropna=dropna,
-        **kwargs
+        **kwargs,
     )
 
     # Post-process
@@ -582,7 +603,7 @@ def crosstab(
     return table
 
 
-def _normalize(table, normalize, margins, margins_name="All"):
+def _normalize(table, normalize, margins: bool, margins_name="All"):
 
     if not isinstance(normalize, (bool, str)):
         axis_subs = {0: "index", 1: "columns"}
@@ -598,7 +619,7 @@ def _normalize(table, normalize, margins, margins_name="All"):
             "all": lambda x: x / x.sum(axis=1).sum(axis=0),
             "columns": lambda x: x / x.sum(),
             "index": lambda x: x.div(x.sum(axis=1), axis=0),
-        }
+        }  # type: Dict[Union[bool, str], Callable]
 
         normalizers[True] = normalizers["all"]
 
@@ -665,7 +686,7 @@ def _normalize(table, normalize, margins, margins_name="All"):
     return table
 
 
-def _get_names(arrs, names, prefix="row"):
+def _get_names(arrs, names, prefix: str = "row"):
     if names is None:
         names = []
         for i, arr in enumerate(arrs):

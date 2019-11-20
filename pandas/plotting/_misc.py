@@ -1,5 +1,4 @@
 from contextlib import contextmanager
-import warnings
 
 from pandas.util._decorators import deprecate_kwarg
 
@@ -82,7 +81,7 @@ def scatter_matrix(
     density_kwds=None,
     hist_kwds=None,
     range_padding=0.05,
-    **kwargs
+    **kwargs,
 ):
     """
     Draw a matrix of scatter plots.
@@ -134,7 +133,7 @@ def scatter_matrix(
         density_kwds=density_kwds,
         hist_kwds=hist_kwds,
         range_padding=range_padding,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -207,7 +206,7 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
         ax=ax,
         color=color,
         colormap=colormap,
-        **kwds
+        **kwds,
     )
 
 
@@ -255,7 +254,7 @@ def andrews_curves(
         samples=samples,
         color=color,
         colormap=colormap,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -325,7 +324,7 @@ def parallel_coordinates(
     axvlines=True,
     axvlines_kwds=None,
     sort_labels=False,
-    **kwargs
+    **kwargs,
 ):
     """
     Parallel coordinates plotting.
@@ -364,7 +363,7 @@ def parallel_coordinates(
     --------
     >>> from matplotlib import pyplot as plt
     >>> df = pd.read_csv('https://raw.github.com/pandas-dev/pandas/master'
-                        '/pandas/tests/data/iris.csv')
+                        '/pandas/tests/data/csv/iris.csv')
     >>> pd.plotting.parallel_coordinates(
             df, 'Name',
             color=('#556270', '#4ECDC4', '#C7F464'))
@@ -383,7 +382,7 @@ def parallel_coordinates(
         axvlines=axvlines,
         axvlines_kwds=axvlines_kwds,
         sort_labels=sort_labels,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -426,39 +425,13 @@ def autocorrelation_plot(series, ax=None, **kwargs):
     return plot_backend.autocorrelation_plot(series=series, ax=ax, **kwargs)
 
 
-def tsplot(series, plotf, ax=None, **kwargs):
-    """
-    Plots a Series on the given Matplotlib axes or the current axes
-
-    Parameters
-    ----------
-    axes : Axes
-    series : Series
-
-    Notes
-    _____
-    Supports same kwargs as Axes.plot
-
-
-    .. deprecated:: 0.23.0
-       Use Series.plot() instead
-    """
-    warnings.warn(
-        "'tsplot' is deprecated and will be removed in a "
-        "future version. Please use Series.plot() instead.",
-        FutureWarning,
-        stacklevel=2,
-    )
-    plot_backend = _get_plot_backend("matplotlib")
-    return plot_backend.tsplot(series=series, plotf=plotf, ax=ax, **kwargs)
-
-
 class _Options(dict):
     """
     Stores pandas plotting options.
+
     Allows for parameter aliasing so you can just use parameter names that are
     the same as the plot function parameters, but is stored in a canonical
-    format that makes it easy to breakdown into groups later
+    format that makes it easy to breakdown into groups later.
     """
 
     # alias so the names are same as plotting method parameter names

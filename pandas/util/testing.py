@@ -316,7 +316,7 @@ def assert_almost_equal(
             check_exact=False,
             exact=check_dtype,
             check_less_precise=check_less_precise,
-            **kwargs
+            **kwargs,
         )
 
     elif isinstance(left, pd.Series):
@@ -326,7 +326,7 @@ def assert_almost_equal(
             check_exact=False,
             check_dtype=check_dtype,
             check_less_precise=check_less_precise,
-            **kwargs
+            **kwargs,
         )
 
     elif isinstance(left, pd.DataFrame):
@@ -336,7 +336,7 @@ def assert_almost_equal(
             check_exact=False,
             check_dtype=check_dtype,
             check_less_precise=check_less_precise,
-            **kwargs
+            **kwargs,
         )
 
     else:
@@ -359,7 +359,7 @@ def assert_almost_equal(
             right,
             check_dtype=check_dtype,
             check_less_precise=check_less_precise,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -1952,7 +1952,7 @@ def makeCustomIndex(
             label = "{prefix}_l{i}_g{j}".format(prefix=prefix, i=i, j=j)
             cnt[label] = ndupe_l[i]
         # cute Counter trick
-        result = list(sorted(cnt.elements(), key=keyfunc))[:nentries]
+        result = sorted(cnt.elements(), key=keyfunc)[:nentries]
         tuples.append(result)
 
     tuples = list(zip(*tuples))

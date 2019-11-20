@@ -351,7 +351,6 @@ Serialization / IO / conversion
    :toctree: api/
 
    DataFrame.from_dict
-   DataFrame.from_items
    DataFrame.from_records
    DataFrame.info
    DataFrame.to_parquet

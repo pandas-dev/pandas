@@ -395,25 +395,22 @@ def _validate_integer(name, val, min_val=0):
 
 def _validate_names(names):
     """
-    Check if the `names` parameter contains duplicates.
-
-    If duplicates are found, we issue a warning before returning.
+    Raise ValueError if the `names` parameter contains duplicates.
 
     Parameters
     ----------
     names : array-like or None
         An array containing a list of the names used for the output DataFrame.
 
-    Returns
-    -------
-    names : array-like or None
-        The original `names` parameter.
+    Raises
+    ------
+    ValueError
+        If names are not unique.
     """
 
     if names is not None:
         if len(names) != len(set(names)):
             raise ValueError("Duplicate names are not allowed.")
-    return names
 
 
 def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
@@ -707,7 +704,7 @@ def read_fwf(
     colspecs="infer",
     widths=None,
     infer_nrows=100,
-    **kwds
+    **kwds,
 ):
 
     r"""
@@ -1605,7 +1602,7 @@ class ParserBase:
 
         # remove index items from content and columns, don't pop in
         # loop
-        for i in reversed(sorted(to_remove)):
+        for i in sorted(to_remove, reverse=True):
             data.pop(i)
             if not self._implicit_index:
                 columns.pop(i)
@@ -1637,7 +1634,7 @@ class ParserBase:
 
         # remove index items from content and columns, don't pop in
         # loop
-        for c in reversed(sorted(to_remove)):
+        for c in sorted(to_remove, reverse=True):
             data.pop(c)
             col_names.remove(c)
 
@@ -1918,7 +1915,12 @@ class CParserWrapper(ParserBase):
         else:
             if len(self._reader.header) > 1:
                 # we have a multi index in the columns
-                self.names, self.index_names, self.col_names, passed_names = self._extract_multi_indexer_columns(  # noqa: E501
+                (
+                    self.names,
+                    self.index_names,
+                    self.col_names,
+                    passed_names,
+                ) = self._extract_multi_indexer_columns(
                     self._reader.header, self.index_names, self.col_names, passed_names
                 )
             else:
@@ -2307,7 +2309,12 @@ class PythonParser(ParserBase):
         # The original set is stored in self.original_columns.
         if len(self.columns) > 1:
             # we are processing a multi index column
-            self.columns, self.index_names, self.col_names, _ = self._extract_multi_indexer_columns(  # noqa: E501
+            (
+                self.columns,
+                self.index_names,
+                self.col_names,
+                _,
+            ) = self._extract_multi_indexer_columns(
                 self.columns, self.index_names, self.col_names
             )
             # Update list of original names to include all indices.
