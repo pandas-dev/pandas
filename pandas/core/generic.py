@@ -6908,7 +6908,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         max_gap : int, optional
             Maximum number of consecutive NaN values up to which a NaN-gap
-            will be interpolated. All longer NaN-gaps will be left unchanged. 
+            will be interpolated. All longer NaN-gaps will be left unchanged.
             Must be greater than 0.
 
             .. versionadded:: 1.0.0
@@ -6996,11 +6996,11 @@ class NDFrame(PandasObject, SelectionMixin):
         7             4.71
         8             4.71
         dtype: object
-        
-        Similar to the examples above. Filling in ``NaN`` in a Series 
+
+        Similar to the examples above. Filling in ``NaN`` in a Series
         by padding, but here filling only NaN-gaps smaller than a specific
         gap width using the kwarg `max_gap`.
-        
+
         >>> s = pd.Series([np.nan, "single_one", np.nan,
         ...                "fill_two_more", np.nan, np.nan, np.nan,
         ...                4.71, np.nan])
