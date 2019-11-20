@@ -230,9 +230,9 @@ New repr for :class:`pandas.core.arrays.IntervalArray`
 
     In [4]: idx = pd.date_range('1/1/2000', periods=4, freq='T')
 
-    In [5]:     df = pd.DataFrame(data=4 * [range(2)],
-       ...:                       index=idx,
-       ...:                       columns=['a', 'b'])
+    In [5]: df = pd.DataFrame(data=4 * [range(2)],
+       ...:                   index=idx,
+       ...:                   columns=['a', 'b'])
 
     In [6]: df.iloc[2, 0] = 5
 
