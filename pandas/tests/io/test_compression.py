@@ -140,7 +140,7 @@ def test_with_missing_lzma():
         import pandas
         """
     )
-    subprocess.check_output([sys.executable, "-c", code])
+    subprocess.check_output([sys.executable, "-c", code], stderr=subprocess.PIPE)
 
 
 def test_with_missing_lzma_runtime():
@@ -157,4 +157,4 @@ def test_with_missing_lzma_runtime():
             df.to_csv('foo.csv', compression='xz')
         """
     )
-    subprocess.check_output([sys.executable, "-c", code])
+    subprocess.check_output([sys.executable, "-c", code], stderr=subprocess.PIPE)
