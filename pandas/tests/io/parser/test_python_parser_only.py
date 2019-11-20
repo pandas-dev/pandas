@@ -185,9 +185,8 @@ def test_read_csv_buglet_4x_multi_index2(python_parser_only):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "add_footer, decimal", [(True, "#"), (False, "#"), (True, b"#"), (False, b"#")],
-)
+@pytest.mark.parametrize("add_footer", [True, False])
+@pytest.mark.parametrize("decimal", ["#", b"#"])
 def test_skipfooter_with_decimal(python_parser_only, add_footer, decimal):
     # see gh-6971
     data = "1#2\n3#4"

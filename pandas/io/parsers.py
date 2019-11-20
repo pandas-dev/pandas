@@ -2276,7 +2276,11 @@ class PythonParser(ParserBase):
 
         self.dtype = kwds["dtype"]
         self.thousands = kwds["thousands"]
-        self.decimal = kwds["decimal"]
+
+        if isinstance(kwds["decimal"], bytes):
+            self.decimal = kwds["decimal"].decode()
+        else:
+            self.decimal = kwds["decimal"]
 
         self.comment = kwds["comment"]
         self._comment_lines = []
@@ -2343,9 +2347,6 @@ class PythonParser(ParserBase):
 
         if len(self.decimal) != 1:
             raise ValueError("Only length-1 decimal markers supported")
-
-        if isinstance(self.decimal, bytes):
-            self.decimal = self.decimal.decode()
 
         if self.thousands is None:
             self.nonnum = re.compile(
