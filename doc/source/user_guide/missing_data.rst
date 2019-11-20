@@ -339,6 +339,10 @@ Interpolation
 
   The ``limit_area`` keyword argument was added.
 
+.. versionadded:: 1.0.0
+
+  The ``max_gap`` keyword argument was added.
+
 Both Series and DataFrame objects have :meth:`~DataFrame.interpolate`
 that, by default, performs linear interpolation at missing data points.
 
@@ -481,8 +485,9 @@ filled since the last valid observation:
 
 .. ipython:: python
 
-   ser = pd.Series([np.nan, np.nan, 5, np.nan, np.nan,
-                    np.nan, 13, np.nan, np.nan])
+   ser = pd.Series([np.nan, np.nan, 2, np.nan, np.nan,
+                    3, np.nan, np.nan, np.nan,
+                    13, np.nan, np.nan])
    ser
 
    # fill all consecutive values in a forward direction
@@ -490,6 +495,18 @@ filled since the last valid observation:
 
    # fill one consecutive value in a forward direction
    ser.interpolate(limit=1)
+
+If an interpolation should only be carried out for consecutive ``NaN`` values
+of a certain maximum length, the ``max_gap`` keyword, introduced in v1.0.0
+can be used. Any ``NaN`` gap longer than ``max_gap`` will not be modified.
+This can be useful, e.g. if an interpolation using the ``scipy`` methods
+should be restricted to short NaN-gaps because the expected variation over
+longer NaN-gaps forbids using interpolated values.
+
+.. ipython:: python
+
+   # forward fill only NaN-gaps with a maximum 2 consecutive NaN values
+   ser.interpolate(max_gap=2)
 
 By default, ``NaN`` values are filled in a ``forward`` direction. Use
 ``limit_direction`` parameter to fill ``backward`` or from ``both`` directions.
