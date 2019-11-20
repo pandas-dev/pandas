@@ -2,7 +2,7 @@ from typing import List
 
 import pandas as pd
 from pandas import api, compat
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 
 class Base:
@@ -13,7 +13,7 @@ class Base:
 
         result = sorted(f for f in dir(namespace) if not f.startswith("__"))
         if ignored is not None:
-            result = sorted(list(set(result) - set(ignored)))
+            result = sorted(set(result) - set(ignored))
 
         expected = sorted(expected)
         tm.assert_almost_equal(result, expected)

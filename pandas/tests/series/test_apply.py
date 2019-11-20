@@ -7,8 +7,8 @@ import pytest
 import pandas as pd
 from pandas import DataFrame, Index, Series, isna
 from pandas.conftest import _get_cython_table_params
+from pandas.core.base import SpecificationError
 import pandas.util.testing as tm
-from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
 class TestSeriesApply:
@@ -47,12 +47,12 @@ class TestSeriesApply:
 
         result = s.apply(f)
         expected = s.map(f)
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         s = Series([1, 2, 3])
         result = s.apply(f)
         expected = s.map(f)
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_apply_dont_convert_dtype(self):
         s = Series(np.random.randn(10))
@@ -158,7 +158,8 @@ class TestSeriesApply:
             columns=["A", "B", "C"],
             index=pd.date_range("1/1/2000", periods=10),
         )
-        with tm.assert_produces_warning(FutureWarning):
+        msg = "nested renamer is not supported"
+        with pytest.raises(SpecificationError, match=msg):
             tsdf.A.agg({"foo": ["sum", "mean"]})
 
     @pytest.mark.parametrize("series", [["1-1", "1-1", np.NaN], ["1-1", "1-2", np.NaN]])
@@ -170,6 +171,12 @@ class TestSeriesApply:
         expected = pd.Series(["1", "1", np.NaN], dtype="category")
         expected = expected.astype(object)
         tm.assert_series_equal(result, expected)
+
+    def test_apply_empty_integer_series_with_datetime_index(self):
+        # GH 21245
+        s = pd.Series([], index=pd.date_range(start="2018-01-01", periods=0), dtype=int)
+        result = s.apply(lambda x: x)
+        tm.assert_series_equal(result, s)
 
 
 class TestSeriesAggregate:
@@ -184,22 +191,22 @@ class TestSeriesAggregate:
             # ufunc
             result = string_series.transform(np.sqrt)
             expected = f_sqrt.copy()
-            assert_series_equal(result, expected)
+            tm.assert_series_equal(result, expected)
 
             result = string_series.apply(np.sqrt)
-            assert_series_equal(result, expected)
+            tm.assert_series_equal(result, expected)
 
             # list-like
             result = string_series.transform([np.sqrt])
             expected = f_sqrt.to_frame().copy()
             expected.columns = ["sqrt"]
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
             result = string_series.transform([np.sqrt])
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
             result = string_series.transform(["sqrt"])
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
             # multiple items in list
             # these are in the order as if we are applying both functions per
@@ -207,11 +214,11 @@ class TestSeriesAggregate:
             expected = pd.concat([f_sqrt, f_abs], axis=1)
             expected.columns = ["sqrt", "absolute"]
             result = string_series.apply([np.sqrt, np.abs])
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
             result = string_series.transform(["sqrt", "abs"])
             expected.columns = ["sqrt", "abs"]
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
             # dict, provide renaming
             expected = pd.concat([f_sqrt, f_abs], axis=1)
@@ -219,7 +226,7 @@ class TestSeriesAggregate:
             expected = expected.unstack().rename("series")
 
             result = string_series.apply({"foo": np.sqrt, "bar": np.abs})
-            assert_series_equal(result.reindex_like(expected), expected)
+            tm.assert_series_equal(result.reindex_like(expected), expected)
 
     def test_transform_and_agg_error(self, string_series):
         # we are trying to transform with an aggregator
@@ -251,31 +258,17 @@ class TestSeriesAggregate:
         tm.assert_series_equal(result, expected)
 
         # nested renaming
-        with tm.assert_produces_warning(FutureWarning):
-            result = s.agg({"foo": ["min", "max"]})
-
-        expected = (
-            DataFrame({"foo": [0, 5]}, index=["min", "max"]).unstack().rename("series")
-        )
-        tm.assert_series_equal(result, expected)
+        msg = "nested renamer is not supported"
+        with pytest.raises(SpecificationError, match=msg):
+            s.agg({"foo": ["min", "max"]})
 
     def test_multiple_aggregators_with_dict_api(self):
 
         s = Series(range(6), dtype="int64", name="series")
         # nested renaming
-        with tm.assert_produces_warning(FutureWarning):
-            result = s.agg({"foo": ["min", "max"], "bar": ["sum", "mean"]})
-
-        expected = (
-            DataFrame(
-                {"foo": [5.0, np.nan, 0.0, np.nan], "bar": [np.nan, 2.5, np.nan, 15.0]},
-                columns=["foo", "bar"],
-                index=["max", "mean", "min", "sum"],
-            )
-            .unstack()
-            .rename("series")
-        )
-        tm.assert_series_equal(result.reindex_like(expected), expected)
+        msg = "nested renamer is not supported"
+        with pytest.raises(SpecificationError, match=msg):
+            s.agg({"foo": ["min", "max"], "bar": ["sum", "mean"]})
 
     def test_agg_apply_evaluate_lambdas_the_same(self, string_series):
         # test that we are evaluating row-by-row first
@@ -317,7 +310,7 @@ class TestSeriesAggregate:
                 ]
             )
         )
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_reduce(self, string_series):
         # reductions with named functions
@@ -327,7 +320,7 @@ class TestSeriesAggregate:
             ["sum", "mean"],
             name=string_series.name,
         )
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_non_callable_aggregates(self):
         # test agg using non-callable series attributes
@@ -341,7 +334,7 @@ class TestSeriesAggregate:
         # test when mixed w/ callable reducers
         result = s.agg(["size", "count", "mean"])
         expected = Series(OrderedDict([("size", 3.0), ("count", 2.0), ("mean", 1.5)]))
-        assert_series_equal(result[expected.index], expected)
+        tm.assert_series_equal(result[expected.index], expected)
 
     @pytest.mark.parametrize(
         "series, func, expected",
@@ -516,7 +509,7 @@ class TestSeriesMap:
         s = Series([True, True, False], index=[1, 2, 3])
         result = s.map({True: "foo", False: "bar"})
         expected = Series(["foo", "foo", "bar"], index=[1, 2, 3])
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_map_int(self):
         left = Series({"a": 1.0, "b": 2.0, "c": 3.0, "d": 4})
@@ -547,7 +540,7 @@ class TestSeriesMap:
 
         result = s.map(lambda x: x * 2, na_action="ignore")
         exp = s * 2
-        assert_series_equal(result, exp)
+        tm.assert_series_equal(result, exp)
 
     def test_map_dict_with_tuple_keys(self):
         """
@@ -572,7 +565,7 @@ class TestSeriesMap:
         counter["c"] += 1
         result = s.map(counter)
         expected = Series([0, 5, 1], index=[1, 2, 3])
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_map_defaultdict(self):
         s = Series([1, 2, 3], index=["a", "b", "c"])
@@ -580,7 +573,15 @@ class TestSeriesMap:
         default_dict[1] = "stuff"
         result = s.map(default_dict)
         expected = Series(["stuff", "blank", "blank"], index=["a", "b", "c"])
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
+
+    def test_map_dict_na_key(self):
+        # https://github.com/pandas-dev/pandas/issues/17648
+        # Checks that np.nan key is appropriately mapped
+        s = Series([1, 2, np.nan])
+        expected = Series(["a", "b", "c"])
+        result = s.map({1: "a", 2: "b", np.nan: "c"})
+        tm.assert_series_equal(result, expected)
 
     def test_map_dict_subclass_with_missing(self):
         """
@@ -596,7 +597,7 @@ class TestSeriesMap:
         dictionary = DictWithMissing({3: "three"})
         result = s.map(dictionary)
         expected = Series(["missing", "missing", "three"])
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_map_dict_subclass_without_missing(self):
         class DictWithoutMissing(dict):
@@ -606,7 +607,7 @@ class TestSeriesMap:
         dictionary = DictWithoutMissing({3: "three"})
         result = s.map(dictionary)
         expected = Series([np.nan, np.nan, "three"])
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_map_box(self):
         vals = [pd.Timestamp("2011-01-01"), pd.Timestamp("2011-01-02")]
@@ -729,11 +730,11 @@ class TestSeriesMap:
         # Calling apply on a localized time series should not cause an error
         index = dti.tz_localize("UTC").index
         result = pd.Series(index).apply(lambda x: pd.Series([1, 2]))
-        assert_frame_equal(result, exp)
+        tm.assert_frame_equal(result, exp)
 
     def test_apply_scaler_on_date_time_index_aware_series(self):
         # GH 25959
         # Calling apply on a localized time series should not cause an error
         series = tm.makeTimeSeries(nper=30).tz_localize("UTC")
         result = pd.Series(series.index).apply(lambda x: 1)
-        assert_series_equal(result, pd.Series(np.ones(30), dtype="int64"))
+        tm.assert_series_equal(result, pd.Series(np.ones(30), dtype="int64"))

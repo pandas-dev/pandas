@@ -139,7 +139,7 @@ Read a Stata dta file in 10,000 line chunks:
 )
 
 _data_method_doc = """
-Read observations from Stata file, converting them into a dataframe
+Read observations from Stata file, converting them into a dataframe.
 
 .. deprecated::
     This is a legacy method.  Use `read` in new code.
@@ -614,7 +614,7 @@ def _cast_to_stata_types(data):
                 data[col] = data[col].astype(np.int32)
             else:
                 data[col] = data[col].astype(np.float64)
-                if data[col].max() >= 2 ** 53 or data[col].min() <= -2 ** 53:
+                if data[col].max() >= 2 ** 53 or data[col].min() <= -(2 ** 53):
                     ws = precision_loss_doc % ("int64", "float64")
         elif dtype in (np.float32, np.float64):
             value = data[col].max()
@@ -862,10 +862,10 @@ class StataMissingValue:
         lambda self: self._value, doc="The binary representation of the missing value."
     )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.string
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         # not perfect :-/
         return "{cls}({obj})".format(cls=self.__class__, obj=self)
 
@@ -2640,7 +2640,7 @@ def _dtype_to_stata_type_117(dtype, column, force_strl):
     elif dtype == np.int8:
         return 65530
     else:  # pragma : no cover
-        raise NotImplementedError("Data type %s not supported." % dtype)
+        raise NotImplementedError(f"Data type {dtype} not supported.")
 
 
 def _pad_bytes_new(name, length):
@@ -2730,7 +2730,7 @@ class StataStrLWriter:
         Modifies the DataFrame in-place.
 
         The DataFrame returned encodes the (v,o) values as uint64s. The
-        encoding depends on teh dta version, and can be expressed as
+        encoding depends on the dta version, and can be expressed as
 
         enc = v + o * 2 ** (o_size * 8)
 

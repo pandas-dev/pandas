@@ -1,7 +1,6 @@
 """
 Data structure for 1-dimensional cross-sectional and time series data
 """
-from collections import OrderedDict
 from io import StringIO
 from shutil import get_terminal_size
 from textwrap import dedent
@@ -13,7 +12,6 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import index as libindex, lib, reshape, tslibs
-from pandas.compat import PY36
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, deprecate
 from pandas.util._validators import validate_bool_kwarg, validate_percentile
@@ -25,16 +23,13 @@ from pandas.core.dtypes.common import (
     is_categorical,
     is_categorical_dtype,
     is_datetime64_dtype,
-    is_datetimelike,
     is_dict_like,
     is_extension_array_dtype,
-    is_extension_type,
     is_integer,
     is_iterator,
     is_list_like,
     is_object_dtype,
     is_scalar,
-    is_string_like,
     is_timedelta64_dtype,
 )
 from pandas.core.dtypes.generic import (
@@ -55,7 +50,7 @@ from pandas.core.dtypes.missing import (
 import pandas as pd
 from pandas.core import algorithms, base, generic, nanops, ops
 from pandas.core.accessor import CachedAccessor
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import ExtensionArray, try_cast_to_ea
 from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 import pandas.core.common as com
@@ -169,6 +164,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Data type for the output Series. If not specified, this will be
         inferred from `data`.
         See the :ref:`user guide <basics.dtypes>` for more usages.
+    name : str, optional
+        The name to give to the Series.
     copy : bool, default False
         Copy input data.
     """
@@ -179,17 +176,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         base.IndexOpsMixin._deprecations
         | generic.NDFrame._deprecations
         | frozenset(
-            [
-                "asobject",
-                "compress",
-                "valid",
-                "ftype",
-                "real",
-                "imag",
-                "put",
-                "ptp",
-                "nonzero",
-            ]
+            ["compress", "valid", "ftype", "real", "imag", "put", "ptp", "nonzero"]
         )
     )
 
@@ -365,40 +352,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # Now we just make sure the order is respected, if any
         if data and index is not None:
             s = s.reindex(index, copy=False)
-        elif not PY36 and not isinstance(data, OrderedDict) and data:
-            # Need the `and data` to avoid sorting Series(None, index=[...])
-            # since that isn't really dict-like
-            try:
-                s = s.sort_index()
-            except TypeError:
-                pass
         return s._data, s.index
-
-    @classmethod
-    def from_array(
-        cls, arr, index=None, name=None, dtype=None, copy=False, fastpath=False
-    ):
-        """
-        Construct Series from array.
-
-        .. deprecated:: 0.23.0
-            Use pd.Series(..) constructor instead.
-
-        Returns
-        -------
-        Series
-            Constructed Series.
-        """
-        warnings.warn(
-            "'from_array' is deprecated and will be removed in a "
-            "future version. Please use the pd.Series(..) "
-            "constructor instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return cls(
-            arr, index=index, name=name, dtype=dtype, copy=copy, fastpath=fastpath
-        )
 
     # ----------------------------------------------------------------------
 
@@ -589,24 +543,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _internal_get_values(self):
         return self._data.get_values()
 
-    @property
-    def asobject(self):
-        """
-        Return object Series which contains boxed values.
-
-        .. deprecated:: 0.23.0
-
-           Use ``astype(object)`` instead.
-
-        *this is an internal non-public method*
-        """
-        warnings.warn(
-            "'asobject' is deprecated. Use 'astype(object)' instead",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.astype(object).values
-
     # ops
     def ravel(self, order="C"):
         """
@@ -713,7 +649,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         )
         self._values.put(*args, **kwargs)
 
-    def __len__(self):
+    def __len__(self) -> int:
         """
         Return the length of the Series.
         """
@@ -1018,7 +954,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             self.name = name
 
         else:
-            raise Exception("cannot unpickle legacy formats -> [%s]" % state)
+            raise Exception(f"cannot unpickle legacy formats -> [{state}]")
 
     # indexers
     @property
@@ -1313,7 +1249,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         indexer = self.index.get_indexer(key)
         mask = indexer == -1
         if mask.any():
-            raise ValueError("%s not contained in the index" % str(key[mask]))
+            raise ValueError(f"{key[mask]} not contained in the index")
         self._set_values(indexer, value)
 
     def _set_values(self, key, value):
@@ -1556,7 +1492,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # ----------------------------------------------------------------------
     # Rendering Methods
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         Return a string representation for a particular Series.
         """
@@ -2096,8 +2032,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Exclude NA/null values. If the entire Series is NA, the result
             will be NA.
         *args, **kwargs
-            Additional keywords have no effect but might be accepted
-            for compatibility with NumPy.
+            Additional arguments and keywords have no effect but might be
+            accepted for compatibility with NumPy.
 
         Returns
         -------
@@ -2166,8 +2102,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Exclude NA/null values. If the entire Series is NA, the result
             will be NA.
         *args, **kwargs
-            Additional keywords have no effect but might be accepted
-            for compatibility with NumPy.
+            Additional arguments and keywords have no effect but might be
+            accepted for compatibility with NumPy.
 
         Returns
         -------
@@ -2601,7 +2537,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             rvals = np.asarray(other)
             if lvals.shape[0] != rvals.shape[0]:
                 raise Exception(
-                    "Dot product shape mismatch, %s vs %s" % (lvals.shape, rvals.shape)
+                    f"Dot product shape mismatch, {lvals.shape} vs {rvals.shape}"
                 )
 
         if isinstance(other, ABCDataFrame):
@@ -2613,7 +2549,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         elif isinstance(rvals, np.ndarray):
             return np.dot(lvals, rvals)
         else:  # pragma: no cover
-            raise TypeError("unsupported type: %s" % type(other))
+            raise TypeError(f"unsupported type: {type(other)}")
 
     def __matmul__(self, other):
         """
@@ -2849,14 +2785,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         elif is_extension_array_dtype(self.values):
             # The function can return something of any type, so check
             # if the type is compatible with the calling EA.
-            try:
-                new_values = self._values._from_sequence(new_values)
-            except Exception:
-                # https://github.com/pandas-dev/pandas/issues/22850
-                # pandas has no control over what 3rd-party ExtensionArrays
-                # do in _values_from_sequence. We still want ops to work
-                # though, so we catch any regular Exception.
-                pass
+            new_values = try_cast_to_ea(self._values, new_values)
         return self._constructor(new_values, index=new_index, name=new_name)
 
     def combine_first(self, other):
@@ -2894,7 +2823,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         new_index = self.index.union(other.index)
         this = self.reindex(new_index, copy=False)
         other = other.reindex(new_index, copy=False)
-        if is_datetimelike(this) and not is_datetimelike(other):
+        if this.dtype.kind == "M" and other.dtype.kind != "M":
             other = to_datetime(other)
 
         return this.where(notna(this), other)
@@ -3100,8 +3029,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if is_list_like(ascending):
             if len(ascending) != 1:
                 raise ValueError(
-                    "Length of ascending (%d) must be 1 "
-                    "for Series" % (len(ascending))
+                    f"Length of ascending ({len(ascending)}) must be 1 for Series"
                 )
             ascending = ascending[0]
 
@@ -3539,8 +3467,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        i, j : int, str (can be mixed)
-            Level of index to be swapped. Can pass level name as string.
+        i, j : int, str
+            Level of the indices to be swapped. Can pass level name as string.
         copy : bool, default True
             Whether to copy underlying data.
 
@@ -3805,7 +3733,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         see_also=_agg_see_also_doc,
         examples=_agg_examples_doc,
         versionadded="\n.. versionadded:: 0.20.0\n",
-        **_shared_doc_kwargs
+        **_shared_doc_kwargs,
     )
     @Appender(generic._shared_docs["aggregate"])
     def aggregate(self, func, axis=0, *args, **kwargs):
@@ -3966,7 +3894,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 return f(self)
 
             # row-wise access
-            if is_extension_type(self.dtype):
+            if is_extension_array_dtype(self.dtype) and hasattr(self._values, "map"):
+                # GH#23179 some EAs do not have `map`
                 mapped = self._values.map(f)
             else:
                 values = self.astype(object).values
@@ -3988,6 +3917,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         If we have an ndarray as a value, then simply perform the operation,
         otherwise delegate to the object.
         """
+
         delegate = self._values
 
         if axis is not None:
@@ -4027,7 +3957,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             skipna=skipna,
             numeric_only=numeric_only,
             filter_type=filter_type,
-            **kwds
+            **kwds,
         )
 
     def _reindex_indexer(self, new_index, indexer, copy):
@@ -4094,14 +4024,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             the index.
             Scalar or hashable sequence-like will alter the ``Series.name``
             attribute.
-        copy : bool, default True
-            Whether to copy underlying data.
-        inplace : bool, default False
-            Whether to return a new Series. If True then value of copy is
-            ignored.
-        level : int or level name, default None
-            In case of a MultiIndex, only rename labels in the specified
-            level.
+
+        **kwargs
+            Additional keyword arguments passed to the function. Only the
+            "inplace" keyword is used.
 
         Returns
         -------
@@ -4268,7 +4194,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         inplace=False,
         limit=None,
         downcast=None,
-        **kwargs
+        **kwargs,
     ):
         return super().fillna(
             value=value,
@@ -4277,7 +4203,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             inplace=inplace,
             limit=limit,
             downcast=downcast,
-            **kwargs
+            **kwargs,
         )
 
     @Appender(generic._shared_docs["replace"] % _shared_doc_kwargs)
@@ -4545,7 +4471,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             # passed as second argument (while the first is the same)
             maybe_sep = args[1]
 
-            if not (is_string_like(maybe_sep) and len(maybe_sep) == 1):
+            if not (isinstance(maybe_sep, str) and len(maybe_sep) == 1):
                 # old signature
                 warnings.warn(
                     "The signature of `Series.to_csv` was aligned "
@@ -4601,7 +4527,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def notnull(self):
         return super().notnull()
 
-    def dropna(self, axis=0, inplace=False, **kwargs):
+    def dropna(self, axis=0, inplace=False, how=None):
         """
         Return a new Series with missing values removed.
 
@@ -4614,8 +4540,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             There is only one axis to drop values from.
         inplace : bool, default False
             If True, do operation inplace and return None.
-        **kwargs
-            Not in use.
+        how : str, optional
+            Not in use. Kept for compatibility.
 
         Returns
         -------
@@ -4673,12 +4599,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         dtype: object
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
-        kwargs.pop("how", None)
-        if kwargs:
-            raise TypeError(
-                "dropna() got an unexpected keyword "
-                'argument "{0}"'.format(list(kwargs.keys())[0])
-            )
         # Validate the axis parameter
         self._get_axis_number(axis or 0)
 
