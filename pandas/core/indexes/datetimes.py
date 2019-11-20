@@ -410,7 +410,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     tzinfo = tz
 
     @cache_readonly
-    def _is_dates_only(self):
+    def _is_dates_only(self) -> bool:
         """Return a boolean if we are only dates (and don't have a timezone)"""
         from pandas.io.formats.format import _is_dates_only
 
@@ -464,6 +464,12 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             return _to_M8(value)
         raise ValueError("Passed item and index have different timezone")
 
+    @Appender(Index.difference.__doc__)
+    def difference(self, other, sort=None):
+        new_idx = super().difference(other, sort=sort)
+        new_idx.freq = None
+        return new_idx
+
     # --------------------------------------------------------------------
     # Rendering Methods
 
@@ -485,7 +491,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         from pandas.io.formats.format import _get_format_datetime64
 
         formatter = _get_format_datetime64(is_dates_only=self._is_dates_only)
-        return lambda x: "'%s'" % formatter(x, tz=self.tz)
+        return lambda x: f"'{formatter(x, tz=self.tz)}'"
 
     # --------------------------------------------------------------------
     # Set Operation Methods
@@ -657,14 +663,14 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             values = self._data._local_timestamps()
         return fields.get_time_micros(values)
 
-    def to_series(self, keep_tz=None, index=None, name=None):
+    def to_series(self, keep_tz=lib._no_default, index=None, name=None):
         """
         Create a Series with both index and values equal to the index keys
         useful with map for returning an indexer based on an index.
 
         Parameters
         ----------
-        keep_tz : optional, defaults False
+        keep_tz : optional, defaults True
             Return the data keeping the timezone.
 
             If keep_tz is True:
@@ -680,10 +686,10 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
               Series will have a datetime64[ns] dtype. TZ aware
               objects will have the tz removed.
 
-            .. versionchanged:: 0.24
-                The default value will change to True in a future release.
-                You can set ``keep_tz=True`` to already obtain the future
-                behaviour and silence the warning.
+            .. versionchanged:: 1.0.0
+                The default value is now True.  In a future version,
+                this keyword will be removed entirely.  Stop passing the
+                argument to obtain the future behavior and silence the warning.
 
         index : Index, optional
             Index of resulting Series. If None, defaults to original index.
@@ -702,27 +708,27 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         if name is None:
             name = self.name
 
-        if keep_tz is None and self.tz is not None:
-            warnings.warn(
-                "The default of the 'keep_tz' keyword in "
-                "DatetimeIndex.to_series will change "
-                "to True in a future release. You can set "
-                "'keep_tz=True' to obtain the future behaviour and "
-                "silence this warning.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            keep_tz = False
-        elif keep_tz is False:
-            warnings.warn(
-                "Specifying 'keep_tz=False' is deprecated and this "
-                "option will be removed in a future release. If "
-                "you want to remove the timezone information, you "
-                "can do 'idx.tz_convert(None)' before calling "
-                "'to_series'.",
-                FutureWarning,
-                stacklevel=2,
-            )
+        if keep_tz is not lib._no_default:
+            if keep_tz:
+                warnings.warn(
+                    "The 'keep_tz' keyword in DatetimeIndex.to_series "
+                    "is deprecated and will be removed in a future version.  "
+                    "You can stop passing 'keep_tz' to silence this warning.",
+                    FutureWarning,
+                    stacklevel=2,
+                )
+            else:
+                warnings.warn(
+                    "Specifying 'keep_tz=False' is deprecated and this "
+                    "option will be removed in a future release. If "
+                    "you want to remove the timezone information, you "
+                    "can do 'idx.tz_convert(None)' before calling "
+                    "'to_series'.",
+                    FutureWarning,
+                    stacklevel=2,
+                )
+        else:
+            keep_tz = True
 
         if keep_tz and self.tz is not None:
             # preserve the tz & copy
@@ -1231,17 +1237,17 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
         return self.values.searchsorted(value, side=side)
 
-    def is_type_compatible(self, typ):
+    def is_type_compatible(self, typ) -> bool:
         return typ == self.inferred_type or typ == "datetime"
 
     @property
-    def inferred_type(self):
+    def inferred_type(self) -> str:
         # b/c datetime is represented as microseconds since the epoch, make
         # sure we can't have ambiguous indexing
         return "datetime64"
 
     @property
-    def is_all_dates(self):
+    def is_all_dates(self) -> bool:
         return True
 
     def insert(self, loc, item):
@@ -1422,7 +1428,7 @@ def date_range(
     normalize=False,
     name=None,
     closed=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Return a fixed frequency DatetimeIndex.
@@ -1572,7 +1578,7 @@ def date_range(
         tz=tz,
         normalize=normalize,
         closed=closed,
-        **kwargs
+        **kwargs,
     )
     return DatetimeIndex._simple_new(dtarr, tz=dtarr.tz, freq=dtarr.freq, name=name)
 
@@ -1588,7 +1594,7 @@ def bdate_range(
     weekmask=None,
     holidays=None,
     closed=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Return a fixed frequency DatetimeIndex, with business day as the default
@@ -1681,7 +1687,7 @@ def bdate_range(
         normalize=normalize,
         name=name,
         closed=closed,
-        **kwargs
+        **kwargs,
     )
 
 

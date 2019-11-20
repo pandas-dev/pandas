@@ -87,7 +87,7 @@ class PyperclipException(RuntimeError):
 
 class PyperclipWindowsException(PyperclipException):
     def __init__(self, message):
-        message += " (%s)" % ctypes.WinError()
+        message += f" ({ctypes.WinError()})"
         super().__init__(message)
 
 
@@ -95,8 +95,8 @@ def _stringifyText(text):
     acceptedTypes = (str, int, float, bool)
     if not isinstance(text, acceptedTypes):
         raise PyperclipException(
-            "only str, int, float, and bool values"
-            "can be copied to the clipboard, not".format(text.__class__.__name__)
+            f"only str, int, float, and bool values"
+            f"can be copied to the clipboard, not {text.__class__.__name__}"
         )
     return str(text)
 
@@ -599,9 +599,9 @@ def set_clipboard(clipboard):
     }
 
     if clipboard not in clipboard_types:
+        allowed_clipboard_types = [repr(_) for _ in clipboard_types.keys()]
         raise ValueError(
-            "Argument must be one of %s"
-            % (", ".join([repr(_) for _ in clipboard_types.keys()]))
+            f"Argument must be one of {', '.join(allowed_clipboard_types)}"
         )
 
     # Sets pyperclip's copy() and paste() functions:
