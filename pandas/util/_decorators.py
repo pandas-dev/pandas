@@ -327,8 +327,9 @@ class Appender:
         pass
     """
 
+    addendum: Optional[str]
+
     def __init__(self, addendum: Optional[str], join: str = "", indents: int = 0):
-        self.addendum: Optional[str]
         if indents > 0:
             self.addendum = indent(addendum, indents=indents)
         else:
