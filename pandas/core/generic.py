@@ -6894,7 +6894,9 @@ class NDFrame(PandasObject, SelectionMixin):
             Update the data in place if possible.
         limit_direction : {'forward', 'backward', 'both'}, default 'forward'
             If limit is specified, consecutive NaNs will be filled in this
-            direction.
+            direction. If the methods 'pad' or 'ffill' are used it must be
+            None or 'forward'. If 'backfill' or 'bfill' are use it must be
+            None or 'backwards'. 
         limit_area : {`None`, 'inside', 'outside'}, default None
             If limit is specified, consecutive NaNs will be filled with this
             restriction.
@@ -7082,7 +7084,7 @@ class NDFrame(PandasObject, SelectionMixin):
         axis=0,
         limit=None,
         inplace=False,
-        limit_direction="forward",
+        limit_direction=None,
         limit_area=None,
         max_gap=None,
         downcast=None,
@@ -7122,6 +7124,26 @@ class NDFrame(PandasObject, SelectionMixin):
                 "in the DataFrame. Try setting at least one "
                 "column to a numeric dtype."
             )
+
+        # Set `limit_direction` depending on `method`
+        if (method == 'pad') or (method == 'ffill'):
+            if (limit_direction == 'backward') or (limit_direction == 'both'):
+                raise ValueError(
+                    "`limit_direction` must not be `%s` for method `%s`" % (limit_direction, method)
+                )
+            else:
+                limit_direction = 'forward'
+        elif (method == 'backfill') or (method == 'bfill'):
+            if (limit_direction == 'forward') or (limit_direction == 'both'):
+                raise ValueError(
+                    "`limit_direction` must not be `%s` for method `%s`" % (limit_direction, method)
+                )
+            else:
+                limit_direction = 'backward'
+        else:
+            # Set default
+            if limit_direction is None:
+                limit_direction = 'forward'
 
         # create/use the index
         if method == "linear":

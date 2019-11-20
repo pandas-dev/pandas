@@ -1397,6 +1397,17 @@ class TestSeriesInterpolateData:
         with pytest.raises(ValueError, match=msg):
             s.interpolate(method="linear", limit_area="abc")
 
+    def test_interp_limit_area_with_pad(self):
+        # Test for issue #26796 -- using `limit_area` with `method=pad`
+        s = Series([np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan])
+        expected = Series([np.nan, np.nan, 3, 3, 3, 3, 7, np.nan, np.nan])
+        result = s.interpolate(method="pad", limit_area="inside")
+        tm.assert_series_equal(result, expected)
+
+        expected = Series([np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, 7, 7])
+        result = s.interpolate(method="pad", limit_area="outside")
+        tm.assert_series_equal(result, expected)
+
     def test_interp_limit_direction(self):
         # These tests are for issue #9218 -- fill NaNs in both directions.
         s = Series([1, 3, np.nan, np.nan, np.nan, 11])
@@ -1421,6 +1432,38 @@ class TestSeriesInterpolateData:
         )
         result = s.interpolate(method="linear", limit=1, limit_direction="both")
         tm.assert_series_equal(result, expected)
+
+    def test_interp_limit_direction_with_pad_error(self):
+        # Since `pad` forces a forward fill and `bfill` forces a backward fill
+        # they should not be used together with `limit_direction`
+        s = Series([1, 3, np.nan, np.nan, np.nan, 11])
+
+        with pytest.raises(
+                ValueError, match="`limit_direction` must not be `backward` for method `pad`"
+        ):
+            s.interpolate(method="pad", limit=1, limit_direction="backward")
+
+        with pytest.raises(
+                ValueError, match="`limit_direction` must not be `backward` for method `ffill`"
+        ):
+            s.interpolate(method="ffill", limit=1, limit_direction="backward")
+
+        with pytest.raises(
+                ValueError, match="`limit_direction` must not be `both` for method `ffill`"
+        ):
+            s.interpolate(method="ffill", limit=1, limit_direction="both")
+
+        with pytest.raises(
+                ValueError,
+                match="`limit_direction` must not be `forward` for method `backfill`"
+        ):
+            s.interpolate(method="backfill", limit=1, limit_direction="forward")
+
+        with pytest.raises(
+                ValueError,
+                match="`limit_direction` must not be `forward` for method `bfill`"
+        ):
+            s.interpolate(method="bfill", limit=1, limit_direction="forward")
 
     def test_interp_limit_to_ends(self):
         # These test are for issue #10420 -- flow back to beginning.
