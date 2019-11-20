@@ -42,13 +42,13 @@ import pandas.core.common as com
 from pandas.core.index import Index, ensure_index
 from pandas.core.window.common import (
     WindowGroupByMixin,
-    _calculate_min_periods,
     _doc_template,
     _flex_binary_moment,
     _offset,
     _shared_docs,
     _use_window,
     _zsqrt,
+    calculate_min_periods,
 )
 
 
@@ -474,7 +474,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
                 def calc(x):
                     x = np.concatenate((x, additional_nans))
-                    min_periods = _calculate_min_periods(
+                    min_periods = calculate_min_periods(
                         window, self.min_periods, len(x), require_min_periods, floor
                     )
                     start, end = window_indexer(

@@ -269,13 +269,28 @@ def _use_window(minp, window):
         return minp
 
 
-def _calculate_min_periods(
+def calculate_min_periods(
     window: int,
     min_periods: Optional[int],
     num_values: int,
     required_min_periods: int,
     floor: int,
-):
+) -> int:
+    """
+    Calculates final minimum periods value for rolling aggregations.
+
+    Parameters
+    ----------
+    window : passed window value
+    min_periods : passed min periods value
+    num_values : total number of values
+    required_min_periods : required min periods per aggregation function
+    floor : required min periods per aggregation function
+
+    Returns
+    -------
+    min_periods : int
+    """
     if min_periods is None:
         min_periods = window
     else:
