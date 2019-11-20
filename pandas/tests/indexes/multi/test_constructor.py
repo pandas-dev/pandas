@@ -609,12 +609,11 @@ def test_create_index_existing_name(idx):
                 ("qux", "two"),
             ],
             dtype="object",
-        ),
-        names=["foo", "bar"],
+        )
     )
     tm.assert_index_equal(result, expected)
 
-    result = pd.Index(index, names=["A", "B"])
+    result = pd.Index(index, name="A")
     expected = Index(
         Index(
             [
@@ -627,7 +626,7 @@ def test_create_index_existing_name(idx):
             ],
             dtype="object",
         ),
-        names=["A", "B"],
+        name="A",
     )
     tm.assert_index_equal(result, expected)
 
@@ -722,3 +721,10 @@ def test_from_frame_invalid_names(names, expected_error_msg):
     )
     with pytest.raises(ValueError, match=expected_error_msg):
         pd.MultiIndex.from_frame(df, names=names)
+
+
+def test_index_equal_empty_iterable():
+    # #16844
+    a = MultiIndex(levels=[[], []], codes=[[], []], names=["a", "b"])
+    b = MultiIndex.from_arrays(arrays=[[], []], names=["a", "b"])
+    tm.assert_index_equal(a, b)

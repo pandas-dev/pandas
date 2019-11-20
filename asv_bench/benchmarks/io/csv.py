@@ -132,7 +132,7 @@ class ReadCSVConcatDatetimeBadDateValue(StringIORewind):
     param_names = ["bad_date_value"]
 
     def setup(self, bad_date_value):
-        self.StringIO_input = StringIO(("%s,\n" % bad_date_value) * 50000)
+        self.StringIO_input = StringIO((f"{bad_date_value},\n") * 50000)
 
     def time_read_csv(self, bad_date_value):
         read_csv(
@@ -202,7 +202,7 @@ class ReadCSVThousands(BaseIO):
         data = np.random.randn(N, K) * np.random.randint(100, 10000, (N, K))
         df = DataFrame(data)
         if thousands is not None:
-            fmt = ":{}".format(thousands)
+            fmt = f":{thousands}"
             fmt = "{" + fmt + "}"
             df = df.applymap(lambda x: fmt.format(x))
         df.to_csv(self.fname, sep=sep)
@@ -231,7 +231,7 @@ class ReadCSVFloatPrecision(StringIORewind):
         floats = [
             "".join(random.choice(string.digits) for _ in range(28)) for _ in range(15)
         ]
-        rows = sep.join(["0{}".format(decimal) + "{}"] * 3) + "\n"
+        rows = sep.join([f"0{decimal}" + "{}"] * 3) + "\n"
         data = rows * 5
         data = data.format(*floats) * 200  # 1000 x 3 strings csv
         self.StringIO_input = StringIO(data)
@@ -309,9 +309,7 @@ class ReadCSVCachedParseDates(StringIORewind):
     param_names = ["do_cache"]
 
     def setup(self, do_cache):
-        data = (
-            "\n".join("10/{}".format(year) for year in range(2000, 2100)) + "\n"
-        ) * 10
+        data = ("\n".join(f"10/{year}" for year in range(2000, 2100)) + "\n") * 10
         self.StringIO_input = StringIO(data)
 
     def time_read_csv_cached(self, do_cache):
@@ -336,7 +334,7 @@ class ReadCSVMemoryGrowth(BaseIO):
     def setup(self):
         with open(self.fname, "w") as f:
             for i in range(self.num_rows):
-                f.write("{i}\n".format(i=i))
+                f.write(f"{i}\n")
 
     def mem_parser_chunks(self):
         # see gh-24805.

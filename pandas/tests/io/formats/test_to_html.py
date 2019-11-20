@@ -7,7 +7,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, option_context
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 import pandas.io.formats.format as fmt
 

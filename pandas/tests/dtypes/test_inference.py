@@ -51,7 +51,8 @@ from pandas import (
     Timestamp,
     isna,
 )
-from pandas.util import testing as tm
+from pandas.core.arrays import IntegerArray
+import pandas.util.testing as tm
 
 
 @pytest.fixture(params=[True, False], ids=str)
@@ -505,7 +506,7 @@ class TestInference:
         result = lib.maybe_convert_numeric(case, set(), coerce_numeric=coerce)
         tm.assert_almost_equal(result, expected)
 
-    @pytest.mark.parametrize("value", [-2 ** 63 - 1, 2 ** 64])
+    @pytest.mark.parametrize("value", [-(2 ** 63) - 1, 2 ** 64])
     def test_convert_int_overflow(self, value):
         # see gh-18584
         arr = np.array([value], dtype=object)
@@ -551,6 +552,20 @@ class TestInference:
         exp = arr.copy()
         out = lib.maybe_convert_objects(arr, convert_datetime=1, convert_timedelta=1)
         tm.assert_numpy_array_equal(out, exp)
+
+    @pytest.mark.parametrize(
+        "exp",
+        [
+            IntegerArray(np.array([2, 0], dtype="i8"), np.array([False, True])),
+            IntegerArray(np.array([2, 0], dtype="int64"), np.array([False, True])),
+        ],
+    )
+    def test_maybe_convert_objects_nullable_integer(self, exp):
+        # GH27335
+        arr = np.array([2, np.NaN], dtype=object)
+        result = lib.maybe_convert_objects(arr, convert_to_nullable_integer=1)
+
+        tm.assert_extension_array_equal(result, exp)
 
     def test_mixed_dtypes_remain_object_array(self):
         # GH14956
