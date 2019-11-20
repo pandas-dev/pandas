@@ -429,8 +429,8 @@ cdef inline void remove_var(float64_t val, float64_t *nobs, float64_t *mean_x,
             ssqdm_x[0] = 0
 
 
-def roll_var_fixed(ndarray[float64_t] values, ndarray[int64_t] start, ndarray[int64_t] end, int64_t minp,
-                   int64_t win, int ddof=1):
+def roll_var_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
+                   ndarray[int64_t] end, int64_t minp, int64_t win, int ddof=1):
     """
     Numerically stable implementation using Welford's method.
     """
@@ -485,8 +485,8 @@ def roll_var_fixed(ndarray[float64_t] values, ndarray[int64_t] start, ndarray[in
     return output
 
 
-def roll_var_variable(ndarray[float64_t] values, ndarray[int64_t] start, ndarray[int64_t] end, int64_t minp,
-                      int ddof=1):
+def roll_var_variable(ndarray[float64_t] values, ndarray[int64_t] start,
+                      ndarray[int64_t] end, int64_t minp, int ddof=1):
     """
     Numerically stable implementation using Welford's method.
     """
@@ -532,6 +532,7 @@ def roll_var_variable(ndarray[float64_t] values, ndarray[int64_t] start, ndarray
 
 # ----------------------------------------------------------------------
 # Rolling skewness
+
 
 cdef inline float64_t calc_skew(int64_t minp, int64_t nobs,
                                 float64_t x, float64_t xx,
@@ -596,8 +597,9 @@ cdef inline void remove_skew(float64_t val, int64_t *nobs,
         xx[0] = xx[0] - val * val
         xxx[0] = xxx[0] - val * val * val
 
-def roll_skew_fixed(ndarray[float64_t] values, ndarray[int64_t] start, ndarray[int64_t] end,
-                    int64_t minp, int64_t win):
+
+def roll_skew_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
+                    ndarray[int64_t] end, int64_t minp, int64_t win):
     cdef:
         float64_t val, prev
         float64_t x = 0, xx = 0, xxx = 0
@@ -625,7 +627,9 @@ def roll_skew_fixed(ndarray[float64_t] values, ndarray[int64_t] start, ndarray[i
 
     return output
 
-def roll_skew_variable(ndarray[float64_t] values, ndarray[int64_t] start, ndarray[int64_t] end, int64_t minp):
+
+def roll_skew_variable(ndarray[float64_t] values, ndarray[int64_t] start,
+                       ndarray[int64_t] end, int64_t minp):
     cdef:
         float64_t val, prev
         float64_t x = 0, xx = 0, xxx = 0
@@ -741,8 +745,9 @@ cdef inline void remove_kurt(float64_t val, int64_t *nobs,
         xxx[0] = xxx[0] - val * val * val
         xxxx[0] = xxxx[0] - val * val * val * val
 
-def roll_kurt_fixed(ndarray[float64_t] values, ndarray[int64_t] start, ndarray[int64_t] end,
-                    int64_t minp, int64_t win):
+
+def roll_kurt_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
+                    ndarray[int64_t] end, int64_t minp, int64_t win):
     cdef:
         float64_t val, prev
         float64_t x = 0, xx = 0, xxx = 0, xxxx = 0
@@ -769,7 +774,8 @@ def roll_kurt_fixed(ndarray[float64_t] values, ndarray[int64_t] start, ndarray[i
 
     return output
 
-def roll_kurt_variable(ndarray[float64_t] values, ndarray[int64_t] start, ndarray[int64_t] end, int64_t minp):
+def roll_kurt_variable(ndarray[float64_t] values, ndarray[int64_t] start,
+                       ndarray[int64_t] end, int64_t minp):
     cdef:
         float64_t val, prev
         float64_t x = 0, xx = 0, xxx = 0, xxxx = 0
@@ -814,8 +820,8 @@ def roll_kurt_variable(ndarray[float64_t] values, ndarray[int64_t] start, ndarra
 # Rolling median, min, max
 
 
-def roll_median_c(ndarray[float64_t] values, ndarray[int64_t] start, ndarray[int64_t] end,
-                  int64_t minp, int64_t win):
+def roll_median_c(ndarray[float64_t] values, ndarray[int64_t] start,
+                  ndarray[int64_t] end, int64_t minp, int64_t win):
     cdef:
         float64_t val, res, prev
         bint err = 0
@@ -942,8 +948,8 @@ cdef inline numeric calc_mm(int64_t minp, Py_ssize_t nobs,
     return result
 
 
-def roll_max_fixed(ndarray[float64_t] values, ndarray[int64_t] start, ndarray[int64_t] end,
-                   int64_t minp, int64_t win):
+def roll_max_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
+                   ndarray[int64_t] end, int64_t minp, int64_t win):
     """
     Moving max of 1d array of any numeric type along axis=0 ignoring NaNs.
 
@@ -962,7 +968,8 @@ def roll_max_fixed(ndarray[float64_t] values, ndarray[int64_t] start, ndarray[in
     return _roll_min_max_fixed(values, start, end, minp, win, is_max=1)
 
 
-def roll_max_variable(ndarray[float64_t] values, ndarray[int64_t] start, ndarray[int64_t] end, int64_t minp):
+def roll_max_variable(ndarray[float64_t] values, ndarray[int64_t] start,
+                      ndarray[int64_t] end, int64_t minp):
     """
     Moving max of 1d array of any numeric type along axis=0 ignoring NaNs.
 
@@ -981,8 +988,8 @@ def roll_max_variable(ndarray[float64_t] values, ndarray[int64_t] start, ndarray
     return _roll_min_max_variable(values, start, end, minp, is_max=1)
 
 
-def roll_min_fixed(ndarray[float64_t] values, ndarray[int64_t] start, ndarray[int64_t] end,
-                   int64_t minp, int64_t win):
+def roll_min_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
+                   ndarray[int64_t] end, int64_t minp, int64_t win):
     """
     Moving max of 1d array of any numeric type along axis=0 ignoring NaNs.
 
@@ -998,7 +1005,8 @@ def roll_min_fixed(ndarray[float64_t] values, ndarray[int64_t] start, ndarray[in
     return _roll_min_max_fixed(values, start, end, minp, win, is_max=0)
 
 
-def roll_min_variable(ndarray[float64_t] values, ndarray[int64_t] start, ndarray[int64_t] end, int64_t minp):
+def roll_min_variable(ndarray[float64_t] values, ndarray[int64_t] start,
+                      ndarray[int64_t] end, int64_t minp):
     """
     Moving max of 1d array of any numeric type along axis=0 ignoring NaNs.
 
@@ -1313,6 +1321,7 @@ def roll_quantile(ndarray[float64_t, cast=True] values, ndarray[int64_t] start,
 
     return output
 
+
 def roll_generic_fixed(object obj,
                        ndarray[int64_t] start, ndarray[int64_t] end,
                        int64_t minp, int64_t win,
@@ -1384,6 +1393,7 @@ def roll_generic_fixed(object obj,
                 output[i] = NaN
 
     return output
+
 
 def roll_generic_variable(object obj,
                           ndarray[int64_t] start, ndarray[int64_t] end,

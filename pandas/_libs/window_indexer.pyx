@@ -69,6 +69,7 @@ class FixedWindowIndexer:
     def get_window_bounds(self):
         return self.start, self.end
 
+
 class VariableWindowIndexer:
     """
     create a variable length window indexer object
