@@ -39,7 +39,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas._typing import Scalar
+from pandas._typing import FrameOrSeries, Scalar
 from pandas.core import nanops
 import pandas.core.algorithms as algorithms
 from pandas.core.arrays import Categorical, try_cast_to_ea
@@ -2386,8 +2386,8 @@ class GroupBy(_GroupBy):
         return self._selected_obj[mask]
 
     def _reindex_output(
-        self, output: Union[Series, DataFrame], fill_value: Scalar = np.NaN
-    ) -> Union[Series, DataFrame]:
+        self, output: FrameOrSeries, fill_value: Scalar = np.NaN
+    ) -> FrameOrSeries:
         """
         If we have categorical groupers, then we might want to make sure that
         we have a fully re-indexed output to the levels. This means expanding
