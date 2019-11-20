@@ -1914,7 +1914,7 @@ def roll_weighted_var(float64_t[:] values, float64_t[:] weights,
     values: float64_t[:]
         values to roll window over
     weights: float64_t[:]
-        array of weights whose lenght is window size
+        array of weights whose length is window size
     minp: int64_t
         minimum number of observations to calculate
         variance of a window
