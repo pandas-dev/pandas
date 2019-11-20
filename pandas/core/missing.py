@@ -1,6 +1,8 @@
 """
 Routines for filling missing data.
 """
+import warnings
+
 import numpy as np
 
 from pandas._libs import algos, lib
@@ -17,6 +19,14 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
 )
 from pandas.core.dtypes.missing import isna
+
+
+class IndexNotSortedWarning(Warning):
+    """
+    Warning raised when index not sorted and interpolate with unsupported method.
+    """
+
+    pass
 
 
 def mask_missing(arr, values_to_mask):
@@ -265,6 +275,9 @@ def interpolate_1d(
                 inds = inds.view(np.int64)
             if inds.dtype == np.object_:
                 inds = lib.maybe_convert_objects(inds)
+            if not np.all(np.diff(inds) > 0):
+                msg = "interpolation method '%s' requires sorted index." % method
+                warnings.warn(msg, IndexNotSortedWarning)
         else:
             inds = xvalues
         result[invalid] = np.interp(inds[invalid], inds[valid], yvalues[valid])

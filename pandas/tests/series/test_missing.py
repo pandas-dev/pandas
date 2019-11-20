@@ -20,6 +20,7 @@ from pandas import (
     date_range,
     isna,
 )
+from pandas.core.missing import IndexNotSortedWarning
 from pandas.core.series import remove_na
 import pandas.util.testing as tm
 
@@ -1661,3 +1662,9 @@ class TestSeriesInterpolateData:
             pytest.skip(
                 "This interpolation method is not supported for Timedelta Index yet."
             )
+
+    def test_interpolate_warn_index_not_sorted(self):
+        # GH 21037
+        ts = pd.Series(data=[10, 9, np.nan, 2, 1], index=[10, 9, 3, 2, 1])
+        with tm.assert_produces_warning(IndexNotSortedWarning):
+            ts.interpolate(method="index")
