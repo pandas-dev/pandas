@@ -3,17 +3,18 @@ Generic data algorithms. This module is experimental at the moment and not
 intended for public consumption
 """
 from textwrap import dedent
-from typing import Dict
+from typing import Dict, Optional, Tuple, Union
 from warnings import catch_warnings, simplefilter, warn
 
 import numpy as np
 
-from pandas._libs import algos, hashtable as htable, lib
+from pandas._libs import Timestamp, algos, hashtable as htable, lib
 from pandas._libs.tslib import iNaT
-from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
+from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
+    infer_dtype_from_array,
     maybe_promote,
 )
 from pandas.core.dtypes.common import (
@@ -28,7 +29,6 @@ from pandas.core.dtypes.common import (
     is_complex_dtype,
     is_datetime64_any_dtype,
     is_datetime64_ns_dtype,
-    is_datetimelike,
     is_extension_array_dtype,
     is_float_dtype,
     is_integer,
@@ -46,7 +46,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
-from pandas.core import common as com
+import pandas.core.common as com
 from pandas.core.construction import array, extract_array
 from pandas.core.indexers import validate_indices
 
@@ -448,9 +448,11 @@ def isin(comps, values) -> np.ndarray:
     return f(comps, values)
 
 
-def _factorize_array(values, na_sentinel: int = -1, size_hint=None, na_value=None):
+def _factorize_array(
+    values, na_sentinel: int = -1, size_hint=None, na_value=None
+) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Factorize an array-like to labels and uniques.
+    Factorize an array-like to codes and uniques.
 
     This doesn't do any coercion of types or unboxing before factorization.
 
@@ -468,18 +470,16 @@ def _factorize_array(values, na_sentinel: int = -1, size_hint=None, na_value=Non
 
     Returns
     -------
-    labels : ndarray
+    codes : ndarray
     uniques : ndarray
     """
     hash_klass, values = _get_data_algo(values)
 
     table = hash_klass(size_hint or len(values))
-    uniques, labels = table.factorize(
-        values, na_sentinel=na_sentinel, na_value=na_value
-    )
+    uniques, codes = table.factorize(values, na_sentinel=na_sentinel, na_value=na_value)
 
-    labels = ensure_platform_int(labels)
-    return labels, uniques
+    codes = ensure_platform_int(codes)
+    return codes, uniques
 
 
 _shared_docs[
@@ -494,16 +494,16 @@ _shared_docs[
 
     Parameters
     ----------
-    %(values)s%(sort)s%(order)s
+    %(values)s%(sort)s
     na_sentinel : int, default -1
         Value to mark "not found".
     %(size_hint)s\
 
     Returns
     -------
-    labels : ndarray
+    codes : ndarray
         An integer ndarray that's an indexer into `uniques`.
-        ``uniques.take(labels)`` will have the same values as `values`.
+        ``uniques.take(codes)`` will have the same values as `values`.
     uniques : ndarray, Index, or Categorical
         The unique valid values. When `values` is Categorical, `uniques`
         is a Categorical. When `values` is some other pandas object, an
@@ -525,27 +525,27 @@ _shared_docs[
     ``pd.factorize(values)``. The results are identical for methods like
     :meth:`Series.factorize`.
 
-    >>> labels, uniques = pd.factorize(['b', 'b', 'a', 'c', 'b'])
-    >>> labels
+    >>> codes, uniques = pd.factorize(['b', 'b', 'a', 'c', 'b'])
+    >>> codes
     array([0, 0, 1, 2, 0])
     >>> uniques
     array(['b', 'a', 'c'], dtype=object)
 
-    With ``sort=True``, the `uniques` will be sorted, and `labels` will be
+    With ``sort=True``, the `uniques` will be sorted, and `codes` will be
     shuffled so that the relationship is the maintained.
 
-    >>> labels, uniques = pd.factorize(['b', 'b', 'a', 'c', 'b'], sort=True)
-    >>> labels
+    >>> codes, uniques = pd.factorize(['b', 'b', 'a', 'c', 'b'], sort=True)
+    >>> codes
     array([1, 1, 0, 2, 1])
     >>> uniques
     array(['a', 'b', 'c'], dtype=object)
 
-    Missing values are indicated in `labels` with `na_sentinel`
+    Missing values are indicated in `codes` with `na_sentinel`
     (``-1`` by default). Note that missing values are never
     included in `uniques`.
 
-    >>> labels, uniques = pd.factorize(['b', None, 'a', 'c', 'b'])
-    >>> labels
+    >>> codes, uniques = pd.factorize(['b', None, 'a', 'c', 'b'])
+    >>> codes
     array([ 0, -1,  1,  2,  0])
     >>> uniques
     array(['b', 'a', 'c'], dtype=object)
@@ -555,8 +555,8 @@ _shared_docs[
     will differ. For Categoricals, a `Categorical` is returned.
 
     >>> cat = pd.Categorical(['a', 'a', 'c'], categories=['a', 'b', 'c'])
-    >>> labels, uniques = pd.factorize(cat)
-    >>> labels
+    >>> codes, uniques = pd.factorize(cat)
+    >>> codes
     array([0, 0, 1])
     >>> uniques
     [a, c]
@@ -569,8 +569,8 @@ _shared_docs[
     returned.
 
     >>> cat = pd.Series(['a', 'a', 'c'])
-    >>> labels, uniques = pd.factorize(cat)
-    >>> labels
+    >>> codes, uniques = pd.factorize(cat)
+    >>> codes
     array([0, 0, 1])
     >>> uniques
     Index(['a', 'c'], dtype='object')
@@ -585,18 +585,10 @@ _shared_docs[
         coerced to ndarrays before factorization.
     """
     ),
-    order=dedent(
-        """\
-    order : None
-        .. deprecated:: 0.23.0
-
-           This parameter has no effect and is deprecated.
-    """
-    ),
     sort=dedent(
         """\
     sort : bool, default False
-        Sort `uniques` and shuffle `labels` to maintain the
+        Sort `uniques` and shuffle `codes` to maintain the
         relationship.
     """
     ),
@@ -608,12 +600,13 @@ _shared_docs[
     ),
 )
 @Appender(_shared_docs["factorize"])
-@deprecate_kwarg(old_arg_name="order", new_arg_name=None)
-def factorize(values, sort: bool = False, order=None, na_sentinel=-1, size_hint=None):
+def factorize(
+    values, sort: bool = False, na_sentinel: int = -1, size_hint: Optional[int] = None,
+) -> Tuple[np.ndarray, Union[np.ndarray, ABCIndex]]:
     # Implementation notes: This method is responsible for 3 things
     # 1.) coercing data to array-like (ndarray, Index, extension array)
-    # 2.) factorizing labels and uniques
-    # 3.) Maybe boxing the output in an Index
+    # 2.) factorizing codes and uniques
+    # 3.) Maybe boxing the uniques in an Index
     #
     # Step 2 is dispatched to extension types (like Categorical). They are
     # responsible only for factorization. All data coercion, sorting and boxing
@@ -624,7 +617,7 @@ def factorize(values, sort: bool = False, order=None, na_sentinel=-1, size_hint=
 
     if is_extension_array_dtype(values):
         values = extract_array(values)
-        labels, uniques = values.factorize(na_sentinel=na_sentinel)
+        codes, uniques = values.factorize(na_sentinel=na_sentinel)
         dtype = original.dtype
     else:
         values, dtype = _ensure_data(values)
@@ -634,15 +627,13 @@ def factorize(values, sort: bool = False, order=None, na_sentinel=-1, size_hint=
         else:
             na_value = None
 
-        labels, uniques = _factorize_array(
+        codes, uniques = _factorize_array(
             values, na_sentinel=na_sentinel, size_hint=size_hint, na_value=na_value
         )
 
     if sort and len(uniques) > 0:
-        from pandas.core.sorting import safe_sort
-
-        uniques, labels = safe_sort(
-            uniques, labels, na_sentinel=na_sentinel, assume_unique=True, verify=False
+        uniques, codes = safe_sort(
+            uniques, codes, na_sentinel=na_sentinel, assume_unique=True, verify=False
         )
 
     uniques = _reconstruct_data(uniques, dtype, original)
@@ -655,7 +646,7 @@ def factorize(values, sort: bool = False, order=None, na_sentinel=-1, size_hint=
 
         uniques = Index(uniques)
 
-    return labels, uniques
+    return codes, uniques
 
 
 def value_counts(
@@ -835,7 +826,7 @@ def mode(values, dropna: bool = True) -> ABCSeries:
             return Series(values.values.mode(dropna=dropna), name=values.name)
         return values.mode(dropna=dropna)
 
-    if dropna and is_datetimelike(values):
+    if dropna and needs_i8_conversion(values.dtype):
         mask = values.isnull()
         values = values[~mask]
 
@@ -1089,7 +1080,7 @@ class SelectN:
         return self.compute("nsmallest")
 
     @staticmethod
-    def is_valid_dtype_n_method(dtype):
+    def is_valid_dtype_n_method(dtype) -> bool:
         """
         Helper function to determine if dtype is valid for
         nsmallest/nlargest methods
@@ -1155,7 +1146,7 @@ class SelectNSeries(SelectN):
         n = min(n, narr)
 
         kth_val = algos.kth_smallest(arr.copy(), n - 1)
-        ns, = np.nonzero(arr <= kth_val)
+        (ns,) = np.nonzero(arr <= kth_val)
         inds = ns[arr[ns].argsort(kind="mergesort")]
 
         if self.keep != "all":
@@ -1440,7 +1431,9 @@ _take_2d_multi_dict = {
 }
 
 
-def _get_take_nd_function(ndim, arr_dtype, out_dtype, axis: int = 0, mask_info=None):
+def _get_take_nd_function(
+    ndim: int, arr_dtype, out_dtype, axis: int = 0, mask_info=None
+):
     if ndim <= 2:
         tup = (arr_dtype.name, out_dtype.name)
         if ndim == 1:
@@ -1474,7 +1467,7 @@ def _get_take_nd_function(ndim, arr_dtype, out_dtype, axis: int = 0, mask_info=N
     return func2
 
 
-def take(arr, indices, axis=0, allow_fill: bool = False, fill_value=None):
+def take(arr, indices, axis: int = 0, allow_fill: bool = False, fill_value=None):
     """
     Take elements from an array.
 
@@ -1568,13 +1561,7 @@ def take(arr, indices, axis=0, allow_fill: bool = False, fill_value=None):
 
 
 def take_nd(
-    arr,
-    indexer,
-    axis=0,
-    out=None,
-    fill_value=np.nan,
-    mask_info=None,
-    allow_fill: bool = True,
+    arr, indexer, axis: int = 0, out=None, fill_value=np.nan, allow_fill: bool = True
 ):
     """
     Specialized Cython take which sets NaN values in one pass
@@ -1597,10 +1584,6 @@ def take_nd(
         maybe_promote to determine this type for any fill_value
     fill_value : any, default np.nan
         Fill value to replace -1 values with
-    mask_info : tuple of (ndarray, boolean)
-        If provided, value should correspond to:
-            (indexer != -1, (indexer != -1).any())
-        If not provided, it will be computed internally if necessary
     allow_fill : boolean, default True
         If False, indexer is assumed to contain no -1 values so no filling
         will be done.  This short-circuits computation of a mask.  Result is
@@ -1611,6 +1594,7 @@ def take_nd(
     subarray : array-like
         May be the same type as the input, or cast to an ndarray.
     """
+    mask_info = None
 
     if is_extension_array_dtype(arr):
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
@@ -1632,12 +1616,9 @@ def take_nd(
             dtype, fill_value = maybe_promote(arr.dtype, fill_value)
             if dtype != arr.dtype and (out is None or out.dtype != dtype):
                 # check if promotion is actually required based on indexer
-                if mask_info is not None:
-                    mask, needs_masking = mask_info
-                else:
-                    mask = indexer == -1
-                    needs_masking = mask.any()
-                    mask_info = mask, needs_masking
+                mask = indexer == -1
+                needs_masking = mask.any()
+                mask_info = mask, needs_masking
                 if needs_masking:
                     if out is not None and out.dtype != dtype:
                         raise TypeError("Incompatible type for fill_value")
@@ -1818,12 +1799,12 @@ def searchsorted(arr, value, side="left", sorter=None):
     elif not (
         is_object_dtype(arr) or is_numeric_dtype(arr) or is_categorical_dtype(arr)
     ):
-        from pandas.core.series import Series
-
         # E.g. if `arr` is an array with dtype='datetime64[ns]'
         # and `value` is a pd.Timestamp, we may need to convert value
-        value_ser = Series(value)._values
+        value_ser = array([value]) if is_scalar(value) else array(value)
         value = value_ser[0] if is_scalar(value) else value_ser
+        if isinstance(value, Timestamp) and value.tzinfo is None:
+            value = value.to_datetime64()
 
     result = arr.searchsorted(value, side=side, sorter=sorter)
     return result
@@ -1881,8 +1862,9 @@ def diff(arr, n: int, axis: int = 0):
     out_arr[tuple(na_indexer)] = na
 
     if arr.ndim == 2 and arr.dtype.name in _diff_special:
-        f = algos.diff_2d
-        f(arr, out_arr, n, axis)
+        # TODO: can diff_2d dtype specialization troubles be fixed by defining
+        #  out_arr inside diff_2d?
+        algos.diff_2d(arr, out_arr, n, axis)
     else:
         # To keep mypy happy, _res_indexer is a list while res_indexer is
         #  a tuple, ditto for lag_indexer.
@@ -1919,3 +1901,139 @@ def diff(arr, n: int, axis: int = 0):
         out_arr = out_arr.astype("int64").view("timedelta64[ns]")
 
     return out_arr
+
+
+# --------------------------------------------------------------------
+# Helper functions
+
+# Note: safe_sort is in algorithms.py instead of sorting.py because it is
+#  low-dependency, is used in this module, and used private methods from
+#  this module.
+def safe_sort(
+    values,
+    codes=None,
+    na_sentinel: int = -1,
+    assume_unique: bool = False,
+    verify: bool = True,
+) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+    """
+    Sort ``values`` and reorder corresponding ``codes``.
+
+    ``values`` should be unique if ``codes`` is not None.
+    Safe for use with mixed types (int, str), orders ints before strs.
+
+    Parameters
+    ----------
+    values : list-like
+        Sequence; must be unique if ``codes`` is not None.
+    codes : list_like, optional
+        Indices to ``values``. All out of bound indices are treated as
+        "not found" and will be masked with ``na_sentinel``.
+    na_sentinel : int, default -1
+        Value in ``codes`` to mark "not found".
+        Ignored when ``codes`` is None.
+    assume_unique : bool, default False
+        When True, ``values`` are assumed to be unique, which can speed up
+        the calculation. Ignored when ``codes`` is None.
+    verify : bool, default True
+        Check if codes are out of bound for the values and put out of bound
+        codes equal to na_sentinel. If ``verify=False``, it is assumed there
+        are no out of bound codes. Ignored when ``codes`` is None.
+
+        .. versionadded:: 0.25.0
+
+    Returns
+    -------
+    ordered : ndarray
+        Sorted ``values``
+    new_codes : ndarray
+        Reordered ``codes``; returned when ``codes`` is not None.
+
+    Raises
+    ------
+    TypeError
+        * If ``values`` is not list-like or if ``codes`` is neither None
+        nor list-like
+        * If ``values`` cannot be sorted
+    ValueError
+        * If ``codes`` is not None and ``values`` contain duplicates.
+    """
+    if not is_list_like(values):
+        raise TypeError(
+            "Only list-like objects are allowed to be passed to safe_sort as values"
+        )
+
+    if not isinstance(values, np.ndarray) and not is_extension_array_dtype(values):
+        # don't convert to string types
+        dtype, _ = infer_dtype_from_array(values)
+        values = np.asarray(values, dtype=dtype)
+
+    def sort_mixed(values):
+        # order ints before strings, safe in py3
+        str_pos = np.array([isinstance(x, str) for x in values], dtype=bool)
+        nums = np.sort(values[~str_pos])
+        strs = np.sort(values[str_pos])
+        return np.concatenate([nums, np.asarray(strs, dtype=object)])
+
+    sorter = None
+    if (
+        not is_extension_array_dtype(values)
+        and lib.infer_dtype(values, skipna=False) == "mixed-integer"
+    ):
+        # unorderable in py3 if mixed str/int
+        ordered = sort_mixed(values)
+    else:
+        try:
+            sorter = values.argsort()
+            ordered = values.take(sorter)
+        except TypeError:
+            # try this anyway
+            ordered = sort_mixed(values)
+
+    # codes:
+
+    if codes is None:
+        return ordered
+
+    if not is_list_like(codes):
+        raise TypeError(
+            "Only list-like objects or None are allowed to be"
+            "passed to safe_sort as codes"
+        )
+    codes = ensure_platform_int(np.asarray(codes))
+
+    from pandas import Index
+
+    if not assume_unique and not Index(values).is_unique:
+        raise ValueError("values should be unique if codes is not None")
+
+    if sorter is None:
+        # mixed types
+        hash_klass, values = _get_data_algo(values)
+        t = hash_klass(len(values))
+        t.map_locations(values)
+        sorter = ensure_platform_int(t.lookup(ordered))
+
+    if na_sentinel == -1:
+        # take_1d is faster, but only works for na_sentinels of -1
+        order2 = sorter.argsort()
+        new_codes = take_1d(order2, codes, fill_value=-1)
+        if verify:
+            mask = (codes < -len(values)) | (codes >= len(values))
+        else:
+            mask = None
+    else:
+        reverse_indexer = np.empty(len(sorter), dtype=np.int_)
+        reverse_indexer.put(sorter, np.arange(len(sorter)))
+        # Out of bound indices will be masked with `na_sentinel` next, so we
+        # may deal with them here without performance loss using `mode='wrap'`
+        new_codes = reverse_indexer.take(codes, mode="wrap")
+
+        mask = codes == na_sentinel
+        if verify:
+            mask = mask | (codes < -len(values)) | (codes >= len(values))
+
+    if mask is not None:
+        np.putmask(new_codes, mask, na_sentinel)
+
+    return ordered, ensure_platform_int(new_codes)

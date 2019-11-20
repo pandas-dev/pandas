@@ -208,20 +208,18 @@ class TestSeriesDatetimeValues:
         # test limited display api
         def get_dir(s):
             results = [r for r in s.dt.__dir__() if not r.startswith("_")]
-            return list(sorted(set(results)))
+            return sorted(set(results))
 
         s = Series(date_range("20130101", periods=5, freq="D"), name="xxx")
         results = get_dir(s)
-        tm.assert_almost_equal(
-            results, list(sorted(set(ok_for_dt + ok_for_dt_methods)))
-        )
+        tm.assert_almost_equal(results, sorted(set(ok_for_dt + ok_for_dt_methods)))
 
         s = Series(
             period_range("20130101", periods=5, freq="D", name="xxx").astype(object)
         )
         results = get_dir(s)
         tm.assert_almost_equal(
-            results, list(sorted(set(ok_for_period + ok_for_period_methods)))
+            results, sorted(set(ok_for_period + ok_for_period_methods))
         )
 
         # 11295
@@ -229,9 +227,7 @@ class TestSeriesDatetimeValues:
         s = Series(pd.date_range("2015-01-01", "2016-01-01", freq="T"), name="xxx")
         s = s.dt.tz_localize("UTC").dt.tz_convert("America/Chicago")
         results = get_dir(s)
-        tm.assert_almost_equal(
-            results, list(sorted(set(ok_for_dt + ok_for_dt_methods)))
-        )
+        tm.assert_almost_equal(results, sorted(set(ok_for_dt + ok_for_dt_methods)))
         exp_values = pd.date_range(
             "2015-01-01", "2016-01-01", freq="T", tz="UTC"
         ).tz_convert("America/Chicago")
@@ -342,6 +338,39 @@ class TestSeriesDatetimeValues:
         s = Series(pd.Categorical(dti), name="foo")
         result = s.dt.year
         expected = Series([2017, 2017, 2018, 2018], name="foo")
+        tm.assert_series_equal(result, expected)
+
+    def test_dt_tz_localize_categorical(self, tz_aware_fixture):
+        # GH 27952
+        tz = tz_aware_fixture
+        datetimes = pd.Series(
+            ["2019-01-01", "2019-01-01", "2019-01-02"], dtype="datetime64[ns]"
+        )
+        categorical = datetimes.astype("category")
+        result = categorical.dt.tz_localize(tz)
+        expected = datetimes.dt.tz_localize(tz)
+        tm.assert_series_equal(result, expected)
+
+    def test_dt_tz_convert_categorical(self, tz_aware_fixture):
+        # GH 27952
+        tz = tz_aware_fixture
+        datetimes = pd.Series(
+            ["2019-01-01", "2019-01-01", "2019-01-02"], dtype="datetime64[ns, MET]"
+        )
+        categorical = datetimes.astype("category")
+        result = categorical.dt.tz_convert(tz)
+        expected = datetimes.dt.tz_convert(tz)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("accessor", ["year", "month", "day"])
+    def test_dt_other_accessors_categorical(self, accessor):
+        # GH 27952
+        datetimes = pd.Series(
+            ["2018-01-01", "2018-01-01", "2019-01-02"], dtype="datetime64[ns]"
+        )
+        categorical = datetimes.astype("category")
+        result = getattr(categorical.dt, accessor)
+        expected = getattr(datetimes.dt, accessor)
         tm.assert_series_equal(result, expected)
 
     def test_dt_accessor_no_new_attributes(self):
@@ -471,7 +500,7 @@ class TestSeriesDatetimeValues:
         s.iloc[0] = pd.NaT
         result = s.dt.strftime("%Y/%m/%d")
         expected = Series(
-            ["NaT", "2013/01/02", "2013/01/03", "2013/01/04", "2013/01/05"]
+            [np.nan, "2013/01/02", "2013/01/03", "2013/01/04", "2013/01/05"]
         )
         tm.assert_series_equal(result, expected)
 
@@ -519,6 +548,20 @@ class TestSeriesDatetimeValues:
                 "2013/01/01 00:00:00.003",
             ]
         )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "data",
+        [
+            DatetimeIndex(["2019-01-01", pd.NaT]),
+            PeriodIndex(["2019-01-01", pd.NaT], dtype="period[D]"),
+        ],
+    )
+    def test_strftime_nat(self, data):
+        # GH 29578
+        s = Series(data)
+        result = s.dt.strftime("%Y-%m-%d")
+        expected = Series(["2019-01-01", np.nan])
         tm.assert_series_equal(result, expected)
 
     def test_valid_dt_with_missing_values(self):

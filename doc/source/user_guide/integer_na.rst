@@ -30,7 +30,7 @@ you must explicitly pass the dtype into :meth:`array` or :class:`Series`:
 
 .. ipython:: python
 
-   arr = pd.array([1, 2, np.nan], dtype=pd.Int64Dtype())
+   arr = pd.array([1, 2, None], dtype=pd.Int64Dtype())
    arr
 
 Or the string alias ``"Int64"`` (note the capital ``"I"``, to differentiate from
@@ -63,7 +63,7 @@ up with a ``float64`` dtype Series:
    pd.Series([1, 2, np.nan])
 
 Operations involving an integer array will behave similar to NumPy arrays.
-Missing values will be propagated, and and the data will be coerced to another
+Missing values will be propagated, and the data will be coerced to another
 dtype if needed.
 
 .. ipython:: python

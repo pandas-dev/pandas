@@ -24,6 +24,27 @@ and `good first issue
 where you could start out. Once you've found an interesting issue, you can
 return here to get your development environment setup.
 
+When you start working on an issue, it's a good idea to assign the issue to yourself,
+so nobody else duplicates the work on it. GitHub restricts assigning issues to maintainers
+of the project only. In most projects, and until recently in pandas, contributors added a
+comment letting others know they are working on an issue. While this is ok, you need to
+check each issue individually, and it's not possible to find the unassigned ones.
+
+For this reason, we implemented a workaround consisting of adding a comment with the exact
+text `take`. When you do it, a GitHub action will automatically assign you the issue
+(this will take seconds, and may require refreshint the page to see it).
+By doing this, it's possible to filter the list of issues and find only the unassigned ones.
+
+So, a good way to find an issue to start contributing to pandas is to check the list of
+`unassigned good first issues <https://github.com/pandas-dev/pandas/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22+no%3Aassignee>`_
+and assign yourself one you like by writing a comment with the exact text `take`.
+
+If for whatever reason you are not able to continue working with the issue, please try to
+unassign it, so other people know it's available again. You can check the list of
+assigned issues, since people may not be working in them anymore. If you want to work on one
+that is assigned, feel free to kindly ask the current assignee if you can take it
+(please allow at least a week of inactivity before considering work in the issue discontinued).
+
 Feel free to ask questions on the `mailing list
 <https://groups.google.com/forum/?fromgroups#!forum/pydata>`_ or on `Gitter`_.
 
@@ -208,7 +229,7 @@ We'll now kick off a three-step process:
 
    # Build and install pandas
    python setup.py build_ext --inplace -j 4
-   python -m pip install -e . --no-build-isolation
+   python -m pip install -e . --no-build-isolation --no-use-pep517
 
 At this point you should be able to import pandas from your locally built version::
 
@@ -236,14 +257,17 @@ Creating a Python environment (pip)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you aren't using conda for your development environment, follow these instructions.
-You'll need to have at least python3.5 installed on your system.
+You'll need to have at least Python 3.6.1 installed on your system.
 
-.. code-block:: none
+**Unix**/**Mac OS**
+
+.. code-block:: bash
 
    # Create a virtual environment
    # Use an ENV_DIR of your choice. We'll use ~/virtualenvs/pandas-dev
    # Any parent directories should already exist
    python3 -m venv ~/virtualenvs/pandas-dev
+
    # Activate the virtualenv
    . ~/virtualenvs/pandas-dev/bin/activate
 
@@ -251,8 +275,34 @@ You'll need to have at least python3.5 installed on your system.
    python -m pip install -r requirements-dev.txt
 
    # Build and install pandas
-   python setup.py build_ext --inplace -j 4
-   python -m pip install -e . --no-build-isolation
+   python setup.py build_ext --inplace -j 0
+   python -m pip install -e . --no-build-isolation --no-use-pep517
+
+**Windows**
+
+Below is a brief overview on how to set-up a virtual environment with Powershell
+under Windows. For details please refer to the
+`official virtualenv user guide <https://virtualenv.pypa.io/en/stable/userguide/#activate-script>`__
+
+Use an ENV_DIR of your choice. We'll use ~\virtualenvs\pandas-dev where
+'~' is the folder pointed to by either $env:USERPROFILE (Powershell) or
+%USERPROFILE% (cmd.exe) environment variable. Any parent directories
+should already exist.
+
+.. code-block:: powershell
+
+   # Create a virtual environment
+   python -m venv $env:USERPROFILE\virtualenvs\pandas-dev
+
+   # Activate the virtualenv. Use activate.bat for cmd.exe
+   ~\virtualenvs\pandas-dev\Scripts\Activate.ps1
+
+   # Install the build dependencies
+   python -m pip install -r requirements-dev.txt
+
+   # Build and install pandas
+   python setup.py build_ext --inplace -j 0
+   python -m pip install -e . --no-build-isolation --no-use-pep517
 
 Creating a branch
 -----------------
@@ -453,7 +503,7 @@ reducing the turn-around time for checking your changes.
     python make.py --no-api
 
     # compile the docs with only a single section, relative to the "source" folder.
-    # For example, compiling only this guide (docs/source/development/contributing.rst)
+    # For example, compiling only this guide (doc/source/development/contributing.rst)
     python make.py clean
     python make.py --single development/contributing.rst
 
@@ -603,6 +653,9 @@ submitting code to run the check yourself::
 
 to auto-format your code. Additionally, many editors have plugins that will
 apply ``black`` as you edit files.
+
+You should use a ``black`` version >= 19.10b0 as previous versions are not compatible
+with the pandas codebase.
 
 Optionally, you may wish to setup `pre-commit hooks <https://pre-commit.com/>`_
 to automatically run ``black`` and ``flake8`` when you make a git commit. This
@@ -817,29 +870,6 @@ The limitation here is that while a human can reasonably understand that ``is_nu
            ...
 
 With custom types and inference this is not always possible so exceptions are made, but every effort should be exhausted to avoid ``cast`` before going down such paths.
-
-Syntax Requirements
-~~~~~~~~~~~~~~~~~~~
-
-Because *pandas* still supports Python 3.5, :pep:`526` does not apply and variables **must** be annotated with type comments. Specifically, this is a valid annotation within pandas:
-
-.. code-block:: python
-
-   primes = []  # type: List[int]
-
-Whereas this is **NOT** allowed:
-
-.. code-block:: python
-
-   primes: List[int] = []  # not supported in Python 3.5!
-
-Note that function signatures can always be annotated per :pep:`3107`:
-
-.. code-block:: python
-
-   def sum_of_primes(primes: List[int] = []) -> int:
-       ...
-
 
 Pandas-specific Types
 ~~~~~~~~~~~~~~~~~~~~~
@@ -1267,7 +1297,7 @@ environment by::
 
 or, to use a specific Python interpreter,::
 
-    asv run -e -E existing:python3.5
+    asv run -e -E existing:python3.6
 
 This will display stderr from the benchmarks, and use your local
 ``python`` that comes from your ``$PATH``.

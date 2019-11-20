@@ -13,6 +13,7 @@ import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range, notna
 from pandas.conftest import _get_cython_table_params
 from pandas.core.apply import frame_apply
+from pandas.core.base import SpecificationError
 import pandas.util.testing as tm
 
 
@@ -423,12 +424,9 @@ class TestDataFrameApply:
                 row["D"] = 7
             return row
 
-        try:
+        msg = "'float' object has no attribute 'startswith'"
+        with pytest.raises(AttributeError, match=msg):
             data.apply(transform, axis=1)
-        except AttributeError as e:
-            assert len(e.args) == 2
-            assert e.args[1] == "occurred at index 4"
-            assert e.args[0] == "'float' object has no attribute 'startswith'"
 
     def test_apply_bug(self):
 
@@ -1097,7 +1095,8 @@ class TestDataFrameAggregate:
         df = pd.DataFrame({"A": range(5), "B": 5})
 
         # nested renaming
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        msg = r"nested renamer is not supported"
+        with pytest.raises(SpecificationError, match=msg):
             df.agg({"A": {"foo": "min"}, "B": {"bar": "max"}})
 
     def test_agg_reduce(self, axis, float_frame):
@@ -1262,6 +1261,23 @@ class TestDataFrameAggregate:
 
         assert result == expected
 
+    def test_agg_listlike_result(self):
+        # GH-29587 user defined function returning list-likes
+        df = DataFrame(
+            {"A": [2, 2, 3], "B": [1.5, np.nan, 1.5], "C": ["foo", None, "bar"]}
+        )
+
+        def func(group_col):
+            return list(group_col.dropna().unique())
+
+        result = df.agg(func)
+        expected = pd.Series([[2, 3], [1.5], ["foo", "bar"]], index=["A", "B", "C"])
+        tm.assert_series_equal(result, expected)
+
+        result = df.agg([func])
+        expected = expected.to_frame("func").T
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize(
         "df, func, expected",
         chain(
@@ -1359,3 +1375,14 @@ class TestDataFrameAggregate:
         expected = pd.Series(index=timestamps, data=timestamps)
 
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("df", [pd.DataFrame({"A": ["a", None], "B": ["c", "d"]})])
+    @pytest.mark.parametrize("method", ["min", "max", "sum"])
+    def test_consistency_of_aggregates_of_columns_with_missing_values(self, df, method):
+        # GH 16832
+        none_in_first_column_result = getattr(df[["A", "B"]], method)()
+        none_in_second_column_result = getattr(df[["B", "A"]], method)()
+
+        tm.assert_series_equal(
+            none_in_first_column_result, none_in_second_column_result
+        )

@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame, MultiIndex
-from pandas.core.groupby.base import reduction_kernels
+from pandas.core.groupby.base import reduction_kernels, transformation_kernels
 import pandas.util.testing as tm
 
 
@@ -124,3 +124,15 @@ def group_keys():
     """yields all possible options for the `group_keys` parameter, one at a time.
     """
     return [True, False]
+
+
+@pytest.fixture(params=transformation_kernels)
+def transformation_func(request):
+    """yields the string names of all groupby transformation functions."""
+    return request.param
+
+
+@pytest.fixture(params=sorted(reduction_kernels) + sorted(transformation_kernels))
+def groupby_func(request):
+    """yields both aggregation and transformation functions."""
+    return request.param

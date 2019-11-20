@@ -79,8 +79,6 @@ index_col : int, list of int, default None
     subset of data is selected with ``usecols``, index_col
     is based on the subset.
 usecols : int, str, list-like, or callable default None
-    Return a subset of the columns.
-
     * If None, then parse all columns.
     * If int, then indicates last column to be parsed.
 
@@ -97,6 +95,8 @@ usecols : int, str, list-like, or callable default None
 
     * If callable, then evaluate each column name against it and parse the
       column if the callable returns ``True``.
+
+    Returns a subset of the columns according to behavior above.
 
       .. versionadded:: 0.24.0
 
@@ -304,7 +304,7 @@ def read_excel(
     skipfooter=0,
     convert_float=True,
     mangle_dupe_cols=True,
-    **kwds
+    **kwds,
 ):
 
     for arg in ("sheet", "sheetname", "parse_cols"):
@@ -344,7 +344,7 @@ def read_excel(
         skipfooter=skipfooter,
         convert_float=convert_float,
         mangle_dupe_cols=mangle_dupe_cols,
-        **kwds
+        **kwds,
     )
 
 
@@ -417,7 +417,7 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
         skipfooter=0,
         convert_float=True,
         mangle_dupe_cols=True,
-        **kwds
+        **kwds,
     ):
 
         _validate_header_arg(header)
@@ -517,7 +517,7 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
                     skipfooter=skipfooter,
                     usecols=usecols,
                     mangle_dupe_cols=mangle_dupe_cols,
-                    **kwds
+                    **kwds,
                 )
 
                 output[asheetname] = parser.read(nrows=nrows)
@@ -552,9 +552,9 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         ``io.excel.<extension>.writer``.  NOTE: can only be passed as a keyword
         argument.
     date_format : str, default None
-        Format string for dates written into Excel files (e.g. 'YYYY-MM-DD')
+        Format string for dates written into Excel files (e.g. 'YYYY-MM-DD').
     datetime_format : str, default None
-        Format string for datetime objects written into Excel files
+        Format string for datetime objects written into Excel files.
         (e.g. 'YYYY-MM-DD HH:MM:SS')
     mode : {'w', 'a'}, default 'w'
         File mode to use (write or append).
@@ -694,7 +694,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         date_format=None,
         datetime_format=None,
         mode="w",
-        **engine_kwargs
+        **engine_kwargs,
     ):
         # validate that this engine can handle the extension
         if isinstance(path, str):
@@ -848,7 +848,7 @@ class ExcelFile:
         skipfooter=0,
         convert_float=True,
         mangle_dupe_cols=True,
-        **kwds
+        **kwds,
     ):
         """
         Parse specified sheet(s) into a DataFrame.
@@ -886,7 +886,7 @@ class ExcelFile:
             skipfooter=skipfooter,
             convert_float=convert_float,
             mangle_dupe_cols=mangle_dupe_cols,
-            **kwds
+            **kwds,
         )
 
     @property

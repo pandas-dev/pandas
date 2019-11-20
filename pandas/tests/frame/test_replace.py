@@ -1295,3 +1295,64 @@ class TestDataFrameReplace:
         result = df.replace(to_replace=to_replace, value=None, method=method)
         expected = DataFrame(expected)
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "replace_dict, final_data",
+        [({"a": 1, "b": 1}, [[3, 3], [2, 2]]), ({"a": 1, "b": 2}, [[3, 1], [2, 3]])],
+    )
+    def test_categorical_replace_with_dict(self, replace_dict, final_data):
+        # GH 26988
+        df = DataFrame([[1, 1], [2, 2]], columns=["a", "b"], dtype="category")
+        expected = DataFrame(final_data, columns=["a", "b"], dtype="category")
+        expected["a"] = expected["a"].cat.set_categories([1, 2, 3])
+        expected["b"] = expected["b"].cat.set_categories([1, 2, 3])
+        result = df.replace(replace_dict, 3)
+        tm.assert_frame_equal(result, expected)
+        with pytest.raises(AssertionError):
+            # ensure non-inplace call does not affect original
+            tm.assert_frame_equal(df, expected)
+        df.replace(replace_dict, 3, inplace=True)
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize(
+        "df, to_replace, exp",
+        [
+            (
+                {"col1": [1, 2, 3], "col2": [4, 5, 6]},
+                {4: 5, 5: 6, 6: 7},
+                {"col1": [1, 2, 3], "col2": [5, 6, 7]},
+            ),
+            (
+                {"col1": [1, 2, 3], "col2": ["4", "5", "6"]},
+                {"4": "5", "5": "6", "6": "7"},
+                {"col1": [1, 2, 3], "col2": ["5", "6", "7"]},
+            ),
+        ],
+    )
+    def test_replace_commutative(self, df, to_replace, exp):
+        # GH 16051
+        # DataFrame.replace() overwrites when values are non-numeric
+        # also added to data frame whilst issue was for series
+
+        df = pd.DataFrame(df)
+
+        expected = pd.DataFrame(exp)
+        result = df.replace(to_replace)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "replacer",
+        [
+            pd.Timestamp("20170827"),
+            np.int8(1),
+            np.int16(1),
+            np.float32(1),
+            np.float64(1),
+        ],
+    )
+    def test_replace_replacer_dtype(self, replacer):
+        # GH26632
+        df = pd.DataFrame(["a"])
+        result = df.replace({"a": replacer, "b": replacer})
+        expected = pd.DataFrame([replacer])
+        tm.assert_frame_equal(result, expected)
