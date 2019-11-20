@@ -103,12 +103,11 @@ class BooleanDtype(ExtensionDtype):
 
 def coerce_to_array(values, mask=None, copy=False):
     """
-    Coerce the input values array to numpy arrays with a mask
+    Coerce the input values array to numpy arrays with a mask.
 
     Parameters
     ----------
     values : 1D list-like
-    dtype : integer dtype
     mask : bool 1D array, optional
     copy : bool, default False
         if True, copy the input
@@ -132,7 +131,7 @@ def coerce_to_array(values, mask=None, copy=False):
             values = values.copy()
     else:
         values_object = np.asarray(values, dtype=object)
-        mask_values = isna(values)
+        mask_values = isna(values_object)
         values = np.zeros(len(values), dtype=bool)
         values[~mask_values] = values_object[~mask_values].astype(bool)
 
@@ -153,9 +152,9 @@ def coerce_to_array(values, mask=None, copy=False):
                 mask = mask | mask_values
 
     if not values.ndim == 1:
-        raise TypeError("values must be a 1D list-like")
+        raise ValueError("values must be a 1D list-like")
     if not mask.ndim == 1:
-        raise TypeError("mask must be a 1D list-like")
+        raise ValueError("mask must be a 1D list-like")
 
     return values, mask
 
@@ -211,7 +210,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
     Length: 3, dtype: boolean
     """
 
-    def __init__(self, values, mask, copy=False):
+    def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
         if not (isinstance(values, np.ndarray) and values.dtype == np.bool_):
             raise TypeError(
                 "values should be boolean numpy array. Use "
@@ -222,6 +221,10 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
                 "mask should be boolean numpy array. Use "
                 "the 'array' function instead"
             )
+        if not values.ndim == 1:
+            raise ValueError("values must be a 1D array")
+        if not mask.ndim == 1:
+            raise ValueError("mask must be a 1D array")
 
         if copy:
             values = values.copy()

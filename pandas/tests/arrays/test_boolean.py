@@ -32,17 +32,23 @@ def test_boolean_array_constructor():
     expected = pd.array([True, False, True, None], dtype="boolean")
     tm.assert_extension_array_equal(result, expected)
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match="values should be boolean numpy array"):
         BooleanArray(values.tolist(), mask)
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match="mask should be boolean numpy array"):
         BooleanArray(values, mask.tolist())
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match="values should be boolean numpy array"):
         BooleanArray(values.astype(int), mask)
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match="mask should be boolean numpy array"):
         BooleanArray(values, None)
+
+    with pytest.raises(ValueError, match="values must be a 1D array"):
+        BooleanArray(values.reshape(1, -1), mask)
+
+    with pytest.raises(ValueError, match="mask must be a 1D array"):
+        BooleanArray(values, mask.reshape(1, -1))
 
 
 def test_boolean_array_constructor_copy():
@@ -109,6 +115,13 @@ def test_coerce_to_array():
     result = BooleanArray(*coerce_to_array(values, mask=mask))
     expected = BooleanArray(values, mask)
     tm.assert_extension_array_equal(result, expected)
+    assert result._data is values
+    assert result._mask is mask
+    result = BooleanArray(*coerce_to_array(values, mask=mask, copy=True))
+    expected = BooleanArray(values, mask)
+    tm.assert_extension_array_equal(result, expected)
+    assert result._data is not values
+    assert result._mask is not mask
 
     # mixed missing from values and mask
     values = [True, False, None, False]
@@ -120,6 +133,38 @@ def test_coerce_to_array():
     tm.assert_extension_array_equal(result, expected)
     result = BooleanArray(*coerce_to_array(np.array(values, dtype=object), mask=mask))
     tm.assert_extension_array_equal(result, expected)
+    result = BooleanArray(*coerce_to_array(values, mask=mask.tolist()))
+    tm.assert_extension_array_equal(result, expected)
+
+    # raise errors for wrong dimension
+    values = np.array([True, False, True, False], dtype="bool")
+    mask = np.array([False, False, False, True], dtype="bool")
+
+    with pytest.raises(ValueError, match="values must be a 1D list-like"):
+        coerce_to_array(values.reshape(1, -1))
+
+    with pytest.raises(ValueError, match="mask must be a 1D list-like"):
+        coerce_to_array(values, mask=mask.reshape(1, -1))
+
+
+def test_coerce_to_array_from_boolean_array():
+    # passing BooleanArray to coerce_to_array
+    values = np.array([True, False, True, False], dtype="bool")
+    mask = np.array([False, False, False, True], dtype="bool")
+    arr = BooleanArray(values, mask)
+    result = BooleanArray(*coerce_to_array(arr))
+    tm.assert_extension_array_equal(result, arr)
+    # no copy
+    assert result._data is arr._data
+    assert result._mask is arr._mask
+
+    result = BooleanArray(*coerce_to_array(arr), copy=True)
+    tm.assert_extension_array_equal(result, arr)
+    assert result._data is not arr._data
+    assert result._mask is not arr._mask
+
+    with pytest.raises(ValueError, match="cannot pass mask for BooleanArray input"):
+        coerce_to_array(arr, mask=mask)
 
 
 def test_coerce_to_numpy_array():
