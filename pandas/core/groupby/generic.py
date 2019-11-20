@@ -1382,7 +1382,7 @@ class DataFrameGroupBy(GroupBy):
             )
         return fast_path, slow_path
 
-    def _choose_path(self, fast_path, slow_path, group):
+    def _choose_path(self, fast_path: Callable, slow_path: Callable, group: DataFrame):
         path = slow_path
         res = slow_path(group)
 
@@ -1392,8 +1392,8 @@ class DataFrameGroupBy(GroupBy):
         except AssertionError:
             raise
         except Exception:
-            # Hard to know ex-ante what exceptions `fast_path` might raise
-            # TODO: no test cases get here
+            # GH#29631 For user-defined function, we cant predict what may be
+            #  raised; see test_transform.test_transform_fastpath_raises
             return path, res
 
         # verify fast path does not change columns (and names), otherwise
