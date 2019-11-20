@@ -732,7 +732,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         #  _data.astype call above
         return Index(new_values, dtype=new_values.dtype, name=self.name, copy=False)
 
-    def shift(self, periods, freq=None):
+    def shift(self, periods=1, freq=None):
         """
         Shift index by desired number of time frequency increments.
 
@@ -741,7 +741,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
         Parameters
         ----------
-        periods : int
+        periods : int, default 1
             Number of periods (or increments) to shift by,
             can be positive or negative.
 
