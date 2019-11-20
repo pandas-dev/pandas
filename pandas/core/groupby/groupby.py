@@ -39,6 +39,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas._typing import FrameOrSeries, Scalar
 from pandas.core import nanops
 import pandas.core.algorithms as algorithms
 from pandas.core.arrays import Categorical, try_cast_to_ea
@@ -1296,7 +1297,7 @@ class GroupBy(_GroupBy):
 
         if isinstance(self.obj, Series):
             result.name = self.obj.name
-        return result
+        return self._reindex_output(result, fill_value=0)
 
     @classmethod
     def _add_numeric_operations(cls):
@@ -1740,6 +1741,7 @@ class GroupBy(_GroupBy):
             if not self.observed and isinstance(result_index, CategoricalIndex):
                 out = out.reindex(result_index)
 
+            out = self._reindex_output(out)
             return out.sort_index() if self.sort else out
 
         # dropna is truthy
@@ -2380,7 +2382,9 @@ class GroupBy(_GroupBy):
         mask = self._cumcount_array(ascending=False) < n
         return self._selected_obj[mask]
 
-    def _reindex_output(self, output):
+    def _reindex_output(
+        self, output: FrameOrSeries, fill_value: Scalar = np.NaN
+    ) -> FrameOrSeries:
         """
         If we have categorical groupers, then we might want to make sure that
         we have a fully re-indexed output to the levels. This means expanding
@@ -2394,8 +2398,10 @@ class GroupBy(_GroupBy):
 
         Parameters
         ----------
-        output: Series or DataFrame
+        output : Series or DataFrame
             Object resulting from grouping and applying an operation.
+        fill_value : scalar, default np.NaN
+            Value to use for unobserved categories if self.observed is False.
 
         Returns
         -------
@@ -2426,7 +2432,11 @@ class GroupBy(_GroupBy):
         ).sortlevel()
 
         if self.as_index:
-            d = {self.obj._get_axis_name(self.axis): index, "copy": False}
+            d = {
+                self.obj._get_axis_name(self.axis): index,
+                "copy": False,
+                "fill_value": fill_value,
+            }
             return output.reindex(**d)
 
         # GH 13204
@@ -2448,7 +2458,9 @@ class GroupBy(_GroupBy):
         output = output.drop(labels=list(g_names), axis=1)
 
         # Set a temp index and reindex (possibly expanding)
-        output = output.set_index(self.grouper.result_index).reindex(index, copy=False)
+        output = output.set_index(self.grouper.result_index).reindex(
+            index, copy=False, fill_value=fill_value
+        )
 
         # Reset in-axis grouper columns
         # (using level numbers `g_nums` because level names may not be unique)
