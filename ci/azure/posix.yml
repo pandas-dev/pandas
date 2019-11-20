@@ -18,24 +18,26 @@ jobs:
         py36_minimum_versions:
           ENV_FILE: ci/deps/azure-36-minimum_versions.yaml
           CONDA_PY: "36"
-          PATTERN: "not slow and not network"
+          PATTERN: "not slow and not network and not clipboard"
+
         py36_locale_slow_old_np:
           ENV_FILE: ci/deps/azure-36-locale.yaml
           CONDA_PY: "36"
           PATTERN: "slow"
           LOCALE_OVERRIDE: "zh_CN.UTF-8"
-          EXTRA_APT: "language-pack-zh-hans"
+          EXTRA_APT: "language-pack-zh-hans xsel"
 
         py36_locale_slow:
           ENV_FILE: ci/deps/azure-36-locale_slow.yaml
           CONDA_PY: "36"
           PATTERN: "not slow and not network"
           LOCALE_OVERRIDE: "it_IT.UTF-8"
+          EXTRA_APT: "xsel"
 
         py36_32bit:
           ENV_FILE: ci/deps/azure-36-32bit.yaml
           CONDA_PY: "36"
-          PATTERN: "not slow and not network"
+          PATTERN: "not slow and not network and not clipboard"
           BITS32: "yes"
 
         py37_locale:
@@ -43,6 +45,7 @@ jobs:
           CONDA_PY: "37"
           PATTERN: "not slow and not network"
           LOCALE_OVERRIDE: "zh_CN.UTF-8"
+          EXTRA_APT: "xsel"
 
         # https://github.com/pandas-dev/pandas/issues/29432
         # py37_np_dev:

@@ -8,7 +8,7 @@ import pandas as pd
 from pandas import DataFrame, get_option, read_clipboard
 import pandas.util.testing as tm
 
-from pandas.io.clipboard import PyperclipException, clipboard_get, clipboard_set
+from pandas.io.clipboard import clipboard_get, clipboard_set
 
 
 def build_kwargs(sep, excel):
@@ -245,6 +245,7 @@ class TestClipboard:
     @pytest.mark.parametrize("enc", ["UTF-8", "utf-8", "utf8"])
     def test_round_trip_valid_encodings(self, enc, df):
         self.check_round_trip_frame(df, encoding=enc)
+
 
 @pytest.mark.single
 @pytest.mark.clipboard
