@@ -140,15 +140,6 @@ def test_mock_clipboard(mock_clipboard):
     assert result == "abc"
 
 
-@pytest.fixture(scope="module")
-def check_clipboard():
-    """Check if we have a clipboard, skipping if it's not present"""
-    try:
-        DataFrame({"A": [1, 2]}).to_clipboard()
-    except (PyperclipException, RuntimeError):
-        pytest.skip("Missing clipboard dependency")
-
-
 @pytest.mark.single
 @pytest.mark.clipboard
 @pytest.mark.usefixtures("mock_clipboard")
@@ -255,12 +246,8 @@ class TestClipboard:
     def test_round_trip_valid_encodings(self, enc, df):
         self.check_round_trip_frame(df, encoding=enc)
 
-
-@pytest.mark.single
-@pytest.mark.clipboard
-@pytest.mark.parametrize("data", ["\U0001f44d...", "Ωœ∑´...", "abcd..."])
-@pytest.mark.usefixtures("check_clipboard")
-def test_raw_roundtrip(data):
-    # PR #25040 wide unicode wasn't copied correctly on PY3 on windows
-    clipboard_set(data)
-    assert data == clipboard_get()
+    @pytest.mark.parametrize("data", ["\U0001f44d...", "Ωœ∑´...", "abcd..."])
+    def test_raw_roundtrip(data):
+        # PR #25040 wide unicode wasn't copied correctly on PY3 on windows
+        clipboard_set(data)
+        assert data == clipboard_get()
