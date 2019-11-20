@@ -5398,8 +5398,7 @@ class DataFrame(NDFrame):
 
         if other.empty and self.empty:
             empty_columns = self.columns.union(other_columns)
-            self = self.reindex(columns=empty_columns, index=[None]).dropna()
-            return self.copy()
+            return self.reindex(columns=empty_columns, index=[None]).dropna()
 
         if other.empty and len(new_index) == len(self.index):
             return self.copy()
