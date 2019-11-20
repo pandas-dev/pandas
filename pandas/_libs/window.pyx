@@ -182,8 +182,8 @@ cdef inline void remove_sum(float64_t val, int64_t *nobs, float64_t *sum_x) nogi
         sum_x[0] = sum_x[0] - val
 
 
-def roll_sum_variable(ndarray[float64_t] values, ndarray[int64_t] start, ndarray[int64_t] end,
-                      int64_t minp):
+def roll_sum_variable(ndarray[float64_t] values, ndarray[int64_t] start,
+                      ndarray[int64_t] end, int64_t minp):
     cdef:
         float64_t sum_x = 0
         int64_t s, e
@@ -221,8 +221,8 @@ def roll_sum_variable(ndarray[float64_t] values, ndarray[int64_t] start, ndarray
     return output
 
 
-def roll_sum_fixed(ndarray[float64_t] values, ndarray[int64_t] start, ndarray[int64_t] end,
-                   int64_t minp, int64_t win):
+def roll_sum_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
+                   ndarray[int64_t] end, int64_t minp, int64_t win):
     cdef:
         float64_t val, prev_x, sum_x = 0
         int64_t range_endpoint
@@ -298,8 +298,8 @@ cdef inline void remove_mean(float64_t val, Py_ssize_t *nobs, float64_t *sum_x,
             neg_ct[0] = neg_ct[0] - 1
 
 
-def roll_mean_fixed(ndarray[float64_t] values, ndarray[int64_t] start, ndarray[int64_t] end,
-                    int64_t minp, int64_t win):
+def roll_mean_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
+                    ndarray[int64_t] end, int64_t minp, int64_t win):
     cdef:
         float64_t val, prev_x, sum_x = 0
         Py_ssize_t nobs = 0, i, neg_ct = 0, N = len(values)
@@ -325,8 +325,9 @@ def roll_mean_fixed(ndarray[float64_t] values, ndarray[int64_t] start, ndarray[i
 
     return output
 
-def roll_mean_variable(ndarray[float64_t] values, ndarray[int64_t] start, ndarray[int64_t] end,
-                       int64_t minp):
+
+def roll_mean_variable(ndarray[float64_t] values, ndarray[int64_t] start,
+                       ndarray[int64_t] end, int64_t minp):
     cdef:
         float64_t val, sum_x = 0
         int64_t s, e
