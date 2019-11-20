@@ -625,7 +625,7 @@ class BlockManager(PandasObject):
                         convert=convert,
                         regex=regex,
                     )
-                    if m.any():
+                    if m.any() or convert:
                         new_rb = _extend_blocks(result, new_rb)
                     else:
                         new_rb.append(b)

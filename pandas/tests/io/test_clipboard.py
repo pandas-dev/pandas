@@ -258,6 +258,7 @@ class TestClipboard:
 @pytest.mark.clipboard
 @pytest.mark.skipif(not _DEPS_INSTALLED, reason="clipboard primitives not installed")
 @pytest.mark.parametrize("data", ["\U0001f44d...", "Ωœ∑´...", "abcd..."])
+@pytest.mark.xfail(reason="flaky in CI", strict=False)
 def test_raw_roundtrip(data):
     # PR #25040 wide unicode wasn't copied correctly on PY3 on windows
     clipboard_set(data)

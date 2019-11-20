@@ -194,6 +194,47 @@ New repr for :class:`pandas.core.arrays.IntervalArray`
 
    pd.arrays.IntervalArray.from_tuples([(0, 1), (2, 3)])
 
+
+All :class:`SeriesGroupBy` aggregation methods now respect the ``observed`` keyword
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The following methods now also correctly output values for unobserved categories when called through ``groupby(..., observed=False)`` (:issue:`17605`)
+
+- :meth:`SeriesGroupBy.count`
+- :meth:`SeriesGroupBy.size`
+- :meth:`SeriesGroupBy.nunique`
+- :meth:`SeriesGroupBy.nth`
+
+.. ipython:: python
+
+    df = pd.DataFrame({
+        "cat_1": pd.Categorical(list("AABB"), categories=list("ABC")),
+        "cat_2": pd.Categorical(list("AB") * 2, categories=list("ABC")),
+        "value": [0.1] * 4,
+    })
+    df
+
+
+*pandas 0.25.x*
+
+.. code-block:: ipython
+
+   In [2]: df.groupby(["cat_1", "cat_2"], observed=False)["value"].count()
+   Out[2]:
+        cat_1  cat_2
+        A      A        1
+               B        1
+        B      A        1
+               B        1
+    Name: value, dtype: int64
+
+
+*pandas 1.0.0*
+
+.. ipython:: python
+
+   df.groupby(["cat_1", "cat_2"], observed=False)["value"].count()
+
+
 .. _whatsnew_1000.api.other:
 
 Other API changes
@@ -275,6 +316,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - :meth:`pandas.Series.str.cat` does not accept list-likes *within* list-likes anymore (:issue:`27611`)
 - Removed the previously deprecated :meth:`ExtensionArray._formatting_values`. Use :attr:`ExtensionArray._formatter` instead. (:issue:`23601`)
 - Removed the previously deprecated ``IntervalIndex.from_intervals`` in favor of the :class:`IntervalIndex` constructor (:issue:`19263`)
+- Changed the default value for the "keep_tz" argument in :meth:`DatetimeIndex.to_series` to ``True`` (:issue:`23739`)
 - Ability to read pickles containing :class:`Categorical` instances created with pre-0.16 version of pandas has been removed (:issue:`27538`)
 - Removed the previously deprecated ``reduce`` and ``broadcast`` arguments from :meth:`DataFrame.apply` (:issue:`18577`)
 - Removed the previously deprecated ``assert_raises_regex`` function in ``pandas.util.testing`` (:issue:`29174`)
@@ -285,6 +327,10 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - Removed the previously deprecated :meth:`DataFrame.get_ftype_counts`, :meth:`Series.get_ftype_counts` (:issue:`18243`)
 - Removed the previously deprecated :meth:`Index.get_duplicated`, use ``idx[idx.duplicated()].unique()`` instead (:issue:`20239`)
 - Removed the previously deprecated :meth:`Series.clip_upper`, :meth:`Series.clip_lower`, :meth:`DataFrame.clip_upper`, :meth:`DataFrame.clip_lower` (:issue:`24203`)
+- Removed previously deprecated "order" argument from :func:`factorize` (:issue:`19751`)
+- Removed previously deprecated "v" argument from :meth:`FrozenNDarray.searchsorted`, use "value" instead (:issue:`22672`)
+- Removed previously deprecated "raise_conflict" argument from :meth:`DataFrame.update`, use "errors" instead (:issue:`23585`)
+- Removed previously deprecated keyword "n" from :meth:`DatetimeIndex.shift`, :meth:`TimedeltaIndex.shift`, :meth:`PeriodIndex.shift`, use "periods" instead (:issue:`22458`)
 -
 
 .. _whatsnew_1000.performance:
@@ -458,6 +504,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupby.agg` not able to use lambda function with named aggregation (:issue:`27519`)
 - Bug in :meth:`DataFrame.groupby` losing column name information when grouping by a categorical column (:issue:`28787`)
 - Bug in :meth:`DataFrameGroupBy.rolling().quantile()` ignoring ``interpolation`` keyword argument (:issue:`28779`)
+- Bug in :meth:`DataFrame.groupby` where ``any``, ``all``, ``nunique`` and transform functions would incorrectly handle duplicate column labels (:issue:`21668`)
 
 Reshaping
 ^^^^^^^^^
@@ -471,6 +518,7 @@ Reshaping
 - Better error message in :func:`get_dummies` when `columns` isn't a list-like value (:issue:`28383`)
 - Bug :meth:`Series.pct_change` where supplying an anchored frequency would throw a ValueError (:issue:`28664`)
 - Bug where :meth:`DataFrame.equals` returned True incorrectly in some cases when two DataFrames had the same columns in different orders (:issue:`28839`)
+- Bug in :meth:`DataFrame.replace` that caused non-numeric replacer's dtype not respected (:issue:`26632`)
 
 Sparse
 ^^^^^^
