@@ -390,7 +390,7 @@ class TestStyler:
 
         def color_negative_red(val):
             color = "red" if val < 0 else "black"
-            return "color: %s" % color
+            return f"color: {color}"
 
         df.loc[pct_subset]
         df.style.applymap(color_negative_red, subset=pct_subset)

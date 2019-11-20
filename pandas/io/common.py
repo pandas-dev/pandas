@@ -109,7 +109,7 @@ def _is_url(url) -> bool:
 
 
 def _expand_user(
-    filepath_or_buffer: FilePathOrBuffer[AnyStr]
+    filepath_or_buffer: FilePathOrBuffer[AnyStr],
 ) -> FilePathOrBuffer[AnyStr]:
     """Return the argument with an initial component of ~ or ~user
        replaced by that user's home directory.
@@ -139,7 +139,7 @@ def _validate_header_arg(header) -> None:
 
 
 def _stringify_path(
-    filepath_or_buffer: FilePathOrBuffer[AnyStr]
+    filepath_or_buffer: FilePathOrBuffer[AnyStr],
 ) -> FilePathOrBuffer[AnyStr]:
     """Attempt to convert a path-like object to a string.
 
@@ -528,7 +528,7 @@ class BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore
         file: FilePathOrBuffer,
         mode: str,
         archive_name: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ):
         if mode in ["wb", "rb"]:
             mode = mode.replace("b", "")

@@ -179,7 +179,7 @@ class Ops:
         self.int_series = Series(arr, index=self.int_index, name="a")
         self.float_series = Series(arr, index=self.float_index, name="a")
         self.dt_series = Series(arr, index=self.dt_index, name="a")
-        self.dt_tz_series = self.dt_tz_index.to_series(keep_tz=True)
+        self.dt_tz_series = self.dt_tz_index.to_series()
         self.period_series = Series(arr, index=self.period_index, name="a")
         self.string_series = Series(arr, index=self.string_index, name="a")
         self.unicode_series = Series(arr, index=self.unicode_index, name="a")
@@ -653,7 +653,7 @@ class TestIndexOps(Ops):
 
         # with NaT
         s = df["dt"].copy()
-        s = klass([v for v in s.values] + [pd.NaT])
+        s = klass(list(s.values) + [pd.NaT])
 
         result = s.value_counts()
         assert result.index.dtype == "datetime64[ns]"
@@ -707,9 +707,9 @@ class TestIndexOps(Ops):
             else:
                 exp_arr = np.array(range(len(o)), dtype=np.intp)
                 exp_uniques = o
-            labels, uniques = o.factorize()
+            codes, uniques = o.factorize()
 
-            tm.assert_numpy_array_equal(labels, exp_arr)
+            tm.assert_numpy_array_equal(codes, exp_arr)
             if isinstance(o, Series):
                 tm.assert_index_equal(uniques, Index(orig), check_names=False)
             else:
@@ -736,9 +736,9 @@ class TestIndexOps(Ops):
             exp_arr = np.array(
                 [5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9], dtype=np.intp
             )
-            labels, uniques = n.factorize(sort=True)
+            codes, uniques = n.factorize(sort=True)
 
-            tm.assert_numpy_array_equal(labels, exp_arr)
+            tm.assert_numpy_array_equal(codes, exp_arr)
             if isinstance(o, Series):
                 tm.assert_index_equal(
                     uniques, Index(orig).sort_values(), check_names=False
@@ -747,8 +747,8 @@ class TestIndexOps(Ops):
                 tm.assert_index_equal(uniques, o, check_names=False)
 
             exp_arr = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4], np.intp)
-            labels, uniques = n.factorize(sort=False)
-            tm.assert_numpy_array_equal(labels, exp_arr)
+            codes, uniques = n.factorize(sort=False)
+            tm.assert_numpy_array_equal(codes, exp_arr)
 
             if isinstance(o, Series):
                 expected = Index(o.iloc[5:10].append(o.iloc[:5]))

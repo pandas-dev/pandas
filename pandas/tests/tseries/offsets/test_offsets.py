@@ -4253,7 +4253,7 @@ def test_valid_default_arguments(offset_types):
     cls()
 
 
-@pytest.mark.parametrize("kwd", sorted(list(liboffsets.relativedelta_kwds)))
+@pytest.mark.parametrize("kwd", sorted(liboffsets.relativedelta_kwds))
 def test_valid_month_attributes(kwd, month_classes):
     # GH#18226
     cls = month_classes
@@ -4262,14 +4262,14 @@ def test_valid_month_attributes(kwd, month_classes):
         cls(**{kwd: 3})
 
 
-@pytest.mark.parametrize("kwd", sorted(list(liboffsets.relativedelta_kwds)))
+@pytest.mark.parametrize("kwd", sorted(liboffsets.relativedelta_kwds))
 def test_valid_relativedelta_kwargs(kwd):
     # Check that all the arguments specified in liboffsets.relativedelta_kwds
     # are in fact valid relativedelta keyword args
     DateOffset(**{kwd: 1})
 
 
-@pytest.mark.parametrize("kwd", sorted(list(liboffsets.relativedelta_kwds)))
+@pytest.mark.parametrize("kwd", sorted(liboffsets.relativedelta_kwds))
 def test_valid_tick_attributes(kwd, tick_classes):
     # GH#18226
     cls = tick_classes
