@@ -488,7 +488,7 @@ _parser_defaults = {
     "cache_dates": True,
     "thousands": None,
     "comment": None,
-    "decimal": b".",
+    "decimal": ".",
     # 'engine': 'c',
     "parse_dates": False,
     "keep_date_col": False,
@@ -568,7 +568,7 @@ def _make_parser_function(name, default_sep=","):
         # Quoting, Compression, and File Format
         compression="infer",
         thousands=None,
-        decimal=b".",
+        decimal=".",
         lineterminator=None,
         quotechar='"',
         quoting=csv.QUOTE_MINIMAL,
@@ -2343,6 +2343,9 @@ class PythonParser(ParserBase):
 
         if len(self.decimal) != 1:
             raise ValueError("Only length-1 decimal markers supported")
+
+        if isinstance(self.decimal, bytes):
+            self.decimal = self.decimal.decode()
 
         if self.thousands is None:
             self.nonnum = re.compile(
