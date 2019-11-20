@@ -308,13 +308,6 @@ class TestBlock:
         with pytest.raises(Exception):
             newb.delete(3)
 
-    def test_make_block_same_class(self):
-        # issue 19431
-        block = create_block("M8[ns, US/Eastern]", [3])
-        with pytest.raises(TypeError, match="unexpected keyword"):
-            # Deprecation enforced as of GH#????
-            block.make_block_same_class(block.values, dtype=block.values.dtype)
-
 
 class TestDatetimeBlock:
     def test_can_hold_element(self):
