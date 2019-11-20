@@ -1439,29 +1439,31 @@ class TestSeriesInterpolateData:
         s = Series([1, 3, np.nan, np.nan, np.nan, 11])
 
         with pytest.raises(
-                ValueError, match="`limit_direction` must not be `backward` for method `pad`"
+            ValueError,
+            match="`limit_direction` must not be `backward` for method `pad`",
         ):
             s.interpolate(method="pad", limit=1, limit_direction="backward")
 
         with pytest.raises(
-                ValueError, match="`limit_direction` must not be `backward` for method `ffill`"
+            ValueError,
+            match="`limit_direction` must not be `backward` for method `ffill`",
         ):
             s.interpolate(method="ffill", limit=1, limit_direction="backward")
 
         with pytest.raises(
-                ValueError, match="`limit_direction` must not be `both` for method `ffill`"
+            ValueError, match="`limit_direction` must not be `both` for method `ffill`"
         ):
             s.interpolate(method="ffill", limit=1, limit_direction="both")
 
         with pytest.raises(
-                ValueError,
-                match="`limit_direction` must not be `forward` for method `backfill`"
+            ValueError,
+            match="`limit_direction` must not be `forward` for method `backfill`",
         ):
             s.interpolate(method="backfill", limit=1, limit_direction="forward")
 
         with pytest.raises(
-                ValueError,
-                match="`limit_direction` must not be `forward` for method `bfill`"
+            ValueError,
+            match="`limit_direction` must not be `forward` for method `bfill`",
         ):
             s.interpolate(method="bfill", limit=1, limit_direction="forward")
 

@@ -510,7 +510,7 @@ longer NaN-gaps forbids using interpolated values.
 
 By default, ``NaN`` values are filled in a ``forward`` direction. Use
 ``limit_direction`` parameter to fill ``backward`` or from ``both`` directions.
-Note that for methods `pad`, `ffill`, `backfill` and `bfill` ``limit_directions``
+Note that for methods `pad`, `ffill`, `backfill` and `bfill` ``limit_direction``
 must not be set as these fill methods implicitly are meant to work only in one
 direction.
 

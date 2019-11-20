@@ -6896,7 +6896,7 @@ class NDFrame(PandasObject, SelectionMixin):
             If limit is specified, consecutive NaNs will be filled in this
             direction. If the methods 'pad' or 'ffill' are used it must be
             None or 'forward'. If 'backfill' or 'bfill' are use it must be
-            None or 'backwards'. 
+            None or 'backwards'.
         limit_area : {`None`, 'inside', 'outside'}, default None
             If limit is specified, consecutive NaNs will be filled with this
             restriction.
@@ -7126,24 +7126,26 @@ class NDFrame(PandasObject, SelectionMixin):
             )
 
         # Set `limit_direction` depending on `method`
-        if (method == 'pad') or (method == 'ffill'):
-            if (limit_direction == 'backward') or (limit_direction == 'both'):
+        if (method == "pad") or (method == "ffill"):
+            if (limit_direction == "backward") or (limit_direction == "both"):
                 raise ValueError(
-                    "`limit_direction` must not be `%s` for method `%s`" % (limit_direction, method)
+                    "`limit_direction` must not be `%s` for method `%s`"
+                    % (limit_direction, method)
                 )
             else:
-                limit_direction = 'forward'
-        elif (method == 'backfill') or (method == 'bfill'):
-            if (limit_direction == 'forward') or (limit_direction == 'both'):
+                limit_direction = "forward"
+        elif (method == "backfill") or (method == "bfill"):
+            if (limit_direction == "forward") or (limit_direction == "both"):
                 raise ValueError(
-                    "`limit_direction` must not be `%s` for method `%s`" % (limit_direction, method)
+                    "`limit_direction` must not be `%s` for method `%s`"
+                    % (limit_direction, method)
                 )
             else:
-                limit_direction = 'backward'
+                limit_direction = "backward"
         else:
             # Set default
             if limit_direction is None:
-                limit_direction = 'forward'
+                limit_direction = "forward"
 
         # create/use the index
         if method == "linear":
