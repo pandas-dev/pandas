@@ -493,29 +493,29 @@ class TestDataFrameAlterAxes:
         tm.assert_series_equal(result, expected)
 
         # convert to series while keeping the timezone
-        result = idx.to_series(keep_tz=True, index=[0, 1])
+        msg = "stop passing 'keep_tz'"
+        with tm.assert_produces_warning(FutureWarning) as m:
+            result = idx.to_series(keep_tz=True, index=[0, 1])
         tm.assert_series_equal(result, expected)
+        assert msg in str(m[0].message)
 
         # convert to utc
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning) as m:
             df["B"] = idx.to_series(keep_tz=False, index=[0, 1])
         result = df["B"]
         comp = Series(DatetimeIndex(expected.values).tz_localize(None), name="B")
         tm.assert_series_equal(result, comp)
-
-        with tm.assert_produces_warning(FutureWarning) as m:
-            result = idx.to_series(index=[0, 1])
-        tm.assert_series_equal(result, expected.dt.tz_convert(None))
-        msg = (
-            "The default of the 'keep_tz' keyword in "
-            "DatetimeIndex.to_series will change to True in a future "
-            "release."
-        )
+        msg = "do 'idx.tz_convert(None)' before calling"
         assert msg in str(m[0].message)
 
-        with tm.assert_produces_warning(FutureWarning):
+        result = idx.to_series(index=[0, 1])
+        tm.assert_series_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning) as m:
             result = idx.to_series(keep_tz=False, index=[0, 1])
         tm.assert_series_equal(result, expected.dt.tz_convert(None))
+        msg = "do 'idx.tz_convert(None)' before calling"
+        assert msg in str(m[0].message)
 
         # list of datetimes with a tz
         df["B"] = idx.to_pydatetime()
