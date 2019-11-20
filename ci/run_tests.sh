@@ -35,10 +35,12 @@ if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
     PYTEST_CMD="xvfb-run -e /dev/stdout $PYTEST_CMD"
 fi
 
-set -x
 echo "Is xsel installed?"
-which xsel || true
+set -x
+dpkg -l | grep xsel
+echo $PATH
 python -c "import subprocess; print(subprocess.call(['which', 'xsel'], stdout=subprocess.PIPE, stderr=subprocess.PIPE))"
+which xsel
 
 echo $PYTEST_CMD
 sh -c "$PYTEST_CMD"
