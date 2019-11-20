@@ -10,8 +10,17 @@ import copy
 from functools import partial
 from textwrap import dedent
 import typing
-from typing import Any, Callable, FrozenSet, Iterable, Sequence, Type, Union, cast
-import warnings
+from typing import (
+    Any,
+    Callable,
+    FrozenSet,
+    Iterable,
+    Mapping,
+    Sequence,
+    Type,
+    Union,
+    cast,
+)
 
 import numpy as np
 
@@ -213,7 +222,6 @@ class SeriesGroupBy(GroupBy):
     )
     @Appender(_shared_docs["aggregate"])
     def aggregate(self, func=None, *args, **kwargs):
-        _level = kwargs.pop("_level", None)
 
         relabeling = func is None
         columns = None
@@ -232,7 +240,7 @@ class SeriesGroupBy(GroupBy):
             # Catch instances of lists / tuples
             # but not the class list / tuple itself.
             func = _maybe_mangle_lambdas(func)
-            ret = self._aggregate_multiple_funcs(func, (_level or 0) + 1)
+            ret = self._aggregate_multiple_funcs(func)
             if relabeling:
                 ret.columns = columns
         else:
@@ -256,8 +264,7 @@ class SeriesGroupBy(GroupBy):
         if not self.as_index:  # pragma: no cover
             print("Warning, ignoring as_index=True")
 
-        # _level handled at higher
-        if not _level and isinstance(ret, dict):
+        if isinstance(ret, dict):
             from pandas import concat
 
             ret = concat(ret, axis=1)
@@ -265,23 +272,14 @@ class SeriesGroupBy(GroupBy):
 
     agg = aggregate
 
-    def _aggregate_multiple_funcs(self, arg, _level):
+    def _aggregate_multiple_funcs(self, arg):
         if isinstance(arg, dict):
 
             # show the deprecation, but only if we
             # have not shown a higher level one
             # GH 15931
-            if isinstance(self._selected_obj, Series) and _level <= 1:
-                msg = dedent(
-                    """\
-                using a dict on a Series for aggregation
-                is deprecated and will be removed in a future version. Use \
-                named aggregation instead.
-
-                    >>> grouper.agg(name_1=func_1, name_2=func_2)
-                """
-                )
-                warnings.warn(msg, FutureWarning, stacklevel=3)
+            if isinstance(self._selected_obj, Series):
+                raise SpecificationError("nested renamer is not supported")
 
             columns = list(arg.keys())
             arg = arg.items()
@@ -317,33 +315,95 @@ class SeriesGroupBy(GroupBy):
 
         if any(isinstance(x, DataFrame) for x in results.values()):
             # let higher level handle
-            if _level:
-                return results
+            return results
 
         return DataFrame(results, columns=columns)
 
-    def _wrap_series_output(self, output, index, names=None):
-        """ common agg/transform wrapping logic """
-        output = output[self._selection_name]
+    def _wrap_series_output(
+        self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]], index: Index,
+    ) -> Union[Series, DataFrame]:
+        """
+        Wraps the output of a SeriesGroupBy operation into the expected result.
 
-        if names is not None:
-            return DataFrame(output, index=index, columns=names)
+        Parameters
+        ----------
+        output : Mapping[base.OutputKey, Union[Series, np.ndarray]]
+            Data to wrap.
+        index : pd.Index
+            Index to apply to the output.
+
+        Returns
+        -------
+        Series or DataFrame
+
+        Notes
+        -----
+        In the vast majority of cases output and columns will only contain one
+        element. The exception is operations that expand dimensions, like ohlc.
+        """
+        indexed_output = {key.position: val for key, val in output.items()}
+        columns = Index(key.label for key in output)
+
+        result: Union[Series, DataFrame]
+        if len(output) > 1:
+            result = DataFrame(indexed_output, index=index)
+            result.columns = columns
         else:
-            name = self._selection_name
-            if name is None:
-                name = self._selected_obj.name
-            return Series(output, index=index, name=name)
+            result = Series(indexed_output[0], index=index, name=columns[0])
 
-    def _wrap_aggregated_output(self, output, names=None):
+        return result
+
+    def _wrap_aggregated_output(
+        self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]]
+    ) -> Union[Series, DataFrame]:
+        """
+        Wraps the output of a SeriesGroupBy aggregation into the expected result.
+
+        Parameters
+        ----------
+        output : Mapping[base.OutputKey, Union[Series, np.ndarray]]
+            Data to wrap.
+
+        Returns
+        -------
+        Series or DataFrame
+
+        Notes
+        -----
+        In the vast majority of cases output will only contain one element.
+        The exception is operations that expand dimensions, like ohlc.
+        """
         result = self._wrap_series_output(
-            output=output, index=self.grouper.result_index, names=names
+            output=output, index=self.grouper.result_index
         )
         return self._reindex_output(result)._convert(datetime=True)
 
-    def _wrap_transformed_output(self, output, names=None):
-        return self._wrap_series_output(
-            output=output, index=self.obj.index, names=names
-        )
+    def _wrap_transformed_output(
+        self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]]
+    ) -> Series:
+        """
+        Wraps the output of a SeriesGroupBy aggregation into the expected result.
+
+        Parameters
+        ----------
+        output : dict[base.OutputKey, Union[Series, np.ndarray]]
+            Dict with a sole key of 0 and a value of the result values.
+
+        Returns
+        -------
+        Series
+
+        Notes
+        -----
+        output should always contain one element. It is specified as a dict
+        for consistency with DataFrame methods and _wrap_aggregated_output.
+        """
+        assert len(output) == 1
+        result = self._wrap_series_output(output=output, index=self.obj.index)
+
+        # No transformations increase the ndim of the result
+        assert isinstance(result, Series)
+        return result
 
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
         if len(keys) == 0:
@@ -570,7 +630,8 @@ class SeriesGroupBy(GroupBy):
             res, out = np.zeros(len(ri), dtype=out.dtype), res
             res[ids[idx]] = out
 
-        return Series(res, index=ri, name=self._selection_name)
+        result = Series(res, index=ri, name=self._selection_name)
+        return self._reindex_output(result, fill_value=0)
 
     @Appender(Series.describe.__doc__)
     def describe(self, **kwargs):
@@ -722,12 +783,13 @@ class SeriesGroupBy(GroupBy):
         minlength = ngroups or 0
         out = np.bincount(ids[mask], minlength=minlength)
 
-        return Series(
+        result = Series(
             out,
             index=self.grouper.result_index,
             name=self._selection_name,
             dtype="int64",
         )
+        return self._reindex_output(result, fill_value=0)
 
     def _apply_to_column_groupbys(self, func):
         """ return a pass thru """
@@ -845,7 +907,6 @@ class DataFrameGroupBy(GroupBy):
     )
     @Appender(_shared_docs["aggregate"])
     def aggregate(self, func=None, *args, **kwargs):
-        _level = kwargs.pop("_level", None)
 
         relabeling = func is None and _is_multi_agg_with_relabel(**kwargs)
         if relabeling:
@@ -858,7 +919,7 @@ class DataFrameGroupBy(GroupBy):
 
         func = _maybe_mangle_lambdas(func)
 
-        result, how = self._aggregate(func, _level=_level, *args, **kwargs)
+        result, how = self._aggregate(func, *args, **kwargs)
         if how is None:
             return result
 
@@ -878,9 +939,7 @@ class DataFrameGroupBy(GroupBy):
 
                 # try to treat as if we are passing a list
                 try:
-                    result = self._aggregate_multiple_funcs(
-                        [func], _level=_level, _axis=self.axis
-                    )
+                    result = self._aggregate_multiple_funcs([func], _axis=self.axis)
                 except ValueError as err:
                     if "no results" not in str(err):
                         # raised directly by _aggregate_multiple_funcs
@@ -1097,17 +1156,6 @@ class DataFrameGroupBy(GroupBy):
                 raise errors
 
         return DataFrame(result, columns=result_columns)
-
-    def _decide_output_index(self, output, labels):
-        if len(output) == len(labels):
-            output_keys = labels
-        else:
-            output_keys = sorted(output)
-
-            if isinstance(labels, MultiIndex):
-                output_keys = MultiIndex.from_tuples(output_keys, names=labels.names)
-
-        return output_keys
 
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
         if len(keys) == 0:
@@ -1398,7 +1446,7 @@ class DataFrameGroupBy(GroupBy):
             )
         return fast_path, slow_path
 
-    def _choose_path(self, fast_path, slow_path, group):
+    def _choose_path(self, fast_path: Callable, slow_path: Callable, group: DataFrame):
         path = slow_path
         res = slow_path(group)
 
@@ -1408,8 +1456,8 @@ class DataFrameGroupBy(GroupBy):
         except AssertionError:
             raise
         except Exception:
-            # Hard to know ex-ante what exceptions `fast_path` might raise
-            # TODO: no test cases get here
+            # GH#29631 For user-defined function, we cant predict what may be
+            #  raised; see test_transform.test_transform_fastpath_raises
             return path, res
 
         # verify fast path does not change columns (and names), otherwise
@@ -1577,27 +1625,62 @@ class DataFrameGroupBy(GroupBy):
             if in_axis:
                 result.insert(0, name, lev)
 
-    def _wrap_aggregated_output(self, output, names=None):
-        agg_axis = 0 if self.axis == 1 else 1
-        agg_labels = self._obj_with_exclusions._get_axis(agg_axis)
+    def _wrap_aggregated_output(
+        self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]]
+    ) -> DataFrame:
+        """
+        Wraps the output of DataFrameGroupBy aggregations into the expected result.
 
-        output_keys = self._decide_output_index(output, agg_labels)
+        Parameters
+        ----------
+        output : Mapping[base.OutputKey, Union[Series, np.ndarray]]
+           Data to wrap.
+
+        Returns
+        -------
+        DataFrame
+        """
+        indexed_output = {key.position: val for key, val in output.items()}
+        columns = Index(key.label for key in output)
+
+        result = DataFrame(indexed_output)
+        result.columns = columns
 
         if not self.as_index:
-            result = DataFrame(output, columns=output_keys)
             self._insert_inaxis_grouper_inplace(result)
             result = result._consolidate()
         else:
             index = self.grouper.result_index
-            result = DataFrame(output, index=index, columns=output_keys)
+            result.index = index
 
         if self.axis == 1:
             result = result.T
 
         return self._reindex_output(result)._convert(datetime=True)
 
-    def _wrap_transformed_output(self, output, names=None) -> DataFrame:
-        return DataFrame(output, index=self.obj.index)
+    def _wrap_transformed_output(
+        self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]]
+    ) -> DataFrame:
+        """
+        Wraps the output of DataFrameGroupBy transformations into the expected result.
+
+        Parameters
+        ----------
+        output : Mapping[base.OutputKey, Union[Series, np.ndarray]]
+            Data to wrap.
+
+        Returns
+        -------
+        DataFrame
+        """
+        indexed_output = {key.position: val for key, val in output.items()}
+        columns = Index(key.label for key in output)
+
+        result = DataFrame(indexed_output)
+        result.columns = columns
+        result.index = self.obj.index
+
+        return result
 
     def _wrap_agged_blocks(self, items, blocks):
         if not self.as_index:
@@ -1717,9 +1800,11 @@ class DataFrameGroupBy(GroupBy):
         if isinstance(obj, Series):
             results = groupby_series(obj)
         else:
+            # TODO: this is duplicative of how GroupBy naturally works
+            # Try to consolidate with normal wrapping functions
             from pandas.core.reshape.concat import concat
 
-            results = [groupby_series(obj[col], col) for col in obj.columns]
+            results = [groupby_series(content, label) for label, content in obj.items()]
             results = concat(results, axis=1)
             results.columns.names = obj.columns.names
 
@@ -1761,7 +1846,7 @@ def _normalize_keyword_aggregation(kwargs):
     """
     Normalize user-provided "named aggregation" kwargs.
 
-    Transforms from the new ``Dict[str, NamedAgg]`` style kwargs
+    Transforms from the new ``Mapping[str, NamedAgg]`` style kwargs
     to the old OrderedDict[str, List[scalar]]].
 
     Parameters
@@ -1782,7 +1867,7 @@ def _normalize_keyword_aggregation(kwargs):
     >>> _normalize_keyword_aggregation({'output': ('input', 'sum')})
     (OrderedDict([('input', ['sum'])]), ('output',), [('input', 'sum')])
     """
-    # Normalize the aggregation functions as Dict[column, List[func]],
+    # Normalize the aggregation functions as Mapping[column, List[func]],
     # process normally, then fixup the names.
     # TODO(Py35): When we drop python 3.5, change this to
     # defaultdict(list)
