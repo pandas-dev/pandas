@@ -420,6 +420,7 @@ class GroupByMethods:
             key = date_range("1/1/2011", periods=size, freq="s")
 
         df = DataFrame({"values": values, "key": key})
+        self.wide_grp = DataFrame(np.ones((1, 10_000))).groupby([1])
 
         if application == "transform":
             if method == "describe":
@@ -436,6 +437,9 @@ class GroupByMethods:
 
     def time_dtype_as_field(self, dtype, method, application):
         self.as_field_method()
+
+    def time_wide(self):
+        self.wide_grp.sum()
 
 
 class RankWithTies:
