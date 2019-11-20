@@ -497,7 +497,7 @@ filled since the last valid observation:
    ser.interpolate(limit=1)
 
 If an interpolation should only be carried out for consecutive ``NaN`` values
-of a certain maximum length, the ``max_gap`` keyword, introduced in v1.0.0
+of a certain maximum length, the ``max_gap`` keyword, introduced in v1.0.0,
 can be used. Any ``NaN`` gap longer than ``max_gap`` will not be modified.
 This can be useful, e.g. if an interpolation using the ``scipy`` methods
 should be restricted to short NaN-gaps because the expected variation over
@@ -510,6 +510,9 @@ longer NaN-gaps forbids using interpolated values.
 
 By default, ``NaN`` values are filled in a ``forward`` direction. Use
 ``limit_direction`` parameter to fill ``backward`` or from ``both`` directions.
+Note that for methods `pad`, `ffill`, `backfill` and `bfill` ``limit_directions``
+must not be set as these fill methods implicitly are meant to work only in one
+direction.
 
 .. ipython:: python
 
