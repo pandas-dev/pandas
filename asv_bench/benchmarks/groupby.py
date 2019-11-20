@@ -445,7 +445,7 @@ class GroupByWide:
 
     def setup(self, nrows):
         self.wide_grp = DataFrame(np.ones((nrows, 10_000))).groupby([1])
-        
+
     def time_wide(self, nrows):
         self.wide_grp.sum()
 
