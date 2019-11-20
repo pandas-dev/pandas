@@ -11,7 +11,6 @@ from functools import partial
 from textwrap import dedent
 import typing
 from typing import Any, Callable, FrozenSet, Iterable, Sequence, Type, Union, cast
-import warnings
 
 import numpy as np
 
@@ -213,7 +212,6 @@ class SeriesGroupBy(GroupBy):
     )
     @Appender(_shared_docs["aggregate"])
     def aggregate(self, func=None, *args, **kwargs):
-        _level = kwargs.pop("_level", None)
 
         relabeling = func is None
         columns = None
@@ -232,7 +230,7 @@ class SeriesGroupBy(GroupBy):
             # Catch instances of lists / tuples
             # but not the class list / tuple itself.
             func = _maybe_mangle_lambdas(func)
-            ret = self._aggregate_multiple_funcs(func, (_level or 0) + 1)
+            ret = self._aggregate_multiple_funcs(func)
             if relabeling:
                 ret.columns = columns
         else:
@@ -256,8 +254,7 @@ class SeriesGroupBy(GroupBy):
         if not self.as_index:  # pragma: no cover
             print("Warning, ignoring as_index=True")
 
-        # _level handled at higher
-        if not _level and isinstance(ret, dict):
+        if isinstance(ret, dict):
             from pandas import concat
 
             ret = concat(ret, axis=1)
@@ -265,23 +262,14 @@ class SeriesGroupBy(GroupBy):
 
     agg = aggregate
 
-    def _aggregate_multiple_funcs(self, arg, _level):
+    def _aggregate_multiple_funcs(self, arg):
         if isinstance(arg, dict):
 
             # show the deprecation, but only if we
             # have not shown a higher level one
             # GH 15931
-            if isinstance(self._selected_obj, Series) and _level <= 1:
-                msg = dedent(
-                    """\
-                using a dict on a Series for aggregation
-                is deprecated and will be removed in a future version. Use \
-                named aggregation instead.
-
-                    >>> grouper.agg(name_1=func_1, name_2=func_2)
-                """
-                )
-                warnings.warn(msg, FutureWarning, stacklevel=3)
+            if isinstance(self._selected_obj, Series):
+                raise SpecificationError("nested renamer is not supported")
 
             columns = list(arg.keys())
             arg = arg.items()
@@ -317,8 +305,7 @@ class SeriesGroupBy(GroupBy):
 
         if any(isinstance(x, DataFrame) for x in results.values()):
             # let higher level handle
-            if _level:
-                return results
+            return results
 
         return DataFrame(results, columns=columns)
 
@@ -394,35 +381,39 @@ class SeriesGroupBy(GroupBy):
     def transform(self, func, *args, **kwargs):
         func = self._get_cython_func(func) or func
 
-        if isinstance(func, str):
-            if not (func in base.transform_kernel_whitelist):
-                msg = "'{func}' is not a valid function name for transform(name)"
-                raise ValueError(msg.format(func=func))
-            if func in base.cythonized_kernels:
-                # cythonized transform or canned "agg+broadcast"
-                return getattr(self, func)(*args, **kwargs)
-            else:
-                # If func is a reduction, we need to broadcast the
-                # result to the whole group. Compute func result
-                # and deal with possible broadcasting below.
-                return self._transform_fast(
-                    lambda: getattr(self, func)(*args, **kwargs), func
-                )
+        if not isinstance(func, str):
+            return self._transform_general(func, *args, **kwargs)
 
-        # reg transform
+        elif func not in base.transform_kernel_whitelist:
+            msg = f"'{func}' is not a valid function name for transform(name)"
+            raise ValueError(msg)
+        elif func in base.cythonized_kernels:
+            # cythonized transform or canned "agg+broadcast"
+            return getattr(self, func)(*args, **kwargs)
+
+        # If func is a reduction, we need to broadcast the
+        # result to the whole group. Compute func result
+        # and deal with possible broadcasting below.
+        result = getattr(self, func)(*args, **kwargs)
+        return self._transform_fast(result, func)
+
+    def _transform_general(self, func, *args, **kwargs):
+        """
+        Transform with a non-str `func`.
+        """
         klass = self._selected_obj.__class__
+
         results = []
-        wrapper = lambda x: func(x, *args, **kwargs)
         for name, group in self:
             object.__setattr__(group, "name", name)
-            res = wrapper(group)
+            res = func(group, *args, **kwargs)
 
             if isinstance(res, (ABCDataFrame, ABCSeries)):
                 res = res._values
 
             indexer = self._get_index(name)
-            s = klass(res, indexer)
-            results.append(s)
+            ser = klass(res, indexer)
+            results.append(ser)
 
         # check for empty "results" to avoid concat ValueError
         if results:
@@ -433,7 +424,7 @@ class SeriesGroupBy(GroupBy):
             result = Series()
 
         # we will only try to coerce the result type if
-        # we have a numeric dtype, as these are *always* udfs
+        # we have a numeric dtype, as these are *always* user-defined funcs
         # the cython take a different path (and casting)
         dtype = self._selected_obj.dtype
         if is_numeric_dtype(dtype):
@@ -443,17 +434,14 @@ class SeriesGroupBy(GroupBy):
         result.index = self._selected_obj.index
         return result
 
-    def _transform_fast(self, func, func_nm) -> Series:
+    def _transform_fast(self, result, func_nm: str) -> Series:
         """
         fast version of transform, only applicable to
         builtin/cythonizable functions
         """
-        if isinstance(func, str):
-            func = getattr(self, func)
-
         ids, _, ngroup = self.grouper.group_info
         cast = self._transform_should_cast(func_nm)
-        out = algorithms.take_1d(func()._values, ids)
+        out = algorithms.take_1d(result._values, ids)
         if cast:
             out = self._try_cast(out, self.obj)
         return Series(out, index=self.obj.index, name=self.obj.name)
@@ -844,7 +832,6 @@ class DataFrameGroupBy(GroupBy):
     )
     @Appender(_shared_docs["aggregate"])
     def aggregate(self, func=None, *args, **kwargs):
-        _level = kwargs.pop("_level", None)
 
         relabeling = func is None and _is_multi_agg_with_relabel(**kwargs)
         if relabeling:
@@ -857,7 +844,7 @@ class DataFrameGroupBy(GroupBy):
 
         func = _maybe_mangle_lambdas(func)
 
-        result, how = self._aggregate(func, _level=_level, *args, **kwargs)
+        result, how = self._aggregate(func, *args, **kwargs)
         if how is None:
             return result
 
@@ -877,19 +864,10 @@ class DataFrameGroupBy(GroupBy):
 
                 # try to treat as if we are passing a list
                 try:
-                    result = self._aggregate_multiple_funcs(
-                        [func], _level=_level, _axis=self.axis
-                    )
+                    result = self._aggregate_multiple_funcs([func], _axis=self.axis)
                 except ValueError as err:
                     if "no results" not in str(err):
                         # raised directly by _aggregate_multiple_funcs
-                        raise
-                    result = self._aggregate_frame(func)
-                except NotImplementedError as err:
-                    if "decimal does not support skipna=True" in str(err):
-                        # FIXME: kludge for DecimalArray tests
-                        pass
-                    else:
                         raise
                     result = self._aggregate_frame(func)
                 else:
@@ -1340,20 +1318,20 @@ class DataFrameGroupBy(GroupBy):
         # optimized transforms
         func = self._get_cython_func(func) or func
 
-        if isinstance(func, str):
-            if not (func in base.transform_kernel_whitelist):
-                msg = "'{func}' is not a valid function name for transform(name)"
-                raise ValueError(msg.format(func=func))
-            if func in base.cythonized_kernels:
-                # cythonized transformation or canned "reduction+broadcast"
-                return getattr(self, func)(*args, **kwargs)
-            else:
-                # If func is a reduction, we need to broadcast the
-                # result to the whole group. Compute func result
-                # and deal with possible broadcasting below.
-                result = getattr(self, func)(*args, **kwargs)
-        else:
+        if not isinstance(func, str):
             return self._transform_general(func, *args, **kwargs)
+
+        elif func not in base.transform_kernel_whitelist:
+            msg = f"'{func}' is not a valid function name for transform(name)"
+            raise ValueError(msg)
+        elif func in base.cythonized_kernels:
+            # cythonized transformation or canned "reduction+broadcast"
+            return getattr(self, func)(*args, **kwargs)
+
+        # If func is a reduction, we need to broadcast the
+        # result to the whole group. Compute func result
+        # and deal with possible broadcasting below.
+        result = getattr(self, func)(*args, **kwargs)
 
         # a reduction transform
         if not isinstance(result, DataFrame):
@@ -1365,15 +1343,17 @@ class DataFrameGroupBy(GroupBy):
         if not result.columns.equals(obj.columns):
             return self._transform_general(func, *args, **kwargs)
 
-        return self._transform_fast(result, obj, func)
+        return self._transform_fast(result, func)
 
-    def _transform_fast(self, result: DataFrame, obj: DataFrame, func_nm) -> DataFrame:
+    def _transform_fast(self, result: DataFrame, func_nm: str) -> DataFrame:
         """
         Fast transform path for aggregations
         """
         # if there were groups with no observations (Categorical only?)
         # try casting data to original dtype
         cast = self._transform_should_cast(func_nm)
+
+        obj = self._obj_with_exclusions
 
         # for each col, reshape to to size of original frame
         # by take operation

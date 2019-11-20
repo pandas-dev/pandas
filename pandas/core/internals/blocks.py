@@ -2825,6 +2825,8 @@ class ObjectBlock(Block):
             if convert:
                 block = [b.convert(numeric=False, copy=True) for b in block]
             return block
+        if convert:
+            return [self.convert(numeric=False, copy=True)]
         return self
 
 
