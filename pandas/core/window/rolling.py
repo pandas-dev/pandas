@@ -1250,7 +1250,7 @@ class _Rolling_and_Expanding(_Rolling):
                 values = Series(values, index=self.obj.index)
             return window_func(values, begin, end, min_periods)
 
-        # Why do we always pass center=False?
+        # TODO: Why do we always pass center=False?
         # name=func for WindowGroupByMixin._apply
         return self._apply(apply_func, center=False, floor=0, name=func)
 

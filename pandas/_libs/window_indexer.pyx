@@ -55,7 +55,7 @@ class FixedWindowIndexer:
     """
     def __init__(self, ndarray values, int64_t win, object closed, object index=None):
         cdef:
-            ndarray start_s, start_e, end_s, end_e
+            ndarray[int64_t, ndim=1] start_s, start_e, end_s, end_e
             int64_t N = len(values)
 
         start_s = np.zeros(win, dtype='int64')
@@ -105,11 +105,8 @@ class VariableWindowIndexer:
 
         self.start, self.end = self.build(index, win, left_closed, right_closed, N)
 
-        # TODO: Maybe will need to use this?
-        # max window size
-        #self.win = (self.end - self.start).max()
-
-    def build(self, const int64_t[:] index, int64_t win, bint left_closed,
+    @staticmethod
+    def build(const int64_t[:] index, int64_t win, bint left_closed,
               bint right_closed, int64_t N):
 
         cdef:
