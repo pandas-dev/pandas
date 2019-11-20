@@ -15,7 +15,6 @@ See LICENSE for the license
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
-#define ERROR_OK 0
 #define ERROR_NO_DIGITS 1
 #define ERROR_OVERFLOW 2
 #define ERROR_INVALID_CHARS 3
@@ -31,10 +30,6 @@ See LICENSE for the license
 #define REACHED_EOF 1
 #define CALLING_READ_FAILED 2
 
-
-#if defined(_MSC_VER)
-#define strtoll _strtoi64
-#endif  // _MSC_VER
 
 /*
 
@@ -180,7 +175,6 @@ typedef struct coliter_t {
 } coliter_t;
 
 void coliter_setup(coliter_t *self, parser_t *parser, int i, int start);
-coliter_t *coliter_new(parser_t *self, int i);
 
 #define COLITER_NEXT(iter, word)                           \
     do {                                                   \
