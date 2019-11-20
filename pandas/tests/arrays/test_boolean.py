@@ -3,6 +3,8 @@ import operator
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas.arrays import BooleanArray
 from pandas.core.arrays.boolean import coerce_to_array
@@ -259,6 +261,25 @@ def test_astype():
     tm.assert_numpy_array_equal(result, expected)
 
 
+def test_astype_to_boolean_array():
+    # astype to BooleanArray
+    arr = pd.array([True, False, None], dtype="boolean")
+
+    result = arr.astype("boolean")
+    tm.assert_extension_array_equal(result, arr)
+    result = arr.astype(pd.BooleanDtype())
+    tm.assert_extension_array_equal(result, arr)
+
+
+def test_astype_to_integer_array():
+    # astype to IntegerArray
+    arr = pd.array([True, False, None], dtype="boolean")
+
+    result = arr.astype("Int64")
+    expected = pd.array([1, 0, None], dtype="Int64")
+    tm.assert_extension_array_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "ufunc", [np.add, np.logical_or, np.logical_and, np.logical_xor]
 )
@@ -460,3 +481,13 @@ class TestArithmeticOps(BaseOpsUtil):
 #     mask = pd.array([True, False, True, None], dtype="boolean")
 #     with pytest.raises(IndexError):
 #         result = arr[mask]
+
+
+@td.skip_if_no("pyarrow", min_version="0.15.0")
+def test_arrow_array(data):
+    # protocol added in 0.15.0
+    import pyarrow as pa
+
+    arr = pa.array(data)
+    expected = pa.array(np.array(data, dtype=object), type=pa.bool_(), from_pandas=True)
+    assert arr.equals(expected)

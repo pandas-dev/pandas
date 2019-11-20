@@ -18,6 +18,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
     is_scalar,
+    pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
@@ -280,9 +281,15 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
             return self._data[item]
         return type(self)(self._data[item], self._mask[item])
 
-    def _coerce_to_ndarray(self, force_bool=False):
+    def _coerce_to_ndarray(self, force_bool: bool = False):
         """
-        coerce to an ndarary of object dtype
+        Coerce to an ndarary of object dtype or bool dtype (if force_bool=True).
+
+        Parameters
+        ----------
+        force_bool : bool, default False
+            If True, return bool array or raise error if not possible (in
+            presence of missing values)
         """
         if force_bool:
             if not self.isna().any():
@@ -305,8 +312,11 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
         if dtype is not None:
             if is_bool_dtype(dtype):
                 return self._coerce_to_ndarray(force_bool=True)
+            # TODO can optimize this to not go through object dtype for
+            # numeric dtypes
             arr = self._coerce_to_ndarray()
             return arr.astype(dtype, copy=False)
+        # by default (no dtype specified), return an object array
         return self._coerce_to_ndarray()
 
     def __arrow_array__(self, type=None):
@@ -433,7 +443,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
 
     def astype(self, dtype, copy=True):
         """
-        Cast to a NumPy array or BooleanArray with 'dtype'.
+        Cast to a NumPy array or ExtensionArray with 'dtype'.
 
         Parameters
         ----------
@@ -446,15 +456,16 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
 
         Returns
         -------
-        array : ndarray or BooleanArray
-            NumPy ndarray or IntergerArray with 'dtype' for its dtype.
+        array : ndarray or ExtensionArray
+            NumPy ndarray, BooleanArray or IntergerArray with 'dtype' for its dtype.
 
         Raises
         ------
         TypeError
-            if incompatible type with an IntegerDtype, equivalent of same_kind
+            if incompatible type with an BooleanDtype, equivalent of same_kind
             casting
         """
+        dtype = pandas_dtype(dtype)
 
         if isinstance(dtype, BooleanDtype):
             values, mask = coerce_to_array(self, copy=copy)
@@ -465,7 +476,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
             if self.isna().any():
                 raise ValueError("cannot convert float NaN to bool")
             else:
-                return self._data.astype("bool", copy=copy)
+                return self._data.astype(dtype, copy=copy)
         if is_extension_array_dtype(dtype) and is_integer_dtype(dtype):
             from pandas.core.arrays import IntegerArray
 
@@ -475,19 +486,6 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
         # coerce
         data = self._coerce_to_ndarray()
         return astype_nansafe(data, dtype, copy=None)
-
-    @property
-    def _ndarray_values(self) -> np.ndarray:
-        """
-        Internal pandas method for lossy conversion to a NumPy ndarray.
-
-        This method is not part of the pandas interface.
-
-        The expectation is that this is cheap to compute, and is primarily
-        used for interacting with our indexers.
-        """
-        raise NotImplementedError
-        # return self._data
 
     def value_counts(self, dropna=True):
         """
@@ -648,7 +646,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
             data[mask] = self._na_value
 
         op = getattr(nanops, "nan" + name)
-        result = op(data, axis=0, skipna=skipna, mask=mask)
+        result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)
 
         # if we have a boolean op, don't coerce
         if name in ["any", "all"]:
