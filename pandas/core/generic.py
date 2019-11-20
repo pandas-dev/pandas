@@ -804,7 +804,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        DataFrame.droplevel()
+        DataFrame
+            DataFrame with requested index / column level(s) removed.
 
         Examples
         --------

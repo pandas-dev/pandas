@@ -1708,7 +1708,7 @@ class TestDataFrameConstructors:
         # preserver an index with a tz on dict construction
         i = date_range("1/1/2011", periods=5, freq="10s", tz="US/Eastern")
 
-        expected = DataFrame({"a": i.to_series(keep_tz=True).reset_index(drop=True)})
+        expected = DataFrame({"a": i.to_series().reset_index(drop=True)})
         df = DataFrame()
         df["a"] = i
         tm.assert_frame_equal(df, expected)
@@ -1719,9 +1719,7 @@ class TestDataFrameConstructors:
         # multiples
         i_no_tz = date_range("1/1/2011", periods=5, freq="10s")
         df = DataFrame({"a": i, "b": i_no_tz})
-        expected = DataFrame(
-            {"a": i.to_series(keep_tz=True).reset_index(drop=True), "b": i_no_tz}
-        )
+        expected = DataFrame({"a": i.to_series().reset_index(drop=True), "b": i_no_tz})
         tm.assert_frame_equal(df, expected)
 
     def test_constructor_datetimes_with_nulls(self):

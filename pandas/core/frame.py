@@ -5429,11 +5429,6 @@ class DataFrame(NDFrame):
 
         return self.combine(other, combiner, overwrite=False)
 
-    @deprecate_kwarg(
-        old_arg_name="raise_conflict",
-        new_arg_name="errors",
-        mapping={False: "ignore", True: "raise"},
-    )
     def update(
         self, other, join="left", overwrite=True, filter_func=None, errors="ignore"
     ):
