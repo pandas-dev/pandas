@@ -1450,7 +1450,7 @@ def _get_level_lengths(index, hidden_elements=None):
     Optional argument is a list of index positions which
     should not be visible.
 
-    Result is a dictionary of (level, inital_position): span
+    Result is a dictionary of (level, initial_position): span
     """
     sentinel = object()
     levels = index.format(sparsify=sentinel, adjoin=False, names=False)
