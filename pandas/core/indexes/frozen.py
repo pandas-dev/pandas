@@ -11,8 +11,6 @@ import warnings
 
 import numpy as np
 
-from pandas.util._decorators import deprecate_kwarg
-
 from pandas.core.dtypes.cast import coerce_indexer_dtype
 
 from pandas.core.base import PandasObject
@@ -155,7 +153,6 @@ class FrozenNDArray(PandasObject, np.ndarray):
         prepr = pprint_thing(self, escape_chars=("\t", "\r", "\n"), quote_strings=True)
         return f"{type(self).__name__}({prepr}, dtype='{self.dtype}')"
 
-    @deprecate_kwarg(old_arg_name="v", new_arg_name="value")
     def searchsorted(self, value, side="left", sorter=None):
         """
         Find indices to insert `value` so as to maintain order.

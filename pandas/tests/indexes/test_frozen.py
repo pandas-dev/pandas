@@ -112,5 +112,4 @@ class TestFrozenNDArray(CheckImmutable, CheckStringMixin):
         expected = 2
         assert self.container.searchsorted(7) == expected
 
-        with tm.assert_produces_warning(FutureWarning):
-            assert self.container.searchsorted(v=7) == expected
+        assert self.container.searchsorted(value=7) == expected
