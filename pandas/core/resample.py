@@ -869,13 +869,32 @@ class Resampler(_GroupBy, ShallowMixin):
 
     @Appender(GroupBy.size.__doc__)
     def size(self):
-        # It's a special case as higher level does return
-        # a copy of 0-len objects. GH14962
         result = self._downsample("size")
-        if not len(self.ax) and isinstance(self._selected_obj, ABCDataFrame):
+        if not len(self.ax):
             from pandas import Series
 
-            result = Series([], index=result.index, dtype="int64")
+            if self._selected_obj.ndim == 1:
+                name = self._selected_obj.name
+            else:
+                name = None
+            result = Series([], index=result.index, dtype="int64", name=name)
+        return result
+
+    @Appender(GroupBy.count.__doc__)
+    def count(self):
+        result = self._downsample("count")
+        if not len(self.ax):
+            if self._selected_obj.ndim == 1:
+                result = self._selected_obj.__class__(
+                    [], index=result.index, dtype="int64", name=self._selected_obj.name
+                )
+            else:
+                from pandas import DataFrame
+
+                result = DataFrame(
+                    [], index=result.index, columns=result.columns, dtype="int64"
+                )
+
         return result
 
     def quantile(self, q=0.5, **kwargs):
@@ -923,14 +942,6 @@ for method in ["min", "max", "first", "last", "mean", "sem", "median", "ohlc"]:
     g.__doc__ = getattr(GroupBy, method).__doc__
     setattr(Resampler, method, g)
 
-# groupby & aggregate methods
-for method in ["count"]:
-
-    def h(self, _method=method):
-        return self._downsample(_method)
-
-    h.__doc__ = getattr(GroupBy, method).__doc__
-    setattr(Resampler, method, h)
 
 # series only methods
 for method in ["nunique"]:
