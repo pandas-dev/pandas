@@ -44,12 +44,6 @@ class TestSeriesDtypes:
         assert as_typed.dtype == dtype
         assert as_typed.name == s.name
 
-    def test_asobject_deprecated(self):
-        s = Series(np.random.randn(5), name="foo")
-        with tm.assert_produces_warning(FutureWarning):
-            o = s.asobject
-        assert isinstance(o, np.ndarray)
-
     def test_dtype(self, datetime_series):
 
         assert datetime_series.dtype == np.dtype("float64")

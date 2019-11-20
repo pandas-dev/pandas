@@ -3,7 +3,6 @@
 from distutils.version import LooseVersion
 
 from pandas.compat._optional import import_optional_dependency
-from pandas.util._decorators import deprecate_kwarg
 
 from pandas import DataFrame, Int64Index, RangeIndex
 
@@ -66,7 +65,6 @@ def to_feather(df: DataFrame, path):
     feather.write_feather(df, path)
 
 
-@deprecate_kwarg(old_arg_name="nthreads", new_arg_name="use_threads")
 def read_feather(path, columns=None, use_threads=True):
     """
     Load a feather-format object from the file path.
@@ -89,11 +87,6 @@ def read_feather(path, columns=None, use_threads=True):
         If not provided, all columns are read.
 
         .. versionadded:: 0.24.0
-    nthreads : int, default 1
-        Number of CPU threads to use when reading to pandas.DataFrame.
-
-       .. versionadded:: 0.21.0
-       .. deprecated:: 0.24.0
     use_threads : bool, default True
         Whether to parallelize reading using multiple threads.
 

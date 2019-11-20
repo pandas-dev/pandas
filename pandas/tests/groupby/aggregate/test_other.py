@@ -211,31 +211,26 @@ def test_aggregate_api_consistency():
     expected = pd.concat([c_mean, c_sum, d_mean, d_sum], axis=1)
     expected.columns = MultiIndex.from_product([["C", "D"], ["mean", "sum"]])
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        result = grouped[["D", "C"]].agg({"r": np.sum, "r2": np.mean})
-    expected = pd.concat([d_sum, c_sum, d_mean, c_mean], axis=1)
-    expected.columns = MultiIndex.from_product([["r", "r2"], ["D", "C"]])
-    tm.assert_frame_equal(result, expected, check_like=True)
+    msg = r"nested renamer is not supported"
+    with pytest.raises(SpecificationError, match=msg):
+        grouped[["D", "C"]].agg({"r": np.sum, "r2": np.mean})
 
 
 def test_agg_dict_renaming_deprecation():
     # 15931
     df = pd.DataFrame({"A": [1, 1, 1, 2, 2], "B": range(5), "C": range(5)})
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False) as w:
+    msg = r"nested renamer is not supported"
+    with pytest.raises(SpecificationError, match=msg):
         df.groupby("A").agg(
             {"B": {"foo": ["sum", "max"]}, "C": {"bar": ["count", "min"]}}
         )
-        assert "using a dict with renaming" in str(w[0].message)
-        assert "named aggregation" in str(w[0].message)
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+    with pytest.raises(SpecificationError, match=msg):
         df.groupby("A")[["B", "C"]].agg({"ma": "max"})
 
-    with tm.assert_produces_warning(FutureWarning) as w:
+    with pytest.raises(SpecificationError, match=msg):
         df.groupby("A").B.agg({"foo": "count"})
-        assert "using a dict on a Series for aggregation" in str(w[0].message)
-        assert "named aggregation instead." in str(w[0].message)
 
 
 def test_agg_compat():
@@ -251,18 +246,12 @@ def test_agg_compat():
 
     g = df.groupby(["A", "B"])
 
-    expected = pd.concat([g["D"].sum(), g["D"].std()], axis=1)
-    expected.columns = MultiIndex.from_tuples([("C", "sum"), ("C", "std")])
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        result = g["D"].agg({"C": ["sum", "std"]})
-    tm.assert_frame_equal(result, expected, check_like=True)
+    msg = r"nested renamer is not supported"
+    with pytest.raises(SpecificationError, match=msg):
+        g["D"].agg({"C": ["sum", "std"]})
 
-    expected = pd.concat([g["D"].sum(), g["D"].std()], axis=1)
-    expected.columns = ["C", "D"]
-
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        result = g["D"].agg({"C": "sum", "D": "std"})
-    tm.assert_frame_equal(result, expected, check_like=True)
+    with pytest.raises(SpecificationError, match=msg):
+        g["D"].agg({"C": "sum", "D": "std"})
 
 
 def test_agg_nested_dicts():
@@ -278,29 +267,20 @@ def test_agg_nested_dicts():
 
     g = df.groupby(["A", "B"])
 
-    msg = r"cannot perform renaming for r[1-2] with a nested dictionary"
+    msg = r"nested renamer is not supported"
     with pytest.raises(SpecificationError, match=msg):
         g.aggregate({"r1": {"C": ["mean", "sum"]}, "r2": {"D": ["mean", "sum"]}})
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        result = g.agg({"C": {"ra": ["mean", "std"]}, "D": {"rb": ["mean", "std"]}})
-    expected = pd.concat(
-        [g["C"].mean(), g["C"].std(), g["D"].mean(), g["D"].std()], axis=1
-    )
-    expected.columns = pd.MultiIndex.from_tuples(
-        [("ra", "mean"), ("ra", "std"), ("rb", "mean"), ("rb", "std")]
-    )
-    tm.assert_frame_equal(result, expected, check_like=True)
+    with pytest.raises(SpecificationError, match=msg):
+        g.agg({"C": {"ra": ["mean", "std"]}, "D": {"rb": ["mean", "std"]}})
 
     # same name as the original column
     # GH9052
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        expected = g["D"].agg({"result1": np.sum, "result2": np.mean})
-    expected = expected.rename(columns={"result1": "D"})
+    with pytest.raises(SpecificationError, match=msg):
+        g["D"].agg({"result1": np.sum, "result2": np.mean})
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        result = g["D"].agg({"D": np.sum, "result2": np.mean})
-    tm.assert_frame_equal(result, expected, check_like=True)
+    with pytest.raises(SpecificationError, match=msg):
+        g["D"].agg({"D": np.sum, "result2": np.mean})
 
 
 def test_agg_item_by_item_raise_typeerror():
