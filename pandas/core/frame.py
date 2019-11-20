@@ -38,7 +38,6 @@ from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender,
     Substitution,
-    deprecate_kwarg,
     rewrite_axis_style_signature,
 )
 from pandas.util._validators import (
