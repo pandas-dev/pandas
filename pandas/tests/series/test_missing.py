@@ -1484,9 +1484,15 @@ class TestSeriesInterpolateData:
         s = Series([nan, 1.0, nan, 2.0, nan, nan, 5.0, nan, nan, nan, -1.0, nan, nan])
 
         expected = Series(
-            [1.0, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, nan, nan, nan, -1.0, -1, -1]
+            [nan, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, nan, nan, nan, -1.0, -1, -1]
         )
         result = s.interpolate(method="linear", max_gap=2)
+        tm.assert_series_equal(result, expected)
+
+        expected = Series(
+            [1.0, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, nan, nan, nan, -1.0, nan, nan]
+        )
+        result = s.interpolate(method="linear", max_gap=2, limit_direction="backward")
         tm.assert_series_equal(result, expected)
 
         expected = Series(

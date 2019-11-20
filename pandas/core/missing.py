@@ -323,15 +323,15 @@ def _derive_indices_of_nans_to_preserve(
     # gaps with continuous NaN values of width > max_gap will be preserved.
 
     # set preserve_nans based on direction using _interp_limit
-    if max_gap is None:
-        if limit_direction == "forward":
-            preserve_nans = start_nans | set(_interp_limit(invalid, limit, 0))
-        elif limit_direction == "backward":
-            preserve_nans = end_nans | set(_interp_limit(invalid, 0, limit))
-        else:
-            # both directions... just use _interp_limit
-            preserve_nans = set(_interp_limit(invalid, limit, limit))
+    if limit_direction == "forward":
+        preserve_nans = start_nans | set(_interp_limit(invalid, limit, 0))
+    elif limit_direction == "backward":
+        preserve_nans = end_nans | set(_interp_limit(invalid, 0, limit))
     else:
+        # both directions... just use _interp_limit
+        preserve_nans = set(_interp_limit(invalid, limit, limit))
+
+    if max_gap is not None:
 
         def bfill_nan(arr):
             """ Backward-fill NaNs """
@@ -352,7 +352,7 @@ def _derive_indices_of_nans_to_preserve(
         # with `max_gap`. Everything smaller than `max_gap` won't matter
         # in the following.
         diff[np.isnan(diff)] = max_gap
-        preserve_nans = set(np.flatnonzero((diff > max_gap) & invalid))
+        preserve_nans |= set(np.flatnonzero((diff > max_gap) & invalid))
 
     # if limit_area is set, add either mid or outside indices
     # to preserve_nans GH #16284
