@@ -28,18 +28,20 @@ fi
 # An X server has to exit, and DISPLAY set, for the clipboard (and its tests) to work
 export DISPLAY=":99.0"
 
-PYTEST_CMD="pytest -m \"$PATTERN\" -n auto --dist=loadfile -s --strict --durations=10 --junitxml=test-data.xml $TEST_ARGS $COVERAGE pandas"
+PYTEST_CMD="pytest -m \"$PATTERN\" -n auto --dist=loadfile -s --strict --durations=10 --junitxml=test-data.xml $TEST_ARGS $COVERAGE pandas/tests/io/test_clipboard.py"
 
 # Travis does not have have an X server
 if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
     PYTEST_CMD="xvfb-run -e /dev/stdout $PYTEST_CMD"
 fi
 
+set -x
+echo "Is xsel installed?"
+which xsel || true
+python -c "import subprocess; print(subprocess.call(['which', 'xsel'], stdout=subprocess.PIPE, stderr=subprocess.PIPE))"
+
 echo $PYTEST_CMD
 sh -c "$PYTEST_CMD"
-
-echo "Is xsel installed?"
-python -c "import subprocess; print(subprocess.call(['which', 'xsel'], stdout=subprocess.PIPE, stderr=subprocess.PIPE))"
 
 if [[ "$COVERAGE" && $? == 0 && "$TRAVIS_BRANCH" == "master" ]]; then
     echo "uploading coverage"
