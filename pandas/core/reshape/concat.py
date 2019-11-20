@@ -2,6 +2,7 @@
 concat routines
 """
 
+from typing import List
 import warnings
 
 import numpy as np
@@ -437,13 +438,13 @@ class _Concatenator:
                 mgr = self.objs[0]._data.concat(
                     [x._data for x in self.objs], self.new_axes
                 )
-                cons = _get_series_result_type(mgr, self.objs)
+                cons = self.objs[0]._constructor
                 return cons(mgr, name=name).__finalize__(self, method="concat")
 
             # combine as columns in a frame
             else:
                 data = dict(zip(range(len(self.objs)), self.objs))
-                cons = _get_series_result_type(data)
+                cons = DataFrame
 
                 index, columns = self.new_axes
                 df = cons(data, index=index)
@@ -473,7 +474,7 @@ class _Concatenator:
             if not self.copy:
                 new_data._consolidate_inplace()
 
-            cons = _get_frame_result_type(new_data, self.objs)
+            cons = self.objs[0]._constructor
             return cons._from_axes(new_data, self.new_axes).__finalize__(
                 self, method="concat"
             )
@@ -520,13 +521,13 @@ class _Concatenator:
         new_axes[self.axis] = self._get_concat_axis()
         return new_axes
 
-    def _get_comb_axis(self, i):
+    def _get_comb_axis(self, i: int) -> Index:
         data_axis = self.objs[0]._get_block_manager_axis(i)
         return get_objs_combined_axis(
             self.objs, axis=data_axis, intersect=self.intersect, sort=self.sort
         )
 
-    def _get_concat_axis(self):
+    def _get_concat_axis(self) -> Index:
         """
         Return index to be used along concatenation axis.
         """
@@ -537,7 +538,7 @@ class _Concatenator:
                 idx = ibase.default_index(len(self.objs))
                 return idx
             elif self.keys is None:
-                names = [None] * len(self.objs)
+                names: List = [None] * len(self.objs)
                 num = 0
                 has_names = False
                 for i, x in enumerate(self.objs):
@@ -702,27 +703,3 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
     return MultiIndex(
         levels=new_levels, codes=new_codes, names=new_names, verify_integrity=False
     )
-
-
-def _get_series_result_type(result, objs=None):
-    """
-    return appropriate class of Series concat
-    input is either dict or array-like
-    """
-    # TODO: See if we can just inline with _constructor_expanddim
-    # now that sparse is removed.
-
-    # concat Series with axis 1
-    if isinstance(result, dict):
-        return DataFrame
-
-    # otherwise it is a SingleBlockManager (axis = 0)
-    return objs[0]._constructor
-
-
-def _get_frame_result_type(result, objs):
-    """
-    return appropriate class of DataFrame-like concat
-    """
-    # TODO: just inline this as _constructor.
-    return objs[0]
