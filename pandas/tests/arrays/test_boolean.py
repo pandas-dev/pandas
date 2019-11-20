@@ -64,6 +64,38 @@ def test_boolean_array_constructor_copy():
     assert result._mask is not mask
 
 
+def test_to_boolean_array():
+    expected = BooleanArray(
+        np.array([True, False, True]), np.array([False, False, False])
+    )
+
+    result = pd.array([True, False, True], dtype="boolean")
+    tm.assert_extension_array_equal(result, expected)
+    result = pd.array(np.array([True, False, True]), dtype="boolean")
+    tm.assert_extension_array_equal(result, expected)
+    result = pd.array(np.array([True, False, True], dtype=object), dtype="boolean")
+    tm.assert_extension_array_equal(result, expected)
+
+    # with missing values
+    expected = BooleanArray(
+        np.array([True, False, True]), np.array([False, False, True])
+    )
+
+    result = pd.array([True, False, None], dtype="boolean")
+    tm.assert_extension_array_equal(result, expected)
+    result = pd.array(np.array([True, False, None], dtype=object), dtype="boolean")
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_to_boolean_array_all_none():
+    expected = BooleanArray(np.array([True, True, True]), np.array([True, True, True]))
+
+    result = pd.array([None, None, None], dtype="boolean")
+    tm.assert_extension_array_equal(result, expected)
+    result = pd.array(np.array([None, None, None], dtype=object), dtype="boolean")
+    tm.assert_extension_array_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "a, b",
     [
@@ -79,33 +111,44 @@ def test_to_boolean_array_none_is_nan(a, b):
     tm.assert_extension_array_equal(result, expected)
 
 
-# @pytest.mark.parametrize(
-#     "values",
-#     [
-#         ["foo", "bar"],
-#         ["1", "2"],
-#         "foo",
-#         [1],
-#         [1.0],
-#         pd.date_range("20130101", periods=2),
-#         np.array(["foo"]),
-#         [[1, 2], [3, 4]],
-#         [np.nan, {"a": 1}],
-#     ],
-# )
-# def test_to_boolean_array_error(values):
-#     # error in converting existing arrays to BooleanArray
-#     with pytest.raises(TypeError):
-#         pd.array(values, dtype="boolean")
+@pytest.mark.parametrize(
+    "values",
+    [
+        ["foo", "bar"],
+        ["1", "2"],
+        # "foo",
+        [1, 2],
+        [1.0, 2.0],
+        pd.date_range("20130101", periods=2),
+        np.array(["foo"]),
+        [np.nan, {"a": 1}],
+    ],
+)
+def test_to_boolean_array_error(values):
+    # error in converting existing arrays to BooleanArray
+    with pytest.raises(TypeError):
+        pd.array(values, dtype="boolean")
 
 
-def test_to_boolean_array_integer():
+def test_to_boolean_array_integer_like():
+    # integers of 0's and 1's
     result = pd.array([1, 0, 1, 0], dtype="boolean")
     expected = pd.array([True, False, True, False], dtype="boolean")
     tm.assert_extension_array_equal(result, expected)
 
-    # with pytest.raises(TypeError, match="cannot safely cast non-equivalent"):
-    #     pd.array([1, 2, 3], dtype="boolean")
+    result = pd.array(np.array([1, 0, 1, 0]), dtype="boolean")
+    tm.assert_extension_array_equal(result, expected)
+
+    result = pd.array(np.array([1.0, 0.0, 1.0, 0.0]), dtype="boolean")
+    tm.assert_extension_array_equal(result, expected)
+
+    # with missing values
+    result = pd.array([1, 0, 1, None], dtype="boolean")
+    expected = pd.array([True, False, True, None], dtype="boolean")
+    tm.assert_extension_array_equal(result, expected)
+
+    result = pd.array(np.array([1.0, 0.0, 1.0, np.nan]), dtype="boolean")
+    tm.assert_extension_array_equal(result, expected)
 
 
 def test_coerce_to_array():

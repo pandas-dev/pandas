@@ -130,10 +130,26 @@ def coerce_to_array(values, mask=None, copy=False):
         if copy:
             values = values.copy()
     else:
+        # TODO conversion from integer/float ndarray can be done more efficiently
+        #  (avoid roundtrip through object)
         values_object = np.asarray(values, dtype=object)
+
+        inferred_dtype = lib.infer_dtype(values_object, skipna=True)
+        integer_like = ("floating", "integer", "mixed-integer-float")
+        if inferred_dtype not in ("boolean", "empty") + integer_like:
+            raise TypeError("Need to pass bool-like values")
+
         mask_values = isna(values_object)
         values = np.zeros(len(values), dtype=bool)
         values[~mask_values] = values_object[~mask_values].astype(bool)
+
+        # if the values were integer-like, validate it were actually 0/1's
+        if inferred_dtype in integer_like:
+            if not np.all(
+                values[~mask_values].astype(float)
+                == values_object[~mask_values].astype(float)
+            ):
+                raise TypeError("Need to pass bool-like values")
 
     if mask is None and mask_values is None:
         mask = np.zeros(len(values), dtype=bool)
