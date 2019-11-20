@@ -1951,3 +1951,39 @@ def test_groupby_only_none_group():
     expected = pd.Series([np.nan], name="x")
 
     tm.assert_series_equal(actual, expected)
+
+
+@pytest.mark.parametrize("bool_agg_func", ["any", "all"])
+def test_bool_aggs_dup_column_labels(bool_agg_func):
+    # 21668
+    df = pd.DataFrame([[True, True]], columns=["a", "a"])
+    grp_by = df.groupby([0])
+    result = getattr(grp_by, bool_agg_func)()
+
+    expected = df
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "idx", [pd.Index(["a", "a"]), pd.MultiIndex.from_tuples((("a", "a"), ("a", "a")))]
+)
+def test_dup_labels_output_shape(groupby_func, idx):
+    if groupby_func in {"size", "ngroup", "cumcount"}:
+        pytest.skip("Not applicable")
+
+    df = pd.DataFrame([[1, 1]], columns=idx)
+    grp_by = df.groupby([0])
+
+    args = []
+    if groupby_func in {"fillna", "nth"}:
+        args.append(0)
+    elif groupby_func == "corrwith":
+        args.append(df)
+    elif groupby_func == "tshift":
+        df.index = [pd.Timestamp("today")]
+        args.extend([1, "D"])
+
+    result = getattr(grp_by, groupby_func)(*args)
+
+    assert result.shape == (1, 2)
+    tm.assert_index_equal(result.columns, idx)
