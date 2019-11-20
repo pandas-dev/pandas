@@ -525,28 +525,6 @@ def get_grouper(
     elif isinstance(key, ops.BaseGrouper):
         return key, [], obj
 
-    # In the future, a tuple key will always mean an actual key,
-    # not an iterable of keys. In the meantime, we attempt to provide
-    # a warning. We can assume that the user wanted a list of keys when
-    # the key is not in the index. We just have to be careful with
-    # unhashable elements of `key`. Any unhashable elements implies that
-    # they wanted a list of keys.
-    # https://github.com/pandas-dev/pandas/issues/18314
-    if isinstance(key, tuple):
-        all_hashable = is_hashable(key)
-        if (
-            all_hashable and key not in obj and set(key).issubset(obj)
-        ) or not all_hashable:
-            # column names ('a', 'b') -> ['a', 'b']
-            # arrays like (a, b) -> [a, b]
-            msg = (
-                "Interpreting tuple 'by' as a list of keys, rather than "
-                "a single key. Use 'by=[...]' instead of 'by=(...)'. In "
-                "the future, a tuple will always mean a single key."
-            )
-            warnings.warn(msg, FutureWarning, stacklevel=5)
-            key = list(key)
-
     if not isinstance(key, list):
         keys = [key]
         match_axis_length = False
