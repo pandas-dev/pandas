@@ -14,8 +14,10 @@ import inspect
 import re
 import types
 from typing import (
+    Callable,
     Dict,
     FrozenSet,
+    Hashable,
     Iterable,
     List,
     Mapping,
@@ -343,6 +345,17 @@ def _group_selection_context(groupby):
     groupby._reset_group_selection()
 
 
+KeysArgType = Optional[
+    Union[
+        Hashable,
+        List[Hashable],
+        Callable[[Hashable], Hashable],
+        List[Callable[[Hashable], Hashable]],
+        Mapping[Hashable, Hashable],
+    ]
+]
+
+
 class _GroupBy(PandasObject, SelectionMixin):
     _group_selection = None
     _apply_whitelist = frozenset()  # type: FrozenSet[str]
@@ -350,7 +363,7 @@ class _GroupBy(PandasObject, SelectionMixin):
     def __init__(
         self,
         obj: NDFrame,
-        keys=None,
+        keys: KeysArgType = None,
         axis: int = 0,
         level=None,
         grouper: "Optional[ops.BaseGrouper]" = None,
@@ -2506,7 +2519,7 @@ GroupBy._add_numeric_operations()
 @Appender(GroupBy.__doc__)
 def get_groupby(
     obj: NDFrame,
-    by=None,
+    by: KeysArgType = None,
     axis: int = 0,
     level=None,
     grouper: "Optional[ops.BaseGrouper]" = None,
