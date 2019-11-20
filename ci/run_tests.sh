@@ -25,11 +25,14 @@ if [ "$COVERAGE" ]; then
     COVERAGE="-s --cov=pandas --cov-report=xml:$COVERAGE_FNAME"
 fi
 
+# An X server has to exit, and DISPLAY set, for the clipboard (and its tests) to work
+export DISPLAY=":99.0"
+
 PYTEST_CMD="pytest -m \"$PATTERN\" -n auto --dist=loadfile -s --strict --durations=10 --junitxml=test-data.xml $TEST_ARGS $COVERAGE pandas"
 
 # Travis does not have have an X server
 if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-    PYTEST_CMD="xvfb-run -a -e /dev/stdout $PYTEST_CMD"
+    PYTEST_CMD="xvfb-run -e /dev/stdout $PYTEST_CMD"
 fi
 
 echo $PYTEST_CMD
