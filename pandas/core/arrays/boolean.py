@@ -653,10 +653,13 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
             pass
 
         # if we have numeric op that would result in an int, coerce to int if possible
-        elif name in ["sum", "min", "max", "prod"] and notna(result):
-            int_result = int(result)
+        elif name in ["sum", "prod"] and notna(result):
+            int_result = np.int64(result)
             if int_result == result:
                 result = int_result
+
+        elif name in ["min", "max"] and notna(result):
+            result = np.bool_(result)
 
         return result
 

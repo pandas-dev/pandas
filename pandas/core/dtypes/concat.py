@@ -85,6 +85,7 @@ def concat_compat(to_concat, axis: int = 0):
     -------
     a single array, preserving the combined dtypes
     """
+
     # filter empty arrays
     # 1-d dtypes always are included here
     def is_nonempty(x) -> bool:
