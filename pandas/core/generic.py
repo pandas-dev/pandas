@@ -178,7 +178,6 @@ class NDFrame(PandasObject, SelectionMixin):
             "blocks",
             "get_dtype_counts",
             "get_values",
-            "is_copy",
             "ftypes",
             "ix",
         ]
