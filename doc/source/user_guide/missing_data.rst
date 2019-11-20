@@ -505,7 +505,8 @@ longer NaN-gaps forbids using interpolated values.
 
 .. ipython:: python
 
-   # forward fill only NaN-gaps with a maximum 2 consecutive NaN values
+   ser
+   # interpolate in forward direction but only NaN-gaps with a maximum 2 consecutive NaN values
    ser.interpolate(max_gap=2)
 
 By default, ``NaN`` values are filled in a ``forward`` direction. Use
