@@ -383,8 +383,7 @@ class TestStata:
 
         # GH 4626, proper encoding handling
         raw = read_stata(self.dta_encoding)
-        with tm.assert_produces_warning(FutureWarning):
-            encoded = read_stata(self.dta_encoding, encoding="latin-1")
+        encoded = read_stata(self.dta_encoding)
         result = encoded.kreis1849[0]
 
         expected = raw.kreis1849[0]
@@ -392,10 +391,7 @@ class TestStata:
         assert isinstance(result, str)
 
         with tm.ensure_clean() as path:
-            with tm.assert_produces_warning(FutureWarning):
-                encoded.to_stata(
-                    path, write_index=False, version=version, encoding="latin-1"
-                )
+            encoded.to_stata(path, write_index=False, version=version)
             reread_encoded = read_stata(path)
             tm.assert_frame_equal(encoded, reread_encoded)
 
