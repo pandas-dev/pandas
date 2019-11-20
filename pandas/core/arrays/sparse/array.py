@@ -1500,27 +1500,14 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     @classmethod
     def _add_unary_ops(cls):
-        # FIXME
-        # error: Unsupported operand type for unary + ("Type[SparseArray]")
-        cls.__pos__ = cls._create_unary_method(operator.pos)  # type: ignore
-
-        # FIXME
-        # error: Unsupported operand type for unary - ("Type[SparseArray]")
-        cls.__neg__ = cls._create_unary_method(operator.neg)  # type: ignore
-
-        # FIXME
-        # error: Unsupported operand type for ~ ("Type[SparseArray]")
-        cls.__invert__ = cls._create_unary_method(operator.invert)  # type: ignore
+        setattr(cls, "__pos__", cls._create_unary_method(operator.pos))
+        setattr(cls, "__neg__", cls._create_unary_method(operator.neg))
+        setattr(cls, "__invert__", cls._create_unary_method(operator.invert))
 
     @classmethod
     def _add_comparison_ops(cls):
-        # FIXME
-        # error: Unsupported left operand type for & ("Type[SparseArray]")
-        cls.__and__ = cls._create_comparison_method(operator.and_)  # type: ignore
-
-        # FIXME
-        # error: Unsupported left operand type for | ("Type[SparseArray]")
-        cls.__or__ = cls._create_comparison_method(operator.or_)  # type: ignore
+        setattr(cls, "__and__", cls._create_comparison_method(operator.and_))
+        setattr(cls, "__or__", cls._create_comparison_method(operator.or_))
         super()._add_comparison_ops()
 
     # ----------
