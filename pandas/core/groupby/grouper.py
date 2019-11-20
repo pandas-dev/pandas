@@ -93,7 +93,7 @@ class Grouper:
     >>> df.groupby(Grouper(level='date', freq='60s', axis=1))
     """
 
-    _attributes = ("key", "level", "freq", "axis", "sort")  # type: Tuple[str, ...]
+    _attributes: Tuple[str, ...] = ("key", "level", "freq", "axis", "sort")
 
     def __new__(cls, *args, **kwargs):
         if kwargs.get("freq") is not None:
@@ -380,8 +380,8 @@ class Grouping:
     def __iter__(self):
         return iter(self.indices)
 
-    _codes = None  # type: np.ndarray
-    _group_index = None  # type: Index
+    _codes: Optional[np.ndarray] = None
+    _group_index: Optional[Index] = None
 
     @property
     def ngroups(self) -> int:
@@ -412,6 +412,7 @@ class Grouping:
     def group_index(self) -> Index:
         if self._group_index is None:
             self._make_codes()
+        assert self._group_index is not None
         return self._group_index
 
     def _make_codes(self) -> None:
@@ -587,8 +588,8 @@ def get_grouper(
     else:
         levels = [level] * len(keys)
 
-    groupings = []  # type: List[Grouping]
-    exclusions = []  # type: List[Hashable]
+    groupings: List[Grouping] = []
+    exclusions: List[Hashable] = []
 
     # if the actual grouper should be obj[key]
     def is_in_axis(key) -> bool:

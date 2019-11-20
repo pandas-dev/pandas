@@ -387,11 +387,9 @@ class DataFrame(NDFrame):
     def _constructor(self) -> Type["DataFrame"]:
         return DataFrame
 
-    _constructor_sliced = Series  # type: Type[Series]
-    _deprecations = NDFrame._deprecations | frozenset(
-        ["from_items"]
-    )  # type: FrozenSet[str]
-    _accessors = set()  # type: Set[str]
+    _constructor_sliced: Type[Series] = Series
+    _deprecations: FrozenSet[str] = NDFrame._deprecations | frozenset(["from_items"])
+    _accessors: Set[str] = set()
 
     @property
     def _constructor_expanddim(self):

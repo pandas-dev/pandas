@@ -804,7 +804,7 @@ Types imports should follow the ``from typing import ...`` convention. So rather
 
    import typing
 
-   primes = []  # type: typing.List[int]
+   primes: typing.List[int] = [] 
 
 You should write
 
@@ -812,19 +812,19 @@ You should write
 
    from typing import List, Optional, Union
 
-   primes = []  # type: List[int]
+   primes: List[int] = []
 
 ``Optional`` should be used where applicable, so instead of
 
 .. code-block:: python
 
-   maybe_primes = []  # type: List[Union[int, None]]
+   maybe_primes: List[Union[int, None]] = []
 
 You should write
 
 .. code-block:: python
 
-   maybe_primes = []  # type: List[Optional[int]]
+   maybe_primes: List[Optional[int]] = []
 
 In some cases in the code base classes may define class variables that shadow builtins. This causes an issue as described in `Mypy 1775 <https://github.com/python/mypy/issues/1775#issuecomment-310969854>`_. The defensive solution here is to create an unambiguous alias of the builtin and use that without your annotation. For example, if you come across a definition like
 
@@ -840,7 +840,7 @@ The appropriate way to annotate this would be as follows
    str_type = str
 
    class SomeClass2:
-       str = None  # type: str_type
+       str: str_type = None
 
 In some cases you may be tempted to use ``cast`` from the typing module when you know better than the analyzer. This occurs particularly when using custom inference functions. For example
 

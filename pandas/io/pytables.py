@@ -1343,7 +1343,7 @@ class HDFStore:
                 data = self.select(k)
                 if s.is_table:
 
-                    index = False  # type: Union[bool, list]
+                    index: Union[bool, list] = False
                     if propindexes:
                         index = [a.name for a in s.axes if a.is_indexed]
                     new_store.append(
@@ -2542,9 +2542,9 @@ class Fixed:
         group  : the group node where the table resides
         """
 
-    pandas_kind = None  # type: str
-    obj_type = None  # type: Type[Union[DataFrame, Series]]
-    ndim = None  # type: int
+    pandas_kind: str
+    obj_type: Type[Union[DataFrame, Series]]
+    ndim: int
     is_table = False
 
     def __init__(self, parent, group, encoding=None, errors="strict", **kwargs):
@@ -2702,7 +2702,7 @@ class GenericFixed(Fixed):
 
     _index_type_map = {DatetimeIndex: "datetime", PeriodIndex: "period"}
     _reverse_index_map = {v: k for k, v in _index_type_map.items()}
-    attributes = []  # type: List[str]
+    attributes: List[str] = []
 
     # indexer helpders
     def _class_to_alias(self, cls) -> str:
@@ -3253,7 +3253,7 @@ class Table(Fixed):
         """
 
     pandas_kind = "wide_table"
-    table_type = None  # type: str
+    table_type: str
     levels = 1
     is_table = True
     is_shape_reversed = False
@@ -4143,11 +4143,11 @@ class LegacyTable(Table):
 
     """
 
-    _indexables = [
+    _indexables: Optional[List[IndexCol]] = [
         IndexCol(name="index", axis=1, pos=0),
         IndexCol(name="column", axis=2, pos=1, index_kind="columns_kind"),
         DataCol(name="fields", cname="values", kind_attr="fields", pos=2),
-    ]  # type: Optional[List[IndexCol]]
+    ]
     table_type = "legacy"
     ndim = 3
 
@@ -4420,7 +4420,7 @@ class AppendableFrameTable(AppendableTable):
     pandas_kind = "frame_table"
     table_type = "appendable_frame"
     ndim = 2
-    obj_type = DataFrame  # type: Type[Union[DataFrame, Series]]
+    obj_type: Type[Union[DataFrame, Series]] = DataFrame
 
     @property
     def is_transposed(self) -> bool:
@@ -4645,7 +4645,7 @@ def _reindex_axis(obj, axis: int, labels: Index, other=None):
     if other is not None:
         labels = ensure_index(other.unique()).intersection(labels, sort=False)
     if not labels.equals(ax):
-        slicer = [slice(None, None)] * obj.ndim  # type: List[Union[slice, Index]]
+        slicer: List[Union[slice, Index]] = [slice(None, None)] * obj.ndim
         slicer[axis] = labels
         obj = obj.loc[tuple(slicer)]
     return obj

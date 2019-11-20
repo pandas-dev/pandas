@@ -127,7 +127,7 @@ class BlockManager(PandasObject):
         do_integrity_check: bool = True,
     ):
         self.axes = [ensure_index(ax) for ax in axes]
-        self.blocks = tuple(blocks)  # type: Tuple[Block, ...]
+        self.blocks: Tuple[Block, ...] = tuple(blocks)
 
         for block in blocks:
             if self.ndim != block.ndim:

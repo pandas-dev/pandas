@@ -345,7 +345,7 @@ def _group_selection_context(groupby):
 
 class _GroupBy(PandasObject, SelectionMixin):
     _group_selection = None
-    _apply_whitelist = frozenset()  # type: FrozenSet[str]
+    _apply_whitelist: FrozenSet[str] = frozenset()
 
     def __init__(
         self,
@@ -2520,12 +2520,11 @@ def get_groupby(
     mutated: bool = False,
 ):
 
+    klass: Union[Type["SeriesGroupBy"], Type["DataFrameGroupBy"]]
     if isinstance(obj, Series):
         from pandas.core.groupby.generic import SeriesGroupBy
 
-        klass = (
-            SeriesGroupBy
-        )  # type: Union[Type["SeriesGroupBy"], Type["DataFrameGroupBy"]]
+        klass = SeriesGroupBy
     elif isinstance(obj, DataFrame):
         from pandas.core.groupby.generic import DataFrameGroupBy
 
