@@ -542,6 +542,9 @@ def determine_clipboard():
     if HAS_DISPLAY:
         if _executable_exists("xsel"):
             return init_xsel_clipboard()
+
+        raise ValueError('xsel is not found')
+
         if _executable_exists("xclip"):
             return init_xclip_clipboard()
         if _executable_exists("klipper") and _executable_exists("qdbus"):
@@ -567,6 +570,8 @@ def determine_clipboard():
                 return init_qt_clipboard()
         else:
             return init_qt_clipboard()
+
+    raise ValueError('DISPLAY is not set')
 
     return init_no_clipboard()
 
