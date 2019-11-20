@@ -804,7 +804,7 @@ Types imports should follow the ``from typing import ...`` convention. So rather
 
    import typing
 
-   primes: typing.List[int] = [] 
+   primes: typing.List[int] = []
 
 You should write
 
