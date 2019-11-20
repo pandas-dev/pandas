@@ -1,6 +1,6 @@
 import datetime
 from sys import getsizeof
-from typing import Any, Hashable, List, Optional, Sequence, Union
+from typing import Any, Hashable, Iterable, List, Optional, Sequence, Tuple, Union
 import warnings
 
 import numpy as np
@@ -9,6 +9,7 @@ from pandas._config import get_option
 
 from pandas._libs import Timestamp, algos as libalgos, index as libindex, lib, tslibs
 from pandas._libs.hashtable import duplicated_int64
+from pandas._typing import AnyArrayLike, ArrayLike, Scalar
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning, UnsortedIndexError
 from pandas.util._decorators import Appender, cache_readonly
@@ -42,7 +43,6 @@ from pandas.core.indexes.base import (
     ensure_index,
 )
 from pandas.core.indexes.frozen import FrozenList
-from pandas.core.indexes.numeric import Int64Index
 import pandas.core.missing as missing
 from pandas.core.sorting import (
     get_group_index,
@@ -3097,7 +3097,9 @@ class MultiIndex(Index):
 
         return indexer._ndarray_values
 
-    def _reorder_indexer(self, seq, indexer: Int64Index) -> Int64Index:
+    def _reorder_indexer(
+        self, seq: Tuple[Union[Scalar, Iterable, AnyArrayLike], ...], indexer: ArrayLike
+    ) -> ArrayLike:
         """
         Reorder an indexer of a MultiIndex (self) so that the label are in the
         same order as given in seq
@@ -3111,10 +3113,8 @@ class MultiIndex(Index):
         -------
         indexer : a sorted Int64Index indexer of self ordered as seq
         """
-        from typing import Tuple
-
         n = len(self)
-        keys = tuple()  # type: Tuple[np.ndarray, ...]
+        keys = tuple()
         # For each level of the sequence in seq, map the level codes with the
         # order they appears in a list-like sequence
         # This mapping is then use to reorder the indexer
