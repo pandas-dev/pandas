@@ -401,6 +401,11 @@ def _validate_names(names):
     ----------
     names : array-like or None
         An array containing a list of the names used for the output DataFrame.
+
+    Raises
+    ------
+    ValueError
+        If names are not unique.
     """
 
     if names is not None:
