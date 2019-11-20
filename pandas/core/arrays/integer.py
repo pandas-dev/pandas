@@ -85,6 +85,35 @@ class _IntegerDtype(ExtensionDtype):
         """
         return IntegerArray
 
+    def __from_arrow__(self, array):
+        """Construct IntegerArray from passed pyarrow Array/ChunkedArray"""
+        import pyarrow
+
+        if isinstance(array, pyarrow.Array):
+            chunks = [array]
+        else:
+            # pyarrow.ChunkedArray
+            chunks = array.chunks
+
+        results = []
+        for arr in chunks:
+            buflist = arr.buffers()
+            data = np.frombuffer(buflist[1], dtype=self.type)[
+                arr.offset : arr.offset + len(arr)
+            ]
+            bitmask = buflist[0]
+            if bitmask is not None:
+                mask = pyarrow.BooleanArray.from_buffers(
+                    pyarrow.bool_(), len(arr), [None, bitmask]
+                )
+                mask = np.asarray(mask)
+            else:
+                mask = np.ones(len(arr), dtype=bool)
+            int_arr = IntegerArray(data.copy(), ~mask, copy=False)
+            results.append(int_arr)
+
+        return IntegerArray._concat_same_type(results)
+
 
 def integer_array(values, dtype=None, copy=False):
     """
@@ -647,7 +676,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             data[mask] = self._na_value
 
         op = getattr(nanops, "nan" + name)
-        result = op(data, axis=0, skipna=skipna, mask=mask)
+        result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)
 
         # if we have a boolean op, don't coerce
         if name in ["any", "all"]:

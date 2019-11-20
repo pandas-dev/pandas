@@ -10,6 +10,7 @@ from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range, read_csv
+from pandas.core.base import SpecificationError
 import pandas.core.common as com
 import pandas.util.testing as tm
 
@@ -55,8 +56,9 @@ def test_basic(dtype):
     # complex agg
     agged = grouped.aggregate([np.mean, np.std])
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        agged = grouped.aggregate({"one": np.mean, "two": np.std})
+    msg = r"nested renamer is not supported"
+    with pytest.raises(SpecificationError, match=msg):
+        grouped.aggregate({"one": np.mean, "two": np.std})
 
     group_constants = {0: 10, 1: 20, 2: 30}
     agged = grouped.agg(lambda x: group_constants[x.name] + x.mean())
@@ -452,9 +454,9 @@ def test_frame_set_name_single(df):
     result = grouped["C"].agg([np.mean, np.std])
     assert result.index.name == "A"
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        result = grouped["C"].agg({"foo": np.mean, "bar": np.std})
-    assert result.index.name == "A"
+    msg = r"nested renamer is not supported"
+    with pytest.raises(SpecificationError, match=msg):
+        grouped["C"].agg({"foo": np.mean, "bar": np.std})
 
 
 def test_multi_func(df):
@@ -602,12 +604,10 @@ def test_groupby_as_index_agg(df):
     tm.assert_frame_equal(result2, expected2)
 
     grouped = df.groupby("A", as_index=True)
-    expected3 = grouped["C"].sum()
-    expected3 = DataFrame(expected3).rename(columns={"C": "Q"})
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        result3 = grouped["C"].agg({"Q": np.sum})
-    tm.assert_frame_equal(result3, expected3)
+    msg = r"nested renamer is not supported"
+    with pytest.raises(SpecificationError, match=msg):
+        grouped["C"].agg({"Q": np.sum})
 
     # multi-key
 
@@ -1951,3 +1951,39 @@ def test_groupby_only_none_group():
     expected = pd.Series([np.nan], name="x")
 
     tm.assert_series_equal(actual, expected)
+
+
+@pytest.mark.parametrize("bool_agg_func", ["any", "all"])
+def test_bool_aggs_dup_column_labels(bool_agg_func):
+    # 21668
+    df = pd.DataFrame([[True, True]], columns=["a", "a"])
+    grp_by = df.groupby([0])
+    result = getattr(grp_by, bool_agg_func)()
+
+    expected = df
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "idx", [pd.Index(["a", "a"]), pd.MultiIndex.from_tuples((("a", "a"), ("a", "a")))]
+)
+def test_dup_labels_output_shape(groupby_func, idx):
+    if groupby_func in {"size", "ngroup", "cumcount"}:
+        pytest.skip("Not applicable")
+
+    df = pd.DataFrame([[1, 1]], columns=idx)
+    grp_by = df.groupby([0])
+
+    args = []
+    if groupby_func in {"fillna", "nth"}:
+        args.append(0)
+    elif groupby_func == "corrwith":
+        args.append(df)
+    elif groupby_func == "tshift":
+        df.index = [pd.Timestamp("today")]
+        args.extend([1, "D"])
+
+    result = getattr(grp_by, groupby_func)(*args)
+
+    assert result.shape == (1, 2)
+    tm.assert_index_equal(result.columns, idx)
