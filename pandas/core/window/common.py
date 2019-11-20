@@ -1,6 +1,6 @@
 """Common utility functions for rolling operations"""
 from collections import defaultdict
-from typing import Optional
+from typing import Callable, Optional
 import warnings
 
 import numpy as np
@@ -63,7 +63,14 @@ class WindowGroupByMixin(GroupByMixin):
     cov = _dispatch("cov", other=None, pairwise=None)
 
     def _apply(
-        self, func, name=None, window=None, center=None, check_minp=None, **kwargs
+        self,
+        func: Callable,
+        center: bool,
+        require_min_periods: int = 0,
+        floor: int = 1,
+        is_weighted: bool = False,
+        name: Optional[str] = None,
+        **kwargs,
     ):
         """
         Dispatch to apply; we are stripping all of the _apply kwargs and

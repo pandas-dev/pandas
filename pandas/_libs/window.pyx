@@ -774,6 +774,7 @@ def roll_kurt_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
 
     return output
 
+
 def roll_kurt_variable(ndarray[float64_t] values, ndarray[int64_t] start,
                        ndarray[int64_t] end, int64_t minp):
     cdef:
