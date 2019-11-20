@@ -592,7 +592,9 @@ def test_agg_relabel_multiindex_duplicates():
     )
     df.columns = pd.MultiIndex.from_tuples([("x", "group"), ("y", "A"), ("y", "B")])
 
-    result = df.groupby(("x", "group")).agg(a=(("y", "A"), "min"), b=(("y", "A"), "min"))
+    result = df.groupby(("x", "group")).agg(
+        a=(("y", "A"), "min"), b=(("y", "A"), "min")
+    )
     idx = pd.Index(["a", "b"], name=("x", "group"))
     expected = DataFrame({"a": [0, 2], "b": [0, 2]}, index=idx)
     tm.assert_frame_equal(result, expected)
