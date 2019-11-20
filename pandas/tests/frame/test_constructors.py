@@ -10,7 +10,6 @@ import pytest
 
 from pandas.compat import is_platform_little_endian
 
-from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
@@ -1507,92 +1506,6 @@ class TestDataFrameConstructors:
         result = DataFrame(float_frame._data, index=index, columns=columns)
         tm.assert_index_equal(result.index, Index(index))
         tm.assert_index_equal(result.columns, Index(columns))
-
-    def test_constructor_from_items(self, float_frame, float_string_frame):
-        items = [(c, float_frame[c]) for c in float_frame.columns]
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            recons = DataFrame.from_items(items)
-        tm.assert_frame_equal(recons, float_frame)
-
-        # pass some columns
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            recons = DataFrame.from_items(items, columns=["C", "B", "A"])
-        tm.assert_frame_equal(recons, float_frame.loc[:, ["C", "B", "A"]])
-
-        # orient='index'
-
-        row_items = [
-            (idx, float_string_frame.xs(idx)) for idx in float_string_frame.index
-        ]
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            recons = DataFrame.from_items(
-                row_items, columns=float_string_frame.columns, orient="index"
-            )
-        tm.assert_frame_equal(recons, float_string_frame)
-        assert recons["A"].dtype == np.float64
-
-        msg = "Must pass columns with orient='index'"
-        with pytest.raises(TypeError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-                DataFrame.from_items(row_items, orient="index")
-
-        # orient='index', but thar be tuples
-        arr = construct_1d_object_array_from_listlike(
-            [("bar", "baz")] * len(float_string_frame)
-        )
-        float_string_frame["foo"] = arr
-        row_items = [
-            (idx, list(float_string_frame.xs(idx))) for idx in float_string_frame.index
-        ]
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            recons = DataFrame.from_items(
-                row_items, columns=float_string_frame.columns, orient="index"
-            )
-        tm.assert_frame_equal(recons, float_string_frame)
-        assert isinstance(recons["foo"][0], tuple)
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            rs = DataFrame.from_items(
-                [("A", [1, 2, 3]), ("B", [4, 5, 6])],
-                orient="index",
-                columns=["one", "two", "three"],
-            )
-        xp = DataFrame(
-            [[1, 2, 3], [4, 5, 6]], index=["A", "B"], columns=["one", "two", "three"]
-        )
-        tm.assert_frame_equal(rs, xp)
-
-    def test_constructor_from_items_scalars(self):
-        # GH 17312
-        msg = (
-            r"The value in each \(key, value\) "
-            "pair must be an array, Series, or dict"
-        )
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-                DataFrame.from_items([("A", 1), ("B", 4)])
-
-        msg = (
-            r"The value in each \(key, value\) "
-            "pair must be an array, Series, or dict"
-        )
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-                DataFrame.from_items(
-                    [("A", 1), ("B", 2)], columns=["col1"], orient="index"
-                )
-
-    def test_from_items_deprecation(self):
-        # GH 17320
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            DataFrame.from_items([("A", [1, 2, 3]), ("B", [4, 5, 6])])
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            DataFrame.from_items(
-                [("A", [1, 2, 3]), ("B", [4, 5, 6])],
-                columns=["col1", "col2", "col3"],
-                orient="index",
-            )
 
     def test_constructor_mix_series_nonseries(self, float_frame):
         df = DataFrame(

@@ -476,14 +476,6 @@ class TestDataFrameMisc(SharedWithSparse):
         float_frame.values[:, 0] = 5.0
         assert (float_frame.values[:, 0] == 5).all()
 
-    def test_as_matrix_deprecated(self, float_frame):
-        # GH 18458
-        with tm.assert_produces_warning(FutureWarning):
-            cols = float_frame.columns.tolist()
-            result = float_frame.as_matrix(columns=cols)
-        expected = float_frame.values
-        tm.assert_numpy_array_equal(result, expected)
-
     def test_deepcopy(self, float_frame):
         cp = deepcopy(float_frame)
         series = cp["A"]

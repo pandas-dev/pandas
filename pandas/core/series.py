@@ -176,17 +176,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         base.IndexOpsMixin._deprecations
         | generic.NDFrame._deprecations
         | frozenset(
-            [
-                "asobject",
-                "compress",
-                "valid",
-                "ftype",
-                "real",
-                "imag",
-                "put",
-                "ptp",
-                "nonzero",
-            ]
+            ["compress", "valid", "ftype", "real", "imag", "put", "ptp", "nonzero"]
         )
     )
 
@@ -363,32 +353,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if data and index is not None:
             s = s.reindex(index, copy=False)
         return s._data, s.index
-
-    @classmethod
-    def from_array(
-        cls, arr, index=None, name=None, dtype=None, copy=False, fastpath=False
-    ):
-        """
-        Construct Series from array.
-
-        .. deprecated:: 0.23.0
-            Use pd.Series(..) constructor instead.
-
-        Returns
-        -------
-        Series
-            Constructed Series.
-        """
-        warnings.warn(
-            "'from_array' is deprecated and will be removed in a "
-            "future version. Please use the pd.Series(..) "
-            "constructor instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return cls(
-            arr, index=index, name=name, dtype=dtype, copy=copy, fastpath=fastpath
-        )
 
     # ----------------------------------------------------------------------
 
@@ -578,24 +542,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def _internal_get_values(self):
         return self._data.get_values()
-
-    @property
-    def asobject(self):
-        """
-        Return object Series which contains boxed values.
-
-        .. deprecated:: 0.23.0
-
-           Use ``astype(object)`` instead.
-
-        *this is an internal non-public method*
-        """
-        warnings.warn(
-            "'asobject' is deprecated. Use 'astype(object)' instead",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.astype(object).values
 
     # ops
     def ravel(self, order="C"):
