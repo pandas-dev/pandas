@@ -9,7 +9,7 @@ import itertools
 import os
 import re
 import time
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type, Union, cast
 import warnings
 
 import numpy as np
@@ -173,9 +173,6 @@ use the format='fixed(f)|table(t)' keyword instead
   table(t) : specifies the Table format
              and is the default for append operations
 """
-
-# map object types
-_TYPE_MAP = {Series: "series", DataFrame: "frame"}
 
 # storer class map
 _STORER_MAP = {
@@ -809,9 +806,10 @@ class HDFStore:
         stop  : integer (defaults to None), row number to stop selection
         """
         where = _ensure_term(where, scope_level=1)
-        return self.get_storer(key).read_coordinates(
-            where=where, start=start, stop=stop, **kwargs
-        )
+        tbl = self.get_storer(key)
+        if not isinstance(tbl, Table):
+            raise TypeError("can only read_coordinates with a table")
+        return tbl.read_coordinates(where=where, start=start, stop=stop, **kwargs)
 
     def select_column(self, key: str, column: str, **kwargs):
         """
@@ -832,7 +830,10 @@ class HDFStore:
             is part of a data block)
 
         """
-        return self.get_storer(key).read_column(column=column, **kwargs)
+        tbl = self.get_storer(key)
+        if not isinstance(tbl, Table):
+            raise TypeError("can only read_column with a table")
+        return tbl.read_column(column=column, **kwargs)
 
     def select_as_multiple(
         self,
@@ -916,7 +917,8 @@ class HDFStore:
                 raise ValueError("all tables must have exactly the same nrows!")
 
         # axis is the concentration axes
-        axis = list({t.non_index_axes[0][0] for t in tbls})[0]
+        _tbls = cast(List[Table], tbls)  # assured by check above
+        axis = list({t.non_index_axes[0][0] for t in _tbls})[0]
 
         def func(_start, _stop, _where):
 
@@ -1015,9 +1017,9 @@ class HDFStore:
                 )
 
             # we are actually trying to remove a node (with children)
-            s = self.get_node(key)
-            if s is not None:
-                s._f_remove(recursive=True)
+            node = self.get_node(key)
+            if node is not None:
+                node._f_remove(recursive=True)
                 return None
 
         # remove the node
@@ -1199,7 +1201,7 @@ class HDFStore:
         if s is None:
             return
 
-        if not s.is_table:
+        if not isinstance(s, Table):
             raise TypeError("cannot create table index on a Fixed format store")
         s.create_index(**kwargs)
 
@@ -1288,7 +1290,7 @@ class HDFStore:
         except _table_mod.exceptions.NoSuchNodeError:  # type: ignore
             return None
 
-    def get_storer(self, key: str):
+    def get_storer(self, key: str) -> Union["GenericFixed", "Table"]:
         """ return the storer object for a key, raise if not in the file """
         group = self.get_node(key)
         if group is None:
@@ -1341,7 +1343,7 @@ class HDFStore:
                         new_store.remove(k)
 
                 data = self.select(k)
-                if s.is_table:
+                if isinstance(s, Table):
 
                     index = False  # type: Union[bool, list]
                     if propindexes:
@@ -1416,21 +1418,17 @@ class HDFStore:
 
         return kwargs
 
-    def _create_storer(self, group, format=None, value=None, append=False, **kwargs):
+    def _create_storer(
+        self, group, format=None, value=None, **kwargs
+    ) -> Union["GenericFixed", "Table"]:
         """ return a suitable class to operate """
 
         def error(t):
-            raise TypeError(
-                "cannot properly create the storer for: [{t}] [group->"
-                "{group},value->{value},format->{format},append->{append},"
-                "kwargs->{kwargs}]".format(
-                    t=t,
-                    group=group,
-                    value=type(value),
-                    format=format,
-                    append=append,
-                    kwargs=kwargs,
-                )
+            # return instead of raising so mypy can tell where we are raising
+            return TypeError(
+                f"cannot properly create the storer for: [{t}] [group->"
+                f"{group},value->{value},format->{format},"
+                f"kwargs->{kwargs}]"
             )
 
         pt = _ensure_decoded(getattr(group._v_attrs, "pandas_type", None))
@@ -1441,9 +1439,11 @@ class HDFStore:
             if value is None:
 
                 _tables()
-                if getattr(group, "table", None) or isinstance(
-                    group, _table_mod.table.Table
-                ):
+                # mypy can't tell that _table_mod is not None, so we have
+                #  to do a type: ignore
+                cond1 = getattr(group, "table", None)
+                cond2 = isinstance(group, _table_mod.table.Table)  # type: ignore
+                if cond1 or cond2:
                     pt = "frame_table"
                     tt = "generic_table"
                 else:
@@ -1452,11 +1452,10 @@ class HDFStore:
                         "nor a value are passed"
                     )
             else:
-
                 try:
-                    pt = _TYPE_MAP[type(value)]
+                    pt = {Series: "series", DataFrame: "frame"}[type(value)]
                 except KeyError:
-                    error("_TYPE_MAP")
+                    raise error("_TYPE_MAP")
 
                 # we are actually a table
                 if format == "table":
@@ -1467,7 +1466,7 @@ class HDFStore:
             try:
                 return globals()[_STORER_MAP[pt]](self, group, **kwargs)
             except KeyError:
-                error("_STORER_MAP")
+                raise error("_STORER_MAP")
 
         # existing node (and must be a table)
         if tt is None:
@@ -1508,7 +1507,7 @@ class HDFStore:
         try:
             return globals()[_TABLE_MAP[tt]](self, group, **kwargs)
         except KeyError:
-            error("_TABLE_MAP")
+            raise error("_TABLE_MAP")
 
     def _write_to_group(
         self,
@@ -1554,9 +1553,7 @@ class HDFStore:
                     group = self._handle.create_group(path, p)
                 path = new_path
 
-        s = self._create_storer(
-            group, format, value, append=append, encoding=encoding, **kwargs
-        )
+        s = self._create_storer(group, format, value, encoding=encoding, **kwargs)
         if append:
             # raise if we are trying to append to a Fixed format,
             #       or a table that exists (and we are putting)
@@ -1573,7 +1570,7 @@ class HDFStore:
         # write the object
         s.write(obj=value, append=append, complib=complib, **kwargs)
 
-        if s.is_table and index:
+        if isinstance(s, Table) and index:
             s.create_index(columns=index)
 
     def _read_group(self, group, **kwargs):
@@ -1604,11 +1601,12 @@ class TableIterator:
         """
 
     chunksize: Optional[int]
+    s: Union["GenericFixed", "Table"]
 
     def __init__(
         self,
         store,
-        s,
+        s: Union["GenericFixed", "Table"],
         func,
         where,
         nrows,
@@ -1671,7 +1669,7 @@ class TableIterator:
 
         #  return the actual iterator
         if self.chunksize is not None:
-            if not self.s.is_table:
+            if not isinstance(self.s, Table):
                 raise TypeError("can only use an iterator or chunksize on a table")
 
             self.coordinates = self.s.read_coordinates(where=self.where)
@@ -1680,6 +1678,8 @@ class TableIterator:
 
         # if specified read via coordinates (necessary for multiple selections
         if coordinates:
+            if not isinstance(self.s, Table):
+                raise TypeError("can only read_coordinates on a table")
             where = self.s.read_coordinates(
                 where=self.where, start=self.start, stop=self.stop
             )
