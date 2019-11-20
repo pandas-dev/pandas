@@ -247,7 +247,7 @@ class TestClipboard:
         self.check_round_trip_frame(df, encoding=enc)
 
     @pytest.mark.parametrize("data", ["\U0001f44d...", "Ωœ∑´...", "abcd..."])
-    def test_raw_roundtrip(data):
+    def test_raw_roundtrip(self, data):
         # PR #25040 wide unicode wasn't copied correctly on PY3 on windows
         clipboard_set(data)
         assert data == clipboard_get()
