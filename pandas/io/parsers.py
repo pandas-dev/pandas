@@ -395,25 +395,17 @@ def _validate_integer(name, val, min_val=0):
 
 def _validate_names(names):
     """
-    Check if the `names` parameter contains duplicates.
-
-    If duplicates are found, we issue a warning before returning.
+    Raise ValueError if the `names` parameter contains duplicates.
 
     Parameters
     ----------
     names : array-like or None
         An array containing a list of the names used for the output DataFrame.
-
-    Returns
-    -------
-    names : array-like or None
-        The original `names` parameter.
     """
 
     if names is not None:
         if len(names) != len(set(names)):
             raise ValueError("Duplicate names are not allowed.")
-    return names
 
 
 def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
