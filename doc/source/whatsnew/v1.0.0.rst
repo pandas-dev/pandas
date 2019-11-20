@@ -125,6 +125,7 @@ Other enhancements
 - Roundtripping DataFrames with nullable integer or string data types to parquet
   (:meth:`~DataFrame.to_parquet` / :func:`read_parquet`) using the `'pyarrow'` engine
   now preserve those data types with pyarrow >= 1.0.0 (:issue:`20612`).
+- :meth:`Series.interpolate` added the ``max_gap`` keyword to limit interpolation to NaN-gaps of a certain length (:issue:`25141`)
 
 Build Changes
 ^^^^^^^^^^^^^
@@ -300,6 +301,7 @@ Performance improvements
 Bug fixes
 ~~~~~~~~~
 
+- ``limit_area`` and ``limit_direction`` now work in :meth:`Series.interpolate` if ``method`` is ``pad`` (:issue:`25141`)
 
 Categorical
 ^^^^^^^^^^^
