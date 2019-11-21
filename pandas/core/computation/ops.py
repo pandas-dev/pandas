@@ -55,7 +55,7 @@ class UndefinedVariableError(NameError):
     NameError subclass for local variables.
     """
 
-    def __init__(self, name, is_local):
+    def __init__(self, name, is_local: bool):
         if is_local:
             msg = "local variable {0!r} is not defined"
         else:
@@ -68,6 +68,8 @@ class Term:
         klass = Constant if not isinstance(name, str) else cls
         supr_new = super(Term, klass).__new__
         return supr_new(klass)
+
+    is_local: bool
 
     def __init__(self, name, env, side=None, encoding=None):
         # name is a str for Term, but may be something else for subclasses

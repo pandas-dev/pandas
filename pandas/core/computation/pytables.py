@@ -2,7 +2,7 @@
 
 import ast
 from functools import partial
-from typing import Any, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
 
@@ -24,17 +24,27 @@ from pandas.io.formats.printing import pprint_thing, pprint_thing_encoded
 class Scope(_scope.Scope):
     __slots__ = ("queryables",)
 
-    def __init__(self, level: int, global_dict=None, local_dict=None, queryables=None):
+    queryables: Dict[str, Any]
+
+    def __init__(
+        self,
+        level: int,
+        global_dict=None,
+        local_dict=None,
+        queryables: Optional[Dict[str, Any]] = None,
+    ):
         super().__init__(level + 1, global_dict=global_dict, local_dict=local_dict)
         self.queryables = queryables or dict()
 
 
 class Term(ops.Term):
+    env: Scope
+
     def __new__(cls, name, env, side=None, encoding=None):
         klass = Constant if not isinstance(name, str) else cls
         return object.__new__(klass)
 
-    def __init__(self, name, env, side=None, encoding=None):
+    def __init__(self, name, env: Scope, side=None, encoding=None):
         super().__init__(name, env, side=side, encoding=encoding)
 
     def _resolve_name(self):
@@ -69,7 +79,10 @@ class BinOp(ops.BinOp):
 
     _max_selectors = 31
 
-    def __init__(self, op, lhs, rhs, queryables, encoding):
+    op: str
+    queryables: Dict[str, Any]
+
+    def __init__(self, op: str, lhs, rhs, queryables: Dict[str, Any], encoding):
         super().__init__(op, lhs, rhs)
         self.queryables = queryables
         self.encoding = encoding
@@ -373,9 +386,6 @@ class UnaryOp(ops.UnaryOp):
         return None
 
 
-_op_classes = {"unary": UnaryOp}
-
-
 class ExprVisitor(BaseExprVisitor):
     const_type = Constant
     term_type = Term
@@ -510,7 +520,16 @@ class Expr(expr.Expr):
     "major_axis>=20130101"
     """
 
-    def __init__(self, where, queryables=None, encoding=None, scope_level: int = 0):
+    _visitor: Optional[ExprVisitor]
+    env: Scope
+
+    def __init__(
+        self,
+        where,
+        queryables: Optional[Dict[str, Any]] = None,
+        encoding=None,
+        scope_level: int = 0,
+    ):
 
         where = _validate_where(where)
 
