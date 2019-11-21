@@ -7,7 +7,7 @@ dependencies:
 
   # tools
   # - cython>=0.29.13 ### Cython 0.29.13 for 32 bits is not available with conda, installing below with pip instead
-  - pytest>=4.0.2
+  - pytest>=5.0.1
   - pytest-xdist>=1.21
   - pytest-mock
   - hypothesis>=3.58.0
