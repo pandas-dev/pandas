@@ -50,7 +50,7 @@ import pandas.core.common as com
 from pandas.core.construction import array, extract_array
 from pandas.core.indexers import validate_indices
 
-_shared_docs = {}  # type: Dict[str, str]
+_shared_docs: Dict[str, str] = {}
 
 
 # --------------- #
