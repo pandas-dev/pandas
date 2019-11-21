@@ -10,14 +10,13 @@ from pandas._libs import lib
 from pandas import DataFrame, Index, MultiIndex, Series, concat, isna, notna
 import pandas.core.strings as strings
 import pandas.util.testing as tm
-from pandas.util.testing import assert_index_equal, assert_series_equal
 
 
 def assert_series_or_index_equal(left, right):
     if isinstance(left, Series):
-        assert_series_equal(left, right)
+        tm.assert_series_equal(left, right)
     else:  # Index
-        assert_index_equal(left, right)
+        tm.assert_index_equal(left, right)
 
 
 _any_string_method = [
@@ -363,7 +362,7 @@ class TestStringMethods:
             pass
 
         assert not i
-        assert_series_equal(ds, s)
+        tm.assert_series_equal(ds, s)
 
     def test_iter_object_try_string(self):
         ds = Series([slice(None, randint(10), randint(10, 20)) for _ in range(4)])
@@ -732,7 +731,10 @@ class TestStringMethods:
         tm.assert_series_equal(result, exp)
 
         # mixed
-        mixed = ["a", np.nan, "b", True, datetime.today(), "foo", None, 1, 2.0]
+        mixed = np.array(
+            ["a", np.nan, "b", True, datetime.today(), "foo", None, 1, 2.0],
+            dtype=object,
+        )
         rs = strings.str_count(mixed, "a")
         xp = np.array([1, np.nan, 0, np.nan, np.nan, 0, np.nan, np.nan, np.nan])
         tm.assert_numpy_array_equal(rs, xp)
@@ -756,14 +758,14 @@ class TestStringMethods:
         expected = np.array([False, np.nan, False, False, True], dtype=np.object_)
         tm.assert_numpy_array_equal(result, expected)
 
-        values = ["foo", "xyz", "fooommm__foo", "mmm_"]
+        values = np.array(["foo", "xyz", "fooommm__foo", "mmm_"], dtype=object)
         result = strings.str_contains(values, pat)
         expected = np.array([False, False, True, True])
         assert result.dtype == np.bool_
         tm.assert_numpy_array_equal(result, expected)
 
         # case insensitive using regex
-        values = ["Foo", "xYz", "fOOomMm__fOo", "MMM_"]
+        values = np.array(["Foo", "xYz", "fOOomMm__fOo", "MMM_"], dtype=object)
         result = strings.str_contains(values, "FOO|mmm", case=False)
         expected = np.array([True, False, True, True])
         tm.assert_numpy_array_equal(result, expected)
@@ -774,7 +776,10 @@ class TestStringMethods:
         tm.assert_numpy_array_equal(result, expected)
 
         # mixed
-        mixed = ["a", np.nan, "b", True, datetime.today(), "foo", None, 1, 2.0]
+        mixed = np.array(
+            ["a", np.nan, "b", True, datetime.today(), "foo", None, 1, 2.0],
+            dtype=object,
+        )
         rs = strings.str_contains(mixed, "o")
         xp = np.array(
             [False, np.nan, False, np.nan, np.nan, True, np.nan, np.nan, np.nan],
@@ -870,7 +875,10 @@ class TestStringMethods:
         tm.assert_series_equal(result, exp.fillna(False).astype(bool))
 
         # mixed
-        mixed = ["a", np.nan, "b", True, datetime.today(), "foo", None, 1, 2.0]
+        mixed = np.array(
+            ["a", np.nan, "b", True, datetime.today(), "foo", None, 1, 2.0],
+            dtype=object,
+        )
         rs = strings.str_endswith(mixed, "f")
         xp = np.array(
             [False, np.nan, False, np.nan, np.nan, False, np.nan, np.nan, np.nan],
@@ -1165,10 +1173,10 @@ class TestStringMethods:
         # na GH #6609
         res = Series(["a", 0, np.nan]).str.match("a", na=False)
         exp = Series([True, False, False])
-        assert_series_equal(exp, res)
+        tm.assert_series_equal(exp, res)
         res = Series(["a", 0, np.nan]).str.match("a")
         exp = Series([True, np.nan, np.nan])
-        assert_series_equal(exp, res)
+        tm.assert_series_equal(exp, res)
 
     def test_extract_expand_None(self):
         values = Series(["fooBAD__barBAD", np.nan, "foo"])
@@ -1399,7 +1407,7 @@ class TestStringMethods:
             result_df = s_or_idx.str.extract(r"(?P<uno>A)\d", expand=True)
             assert isinstance(result_df, DataFrame)
             result_series = result_df["uno"]
-            assert_series_equal(result_series, Series(["A", "A"], name="uno"))
+            tm.assert_series_equal(result_series, Series(["A", "A"], name="uno"))
 
     def test_extract_series(self):
         # extract should give the same result whether or not the
@@ -1854,15 +1862,16 @@ class TestStringMethods:
         tm.assert_series_equal(empty_str, empty.str.get(0))
         tm.assert_series_equal(empty_str, empty_bytes.str.decode("ascii"))
         tm.assert_series_equal(empty_bytes, empty.str.encode("ascii"))
-        tm.assert_series_equal(empty_str, empty.str.isalnum())
-        tm.assert_series_equal(empty_str, empty.str.isalpha())
-        tm.assert_series_equal(empty_str, empty.str.isdigit())
-        tm.assert_series_equal(empty_str, empty.str.isspace())
-        tm.assert_series_equal(empty_str, empty.str.islower())
-        tm.assert_series_equal(empty_str, empty.str.isupper())
-        tm.assert_series_equal(empty_str, empty.str.istitle())
-        tm.assert_series_equal(empty_str, empty.str.isnumeric())
-        tm.assert_series_equal(empty_str, empty.str.isdecimal())
+        # ismethods should always return boolean (GH 29624)
+        tm.assert_series_equal(empty_bool, empty.str.isalnum())
+        tm.assert_series_equal(empty_bool, empty.str.isalpha())
+        tm.assert_series_equal(empty_bool, empty.str.isdigit())
+        tm.assert_series_equal(empty_bool, empty.str.isspace())
+        tm.assert_series_equal(empty_bool, empty.str.islower())
+        tm.assert_series_equal(empty_bool, empty.str.isupper())
+        tm.assert_series_equal(empty_bool, empty.str.istitle())
+        tm.assert_series_equal(empty_bool, empty.str.isnumeric())
+        tm.assert_series_equal(empty_bool, empty.str.isdecimal())
         tm.assert_series_equal(empty_str, empty.str.capitalize())
         tm.assert_series_equal(empty_str, empty.str.swapcase())
         tm.assert_series_equal(empty_str, empty.str.normalize("NFC"))
@@ -3087,15 +3096,15 @@ class TestStringMethods:
 
         rs = values.str.strip("x")
         xp = Series(["ABC", " BNSD", "LDFJH "])
-        assert_series_equal(rs, xp)
+        tm.assert_series_equal(rs, xp)
 
         rs = values.str.lstrip("x")
         xp = Series(["ABCxx", " BNSD", "LDFJH xx"])
-        assert_series_equal(rs, xp)
+        tm.assert_series_equal(rs, xp)
 
         rs = values.str.rstrip("x")
         xp = Series(["xxABC", "xx BNSD", "LDFJH "])
-        assert_series_equal(rs, xp)
+        tm.assert_series_equal(rs, xp)
 
     def test_wrap(self):
         # test values are: two words less than width, two words equal to width,
@@ -3132,14 +3141,14 @@ class TestStringMethods:
         )
 
         rs = values.str.wrap(12, break_long_words=True)
-        assert_series_equal(rs, xp)
+        tm.assert_series_equal(rs, xp)
 
         # test with pre and post whitespace (non-unicode), NaN, and non-ascii
         # Unicode
         values = Series(["  pre  ", np.nan, "\xac\u20ac\U00008000 abadcafe"])
         xp = Series(["  pre", np.nan, "\xac\u20ac\U00008000 ab\nadcafe"])
         rs = values.str.wrap(6)
-        assert_series_equal(rs, xp)
+        tm.assert_series_equal(rs, xp)
 
     def test_get(self):
         values = Series(["a_b_c", "c_d_e", np.nan, "f_g_h"])
@@ -3202,31 +3211,31 @@ class TestStringMethods:
         expected = Series(
             [False, False, False, True, True, False, np.nan, False, False, True]
         )
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = s.str.contains("a", case=False)
         expected = Series(
             [True, False, False, True, True, False, np.nan, True, False, True]
         )
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = s.str.contains("Aa")
         expected = Series(
             [False, False, False, True, False, False, np.nan, False, False, False]
         )
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = s.str.contains("ba")
         expected = Series(
             [False, False, False, True, False, False, np.nan, False, False, False]
         )
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = s.str.contains("ba", case=False)
         expected = Series(
             [False, False, False, True, True, False, np.nan, True, False, False]
         )
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_contains_nan(self):
         # PR #14171
@@ -3234,19 +3243,19 @@ class TestStringMethods:
 
         result = s.str.contains("foo", na=False)
         expected = Series([False, False, False], dtype=np.bool_)
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = s.str.contains("foo", na=True)
         expected = Series([True, True, True], dtype=np.bool_)
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = s.str.contains("foo", na="foo")
         expected = Series(["foo", "foo", "foo"], dtype=np.object_)
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = s.str.contains("foo")
         expected = Series([np.nan, np.nan, np.nan], dtype=np.object_)
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_replace_moar(self):
         # PR #1179
@@ -3256,7 +3265,7 @@ class TestStringMethods:
         expected = Series(
             ["YYY", "B", "C", "YYYaba", "Baca", "", np.nan, "CYYYBYYY", "dog", "cat"]
         )
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = s.str.replace("A", "YYY", case=False)
         expected = Series(
@@ -3273,7 +3282,7 @@ class TestStringMethods:
                 "cYYYt",
             ]
         )
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = s.str.replace("^.a|dog", "XX-XX ", case=False)
         expected = Series(
@@ -3290,7 +3299,7 @@ class TestStringMethods:
                 "XX-XX t",
             ]
         )
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_string_slice_get_syntax(self):
         s = Series(
@@ -3309,15 +3318,15 @@ class TestStringMethods:
 
         result = s.str[0]
         expected = s.str.get(0)
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = s.str[:3]
         expected = s.str.slice(stop=3)
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = s.str[2::-1]
         expected = s.str.slice(start=2, step=-1)
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_string_slice_out_of_bounds(self):
         s = Series([(1, 2), (1,), (3, 4, 5)])
@@ -3325,12 +3334,12 @@ class TestStringMethods:
         result = s.str[1]
         expected = Series([2, np.nan, 4])
 
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         s = Series(["foo", "b", "ba"])
         result = s.str[1]
         expected = Series(["o", np.nan, "a"])
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_match_findall_flags(self):
         data = {
@@ -3489,10 +3498,13 @@ class TestStringMethods:
 
 
 def test_string_array(any_string_method):
+    method_name, args, kwargs = any_string_method
+    if method_name == "decode":
+        pytest.skip("decode requires bytes.")
+
     data = ["a", "bb", np.nan, "ccc"]
     a = Series(data, dtype=object)
     b = Series(data, dtype="string")
-    method_name, args, kwargs = any_string_method
 
     expected = getattr(a.str, method_name)(*args, **kwargs)
     result = getattr(b.str, method_name)(*args, **kwargs)
@@ -3503,8 +3515,29 @@ def test_string_array(any_string_method):
         ):
             assert result.dtype == "string"
             result = result.astype(object)
+
+        elif expected.dtype == "float" and expected.isna().any():
+            assert result.dtype == "Int64"
+            result = result.astype("float")
+
     elif isinstance(expected, DataFrame):
         columns = expected.select_dtypes(include="object").columns
         assert all(result[columns].dtypes == "string")
         result[columns] = result[columns].astype(object)
     tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method,expected",
+    [
+        ("count", [2, None]),
+        ("find", [0, None]),
+        ("index", [0, None]),
+        ("rindex", [2, None]),
+    ],
+)
+def test_string_array_numeric_integer_array(method, expected):
+    s = Series(["aba", None], dtype="string")
+    result = getattr(s.str, method)("a")
+    expected = Series(expected, dtype="Int64")
+    tm.assert_series_equal(result, expected)

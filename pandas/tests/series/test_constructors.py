@@ -7,7 +7,6 @@ import pytest
 
 from pandas._libs import lib
 from pandas._libs.tslib import iNaT
-from pandas.compat import PY36
 
 from pandas.core.dtypes.common import is_categorical_dtype, is_datetime64tz_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype, ordered_sentinel
@@ -1035,16 +1034,20 @@ class TestSeriesConstructors:
         expected.iloc[1] = 1
         tm.assert_series_equal(result, expected)
 
+    def test_constructor_dict_list_value_explicit_dtype(self):
+        # GH 18625
+        d = {"a": [[2], [3], [4]]}
+        result = Series(d, index=["a"], dtype="object")
+        expected = Series(d, index=["a"])
+        tm.assert_series_equal(result, expected)
+
     def test_constructor_dict_order(self):
         # GH19018
         # initialization ordering: by insertion order if python>= 3.6, else
         # order by value
         d = {"b": 1, "a": 0, "c": 2}
         result = Series(d)
-        if PY36:
-            expected = Series([1, 0, 2], index=list("bac"))
-        else:
-            expected = Series([0, 1, 2], index=list("abc"))
+        expected = Series([1, 0, 2], index=list("bac"))
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("value", [2, np.nan, None, float("nan")])

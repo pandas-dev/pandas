@@ -10,7 +10,7 @@ import pandas as pd
 from pandas import DataFrame, Series, Timestamp, date_range
 from pandas.api.types import is_scalar
 from pandas.tests.indexing.common import Base
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 
 class TestLoc(Base):
@@ -1013,9 +1013,8 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         assert result == "index_name"
 
     def test_loc_empty_list_indexer_is_ok(self):
-        from pandas.util.testing import makeCustomDataframe as mkdf
 
-        df = mkdf(5, 2)
+        df = tm.makeCustomDataframe(5, 2)
         # vertical empty
         tm.assert_frame_equal(
             df.loc[:, []], df.iloc[:, :0], check_index_type=True, check_column_type=True

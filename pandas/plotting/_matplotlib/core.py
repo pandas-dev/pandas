@@ -102,7 +102,7 @@ class MPLPlot:
         table=False,
         layout=None,
         include_bool=False,
-        **kwds
+        **kwds,
     ):
 
         import matplotlib.pyplot as plt
@@ -193,6 +193,8 @@ class MPLPlot:
         self._validate_color_args()
 
     def _validate_color_args(self):
+        import matplotlib.colors
+
         if "color" not in self.kwds and "colors" in self.kwds:
             warnings.warn(
                 (
@@ -234,13 +236,14 @@ class MPLPlot:
                 styles = [self.style]
             # need only a single match
             for s in styles:
-                if re.match("^[a-z]+?", s) is not None:
-                    raise ValueError(
-                        "Cannot pass 'style' string with a color "
-                        "symbol and 'color' keyword argument. Please"
-                        " use one or the other or pass 'style' "
-                        "without a color symbol"
-                    )
+                for char in s:
+                    if char in matplotlib.colors.BASE_COLORS:
+                        raise ValueError(
+                            "Cannot pass 'style' string with a color "
+                            "symbol and 'color' keyword argument. Please"
+                            " use one or the other or pass 'style' "
+                            "without a color symbol"
+                        )
 
     def _iter_data(self, data=None, keep_index=False, fillna=None):
         if data is None:
@@ -982,7 +985,7 @@ class ScatterPlot(PlanePlot):
             c=c_values,
             label=label,
             cmap=cmap,
-            **self.kwds
+            **self.kwds,
         )
         if cb:
             cbar_label = c if c_is_column else ""
@@ -1092,7 +1095,7 @@ class LinePlot(MPLPlot):
                 column_num=i,
                 stacking_id=stacking_id,
                 is_errorbar=is_errorbar,
-                **kwds
+                **kwds,
             )
             self._add_legend_handle(newlines[0], label, index=i)
 
@@ -1247,7 +1250,7 @@ class AreaPlot(LinePlot):
         column_num=None,
         stacking_id=None,
         is_errorbar=False,
-        **kwds
+        **kwds,
     ):
 
         if column_num == 0:
@@ -1383,7 +1386,7 @@ class BarPlot(MPLPlot):
                     start=start,
                     label=label,
                     log=self.log,
-                    **kwds
+                    **kwds,
                 )
                 ax.set_title(label)
             elif self.stacked:
@@ -1398,7 +1401,7 @@ class BarPlot(MPLPlot):
                     start=start,
                     label=label,
                     log=self.log,
-                    **kwds
+                    **kwds,
                 )
                 pos_prior = pos_prior + np.where(mask, y, 0)
                 neg_prior = neg_prior + np.where(mask, 0, y)
@@ -1412,7 +1415,7 @@ class BarPlot(MPLPlot):
                     start=start,
                     label=label,
                     log=self.log,
-                    **kwds
+                    **kwds,
                 )
             self._add_legend_handle(rect, label, index=i)
 

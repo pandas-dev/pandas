@@ -46,7 +46,8 @@ class _OpenpyxlWriter(ExcelWriter):
     @classmethod
     def _convert_to_style(cls, style_dict):
         """
-        converts a style_dict to an openpyxl style object
+        Converts a style_dict to an openpyxl style object.
+
         Parameters
         ----------
         style_dict : style dictionary to convert
@@ -72,7 +73,8 @@ class _OpenpyxlWriter(ExcelWriter):
     def _convert_to_style_kwargs(cls, style_dict):
         """
         Convert a style_dict to a set of kwargs suitable for initializing
-        or updating-on-copy an openpyxl v2 style object
+        or updating-on-copy an openpyxl v2 style object.
+
         Parameters
         ----------
         style_dict : dict
@@ -83,6 +85,7 @@ class _OpenpyxlWriter(ExcelWriter):
                 'alignment'
                 'number_format'
                 'protection'
+
         Returns
         -------
         style_kwargs : dict
@@ -107,7 +110,8 @@ class _OpenpyxlWriter(ExcelWriter):
     @classmethod
     def _convert_to_color(cls, color_spec):
         """
-        Convert ``color_spec`` to an openpyxl v2 Color object
+        Convert ``color_spec`` to an openpyxl v2 Color object.
+
         Parameters
         ----------
         color_spec : str, dict
@@ -120,6 +124,7 @@ class _OpenpyxlWriter(ExcelWriter):
                 'tint'
                 'index'
                 'type'
+
         Returns
         -------
         color : openpyxl.styles.Color
@@ -135,7 +140,8 @@ class _OpenpyxlWriter(ExcelWriter):
     @classmethod
     def _convert_to_font(cls, font_dict):
         """
-        Convert ``font_dict`` to an openpyxl v2 Font object
+        Convert ``font_dict`` to an openpyxl v2 Font object.
+
         Parameters
         ----------
         font_dict : dict
@@ -154,6 +160,7 @@ class _OpenpyxlWriter(ExcelWriter):
                 'outline'
                 'shadow'
                 'condense'
+
         Returns
         -------
         font : openpyxl.styles.Font
@@ -185,11 +192,13 @@ class _OpenpyxlWriter(ExcelWriter):
         """
         Convert ``stop_seq`` to a list of openpyxl v2 Color objects,
         suitable for initializing the ``GradientFill`` ``stop`` parameter.
+
         Parameters
         ----------
         stop_seq : iterable
             An iterable that yields objects suitable for consumption by
             ``_convert_to_color``.
+
         Returns
         -------
         stop : list of openpyxl.styles.Color
@@ -200,7 +209,8 @@ class _OpenpyxlWriter(ExcelWriter):
     @classmethod
     def _convert_to_fill(cls, fill_dict):
         """
-        Convert ``fill_dict`` to an openpyxl v2 Fill object
+        Convert ``fill_dict`` to an openpyxl v2 Fill object.
+
         Parameters
         ----------
         fill_dict : dict
@@ -216,6 +226,7 @@ class _OpenpyxlWriter(ExcelWriter):
                 'top'
                 'bottom'
                 'stop'
+
         Returns
         -------
         fill : openpyxl.styles.Fill
@@ -262,7 +273,8 @@ class _OpenpyxlWriter(ExcelWriter):
     @classmethod
     def _convert_to_side(cls, side_spec):
         """
-        Convert ``side_spec`` to an openpyxl v2 Side object
+        Convert ``side_spec`` to an openpyxl v2 Side object.
+
         Parameters
         ----------
         side_spec : str, dict
@@ -270,6 +282,7 @@ class _OpenpyxlWriter(ExcelWriter):
             of the following keys (or their synonyms).
                 'style' ('border_style')
                 'color'
+
         Returns
         -------
         side : openpyxl.styles.Side
@@ -295,7 +308,8 @@ class _OpenpyxlWriter(ExcelWriter):
     @classmethod
     def _convert_to_border(cls, border_dict):
         """
-        Convert ``border_dict`` to an openpyxl v2 Border object
+        Convert ``border_dict`` to an openpyxl v2 Border object.
+
         Parameters
         ----------
         border_dict : dict
@@ -311,6 +325,7 @@ class _OpenpyxlWriter(ExcelWriter):
                 'diagonalUp' ('diagonalup')
                 'diagonalDown' ('diagonaldown')
                 'outline'
+
         Returns
         -------
         border : openpyxl.styles.Border
@@ -335,7 +350,8 @@ class _OpenpyxlWriter(ExcelWriter):
     @classmethod
     def _convert_to_alignment(cls, alignment_dict):
         """
-        Convert ``alignment_dict`` to an openpyxl v2 Alignment object
+        Convert ``alignment_dict`` to an openpyxl v2 Alignment object.
+
         Parameters
         ----------
         alignment_dict : dict

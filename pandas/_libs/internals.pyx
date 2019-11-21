@@ -1,20 +1,13 @@
 import cython
 from cython import Py_ssize_t
 
-from cpython.object cimport PyObject
+from cpython.slice cimport PySlice_GetIndicesEx
 
 cdef extern from "Python.h":
     Py_ssize_t PY_SSIZE_T_MAX
 
 import numpy as np
 from numpy cimport int64_t
-
-cdef extern from "compat_helper.h":
-    cdef int slice_get_indices(PyObject* s, Py_ssize_t length,
-                               Py_ssize_t *start, Py_ssize_t *stop,
-                               Py_ssize_t *step,
-                               Py_ssize_t *slicelength) except -1
-
 
 from pandas._libs.algos import ensure_int64
 
@@ -53,7 +46,7 @@ cdef class BlockPlacement:
             self._as_array = arr
             self._has_array = True
 
-    def __str__(self):
+    def __str__(self) -> str:
         cdef:
             slice s = self._ensure_has_slice()
         if s is not None:
@@ -61,12 +54,12 @@ cdef class BlockPlacement:
         else:
             v = self._as_array
 
-        return '%s(%r)' % (self.__class__.__name__, v)
+        return f'{self.__class__.__name__}({v})'
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self)
 
-    def __len__(self):
+    def __len__(self) -> int:
         cdef:
             slice s = self._ensure_has_slice()
         if s is not None:
@@ -85,7 +78,7 @@ cdef class BlockPlacement:
             return iter(self._as_array)
 
     @property
-    def as_slice(self):
+    def as_slice(self) -> slice:
         cdef:
             slice s = self._ensure_has_slice()
         if s is None:
@@ -118,7 +111,7 @@ cdef class BlockPlacement:
         return self._as_array
 
     @property
-    def is_slice_like(self):
+    def is_slice_like(self) -> bool:
         cdef:
             slice s = self._ensure_has_slice()
         return s is not None
@@ -258,8 +251,8 @@ cpdef Py_ssize_t slice_len(
     if slc is None:
         raise TypeError("slc must be slice")
 
-    slice_get_indices(<PyObject *>slc, objlen,
-                      &start, &stop, &step, &length)
+    PySlice_GetIndicesEx(slc, objlen,
+                         &start, &stop, &step, &length)
 
     return length
 
@@ -278,8 +271,8 @@ cdef slice_get_indices_ex(slice slc, Py_ssize_t objlen=PY_SSIZE_T_MAX):
     if slc is None:
         raise TypeError("slc should be a slice")
 
-    slice_get_indices(<PyObject *>slc, objlen,
-                      &start, &stop, &step, &length)
+    PySlice_GetIndicesEx(slc, objlen,
+                         &start, &stop, &step, &length)
 
     return start, stop, step, length
 
@@ -441,7 +434,7 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
                 yield blkno, result
 
 
-def get_blkno_placements(blknos, group=True):
+def get_blkno_placements(blknos, group: bool = True):
     """
 
     Parameters
