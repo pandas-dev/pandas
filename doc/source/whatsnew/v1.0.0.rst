@@ -235,6 +235,27 @@ The following methods now also correctly output values for unobserved categories
    df.groupby(["cat_1", "cat_2"], observed=False)["value"].count()
 
 
+By default :meth:`Categorical.min` and :meth:`Categorical.max` return the min and the max respectively
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When :class:`Categorical` contains ``np.nan``, :meth:`Categorical.min` and :meth:`Categorical.max`
+no longer return ``np.nan`` by default.
+
+*pandas 0.25.x*
+
+.. code-block:: ipython
+
+   In [1]: pd.Categorical([1, 2, np.nan], ordered=True).min()
+   Out[1]: nan
+
+
+*pandas 1.0.0*
+
+.. ipython:: python
+
+   pd.Categorical([1, 2, np.nan], ordered=True).min()
+
+
 .. _whatsnew_1000.api.other:
 
 Other API changes
