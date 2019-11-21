@@ -9,7 +9,7 @@ import itertools
 import os
 import re
 import time
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, Union
 import warnings
 
 import numpy as np
@@ -2558,21 +2558,22 @@ class Fixed:
         self.group = group
         self.encoding = _ensure_encoding(encoding)
         self.errors = errors
-        self.set_version()
 
     @property
     def is_old_version(self) -> bool:
         return self.version[0] <= 0 and self.version[1] <= 10 and self.version[2] < 1
 
-    def set_version(self):
+    @property
+    def version(self) -> Tuple[int, int, int]:
         """ compute and set our version """
         version = _ensure_decoded(getattr(self.group._v_attrs, "pandas_version", None))
         try:
-            self.version = tuple(int(x) for x in version.split("."))
-            if len(self.version) == 2:
-                self.version = self.version + (0,)
+            version = tuple(int(x) for x in version.split("."))
+            if len(version) == 2:
+                version = version + (0,)
         except AttributeError:
-            self.version = (0, 0, 0)
+            version = (0, 0, 0)
+        return version
 
     @property
     def pandas_type(self):
@@ -2598,7 +2599,6 @@ class Fixed:
         """ set my pandas type & version """
         self.attrs.pandas_type = str(self.pandas_kind)
         self.attrs.pandas_version = str(_version)
-        self.set_version()
 
     def copy(self):
         new_self = copy.copy(self)
