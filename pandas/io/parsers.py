@@ -568,7 +568,7 @@ def _make_parser_function(name, default_sep=","):
         # Quoting, Compression, and File Format
         compression="infer",
         thousands=None,
-        decimal=".",
+        decimal: str = ".",
         lineterminator=None,
         quotechar='"',
         quoting=csv.QUOTE_MINIMAL,
@@ -2277,6 +2277,7 @@ class PythonParser(ParserBase):
         self.dtype = kwds["dtype"]
         self.thousands = kwds["thousands"]
         self.decimal = kwds["decimal"]
+
         self.comment = kwds["comment"]
         self._comment_lines = []
 
