@@ -1910,7 +1910,7 @@ class IndexCol:
             existing_kind = getattr(self.attrs, self.kind_attr, None)
             if existing_kind is not None and existing_kind != self.kind:
                 raise TypeError(
-                    f"incompatible kind in col [{existing_kind} - " f"{self.kind}]"
+                    f"incompatible kind in col [{existing_kind} - {self.kind}]"
                 )
 
     def update_info(self, info):
@@ -3960,9 +3960,7 @@ class Table(Fixed):
                             takers = op(values, filt)
                             return obj.loc(axis=axis_number)[takers]
 
-                    raise ValueError(
-                        f"cannot find the field [{field}] for " "filtering!"
-                    )
+                    raise ValueError(f"cannot find the field [{field}] for filtering!")
 
                 obj = process_filter(field, filt)
 
