@@ -1297,13 +1297,11 @@ if _PYARROW_INSTALLED and LooseVersion(pyarrow.__version__) >= LooseVersion("0.1
             # attributes need to be set first before calling
             # super init (as that calls serialize)
             assert closed in _VALID_CLOSED
-            # TODO proper conversion from pandas to pyarrow types
-            subtype = str(subtype)
-            if subtype == "datetime64[ns]":
-                self._subtype = pyarrow.timestamp("ns")
-            else:
-                self._subtype = pyarrow.type_for_alias(subtype)
             self._closed = closed
+            if not isinstance(subtype, pyarrow.DataType):
+                subtype = pyarrow.type_for_alias(str(subtype))
+            self._subtype = subtype
+
             storage_type = pyarrow.struct([("left", subtype), ("right", subtype)])
             pyarrow.ExtensionType.__init__(self, storage_type, "pandas.interval")
 
