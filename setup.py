@@ -344,6 +344,7 @@ class CheckSDist(sdist_class):
         "pandas/_libs/tslibs/resolution.pyx",
         "pandas/_libs/tslibs/parsing.pyx",
         "pandas/_libs/tslibs/tzconversion.pyx",
+        "pandas/_libs/window_indexer.pyx",
         "pandas/_libs/writers.pyx",
         "pandas/io/sas/sas.pyx",
     ]
@@ -683,6 +684,7 @@ ext_data = {
     },
     "_libs.testing": {"pyxfile": "_libs/testing"},
     "_libs.window": {"pyxfile": "_libs/window", "language": "c++", "suffix": ".cpp"},
+    "_libs.window_indexer": {"pyxfile": "_libs/window_indexer"},
     "_libs.writers": {"pyxfile": "_libs/writers"},
     "io.sas._sas": {"pyxfile": "io/sas/sas"},
     "io.msgpack._packer": {
