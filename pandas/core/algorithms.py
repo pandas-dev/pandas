@@ -10,7 +10,7 @@ import numpy as np
 
 from pandas._libs import Timestamp, algos, hashtable as htable, lib
 from pandas._libs.tslib import iNaT
-from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
+from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
@@ -109,7 +109,7 @@ def _ensure_data(values, dtype=None):
 
     except (TypeError, ValueError, OverflowError):
         # if we are trying to coerce to a dtype
-        # and it is incompat this will fall thru to here
+        # and it is incompat this will fall through to here
         return ensure_object(values), "object"
 
     # datetimelike
@@ -494,7 +494,7 @@ _shared_docs[
 
     Parameters
     ----------
-    %(values)s%(sort)s%(order)s
+    %(values)s%(sort)s
     na_sentinel : int, default -1
         Value to mark "not found".
     %(size_hint)s\
@@ -585,14 +585,6 @@ _shared_docs[
         coerced to ndarrays before factorization.
     """
     ),
-    order=dedent(
-        """\
-    order : None
-        .. deprecated:: 0.23.0
-
-           This parameter has no effect and is deprecated.
-    """
-    ),
     sort=dedent(
         """\
     sort : bool, default False
@@ -608,13 +600,8 @@ _shared_docs[
     ),
 )
 @Appender(_shared_docs["factorize"])
-@deprecate_kwarg(old_arg_name="order", new_arg_name=None)
 def factorize(
-    values,
-    sort: bool = False,
-    order=None,
-    na_sentinel: int = -1,
-    size_hint: Optional[int] = None,
+    values, sort: bool = False, na_sentinel: int = -1, size_hint: Optional[int] = None,
 ) -> Tuple[np.ndarray, Union[np.ndarray, ABCIndex]]:
     # Implementation notes: This method is responsible for 3 things
     # 1.) coercing data to array-like (ndarray, Index, extension array)
