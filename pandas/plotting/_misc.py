@@ -1,5 +1,4 @@
 from contextlib import contextmanager
-import warnings
 
 from pandas.util._decorators import deprecate_kwarg
 
@@ -424,33 +423,6 @@ def autocorrelation_plot(series, ax=None, **kwargs):
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.autocorrelation_plot(series=series, ax=ax, **kwargs)
-
-
-def tsplot(series, plotf, ax=None, **kwargs):
-    """
-    Plots a Series on the given Matplotlib axes or the current axes
-
-    Parameters
-    ----------
-    axes : Axes
-    series : Series
-
-    Notes
-    _____
-    Supports same kwargs as Axes.plot
-
-
-    .. deprecated:: 0.23.0
-       Use Series.plot() instead
-    """
-    warnings.warn(
-        "'tsplot' is deprecated and will be removed in a "
-        "future version. Please use Series.plot() instead.",
-        FutureWarning,
-        stacklevel=2,
-    )
-    plot_backend = _get_plot_backend("matplotlib")
-    return plot_backend.tsplot(series=series, plotf=plotf, ax=ax, **kwargs)
 
 
 class _Options(dict):
