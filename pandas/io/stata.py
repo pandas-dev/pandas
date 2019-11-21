@@ -2132,6 +2132,7 @@ class StataWriter(StataParser):
         time_stamp=None,
         data_label=None,
         variable_labels=None,
+        **kwargs,  # dummy parameter for compat with StataWriter117
     ):
         super().__init__()
         self._convert_dates = {} if convert_dates is None else convert_dates

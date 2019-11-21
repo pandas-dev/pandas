@@ -214,9 +214,7 @@ def _add_margins(
 
     key: Union[str, Tuple[str, ...]]
     if len(rows) > 1:
-        key = (margins_name,) + ("",) * (
-            len(rows) - 1
-        )  # type: Union[str, Tuple[str, ...]]
+        key = (margins_name,) + ("",) * (len(rows) - 1)
     else:
         key = margins_name
 
@@ -622,7 +620,7 @@ def _normalize(table, normalize: Union[bool, Axis], margins: bool, margins_name=
             "all": lambda x: x / x.sum(axis=1).sum(axis=0),
             "columns": lambda x: x / x.sum(),
             "index": lambda x: x.div(x.sum(axis=1), axis=0),
-        }  # type: Dict[Union[bool, str], Callable]
+        }
 
         normalizers[True] = normalizers["all"]
 

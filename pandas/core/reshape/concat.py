@@ -2,7 +2,7 @@
 concat routines
 """
 
-from typing import Hashable, List
+from typing import Hashable, List, Optional
 import warnings
 
 import numpy as np
@@ -487,7 +487,7 @@ class _Concatenator:
 
     def _get_new_axes(self):
         ndim = self._get_result_dim()
-        new_axes = [None] * ndim
+        new_axes: List[Optional[Index]] = [None] * ndim
 
         if self.join_axes is None:
             for i in range(ndim):
@@ -538,7 +538,7 @@ class _Concatenator:
                 idx = ibase.default_index(len(self.objs))
                 return idx
             elif self.keys is None:
-                names: List[Hashable] = [None] * len(self.objs)
+                names: List[Optional[Hashable]] = [None] * len(self.objs)
                 num = 0
                 has_names = False
                 for obj in self.objs:
