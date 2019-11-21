@@ -286,11 +286,14 @@ cdef inline bint is_null_period(v):
 # Implementation of NA singleton
 
 
-def _create_binary_propagating_op(name):
+def _create_binary_propagating_op(name, divmod=False):
 
     def method(self, other):
         if isinstance(other, numbers.Number) or other is NA or isinstance(other, str):
-            return NA
+            if divmod:
+                return NA, NA
+            else:
+                return NA
 
         return NotImplemented
 
@@ -359,8 +362,8 @@ class NAType(C_NAType):
     __rfloordiv__ = _create_binary_propagating_op("__rfloordiv__")
     __mod__ = _create_binary_propagating_op("__mod__")
     __rmod__ = _create_binary_propagating_op("__rmod__")
-    __divmod__ = _create_binary_propagating_op("__divmod__")
-    __rdivmod__ = _create_binary_propagating_op("__rdivmod__")
+    __divmod__ = _create_binary_propagating_op("__divmod__", divmod=True)
+    __rdivmod__ = _create_binary_propagating_op("__rdivmod__", divmod=True)
     __pow__ = _create_binary_propagating_op("__pow__")
     __rpow__ = _create_binary_propagating_op("__rpow__")
     # __lshift__ and __rshift__ are not implemented
