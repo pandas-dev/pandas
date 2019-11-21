@@ -911,7 +911,7 @@ def test_pct_change(test_series, freq, periods, fill_method, limit):
         tm.assert_frame_equal(result, expected.to_frame("vals"))
 
 
-def test_ffill_non_unique_multilevel(self):
+def test_ffill_non_unique_multilevel():
     # GH 19437
     date = pd.to_datetime(
         [
