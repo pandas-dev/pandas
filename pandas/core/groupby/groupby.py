@@ -345,14 +345,12 @@ def _group_selection_context(groupby):
     groupby._reset_group_selection()
 
 
-KeysArgType = Optional[
-    Union[
-        Hashable,
-        List[Hashable],
-        Callable[[Hashable], Hashable],
-        List[Callable[[Hashable], Hashable]],
-        Mapping[Hashable, Hashable],
-    ]
+_KeysArgType = Union[
+    Hashable,
+    List[Hashable],
+    Callable[[Hashable], Hashable],
+    List[Callable[[Hashable], Hashable]],
+    Mapping[Hashable, Hashable],
 ]
 
 
@@ -363,7 +361,7 @@ class _GroupBy(PandasObject, SelectionMixin):
     def __init__(
         self,
         obj: NDFrame,
-        keys: KeysArgType = None,
+        keys: Optional[_KeysArgType] = None,
         axis: int = 0,
         level=None,
         grouper: "Optional[ops.BaseGrouper]" = None,
@@ -2517,7 +2515,7 @@ GroupBy._add_numeric_operations()
 @Appender(GroupBy.__doc__)
 def get_groupby(
     obj: NDFrame,
-    by: KeysArgType = None,
+    by: Optional[_KeysArgType] = None,
     axis: int = 0,
     level=None,
     grouper: "Optional[ops.BaseGrouper]" = None,
