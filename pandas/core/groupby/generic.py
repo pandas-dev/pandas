@@ -979,6 +979,19 @@ class DataFrameGroupBy(GroupBy):
 
                 yield values
 
+    def _cython_agg_general(
+        self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
+    ):
+        func = partial(self.grouper.aggregate, how=how, axis=1, min_count=min_count)
+        results = self._selected_obj._data.apply(func)
+        df = DataFrame(results)
+        if self.as_index:
+            df.index = self.grouper.result_index
+        else:
+            df.index = np.arange(result[0].values.shape[1])
+
+        return df
+
     def _aggregate_frame(self, func, *args, **kwargs) -> DataFrame:
         if self.grouper.nkeys != 1:
             raise AssertionError("Number of keys must be 1")

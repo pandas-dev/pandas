@@ -419,20 +419,31 @@ class BlockManager(PandasObject):
             and hasattr(kwargs[k], "values")
         }
 
-        for b in self.blocks:
+        for blk in self.blocks:
             if filter is not None:
-                if not b.mgr_locs.isin(filter_locs).any():
-                    result_blocks.append(b)
+                if not blk.mgr_locs.isin(filter_locs).any():
+                    result_blocks.append(blk)
                     continue
 
             if aligned_args:
-                b_items = self.items[b.mgr_locs.indexer]
+                b_items = self.items[blk.mgr_locs.indexer]
 
                 for k, obj in aligned_args.items():
                     axis = obj._info_axis_number
                     kwargs[k] = obj.reindex(b_items, axis=axis, copy=align_copy)
 
-            applied = getattr(b, f)(**kwargs)
+            if isinstance(f, str):
+                applied = getattr(blk, f)(**kwargs)
+            else:  # partial; specific to groupby
+                # TODO: func should only return one value; need to remove
+                # ohlc from groupby semantics to accomplish generically
+                result, _ = f(blk.values)  # better way?
+                if result.ndim != 2:  # hmm this is hacky
+                    result = result.reshape(-1, 1)
+
+                applied = type(blk)(result, placement=blk.mgr_locs, ndim=2)
+                axes = [self.axes[0], np.arange(result.shape[1])]
+
             result_blocks = _extend_blocks(applied, result_blocks)
 
         if len(result_blocks) == 0:
