@@ -589,8 +589,7 @@ cdef class TextReader:
 
         if not isinstance(quote_char, (str, bytes)) and quote_char is not None:
             dtype = type(quote_char).__name__
-            raise TypeError('"quotechar" must be string, '
-                            'not {dtype}'.format(dtype=dtype))
+            raise TypeError(f'"quotechar" must be string, not {dtype}')
 
         if quote_char is None or quote_char == '':
             if quoting != QUOTE_NONE:
@@ -637,19 +636,19 @@ cdef class TextReader:
                     source = zip_file.open(file_name)
 
                 elif len(zip_names) == 0:
-                    raise ValueError('Zero files found in compressed '
-                                     'zip file %s', source)
+                    raise ValueError(f'Zero files found in compressed '
+                                     f'zip file {source}')
                 else:
-                    raise ValueError('Multiple files found in compressed '
-                                     'zip file %s', str(zip_names))
+                    raise ValueError(f'Multiple files found in compressed '
+                                     f'zip file {zip_names}')
             elif self.compression == 'xz':
                 if isinstance(source, str):
                     source = _get_lzma_file(lzma)(source, 'rb')
                 else:
                     source = _get_lzma_file(lzma)(filename=source)
             else:
-                raise ValueError('Unrecognized compression type: %s' %
-                                 self.compression)
+                raise ValueError(f'Unrecognized compression type: '
+                                 f'{self.compression}')
 
             if b'utf-16' in (self.encoding or b''):
                 # we need to read utf-16 through UTF8Recoder.
@@ -685,7 +684,7 @@ cdef class TextReader:
                 if not os.path.exists(source):
                     raise FileNotFoundError(
                         ENOENT,
-                        'File {source} does not exist'.format(source=source),
+                        f'File {source} does not exist',
                         source)
                 raise IOError('Initializing from file failed')
 
@@ -703,8 +702,8 @@ cdef class TextReader:
             self.parser.cb_io = &buffer_rd_bytes
             self.parser.cb_cleanup = &del_rd_source
         else:
-            raise IOError('Expected file path name or file-like object,'
-                          ' got %s type' % type(source))
+            raise IOError(f'Expected file path name or file-like object, '
+                          f'got {type(source)} type')
 
     cdef _get_header(self):
         # header is now a list of lists, so field_count should use header[0]
@@ -741,11 +740,11 @@ cdef class TextReader:
                           self.parser.lines < hr):
                     msg = self.orig_header
                     if isinstance(msg, list):
-                        msg = "[%s], len of %d," % (
-                            ','.join(str(m) for m in msg), len(msg))
+                        joined = ','.join(str(m) for m in msg)
+                        msg = f"[{joined}], len of {len(msg)},"
                     raise ParserError(
-                        'Passed header=%s but only %d lines in file'
-                        % (msg, self.parser.lines))
+                        f'Passed header={msg} but only '
+                        f'{self.parser.lines} lines in file')
 
                 else:
                     field_count = self.parser.line_fields[hr]
@@ -768,10 +767,9 @@ cdef class TextReader:
 
                     if name == '':
                         if self.has_mi_columns:
-                            name = ('Unnamed: {i}_level_{lvl}'
-                                    .format(i=i, lvl=level))
+                            name = f'Unnamed: {i}_level_{level}'
                         else:
-                            name = 'Unnamed: {i}'.format(i=i)
+                            name = f'Unnamed: {i}'
                         unnamed_count += 1
 
                     count = counts.get(name, 0)
@@ -779,7 +777,7 @@ cdef class TextReader:
                     if not self.has_mi_columns and self.mangle_dupe_cols:
                         while count > 0:
                             counts[name] = count + 1
-                            name = '%s.%d' % (name, count)
+                            name = f'{name}.{count}'
                             count = counts.get(name, 0)
 
                     if old_name == '':
@@ -990,7 +988,7 @@ cdef class TextReader:
     cdef _end_clock(self, what):
         if self.verbose:
             elapsed = time.time() - self.clocks.pop(-1)
-            print('%s took: %.2f ms' % (what, elapsed * 1000))
+            print(f'{what} took: {elapsed * 1000:.2f} ms')
 
     def set_noconvert(self, i):
         self.noconvert.add(i)
@@ -1028,11 +1026,9 @@ cdef class TextReader:
                 (num_cols >= self.parser.line_fields[i]) * num_cols
 
         if self.table_width - self.leading_cols > num_cols:
-            raise ParserError(
-                "Too many columns specified: expected {expected} and "
-                "found {found}"
-                .format(expected=self.table_width - self.leading_cols,
-                        found=num_cols))
+            raise ParserError(f"Too many columns specified: expected "
+                              f"{self.table_width - self.leading_cols} "
+                              f"and found {num_cols}")
 
         results = {}
         nused = 0
@@ -1075,9 +1071,9 @@ cdef class TextReader:
 
             if conv:
                 if col_dtype is not None:
-                    warnings.warn(("Both a converter and dtype were specified "
-                                   "for column {0} - only the converter will "
-                                   "be used").format(name), ParserWarning,
+                    warnings.warn((f"Both a converter and dtype were specified "
+                                   f"for column {name} - only the converter will "
+                                   f"be used"), ParserWarning,
                                   stacklevel=5)
                 results[i] = _apply_converter(conv, self.parser, i, start, end,
                                               self.c_encoding)
@@ -1118,7 +1114,7 @@ cdef class TextReader:
                 col_res = _maybe_upcast(col_res)
 
             if col_res is None:
-                raise ParserError('Unable to parse column {i}'.format(i=i))
+                raise ParserError(f'Unable to parse column {i}')
 
             results[i] = col_res
 
@@ -1178,12 +1174,9 @@ cdef class TextReader:
                 col_res = col_res.astype(col_dtype)
                 if (col_res != col_res_orig).any():
                     raise ValueError(
-                        "cannot safely convert passed user dtype of "
-                        "{col_dtype} for {col_res} dtyped data in "
-                        "column {column}".format(
-                            col_dtype=col_dtype,
-                            col_res=col_res_orig.dtype.name,
-                            column=i))
+                        f"cannot safely convert passed user dtype of "
+                        f"{col_dtype} for {col_res_orig.dtype.name} dtyped data in "
+                        f"column {i}")
 
         return col_res, na_count
 
@@ -1216,9 +1209,9 @@ cdef class TextReader:
                                                               dtype=dtype)
             except NotImplementedError:
                 raise NotImplementedError(
-                    "Extension Array: {ea} must implement "
-                    "_from_sequence_of_strings in order "
-                    "to be used in parser methods".format(ea=array_type))
+                    f"Extension Array: {array_type} must implement "
+                    f"_from_sequence_of_strings in order "
+                    f"to be used in parser methods")
 
             return result, na_count
 
@@ -1228,8 +1221,7 @@ cdef class TextReader:
                                               end, na_filter, na_hashset)
                 if user_dtype and na_count is not None:
                     if na_count > 0:
-                        raise ValueError("Integer column has NA values in "
-                                         "column {column}".format(column=i))
+                        raise ValueError(f"Integer column has NA values in column {i}")
             except OverflowError:
                 result = _try_uint64(self.parser, i, start, end,
                                      na_filter, na_hashset)
@@ -1253,8 +1245,7 @@ cdef class TextReader:
                                               self.true_set, self.false_set)
             if user_dtype and na_count is not None:
                 if na_count > 0:
-                    raise ValueError("Bool column has NA values in "
-                                     "column {column}".format(column=i))
+                    raise ValueError(f"Bool column has NA values in column {i}")
             return result, na_count
 
         elif dtype.kind == 'S':
@@ -1270,8 +1261,7 @@ cdef class TextReader:
         elif dtype.kind == 'U':
             width = dtype.itemsize
             if width > 0:
-                raise TypeError("the dtype {dtype} is not "
-                                "supported for parsing".format(dtype=dtype))
+                raise TypeError(f"the dtype {dtype} is not supported for parsing")
 
             # unicode variable width
             return self._string_convert(i, start, end, na_filter,
@@ -1280,12 +1270,11 @@ cdef class TextReader:
             return self._string_convert(i, start, end, na_filter,
                                         na_hashset)
         elif is_datetime64_dtype(dtype):
-            raise TypeError("the dtype {dtype} is not supported "
-                            "for parsing, pass this column "
-                            "using parse_dates instead".format(dtype=dtype))
+            raise TypeError(f"the dtype {dtype} is not supported "
+                            f"for parsing, pass this column "
+                            f"using parse_dates instead")
         else:
-            raise TypeError("the dtype {dtype} is not "
-                            "supported for parsing".format(dtype=dtype))
+            raise TypeError(f"the dtype {dtype} is not supported for parsing")
 
     cdef _string_convert(self, Py_ssize_t i, int64_t start, int64_t end,
                          bint na_filter, kh_str_starts_t *na_hashset):
@@ -1662,7 +1651,7 @@ cdef _to_fw_string(parser_t *parser, int64_t col, int64_t line_start,
         char *data
         ndarray result
 
-    result = np.empty(line_end - line_start, dtype='|S%d' % width)
+    result = np.empty(line_end - line_start, dtype=f'|S{width}')
     data = <char*>result.data
 
     with nogil:
@@ -2132,7 +2121,7 @@ cdef raise_parser_error(object base, parser_t *parser):
                 Py_XDECREF(type)
                 raise old_exc
 
-    message = '{base}. C error: '.format(base=base)
+    message = f'{base}. C error: '
     if parser.error_msg != NULL:
         message += parser.error_msg.decode('utf-8')
     else:
@@ -2176,8 +2165,8 @@ def _concatenate_chunks(list chunks):
     if warning_columns:
         warning_names = ','.join(warning_columns)
         warning_message = " ".join([
-            "Columns (%s) have mixed types." % warning_names,
-            "Specify dtype option on import or set low_memory=False."
+            f"Columns ({warning_names}) have mixed types."
+            f"Specify dtype option on import or set low_memory=False."
           ])
         warnings.warn(warning_message, DtypeWarning, stacklevel=8)
     return result

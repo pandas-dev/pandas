@@ -577,6 +577,8 @@ def read_json(
         dtype = True
     if convert_axes is None and orient != "table":
         convert_axes = True
+    if encoding is None:
+        encoding = "utf-8"
 
     compression = _infer_compression(path_or_buf, compression)
     filepath_or_buffer, _, compression, should_close = get_filepath_or_buffer(

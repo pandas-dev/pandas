@@ -61,12 +61,12 @@ cdef class BlockPlacement:
         else:
             v = self._as_array
 
-        return '%s(%r)' % (self.__class__.__name__, v)
+        return f'{self.__class__.__name__}({v})'
 
     def __repr__(self) -> str:
         return str(self)
 
-    def __len__(self):
+    def __len__(self) -> int:
         cdef:
             slice s = self._ensure_has_slice()
         if s is not None:
