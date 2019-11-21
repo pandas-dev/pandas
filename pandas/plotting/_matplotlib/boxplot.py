@@ -74,8 +74,7 @@ class BoxPlot(LinePlot):
                 for key, values in self.color.items():
                     if key not in valid_keys:
                         raise ValueError(
-                            "color dict contains invalid "
-                            f"key '{key}' "
+                            f"color dict contains invalid key '{key}'. "
                             f"The key must be either {valid_keys}"
                         )
         else:
@@ -268,8 +267,7 @@ def boxplot(
                         result[key_to_index[key]] = value
                     else:
                         raise ValueError(
-                            "color dict contains invalid "
-                            f"key '{key}' "
+                            f"color dict contains invalid key '{key}'. "
                             f"The key must be either {valid_keys}"
                         )
             else:

@@ -797,8 +797,9 @@ class PlotAccessor(PandasObject):
         elif kind in self._series_kinds:
             if isinstance(data, ABCDataFrame):
                 if y is None and kwargs.get("subplots") is False:
-                    msg = f"{kind} requires either y column or 'subplots=True'"
-                    raise ValueError(msg)
+                    raise ValueError(
+                        f"{kind} requires either y column or 'subplots=True'"
+                    )
                 elif y is not None:
                     if is_integer(y) and not data.columns.holds_integer():
                         y = data.columns[y]
