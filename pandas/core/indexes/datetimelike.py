@@ -11,7 +11,7 @@ from pandas._libs import NaT, iNaT, lib
 from pandas._libs.algos import unique_deltas
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import Appender, cache_readonly, deprecate_kwarg
+from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -748,7 +748,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin, _Base):
         #  _data.astype call above
         return Index(new_values, dtype=new_values.dtype, name=self.name, copy=False)
 
-    @deprecate_kwarg(old_arg_name="n", new_arg_name="periods")
     def shift(self, periods=1, freq=None):
         """
         Shift index by desired number of time frequency increments.
@@ -758,7 +757,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin, _Base):
 
         Parameters
         ----------
-        periods : int
+        periods : int, default 1
             Number of periods (or increments) to shift by,
             can be positive or negative.
 

@@ -1,5 +1,5 @@
 import re
-from typing import TYPE_CHECKING, TypeVar
+from typing import List, TypeVar
 
 import numpy as np
 
@@ -11,13 +11,10 @@ from pandas.core.dtypes.generic import ABCMultiIndex
 from pandas.core.dtypes.missing import notna
 
 from pandas.core.arrays import Categorical
-from pandas.core.frame import _shared_docs
+from pandas.core.frame import DataFrame, _shared_docs
 from pandas.core.indexes.base import Index
 from pandas.core.reshape.concat import concat
 from pandas.core.tools.numeric import to_numeric
-
-if TYPE_CHECKING:
-    from pandas import DataFrame  # noqa: F401
 
 _DFT = TypeVar("_DFT", bound="DataFrame")
 
@@ -27,13 +24,13 @@ _DFT = TypeVar("_DFT", bound="DataFrame")
     % dict(caller="pd.melt(df, ", versionadded="", other="DataFrame.melt")
 )
 def melt(
-    frame,
+    frame: DataFrame,
     id_vars=None,
     value_vars=None,
     var_name=None,
     value_name="value",
     col_level=None,
-):
+) -> DataFrame:
     # TODO: what about the existing index?
     # If multiindex, gather names of columns on all level for checking presence
     # of `id_vars` and `value_vars`
@@ -41,6 +38,7 @@ def melt(
         cols = [x for c in frame.columns for x in c]
     else:
         cols = list(frame.columns)
+
     if id_vars is not None:
         if not is_list_like(id_vars):
             id_vars = [id_vars]
@@ -125,7 +123,7 @@ def melt(
     return frame._constructor(mdata, columns=mcolumns)
 
 
-def lreshape(data, groups, dropna=True, label=None):
+def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> DataFrame:
     """
     Reshape long-format data to wide. Generalized inverse of DataFrame.pivot
 
@@ -135,6 +133,8 @@ def lreshape(data, groups, dropna=True, label=None):
     groups : dict
         {new_name : list_of_columns}
     dropna : boolean, default True
+    label : object, default None
+        Dummy kwarg, not used.
 
     Examples
     --------
@@ -420,14 +420,14 @@ def wide_to_long(
                 two  2.9
     """
 
-    def get_var_names(df, stub, sep, suffix):
+    def get_var_names(df, stub: str, sep: str, suffix: str) -> List[str]:
         regex = r"^{stub}{sep}{suffix}$".format(
             stub=re.escape(stub), sep=re.escape(sep), suffix=suffix
         )
         pattern = re.compile(regex)
         return [col for col in df.columns if pattern.match(col)]
 
-    def melt_stub(df: _DFT, stub, i, j, value_vars, sep: str) -> _DFT:
+    def melt_stub(df: _DFT, stub: str, i, j, value_vars, sep: str) -> _DFT:
         newdf = melt(
             df,
             id_vars=i,

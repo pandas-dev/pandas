@@ -498,7 +498,7 @@ def _convert_bin_to_datelike_type(bins, dtype):
 
 
 def _format_labels(
-    bins, precision, right: bool = True, include_lowest: bool = False, dtype=None
+    bins, precision: int, right: bool = True, include_lowest: bool = False, dtype=None
 ):
     """ based on the dtype, return our labels """
 
@@ -568,7 +568,7 @@ def _postprocess_for_cut(fac, bins, retbins: bool, dtype, original):
     return fac, bins
 
 
-def _round_frac(x, precision):
+def _round_frac(x, precision: int):
     """
     Round the fractional part of the given number
     """
@@ -583,7 +583,7 @@ def _round_frac(x, precision):
         return np.around(x, digits)
 
 
-def _infer_precision(base_precision, bins):
+def _infer_precision(base_precision: int, bins) -> int:
     """Infer an appropriate precision for _round_frac
     """
     for precision in range(base_precision, 20):

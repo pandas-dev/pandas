@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple, Type, Union
 from pandas._config import config
 
 from pandas.errors import EmptyDataError
-from pandas.util._decorators import Appender, deprecate_kwarg
+from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import is_bool, is_float, is_integer, is_list_like
 
@@ -192,11 +192,6 @@ comment : str, default None
     Comments out remainder of line. Pass a character or characters to this
     argument to indicate comments in the input file. Any data between the
     comment string and the end of the current line is ignored.
-skip_footer : int, default 0
-    Alias of `skipfooter`.
-
-    .. deprecated:: 0.23.0
-       Use `skipfooter` instead.
 skipfooter : int, default 0
     Rows at the end to skip (0-indexed).
 convert_float : bool, default True
@@ -281,7 +276,6 @@ Comment lines in the excel input file can be skipped using the `comment` kwarg
 
 
 @Appender(_read_excel_doc)
-@deprecate_kwarg("skip_footer", "skipfooter")
 def read_excel(
     io,
     sheet_name=0,
@@ -304,7 +298,6 @@ def read_excel(
     date_parser=None,
     thousands=None,
     comment=None,
-    skip_footer=0,
     skipfooter=0,
     convert_float=True,
     mangle_dupe_cols=True,

@@ -1485,7 +1485,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             values = self
 
         if not len(values):
-            # short-circut for empty max / min
+            # short-circuit for empty max / min
             return NaT
 
         result = nanops.nanmean(values.view("i8"), skipna=skipna)

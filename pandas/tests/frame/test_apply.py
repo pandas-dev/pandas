@@ -13,6 +13,7 @@ import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range, notna
 from pandas.conftest import _get_cython_table_params
 from pandas.core.apply import frame_apply
+from pandas.core.base import SpecificationError
 import pandas.util.testing as tm
 
 
@@ -1094,7 +1095,8 @@ class TestDataFrameAggregate:
         df = pd.DataFrame({"A": range(5), "B": 5})
 
         # nested renaming
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        msg = r"nested renamer is not supported"
+        with pytest.raises(SpecificationError, match=msg):
             df.agg({"A": {"foo": "min"}, "B": {"bar": "max"}})
 
     def test_agg_reduce(self, axis, float_frame):

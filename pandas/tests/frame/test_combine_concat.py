@@ -369,13 +369,6 @@ class TestDataFrameConcatCommon:
         with pytest.raises(ValueError, match="Data overlaps"):
             df.update(other, errors="raise")
 
-    @pytest.mark.parametrize("raise_conflict", [True, False])
-    def test_update_deprecation(self, raise_conflict):
-        df = DataFrame([[1.5, 1, 3.0]])
-        other = DataFrame()
-        with tm.assert_produces_warning(FutureWarning):
-            df.update(other, raise_conflict=raise_conflict)
-
     def test_update_from_non_df(self):
         d = {"a": Series([1, 2, 3, 4]), "b": Series([5, 6, 7, 8])}
         df = DataFrame(d)
