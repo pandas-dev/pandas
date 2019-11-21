@@ -2276,12 +2276,7 @@ class PythonParser(ParserBase):
 
         self.dtype = kwds["dtype"]
         self.thousands = kwds["thousands"]
-
-        if isinstance(kwds["decimal"], bytes):
-            self.decimal = kwds["decimal"].decode()
-        else:
-            self.decimal = kwds["decimal"]
-
+        self.decimal = kwds["decimal"]
         self.comment = kwds["comment"]
         self._comment_lines = []
 
