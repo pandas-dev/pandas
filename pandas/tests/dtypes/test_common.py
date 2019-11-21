@@ -207,25 +207,6 @@ def test_is_categorical():
     assert not com.is_categorical([1, 2, 3])
 
 
-def test_is_datetimetz():
-    with tm.assert_produces_warning(FutureWarning):
-        assert not com.is_datetimetz([1, 2, 3])
-        assert not com.is_datetimetz(pd.DatetimeIndex([1, 2, 3]))
-
-        assert com.is_datetimetz(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern"))
-
-        dtype = DatetimeTZDtype("ns", tz="US/Eastern")
-        s = pd.Series([], dtype=dtype)
-        assert com.is_datetimetz(s)
-
-
-def test_is_period_deprecated():
-    with tm.assert_produces_warning(FutureWarning):
-        assert not com.is_period([1, 2, 3])
-        assert not com.is_period(pd.Index([1, 2, 3]))
-        assert com.is_period(pd.PeriodIndex(["2017-01-01"], freq="D"))
-
-
 def test_is_datetime64_dtype():
     assert not com.is_datetime64_dtype(object)
     assert not com.is_datetime64_dtype([1, 2, 3])
