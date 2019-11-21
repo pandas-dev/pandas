@@ -307,7 +307,8 @@ def _maybe_convert_index(ax, data):
 
 
 def _format_coord(freq, t, y):
-    return "t = {0}  y = {1:8f}".format(Period(ordinal=int(t), freq=freq), y)
+    time_period = Period(ordinal=int(t), freq=freq)
+    return f"t = {time_period}  y = {y:8f}"
 
 
 def format_dateaxis(subplot, freq, index):
