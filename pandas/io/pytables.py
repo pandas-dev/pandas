@@ -48,7 +48,7 @@ from pandas import (
 from pandas.core.arrays.categorical import Categorical
 from pandas.core.arrays.sparse import BlockIndex, IntIndex
 import pandas.core.common as com
-from pandas.core.computation.pytables import Expr, maybe_expression
+from pandas.core.computation.pytables import PyTablesExpr, maybe_expression
 from pandas.core.index import ensure_index
 from pandas.core.internals import BlockManager, _block_shape, make_block
 
@@ -93,7 +93,7 @@ def _ensure_str(name):
     return name
 
 
-Term = Expr
+Term = PyTablesExpr
 
 
 def _ensure_term(where, scope_level: int):
@@ -5047,7 +5047,7 @@ class Selection:
 
         q = self.table.queryables()
         try:
-            return Expr(where, queryables=q, encoding=self.table.encoding)
+            return PyTablesExpr(where, queryables=q, encoding=self.table.encoding)
         except NameError:
             # raise a nice message, suggesting that the user should use
             # data_columns

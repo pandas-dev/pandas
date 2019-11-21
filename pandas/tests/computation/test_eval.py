@@ -1891,7 +1891,7 @@ def test_invalid_parser():
 
 _parsers: Dict[str, Type[BaseExprVisitor]] = {
     "python": PythonExprVisitor,
-    "pytables": pytables.ExprVisitor,
+    "pytables": pytables.PyTablesExprVisitor,
     "pandas": PandasExprVisitor,
 }
 
