@@ -324,7 +324,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - Removed the previously deprecated :meth:`MultiIndex.to_hierarchical` (:issue:`21613`)
 - Removed the previously deprecated :attr:`MultiIndex.labels`, use :attr:`MultiIndex.codes` instead (:issue:`23752`)
 - Removed the previously deprecated "labels" keyword from the :class:`MultiIndex` constructor, use "codes" instead (:issue:`23752`)
-- Removed the previously deprecated :meth:`MultiIndex.set_labels`, use :meth:`MultiIndex.set_codes` instead (:issue:23752`)
+- Removed the previously deprecated :meth:`MultiIndex.set_labels`, use :meth:`MultiIndex.set_codes` instead (:issue:`23752`)
 - Removed the previously deprecated "labels" keyword from :meth:`MultiIndex.set_codes`, :meth:`MultiIndex.copy`, :meth:`MultiIndex.drop`, use "codes" instead (:issue:`23752`)
 - :func:`read_excel` removed support for "skip_footer" argument, use "skipfooter" instead (:issue:`18836`)
 - :meth:`DataFrame.to_records` no longer supports the argument "convert_datetime64" (:issue:`18902`)
