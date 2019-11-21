@@ -2492,11 +2492,11 @@ class TestCrosstab:
         # Duplicate name shared between rows and columns
         s1 = pd.Series(range(3), name="foo")
         s2 = s1 + 1
-        expected = pd.crosstab(s1, s2.rename("bar"))
-        result = pd.crosstab(s1, s2)
-        tm.assert_frame_equal(
-            result, expected.rename_axis(columns={"bar": "foo"}, axis=1)
+        expected = pd.crosstab(s1, s2.rename("bar")).rename_axis(
+            columns={"bar": "foo"}, axis=1
         )
+        result = pd.crosstab(s1, s2)
+        tm.assert_frame_equal(result, expected)
         assert result.index.names == ["foo"]
         assert result.columns.names == ["foo"]
 
@@ -2505,12 +2505,12 @@ class TestCrosstab:
         s2 = s1 + 1
         s3 = pd.Series(range(3), name="bar_col")
 
-        expected = pd.crosstab([s1, s2.rename("bar")], s3)
+        expected = pd.crosstab([s1, s2.rename("bar")], s3).rename_axis(
+            index={"bar": "foo"}, axis=0
+        )
         result = pd.crosstab([s1, s2], s3)
 
-        tm.assert_frame_equal(
-            result, expected.rename_axis(index={"bar": "foo"}, axis=0)
-        )
+        tm.assert_frame_equal(result, expected)
 
         assert result.index.names == ["foo", "foo"]
         assert result.columns.names == ["bar_col"]
@@ -2520,12 +2520,12 @@ class TestCrosstab:
         s2 = s1 + 1
         s3 = pd.Series(range(3), name="bar_row")
 
-        expected = pd.crosstab(s3, [s1, s2.rename("bar")])
+        expected = pd.crosstab(s3, [s1, s2.rename("bar")]).rename_axis(
+            columns={"bar": "foo"}, axis=1
+        )
         result = pd.crosstab(s3, [s1, s2])
 
-        tm.assert_frame_equal(
-            result, expected.rename_axis(columns={"bar": "foo"}, axis=1)
-        )
+        tm.assert_frame_equal(result, expected)
 
         assert result.index.names == ["bar_row"]
         assert result.columns.names == ["foo", "foo"]

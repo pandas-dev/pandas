@@ -555,7 +555,7 @@ def crosstab(
     colnames = _get_names(columns, colnames, prefix="col")
 
     # We create our own mapping of row and columns names
-    # to prevent issues with duplicate columns. GH Issue: #22529
+    # to prevent issues with duplicate columns/row names. GH Issue: #22529
     shared_col_row_names = set(rownames).intersection(set(colnames))
     row_names_mapper, unique_row_names = _build_names_mapper(
         rownames, shared_col_row_names, "row"
@@ -566,10 +566,10 @@ def crosstab(
 
     from pandas import DataFrame
 
-    data = {}
-    data.update(zip(unique_row_names, index))
-    data.update(zip(unique_col_names, columns))
-
+    data = {
+        **dict(zip(unique_row_names, index)),
+        **dict(zip(unique_col_names, columns)),
+    }
     df = DataFrame(data, index=common_idx)
 
     if values is None:
