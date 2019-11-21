@@ -191,6 +191,21 @@ class PandasDocstring(Docstring):
 
 
 def pandas_validation(doc):
+    """
+    Validation of errors specific to pandas.
+
+    Parameters
+    ----------
+    doc : PandasDocString
+        Instance of the PandasDocString corresponding to the docstring to validate.
+
+    Returns
+    -------
+    errs : list of error (namedtuple)
+        List of errors detected in the docstring.
+    example_errs : str
+        Error messages captured from running the examples.
+    """
     errs = []
 
     mentioned_errs = doc.mentioned_private_classes
