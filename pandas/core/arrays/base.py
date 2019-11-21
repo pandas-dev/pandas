@@ -29,7 +29,7 @@ from pandas.core.sorting import nargsort
 
 _not_implemented_message = "{} does not implement {}."
 
-_extension_array_shared_docs = dict()  # type: Dict[str, str]
+_extension_array_shared_docs: Dict[str, str] = dict()
 
 
 def try_cast_to_ea(cls_or_instance, obj, dtype=None):

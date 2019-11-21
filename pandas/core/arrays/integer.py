@@ -40,9 +40,9 @@ class _IntegerDtype(ExtensionDtype):
     The attributes name & type are set when these subclasses are created.
     """
 
-    name = None  # type: str
+    name: str
     base = None
-    type = None  # type: Type
+    type: Type
     na_value = np.nan
 
     def __repr__(self) -> str:

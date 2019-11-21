@@ -211,10 +211,9 @@ def _add_margins(
             if margins_name in table.columns.get_level_values(level):
                 raise ValueError(msg)
 
+    key: Union[str, Tuple[str, ...]]
     if len(rows) > 1:
-        key = (margins_name,) + ("",) * (
-            len(rows) - 1
-        )  # type: Union[str, Tuple[str, ...]]
+        key = (margins_name,) + ("",) * (len(rows) - 1)
     else:
         key = margins_name
 
@@ -564,7 +563,7 @@ def crosstab(
     if pass_objs:
         common_idx = get_objs_combined_axis(pass_objs, intersect=True, sort=False)
 
-    data = {}  # type: dict
+    data: Dict = {}
     data.update(zip(rownames, index))
     data.update(zip(colnames, columns))
 
@@ -615,11 +614,11 @@ def _normalize(table, normalize, margins: bool, margins_name="All"):
     if margins is False:
 
         # Actual Normalizations
-        normalizers = {
+        normalizers: Dict[Union[bool, str], Callable] = {
             "all": lambda x: x / x.sum(axis=1).sum(axis=0),
             "columns": lambda x: x / x.sum(),
             "index": lambda x: x.div(x.sum(axis=1), axis=0),
-        }  # type: Dict[Union[bool, str], Callable]
+        }
 
         normalizers[True] = normalizers["all"]
 

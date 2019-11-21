@@ -57,7 +57,7 @@ class MPLPlot:
 
     _layout_type = "vertical"
     _default_rot = 0
-    orientation = None  # type: Optional[str]
+    orientation: Optional[str] = None
     _pop_attributes = [
         "label",
         "style",

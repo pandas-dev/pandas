@@ -57,7 +57,7 @@ def timedelta_index(request):
 
 
 class SharedTests:
-    index_cls = None  # type: Type[Union[DatetimeIndex, PeriodIndex, TimedeltaIndex]]
+    index_cls: Type[Union[DatetimeIndex, PeriodIndex, TimedeltaIndex]]
 
     def test_compare_len1_raises(self):
         # make sure we raise when comparing with different lengths, specific

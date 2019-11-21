@@ -53,7 +53,7 @@ from pandas.core.window.common import (
 
 
 class _Window(PandasObject, ShallowMixin, SelectionMixin):
-    _attributes = [
+    _attributes: List[str] = [
         "window",
         "min_periods",
         "center",
@@ -61,8 +61,8 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         "axis",
         "on",
         "closed",
-    ]  # type: List[str]
-    exclusions = set()  # type: Set[str]
+    ]
+    exclusions: Set[str] = set()
 
     def __init__(
         self,
@@ -449,7 +449,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         window_indexer = self._get_window_indexer()
 
         results = []
-        exclude = []  # type: List[Scalar]
+        exclude: List[Scalar] = []
         for i, b in enumerate(blocks):
             try:
                 values = self._prep_values(b.values)

@@ -51,7 +51,7 @@ from .base import ExtensionArray, ExtensionOpsMixin
 
 
 class AttributesMixin:
-    _data = None  # type: np.ndarray
+    _data: np.ndarray
 
     @classmethod
     def _simple_new(cls, values, **kwargs):

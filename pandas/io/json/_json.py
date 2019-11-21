@@ -62,8 +62,10 @@ def to_json(
 
     if orient == "table" and isinstance(obj, Series):
         obj = obj.to_frame(name=obj.name or "values")
+
+    writer: Type["Writer"]
     if orient == "table" and isinstance(obj, DataFrame):
-        writer = JSONTableWriter  # type: Type["Writer"]
+        writer = JSONTableWriter
     elif isinstance(obj, Series):
         writer = SeriesWriter
     elif isinstance(obj, DataFrame):

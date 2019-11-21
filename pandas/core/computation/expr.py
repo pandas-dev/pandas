@@ -378,7 +378,7 @@ class BaseExprVisitor(ast.NodeVisitor):
     preparser : callable
     """
 
-    const_type = Constant  # type: Type[Term]
+    const_type: Type[Term] = Constant
     term_type = Term
 
     binary_ops = _cmp_ops_syms + _bool_ops_syms + _arith_ops_syms
