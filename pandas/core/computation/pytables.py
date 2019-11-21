@@ -2,6 +2,7 @@
 
 import ast
 from functools import partial
+from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
 
@@ -12,7 +13,7 @@ from pandas.core.dtypes.common import is_list_like
 
 import pandas as pd
 import pandas.core.common as com
-from pandas.core.computation import expr, ops
+from pandas.core.computation import expr, ops, scope as _scope
 from pandas.core.computation.common import _ensure_decoded
 from pandas.core.computation.expr import BaseExprVisitor
 from pandas.core.computation.ops import UndefinedVariableError, is_term
@@ -20,25 +21,36 @@ from pandas.core.computation.ops import UndefinedVariableError, is_term
 from pandas.io.formats.printing import pprint_thing, pprint_thing_encoded
 
 
-class Scope(expr.Scope):
+class Scope(_scope.Scope):
     __slots__ = ("queryables",)
 
-    def __init__(self, level, global_dict=None, local_dict=None, queryables=None):
+    queryables: Dict[str, Any]
+
+    def __init__(
+        self,
+        level: int,
+        global_dict=None,
+        local_dict=None,
+        queryables: Optional[Dict[str, Any]] = None,
+    ):
         super().__init__(level + 1, global_dict=global_dict, local_dict=local_dict)
         self.queryables = queryables or dict()
 
 
 class Term(ops.Term):
+    env: Scope
+
     def __new__(cls, name, env, side=None, encoding=None):
         klass = Constant if not isinstance(name, str) else cls
         return object.__new__(klass)
 
-    def __init__(self, name, env, side=None, encoding=None):
+    def __init__(self, name, env: Scope, side=None, encoding=None):
         super().__init__(name, env, side=side, encoding=encoding)
 
     def _resolve_name(self):
         # must be a queryables
         if self.side == "left":
+            # Note: The behavior of __new__ ensures that self.name is a str here
             if self.name not in self.env.queryables:
                 raise NameError("name {name!r} is not defined".format(name=self.name))
             return self.name
@@ -67,11 +79,13 @@ class BinOp(ops.BinOp):
 
     _max_selectors = 31
 
-    def __init__(self, op, lhs, rhs, queryables, encoding):
+    op: str
+    queryables: Dict[str, Any]
+
+    def __init__(self, op: str, lhs, rhs, queryables: Dict[str, Any], encoding):
         super().__init__(op, lhs, rhs)
         self.queryables = queryables
         self.encoding = encoding
-        self.filter = None
         self.condition = None
 
     def _disallow_scalar_only_bool_ops(self):
@@ -129,12 +143,12 @@ class BinOp(ops.BinOp):
         return rhs
 
     @property
-    def is_valid(self):
+    def is_valid(self) -> bool:
         """ return True if this is a valid field """
         return self.lhs in self.queryables
 
     @property
-    def is_in_table(self):
+    def is_in_table(self) -> bool:
         """ return True if this is a valid column name for generation (e.g. an
         actual column in the table) """
         return self.queryables.get(self.lhs) is not None
@@ -154,12 +168,12 @@ class BinOp(ops.BinOp):
         """ the metadata of my field """
         return getattr(self.queryables.get(self.lhs), "metadata", None)
 
-    def generate(self, v):
+    def generate(self, v) -> str:
         """ create and return the op string for this TermValue """
         val = v.tostring(self.encoding)
         return "({lhs} {op} {val})".format(lhs=self.lhs, op=self.op, val=val)
 
-    def convert_value(self, v):
+    def convert_value(self, v) -> "TermValue":
         """ convert the expression that is in the term to something that is
         accepted by pytables """
 
@@ -229,7 +243,11 @@ class BinOp(ops.BinOp):
 
 
 class FilterBinOp(BinOp):
+    filter: Optional[Tuple[Any, Any, pd.Index]] = None
+
     def __repr__(self) -> str:
+        if self.filter is None:
+            return "Filter: Not Initialized"
         return pprint_thing(
             "[Filter : [{lhs}] -> [{op}]".format(lhs=self.filter[0], op=self.filter[1])
         )
@@ -279,7 +297,7 @@ class FilterBinOp(BinOp):
 
         return self
 
-    def generate_filter_op(self, invert=False):
+    def generate_filter_op(self, invert: bool = False):
         if (self.op == "!=" and not invert) or (self.op == "==" and invert):
             return lambda axis, vals: ~axis.isin(vals)
         else:
@@ -366,9 +384,6 @@ class UnaryOp(ops.UnaryOp):
                     return operand.invert()
 
         return None
-
-
-_op_classes = {"unary": UnaryOp}
 
 
 class ExprVisitor(BaseExprVisitor):
@@ -505,7 +520,16 @@ class Expr(expr.Expr):
     "major_axis>=20130101"
     """
 
-    def __init__(self, where, queryables=None, encoding=None, scope_level=0):
+    _visitor: Optional[ExprVisitor]
+    env: Scope
+
+    def __init__(
+        self,
+        where,
+        queryables: Optional[Dict[str, Any]] = None,
+        encoding=None,
+        scope_level: int = 0,
+    ):
 
         where = _validate_where(where)
 
@@ -520,18 +544,21 @@ class Expr(expr.Expr):
 
         if isinstance(where, Expr):
             local_dict = where.env.scope
-            where = where.expr
+            _where = where.expr
 
         elif isinstance(where, (list, tuple)):
+            where = list(where)
             for idx, w in enumerate(where):
                 if isinstance(w, Expr):
                     local_dict = w.env.scope
                 else:
                     w = _validate_where(w)
                     where[idx] = w
-            where = " & ".join(map("({})".format, com.flatten(where)))  # noqa
+            _where = " & ".join(map("({})".format, com.flatten(where)))
+        else:
+            _where = where
 
-        self.expr = where
+        self.expr = _where
         self.env = Scope(scope_level + 1, local_dict=local_dict)
 
         if queryables is not None and isinstance(self.expr, str):
@@ -574,7 +601,7 @@ class Expr(expr.Expr):
 class TermValue:
     """ hold a term value the we use to construct a condition/filter """
 
-    def __init__(self, value, converted, kind):
+    def __init__(self, value, converted, kind: Optional[str]):
         self.value = value
         self.converted = converted
         self.kind = kind
@@ -593,7 +620,7 @@ class TermValue:
         return self.converted
 
 
-def maybe_expression(s):
+def maybe_expression(s) -> bool:
     """ loose checking if s is a pytables-acceptable expression """
     if not isinstance(s, str):
         return False

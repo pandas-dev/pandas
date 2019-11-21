@@ -26,8 +26,8 @@ import pandas.core.algorithms as algorithms
 from pandas.core.arrays import Categorical, ExtensionArray
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
+from pandas.core.groupby import ops
 from pandas.core.groupby.categorical import recode_for_groupby, recode_from_groupby
-from pandas.core.groupby.ops import BaseGrouper
 from pandas.core.index import CategoricalIndex, Index, MultiIndex
 from pandas.core.series import Series
 
@@ -119,7 +119,7 @@ class Grouper:
     def ax(self):
         return self.grouper
 
-    def _get_grouper(self, obj, validate=True):
+    def _get_grouper(self, obj, validate: bool = True):
         """
         Parameters
         ----------
@@ -143,17 +143,18 @@ class Grouper:
         )
         return self.binner, self.grouper, self.obj
 
-    def _set_grouper(self, obj, sort=False):
+    def _set_grouper(self, obj: FrameOrSeries, sort: bool = False):
         """
         given an object and the specifications, setup the internal grouper
         for this particular specification
 
         Parameters
         ----------
-        obj : the subject object
+        obj : Series or DataFrame
         sort : bool, default False
             whether the resulting grouper should be sorted
         """
+        assert obj is not None
 
         if self.key is not None and self.level is not None:
             raise ValueError("The Grouper cannot specify both a key and a level!")
@@ -172,9 +173,7 @@ class Grouper:
                 ax = self._grouper.take(obj.index)
             else:
                 if key not in obj._info_axis:
-                    raise KeyError(
-                        "The grouper name {key} is not found".format(key=key)
-                    )
+                    raise KeyError(f"The grouper name {key} is not found")
                 ax = Index(obj[key], name=key)
 
         else:
@@ -190,9 +189,7 @@ class Grouper:
 
                 else:
                     if level not in (0, ax.name):
-                        raise ValueError(
-                            "The level {level} is not valid".format(level=level)
-                        )
+                        raise ValueError(f"The level {level} is not valid")
 
         # possibly sort
         if (self.sort or sort) and not ax.is_monotonic:
@@ -211,13 +208,13 @@ class Grouper:
 
     def __repr__(self) -> str:
         attrs_list = (
-            "{}={!r}".format(attr_name, getattr(self, attr_name))
+            f"{attr_name}={getattr(self, attr_name)!r}"
             for attr_name in self._attributes
             if getattr(self, attr_name) is not None
         )
         attrs = ", ".join(attrs_list)
         cls_name = self.__class__.__name__
-        return "{}({})".format(cls_name, attrs)
+        return f"{cls_name}({attrs})"
 
 
 class Grouping:
@@ -279,17 +276,17 @@ class Grouping:
         if level is not None:
             if not isinstance(level, int):
                 if level not in index.names:
-                    raise AssertionError(
-                        "Level {level} not in index".format(level=level)
-                    )
+                    raise AssertionError(f"Level {level} not in index")
                 level = index.names.index(level)
 
             if self.name is None:
                 self.name = index.names[level]
 
-            self.grouper, self._codes, self._group_index = index._get_grouper_for_level(  # noqa: E501
-                self.grouper, level
-            )
+            (
+                self.grouper,
+                self._codes,
+                self._group_index,
+            ) = index._get_grouper_for_level(self.grouper, level)
 
         # a passed Grouper like, directly get the grouper in the same way
         # as single grouper groupby, use the group_info to get codes
@@ -347,17 +344,16 @@ class Grouping:
             ):
                 if getattr(self.grouper, "ndim", 1) != 1:
                     t = self.name or str(type(self.grouper))
-                    raise ValueError("Grouper for '{t}' not 1-dimensional".format(t=t))
+                    raise ValueError(f"Grouper for '{t}' not 1-dimensional")
                 self.grouper = self.index.map(self.grouper)
                 if not (
                     hasattr(self.grouper, "__len__")
                     and len(self.grouper) == len(self.index)
                 ):
+                    grper = pprint_thing(self.grouper)
                     errmsg = (
                         "Grouper result violates len(labels) == "
-                        "len(data)\nresult: {grper}".format(
-                            grper=pprint_thing(self.grouper)
-                        )
+                        f"len(data)\nresult: {grper}"
                     )
                     self.grouper = None  # Try for sanity
                     raise AssertionError(errmsg)
@@ -372,7 +368,7 @@ class Grouping:
                 self.grouper = self.grouper.astype("timedelta64[ns]")
 
     def __repr__(self) -> str:
-        return "Grouping({0})".format(self.name)
+        return f"Grouping({self.name})"
 
     def __iter__(self):
         return iter(self.indices)
@@ -387,7 +383,7 @@ class Grouping:
     @cache_readonly
     def indices(self):
         # we have a list of groupers
-        if isinstance(self.grouper, BaseGrouper):
+        if isinstance(self.grouper, ops.BaseGrouper):
             return self.grouper.indices
 
         values = ensure_categorical(self.grouper)
@@ -414,7 +410,7 @@ class Grouping:
     def _make_codes(self) -> None:
         if self._codes is None or self._group_index is None:
             # we have a list of groupers
-            if isinstance(self.grouper, BaseGrouper):
+            if isinstance(self.grouper, ops.BaseGrouper):
                 codes = self.grouper.codes_info
                 uniques = self.grouper.result_index
             else:
@@ -433,11 +429,11 @@ def get_grouper(
     key=None,
     axis: int = 0,
     level=None,
-    sort=True,
-    observed=False,
-    mutated=False,
-    validate=True,
-) -> Tuple[BaseGrouper, List[Hashable], FrameOrSeries]:
+    sort: bool = True,
+    observed: bool = False,
+    mutated: bool = False,
+    validate: bool = True,
+) -> "Tuple[ops.BaseGrouper, List[Hashable], FrameOrSeries]":
     """
     Create and return a BaseGrouper, which is an internal
     mapping of how to create the grouper indexers.
@@ -497,11 +493,7 @@ def get_grouper(
 
             if isinstance(level, str):
                 if obj.index.name != level:
-                    raise ValueError(
-                        "level name {level} is not the name of the index".format(
-                            level=level
-                        )
-                    )
+                    raise ValueError(f"level name {level} is not the name of the index")
             elif level > 0 or level < -1:
                 raise ValueError("level > 0 or level < -1 only valid with MultiIndex")
 
@@ -519,7 +511,7 @@ def get_grouper(
             return grouper, [key.key], obj
 
     # already have a BaseGrouper, just return it
-    elif isinstance(key, BaseGrouper):
+    elif isinstance(key, ops.BaseGrouper):
         return key, [], obj
 
     # In the future, a tuple key will always mean an actual key,
@@ -633,12 +625,8 @@ def get_grouper(
 
         if is_categorical_dtype(gpr) and len(gpr) != obj.shape[axis]:
             raise ValueError(
-                (
-                    "Length of grouper ({len_gpr}) and axis ({len_axis})"
-                    " must be same length".format(
-                        len_gpr=len(gpr), len_axis=obj.shape[axis]
-                    )
-                )
+                f"Length of grouper ({len(gpr)}) and axis ({obj.shape[axis]})"
+                " must be same length"
             )
 
         # create the Grouping
@@ -666,11 +654,11 @@ def get_grouper(
         groupings.append(Grouping(Index([], dtype="int"), np.array([], dtype=np.intp)))
 
     # create the internals grouper
-    grouper = BaseGrouper(group_axis, groupings, sort=sort, mutated=mutated)
+    grouper = ops.BaseGrouper(group_axis, groupings, sort=sort, mutated=mutated)
     return grouper, exclusions, obj
 
 
-def _is_label_like(val):
+def _is_label_like(val) -> bool:
     return isinstance(val, (str, tuple)) or (val is not None and is_scalar(val))
 
 

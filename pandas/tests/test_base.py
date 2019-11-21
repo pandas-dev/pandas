@@ -179,7 +179,7 @@ class Ops:
         self.int_series = Series(arr, index=self.int_index, name="a")
         self.float_series = Series(arr, index=self.float_index, name="a")
         self.dt_series = Series(arr, index=self.dt_index, name="a")
-        self.dt_tz_series = self.dt_tz_index.to_series(keep_tz=True)
+        self.dt_tz_series = self.dt_tz_index.to_series()
         self.period_series = Series(arr, index=self.period_index, name="a")
         self.string_series = Series(arr, index=self.string_index, name="a")
         self.unicode_series = Series(arr, index=self.unicode_index, name="a")
@@ -653,7 +653,7 @@ class TestIndexOps(Ops):
 
         # with NaT
         s = df["dt"].copy()
-        s = klass([v for v in s.values] + [pd.NaT])
+        s = klass(list(s.values) + [pd.NaT])
 
         result = s.value_counts()
         assert result.index.dtype == "datetime64[ns]"

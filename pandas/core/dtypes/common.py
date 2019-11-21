@@ -6,7 +6,6 @@ import numpy as np
 
 from pandas._libs import algos, lib
 from pandas._libs.tslibs import conversion
-from pandas.compat import PY36
 
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
@@ -222,7 +221,7 @@ def classes_and_not_datetimelike(*klasses) -> Callable:
     )
 
 
-def is_object_dtype(arr_or_dtype):
+def is_object_dtype(arr_or_dtype) -> bool:
     """
     Check whether an array-like or dtype is of the object dtype.
 
@@ -252,7 +251,7 @@ def is_object_dtype(arr_or_dtype):
     return _is_dtype_type(arr_or_dtype, classes(np.object_))
 
 
-def is_sparse(arr):
+def is_sparse(arr) -> bool:
     """
     Check whether an array-like is a 1-D pandas sparse array.
 
@@ -304,7 +303,7 @@ def is_sparse(arr):
     return isinstance(dtype, SparseDtype)
 
 
-def is_scipy_sparse(arr):
+def is_scipy_sparse(arr) -> bool:
     """
     Check whether an array-like is a scipy.sparse.spmatrix instance.
 
@@ -339,6 +338,7 @@ def is_scipy_sparse(arr):
         except ImportError:
             _is_scipy_sparse = lambda _: False
 
+    assert _is_scipy_sparse is not None
     return _is_scipy_sparse(arr)
 
 
@@ -375,57 +375,7 @@ def is_categorical(arr) -> bool:
     return isinstance(arr, ABCCategorical) or is_categorical_dtype(arr)
 
 
-def is_datetimetz(arr):
-    """
-    Check whether an array-like is a datetime array-like with a timezone
-    component in its dtype.
-
-    .. deprecated:: 0.24.0
-
-    Parameters
-    ----------
-    arr : array-like
-        The array-like to check.
-
-    Returns
-    -------
-    boolean
-        Whether or not the array-like is a datetime array-like with a
-        timezone component in its dtype.
-
-    Examples
-    --------
-    >>> is_datetimetz([1, 2, 3])
-    False
-
-    Although the following examples are both DatetimeIndex objects,
-    the first one returns False because it has no timezone component
-    unlike the second one, which returns True.
-
-    >>> is_datetimetz(pd.DatetimeIndex([1, 2, 3]))
-    False
-    >>> is_datetimetz(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern"))
-    True
-
-    The object need not be a DatetimeIndex object. It just needs to have
-    a dtype which has a timezone component.
-
-    >>> dtype = DatetimeTZDtype("ns", tz="US/Eastern")
-    >>> s = pd.Series([], dtype=dtype)
-    >>> is_datetimetz(s)
-    True
-    """
-
-    warnings.warn(
-        "'is_datetimetz' is deprecated and will be removed in a "
-        "future version.  Use 'is_datetime64tz_dtype' instead.",
-        FutureWarning,
-        stacklevel=2,
-    )
-    return is_datetime64tz_dtype(arr)
-
-
-def is_offsetlike(arr_or_obj):
+def is_offsetlike(arr_or_obj) -> bool:
     """
     Check if obj or all elements of list-like is DateOffset
 
@@ -456,44 +406,7 @@ def is_offsetlike(arr_or_obj):
     return False
 
 
-def is_period(arr):
-    """
-    Check whether an array-like is a periodical index.
-
-    .. deprecated:: 0.24.0
-
-    Parameters
-    ----------
-    arr : array-like
-        The array-like to check.
-
-    Returns
-    -------
-    boolean
-        Whether or not the array-like is a periodical index.
-
-    Examples
-    --------
-    >>> is_period([1, 2, 3])
-    False
-    >>> is_period(pd.Index([1, 2, 3]))
-    False
-    >>> is_period(pd.PeriodIndex(["2017-01-01"], freq="D"))
-    True
-    """
-
-    warnings.warn(
-        "'is_period' is deprecated and will be removed in a future "
-        "version.  Use 'is_period_dtype' or is_period_arraylike' "
-        "instead.",
-        FutureWarning,
-        stacklevel=2,
-    )
-
-    return isinstance(arr, ABCPeriodIndex) or is_period_arraylike(arr)
-
-
-def is_datetime64_dtype(arr_or_dtype):
+def is_datetime64_dtype(arr_or_dtype) -> bool:
     """
     Check whether an array-like or dtype is of the datetime64 dtype.
 
@@ -524,7 +437,7 @@ def is_datetime64_dtype(arr_or_dtype):
     return _is_dtype_type(arr_or_dtype, classes(np.datetime64))
 
 
-def is_datetime64tz_dtype(arr_or_dtype):
+def is_datetime64tz_dtype(arr_or_dtype) -> bool:
     """
     Check whether an array-like or dtype is of a DatetimeTZDtype dtype.
 
@@ -562,7 +475,7 @@ def is_datetime64tz_dtype(arr_or_dtype):
     return DatetimeTZDtype.is_dtype(arr_or_dtype)
 
 
-def is_timedelta64_dtype(arr_or_dtype):
+def is_timedelta64_dtype(arr_or_dtype) -> bool:
     """
     Check whether an array-like or dtype is of the timedelta64 dtype.
 
@@ -593,7 +506,7 @@ def is_timedelta64_dtype(arr_or_dtype):
     return _is_dtype_type(arr_or_dtype, classes(np.timedelta64))
 
 
-def is_period_dtype(arr_or_dtype):
+def is_period_dtype(arr_or_dtype) -> bool:
     """
     Check whether an array-like or dtype is of the Period dtype.
 
@@ -627,7 +540,7 @@ def is_period_dtype(arr_or_dtype):
     return PeriodDtype.is_dtype(arr_or_dtype)
 
 
-def is_interval_dtype(arr_or_dtype):
+def is_interval_dtype(arr_or_dtype) -> bool:
     """
     Check whether an array-like or dtype is of the Interval dtype.
 
@@ -696,7 +609,7 @@ def is_categorical_dtype(arr_or_dtype) -> bool:
     return CategoricalDtype.is_dtype(arr_or_dtype)
 
 
-def is_string_dtype(arr_or_dtype):
+def is_string_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of the string dtype.
 
@@ -726,13 +639,13 @@ def is_string_dtype(arr_or_dtype):
     """
 
     # TODO: gh-15585: consider making the checks stricter.
-    def condition(dtype):
+    def condition(dtype) -> bool:
         return dtype.kind in ("O", "S", "U") and not is_period_dtype(dtype)
 
     return _is_dtype(arr_or_dtype, condition)
 
 
-def is_period_arraylike(arr):
+def is_period_arraylike(arr) -> bool:
     """
     Check whether an array-like is a periodical array-like or PeriodIndex.
 
@@ -764,7 +677,7 @@ def is_period_arraylike(arr):
     return getattr(arr, "inferred_type", None) == "period"
 
 
-def is_datetime_arraylike(arr):
+def is_datetime_arraylike(arr) -> bool:
     """
     Check whether an array-like is a datetime array-like or DatetimeIndex.
 
@@ -799,7 +712,7 @@ def is_datetime_arraylike(arr):
     return getattr(arr, "inferred_type", None) == "datetime"
 
 
-def is_dtype_equal(source, target):
+def is_dtype_equal(source, target) -> bool:
     """
     Check if two dtypes are equal.
 
@@ -889,7 +802,7 @@ def is_any_int_dtype(arr_or_dtype) -> bool:
     return _is_dtype_type(arr_or_dtype, classes(np.integer, np.timedelta64))
 
 
-def is_integer_dtype(arr_or_dtype):
+def is_integer_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of an integer dtype.
 
@@ -944,7 +857,7 @@ def is_integer_dtype(arr_or_dtype):
     return _is_dtype_type(arr_or_dtype, classes_and_not_datetimelike(np.integer))
 
 
-def is_signed_integer_dtype(arr_or_dtype):
+def is_signed_integer_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of a signed integer dtype.
 
@@ -1001,7 +914,7 @@ def is_signed_integer_dtype(arr_or_dtype):
     return _is_dtype_type(arr_or_dtype, classes_and_not_datetimelike(np.signedinteger))
 
 
-def is_unsigned_integer_dtype(arr_or_dtype):
+def is_unsigned_integer_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of an unsigned integer dtype.
 
@@ -1050,7 +963,7 @@ def is_unsigned_integer_dtype(arr_or_dtype):
     )
 
 
-def is_int64_dtype(arr_or_dtype):
+def is_int64_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of the int64 dtype.
 
@@ -1141,7 +1054,7 @@ def is_datetime64_any_dtype(arr_or_dtype) -> bool:
     return is_datetime64_dtype(arr_or_dtype) or is_datetime64tz_dtype(arr_or_dtype)
 
 
-def is_datetime64_ns_dtype(arr_or_dtype):
+def is_datetime64_ns_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of the datetime64[ns] dtype.
 
@@ -1191,7 +1104,7 @@ def is_datetime64_ns_dtype(arr_or_dtype):
     return tipo == _NS_DTYPE or getattr(tipo, "base", None) == _NS_DTYPE
 
 
-def is_timedelta64_ns_dtype(arr_or_dtype):
+def is_timedelta64_ns_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of the timedelta64[ns] dtype.
 
@@ -1222,7 +1135,7 @@ def is_timedelta64_ns_dtype(arr_or_dtype):
     return _is_dtype(arr_or_dtype, lambda dtype: dtype == _TD_DTYPE)
 
 
-def is_datetime_or_timedelta_dtype(arr_or_dtype):
+def is_datetime_or_timedelta_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of
     a timedelta64 or datetime64 dtype.
@@ -1265,9 +1178,6 @@ def _is_unorderable_exception(e: TypeError) -> bool:
     """
     Check if the exception raised is an unorderable exception.
 
-    The error message differs for 3 <= PY <= 3.5 and PY >= 3.6, so
-    we need to condition based on Python version.
-
     Parameters
     ----------
     e : Exception or sub-class
@@ -1275,17 +1185,13 @@ def _is_unorderable_exception(e: TypeError) -> bool:
 
     Returns
     -------
-    boolean
+    bool
         Whether or not the exception raised is an unorderable exception.
     """
-
-    if PY36:
-        return "'>' not supported between instances of" in str(e)
-
-    return "unorderable" in str(e)
+    return "'>' not supported between instances of" in str(e)
 
 
-def needs_i8_conversion(arr_or_dtype):
+def needs_i8_conversion(arr_or_dtype) -> bool:
     """
     Check whether the array or dtype should be converted to int64.
 
@@ -1329,7 +1235,7 @@ def needs_i8_conversion(arr_or_dtype):
     )
 
 
-def is_numeric_dtype(arr_or_dtype):
+def is_numeric_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of a numeric dtype.
 
@@ -1372,7 +1278,7 @@ def is_numeric_dtype(arr_or_dtype):
     )
 
 
-def is_string_like_dtype(arr_or_dtype):
+def is_string_like_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of a string-like dtype.
 
@@ -1404,7 +1310,7 @@ def is_string_like_dtype(arr_or_dtype):
     return _is_dtype(arr_or_dtype, lambda dtype: dtype.kind in ("S", "U"))
 
 
-def is_float_dtype(arr_or_dtype):
+def is_float_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of a float dtype.
 
@@ -1503,7 +1409,7 @@ def is_bool_dtype(arr_or_dtype) -> bool:
     return issubclass(dtype.type, np.bool_)
 
 
-def is_extension_type(arr):
+def is_extension_type(arr) -> bool:
     """
     Check whether an array-like is of a pandas extension class instance.
 
@@ -1568,7 +1474,7 @@ def is_extension_type(arr):
     return False
 
 
-def is_extension_array_dtype(arr_or_dtype):
+def is_extension_array_dtype(arr_or_dtype) -> bool:
     """
     Check if an object is a pandas extension array type.
 

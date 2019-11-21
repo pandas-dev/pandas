@@ -83,10 +83,7 @@ else:
 
 
 _pxi_dep_template = {
-    "algos": [
-        "_libs/algos_common_helper.pxi.in",
-        "_libs/algos_take_helper.pxi.in",
-    ],
+    "algos": ["_libs/algos_common_helper.pxi.in", "_libs/algos_take_helper.pxi.in"],
     "hashtable": [
         "_libs/hashtable_class_helper.pxi.in",
         "_libs/hashtable_func_helper.pxi.in",
@@ -347,6 +344,7 @@ class CheckSDist(sdist_class):
         "pandas/_libs/tslibs/resolution.pyx",
         "pandas/_libs/tslibs/parsing.pyx",
         "pandas/_libs/tslibs/tzconversion.pyx",
+        "pandas/_libs/window_indexer.pyx",
         "pandas/_libs/writers.pyx",
         "pandas/io/sas/sas.pyx",
     ]
@@ -544,7 +542,7 @@ common_include = ["pandas/_libs/src/klib", "pandas/_libs/src"]
 ts_include = ["pandas/_libs/tslibs/src", "pandas/_libs/tslibs"]
 
 
-lib_depends = ["pandas/_libs/src/parse_helper.h", "pandas/_libs/src/compat_helper.h"]
+lib_depends = ["pandas/_libs/src/parse_helper.h"]
 
 np_datetime_headers = [
     "pandas/_libs/tslibs/src/datetime/np_datetime.h",
@@ -686,6 +684,7 @@ ext_data = {
     },
     "_libs.testing": {"pyxfile": "_libs/testing"},
     "_libs.window": {"pyxfile": "_libs/window", "language": "c++", "suffix": ".cpp"},
+    "_libs.window_indexer": {"pyxfile": "_libs/window_indexer"},
     "_libs.writers": {"pyxfile": "_libs/writers"},
     "io.sas._sas": {"pyxfile": "io/sas/sas"},
     "io.msgpack._packer": {
@@ -823,5 +822,5 @@ setup(
     entry_points={
         "pandas_plotting_backends": ["matplotlib = pandas:plotting._matplotlib"]
     },
-    **setuptools_kwargs
+    **setuptools_kwargs,
 )

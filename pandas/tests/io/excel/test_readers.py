@@ -81,7 +81,7 @@ class TestReaders:
             pytest.skip()
 
         func = partial(pd.read_excel, engine=engine)
-        monkeypatch.chdir(datapath("io", "data"))
+        monkeypatch.chdir(datapath("io", "data", "excel"))
         monkeypatch.setattr(pd, "read_excel", func)
 
     def test_usecols_int(self, read_ext, df_ref):
@@ -499,12 +499,10 @@ class TestReaders:
 
     @tm.network
     def test_read_from_http_url(self, read_ext):
-        if read_ext == ".ods":  # TODO: remove once on master
-            pytest.skip()
 
         url = (
-            "https://raw.github.com/pandas-dev/pandas/master/"
-            "pandas/tests/io/data/test1" + read_ext
+            "https://raw.githubusercontent.com/pandas-dev/pandas/master/"
+            "pandas/tests/io/data/excel/test1" + read_ext
         )
         url_table = pd.read_excel(url)
         local_table = pd.read_excel("test1" + read_ext)
@@ -527,7 +525,7 @@ class TestReaders:
     def test_read_from_file_url(self, read_ext, datapath):
 
         # FILE
-        localtable = os.path.join(datapath("io", "data"), "test1" + read_ext)
+        localtable = os.path.join(datapath("io", "data", "excel"), "test1" + read_ext)
         local_table = pd.read_excel(localtable)
 
         try:
@@ -828,7 +826,7 @@ class TestExcelFileRead:
             pytest.skip()
 
         func = partial(pd.ExcelFile, engine=engine)
-        monkeypatch.chdir(datapath("io", "data"))
+        monkeypatch.chdir(datapath("io", "data", "excel"))
         monkeypatch.setattr(pd, "ExcelFile", func)
 
     def test_excel_passes_na(self, read_ext):
@@ -895,7 +893,7 @@ class TestExcelFileRead:
     def test_unexpected_kwargs_raises(self, read_ext, arg):
         # gh-17964
         kwarg = {arg: "Sheet1"}
-        msg = "unexpected keyword argument `{}`".format(arg)
+        msg = r"unexpected keyword argument `{}`".format(arg)
 
         with pd.ExcelFile("test1" + read_ext) as excel:
             with pytest.raises(TypeError, match=msg):
@@ -918,14 +916,6 @@ class TestExcelFileRead:
         with pd.ExcelFile("test1" + read_ext) as excel:
             df3 = pd.read_excel(excel, 0, index_col=0, skipfooter=1)
         tm.assert_frame_equal(df3, df1.iloc[:-1])
-
-        with tm.assert_produces_warning(
-            FutureWarning, check_stacklevel=False, raise_on_extra_warnings=False
-        ):
-            with pd.ExcelFile("test1" + read_ext) as excel:
-                df4 = pd.read_excel(excel, 0, index_col=0, skip_footer=1)
-
-            tm.assert_frame_equal(df3, df4)
 
         with pd.ExcelFile("test1" + read_ext) as excel:
             df3 = excel.parse(0, index_col=0, skipfooter=1)

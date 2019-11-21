@@ -1029,6 +1029,7 @@ class TestDatetime64Arithmetic:
             [
                 "unsupported operand type",
                 "cannot (add|subtract)",
+                "cannot use operands with types",
                 "ufunc '?(add|subtract)'? cannot use operands with types",
             ]
         )
