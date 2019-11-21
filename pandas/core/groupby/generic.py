@@ -301,8 +301,7 @@ class SeriesGroupBy(GroupBy):
             obj = self
             if name in results:
                 raise SpecificationError(
-                    "Function names must be unique, found multiple named "
-                    "{name}".format(name=name)
+                    f"Function names must be unique, found multiple named {name}"
                 )
 
             # reset the cache so that we
@@ -588,7 +587,7 @@ class SeriesGroupBy(GroupBy):
         try:
             sorter = np.lexsort((val, ids))
         except TypeError:  # catches object dtypes
-            msg = "val.dtype must be object, got {}".format(val.dtype)
+            msg = f"val.dtype must be object, got {val.dtype}"
             assert val.dtype == object, msg
             val, _ = algorithms.factorize(val, sort=False)
             sorter = np.lexsort((val, ids))
@@ -1110,12 +1109,12 @@ class DataFrameGroupBy(GroupBy):
         if axis != obj._info_axis_number:
             for name, data in self:
                 fres = func(data, *args, **kwargs)
-                result[name] = self._try_cast(fres, data)
+                result[name] = fres
         else:
             for name in self.indices:
                 data = self.get_group(name, obj=obj)
                 fres = func(data, *args, **kwargs)
-                result[name] = self._try_cast(fres, data)
+                result[name] = fres
 
         return self._wrap_frame_output(result, obj)
 
@@ -1425,6 +1424,8 @@ class DataFrameGroupBy(GroupBy):
         output = []
         for i, _ in enumerate(result.columns):
             res = algorithms.take_1d(result.iloc[:, i].values, ids)
+            # TODO: we have no test cases that get here with EA dtypes;
+            #  try_cast may not be needed if EAs never get here
             if cast:
                 res = self._try_cast(res, obj.iloc[:, i])
             output.append(res)
@@ -1550,8 +1551,8 @@ class DataFrameGroupBy(GroupBy):
             else:
                 # non scalars aren't allowed
                 raise TypeError(
-                    "filter function returned a {typ}, "
-                    "but expected a scalar bool".format(typ=type(res).__name__)
+                    f"filter function returned a {type(res).__name__}, "
+                    "but expected a scalar bool"
                 )
 
         return self._apply_filter(indices, dropna)
@@ -1950,7 +1951,7 @@ def _managle_lambda_list(aggfuncs: Sequence[Any]) -> Sequence[Any]:
     for aggfunc in aggfuncs:
         if com.get_callable_name(aggfunc) == "<lambda>":
             aggfunc = partial(aggfunc)
-            aggfunc.__name__ = "<lambda_{}>".format(i)
+            aggfunc.__name__ = f"<lambda_{i}>"
             i += 1
         mangled_aggfuncs.append(aggfunc)
 
