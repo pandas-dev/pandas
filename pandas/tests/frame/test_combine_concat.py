@@ -945,10 +945,9 @@ class TestDataFrameCombineFirst:
         exp = pd.DataFrame(columns=["a", "b"])
         res = df1.combine_first(df2)
 
-        exp_rev = pd.DataFrame(columns=["b", "a"])
         res_rev = df2.combine_first(df1)
         tm.assert_frame_equal(res, exp)
-        tm.assert_frame_equal(res_rev, exp_rev)
+        tm.assert_frame_equal(res_rev, exp)
 
 
 class TestDataFrameUpdate:
