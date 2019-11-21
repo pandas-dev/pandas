@@ -5,7 +5,7 @@ Developer Meetings
 ==================
 
 We hold regular developer meetings on the second Wednesday
-of each month at 12:00 US Central Time. These meetings and their minutes are open to
+of each month at 18:00 UTC. These meetings and their minutes are open to
 the public. All are welcome to join.
 
 Minutes
