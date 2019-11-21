@@ -170,23 +170,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Copy input data.
     """
 
-    _metadata = []  # type: List[str]
+    _metadata: List[str] = []
     _accessors = {"dt", "cat", "str", "sparse"}
     _deprecations = (
         base.IndexOpsMixin._deprecations
         | generic.NDFrame._deprecations
         | frozenset(
-            [
-                "asobject",
-                "compress",
-                "valid",
-                "ftype",
-                "real",
-                "imag",
-                "put",
-                "ptp",
-                "nonzero",
-            ]
+            ["compress", "valid", "ftype", "real", "imag", "put", "ptp", "nonzero"]
         )
     )
 
@@ -194,7 +184,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     hasnans = property(
         base.IndexOpsMixin.hasnans.func, doc=base.IndexOpsMixin.hasnans.__doc__
     )
-    _data = None  # type: SingleBlockManager
+    _data: SingleBlockManager
 
     # ----------------------------------------------------------------------
     # Constructors
@@ -363,32 +353,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if data and index is not None:
             s = s.reindex(index, copy=False)
         return s._data, s.index
-
-    @classmethod
-    def from_array(
-        cls, arr, index=None, name=None, dtype=None, copy=False, fastpath=False
-    ):
-        """
-        Construct Series from array.
-
-        .. deprecated:: 0.23.0
-            Use pd.Series(..) constructor instead.
-
-        Returns
-        -------
-        Series
-            Constructed Series.
-        """
-        warnings.warn(
-            "'from_array' is deprecated and will be removed in a "
-            "future version. Please use the pd.Series(..) "
-            "constructor instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return cls(
-            arr, index=index, name=name, dtype=dtype, copy=copy, fastpath=fastpath
-        )
 
     # ----------------------------------------------------------------------
 
@@ -578,24 +542,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def _internal_get_values(self):
         return self._data.get_values()
-
-    @property
-    def asobject(self):
-        """
-        Return object Series which contains boxed values.
-
-        .. deprecated:: 0.23.0
-
-           Use ``astype(object)`` instead.
-
-        *this is an internal non-public method*
-        """
-        warnings.warn(
-            "'asobject' is deprecated. Use 'astype(object)' instead",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.astype(object).values
 
     # ops
     def ravel(self, order="C"):
@@ -835,9 +781,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         inputs = tuple(extract_array(x, extract_numpy=True) for x in inputs)
         result = getattr(ufunc, method)(*inputs, **kwargs)
+
+        name: Optional[Hashable]
         if len(set(names)) == 1:
-            # we require names to be hashable, right?
-            name = names[0]  # type: Any
+            name = names[0]
         else:
             name = None
 
@@ -2087,7 +2034,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             will be NA.
         *args, **kwargs
             Additional arguments and keywords have no effect but might be
-            accepted for compatability with NumPy.
+            accepted for compatibility with NumPy.
 
         Returns
         -------
@@ -4668,26 +4615,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 pass
             else:
                 return self.copy()
-
-    def valid(self, inplace=False, **kwargs):
-        """
-        Return Series without null values.
-
-        .. deprecated:: 0.23.0
-            Use :meth:`Series.dropna` instead.
-
-        Returns
-        -------
-        Series
-            Series without null values.
-        """
-        warnings.warn(
-            "Method .valid will be removed in a future version. "
-            "Use .dropna instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.dropna(inplace=inplace, **kwargs)
 
     # ----------------------------------------------------------------------
     # Time series-oriented methods
