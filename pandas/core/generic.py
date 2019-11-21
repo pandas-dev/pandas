@@ -172,12 +172,7 @@ class NDFrame(PandasObject, SelectionMixin):
     _internal_names_set = set(_internal_names)  # type: Set[str]
     _accessors = set()  # type: Set[str]
     _deprecations = frozenset(
-        [
-            "get_dtype_counts",
-            "get_values",
-            "ftypes",
-            "ix",
-        ]
+        ["get_dtype_counts", "get_values", "ftypes", "ix"]
     )  # type: FrozenSet[str]
     _metadata = []  # type: List[str]
     _is_copy = None
