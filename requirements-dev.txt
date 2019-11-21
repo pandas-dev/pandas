@@ -48,7 +48,7 @@ matplotlib>=2.2.2
 numexpr>=2.6.8
 scipy>=1.1
 beautifulsoup4>=4.6.0
-fastparquet>=0.2.1
+fastparquet>=0.3.0
 html5lib
 lxml
 openpyxl
