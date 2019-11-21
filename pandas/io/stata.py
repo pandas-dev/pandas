@@ -58,10 +58,6 @@ convert_dates : bool, default True
 convert_categoricals : bool, default True
     Read value labels and convert columns to Categorical/Factor variables."""
 
-_encoding_params = """\
-encoding : str, None or encoding
-    Encoding used to parse the files. None defaults to latin-1."""
-
 _statafile_processing_params2 = """\
 index_col : str, optional
     Column to set as index.
@@ -108,7 +104,6 @@ filepath_or_buffer : str, path object or file-like object
 %s
 %s
 %s
-%s
 
 Returns
 -------
@@ -132,7 +127,6 @@ Read a Stata dta file in 10,000 line chunks:
 ...     do_something(chunk)
 """ % (
     _statafile_processing_params1,
-    _encoding_params,
     _statafile_processing_params2,
     _chunksize_params,
     _iterator_params,
@@ -189,23 +183,19 @@ path_or_buf : path (string), buffer or path object
 %s
 %s
 %s
-%s
 """ % (
     _statafile_processing_params1,
     _statafile_processing_params2,
-    _encoding_params,
     _chunksize_params,
 )
 
 
 @Appender(_read_stata_doc)
-@deprecate_kwarg(old_arg_name="encoding", new_arg_name=None)
 @deprecate_kwarg(old_arg_name="index", new_arg_name="index_col")
 def read_stata(
     filepath_or_buffer,
     convert_dates=True,
     convert_categoricals=True,
-    encoding=None,
     index_col=None,
     convert_missing=False,
     preserve_dtypes=True,
@@ -1044,7 +1034,6 @@ class StataParser:
 class StataReader(StataParser, BaseIterator):
     __doc__ = _stata_reader_doc
 
-    @deprecate_kwarg(old_arg_name="encoding", new_arg_name=None)
     @deprecate_kwarg(old_arg_name="index", new_arg_name="index_col")
     def __init__(
         self,
@@ -1056,7 +1045,6 @@ class StataReader(StataParser, BaseIterator):
         preserve_dtypes=True,
         columns=None,
         order_categoricals=True,
-        encoding=None,
         chunksize=None,
     ):
         super().__init__()
@@ -2134,14 +2122,12 @@ class StataWriter(StataParser):
 
     _max_string_length = 244
 
-    @deprecate_kwarg(old_arg_name="encoding", new_arg_name=None)
     def __init__(
         self,
         fname,
         data,
         convert_dates=None,
         write_index=True,
-        encoding="latin-1",
         byteorder=None,
         time_stamp=None,
         data_label=None,
@@ -2859,8 +2845,6 @@ class StataWriter117(StataWriter):
         timezone information
     write_index : bool
         Write the index to Stata dataset.
-    encoding : str
-        Default is latin-1. Only latin-1 and ascii are supported.
     byteorder : str
         Can be ">", "<", "little", or "big". default is `sys.byteorder`
     time_stamp : datetime
@@ -2912,14 +2896,12 @@ class StataWriter117(StataWriter):
 
     _max_string_length = 2045
 
-    @deprecate_kwarg(old_arg_name="encoding", new_arg_name=None)
     def __init__(
         self,
         fname,
         data,
         convert_dates=None,
         write_index=True,
-        encoding="latin-1",
         byteorder=None,
         time_stamp=None,
         data_label=None,
