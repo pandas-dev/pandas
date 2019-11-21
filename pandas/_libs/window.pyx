@@ -956,13 +956,13 @@ def roll_max_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
 
     Parameters
     ----------
-    values: numpy array
-    window: int, size of rolling window
-    minp: if number of observations in window
+    values : np.ndarray[np.float64]
+    window : int, size of rolling window
+    minp : if number of observations in window
           is below this, output a NaN
-    index: ndarray, optional
+    index : ndarray, optional
        index for window computation
-    closed: 'right', 'left', 'both', 'neither'
+    closed : 'right', 'left', 'both', 'neither'
             make the interval closed on the right, left,
             both or neither endpoints
     """
@@ -976,13 +976,13 @@ def roll_max_variable(ndarray[float64_t] values, ndarray[int64_t] start,
 
     Parameters
     ----------
-    values: numpy array
-    window: int, size of rolling window
-    minp: if number of observations in window
+    values : np.ndarray[np.float64]
+    window : int, size of rolling window
+    minp : if number of observations in window
           is below this, output a NaN
-    index: ndarray, optional
+    index : ndarray, optional
        index for window computation
-    closed: 'right', 'left', 'both', 'neither'
+    closed : 'right', 'left', 'both', 'neither'
             make the interval closed on the right, left,
             both or neither endpoints
     """
@@ -996,11 +996,11 @@ def roll_min_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
 
     Parameters
     ----------
-    values: numpy array
-    window: int, size of rolling window
-    minp: if number of observations in window
+    values : np.ndarray[np.float64]
+    window : int, size of rolling window
+    minp : if number of observations in window
           is below this, output a NaN
-    index: ndarray, optional
+    index : ndarray, optional
        index for window computation
     """
     return _roll_min_max_fixed(values, start, end, minp, win, is_max=0)
@@ -1013,11 +1013,11 @@ def roll_min_variable(ndarray[float64_t] values, ndarray[int64_t] start,
 
     Parameters
     ----------
-    values: numpy array
-    window: int, size of rolling window
-    minp: if number of observations in window
+    values : np.ndarray[np.float64]
+    window : int, size of rolling window
+    minp : if number of observations in window
           is below this, output a NaN
-    index: ndarray, optional
+    index : ndarray, optional
        index for window computation
     """
     return _roll_min_max_variable(values, start, end, minp, is_max=0)
