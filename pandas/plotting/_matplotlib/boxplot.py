@@ -75,8 +75,8 @@ class BoxPlot(LinePlot):
                     if key not in valid_keys:
                         raise ValueError(
                             "color dict contains invalid "
-                            "key '{0}' "
-                            "The key must be either {1}".format(key, valid_keys)
+                            f"key '{key}' "
+                            f"The key must be either {valid_keys}"
                         )
         else:
             self.color = None
@@ -217,7 +217,7 @@ def _grouped_plot_by_column(
         result = axes
 
     byline = by[0] if len(by) == 1 else by
-    fig.suptitle("Boxplot grouped by {byline}".format(byline=byline))
+    fig.suptitle(f"Boxplot grouped by {byline}")
     fig.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.2)
 
     return result
@@ -269,8 +269,8 @@ def boxplot(
                     else:
                         raise ValueError(
                             "color dict contains invalid "
-                            "key '{0}' "
-                            "The key must be either {1}".format(key, valid_keys)
+                            f"key '{key}' "
+                            f"The key must be either {valid_keys}"
                         )
             else:
                 result.fill(colors)

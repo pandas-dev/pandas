@@ -349,8 +349,7 @@ class MPLPlot:
         if input_log - valid_log:
             invalid_log = next(iter((input_log - valid_log)))
             raise ValueError(
-                "Boolean, None and 'sym' are valid options,"
-                " '{}' is given.".format(invalid_log)
+                f"Boolean, None and 'sym' are valid options, '{invalid_log}' is given."
             )
 
         if self.logx is True or self.loglog is True:
@@ -501,14 +500,13 @@ class MPLPlot:
             if self.subplots:
                 if is_list_like(self.title):
                     if len(self.title) != self.nseries:
-                        msg = (
+                        raise ValueError(
                             "The length of `title` must equal the number "
                             "of columns if using `title` of type `list` "
                             "and `subplots=True`.\n"
-                            "length of title = {}\n"
-                            "number of columns = {}"
-                        ).format(len(self.title), self.nseries)
-                        raise ValueError(msg)
+                            f"length of title = {len(self.title)}\n"
+                            f"number of columns = {self.nseries}"
+                        )
 
                     for (ax, title) in zip(self.axes, self.title):
                         ax.set_title(title)
@@ -827,7 +825,7 @@ class MPLPlot:
             err = np.tile([err], (self.nseries, len(self.data)))
 
         else:
-            msg = "No valid {label} detected".format(label=label)
+            msg = f"No valid {label} detected"
             raise ValueError(msg)
 
         return err
@@ -1178,7 +1176,7 @@ class LinePlot(MPLPlot):
         raise ValueError(
             "When stacked is True, each column must be either "
             "all positive or negative."
-            "{0} contains both positive and negative values".format(label)
+            f"{label} contains both positive and negative values"
         )
 
     @classmethod
@@ -1473,7 +1471,7 @@ class PiePlot(MPLPlot):
     def __init__(self, data, kind=None, **kwargs):
         data = data.fillna(value=0)
         if (data < 0).any().any():
-            raise ValueError("{0} doesn't allow negative values".format(kind))
+            raise ValueError(f"{kind} doesn't allow negative values")
         MPLPlot.__init__(self, data, kind=kind, **kwargs)
 
     def _args_adjust(self):
