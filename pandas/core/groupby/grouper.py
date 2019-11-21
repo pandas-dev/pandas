@@ -4,7 +4,6 @@ split-apply-combine paradigm.
 """
 
 from typing import Hashable, List, Optional, Tuple
-import warnings
 
 import numpy as np
 
@@ -14,7 +13,6 @@ from pandas.core.dtypes.common import (
     ensure_categorical,
     is_categorical_dtype,
     is_datetime64_dtype,
-    is_hashable,
     is_list_like,
     is_scalar,
     is_timedelta64_dtype,
