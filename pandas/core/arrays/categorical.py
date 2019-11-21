@@ -133,9 +133,9 @@ def _cat_compare_op(op):
                 return ret
             else:
                 if opname == "__eq__":
-                    return np.repeat(False, len(self))
+                    return np.zeros(len(self), dtype=bool)
                 elif opname == "__ne__":
-                    return np.repeat(True, len(self))
+                    return np.ones(len(self), dtype=bool)
                 else:
                     raise TypeError(
                         f"Cannot compare a Categorical for op {opname} with a "
