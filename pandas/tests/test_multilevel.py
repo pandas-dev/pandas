@@ -1989,35 +1989,6 @@ Thur,Lunch,Yes,51.51,17"""
         m_df = Series(data, index=m_idx)
         assert m_df.repeat(3).shape == (3 * len(data),)
 
-    def test_ffill_non_unique_multilevel(self):
-        # GH 19437
-        date = pd.to_datetime(
-            [
-                "2018-01-01",
-                "2018-01-01",
-                "2018-01-01",
-                "2018-01-01",
-                "2018-01-01",
-                "2018-01-02",
-                "2018-01-01",
-                "2018-01-02",
-            ]
-        )
-        symbol = ["MSFT", "MSFT", "MSFT", "AAPL", "AAPL", "AAPL", "TSLA", "TSLA"]
-        status = ["shrt", "lng", np.nan, "shrt", np.nan, "shrt", "ntrl", np.nan]
-
-        df = DataFrame({"date": date, "symbol": symbol, "status": status})
-        df = df.set_index(["date", "symbol"])
-        result = df.groupby("symbol")["status"].ffill()
-
-        index = MultiIndex.from_tuples(
-            tuples=list(zip(*[date, symbol])), names=["date", "symbol"]
-        )
-        status = ["shrt", "lng", "lng", "shrt", "shrt", "shrt", "ntrl", "ntrl"]
-        expected = Series(status, index=index, name="status")
-
-        tm.assert_series_equal(result, expected)
-
     def test_subsets_multiindex_dtype(self):
         # GH 20757
         data = [["x", 1]]
