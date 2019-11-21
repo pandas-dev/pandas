@@ -2040,6 +2040,7 @@ class GenericIndexCol(IndexCol):
             Table row number: the end of the sub-selection. Values larger than
             the underlying table's row count are normalized to that.
         """
+        assert self.table is not None  # for mypy
 
         assert self.table is not None
 
@@ -3417,7 +3418,7 @@ class Table(Fixed):
             )
         )
 
-    def queryables(self):
+    def queryables(self) -> Dict[str, Any]:
         """ return a dict of the kinds allowable columns for this object """
 
         # compute the values_axes queryables
