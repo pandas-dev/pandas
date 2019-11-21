@@ -7,6 +7,7 @@ import pytest
 import pandas as pd
 from pandas import DataFrame, Index, Series, isna
 from pandas.conftest import _get_cython_table_params
+from pandas.core.base import SpecificationError
 import pandas.util.testing as tm
 
 
@@ -157,7 +158,8 @@ class TestSeriesApply:
             columns=["A", "B", "C"],
             index=pd.date_range("1/1/2000", periods=10),
         )
-        with tm.assert_produces_warning(FutureWarning):
+        msg = "nested renamer is not supported"
+        with pytest.raises(SpecificationError, match=msg):
             tsdf.A.agg({"foo": ["sum", "mean"]})
 
     @pytest.mark.parametrize("series", [["1-1", "1-1", np.NaN], ["1-1", "1-2", np.NaN]])
@@ -256,31 +258,17 @@ class TestSeriesAggregate:
         tm.assert_series_equal(result, expected)
 
         # nested renaming
-        with tm.assert_produces_warning(FutureWarning):
-            result = s.agg({"foo": ["min", "max"]})
-
-        expected = (
-            DataFrame({"foo": [0, 5]}, index=["min", "max"]).unstack().rename("series")
-        )
-        tm.assert_series_equal(result, expected)
+        msg = "nested renamer is not supported"
+        with pytest.raises(SpecificationError, match=msg):
+            s.agg({"foo": ["min", "max"]})
 
     def test_multiple_aggregators_with_dict_api(self):
 
         s = Series(range(6), dtype="int64", name="series")
         # nested renaming
-        with tm.assert_produces_warning(FutureWarning):
-            result = s.agg({"foo": ["min", "max"], "bar": ["sum", "mean"]})
-
-        expected = (
-            DataFrame(
-                {"foo": [5.0, np.nan, 0.0, np.nan], "bar": [np.nan, 2.5, np.nan, 15.0]},
-                columns=["foo", "bar"],
-                index=["max", "mean", "min", "sum"],
-            )
-            .unstack()
-            .rename("series")
-        )
-        tm.assert_series_equal(result.reindex_like(expected), expected)
+        msg = "nested renamer is not supported"
+        with pytest.raises(SpecificationError, match=msg):
+            s.agg({"foo": ["min", "max"], "bar": ["sum", "mean"]})
 
     def test_agg_apply_evaluate_lambdas_the_same(self, string_series):
         # test that we are evaluating row-by-row first

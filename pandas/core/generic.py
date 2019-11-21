@@ -173,9 +173,6 @@ class NDFrame(PandasObject, SelectionMixin):
     _accessors = set()  # type: Set[str]
     _deprecations = frozenset(
         [
-            "as_blocks",
-            "as_matrix",
-            "blocks",
             "clip_lower",
             "clip_upper",
             "get_dtype_counts",
@@ -421,8 +418,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 if a in kwargs:
                     if alias in kwargs:
                         raise TypeError(
-                            "arguments are mutually exclusive "
-                            "for [%s,%s]" % (a, alias)
+                            f"arguments are mutually exclusive for [{a},{alias}]"
                         )
                     continue
                 if alias in kwargs:
@@ -754,7 +750,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         # we must have unique axes
         if len(axes) != len(set(axes)):
-            raise ValueError("Must specify %s unique axes" % self._AXIS_LEN)
+            raise ValueError(f"Must specify {self._AXIS_LEN} unique axes")
 
         new_axes = self._construct_axes_dict_from(
             self, [self._get_axis(x) for x in axes_names]
@@ -808,7 +804,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        DataFrame.droplevel()
+        DataFrame
+            DataFrame with requested index / column level(s) removed.
 
         Examples
         --------
@@ -2096,7 +2093,7 @@ class NDFrame(PandasObject, SelectionMixin):
         # string representation based upon iterating over self
         # (since, by definition, `PandasContainers` are iterable)
         prepr = "[%s]" % ",".join(map(pprint_thing, self))
-        return "%s(%s)" % (self.__class__.__name__, prepr)
+        return f"{self.__class__.__name__}({prepr})"
 
     def _repr_latex_(self):
         """
@@ -3599,7 +3596,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
             if isinstance(loc, np.ndarray):
                 if loc.dtype == np.bool_:
-                    inds, = loc.nonzero()
+                    (inds,) = loc.nonzero()
                     return self.take(inds, axis=axis)
                 else:
                     return self.take(loc, axis=axis)
@@ -5409,54 +5406,6 @@ class NDFrame(PandasObject, SelectionMixin):
     # ----------------------------------------------------------------------
     # Internal Interface Methods
 
-    def as_matrix(self, columns=None):
-        """
-        Convert the frame to its Numpy-array representation.
-
-        .. deprecated:: 0.23.0
-            Use :meth:`DataFrame.values` instead.
-
-        Parameters
-        ----------
-        columns : list, optional, default:None
-            If None, return all columns, otherwise, returns specified columns.
-
-        Returns
-        -------
-        values : ndarray
-            If the caller is heterogeneous and contains booleans or objects,
-            the result will be of dtype=object. See Notes.
-
-        See Also
-        --------
-        DataFrame.values
-
-        Notes
-        -----
-        Return is NOT a Numpy-matrix, rather, a Numpy-array.
-
-        The dtype will be a lower-common-denominator dtype (implicit
-        upcasting); that is to say if the dtypes (even of numeric types)
-        are mixed, the one that accommodates all will be chosen. Use this
-        with care if you are not dealing with the blocks.
-
-        e.g. If the dtypes are float16 and float32, dtype will be upcast to
-        float32.  If dtypes are int32 and uint8, dtype will be upcase to
-        int32. By numpy.find_common_type convention, mixing int64 and uint64
-        will result in a float64 dtype.
-
-        This method is provided for backwards compatibility. Generally,
-        it is recommended to use '.values'.
-        """
-        warnings.warn(
-            "Method .as_matrix will be removed in a future version. "
-            "Use .values instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        self._consolidate_inplace()
-        return self._data.as_array(transpose=self._AXIS_REVERSED, items=columns)
-
     @property
     def values(self):
         """
@@ -5773,40 +5722,6 @@ class NDFrame(PandasObject, SelectionMixin):
         from pandas import Series
 
         return Series(self._data.get_ftypes(), index=self._info_axis, dtype=np.object_)
-
-    def as_blocks(self, copy=True):
-        """
-        Convert the frame to a dict of dtype -> Constructor Types.
-
-        .. deprecated:: 0.21.0
-
-        NOTE: the dtypes of the blocks WILL BE PRESERVED HERE (unlike in
-              as_matrix)
-
-        Parameters
-        ----------
-        copy : bool, default True
-
-        Returns
-        -------
-        dict
-            Mapping dtype -> Constructor Types.
-        """
-        warnings.warn(
-            "as_blocks is deprecated and will be removed in a future version",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._to_dict_of_blocks(copy=copy)
-
-    @property
-    def blocks(self):
-        """
-        Internal property, property synonym for as_blocks().
-
-        .. deprecated:: 0.21.0
-        """
-        return self.as_blocks()
 
     def _to_dict_of_blocks(self, copy=True):
         """
@@ -6357,7 +6272,7 @@ class NDFrame(PandasObject, SelectionMixin):
             elif isinstance(value, ABCDataFrame) and self.ndim == 2:
                 new_data = self.where(self.notna(), value)
             else:
-                raise ValueError("invalid fill value with a %s" % type(value))
+                raise ValueError(f"invalid fill value with a {type(value)}")
 
         if inplace:
             self._update_inplace(new_data)
@@ -6794,9 +6709,8 @@ class NDFrame(PandasObject, SelectionMixin):
                 if is_list_like(value):
                     if len(to_replace) != len(value):
                         raise ValueError(
-                            "Replacement lists must match "
-                            "in length. Expecting %d got %d "
-                            % (len(to_replace), len(value))
+                            f"Replacement lists must match in length. "
+                            f"Expecting {len(to_replace)} got {len(value)} "
                         )
 
                     new_data = self._data.replace_list(
@@ -8871,7 +8785,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 fill_axis=fill_axis,
             )
         else:  # pragma: no cover
-            raise TypeError("unsupported type: %s" % type(other))
+            raise TypeError(f"unsupported type: {type(other)}")
 
     def _align_frame(
         self,
@@ -9515,9 +9429,9 @@ class NDFrame(PandasObject, SelectionMixin):
                 new_data = self._data.copy()
                 new_data.axes[block_axis] = index.shift(periods)
             else:
-                msg = "Given freq %s does not match PeriodIndex freq %s" % (
-                    freq.rule_code,
-                    orig_freq.rule_code,
+                msg = (
+                    f"Given freq {freq.rule_code} does not match"
+                    f" PeriodIndex freq {orig_freq.rule_code}"
                 )
                 raise ValueError(msg)
         else:
@@ -9665,7 +9579,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         if before is not None and after is not None:
             if before > after:
-                raise ValueError("Truncate: %s must be after %s" % (after, before))
+                raise ValueError(f"Truncate: {after} must be after {before}")
 
         slicer = [slice(None, None)] * self._AXIS_LEN
         slicer[axis] = slice(before, after)
@@ -9711,7 +9625,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 if len(ax) > 0:
                     ax_name = self._get_axis_name(axis)
                     raise TypeError(
-                        "%s is not a valid DatetimeIndex or PeriodIndex" % ax_name
+                        f"{ax_name} is not a valid DatetimeIndex or PeriodIndex"
                     )
                 else:
                     ax = DatetimeIndex([], tz=tz)
@@ -9875,7 +9789,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 if len(ax) > 0:
                     ax_name = self._get_axis_name(axis)
                     raise TypeError(
-                        "%s is not a valid DatetimeIndex or PeriodIndex" % ax_name
+                        f"{ax_name} is not a valid DatetimeIndex or PeriodIndex"
                     )
                 else:
                     ax = DatetimeIndex([], tz=tz)
