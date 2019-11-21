@@ -325,6 +325,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - :meth:`DataFrame.to_records` no longer supports the argument "convert_datetime64" (:issue:`18902`)
 - Removed the previously deprecated ``IntervalIndex.from_intervals`` in favor of the :class:`IntervalIndex` constructor (:issue:`19263`)
 - Changed the default value for the "keep_tz" argument in :meth:`DatetimeIndex.to_series` to ``True`` (:issue:`23739`)
+- Removed the previously deprecated :func:`api.types.is_period` and :func:`api.types.is_datetimetz` (:issue:`23917`)
 - Ability to read pickles containing :class:`Categorical` instances created with pre-0.16 version of pandas has been removed (:issue:`27538`)
 - Removed previously deprecated :func:`pandas.tseries.plotting.tsplot` (:issue:`18627`)
 - Removed the previously deprecated ``reduce`` and ``broadcast`` arguments from :meth:`DataFrame.apply` (:issue:`18577`)
