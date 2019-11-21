@@ -1,24 +1,15 @@
-from distutils.version import LooseVersion
-
 import numpy as np
 import pytest
 
 from pandas._libs.tslibs import iNaT
 from pandas._libs.tslibs.period import IncompatibleFrequency
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.dtypes import PeriodDtype, registry
 
 import pandas as pd
 from pandas.core.arrays import PeriodArray, period_array
 import pandas.util.testing as tm
-
-try:
-    import pyarrow
-
-    _PYARROW_INSTALLED = True
-except ImportError:
-    _PYARROW_INSTALLED = False
-
 
 # ----------------------------------------------------------------------------
 # Dtype
@@ -338,12 +329,7 @@ class TestReductions:
 # ----------------------------------------------------------------------------
 # Arrow interaction
 
-pyarrow_skip = pytest.mark.skipif(
-    not _PYARROW_INSTALLED
-    or _PYARROW_INSTALLED
-    and LooseVersion(pyarrow.__version__) < LooseVersion("0.15.1.dev"),
-    reason="pyarrow > 0.15 required",
-)
+pyarrow_skip = pyarrow_skip = td.skip_if_no("pyarrow", min_version="0.15.1.dev")
 
 
 @pyarrow_skip

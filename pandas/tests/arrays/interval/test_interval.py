@@ -1,7 +1,7 @@
-from distutils.version import LooseVersion
-
 import numpy as np
 import pytest
+
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -15,13 +15,6 @@ from pandas import (
 )
 from pandas.core.arrays import IntervalArray
 import pandas.util.testing as tm
-
-try:
-    import pyarrow
-
-    _PYARROW_INSTALLED = True
-except ImportError:
-    _PYARROW_INSTALLED = False
 
 
 @pytest.fixture(
@@ -118,12 +111,7 @@ def test_repr():
 # Arrow interaction
 
 
-pyarrow_skip = pytest.mark.skipif(
-    not _PYARROW_INSTALLED
-    or _PYARROW_INSTALLED
-    and LooseVersion(pyarrow.__version__) < LooseVersion("0.15.1.dev"),
-    reason="pyarrow > 0.15 required",
-)
+pyarrow_skip = td.skip_if_no("pyarrow", min_version="0.15.1.dev")
 
 
 @pyarrow_skip
