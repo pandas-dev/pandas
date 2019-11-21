@@ -9,7 +9,7 @@ import itertools
 import os
 import re
 import time
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type, Union, cast
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type, Union
 import warnings
 
 import numpy as np
@@ -916,8 +916,11 @@ class HDFStore:
             elif t.nrows != nrows:
                 raise ValueError("all tables must have exactly the same nrows!")
 
+        # The isinstance checks here are redundant with the check above,
+        #  but necessary for mypy; see GH#29757
+        _tbls = [x for x in tbls if isinstance(x, Table)]
+
         # axis is the concentration axes
-        _tbls = cast(List[Table], tbls)  # assured by check above
         axis = list({t.non_index_axes[0][0] for t in _tbls})[0]
 
         def func(_start, _stop, _where):
@@ -1439,11 +1442,10 @@ class HDFStore:
             if value is None:
 
                 _tables()
-                # mypy can't tell that _table_mod is not None, so we have
-                #  to do a type: ignore
-                cond1 = getattr(group, "table", None)
-                cond2 = isinstance(group, _table_mod.table.Table)  # type: ignore
-                if cond1 or cond2:
+                assert _table_mod is not None  # for mypy
+                if getattr(group, "table", None) or isinstance(
+                    group, _table_mod.table.Table
+                ):
                     pt = "frame_table"
                     tt = "generic_table"
                 else:
@@ -1452,8 +1454,9 @@ class HDFStore:
                         "nor a value are passed"
                     )
             else:
+                _TYPE_MAP = {Series: "series", DataFrame: "frame"}
                 try:
-                    pt = {Series: "series", DataFrame: "frame"}[type(value)]
+                    pt = _TYPE_MAP[type(value)]
                 except KeyError:
                     raise error("_TYPE_MAP")
 
