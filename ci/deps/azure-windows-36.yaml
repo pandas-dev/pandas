@@ -3,6 +3,17 @@ channels:
   - conda-forge
   - defaults
 dependencies:
+  - python=3.6.*
+
+  # tools
+  - cython>=0.29.13
+  - pytest>=5.0.1
+  - pytest-xdist>=1.21
+  - pytest-mock
+  - hypothesis>=3.58.0
+  - pytest-azurepipelines
+
+  # pandas dependencies
   - blosc
   - bottleneck
   - fastparquet>=0.2.1
@@ -13,16 +24,8 @@ dependencies:
   - pyarrow
   - pytables
   - python-dateutil
-  - python=3.6.*
   - pytz
   - scipy
   - xlrd
   - xlsxwriter
   - xlwt
-  # universal
-  - cython>=0.29.13
-  - pytest>=5.0.1
-  - pytest-xdist>=1.29.0
-  - pytest-mock
-  - pytest-azurepipelines
-  - hypothesis>=3.58.0
