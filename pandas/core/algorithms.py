@@ -109,7 +109,7 @@ def _ensure_data(values, dtype=None):
 
     except (TypeError, ValueError, OverflowError):
         # if we are trying to coerce to a dtype
-        # and it is incompat this will fall thru to here
+        # and it is incompat this will fall through to here
         return ensure_object(values), "object"
 
     # datetimelike
