@@ -811,11 +811,10 @@ class MPLPlot:
                     or (err_shape[1] != 2)
                     or (err_shape[2] != len(self.data))
                 ):
-                    msg = (
+                    raise ValueError(
                         "Asymmetrical error bars should be provided "
-                        + "with the shape (%u, 2, %u)" % (self.nseries, len(self.data))
+                        f"with the shape ({self.nseries}, 2, {len(self.data)})"
                     )
-                    raise ValueError(msg)
 
             # broadcast errors to each data series
             if len(err) == 1:
