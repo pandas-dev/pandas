@@ -446,9 +446,7 @@ class _Options(dict):
     def __getitem__(self, key):
         key = self._get_canonical_key(key)
         if key not in self:
-            raise ValueError(
-                "{key} is not a valid pandas plotting option".format(key=key)
-            )
+            raise ValueError(f"{key} is not a valid pandas plotting option")
         return super().__getitem__(key)
 
     def __setitem__(self, key, value):
@@ -458,7 +456,7 @@ class _Options(dict):
     def __delitem__(self, key):
         key = self._get_canonical_key(key)
         if key in self._DEFAULT_KEYS:
-            raise ValueError("Cannot remove default parameter {key}".format(key=key))
+            raise ValueError(f"Cannot remove default parameter {key}")
         return super().__delitem__(key)
 
     def __contains__(self, key):
