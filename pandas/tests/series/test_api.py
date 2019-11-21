@@ -199,11 +199,6 @@ class SharedWithSparse:
         )
         self._assert_series_equal(result, expected)
 
-    def test_from_array_deprecated(self):
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=True):
-            self.series_klass.from_array([1, 2, 3])
-
     def test_sparse_accessor_updates_on_inplace(self):
         s = pd.Series([1, 1, 2, 3], dtype="Sparse[int]")
         s.drop([0, 1], inplace=True)
