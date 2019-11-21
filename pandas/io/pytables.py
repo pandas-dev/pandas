@@ -1604,10 +1604,11 @@ class TableIterator:
         """
 
     chunksize: Optional[int]
+    store: HDFStore
 
     def __init__(
         self,
-        store,
+        store: HDFStore,
         s,
         func,
         where,
@@ -1616,7 +1617,7 @@ class TableIterator:
         stop=None,
         iterator: bool = False,
         chunksize=None,
-        auto_close=False,
+        auto_close: bool = False,
     ):
         self.store = store
         self.s = s
@@ -1772,9 +1773,6 @@ class IndexCol:
             self.typ._v_pos = pos
         return self
 
-    def set_table(self, table):
-        self.table = table
-
     def __repr__(self) -> str:
         temp = tuple(
             map(pprint_thing, (self.name, self.cname, self.axis, self.pos, self.kind))
@@ -1800,8 +1798,7 @@ class IndexCol:
     def is_indexed(self) -> bool:
         """ return whether I am an indexed column """
         if not hasattr(self.table, "cols"):
-            # e.g. if self.set_table hasn't been called yet, self.table
-            #  will be None.
+            # e.g. if infer hasn't been called yet, self.table will be None.
             return False
         # GH#29692 mypy doesn't recognize self.table as having a "cols" attribute
         #  'error: "None" has no attribute "cols"'
@@ -1815,7 +1812,7 @@ class IndexCol:
         """infer this column from the table: create and return a new object"""
         table = handler.table
         new_self = self.copy()
-        new_self.set_table(table)
+        new_self.table = table
         new_self.get_attr()
         new_self.read_metadata(handler)
         return new_self
@@ -1896,7 +1893,7 @@ class IndexCol:
         pass
 
     def validate_and_set(self, handler: "AppendableTable", append: bool):
-        self.set_table(handler.table)
+        self.table = handler.table
         self.validate_col()
         self.validate_attr(append)
         self.validate_metadata(handler)
@@ -2941,13 +2938,8 @@ class GenericFixed(Fixed):
         data = node[start:stop]
         # If the index was an empty array write_array_empty() will
         # have written a sentinel. Here we relace it with the original.
-        if "shape" in node._v_attrs and self._is_empty_array(
-            getattr(node._v_attrs, "shape")
-        ):
-            data = np.empty(
-                getattr(node._v_attrs, "shape"),
-                dtype=getattr(node._v_attrs, "value_type"),
-            )
+        if "shape" in node._v_attrs and self._is_empty_array(node._v_attrs.shape):
+            data = np.empty(node._v_attrs.shape, dtype=node._v_attrs.value_type,)
         kind = _ensure_decoded(node._v_attrs.kind)
         name = None
 
@@ -3126,7 +3118,7 @@ class SeriesFixed(GenericFixed):
     @property
     def shape(self):
         try:
-            return (len(getattr(self.group, "values")),)
+            return (len(self.group.values),)
         except (TypeError, AttributeError):
             return None
 
@@ -3161,7 +3153,7 @@ class BlockManagerFixed(GenericFixed):
                     items += shape[0]
 
             # data shape
-            node = getattr(self.group, "block0_values")
+            node = self.group.block0_values
             shape = getattr(node, "shape", None)
             if shape is not None:
                 shape = list(shape[0 : (ndim - 1)])
@@ -3481,10 +3473,6 @@ class Table(Fixed):
             return self.parent.select(self._get_metadata_path(key))
         return None
 
-    def set_info(self):
-        """ update our table index info """
-        self.attrs.info = self.info
-
     def set_attrs(self):
         """ set our table type & indexables """
         self.attrs.table_type = str(self.table_type)
@@ -3497,7 +3485,7 @@ class Table(Fixed):
         self.attrs.errors = self.errors
         self.attrs.levels = self.levels
         self.attrs.metadata = self.metadata
-        self.set_info()
+        self.attrs.info = self.info
 
     def get_attrs(self):
         """ retrieve our attributes """
@@ -4230,7 +4218,7 @@ class AppendableTable(LegacyTable):
             # table = self.table
 
         # update my info
-        self.set_info()
+        self.attrs.info = self.info
 
         # validate the axes and set the kinds
         for a in self.axes:
@@ -4964,6 +4952,7 @@ def _unconvert_string_array(data, nan_rep=None, encoding=None, errors="strict"):
 
 
 def _maybe_convert(values: np.ndarray, val_kind, encoding, errors):
+    val_kind = _ensure_decoded(val_kind)
     if _need_convert(val_kind):
         conv = _get_converter(val_kind, encoding, errors)
         # conv = np.frompyfunc(conv, 1, 1)
@@ -4971,8 +4960,7 @@ def _maybe_convert(values: np.ndarray, val_kind, encoding, errors):
     return values
 
 
-def _get_converter(kind, encoding, errors):
-    kind = _ensure_decoded(kind)
+def _get_converter(kind: str, encoding, errors):
     if kind == "datetime64":
         return lambda x: np.asarray(x, dtype="M8[ns]")
     elif kind == "datetime":
@@ -4980,11 +4968,10 @@ def _get_converter(kind, encoding, errors):
     elif kind == "string":
         return lambda x: _unconvert_string_array(x, encoding=encoding, errors=errors)
     else:  # pragma: no cover
-        raise ValueError("invalid kind {kind}".format(kind=kind))
+        raise ValueError(f"invalid kind {kind}")
 
 
 def _need_convert(kind) -> bool:
-    kind = _ensure_decoded(kind)
     if kind in ("datetime", "datetime64", "string"):
         return True
     return False
