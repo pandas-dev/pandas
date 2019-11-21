@@ -566,9 +566,7 @@ class _GroupBy(PandasObject, SelectionMixin):
             return self[attr]
 
         raise AttributeError(
-            "'{typ}' object has no attribute '{attr}'".format(
-                typ=type(self).__name__, attr=attr
-            )
+            f"'{type(self).__name__}' object has no attribute '{attr}'"
         )
 
     @Substitution(
@@ -1783,7 +1781,7 @@ class GroupBy(_GroupBy):
             raise ValueError(
                 "For a DataFrame groupby, dropna must be "
                 "either None, 'any' or 'all', "
-                "(was passed {dropna}).".format(dropna=dropna)
+                f"(was passed {dropna})."
             )
 
         # old behaviour, but with all and any support for DataFrames.
@@ -2531,7 +2529,7 @@ def get_groupby(
 
         klass = DataFrameGroupBy
     else:
-        raise TypeError("invalid type: {obj}".format(obj=obj))
+        raise TypeError(f"invalid type: {obj}")
 
     return klass(
         obj=obj,
