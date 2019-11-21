@@ -692,6 +692,20 @@ def test_resample_timestamp_to_period(simple_date_range_series):
     tm.assert_series_equal(result, expected)
 
 
+def test_datetime_resample_sum_min_count():
+    # GH 19974
+    index = date_range(start="2018", freq="M", periods=6)
+    data = np.ones(6)
+    data[3:6] = np.nan
+    datetime = Series(data, index)
+    result = datetime.resample("Q").sum(min_count=1)
+
+    index = date_range("2018-03-31", "2018-06-30", freq="Q-DEC")
+    expected = Series([3, np.nan], index)
+
+    tm.assert_series_equal(result, expected)
+
+
 def test_ohlc_5min():
     def _ohlc(group):
         if isna(group).all():
