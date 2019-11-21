@@ -151,7 +151,7 @@ def _cat_compare_op(op):
             raise TypeError(
                 f"Cannot compare a Categorical for op {opname} with "
                 f"type {type(other)}.\nIf you want to compare values, "
-                f"use 'np.asarray(cat) <op> other'."
+                "use 'np.asarray(cat) <op> other'."
             )
 
     func.__name__ = opname
