@@ -1,18 +1,21 @@
 from typing import TYPE_CHECKING, Callable, Dict, List, Set, Tuple, Union
 
 import numpy as np
-import pandas.core.common as com
-from pandas.core.algorithms import _value_counts_arraylike
+
+from pandas.util._decorators import Appender, Substitution
+
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import is_integer_dtype, is_list_like, is_scalar
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+
+from pandas.core.algorithms import _value_counts_arraylike
+import pandas.core.common as com
 from pandas.core.frame import _shared_docs
 from pandas.core.groupby import Grouper
 from pandas.core.index import Index, MultiIndex, get_objs_combined_axis
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.util import cartesian_product
 from pandas.core.series import Series
-from pandas.util._decorators import Appender, Substitution
 
 if TYPE_CHECKING:
     from pandas import DataFrame
