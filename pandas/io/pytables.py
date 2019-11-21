@@ -2044,6 +2044,8 @@ class GenericIndexCol(IndexCol):
             the underlying table's row count are normalized to that.
         """
 
+        assert self.table is not None
+
         _start = start if start is not None else 0
         _stop = min(stop, self.table.nrows) if stop is not None else self.table.nrows
         self.values = Int64Index(np.arange(_stop - _start))

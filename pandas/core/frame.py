@@ -35,12 +35,7 @@ from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, lib
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import (
-    Appender,
-    Substitution,
-    deprecate_kwarg,
-    rewrite_axis_style_signature,
-)
+from pandas.util._decorators import Appender, Substitution, rewrite_axis_style_signature
 from pandas.util._validators import (
     validate_axis_style_args,
     validate_bool_kwarg,
@@ -1853,13 +1848,11 @@ class DataFrame(NDFrame):
         mgr = arrays_to_mgr(arrays, columns, index, columns, dtype=dtype)
         return cls(mgr)
 
-    @deprecate_kwarg(old_arg_name="encoding", new_arg_name=None)
     def to_stata(
         self,
         fname,
         convert_dates=None,
         write_index=True,
-        encoding="latin-1",
         byteorder=None,
         time_stamp=None,
         data_label=None,
@@ -1889,8 +1882,6 @@ class DataFrame(NDFrame):
             a datetime column has timezone information.
         write_index : bool
             Write the index to Stata dataset.
-        encoding : str
-            Default is latin-1. Unicode is not supported.
         byteorder : str
             Can be ">", "<", "little", or "big". default is `sys.byteorder`.
         time_stamp : datetime
@@ -6474,9 +6465,7 @@ class DataFrame(NDFrame):
             return self.T.transform(func, *args, **kwargs).T
         return super().transform(func, *args, **kwargs)
 
-    def apply(
-        self, func, axis=0, raw=False, reduce=None, result_type=None, args=(), **kwds
-    ):
+    def apply(self, func, axis=0, raw=False, result_type=None, args=(), **kwds):
         """
         Apply a function along an axis of the DataFrame.
 
