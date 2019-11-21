@@ -826,9 +826,9 @@ class DatetimelikeDelegateMixin(PandasDelegate):
     """
 
     # raw_methods : dispatch methods that shouldn't be boxed in an Index
-    _raw_methods = set()  # type: Set[str]
+    _raw_methods: Set[str] = set()
     # raw_properties : dispatch properties that shouldn't be boxed in an Index
-    _raw_properties = set()  # type: Set[str]
+    _raw_properties: Set[str] = set()
     name = None
     _data: ExtensionArray
 

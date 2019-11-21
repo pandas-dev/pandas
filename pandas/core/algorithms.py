@@ -50,7 +50,7 @@ import pandas.core.common as com
 from pandas.core.construction import array, extract_array
 from pandas.core.indexers import validate_indices
 
-_shared_docs = {}  # type: Dict[str, str]
+_shared_docs: Dict[str, str] = {}
 
 
 # --------------- #
@@ -109,7 +109,7 @@ def _ensure_data(values, dtype=None):
 
     except (TypeError, ValueError, OverflowError):
         # if we are trying to coerce to a dtype
-        # and it is incompat this will fall thru to here
+        # and it is incompat this will fall through to here
         return ensure_object(values), "object"
 
     # datetimelike
