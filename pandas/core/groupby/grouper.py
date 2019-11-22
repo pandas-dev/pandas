@@ -109,6 +109,13 @@ class Grouper:
         self.axis = axis
         self.sort = sort
 
+        self._reset_grouper()
+
+    def _reset_grouper(self):
+        """
+        Ensures Grouper object can be reused
+        See https://bit.ly/2D4Yd6V
+        """
         self.grouper = None
         self.obj = None
         self.indexer = None
@@ -155,6 +162,8 @@ class Grouper:
             whether the resulting grouper should be sorted
         """
         assert obj is not None
+        if not obj.equals(self.obj):
+            self._reset_grouper()
 
         if self.key is not None and self.level is not None:
             raise ValueError("The Grouper cannot specify both a key and a level!")
