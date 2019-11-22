@@ -219,24 +219,17 @@ def array(
     [a, b, a]
     Categories (3, object): [a < b < c]
 
-    Because omitting the `dtype` passes the data through to NumPy,
-    a mixture of valid integers and NA will return a floating-point
-    NumPy array.
+    Pandas will infer an ExtensionArray for some types of data:
 
     >>> pd.array([1, 2, np.nan])
-    <PandasArray>
-    [1.0,  2.0, nan]
-    Length: 3, dtype: float64
-
-    To use pandas' nullable :class:`pandas.arrays.IntegerArray`, specify
-    the dtype:
-
-    >>> pd.array([1, 2, np.nan], dtype='Int64')
     <IntegerArray>
     [1, 2, NaN]
     Length: 3, dtype: Int64
 
-    Pandas will infer an ExtensionArray for some types of data:
+    >>> pd.array(["a", None, "c"])
+    <StringArray>
+    ['a', nan, 'c']
+    Length: 3, dtype: string
 
     >>> pd.array([pd.Period('2000', freq="D"), pd.Period("2000", freq="D")])
     <PeriodArray>
