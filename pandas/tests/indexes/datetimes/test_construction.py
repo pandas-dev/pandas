@@ -70,28 +70,21 @@ class TestDatetimeIndex:
         with pytest.raises(TypeError, match="PeriodDtype data is invalid"):
             to_datetime(period_array(data))
 
-    def test_dti_with_timedelta64_data_deprecation(self):
-        # GH#23675
+    def test_dti_with_timedelta64_data_raises(self):
+        # GH#23675 deprecated, enforrced in GH#
         data = np.array([0], dtype="m8[ns]")
-        with tm.assert_produces_warning(FutureWarning):
-            result = DatetimeIndex(data)
+        msg = r"timedelta64\[ns\] cannot be converted to datetime64"
+        with pytest.raises(TypeError, match=msg):
+            DatetimeIndex(data)
 
-        assert result[0] == Timestamp("1970-01-01")
+        with pytest.raises(TypeError, match=msg):
+            to_datetime(data)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = to_datetime(data)
+        with pytest.raises(TypeError, match=msg):
+            DatetimeIndex(pd.TimedeltaIndex(data))
 
-        assert result[0] == Timestamp("1970-01-01")
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = DatetimeIndex(pd.TimedeltaIndex(data))
-
-        assert result[0] == Timestamp("1970-01-01")
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = to_datetime(pd.TimedeltaIndex(data))
-
-        assert result[0] == Timestamp("1970-01-01")
+        with pytest.raises(TypeError, match=msg):
+            to_datetime(pd.TimedeltaIndex(data))
 
     def test_construction_caching(self):
 

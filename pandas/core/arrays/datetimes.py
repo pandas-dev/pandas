@@ -2102,14 +2102,8 @@ def maybe_convert_dtype(data, copy):
         #  with integer dtypes.  See discussion in GH#23675
 
     elif is_timedelta64_dtype(data):
-        warnings.warn(
-            "Passing timedelta64-dtype data is deprecated, will "
-            "raise a TypeError in a future version",
-            FutureWarning,
-            stacklevel=5,
-        )
-        data = data.view(_NS_DTYPE)
-
+        # Enforcing deprecation introduced in GH#23539
+        raise TypeError(f"dtype {data.dtype} cannot be converted to datetime64[ns]")
     elif is_period_dtype(data):
         # Note: without explicitly raising here, PeriodIndex
         #  test_setops.test_join_does_not_recur fails
