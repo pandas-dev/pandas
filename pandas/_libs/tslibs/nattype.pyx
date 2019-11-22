@@ -95,10 +95,6 @@ cdef class _NaT(datetime):
     # higher than np.ndarray and np.matrix
     __array_priority__ = 100
 
-    def __hash__(_NaT self):
-        # py3k needs this defined here
-        return hash(self.value)
-
     def __richcmp__(_NaT self, object other, int op):
         cdef:
             int ndim = getattr(other, 'ndim', -1)
