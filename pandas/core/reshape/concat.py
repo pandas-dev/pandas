@@ -37,7 +37,7 @@ def concat(
     levels=None,
     names=None,
     verify_integrity: bool = False,
-    sort=None,
+    sort: bool = False,
     copy: bool = True,
 ):
     """
@@ -82,18 +82,14 @@ def concat(
     verify_integrity : bool, default False
         Check whether the new concatenated axis contains duplicates. This can
         be very expensive relative to the actual data concatenation.
-    sort : bool, default None
+    sort : bool, default False
         Sort non-concatenation axis if it is not already aligned when `join`
-        is 'outer'. The current default of sorting is deprecated and will
-        change to not-sorting in a future version of pandas.
-
-        Explicitly pass ``sort=True`` to silence the warning and sort.
-        Explicitly pass ``sort=False`` to silence the warning and not sort.
-
+        is 'outer'.
         This has no effect when ``join='inner'``, which already preserves
         the order of the non-concatenation axis.
 
         .. versionadded:: 0.23.0
+        .. versionchanged:: 1.0.0
 
     copy : bool, default True
         If False, do not copy data unnecessarily.
