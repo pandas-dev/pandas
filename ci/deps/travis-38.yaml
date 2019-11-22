@@ -8,7 +8,7 @@ dependencies:
   # tools
   - cython>=0.29.13
   - pytest>=5.0.1
-  - pytest-xdist>=1.29.0  # The rest of the builds use >=1.21, and use pytest-mock
+  - pytest-xdist>=1.21
   - hypothesis>=3.58.0
 
   # pandas dependencies
