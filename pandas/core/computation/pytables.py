@@ -21,7 +21,7 @@ from pandas.core.computation.ops import UndefinedVariableError, is_term
 from pandas.io.formats.printing import pprint_thing, pprint_thing_encoded
 
 
-class Scope(_scope.Scope):
+class PyTablesScope(_scope.Scope):
     __slots__ = ("queryables",)
 
     queryables: Dict[str, Any]
@@ -38,13 +38,13 @@ class Scope(_scope.Scope):
 
 
 class Term(ops.Term):
-    env: Scope
+    env: PyTablesScope
 
     def __new__(cls, name, env, side=None, encoding=None):
         klass = Constant if not isinstance(name, str) else cls
         return object.__new__(klass)
 
-    def __init__(self, name, env: Scope, side=None, encoding=None):
+    def __init__(self, name, env: PyTablesScope, side=None, encoding=None):
         super().__init__(name, env, side=side, encoding=encoding)
 
     def _resolve_name(self):
@@ -68,7 +68,8 @@ class Term(ops.Term):
 
 
 class Constant(Term):
-    def __init__(self, value, env, side=None, encoding=None):
+    def __init__(self, value, env: PyTablesScope, side=None, encoding=None):
+        assert isinstance(env, PyTablesScope), type(env)
         super().__init__(value, env, side=side, encoding=encoding)
 
     def _resolve_name(self):
@@ -270,7 +271,7 @@ class FilterBinOp(BinOp):
             raise ValueError("query term is not valid [{slf}]".format(slf=self))
 
         rhs = self.conform(self.rhs)
-        values = [TermValue(v, v, self.kind).value for v in rhs]
+        values = list(rhs)
 
         if self.is_in_table:
 
@@ -386,7 +387,7 @@ class UnaryOp(ops.UnaryOp):
         return None
 
 
-class ExprVisitor(BaseExprVisitor):
+class PyTablesExprVisitor(BaseExprVisitor):
     const_type = Constant
     term_type = Term
 
@@ -486,25 +487,29 @@ def _validate_where(w):
     TypeError : An invalid data type was passed in for w (e.g. dict).
     """
 
-    if not (isinstance(w, (Expr, str)) or is_list_like(w)):
-        raise TypeError("where must be passed as a string, Expr, or list-like of Exprs")
+    if not (isinstance(w, (PyTablesExpr, str)) or is_list_like(w)):
+        raise TypeError(
+            "where must be passed as a string, PyTablesExpr, "
+            "or list-like of PyTablesExpr"
+        )
 
     return w
 
 
-class Expr(expr.Expr):
-    """ hold a pytables like expression, comprised of possibly multiple 'terms'
+class PyTablesExpr(expr.Expr):
+    """
+    Hold a pytables-like expression, comprised of possibly multiple 'terms'.
 
     Parameters
     ----------
-    where : string term expression, Expr, or list-like of Exprs
+    where : string term expression, PyTablesExpr, or list-like of PyTablesExprs
     queryables : a "kinds" map (dict of column name -> kind), or None if column
         is non-indexable
     encoding : an encoding that will encode the query terms
 
     Returns
     -------
-    an Expr object
+    a PyTablesExpr object
 
     Examples
     --------
@@ -520,8 +525,8 @@ class Expr(expr.Expr):
     "major_axis>=20130101"
     """
 
-    _visitor: Optional[ExprVisitor]
-    env: Scope
+    _visitor: Optional[PyTablesExprVisitor]
+    env: PyTablesScope
 
     def __init__(
         self,
@@ -542,14 +547,14 @@ class Expr(expr.Expr):
         # capture the environment if needed
         local_dict = DeepChainMap()
 
-        if isinstance(where, Expr):
+        if isinstance(where, PyTablesExpr):
             local_dict = where.env.scope
             _where = where.expr
 
         elif isinstance(where, (list, tuple)):
             where = list(where)
             for idx, w in enumerate(where):
-                if isinstance(w, Expr):
+                if isinstance(w, PyTablesExpr):
                     local_dict = w.env.scope
                 else:
                     w = _validate_where(w)
@@ -559,11 +564,11 @@ class Expr(expr.Expr):
             _where = where
 
         self.expr = _where
-        self.env = Scope(scope_level + 1, local_dict=local_dict)
+        self.env = PyTablesScope(scope_level + 1, local_dict=local_dict)
 
         if queryables is not None and isinstance(self.expr, str):
             self.env.queryables.update(queryables)
-            self._visitor = ExprVisitor(
+            self._visitor = PyTablesExprVisitor(
                 self.env,
                 queryables=queryables,
                 parser="pytables",
@@ -601,30 +606,31 @@ class Expr(expr.Expr):
 class TermValue:
     """ hold a term value the we use to construct a condition/filter """
 
-    def __init__(self, value, converted, kind: Optional[str]):
+    def __init__(self, value, converted, kind: str):
+        assert isinstance(kind, str), kind
         self.value = value
         self.converted = converted
         self.kind = kind
 
-    def tostring(self, encoding):
+    def tostring(self, encoding) -> str:
         """ quote the string if not encoded
             else encode and return """
         if self.kind == "string":
             if encoding is not None:
-                return self.converted
+                return str(self.converted)
             return '"{converted}"'.format(converted=self.converted)
         elif self.kind == "float":
             # python 2 str(float) is not always
             # round-trippable so use repr()
             return repr(self.converted)
-        return self.converted
+        return str(self.converted)
 
 
 def maybe_expression(s) -> bool:
     """ loose checking if s is a pytables-acceptable expression """
     if not isinstance(s, str):
         return False
-    ops = ExprVisitor.binary_ops + ExprVisitor.unary_ops + ("=",)
+    ops = PyTablesExprVisitor.binary_ops + PyTablesExprVisitor.unary_ops + ("=",)
 
     # make sure we have an op at least
     return any(op in s for op in ops)
