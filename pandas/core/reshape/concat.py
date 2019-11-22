@@ -91,6 +91,8 @@ def concat(
         .. versionadded:: 0.23.0
         .. versionchanged:: 1.0.0
 
+           Changed to not sort by default.
+
     copy : bool, default True
         If False, do not copy data unnecessarily.
 
