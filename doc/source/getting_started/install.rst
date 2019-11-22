@@ -250,7 +250,7 @@ SQLAlchemy                1.1.4              SQL support for databases other tha
 SciPy                     0.19.0             Miscellaneous statistical functions
 XLsxWriter                0.9.8              Excel writing
 blosc                                        Compression for msgpack
-fastparquet               0.2.1              Parquet reading / writing
+fastparquet               0.3.2              Parquet reading / writing
 gcsfs                     0.2.2              Google Cloud Storage access
 html5lib                                     HTML parser for read_html (see :ref:`note <optional_html>`)
 lxml                      3.8.0              HTML parser for read_html (see :ref:`note <optional_html>`)
