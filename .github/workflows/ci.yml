@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: master
 
+env:
+  ENV_FILE: environment.yml
+
 jobs:
   checks:
     name: Checks
