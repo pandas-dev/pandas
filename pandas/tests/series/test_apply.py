@@ -1,4 +1,4 @@
-from collections import Counter, defaultdict
+from collections import Counter, OrderedDict, defaultdict, abc
 from itertools import chain
 
 import numpy as np
@@ -624,6 +624,26 @@ class TestSeriesMap:
         s = Series([1, 2, 3])
         dictionary = DictWithoutMissing({3: "three"})
         result = s.map(dictionary)
+        expected = Series([np.nan, np.nan, "three"])
+        tm.assert_series_equal(result, expected)
+
+    def test_map_abc_mapping(self):
+        class NonDictMapping(abc.Mapping):
+            def __init__(self):
+                self._data = {3: "three"}
+
+            def __getitem__(self, key):
+                return self._data.__getitem__(key)
+
+            def __iter__(self):
+                return self._data.__iter__()
+
+            def __len__(self):
+                return self._data.__len__()
+
+        s = Series([1, 2, 3])
+        not_a_dictionary = NonDictMapping()
+        result = s.map(not_a_dictionary)
         expected = Series([np.nan, np.nan, "three"])
         tm.assert_series_equal(result, expected)
 
