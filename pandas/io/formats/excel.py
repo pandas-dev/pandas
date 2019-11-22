@@ -393,16 +393,11 @@ class ExcelFormatter:
             if not len(Index(cols) & df.columns):
                 raise KeyError("passes columns are not ALL present dataframe")
 
-            # deprecatedin gh-17295
-            # 1 missing is ok (for now)
             if len(Index(cols) & df.columns) != len(cols):
-                warnings.warn(
-                    "Not all names specified in 'columns' are found; "
-                    "this will raise a KeyError in the future",
-                    FutureWarning,
-                )
+                # Deprecated in GH#17295, enforced in 1.0.0
+                raise KeyError("Not all names specified in 'columns' are found")
 
-            self.df = df.reindex(columns=cols)
+            self.df = df.reindex(columns=cols)  # TODO: Should this change?
         self.columns = self.df.columns
         self.float_format = float_format
         self.index = index

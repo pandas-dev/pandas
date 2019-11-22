@@ -750,20 +750,9 @@ class TestiLoc(Base):
         df2 = DataFrame({"A": [0.1] * 1000, "B": [1] * 1000})
         df2 = concat([df2, 2 * df2, 3 * df2])
 
-        sidx = df2.index.to_series()
-        expected = df2.iloc[idx[idx <= sidx.max()]]
-
-        new_list = []
-        for r, s in expected.iterrows():
-            new_list.append(s)
-            new_list.append(s * 2)
-            new_list.append(s * 3)
-
-        expected = DataFrame(new_list)
-        expected = concat([expected, DataFrame(index=idx[idx > sidx.max()])], sort=True)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = df2.loc[idx]
-        tm.assert_frame_equal(result, expected, check_index_type=False)
+        with pytest.raises(KeyError, match="with any missing labels"):
+            # TODO: should non-uniquness play a part in the error message?
+            df2.loc[idx]
 
     def test_iloc_empty_list_indexer_is_ok(self):
 

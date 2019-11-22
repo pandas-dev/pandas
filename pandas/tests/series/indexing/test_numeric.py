@@ -123,12 +123,10 @@ def test_get_nan_multiple():
     s = pd.Float64Index(range(10)).to_series()
 
     idx = [2, 30]
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        tm.assert_series_equal(s.get(idx), Series([2, np.nan], index=idx))
+    assert s.get(idx) is None
 
     idx = [2, np.nan]
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        tm.assert_series_equal(s.get(idx), Series([2, np.nan], index=idx))
+    assert s.get(idx) is None
 
     # GH 17295 - all missing keys
     idx = [20, 30]
