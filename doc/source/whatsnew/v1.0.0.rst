@@ -489,6 +489,7 @@ I/O
 - Bug in :meth:`Styler.background_gradient` not able to work with dtype ``Int64`` (:issue:`28869`)
 - Bug in :meth:`DataFrame.to_clipboard` which did not work reliably in ipython (:issue:`22707`)
 - Bug in :func:`read_json` where default encoding was not set to ``utf-8`` (:issue:`29565`)
+- Bug in :class:`PythonParser` where str and bytes were being mixed when dealing with the decimal field (:issue:`29650`)
 -
 
 Plotting
