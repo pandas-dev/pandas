@@ -112,11 +112,9 @@ cdef inline check_dts_bounds(npy_datetimestruct *dts):
         error = True
 
     if error:
-        fmt = '%d-%.2d-%.2d %.2d:%.2d:%.2d' % (dts.year, dts.month,
-                                               dts.day, dts.hour,
-                                               dts.min, dts.sec)
-        raise OutOfBoundsDatetime(
-            'Out of bounds nanosecond timestamp: {fmt}'.format(fmt=fmt))
+        fmt = (f'{dts.year}-{dts.month:02d}-{dts.day:02d} '
+               f'{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}')
+        raise OutOfBoundsDatetime(f'Out of bounds nanosecond timestamp: {fmt}')
 
 
 # ----------------------------------------------------------------------
