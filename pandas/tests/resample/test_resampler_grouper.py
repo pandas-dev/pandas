@@ -275,3 +275,23 @@ def test_median_duplicate_columns():
     result = df.resample("5s").median()
     expected.columns = result.columns
     tm.assert_frame_equal(result, expected)
+
+
+def test_same_grouper_on_different_frames():
+
+    df1 = pd.DataFrame(
+        [
+            ["a", 1, 2, "05/29/2019"],
+            ["a", 4, 5, "05/28/2019"],
+            ["b", 2, 3, "05/27/2019"],
+        ],
+        columns=["type", "num1", "num2", "date"],
+    ).assign(date=lambda df: pd.to_datetime(df["date"]))
+    df2 = pd.DataFrame(columns=["type", "num1", "num2", "date"]).assign(
+        date=lambda df: pd.to_datetime(df["date"])
+    )
+
+    groupbys = ["type", pd.Grouper(key="date", freq="1D")]
+
+    df1.groupby(groupbys).head()
+    df2.groupby(groupbys).head()

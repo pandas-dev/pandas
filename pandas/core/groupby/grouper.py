@@ -114,7 +114,7 @@ class Grouper:
     def _reset_grouper(self):
         """
         Ensures Grouper object can be reused
-        See https://bit.ly/2D4Yd6V
+        See https://github.com/pandas-dev/pandas/issues/26564
         """
         self.grouper = None
         self.obj = None
