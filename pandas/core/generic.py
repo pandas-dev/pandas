@@ -92,7 +92,7 @@ from pandas.tseries.frequencies import to_offset
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
-_shared_docs = dict()  # type: Dict[str, str]
+_shared_docs: Dict[str, str] = dict()
 _shared_doc_kwargs = dict(
     axes="keywords for axes",
     klass="Series/DataFrame",
@@ -154,7 +154,7 @@ class NDFrame(PandasObject, SelectionMixin):
     copy : bool, default False
     """
 
-    _internal_names = [
+    _internal_names: List[str] = [
         "_data",
         "_cacher",
         "_item_cache",
@@ -168,15 +168,15 @@ class NDFrame(PandasObject, SelectionMixin):
         "_metadata",
         "__array_struct__",
         "__array_interface__",
-    ]  # type: List[str]
-    _internal_names_set = set(_internal_names)  # type: Set[str]
-    _accessors = set()  # type: Set[str]
-    _deprecations = frozenset(
+    ]
+    _internal_names_set: Set[str] = set(_internal_names)
+    _accessors: Set[str] = set()
+    _deprecations: FrozenSet[str] = frozenset(
         ["get_dtype_counts", "get_values", "ftypes", "ix"]
-    )  # type: FrozenSet[str]
-    _metadata = []  # type: List[str]
+    )
+    _metadata: List[str] = []
     _is_copy = None
-    _data = None  # type: BlockManager
+    _data: BlockManager
     _attrs: Dict[Optional[Hashable], Any]
 
     # ----------------------------------------------------------------------
@@ -2596,7 +2596,11 @@ class NDFrame(PandasObject, SelectionMixin):
             Name of SQL table.
         con : sqlalchemy.engine.Engine or sqlite3.Connection
             Using SQLAlchemy makes it possible to use any DB supported by that
-            library. Legacy support is provided for sqlite3.Connection objects.
+            library. Legacy support is provided for sqlite3.Connection objects. The user
+            is responsible for engine disposal and connection closure for the SQLAlchemy
+            connectable See `here \
+                <https://docs.sqlalchemy.org/en/13/core/connections.html>`_
+
         schema : str, optional
             Specify the schema (if database flavor supports this). If None, use
             default schema.
@@ -3599,7 +3603,7 @@ class NDFrame(PandasObject, SelectionMixin):
         result._set_is_copy(self, copy=not result._is_view)
         return result
 
-    _xs = xs  # type: Callable
+    _xs: Callable = xs
 
     def __getitem__(self, item):
         raise AbstractMethodError(self)

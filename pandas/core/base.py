@@ -36,7 +36,7 @@ from pandas.core.algorithms import duplicated, unique1d, value_counts
 from pandas.core.arrays import ExtensionArray
 import pandas.core.nanops as nanops
 
-_shared_docs = dict()  # type: Dict[str, str]
+_shared_docs: Dict[str, str] = dict()
 _indexops_doc_kwargs = dict(
     klass="IndexOpsMixin",
     inplace="",
@@ -603,7 +603,7 @@ class SelectionMixin:
 
 
 class ShallowMixin:
-    _attributes = []  # type: List[str]
+    _attributes: List[str] = []
 
     def _shallow_copy(self, obj=None, **kwargs):
         """
@@ -627,7 +627,7 @@ class IndexOpsMixin:
 
     # ndarray compatibility
     __array_priority__ = 1000
-    _deprecations = frozenset(
+    _deprecations: FrozenSet[str] = frozenset(
         [
             "tolist",  # tolist is not deprecated, just suppressed in the __dir__
             "base",
@@ -637,7 +637,7 @@ class IndexOpsMixin:
             "flags",
             "strides",
         ]
-    )  # type: FrozenSet[str]
+    )
 
     def transpose(self, *args, **kwargs):
         """

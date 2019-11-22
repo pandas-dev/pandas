@@ -95,10 +95,6 @@ cdef class _NaT(datetime):
     # higher than np.ndarray and np.matrix
     __array_priority__ = 100
 
-    def __hash__(_NaT self):
-        # py3k needs this defined here
-        return hash(self.value)
-
     def __richcmp__(_NaT self, object other, int op):
         cdef:
             int ndim = getattr(other, 'ndim', -1)
@@ -115,8 +111,8 @@ cdef class _NaT(datetime):
             if is_datetime64_object(other):
                 return _nat_scalar_rules[op]
             else:
-                raise TypeError('Cannot compare type %r with type %r' %
-                                (type(self).__name__, type(other).__name__))
+                raise TypeError(f'Cannot compare type {type(self).__name__} '
+                                f'with type {type(other).__name__}')
 
         # Note: instead of passing "other, self, _reverse_ops[op]", we observe
         # that `_nat_scalar_rules` is invariant under `_reverse_ops`,
@@ -150,8 +146,7 @@ cdef class _NaT(datetime):
                 result = np.empty(other.shape, dtype="datetime64[ns]")
                 result.fill("NaT")
                 return result
-            raise TypeError("Cannot add NaT to ndarray with dtype {dtype}"
-                            .format(dtype=other.dtype))
+            raise TypeError(f"Cannot add NaT to ndarray with dtype {other.dtype}")
 
         return NotImplemented
 
@@ -203,9 +198,8 @@ cdef class _NaT(datetime):
                 result.fill("NaT")
                 return result
 
-            raise TypeError(
-                "Cannot subtract NaT from ndarray with dtype {dtype}"
-                .format(dtype=other.dtype))
+            raise TypeError(f"Cannot subtract NaT from ndarray with "
+                            f"dtype {other.dtype}")
 
         return NotImplemented
 

@@ -31,7 +31,7 @@ from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import DateOffset, Day, Nano, Tick
 
-_shared_docs_kwargs = dict()  # type: Dict[str, str]
+_shared_docs_kwargs: Dict[str, str] = dict()
 
 
 class Resampler(_GroupBy, ShallowMixin):

@@ -488,7 +488,7 @@ _parser_defaults = {
     "cache_dates": True,
     "thousands": None,
     "comment": None,
-    "decimal": b".",
+    "decimal": ".",
     # 'engine': 'c',
     "parse_dates": False,
     "keep_date_col": False,
@@ -522,8 +522,8 @@ _fwf_defaults = {"colspecs": "infer", "infer_nrows": 100, "widths": None}
 _c_unsupported = {"skipfooter"}
 _python_unsupported = {"low_memory", "float_precision"}
 
-_deprecated_defaults = {}  # type: Dict[str, Any]
-_deprecated_args = set()  # type: Set[str]
+_deprecated_defaults: Dict[str, Any] = {}
+_deprecated_args: Set[str] = set()
 
 
 def _make_parser_function(name, default_sep=","):
@@ -568,7 +568,7 @@ def _make_parser_function(name, default_sep=","):
         # Quoting, Compression, and File Format
         compression="infer",
         thousands=None,
-        decimal=b".",
+        decimal: str = ".",
         lineterminator=None,
         quotechar='"',
         quoting=csv.QUOTE_MINIMAL,
