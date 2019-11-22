@@ -918,7 +918,7 @@ def test_pct_change(test_series, freq, periods, fill_method, limit):
         ("bfill", ["shrt", "lng", "lng", "shrt", "shrt", "ntrl", np.nan]),
     ],
 )
-def test_ffill_non_unique_multilevel(func, expected_status):
+def test_ffill_bfill_non_unique_multilevel(func, expected_status):
     # GH 19437
     date = pd.to_datetime(
         [
