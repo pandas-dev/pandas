@@ -911,11 +911,17 @@ def test_pct_change(test_series, freq, periods, fill_method, limit):
         tm.assert_frame_equal(result, expected.to_frame("vals"))
 
 
-def test_ffill_non_unique_multilevel():
+@pytest.mark.parametrize(
+    "func, expected_status",
+    [
+        ("ffill", ["shrt", "shrt", "lng", np.nan, "shrt", "ntrl", "ntrl"]),
+        ("bfill", ["shrt", "lng", "lng", "shrt", "shrt", "ntrl", np.nan]),
+    ],
+)
+def test_ffill_non_unique_multilevel(func, expected_status):
     # GH 19437
     date = pd.to_datetime(
         [
-            "2018-01-01",
             "2018-01-01",
             "2018-01-01",
             "2018-01-01",
@@ -925,18 +931,17 @@ def test_ffill_non_unique_multilevel():
             "2018-01-02",
         ]
     )
-    symbol = ["MSFT", "MSFT", "MSFT", "AAPL", "AAPL", "AAPL", "TSLA", "TSLA"]
-    status = ["shrt", "lng", np.nan, "shrt", np.nan, "shrt", "ntrl", np.nan]
+    symbol = ["MSFT", "MSFT", "MSFT", "AAPL", "AAPL", "TSLA", "TSLA"]
+    status = ["shrt", np.nan, "lng", np.nan, "shrt", "ntrl", np.nan]
 
     df = DataFrame({"date": date, "symbol": symbol, "status": status})
     df = df.set_index(["date", "symbol"])
-    result = df.groupby("symbol")["status"].ffill()
+    result = getattr(df.groupby("symbol")["status"], func)()
 
     index = MultiIndex.from_tuples(
         tuples=list(zip(*[date, symbol])), names=["date", "symbol"]
     )
-    status = ["shrt", "lng", "lng", "shrt", "shrt", "shrt", "ntrl", "ntrl"]
-    expected = Series(status, index=index, name="status")
+    expected = Series(expected_status, index=index, name="status")
 
     tm.assert_series_equal(result, expected)
 
