@@ -3515,7 +3515,7 @@ Name: Max Speed, dtype: float64
 
         Parameters
         ----------
-        arg : function, dict, colletions.abc.Mapping subclass or Series
+        arg : function, colletions.abc.Mapping subclass or Series
             Mapping correspondence.
         na_action : {None, 'ignore'}, default None
             If 'ignore', propagate NaN values, without passing them to the

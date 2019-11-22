@@ -628,6 +628,8 @@ class TestSeriesMap:
         tm.assert_series_equal(result, expected)
 
     def test_map_abc_mapping(self):
+        # https://github.com/pandas-dev/pandas/issues/29733
+        # Check collections.abc.Mapping support as mapper for Series.map
         class NonDictMapping(abc.Mapping):
             def __init__(self):
                 self._data = {3: "three"}
@@ -648,6 +650,8 @@ class TestSeriesMap:
         tm.assert_series_equal(result, expected)
 
     def test_map_abc_mapping_with_missing(self):
+        # https://github.com/pandas-dev/pandas/issues/29733
+        # Check collections.abc.Mapping support as mapper for Series.map
         class NonDictMappingWithMissing(abc.Mapping):
             def __init__(self):
                 self._data = {3: "three"}
