@@ -235,6 +235,71 @@ The following methods now also correctly output values for unobserved categories
    df.groupby(["cat_1", "cat_2"], observed=False)["value"].count()
 
 
+.. _whatsnew_1000.api_breaking.deps:
+
+Increased minimum versions for dependencies
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Some minimum supported versions of dependencies were updated (:issue:`29723`).
+If installed, we now require:
+
++-----------------+-----------------+----------+
+| Package         | Minimum Version | Required |
++=================+=================+==========+
+| numpy           | 1.13.3          |    X     |
++-----------------+-----------------+----------+
+| pytz            | 2015.4          |    X     |
++-----------------+-----------------+----------+
+| python-dateutil | 2.6.1           |    X     |
++-----------------+-----------------+----------+
+| bottleneck      | 1.2.1           |          |
++-----------------+-----------------+----------+
+| numexpr         | 2.6.2           |          |
++-----------------+-----------------+----------+
+| pytest (dev)    | 4.0.2           |          |
++-----------------+-----------------+----------+
+
+For `optional libraries <https://dev.pandas.io/docs/install.html#dependencies>`_ the general recommendation is to use the latest version.
+The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
+Optional libraries below the lowest tested version may still work, but are not considered supported.
+
++-----------------+-----------------+
+| Package         | Minimum Version |
++=================+=================+
+| beautifulsoup4  | 4.6.0           |
++-----------------+-----------------+
+| fastparquet     | 0.3.2           |
++-----------------+-----------------+
+| gcsfs           | 0.2.2           |
++-----------------+-----------------+
+| lxml            | 3.8.0           |
++-----------------+-----------------+
+| matplotlib      | 2.2.2           |
++-----------------+-----------------+
+| openpyxl        | 2.4.8           |
++-----------------+-----------------+
+| pyarrow         | 0.9.0           |
++-----------------+-----------------+
+| pymysql         | 0.7.1           |
++-----------------+-----------------+
+| pytables        | 3.4.2           |
++-----------------+-----------------+
+| scipy           | 0.19.0          |
++-----------------+-----------------+
+| sqlalchemy      | 1.1.4           |
++-----------------+-----------------+
+| xarray          | 0.8.2           |
++-----------------+-----------------+
+| xlrd            | 1.1.0           |
++-----------------+-----------------+
+| xlsxwriter      | 0.9.8           |
++-----------------+-----------------+
+| xlwt            | 1.2.0           |
++-----------------+-----------------+
+
+See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
+
+
 .. _whatsnew_1000.api.other:
 
 Other API changes
@@ -321,6 +386,8 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - Removed :meth:`DataFrame.as_blocks`, :meth:`Series.as_blocks`, `DataFrame.blocks`, :meth:`Series.blocks` (:issue:`17656`)
 - :meth:`pandas.Series.str.cat` now defaults to aligning ``others``, using ``join='left'`` (:issue:`27611`)
 - :meth:`pandas.Series.str.cat` does not accept list-likes *within* list-likes anymore (:issue:`27611`)
+- :func:`core.internals.blocks.make_block` no longer accepts the "fastpath" keyword(:issue:`19265`)
+- :meth:`Block.make_block_same_class` no longer accepts the "dtype" keyword(:issue:`19434`)
 - Removed the previously deprecated :meth:`ExtensionArray._formatting_values`. Use :attr:`ExtensionArray._formatter` instead. (:issue:`23601`)
 - Removed support for legacy HDF5 formats (:issue:`29787`)
 - :func:`read_excel` removed support for "skip_footer" argument, use "skipfooter" instead (:issue:`18836`)
@@ -359,7 +426,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.replace` when provided a list of values to replace (:issue:`28099`)
 - Performance improvement in :meth:`DataFrame.select_dtypes` by using vectorization instead of iterating over a loop (:issue:`28317`)
 - Performance improvement in :meth:`Categorical.searchsorted` and  :meth:`CategoricalIndex.searchsorted` (:issue:`28795`)
-- Performance improvement when searching for a scalar in a :meth:`Categorical` and the scalar is not found in the categories (:issue:`29750`)
+- Performance improvement when comparing a :meth:`Categorical` with a scalar and the scalar is not found in the categories (:issue:`29750`)
 
 .. _whatsnew_1000.bug_fixes:
 
