@@ -50,10 +50,10 @@ def read_gbq(
     col_order : list(str), optional
         List of BigQuery column names in the desired order for results
         DataFrame.
-    reauth : boolean, default False
+    reauth : bool, default False
         Force Google BigQuery to re-authenticate the user. This is useful
         if multiple accounts are used.
-    auth_local_webserver : boolean, default False
+    auth_local_webserver : bool, default False
         Use the `local webserver flow`_ instead of the `console flow`_
         when getting user credentials.
 
