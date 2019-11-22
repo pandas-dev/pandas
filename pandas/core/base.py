@@ -1109,7 +1109,7 @@ class IndexOpsMixin:
         # as we know that we are not going to have to yield
         # python types
         if isinstance(mapper, abc.Mapping):
-            if hasattr(mapper, "__missing__"):
+            if isinstance(mapper, dict) and hasattr(mapper, "__missing__"):
                 # If a dictionary subclass defines a default value method,
                 # convert mapper to a lookup function (GH #15999).
                 dict_with_default = mapper

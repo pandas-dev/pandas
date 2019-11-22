@@ -647,6 +647,31 @@ class TestSeriesMap:
         expected = Series([np.nan, np.nan, "three"])
         tm.assert_series_equal(result, expected)
 
+    def test_map_abc_mapping_with_missing(self):
+        class NonDictMappingWithMissing(abc.Mapping):
+            def __init__(self):
+                self._data = {3: "three"}
+
+            def __getitem__(self, key):
+                return self._data.__getitem__(key)
+
+            def __iter__(self):
+                return self._data.__iter__()
+
+            def __len__(self):
+                return self._data.__len__()
+
+            def __missing__(self, key):
+                return "missing"
+
+        s = Series([1, 2, 3])
+        not_a_dictionary = NonDictMappingWithMissing()
+        result = s.map(not_a_dictionary)
+        # __missing__ is a dict concept, not a Mapping concept,
+        # so it should not change the result!
+        expected = Series([np.nan, np.nan, "three"])
+        tm.assert_series_equal(result, expected)
+
     def test_map_box(self):
         vals = [pd.Timestamp("2011-01-01"), pd.Timestamp("2011-01-02")]
         s = pd.Series(vals)
