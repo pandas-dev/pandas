@@ -1757,18 +1757,11 @@ class IndexCol:
         assert isinstance(self.cname, str)
         assert isinstance(self.kind_attr, str)
 
-    def set_axis(self, axis: int):
-        """ set the axis over which I index """
-        self.axis = axis
-
-        return self
-
     def set_pos(self, pos: int):
         """ set the position of this column in the Table """
         self.pos = pos
         if pos is not None and self.typ is not None:
             self.typ._v_pos = pos
-        return self
 
     def __repr__(self) -> str:
         temp = tuple(
@@ -1842,8 +1835,6 @@ class IndexCol:
             self.values = Index(values, **kwargs)
 
         self.values = _set_tz(self.values, self.tz)
-
-        return self
 
     def take_data(self):
         """ return the values & release the memory """
@@ -1965,8 +1956,6 @@ class IndexCol:
                 if value is not None or existing_value is not None:
                     idx[key] = value
 
-        return self
-
     def set_info(self, info):
         """ set my state from the passed info """
         idx = info.get(self.name)
@@ -2039,13 +2028,9 @@ class GenericIndexCol(IndexCol):
         """
         assert self.table is not None  # for mypy
 
-        assert self.table is not None
-
         _start = start if start is not None else 0
         _stop = min(stop, self.table.nrows) if stop is not None else self.table.nrows
         self.values = Int64Index(np.arange(_stop - _start))
-
-        return self
 
     def get_attr(self):
         pass
@@ -2485,8 +2470,6 @@ class DataCol(IndexCol):
             self.data = _unconvert_string_array(
                 self.data, nan_rep=nan_rep, encoding=encoding, errors=errors
             )
-
-        return self
 
     def get_attr(self):
         """ get the data for this column """
@@ -3768,9 +3751,12 @@ class Table(Fixed):
 
             if i in axes:
                 name = obj._AXIS_NAMES[i]
-                index_axes_map[i] = _convert_index(
+                new_index = _convert_index(
                     name, a, self.encoding, self.errors, self.format_type
-                ).set_axis(i)
+                )
+                new_index.axis = i
+                index_axes_map[i] = new_index
+
             else:
 
                 # we might be able to change the axes on the appending data if
@@ -3797,10 +3783,12 @@ class Table(Fixed):
                 self.non_index_axes.append((i, append_axis))
 
         # set axis positions (based on the axes)
-        self.index_axes = [
-            index_axes_map[a].set_pos(j).update_info(self.info)
-            for j, a in enumerate(axes)
-        ]
+        new_index_axes = [index_axes_map[a] for a in axes]
+        for j, iax in enumerate(new_index_axes):
+            iax.set_pos(j)
+            iax.update_info(self.info)
+        self.index_axes = new_index_axes
+
         j = len(self.index_axes)
 
         # check for column conflicts
@@ -4069,19 +4057,13 @@ class Table(Fixed):
                 # column must be an indexable or a data column
                 c = getattr(self.table.cols, column)
                 a.set_info(self.info)
-                return Series(
-                    _set_tz(
-                        a.convert(
-                            c[start:stop],
-                            nan_rep=self.nan_rep,
-                            encoding=self.encoding,
-                            errors=self.errors,
-                        ).take_data(),
-                        a.tz,
-                        True,
-                    ),
-                    name=column,
+                a.convert(
+                    c[start:stop],
+                    nan_rep=self.nan_rep,
+                    encoding=self.encoding,
+                    errors=self.errors,
                 )
+                return Series(_set_tz(a.take_data(), a.tz, True), name=column)
 
         raise KeyError("column [{column}] not found in the table".format(column=column))
 
