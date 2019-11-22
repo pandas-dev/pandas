@@ -1,11 +1,11 @@
 """
 Data structure for 1-dimensional cross-sectional and time series data
 """
+from collections import abc
 from io import StringIO
 from shutil import get_terminal_size
 from textwrap import dedent
 from typing import Any, Callable, Hashable, List, Optional
-from collections import abc
 import warnings
 
 import numpy as np

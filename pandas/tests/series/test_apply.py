@@ -1,4 +1,4 @@
-from collections import Counter, OrderedDict, defaultdict, abc
+from collections import Counter, OrderedDict, abc, defaultdict
 from itertools import chain
 
 import numpy as np
