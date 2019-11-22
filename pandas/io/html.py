@@ -896,7 +896,7 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
 
         try:
             tables = p.parse_tables()
-        except Exception as caught:
+        except ValueError as caught:
             # if `io` is an io-like object, check if it's seekable
             # and try to rewind it before trying the next parser
             if hasattr(io, "seekable") and io.seekable():
