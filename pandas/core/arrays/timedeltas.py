@@ -1055,7 +1055,7 @@ def sequence_to_td64ns(data, copy=False, unit="ns", errors="raise"):
             copy = False
 
     else:
-        # This includes datetime64-dtype, see GH#23539
+        # This includes datetime64-dtype, see GH#23539, GH#29794
         raise TypeError(
             "dtype {dtype} cannot be converted to timedelta64[ns]".format(
                 dtype=data.dtype

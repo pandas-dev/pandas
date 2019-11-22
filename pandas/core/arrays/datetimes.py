@@ -2102,7 +2102,7 @@ def maybe_convert_dtype(data, copy):
         #  with integer dtypes.  See discussion in GH#23675
 
     elif is_timedelta64_dtype(data):
-        # Enforcing deprecation introduced in GH#23539
+        # GH#29794 enforcing deprecation introduced in GH#23539
         raise TypeError(f"dtype {data.dtype} cannot be converted to datetime64[ns]")
     elif is_period_dtype(data):
         # Note: without explicitly raising here, PeriodIndex

@@ -60,7 +60,7 @@ class TestTimedeltaIndex:
     def test_dt64_data_invalid(self):
         # GH#23539
         # passing tz-aware DatetimeIndex raises, naive or ndarray[datetime64]
-        #  raise as of GH#????
+        #  raise as of GH#29794
         dti = pd.date_range("2016-01-01", periods=3)
 
         msg = "cannot be converted to timedelta64"
