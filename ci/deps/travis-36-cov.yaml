@@ -18,7 +18,7 @@ dependencies:
   - botocore>=1.11
   - cython>=0.29.13
   - dask
-  - fastparquet>=0.3.0
+  - fastparquet>=0.3.2
   - gcsfs
   - geopandas
   - html5lib

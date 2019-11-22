@@ -268,7 +268,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +=================+=================+
 | beautifulsoup4  | 4.6.0           |
 +-----------------+-----------------+
-| fastparquet     | 0.3.0           |
+| fastparquet     | 0.3.2           |
 +-----------------+-----------------+
 | gcsfs           | 0.2.2           |
 +-----------------+-----------------+
