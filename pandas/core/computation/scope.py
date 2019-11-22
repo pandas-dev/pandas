@@ -162,7 +162,7 @@ class Scope:
         """
         return bool(len(self.resolvers))
 
-    def resolve(self, key, is_local):
+    def resolve(self, key: str, is_local: bool):
         """
         Resolve a variable name in a possibly local context.
 
