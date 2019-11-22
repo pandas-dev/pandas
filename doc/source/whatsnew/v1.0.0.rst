@@ -240,7 +240,7 @@ The following methods now also correctly output values for unobserved categories
 Increased minimum versions for dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Some minimum supported versions of dependencies were updated (:issue:`29766`).
+Some minimum supported versions of dependencies were updated (:issue:`29766`, :issue:`29723`).
 If installed, we now require:
 
 +-----------------+-----------------+----------+---------+
@@ -268,7 +268,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +=================+=================+=========+
 | beautifulsoup4  | 4.6.0           |         |
 +-----------------+-----------------+---------+
-| fastparquet     | 0.3.0           |         |
+| fastparquet     | 0.3.2           |    X    |
 +-----------------+-----------------+---------+
 | gcsfs           | 0.2.2           |         |
 +-----------------+-----------------+---------+
@@ -386,6 +386,8 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - Removed :meth:`DataFrame.as_blocks`, :meth:`Series.as_blocks`, `DataFrame.blocks`, :meth:`Series.blocks` (:issue:`17656`)
 - :meth:`pandas.Series.str.cat` now defaults to aligning ``others``, using ``join='left'`` (:issue:`27611`)
 - :meth:`pandas.Series.str.cat` does not accept list-likes *within* list-likes anymore (:issue:`27611`)
+- :func:`core.internals.blocks.make_block` no longer accepts the "fastpath" keyword(:issue:`19265`)
+- :meth:`Block.make_block_same_class` no longer accepts the "dtype" keyword(:issue:`19434`)
 - Removed the previously deprecated :meth:`ExtensionArray._formatting_values`. Use :attr:`ExtensionArray._formatter` instead. (:issue:`23601`)
 - Removed the previously deprecated :meth:`MultiIndex.to_hierarchical` (:issue:`21613`)
 - Removed the previously deprecated :attr:`MultiIndex.labels`, use :attr:`MultiIndex.codes` instead (:issue:`23752`)
