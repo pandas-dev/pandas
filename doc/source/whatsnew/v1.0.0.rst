@@ -253,6 +253,7 @@ Other API changes
   See :ref:`units registration <whatsnew_1000.matplotlib_units>` for more.
 - :meth:`Series.dropna` has dropped its ``**kwargs`` argument in favor of a single ``how`` parameter.
   Supplying anything else than ``how`` to ``**kwargs`` raised a ``TypeError`` previously (:issue:`29388`)
+- When testing pandas, the new minimum required version of pytest is 5.0.1 (:issue:`29664`)
 -
 
 
@@ -321,6 +322,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - :meth:`pandas.Series.str.cat` now defaults to aligning ``others``, using ``join='left'`` (:issue:`27611`)
 - :meth:`pandas.Series.str.cat` does not accept list-likes *within* list-likes anymore (:issue:`27611`)
 - Removed the previously deprecated :meth:`ExtensionArray._formatting_values`. Use :attr:`ExtensionArray._formatter` instead. (:issue:`23601`)
+- Removed support for legacy HDF5 formats (:issue:`29787`)
 - :func:`read_excel` removed support for "skip_footer" argument, use "skipfooter" instead (:issue:`18836`)
 - :meth:`DataFrame.to_records` no longer supports the argument "convert_datetime64" (:issue:`18902`)
 - Removed the previously deprecated ``IntervalIndex.from_intervals`` in favor of the :class:`IntervalIndex` constructor (:issue:`19263`)
@@ -490,6 +492,7 @@ I/O
 - Bug in :meth:`Styler.background_gradient` not able to work with dtype ``Int64`` (:issue:`28869`)
 - Bug in :meth:`DataFrame.to_clipboard` which did not work reliably in ipython (:issue:`22707`)
 - Bug in :func:`read_json` where default encoding was not set to ``utf-8`` (:issue:`29565`)
+- Bug in :class:`PythonParser` where str and bytes were being mixed when dealing with the decimal field (:issue:`29650`)
 -
 
 Plotting
