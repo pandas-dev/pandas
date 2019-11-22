@@ -463,7 +463,7 @@ if is_platform_windows():
         extra_link_args.append("/DEBUG")
 else:
     # args to ignore warnings
-    extra_compile_args = ["-Wno-unused-function"]
+    extra_compile_args = []
     extra_link_args = []
     if debugging_symbols_requested:
         extra_compile_args.append("-g")

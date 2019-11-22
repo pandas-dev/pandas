@@ -1406,59 +1406,6 @@ cdef inline StringPath _string_path(char *encoding):
 # Type conversions / inference support code
 
 
-cdef _string_box_factorize(parser_t *parser, int64_t col,
-                           int64_t line_start, int64_t line_end,
-                           bint na_filter, kh_str_starts_t *na_hashset):
-    cdef:
-        int error, na_count = 0
-        Py_ssize_t i, lines
-        coliter_t it
-        const char *word = NULL
-        ndarray[object] result
-
-        int ret = 0
-        kh_strbox_t *table
-
-        object pyval
-
-        object NA = na_values[np.object_]
-        khiter_t k
-
-    table = kh_init_strbox()
-    lines = line_end - line_start
-    result = np.empty(lines, dtype=np.object_)
-    coliter_setup(&it, parser, col, line_start)
-
-    for i in range(lines):
-        COLITER_NEXT(it, word)
-
-        if na_filter:
-            if kh_get_str_starts_item(na_hashset, word):
-                # in the hash table
-                na_count += 1
-                result[i] = NA
-                continue
-
-        k = kh_get_strbox(table, word)
-
-        # in the hash table
-        if k != table.n_buckets:
-            # this increments the refcount, but need to test
-            pyval = <object>table.vals[k]
-        else:
-            # box it. new ref?
-            pyval = PyBytes_FromString(word)
-
-            k = kh_put_strbox(table, word, &ret)
-            table.vals[k] = <PyObject*>pyval
-
-        result[i] = pyval
-
-    kh_destroy_strbox(table)
-
-    return result, na_count
-
-
 cdef _string_box_utf8(parser_t *parser, int64_t col,
                       int64_t line_start, int64_t line_end,
                       bint na_filter, kh_str_starts_t *na_hashset):
