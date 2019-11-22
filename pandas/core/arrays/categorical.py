@@ -77,12 +77,6 @@ def _cat_compare_op(op):
 
     @unpack_zerodim_and_defer(opname)
     def func(self, other):
-        # On python2, you can usually compare any type to any type, and
-        # Categoricals can be seen as a custom type, but having different
-        # results depending whether categories are the same or not is kind of
-        # insane, so be a bit stricter here and use the python3 idea of
-        # comparing only things of equal type.
-
         if is_list_like(other) and len(other) != len(self):
             # TODO: Could this fail if the categories are listlike objects?
             raise ValueError("Lengths must match.")
@@ -840,8 +834,8 @@ class Categorical(ExtensionArray, PandasObject):
         On the other hand this methods does not do checks (e.g., whether the
         old categories are included in the new categories on a reorder), which
         can result in surprising changes, for example when using special string
-        dtypes on python3, which does not considers a S1 string equal to a
-        single char python string.
+        dtypes, which does not considers a S1 string equal to a single char
+        python string.
 
         Parameters
         ----------
