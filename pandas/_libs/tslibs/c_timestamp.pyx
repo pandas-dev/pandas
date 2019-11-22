@@ -54,11 +54,11 @@ class NullFrequencyError(ValueError):
 def maybe_integer_op_deprecated(obj):
     # GH#22535 add/sub of integers and int-arrays is deprecated
     if obj.freq is not None:
-        warnings.warn(f"Addition/subtraction of integers and integer-arrays "
+        warnings.warn("Addition/subtraction of integers and integer-arrays "
                       f"to {type(obj).__name__} is deprecated, "
-                      f"will be removed in a future "
-                      f"version.  Instead of adding/subtracting `n`, use "
-                      f"`n * self.freq`"
+                      "will be removed in a future "
+                      "version.  Instead of adding/subtracting `n`, use "
+                      "`n * self.freq`"
                       , FutureWarning)
 
 
@@ -369,7 +369,7 @@ cdef class _Timestamp(datetime):
 
     @property
     def _repr_base(self) -> str:
-        return f'{self._date_repr} {self._time_repr}'
+        return f"{self._date_repr} {self._time_repr}"
 
     @property
     def _date_repr(self) -> str:

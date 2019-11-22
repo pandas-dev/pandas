@@ -1136,7 +1136,8 @@ cdef class _Timedelta(timedelta):
         return fmt.format(**comp_dict)
 
     def __repr__(self) -> str:
-        return f"Timedelta('{self._repr_base(format='long')}')"
+        repr_based = self._repr_base(format='long')
+        return f"Timedelta('{repr_based}')"
 
     def __str__(self) -> str:
         return self._repr_base(format='long')

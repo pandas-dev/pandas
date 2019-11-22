@@ -1275,15 +1275,15 @@ cdef object _period_strftime(int64_t value, int freq, object fmt):
             if i == 0:
                 repl = str(quarter)
             elif i == 1:  # %f, 2-digit year
-                repl = f'{year % 100:02d}'
+                repl = f'{(year % 100):02d}'
             elif i == 2:
                 repl = str(year)
             elif i == 3:
-                repl = f'{value % 1_000:03d}'
+                repl = f'{(value % 1_000):03d}'
             elif i == 4:
-                repl = f'{value % 1_000_000:06d}'
+                repl = f'{(value % 1_000_000):06d}'
             elif i == 5:
-                repl = f'{value % 1_000_000_000:09d}'
+                repl = f'{(value % 1_000_000_000):09d}'
 
             result = result.replace(str_extra_fmts[i], repl)
 
@@ -2223,7 +2223,7 @@ cdef class _Period:
         """
         base, mult = get_freq_code(self.freq)
         formatted = period_format(self.ordinal, base)
-        value = f"{formatted}"
+        value = str(formatted)
         return value
 
     def __setstate__(self, state):

@@ -139,8 +139,8 @@ def array_strptime(object[:] values, object fmt,
                 if is_coerce:
                     iresult[i] = NPY_NAT
                     continue
-                raise ValueError(f"time data {repr(val)} does not match "
-                                 f"format {repr(fmt)} (match)")
+                raise ValueError(f"time data '{val}' does not match "
+                                 f"format '{fmt}' (match)")
             if len(val) != found.end():
                 if is_coerce:
                     iresult[i] = NPY_NAT
@@ -588,8 +588,8 @@ class TimeRE(dict):
         else:
             return ''
         regex = '|'.join(re.escape(stuff) for stuff in to_convert)
-        regex = f'(?P<{directive}>{regex}'
-        return f'{regex})'
+        regex = f'(?P<{directive}>{regex})'
+        return regex
 
     def pattern(self, format):
         """

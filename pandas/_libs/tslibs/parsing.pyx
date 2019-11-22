@@ -707,8 +707,8 @@ class _timelex:
             self.stream = instream
         elif getattr(instream, 'read', None) is None:
             raise TypeError(
-                f'Parser must be a string or character stream, not '
-                f'{instream.__class__.__name__}')
+                'Parser must be a string or character stream, not '
+                f'{type(instream).__name__}')
         else:
             self.stream = instream.read()
 
