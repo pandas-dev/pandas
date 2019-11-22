@@ -1634,7 +1634,6 @@ class TableIterator:
         self.start = start
         self.stop = stop
 
-        self.coordinates = None
         if iterator or chunksize is not None:
             if chunksize is None:
                 chunksize = 100000
@@ -1644,14 +1643,12 @@ class TableIterator:
 
         self.auto_close = auto_close
 
-    def __iter__(self):
-
-        # iterate
+    def iter_result(self, coordinates):
         current = self.start
         while current < self.stop:
 
             stop = min(current + self.chunksize, self.stop)
-            value = self.func(None, None, self.coordinates[current:stop])
+            value = self.func(None, None, coordinates[current:stop])
             current = stop
             if value is None or not len(value):
                 continue
@@ -1671,9 +1668,8 @@ class TableIterator:
             if not self.s.is_table:
                 raise TypeError("can only use an iterator or chunksize on a table")
 
-            self.coordinates = self.s.read_coordinates(where=self.where)
-
-            return self
+            coordinates = self.s.read_coordinates(where=self.where)
+            return self.iter_result(coordinates)
 
         # if specified read via coordinates (necessary for multiple selections
         if coordinates:

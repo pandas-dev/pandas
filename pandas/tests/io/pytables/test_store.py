@@ -52,7 +52,6 @@ from pandas.io.pytables import (
 )
 
 from pandas.io import pytables as pytables  # noqa: E402 isort:skip
-from pandas.io.pytables import TableIterator  # noqa: E402 isort:skip
 
 
 _default_compressor = "blosc"
@@ -4528,10 +4527,8 @@ class TestHDFStore:
             df.to_hdf(path, "df", mode="w", format="t")
             direct = read_hdf(path, "df")
             iterator = read_hdf(path, "df", iterator=True)
-            assert isinstance(iterator, TableIterator)
             indirect = next(iterator.__iter__())
             tm.assert_frame_equal(direct, indirect)
-            iterator.store.close()
 
     def test_read_hdf_errors(self, setup_path):
         df = DataFrame(np.random.rand(4, 5), index=list("abcd"), columns=list("ABCDE"))
