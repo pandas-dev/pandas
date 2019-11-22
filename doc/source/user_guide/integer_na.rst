@@ -25,8 +25,7 @@ numbers.
 
 Pandas can represent integer data with possibly missing values using
 :class:`arrays.IntegerArray`. This is an :ref:`extension types <extending.extension-types>`
-implemented within pandas. It is not the default dtype for integers, and will not be inferred;
-you must explicitly pass the dtype into :meth:`array` or :class:`Series`:
+implemented within pandas.
 
 .. ipython:: python
 
@@ -50,17 +49,34 @@ NumPy array.
 You can also pass the list-like object to the :class:`Series` constructor
 with the dtype.
 
-.. ipython:: python
+.. warning::
 
-   s = pd.Series([1, 2, np.nan], dtype="Int64")
-   s
+   Currently :meth:`pandas.array` and :meth:`pandas.Series` use different
+   rules for dtype inference. :meth:`pandas.array` will infer a nullable-
+   integer dtype
 
-By default (if you don't specify ``dtype``), NumPy is used, and you'll end
-up with a ``float64`` dtype Series:
+   .. ipython:: python
 
-.. ipython:: python
+      pd.array([1, None])
+      pd.array([1, 2])
 
-   pd.Series([1, 2, np.nan])
+   For backwards-compatibility, :class:`Series` infers these as either
+   integer or float dtype
+
+   .. ipython:: python
+
+      pd.Series([1, None])
+      pd.Series([1, 2])
+
+   We recommend explicitly providing the dtype to avoid confusion.
+
+   .. ipython:: python
+
+      pd.array([1, None], dtype="Int64")
+      pd.Series([1, None], dtype="Int64")
+
+   In the future, we may provide an option for :class:`Series` to infer a
+   nullable-integer dtype.
 
 Operations involving an integer array will behave similar to NumPy arrays.
 Missing values will be propagated, and the data will be coerced to another

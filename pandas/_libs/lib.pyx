@@ -1113,6 +1113,7 @@ def infer_dtype(value: object, skipna: object=None) -> str:
     Results can include:
 
     - string
+    - mixed-string
     - unicode
     - bytes
     - floating
@@ -1319,8 +1320,11 @@ def infer_dtype(value: object, skipna: object=None) -> str:
             return 'boolean'
 
     elif isinstance(val, str):
-        if is_string_array(values, skipna=skipna):
-            return 'string'
+        if is_string_array(values, skipna=True):
+            if isnaobj(values).any():
+                return "mixed-string"
+            else:
+                return "string"
 
     elif isinstance(val, bytes):
         if is_bytes_array(values, skipna=skipna):

@@ -94,11 +94,18 @@ def array(
         :class:`pandas.Period`         :class:`pandas.arrays.PeriodArray`
         :class:`datetime.datetime`     :class:`pandas.arrays.DatetimeArray`
         :class:`datetime.timedelta`    :class:`pandas.arrays.TimedeltaArray`
+        :class:`int`                   :class:`pandas.arrays.IntegerArray`
+        :class:`str`                   :class:`pandas.arrays.StringArray`
         ============================== =====================================
 
         For all other cases, NumPy's usual inference rules will be used.
 
-    copy : bool, default True
+        .. versionchanged:: 1.0.0
+
+           Pandas infers nullable-integer dtype for integer data and
+           string dtype for string data.
+
+   copy : bool, default True
         Whether to copy the data, even if not necessary. Depending
         on the type of `data`, creating the new array may require
         copying data, even if ``copy=False``.
@@ -246,20 +253,24 @@ def array(
     """
     from pandas.core.arrays import (
         period_array,
+        IntegerArray,
         IntervalArray,
         PandasArray,
         DatetimeArray,
         TimedeltaArray,
+        StringArray,
     )
 
     if lib.is_scalar(data):
         msg = "Cannot pass scalar '{}' to 'pandas.array'."
         raise ValueError(msg.format(data))
 
-    data = extract_array(data, extract_numpy=True)
-
-    if dtype is None and isinstance(data, ABCExtensionArray):
+    if dtype is None and isinstance(
+        data, (ABCSeries, ABCIndexClass, ABCExtensionArray)
+    ):
         dtype = data.dtype
+
+    data = extract_array(data, extract_numpy=True)
 
     # this returns None for not-found dtypes.
     if isinstance(dtype, str):
@@ -297,6 +308,12 @@ def array(
         elif inferred_dtype.startswith("timedelta"):
             # timedelta, timedelta64
             return TimedeltaArray._from_sequence(data, copy=copy)
+
+        elif inferred_dtype in {"string", "mixed-string"}:
+            return StringArray._from_sequence(data, copy=copy)
+
+        elif inferred_dtype in {"integer", "mixed-integer"}:
+            return IntegerArray._from_sequence(data, copy=copy)
 
         # TODO(BooleanArray): handle this type
 

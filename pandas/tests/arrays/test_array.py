@@ -19,14 +19,14 @@ import pandas.util.testing as tm
     "data, dtype, expected",
     [
         # Basic NumPy defaults.
-        ([1, 2], None, PandasArray(np.array([1, 2]))),
+        ([1, 2], None, pd.arrays.IntegerArray._from_sequence([1, 2])),
         ([1, 2], object, PandasArray(np.array([1, 2], dtype=object))),
         (
             [1, 2],
             np.dtype("float32"),
             PandasArray(np.array([1.0, 2.0], dtype=np.dtype("float32"))),
         ),
-        (np.array([1, 2]), None, PandasArray(np.array([1, 2]))),
+        (np.array([1, 2]), None, pd.arrays.IntegerArray._from_sequence([1, 2])),
         # String alias passes through to NumPy
         ([1, 2], "float32", PandasArray(np.array([1, 2], dtype="float32"))),
         # Period alias
@@ -113,6 +113,13 @@ import pandas.util.testing as tm
         # IntegerNA
         ([1, None], "Int16", integer_array([1, None], dtype="Int16")),
         (pd.Series([1, 2]), None, PandasArray(np.array([1, 2], dtype=np.int64))),
+        # String
+        (["a", None], "string", pd.arrays.StringArray._from_sequence(["a", None])),
+        (
+            ["a", None],
+            pd.StringDtype(),
+            pd.arrays.StringArray._from_sequence(["a", None]),
+        ),
         # Index
         (pd.Index([1, 2]), None, PandasArray(np.array([1, 2], dtype=np.int64))),
         # Series[EA] returns the EA
@@ -139,15 +146,15 @@ def test_array(data, dtype, expected):
 def test_array_copy():
     a = np.array([1, 2])
     # default is to copy
-    b = pd.array(a)
+    b = pd.array(a, dtype=a.dtype)
     assert np.shares_memory(a, b._ndarray) is False
 
     # copy=True
-    b = pd.array(a, copy=True)
+    b = pd.array(a, dtype=a.dtype, copy=True)
     assert np.shares_memory(a, b._ndarray) is False
 
     # copy=False
-    b = pd.array(a, copy=False)
+    b = pd.array(a, dtype=a.dtype, copy=False)
     assert np.shares_memory(a, b._ndarray) is True
 
 
@@ -211,6 +218,12 @@ cet = pytz.timezone("CET")
             np.array([1, 2], dtype="m8[us]"),
             pd.arrays.TimedeltaArray(np.array([1000, 2000], dtype="m8[ns]")),
         ),
+        # integer
+        ([1, 2], pd.arrays.IntegerArray._from_sequence([1, 2])),
+        ([1, None], pd.arrays.IntegerArray._from_sequence([1, None])),
+        # string
+        (["a", "b"], pd.arrays.StringArray._from_sequence(["a", "b"])),
+        (["a", None], pd.arrays.StringArray._from_sequence(["a", None])),
     ],
 )
 def test_array_inference(data, expected):
@@ -241,7 +254,7 @@ def test_array_inference_fails(data):
 @pytest.mark.parametrize("data", [np.array([[1, 2], [3, 4]]), [[1, 2], [3, 4]]])
 def test_nd_raises(data):
     with pytest.raises(ValueError, match="PandasArray must be 1-dimensional"):
-        pd.array(data)
+        pd.array(data, dtype="int64")
 
 
 def test_scalar_raises():

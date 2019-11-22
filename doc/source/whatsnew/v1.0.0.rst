@@ -234,6 +234,37 @@ The following methods now also correctly output values for unobserved categories
 
    df.groupby(["cat_1", "cat_2"], observed=False)["value"].count()
 
+:meth:`pandas.array` inference changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`pandas.array` now infers pandas' new extension types in several cases:
+
+1. Sting data (including missing values) now returns a :class:`arrays.StringArray`.
+2. Integer data (including missing values) now returns a :class:`arrays.IntegerArray`.
+
+*pandas 0.25.x*
+
+.. code-block:: python
+
+   >>> pd.array(["a", None])
+   <PandasArray>
+   ['a', None]
+   Length: 2, dtype: object
+
+   >>> pd.array([1, None])
+   <PandasArray>
+   [1, None]
+   Length: 2, dtype: object
+
+
+*pandas 1.0.0*
+
+.. ipython:: python
+
+   pd.array(["a", None])
+   pd.array([1, None])
+
+As a reminder, you can specify the ``dtype`` to disable all inference.
 
 .. _whatsnew_1000.api_breaking.deps:
 
