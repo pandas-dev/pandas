@@ -1401,7 +1401,7 @@ class HDFStore:
         if not self.is_open:
             raise ClosedFileError("{0} file is not open!".format(self._path))
 
-    def _validate_format(self, format, kwargs):
+    def _validate_format(self, format: str, kwargs: Dict[str, Any]) -> Dict[str, Any]:
         """ validate / deprecate formats; return the new kwargs """
         kwargs = kwargs.copy()
 
@@ -1594,10 +1594,9 @@ class TableIterator:
         stop  : the passed stop value (default is None)
         iterator : bool, default False
             Whether to use the default iterator.
-        chunksize : the passed chunking value (default is 50000)
+        chunksize : the passed chunking value (default is 100000)
         auto_close : boolean, automatically close the store at the end of
             iteration, default is False
-        kwargs : the passed kwargs
         """
 
     chunksize: Optional[int]
@@ -1613,7 +1612,7 @@ class TableIterator:
         start=None,
         stop=None,
         iterator: bool = False,
-        chunksize=None,
+        chunksize: Optional[int] = None,
         auto_close: bool = False,
     ):
         self.store = store
@@ -3399,15 +3398,14 @@ class Table(Fixed):
         """ return the metadata pathname for this key """
         return "{group}/meta/{key}/meta".format(group=self.group._v_pathname, key=key)
 
-    def write_metadata(self, key, values):
+    def write_metadata(self, key: str, values):
         """
         write out a meta data array to the key as a fixed-format Series
 
         Parameters
         ----------
-        key : string
+        key : str
         values : ndarray
-
         """
         values = Series(values)
         self.parent.put(
@@ -3419,7 +3417,7 @@ class Table(Fixed):
             nan_rep=self.nan_rep,
         )
 
-    def read_metadata(self, key):
+    def read_metadata(self, key: str):
         """ return the meta data array for this key """
         if getattr(getattr(self.group, "meta", None), key, None) is not None:
             return self.parent.select(self._get_metadata_path(key))
@@ -3966,7 +3964,11 @@ class Table(Fixed):
         return obj
 
     def create_description(
-        self, complib=None, complevel=None, fletcher32: bool = False, expectedrows=None
+        self,
+        complib=None,
+        complevel=None,
+        fletcher32: bool = False,
+        expectedrows: Optional[int] = None,
     ):
         """ create the description of the table from the axes & values """
 
@@ -4150,7 +4152,7 @@ class AppendableTable(Table):
         # add the rows
         self.write_data(chunksize, dropna=dropna)
 
-    def write_data(self, chunksize, dropna=False):
+    def write_data(self, chunksize: Optional[int], dropna: bool = False):
         """ we form the data into a 2-d including indexes,values,mask
             write chunk-by-chunk """
 
@@ -4478,7 +4480,7 @@ class GenericTable(AppendableFrameTable):
     obj_type = DataFrame
 
     @property
-    def pandas_type(self):
+    def pandas_type(self) -> str:
         return self.pandas_kind
 
     @property
@@ -4530,7 +4532,7 @@ class AppendableMultiFrameTable(AppendableFrameTable):
     _re_levels = re.compile(r"^level_\d+$")
 
     @property
-    def table_type_short(self):
+    def table_type_short(self) -> str:
         return "appendable_multi"
 
     def write(self, obj, data_columns=None, **kwargs):
