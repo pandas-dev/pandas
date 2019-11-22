@@ -179,7 +179,6 @@ _TYPE_MAP = {Series: "series", DataFrame: "frame"}
 
 # storer class map
 _STORER_MAP = {
-    "Series": "LegacySeriesFixed",
     "series": "SeriesFixed",
     "frame": "FrameFixed",
 }
