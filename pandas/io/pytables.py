@@ -9,7 +9,7 @@ import itertools
 import os
 import re
 import time
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, Union
 import warnings
 
 import numpy as np
@@ -48,7 +48,7 @@ from pandas import (
 from pandas.core.arrays.categorical import Categorical
 from pandas.core.arrays.sparse import BlockIndex, IntIndex
 import pandas.core.common as com
-from pandas.core.computation.pytables import Expr, maybe_expression
+from pandas.core.computation.pytables import PyTablesExpr, maybe_expression
 from pandas.core.index import ensure_index
 from pandas.core.internals import BlockManager, _block_shape, make_block
 
@@ -93,7 +93,7 @@ def _ensure_str(name):
     return name
 
 
-Term = Expr
+Term = PyTablesExpr
 
 
 def _ensure_term(where, scope_level: int):
@@ -179,9 +179,6 @@ _TYPE_MAP = {Series: "series", DataFrame: "frame"}
 
 # storer class map
 _STORER_MAP = {
-    "Series": "LegacySeriesFixed",
-    "DataFrame": "LegacyFrameFixed",
-    "DataMatrix": "LegacyFrameFixed",
     "series": "SeriesFixed",
     "frame": "FrameFixed",
 }
@@ -1334,7 +1331,7 @@ class HDFStore:
                 data = self.select(k)
                 if s.is_table:
 
-                    index = False  # type: Union[bool, list]
+                    index: Union[bool, list] = False
                     if propindexes:
                         index = [a.name for a in s.axes if a.is_indexed]
                     new_store.append(
@@ -1392,7 +1389,7 @@ class HDFStore:
         if not self.is_open:
             raise ClosedFileError(f"{self._path} file is not open!")
 
-    def _validate_format(self, format, kwargs):
+    def _validate_format(self, format: str, kwargs: Dict[str, Any]) -> Dict[str, Any]:
         """ validate / deprecate formats; return the new kwargs """
         kwargs = kwargs.copy()
 
@@ -1578,17 +1575,17 @@ class TableIterator:
         stop  : the passed stop value (default is None)
         iterator : bool, default False
             Whether to use the default iterator.
-        chunksize : the passed chunking value (default is 50000)
+        chunksize : the passed chunking value (default is 100000)
         auto_close : boolean, automatically close the store at the end of
             iteration, default is False
-        kwargs : the passed kwargs
         """
 
     chunksize: Optional[int]
+    store: HDFStore
 
     def __init__(
         self,
-        store,
+        store: HDFStore,
         s,
         func,
         where,
@@ -1596,8 +1593,8 @@ class TableIterator:
         start=None,
         stop=None,
         iterator: bool = False,
-        chunksize=None,
-        auto_close=False,
+        chunksize: Optional[int] = None,
+        auto_close: bool = False,
     ):
         self.store = store
         self.s = s
@@ -1740,21 +1737,11 @@ class IndexCol:
         assert isinstance(self.cname, str)
         assert isinstance(self.kind_attr, str)
 
-    def set_axis(self, axis: int):
-        """ set the axis over which I index """
-        self.axis = axis
-
-        return self
-
     def set_pos(self, pos: int):
         """ set the position of this column in the Table """
         self.pos = pos
         if pos is not None and self.typ is not None:
             self.typ._v_pos = pos
-        return self
-
-    def set_table(self, table):
-        self.table = table
 
     def __repr__(self) -> str:
         temp = tuple(
@@ -1781,8 +1768,7 @@ class IndexCol:
     def is_indexed(self) -> bool:
         """ return whether I am an indexed column """
         if not hasattr(self.table, "cols"):
-            # e.g. if self.set_table hasn't been called yet, self.table
-            #  will be None.
+            # e.g. if infer hasn't been called yet, self.table will be None.
             return False
         # GH#29692 mypy doesn't recognize self.table as having a "cols" attribute
         #  'error: "None" has no attribute "cols"'
@@ -1796,7 +1782,7 @@ class IndexCol:
         """infer this column from the table: create and return a new object"""
         table = handler.table
         new_self = self.copy()
-        new_self.set_table(table)
+        new_self.table = table
         new_self.get_attr()
         new_self.read_metadata(handler)
         return new_self
@@ -1829,8 +1815,6 @@ class IndexCol:
             self.values = Index(values, **kwargs)
 
         self.values = _set_tz(self.values, self.tz)
-
-        return self
 
     def take_data(self):
         """ return the values & release the memory """
@@ -1877,7 +1861,7 @@ class IndexCol:
         pass
 
     def validate_and_set(self, handler: "AppendableTable", append: bool):
-        self.set_table(handler.table)
+        self.table = handler.table
         self.validate_col()
         self.validate_attr(append)
         self.validate_metadata(handler)
@@ -1943,8 +1927,6 @@ class IndexCol:
             else:
                 if value is not None or existing_value is not None:
                     idx[key] = value
-
-        return self
 
     def set_info(self, info):
         """ set my state from the passed info """
@@ -2016,14 +1998,11 @@ class GenericIndexCol(IndexCol):
             Table row number: the end of the sub-selection. Values larger than
             the underlying table's row count are normalized to that.
         """
-
-        assert self.table is not None
+        assert self.table is not None  # for mypy
 
         _start = start if start is not None else 0
         _stop = min(stop, self.table.nrows) if stop is not None else self.table.nrows
         self.values = Int64Index(np.arange(_stop - _start))
-
-        return self
 
     def get_attr(self):
         pass
@@ -2459,8 +2438,6 @@ class DataCol(IndexCol):
                 self.data, nan_rep=nan_rep, encoding=encoding, errors=errors
             )
 
-        return self
-
     def get_attr(self):
         """ get the data for this column """
         self.values = getattr(self.attrs, self.kind_attr, None)
@@ -2518,9 +2495,9 @@ class Fixed:
         group  : the group node where the table resides
         """
 
-    pandas_kind = None  # type: str
-    obj_type = None  # type: Type[Union[DataFrame, Series]]
-    ndim = None  # type: int
+    pandas_kind: str
+    obj_type: Type[Union[DataFrame, Series]]
+    ndim: int
     is_table = False
 
     def __init__(self, parent, group, encoding=None, errors="strict", **kwargs):
@@ -2528,21 +2505,22 @@ class Fixed:
         self.group = group
         self.encoding = _ensure_encoding(encoding)
         self.errors = errors
-        self.set_version()
 
     @property
     def is_old_version(self) -> bool:
         return self.version[0] <= 0 and self.version[1] <= 10 and self.version[2] < 1
 
-    def set_version(self):
+    @property
+    def version(self) -> Tuple[int, int, int]:
         """ compute and set our version """
         version = _ensure_decoded(getattr(self.group._v_attrs, "pandas_version", None))
         try:
-            self.version = tuple(int(x) for x in version.split("."))
-            if len(self.version) == 2:
-                self.version = self.version + (0,)
+            version = tuple(int(x) for x in version.split("."))
+            if len(version) == 2:
+                version = version + (0,)
         except AttributeError:
-            self.version = (0, 0, 0)
+            version = (0, 0, 0)
+        return version
 
     @property
     def pandas_type(self):
@@ -2567,7 +2545,6 @@ class Fixed:
         """ set my pandas type & version """
         self.attrs.pandas_type = str(self.pandas_kind)
         self.attrs.pandas_version = str(_version)
-        self.set_version()
 
     def copy(self):
         new_self = copy.copy(self)
@@ -2677,7 +2654,7 @@ class GenericFixed(Fixed):
 
     _index_type_map = {DatetimeIndex: "datetime", PeriodIndex: "period"}
     _reverse_index_map = {v: k for k, v in _index_type_map.items()}
-    attributes = []  # type: List[str]
+    attributes: List[str] = []
 
     # indexer helpders
     def _class_to_alias(self, cls) -> str:
@@ -2906,13 +2883,8 @@ class GenericFixed(Fixed):
         data = node[start:stop]
         # If the index was an empty array write_array_empty() will
         # have written a sentinel. Here we relace it with the original.
-        if "shape" in node._v_attrs and self._is_empty_array(
-            getattr(node._v_attrs, "shape")
-        ):
-            data = np.empty(
-                getattr(node._v_attrs, "shape"),
-                dtype=getattr(node._v_attrs, "value_type"),
-            )
+        if "shape" in node._v_attrs and self._is_empty_array(node._v_attrs.shape):
+            data = np.empty(node._v_attrs.shape, dtype=node._v_attrs.value_type,)
         kind = _ensure_decoded(node._v_attrs.kind)
         name = None
 
@@ -3055,35 +3027,6 @@ class GenericFixed(Fixed):
         getattr(self.group, key)._v_attrs.transposed = transposed
 
 
-class LegacyFixed(GenericFixed):
-    def read_index_legacy(
-        self, key: str, start: Optional[int] = None, stop: Optional[int] = None
-    ):
-        node = getattr(self.group, key)
-        data = node[start:stop]
-        kind = node._v_attrs.kind
-        return _unconvert_index_legacy(
-            data, kind, encoding=self.encoding, errors=self.errors
-        )
-
-
-class LegacySeriesFixed(LegacyFixed):
-    def read(self, **kwargs):
-        kwargs = self.validate_read(kwargs)
-        index = self.read_index_legacy("index")
-        values = self.read_array("values")
-        return Series(values, index=index)
-
-
-class LegacyFrameFixed(LegacyFixed):
-    def read(self, **kwargs):
-        kwargs = self.validate_read(kwargs)
-        index = self.read_index_legacy("index")
-        columns = self.read_index_legacy("columns")
-        values = self.read_array("values")
-        return DataFrame(values, index=index, columns=columns)
-
-
 class SeriesFixed(GenericFixed):
     pandas_kind = "series"
     attributes = ["name"]
@@ -3091,7 +3034,7 @@ class SeriesFixed(GenericFixed):
     @property
     def shape(self):
         try:
-            return (len(getattr(self.group, "values")),)
+            return (len(self.group.values),)
         except (TypeError, AttributeError):
             return None
 
@@ -3126,7 +3069,7 @@ class BlockManagerFixed(GenericFixed):
                     items += shape[0]
 
             # data shape
-            node = getattr(self.group, "block0_values")
+            node = self.group.block0_values
             shape = getattr(node, "shape", None)
             if shape is not None:
                 shape = list(shape[0 : (ndim - 1)])
@@ -3222,7 +3165,7 @@ class Table(Fixed):
         """
 
     pandas_kind = "wide_table"
-    table_type = None  # type: str
+    table_type: str
     levels = 1
     is_table = True
     is_shape_reversed = False
@@ -3375,7 +3318,7 @@ class Table(Fixed):
             )
         )
 
-    def queryables(self):
+    def queryables(self) -> Dict[str, Any]:
         """ return a dict of the kinds allowable columns for this object """
 
         # compute the values_axes queryables
@@ -3406,15 +3349,14 @@ class Table(Fixed):
         group = self.group._v_pathname
         return f"{group}/meta/{key}/meta"
 
-    def write_metadata(self, key, values):
+    def write_metadata(self, key: str, values):
         """
         write out a meta data array to the key as a fixed-format Series
 
         Parameters
         ----------
-        key : string
+        key : str
         values : ndarray
-
         """
         values = Series(values)
         self.parent.put(
@@ -3426,15 +3368,11 @@ class Table(Fixed):
             nan_rep=self.nan_rep,
         )
 
-    def read_metadata(self, key):
+    def read_metadata(self, key: str):
         """ return the meta data array for this key """
         if getattr(getattr(self.group, "meta", None), key, None) is not None:
             return self.parent.select(self._get_metadata_path(key))
         return None
-
-    def set_info(self):
-        """ update our table index info """
-        self.attrs.info = self.info
 
     def set_attrs(self):
         """ set our table type & indexables """
@@ -3448,7 +3386,7 @@ class Table(Fixed):
         self.attrs.errors = self.errors
         self.attrs.levels = self.levels
         self.attrs.metadata = self.metadata
-        self.set_info()
+        self.attrs.info = self.info
 
     def get_attrs(self):
         """ retrieve our attributes """
@@ -3763,9 +3701,12 @@ class Table(Fixed):
 
             if i in axes:
                 name = obj._AXIS_NAMES[i]
-                index_axes_map[i] = _convert_index(
+                new_index = _convert_index(
                     name, a, self.encoding, self.errors, self.format_type
-                ).set_axis(i)
+                )
+                new_index.axis = i
+                index_axes_map[i] = new_index
+
             else:
 
                 # we might be able to change the axes on the appending data if
@@ -3792,10 +3733,12 @@ class Table(Fixed):
                 self.non_index_axes.append((i, append_axis))
 
         # set axis positions (based on the axes)
-        self.index_axes = [
-            index_axes_map[a].set_pos(j).update_info(self.info)
-            for j, a in enumerate(axes)
-        ]
+        new_index_axes = [index_axes_map[a] for a in axes]
+        for j, iax in enumerate(new_index_axes):
+            iax.set_pos(j)
+            iax.update_info(self.info)
+        self.index_axes = new_index_axes
+
         j = len(self.index_axes)
 
         # check for column conflicts
@@ -3967,7 +3910,11 @@ class Table(Fixed):
         return obj
 
     def create_description(
-        self, complib=None, complevel=None, fletcher32: bool = False, expectedrows=None
+        self,
+        complib=None,
+        complevel=None,
+        fletcher32: bool = False,
+        expectedrows: Optional[int] = None,
     ):
         """ create the description of the table from the axes & values """
 
@@ -4058,19 +4005,13 @@ class Table(Fixed):
                 # column must be an indexable or a data column
                 c = getattr(self.table.cols, column)
                 a.set_info(self.info)
-                return Series(
-                    _set_tz(
-                        a.convert(
-                            c[start:stop],
-                            nan_rep=self.nan_rep,
-                            encoding=self.encoding,
-                            errors=self.errors,
-                        ).take_data(),
-                        a.tz,
-                        True,
-                    ),
-                    name=column,
+                a.convert(
+                    c[start:stop],
+                    nan_rep=self.nan_rep,
+                    encoding=self.encoding,
+                    errors=self.errors,
                 )
+                return Series(_set_tz(a.take_data(), a.tz, True), name=column)
 
         raise KeyError(f"column [{column}] not found in the table")
 
@@ -4096,35 +4037,7 @@ class WORMTable(Table):
         raise NotImplementedError("WORKTable needs to implement write")
 
 
-class LegacyTable(Table):
-    """ an appendable table: allow append/query/delete operations to a
-          (possibly) already existing appendable table this table ALLOWS
-          append (but doesn't require them), and stores the data in a format
-          that can be easily searched
-
-    """
-
-    _indexables = [
-        IndexCol(name="index", axis=1, pos=0),
-        IndexCol(name="column", axis=2, pos=1, index_kind="columns_kind"),
-        DataCol(name="fields", cname="values", kind_attr="fields", pos=2),
-    ]  # type: Optional[List[IndexCol]]
-    table_type = "legacy"
-    ndim = 3
-
-    def write(self, **kwargs):
-        raise TypeError("write operations are not allowed on legacy tables!")
-
-    def read(self, where=None, columns=None, **kwargs):
-        """we have n indexable columns, with an arbitrary number of data
-        axes
-        """
-
-        if not self.read_axes(where=where, **kwargs):
-            return None
-
-
-class AppendableTable(LegacyTable):
+class AppendableTable(Table):
     """ support the new appendable table formats """
 
     _indexables = None
@@ -4176,7 +4089,7 @@ class AppendableTable(LegacyTable):
             # table = self.table
 
         # update my info
-        self.set_info()
+        self.attrs.info = self.info
 
         # validate the axes and set the kinds
         for a in self.axes:
@@ -4185,7 +4098,7 @@ class AppendableTable(LegacyTable):
         # add the rows
         self.write_data(chunksize, dropna=dropna)
 
-    def write_data(self, chunksize, dropna=False):
+    def write_data(self, chunksize: Optional[int], dropna: bool = False):
         """ we form the data into a 2-d including indexes,values,mask
             write chunk-by-chunk """
 
@@ -4379,7 +4292,7 @@ class AppendableFrameTable(AppendableTable):
     pandas_kind = "frame_table"
     table_type = "appendable_frame"
     ndim = 2
-    obj_type = DataFrame  # type: Type[Union[DataFrame, Series]]
+    obj_type: Type[Union[DataFrame, Series]] = DataFrame
 
     @property
     def is_transposed(self) -> bool:
@@ -4511,7 +4424,7 @@ class GenericTable(AppendableFrameTable):
     obj_type = DataFrame
 
     @property
-    def pandas_type(self):
+    def pandas_type(self) -> str:
         return self.pandas_kind
 
     @property
@@ -4563,7 +4476,7 @@ class AppendableMultiFrameTable(AppendableFrameTable):
     _re_levels = re.compile(r"^level_\d+$")
 
     @property
-    def table_type_short(self):
+    def table_type_short(self) -> str:
         return "appendable_multi"
 
     def write(self, obj, data_columns=None, **kwargs):
@@ -4605,7 +4518,7 @@ def _reindex_axis(obj, axis: int, labels: Index, other=None):
     if other is not None:
         labels = ensure_index(other.unique()).intersection(labels, sort=False)
     if not labels.equals(ax):
-        slicer = [slice(None, None)] * obj.ndim  # type: List[Union[slice, Index]]
+        slicer: List[Union[slice, Index]] = [slice(None, None)] * obj.ndim
         slicer[axis] = labels
         obj = obj.loc[tuple(slicer)]
     return obj
@@ -4819,21 +4732,6 @@ def _unconvert_index(data, kind, encoding=None, errors="strict"):
     return index
 
 
-def _unconvert_index_legacy(data, kind, legacy=False, encoding=None, errors="strict"):
-    kind = _ensure_decoded(kind)
-    if kind == "datetime":
-        index = to_datetime(data)
-    elif kind in ("integer"):
-        index = np.asarray(data, dtype=object)
-    elif kind in ("string"):
-        index = _unconvert_string_array(
-            data, nan_rep=None, encoding=encoding, errors=errors
-        )
-    else:  # pragma: no cover
-        raise ValueError(f"unrecognized index type {kind}")
-    return index
-
-
 def _convert_string_array(data, encoding, errors, itemsize=None):
     """
     we take a string-like that is object dtype and coerce to a fixed size
@@ -4906,6 +4804,7 @@ def _unconvert_string_array(data, nan_rep=None, encoding=None, errors="strict"):
 
 
 def _maybe_convert(values: np.ndarray, val_kind, encoding, errors):
+    val_kind = _ensure_decoded(val_kind)
     if _need_convert(val_kind):
         conv = _get_converter(val_kind, encoding, errors)
         # conv = np.frompyfunc(conv, 1, 1)
@@ -4913,8 +4812,7 @@ def _maybe_convert(values: np.ndarray, val_kind, encoding, errors):
     return values
 
 
-def _get_converter(kind, encoding, errors):
-    kind = _ensure_decoded(kind)
+def _get_converter(kind: str, encoding, errors):
     if kind == "datetime64":
         return lambda x: np.asarray(x, dtype="M8[ns]")
     elif kind == "datetime":
@@ -4926,7 +4824,6 @@ def _get_converter(kind, encoding, errors):
 
 
 def _need_convert(kind) -> bool:
-    kind = _ensure_decoded(kind)
     if kind in ("datetime", "datetime64", "string"):
         return True
     return False
@@ -5001,7 +4898,7 @@ class Selection:
 
         q = self.table.queryables()
         try:
-            return Expr(where, queryables=q, encoding=self.table.encoding)
+            return PyTablesExpr(where, queryables=q, encoding=self.table.encoding)
         except NameError:
             # raise a nice message, suggesting that the user should use
             # data_columns
