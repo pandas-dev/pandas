@@ -464,7 +464,7 @@ class TestTimedeltaMultiplicationDivision:
         with pytest.raises(TypeError):
             td.__rfloordiv__(np.uint8(9))
         with pytest.raises(TypeError, match="Invalid dtype"):
-            # deprecated GH#19761, enforced GH#????
+            # deprecated GH#19761, enforced GH#29797
             td.__rfloordiv__(np.int32(2.0))
 
     def test_td_rfloordiv_timedeltalike_array(self):
@@ -492,7 +492,7 @@ class TestTimedeltaMultiplicationDivision:
         assert res is NotImplemented
 
         with pytest.raises(TypeError, match="Invalid dtype"):
-            # Deprecated GH#19761, enforced GH#????
+            # Deprecated GH#19761, enforced GH#29797
             # TODO: GH-19761. Change to TypeError.
             ser // td
 
