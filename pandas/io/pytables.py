@@ -179,9 +179,6 @@ _TYPE_MAP = {Series: "series", DataFrame: "frame"}
 
 # storer class map
 _STORER_MAP = {
-    "Series": "LegacySeriesFixed",
-    "DataFrame": "LegacyFrameFixed",
-    "DataMatrix": "LegacyFrameFixed",
     "series": "SeriesFixed",
     "frame": "FrameFixed",
 }
@@ -3083,35 +3080,6 @@ class GenericFixed(Fixed):
         getattr(self.group, key)._v_attrs.transposed = transposed
 
 
-class LegacyFixed(GenericFixed):
-    def read_index_legacy(
-        self, key: str, start: Optional[int] = None, stop: Optional[int] = None
-    ):
-        node = getattr(self.group, key)
-        data = node[start:stop]
-        kind = node._v_attrs.kind
-        return _unconvert_index_legacy(
-            data, kind, encoding=self.encoding, errors=self.errors
-        )
-
-
-class LegacySeriesFixed(LegacyFixed):
-    def read(self, **kwargs):
-        kwargs = self.validate_read(kwargs)
-        index = self.read_index_legacy("index")
-        values = self.read_array("values")
-        return Series(values, index=index)
-
-
-class LegacyFrameFixed(LegacyFixed):
-    def read(self, **kwargs):
-        kwargs = self.validate_read(kwargs)
-        index = self.read_index_legacy("index")
-        columns = self.read_index_legacy("columns")
-        values = self.read_array("values")
-        return DataFrame(values, index=index, columns=columns)
-
-
 class SeriesFixed(GenericFixed):
     pandas_kind = "series"
     attributes = ["name"]
@@ -4139,35 +4107,7 @@ class WORMTable(Table):
         raise NotImplementedError("WORKTable needs to implement write")
 
 
-class LegacyTable(Table):
-    """ an appendable table: allow append/query/delete operations to a
-          (possibly) already existing appendable table this table ALLOWS
-          append (but doesn't require them), and stores the data in a format
-          that can be easily searched
-
-    """
-
-    _indexables: Optional[List[IndexCol]] = [
-        IndexCol(name="index", axis=1, pos=0),
-        IndexCol(name="column", axis=2, pos=1, index_kind="columns_kind"),
-        DataCol(name="fields", cname="values", kind_attr="fields", pos=2),
-    ]
-    table_type = "legacy"
-    ndim = 3
-
-    def write(self, **kwargs):
-        raise TypeError("write operations are not allowed on legacy tables!")
-
-    def read(self, where=None, columns=None, **kwargs):
-        """we have n indexable columns, with an arbitrary number of data
-        axes
-        """
-
-        if not self.read_axes(where=where, **kwargs):
-            return None
-
-
-class AppendableTable(LegacyTable):
+class AppendableTable(Table):
     """ support the new appendable table formats """
 
     _indexables = None
@@ -4861,21 +4801,6 @@ def _unconvert_index(data, kind, encoding=None, errors="strict"):
         )
     elif kind == "object":
         index = np.asarray(data[0])
-    else:  # pragma: no cover
-        raise ValueError("unrecognized index type {kind}".format(kind=kind))
-    return index
-
-
-def _unconvert_index_legacy(data, kind, legacy=False, encoding=None, errors="strict"):
-    kind = _ensure_decoded(kind)
-    if kind == "datetime":
-        index = to_datetime(data)
-    elif kind in ("integer"):
-        index = np.asarray(data, dtype=object)
-    elif kind in ("string"):
-        index = _unconvert_string_array(
-            data, nan_rep=None, encoding=encoding, errors=errors
-        )
     else:  # pragma: no cover
         raise ValueError("unrecognized index type {kind}".format(kind=kind))
     return index
