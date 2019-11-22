@@ -302,7 +302,7 @@ def array(
             # timedelta, timedelta64
             return TimedeltaArray._from_sequence(data, copy=copy)
 
-        elif inferred_dtype in {"string", "mixed-string"}:
+        elif inferred_dtype == "string":
             return StringArray._from_sequence(data, copy=copy)
 
         elif inferred_dtype in {"integer", "mixed-integer"}:
