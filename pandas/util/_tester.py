@@ -11,7 +11,7 @@ def test(extra_args=None):
     try:
         import pytest
     except ImportError:
-        raise ImportError("Need pytest>=4.0.2 to run tests")
+        raise ImportError("Need pytest>=5.0.1 to run tests")
     try:
         import hypothesis  # noqa
     except ImportError:
