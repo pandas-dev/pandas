@@ -1532,10 +1532,6 @@ class SingleBlockManager(BlockManager):
     def index(self):
         return self.axes[0]
 
-    def convert(self, **kwargs):
-        """ convert the whole block as one """
-        return self.apply("convert", **kwargs)
-
     @property
     def dtype(self):
         return self._block.dtype
