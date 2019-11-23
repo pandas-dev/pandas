@@ -345,8 +345,8 @@ Numeric
 - Improved error message when using `frac` > 1 and `replace` = False (:issue:`27451`)
 - Bug in numeric indexes resulted in it being possible to instantiate an :class:`Int64Index`, :class:`UInt64Index`, or :class:`Float64Index` with an invalid dtype (e.g. datetime-like) (:issue:`29539`)
 - Bug in :class:`UInt64Index` precision loss while constructing from a list with values in the ``np.uint64`` range (:issue:`29526`)
-- Bug in :meth:`NumericIndex._convert_arr_indexer` that caused indexing to fail when integers in the ``np.uint64`` range were used (:issue:`28023`)
--
+- Bug in :class:`NumericIndex` construction that caused indexing to fail when integers in the ``np.uint64`` range were used (:issue:`28023`)
+- Bug in :class:`NumericIndex` construction that caused :class:`UInt64Index` to be casted to :class:`Float64Index` when integers in the ``np.uint64`` range were used to index a :class:`DataFrame` (:issue:`28279`)
 
 Conversion
 ^^^^^^^^^^
