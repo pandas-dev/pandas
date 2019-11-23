@@ -10,8 +10,8 @@ import warnings
 
 import numpy as np
 
-import pandas._libs.window as libwindow
-import pandas._libs.window_indexer as libwindow_indexer
+import pandas._libs.window.aggregations as window_aggregations
+import pandas._libs.window.indexers as window_indexers
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -381,11 +381,11 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         -------
         func : callable
         """
-        window_func = getattr(libwindow, func_name, None)
+        window_func = getattr(window_aggregations, func_name, None)
         if window_func is None:
             raise ValueError(
                 "we do not support this function "
-                "in libwindow.{func_name}".format(func_name=func_name)
+                "in window_aggregations.{func_name}".format(func_name=func_name)
             )
         return window_func
 
@@ -406,8 +406,8 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         Return an indexer class that will compute the window start and end bounds
         """
         if self.is_freq_type:
-            return libwindow_indexer.VariableWindowIndexer
-        return libwindow_indexer.FixedWindowIndexer
+            return window_indexers.VariableWindowIndexer
+        return window_indexers.FixedWindowIndexer
 
     def _apply(
         self,

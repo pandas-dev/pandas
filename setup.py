@@ -344,13 +344,13 @@ class CheckSDist(sdist_class):
         "pandas/_libs/tslibs/resolution.pyx",
         "pandas/_libs/tslibs/parsing.pyx",
         "pandas/_libs/tslibs/tzconversion.pyx",
-        "pandas/_libs/window_indexer.pyx",
+        "pandas/_libs/window/indexers.pyx",
         "pandas/_libs/writers.pyx",
         "pandas/io/sas/sas.pyx",
     ]
 
     _cpp_pyxfiles = [
-        "pandas/_libs/window.pyx",
+        "pandas/_libs/window/aggregations.pyx",
         "pandas/io/msgpack/_packer.pyx",
         "pandas/io/msgpack/_unpacker.pyx",
     ]
@@ -683,8 +683,12 @@ ext_data = {
         "sources": np_datetime_sources,
     },
     "_libs.testing": {"pyxfile": "_libs/testing"},
-    "_libs.window": {"pyxfile": "_libs/window", "language": "c++", "suffix": ".cpp"},
-    "_libs.window_indexer": {"pyxfile": "_libs/window_indexer"},
+    "_libs.window.aggregations": {
+        "pyxfile": "_libs/window/aggregations",
+        "language": "c++",
+        "suffix": ".cpp"
+    },
+    "_libs.window.indexers": {"pyxfile": "_libs/window/indexers"},
     "_libs.writers": {"pyxfile": "_libs/writers"},
     "io.sas._sas": {"pyxfile": "io/sas/sas"},
     "io.msgpack._packer": {
