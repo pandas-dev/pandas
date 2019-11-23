@@ -4,11 +4,10 @@ to disk
 """
 
 import copy
-from datetime import date, datetime
+from datetime import date
 import itertools
 import os
 import re
-import time
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, Union
 import warnings
 
@@ -43,7 +42,6 @@ from pandas import (
     TimedeltaIndex,
     concat,
     isna,
-    to_datetime,
 )
 from pandas.core.arrays.categorical import Categorical
 from pandas.core.arrays.sparse import BlockIndex, IntIndex
@@ -2152,6 +2150,7 @@ class DataCol(IndexCol):
             elif dtype.startswith("int") or dtype.startswith("uint"):
                 self.kind = "integer"
             elif dtype.startswith("date"):
+                # in tests this is always "datetime64"
                 self.kind = "datetime"
             elif dtype.startswith("timedelta"):
                 self.kind = "timedelta"
@@ -2201,8 +2200,8 @@ class DataCol(IndexCol):
         if inferred_type == "date":
             raise TypeError("[date] is not implemented as a table column")
         elif inferred_type == "datetime":
-            # after 8260
-            # this only would be hit for a mutli-timezone dtype
+            # after GH#8260
+            # this only would be hit for a multi-timezone dtype
             # which is an error
 
             raise TypeError(
@@ -2427,10 +2426,6 @@ class DataCol(IndexCol):
                     self.data = np.asarray(
                         [date.fromtimestamp(v) for v in self.data], dtype=object
                     )
-            elif dtype == "datetime":
-                self.data = np.asarray(
-                    [datetime.fromtimestamp(v) for v in self.data], dtype=object
-                )
 
             elif meta == "category":
 
@@ -2944,7 +2939,7 @@ class GenericFixed(Fixed):
                 # created by python3
                 kwargs["tz"] = node._v_attrs["tz"]
 
-        if kind in ("date", "datetime"):
+        if kind == "date":
             index = factory(
                 _unconvert_index(
                     data, kind, encoding=self.encoding, errors=self.errors
@@ -4671,39 +4666,12 @@ def _convert_index(name: str, index, encoding=None, errors="strict", format_type
         raise TypeError("MultiIndex not supported here!")
 
     inferred_type = lib.infer_dtype(index, skipna=False)
+    # we wont get inferred_type of "datetime64" or "timedelta64" as these
+    #  would go through the DatetimeIndex/TimedeltaIndex paths above
 
     values = np.asarray(index)
 
-    if inferred_type == "datetime64":
-        converted = values.view("i8")
-        return IndexCol(
-            name,
-            converted,
-            "datetime64",
-            _tables().Int64Col(),
-            freq=getattr(index, "freq", None),
-            tz=getattr(index, "tz", None),
-            index_name=index_name,
-        )
-    elif inferred_type == "timedelta64":
-        converted = values.view("i8")
-        return IndexCol(
-            name,
-            converted,
-            "timedelta64",
-            _tables().Int64Col(),
-            freq=getattr(index, "freq", None),
-            index_name=index_name,
-        )
-    elif inferred_type == "datetime":
-        converted = np.asarray(
-            [(time.mktime(v.timetuple()) + v.microsecond / 1e6) for v in values],
-            dtype=np.float64,
-        )
-        return IndexCol(
-            name, converted, "datetime", _tables().Time64Col(), index_name=index_name
-        )
-    elif inferred_type == "date":
+    if inferred_type == "date":
         converted = np.asarray([v.toordinal() for v in values], dtype=np.int32)
         return IndexCol(
             name, converted, "date", _tables().Time32Col(), index_name=index_name,
@@ -4721,21 +4689,6 @@ def _convert_index(name: str, index, encoding=None, errors="strict", format_type
             _tables().StringCol(itemsize),
             itemsize=itemsize,
             index_name=index_name,
-        )
-    elif inferred_type == "unicode":
-        if format_type == "fixed":
-            atom = _tables().ObjectAtom()
-            return IndexCol(
-                name,
-                np.asarray(values, dtype="O"),
-                "object",
-                atom,
-                index_name=index_name,
-            )
-        raise TypeError(
-            "[unicode] is not supported as a in index type for [{0}] formats".format(
-                format_type
-            )
         )
 
     elif inferred_type == "integer":
@@ -4757,7 +4710,7 @@ def _convert_index(name: str, index, encoding=None, errors="strict", format_type
             atom,
             index_name=index_name,
         )
-    else:  # pragma: no cover
+    else:
         atom = _tables().ObjectAtom()
         return IndexCol(
             name, np.asarray(values, dtype="O"), "object", atom, index_name=index_name,
@@ -4770,8 +4723,6 @@ def _unconvert_index(data, kind, encoding=None, errors="strict"):
         index = DatetimeIndex(data)
     elif kind == "timedelta64":
         index = TimedeltaIndex(data)
-    elif kind == "datetime":
-        index = np.asarray([datetime.fromtimestamp(v) for v in data], dtype=object)
     elif kind == "date":
         try:
             index = np.asarray([date.fromordinal(v) for v in data], dtype=object)
@@ -4873,8 +4824,6 @@ def _maybe_convert(values: np.ndarray, val_kind, encoding, errors):
 def _get_converter(kind: str, encoding, errors):
     if kind == "datetime64":
         return lambda x: np.asarray(x, dtype="M8[ns]")
-    elif kind == "datetime":
-        return lambda x: to_datetime(x, cache=True).to_pydatetime()
     elif kind == "string":
         return lambda x: _unconvert_string_array(x, encoding=encoding, errors=errors)
     else:  # pragma: no cover
@@ -4882,7 +4831,7 @@ def _get_converter(kind: str, encoding, errors):
 
 
 def _need_convert(kind) -> bool:
-    if kind in ("datetime", "datetime64", "string"):
+    if kind in ("datetime64", "string"):
         return True
     return False
 
