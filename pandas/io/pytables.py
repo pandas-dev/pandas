@@ -1005,6 +1005,8 @@ class HDFStore:
             # the key is not a valid store, re-raising KeyError
             raise
         except Exception:
+            # In tests we get here with ClosedFileError, TypeError, and
+            #  _table_mod.NoSuchNodeError.  TODO: Catch only these?
 
             if where is not None:
                 raise ValueError(
@@ -1825,8 +1827,7 @@ class IndexCol:
         # making an Index instance could throw a number of different errors
         try:
             self.values = Index(values, **kwargs)
-        except Exception:
-
+        except ValueError:
             # if the output freq is different that what we recorded,
             # it should be None (see also 'doc example part 2')
             if "freq" in kwargs:
@@ -4242,38 +4243,29 @@ class AppendableTable(Table):
             if not np.prod(v.shape):
                 return
 
-        try:
-            nrows = indexes[0].shape[0]
-            if nrows != len(rows):
-                rows = np.empty(nrows, dtype=self.dtype)
-            names = self.dtype.names
-            nindexes = len(indexes)
+        nrows = indexes[0].shape[0]
+        if nrows != len(rows):
+            rows = np.empty(nrows, dtype=self.dtype)
+        names = self.dtype.names
+        nindexes = len(indexes)
 
-            # indexes
-            for i, idx in enumerate(indexes):
-                rows[names[i]] = idx
+        # indexes
+        for i, idx in enumerate(indexes):
+            rows[names[i]] = idx
 
-            # values
-            for i, v in enumerate(values):
-                rows[names[i + nindexes]] = v
+        # values
+        for i, v in enumerate(values):
+            rows[names[i + nindexes]] = v
 
-            # mask
-            if mask is not None:
-                m = ~mask.ravel().astype(bool, copy=False)
-                if not m.all():
-                    rows = rows[m]
+        # mask
+        if mask is not None:
+            m = ~mask.ravel().astype(bool, copy=False)
+            if not m.all():
+                rows = rows[m]
 
-        except Exception as detail:
-            raise Exception("cannot create row-data -> {detail}".format(detail=detail))
-
-        try:
-            if len(rows):
-                self.table.append(rows)
-                self.table.flush()
-        except Exception as detail:
-            raise TypeError(
-                "tables cannot write this data -> {detail}".format(detail=detail)
-            )
+        if len(rows):
+            self.table.append(rows)
+            self.table.flush()
 
     def delete(
         self,
