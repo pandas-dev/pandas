@@ -543,8 +543,8 @@ class BlockManager(PandasObject):
             [make_block(values, ndim=1, placement=np.arange(len(values)))], axes[0]
         )
 
-    def isna(self, func, **kwargs):
-        return self.apply("apply", func=func, **kwargs)
+    def isna(self, func):
+        return self.apply("apply", func=func)
 
     def where(self, **kwargs):
         return self.apply("where", **kwargs)
@@ -570,8 +570,8 @@ class BlockManager(PandasObject):
     def downcast(self, **kwargs):
         return self.apply("downcast", **kwargs)
 
-    def astype(self, dtype, **kwargs):
-        return self.apply("astype", dtype=dtype, **kwargs)
+    def astype(self, dtype, copy: bool = False, errors: str = "raise"):
+        return self.apply("astype", dtype=dtype, copy=copy, errors=errors)
 
     def convert(self, **kwargs):
         return self.apply("convert", **kwargs)

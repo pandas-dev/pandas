@@ -5664,7 +5664,7 @@ class NDFrame(PandasObject, SelectionMixin):
             for k, v, in self._data.to_dict(copy=copy).items()
         }
 
-    def astype(self, dtype, copy=True, errors="raise"):
+    def astype(self, dtype, copy: bool = True, errors: str = "raise"):
         """
         Cast a pandas object to a specified dtype ``dtype``.
 

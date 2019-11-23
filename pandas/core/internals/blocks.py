@@ -523,16 +523,14 @@ class Block(PandasObject):
 
         return self.split_and_operate(None, f, False)
 
-    def astype(self, dtype, copy=False, errors="raise", **kwargs):
-        return self._astype(dtype, copy=copy, errors=errors, **kwargs)
-
-    def _astype(self, dtype, copy=False, errors="raise", **kwargs):
-        """Coerce to the new type
+    def astype(self, dtype, copy: bool = False, errors: str = "raise"):
+        """
+        Coerce to the new dtype.
 
         Parameters
         ----------
         dtype : str, dtype convertible
-        copy : boolean, default False
+        copy : bool, default False
             copy if indicated
         errors : str, {'raise', 'ignore'}, default 'ignore'
             - ``raise`` : allow exceptions to be raised
@@ -2142,7 +2140,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         assert isinstance(values, np.ndarray), type(values)
         return values
 
-    def _astype(self, dtype, **kwargs):
+    def astype(self, dtype, copy: bool = False, errors: str = "raise"):
         """
         these automatically copy, so copy=True has no effect
         raise on an except if raise == True
@@ -2158,7 +2156,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
             return self.make_block(values)
 
         # delegate
-        return super()._astype(dtype=dtype, **kwargs)
+        return super().astype(dtype=dtype, copy=copy, errors=errors)
 
     def _can_hold_element(self, element: Any) -> bool:
         tipo = maybe_infer_dtype_type(element)
