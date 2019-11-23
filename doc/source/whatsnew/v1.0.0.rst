@@ -255,6 +255,70 @@ no longer return ``np.nan`` by default.
 
    pd.Categorical([1, 2, np.nan], ordered=True).min()
 
+.. _whatsnew_1000.api_breaking.deps:
+
+Increased minimum versions for dependencies
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Some minimum supported versions of dependencies were updated (:issue:`29723`).
+If installed, we now require:
+
++-----------------+-----------------+----------+
+| Package         | Minimum Version | Required |
++=================+=================+==========+
+| numpy           | 1.13.3          |    X     |
++-----------------+-----------------+----------+
+| pytz            | 2015.4          |    X     |
++-----------------+-----------------+----------+
+| python-dateutil | 2.6.1           |    X     |
++-----------------+-----------------+----------+
+| bottleneck      | 1.2.1           |          |
++-----------------+-----------------+----------+
+| numexpr         | 2.6.2           |          |
++-----------------+-----------------+----------+
+| pytest (dev)    | 4.0.2           |          |
++-----------------+-----------------+----------+
+
+For `optional libraries <https://dev.pandas.io/docs/install.html#dependencies>`_ the general recommendation is to use the latest version.
+The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
+Optional libraries below the lowest tested version may still work, but are not considered supported.
+
++-----------------+-----------------+
+| Package         | Minimum Version |
++=================+=================+
+| beautifulsoup4  | 4.6.0           |
++-----------------+-----------------+
+| fastparquet     | 0.3.2           |
++-----------------+-----------------+
+| gcsfs           | 0.2.2           |
++-----------------+-----------------+
+| lxml            | 3.8.0           |
++-----------------+-----------------+
+| matplotlib      | 2.2.2           |
++-----------------+-----------------+
+| openpyxl        | 2.4.8           |
++-----------------+-----------------+
+| pyarrow         | 0.9.0           |
++-----------------+-----------------+
+| pymysql         | 0.7.1           |
++-----------------+-----------------+
+| pytables        | 3.4.2           |
++-----------------+-----------------+
+| scipy           | 0.19.0          |
++-----------------+-----------------+
+| sqlalchemy      | 1.1.4           |
++-----------------+-----------------+
+| xarray          | 0.8.2           |
++-----------------+-----------------+
+| xlrd            | 1.1.0           |
++-----------------+-----------------+
+| xlsxwriter      | 0.9.8           |
++-----------------+-----------------+
+| xlwt            | 1.2.0           |
++-----------------+-----------------+
+
+See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
+
 
 .. _whatsnew_1000.api.other:
 
@@ -274,6 +338,7 @@ Other API changes
   See :ref:`units registration <whatsnew_1000.matplotlib_units>` for more.
 - :meth:`Series.dropna` has dropped its ``**kwargs`` argument in favor of a single ``how`` parameter.
   Supplying anything else than ``how`` to ``**kwargs`` raised a ``TypeError`` previously (:issue:`29388`)
+- When testing pandas, the new minimum required version of pytest is 5.0.1 (:issue:`29664`)
 -
 
 
@@ -343,11 +408,15 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - Removed :meth:`DataFrame.as_blocks`, :meth:`Series.as_blocks`, `DataFrame.blocks`, :meth:`Series.blocks` (:issue:`17656`)
 - :meth:`pandas.Series.str.cat` now defaults to aligning ``others``, using ``join='left'`` (:issue:`27611`)
 - :meth:`pandas.Series.str.cat` does not accept list-likes *within* list-likes anymore (:issue:`27611`)
+- :func:`core.internals.blocks.make_block` no longer accepts the "fastpath" keyword(:issue:`19265`)
+- :meth:`Block.make_block_same_class` no longer accepts the "dtype" keyword(:issue:`19434`)
 - Removed the previously deprecated :meth:`ExtensionArray._formatting_values`. Use :attr:`ExtensionArray._formatter` instead. (:issue:`23601`)
+- Removed support for legacy HDF5 formats (:issue:`29787`)
 - :func:`read_excel` removed support for "skip_footer" argument, use "skipfooter" instead (:issue:`18836`)
 - :meth:`DataFrame.to_records` no longer supports the argument "convert_datetime64" (:issue:`18902`)
 - Removed the previously deprecated ``IntervalIndex.from_intervals`` in favor of the :class:`IntervalIndex` constructor (:issue:`19263`)
 - Changed the default value for the "keep_tz" argument in :meth:`DatetimeIndex.to_series` to ``True`` (:issue:`23739`)
+- Removed the previously deprecated :func:`api.types.is_period` and :func:`api.types.is_datetimetz` (:issue:`23917`)
 - Ability to read pickles containing :class:`Categorical` instances created with pre-0.16 version of pandas has been removed (:issue:`27538`)
 - Removed previously deprecated :func:`pandas.tseries.plotting.tsplot` (:issue:`18627`)
 - Removed the previously deprecated ``reduce`` and ``broadcast`` arguments from :meth:`DataFrame.apply` (:issue:`18577`)
@@ -355,6 +424,11 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - Removed previously deprecated "nthreads" argument from :func:`read_feather`, use "use_threads" instead (:issue:`23053`)
 - Removed :meth:`Index.is_lexsorted_for_tuple` (:issue:`29305`)
 - Removed support for nexted renaming in :meth:`DataFrame.aggregate`, :meth:`Series.aggregate`, :meth:`DataFrameGroupBy.aggregate`, :meth:`SeriesGroupBy.aggregate`, :meth:`Rolling.aggregate` (:issue:`29608`)
+- Removed the previously deprecated :meth:`Series.valid`; use :meth:`Series.dropna` instead (:issue:`18800`)
+- Removed the previously properties :attr:`DataFrame.is_copy`, :attr:`Series.is_copy` (:issue:`18812`)
+- Removed the previously deprecated :meth:`DataFrame.get_ftype_counts`, :meth:`Series.get_ftype_counts` (:issue:`18243`)
+- Removed the previously deprecated :meth:`Index.get_duplicated`, use ``idx[idx.duplicated()].unique()`` instead (:issue:`20239`)
+- Removed the previously deprecated :meth:`Series.clip_upper`, :meth:`Series.clip_lower`, :meth:`DataFrame.clip_upper`, :meth:`DataFrame.clip_lower` (:issue:`24203`)
 - Removed previously deprecated "order" argument from :func:`factorize` (:issue:`19751`)
 - Removed previously deprecated "v" argument from :meth:`FrozenNDarray.searchsorted`, use "value" instead (:issue:`22672`)
 - :func:`read_stata` and :meth:`DataFrame.to_stata` no longer supports the "encoding" argument (:issue:`21400`)
@@ -374,6 +448,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.replace` when provided a list of values to replace (:issue:`28099`)
 - Performance improvement in :meth:`DataFrame.select_dtypes` by using vectorization instead of iterating over a loop (:issue:`28317`)
 - Performance improvement in :meth:`Categorical.searchsorted` and  :meth:`CategoricalIndex.searchsorted` (:issue:`28795`)
+- Performance improvement when comparing a :meth:`Categorical` with a scalar and the scalar is not found in the categories (:issue:`29750`)
 
 .. _whatsnew_1000.bug_fixes:
 
@@ -503,6 +578,7 @@ I/O
 - Bug in :meth:`Styler.background_gradient` not able to work with dtype ``Int64`` (:issue:`28869`)
 - Bug in :meth:`DataFrame.to_clipboard` which did not work reliably in ipython (:issue:`22707`)
 - Bug in :func:`read_json` where default encoding was not set to ``utf-8`` (:issue:`29565`)
+- Bug in :class:`PythonParser` where str and bytes were being mixed when dealing with the decimal field (:issue:`29650`)
 -
 
 Plotting
@@ -534,6 +610,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.groupby` losing column name information when grouping by a categorical column (:issue:`28787`)
 - Bug in :meth:`DataFrameGroupBy.rolling().quantile()` ignoring ``interpolation`` keyword argument (:issue:`28779`)
 - Bug in :meth:`DataFrame.groupby` where ``any``, ``all``, ``nunique`` and transform functions would incorrectly handle duplicate column labels (:issue:`21668`)
+-
 
 Reshaping
 ^^^^^^^^^
