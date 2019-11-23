@@ -426,7 +426,9 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.replace` when provided a list of values to replace (:issue:`28099`)
 - Performance improvement in :meth:`DataFrame.select_dtypes` by using vectorization instead of iterating over a loop (:issue:`28317`)
 - Performance improvement in :meth:`Categorical.searchsorted` and  :meth:`CategoricalIndex.searchsorted` (:issue:`28795`)
-- Performance improvement when comparing a :meth:`Categorical` with a scalar and the scalar is not found in the categories (:issue:`29750`)
+- Performance improvement when comparing a :class:`Categorical` with a scalar and the scalar is not found in the categories (:issue:`29750`)
+- Performance improvement when checking if values in a :class:`Categorical` are equal, equal or larger or larger than a given scalar.
+  The improvement is not present if checking if the :class:`Categorical` is less than or less than or equal than the scalar (:issue:`xxxxx`)
 
 .. _whatsnew_1000.bug_fixes:
 
