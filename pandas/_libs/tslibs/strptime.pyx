@@ -110,7 +110,7 @@ def array_strptime(object[:] values, object fmt,
                                  f"in format '{fmt}'")
             # IndexError only occurs when the format string is "%"
             except IndexError:
-                raise ValueError("stray % in format '{fmt}'")
+                raise ValueError(f"stray % in format '{fmt}'")
             _regex_cache[fmt] = format_regex
 
     result = np.empty(n, dtype='M8[ns]')
