@@ -25,23 +25,14 @@ class TestSeriesToCSV:
 
         return out
 
-    @pytest.mark.parametrize("arg", ["path", "header", "both"])
-    def test_to_csv_deprecation(self, arg, datetime_series):
+    def test_to_csv_path_kwarg_raises(self, datetime_series):
         # see gh-19715
         with tm.ensure_clean() as path:
-            if arg == "path":
-                kwargs = dict(path=path, header=False)
-            elif arg == "header":
-                kwargs = dict(path_or_buf=path)
-            else:  # Both discrepancies match.
-                kwargs = dict(path=path)
+            with pytest.raises(TypeError):
+                datetime_series.to_csv(path=path)
 
-            with tm.assert_produces_warning(FutureWarning):
-                datetime_series.to_csv(**kwargs)
-
-                # Make sure roundtrip still works.
-                ts = self.read_csv(path)
-                tm.assert_series_equal(datetime_series, ts, check_names=False)
+            with pytest.raises(TypeError):
+                datetime_series.to_csv(path=path, header=False)
 
     def test_from_csv(self, datetime_series, string_series):
 
