@@ -5,7 +5,7 @@ Note: pandas.core.common is *not* part of the public API.
 """
 
 import collections
-from collections import OrderedDict, abc
+from collections import abc
 from datetime import datetime, timedelta
 from functools import partial
 import inspect
@@ -14,7 +14,6 @@ from typing import Any, Iterable, Union
 import numpy as np
 
 from pandas._libs import lib, tslibs
-from pandas.compat import PY36
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -213,16 +212,6 @@ def try_sort(iterable):
         return sorted(listed)
     except TypeError:
         return listed
-
-
-def dict_keys_to_ordered_list(mapping):
-    # when pandas drops support for Python < 3.6, this function
-    # can be replaced by a simple list(mapping.keys())
-    if PY36 or isinstance(mapping, OrderedDict):
-        keys = list(mapping.keys())
-    else:
-        keys = try_sort(mapping)
-    return keys
 
 
 def asarray_tuplesafe(values, dtype=None):
@@ -445,15 +434,15 @@ def pipe(obj, func, *args, **kwargs):
 
     Parameters
     ----------
-    func : callable or tuple of (callable, string)
+    func : callable or tuple of (callable, str)
         Function to apply to this object or, alternatively, a
         ``(callable, data_keyword)`` tuple where ``data_keyword`` is a
         string indicating the keyword of `callable`` that expects the
         object.
-    args : iterable, optional
-        positional arguments passed into ``func``.
-    kwargs : dict, optional
-        a dictionary of keyword arguments passed into ``func``.
+    *args : iterable, optional
+        Positional arguments passed into ``func``.
+    **kwargs : dict, optional
+        A dictionary of keyword arguments passed into ``func``.
 
     Returns
     -------
@@ -462,7 +451,7 @@ def pipe(obj, func, *args, **kwargs):
     if isinstance(func, tuple):
         func, target = func
         if target in kwargs:
-            msg = "%s is both the pipe target and a keyword argument" % target
+            msg = f"{target} is both the pipe target and a keyword argument"
             raise ValueError(msg)
         kwargs[target] = obj
         return func(*args, **kwargs)

@@ -4,13 +4,9 @@ Template for each `dtype` helper function for hashtable
 WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
 
-# ----------------------------------------------------------------------
-# VectorData
-# ----------------------------------------------------------------------
-
 {{py:
 
-# dtype, ttype
+# dtype, ttype, c_type
 dtypes = [('float64', 'float64', 'float64_t'),
           ('uint64', 'uint64', 'uint64_t'),
           ('object', 'pymap', 'object'),
@@ -18,7 +14,7 @@ dtypes = [('float64', 'float64', 'float64_t'),
 
 }}
 
-{{for dtype, ttype, scalar in dtypes}}
+{{for dtype, ttype, c_type in dtypes}}
 
 
 @cython.wraparound(False)
@@ -34,7 +30,7 @@ cdef build_count_table_{{dtype}}({{dtype}}_t[:] values,
         khiter_t k
         Py_ssize_t i, n = len(values)
 
-        {{scalar}} val
+        {{c_type}} val
 
         int ret = 0
 
@@ -77,7 +73,7 @@ cdef build_count_table_{{dtype}}({{dtype}}_t[:] values,
 {{if dtype == 'object'}}
 cpdef value_count_{{dtype}}(ndarray[{{dtype}}] values, bint dropna):
 {{else}}
-cpdef value_count_{{dtype}}({{scalar}}[:] values, bint dropna):
+cpdef value_count_{{dtype}}({{c_type}}[:] values, bint dropna):
 {{endif}}
     cdef:
         Py_ssize_t i = 0
@@ -127,13 +123,9 @@ cpdef value_count_{{dtype}}({{scalar}}[:] values, bint dropna):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 {{if dtype == 'object'}}
-
-
 def duplicated_{{dtype}}(ndarray[{{dtype}}] values, object keep='first'):
 {{else}}
-
-
-def duplicated_{{dtype}}({{scalar}}[:] values, object keep='first'):
+def duplicated_{{dtype}}({{c_type}}[:] values, object keep='first'):
 {{endif}}
     cdef:
         int ret = 0
@@ -151,12 +143,14 @@ def duplicated_{{dtype}}({{scalar}}[:] values, object keep='first'):
 
     if keep == 'last':
         {{if dtype == 'object'}}
-        for i from n > i >= 0:
+        for i in range(n - 1, -1, -1):
+            # equivalent: range(n)[::-1], which cython doesn't like in nogil
             kh_put_{{ttype}}(table, <PyObject*>values[i], &ret)
             out[i] = ret == 0
         {{else}}
         with nogil:
-            for i from n > i >= 0:
+            for i in range(n - 1, -1, -1):
+                # equivalent: range(n)[::-1], which cython doesn't like in nogil
                 kh_put_{{ttype}}(table, values[i], &ret)
                 out[i] = ret == 0
         {{endif}}
@@ -210,15 +204,10 @@ def duplicated_{{dtype}}({{scalar}}[:] values, object keep='first'):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 {{if dtype == 'object'}}
-
-
-def ismember_{{dtype}}(ndarray[{{scalar}}] arr, ndarray[{{scalar}}] values):
+def ismember_{{dtype}}(ndarray[{{c_type}}] arr, ndarray[{{c_type}}] values):
 {{else}}
-
-
-def ismember_{{dtype}}({{scalar}}[:] arr, {{scalar}}[:] values):
+def ismember_{{dtype}}({{c_type}}[:] arr, {{c_type}}[:] values):
 {{endif}}
-
     """
     Return boolean of values in arr on an
     element by-element basis
@@ -236,7 +225,7 @@ def ismember_{{dtype}}({{scalar}}[:] arr, {{scalar}}[:] values):
         Py_ssize_t i, n, k
         int ret = 0
         ndarray[uint8_t] result
-        {{scalar}} val
+        {{c_type}} val
         kh_{{ttype}}_t *table = kh_init_{{ttype}}()
 
     # construct the table

@@ -10,7 +10,7 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 from pandas.io.parquet import (
     FastParquetImpl,
@@ -167,6 +167,7 @@ def check_round_trip(
             df.to_parquet(path, **write_kwargs)
             with catch_warnings(record=True):
                 actual = read_parquet(path, **read_kwargs)
+
             tm.assert_frame_equal(expected, actual, check_names=check_names)
 
     if path is None:
@@ -404,7 +405,7 @@ class TestBasic(Base):
             ["one", "two", "one", "two", "one", "two", "one", "two"],
         ]
         df = pd.DataFrame(
-            {"one": [i for i in range(8)], "two": [-i for i in range(8)]}, index=arrays
+            {"one": list(range(8)), "two": [-i for i in range(8)]}, index=arrays
         )
 
         expected = df.reset_index(drop=True)
@@ -461,11 +462,26 @@ class TestParquetPyArrow(Base):
     def test_categorical(self, pa):
 
         # supported in >= 0.7.0
-        df = pd.DataFrame({"a": pd.Categorical(list("abc"))})
+        df = pd.DataFrame()
+        df["a"] = pd.Categorical(list("abcdef"))
 
-        # de-serialized as object
-        expected = df.assign(a=df.a.astype(object))
-        check_round_trip(df, pa, expected=expected)
+        # test for null, out-of-order values, and unobserved category
+        df["b"] = pd.Categorical(
+            ["bar", "foo", "foo", "bar", None, "bar"],
+            dtype=pd.CategoricalDtype(["foo", "bar", "baz"]),
+        )
+
+        # test for ordered flag
+        df["c"] = pd.Categorical(
+            ["a", "b", "c", "a", "c", "b"], categories=["b", "c", "d"], ordered=True
+        )
+
+        if LooseVersion(pyarrow.__version__) >= LooseVersion("0.15.0"):
+            check_round_trip(df, pa)
+        else:
+            # de-serialized as object for pyarrow < 0.15
+            expected = df.astype(object)
+            check_round_trip(df, pa, expected=expected)
 
     def test_s3_roundtrip(self, df_compat, s3_resource, pa):
         # GH #19134
@@ -488,9 +504,34 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame()
         check_round_trip(df, pa)
 
+    @td.skip_if_no("pyarrow", min_version="0.15.0")
+    def test_additional_extension_arrays(self, pa):
+        # test additional ExtensionArrays that are supported through the
+        # __arrow_array__ protocol
+        df = pd.DataFrame(
+            {
+                "a": pd.Series([1, 2, 3], dtype="Int64"),
+                "b": pd.Series(["a", None, "c"], dtype="string"),
+            }
+        )
+        if LooseVersion(pyarrow.__version__) >= LooseVersion("0.15.1.dev"):
+            expected = df
+        else:
+            # de-serialized as plain int / object
+            expected = df.assign(a=df.a.astype("int64"), b=df.b.astype("object"))
+        check_round_trip(df, pa, expected=expected)
+
+        df = pd.DataFrame({"a": pd.Series([1, 2, 3, None], dtype="Int64")})
+        if LooseVersion(pyarrow.__version__) >= LooseVersion("0.15.1.dev"):
+            expected = df
+        else:
+            # if missing values in integer, currently de-serialized as float
+            expected = df.assign(a=df.a.astype("float64"))
+        check_round_trip(df, pa, expected=expected)
+
 
 class TestParquetFastParquet(Base):
-    @td.skip_if_no("fastparquet", min_version="0.2.1")
+    @td.skip_if_no("fastparquet", min_version="0.3.2")
     def test_basic(self, fp, df_full):
         df = df_full
 

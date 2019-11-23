@@ -22,7 +22,7 @@ class DecimalDtype(ExtensionDtype):
     def __init__(self, context=None):
         self.context = context or decimal.getcontext()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "DecimalDtype(context={})".format(self.context)
 
     @classmethod
@@ -166,7 +166,14 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
     def _reduce(self, name, skipna=True, **kwargs):
 
         if skipna:
-            raise NotImplementedError("decimal does not support skipna=True")
+            # If we don't have any NAs, we can ignore skipna
+            if self.isna().any():
+                other = self[~self.isna()]
+                return other._reduce(name, **kwargs)
+
+        if name == "sum" and len(self) == 0:
+            # GH#29630 avoid returning int 0 or np.bool_(False) on old numpy
+            return decimal.Decimal(0)
 
         try:
             op = getattr(self.data, name)

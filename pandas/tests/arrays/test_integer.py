@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes.generic import ABCIndexClass
 
 import pandas as pd
@@ -815,6 +817,48 @@ def test_ufunc_reduce_raises(values):
     a = integer_array(values)
     with pytest.raises(NotImplementedError):
         np.add.reduce(a)
+
+
+@td.skip_if_no("pyarrow", min_version="0.15.0")
+def test_arrow_array(data):
+    # protocol added in 0.15.0
+    import pyarrow as pa
+
+    arr = pa.array(data)
+    expected = pa.array(list(data), type=data.dtype.name.lower(), from_pandas=True)
+    assert arr.equals(expected)
+
+
+@td.skip_if_no("pyarrow", min_version="0.15.1.dev")
+def test_arrow_roundtrip(data):
+    # roundtrip possible from arrow 1.0.0
+    import pyarrow as pa
+
+    df = pd.DataFrame({"a": data})
+    table = pa.table(df)
+    assert table.field("a").type == str(data.dtype.numpy_dtype)
+    result = table.to_pandas()
+    tm.assert_frame_equal(result, df)
+
+
+@pytest.mark.parametrize(
+    "pandasmethname, kwargs",
+    [
+        ("var", {"ddof": 0}),
+        ("var", {"ddof": 1}),
+        ("kurtosis", {}),
+        ("skew", {}),
+        ("sem", {}),
+    ],
+)
+def test_stat_method(pandasmethname, kwargs):
+    s = pd.Series(data=[1, 2, 3, 4, 5, 6, np.nan, np.nan], dtype="Int64")
+    pandasmeth = getattr(s, pandasmethname)
+    result = pandasmeth(**kwargs)
+    s2 = pd.Series(data=[1, 2, 3, 4, 5, 6], dtype="Int64")
+    pandasmeth = getattr(s2, pandasmethname)
+    expected = pandasmeth(**kwargs)
+    assert expected == result
 
 
 # TODO(jreback) - these need testing / are broken

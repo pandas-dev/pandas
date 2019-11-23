@@ -18,7 +18,7 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas.compat import PY36, is_platform_32bit, is_platform_windows
+from pandas.compat import is_platform_32bit, is_platform_windows
 
 import pandas as pd
 from pandas import (
@@ -54,7 +54,7 @@ def filepath_or_buffer_id(request):
 @pytest.fixture
 def filepath_or_buffer(filepath_or_buffer_id, tmp_path):
     """
-    A fixture yeilding a string representing a filepath, a path-like object
+    A fixture yielding a string representing a filepath, a path-like object
     and a StringIO buffer. Also checks that buffer is not closed.
     """
     if filepath_or_buffer_id == "buffer":
@@ -62,10 +62,7 @@ def filepath_or_buffer(filepath_or_buffer_id, tmp_path):
         yield buf
         assert not buf.closed
     else:
-        if PY36:
-            assert isinstance(tmp_path, Path)
-        else:
-            assert hasattr(tmp_path, "__fspath__")
+        assert isinstance(tmp_path, Path)
         if filepath_or_buffer_id == "pathlike":
             yield tmp_path / "foo"
         else:
@@ -73,17 +70,19 @@ def filepath_or_buffer(filepath_or_buffer_id, tmp_path):
 
 
 @pytest.fixture
-def assert_filepath_or_buffer_equals(filepath_or_buffer, filepath_or_buffer_id):
+def assert_filepath_or_buffer_equals(
+    filepath_or_buffer, filepath_or_buffer_id, encoding
+):
     """
     Assertion helper for checking filepath_or_buffer.
     """
 
     def _assert_filepath_or_buffer_equals(expected):
         if filepath_or_buffer_id == "string":
-            with open(filepath_or_buffer) as f:
+            with open(filepath_or_buffer, encoding=encoding) as f:
                 result = f.read()
         elif filepath_or_buffer_id == "pathlike":
-            result = filepath_or_buffer.read_text()
+            result = filepath_or_buffer.read_text(encoding=encoding)
         elif filepath_or_buffer_id == "buffer":
             result = filepath_or_buffer.getvalue()
         assert result == expected
@@ -526,6 +525,45 @@ class TestDataFrameFormatting:
                 "0  foo  bar  uncomfortably lo...  1\n"
                 "1  foo  bar                stuff  1"
             )
+
+    def test_to_string_truncate(self):
+        # GH 9784 - dont truncate when calling DataFrame.to_string
+        df = pd.DataFrame(
+            [
+                {
+                    "a": "foo",
+                    "b": "bar",
+                    "c": "let's make this a very VERY long line that is longer "
+                    "than the default 50 character limit",
+                    "d": 1,
+                },
+                {"a": "foo", "b": "bar", "c": "stuff", "d": 1},
+            ]
+        )
+        df.set_index(["a", "b", "c"])
+        assert df.to_string() == (
+            "     a    b                                         "
+            "                                                c  d\n"
+            "0  foo  bar  let's make this a very VERY long line t"
+            "hat is longer than the default 50 character limit  1\n"
+            "1  foo  bar                                         "
+            "                                            stuff  1"
+        )
+        with option_context("max_colwidth", 20):
+            # the display option has no effect on the to_string method
+            assert df.to_string() == (
+                "     a    b                                         "
+                "                                                c  d\n"
+                "0  foo  bar  let's make this a very VERY long line t"
+                "hat is longer than the default 50 character limit  1\n"
+                "1  foo  bar                                         "
+                "                                            stuff  1"
+            )
+        assert df.to_string(max_colwidth=20) == (
+            "     a    b                    c  d\n"
+            "0  foo  bar  let's make this ...  1\n"
+            "1  foo  bar                stuff  1"
+        )
 
     def test_auto_detect(self):
         term_width, term_height = get_terminal_size()
@@ -3201,14 +3239,32 @@ def test_repr_html_ipython_config(ip):
 
 
 @pytest.mark.parametrize("method", ["to_string", "to_html", "to_latex"])
+@pytest.mark.parametrize(
+    "encoding, data",
+    [(None, "abc"), ("utf-8", "abc"), ("gbk", "造成输出中文显示乱码"), ("foo", "abc")],
+)
 def test_filepath_or_buffer_arg(
-    float_frame, method, filepath_or_buffer, assert_filepath_or_buffer_equals
+    method,
+    filepath_or_buffer,
+    assert_filepath_or_buffer_equals,
+    encoding,
+    data,
+    filepath_or_buffer_id,
 ):
-    df = float_frame
-    expected = getattr(df, method)()
+    df = DataFrame([data])
 
-    getattr(df, method)(buf=filepath_or_buffer)
-    assert_filepath_or_buffer_equals(expected)
+    if filepath_or_buffer_id not in ["string", "pathlike"] and encoding is not None:
+        with pytest.raises(
+            ValueError, match="buf is not a file name and encoding is specified."
+        ):
+            getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
+    elif encoding == "foo":
+        with pytest.raises(LookupError, match="unknown encoding"):
+            getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
+    else:
+        expected = getattr(df, method)()
+        getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
+        assert_filepath_or_buffer_equals(expected)
 
 
 @pytest.mark.parametrize("method", ["to_string", "to_html", "to_latex"])

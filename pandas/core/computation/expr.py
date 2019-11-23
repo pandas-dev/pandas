@@ -11,8 +11,7 @@ from typing import Type
 
 import numpy as np
 
-import pandas as pd
-from pandas.core import common as com
+import pandas.core.common as com
 from pandas.core.computation.common import (
     _BACKTICK_QUOTED_STRING,
     _remove_spaces_column_name,
@@ -40,7 +39,7 @@ from pandas.core.computation.scope import Scope
 import pandas.io.formats.printing as printing
 
 
-def tokenize_string(source):
+def tokenize_string(source: str):
     """
     Tokenize a Python source code string.
 
@@ -171,7 +170,7 @@ def _compose(*funcs):
 
 
 def _preparse(
-    source,
+    source: str,
     f=_compose(
         _replace_locals,
         _replace_booleans,
@@ -379,7 +378,7 @@ class BaseExprVisitor(ast.NodeVisitor):
     preparser : callable
     """
 
-    const_type = Constant  # type: Type[Term]
+    const_type: Type[Term] = Constant
     term_type = Term
 
     binary_ops = _cmp_ops_syms + _bool_ops_syms + _arith_ops_syms
@@ -600,6 +599,8 @@ class BaseExprVisitor(ast.NodeVisitor):
         return self.visit(node.value)
 
     def visit_Subscript(self, node, **kwargs):
+        import pandas as pd
+
         value = self.visit(node.value)
         slobj = self.visit(node.slice)
         result = pd.eval(
@@ -834,10 +835,10 @@ class Expr:
     def __call__(self):
         return self.terms(self.env)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return printing.pprint_thing(self.terms)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.expr)
 
     def parse(self):

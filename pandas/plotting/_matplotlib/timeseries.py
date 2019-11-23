@@ -25,6 +25,7 @@ from pandas.plotting._matplotlib.converter import (
     TimeSeries_DateFormatter,
     TimeSeries_DateLocator,
     TimeSeries_TimedeltaFormatter,
+    register_pandas_matplotlib_converters,
 )
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.offsets import DateOffset
@@ -33,6 +34,7 @@ from pandas.tseries.offsets import DateOffset
 # Plotting functions and monkey patches
 
 
+@register_pandas_matplotlib_converters
 def tsplot(series, plotf, ax=None, **kwargs):
     """
     Plots a Series on the given Matplotlib axes or the current axes
@@ -56,7 +58,7 @@ def tsplot(series, plotf, ax=None, **kwargs):
         "'tsplot' is deprecated and will be removed in a "
         "future version. Please use Series.plot() instead.",
         FutureWarning,
-        stacklevel=2,
+        stacklevel=3,
     )
 
     # Used inferred freq is possible, need a test case for inferred
@@ -305,7 +307,8 @@ def _maybe_convert_index(ax, data):
 
 
 def _format_coord(freq, t, y):
-    return "t = {0}  y = {1:8f}".format(Period(ordinal=int(t), freq=freq), y)
+    time_period = Period(ordinal=int(t), freq=freq)
+    return f"t = {time_period}  y = {y:8f}"
 
 
 def format_dateaxis(subplot, freq, index):
