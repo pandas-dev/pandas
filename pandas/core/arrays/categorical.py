@@ -2197,12 +2197,6 @@ class Categorical(ExtensionArray, PandasObject):
             if skipna:
                 pointer = self._codes[good].min(**kwargs)
             else:
-                if skipna is None:
-                    msg = (
-                        "The default value of skipna will be changed to "
-                        "True in the future version."
-                    )
-                    warn(msg, FutureWarning, stacklevel=2)
                 return np.nan
         else:
             pointer = self._codes.min(**kwargs)
@@ -2230,12 +2224,6 @@ class Categorical(ExtensionArray, PandasObject):
             if skipna:
                 pointer = self._codes[good].max(**kwargs)
             else:
-                if skipna is None:
-                    msg = (
-                        "The default value of skipna will be changed to "
-                        "True in the future version."
-                    )
-                    warn(msg, FutureWarning, stacklevel=2)
                 return np.nan
         else:
             pointer = self._codes.max(**kwargs)
