@@ -1891,20 +1891,6 @@ class TestMomentsConsistency(Base):
 
         assert s.rolling(window=window).corr(other=other).isna().all()
 
-    def test_rolling_max_datetimeindex(self):
-        # GH 21096
-        n = 10
-        index = pd.date_range(start="2018-1-1 01:00:00", freq="1min", periods=n)
-        s = Series(data=0, index=index)
-
-        s.iloc[1] = np.nan
-        s.iloc[-1] = 2
-        maxes = s.rolling(window=f"{n}min").max()
-        result = maxes.value_counts(dropna=False)
-        expected = Series(data={0.0: n - 1, 2.0: 1})
-
-        tm.assert_series_equal(result, expected)
-
     def _check_pairwise_moment(self, dispatch, name, **kwargs):
         def get_result(obj, obj2=None):
             return getattr(getattr(obj, dispatch)(**kwargs), name)(obj2)
