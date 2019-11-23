@@ -1,5 +1,5 @@
 import bz2
-from collections import Counter
+from collections import Counter, abc
 from contextlib import contextmanager
 from datetime import datetime
 from functools import wraps
@@ -2126,6 +2126,20 @@ def makeMissingDataframe(density=0.9, random_state=None):
 class TestSubDict(dict):
     def __init__(self, *args, **kwargs):
         dict.__init__(self, *args, **kwargs)
+
+
+class TestNonDictMapping(abc.Mapping):
+    def __init__(self, underlying_dict):
+        self._data = underlying_dict
+
+    def __getitem__(self, key):
+        return self._data.__getitem__(key)
+
+    def __iter__(self):
+        return self._data.__iter__()
+
+    def __len__(self):
+        return self._data.__len__()
 
 
 def optional_args(decorator):

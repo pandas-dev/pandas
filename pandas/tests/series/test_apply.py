@@ -1,4 +1,4 @@
-from collections import Counter, OrderedDict, abc, defaultdict
+from collections import Counter, OrderedDict, defaultdict
 from itertools import chain
 
 import numpy as np
@@ -630,21 +630,8 @@ class TestSeriesMap:
     def test_map_abc_mapping(self):
         # https://github.com/pandas-dev/pandas/issues/29733
         # Check collections.abc.Mapping support as mapper for Series.map
-        class NonDictMapping(abc.Mapping):
-            def __init__(self):
-                self._data = {3: "three"}
-
-            def __getitem__(self, key):
-                return self._data.__getitem__(key)
-
-            def __iter__(self):
-                return self._data.__iter__()
-
-            def __len__(self):
-                return self._data.__len__()
-
         s = Series([1, 2, 3])
-        not_a_dictionary = NonDictMapping()
+        not_a_dictionary = tm.TestNonDictMapping({3: "three"})
         result = s.map(not_a_dictionary)
         expected = Series([np.nan, np.nan, "three"])
         tm.assert_series_equal(result, expected)
@@ -652,24 +639,12 @@ class TestSeriesMap:
     def test_map_abc_mapping_with_missing(self):
         # https://github.com/pandas-dev/pandas/issues/29733
         # Check collections.abc.Mapping support as mapper for Series.map
-        class NonDictMappingWithMissing(abc.Mapping):
-            def __init__(self):
-                self._data = {3: "three"}
-
-            def __getitem__(self, key):
-                return self._data.__getitem__(key)
-
-            def __iter__(self):
-                return self._data.__iter__()
-
-            def __len__(self):
-                return self._data.__len__()
-
+        class NonDictMappingWithMissing(tm.TestNonDictMapping):
             def __missing__(self, key):
                 return "missing"
 
         s = Series([1, 2, 3])
-        not_a_dictionary = NonDictMappingWithMissing()
+        not_a_dictionary = NonDictMappingWithMissing({3: "three"})
         result = s.map(not_a_dictionary)
         # __missing__ is a dict concept, not a Mapping concept,
         # so it should not change the result!
