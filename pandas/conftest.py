@@ -856,7 +856,7 @@ def float_frame():
     return DataFrame(tm.getSeriesData())
 
 
-@pytest.fixture(params=[pd.Index, pd.Series])
+@pytest.fixture(params=[pd.Index, pd.Series], ids=["index", "series"])
 def index_or_series(request):
     """
     Fixture to parametrize over Index and Series, made necessary by a mypy
