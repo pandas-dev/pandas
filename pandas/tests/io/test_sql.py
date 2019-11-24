@@ -211,8 +211,8 @@ SQL_STRINGS = {
                 PRIMARY KEY (a)
             )""",
         "postgresql": """CREATE TABLE pkey_table (
-                "a" INTEGER PRIMARY KEY,
-                "b" TEXT
+                a INTEGER PRIMARY KEY,
+                b TEXT
             )""",
     },
     "insert_pkey_table": {
