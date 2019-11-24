@@ -168,6 +168,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         base.IndexOpsMixin.hasnans.func, doc=base.IndexOpsMixin.hasnans.__doc__
     )
     _data: SingleBlockManager
+    div: Callable[["Series"], "Series"]
+    rdiv: Callable[["Series"], "Series"]
 
     # ----------------------------------------------------------------------
     # Constructors
