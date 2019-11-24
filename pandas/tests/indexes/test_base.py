@@ -1385,13 +1385,6 @@ class TestIndex(Base):
         assert "~:{range}:0" in result
         assert "{other}%s" in result
 
-    # GH18217
-    def test_summary_deprecated(self):
-        ind = Index(["{other}%s", "~:{range}:0"], name="A")
-
-        with tm.assert_produces_warning(FutureWarning):
-            ind.summary()
-
     def test_format(self, indices):
         self._check_method_works(Index.format, indices)
 
