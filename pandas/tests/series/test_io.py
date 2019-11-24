@@ -25,15 +25,6 @@ class TestSeriesToCSV:
 
         return out
 
-    def test_to_csv_path_kwarg_raises(self, datetime_series):
-        # see gh-19715
-        with tm.ensure_clean() as path:
-            with pytest.raises(TypeError):
-                datetime_series.to_csv(path=path)
-
-            with pytest.raises(TypeError):
-                datetime_series.to_csv(path=path, header=False)
-
     def test_from_csv(self, datetime_series, string_series):
 
         with tm.ensure_clean() as path:
