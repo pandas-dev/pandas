@@ -210,7 +210,7 @@ SQL_STRINGS = {
                 `B` TEXT,
                 PRIMARY KEY (A)
             )""",
-        "posgresql": """CREATE TABLE pkey_table (
+        "postgresql": """CREATE TABLE pkey_table (
                 "A" INTEGER PRIMARY KEY,
                 "B" TEXT
             )""",
@@ -687,7 +687,7 @@ class _TestSQLApi(PandasSQLTest):
     """
 
     flavor = "sqlite"
-    mode = None
+    mode: str
 
     def setup_connect(self):
         self.conn = self.connect()
@@ -1339,7 +1339,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     """
 
-    flavor = None
+    flavor: str
 
     @pytest.fixture(autouse=True, scope="class")
     def setup_class(cls):
