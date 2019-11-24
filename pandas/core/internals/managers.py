@@ -345,10 +345,9 @@ class BlockManager(PandasObject):
 
     def apply(
         self,
-        f,
+        f: str,
         axes=None,
         filter=None,
-        consolidate=True,
         **kwargs,
     ):
         """
@@ -356,12 +355,11 @@ class BlockManager(PandasObject):
 
         Parameters
         ----------
-        f : the callable or function name to operate on at the block level
+        f : str
+            Name of the Block method to apply.
         axes : optional (if not supplied, use self.axes)
         filter : list, if supplied, only call the block if the filter is in
                  the block
-        consolidate: bool, default True.
-            Join together blocks having same dtype.
 
         Returns
         -------
@@ -379,8 +377,7 @@ class BlockManager(PandasObject):
             else:
                 kwargs["filter"] = filter_locs
 
-        if consolidate:
-            self._consolidate_inplace()
+        self._consolidate_inplace()
 
         if f == "where":
             align_copy = True
