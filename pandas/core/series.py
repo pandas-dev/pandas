@@ -96,23 +96,6 @@ _shared_doc_kwargs = dict(
 )
 
 
-# see gh-16971
-def remove_na(arr):
-    """
-    Remove null values from array like structure.
-
-    .. deprecated:: 0.21.0
-        Use s[s.notnull()] instead.
-    """
-
-    warnings.warn(
-        "remove_na is deprecated and is a private function. Do not use.",
-        FutureWarning,
-        stacklevel=2,
-    )
-    return remove_na_arraylike(arr)
-
-
 def _coerce_method(converter):
     """
     Install the scalar coercion methods.
