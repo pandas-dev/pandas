@@ -348,12 +348,11 @@ class BlockManager(PandasObject):
         f,
         axes=None,
         filter=None,
-        do_integrity_check=False,
         consolidate=True,
         **kwargs,
     ):
         """
-        iterate over the blocks, collect and create a new block manager
+        Iterate over the blocks, collect and create a new BlockManager.
 
         Parameters
         ----------
@@ -361,15 +360,12 @@ class BlockManager(PandasObject):
         axes : optional (if not supplied, use self.axes)
         filter : list, if supplied, only call the block if the filter is in
                  the block
-        do_integrity_check : boolean, default False. Do the block manager
-            integrity check
-        consolidate: boolean, default True. Join together blocks having same
-            dtype
+        consolidate: bool, default True.
+            Join together blocks having same dtype.
 
         Returns
         -------
-        Block Manager (new object)
-
+        BlockManager
         """
 
         result_blocks = []
@@ -434,7 +430,7 @@ class BlockManager(PandasObject):
         if len(result_blocks) == 0:
             return self.make_empty(axes or self.axes)
         bm = self.__class__(
-            result_blocks, axes or self.axes, do_integrity_check=do_integrity_check
+            result_blocks, axes or self.axes, do_integrity_check=False
         )
         bm._consolidate_inplace()
         return bm
@@ -778,7 +774,7 @@ class BlockManager(PandasObject):
             new_axes = [copy(ax) for ax in self.axes]
         else:
             new_axes = list(self.axes)
-        return self.apply("copy", axes=new_axes, deep=deep, do_integrity_check=False)
+        return self.apply("copy", axes=new_axes, deep=deep)
 
     def as_array(self, transpose=False, items=None):
         """Convert the blockmanager data into an numpy array.
