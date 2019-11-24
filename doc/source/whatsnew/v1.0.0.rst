@@ -391,6 +391,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - Removed the previously deprecated :meth:`ExtensionArray._formatting_values`. Use :attr:`ExtensionArray._formatter` instead. (:issue:`23601`)
 - Removed support for legacy HDF5 formats (:issue:`29787`)
 - :func:`read_excel` removed support for "skip_footer" argument, use "skipfooter" instead (:issue:`18836`)
+- :func:`read_excel` no longer allows an integer value for the parameter ``usecols``, instead pass a list of integers from 0 to ``usecols`` inclusive (:issue:`23635`)
 - :meth:`DataFrame.to_records` no longer supports the argument "convert_datetime64" (:issue:`18902`)
 - Removed the previously deprecated ``IntervalIndex.from_intervals`` in favor of the :class:`IntervalIndex` constructor (:issue:`19263`)
 - Changed the default value for the "keep_tz" argument in :meth:`DatetimeIndex.to_series` to ``True`` (:issue:`23739`)
