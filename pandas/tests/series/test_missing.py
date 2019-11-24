@@ -47,7 +47,6 @@ def _simple_ts(start, end, freq="D"):
 
 
 class TestSeriesMissingData:
-
     def test_timedelta_fillna(self):
         # GH 3371
         s = Series(
