@@ -243,15 +243,14 @@ jobs:
           locale_override: zh_CN.UTF-8
 
     steps:
-    - name: Setting conda path
-      run: echo "::set-env name=PATH::${HOME}/miniconda3/bin:${PATH}"
-
     - name: Checkout
       uses: actions/checkout@v1
 
+    - name: Setting conda path
+      run: echo "::set-env name=PATH::${HOME}/miniconda3/bin:${PATH}"
+
     - name: Setup environment and build pandas
-      run: |
-        ci/setup_env.sh
+      run: ci/setup_env.sh
       env:
         ENV_FILE: ci/deps/${{ matrix.env_file }}
         LOCALE_OVERRIDE: ${{ matrix.locale_override }}
