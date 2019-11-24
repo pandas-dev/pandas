@@ -730,7 +730,7 @@ class TestIndex(Base):
         assert first_value == x[Timestamp(expected_ts)]
 
     def test_booleanindex(self, index):
-        bool_index = np.repeat(True, len(index)).astype(bool)
+        bool_index = np.ones(len(index), dtype=bool)
         bool_index[5:30:2] = False
 
         sub_index = index[bool_index]

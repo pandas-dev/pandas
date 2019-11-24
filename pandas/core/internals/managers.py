@@ -79,7 +79,6 @@ class BlockManager(PandasObject):
     copy(deep=True)
 
     get_dtype_counts
-    get_ftype_counts
     get_dtypes
     get_ftypes
 
@@ -127,7 +126,7 @@ class BlockManager(PandasObject):
         do_integrity_check: bool = True,
     ):
         self.axes = [ensure_index(ax) for ax in axes]
-        self.blocks = tuple(blocks)  # type: Tuple[Block, ...]
+        self.blocks: Tuple[Block, ...] = tuple(blocks)
 
         for block in blocks:
             if self.ndim != block.ndim:
@@ -245,9 +244,6 @@ class BlockManager(PandasObject):
 
     def get_dtype_counts(self):
         return self._get_counts(lambda b: b.dtype.name)
-
-    def get_ftype_counts(self):
-        return self._get_counts(lambda b: b.ftype)
 
     def get_dtypes(self):
         dtypes = np.array([blk.dtype for blk in self.blocks])
@@ -1554,9 +1550,6 @@ class SingleBlockManager(BlockManager):
 
     def get_dtype_counts(self):
         return {self.dtype.name: 1}
-
-    def get_ftype_counts(self):
-        return {self.ftype: 1}
 
     def get_dtypes(self):
         return np.array([self._block.dtype])

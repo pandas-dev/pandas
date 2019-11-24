@@ -370,8 +370,8 @@ class Timestamp(_Timestamp):
         if tzinfo is not None:
             if not PyTZInfo_Check(tzinfo):
                 # tzinfo must be a datetime.tzinfo object, GH#17690
-                raise TypeError('tzinfo must be a datetime.tzinfo object, '
-                                'not %s' % type(tzinfo))
+                raise TypeError(f'tzinfo must be a datetime.tzinfo object, '
+                                f'not {type(tzinfo)}')
             elif tz is not None:
                 raise ValueError('Can provide at most one of tz, tzinfo')
 
@@ -946,8 +946,8 @@ default 'raise'
         def validate(k, v):
             """ validate integers """
             if not is_integer_object(v):
-                raise ValueError("value must be an integer, received "
-                                 "{v} for {k}".format(v=type(v), k=k))
+                raise ValueError(f"value must be an integer, received "
+                                 f"{type(v)} for {k}")
             return v
 
         if year is not None:
@@ -1003,9 +1003,9 @@ default 'raise'
             base1, base2 = base, ""
 
         if self.microsecond != 0:
-            base1 += "%.3d" % self.nanosecond
+            base1 += f"{self.nanosecond:03d}"
         else:
-            base1 += ".%.9d" % self.nanosecond
+            base1 += f".{self.nanosecond:09d}"
 
         return base1 + base2
 
