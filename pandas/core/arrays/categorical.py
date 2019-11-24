@@ -121,7 +121,7 @@ def _cat_compare_op(op):
                 i = self.categories.get_loc(other)
                 ret = getattr(self._codes, opname)(i)
 
-                if opname not in {"eq", "__eq__", "ge", "__ge__", "gt", "__gt__"}:
+                if opname not in {"__eq__", "__ge__", "__gt__"}:
                     # check for NaN needed if we are not equal or larger
                     mask = self._codes == -1
                     ret[mask] = False
