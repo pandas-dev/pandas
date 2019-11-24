@@ -343,12 +343,7 @@ class BlockManager(PandasObject):
                 "tot_items: {1}".format(len(self.items), tot_items)
             )
 
-    def apply(
-        self,
-        f: str,
-        filter=None,
-        **kwargs,
-    ):
+    def apply(self, f: str, filter=None, **kwargs):
         """
         Iterate over the blocks, collect and create a new BlockManager.
 
@@ -424,9 +419,7 @@ class BlockManager(PandasObject):
 
         if len(result_blocks) == 0:
             return self.make_empty(self.axes)
-        bm = self.__class__(
-            result_blocks, self.axes, do_integrity_check=False
-        )
+        bm = self.__class__(result_blocks, self.axes, do_integrity_check=False)
         bm._consolidate_inplace()
         return bm
 
