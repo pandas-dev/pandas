@@ -346,7 +346,6 @@ class BlockManager(PandasObject):
     def apply(
         self,
         f: str,
-        axes=None,
         filter=None,
         **kwargs,
     ):
@@ -357,7 +356,6 @@ class BlockManager(PandasObject):
         ----------
         f : str
             Name of the Block method to apply.
-        axes : optional (if not supplied, use self.axes)
         filter : list, if supplied, only call the block if the filter is in
                  the block
 
@@ -425,9 +423,9 @@ class BlockManager(PandasObject):
             result_blocks = _extend_blocks(applied, result_blocks)
 
         if len(result_blocks) == 0:
-            return self.make_empty(axes or self.axes)
+            return self.make_empty(self.axes)
         bm = self.__class__(
-            result_blocks, axes or self.axes, do_integrity_check=False
+            result_blocks, self.axes, do_integrity_check=False
         )
         bm._consolidate_inplace()
         return bm
@@ -765,13 +763,15 @@ class BlockManager(PandasObject):
         # this preserves the notion of view copying of axes
         if deep:
             if deep == "all":
-                copy = lambda ax: ax.copy(deep=True)
+                copy_func = lambda ax: ax.copy(deep=True)
             else:
-                copy = lambda ax: ax.view()
-            new_axes = [copy(ax) for ax in self.axes]
+                copy_func = lambda ax: ax.view()
+            new_axes = [copy_func(ax) for ax in self.axes]
         else:
             new_axes = list(self.axes)
-        return self.apply("copy", axes=new_axes, deep=deep)
+        res = self.apply("copy", deep=deep)
+        res.axes = new_axes
+        return res
 
     def as_array(self, transpose=False, items=None):
         """Convert the blockmanager data into an numpy array.
