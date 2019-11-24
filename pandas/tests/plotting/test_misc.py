@@ -53,7 +53,10 @@ def test_get_accessor_args():
     assert kwargs == {"grid": False}
 
     x, y, kind, kwargs = func(
-        backend_name="pandas.plotting._matplotlib", data=Series(), args=[], kwargs={}
+        backend_name="pandas.plotting._matplotlib",
+        data=Series(dtype=object),
+        args=[],
+        kwargs={},
     )
     assert x is None
     assert y is None

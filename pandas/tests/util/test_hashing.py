@@ -207,7 +207,7 @@ def test_multiindex_objects():
         Series(["a", np.nan, "c"]),
         Series(["a", None, "c"]),
         Series([True, False, True]),
-        Series(),
+        Series(dtype=object),
         Index([1, 2, 3]),
         Index([True, False, True]),
         DataFrame({"x": ["a", "b", "c"], "y": [1, 2, 3]}),

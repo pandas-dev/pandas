@@ -565,3 +565,38 @@ def _try_cast(
         else:
             subarr = np.array(arr, dtype=object, copy=copy)
     return subarr
+
+
+# see gh-17261
+def is_empty_data(data):
+    """
+    Utility to check if a Series is instantiated with empty data
+    """
+    is_none = data is None
+    is_simple_empty = isinstance(data, (list, tuple, dict)) and not data
+    return is_none or is_simple_empty
+
+
+def create_series_with_explicit_dtype(
+    data=None,
+    index=None,
+    dtype=None,
+    name=None,
+    copy=False,
+    fastpath=False,
+    dtype_if_empty=object,
+):
+    """
+    Helper to pass an explicit dtype when instantiating an empty Series.
+
+    The signature of this function mirrors the signature of Series.__init__
+    but adds the additional keyword argument `dtype_if_empty`.
+
+    This silences a FutureWarning described in the GitHub issue
+    mentioned above.
+    """
+    from pandas.core.series import Series
+
+    if is_empty_data(data) and dtype is None:
+        dtype = dtype_if_empty
+    return Series(data, index, dtype, name, copy, fastpath)

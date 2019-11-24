@@ -37,7 +37,7 @@ class TestSeriesApply:
         assert s.name == rs.name
 
         # index but no data
-        s = Series(index=[1, 2, 3])
+        s = Series(index=[1, 2, 3], dtype=np.float64)
         rs = s.apply(lambda x: x)
         tm.assert_series_equal(s, rs)
 
@@ -340,7 +340,7 @@ class TestSeriesAggregate:
         "series, func, expected",
         chain(
             _get_cython_table_params(
-                Series(),
+                Series(dtype=np.float64),
                 [
                     ("sum", 0),
                     ("max", np.nan),
@@ -395,8 +395,11 @@ class TestSeriesAggregate:
         "series, func, expected",
         chain(
             _get_cython_table_params(
-                Series(),
-                [("cumprod", Series([], Index([]))), ("cumsum", Series([], Index([])))],
+                Series(dtype=np.float64),
+                [
+                    ("cumprod", Series([], Index([]), dtype=np.float64)),
+                    ("cumsum", Series([], Index([]), dtype=np.float64)),
+                ],
             ),
             _get_cython_table_params(
                 Series([np.nan, 1, 2, 3]),
