@@ -202,17 +202,17 @@ SQL_STRINGS = {
     },
     "create_pkey_table": {
         "sqlite": """CREATE TABLE pkey_table (
-                "A" Integer Primary Key,
-                "B" TEXT
+                "a" Integer Primary Key,
+                "b" TEXT
             )""",
         "mysql": """CREATE TABLE pkey_table (
-                `A` INTEGER,
-                `B` TEXT,
-                PRIMARY KEY (A)
+                `a` INTEGER,
+                `b` TEXT,
+                PRIMARY KEY (a)
             )""",
         "postgresql": """CREATE TABLE pkey_table (
-                "A" INTEGER PRIMARY KEY,
-                "B" TEXT
+                "a" INTEGER PRIMARY KEY,
+                "b" TEXT
             )""",
     },
     "insert_pkey_table": {
@@ -221,9 +221,9 @@ SQL_STRINGS = {
         "postgresql": """INSERT INTO pkey_table VALUES (%s, %s)""",
     },
     "read_pkey_table": {
-        "sqlite": """SELECT B FROM pkey_table WHERE A IN (?, ?)""",
-        "mysql": """SELECT B FROM pkey_table WHERE A IN (%s, %s)""",
-        "postgresql": """SELECT B FROM pkey_table WHERE A IN (%s, %s)""",
+        "sqlite": """SELECT b FROM pkey_table WHERE A IN (?, ?)""",
+        "mysql": """SELECT b FROM pkey_table WHERE A IN (%s, %s)""",
+        "postgresql": """SELECT b FROM pkey_table WHERE A IN (%s, %s)""",
     },
 }
 
@@ -435,7 +435,7 @@ class PandasSQLTest:
             )
 
     def _load_pkey_table_data(self):
-        columns = ["A", "B"]
+        columns = ["a", "b"]
         data = [(1, "new_name1"), (2, "new_name2"), (4, "name4"), (5, "name5")]
 
         self.pkey_table_frame = DataFrame(data, columns=columns)
@@ -608,7 +608,7 @@ class PandasSQLTest:
         data_from_db = [val[0] for val in duplicate_val].sort()
         data_from_df = list(
             self.pkey_table_frame.loc[
-                self.pkey_table_frame["A"].isin(duplicate_keys), "B"
+                self.pkey_table_frame["a"].isin(duplicate_keys), "b"
             ]
         ).sort()
         assert data_from_db == data_from_df
