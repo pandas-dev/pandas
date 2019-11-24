@@ -15,6 +15,7 @@ Getting started
     install
     overview
     10min
+    intro_tutorials/index
     basics
     dsintro
     comparison/index
