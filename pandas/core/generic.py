@@ -2604,7 +2604,7 @@ class NDFrame(PandasObject, SelectionMixin):
         schema : str, optional
             Specify the schema (if database flavor supports this). If None, use
             default schema.
-        if_exists : {'fail', 'replace', 'append', 'upsert_overwrite', 'upsert_keep'},
+        if_exists : {'fail', 'replace', 'append', 'upsert_overwrite', 'upsert_keep'},\
         default 'fail'
             How to behave if the table already exists.
 
