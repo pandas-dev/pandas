@@ -1,7 +1,7 @@
 from datetime import timedelta
 import operator
 from sys import getsizeof
-from typing import Union
+from typing import Optional, Union
 import warnings
 
 import numpy as np
@@ -14,7 +14,6 @@ from pandas.util._decorators import Appender, cache_readonly
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     ensure_python_int,
-    is_int64_dtype,
     is_integer,
     is_integer_dtype,
     is_list_like,
@@ -74,10 +73,10 @@ class RangeIndex(Int64Index):
 
     _typ = "rangeindex"
     _engine_type = libindex.Int64Engine
-    _range = None  # type: range
+    _range: range
 
     # check whether self._data has been called
-    _cached_data = None  # type: np.ndarray
+    _cached_data: Optional[np.ndarray] = None
     # --------------------------------------------------------------------
     # Constructors
 
@@ -164,12 +163,6 @@ class RangeIndex(Int64Index):
         return result
 
     # --------------------------------------------------------------------
-
-    @staticmethod
-    def _validate_dtype(dtype):
-        """ require dtype to be None or int64 """
-        if not (dtype is None or is_int64_dtype(dtype)):
-            raise TypeError("Invalid to pass a non-int64 dtype to RangeIndex")
 
     @cache_readonly
     def _constructor(self):
@@ -661,7 +654,7 @@ class RangeIndex(Int64Index):
         non_empty_indexes = [obj for obj in indexes if len(obj)]
 
         for obj in non_empty_indexes:
-            rng = obj._range  # type: range
+            rng: range = obj._range
 
             if start is None:
                 # This is set by the first non-empty index

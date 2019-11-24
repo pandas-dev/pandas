@@ -177,7 +177,7 @@ pandas is equipped with an exhaustive set of unit tests, covering about 97% of
 the code base as of this writing. To run it on your machine to verify that
 everything is working (and that you have all of the dependencies, soft and hard,
 installed), make sure you have `pytest
-<http://docs.pytest.org/en/latest/>`__ >= 4.0.2 and `Hypothesis
+<http://docs.pytest.org/en/latest/>`__ >= 5.0.1 and `Hypothesis
 <https://hypothesis.readthedocs.io/>`__ >= 3.58, then run:
 
 ::
@@ -250,7 +250,7 @@ SQLAlchemy                1.1.4              SQL support for databases other tha
 SciPy                     0.19.0             Miscellaneous statistical functions
 XLsxWriter                0.9.8              Excel writing
 blosc                                        Compression for msgpack
-fastparquet               0.2.1              Parquet reading / writing
+fastparquet               0.3.2              Parquet reading / writing
 gcsfs                     0.2.2              Google Cloud Storage access
 html5lib                                     HTML parser for read_html (see :ref:`note <optional_html>`)
 lxml                      3.8.0              HTML parser for read_html (see :ref:`note <optional_html>`)

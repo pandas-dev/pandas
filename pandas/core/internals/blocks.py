@@ -251,21 +251,13 @@ class Block(PandasObject):
 
         return make_block(values, placement=placement, ndim=self.ndim)
 
-    def make_block_same_class(self, values, placement=None, ndim=None, dtype=None):
+    def make_block_same_class(self, values, placement=None, ndim=None):
         """ Wrap given values in a block of same type as self. """
-        if dtype is not None:
-            # issue 19431 fastparquet is passing this
-            warnings.warn(
-                "dtype argument is deprecated, will be removed in a future release.",
-                FutureWarning,
-            )
         if placement is None:
             placement = self.mgr_locs
         if ndim is None:
             ndim = self.ndim
-        return make_block(
-            values, placement=placement, ndim=ndim, klass=self.__class__, dtype=dtype
-        )
+        return make_block(values, placement=placement, ndim=ndim, klass=self.__class__)
 
     def __repr__(self) -> str:
         # don't want to print out all of the items here
@@ -2825,6 +2817,8 @@ class ObjectBlock(Block):
             if convert:
                 block = [b.convert(numeric=False, copy=True) for b in block]
             return block
+        if convert:
+            return [self.convert(numeric=False, copy=True)]
         return self
 
 
@@ -2999,7 +2993,7 @@ def get_block_type(values, dtype=None):
     return cls
 
 
-def make_block(values, placement, klass=None, ndim=None, dtype=None, fastpath=None):
+def make_block(values, placement, klass=None, ndim=None, dtype=None):
     # Ensure that we don't allow PandasArray / PandasDtype in internals.
     # For now, blocks should be backed by ndarrays when possible.
     if isinstance(values, ABCPandasArray):
@@ -3010,12 +3004,6 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None, fastpath=No
     if isinstance(dtype, PandasDtype):
         dtype = dtype.numpy_dtype
 
-    if fastpath is not None:
-        # GH#19265 pyarrow is passing this
-        warnings.warn(
-            "fastpath argument is deprecated, will be removed in a future release.",
-            FutureWarning,
-        )
     if klass is None:
         dtype = dtype or values.dtype
         klass = get_block_type(values, dtype)
