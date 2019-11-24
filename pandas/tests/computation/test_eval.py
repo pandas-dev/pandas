@@ -2007,6 +2007,7 @@ def test_inf(engine, parser):
 
 
 def test_truediv_deprecated(engine, parser):
+    # GH#29182
     match = "The `truediv` parameter in pd.eval is deprecated"
 
     with tm.assert_produces_warning(FutureWarning) as m:
