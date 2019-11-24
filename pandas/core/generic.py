@@ -2604,12 +2604,15 @@ class NDFrame(PandasObject, SelectionMixin):
         schema : str, optional
             Specify the schema (if database flavor supports this). If None, use
             default schema.
-        if_exists : {'fail', 'replace', 'append'}, default 'fail'
+        if_exists : {'fail', 'replace', 'append', 'upsert_overwrite', 'upsert_keep'},
+        default 'fail'
             How to behave if the table already exists.
 
             * fail: Raise a ValueError.
             * replace: Drop the table before inserting new values.
             * append: Insert new values to the existing table.
+            * upsert_overwrite: Overwrite matches in database with incoming data.
+            * upsert_keep: Keep matches in database instead of incoming data.
 
         index : bool, default True
             Write DataFrame index as a column. Uses `index_label` as the column

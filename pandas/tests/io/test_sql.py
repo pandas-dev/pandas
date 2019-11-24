@@ -220,6 +220,11 @@ SQL_STRINGS = {
         "mysql": """INSERT INTO pkey_table VALUES (%s, %s)""",
         "postgresql": """INSERT INTO pkey_table VALUES (%s, %s)""",
     },
+    "read_pkey_table": {
+        "sqlite": """SELECT B FROM pkey_table WHERE A IN (?, ?)""",
+        "mysql": """SELECT B FROM pkey_table WHERE A IN (%s, %s)""",
+        "postgresql": """SELECT B FROM pkey_table WHERE A IN (%s, %s)""",
+    },
 }
 
 
@@ -540,7 +545,7 @@ class PandasSQLTest:
         # Nuke table
         self.drop_table("test_frame1")
 
-    def _to_sql_upsert_ignore(self):
+    def _to_sql_upsert_keep(self):
         """
         Original table: 3 rows
         pkey_table_frame: 4 rows (2 duplicate  keys)
@@ -558,13 +563,13 @@ class PandasSQLTest:
         assert self._count_rows("pkey_table") == 3
         # Insert new dataframe
         self.pandasSQL.to_sql(
-            self.pkey_table_frame, "pkey_table", if_exists="upsert_ignore", index=False
+            self.pkey_table_frame, "pkey_table", if_exists="upsert_keep", index=False
         )
         # Check table len correct
         assert self._count_rows("pkey_table") == 5
         # Check original DB values maintained for duplicate keys
         duplicate_keys = [1, 2]
-        duplicate_key_query = """SELECT B FROM pkey_table WHERE A IN (?, ?)"""
+        duplicate_key_query = SQL_STRINGS["read_pkey_table"][self.flavor]
         duplicate_val = self._get_exec().execute(duplicate_key_query, duplicate_keys)
         data_from_db = [val[0] for val in duplicate_val].sort()
         expected = ["name1", "name2"].sort()
@@ -572,7 +577,7 @@ class PandasSQLTest:
         # Finally, confirm that duplicate values are not removed from original df object
         assert len(self.pkey_table_frame.index) == 4
 
-    def _to_sql_upsert_delete(self):
+    def _to_sql_upsert_overwrite(self):
         """
         Original table: 3 rows
         pkey_table_frame: 4 rows (2 duplicate keys)
@@ -589,13 +594,16 @@ class PandasSQLTest:
         assert self._count_rows("pkey_table") == 3
         # Insert new dataframe
         self.pandasSQL.to_sql(
-            self.pkey_table_frame, "pkey_table", if_exists="upsert_delete", index=False
+            self.pkey_table_frame,
+            "pkey_table",
+            if_exists="upsert_overwrite",
+            index=False,
         )
         # Check table len correct
         assert self._count_rows("pkey_table") == 5
         # Check original DB values maintained for duplicate keys
         duplicate_keys = [1, 2]
-        duplicate_key_query = """SELECT B FROM pkey_table WHERE A IN (?, ?)"""
+        duplicate_key_query = SQL_STRINGS["read_pkey_table"][self.flavor]
         duplicate_val = self._get_exec().execute(duplicate_key_query, duplicate_keys)
         data_from_db = [val[0] for val in duplicate_val].sort()
         data_from_df = list(
@@ -679,7 +687,7 @@ class _TestSQLApi(PandasSQLTest):
     """
 
     flavor = "sqlite"
-    mode: str
+    mode = None  # type: str
 
     def setup_connect(self):
         self.conn = self.connect()
@@ -1331,7 +1339,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     """
 
-    flavor: str
+    flavor = None  # type: str
 
     @pytest.fixture(autouse=True, scope="class")
     def setup_class(cls):
@@ -1402,11 +1410,11 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def test_to_sql_method_callable(self):
         self._to_sql_method_callable()
 
-    def test_to_sql_upsert_ignore(self):
-        self._to_sql_upsert_ignore()
+    def test_to_sql_upsert_keep(self):
+        self._to_sql_upsert_keep()
 
-    def test_to_sql_upsert_delete(self):
-        self._to_sql_upsert_delete()
+    def test_to_sql_upsert_overwrite(self):
+        self._to_sql_upsert_overwrite()
 
     def test_create_table(self):
         temp_conn = self.connect()

@@ -467,15 +467,15 @@ def to_sql(
     schema : str, optional
         Name of SQL schema in database to write to (if database flavor
         supports this). If None, use default schema (default).
-    if_exists : {'fail', 'replace', 'append', 'upsert_delete', 'upsert_ignore'},
+    if_exists : {'fail', 'replace', 'append', 'upsert_overwrite', 'upsert_keep'},
         default 'fail'.
         - fail: If table exists, do nothing.
         - replace: If table exists, drop it, recreate it, and insert data.
         - append: If table exists, insert data. Create if does not exist.
-        - upsert_ignore: If table exists, perform an UPSERT (based on primary keys),
-                prioritising records already in the database over incoming duplicates.
-        - upsert_delete: If table exists, perform an UPSERT (based on primary keys),
+        - upsert_overwrite: If table exists, perform an UPSERT (based on primary keys),
                 prioritising incoming records over duplicates already in the database.
+        - upsert_keep: If table exists, perform an UPSERT (based on primary keys),
+                prioritising records already in the database over incoming duplicates.
     index : boolean, default True
         Write DataFrame index as a column.
     index_label : str or sequence, optional
@@ -502,7 +502,13 @@ def to_sql(
 
         .. versionadded:: 0.24.0
     """
-    if if_exists not in ("fail", "replace", "append", "upsert_ignore", "upsert_delete"):
+    if if_exists not in (
+        "fail",
+        "replace",
+        "append",
+        "upsert_keep",
+        "upsert_overwrite",
+    ):
         raise ValueError("'{0}' is not valid for if_exists".format(if_exists))
 
     pandas_sql = pandasSQL_builder(con, schema=schema)
@@ -654,11 +660,7 @@ class SQLTable(PandasObject):
             elif self.if_exists == "replace":
                 self.pd_sql.drop_table(self.name, self.schema)
                 self._execute_create()
-            elif self.if_exists == "append":
-                pass
-            elif self.if_exists == "upsert_delete":
-                pass
-            elif self.if_exists == "upsert_ignore":
+            elif self.if_exists in {"append", "upsert_overwrite", "upsert_keep"}:
                 pass
             else:
                 raise ValueError(
@@ -667,11 +669,11 @@ class SQLTable(PandasObject):
         else:
             self._execute_create()
 
-    def _upsert_delete_processing(self):
+    def _upsert_overwrite_processing(self):
         """
         Generate delete statement for rows with clashing primary key from database.
 
-        `upsert_delete` prioritizes incoming data, over existing data in the DB.
+        `upsert_overwrite` prioritizes incoming data, over existing data in the DB.
         This method generates the Delete statement for duplicate rows,
         which is to be executed in the same transaction as the ensuing data insert.
 
@@ -690,11 +692,11 @@ class SQLTable(PandasObject):
         )
         return delete_statement
 
-    def _upsert_ignore_processing(self):
+    def _upsert_keep_processing(self):
         """
         Delete clashing values from a copy of the incoming dataframe.
 
-        `upsert_ignore` prioritizes data in DB over incoming data.
+        `upsert_keep` prioritizes data in DB over incoming data.
         This method creates a copy of the incoming dataframe,
         fetches matching data from DB, deletes matching data from copied frame,
         and returns that frame to be inserted.
@@ -849,11 +851,11 @@ class SQLTable(PandasObject):
         Determines what data to pass to the underlying insert method.
         """
         with self.pd_sql.run_transaction() as trans:
-            if self.if_exists == "upsert_ignore":
-                data = self._upsert_ignore_processing()
+            if self.if_exists == "upsert_keep":
+                data = self._upsert_keep_processing()
                 self._insert(data=data, chunksize=chunksize, method=method, conn=trans)
-            elif self.if_exists == "upsert_delete":
-                delete_statement = self._upsert_delete_processing()
+            elif self.if_exists == "upsert_overwrite":
+                delete_statement = self._upsert_overwrite_processing()
                 trans.execute(delete_statement)
                 self._insert(chunksize=chunksize, method=method, conn=trans)
             else:
@@ -1401,10 +1403,15 @@ class SQLDatabase(PandasSQL):
         frame : DataFrame
         name : string
             Name of SQL table.
-        if_exists : {'fail', 'replace', 'append'}, default 'fail'
-            - fail: If table exists, do nothing.
-            - replace: If table exists, drop it, recreate it, and insert data.
-            - append: If table exists, insert data. Create if does not exist.
+        if_exists : {'fail', 'replace', 'append', 'upsert_overwrite', 'upsert_keep'},
+        default 'fail'.
+        - fail: If table exists, do nothing.
+        - replace: If table exRsts, drop it, recreate it, and insert data.
+        - append: If table exists, insert data. Create if does not exist.
+        - upsert_overwrite: If table exists, perform an UPSERT (based on primary keys),
+                prioritising incoming records over duplicates already in the database.
+        - upsert_keep: If table exists, perform an UPSERT (based on primary keys),
+                prioritising records already in the database over incoming duplicates.
         index : boolean, default True
             Write DataFrame index as a column.
         index_label : string or sequence, default None
