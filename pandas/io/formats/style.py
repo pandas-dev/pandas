@@ -133,8 +133,8 @@ class Styler:
         cell_ids=True,
         na_rep: Optional[str] = None,
     ):
-        self.ctx = defaultdict(list)  # type: DefaultDict[Tuple[int, int], List[str]]
-        self._todo = []  # type: List[Tuple[Callable, Tuple, Dict]]
+        self.ctx: DefaultDict[Tuple[int, int], List[str]] = defaultdict(list)
+        self._todo: List[Tuple[Callable, Tuple, Dict]] = []
 
         if not isinstance(data, (pd.Series, pd.DataFrame)):
             raise TypeError("``data`` must be a Series or DataFrame")
@@ -155,7 +155,7 @@ class Styler:
         self.precision = precision
         self.table_attributes = table_attributes
         self.hidden_index = False
-        self.hidden_columns = []  # type: Sequence[int]
+        self.hidden_columns: Sequence[int] = []
         self.cell_ids = cell_ids
         self.na_rep = na_rep
 
@@ -170,9 +170,9 @@ class Styler:
             else:
                 return x
 
-        self._display_funcs = defaultdict(
-            lambda: default_display_func
-        )  # type: DefaultDict[Tuple[int, int], Callable[[Any], str]]
+        self._display_funcs: DefaultDict[
+            Tuple[int, int], Callable[[Any], str]
+        ] = defaultdict(lambda: default_display_func)
 
     def _repr_html_(self):
         """
