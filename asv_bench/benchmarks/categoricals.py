@@ -14,21 +14,6 @@ except ImportError:
         pass
 
 
-class Concat:
-    def setup(self):
-        N = 10 ** 5
-        self.s = pd.Series(list("aabbcd") * N).astype("category")
-
-        self.a = pd.Categorical(list("aabbcd") * N)
-        self.b = pd.Categorical(list("bbcdjk") * N)
-
-    def time_concat(self):
-        pd.concat([self.s, self.s])
-
-    def time_union(self):
-        union_categoricals([self.a, self.b])
-
-
 class Constructor:
     def setup(self):
         N = 10 ** 5
@@ -75,6 +60,33 @@ class Constructor:
 
     def time_existing_series(self):
         pd.Categorical(self.series)
+
+
+class CategoricalOps:
+    params = ["__lt__", "__le__", "__eq__", "__ne__", "__ge__", "__gt__"]
+    param_names = ["op"]
+
+    def setup(self, op):
+        N = 10 ** 5
+        self.cat = pd.Categorical(list("aabbcd") * N, ordered=True)
+
+    def time_categorical_op(self, op):
+        getattr(self.cat, op)("b")
+
+
+class Concat:
+    def setup(self):
+        N = 10 ** 5
+        self.s = pd.Series(list("aabbcd") * N).astype("category")
+
+        self.a = pd.Categorical(list("aabbcd") * N)
+        self.b = pd.Categorical(list("bbcdjk") * N)
+
+    def time_concat(self):
+        pd.concat([self.s, self.s])
+
+    def time_union(self):
+        union_categoricals([self.a, self.b])
 
 
 class ValueCounts:
