@@ -7645,6 +7645,17 @@ class DataFrame(NDFrame):
                 filter_type=filter_type,
                 **kwds,
             )
+        elif numeric_only is True and axis == 1:
+            data = _get_data(axis_matters=True)
+            return data.T._reduce(
+                op,
+                name,
+                axis=0,
+                skipna=skipna,
+                numeric_only=False,
+                filter_type=filter_type,
+                **kwds,
+            )
 
         if numeric_only is None:
             values = self.values
