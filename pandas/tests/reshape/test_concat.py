@@ -2774,5 +2774,5 @@ def test_concat_datetimeindex_freq():
     # Non-monotonic index result
     result = pd.concat([expected[50:], expected[:50]])
     expected = pd.DataFrame(data[50:] + data[:50], index=dr[50:].append(dr[:50]))
-    expected.index.freq = None
+    expected.index._data.freq = None
     tm.assert_frame_equal(result, expected)
