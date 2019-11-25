@@ -58,7 +58,7 @@ consists of the following data columns:
     </ul>
     </div>
 
-How do I select a subset of data in a ``DataFrame``?
+How do I select a subset of a ``DataFrame``?
 ====================================================
 
 How do I select specific columns from a ``DataFrame``?
