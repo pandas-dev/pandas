@@ -343,6 +343,50 @@ class BlockManager(PandasObject):
                 "tot_items: {1}".format(len(self.items), tot_items)
             )
 
+    def reduce(self, func, *args, **kwargs):
+        # If 2D, we assume that we're operating column-wise
+        if self.ndim == 1:
+            # we'll be returning a scalar
+            blk = self.blocks[0]
+            return func(blk.values, *args, **kwargs)
+
+        res = {}
+        for blk in self.blocks:
+            bres = func(blk.values, *args, **kwargs)
+            if np.ndim(bres) == 0 and blk.shape[0] != 1:
+                # i.e. we reduced over all axes and not just one; re-do column-wise
+                new_res = {
+                    blk.mgr_locs.as_array[i]: func(blk.values[i], *args, **kwargs)
+                    for i in range(len(blk.values))
+                }
+            elif np.ndim(bres) == 0:
+                # EA
+                assert blk.shape[0] == 1, (
+                    blk.shape,
+                    blk.values.dtype,
+                    bres,
+                    func,
+                    args,
+                    kwargs,
+                )
+                new_res = zip(blk.mgr_locs.as_array, [bres])
+            else:
+                assert bres.ndim == 1, bres.shape
+                assert blk.shape[0] == len(bres), (
+                    blk.shape,
+                    bres.shape,
+                    func,
+                    args,
+                    kwargs,
+                )
+                new_res = zip(blk.mgr_locs.as_array, bres)
+
+            nr = dict(new_res)
+            assert not any(key in res for key in nr)
+            res.update(nr)
+
+        return res
+
     def apply(
         self,
         f,
