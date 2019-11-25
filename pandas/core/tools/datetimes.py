@@ -1,6 +1,7 @@
 from collections import abc
 from datetime import datetime, time
 from functools import partial
+from itertools import islice
 from typing import Optional, TypeVar, Union
 
 import numpy as np
@@ -111,7 +112,7 @@ def should_cache(
 
     assert 0 < unique_share < 1, "unique_share must be in next bounds: (0; 1)"
 
-    unique_elements = unique(arg[:check_count])
+    unique_elements = set(islice(arg, check_count))
     if len(unique_elements) > check_count * unique_share:
         do_caching = False
     return do_caching
