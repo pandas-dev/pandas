@@ -18,11 +18,8 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     _NS_DTYPE,
-    is_datetimelike_v_numeric,
     is_extension_array_dtype,
-    is_extension_type,
     is_list_like,
-    is_numeric_v_string_like,
     is_scalar,
     is_sparse,
 )
@@ -82,7 +79,6 @@ class BlockManager(PandasObject):
     copy(deep=True)
 
     get_dtype_counts
-    get_ftype_counts
     get_dtypes
     get_ftypes
 
@@ -130,7 +126,7 @@ class BlockManager(PandasObject):
         do_integrity_check: bool = True,
     ):
         self.axes = [ensure_index(ax) for ax in axes]
-        self.blocks = tuple(blocks)  # type: Tuple[Block, ...]
+        self.blocks: Tuple[Block, ...] = tuple(blocks)
 
         for block in blocks:
             if self.ndim != block.ndim:
@@ -169,7 +165,7 @@ class BlockManager(PandasObject):
         return tuple(len(ax) for ax in self.axes)
 
     @property
-    def ndim(self):
+    def ndim(self) -> int:
         return len(self.axes)
 
     def set_axis(self, axis, new_labels):
@@ -249,9 +245,6 @@ class BlockManager(PandasObject):
     def get_dtype_counts(self):
         return self._get_counts(lambda b: b.dtype.name)
 
-    def get_ftype_counts(self):
-        return self._get_counts(lambda b: b.ftype)
-
     def get_dtypes(self):
         dtypes = np.array([blk.dtype for blk in self.blocks])
         return algos.take_1d(dtypes, self._blknos, allow_fill=False)
@@ -263,7 +256,7 @@ class BlockManager(PandasObject):
     def __getstate__(self):
         block_values = [b.values for b in self.blocks]
         block_items = [self.items[b.mgr_locs.indexer] for b in self.blocks]
-        axes_array = [ax for ax in self.axes]
+        axes_array = list(self.axes)
 
         extra_state = {
             "0.14.1": {
@@ -322,10 +315,10 @@ class BlockManager(PandasObject):
         self._known_consolidated = False
         self._rebuild_blknos_and_blklocs()
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.items)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         output = pprint_thing(self.__class__.__name__)
         for i, ax in enumerate(self.axes):
             if i == 0:
@@ -357,7 +350,7 @@ class BlockManager(PandasObject):
         filter=None,
         do_integrity_check=False,
         consolidate=True,
-        **kwargs
+        **kwargs,
     ):
         """
         iterate over the blocks, collect and create a new block manager
@@ -432,7 +425,7 @@ class BlockManager(PandasObject):
                 b_items = self.items[b.mgr_locs.indexer]
 
                 for k, obj in aligned_args.items():
-                    axis = getattr(obj, "_info_axis_number", 0)
+                    axis = obj._info_axis_number
                     kwargs[k] = obj.reindex(b_items, axis=axis, copy=align_copy)
 
             applied = getattr(b, f)(**kwargs)
@@ -632,7 +625,7 @@ class BlockManager(PandasObject):
                         convert=convert,
                         regex=regex,
                     )
-                    if m.any():
+                    if m.any() or convert:
                         new_rb = _extend_blocks(result, new_rb)
                     else:
                         new_rb.append(b)
@@ -1034,11 +1027,7 @@ class BlockManager(PandasObject):
         # FIXME: refactor, clearly separate broadcasting & zip-like assignment
         #        can prob also fix the various if tests for sparse/categorical
 
-        # TODO(EA): Remove an is_extension_ when all extension types satisfy
-        # the interface
-        value_is_extension_type = is_extension_type(value) or is_extension_array_dtype(
-            value
-        )
+        value_is_extension_type = is_extension_array_dtype(value)
 
         # categorical/sparse/datetimetz
         if value_is_extension_type:
@@ -1276,7 +1265,6 @@ class BlockManager(PandasObject):
         Returns
         -------
         new_blocks : list of Block
-
         """
 
         allow_fill = fill_tuple is not None
@@ -1402,12 +1390,12 @@ class BlockManager(PandasObject):
         if len(self.blocks) != len(other.blocks):
             return False
 
-        # canonicalize block order, using a tuple combining the type
-        # name and then mgr_locs because there might be unconsolidated
+        # canonicalize block order, using a tuple combining the mgr_locs
+        # then type name because there might be unconsolidated
         # blocks (say, Categorical) which can only be distinguished by
         # the iteration order
         def canonicalize(block):
-            return (block.dtype.name, block.mgr_locs.as_array.tolist())
+            return (block.mgr_locs.as_array.tolist(), block.dtype.name)
 
         self_blocks = sorted(self.blocks, key=canonicalize)
         other_blocks = sorted(other.blocks, key=canonicalize)
@@ -1562,9 +1550,6 @@ class SingleBlockManager(BlockManager):
 
     def get_dtype_counts(self):
         return {self.dtype.name: 1}
-
-    def get_ftype_counts(self):
-        return {self.ftype: 1}
 
     def get_dtypes(self):
         return np.array([self._block.dtype])
@@ -1868,7 +1853,7 @@ def _stack_arrays(tuples, dtype):
 
 
 def _interleaved_dtype(
-    blocks: List[Block]
+    blocks: List[Block],
 ) -> Optional[Union[np.dtype, ExtensionDtype]]:
     """Find the common dtype for `blocks`.
 
@@ -1932,15 +1917,7 @@ def _compare_or_regex_search(a, b, regex=False):
     is_a_array = isinstance(a, np.ndarray)
     is_b_array = isinstance(b, np.ndarray)
 
-    # numpy deprecation warning to have i8 vs integer comparisons
-    if is_datetimelike_v_numeric(a, b):
-        result = False
-
-    # numpy deprecation warning if comparing numeric vs string-like
-    elif is_numeric_v_string_like(a, b):
-        result = False
-    else:
-        result = op(a)
+    result = op(a)
 
     if is_scalar(result) and (is_a_array or is_b_array):
         type_names = [type(a).__name__, type(b).__name__]

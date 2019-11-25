@@ -47,7 +47,7 @@ class NotThisMethod(Exception):
     pass
 
 
-HANDLERS = {}  # type: Dict[str, Dict[str, Callable]]
+HANDLERS: Dict[str, Dict[str, Callable]] = {}
 
 
 def register_vcs_handler(vcs: str, method: str) -> Callable:  # decorator

@@ -94,7 +94,7 @@ cdef class IntervalMixin:
     @property
     def mid(self):
         """
-        Return the midpoint of the Interval
+        Return the midpoint of the Interval.
         """
         try:
             return 0.5 * (self.left + self.right)
@@ -104,7 +104,9 @@ cdef class IntervalMixin:
 
     @property
     def length(self):
-        """Return the length of the Interval"""
+        """
+        Return the length of the Interval.
+        """
         return self.right - self.left
 
     @property
@@ -177,8 +179,8 @@ cdef class IntervalMixin:
             When `other` is not closed exactly the same as self.
         """
         if self.closed != other.closed:
-            msg = "'{}.closed' is '{}', expected '{}'."
-            raise ValueError(msg.format(name, other.closed, self.closed))
+            msg = f"'{name}.closed' is '{other.closed}', expected '{self.closed}'."
+            raise ValueError(msg)
 
 
 cdef _interval_like(other):
@@ -283,15 +285,19 @@ cdef class Interval(IntervalMixin):
     _typ = "interval"
 
     cdef readonly object left
-    """Left bound for the interval"""
+    """
+    Left bound for the interval.
+    """
 
     cdef readonly object right
-    """Right bound for the interval"""
+    """
+    Right bound for the interval.
+    """
 
     cdef readonly str closed
     """
     Whether the interval is closed on the left-side, right-side, both or
-    neither
+    neither.
     """
 
     def __init__(self, left, right, str closed='right'):
@@ -302,17 +308,16 @@ cdef class Interval(IntervalMixin):
         self._validate_endpoint(right)
 
         if closed not in _VALID_CLOSED:
-            msg = "invalid option for 'closed': {closed}".format(closed=closed)
+            msg = f"invalid option for 'closed': {closed}"
             raise ValueError(msg)
         if not left <= right:
             raise ValueError('left side of interval must be <= right side')
         if (isinstance(left, Timestamp) and
                 not tz_compare(left.tzinfo, right.tzinfo)):
             # GH 18538
-            msg = ("left and right must have the same time zone, got "
-                   "'{left_tz}' and '{right_tz}'")
-            raise ValueError(msg.format(left_tz=left.tzinfo,
-                                        right_tz=right.tzinfo))
+            msg = (f"left and right must have the same time zone, got "
+                   f"'{left.tzinfo}' and '{right.tzinfo}'")
+            raise ValueError(msg)
         self.left = left
         self.right = right
         self.closed = closed
@@ -353,8 +358,7 @@ cdef class Interval(IntervalMixin):
             name = type(self).__name__
             other = type(other).__name__
             op_str = {Py_LT: '<', Py_LE: '<=', Py_GT: '>', Py_GE: '>='}[op]
-            raise TypeError('unorderable types: {name}() {op} {other}()'
-                            .format(name=name, op=op_str, other=other))
+            raise TypeError(f'unorderable types: {name}() {op_str} {other}()')
 
     def __reduce__(self):
         args = (self.left, self.right, self.closed)
@@ -371,21 +375,19 @@ cdef class Interval(IntervalMixin):
 
         return left, right
 
-    def __repr__(self):
+    def __repr__(self) -> str:
 
         left, right = self._repr_base()
         name = type(self).__name__
-        repr_str = '{name}({left!r}, {right!r}, closed={closed!r})'.format(
-            name=name, left=left, right=right, closed=self.closed)
+        repr_str = f'{name}({left!r}, {right!r}, closed={self.closed!r})'
         return repr_str
 
-    def __str__(self):
+    def __str__(self) -> str:
 
         left, right = self._repr_base()
         start_symbol = '[' if self.closed_left else '('
         end_symbol = ']' if self.closed_right else ')'
-        return '{start}{left}, {right}{end}'.format(
-            start=start_symbol, left=left, right=right, end=end_symbol)
+        return f'{start_symbol}{left}, {right}{end_symbol}'
 
     def __add__(self, y):
         if isinstance(y, numbers.Number):
@@ -471,8 +473,8 @@ cdef class Interval(IntervalMixin):
         False
         """
         if not isinstance(other, Interval):
-            msg = '`other` must be an Interval, got {other}'
-            raise TypeError(msg.format(other=type(other).__name__))
+            msg = f'`other` must be an Interval, got {type(other).__name__}'
+            raise TypeError(msg)
 
         # equality is okay if both endpoints are closed (overlap at a point)
         op1 = le if (self.closed_left and other.closed_right) else lt
@@ -523,8 +525,8 @@ def intervals_to_interval_bounds(ndarray intervals,
             continue
 
         if not isinstance(interval, Interval):
-            raise TypeError("type {typ} with value {iv} is not an interval"
-                            .format(typ=type(interval), iv=interval))
+            raise TypeError(f"type {type(interval)} with value "
+                            f"{interval} is not an interval")
 
         left[i] = interval.left
         right[i] = interval.right

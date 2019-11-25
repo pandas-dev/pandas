@@ -11,7 +11,7 @@ from pandas._libs import NaT, iNaT, lib
 from pandas._libs.algos import unique_deltas
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import Appender, cache_readonly, deprecate_kwarg
+from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -27,7 +27,7 @@ from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 
 from pandas.core import algorithms, ops
 from pandas.core.accessor import PandasDelegate
-from pandas.core.arrays import ExtensionOpsMixin
+from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
 from pandas.core.arrays.datetimelike import (
     DatetimeLikeArrayMixin,
     _ensure_datetimelike_to_i8,
@@ -36,7 +36,6 @@ import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.tools.timedeltas import to_timedelta
 
-import pandas.io.formats.printing as printing
 from pandas.tseries.frequencies import to_offset
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -78,7 +77,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     common ops mixin to support a unified interface datetimelike Index
     """
 
-    _data = None
+    _data: ExtensionArray
 
     # DatetimeLikeArrayMixin assumes subclasses are mutable, so these are
     # properties there.  They can be made into cache_readonly for Index
@@ -148,7 +147,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         return wrapper
 
     @property
-    def _ndarray_values(self):
+    def _ndarray_values(self) -> np.ndarray:
         return self._data._ndarray_values
 
     # ------------------------------------------------------------------------
@@ -496,7 +495,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             if attrib == "freq":
                 freq = self.freqstr
                 if freq is not None:
-                    freq = "'%s'" % freq
+                    freq = f"{freq!r}"
                 attrs.append(("freq", freq))
         return attrs
 
@@ -686,17 +685,13 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         """
         formatter = self._formatter_func
         if len(self) > 0:
-            index_summary = ", %s to %s" % (formatter(self[0]), formatter(self[-1]))
+            index_summary = f", {formatter(self[0])} to {formatter(self[-1])}"
         else:
             index_summary = ""
 
         if name is None:
             name = type(self).__name__
-        result = "%s: %s entries%s" % (
-            printing.pprint_thing(name),
-            len(self),
-            index_summary,
-        )
+        result = f"{name}: {len(self)} entries{index_summary}"
         if self.freq:
             result += "\nFreq: %s" % self.freqstr
 
@@ -737,8 +732,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         #  _data.astype call above
         return Index(new_values, dtype=new_values.dtype, name=self.name, copy=False)
 
-    @deprecate_kwarg(old_arg_name="n", new_arg_name="periods")
-    def shift(self, periods, freq=None):
+    def shift(self, periods=1, freq=None):
         """
         Shift index by desired number of time frequency increments.
 
@@ -747,7 +741,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
         Parameters
         ----------
-        periods : int
+        periods : int, default 1
             Number of periods (or increments) to shift by,
             can be positive or negative.
 
@@ -832,11 +826,11 @@ class DatetimelikeDelegateMixin(PandasDelegate):
     """
 
     # raw_methods : dispatch methods that shouldn't be boxed in an Index
-    _raw_methods = set()  # type: Set[str]
+    _raw_methods: Set[str] = set()
     # raw_properties : dispatch properties that shouldn't be boxed in an Index
-    _raw_properties = set()  # type: Set[str]
+    _raw_properties: Set[str] = set()
     name = None
-    _data = None
+    _data: ExtensionArray
 
     @property
     def _delegate_class(self):

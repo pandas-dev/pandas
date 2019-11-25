@@ -1227,7 +1227,7 @@ def period_format(int64_t value, int freq, object fmt=None):
         elif freq_group == 12000:  # NANOSEC
             fmt = b'%Y-%m-%d %H:%M:%S.%n'
         else:
-            raise ValueError('Unknown freq: {freq}'.format(freq=freq))
+            raise ValueError(f'Unknown freq: {freq}')
 
     return _period_strftime(value, freq, fmt)
 
@@ -1273,17 +1273,17 @@ cdef object _period_strftime(int64_t value, int freq, object fmt):
                 raise ValueError('Unable to get quarter and year')
 
             if i == 0:
-                repl = '%d' % quarter
+                repl = str(quarter)
             elif i == 1:  # %f, 2-digit year
-                repl = '%.2d' % (year % 100)
+                repl = f'{(year % 100):02d}'
             elif i == 2:
-                repl = '%d' % year
+                repl = str(year)
             elif i == 3:
-                repl = '%03d' % (value % 1000)
+                repl = f'{(value % 1_000):03d}'
             elif i == 4:
-                repl = '%06d' % (value % 1000000)
+                repl = f'{(value % 1_000_000):06d}'
             elif i == 5:
-                repl = '%09d' % (value % 1000000000)
+                repl = f'{(value % 1_000_000_000):09d}'
 
             result = result.replace(str_extra_fmts[i], repl)
 
@@ -1391,7 +1391,7 @@ def get_period_field_arr(int code, int64_t[:] arr, int freq):
 
     func = _get_accessor_func(code)
     if func is NULL:
-        raise ValueError('Unrecognized period code: {code}'.format(code=code))
+        raise ValueError(f'Unrecognized period code: {code}')
 
     sz = len(arr)
     out = np.empty(sz, dtype=np.int64)
@@ -1578,9 +1578,8 @@ cdef class _Period:
         freq = to_offset(freq)
 
         if freq.n <= 0:
-            raise ValueError('Frequency must be positive, because it'
-                             ' represents span: {freqstr}'
-                             .format(freqstr=freq.freqstr))
+            raise ValueError(f'Frequency must be positive, because it '
+                             f'represents span: {freq.freqstr}')
 
         return freq
 
@@ -1614,9 +1613,8 @@ cdef class _Period:
                 return NotImplemented
             elif op == Py_NE:
                 return NotImplemented
-            raise TypeError('Cannot compare type {cls} with type {typ}'
-                            .format(cls=type(self).__name__,
-                                    typ=type(other).__name__))
+            raise TypeError(f'Cannot compare type {type(self).__name__} '
+                            f'with type {type(other).__name__}')
 
     def __hash__(self):
         return hash((self.ordinal, self.freqstr))
@@ -1634,8 +1632,8 @@ cdef class _Period:
                 if nanos % offset_nanos == 0:
                     ordinal = self.ordinal + (nanos // offset_nanos)
                     return Period(ordinal=ordinal, freq=self.freq)
-            msg = 'Input cannot be converted to Period(freq={0})'
-            raise IncompatibleFrequency(msg.format(self.freqstr))
+            raise IncompatibleFrequency(f'Input cannot be converted to '
+                                        f'Period(freq={self.freqstr})')
         elif util.is_offset_object(other):
             freqstr = other.rule_code
             base = get_base_alias(freqstr)
@@ -1665,9 +1663,8 @@ cdef class _Period:
                 # GH#17983
                 sname = type(self).__name__
                 oname = type(other).__name__
-                raise TypeError("unsupported operand type(s) for +: '{self}' "
-                                "and '{other}'".format(self=sname,
-                                                       other=oname))
+                raise TypeError(f"unsupported operand type(s) for +: '{sname}' "
+                                f"and '{oname}'")
             else:  # pragma: no cover
                 return NotImplemented
         elif is_period_object(other):
@@ -2215,18 +2212,18 @@ cdef class _Period:
     def freqstr(self):
         return self.freq.freqstr
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         base, mult = get_freq_code(self.freq)
         formatted = period_format(self.ordinal, base)
-        return "Period('%s', '%s')" % (formatted, self.freqstr)
+        return f"Period('{formatted}', '{self.freqstr}')"
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
         Return a string representation for a particular DataFrame
         """
         base, mult = get_freq_code(self.freq)
         formatted = period_format(self.ordinal, base)
-        value = ("%s" % formatted)
+        value = str(formatted)
         return value
 
     def __setstate__(self, state):
@@ -2244,7 +2241,7 @@ cdef class _Period:
         containing one or several directives.  The method recognizes the same
         directives as the :func:`time.strftime` function of the standard Python
         distribution, as well as the specific additional directives ``%f``,
-        ``%F``, ``%q``. (formatting & docs originally from scikits.timeries)
+        ``%F``, ``%q``. (formatting & docs originally from scikits.timeries).
 
         +-----------+--------------------------------+-------+
         | Directive | Meaning                        | Notes |
@@ -2477,9 +2474,8 @@ class Period(_Period):
                 try:
                     freq = Resolution.get_freq(reso)
                 except KeyError:
-                    raise ValueError(
-                        "Invalid frequency or could not infer: {reso}"
-                        .format(reso=reso))
+                    raise ValueError(f"Invalid frequency or could not "
+                                     f"infer: {reso}")
 
         elif PyDateTime_Check(value):
             dt = value

@@ -36,7 +36,6 @@ from pandas._libs.tslibs.tzconversion import (
 # Constants
 _zero_time = datetime_time(0, 0)
 _no_input = object()
-PY36 = sys.version_info >= (3, 6)
 
 # ----------------------------------------------------------------------
 
@@ -242,8 +241,8 @@ class Timestamp(_Timestamp):
         """
         Timestamp.fromordinal(ordinal, freq=None, tz=None)
 
-        passed an ordinal, translate and convert to a ts
-        note: by definition there cannot be any tz info on the ordinal itself
+        Passed an ordinal, translate and convert to a ts.
+        Note: by definition there cannot be any tz info on the ordinal itself.
 
         Parameters
         ----------
@@ -333,7 +332,7 @@ class Timestamp(_Timestamp):
         """
         Timestamp.combine(date, time)
 
-        date, time -> datetime with same date and time fields
+        date, time -> datetime with same date and time fields.
         """
         return cls(datetime.combine(date, time))
 
@@ -371,8 +370,8 @@ class Timestamp(_Timestamp):
         if tzinfo is not None:
             if not PyTZInfo_Check(tzinfo):
                 # tzinfo must be a datetime.tzinfo object, GH#17690
-                raise TypeError('tzinfo must be a datetime.tzinfo object, '
-                                'not %s' % type(tzinfo))
+                raise TypeError(f'tzinfo must be a datetime.tzinfo object, '
+                                f'not {type(tzinfo)}')
             elif tz is not None:
                 raise ValueError('Can provide at most one of tz, tzinfo')
 
@@ -601,7 +600,7 @@ timedelta}, default 'raise'
     @property
     def dayofweek(self):
         """
-        Return day of whe week.
+        Return day of the week.
         """
         return self.weekday()
 
@@ -947,8 +946,8 @@ default 'raise'
         def validate(k, v):
             """ validate integers """
             if not is_integer_object(v):
-                raise ValueError("value must be an integer, received "
-                                 "{v} for {k}".format(v=type(v), k=k))
+                raise ValueError(f"value must be an integer, received "
+                                 f"{type(v)} for {k}")
             return v
 
         if year is not None:
@@ -982,9 +981,8 @@ default 'raise'
         else:
             kwargs = {'year': dts.year, 'month': dts.month, 'day': dts.day,
                       'hour': dts.hour, 'minute': dts.min, 'second': dts.sec,
-                      'microsecond': dts.us, 'tzinfo': _tzinfo}
-            if PY36:
-                kwargs['fold'] = fold
+                      'microsecond': dts.us, 'tzinfo': _tzinfo,
+                      'fold': fold}
             ts_input = datetime(**kwargs)
 
         ts = convert_datetime_to_tsobject(ts_input, _tzinfo)
@@ -1005,9 +1003,9 @@ default 'raise'
             base1, base2 = base, ""
 
         if self.microsecond != 0:
-            base1 += "%.3d" % self.nanosecond
+            base1 += f"{self.nanosecond:03d}"
         else:
-            base1 += ".%.9d" % self.nanosecond
+            base1 += f".{self.nanosecond:09d}"
 
         return base1 + base2
 

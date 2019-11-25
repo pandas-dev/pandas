@@ -1,3 +1,5 @@
+from typing import List
+
 import numpy as np
 import pytest
 
@@ -205,25 +207,6 @@ def test_is_categorical():
     assert not com.is_categorical([1, 2, 3])
 
 
-def test_is_datetimetz():
-    with tm.assert_produces_warning(FutureWarning):
-        assert not com.is_datetimetz([1, 2, 3])
-        assert not com.is_datetimetz(pd.DatetimeIndex([1, 2, 3]))
-
-        assert com.is_datetimetz(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern"))
-
-        dtype = DatetimeTZDtype("ns", tz="US/Eastern")
-        s = pd.Series([], dtype=dtype)
-        assert com.is_datetimetz(s)
-
-
-def test_is_period_deprecated():
-    with tm.assert_produces_warning(FutureWarning):
-        assert not com.is_period([1, 2, 3])
-        assert not com.is_period(pd.Index([1, 2, 3]))
-        assert com.is_period(pd.PeriodIndex(["2017-01-01"], freq="D"))
-
-
 def test_is_datetime64_dtype():
     assert not com.is_datetime64_dtype(object)
     assert not com.is_datetime64_dtype([1, 2, 3])
@@ -307,24 +290,13 @@ def test_is_datetime_arraylike():
     assert com.is_datetime_arraylike(pd.DatetimeIndex([1, 2, 3]))
 
 
-def test_is_datetimelike():
-    assert not com.is_datetimelike([1, 2, 3])
-    assert not com.is_datetimelike(pd.Index([1, 2, 3]))
-
-    assert com.is_datetimelike(pd.DatetimeIndex([1, 2, 3]))
-    assert com.is_datetimelike(pd.PeriodIndex([], freq="A"))
-    assert com.is_datetimelike(np.array([], dtype=np.datetime64))
-    assert com.is_datetimelike(pd.Series([], dtype="timedelta64[ns]"))
-    assert com.is_datetimelike(pd.DatetimeIndex(["2000"], tz="US/Eastern"))
-
-    dtype = DatetimeTZDtype("ns", tz="US/Eastern")
-    s = pd.Series([], dtype=dtype)
-    assert com.is_datetimelike(s)
+integer_dtypes: List = []
 
 
 @pytest.mark.parametrize(
     "dtype",
-    [pd.Series([1, 2])]
+    integer_dtypes
+    + [pd.Series([1, 2])]
     + ALL_INT_DTYPES
     + to_numpy_dtypes(ALL_INT_DTYPES)
     + ALL_EA_INT_DTYPES
@@ -350,9 +322,13 @@ def test_is_not_integer_dtype(dtype):
     assert not com.is_integer_dtype(dtype)
 
 
+signed_integer_dtypes: List = []
+
+
 @pytest.mark.parametrize(
     "dtype",
-    [pd.Series([1, 2])]
+    signed_integer_dtypes
+    + [pd.Series([1, 2])]
     + SIGNED_INT_DTYPES
     + to_numpy_dtypes(SIGNED_INT_DTYPES)
     + SIGNED_EA_INT_DTYPES
@@ -382,9 +358,13 @@ def test_is_not_signed_integer_dtype(dtype):
     assert not com.is_signed_integer_dtype(dtype)
 
 
+unsigned_integer_dtypes: List = []
+
+
 @pytest.mark.parametrize(
     "dtype",
-    [pd.Series([1, 2], dtype=np.uint32)]
+    unsigned_integer_dtypes
+    + [pd.Series([1, 2], dtype=np.uint32)]
     + UNSIGNED_INT_DTYPES
     + to_numpy_dtypes(UNSIGNED_INT_DTYPES)
     + UNSIGNED_EA_INT_DTYPES
@@ -494,34 +474,6 @@ def test_is_datetime_or_timedelta_dtype():
     assert com.is_datetime_or_timedelta_dtype(np.array([], dtype=np.datetime64))
 
 
-def test_is_numeric_v_string_like():
-    assert not com.is_numeric_v_string_like(1, 1)
-    assert not com.is_numeric_v_string_like(1, "foo")
-    assert not com.is_numeric_v_string_like("foo", "foo")
-    assert not com.is_numeric_v_string_like(np.array([1]), np.array([2]))
-    assert not com.is_numeric_v_string_like(np.array(["foo"]), np.array(["foo"]))
-
-    assert com.is_numeric_v_string_like(np.array([1]), "foo")
-    assert com.is_numeric_v_string_like("foo", np.array([1]))
-    assert com.is_numeric_v_string_like(np.array([1, 2]), np.array(["foo"]))
-    assert com.is_numeric_v_string_like(np.array(["foo"]), np.array([1, 2]))
-
-
-def test_is_datetimelike_v_numeric():
-    dt = np.datetime64(pd.datetime(2017, 1, 1))
-
-    assert not com.is_datetimelike_v_numeric(1, 1)
-    assert not com.is_datetimelike_v_numeric(dt, dt)
-    assert not com.is_datetimelike_v_numeric(np.array([1]), np.array([2]))
-    assert not com.is_datetimelike_v_numeric(np.array([dt]), np.array([dt]))
-
-    assert com.is_datetimelike_v_numeric(1, dt)
-    assert com.is_datetimelike_v_numeric(1, dt)
-    assert com.is_datetimelike_v_numeric(np.array([dt]), 1)
-    assert com.is_datetimelike_v_numeric(np.array([1]), dt)
-    assert com.is_datetimelike_v_numeric(np.array([dt]), np.array([1]))
-
-
 def test_needs_i8_conversion():
     assert not com.needs_i8_conversion(str)
     assert not com.needs_i8_conversion(np.int64)
@@ -578,6 +530,7 @@ def test_is_bool_dtype():
     assert com.is_bool_dtype(pd.Index([True, False]))
 
 
+@pytest.mark.filterwarnings("ignore:'is_extension_type' is deprecated:FutureWarning")
 @pytest.mark.parametrize(
     "check_scipy", [False, pytest.param(True, marks=td.skip_if_no_scipy)]
 )
@@ -600,6 +553,35 @@ def test_is_extension_type(check_scipy):
         import scipy.sparse
 
         assert not com.is_extension_type(scipy.sparse.bsr_matrix([1, 2, 3]))
+
+
+def test_is_extension_type_deprecation():
+    with tm.assert_produces_warning(FutureWarning):
+        com.is_extension_type([1, 2, 3])
+
+
+@pytest.mark.parametrize(
+    "check_scipy", [False, pytest.param(True, marks=td.skip_if_no_scipy)]
+)
+def test_is_extension_array_dtype(check_scipy):
+    assert not com.is_extension_array_dtype([1, 2, 3])
+    assert not com.is_extension_array_dtype(np.array([1, 2, 3]))
+    assert not com.is_extension_array_dtype(pd.DatetimeIndex([1, 2, 3]))
+
+    cat = pd.Categorical([1, 2, 3])
+    assert com.is_extension_array_dtype(cat)
+    assert com.is_extension_array_dtype(pd.Series(cat))
+    assert com.is_extension_array_dtype(pd.SparseArray([1, 2, 3]))
+    assert com.is_extension_array_dtype(pd.DatetimeIndex(["2000"], tz="US/Eastern"))
+
+    dtype = DatetimeTZDtype("ns", tz="US/Eastern")
+    s = pd.Series([], dtype=dtype)
+    assert com.is_extension_array_dtype(s)
+
+    if check_scipy:
+        import scipy.sparse
+
+        assert not com.is_extension_array_dtype(scipy.sparse.bsr_matrix([1, 2, 3]))
 
 
 def test_is_complex_dtype():
