@@ -251,21 +251,13 @@ class Block(PandasObject):
 
         return make_block(values, placement=placement, ndim=self.ndim)
 
-    def make_block_same_class(self, values, placement=None, ndim=None, dtype=None):
+    def make_block_same_class(self, values, placement=None, ndim=None):
         """ Wrap given values in a block of same type as self. """
-        if dtype is not None:
-            # issue 19431 fastparquet is passing this
-            warnings.warn(
-                "dtype argument is deprecated, will be removed in a future release.",
-                FutureWarning,
-            )
         if placement is None:
             placement = self.mgr_locs
         if ndim is None:
             ndim = self.ndim
-        return make_block(
-            values, placement=placement, ndim=ndim, klass=self.__class__, dtype=dtype
-        )
+        return make_block(values, placement=placement, ndim=ndim, klass=self.__class__)
 
     def __repr__(self) -> str:
         # don't want to print out all of the items here
@@ -288,7 +280,7 @@ class Block(PandasObject):
 
         return result
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.values)
 
     def __getstate__(self):
@@ -1099,7 +1091,7 @@ class Block(PandasObject):
         fill_value=None,
         coerce=False,
         downcast=None,
-        **kwargs
+        **kwargs,
     ):
 
         inplace = validate_bool_kwarg(inplace, "inplace")
@@ -1149,7 +1141,7 @@ class Block(PandasObject):
             fill_value=fill_value,
             inplace=inplace,
             downcast=downcast,
-            **kwargs
+            **kwargs,
         )
 
     def _interpolate_with_fill(
@@ -1204,7 +1196,7 @@ class Block(PandasObject):
         limit_area=None,
         inplace=False,
         downcast=None,
-        **kwargs
+        **kwargs,
     ):
         """ interpolate using scipy wrappers """
 
@@ -1242,7 +1234,7 @@ class Block(PandasObject):
                 limit_area=limit_area,
                 fill_value=fill_value,
                 bounds_error=False,
-                **kwargs
+                **kwargs,
             )
 
         # interp each column independently
@@ -2027,7 +2019,7 @@ class FloatBlock(FloatOrComplexBlock):
         float_format=None,
         decimal=".",
         quoting=None,
-        **kwargs
+        **kwargs,
     ):
         """ convert to our native types format, slicing if desired """
 
@@ -2836,6 +2828,8 @@ class ObjectBlock(Block):
             if convert:
                 block = [b.convert(numeric=False, copy=True) for b in block]
             return block
+        if convert:
+            return [self.convert(numeric=False, copy=True)]
         return self
 
 
@@ -2935,6 +2929,30 @@ class CategoricalBlock(ExtensionBlock):
             )
         return result
 
+    def replace(
+        self,
+        to_replace,
+        value,
+        inplace: bool = False,
+        filter=None,
+        regex: bool = False,
+        convert: bool = True,
+    ):
+        inplace = validate_bool_kwarg(inplace, "inplace")
+        result = self if inplace else self.copy()
+        if filter is None:  # replace was called on a series
+            result.values.replace(to_replace, value, inplace=True)
+            if convert:
+                return result.convert(numeric=False, copy=not inplace)
+            else:
+                return result
+        else:  # replace was called on a DataFrame
+            if not isna(value):
+                result.values.add_categories(value, inplace=True)
+            return super(CategoricalBlock, result).replace(
+                to_replace, value, inplace, filter, regex, convert
+            )
+
 
 # -----------------------------------------------------------------
 # Constructor Helpers
@@ -2986,7 +3004,7 @@ def get_block_type(values, dtype=None):
     return cls
 
 
-def make_block(values, placement, klass=None, ndim=None, dtype=None, fastpath=None):
+def make_block(values, placement, klass=None, ndim=None, dtype=None):
     # Ensure that we don't allow PandasArray / PandasDtype in internals.
     # For now, blocks should be backed by ndarrays when possible.
     if isinstance(values, ABCPandasArray):
@@ -2997,12 +3015,6 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None, fastpath=No
     if isinstance(dtype, PandasDtype):
         dtype = dtype.numpy_dtype
 
-    if fastpath is not None:
-        # GH#19265 pyarrow is passing this
-        warnings.warn(
-            "fastpath argument is deprecated, will be removed in a future release.",
-            FutureWarning,
-        )
     if klass is None:
         dtype = dtype or values.dtype
         klass = get_block_type(values, dtype)

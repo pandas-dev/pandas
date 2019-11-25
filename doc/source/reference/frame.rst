@@ -30,7 +30,6 @@ Attributes and underlying data
    DataFrame.dtypes
    DataFrame.ftypes
    DataFrame.get_dtype_counts
-   DataFrame.get_ftype_counts
    DataFrame.select_dtypes
    DataFrame.values
    DataFrame.get_values
@@ -40,7 +39,6 @@ Attributes and underlying data
    DataFrame.shape
    DataFrame.memory_usage
    DataFrame.empty
-   DataFrame.is_copy
 
 Conversion
 ~~~~~~~~~~
@@ -142,8 +140,6 @@ Computations / descriptive stats
    DataFrame.all
    DataFrame.any
    DataFrame.clip
-   DataFrame.clip_lower
-   DataFrame.clip_upper
    DataFrame.compound
    DataFrame.corr
    DataFrame.corrwith
@@ -351,7 +347,6 @@ Serialization / IO / conversion
    :toctree: api/
 
    DataFrame.from_dict
-   DataFrame.from_items
    DataFrame.from_records
    DataFrame.info
    DataFrame.to_parquet

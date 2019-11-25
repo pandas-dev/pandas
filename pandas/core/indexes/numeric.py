@@ -15,6 +15,8 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
     is_scalar,
+    is_signed_integer_dtype,
+    is_unsigned_integer_dtype,
     needs_i8_conversion,
     pandas_dtype,
 )
@@ -22,10 +24,12 @@ from pandas.core.dtypes.generic import (
     ABCFloat64Index,
     ABCInt64Index,
     ABCRangeIndex,
+    ABCSeries,
     ABCUInt64Index,
 )
 from pandas.core.dtypes.missing import isna
 
+from pandas._typing import Dtype
 from pandas.core import algorithms
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, InvalidIndexError, _index_shared_docs
@@ -44,7 +48,7 @@ class NumericIndex(Index):
     _is_numeric_dtype = True
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None, fastpath=None):
-
+        cls._validate_dtype(dtype)
         if fastpath is not None:
             warnings.warn(
                 "The 'fastpath' keyword is deprecated, and will be "
@@ -55,8 +59,16 @@ class NumericIndex(Index):
             if fastpath:
                 return cls._simple_new(data, name=name)
 
-        # is_scalar, generators handled in coerce_to_ndarray
-        data = cls._coerce_to_ndarray(data)
+        # Coerce to ndarray if not already ndarray or Index
+        if not isinstance(data, (np.ndarray, Index)):
+            if is_scalar(data):
+                raise cls._scalar_data_error(data)
+
+            # other iterable of some kind
+            if not isinstance(data, (ABCSeries, list, tuple)):
+                data = list(data)
+
+            data = np.asarray(data, dtype=dtype)
 
         if issubclass(data.dtype.type, str):
             cls._string_data_error(data)
@@ -70,6 +82,22 @@ class NumericIndex(Index):
         if name is None and hasattr(data, "name"):
             name = data.name
         return cls._simple_new(subarr, name=name)
+
+    @classmethod
+    def _validate_dtype(cls, dtype: Dtype) -> None:
+        if dtype is None:
+            return
+        validation_metadata = {
+            "int64index": (is_signed_integer_dtype, "signed integer"),
+            "uint64index": (is_unsigned_integer_dtype, "unsigned integer"),
+            "float64index": (is_float_dtype, "float"),
+            "rangeindex": (is_signed_integer_dtype, "signed integer"),
+        }
+
+        validation_func, expected = validation_metadata[cls._typ]
+        if not validation_func(dtype):
+            msg = f"Incorrect `dtype` passed: expected {expected}, received {dtype}"
+            raise ValueError(msg)
 
     @Appender(_index_shared_docs["_maybe_cast_slice_bound"])
     def _maybe_cast_slice_bound(self, label, side, kind):
@@ -134,7 +162,7 @@ class NumericIndex(Index):
         return result.rename(name)
 
     @property
-    def is_all_dates(self):
+    def is_all_dates(self) -> bool:
         """
         Checks that all the labels are datetime objects.
         """
@@ -206,7 +234,7 @@ class IntegerIndex(NumericIndex):
     This is an abstract class for Int64Index, UInt64Index.
     """
 
-    def __contains__(self, key):
+    def __contains__(self, key) -> bool:
         """
         Check if key is a float and has a decimal. If it has, return False.
         """
@@ -228,12 +256,12 @@ class Int64Index(IntegerIndex):
     _default_dtype = np.int64
 
     @property
-    def inferred_type(self):
+    def inferred_type(self) -> str:
         """Always 'integer' for ``Int64Index``"""
         return "integer"
 
     @property
-    def asi8(self):
+    def asi8(self) -> np.ndarray:
         # do not cache or you'll create a memory leak
         return self.values.view("i8")
 
@@ -283,12 +311,12 @@ class UInt64Index(IntegerIndex):
     _default_dtype = np.uint64
 
     @property
-    def inferred_type(self):
+    def inferred_type(self) -> str:
         """Always 'integer' for ``UInt64Index``"""
         return "integer"
 
     @property
-    def asi8(self):
+    def asi8(self) -> np.ndarray:
         # do not cache or you'll create a memory leak
         return self.values.view("u8")
 
@@ -356,7 +384,7 @@ class Float64Index(NumericIndex):
     _default_dtype = np.float64
 
     @property
-    def inferred_type(self):
+    def inferred_type(self) -> str:
         """Always 'floating' for ``Float64Index``"""
         return "floating"
 
@@ -425,7 +453,7 @@ class Float64Index(NumericIndex):
 
         return new_values
 
-    def equals(self, other):
+    def equals(self, other) -> bool:
         """
         Determines if two Index objects contain the same elements.
         """
@@ -447,7 +475,7 @@ class Float64Index(NumericIndex):
         except (TypeError, ValueError):
             return False
 
-    def __contains__(self, other):
+    def __contains__(self, other) -> bool:
         if super().__contains__(other):
             return True
 
@@ -482,7 +510,7 @@ class Float64Index(NumericIndex):
         return super().get_loc(key, method=method, tolerance=tolerance)
 
     @cache_readonly
-    def is_unique(self):
+    def is_unique(self) -> bool:
         return super().is_unique and self._nan_idxs.size < 2
 
     @Appender(Index.isin.__doc__)
