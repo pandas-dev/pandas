@@ -639,17 +639,6 @@ timedelta}, default 'raise'
         return self._get_date_name_field('month_name', locale)
 
     @property
-    def weekday_name(self):
-        """
-        .. deprecated:: 0.23.0
-            Use ``Timestamp.day_name()`` instead
-        """
-        warnings.warn("`weekday_name` is deprecated and will be removed in a "
-                      "future version. Use `day_name` instead",
-                      FutureWarning)
-        return self.day_name()
-
-    @property
     def dayofyear(self):
         """
         Return the day of the year.

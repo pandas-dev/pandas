@@ -414,7 +414,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - :func:`read_stata` and :meth:`DataFrame.to_stata` no longer supports the "encoding" argument (:issue:`21400`)
 - Removed previously deprecated "raise_conflict" argument from :meth:`DataFrame.update`, use "errors" instead (:issue:`23585`)
 - Removed previously deprecated keyword "n" from :meth:`DatetimeIndex.shift`, :meth:`TimedeltaIndex.shift`, :meth:`PeriodIndex.shift`, use "periods" instead (:issue:`22458`)
--
+- Removed previously deprecated :attr:`Timestamp.weekday_name`, :attr:`DatetimeIndex.weekday_name`, and :attr:`Series.dt.weekday_name` (:issue:`18164`)
 
 .. _whatsnew_1000.performance:
 
