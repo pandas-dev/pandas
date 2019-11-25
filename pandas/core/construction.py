@@ -191,36 +191,6 @@ def array(
     [1, 2]
     Length: 2, dtype: Int64
 
-    If pandas does not infer a dedicated extension type for some values, we
-    fall back to returning a :class:`arrays.PandasArray`.
-
-    >>> pd.array([1.1, 2.2])
-    <PandasArray>
-    [1.1, 2.2]
-    Length: 2, dtype: float64
-
-    Or the NumPy dtype can be specified
-
-    >>> pd.array([1, 2], dtype=np.dtype("int32"))
-    <PandasArray>
-    [1, 2]
-    Length: 2, dtype: int32
-
-    You can use the string alias for `dtype`
-
-    >>> pd.array(['a', 'b', 'a'], dtype='category')
-    [a, b, a]
-    Categories (2, object): [a, b]
-
-    Or specify the actual dtype
-
-    >>> pd.array(['a', 'b', 'a'],
-    ...          dtype=pd.CategoricalDtype(['a', 'b', 'c'], ordered=True))
-    [a, b, a]
-    Categories (3, object): [a < b < c]
-
-    Pandas will infer an ExtensionArray for some types of data:
-
     >>> pd.array([1, 2, np.nan])
     <IntegerArray>
     [1, 2, NaN]
@@ -235,6 +205,34 @@ def array(
     <PeriodArray>
     ['2000-01-01', '2000-01-01']
     Length: 2, dtype: period[D]
+
+    You can use the string alias for `dtype`
+
+    >>> pd.array(['a', 'b', 'a'], dtype='category')
+    [a, b, a]
+    Categories (2, object): [a, b]
+
+    Or specify the actual dtype
+
+    >>> pd.array(['a', 'b', 'a'],
+    ...          dtype=pd.CategoricalDtype(['a', 'b', 'c'], ordered=True))
+    [a, b, a]
+    Categories (3, object): [a < b < c]
+
+    If pandas does not infer a dedicated extension type a
+    :class:`arrays.PandasArray` is returned.
+
+    >>> pd.array([1.1, 2.2])
+    <PandasArray>
+    [1.1, 2.2]
+    Length: 2, dtype: float64
+
+    Or the NumPy dtype can be specified
+
+    >>> pd.array([1, 2], dtype=np.dtype("int32"))
+    <PandasArray>
+    [1, 2]
+    Length: 2, dtype: int32
 
     `data` must be 1-dimensional. A ValueError is raised when the input
     has the wrong dimensionality.
