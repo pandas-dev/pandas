@@ -147,6 +147,12 @@ the data as an excel file. In the example here, the ``sheet_name`` is
 named *passengers* instead of the default *Sheet1*. By setting
 ``index=False`` the row index labels are not saved in the spreadsheet.
 
+.. ipython:: python
+   :suppress:
+
+   import os
+   os.remove('titanic.xlsx')
+
 .. raw:: html
 
         </li>

@@ -200,6 +200,12 @@ I want to further customize, extend or save the resulting plot.
     axs.set_ylabel("NO$_2$ concentration");
     fig.savefig("no2_concentrations.png")
 
+.. ipython:: python
+   :suppress:
+
+   import os
+   os.remove('no2_concentrations.png')
+
 .. raw:: html
 
         </li>
