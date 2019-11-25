@@ -2,7 +2,7 @@
 import warnings
 
 # TODO `_matplotlib` module should be private, so the plotting backend
-# can be change. Decide whether all these should be public and exponsed
+# can be change. Decide whether all these should be public and exposed
 # in `pandas.plotting`, or remove from here (I guess they are here for
 # legacy reasons
 from pandas.plotting._matplotlib.converter import (

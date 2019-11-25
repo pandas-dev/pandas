@@ -329,7 +329,7 @@ def _interpolate_scipy_wrapper(
     }
 
     if getattr(x, "is_all_dates", False):
-        # GH 5975, scipy.interp1d can't hande datetime64s
+        # GH 5975, scipy.interp1d can't handle datetime64s
         x, new_x = x._values.astype("i8"), new_x.astype("i8")
 
     if method == "pchip":
