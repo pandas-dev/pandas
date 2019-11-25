@@ -289,7 +289,7 @@ cdef inline bint is_null_period(v):
 def _create_binary_propagating_op(name, divmod=False):
 
     def method(self, other):
-        if isinstance(other, numbers.Number) or other is NA or isinstance(other, str):
+        if other is C_NA or isinstance(other, str) or isinstance(other, numbers.Number):
             if divmod:
                 return NA, NA
             else:
@@ -387,7 +387,7 @@ class NAType(C_NAType):
     def __and__(self, other):
         if other is False:
             return False
-        elif other is True or other is NA:
+        elif other is True or other is C_NA:
             return NA
         else:
             return NotImplemented
@@ -397,7 +397,7 @@ class NAType(C_NAType):
     def __or__(self, other):
         if other is True:
             return True
-        elif other is False or other is NA:
+        elif other is False or other is C_NA:
             return NA
         else:
             return NotImplemented
@@ -405,7 +405,7 @@ class NAType(C_NAType):
     __ror__ = __or__
 
     def __xor__(self, other):
-        if other is False or other is True or other is NA:
+        if other is False or other is True or other is C_NA:
             return NA
         return NotImplemented
 
