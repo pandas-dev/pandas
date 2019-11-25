@@ -200,15 +200,6 @@ class Base:
                     assert rs == xp
                 else:
                     tm.assert_equal(rs, xp)
-                result = "ok"
-
-                # reverse the checks
-                if fails is True:
-                    if result == "fail":
-                        result = "ok (fail)"
-
-                if not result.startswith("ok"):
-                    raise AssertionError(detail)
 
             except (IndexError, TypeError, KeyError) as detail:
 
