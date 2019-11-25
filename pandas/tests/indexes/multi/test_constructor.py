@@ -128,18 +128,6 @@ def test_na_levels():
     tm.assert_index_equal(result, expected)
 
 
-def test_labels_deprecated(idx):
-    # GH23752
-    with tm.assert_produces_warning(FutureWarning):
-        MultiIndex(
-            levels=[["foo", "bar", "baz", "qux"]],
-            labels=[[0, 1, 2, 3]],
-            names=["first"],
-        )
-    with tm.assert_produces_warning(FutureWarning):
-        idx.labels
-
-
 def test_copy_in_constructor():
     levels = np.array(["a", "b", "c"])
     codes = np.array([1, 1, 2, 0, 0, 1, 1])

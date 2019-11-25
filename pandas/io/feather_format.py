@@ -1,7 +1,5 @@
 """ feather-format compat """
 
-from distutils.version import LooseVersion
-
 from pandas.compat._optional import import_optional_dependency
 
 from pandas import DataFrame, Int64Index, RangeIndex
@@ -96,15 +94,9 @@ def read_feather(path, columns=None, use_threads=True):
     -------
     type of object stored in file
     """
-    pyarrow = import_optional_dependency("pyarrow")
+    import_optional_dependency("pyarrow")
     from pyarrow import feather
 
     path = _stringify_path(path)
-
-    if LooseVersion(pyarrow.__version__) < LooseVersion("0.11.0"):
-        int_use_threads = int(use_threads)
-        if int_use_threads < 1:
-            int_use_threads = 1
-        return feather.read_feather(path, columns=columns, nthreads=int_use_threads)
 
     return feather.read_feather(path, columns=columns, use_threads=bool(use_threads))

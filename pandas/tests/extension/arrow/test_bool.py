@@ -5,7 +5,7 @@ import pandas as pd
 from pandas.tests.extension import base
 import pandas.util.testing as tm
 
-pytest.importorskip("pyarrow", minversion="0.10.0")
+pytest.importorskip("pyarrow", minversion="0.12.0")
 
 from .arrays import ArrowBoolArray, ArrowBoolDtype  # isort:skip
 

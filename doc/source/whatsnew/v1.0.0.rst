@@ -265,62 +265,62 @@ The following methods now also correctly output values for unobserved categories
 Increased minimum versions for dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Some minimum supported versions of dependencies were updated (:issue:`29723`).
+Some minimum supported versions of dependencies were updated (:issue:`29766`, :issue:`29723`).
 If installed, we now require:
 
-+-----------------+-----------------+----------+
-| Package         | Minimum Version | Required |
-+=================+=================+==========+
-| numpy           | 1.13.3          |    X     |
-+-----------------+-----------------+----------+
-| pytz            | 2015.4          |    X     |
-+-----------------+-----------------+----------+
-| python-dateutil | 2.6.1           |    X     |
-+-----------------+-----------------+----------+
-| bottleneck      | 1.2.1           |          |
-+-----------------+-----------------+----------+
-| numexpr         | 2.6.2           |          |
-+-----------------+-----------------+----------+
-| pytest (dev)    | 4.0.2           |          |
-+-----------------+-----------------+----------+
++-----------------+-----------------+----------+---------+
+| Package         | Minimum Version | Required | Changed |
++=================+=================+==========+=========+
+| numpy           | 1.13.3          |    X     |         |
++-----------------+-----------------+----------+---------+
+| pytz            | 2015.4          |    X     |         |
++-----------------+-----------------+----------+---------+
+| python-dateutil | 2.6.1           |    X     |         |
++-----------------+-----------------+----------+---------+
+| bottleneck      | 1.2.1           |          |         |
++-----------------+-----------------+----------+---------+
+| numexpr         | 2.6.2           |          |         |
++-----------------+-----------------+----------+---------+
+| pytest (dev)    | 4.0.2           |          |         |
++-----------------+-----------------+----------+---------+
 
 For `optional libraries <https://dev.pandas.io/docs/install.html#dependencies>`_ the general recommendation is to use the latest version.
 The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
 Optional libraries below the lowest tested version may still work, but are not considered supported.
 
-+-----------------+-----------------+
-| Package         | Minimum Version |
-+=================+=================+
-| beautifulsoup4  | 4.6.0           |
-+-----------------+-----------------+
-| fastparquet     | 0.3.2           |
-+-----------------+-----------------+
-| gcsfs           | 0.2.2           |
-+-----------------+-----------------+
-| lxml            | 3.8.0           |
-+-----------------+-----------------+
-| matplotlib      | 2.2.2           |
-+-----------------+-----------------+
-| openpyxl        | 2.4.8           |
-+-----------------+-----------------+
-| pyarrow         | 0.9.0           |
-+-----------------+-----------------+
-| pymysql         | 0.7.1           |
-+-----------------+-----------------+
-| pytables        | 3.4.2           |
-+-----------------+-----------------+
-| scipy           | 0.19.0          |
-+-----------------+-----------------+
-| sqlalchemy      | 1.1.4           |
-+-----------------+-----------------+
-| xarray          | 0.8.2           |
-+-----------------+-----------------+
-| xlrd            | 1.1.0           |
-+-----------------+-----------------+
-| xlsxwriter      | 0.9.8           |
-+-----------------+-----------------+
-| xlwt            | 1.2.0           |
-+-----------------+-----------------+
++-----------------+-----------------+---------+
+| Package         | Minimum Version | Changed |
++=================+=================+=========+
+| beautifulsoup4  | 4.6.0           |         |
++-----------------+-----------------+---------+
+| fastparquet     | 0.3.2           |    X    |
++-----------------+-----------------+---------+
+| gcsfs           | 0.2.2           |         |
++-----------------+-----------------+---------+
+| lxml            | 3.8.0           |         |
++-----------------+-----------------+---------+
+| matplotlib      | 2.2.2           |         |
++-----------------+-----------------+---------+
+| openpyxl        | 2.4.8           |         |
++-----------------+-----------------+---------+
+| pyarrow         | 0.12.0          |    X    |
++-----------------+-----------------+---------+
+| pymysql         | 0.7.1           |         |
++-----------------+-----------------+---------+
+| pytables        | 3.4.2           |         |
++-----------------+-----------------+---------+
+| scipy           | 0.19.0          |         |
++-----------------+-----------------+---------+
+| sqlalchemy      | 1.1.4           |         |
++-----------------+-----------------+---------+
+| xarray          | 0.8.2           |         |
++-----------------+-----------------+---------+
+| xlrd            | 1.1.0           |         |
++-----------------+-----------------+---------+
+| xlsxwriter      | 0.9.8           |         |
++-----------------+-----------------+---------+
+| xlwt            | 1.2.0           |         |
++-----------------+-----------------+---------+
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
@@ -415,6 +415,11 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - :func:`core.internals.blocks.make_block` no longer accepts the "fastpath" keyword(:issue:`19265`)
 - :meth:`Block.make_block_same_class` no longer accepts the "dtype" keyword(:issue:`19434`)
 - Removed the previously deprecated :meth:`ExtensionArray._formatting_values`. Use :attr:`ExtensionArray._formatter` instead. (:issue:`23601`)
+- Removed the previously deprecated :meth:`MultiIndex.to_hierarchical` (:issue:`21613`)
+- Removed the previously deprecated :attr:`MultiIndex.labels`, use :attr:`MultiIndex.codes` instead (:issue:`23752`)
+- Removed the previously deprecated "labels" keyword from the :class:`MultiIndex` constructor, use "codes" instead (:issue:`23752`)
+- Removed the previously deprecated :meth:`MultiIndex.set_labels`, use :meth:`MultiIndex.set_codes` instead (:issue:`23752`)
+- Removed the previously deprecated "labels" keyword from :meth:`MultiIndex.set_codes`, :meth:`MultiIndex.copy`, :meth:`MultiIndex.drop`, use "codes" instead (:issue:`23752`)
 - Removed support for legacy HDF5 formats (:issue:`29787`)
 - :func:`read_excel` removed support for "skip_footer" argument, use "skipfooter" instead (:issue:`18836`)
 - :func:`read_excel` no longer allows an integer value for the parameter ``usecols``, instead pass a list of integers from 0 to ``usecols`` inclusive (:issue:`23635`)

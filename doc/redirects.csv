@@ -828,7 +828,6 @@ generated/pandas.MultiIndex.sortlevel,../reference/api/pandas.MultiIndex.sortlev
 generated/pandas.MultiIndex.swaplevel,../reference/api/pandas.MultiIndex.swaplevel
 generated/pandas.MultiIndex.to_flat_index,../reference/api/pandas.MultiIndex.to_flat_index
 generated/pandas.MultiIndex.to_frame,../reference/api/pandas.MultiIndex.to_frame
-generated/pandas.MultiIndex.to_hierarchical,../reference/api/pandas.MultiIndex.to_hierarchical
 generated/pandas.notna,../reference/api/pandas.notna
 generated/pandas.notnull,../reference/api/pandas.notnull
 generated/pandas.option_context,../reference/api/pandas.option_context
