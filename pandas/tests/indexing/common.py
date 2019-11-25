@@ -196,15 +196,11 @@ class Base:
 
                 detail = None
 
-                try:
-                    if is_scalar(rs) and is_scalar(xp):
-                        assert rs == xp
-                    else:
-                        tm.assert_equal(rs, xp)
-                    result = "ok"
-                except AssertionError as exc:
-                    detail = str(exc)
-                    result = "fail"
+                if is_scalar(rs) and is_scalar(xp):
+                    assert rs == xp
+                else:
+                    tm.assert_equal(rs, xp)
+                result = "ok"
 
                 # reverse the checks
                 if fails is True:
