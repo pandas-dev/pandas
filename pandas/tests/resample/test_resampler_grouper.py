@@ -280,18 +280,14 @@ def test_median_duplicate_columns():
 def test_same_grouper_on_different_frames():
 
     df1 = pd.DataFrame(
-        [
-            ["a", 1, 2, "05/29/2019"],
-            ["a", 4, 5, "05/28/2019"],
-            ["b", 2, 3, "05/27/2019"],
-        ],
-        columns=["type", "num1", "num2", "date"],
-    ).assign(date=lambda df: pd.to_datetime(df["date"]))
-    df2 = pd.DataFrame(columns=["type", "num1", "num2", "date"]).assign(
-        date=lambda df: pd.to_datetime(df["date"])
+        [["a", 1, 2], ["a", 4, 5], ["b", 2, 3]], columns=["type", "num1", "num2"],
     )
+    df1["date"] = pd.to_datetime(["05/29/2019", "05/28/2019", "05/27/2019"])
+
+    df2 = pd.DataFrame([["c", 6, 7], ["d", 8, 9]], columns=["type", "num1", "num2"],)
+    df2["date"] = pd.to_datetime(["02/12/2018", "03/13/2018"])
 
     groupbys = ["type", pd.Grouper(key="date", freq="1D")]
 
-    df1.groupby(groupbys).head()
-    df2.groupby(groupbys).head()
+    df1.groupby(groupbys).sum()
+    df2.groupby(groupbys).count()
