@@ -1009,6 +1009,75 @@ class TestStyler:
         with pytest.raises(ValueError):
             df.style.bar(align="poorly", color=["#d65f5f", "#5fba7d"])
 
+    def test_format_with_na_rep(self):
+        # GH 21527 28358
+        df = pd.DataFrame([[None, None], [1.1, 1.2]], columns=["A", "B"])
+
+        ctx = df.style.format(None, na_rep="-")._translate()
+        assert ctx["body"][0][1]["display_value"] == "-"
+        assert ctx["body"][0][2]["display_value"] == "-"
+
+        ctx = df.style.format("{:.2%}", na_rep="-")._translate()
+        assert ctx["body"][0][1]["display_value"] == "-"
+        assert ctx["body"][0][2]["display_value"] == "-"
+        assert ctx["body"][1][1]["display_value"] == "110.00%"
+        assert ctx["body"][1][2]["display_value"] == "120.00%"
+
+        ctx = df.style.format("{:.2%}", na_rep="-", subset=["B"])._translate()
+        assert ctx["body"][0][2]["display_value"] == "-"
+        assert ctx["body"][1][2]["display_value"] == "120.00%"
+
+    def test_init_with_na_rep(self):
+        # GH 21527 28358
+        df = pd.DataFrame([[None, None], [1.1, 1.2]], columns=["A", "B"])
+
+        ctx = Styler(df, na_rep="NA")._translate()
+        assert ctx["body"][0][1]["display_value"] == "NA"
+        assert ctx["body"][0][2]["display_value"] == "NA"
+
+    def test_set_na_rep(self):
+        # GH 21527 28358
+        df = pd.DataFrame([[None, None], [1.1, 1.2]], columns=["A", "B"])
+
+        ctx = df.style.set_na_rep("NA")._translate()
+        assert ctx["body"][0][1]["display_value"] == "NA"
+        assert ctx["body"][0][2]["display_value"] == "NA"
+
+        ctx = (
+            df.style.set_na_rep("NA")
+            .format(None, na_rep="-", subset=["B"])
+            ._translate()
+        )
+        assert ctx["body"][0][1]["display_value"] == "NA"
+        assert ctx["body"][0][2]["display_value"] == "-"
+
+    def test_format_non_numeric_na(self):
+        # GH 21527 28358
+        df = pd.DataFrame(
+            {
+                "object": [None, np.nan, "foo"],
+                "datetime": [None, pd.NaT, pd.Timestamp("20120101")],
+            }
+        )
+
+        ctx = df.style.set_na_rep("NA")._translate()
+        assert ctx["body"][0][1]["display_value"] == "NA"
+        assert ctx["body"][0][2]["display_value"] == "NA"
+        assert ctx["body"][1][1]["display_value"] == "NA"
+        assert ctx["body"][1][2]["display_value"] == "NA"
+
+        ctx = df.style.format(None, na_rep="-")._translate()
+        assert ctx["body"][0][1]["display_value"] == "-"
+        assert ctx["body"][0][2]["display_value"] == "-"
+        assert ctx["body"][1][1]["display_value"] == "-"
+        assert ctx["body"][1][2]["display_value"] == "-"
+
+    def test_format_with_bad_na_rep(self):
+        # GH 21527 28358
+        df = pd.DataFrame([[None, None], [1.1, 1.2]], columns=["A", "B"])
+        with pytest.raises(TypeError):
+            df.style.format(None, na_rep=-1)
+
     def test_highlight_null(self, null_color="red"):
         df = pd.DataFrame({"A": [0, np.nan]})
         result = df.style.highlight_null()._compute().ctx
