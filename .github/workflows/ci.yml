@@ -130,16 +130,14 @@ jobs:
     - name: Build documentation
       run: |
         source activate pandas-dev
-        # Next we should simply have `doc/make.py --warnings-are-errors`,
-        # everything else is required because the ipython directive doesn't fail the build on errors
-        # (https://github.com/ipython/ipython/issues/11547)
-        doc/make.py --warnings-are-errors | tee sphinx.log ; SPHINX_RET=${PIPESTATUS[0]}
-        echo "Sphinx exit status: $SPHINX_RET"
-        # TODO: Very strange, but this grep seems to be making the job fail without output
-        # grep -B1 "^<<<-------------------------------------------------------------------------$" sphinx.log ; IPY_RET=$(( $? != 1 ))
-        # echo "Grep to detect IPython code block errors exit: $IPY_RET"
-        IPY_RET=0
-        exit $(( $SPHINX_RET + $IPY_RET ))
+        doc/make.py --warnings-are-errors | tee sphinx.log ; exit ${PIPESTATUS[0]}
+
+    - name: Check ipython directive errors
+      run: |
+        # This can be removed when the ipython directive fails when there are errors,
+        # including the `tee sphinx.log` in te previous step (https://github.com/ipython/ipython/issues/11547)
+        grep -B1 "^<<<-------------------------------------------------------------------------$" sphinx.log
+        exit $((! $?))
 
     - name: Merge website and docs
       run: |
@@ -157,26 +155,12 @@ jobs:
         name: pandas_web
         path: pandas_web.tar.gz
 
-    - name: Create build output artifact
-      run: |
-        echo $STEPS_CONTEXT > build_output.json
-      env:
-        STEPS_CONTEXT: ${{ toJson(steps) }}
-      if: job.status == 'failure'
-
-    - name: Upload build output artifact
-      uses: actions/upload-artifact@master
-      with:
-        name: build_output_web_and_docs
-        path: build_output.json
-      if: job.status == 'failure'
-
     - name: Install rclone
       run: sudo apt install rclone -y
 
     - name: Set up Rclone
       run: |
-        export RCLONE_CONFIG_PATH=`rclone config file | tail -n1`
+        RCLONE_CONFIG_PATH=$HOME/.config/rclone/rclone.conf
         mkdir -p `dirname $RCLONE_CONFIG_PATH`
         echo "[ovh_cloud_pandas_web]" > $RCLONE_CONFIG_PATH
         echo "type = swift" >> $RCLONE_CONFIG_PATH
@@ -201,6 +185,20 @@ jobs:
         rclone sync pandas_web ovh_cloud_pandas_web:$REMOTE_PATH
       env:
         PR_NUMBER: ${{ github.event.pull_request.number }}
+
+    - name: Create build output artifact
+      run: |
+        echo $STEPS_CONTEXT > build_output.json
+      env:
+        STEPS_CONTEXT: ${{ toJson(steps) }}
+      if: job.status == 'failure'
+
+    - name: Upload build output artifact
+      uses: actions/upload-artifact@master
+      with:
+        name: build_output_web_and_docs
+        path: build_output.json
+      if: job.status == 'failure'
 
   tests:
     name: Tests
@@ -382,8 +380,8 @@ jobs:
     name: Finalize build
     runs-on: ubuntu-latest
     if: true
-    # TODO run when the other jobs finish:
-    # needs: [checks, web_and_docs, tests]
+    # TODO run when all the other jobs finish:
+    needs: [checks, web_and_docs]
     steps:
 
     - name: Download checks artifact
@@ -393,6 +391,7 @@ jobs:
         path: build_output_checks.json
 
     - name: Extract errors from checks artifact
+      if: true  # TODO temporary for debugging
       run: |
         export MSG="Hi @$AUTHOR, thanks for your contribution. We found the next list of errors in your pull request:"
         # TODO get actual errors
