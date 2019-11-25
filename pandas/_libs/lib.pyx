@@ -1319,8 +1319,7 @@ def infer_dtype(value: object, skipna: object=None) -> str:
             return 'boolean'
 
     elif isinstance(val, str):
-        # we deliberately ignore skipna
-        if is_string_array(values, skipna=True):
+        if is_string_array(values, skipna=skipna):
             return "string"
 
     elif isinstance(val, bytes):

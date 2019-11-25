@@ -274,7 +274,7 @@ def array(
         return cls._from_sequence(data, dtype=dtype, copy=copy)
 
     if dtype is None:
-        inferred_dtype = lib.infer_dtype(data, skipna=False)
+        inferred_dtype = lib.infer_dtype(data, skipna=True)
         if inferred_dtype == "period":
             try:
                 return period_array(data, copy=copy)
@@ -305,7 +305,7 @@ def array(
         elif inferred_dtype == "string":
             return StringArray._from_sequence(data, copy=copy)
 
-        elif inferred_dtype in {"integer", "mixed-integer"}:
+        elif inferred_dtype == "integer":
             return IntegerArray._from_sequence(data, copy=copy)
 
         # TODO(BooleanArray): handle this type
