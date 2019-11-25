@@ -4,11 +4,10 @@ to disk
 """
 
 import copy
-from datetime import date, datetime
+from datetime import date
 import itertools
 import os
 import re
-import time
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, Union
 import warnings
 
@@ -43,7 +42,6 @@ from pandas import (
     TimedeltaIndex,
     concat,
     isna,
-    to_datetime,
 )
 from pandas.core.arrays.categorical import Categorical
 from pandas.core.arrays.sparse import BlockIndex, IntIndex
@@ -173,9 +171,6 @@ use the format='fixed(f)|table(t)' keyword instead
   table(t) : specifies the Table format
              and is the default for append operations
 """
-
-# map object types
-_TYPE_MAP = {Series: "series", DataFrame: "frame"}
 
 # storer class map
 _STORER_MAP = {
@@ -797,9 +792,10 @@ class HDFStore:
         stop  : integer (defaults to None), row number to stop selection
         """
         where = _ensure_term(where, scope_level=1)
-        return self.get_storer(key).read_coordinates(
-            where=where, start=start, stop=stop, **kwargs
-        )
+        tbl = self.get_storer(key)
+        if not isinstance(tbl, Table):
+            raise TypeError("can only read_coordinates with a table")
+        return tbl.read_coordinates(where=where, start=start, stop=stop, **kwargs)
 
     def select_column(self, key: str, column: str, **kwargs):
         """
@@ -820,7 +816,10 @@ class HDFStore:
             is part of a data block)
 
         """
-        return self.get_storer(key).read_column(column=column, **kwargs)
+        tbl = self.get_storer(key)
+        if not isinstance(tbl, Table):
+            raise TypeError("can only read_column with a table")
+        return tbl.read_column(column=column, **kwargs)
 
     def select_as_multiple(
         self,
@@ -903,8 +902,12 @@ class HDFStore:
             elif t.nrows != nrows:
                 raise ValueError("all tables must have exactly the same nrows!")
 
+        # The isinstance checks here are redundant with the check above,
+        #  but necessary for mypy; see GH#29757
+        _tbls = [x for x in tbls if isinstance(x, Table)]
+
         # axis is the concentration axes
-        axis = list({t.non_index_axes[0][0] for t in tbls})[0]
+        axis = list({t.non_index_axes[0][0] for t in _tbls})[0]
 
         def func(_start, _stop, _where):
 
@@ -996,6 +999,8 @@ class HDFStore:
             # the key is not a valid store, re-raising KeyError
             raise
         except Exception:
+            # In tests we get here with ClosedFileError, TypeError, and
+            #  _table_mod.NoSuchNodeError.  TODO: Catch only these?
 
             if where is not None:
                 raise ValueError(
@@ -1003,9 +1008,9 @@ class HDFStore:
                 )
 
             # we are actually trying to remove a node (with children)
-            s = self.get_node(key)
-            if s is not None:
-                s._f_remove(recursive=True)
+            node = self.get_node(key)
+            if node is not None:
+                node._f_remove(recursive=True)
                 return None
 
         # remove the node
@@ -1187,7 +1192,7 @@ class HDFStore:
         if s is None:
             return
 
-        if not s.is_table:
+        if not isinstance(s, Table):
             raise TypeError("cannot create table index on a Fixed format store")
         s.create_index(**kwargs)
 
@@ -1276,7 +1281,7 @@ class HDFStore:
         except _table_mod.exceptions.NoSuchNodeError:  # type: ignore
             return None
 
-    def get_storer(self, key: str):
+    def get_storer(self, key: str) -> Union["GenericFixed", "Table"]:
         """ return the storer object for a key, raise if not in the file """
         group = self.get_node(key)
         if group is None:
@@ -1329,7 +1334,7 @@ class HDFStore:
                         new_store.remove(k)
 
                 data = self.select(k)
-                if s.is_table:
+                if isinstance(s, Table):
 
                     index: Union[bool, list] = False
                     if propindexes:
@@ -1401,13 +1406,16 @@ class HDFStore:
 
         return kwargs
 
-    def _create_storer(self, group, format=None, value=None, append=False, **kwargs):
+    def _create_storer(
+        self, group, format=None, value=None, **kwargs
+    ) -> Union["GenericFixed", "Table"]:
         """ return a suitable class to operate """
 
         def error(t):
-            raise TypeError(
+            # return instead of raising so mypy can tell where we are raising
+            return TypeError(
                 f"cannot properly create the storer for: [{t}] [group->"
-                f"{group},value->{type(value)},format->{format},append->{append},"
+                f"{group},value->{type(value)},format->{format},"
                 f"kwargs->{kwargs}]"
             )
 
@@ -1419,6 +1427,7 @@ class HDFStore:
             if value is None:
 
                 _tables()
+                assert _table_mod is not None  # for mypy
                 if getattr(group, "table", None) or isinstance(
                     group, _table_mod.table.Table
                 ):
@@ -1430,11 +1439,11 @@ class HDFStore:
                         "nor a value are passed"
                     )
             else:
-
+                _TYPE_MAP = {Series: "series", DataFrame: "frame"}
                 try:
                     pt = _TYPE_MAP[type(value)]
                 except KeyError:
-                    error("_TYPE_MAP")
+                    raise error("_TYPE_MAP")
 
                 # we are actually a table
                 if format == "table":
@@ -1445,7 +1454,7 @@ class HDFStore:
             try:
                 return globals()[_STORER_MAP[pt]](self, group, **kwargs)
             except KeyError:
-                error("_STORER_MAP")
+                raise error("_STORER_MAP")
 
         # existing node (and must be a table)
         if tt is None:
@@ -1486,7 +1495,7 @@ class HDFStore:
         try:
             return globals()[_TABLE_MAP[tt]](self, group, **kwargs)
         except KeyError:
-            error("_TABLE_MAP")
+            raise error("_TABLE_MAP")
 
     def _write_to_group(
         self,
@@ -1532,9 +1541,7 @@ class HDFStore:
                     group = self._handle.create_group(path, p)
                 path = new_path
 
-        s = self._create_storer(
-            group, format, value, append=append, encoding=encoding, **kwargs
-        )
+        s = self._create_storer(group, format, value, encoding=encoding, **kwargs)
         if append:
             # raise if we are trying to append to a Fixed format,
             #       or a table that exists (and we are putting)
@@ -1551,7 +1558,7 @@ class HDFStore:
         # write the object
         s.write(obj=value, append=append, complib=complib, **kwargs)
 
-        if s.is_table and index:
+        if isinstance(s, Table) and index:
             s.create_index(columns=index)
 
     def _read_group(self, group, **kwargs):
@@ -1582,11 +1589,12 @@ class TableIterator:
 
     chunksize: Optional[int]
     store: HDFStore
+    s: Union["GenericFixed", "Table"]
 
     def __init__(
         self,
         store: HDFStore,
-        s,
+        s: Union["GenericFixed", "Table"],
         func,
         where,
         nrows,
@@ -1649,7 +1657,7 @@ class TableIterator:
 
         #  return the actual iterator
         if self.chunksize is not None:
-            if not self.s.is_table:
+            if not isinstance(self.s, Table):
                 raise TypeError("can only use an iterator or chunksize on a table")
 
             self.coordinates = self.s.read_coordinates(where=self.where)
@@ -1658,6 +1666,8 @@ class TableIterator:
 
         # if specified read via coordinates (necessary for multiple selections
         if coordinates:
+            if not isinstance(self.s, Table):
+                raise TypeError("can only read_coordinates on a table")
             where = self.s.read_coordinates(
                 where=self.where, start=self.start, stop=self.stop
             )
@@ -1806,8 +1816,7 @@ class IndexCol:
         # making an Index instance could throw a number of different errors
         try:
             self.values = Index(values, **kwargs)
-        except Exception:
-
+        except ValueError:
             # if the output freq is different that what we recorded,
             # it should be None (see also 'doc example part 2')
             if "freq" in kwargs:
@@ -2126,6 +2135,7 @@ class DataCol(IndexCol):
             elif dtype.startswith("int") or dtype.startswith("uint"):
                 self.kind = "integer"
             elif dtype.startswith("date"):
+                # in tests this is always "datetime64"
                 self.kind = "datetime"
             elif dtype.startswith("timedelta"):
                 self.kind = "timedelta"
@@ -2171,8 +2181,8 @@ class DataCol(IndexCol):
         if inferred_type == "date":
             raise TypeError("[date] is not implemented as a table column")
         elif inferred_type == "datetime":
-            # after 8260
-            # this only would be hit for a mutli-timezone dtype
+            # after GH#8260
+            # this only would be hit for a multi-timezone dtype
             # which is an error
 
             raise TypeError(
@@ -2395,10 +2405,6 @@ class DataCol(IndexCol):
                     self.data = np.asarray(
                         [date.fromtimestamp(v) for v in self.data], dtype=object
                     )
-            elif dtype == "datetime":
-                self.data = np.asarray(
-                    [datetime.fromtimestamp(v) for v in self.data], dtype=object
-                )
 
             elif meta == "category":
 
@@ -2909,7 +2915,7 @@ class GenericFixed(Fixed):
                 # created by python3
                 kwargs["tz"] = node._v_attrs["tz"]
 
-        if kind in ("date", "datetime"):
+        if kind == "date":
             index = factory(
                 _unconvert_index(
                     data, kind, encoding=self.encoding, errors=self.errors
@@ -4188,36 +4194,29 @@ class AppendableTable(Table):
             if not np.prod(v.shape):
                 return
 
-        try:
-            nrows = indexes[0].shape[0]
-            if nrows != len(rows):
-                rows = np.empty(nrows, dtype=self.dtype)
-            names = self.dtype.names
-            nindexes = len(indexes)
+        nrows = indexes[0].shape[0]
+        if nrows != len(rows):
+            rows = np.empty(nrows, dtype=self.dtype)
+        names = self.dtype.names
+        nindexes = len(indexes)
 
-            # indexes
-            for i, idx in enumerate(indexes):
-                rows[names[i]] = idx
+        # indexes
+        for i, idx in enumerate(indexes):
+            rows[names[i]] = idx
 
-            # values
-            for i, v in enumerate(values):
-                rows[names[i + nindexes]] = v
+        # values
+        for i, v in enumerate(values):
+            rows[names[i + nindexes]] = v
 
-            # mask
-            if mask is not None:
-                m = ~mask.ravel().astype(bool, copy=False)
-                if not m.all():
-                    rows = rows[m]
+        # mask
+        if mask is not None:
+            m = ~mask.ravel().astype(bool, copy=False)
+            if not m.all():
+                rows = rows[m]
 
-        except Exception as detail:
-            raise Exception(f"cannot create row-data -> {detail}")
-
-        try:
-            if len(rows):
-                self.table.append(rows)
-                self.table.flush()
-        except Exception as detail:
-            raise TypeError(f"tables cannot write this data -> {detail}")
+        if len(rows):
+            self.table.append(rows)
+            self.table.flush()
 
     def delete(
         self,
@@ -4615,39 +4614,12 @@ def _convert_index(name: str, index, encoding=None, errors="strict", format_type
         raise TypeError("MultiIndex not supported here!")
 
     inferred_type = lib.infer_dtype(index, skipna=False)
+    # we wont get inferred_type of "datetime64" or "timedelta64" as these
+    #  would go through the DatetimeIndex/TimedeltaIndex paths above
 
     values = np.asarray(index)
 
-    if inferred_type == "datetime64":
-        converted = values.view("i8")
-        return IndexCol(
-            name,
-            converted,
-            "datetime64",
-            _tables().Int64Col(),
-            freq=getattr(index, "freq", None),
-            tz=getattr(index, "tz", None),
-            index_name=index_name,
-        )
-    elif inferred_type == "timedelta64":
-        converted = values.view("i8")
-        return IndexCol(
-            name,
-            converted,
-            "timedelta64",
-            _tables().Int64Col(),
-            freq=getattr(index, "freq", None),
-            index_name=index_name,
-        )
-    elif inferred_type == "datetime":
-        converted = np.asarray(
-            [(time.mktime(v.timetuple()) + v.microsecond / 1e6) for v in values],
-            dtype=np.float64,
-        )
-        return IndexCol(
-            name, converted, "datetime", _tables().Time64Col(), index_name=index_name
-        )
-    elif inferred_type == "date":
+    if inferred_type == "date":
         converted = np.asarray([v.toordinal() for v in values], dtype=np.int32)
         return IndexCol(
             name, converted, "date", _tables().Time32Col(), index_name=index_name,
@@ -4665,19 +4637,6 @@ def _convert_index(name: str, index, encoding=None, errors="strict", format_type
             _tables().StringCol(itemsize),
             itemsize=itemsize,
             index_name=index_name,
-        )
-    elif inferred_type == "unicode":
-        if format_type == "fixed":
-            atom = _tables().ObjectAtom()
-            return IndexCol(
-                name,
-                np.asarray(values, dtype="O"),
-                "object",
-                atom,
-                index_name=index_name,
-            )
-        raise TypeError(
-            f"[unicode] is not supported as a in index type for [{format_type}] formats"
         )
 
     elif inferred_type == "integer":
@@ -4699,7 +4658,7 @@ def _convert_index(name: str, index, encoding=None, errors="strict", format_type
             atom,
             index_name=index_name,
         )
-    else:  # pragma: no cover
+    else:
         atom = _tables().ObjectAtom()
         return IndexCol(
             name, np.asarray(values, dtype="O"), "object", atom, index_name=index_name,
@@ -4712,8 +4671,6 @@ def _unconvert_index(data, kind, encoding=None, errors="strict"):
         index = DatetimeIndex(data)
     elif kind == "timedelta64":
         index = TimedeltaIndex(data)
-    elif kind == "datetime":
-        index = np.asarray([datetime.fromtimestamp(v) for v in data], dtype=object)
     elif kind == "date":
         try:
             index = np.asarray([date.fromordinal(v) for v in data], dtype=object)
@@ -4815,8 +4772,6 @@ def _maybe_convert(values: np.ndarray, val_kind, encoding, errors):
 def _get_converter(kind: str, encoding, errors):
     if kind == "datetime64":
         return lambda x: np.asarray(x, dtype="M8[ns]")
-    elif kind == "datetime":
-        return lambda x: to_datetime(x, cache=True).to_pydatetime()
     elif kind == "string":
         return lambda x: _unconvert_string_array(x, encoding=encoding, errors=errors)
     else:  # pragma: no cover
@@ -4824,7 +4779,7 @@ def _get_converter(kind: str, encoding, errors):
 
 
 def _need_convert(kind) -> bool:
-    if kind in ("datetime", "datetime64", "string"):
+    if kind in ("datetime64", "string"):
         return True
     return False
 
