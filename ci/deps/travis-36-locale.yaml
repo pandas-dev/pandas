@@ -9,14 +9,13 @@ dependencies:
   - cython>=0.29.13
   - pytest>=5.0.1
   - pytest-xdist>=1.21
-  - pytest-mock
   - hypothesis>=3.58.0
 
   # pandas dependencies
   - beautifulsoup4
   - blosc=1.14.3
   - python-blosc
-  - fastparquet=0.2.1
+  - fastparquet=0.3.2
   - gcsfs=0.2.2
   - html5lib
   - ipython

@@ -9,14 +9,13 @@ dependencies:
   - cython>=0.29.13
   - pytest>=5.0.1
   - pytest-xdist>=1.21
-  - pytest-mock
   - hypothesis>=3.58.0
   - pytest-azurepipelines
 
   # pandas dependencies
   - blosc
   - bottleneck
-  - fastparquet>=0.2.1
+  - fastparquet>=0.3.2
   - matplotlib=3.0.2
   - numexpr
   - numpy=1.15.*

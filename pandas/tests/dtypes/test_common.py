@@ -290,7 +290,7 @@ def test_is_datetime_arraylike():
     assert com.is_datetime_arraylike(pd.DatetimeIndex([1, 2, 3]))
 
 
-integer_dtypes = []  # type: List
+integer_dtypes: List = []
 
 
 @pytest.mark.parametrize(
@@ -322,7 +322,7 @@ def test_is_not_integer_dtype(dtype):
     assert not com.is_integer_dtype(dtype)
 
 
-signed_integer_dtypes = []  # type: List
+signed_integer_dtypes: List = []
 
 
 @pytest.mark.parametrize(
@@ -358,7 +358,7 @@ def test_is_not_signed_integer_dtype(dtype):
     assert not com.is_signed_integer_dtype(dtype)
 
 
-unsigned_integer_dtypes = []  # type: List
+unsigned_integer_dtypes: List = []
 
 
 @pytest.mark.parametrize(
@@ -528,6 +528,9 @@ def test_is_bool_dtype():
     assert com.is_bool_dtype(np.bool)
     assert com.is_bool_dtype(np.array([True, False]))
     assert com.is_bool_dtype(pd.Index([True, False]))
+
+    assert com.is_bool_dtype(pd.BooleanDtype())
+    assert com.is_bool_dtype(pd.array([True, False, None], dtype="boolean"))
 
 
 @pytest.mark.filterwarnings("ignore:'is_extension_type' is deprecated:FutureWarning")
