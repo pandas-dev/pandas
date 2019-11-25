@@ -102,7 +102,7 @@ class BooleanDtype(ExtensionDtype):
         return True
 
 
-def coerce_to_array(values, mask=None, copy=False):
+def coerce_to_array(values, mask=None, copy: bool = False):
     """
     Coerce the input values array to numpy arrays with a mask.
 
@@ -256,14 +256,14 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
         return self._dtype
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy=False):
+    def _from_sequence(cls, scalars, dtype=None, copy: bool = False):
         if dtype:
             assert dtype == "boolean"
         values, mask = coerce_to_array(scalars, copy=copy)
         return BooleanArray(values, mask)
 
     @classmethod
-    def _from_factorized(cls, values, original):
+    def _from_factorized(cls, values, original: "BooleanArray"):
         return cls._from_sequence(values, dtype=original.dtype)
 
     def _formatter(self, boxed=False):

@@ -154,6 +154,7 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
     def check_opname(self, s, op_name, other, exc=None):
+        # overwriting to indicate ops don't raise an error
         super().check_opname(s, op_name, other, exc=None)
 
     def _compare_other(self, s, data, op_name, other):
