@@ -2577,7 +2577,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
                 "will overflow".format(self=self, other=other)
             )
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, str):
             from pandas.tseries.frequencies import to_offset
 

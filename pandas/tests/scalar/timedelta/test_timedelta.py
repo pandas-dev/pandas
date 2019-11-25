@@ -139,7 +139,7 @@ class TestTimedeltaComparison:
                 else:
                     return self.cmp_result
 
-            def __eq__(self, other):
+            def __eq__(self, other: object):
                 return self.generic_result()
 
             def __gt__(self, other):

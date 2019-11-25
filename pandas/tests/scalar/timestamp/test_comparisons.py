@@ -179,7 +179,7 @@ def test_rich_comparison_with_unsupported_type():
         def __ge__(self, o):
             return True
 
-        def __eq__(self, o) -> bool:
+        def __eq__(self, o: object) -> bool:
             return isinstance(o, Inf)
 
     inf = Inf()

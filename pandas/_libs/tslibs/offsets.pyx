@@ -328,7 +328,7 @@ class _BaseOffset:
     def __setattr__(self, name, value):
         raise AttributeError("DateOffset objects are immutable.")
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, str):
             try:
                 # GH#23524 if to_offset fails, we are dealing with an

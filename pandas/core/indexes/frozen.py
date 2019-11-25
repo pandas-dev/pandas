@@ -77,7 +77,7 @@ class FrozenList(PandasObject, list):
             other = list(other)
         return self.__class__(other + list(self))
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, (tuple, FrozenList)):
             other = list(other)
         return super().__eq__(other)

@@ -1230,7 +1230,7 @@ def test_count_uses_size_on_exception():
             super().__init__()
             self.msg = msg
 
-        def __eq__(self, other):
+        def __eq__(self, other: object):
             # gets called in Cython to check that raising calls the method
             raise RaisingObjectException(self.msg)
 
