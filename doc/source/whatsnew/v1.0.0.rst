@@ -350,7 +350,6 @@ Other API changes
 - :meth:`Series.dropna` has dropped its ``**kwargs`` argument in favor of a single ``how`` parameter.
   Supplying anything else than ``how`` to ``**kwargs`` raised a ``TypeError`` previously (:issue:`29388`)
 - When testing pandas, the new minimum required version of pytest is 5.0.1 (:issue:`29664`)
-- :meth:`pandas.api.types.infer_dtype` returns ``"string"`` rather than ``"mixed"`` for a mixture of strings and NA values (:issue:`29799`)
 
 
 .. _whatsnew_1000.api.documentation:
