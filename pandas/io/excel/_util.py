@@ -1,5 +1,4 @@
 from typing import List, Optional, Tuple
-import warnings
 
 from pandas.compat._optional import import_optional_dependency
 
@@ -137,16 +136,11 @@ def _maybe_convert_usecols(usecols):
         return usecols
 
     if is_integer(usecols):
-        warnings.warn(
-            (
-                "Passing in an integer for `usecols` has been "
-                "deprecated. Please pass in a list of int from "
-                "0 to `usecols` inclusive instead."
-            ),
-            FutureWarning,
-            stacklevel=2,
+        raise ValueError(
+            "Passing an integer for `usecols` is no longer supported.  "
+            "Please pass in a list of int from 0 to `usecols` "
+            "inclusive instead."
         )
-        return list(range(usecols + 1))
 
     if isinstance(usecols, str):
         return _range2cols(usecols)

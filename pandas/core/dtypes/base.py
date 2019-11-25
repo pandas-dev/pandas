@@ -83,7 +83,7 @@ class ExtensionDtype:
     provided for registering virtual subclasses.
     """
 
-    _metadata = ()  # type: Tuple[str, ...]
+    _metadata: Tuple[str, ...] = ()
 
     def __str__(self) -> str:
         return self.name

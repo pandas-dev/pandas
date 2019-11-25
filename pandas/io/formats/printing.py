@@ -517,7 +517,7 @@ def format_object_attrs(
     list of 2-tuple
 
     """
-    attrs = []  # type: List[Tuple[str, Union[str, int]]]
+    attrs: List[Tuple[str, Union[str, int]]] = []
     if hasattr(obj, "dtype") and include_dtype:
         # error: "Sequence[Any]" has no attribute "dtype"
         attrs.append(("dtype", "'{}'".format(obj.dtype)))  # type: ignore

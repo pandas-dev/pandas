@@ -163,7 +163,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     _scalar_type = Period
 
     # Names others delegate to us
-    _other_ops = []  # type: List[str]
+    _other_ops: List[str] = []
     _bool_ops = ["is_leap_year"]
     _object_ops = ["start_time", "end_time", "freq"]
     _field_ops = [
@@ -896,9 +896,9 @@ def period_array(
 
     data = np.asarray(data)
 
+    dtype: Optional[PeriodDtype]
     if freq:
-        # typed Optional here because the else block below assigns None
-        dtype = PeriodDtype(freq)  # type: Optional[PeriodDtype]
+        dtype = PeriodDtype(freq)
     else:
         dtype = None
 

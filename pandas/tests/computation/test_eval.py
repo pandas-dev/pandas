@@ -1885,11 +1885,11 @@ def test_invalid_parser():
         pd.eval("x + y", local_dict={"x": 1, "y": 2}, parser="asdf")
 
 
-_parsers = {
+_parsers: Dict[str, Type[BaseExprVisitor]] = {
     "python": PythonExprVisitor,
-    "pytables": pytables.ExprVisitor,
+    "pytables": pytables.PyTablesExprVisitor,
     "pandas": PandasExprVisitor,
-}  # type: Dict[str, Type[BaseExprVisitor]]
+}
 
 
 @pytest.mark.parametrize("engine", _engines)

@@ -70,6 +70,8 @@ class Term:
         supr_new = super(Term, klass).__new__
         return supr_new(klass)
 
+    is_local: bool
+
     def __init__(self, name, env, side=None, encoding=None):
         # name is a str for Term, but may be something else for subclasses
         self._name = name

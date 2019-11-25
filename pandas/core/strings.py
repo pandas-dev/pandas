@@ -55,7 +55,7 @@ _cpython_optimized_encoders = (
 )
 _cpython_optimized_decoders = _cpython_optimized_encoders + ("utf-16", "utf-32")
 
-_shared_docs = dict()  # type: Dict[str, str]
+_shared_docs: Dict[str, str] = dict()
 
 
 def cat_core(list_of_columns: List, sep: str):
@@ -3288,7 +3288,7 @@ class StringMethods(NoNewAttributesMixin):
     """
 
     # _doc_args holds dict of strings to use in substituting casemethod docs
-    _doc_args = {}  # type: Dict[str, Dict[str, str]]
+    _doc_args: Dict[str, Dict[str, str]] = {}
     _doc_args["lower"] = dict(type="lowercase", method="lower", version="")
     _doc_args["upper"] = dict(type="uppercase", method="upper", version="")
     _doc_args["title"] = dict(type="titlecase", method="title", version="")

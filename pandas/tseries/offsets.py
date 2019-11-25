@@ -1823,8 +1823,8 @@ class QuarterOffset(DateOffset):
     Quarter representation - doesn't call super.
     """
 
-    _default_startingMonth = None  # type: Optional[int]
-    _from_name_startingMonth = None  # type: Optional[int]
+    _default_startingMonth: Optional[int] = None
+    _from_name_startingMonth: Optional[int] = None
     _adjust_dst = True
     _attributes = frozenset(["n", "normalize", "startingMonth"])
     # TODO: Consider combining QuarterOffset and YearOffset __init__ at some

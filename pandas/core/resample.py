@@ -34,7 +34,7 @@ from pandas.tseries.offsets import DateOffset, Day, Nano, Tick
 if TYPE_CHECKING:
     from pandas import Series  # noqa: F401
 
-_shared_docs_kwargs = dict()  # type: Dict[str, str]
+_shared_docs_kwargs: Dict[str, str] = dict()
 
 
 class Resampler(_GroupBy, ShallowMixin):

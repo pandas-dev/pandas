@@ -89,7 +89,7 @@ class BaseGrouper:
 
         self._filter_empty_groups = self.compressed = len(groupings) != 1
         self.axis = axis
-        self._groupings = list(groupings)  # type: List[grouper.Grouping]
+        self._groupings: List[grouper.Grouping] = list(groupings)
         self.sort = sort
         self.group_keys = group_keys
         self.mutated = mutated
@@ -453,18 +453,16 @@ class BaseGrouper:
         # categoricals are only 1d, so we
         # are not setup for dim transforming
         if is_categorical_dtype(values) or is_sparse(values):
-            raise NotImplementedError(
-                "{dtype} dtype not supported".format(dtype=values.dtype)
-            )
+            raise NotImplementedError(f"{values.dtype} dtype not supported")
         elif is_datetime64_any_dtype(values):
             if how in ["add", "prod", "cumsum", "cumprod"]:
                 raise NotImplementedError(
-                    "datetime64 type does not support {how} operations".format(how=how)
+                    f"datetime64 type does not support {how} operations"
                 )
         elif is_timedelta64_dtype(values):
             if how in ["prod", "cumprod"]:
                 raise NotImplementedError(
-                    "timedelta64 type does not support {how} operations".format(how=how)
+                    f"timedelta64 type does not support {how} operations"
                 )
 
         if is_datetime64tz_dtype(values.dtype):
@@ -517,9 +515,7 @@ class BaseGrouper:
             out_dtype = "float"
         else:
             if is_numeric:
-                out_dtype = "{kind}{itemsize}".format(
-                    kind=values.dtype.kind, itemsize=values.dtype.itemsize
-                )
+                out_dtype = f"{values.dtype.kind}{values.dtype.itemsize}"
             else:
                 out_dtype = "object"
 

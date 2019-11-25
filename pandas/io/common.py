@@ -420,7 +420,7 @@ def _get_handle(
     except ImportError:
         need_text_wrapping = BufferedIOBase
 
-    handles = list()  # type: List[IO]
+    handles: List[IO] = list()
     f = path_or_buf
 
     # Convert pathlib.Path/py.path.local or string
