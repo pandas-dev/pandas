@@ -80,6 +80,7 @@ class TestPDApi(Base):
         "PeriodDtype",
         "IntervalDtype",
         "DatetimeTZDtype",
+        "BooleanDtype",
         "Int8Dtype",
         "Int16Dtype",
         "Int32Dtype",

@@ -448,7 +448,7 @@ def array_equivalent(left, right, strict_nan: bool = False) -> bool:
                     return False
             else:
                 try:
-                    if np.any(left_value != right_value):
+                    if np.any(np.asarray(left_value != right_value)):
                         return False
                 except TypeError as err:
                     if "Cannot compare tz-naive" in str(err):

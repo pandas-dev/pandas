@@ -293,6 +293,20 @@ def compare_operators_no_eq_ne(request):
     return request.param
 
 
+@pytest.fixture(
+    params=["__and__", "__rand__", "__or__", "__ror__", "__xor__", "__rxor__"]
+)
+def all_logical_operators(request):
+    """
+    Fixture for dunder names for common logical operations
+
+    * |
+    * &
+    * ^
+    """
+    return request.param
+
+
 @pytest.fixture(params=[None, "gzip", "bz2", "zip", "xz"])
 def compression(request):
     """

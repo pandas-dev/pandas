@@ -1950,6 +1950,7 @@ sparse              :class:`SparseDtype`      (none)             :class:`arrays.
 intervals           :class:`IntervalDtype`    :class:`Interval`  :class:`arrays.IntervalArray` :ref:`advanced.intervalindex`
 nullable integer    :class:`Int64Dtype`, ...  (none)             :class:`arrays.IntegerArray`  :ref:`integer_na`
 Strings             :class:`StringDtype`      :class:`str`       :class:`arrays.StringArray`   :ref:`text`
+Boolean (with NA)   :class:`BooleanDtype`     :class:`bool`      :class:`arrays.BooleanArray`  :ref:`api.arrays.bool`
 =================== ========================= ================== ============================= =============================
 
 Pandas has two ways to store strings.
