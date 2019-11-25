@@ -8,7 +8,7 @@ import warnings
 VERSIONS = {
     "bs4": "4.6.0",
     "bottleneck": "1.2.1",
-    "fastparquet": "0.2.1",
+    "fastparquet": "0.3.2",
     "gcsfs": "0.2.2",
     "lxml.etree": "3.8.0",
     "matplotlib": "2.2.2",
@@ -16,7 +16,7 @@ VERSIONS = {
     "odfpy": "1.3.0",
     "openpyxl": "2.4.8",
     "pandas_gbq": "0.8.0",
-    "pyarrow": "0.9.0",
+    "pyarrow": "0.12.0",
     "pytables": "3.4.2",
     "pytest": "5.0.1",
     "s3fs": "0.3.0",

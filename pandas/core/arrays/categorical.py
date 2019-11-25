@@ -77,12 +77,6 @@ def _cat_compare_op(op):
 
     @unpack_zerodim_and_defer(opname)
     def func(self, other):
-        # On python2, you can usually compare any type to any type, and
-        # Categoricals can be seen as a custom type, but having different
-        # results depending whether categories are the same or not is kind of
-        # insane, so be a bit stricter here and use the python3 idea of
-        # comparing only things of equal type.
-
         if is_list_like(other) and len(other) != len(self):
             # TODO: Could this fail if the categories are listlike objects?
             raise ValueError("Lengths must match.")
@@ -114,9 +108,9 @@ def _cat_compare_op(op):
             else:
                 other_codes = other._codes
 
-            mask = (self._codes == -1) | (other_codes == -1)
             f = getattr(self._codes, opname)
             ret = f(other_codes)
+            mask = (self._codes == -1) | (other_codes == -1)
             if mask.any():
                 # In other series, the leads to False, so do that here too
                 ret[mask] = False
@@ -127,9 +121,10 @@ def _cat_compare_op(op):
                 i = self.categories.get_loc(other)
                 ret = getattr(self._codes, opname)(i)
 
-                # check for NaN in self
-                mask = self._codes == -1
-                ret[mask] = False
+                if opname not in {"__eq__", "__ge__", "__gt__"}:
+                    # check for NaN needed if we are not equal or larger
+                    mask = self._codes == -1
+                    ret[mask] = False
                 return ret
             else:
                 if opname == "__eq__":
@@ -840,8 +835,8 @@ class Categorical(ExtensionArray, PandasObject):
         On the other hand this methods does not do checks (e.g., whether the
         old categories are included in the new categories on a reorder), which
         can result in surprising changes, for example when using special string
-        dtypes on python3, which does not considers a S1 string equal to a
-        single char python string.
+        dtypes, which does not considers a S1 string equal to a single char
+        python string.
 
         Parameters
         ----------

@@ -15,12 +15,12 @@ dependencies:
   # pandas dependencies
   - blosc
   - bottleneck
-  - fastparquet>=0.2.1
+  - fastparquet>=0.3.2
   - matplotlib=3.0.2
   - numexpr
   - numpy=1.15.*
   - openpyxl
-  - pyarrow
+  - pyarrow>=0.12.0
   - pytables
   - python-dateutil
   - pytz
