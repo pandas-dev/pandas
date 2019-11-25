@@ -9,10 +9,6 @@ from pandas.core.dtypes.common import is_scalar
 from pandas import DataFrame, Float64Index, MultiIndex, Series, UInt64Index, date_range
 import pandas.util.testing as tm
 
-from pandas.io.formats.printing import pprint_thing
-
-_verbose = False
-
 
 def _mklbl(prefix, n):
     return ["{prefix}{i}".format(prefix=prefix, i=i) for i in range(n)]
@@ -178,7 +174,6 @@ class Base:
 
     def check_result(
         self,
-        name,
         method1,
         key1,
         method2,
@@ -196,12 +191,10 @@ class Base:
             def _print(result, error=None):
                 err = str(error) if error is not None else ""
                 msg = (
-                    "%-16.16s [%-16.16s]: [typ->%-8.8s,obj->%-8.8s,"
+                    "[%-16.16s]: [typ->%-8.8s,obj->%-8.8s,"
                     "key1->(%-4.4s),key2->(%-4.4s),axis->%s] %s"
-                    % (name, result, typ, kind, method1, method2, axis, err)
+                    % (result, typ, kind, method1, method2, axis, err)
                 )
-                if _verbose:
-                    pprint_thing(msg)
 
             try:
                 rs = getattr(obj, method1).__getitem__(_axify(obj, key1, axis))
