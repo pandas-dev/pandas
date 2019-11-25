@@ -343,5 +343,5 @@ class TestPeriodIndexOps(Ops):
             idx.freq
 
         # warning for setter
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(AttributeError, match="can't set attribute"):
             idx.freq = pd.offsets.Day()
