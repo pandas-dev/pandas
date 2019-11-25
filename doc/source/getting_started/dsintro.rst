@@ -444,6 +444,7 @@ dtype. For example:
    data
    pd.DataFrame.from_records(data, index='C')
 
+.. _basics.dataframe.sel_add_del:
 
 Column selection, addition, deletion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

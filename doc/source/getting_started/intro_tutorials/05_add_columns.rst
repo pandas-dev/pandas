@@ -177,9 +177,7 @@ Further details about column or row label renaming is provided in :ref:`basics.r
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
         
-Further details about column addition and deletion is provided in :ref:``TODO``
-(`label <https://pandas.pydata.org/pandas-docs/stable/getting_started/dsintro.html#column-selection-addition-deletion>`__
-to add in sphinx)
+Further details about column addition and deletion is provided in :ref:`basics.dataframe.sel_add_del`.
 
 .. raw:: html
 
