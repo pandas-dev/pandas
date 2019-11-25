@@ -26,7 +26,11 @@ import pandas.util.testing as tm
             np.dtype("float32"),
             PandasArray(np.array([1.0, 2.0], dtype=np.dtype("float32"))),
         ),
-        (np.array([1, 2]), None, pd.arrays.IntegerArray._from_sequence([1, 2])),
+        (
+            np.array([1, 2], dtype="int64"),
+            None,
+            pd.arrays.IntegerArray._from_sequence([1, 2]),
+        ),
         # String alias passes through to NumPy
         ([1, 2], "float32", PandasArray(np.array([1, 2], dtype="float32"))),
         # Period alias

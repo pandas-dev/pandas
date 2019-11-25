@@ -84,6 +84,8 @@ dtype if needed.
 
 .. ipython:: python
 
+   s = pd.Series([1, 2, None], dtype="Int64")
+
    # arithmetic
    s + 1
 
