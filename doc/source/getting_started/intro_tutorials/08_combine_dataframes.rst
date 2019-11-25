@@ -34,7 +34,7 @@ Westminster* in respectively Paris, Antwerp and London.
 .. raw:: html
 
                         </p>
-                    <a href="https://github.com/stijnvanhoey/pandas-getting-started-tutorials/blob/master/data/air_quality_no2_long.csv" class="btn btn-dark btn-sm">To raw data</a>
+                    <a href="https://github.com/pandas-dev/pandas/tree/master/doc/data/air_quality_no2_long.csv" class="btn btn-dark btn-sm">To raw data</a>
                 </div>
             </div>
 
@@ -68,7 +68,7 @@ Westminster* in respectively Paris, Antwerp and London.
 .. raw:: html
 
                     </p>
-                <a href="https://github.com/stijnvanhoey/pandas-getting-started-tutorials/blob/master/data/air_quality_pm25_long.csv" class="btn btn-dark btn-sm">To raw data</a>
+                <a href="https://github.com/pandas-dev/pandas/tree/master/doc/data/air_quality_pm25_long.csv" class="btn btn-dark btn-sm">To raw data</a>
             </div>
         </div>
 
