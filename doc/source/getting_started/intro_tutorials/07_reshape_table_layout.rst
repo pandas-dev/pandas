@@ -68,7 +68,7 @@ micrometers, made available by
 `openaq <https://openaq.org>`__ and using the
 `py-openaq <http://dhhagan.github.io/py-openaq/index.html>`__ package.
 The ``air_quality_long.csv`` data set provides :math:`NO_2` and
-:math:`pm25` values for the measurement stations *FR04014*, *BETR801*
+:math:`PM_{25}` values for the measurement stations *FR04014*, *BETR801*
 and *London Westminster* in respectively Paris, Antwerp and London.
 
 The air-quality data set has the following columns:
@@ -95,7 +95,7 @@ measurement.
 .. raw:: html
 
                     </p>
-                <a href="https://github.com/stijnvanhoey/pandas-getting-started-tutorials/blob/master/data/air_quality_long.csv" class="btn btn-dark btn-sm">To raw data</a>
+                <a href="https://github.com/pandas-dev/pandas/tree/master/doc/data/air_quality_long.csv" class="btn btn-dark btn-sm">To raw data</a>
             </div>
         </div>
 
