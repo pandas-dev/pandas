@@ -69,7 +69,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         obj,
         window=None,
         min_periods: Optional[int] = None,
-        center: Optional[bool] = False,
+        center: bool = False,
         win_type: Optional[str] = None,
         axis: Axis = 0,
         on: Optional[Union[str, Index]] = None,
@@ -389,17 +389,15 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             )
         return window_func
 
-    def _get_cython_func_type(self, func):
+    def _get_cython_func_type(self, func: str):
         """
         Return a variable or fixed cython function type.
 
         Variable algorithms do not use window while fixed do.
         """
         if self.is_freq_type:
-            return self._get_roll_func("{}_variable".format(func))
-        return partial(
-            self._get_roll_func("{}_fixed".format(func)), win=self._get_window()
-        )
+            return self._get_roll_func(f"{func}_variable")
+        return partial(self._get_roll_func(f"{func}_fixed"), win=self._get_window())
 
     def _get_window_indexer(self):
         """
@@ -480,17 +478,13 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                     start, end = window_indexer(
                         x, window, self.closed, index_as_array
                     ).get_window_bounds()
-                    # https://github.com/python/mypy/issues/2608
-                    # error: "str" not callable
-                    return func(x, start, end, min_periods)   # type: ignore
+                    return func(x, start, end, min_periods)
 
             else:
 
                 def calc(x):
                     x = np.concatenate((x, additional_nans))
-                    # https://github.com/python/mypy/issues/2608
-                    # error: "str" not callable
-                    return func(x, window, self.min_periods)  # type: ignore
+                    return func(x, window, self.min_periods)
 
             with np.errstate(all="ignore"):
                 if values.ndim > 1:
@@ -1096,8 +1090,8 @@ class Window(_Window):
     @Appender(_shared_docs["var"])
     def var(self, ddof=1, *args, **kwargs):
         nv.validate_window_func("var", args, kwargs)
-        window_func = partial(self._get_roll_func("roll_weighted_var"), ddof=ddof)
-        window_func = self._get_weighted_roll_func(window_func, _use_window)
+        _window_func = partial(self._get_roll_func("roll_weighted_var"), ddof=ddof)
+        window_func = self._get_weighted_roll_func(_window_func, _use_window)
         kwargs.pop("name", None)
         return self._apply(
             window_func, center=self.center, is_weighted=True, name="var", **kwargs

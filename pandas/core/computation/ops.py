@@ -360,7 +360,7 @@ class BinOp(Op):
     rhs : Term or Op
     """
 
-    def __init__(self, op: str, lhs: Union[Term, Op], rhs: Union[Term, Op]):
+    def __init__(self, op: str, lhs, rhs):
         super().__init__(op, (lhs, rhs))
         self.lhs = lhs
         self.rhs = rhs
@@ -420,9 +420,7 @@ class BinOp(Op):
         else:
             # recurse over the left/right nodes
 
-            # FIXME
-            # error: Item "Op" of "Union[Term, Op]" has no attribute "evaluate"
-            left = self.lhs.evaluate(  # type: ignore
+            left = self.lhs.evaluate(
                 env,
                 engine=engine,
                 parser=parser,
@@ -430,9 +428,7 @@ class BinOp(Op):
                 eval_in_python=eval_in_python,
             )
 
-            # FIXME
-            # error: Item "Op" of "Union[Term, Op]" has no attribute "evaluate"
-            right = self.rhs.evaluate(  # type: ignore
+            right = self.rhs.evaluate(
                 env,
                 engine=engine,
                 parser=parser,

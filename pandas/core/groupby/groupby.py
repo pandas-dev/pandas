@@ -2518,8 +2518,6 @@ def get_groupby(
     mutated: bool = False,
 ) -> GroupBy:
     klass: Type[GroupBy]
-
-    klass: Union[Type["SeriesGroupBy"], Type["DataFrameGroupBy"]]
     if isinstance(obj, Series):
         from pandas.core.groupby.generic import SeriesGroupBy
 
