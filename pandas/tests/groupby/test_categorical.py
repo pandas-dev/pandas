@@ -1127,7 +1127,7 @@ def test_seriesgroupby_observed_true(df_cat, operation, kwargs):
     index = MultiIndex.from_frame(
         DataFrame(
             {"A": ["foo", "foo", "bar", "bar"], "B": ["one", "two", "one", "three"]},
-            **kwargs
+            **kwargs,
         )
     )
     expected = Series(data=[1, 3, 2, 4], index=index, name="C")
@@ -1252,3 +1252,82 @@ def test_get_nonexistent_category():
                 {"var": [rows.iloc[-1]["var"]], "val": [rows.iloc[-1]["vau"]]}
             )
         )
+
+
+def test_series_groupby_on_2_categoricals_unobserved(
+    reduction_func: str, observed: bool
+):
+    # GH 17605
+
+    if reduction_func == "ngroup":
+        pytest.skip("ngroup is not truly a reduction")
+
+    df = pd.DataFrame(
+        {
+            "cat_1": pd.Categorical(list("AABB"), categories=list("ABCD")),
+            "cat_2": pd.Categorical(list("AB") * 2, categories=list("ABCD")),
+            "value": [0.1] * 4,
+        }
+    )
+    args = {"nth": [0]}.get(reduction_func, [])
+
+    expected_length = 4 if observed else 16
+
+    series_groupby = df.groupby(["cat_1", "cat_2"], observed=observed)["value"]
+    agg = getattr(series_groupby, reduction_func)
+    result = agg(*args)
+
+    assert len(result) == expected_length
+
+
+@pytest.mark.parametrize(
+    "func, zero_or_nan",
+    [
+        ("all", np.NaN),
+        ("any", np.NaN),
+        ("count", 0),
+        ("first", np.NaN),
+        ("idxmax", np.NaN),
+        ("idxmin", np.NaN),
+        ("last", np.NaN),
+        ("mad", np.NaN),
+        ("max", np.NaN),
+        ("mean", np.NaN),
+        ("median", np.NaN),
+        ("min", np.NaN),
+        ("nth", np.NaN),
+        ("nunique", 0),
+        ("prod", np.NaN),
+        ("quantile", np.NaN),
+        ("sem", np.NaN),
+        ("size", 0),
+        ("skew", np.NaN),
+        ("std", np.NaN),
+        ("sum", np.NaN),
+        ("var", np.NaN),
+    ],
+)
+def test_series_groupby_on_2_categoricals_unobserved_zeroes_or_nans(func, zero_or_nan):
+    # GH 17605
+    # Tests whether the unobserved categories in the result contain 0 or NaN
+    df = pd.DataFrame(
+        {
+            "cat_1": pd.Categorical(list("AABB"), categories=list("ABC")),
+            "cat_2": pd.Categorical(list("AB") * 2, categories=list("ABC")),
+            "value": [0.1] * 4,
+        }
+    )
+    unobserved = [tuple("AC"), tuple("BC"), tuple("CA"), tuple("CB"), tuple("CC")]
+    args = {"nth": [0]}.get(func, [])
+
+    series_groupby = df.groupby(["cat_1", "cat_2"], observed=False)["value"]
+    agg = getattr(series_groupby, func)
+    result = agg(*args)
+
+    for idx in unobserved:
+        val = result.loc[idx]
+        assert (pd.isna(zero_or_nan) and pd.isna(val)) or (val == zero_or_nan)
+
+    # If we expect unobserved values to be zero, we also expect the dtype to be int
+    if zero_or_nan == 0:
+        assert np.issubdtype(result.dtype, np.integer)

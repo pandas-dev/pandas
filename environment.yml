@@ -15,13 +15,13 @@ dependencies:
   - cython>=0.29.13
 
   # code checks
-  - black<=19.3b0
+  - black=19.10b0
   - cpplint
   - flake8
-  - flake8-comprehensions  # used by flake8, linting of unnecessary comprehensions
+  - flake8-comprehensions>=3.1.0  # used by flake8, linting of unnecessary comprehensions
   - flake8-rst>=0.6.0,<=0.7.0  # linting of code blocks in rst files
   - isort  # check that imports are in the right order
-  - mypy=0.720
+  - mypy=0.730
   - pycodestyle  # used by flake8
 
   # documentation
@@ -51,9 +51,9 @@ dependencies:
   - botocore>=1.11
   - hypothesis>=3.82
   - moto  # mock S3
-  - pytest>=4.0.2
+  - pytest>=5.0.1
   - pytest-cov
-  - pytest-xdist
+  - pytest-xdist>=1.21
   - seaborn
   - statsmodels
 
@@ -75,7 +75,7 @@ dependencies:
 
   # optional for io
   - beautifulsoup4>=4.6.0  # pandas.read_html
-  - fastparquet>=0.2.1  # pandas.read_parquet, DataFrame.to_parquet
+  - fastparquet>=0.3.2  # pandas.read_parquet, DataFrame.to_parquet
   - html5lib  # pandas.read_html
   - lxml  # pandas.read_html
   - openpyxl  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile

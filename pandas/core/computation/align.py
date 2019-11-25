@@ -8,10 +8,11 @@ import numpy as np
 
 from pandas.errors import PerformanceWarning
 
-import pandas as pd
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.computation.common import _result_type_many
+from pandas.core.computation.common import result_type_many
 
 
 def _align_core_single_unary_op(term):
@@ -33,7 +34,7 @@ def _zip_axes_from_type(typ, new_axes):
     return axes
 
 
-def _any_pandas_objects(terms):
+def _any_pandas_objects(terms) -> bool:
     """Check a sequence of terms for instances of PandasObject."""
     return any(isinstance(term.value, PandasObject) for term in terms)
 
@@ -49,7 +50,7 @@ def _filter_special_cases(f):
 
         # we don't have any pandas objects
         if not _any_pandas_objects(terms):
-            return _result_type_many(*term_values), None
+            return result_type_many(*term_values), None
 
         return f(terms)
 
@@ -60,7 +61,10 @@ def _filter_special_cases(f):
 def _align_core(terms):
     term_index = [i for i, term in enumerate(terms) if hasattr(term.value, "axes")]
     term_dims = [terms[i].value.ndim for i in term_index]
-    ndims = pd.Series(dict(zip(term_index, term_dims)))
+
+    from pandas import Series
+
+    ndims = Series(dict(zip(term_index, term_dims)))
 
     # initial axes are the axes of the largest-axis'd term
     biggest = terms[ndims.idxmax()].value
@@ -70,7 +74,7 @@ def _align_core(terms):
     gt_than_one_axis = naxes > 1
 
     for value in (terms[i].value for i in term_index):
-        is_series = isinstance(value, pd.Series)
+        is_series = isinstance(value, ABCSeries)
         is_series_and_gt_one_axis = is_series and gt_than_one_axis
 
         for axis, items in enumerate(value.axes):
@@ -87,7 +91,7 @@ def _align_core(terms):
             ti = terms[i].value
 
             if hasattr(ti, "reindex"):
-                transpose = isinstance(ti, pd.Series) and naxes > 1
+                transpose = isinstance(ti, ABCSeries) and naxes > 1
                 reindexer = axes[naxes - 1] if transpose else items
 
                 term_axis_size = len(ti.axes[axis])
@@ -111,28 +115,28 @@ def _align_core(terms):
     return typ, _zip_axes_from_type(typ, axes)
 
 
-def _align(terms):
+def align_terms(terms):
     """Align a set of terms"""
     try:
         # flatten the parse tree (a nested list, really)
         terms = list(com.flatten(terms))
     except TypeError:
         # can't iterate so it must just be a constant or single variable
-        if isinstance(terms.value, pd.core.generic.NDFrame):
+        if isinstance(terms.value, (ABCSeries, ABCDataFrame)):
             typ = type(terms.value)
             return typ, _zip_axes_from_type(typ, terms.value.axes)
         return np.result_type(terms.type), None
 
     # if all resolved variables are numeric scalars
     if all(term.is_scalar for term in terms):
-        return _result_type_many(*(term.value for term in terms)).type, None
+        return result_type_many(*(term.value for term in terms)).type, None
 
     # perform the main alignment
     typ, axes = _align_core(terms)
     return typ, axes
 
 
-def _reconstruct_object(typ, obj, axes, dtype):
+def reconstruct_object(typ, obj, axes, dtype):
     """
     Reconstruct an object given its type, raw value, and possibly empty
     (None) axes.

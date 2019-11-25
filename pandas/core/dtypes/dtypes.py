@@ -20,7 +20,7 @@ str_type = str
 
 # GH26403: sentinel value used for the default value of ordered in the
 # CategoricalDtype constructor to detect when ordered=None is explicitly passed
-ordered_sentinel = object()  # type: object
+ordered_sentinel: object = object()
 
 
 def register_extension_dtype(cls: Type[ExtensionDtype]) -> Type[ExtensionDtype]:
@@ -51,7 +51,7 @@ def register_extension_dtype(cls: Type[ExtensionDtype]) -> Type[ExtensionDtype]:
 
 class Registry:
     """
-    Registry for dtype inference
+    Registry for dtype inference.
 
     The registry allows one to map a string repr of a extension
     dtype to an extension dtype. The string alias can be used in several
@@ -66,7 +66,7 @@ class Registry:
     """
 
     def __init__(self):
-        self.dtypes = []  # type: List[Type[ExtensionDtype]]
+        self.dtypes: List[Type[ExtensionDtype]] = []
 
     def register(self, dtype: Type[ExtensionDtype]) -> None:
         """
@@ -119,21 +119,21 @@ class PandasExtensionDtype(ExtensionDtype):
     THIS IS NOT A REAL NUMPY DTYPE
     """
 
-    type = None  # type: Any
-    kind = None  # type: Any
+    type: Any
+    kind: Any
     # The Any type annotations above are here only because mypy seems to have a
     # problem dealing with with multiple inheritance from PandasExtensionDtype
     # and ExtensionDtype's @properties in the subclasses below. The kind and
     # type variables in those subclasses are explicitly typed below.
     subdtype = None
-    str = None  # type: Optional[str_type]
+    str: Optional[str_type] = None
     num = 100
-    shape = tuple()  # type: Tuple[int, ...]
+    shape: Tuple[int, ...] = tuple()
     itemsize = 8
     base = None
     isbuiltin = 0
     isnative = 0
-    _cache = {}  # type: Dict[str_type, 'PandasExtensionDtype']
+    _cache: Dict[str_type, "PandasExtensionDtype"] = {}
 
     def __str__(self) -> str_type:
         """
@@ -214,12 +214,12 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     # TODO: Document public vs. private API
     name = "category"
-    type = CategoricalDtypeType  # type: Type[CategoricalDtypeType]
-    kind = "O"  # type: str_type
+    type: Type[CategoricalDtypeType] = CategoricalDtypeType
+    kind: str_type = "O"
     str = "|O08"
     base = np.dtype("O")
     _metadata = ("categories", "ordered", "_ordered_from_sentinel")
-    _cache = {}  # type: Dict[str_type, PandasExtensionDtype]
+    _cache: Dict[str_type, PandasExtensionDtype] = {}
 
     def __init__(
         self, categories=None, ordered: Union[Ordered, object] = ordered_sentinel
@@ -650,15 +650,15 @@ class DatetimeTZDtype(PandasExtensionDtype):
     datetime64[ns, tzfile('/usr/share/zoneinfo/US/Central')]
     """
 
-    type = Timestamp  # type: Type[Timestamp]
-    kind = "M"  # type: str_type
+    type: Type[Timestamp] = Timestamp
+    kind: str_type = "M"
     str = "|M8[ns]"
     num = 101
     base = np.dtype("M8[ns]")
     na_value = NaT
     _metadata = ("unit", "tz")
     _match = re.compile(r"(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
-    _cache = {}  # type: Dict[str_type, PandasExtensionDtype]
+    _cache: Dict[str_type, PandasExtensionDtype] = {}
 
     def __init__(self, unit="ns", tz=None):
         if isinstance(unit, DatetimeTZDtype):
@@ -812,14 +812,14 @@ class PeriodDtype(PandasExtensionDtype):
     period[M]
     """
 
-    type = Period  # type: Type[Period]
-    kind = "O"  # type: str_type
+    type: Type[Period] = Period
+    kind: str_type = "O"
     str = "|O08"
     base = np.dtype("O")
     num = 102
     _metadata = ("freq",)
     _match = re.compile(r"(P|p)eriod\[(?P<freq>.+)\]")
-    _cache = {}  # type: Dict[str_type, PandasExtensionDtype]
+    _cache: Dict[str_type, PandasExtensionDtype] = {}
 
     def __new__(cls, freq=None):
         """
@@ -972,13 +972,13 @@ class IntervalDtype(PandasExtensionDtype):
     """
 
     name = "interval"
-    kind = None  # type: Optional[str_type]
+    kind: Optional[str_type] = None
     str = "|O08"
     base = np.dtype("O")
     num = 103
     _metadata = ("subtype",)
     _match = re.compile(r"(I|i)nterval\[(?P<subtype>.+)\]")
-    _cache = {}  # type: Dict[str_type, PandasExtensionDtype]
+    _cache: Dict[str_type, PandasExtensionDtype] = {}
 
     def __new__(cls, subtype=None):
         from pandas.core.dtypes.common import (

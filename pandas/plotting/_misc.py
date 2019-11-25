@@ -1,5 +1,4 @@
 from contextlib import contextmanager
-import warnings
 
 from pandas.util._decorators import deprecate_kwarg
 
@@ -82,7 +81,7 @@ def scatter_matrix(
     density_kwds=None,
     hist_kwds=None,
     range_padding=0.05,
-    **kwargs
+    **kwargs,
 ):
     """
     Draw a matrix of scatter plots.
@@ -134,7 +133,7 @@ def scatter_matrix(
         density_kwds=density_kwds,
         hist_kwds=hist_kwds,
         range_padding=range_padding,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -207,7 +206,7 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
         ax=ax,
         color=color,
         colormap=colormap,
-        **kwds
+        **kwds,
     )
 
 
@@ -255,7 +254,7 @@ def andrews_curves(
         samples=samples,
         color=color,
         colormap=colormap,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -325,7 +324,7 @@ def parallel_coordinates(
     axvlines=True,
     axvlines_kwds=None,
     sort_labels=False,
-    **kwargs
+    **kwargs,
 ):
     """
     Parallel coordinates plotting.
@@ -383,7 +382,7 @@ def parallel_coordinates(
         axvlines=axvlines,
         axvlines_kwds=axvlines_kwds,
         sort_labels=sort_labels,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -426,33 +425,6 @@ def autocorrelation_plot(series, ax=None, **kwargs):
     return plot_backend.autocorrelation_plot(series=series, ax=ax, **kwargs)
 
 
-def tsplot(series, plotf, ax=None, **kwargs):
-    """
-    Plots a Series on the given Matplotlib axes or the current axes
-
-    Parameters
-    ----------
-    axes : Axes
-    series : Series
-
-    Notes
-    _____
-    Supports same kwargs as Axes.plot
-
-
-    .. deprecated:: 0.23.0
-       Use Series.plot() instead
-    """
-    warnings.warn(
-        "'tsplot' is deprecated and will be removed in a "
-        "future version. Please use Series.plot() instead.",
-        FutureWarning,
-        stacklevel=2,
-    )
-    plot_backend = _get_plot_backend("matplotlib")
-    return plot_backend.tsplot(series=series, plotf=plotf, ax=ax, **kwargs)
-
-
 class _Options(dict):
     """
     Stores pandas plotting options.
@@ -474,9 +446,7 @@ class _Options(dict):
     def __getitem__(self, key):
         key = self._get_canonical_key(key)
         if key not in self:
-            raise ValueError(
-                "{key} is not a valid pandas plotting option".format(key=key)
-            )
+            raise ValueError(f"{key} is not a valid pandas plotting option")
         return super().__getitem__(key)
 
     def __setitem__(self, key, value):
@@ -486,7 +456,7 @@ class _Options(dict):
     def __delitem__(self, key):
         key = self._get_canonical_key(key)
         if key in self._DEFAULT_KEYS:
-            raise ValueError("Cannot remove default parameter {key}".format(key=key))
+            raise ValueError(f"Cannot remove default parameter {key}")
         return super().__delitem__(key)
 
     def __contains__(self, key):

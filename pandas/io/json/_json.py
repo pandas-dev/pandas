@@ -62,8 +62,10 @@ def to_json(
 
     if orient == "table" and isinstance(obj, Series):
         obj = obj.to_frame(name=obj.name or "values")
+
+    writer: Type["Writer"]
     if orient == "table" and isinstance(obj, DataFrame):
-        writer = JSONTableWriter  # type: Type["Writer"]
+        writer = JSONTableWriter
     elif isinstance(obj, Series):
         writer = SeriesWriter
     elif isinstance(obj, DataFrame):
@@ -711,7 +713,7 @@ class JsonReader(BaseIterator):
 
         return data
 
-    def _combine_lines(self, lines):
+    def _combine_lines(self, lines) -> str:
         """
         Combines a list of JSON objects into one JSON object.
         """
@@ -1169,7 +1171,7 @@ class FrameParser(Parser):
             convert_dates = []
         convert_dates = set(convert_dates)
 
-        def is_ok(col):
+        def is_ok(col) -> bool:
             """
             Return if this col is ok to try for a date parse.
             """

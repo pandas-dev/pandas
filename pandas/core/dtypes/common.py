@@ -375,56 +375,6 @@ def is_categorical(arr) -> bool:
     return isinstance(arr, ABCCategorical) or is_categorical_dtype(arr)
 
 
-def is_datetimetz(arr) -> bool:
-    """
-    Check whether an array-like is a datetime array-like with a timezone
-    component in its dtype.
-
-    .. deprecated:: 0.24.0
-
-    Parameters
-    ----------
-    arr : array-like
-        The array-like to check.
-
-    Returns
-    -------
-    boolean
-        Whether or not the array-like is a datetime array-like with a
-        timezone component in its dtype.
-
-    Examples
-    --------
-    >>> is_datetimetz([1, 2, 3])
-    False
-
-    Although the following examples are both DatetimeIndex objects,
-    the first one returns False because it has no timezone component
-    unlike the second one, which returns True.
-
-    >>> is_datetimetz(pd.DatetimeIndex([1, 2, 3]))
-    False
-    >>> is_datetimetz(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern"))
-    True
-
-    The object need not be a DatetimeIndex object. It just needs to have
-    a dtype which has a timezone component.
-
-    >>> dtype = DatetimeTZDtype("ns", tz="US/Eastern")
-    >>> s = pd.Series([], dtype=dtype)
-    >>> is_datetimetz(s)
-    True
-    """
-
-    warnings.warn(
-        "'is_datetimetz' is deprecated and will be removed in a "
-        "future version.  Use 'is_datetime64tz_dtype' instead.",
-        FutureWarning,
-        stacklevel=2,
-    )
-    return is_datetime64tz_dtype(arr)
-
-
 def is_offsetlike(arr_or_obj) -> bool:
     """
     Check if obj or all elements of list-like is DateOffset
@@ -454,43 +404,6 @@ def is_offsetlike(arr_or_obj) -> bool:
     elif is_list_like(arr_or_obj) and len(arr_or_obj) and is_object_dtype(arr_or_obj):
         return all(isinstance(x, ABCDateOffset) for x in arr_or_obj)
     return False
-
-
-def is_period(arr) -> bool:
-    """
-    Check whether an array-like is a periodical index.
-
-    .. deprecated:: 0.24.0
-
-    Parameters
-    ----------
-    arr : array-like
-        The array-like to check.
-
-    Returns
-    -------
-    boolean
-        Whether or not the array-like is a periodical index.
-
-    Examples
-    --------
-    >>> is_period([1, 2, 3])
-    False
-    >>> is_period(pd.Index([1, 2, 3]))
-    False
-    >>> is_period(pd.PeriodIndex(["2017-01-01"], freq="D"))
-    True
-    """
-
-    warnings.warn(
-        "'is_period' is deprecated and will be removed in a future "
-        "version.  Use 'is_period_dtype' or is_period_arraylike' "
-        "instead.",
-        FutureWarning,
-        stacklevel=2,
-    )
-
-    return isinstance(arr, ABCPeriodIndex) or is_period_arraylike(arr)
 
 
 def is_datetime64_dtype(arr_or_dtype) -> bool:
@@ -726,7 +639,7 @@ def is_string_dtype(arr_or_dtype) -> bool:
     """
 
     # TODO: gh-15585: consider making the checks stricter.
-    def condition(dtype):
+    def condition(dtype) -> bool:
         return dtype.kind in ("O", "S", "U") and not is_period_dtype(dtype)
 
     return _is_dtype(arr_or_dtype, condition)
@@ -1496,7 +1409,7 @@ def is_bool_dtype(arr_or_dtype) -> bool:
     return issubclass(dtype.type, np.bool_)
 
 
-def is_extension_type(arr):
+def is_extension_type(arr) -> bool:
     """
     Check whether an array-like is of a pandas extension class instance.
 
@@ -1561,7 +1474,7 @@ def is_extension_type(arr):
     return False
 
 
-def is_extension_array_dtype(arr_or_dtype):
+def is_extension_array_dtype(arr_or_dtype) -> bool:
     """
     Check if an object is a pandas extension array type.
 

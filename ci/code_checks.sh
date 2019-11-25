@@ -56,7 +56,7 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     black --version
 
     MSG='Checking black formatting' ; echo $MSG
-	black . --check --exclude '(asv_bench/env|\.egg|\.git|\.hg|\.mypy_cache|\.nox|\.tox|\.venv|_build|buck-out|build|dist|setup.py)'
+	black . --check
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # `setup.cfg` contains the list of error codes that are being ignored in flake8
@@ -190,9 +190,13 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --include="*.rst" ".. ipython ::" doc/source
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Check for extra blank lines after the class definition' ; echo $MSG
-    invgrep -R --include="*.py" --include="*.pyx" -E 'class.*:\n\n( )+"""' .
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
+    MSG='Check for extra blank lines after the class definition' ; echo $MSG
+    invgrep -R --include="*.py" --include="*.pyx" -E 'class.*:\n\n( )+"""' .
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Check for use of comment-based annotation syntax' ; echo $MSG
+    invgrep -R --include="*.py" -P '# type: (?!ignore)' pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check that no file in the repo contains trailing whitespaces' ; echo $MSG
     set -o pipefail
