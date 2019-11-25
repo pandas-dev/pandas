@@ -105,7 +105,7 @@ def array(
            Pandas infers nullable-integer dtype for integer data and
            string dtype for string data.
 
-   copy : bool, default True
+    copy : bool, default True
         Whether to copy the data, even if not necessary. Depending
         on the type of `data`, creating the new array may require
         copying data, even if ``copy=False``.
@@ -161,14 +161,6 @@ def array(
     ['a', 'b']
     Length: 2, dtype: str32
 
-    Or use the dedicated constructor for the array you're expecting, and
-    wrap that in a PandasArray
-
-    >>> pd.array(np.array(['a', 'b'], dtype='<U1'))
-    <PandasArray>
-    ['a', 'b']
-    Length: 2, dtype: str32
-
     Finally, Pandas has arrays that mostly overlap with NumPy
 
       * :class:`arrays.DatetimeArray`
@@ -191,13 +183,21 @@ def array(
 
     Examples
     --------
-    If a dtype is not specified, `data` is passed through to
-    :meth:`numpy.array`, and a :class:`arrays.PandasArray` is returned.
+    If a dtype is not specified, pandas will infer the best dtype from the values.
+    See the description of `dtype` for the types pandas infers for.
 
     >>> pd.array([1, 2])
-    <PandasArray>
+    <IntegerArray>
     [1, 2]
-    Length: 2, dtype: int64
+    Length: 2, dtype: Int64
+
+    If pandas does not infer a dedicated extension type for some values, we
+    fall back to returning a :class:`arrays.PandasArray`.
+
+    >>> pd.array([1.1, 2.2])
+    <PandasArray>
+    [1.1, 2.2]
+    Length: 2, dtype: float64
 
     Or the NumPy dtype can be specified
 
