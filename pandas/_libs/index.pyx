@@ -141,8 +141,12 @@ cdef class IndexEngine:
 
         if self.is_monotonic_increasing:
             values = self._get_index_values()
-            left = values.searchsorted(val, side='left')
-            right = values.searchsorted(val, side='right')
+            try:
+                left = values.searchsorted(val, side='left')
+                right = values.searchsorted(val, side='right')
+            except TypeError:
+                # e.g. GH#29189 get_loc(None) with a Float64Index
+                raise KeyError(val)
 
             diff = right - left
             if diff == 0:
