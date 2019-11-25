@@ -61,7 +61,7 @@ matter less than 2.5 micrometers is used, made available by
 `openaq <https://openaq.org>`__ and downloaded using the
 `py-openaq <http://dhhagan.github.io/py-openaq/index.html>`__ package.
 
-The ``air_quality_pm25_long.csv`` data set provides :math:`pm25`
+The ``air_quality_pm25_long.csv`` data set provides :math:`PM_{25}`
 values for the measurement stations *FR04014*, *BETR801* and *London
 Westminster* in respectively Paris, Antwerp and London.
 
@@ -100,7 +100,7 @@ Concatenating objects
     <ul class="task-bullet">
         <li>
 
-I want to combine the measurements of :math:`NO_2` and :math:`pm_{25}`, two tables with a similar structure, in a single table
+I want to combine the measurements of :math:`NO_2` and :math:`PM_{25}`, two tables with a similar structure, in a single table
 
 .. ipython:: python
 

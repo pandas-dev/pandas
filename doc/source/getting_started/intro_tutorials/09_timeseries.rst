@@ -211,7 +211,8 @@ Plot the typical :math:`NO_2` pattern during the day of our time series of all s
 
 Similar to the previous case, we want to calculate a given statistic
 (e.g. mean :math:`NO_2`) **for each hour of the day** and we can use the
-split-apply-combine approach again.
+split-apply-combine approach again. For this case, the datetime property ``hour`` 
+of pandas ``Timestamp``, which is also accessible by the ``dt`` accessor.
 
 .. raw:: html
 
