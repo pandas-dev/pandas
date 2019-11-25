@@ -136,8 +136,7 @@ jobs:
       run: |
         # This can be removed when the ipython directive fails when there are errors,
         # including the `tee sphinx.log` in te previous step (https://github.com/ipython/ipython/issues/11547)
-        grep -B1 "^<<<-------------------------------------------------------------------------$" sphinx.log
-        exit $((! $?))
+        grep -B1 "^<<<-------------------------------------------------------------------------$" sphinx.log ; exit $((! $?))
 
     - name: Merge website and docs
       run: |
@@ -281,6 +280,7 @@ jobs:
       run: echo "::set-env name=PATH::${HOME}/miniconda3/bin:${PATH}"
 
     - name: Setup environment and build pandas
+      shell: bash
       run: ci/setup_env.sh
       env:
         ENV_FILE: ci/deps/${{ matrix.env_file }}
@@ -288,6 +288,7 @@ jobs:
         BITS32: ${{ matrix.bits32 }}
 
     - name: Run tests
+      shell: bash
       run: |
         source activate pandas-dev
         ci/run_tests.sh
