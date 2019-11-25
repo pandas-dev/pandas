@@ -135,32 +135,22 @@ class TestiLoc(Base):
             df.iloc[index_vals, column_vals]
 
     def test_iloc_getitem_int(self):
-
-        # integer
-        self.check_result(
-            "integer", "iloc", 2, "ix", {0: 4, 1: 6, 2: 8}, typs=["ints", "uints"]
-        )
         self.check_result(
             "integer",
             "iloc",
             2,
-            "indexer",
+            "iloc",
             2,
             typs=["labels", "mixed", "ts", "floats", "empty"],
             fails=IndexError,
         )
 
     def test_iloc_getitem_neg_int(self):
-
-        # neg integer
-        self.check_result(
-            "neg int", "iloc", -1, "ix", {0: 6, 1: 9, 2: 12}, typs=["ints", "uints"]
-        )
         self.check_result(
             "neg int",
             "iloc",
             -1,
-            "indexer",
+            "iloc",
             -1,
             typs=["labels", "mixed", "ts", "floats", "empty"],
             fails=IndexError,
@@ -193,29 +183,11 @@ class TestiLoc(Base):
         tm.assert_numpy_array_equal(array_with_neg_numbers, array_copy)
 
     def test_iloc_getitem_list_int(self):
-
-        # list of ints
         self.check_result(
             "list int",
             "iloc",
             [0, 1, 2],
-            "ix",
-            {0: [0, 2, 4], 1: [0, 3, 6], 2: [0, 4, 8]},
-            typs=["ints", "uints"],
-        )
-        self.check_result(
-            "list int",
             "iloc",
-            [2],
-            "ix",
-            {0: [4], 1: [6], 2: [8]},
-            typs=["ints", "uints"],
-        )
-        self.check_result(
-            "list int",
-            "iloc",
-            [0, 1, 2],
-            "indexer",
             [0, 1, 2],
             typs=["labels", "mixed", "ts", "floats", "empty"],
             fails=IndexError,
@@ -223,31 +195,6 @@ class TestiLoc(Base):
 
         # array of ints (GH5006), make sure that a single indexer is returning
         # the correct type
-        self.check_result(
-            "array int",
-            "iloc",
-            np.array([0, 1, 2]),
-            "ix",
-            {0: [0, 2, 4], 1: [0, 3, 6], 2: [0, 4, 8]},
-            typs=["ints", "uints"],
-        )
-        self.check_result(
-            "array int",
-            "iloc",
-            np.array([2]),
-            "ix",
-            {0: [4], 1: [6], 2: [8]},
-            typs=["ints", "uints"],
-        )
-        self.check_result(
-            "array int",
-            "iloc",
-            np.array([0, 1, 2]),
-            "indexer",
-            [0, 1, 2],
-            typs=["labels", "mixed", "ts", "floats", "empty"],
-            fails=IndexError,
-        )
 
     def test_iloc_getitem_neg_int_can_reach_first_index(self):
         # GH10547 and GH10779
@@ -278,16 +225,6 @@ class TestiLoc(Base):
 
     def test_iloc_getitem_dups(self):
 
-        self.check_result(
-            "list int (dups)",
-            "iloc",
-            [0, 1, 1, 3],
-            "ix",
-            {0: [0, 2, 2, 6], 1: [0, 3, 3, 9]},
-            kinds=["series", "frame"],
-            typs=["ints", "uints"],
-        )
-
         # GH 6766
         df1 = DataFrame([{"A": None, "B": 1}, {"A": 2, "B": 2}])
         df2 = DataFrame([{"A": 3, "B": 3}, {"A": 4, "B": 4}])
@@ -302,32 +239,10 @@ class TestiLoc(Base):
         tm.assert_series_equal(result, expected)
 
     def test_iloc_getitem_array(self):
-
-        # array like
-        s = Series(index=range(1, 4))
-        self.check_result(
-            "array like",
-            "iloc",
-            s.index,
-            "ix",
-            {0: [2, 4, 6], 1: [3, 6, 9], 2: [4, 8, 12]},
-            typs=["ints", "uints"],
-        )
+        pass
 
     def test_iloc_getitem_bool(self):
-
-        # boolean indexers
-        b = [True, False, True, False]
-        self.check_result("bool", "iloc", b, "ix", b, typs=["ints", "uints"])
-        self.check_result(
-            "bool",
-            "iloc",
-            b,
-            "ix",
-            b,
-            typs=["labels", "mixed", "ts", "floats", "empty"],
-            fails=IndexError,
-        )
+        pass
 
     @pytest.mark.parametrize("index", [[True, False], [True, False, True, False]])
     def test_iloc_getitem_bool_diff_len(self, index):
@@ -340,25 +255,7 @@ class TestiLoc(Base):
             _ = s.iloc[index]
 
     def test_iloc_getitem_slice(self):
-
-        # slices
-        self.check_result(
-            "slice",
-            "iloc",
-            slice(1, 3),
-            "ix",
-            {0: [2, 4], 1: [3, 6], 2: [4, 8]},
-            typs=["ints", "uints"],
-        )
-        self.check_result(
-            "slice",
-            "iloc",
-            slice(1, 3),
-            "indexer",
-            slice(1, 3),
-            typs=["labels", "mixed", "ts", "floats", "empty"],
-            fails=IndexError,
-        )
+        pass
 
     def test_iloc_getitem_slice_dups(self):
 
