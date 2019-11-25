@@ -757,10 +757,13 @@ class BlockManager(PandasObject):
         """
         # this preserves the notion of view copying of axes
         if deep:
-            if deep == "all":
-                copy_func = lambda ax: ax.copy(deep=True)
-            else:
-                copy_func = lambda ax: ax.view()
+
+            def copy_func(ax):
+                if deep == "all":
+                    return ax.copy(deep=True)
+                else:
+                    return ax.view()
+
             new_axes = [copy_func(ax) for ax in self.axes]
         else:
             new_axes = list(self.axes)
