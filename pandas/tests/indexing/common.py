@@ -179,7 +179,6 @@ class Base:
         method2,
         key2,
         typs=None,
-        kinds=None,
         axes=None,
         fails=None,
     ):
@@ -249,9 +248,6 @@ class Base:
         if typs is None:
             typs = self._typs
 
-        if kinds is None:
-            kinds = self._kinds
-
         if axes is None:
             axes = [0, 1]
         elif not isinstance(axes, (tuple, list)):
@@ -259,9 +255,7 @@ class Base:
             axes = [axes]
 
         # check
-        for kind in kinds:
-            if kind not in self._kinds:
-                continue
+        for kind in self._kinds:
 
             d = getattr(self, kind)
             for ax in axes:

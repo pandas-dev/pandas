@@ -275,7 +275,6 @@ class TestiLoc(Base):
             [0, 1, 1, 3],
             "ix",
             {0: [0, 2, 2, 6], 1: [0, 3, 3, 9]},
-            kinds=["series", "frame"],
             typs=["ints", "uints"],
         )
 
