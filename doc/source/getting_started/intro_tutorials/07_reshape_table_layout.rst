@@ -294,8 +294,7 @@ For more information about ``pivot_table``, see :ref:`reshaping.pivot`.
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span> 
 
-Have a look at ``groupby`` in combination with ``unstack`` at
-`:ref:``TODO LABEL`` <https://pandas.pydata.org/pandas-docs/stable/user_guide/reshaping.html#combining-with-stats-and-groupby>`__
+Have a look at ``groupby`` in combination with ``unstack`` at :ref:`reshaping.combine_with_groupby`.
 
 .. raw:: html
 
