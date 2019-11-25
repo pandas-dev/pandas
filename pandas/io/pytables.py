@@ -3185,7 +3185,6 @@ class Table(Fixed):
         self.metadata = []
         self.info = dict()
         self.nan_rep = None
-        self.selection = None
 
     @property
     def table_type_short(self) -> str:
@@ -3568,8 +3567,8 @@ class Table(Fixed):
             return False
 
         # create the selection
-        self.selection = Selection(self, where=where, **kwargs)
-        values = self.selection.select()
+        selection = Selection(self, where=where, **kwargs)
+        values = selection.select()
 
         # convert the data
         for a in self.axes:
@@ -3857,7 +3856,7 @@ class Table(Fixed):
         if validate:
             self.validate(existing_table)
 
-    def process_axes(self, obj, columns=None):
+    def process_axes(self, obj, selection: "Selection", columns=None):
         """ process axes filters """
 
         # make a copy to avoid side effects
@@ -3866,6 +3865,7 @@ class Table(Fixed):
 
         # make sure to include levels if we have them
         if columns is not None and self.is_multi_index:
+            assert isinstance(self.levels, list)  # assured by is_multi_index
             for n in self.levels:
                 if n not in columns:
                     columns.insert(0, n)
@@ -3875,8 +3875,8 @@ class Table(Fixed):
             obj = _reindex_axis(obj, axis, labels, columns)
 
         # apply the selection filters (but keep in the same order)
-        if self.selection.filter is not None:
-            for field, op, filt in self.selection.filter.format():
+        if selection.filter is not None:
+            for field, op, filt in selection.filter.format():
 
                 def process_filter(field, filt):
 
@@ -3966,10 +3966,10 @@ class Table(Fixed):
             return False
 
         # create the selection
-        self.selection = Selection(self, where=where, start=start, stop=stop)
-        coords = self.selection.select_coords()
-        if self.selection.filter is not None:
-            for field, op, filt in self.selection.filter.format():
+        selection = Selection(self, where=where, start=start, stop=stop)
+        coords = selection.select_coords()
+        if selection.filter is not None:
+            for field, op, filt in selection.filter.format():
                 data = self.read_column(
                     field, start=coords.min(), stop=coords.max() + 1
                 )
@@ -4245,8 +4245,8 @@ class AppendableTable(Table):
 
         # create the selection
         table = self.table
-        self.selection = Selection(self, where, start=start, stop=stop)
-        values = self.selection.select_coords()
+        selection = Selection(self, where, start=start, stop=stop)
+        values = selection.select_coords()
 
         # delete the rows in reverse order
         sorted_series = Series(values).sort_values()
@@ -4349,8 +4349,9 @@ class AppendableFrameTable(AppendableTable):
         else:
             df = concat(frames, axis=1)
 
+        selection = Selection(self, where=where, **kwargs)
         # apply the selection filters & axis orderings
-        df = self.process_axes(df, columns=columns)
+        df = self.process_axes(df, selection=selection, columns=columns)
 
         return df
 
