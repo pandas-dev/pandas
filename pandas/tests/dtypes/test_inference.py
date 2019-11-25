@@ -732,7 +732,9 @@ class TestTypeInference:
     def test_unicode(self):
         arr = ["a", np.nan, "c"]
         result = lib.infer_dtype(arr, skipna=False)
-        assert result == "string"
+        # This currently returns "mixed", but it's not clear that's optimal.
+        # This could also return "string" or "mixed-string"
+        assert result == "mixed"
 
         arr = ["a", np.nan, "c"]
         result = lib.infer_dtype(arr, skipna=True)
