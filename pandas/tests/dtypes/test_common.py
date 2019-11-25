@@ -529,6 +529,9 @@ def test_is_bool_dtype():
     assert com.is_bool_dtype(np.array([True, False]))
     assert com.is_bool_dtype(pd.Index([True, False]))
 
+    assert com.is_bool_dtype(pd.BooleanDtype())
+    assert com.is_bool_dtype(pd.array([True, False, None], dtype="boolean"))
+
 
 @pytest.mark.filterwarnings("ignore:'is_extension_type' is deprecated:FutureWarning")
 @pytest.mark.parametrize(
