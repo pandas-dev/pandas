@@ -811,13 +811,6 @@ class MultiIndex(Index):
     def codes(self):
         return self._codes
 
-    def _coerce(self, array_like, categories, copy=False):
-        array_like = coerce_indexer_dtype(array_like, categories)
-        if copy:
-            array_like = array_like.copy()
-        array_like.flags.writeable = False
-        return array_like
-
     def _set_codes(
         self, codes, level=None, copy=False, validate=True, verify_integrity=False
     ):
@@ -829,7 +822,7 @@ class MultiIndex(Index):
 
         if level is None:
             new_codes = FrozenList(
-                self._coerce(level_codes, lev, copy=copy).view()
+                _coerce_indexer_frozen(level_codes, lev, copy=copy).view()
                 for lev, level_codes in zip(self._levels, codes)
             )
         else:
@@ -837,7 +830,7 @@ class MultiIndex(Index):
             new_codes = list(self._codes)
             for lev_num, level_codes in zip(level_numbers, codes):
                 lev = self.levels[lev_num]
-                new_codes[lev_num] = self._coerce(level_codes, lev, copy=copy)
+                new_codes[lev_num] = _coerce_indexer_frozen(level_codes, lev, copy=copy)
             new_codes = FrozenList(new_codes)
 
         if verify_integrity:
@@ -3440,3 +3433,26 @@ def maybe_droplevels(index, key):
             pass
 
     return index
+
+
+def _coerce_indexer_frozen(array_like, categories, copy: bool = False) -> np.ndarray:
+    """
+    Coerce the array_like indexer to the smallest integer dtype that can encode all
+    of the given categories.
+
+    Parameters
+    ----------
+    array_like : array-like
+    categories : array-like
+    copy : bool
+
+    Returns
+    -------
+    np.ndarray
+        Non-writeable.
+    """
+    array_like = coerce_indexer_dtype(array_like, categories)
+    if copy:
+        array_like = array_like.copy()
+    array_like.flags.writeable = False
+    return array_like
