@@ -135,7 +135,7 @@ def read_gbq(
         Deprecated in pandas-gbq version 0.4.0. Use the `logging module to
         adjust verbosity instead
         <https://pandas-gbq.readthedocs.io/en/latest/intro.html#logging>`__.
-    progress_bar_type (Optional[str]):
+    progress_bar_type : Optional, str
         If set, use the `tqdm <https://tqdm.github.io/>`_ library to
         display a progress bar while the data downloads. Install the
         ``tqdm`` package to use this feature.
