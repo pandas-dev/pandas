@@ -108,9 +108,9 @@ def _cat_compare_op(op):
             else:
                 other_codes = other._codes
 
-            mask = (self._codes == -1) | (other_codes == -1)
             f = getattr(self._codes, opname)
             ret = f(other_codes)
+            mask = (self._codes == -1) | (other_codes == -1)
             if mask.any():
                 # In other series, the leads to False, so do that here too
                 ret[mask] = False
@@ -121,9 +121,10 @@ def _cat_compare_op(op):
                 i = self.categories.get_loc(other)
                 ret = getattr(self._codes, opname)(i)
 
-                # check for NaN in self
-                mask = self._codes == -1
-                ret[mask] = False
+                if opname not in {"__eq__", "__ge__", "__gt__"}:
+                    # check for NaN needed if we are not equal or larger
+                    mask = self._codes == -1
+                    ret[mask] = False
                 return ret
             else:
                 if opname == "__eq__":
