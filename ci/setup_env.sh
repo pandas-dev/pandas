@@ -24,16 +24,19 @@ fi
 echo "Install Miniconda"
 UNAME_OS=$(uname)
 if [[ "$UNAME_OS" == 'Linux' ]]; then
-    if [[ "$BITS32" == "yes" ]]; then
-        CONDA_OS="Linux-x86"
-    else
-        CONDA_OS="Linux-x86_64"
-    fi
+    CONDA_OS="Linux"
 elif [[ "$UNAME_OS" == 'Darwin' ]]; then
-    CONDA_OS="MacOSX-x86_64"
+    CONDA_OS="MacOSX"
+elif [[ "${UNAME_OS:0:4}" == 'MINGW64' ]]; then
+    CONDA_OS="Windows"
 else
   echo "OS $UNAME_OS not supported"
   exit 1
+fi
+
+CONDA_OS="${CONDA_OS}-x86"
+if [[ "$BITS32" != "yes" ]]; then
+    CONDA_OS="${CONDA_OS}_64"
 fi
 
 wget -q "https://repo.continuum.io/miniconda/Miniconda3-latest-$CONDA_OS.sh" -O miniconda.sh
@@ -55,29 +58,6 @@ conda update -n base conda
 
 echo "conda info -a"
 conda info -a
-
-echo
-echo "set the compiler cache to work"
-if [ -z "$NOCACHE" ] && [ "${TRAVIS_OS_NAME}" == "linux" ]; then
-    echo "Using ccache"
-    export PATH=/usr/lib/ccache:/usr/lib64/ccache:$PATH
-    GCC=$(which gcc)
-    echo "gcc: $GCC"
-    CCACHE=$(which ccache)
-    echo "ccache: $CCACHE"
-    export CC='ccache gcc'
-elif [ -z "$NOCACHE" ] && [ "${TRAVIS_OS_NAME}" == "osx" ]; then
-    echo "Install ccache"
-    brew install ccache > /dev/null 2>&1
-    echo "Using ccache"
-    export PATH=/usr/local/opt/ccache/libexec:$PATH
-    gcc=$(which gcc)
-    echo "gcc: $gcc"
-    CCACHE=$(which ccache)
-    echo "ccache: $CCACHE"
-else
-    echo "Not using ccache"
-fi
 
 echo "source deactivate"
 source deactivate
@@ -138,14 +118,5 @@ python -m pip install --no-build-isolation -e .
 echo
 echo "conda list"
 conda list
-
-# Install DB for Linux
-if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
-  echo "installing dbs"
-  mysql -e 'create database pandas_nosetest;'
-  psql -c 'create database pandas_nosetest;' -U postgres
-else
-   echo "not using dbs on non-linux Travis builds or Azure Pipelines"
-fi
 
 echo "done"
