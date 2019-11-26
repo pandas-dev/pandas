@@ -27,6 +27,7 @@ def read_gbq(
     use_bqstorage_api=None,
     private_key=None,
     verbose=None,
+    progress_bar_type="tqdm",
 ):
     """
     Load data from Google BigQuery.
@@ -134,6 +135,27 @@ def read_gbq(
         Deprecated in pandas-gbq version 0.4.0. Use the `logging module to
         adjust verbosity instead
         <https://pandas-gbq.readthedocs.io/en/latest/intro.html#logging>`__.
+    progress_bar_type (Optional[str]):
+        If set, use the `tqdm <https://tqdm.github.io/>`_ library to
+        display a progress bar while the data downloads. Install the
+        ``tqdm`` package to use this feature.
+        Possible values of ``progress_bar_type`` include:
+        ``None``
+            No progress bar.
+        ``'tqdm'``
+            Use the :func:`tqdm.tqdm` function to print a progress bar
+            to :data:`sys.stderr`.
+        ``'tqdm_notebook'``
+            Use the :func:`tqdm.tqdm_notebook` function to display a
+            progress bar as a Jupyter notebook widget.
+        ``'tqdm_gui'``
+            Use the :func:`tqdm.tqdm_gui` function to display a
+            progress bar as a graphical dialog box.
+
+        This feature requires version 0.12.0 or later of the ``pandas-gbq``
+        package. It also requires the ``tqdm`` package.
+
+        .. versionadded:: 1.0.0
 
     Returns
     -------
@@ -152,6 +174,8 @@ def read_gbq(
     # START: new kwargs.  Don't populate unless explicitly set.
     if use_bqstorage_api is not None:
         kwargs["use_bqstorage_api"] = use_bqstorage_api
+
+    kwargs["progress_bar_type"] = progress_bar_type
     # END: new kwargs
 
     # START: deprecated kwargs.  Don't populate unless explicitly set.
