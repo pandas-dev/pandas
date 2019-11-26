@@ -6,7 +6,6 @@ from datetime import timedelta
 from functools import partial
 from textwrap import dedent
 from typing import Callable, Dict, List, Optional, Set, Tuple, Union
-import warnings
 
 import numpy as np
 
@@ -1190,15 +1189,11 @@ class _Rolling_and_Expanding(_Rolling):
     raw : bool, default None
         * ``False`` : passes each row or column as a Series to the
           function.
-        * ``True`` or ``None`` : the passed function will receive ndarray
+        * ``True`` : the passed function will receive ndarray
           objects instead.
           If you are just applying a NumPy reduction function this will
           achieve much better performance.
 
-        The `raw` parameter is required and will show a FutureWarning if
-        not passed. In the future `raw` will default to False.
-
-        .. versionadded:: 0.23.0
     *args, **kwargs
         Arguments and keyword arguments to be passed into func.
 
@@ -1214,27 +1209,15 @@ class _Rolling_and_Expanding(_Rolling):
     """
     )
 
-    def apply(self, func, raw=None, args=(), kwargs={}):
+    def apply(self, func, raw=False, args=(), kwargs={}):
         from pandas import Series
 
         kwargs.pop("_level", None)
         kwargs.pop("floor", None)
         window = self._get_window()
         offset = _offset(window, self.center)
-
-        # TODO: default is for backward compat
-        # change to False in the future
-        if raw is None:
-            warnings.warn(
-                "Currently, 'apply' passes the values as ndarrays to the "
-                "applied function. In the future, this will change to passing "
-                "it as Series objects. You need to specify 'raw=True' to keep "
-                "the current behaviour, and you can pass 'raw=False' to "
-                "silence this warning",
-                FutureWarning,
-                stacklevel=3,
-            )
-            raw = True
+        if not is_bool(raw):
+            raise ValueError("raw parameter must be `True` or `False`")
 
         window_func = partial(
             self._get_cython_func_type("roll_generic"),
@@ -1898,7 +1881,7 @@ class Rolling(_Rolling_and_Expanding):
 
     @Substitution(name="rolling")
     @Appender(_shared_docs["apply"])
-    def apply(self, func, raw=None, args=(), kwargs={}):
+    def apply(self, func, raw=False, args=(), kwargs={}):
         return super().apply(func, raw=raw, args=args, kwargs=kwargs)
 
     @Substitution(name="rolling")

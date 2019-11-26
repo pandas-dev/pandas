@@ -148,7 +148,7 @@ class Expanding(_Rolling_and_Expanding):
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["apply"])
-    def apply(self, func, raw=None, args=(), kwargs={}):
+    def apply(self, func, raw=False, args=(), kwargs={}):
         return super().apply(func, raw=raw, args=args, kwargs=kwargs)
 
     @Substitution(name="expanding")
