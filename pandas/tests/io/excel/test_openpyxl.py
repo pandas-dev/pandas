@@ -1,7 +1,7 @@
+import numpy as np
 import pytest
 
 import pandas as pd
-import numpy as np
 from pandas import DataFrame
 import pandas.util.testing as tm
 
