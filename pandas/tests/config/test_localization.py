@@ -62,12 +62,18 @@ def test_set_locale():
         #  getlocale() returned (None, None).
         pytest.skip("Current locale is not set.")
 
-    locale_override = os.environ.get("LOCALE_OVERRIDE", None)
+    locale_override = os.environ.get("LOCALE_OVERRIDE")
 
-    if locale_override is None:
+    if not locale_override:
         lang, enc = "it_CH", "UTF-8"
     elif locale_override == "C":
         lang, enc = "en_US", "ascii"
+    elif len(locale_override.split(".")) != 2:
+        raise ValueError(
+            "Unknown format for LOCALE_OVERRIDE, "
+            "expected country_VARIANT.ENCODING "
+            f"(e.g. en_US.UTF-8), found {locale_override!r}"
+        )
     else:
         lang, enc = locale_override.split(".")
 
