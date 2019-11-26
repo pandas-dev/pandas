@@ -22,7 +22,8 @@ Kleene Logic
 :class:`arrays.BooleanArray` implements Kleene logic (sometimes called three-value logic) for
 logical operations like ``&`` (and), ``|`` (or) and ``^`` (exclusive-or).
 
-Here's a table for ``and``.
+This table demonstrates the results for every combination. These operations are symmetrical,
+so flipping the left- and right-hand side makes no difference in the result.
 
 ================= =========
 Expression        Result

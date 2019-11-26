@@ -413,13 +413,22 @@ class TestLogicalOps(BaseOpsUtil):
         result = b | a
         tm.assert_extension_array_equal(result, expected)
 
-    def test_kleene_or_scalar(self):
+    @pytest.mark.parametrize(
+        "other, expected",
+        [
+            (np.nan, [True, None, None]),
+            (True, [True, True, True]),
+            (False, [True, False, None]),
+        ],
+    )
+    def test_kleene_or_scalar(self, other, expected):
+        # TODO: test True & False
         a = pd.array([True, False, None], dtype="boolean")
-        result = a | np.nan  # TODO: pd.NA
-        expected = pd.array([True, None, None], dtype="boolean")
+        result = a | other
+        expected = pd.array(expected, dtype="boolean")
         tm.assert_extension_array_equal(result, expected)
 
-        result = np.nan | a  # TODO: pd.NA
+        result = other | a
         tm.assert_extension_array_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -456,13 +465,21 @@ class TestLogicalOps(BaseOpsUtil):
         result = b & a
         tm.assert_extension_array_equal(result, expected)
 
-    def test_kleene_and_scalar(self):
+    @pytest.mark.parametrize(
+        "other, expected",
+        [
+            (np.nan, [None, False, None]),
+            (True, [True, False, None]),
+            (False, [False, False, False]),
+        ],
+    )
+    def test_kleene_and_scalar(self, other, expected):
         a = pd.array([True, False, None], dtype="boolean")
-        result = a & np.nan  # TODO: pd.NA
-        expected = pd.array([None, None, None], dtype="boolean")
+        result = a & other
+        expected = pd.array(expected, dtype="boolean")
         tm.assert_extension_array_equal(result, expected)
 
-        result = np.nan & a  # TODO: pd.na
+        result = other & a
         tm.assert_extension_array_equal(result, expected)
 
     def test_kleene_xor(self):
@@ -477,13 +494,21 @@ class TestLogicalOps(BaseOpsUtil):
         result = b ^ a
         tm.assert_extension_array_equal(result, expected)
 
-    def test_kleene_scalar(self):
+    @pytest.mark.parametrize(
+        "other, expected",
+        [
+            (np.nan, [None, None, None]),
+            (True, [False, True, None]),
+            (False, [True, False, None]),
+        ],
+    )
+    def test_kleene_xor_scalar(self, other, expected):
         a = pd.array([True, False, None], dtype="boolean")
-        result = a ^ np.nan  # TODO: pd.NA
-        expected = pd.array([None, None, None], dtype="boolean")
+        result = a ^ other
+        expected = pd.array(expected, dtype="boolean")
         tm.assert_extension_array_equal(result, expected)
 
-        result = np.nan ^ a  # TODO: pd.NA
+        result = other ^ a
         tm.assert_extension_array_equal(result, expected)
 
 
