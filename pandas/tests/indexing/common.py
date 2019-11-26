@@ -194,8 +194,6 @@ class Base:
                         result = "no comp"
                         return
 
-                detail = None
-
                 if is_scalar(rs) and is_scalar(xp):
                     assert rs == xp
                 else:

@@ -137,9 +137,7 @@ class TestiLoc(Base):
     def test_iloc_getitem_int(self):
 
         # integer
-        self.check_result(
-            "iloc", 2, "ix", {0: 4, 1: 6, 2: 8}, typs=["ints", "uints"]
-        )
+        self.check_result("iloc", 2, "ix", {0: 4, 1: 6, 2: 8}, typs=["ints", "uints"])
         self.check_result(
             "iloc",
             2,
@@ -152,9 +150,7 @@ class TestiLoc(Base):
     def test_iloc_getitem_neg_int(self):
 
         # neg integer
-        self.check_result(
-            "iloc", -1, "ix", {0: 6, 1: 9, 2: 12}, typs=["ints", "uints"]
-        )
+        self.check_result("iloc", -1, "ix", {0: 6, 1: 9, 2: 12}, typs=["ints", "uints"])
         self.check_result(
             "iloc",
             -1,
@@ -201,11 +197,7 @@ class TestiLoc(Base):
             typs=["ints", "uints"],
         )
         self.check_result(
-            "iloc",
-            [2],
-            "ix",
-            {0: [4], 1: [6], 2: [8]},
-            typs=["ints", "uints"],
+            "iloc", [2], "ix", {0: [4], 1: [6], 2: [8]}, typs=["ints", "uints"],
         )
         self.check_result(
             "iloc",
