@@ -363,24 +363,11 @@ class BlockManager(PandasObject):
                 }
             elif np.ndim(bres) == 0:
                 # EA
-                assert blk.shape[0] == 1, (
-                    blk.shape,
-                    blk.values.dtype,
-                    bres,
-                    func,
-                    args,
-                    kwargs,
-                )
+                assert blk.shape[0] == 1
                 new_res = zip(blk.mgr_locs.as_array, [bres])
             else:
                 assert bres.ndim == 1, bres.shape
-                assert blk.shape[0] == len(bres), (
-                    blk.shape,
-                    bres.shape,
-                    func,
-                    args,
-                    kwargs,
-                )
+                assert blk.shape[0] == len(bres)
                 new_res = zip(blk.mgr_locs.as_array, bres)
 
             nr = dict(new_res)
