@@ -11326,20 +11326,30 @@ def _make_cum_function(
         else:
             axis = self._get_axis_number(axis)
 
-        y = com.values_from_object(self).copy()
+        if axis == 1:
+            return cum_func(self.T, axis=0, skipna=skipna, *args, **kwargs).T
 
-        if skipna and issubclass(y.dtype.type, (np.datetime64, np.timedelta64)):
-            result = accum_func(y, axis)
-            mask = isna(self)
-            np.putmask(result, mask, iNaT)
-        elif skipna and not issubclass(y.dtype.type, (np.integer, np.bool_)):
-            mask = isna(self)
-            np.putmask(y, mask, mask_a)
-            result = accum_func(y, axis)
-            np.putmask(result, mask, mask_b)
-        else:
-            result = accum_func(y, axis)
+        def na_accum_func(blk_values):
+            # We will be applying this function to block values
+            if skipna and issubclass(
+                blk_values.dtype.type, (np.datetime64, np.timedelta64)
+            ):
+                result = accum_func(blk_values.T, axis)
+                mask = isna(blk_values.T)
+                np.putmask(result, mask, iNaT)
+            elif skipna and not issubclass(
+                blk_values.dtype.type, (np.integer, np.bool_)
+            ):
+                vals = blk_values.copy().T
+                mask = isna(vals)
+                np.putmask(vals, mask, mask_a)
+                result = accum_func(vals, axis)
+                np.putmask(result, mask, mask_b)
+            else:
+                result = accum_func(blk_values.T, axis)
+            return result.T
 
+        result = self._data.apply(na_accum_func)
         d = self._construct_axes_dict()
         d["copy"] = False
         return self._constructor(result, **d).__finalize__(self)

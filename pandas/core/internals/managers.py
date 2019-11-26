@@ -430,7 +430,10 @@ class BlockManager(PandasObject):
                     axis = obj._info_axis_number
                     kwargs[k] = obj.reindex(b_items, axis=axis, copy=align_copy)
 
-            applied = getattr(b, f)(**kwargs)
+            if callable(f):
+                applied = b.apply(f, **kwargs)
+            else:
+                applied = getattr(b, f)(**kwargs)
             result_blocks = _extend_blocks(applied, result_blocks)
 
         if len(result_blocks) == 0:

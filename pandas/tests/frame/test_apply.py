@@ -1329,8 +1329,8 @@ class TestDataFrameAggregate:
             _get_cython_table_params(
                 DataFrame([[np.nan, 1], [1, 2]]),
                 [
-                    ("cumprod", DataFrame([[np.nan, 1], [1.0, 2.0]])),
-                    ("cumsum", DataFrame([[np.nan, 1], [1.0, 3.0]])),
+                    ("cumprod", DataFrame([[np.nan, 1], [1, 2]])),
+                    ("cumsum", DataFrame([[np.nan, 1], [1, 3]])),
                 ],
             ),
         ),
@@ -1339,6 +1339,10 @@ class TestDataFrameAggregate:
         # GH 21224
         # test transforming functions in
         # pandas.core.base.SelectionMixin._cython_table (cumprod, cumsum)
+        if axis == "columns" or axis == 1:
+            # operating blockwise doesn't let us preserve dtypes
+            expected = expected.astype("float64")
+
         result = df.agg(func, axis=axis)
         tm.assert_frame_equal(result, expected)
 
