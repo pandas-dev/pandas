@@ -12,10 +12,10 @@ pandas.
 .. note::
 
     The choice of using ``NaN`` internally to denote missing data was largely
-    for simplicity and performance reasons. It differs from the MaskedArray
-    approach of, for example, :mod:`scikits.timeseries`. We are hopeful that
-    NumPy will soon be able to provide a native NA type solution (similar to R)
-    performant enough to be used in pandas.
+    for simplicity and performance reasons.
+    Starting from pandas 1.0, some optional data types start experimenting
+    with a native ``NA`` scalar using a mask-based approach. See
+    :ref:`here <missing_data.NA>` for more.
 
 See the :ref:`cookbook<cookbook.missing_data>` for some advanced strategies.
 
@@ -771,3 +771,109 @@ the ``dtype="Int64"``.
    s
 
 See :ref:`integer_na` for more.
+
+
+.. _missing_data.NA:
+
+Experimental ``NA`` scalar to denote missing values
+---------------------------------------------------
+
+.. warning::
+
+   Experimental: the behaviour of ``pd.NA`` can still change without warning.
+
+.. versionadded:: 1.0.0
+
+Starting from pandas 1.0, an experimental ``pd.NA`` value (singleton) is
+available to represent scalar missing values. At this moment, it is used in
+the nullable integer and boolean data types and the dedicated string data type
+as the missing value indicator.
+
+The goal of ``pd.NA`` is provide a "missing" indicator that can be used
+consistently accross data types (instead of ``np.nan``, ``None`` or ``pd.NaT``
+depending on the data type).
+
+For example, when having missing values in a Series with the nullable integer
+dtype will use ``pd.NA``:
+
+.. ipython:: python
+
+    s = pd.Series([1, 2, None], dtype="Int64")
+    s
+    s[2]
+
+Propagation in arithmetic and comparison operations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In general, missing values *propagate* in operations involving ``pd.NA``. When
+one of the operands is unknown, the outcome of the operation is also unknown.
+
+For example, ``pd.NA`` propagates in arithmetic operations, similarly to
+``np.nan``:
+
+.. ipython:: python
+
+   pd.NA + 1
+   "a" * pd.NA
+
+In equality and comparison operations, ``pd.NA`` also propagates. This deviates
+from the behaviour of ``np.nan``, where comparisons with ``np.nan`` always
+return ``False``.
+
+.. ipython:: python
+
+   pd.NA == 1
+   pd.NA == pd.NA
+   pd.NA < 2.5
+
+To check if a value is equal to ``pd.NA``, the :func:`isna` function can be
+used:
+
+.. ipython:: python
+
+   pd.isna(pd.NA)
+
+Logical operations
+~~~~~~~~~~~~~~~~~~
+
+For logical operations, ``pd.NA`` follows the rules of the
+`three-valued logic <https://en.wikipedia.org/wiki/Three-valued_logic> `__ (or
+*Kleene logic*, similarly to R, SQL and Julia). This logic means to only
+propagate missing values when it is logically required.
+
+For example, for the logical "or" operation (``|``), if one of the operands
+is ``True``, we already know the result will be ``True``, regardless of the
+other values (so regardless the missing value would be ``True`` or ``False``).
+In this case, ``pd.NA`` does not propagate:
+
+.. ipython:: python
+
+   True | False
+   True | pd.NA
+   pd.NA | True
+
+On the other hand, if one of the operands is ``False``, the result depends
+on the value of the other operand. Therefore, in thise case ``pd.NA``
+propagates:
+
+.. ipython:: python
+
+   False | True
+   False | True
+   False | pd.NA
+
+The behaviour of the logical "and" operation (``&``) can be derived using
+similar logic (where now ``pd.NA`` will not propagate if one of the operands
+is already ``False``):
+
+.. ipython:: python
+
+   False & True
+   False & False
+   False & pd.NA
+
+.. ipython:: python
+
+   True & True
+   True & False
+   True & pd.NA
