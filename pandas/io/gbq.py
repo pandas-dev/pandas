@@ -152,8 +152,8 @@ def read_gbq(
             Use the :func:`tqdm.tqdm_gui` function to display a
             progress bar as a graphical dialog box.
 
-        This feature requires version 0.12.0 or later of the ``pandas-gbq``
-        package. It also requires the ``tqdm`` package.
+        Note that his feature requires version 0.12.0 or later of the
+        ``pandas-gbq`` package. And it requires the ``tqdm`` package.
 
         .. versionadded:: 1.0.0
 
