@@ -121,5 +121,5 @@ def test_to_excel_with_openpyxl_engine(ext, tmpdir):
     filename = tmpdir.join("styled.xlsx")
     styled.to_excel(filename, engine="openpyxl")
 
-    assert "styled.xlsx" in tmpdir.listdir()
+    assert filename in tmpdir.listdir()
     os.remove(filename)
