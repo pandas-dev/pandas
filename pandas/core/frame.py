@@ -7634,20 +7634,11 @@ class DataFrame(NDFrame):
             out.index = self.columns
             return out
 
-        elif numeric_only is True and axis == 0:
+        elif numeric_only is True and axis in [0, 1]:
             data = _get_data(axis_matters=True)
+            if axis == 1:
+                data = data.T
             return data._reduce(
-                op,
-                name,
-                axis=axis,
-                skipna=skipna,
-                numeric_only=False,
-                filter_type=filter_type,
-                **kwds,
-            )
-        elif numeric_only is True and axis == 1:
-            data = _get_data(axis_matters=True)
-            return data.T._reduce(
                 op,
                 name,
                 axis=0,
@@ -7698,6 +7689,7 @@ class DataFrame(NDFrame):
         else:
             if numeric_only:
                 data = _get_data(axis_matters=True)
+
                 values = data.values
                 labels = data._get_agg_axis(axis)
             else:

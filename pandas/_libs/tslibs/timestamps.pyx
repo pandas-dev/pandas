@@ -89,23 +89,23 @@ class RoundTo:
            https://en.wikipedia.org/wiki/Rounding#Round_half_to_even
     """
     @property
-    def MINUS_INFTY(self):
+    def MINUS_INFTY(self) -> int:
         return 0
 
     @property
-    def PLUS_INFTY(self):
+    def PLUS_INFTY(self) -> int:
         return 1
 
     @property
-    def NEAREST_HALF_EVEN(self):
+    def NEAREST_HALF_EVEN(self) -> int:
         return 2
 
     @property
-    def NEAREST_HALF_PLUS_INFTY(self):
+    def NEAREST_HALF_PLUS_INFTY(self) -> int:
         return 3
 
     @property
-    def NEAREST_HALF_MINUS_INFTY(self):
+    def NEAREST_HALF_MINUS_INFTY(self) -> int:
         return 4
 
 
@@ -604,7 +604,7 @@ timedelta}, default 'raise'
         """
         return self.weekday()
 
-    def day_name(self, locale=None):
+    def day_name(self, locale=None) -> str:
         """
         Return the day name of the Timestamp with specified locale.
 
@@ -621,7 +621,7 @@ timedelta}, default 'raise'
         """
         return self._get_date_name_field('day_name', locale)
 
-    def month_name(self, locale=None):
+    def month_name(self, locale=None) -> str:
         """
         Return the month name of the Timestamp with specified locale.
 
@@ -639,7 +639,7 @@ timedelta}, default 'raise'
         return self._get_date_name_field('month_name', locale)
 
     @property
-    def weekday_name(self):
+    def weekday_name(self) -> str:
         """
         .. deprecated:: 0.23.0
             Use ``Timestamp.day_name()`` instead
@@ -657,7 +657,7 @@ timedelta}, default 'raise'
         return ccalendar.get_day_of_year(self.year, self.month, self.day)
 
     @property
-    def week(self):
+    def week(self) -> int:
         """
         Return the week number of the year.
         """
@@ -666,7 +666,7 @@ timedelta}, default 'raise'
     weekofyear = week
 
     @property
-    def quarter(self):
+    def quarter(self) -> int:
         """
         Return the quarter of the year.
         """
@@ -689,7 +689,7 @@ timedelta}, default 'raise'
         return getattr(self.freq, 'freqstr', self.freq)
 
     @property
-    def is_month_start(self):
+    def is_month_start(self) -> bool:
         """
         Return True if date is first day of month.
         """
@@ -699,7 +699,7 @@ timedelta}, default 'raise'
         return self._get_start_end_field('is_month_start')
 
     @property
-    def is_month_end(self):
+    def is_month_end(self) -> bool:
         """
         Return True if date is last day of month.
         """
@@ -709,7 +709,7 @@ timedelta}, default 'raise'
         return self._get_start_end_field('is_month_end')
 
     @property
-    def is_quarter_start(self):
+    def is_quarter_start(self) -> bool:
         """
         Return True if date is first day of the quarter.
         """
@@ -719,7 +719,7 @@ timedelta}, default 'raise'
         return self._get_start_end_field('is_quarter_start')
 
     @property
-    def is_quarter_end(self):
+    def is_quarter_end(self) -> bool:
         """
         Return True if date is last day of the quarter.
         """
@@ -729,7 +729,7 @@ timedelta}, default 'raise'
         return self._get_start_end_field('is_quarter_end')
 
     @property
-    def is_year_start(self):
+    def is_year_start(self) -> bool:
         """
         Return True if date is first day of the year.
         """
@@ -739,7 +739,7 @@ timedelta}, default 'raise'
         return self._get_start_end_field('is_year_start')
 
     @property
-    def is_year_end(self):
+    def is_year_end(self) -> bool:
         """
         Return True if date is last day of the year.
         """
@@ -749,7 +749,7 @@ timedelta}, default 'raise'
         return self._get_start_end_field('is_year_end')
 
     @property
-    def is_leap_year(self):
+    def is_leap_year(self) -> bool:
         """
         Return True if year is a leap year.
         """
@@ -1009,7 +1009,7 @@ default 'raise'
 
         return base1 + base2
 
-    def _has_time_component(self):
+    def _has_time_component(self) -> bool:
         """
         Returns if the Timestamp has a time component
         in addition to the date part
