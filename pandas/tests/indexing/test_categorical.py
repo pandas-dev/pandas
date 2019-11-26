@@ -754,3 +754,29 @@ class TestCategoricalIndex:
         output = cur_index.map(mapper)
         # Order of categories in output can be different
         tm.assert_index_equal(expected, output)
+
+    @pytest.mark.parametrize(
+        "idx_values", [[1, 2, 3], [-1, -2, -3], [1.5, 2.5, 3.5], [-1.5, -2.5, -3.5]]
+    )
+    def test_loc_with_non_string_categories(self, idx_values, ordered_fixture):
+        # GH-17569
+        cat_idx = CategoricalIndex(idx_values, ordered=ordered_fixture)
+        cat = DataFrame({"A": ["foo", "bar", "baz"]}, index=cat_idx)
+        # scalar
+        result = cat.loc[idx_values[0]]
+        expected = Series(["foo"], index=["A"], name=idx_values[0])
+        tm.assert_series_equal(result, expected)
+        # list
+        result = cat.loc[idx_values[:2]]
+        expected = DataFrame(["foo", "bar"], index=cat_idx[:2], columns=["A"])
+        tm.assert_frame_equal(result, expected)
+        # scalar assignment
+        result = cat.copy()
+        result.loc[idx_values[0]] = "qux"
+        expected = DataFrame({"A": ["qux", "bar", "baz"]}, index=cat_idx)
+        tm.assert_frame_equal(result, expected)
+        # list assignment
+        result = cat.copy()
+        result.loc[idx_values[:2], "A"] = ["qux", "qux2"]
+        expected = DataFrame({"A": ["qux", "qux2", "baz"]}, index=cat_idx)
+        tm.assert_frame_equal(result, expected)
