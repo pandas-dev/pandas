@@ -371,7 +371,19 @@ class Block(PandasObject):
         """
         with np.errstate(all="ignore"):
             result = func(self.values, **kwargs)
-        if not isinstance(result, Block):
+
+        if is_extension_array_dtype(result) and result.ndim > 1:
+            # if we 2D ExtensionArray, we need to split it into 1D pieces
+            nbs = []
+            for i, loc in enumerate(self.mgr_locs):
+                vals = result[i]
+                nv = _block_shape(vals, ndim=self.ndim)
+                block = self.make_block(values=nv, placement=[loc])
+                nbs.append(block)
+            return nbs
+
+        if not isinstance(result, Block) and np.ndim(result) != 0:
+            # Exclude the 0-dim case so we can do reductions
             result = self.make_block(values=_block_shape(result, ndim=self.ndim))
 
         return result

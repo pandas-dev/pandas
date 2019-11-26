@@ -346,16 +346,10 @@ class BlockManager(PandasObject):
             )
 
     def apply(
-        self,
-        f,
-        axes=None,
-        filter=None,
-        do_integrity_check=False,
-        consolidate=True,
-        **kwargs,
+        self, f, axes=None, filter=None, consolidate: bool = True, **kwargs,
     ):
         """
-        iterate over the blocks, collect and create a new block manager
+        Iterate over the blocks, collect and create a new BlockManager.
 
         Parameters
         ----------
@@ -363,16 +357,20 @@ class BlockManager(PandasObject):
         axes : optional (if not supplied, use self.axes)
         filter : list, if supplied, only call the block if the filter is in
                  the block
-        do_integrity_check : boolean, default False. Do the block manager
-            integrity check
-        consolidate: boolean, default True. Join together blocks having same
-            dtype
+        consolidate: bool, default True
+            Join together blocks having same dtype.
 
         Returns
         -------
-        Block Manager (new object)
-
+        BlockManager (new object)
         """
+        if axes is not None:
+            assert len(axes) == len(self.axes), (axes, self.axes)
+            for ax, own in zip(axes, self.axes):
+                assert ax.equals(own), (ax, own)
+
+        # assert filter is None, filter --> nope, in test_replace we
+        #  get e.g. ["a"], ["A"], ["zero"], ["b"]
 
         result_blocks = []
 
@@ -430,14 +428,15 @@ class BlockManager(PandasObject):
                     axis = obj._info_axis_number
                     kwargs[k] = obj.reindex(b_items, axis=axis, copy=align_copy)
 
-            applied = getattr(b, f)(**kwargs)
+            if callable(f):
+                applied = b.apply(f, **kwargs)
+            else:
+                applied = getattr(b, f)(**kwargs)
             result_blocks = _extend_blocks(applied, result_blocks)
 
         if len(result_blocks) == 0:
             return self.make_empty(axes or self.axes)
-        bm = self.__class__(
-            result_blocks, axes or self.axes, do_integrity_check=do_integrity_check
-        )
+        bm = self.__class__(result_blocks, axes or self.axes, do_integrity_check=False)
         bm._consolidate_inplace()
         return bm
 
@@ -763,7 +762,7 @@ class BlockManager(PandasObject):
 
         Parameters
         ----------
-        deep : boolean o rstring, default True
+        deep : boolean or string, default True
             If False, return shallow copy (do not copy data)
             If 'all', copy data and a deep copy of the index
 
@@ -773,6 +772,7 @@ class BlockManager(PandasObject):
         """
         # this preserves the notion of view copying of axes
         if deep:
+            # hit in e.g. tests.io.json.test_pandas
             if deep == "all":
                 copy = lambda ax: ax.copy(deep=True)
             else:
@@ -780,7 +780,7 @@ class BlockManager(PandasObject):
             new_axes = [copy(ax) for ax in self.axes]
         else:
             new_axes = list(self.axes)
-        return self.apply("copy", axes=new_axes, deep=deep, do_integrity_check=False)
+        return self.apply("copy", axes=new_axes, deep=deep)
 
     def as_array(self, transpose=False, items=None):
         """Convert the blockmanager data into an numpy array.

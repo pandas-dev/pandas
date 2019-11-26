@@ -24,10 +24,6 @@ class TestDatetimeArrayConstructor:
         arr = np.array([0, 1, 2, 3], dtype="M8[h]").astype("M8[ns]")
 
         with pytest.raises(ValueError, match="Only 1-dimensional"):
-            # 2-dim
-            DatetimeArray(arr.reshape(2, 2))
-
-        with pytest.raises(ValueError, match="Only 1-dimensional"):
             # 0-dim
             DatetimeArray(arr[[0]].squeeze())
 

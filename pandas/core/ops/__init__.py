@@ -26,6 +26,7 @@ from pandas.core.ops.array_ops import (
     arithmetic_op,
     comparison_op,
     define_na_arithmetic_op,
+    get_array_op,
     logical_op,
 )
 from pandas.core.ops.array_ops import comp_method_OBJECT_ARRAY  # noqa:F401
@@ -339,6 +340,10 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
 
     right = lib.item_from_zerodim(right)
     if lib.is_scalar(right) or np.ndim(right) == 0:
+
+        array_op = get_array_op(func, str_rep=str_rep)
+        bm = left._data.apply(array_op, right=right)
+        return type(left)(bm)
 
         def column_op(a, b):
             return {i: func(a.iloc[:, i], b) for i in range(len(a.columns))}

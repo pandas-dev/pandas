@@ -2,6 +2,7 @@
 Functions for arithmetic and comparison operations on NumPy arrays and
 ExtensionArrays.
 """
+from functools import partial
 import operator
 from typing import Any, Union
 
@@ -54,10 +55,10 @@ def comp_method_OBJECT_ARRAY(op, x, y):
         if isinstance(y, (ABCSeries, ABCIndex)):
             y = y.values
 
-        result = libops.vec_compare(x, y, op)
+        result = libops.vec_compare(x.ravel(), y, op)
     else:
-        result = libops.scalar_compare(x, y, op)
-    return result
+        result = libops.scalar_compare(x.ravel(), y, op)
+    return result.reshape(x.shape)
 
 
 def masked_arith_op(x, y, op):
@@ -252,9 +253,9 @@ def comparison_op(
     elif is_scalar(rvalues) and isna(rvalues):
         # numpy does not like comparisons vs None
         if op is operator.ne:
-            res_values = np.ones(len(lvalues), dtype=bool)
+            res_values = np.ones(lvalues.shape, dtype=bool)
         else:
-            res_values = np.zeros(len(lvalues), dtype=bool)
+            res_values = np.zeros(lvalues.shape, dtype=bool)
 
     elif is_object_dtype(lvalues.dtype):
         res_values = comp_method_OBJECT_ARRAY(op, lvalues, rvalues)
@@ -382,3 +383,13 @@ def logical_op(
         res_values = filler(res_values)  # type: ignore
 
     return res_values
+
+
+def get_array_op(op, str_rep=None):
+    op_name = op.__name__.strip("_")
+    if op_name in {"eq", "ne", "lt", "le", "gt", "ge"}:
+        return partial(comparison_op, op=op)
+    elif op_name in {"and", "or", "xor", "rand", "ror", "rxor"}:
+        return partial(logical_op, op=op)
+    else:
+        return partial(arithmetic_op, op=op, str_rep=str_rep)
