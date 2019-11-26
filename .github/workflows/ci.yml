@@ -135,7 +135,7 @@ jobs:
     # This can be removed when the ipython directive fails when there are errors,
     # including the `tee sphinx.log` in te previous step (https://github.com/ipython/ipython/issues/11547)
     - name: Check ipython directive errors
-      run: bash -c "! grep -B1 \"^<<<-------------------------------------------------------------------------$\" sphinx.log"
+      run: ! grep -B1 \"^<<<-------------------------------------------------------------------------$\" sphinx.log
 
     - name: Merge website and docs
       run: |
