@@ -404,6 +404,8 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         """
         Return an indexer class that will compute the window start and end bounds
         """
+        if isinstance(self.window, window_indexers.BaseIndexer):
+            return self.window
         if self.is_freq_type:
             return window_indexers.VariableWindowIndexer(index=index_as_array)
         return window_indexers.FixedWindowIndexer()
@@ -759,13 +761,18 @@ class Window(_Window):
 
     Parameters
     ----------
-    window : int, or offset
+    window : int, offset, or BaseIndexer subclass
         Size of the moving window. This is the number of observations used for
         calculating the statistic. Each window will be a fixed size.
 
         If its an offset then this will be the time period of each window. Each
         window will be a variable sized based on the observations included in
         the time-period. This is only valid for datetimelike indexes.
+
+        If a BaseIndexer subclass is passed, calculates the window boundaries
+        based on the defined ``get_window_bounds`` method. Additional rolling
+        keyword arguments, namely `min_periods`, `center`, `win_type`, and
+        `closed` will be passed to `get_window_bounds`.
     min_periods : int, default None
         Minimum number of observations in window required to have a value
         (otherwise result is NA). For a window that is specified by an offset,
@@ -906,7 +913,7 @@ class Window(_Window):
         super().validate()
 
         window = self.window
-        if isinstance(window, (list, tuple, np.ndarray)):
+        if isinstance(window, (list, tuple, np.ndarray, window_indexers.BaseIndexer)):
             pass
         elif is_integer(window):
             if window <= 0:
@@ -995,6 +1002,13 @@ class Window(_Window):
 
             # GH #15662. `False` makes symmetric window, rather than periodic.
             return sig.get_window(win_type, window, False).astype(float)
+        elif isinstance(window, window_indexers.BaseIndexer):
+            return window.get_window_bounds(
+                win_type=self.win_type,
+                min_periods=self.min_periods,
+                center=self.center,
+                closed=self.closed,
+            )
 
     def _get_weighted_roll_func(
         self, cfunc: Callable, check_minp: Callable, **kwargs
@@ -1762,6 +1776,8 @@ class Rolling(_Rolling_and_Expanding):
             if self.min_periods is None:
                 self.min_periods = 1
 
+        elif isinstance(self.window, window_indexers.BaseIndexer):
+            pass
         elif not is_integer(self.window):
             raise ValueError("window must be an integer")
         elif self.window < 0:
