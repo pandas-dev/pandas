@@ -111,7 +111,7 @@ the pandas syntax by looking for equivalents from the software you already know:
         <div class="row">
             <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
                 <div class="card text-center intro-card shadow">
-                <img src="_static/logo_r.svg" class="card-img-top" alt="R project logo" height="72"> 
+                <img src="../_static/logo_r.svg" class="card-img-top" alt="R project logo" height="72"> 
                 <div class="card-body flex-fill">
                     <p class="card-text">The <a href="https://www.r-project.org/">R programming language</a> provides the <code>data.frame</code> data structure and multiple packages, 
                         such as <a href="https://www.tidyverse.org/">tidyverse</a> use and extend <code>data.frame</code>s for convenient data handling 
@@ -128,7 +128,7 @@ the pandas syntax by looking for equivalents from the software you already know:
             </div>
             <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
                 <div class="card text-center intro-card shadow">
-                <img src="_static/logo_sql.svg" class="card-img-top" alt="SQL logo" height="72"> 
+                <img src="../_static/logo_sql.svg" class="card-img-top" alt="SQL logo" height="72"> 
                 <div class="card-body flex-fill">
                     <p class="card-text">Already familiar to <code>SELECT</code>, <code>GROUP BY</code>, <code>JOIN</code>,...? 
                     Most of these SQL manipulations do have equivalents in pandas.</p>
@@ -144,7 +144,7 @@ the pandas syntax by looking for equivalents from the software you already know:
                 </div>
                 <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
                     <div class="card text-center intro-card shadow">
-                    <img src="_static/logo_stata.svg" class="card-img-top" alt="STATA logo" height="52"> 
+                    <img src="../_static/logo_stata.svg" class="card-img-top" alt="STATA logo" height="52"> 
                     <div class="card-body flex-fill">
                         <p class="card-text">The <code>data set</code> included in the 
                             <a href="https://en.wikipedia.org/wiki/Stata">STATA</a> statistical software suite corresponds 
@@ -162,7 +162,7 @@ the pandas syntax by looking for equivalents from the software you already know:
                 </div>
                 <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
                     <div class="card text-center intro-card shadow">
-                    <img src="_static/logo_sas.svg" class="card-img-top" alt="SAS logo" height="52"> 
+                    <img src="../_static/logo_sas.svg" class="card-img-top" alt="SAS logo" height="52"> 
                     <div class="card-body flex-fill">
                         <p class="card-text">The  <a href="https://en.wikipedia.org/wiki/SAS_(software)">SAS</a> statistical software suite 
                             also provides the <code>data set</code> corresponding to the pandas <code>data.frame</code>. 
@@ -193,6 +193,7 @@ material is enlisted in the community contributed :ref:`tutorials`.
 
 .. toctree::
     :maxdepth: 2
+    :hidden:
 
     install
     overview
