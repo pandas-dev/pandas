@@ -168,8 +168,7 @@ pip install pandas
 - [python-dateutil](https://labix.org/python-dateutil)
 - [pytz](https://pythonhosted.org/pytz)
 
-See the [full installation instructions](https://pandas.pydata.org/pandas-docs/stable/install.html#dependencies)
-for minimum supported versions of required, recommended and optional dependencies.
+See the [full installation instructions](https://pandas.pydata.org/pandas-docs/stable/install.html#dependencies) for minimum supported versions of required, recommended and optional dependencies.
 
 ## Installation from sources
 To install pandas from source you need Cython in addition to the normal
