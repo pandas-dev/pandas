@@ -48,7 +48,6 @@ from pandas.core.arrays.sparse import BlockIndex, IntIndex
 import pandas.core.common as com
 from pandas.core.computation.pytables import PyTablesExpr, maybe_expression
 from pandas.core.index import ensure_index
-from pandas.core.internals import BlockManager, _block_shape, make_block
 
 from pandas.io.common import _stringify_path
 from pandas.io.formats.printing import adjoin, pprint_thing
@@ -2302,7 +2301,7 @@ class DataCol(IndexCol):
         # write the codes; must be in a block shape
         self.ordered = values.ordered
         self.typ = self.get_atom_data(block, kind=codes.dtype.name)
-        self.set_data(_block_shape(codes))
+        self.set_data(codes)
 
         # write the categories
         self.meta = "category"
@@ -3106,17 +3105,24 @@ class BlockManagerFixed(GenericFixed):
             axes.append(ax)
 
         items = axes[0]
-        blocks = []
+        dfs = []
+        assert len(axes) == 2  # TODO: unless Series is supported?
+
         for i in range(self.nblocks):
 
             blk_items = self.read_index(f"block{i}_items")
             values = self.read_array(f"block{i}_values", start=_start, stop=_stop)
-            blk = make_block(
-                values, placement=items.get_indexer(blk_items), ndim=len(axes)
-            )
-            blocks.append(blk)
 
-        return self.obj_type(BlockManager(blocks, axes))
+            columns = items[items.get_indexer(blk_items)]
+            df = DataFrame(values.T, columns=columns, index=axes[1])
+            dfs.append(df)
+
+        if len(dfs) > 0:
+            out = concat(dfs, axis=1)
+            out = out.reindex(columns=items)
+            return out
+
+        return DataFrame(columns=axes[0], index=axes[1])
 
     def write(self, obj, **kwargs):
         super().write(obj, **kwargs)
@@ -4340,9 +4346,15 @@ class AppendableFrameTable(AppendableTable):
             if values.ndim == 1 and isinstance(values, np.ndarray):
                 values = values.reshape((1, values.shape[0]))
 
-            block = make_block(values, placement=np.arange(len(cols_)), ndim=2)
-            mgr = BlockManager([block], [cols_, index_])
-            frames.append(DataFrame(mgr))
+            if isinstance(values, np.ndarray):
+                df = DataFrame(values.T, columns=cols_, index=index_)
+            elif isinstance(values, Index):
+                df = DataFrame(values, columns=cols_, index=index_)
+            else:
+                # Categorical
+                df = DataFrame([values], columns=cols_, index=index_)
+            assert (df.dtypes == values.dtype).all(), (df.dtypes, values.dtype)
+            frames.append(df)
 
         if len(frames) == 1:
             df = frames[0]
