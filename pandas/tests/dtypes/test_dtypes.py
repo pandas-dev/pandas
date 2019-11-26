@@ -12,10 +12,8 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_datetime64_ns_dtype,
     is_datetime64tz_dtype,
-    is_datetimetz,
     is_dtype_equal,
     is_interval_dtype,
-    is_period,
     is_period_dtype,
     is_string_dtype,
 )
@@ -30,7 +28,7 @@ from pandas.core.dtypes.dtypes import (
 
 import pandas as pd
 from pandas import Categorical, CategoricalIndex, IntervalIndex, Series, date_range
-from pandas.core.sparse.api import SparseDtype
+from pandas.core.arrays.sparse import SparseDtype
 import pandas.util.testing as tm
 
 
@@ -248,8 +246,18 @@ class TestDatetimeTZDtype(Base):
         with pytest.raises(TypeError, match="notatz"):
             DatetimeTZDtype.construct_from_string("datetime64[ns, notatz]")
 
-        with pytest.raises(TypeError, match="^Could not construct DatetimeTZDtype$"):
+        msg = "^Could not construct DatetimeTZDtype"
+        with pytest.raises(TypeError, match=msg):
+            # list instead of string
             DatetimeTZDtype.construct_from_string(["datetime64[ns, notatz]"])
+
+        with pytest.raises(TypeError, match=msg):
+            # non-nano unit
+            DatetimeTZDtype.construct_from_string("datetime64[ps, UTC]")
+
+        with pytest.raises(TypeError, match=msg):
+            # dateutil str that returns None from gettz
+            DatetimeTZDtype.construct_from_string("datetime64[ns, dateutil/invalid]")
 
     def test_is_dtype(self):
         assert not DatetimeTZDtype.is_dtype(None)
@@ -284,25 +292,15 @@ class TestDatetimeTZDtype(Base):
         assert not is_datetime64tz_dtype(np.dtype("float64"))
         assert not is_datetime64tz_dtype(1.0)
 
-        with tm.assert_produces_warning(FutureWarning):
-            assert is_datetimetz(s)
-            assert is_datetimetz(s.dtype)
-            assert not is_datetimetz(np.dtype("float64"))
-            assert not is_datetimetz(1.0)
-
     def test_dst(self):
 
         dr1 = date_range("2013-01-01", periods=3, tz="US/Eastern")
         s1 = Series(dr1, name="A")
         assert is_datetime64tz_dtype(s1)
-        with tm.assert_produces_warning(FutureWarning):
-            assert is_datetimetz(s1)
 
         dr2 = date_range("2013-08-01", periods=3, tz="US/Eastern")
         s2 = Series(dr2, name="A")
         assert is_datetime64tz_dtype(s2)
-        with tm.assert_produces_warning(FutureWarning):
-            assert is_datetimetz(s2)
         assert s1.dtype == s2.dtype
 
     @pytest.mark.parametrize("tz", ["UTC", "US/Eastern"])
@@ -447,22 +445,14 @@ class TestPeriodDtype(Base):
 
         assert is_period_dtype(pidx.dtype)
         assert is_period_dtype(pidx)
-        with tm.assert_produces_warning(FutureWarning):
-            assert is_period(pidx)
 
         s = Series(pidx, name="A")
 
         assert is_period_dtype(s.dtype)
         assert is_period_dtype(s)
-        with tm.assert_produces_warning(FutureWarning):
-            assert is_period(s)
 
         assert not is_period_dtype(np.dtype("float64"))
         assert not is_period_dtype(1.0)
-        with tm.assert_produces_warning(FutureWarning):
-            assert not is_period(np.dtype("float64"))
-        with tm.assert_produces_warning(FutureWarning):
-            assert not is_period(1.0)
 
     def test_empty(self):
         dt = PeriodDtype()
@@ -960,9 +950,8 @@ def test_is_bool_dtype(dtype, expected):
     assert result is expected
 
 
-@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 def test_is_bool_dtype_sparse():
-    result = is_bool_dtype(pd.SparseSeries([True, False]))
+    result = is_bool_dtype(pd.Series(pd.SparseArray([True, False])))
     assert result is True
 
 

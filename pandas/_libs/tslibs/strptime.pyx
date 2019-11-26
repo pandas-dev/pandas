@@ -106,11 +106,11 @@ def array_strptime(object[:] values, object fmt,
                 if bad_directive == "\\":
                     bad_directive = "%"
                 del err
-                raise ValueError("'%s' is a bad directive in format '%s'" %
-                                 (bad_directive, fmt))
+                raise ValueError(f"'{bad_directive}' is a bad directive "
+                                 f"in format '{fmt}'")
             # IndexError only occurs when the format string is "%"
             except IndexError:
-                raise ValueError("stray %% in format '%s'" % fmt)
+                raise ValueError(f"stray % in format '{fmt}'")
             _regex_cache[fmt] = format_regex
 
     result = np.empty(n, dtype='M8[ns]')
@@ -139,14 +139,13 @@ def array_strptime(object[:] values, object fmt,
                 if is_coerce:
                     iresult[i] = NPY_NAT
                     continue
-                raise ValueError("time data %r does not match "
-                                 "format %r (match)" % (val, fmt))
+                raise ValueError(f"time data '{val}' does not match "
+                                 f"format '{fmt}' (match)")
             if len(val) != found.end():
                 if is_coerce:
                     iresult[i] = NPY_NAT
                     continue
-                raise ValueError("unconverted data remains: %s" %
-                                 val[found.end():])
+                raise ValueError(f"unconverted data remains: {val[found.end():]}")
 
         # search
         else:
@@ -155,8 +154,8 @@ def array_strptime(object[:] values, object fmt,
                 if is_coerce:
                     iresult[i] = NPY_NAT
                     continue
-                raise ValueError("time data %r does not match format "
-                                 "%r (search)" % (val, fmt))
+                raise ValueError(f"time data {repr(val)} does not match format "
+                                 f"{repr(fmt)} (search)")
 
         iso_year = -1
         year = 1900
@@ -341,7 +340,8 @@ def array_strptime(object[:] values, object fmt,
     return result, result_timezone.base
 
 
-"""_getlang, LocaleTime, TimeRE, _calc_julian_from_U_or_W are vendored
+"""
+_getlang, LocaleTime, TimeRE, _calc_julian_from_U_or_W are vendored
 from the standard library, see
 https://github.com/python/cpython/blob/master/Lib/_strptime.py
 The original module-level docstring follows.
@@ -363,7 +363,8 @@ def _getlang():
 
 
 class LocaleTime:
-    """Stores and handles locale-specific information related to time.
+    """
+    Stores and handles locale-specific information related to time.
 
     ATTRIBUTES:
         f_weekday -- full weekday names (7-item list)
@@ -382,7 +383,8 @@ class LocaleTime:
     """
 
     def __init__(self):
-        """Set all attributes.
+        """
+        Set all attributes.
 
         Order of methods called matters for dependency reasons.
 
@@ -399,7 +401,6 @@ class LocaleTime:
         Only other possible issue is if someone changed the timezone and did
         not call tz.tzset .  That is an issue for the programmer, though,
         since changing the timezone is worthless without that call.
-
         """
         self.lang = _getlang()
         self.__calc_weekday()
@@ -518,15 +519,16 @@ class TimeRE(dict):
     """
 
     def __init__(self, locale_time=None):
-        """Create keys/values.
+        """
+        Create keys/values.
 
         Order of execution is important for dependency reasons.
-
         """
         if locale_time:
             self.locale_time = locale_time
         else:
             self.locale_time = LocaleTime()
+        self._Z = None
         base = super()
         base.__init__({
             # The " \d" part of the regex is to make %c from ANSI C work
@@ -555,21 +557,29 @@ class TimeRE(dict):
             'B': self.__seqToRE(self.locale_time.f_month[1:], 'B'),
             'b': self.__seqToRE(self.locale_time.a_month[1:], 'b'),
             'p': self.__seqToRE(self.locale_time.am_pm, 'p'),
-            'Z': self.__seqToRE(pytz.all_timezones, 'Z'),
+            # 'Z' key is generated lazily via __getitem__
             '%': '%'})
         base.__setitem__('W', base.__getitem__('U').replace('U', 'W'))
         base.__setitem__('c', self.pattern(self.locale_time.LC_date_time))
         base.__setitem__('x', self.pattern(self.locale_time.LC_date))
         base.__setitem__('X', self.pattern(self.locale_time.LC_time))
 
+    def __getitem__(self, key):
+        if key == "Z":
+            # lazy computation
+            if self._Z is None:
+                self._Z = self.__seqToRE(pytz.all_timezones, 'Z')
+            return self._Z
+        return super().__getitem__(key)
+
     def __seqToRE(self, to_convert, directive):
-        """Convert a list to a regex string for matching a directive.
+        """
+        Convert a list to a regex string for matching a directive.
 
         Want possible matching values to be from longest to shortest.  This
         prevents the possibility of a match occurring for a value that also
         a substring of a larger value that should have matched (e.g., 'abc'
         matching when 'abcdef' should have been the match).
-
         """
         to_convert = sorted(to_convert, key=len, reverse=True)
         for value in to_convert:
@@ -578,15 +588,15 @@ class TimeRE(dict):
         else:
             return ''
         regex = '|'.join(re.escape(stuff) for stuff in to_convert)
-        regex = '(?P<%s>%s' % (directive, regex)
-        return '%s)' % regex
+        regex = f'(?P<{directive}>{regex})'
+        return regex
 
     def pattern(self, format):
-        """Return regex pattern for the format string.
+        """
+        Return regex pattern for the format string.
 
         Need to make sure that any characters that might be interpreted as
         regex syntax are escaped.
-
         """
         processed_format = ''
         # The sub() call escapes all characters that might be misconstrued
@@ -598,11 +608,11 @@ class TimeRE(dict):
         format = whitespace_replacement.sub(r'\\s+', format)
         while '%' in format:
             directive_index = format.index('%') +1
-            processed_format = "%s%s%s" % (processed_format,
-                                           format[:directive_index -1],
-                                           self[format[directive_index]])
+            processed_format = (f"{processed_format}"
+                                f"{format[:directive_index -1]}"
+                                f"{self[format[directive_index]]}")
             format = format[directive_index +1:]
-        return "%s%s" % (processed_format, format)
+        return f"{processed_format}{format}"
 
     def compile(self, format):
         """Return a compiled re object for the format string."""
@@ -619,7 +629,8 @@ _regex_cache = {}
 
 cdef int _calc_julian_from_U_or_W(int year, int week_of_year,
                                   int day_of_week, int week_starts_Mon):
-    """Calculate the Julian day based on the year, week of the year, and day of
+    """
+    Calculate the Julian day based on the year, week of the year, and day of
     the week, with week_start_day representing whether the week of the year
     assumes the week starts on Sunday or Monday (6 or 0).
 
@@ -660,8 +671,10 @@ cdef int _calc_julian_from_U_or_W(int year, int week_of_year,
         return 1 + days_to_week + day_of_week
 
 
-cdef object _calc_julian_from_V(int iso_year, int iso_week, int iso_weekday):
-    """Calculate the Julian day based on the ISO 8601 year, week, and weekday.
+cdef (int, int) _calc_julian_from_V(int iso_year, int iso_week, int iso_weekday):
+    """
+    Calculate the Julian day based on the ISO 8601 year, week, and weekday.
+
     ISO weeks start on Mondays, with week 01 being the week containing 4 Jan.
     ISO week days range from 1 (Monday) to 7 (Sunday).
 
@@ -694,7 +707,7 @@ cdef object _calc_julian_from_V(int iso_year, int iso_week, int iso_weekday):
     return iso_year, ordinal
 
 
-cdef parse_timezone_directive(object z):
+cdef parse_timezone_directive(str z):
     """
     Parse the '%z' directive and return a pytz.FixedOffset
 
@@ -723,8 +736,7 @@ cdef parse_timezone_directive(object z):
         z = z[:3] + z[4:]
         if len(z) > 5:
             if z[5] != ':':
-                msg = "Inconsistent use of : in {0}"
-                raise ValueError(msg.format(z))
+                raise ValueError(f"Inconsistent use of : in {z}")
             z = z[:5] + z[6:]
     hours = int(z[1:3])
     minutes = int(z[3:5])

@@ -1,3 +1,4 @@
+from collections import ChainMap
 from datetime import datetime, timedelta
 import inspect
 
@@ -27,7 +28,6 @@ from pandas import (
 import pandas.util.testing as tm
 
 
-@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 class TestDataFrameAlterAxes:
     def test_set_index_directly(self, float_string_frame):
         df = float_string_frame
@@ -341,7 +341,7 @@ class TestDataFrameAlterAxes:
                 self.name = name
                 self.color = color
 
-            def __str__(self):
+            def __str__(self) -> str:
                 return "<Thing {self.name!r}>".format(self=self)
 
             # necessary for pretty KeyError
@@ -380,8 +380,8 @@ class TestDataFrameAlterAxes:
 
         class Thing(frozenset):
             # need to stabilize repr for KeyError (due to random order in sets)
-            def __repr__(self):
-                tmp = sorted(list(self))
+            def __repr__(self) -> str:
+                tmp = sorted(self)
                 # double curly brace prints one brace in format string
                 return "frozenset({{{}}})".format(", ".join(map(repr, tmp)))
 
@@ -418,7 +418,7 @@ class TestDataFrameAlterAxes:
                 self.name = name
                 self.color = color
 
-            def __str__(self):
+            def __str__(self) -> str:
                 return "<Thing {self.name!r}>".format(self=self)
 
         thing1 = Thing("One", "red")
@@ -493,29 +493,29 @@ class TestDataFrameAlterAxes:
         tm.assert_series_equal(result, expected)
 
         # convert to series while keeping the timezone
-        result = idx.to_series(keep_tz=True, index=[0, 1])
+        msg = "stop passing 'keep_tz'"
+        with tm.assert_produces_warning(FutureWarning) as m:
+            result = idx.to_series(keep_tz=True, index=[0, 1])
         tm.assert_series_equal(result, expected)
+        assert msg in str(m[0].message)
 
         # convert to utc
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning) as m:
             df["B"] = idx.to_series(keep_tz=False, index=[0, 1])
         result = df["B"]
         comp = Series(DatetimeIndex(expected.values).tz_localize(None), name="B")
         tm.assert_series_equal(result, comp)
-
-        with tm.assert_produces_warning(FutureWarning) as m:
-            result = idx.to_series(index=[0, 1])
-        tm.assert_series_equal(result, expected.dt.tz_convert(None))
-        msg = (
-            "The default of the 'keep_tz' keyword in "
-            "DatetimeIndex.to_series will change to True in a future "
-            "release."
-        )
+        msg = "do 'idx.tz_convert(None)' before calling"
         assert msg in str(m[0].message)
 
-        with tm.assert_produces_warning(FutureWarning):
+        result = idx.to_series(index=[0, 1])
+        tm.assert_series_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning) as m:
             result = idx.to_series(keep_tz=False, index=[0, 1])
         tm.assert_series_equal(result, expected.dt.tz_convert(None))
+        msg = "do 'idx.tz_convert(None)' before calling"
+        assert msg in str(m[0].message)
 
         # list of datetimes with a tz
         df["B"] = idx.to_pydatetime()
@@ -692,6 +692,24 @@ class TestDataFrameAlterAxes:
         tm.assert_index_equal(renamed.index, Index(["bar", "foo"], name="name"))
         assert renamed.index.name == renamer.index.name
 
+    @pytest.mark.parametrize(
+        "args,kwargs",
+        [
+            ((ChainMap({"A": "a"}, {"B": "b"}),), dict(axis="columns")),
+            ((), dict(columns=ChainMap({"A": "a"}, {"B": "b"}))),
+        ],
+    )
+    def test_rename_chainmap(self, args, kwargs):
+        # see gh-23859
+        colAData = range(1, 11)
+        colBdata = np.random.randn(10)
+
+        df = DataFrame({"A": colAData, "B": colBdata})
+        result = df.rename(*args, **kwargs)
+
+        expected = DataFrame({"a": colAData, "b": colBdata})
+        tm.assert_frame_equal(result, expected)
+
     def test_rename_axis_inplace(self, float_frame):
         # GH 15704
         expected = float_frame.rename_axis("foo")
@@ -727,8 +745,7 @@ class TestDataFrameAlterAxes:
         # GH 19978
         mi = MultiIndex.from_product([["a", "b", "c"], [1, 2]], names=["ll", "nn"])
         df = DataFrame(
-            {"x": [i for i in range(len(mi))], "y": [i * 10 for i in range(len(mi))]},
-            index=mi,
+            {"x": list(range(len(mi))), "y": [i * 10 for i in range(len(mi))]}, index=mi
         )
 
         # Test for rename of the Index object of columns
@@ -1452,7 +1469,6 @@ class TestDataFrameAlterAxes:
         tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 class TestIntervalIndex:
     def test_setitem(self):
 

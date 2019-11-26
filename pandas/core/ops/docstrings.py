@@ -233,7 +233,7 @@ e    NaN
 dtype: float64
 """
 
-_op_descriptions = {
+_op_descriptions: Dict[str, Dict[str, Optional[str]]] = {
     # Arithmetic Operators
     "add": {
         "op": "+",
@@ -310,7 +310,7 @@ _op_descriptions = {
         "reverse": None,
         "series_examples": None,
     },
-}  # type: Dict[str, Dict[str, Optional[str]]]
+}
 
 _op_names = list(_op_descriptions.keys())
 for key in _op_names:
@@ -387,7 +387,7 @@ Parameters
 ----------
 other : scalar, sequence, Series, or DataFrame
     Any single or multiple element data structure, or list-like object.
-axis :  {{0 or 'index', 1 or 'columns'}}
+axis : {{0 or 'index', 1 or 'columns'}}
     Whether to compare by the index (0 or 'index') or columns
     (1 or 'columns'). For Series input, axis to match Series index on.
 level : int or label
@@ -541,7 +541,7 @@ Parameters
 ----------
 other : scalar, sequence, Series, or DataFrame
     Any single or multiple element data structure, or list-like object.
-axis :  {{0 or 'index', 1 or 'columns'}}, default 'columns'
+axis : {{0 or 'index', 1 or 'columns'}}, default 'columns'
     Whether to compare by the index (0 or 'index') or columns
     (1 or 'columns').
 level : int or label

@@ -58,16 +58,16 @@ DeprecatedOption = namedtuple("DeprecatedOption", "key msg rkey removal_ver")
 RegisteredOption = namedtuple("RegisteredOption", "key defval doc validator cb")
 
 # holds deprecated option metdata
-_deprecated_options = {}  # type: Dict[str, DeprecatedOption]
+_deprecated_options: Dict[str, DeprecatedOption] = {}
 
 # holds registered option metdata
-_registered_options = {}  # type: Dict[str, RegisteredOption]
+_registered_options: Dict[str, RegisteredOption] = {}
 
 # holds the current values for registered options
-_global_config = {}  # type: Dict[str, str]
+_global_config: Dict[str, str] = {}
 
 # keys which have a special meaning
-_reserved_keys = ["all"]  # type: List[str]
+_reserved_keys: List[str] = ["all"]
 
 
 class OptionError(AttributeError, KeyError):
@@ -787,6 +787,7 @@ def is_instance_factory(_type):
                 ValueError if x is not an instance of `_type`
 
     """
+
     if isinstance(_type, (tuple, list)):
         _type = tuple(_type)
         type_repr = "|".join(map(str, _type))
@@ -818,6 +819,32 @@ def is_one_of_factory(legal_values):
                 raise ValueError(msg.format(pp_values=pp_values))
 
     return inner
+
+
+def is_nonnegative_int(value):
+    """
+    Verify that value is None or a positive int.
+
+    Parameters
+    ----------
+    value : None or int
+            The `value` to be checked.
+
+    Raises
+    ------
+    ValueError
+        When the value is not None or is a negative integer
+    """
+
+    if value is None:
+        return
+
+    elif isinstance(value, int):
+        if value >= 0:
+            return
+
+    msg = "Value must be a nonnegative integer or None"
+    raise ValueError(msg)
 
 
 # common type validators, for convenience

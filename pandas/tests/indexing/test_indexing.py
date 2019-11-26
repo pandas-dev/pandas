@@ -7,7 +7,6 @@ import weakref
 import numpy as np
 import pytest
 
-from pandas.compat import PY36
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
@@ -222,7 +221,7 @@ class TestFancy(Base):
         expected = DataFrame(
             [{"a": 1, "b": np.nan, "c": "foo"}, {"a": 3, "b": 2, "c": np.nan}]
         )
-        tm.assert_frame_equal(df, expected, check_like=not PY36)
+        tm.assert_frame_equal(df, expected)
 
         # GH10280
         df = DataFrame(
@@ -264,9 +263,8 @@ class TestFancy(Base):
     def test_dups_fancy_indexing(self):
 
         # GH 3455
-        from pandas.util.testing import makeCustomDataframe as mkdf
 
-        df = mkdf(10, 3)
+        df = tm.makeCustomDataframe(10, 3)
         df.columns = ["a", "a", "b"]
         result = df[["b", "a"]].columns
         expected = Index(["b", "a", "a"])
@@ -592,7 +590,7 @@ class TestFancy(Base):
             def __init__(self, value):
                 self.value = value
 
-            def __str__(self):
+            def __str__(self) -> str:
                 return "[{0}]".format(self.value)
 
             __repr__ = __str__
@@ -1202,3 +1200,25 @@ def test_readonly_indices():
     result = df["data"].iloc[indices]
     expected = df["data"].loc[[1, 3, 6]]
     tm.assert_series_equal(result, expected)
+
+
+def test_1tuple_without_multiindex():
+    ser = pd.Series(range(5))
+    key = (slice(3),)
+
+    result = ser[key]
+    expected = ser[key[0]]
+    tm.assert_series_equal(result, expected)
+
+
+def test_duplicate_index_mistyped_key_raises_keyerror():
+    # GH#29189 float_index.get_loc(None) should raise KeyError, not TypeError
+    ser = pd.Series([2, 5, 6, 8], index=[2.0, 4.0, 4.0, 5.0])
+    with pytest.raises(KeyError):
+        ser[None]
+
+    with pytest.raises(KeyError):
+        ser.index.get_loc(None)
+
+    with pytest.raises(KeyError):
+        ser.index._engine.get_loc(None)

@@ -93,7 +93,6 @@ Compatibility with MultiIndex
    :toctree: api/
 
    Index.set_names
-   Index.is_lexsorted_for_tuple
    Index.droplevel
 
 Missing values
@@ -166,7 +165,6 @@ Selecting
    Index.get_slice_bound
    Index.get_value
    Index.get_values
-   Index.set_value
    Index.isin
    Index.slice_indexer
    Index.slice_locs
@@ -307,7 +305,6 @@ MultiIndex components
 
    MultiIndex.set_levels
    MultiIndex.set_codes
-   MultiIndex.to_hierarchical
    MultiIndex.to_flat_index
    MultiIndex.to_frame
    MultiIndex.is_lexsorted

@@ -175,8 +175,8 @@ timedelta-like}
         if trans_idx.size == 1:
             stamp = _render_tstamp(vals[trans_idx])
             raise pytz.AmbiguousTimeError(
-                "Cannot infer dst time from %s as there "
-                "are no repeated times".format(stamp))
+                f"Cannot infer dst time from {stamp} as there "
+                f"are no repeated times")
         # Split the array into contiguous chunks (where the difference between
         # indices is 1).  These are effectively dst transitions in different
         # years which is useful for checking that there is not an ambiguous
@@ -200,8 +200,8 @@ timedelta-like}
                 switch_idx = (delta <= 0).nonzero()[0]
                 if switch_idx.size > 1:
                     raise pytz.AmbiguousTimeError(
-                        "There are %i dst switches when "
-                        "there should only be 1.".format(switch_idx.size))
+                        f"There are {switch_idx.size} dst switches when "
+                        f"there should only be 1.")
                 switch_idx = switch_idx[0] + 1
                 # Pull the only index and adjust
                 a_idx = grp[:switch_idx]
@@ -230,8 +230,8 @@ timedelta-like}
                 else:
                     stamp = _render_tstamp(val)
                     raise pytz.AmbiguousTimeError(
-                        "Cannot infer dst time from %r, try using the "
-                        "'ambiguous' argument".format(stamp))
+                        f"Cannot infer dst time from {stamp}, try using the "
+                        f"'ambiguous' argument")
         elif left != NPY_NAT:
             result[i] = left
         elif right != NPY_NAT:
@@ -246,8 +246,8 @@ timedelta-like}
                     # time
                     if -1 < shift_delta + remaining_mins < HOURS_NS:
                         raise ValueError(
-                            "The provided timedelta will relocalize on a "
-                            "nonexistent time: {}".format(nonexistent)
+                            f"The provided timedelta will relocalize on a "
+                            f"nonexistent time: {nonexistent}"
                         )
                     new_local = val + shift_delta
                 elif shift_forward:

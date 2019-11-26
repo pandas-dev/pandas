@@ -13,7 +13,7 @@ from pandas.core.dtypes.common import is_dtype_equal
 import pandas as pd
 from pandas import Float64Index, Int64Index, RangeIndex, UInt64Index
 from pandas.api.types import pandas_dtype
-from pandas.tests.indexes.conftest import indices_list
+from pandas.tests.indexes.conftest import indices_dict
 import pandas.util.testing as tm
 
 COMPATIBLE_INCONSISTENT_PAIRS = OrderedDict(
@@ -26,15 +26,12 @@ COMPATIBLE_INCONSISTENT_PAIRS = OrderedDict(
 )
 
 
-@pytest.fixture(
-    params=list(it.combinations(indices_list, 2)),
-    ids=lambda x: type(x[0]).__name__ + type(x[1]).__name__,
-)
+@pytest.fixture(params=it.combinations(indices_dict, 2), ids="-".join)
 def index_pair(request):
     """
     Create all combinations of 2 index types.
     """
-    return request.param
+    return indices_dict[request.param[0]], indices_dict[request.param[1]]
 
 
 def test_union_same_types(indices):

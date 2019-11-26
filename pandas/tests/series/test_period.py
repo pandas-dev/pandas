@@ -71,10 +71,9 @@ class TestSeriesPeriod:
         series[2] = val
         assert pd.isna(series[2])
 
-    @pytest.mark.xfail(reason="PeriodDtype Series not supported yet")
     def test_NaT_cast(self):
         result = Series([np.nan]).astype("period[D]")
-        expected = Series([pd.NaT])
+        expected = Series([pd.NaT], dtype="period[D]")
         tm.assert_series_equal(result, expected)
 
     def test_set_none(self):

@@ -1,4 +1,5 @@
 from datetime import timedelta
+from decimal import Decimal
 import operator
 from string import ascii_lowercase
 import warnings
@@ -1075,6 +1076,29 @@ class TestDataFrameAnalytics:
         expected = pd.Series()
         tm.assert_series_equal(result, expected)
 
+    def test_mean_mixed_string_decimal(self):
+        # GH 11670
+        # possible bug when calculating mean of DataFrame?
+
+        d = [
+            {"A": 2, "B": None, "C": Decimal("628.00")},
+            {"A": 1, "B": None, "C": Decimal("383.00")},
+            {"A": 3, "B": None, "C": Decimal("651.00")},
+            {"A": 2, "B": None, "C": Decimal("575.00")},
+            {"A": 4, "B": None, "C": Decimal("1114.00")},
+            {"A": 1, "B": "TEST", "C": Decimal("241.00")},
+            {"A": 2, "B": None, "C": Decimal("572.00")},
+            {"A": 4, "B": None, "C": Decimal("609.00")},
+            {"A": 3, "B": None, "C": Decimal("820.00")},
+            {"A": 5, "B": None, "C": Decimal("1223.00")},
+        ]
+
+        df = pd.DataFrame(d)
+
+        result = df.mean()
+        expected = pd.Series([2.7, 681.6], index=["A", "C"])
+        tm.assert_series_equal(result, expected)
+
     def test_var_std(self, datetime_frame):
         result = datetime_frame.std(ddof=4)
         expected = datetime_frame.apply(lambda x: x.std(ddof=4))
@@ -1220,7 +1244,7 @@ class TestDataFrameAnalytics:
             }
         )
 
-        result = df[sorted(list(expected.keys()))].mode(dropna=dropna)
+        result = df[sorted(expected.keys())].mode(dropna=dropna)
         expected = DataFrame(expected)
         tm.assert_frame_equal(result, expected)
 
@@ -1819,10 +1843,17 @@ class TestDataFrameAnalytics:
             (np.any, {"A": pd.Series([0, 1], dtype="category")}, True),
             (np.all, {"A": pd.Series([1, 2], dtype="category")}, True),
             (np.any, {"A": pd.Series([1, 2], dtype="category")}, True),
-            # # Mix
-            # GH 21484
-            # (np.all, {'A': pd.Series([10, 20], dtype='M8[ns]'),
-            #           'B': pd.Series([10, 20], dtype='m8[ns]')}, True),
+            # Mix GH#21484
+            pytest.param(
+                np.all,
+                {
+                    "A": pd.Series([10, 20], dtype="M8[ns]"),
+                    "B": pd.Series([10, 20], dtype="m8[ns]"),
+                },
+                True,
+                # In 1.13.3 and 1.14 np.all(df) returns a Timedelta here
+                marks=[td.skip_if_np_lt("1.15")],
+            ),
         ],
     )
     def test_any_all_np_func(self, func, data, expected):
@@ -2248,14 +2279,6 @@ class TestDataFrameAnalytics:
         median = float_frame.median().median()
         original = float_frame.copy()
 
-        with tm.assert_produces_warning(FutureWarning):
-            capped = float_frame.clip_upper(median)
-        assert not (capped.values > median).any()
-
-        with tm.assert_produces_warning(FutureWarning):
-            floored = float_frame.clip_lower(median)
-        assert not (floored.values < median).any()
-
         double = float_frame.clip(upper=median, lower=median)
         assert not (double.values != median).any()
 
@@ -2265,16 +2288,6 @@ class TestDataFrameAnalytics:
     def test_inplace_clip(self, float_frame):
         # GH 15388
         median = float_frame.median().median()
-        frame_copy = float_frame.copy()
-
-        with tm.assert_produces_warning(FutureWarning):
-            frame_copy.clip_upper(median, inplace=True)
-        assert not (frame_copy.values > median).any()
-        frame_copy = float_frame.copy()
-
-        with tm.assert_produces_warning(FutureWarning):
-            frame_copy.clip_lower(median, inplace=True)
-        assert not (frame_copy.values < median).any()
         frame_copy = float_frame.copy()
 
         frame_copy.clip(upper=median, lower=median, inplace=True)
@@ -2728,8 +2741,7 @@ class TestNLargestNSmallest:
         s_nan = Series([np.nan, np.nan, 1])
 
         with tm.assert_produces_warning(None):
-            with tm.assert_produces_warning(FutureWarning):
-                df_nan.clip_lower(s, axis=0)
+            df_nan.clip(lower=s, axis=0)
             for op in ["lt", "le", "gt", "ge", "eq", "ne"]:
                 getattr(df, op)(s_nan, axis=0)
 

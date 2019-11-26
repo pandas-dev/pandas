@@ -1,7 +1,7 @@
 cimport cython
 
-from cpython cimport (PyObject, Py_INCREF,
-                      PyMem_Malloc, PyMem_Realloc, PyMem_Free)
+from cpython.ref cimport PyObject, Py_INCREF
+from cpython.mem cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
 
 from libc.stdlib cimport malloc, free
 
@@ -108,7 +108,7 @@ cdef class Int64Factorizer:
     def get_count(self):
         return self.count
 
-    def factorize(self, int64_t[:] values, sort=False,
+    def factorize(self, const int64_t[:] values, sort=False,
                   na_sentinel=-1, na_value=None):
         """
         Factorize values with nans replaced by na_sentinel

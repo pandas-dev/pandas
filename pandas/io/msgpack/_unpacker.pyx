@@ -3,12 +3,11 @@
 
 from cython cimport Py_ssize_t
 
-from cpython cimport (
-    PyCallable_Check,
-    PyBUF_SIMPLE, PyObject_GetBuffer, PyBuffer_Release, Py_buffer,
-    PyBytes_Size,
-    PyBytes_FromStringAndSize,
-    PyBytes_AsString)
+from cpython.buffer cimport (PyBUF_SIMPLE, PyObject_GetBuffer,
+                             PyBuffer_Release, Py_buffer)
+from cpython.bytes cimport (PyBytes_Size, PyBytes_AsString,
+                            PyBytes_FromStringAndSize)
+from cpython.object cimport PyCallable_Check
 
 cdef extern from "Python.h":
     ctypedef struct PyObject
@@ -201,11 +200,10 @@ cdef class Unpacker:
     :param callable object_hook:
         When specified, it should be callable.
         Unpacker calls it with a dict argument after unpacking msgpack map.
-        (See also simplejson)
 
     :param callable object_pairs_hook:
         When specified, it should be callable. Unpacker calls it with a list
-        of key-value pairs after unpacking msgpack map. (See also simplejson)
+        of key-value pairs after unpacking msgpack map.
 
     :param str encoding:
         Encoding used for decoding msgpack raw.

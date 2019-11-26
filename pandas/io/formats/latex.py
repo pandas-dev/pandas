@@ -1,16 +1,18 @@
 """
 Module for formatting output data in Latex.
 """
+from typing import IO, List, Optional, Tuple
+
 import numpy as np
 
 from pandas.core.dtypes.generic import ABCMultiIndex
 
-from pandas.io.formats.format import TableFormatter
+from pandas.io.formats.format import DataFrameFormatter, TableFormatter
 
 
 class LatexFormatter(TableFormatter):
-    """ Used to render a DataFrame to a LaTeX tabular/longtable environment
-    output.
+    """
+    Used to render a DataFrame to a LaTeX tabular/longtable environment output.
 
     Parameters
     ----------
@@ -28,25 +30,31 @@ class LatexFormatter(TableFormatter):
 
     def __init__(
         self,
-        formatter,
-        column_format=None,
-        longtable=False,
-        multicolumn=False,
-        multicolumn_format=None,
-        multirow=False,
+        formatter: DataFrameFormatter,
+        column_format: Optional[str] = None,
+        longtable: bool = False,
+        multicolumn: bool = False,
+        multicolumn_format: Optional[str] = None,
+        multirow: bool = False,
+        caption: Optional[str] = None,
+        label: Optional[str] = None,
     ):
         self.fmt = formatter
         self.frame = self.fmt.frame
-        self.bold_rows = self.fmt.kwds.get("bold_rows", False)
+        self.bold_rows = self.fmt.bold_rows
         self.column_format = column_format
         self.longtable = longtable
         self.multicolumn = multicolumn
         self.multicolumn_format = multicolumn_format
         self.multirow = multirow
+        self.caption = caption
+        self.label = label
+        self.escape = self.fmt.escape
 
-    def write_result(self, buf):
+    def write_result(self, buf: IO[str]) -> None:
         """
-        Render a DataFrame to a LaTeX tabular/longtable environment output.
+        Render a DataFrame to a LaTeX tabular, longtable, or table/tabular
+        environment output.
         """
 
         # string representation of the columns
@@ -98,25 +106,26 @@ class LatexFormatter(TableFormatter):
             # Get rid of old multiindex column and add new ones
             strcols = out + strcols[1:]
 
-        column_format = self.column_format
-        if column_format is None:
+        if self.column_format is None:
             dtypes = self.frame.dtypes._values
             column_format = "".join(map(get_col_type, dtypes))
             if self.fmt.index:
                 index_format = "l" * self.frame.index.nlevels
                 column_format = index_format + column_format
-        elif not isinstance(column_format, str):  # pragma: no cover
+        elif not isinstance(self.column_format, str):  # pragma: no cover
             raise AssertionError(
                 "column_format must be str or unicode, "
                 "not {typ}".format(typ=type(column_format))
             )
-
-        if not self.longtable:
-            buf.write("\\begin{{tabular}}{{{fmt}}}\n".format(fmt=column_format))
-            buf.write("\\toprule\n")
         else:
-            buf.write("\\begin{{longtable}}{{{fmt}}}\n".format(fmt=column_format))
-            buf.write("\\toprule\n")
+            column_format = self.column_format
+
+        if self.longtable:
+            self._write_longtable_begin(buf, column_format)
+        else:
+            self._write_tabular_begin(buf, column_format)
+
+        buf.write("\\toprule\n")
 
         ilevels = self.frame.index.nlevels
         clevels = self.frame.columns.nlevels
@@ -124,7 +133,7 @@ class LatexFormatter(TableFormatter):
         if self.fmt.has_index_names and self.fmt.show_index_names:
             nlevels += 1
         strrows = list(zip(*strcols))
-        self.clinebuf = []
+        self.clinebuf: List[List[int]] = []
 
         for i, row in enumerate(strrows):
             if i == nlevels and self.fmt.header:
@@ -140,7 +149,7 @@ class LatexFormatter(TableFormatter):
                     buf.write("\\endfoot\n\n")
                     buf.write("\\bottomrule\n")
                     buf.write("\\endlastfoot\n")
-            if self.fmt.kwds.get("escape", True):
+            if self.escape:
                 # escape backslashes first
                 crow = [
                     (
@@ -180,13 +189,12 @@ class LatexFormatter(TableFormatter):
             if self.multirow and i < len(strrows) - 1:
                 self._print_cline(buf, i, len(strcols))
 
-        if not self.longtable:
-            buf.write("\\bottomrule\n")
-            buf.write("\\end{tabular}\n")
+        if self.longtable:
+            self._write_longtable_end(buf)
         else:
-            buf.write("\\end{longtable}\n")
+            self._write_tabular_end(buf)
 
-    def _format_multicolumn(self, row, ilevels):
+    def _format_multicolumn(self, row: List[str], ilevels: int) -> List[str]:
         r"""
         Combine columns belonging to a group to a single multicolumn entry
         according to self.multicolumn_format
@@ -227,7 +235,9 @@ class LatexFormatter(TableFormatter):
             append_col()
         return row2
 
-    def _format_multirow(self, row, ilevels, i, rows):
+    def _format_multirow(
+        self, row: List[str], ilevels: int, i: int, rows: List[Tuple[str, ...]]
+    ) -> List[str]:
         r"""
         Check following rows, whether row should be a multirow
 
@@ -254,12 +264,114 @@ class LatexFormatter(TableFormatter):
                     self.clinebuf.append([i + nrow - 1, j + 1])
         return row
 
-    def _print_cline(self, buf, i, icol):
+    def _print_cline(self, buf: IO[str], i: int, icol: int) -> None:
         """
-        Print clines after multirow-blocks are finished
+        Print clines after multirow-blocks are finished.
         """
         for cl in self.clinebuf:
             if cl[0] == i:
                 buf.write("\\cline{{{cl:d}-{icol:d}}}\n".format(cl=cl[1], icol=icol))
         # remove entries that have been written to buffer
         self.clinebuf = [x for x in self.clinebuf if x[0] != i]
+
+    def _write_tabular_begin(self, buf, column_format: str):
+        """
+        Write the beginning of a tabular environment or
+        nested table/tabular environments including caption and label.
+
+        Parameters
+        ----------
+        buf : string or file handle
+            File path or object. If not specified, the result is returned as
+            a string.
+        column_format : str
+            The columns format as specified in `LaTeX table format
+            <https://en.wikibooks.org/wiki/LaTeX/Tables>`__ e.g 'rcl'
+            for 3 columns
+        """
+        if self.caption is not None or self.label is not None:
+            # then write output in a nested table/tabular environment
+            if self.caption is None:
+                caption_ = ""
+            else:
+                caption_ = "\n\\caption{{{}}}".format(self.caption)
+
+            if self.label is None:
+                label_ = ""
+            else:
+                label_ = "\n\\label{{{}}}".format(self.label)
+
+            buf.write("\\begin{{table}}\n\\centering{}{}\n".format(caption_, label_))
+        else:
+            # then write output only in a tabular environment
+            pass
+
+        buf.write("\\begin{{tabular}}{{{fmt}}}\n".format(fmt=column_format))
+
+    def _write_tabular_end(self, buf):
+        """
+        Write the end of a tabular environment or nested table/tabular
+        environment.
+
+        Parameters
+        ----------
+        buf : string or file handle
+            File path or object. If not specified, the result is returned as
+            a string.
+
+        """
+        buf.write("\\bottomrule\n")
+        buf.write("\\end{tabular}\n")
+        if self.caption is not None or self.label is not None:
+            buf.write("\\end{table}\n")
+        else:
+            pass
+
+    def _write_longtable_begin(self, buf, column_format: str):
+        """
+        Write the beginning of a longtable environment including caption and
+        label if provided by user.
+
+        Parameters
+        ----------
+        buf : string or file handle
+            File path or object. If not specified, the result is returned as
+            a string.
+        column_format : str
+            The columns format as specified in `LaTeX table format
+            <https://en.wikibooks.org/wiki/LaTeX/Tables>`__ e.g 'rcl'
+            for 3 columns
+        """
+        buf.write("\\begin{{longtable}}{{{fmt}}}\n".format(fmt=column_format))
+
+        if self.caption is not None or self.label is not None:
+            if self.caption is None:
+                pass
+            else:
+                buf.write("\\caption{{{}}}".format(self.caption))
+
+            if self.label is None:
+                pass
+            else:
+                buf.write("\\label{{{}}}".format(self.label))
+
+            # a double-backslash is required at the end of the line
+            # as discussed here:
+            # https://tex.stackexchange.com/questions/219138
+            buf.write("\\\\\n")
+        else:
+            pass
+
+    @staticmethod
+    def _write_longtable_end(buf):
+        """
+        Write the end of a longtable environment.
+
+        Parameters
+        ----------
+        buf : string or file handle
+            File path or object. If not specified, the result is returned as
+            a string.
+
+        """
+        buf.write("\\end{longtable}\n")

@@ -5,7 +5,6 @@ import pytest
 
 from pandas import DataFrame, Series
 import pandas.util.testing as tm
-from pandas.util.testing import assert_frame_equal
 
 
 class TestRank:
@@ -231,7 +230,7 @@ class TestRank:
 
         res = df.rank(ascending=False)
         expected = (df.max() - df).rank()
-        assert_frame_equal(res, expected)
+        tm.assert_frame_equal(res, expected)
 
         if method == "first" and dtype == "O":
             return
@@ -240,10 +239,10 @@ class TestRank:
 
         if dtype != "O":
             res2 = df.rank(method=method, ascending=False, numeric_only=True)
-            assert_frame_equal(res2, expected)
+            tm.assert_frame_equal(res2, expected)
 
         res3 = df.rank(method=method, ascending=False, numeric_only=False)
-        assert_frame_equal(res3, expected)
+        tm.assert_frame_equal(res3, expected)
 
     @pytest.mark.parametrize("axis", [0, 1])
     @pytest.mark.parametrize("dtype", [None, object])
@@ -258,7 +257,7 @@ class TestRank:
                 exp_df = exp_df.T
 
             result = df.rank(method=method, axis=axis)
-            assert_frame_equal(result, exp_df)
+            tm.assert_frame_equal(result, exp_df)
 
         disabled = {(object, "first")}
         if (dtype, method) in disabled:
