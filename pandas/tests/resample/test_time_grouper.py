@@ -89,7 +89,7 @@ def test_fails_on_no_datetime_index(name, func):
 
     msg = (
         "Only valid with DatetimeIndex, TimedeltaIndex "
-        "or PeriodIndex, but got an instance of '{}'".format(name)
+        f"or PeriodIndex, but got an instance of '{name}'"
     )
     with pytest.raises(TypeError, match=msg):
         df.groupby(Grouper(freq="D"))

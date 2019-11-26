@@ -146,9 +146,7 @@ def test_resample_basic_grouper(series):
 def test_resample_string_kwargs(series, keyword, value):
     # see gh-19303
     # Check that wrong keyword argument strings raise an error
-    msg = "Unsupported value {value} for `{keyword}`".format(
-        value=value, keyword=keyword
-    )
+    msg = f"Unsupported value {value} for `{keyword}`"
     with pytest.raises(ValueError, match=msg):
         series.resample("5min", **({keyword: value}))
 
