@@ -1276,12 +1276,12 @@ class HDFStore:
             key = "/" + key
 
         assert self._handle is not None
+        assert _table_mod is not None  # for mypy
         try:
             node = self._handle.get_node(self.root, key)
-        except _table_mod.exceptions.NoSuchNodeError:  # type: ignore
+        except _table_mod.exceptions.NoSuchNodeError:
             return None
 
-        assert _table_mod is not None  # for mypy
         assert isinstance(node, _table_mod.Node), type(node)
         return node
 
