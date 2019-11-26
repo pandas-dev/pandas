@@ -1,8 +1,9 @@
 import string
 
 import numpy as np
+
+from pandas import DataFrame, MultiIndex, date_range
 import pandas.util.testing as tm
-from pandas import date_range, MultiIndex, DataFrame
 
 
 class GetLoc:
@@ -146,4 +147,4 @@ class CategoricalLevel:
         self.df.set_index(["a", "b"])
 
 
-from .pandas_vb_common import setup  # noqa: F401
+from .pandas_vb_common import setup  # noqa: F401 isort:skip

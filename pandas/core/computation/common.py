@@ -2,7 +2,7 @@ from functools import reduce
 
 import numpy as np
 
-import pandas as pd
+from pandas._config import get_option
 
 # A token value Python's tokenizer probably will never use.
 _BACKTICK_QUOTED_STRING = 100
@@ -11,11 +11,11 @@ _BACKTICK_QUOTED_STRING = 100
 def _ensure_decoded(s):
     """ if we have bytes, decode them to unicode """
     if isinstance(s, (np.bytes_, bytes)):
-        s = s.decode(pd.get_option("display.encoding"))
+        s = s.decode(get_option("display.encoding"))
     return s
 
 
-def _result_type_many(*arrays_and_dtypes):
+def result_type_many(*arrays_and_dtypes):
     """ wrapper around numpy.result_type which overcomes the NPY_MAXARGS (32)
     argument limit """
     try:

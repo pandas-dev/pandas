@@ -123,18 +123,22 @@ def ip():
 
 @pytest.fixture(params=[True, False, None])
 def observed(request):
-    """ pass in the observed keyword to groupby for [True, False]
+    """
+    Pass in the observed keyword to groupby for [True, False]
     This indicates whether categoricals should return values for
     values which are not in the grouper [False / None], or only values which
     appear in the grouper [True]. [None] is supported for future compatibility
     if we decide to change the default (and would need to warn if this
-    parameter is not passed)"""
+    parameter is not passed).
+    """
     return request.param
 
 
 @pytest.fixture(params=[True, False, None])
 def ordered_fixture(request):
-    """Boolean 'ordered' parameter for Categorical."""
+    """
+    Boolean 'ordered' parameter for Categorical.
+    """
     return request.param
 
 
@@ -234,7 +238,8 @@ def cython_table_items(request):
 
 
 def _get_cython_table_params(ndframe, func_names_and_expected):
-    """combine frame, functions from SelectionMixin._cython_table
+    """
+    Combine frame, functions from SelectionMixin._cython_table
     keys and expected result.
 
     Parameters
@@ -242,7 +247,7 @@ def _get_cython_table_params(ndframe, func_names_and_expected):
     ndframe : DataFrame or Series
     func_names_and_expected : Sequence of two items
         The first item is a name of a NDFrame method ('sum', 'prod') etc.
-        The second item is the expected return value
+        The second item is the expected return value.
 
     Returns
     -------
@@ -284,6 +289,20 @@ def compare_operators_no_eq_ne(request):
     * >
     * <
     * <=
+    """
+    return request.param
+
+
+@pytest.fixture(
+    params=["__and__", "__rand__", "__or__", "__ror__", "__xor__", "__rxor__"]
+)
+def all_logical_operators(request):
+    """
+    Fixture for dunder names for common logical operations
+
+    * |
+    * &
+    * ^
     """
     return request.param
 
@@ -341,7 +360,8 @@ def strict_data_files(pytestconfig):
 
 @pytest.fixture
 def datapath(strict_data_files):
-    """Get the path to a data file.
+    """
+    Get the path to a data file.
 
     Parameters
     ----------
@@ -375,7 +395,9 @@ def datapath(strict_data_files):
 
 @pytest.fixture
 def iris(datapath):
-    """The iris dataset as a DataFrame."""
+    """
+    The iris dataset as a DataFrame.
+    """
     return pd.read_csv(datapath("data", "iris.csv"))
 
 
@@ -504,7 +526,8 @@ ALL_NUMPY_DTYPES = (
 
 @pytest.fixture(params=STRING_DTYPES)
 def string_dtype(request):
-    """Parametrized fixture for string dtypes.
+    """
+    Parametrized fixture for string dtypes.
 
     * str
     * 'str'
@@ -515,7 +538,8 @@ def string_dtype(request):
 
 @pytest.fixture(params=BYTES_DTYPES)
 def bytes_dtype(request):
-    """Parametrized fixture for bytes dtypes.
+    """
+    Parametrized fixture for bytes dtypes.
 
     * bytes
     * 'bytes'
@@ -525,7 +549,8 @@ def bytes_dtype(request):
 
 @pytest.fixture(params=OBJECT_DTYPES)
 def object_dtype(request):
-    """Parametrized fixture for object dtypes.
+    """
+    Parametrized fixture for object dtypes.
 
     * object
     * 'object'
@@ -535,7 +560,8 @@ def object_dtype(request):
 
 @pytest.fixture(params=DATETIME64_DTYPES)
 def datetime64_dtype(request):
-    """Parametrized fixture for datetime64 dtypes.
+    """
+    Parametrized fixture for datetime64 dtypes.
 
     * 'datetime64[ns]'
     * 'M8[ns]'
@@ -545,7 +571,8 @@ def datetime64_dtype(request):
 
 @pytest.fixture(params=TIMEDELTA64_DTYPES)
 def timedelta64_dtype(request):
-    """Parametrized fixture for timedelta64 dtypes.
+    """
+    Parametrized fixture for timedelta64 dtypes.
 
     * 'timedelta64[ns]'
     * 'm8[ns]'

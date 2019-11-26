@@ -12,6 +12,7 @@ from pandas.errors import PerformanceWarning
 import pandas as pd
 from pandas import Period, PeriodIndex, Series, period_range
 from pandas.core import ops
+from pandas.core.arrays import TimedeltaArray
 import pandas.util.testing as tm
 
 from pandas.tseries.frequencies import to_offset
@@ -572,12 +573,19 @@ class TestPeriodIndexArithmetic:
     @pytest.mark.parametrize(
         "other",
         [
+            # datetime scalars
             pd.Timestamp.now(),
             pd.Timestamp.now().to_pydatetime(),
             pd.Timestamp.now().to_datetime64(),
+            # datetime-like arrays
+            pd.date_range("2016-01-01", periods=3, freq="H"),
+            pd.date_range("2016-01-01", periods=3, tz="Europe/Brussels"),
+            pd.date_range("2016-01-01", periods=3, freq="S")._data,
+            pd.date_range("2016-01-01", periods=3, tz="Asia/Tokyo")._data,
+            # Miscellaneous invalid types
         ],
     )
-    def test_parr_add_sub_datetime_scalar(self, other, box_with_array):
+    def test_parr_add_sub_invalid(self, other, box_with_array):
         # GH#23215
         rng = pd.period_range("1/1/2000", freq="D", periods=3)
         rng = tm.box_expected(rng, box_with_array)
@@ -593,23 +601,6 @@ class TestPeriodIndexArithmetic:
 
     # -----------------------------------------------------------------
     # __add__/__sub__ with ndarray[datetime64] and ndarray[timedelta64]
-
-    def test_parr_add_sub_dt64_array_raises(self, box_with_array):
-        rng = pd.period_range("1/1/2000", freq="D", periods=3)
-        dti = pd.date_range("2016-01-01", periods=3)
-        dtarr = dti.values
-
-        rng = tm.box_expected(rng, box_with_array)
-
-        with pytest.raises(TypeError):
-            rng + dtarr
-        with pytest.raises(TypeError):
-            dtarr + rng
-
-        with pytest.raises(TypeError):
-            rng - dtarr
-        with pytest.raises(TypeError):
-            dtarr - rng
 
     def test_pi_add_sub_td64_array_non_tick_raises(self):
         rng = pd.period_range("1/1/2000", freq="Q", periods=3)
@@ -1012,6 +1003,45 @@ class TestPeriodIndexArithmetic:
         tm.assert_equal(result, expected)
         with pytest.raises(TypeError):
             other - obj
+
+    @pytest.mark.parametrize(
+        "other",
+        [
+            np.array(["NaT"] * 9, dtype="m8[ns]"),
+            TimedeltaArray._from_sequence(["NaT"] * 9),
+        ],
+    )
+    def test_parr_add_sub_tdt64_nat_array(self, box_df_fail, other):
+        # FIXME: DataFrame fails because when when operating column-wise
+        #  timedelta64 entries become NaT and are treated like datetimes
+        box = box_df_fail
+
+        pi = pd.period_range("1994-04-01", periods=9, freq="19D")
+        expected = pd.PeriodIndex(["NaT"] * 9, freq="19D")
+
+        obj = tm.box_expected(pi, box)
+        expected = tm.box_expected(expected, box)
+
+        result = obj + other
+        tm.assert_equal(result, expected)
+        result = other + obj
+        tm.assert_equal(result, expected)
+        result = obj - other
+        tm.assert_equal(result, expected)
+        with pytest.raises(TypeError):
+            other - obj
+
+    # ---------------------------------------------------------------
+    # Unsorted
+
+    def test_parr_add_sub_index(self):
+        # Check that PeriodArray defers to Index on arithmetic ops
+        pi = pd.period_range("2000-12-31", periods=3)
+        parr = pi.array
+
+        result = parr - pi
+        expected = pi - pi
+        tm.assert_index_equal(result, expected)
 
 
 class TestPeriodSeriesArithmetic:

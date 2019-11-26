@@ -393,6 +393,18 @@ class TestDatetimeIndexOps(Ops):
         assert not idx.equals(list(idx3))
         assert not idx.equals(pd.Series(idx3))
 
+        # check that we do not raise when comparing with OutOfBounds objects
+        oob = pd.Index([datetime(2500, 1, 1)] * 3, dtype=object)
+        assert not idx.equals(oob)
+        assert not idx2.equals(oob)
+        assert not idx3.equals(oob)
+
+        # check that we do not raise when comparing with OutOfBounds dt64
+        oob2 = oob.map(np.datetime64)
+        assert not idx.equals(oob2)
+        assert not idx2.equals(oob2)
+        assert not idx3.equals(oob2)
+
     @pytest.mark.parametrize("values", [["20180101", "20180103", "20180105"], []])
     @pytest.mark.parametrize("freq", ["2D", Day(2), "2B", BDay(2), "48H", Hour(48)])
     @pytest.mark.parametrize("tz", [None, "US/Eastern"])
@@ -401,12 +413,12 @@ class TestDatetimeIndexOps(Ops):
         idx = DatetimeIndex(values, tz=tz)
 
         # can set to an offset, converting from string if necessary
-        idx.freq = freq
+        idx._data.freq = freq
         assert idx.freq == freq
         assert isinstance(idx.freq, ABCDateOffset)
 
         # can reset to None
-        idx.freq = None
+        idx._data.freq = None
         assert idx.freq is None
 
     def test_freq_setter_errors(self):
@@ -419,11 +431,11 @@ class TestDatetimeIndexOps(Ops):
             "passed frequency 5D"
         )
         with pytest.raises(ValueError, match=msg):
-            idx.freq = "5D"
+            idx._data.freq = "5D"
 
         # setting with non-freq string
         with pytest.raises(ValueError, match="Invalid frequency"):
-            idx.freq = "foo"
+            idx._data.freq = "foo"
 
     def test_offset_deprecated(self):
         # GH 20716
@@ -537,8 +549,6 @@ class TestCustomDatetimeIndex:
         idx = pd.date_range(start=START, end=END, periods=3)
         tm.assert_index_equal(idx.shift(periods=0), idx)
         tm.assert_index_equal(idx.shift(0), idx)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=True):
-            tm.assert_index_equal(idx.shift(n=0), idx)
 
     def test_pickle_unpickle(self):
         unpickled = tm.round_trip_pickle(self.rng)

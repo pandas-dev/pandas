@@ -1,4 +1,5 @@
 import operator
+from typing import Optional, Type
 
 import pytest
 
@@ -61,10 +62,10 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
     * divmod_exc = TypeError
     """
 
-    series_scalar_exc = TypeError
-    frame_scalar_exc = TypeError
-    series_array_exc = TypeError
-    divmod_exc = TypeError
+    series_scalar_exc: Optional[Type[TypeError]] = TypeError
+    frame_scalar_exc: Optional[Type[TypeError]] = TypeError
+    series_array_exc: Optional[Type[TypeError]] = TypeError
+    divmod_exc: Optional[Type[TypeError]] = TypeError
 
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         # series & scalar

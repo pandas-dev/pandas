@@ -6,16 +6,17 @@ import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas.util.testing import assert_frame_equal, ensure_clean
 
-from pandas.io.feather_format import read_feather, to_feather  # noqa:E402
+from pandas.io.feather_format import read_feather, to_feather  # noqa: E402 isort:skip
 
 pyarrow = pytest.importorskip("pyarrow")
 
 
 pyarrow_version = LooseVersion(pyarrow.__version__)
+filter_sparse = pytest.mark.filterwarnings("ignore:The Sparse")
 
 
+@filter_sparse
 @pytest.mark.single
 class TestFeather:
     def check_error_on_write(self, df, exc):
@@ -23,7 +24,7 @@ class TestFeather:
         # on writing
 
         with pytest.raises(exc):
-            with ensure_clean() as path:
+            with tm.ensure_clean() as path:
                 to_feather(df, path)
 
     def check_round_trip(self, df, expected=None, **kwargs):
@@ -31,11 +32,11 @@ class TestFeather:
         if expected is None:
             expected = df
 
-        with ensure_clean() as path:
+        with tm.ensure_clean() as path:
             to_feather(df, path)
 
             result = read_feather(path, **kwargs)
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
     def test_error(self):
 
@@ -105,23 +106,6 @@ class TestFeather:
         df = pd.DataFrame({"a": pd.period_range("2013", freq="M", periods=3)})
         # Some versions raise ValueError, others raise ArrowInvalid.
         self.check_error_on_write(df, Exception)
-
-    def test_rw_nthreads(self):
-        df = pd.DataFrame({"A": np.arange(100000)})
-        expected_warning = (
-            "the 'nthreads' keyword is deprecated, use 'use_threads' instead"
-        )
-        # TODO: make the warning work with check_stacklevel=True
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False) as w:
-            self.check_round_trip(df, nthreads=2)
-        # we have an extra FutureWarning because of #GH23752
-        assert any(expected_warning in str(x) for x in w)
-
-        # TODO: make the warning work with check_stacklevel=True
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False) as w:
-            self.check_round_trip(df, nthreads=1)
-        # we have an extra FutureWarnings because of #GH23752
-        assert any(expected_warning in str(x) for x in w)
 
     def test_rw_use_threads(self):
         df = pd.DataFrame({"A": np.arange(100000)})

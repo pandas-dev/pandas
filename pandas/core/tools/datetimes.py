@@ -334,6 +334,9 @@ def _convert_listlike_datetimes(
                 return DatetimeIndex(arg, tz=tz, name=name)
             except ValueError:
                 pass
+        elif tz:
+            # DatetimeArray, DatetimeIndex
+            return arg.tz_localize(tz)
 
         return arg
 
@@ -574,21 +577,19 @@ def to_datetime(
 
     Parameters
     ----------
-    arg : integer, float, string, datetime, list, tuple, 1-d array, Series
-           or DataFrame/dict-like
-
+    arg : int, float, str, datetime, list, tuple, 1-d array, Series DataFrame/dict-like
+        The object to convert to a datetime.
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
-
-        - If 'raise', then invalid parsing will raise an exception
-        - If 'coerce', then invalid parsing will be set as NaT
-        - If 'ignore', then invalid parsing will return the input
-    dayfirst : boolean, default False
+        - If 'raise', then invalid parsing will raise an exception.
+        - If 'coerce', then invalid parsing will be set as NaT.
+        - If 'ignore', then invalid parsing will return the input.
+    dayfirst : bool, default False
         Specify a date parse order if `arg` is str or its list-likes.
         If True, parses dates with the day first, eg 10/11/12 is parsed as
         2012-11-10.
         Warning: dayfirst=True is not strict, but will prefer to parse
         with day first (this is a known bug, based on dateutil behavior).
-    yearfirst : boolean, default False
+    yearfirst : bool, default False
         Specify a date parse order if `arg` is str or its list-likes.
 
         - If True parses dates with the year first, eg 10/11/12 is parsed as
@@ -598,14 +599,10 @@ def to_datetime(
 
         Warning: yearfirst=True is not strict, but will prefer to parse
         with year first (this is a known bug, based on dateutil behavior).
-
-        .. versionadded:: 0.16.1
-
-    utc : boolean, default None
+    utc : bool, default None
         Return UTC DatetimeIndex if True (converting any tz-aware
         datetime.datetime objects as well).
-    box : boolean, default True
-
+    box : bool, default True
         - If True returns a DatetimeIndex or Index-like object
         - If False returns ndarray of values.
 
@@ -614,27 +611,27 @@ def to_datetime(
             instead to get an ndarray of values or numpy.datetime64,
             respectively.
 
-    format : string, default None
-        strftime to parse time, eg "%d/%m/%Y", note that "%f" will parse
+    format : str, default None
+        The strftime to parse time, eg "%d/%m/%Y", note that "%f" will parse
         all the way up to nanoseconds.
         See strftime documentation for more information on choices:
-        https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior
-    exact : boolean, True by default
-
+        https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior.
+    exact : bool, True by default
+        Behaves as:
         - If True, require an exact format match.
         - If False, allow the format to match anywhere in the target string.
 
-    unit : string, default 'ns'
-        unit of the arg (D,s,ms,us,ns) denote the unit, which is an
+    unit : str, default 'ns'
+        The unit of the arg (D,s,ms,us,ns) denote the unit, which is an
         integer or float number. This will be based off the origin.
         Example, with unit='ms' and origin='unix' (the default), this
         would calculate the number of milliseconds to the unix epoch start.
-    infer_datetime_format : boolean, default False
+    infer_datetime_format : bool, default False
         If True and no `format` is given, attempt to infer the format of the
         datetime strings, and if it can be inferred, switch to a faster
         method of parsing them. In some cases this can increase the parsing
         speed by ~5-10x.
-    origin : scalar, default is 'unix'
+    origin : scalar, default 'unix'
         Define the reference date. The numeric values would be parsed as number
         of units (defined by `unit`) since this reference date.
 
@@ -644,9 +641,7 @@ def to_datetime(
           at noon on January 1, 4713 BC.
         - If Timestamp convertible, origin is set to Timestamp identified by
           origin.
-
-        .. versionadded:: 0.20.0
-    cache : boolean, default True
+    cache : bool, default True
         If True, use a cache of unique, converted dates to apply the datetime
         conversion. May produce significant speed-up when parsing duplicate
         date strings, especially ones with timezone offsets.
@@ -654,11 +649,12 @@ def to_datetime(
         .. versionadded:: 0.23.0
 
         .. versionchanged:: 0.25.0
-            - changed default value from False to True
+            - changed default value from False to True.
 
     Returns
     -------
-    ret : datetime if parsing succeeded.
+    datetime
+        If parsing succeeded.
         Return type depends on input:
 
         - list-like: DatetimeIndex
@@ -714,10 +710,10 @@ def to_datetime(
     4    3/12/2000
     dtype: object
 
-    >>> %timeit pd.to_datetime(s,infer_datetime_format=True)  # doctest: +SKIP
+    >>> %timeit pd.to_datetime(s, infer_datetime_format=True)  # doctest: +SKIP
     100 loops, best of 3: 10.4 ms per loop
 
-    >>> %timeit pd.to_datetime(s,infer_datetime_format=False)  # doctest: +SKIP
+    >>> %timeit pd.to_datetime(s, infer_datetime_format=False)  # doctest: +SKIP
     1 loop, best of 3: 471 ms per loop
 
     Using a unix epoch time
@@ -861,7 +857,7 @@ def _assemble_from_unit_mappings(arg, errors, box, tz):
 
     # we require at least Ymd
     required = ["year", "month", "day"]
-    req = sorted(list(set(required) - set(unit_rev.keys())))
+    req = sorted(set(required) - set(unit_rev.keys()))
     if len(req):
         raise ValueError(
             "to assemble mappings requires at least that "
@@ -870,7 +866,7 @@ def _assemble_from_unit_mappings(arg, errors, box, tz):
         )
 
     # keys we don't recognize
-    excess = sorted(list(set(unit_rev.keys()) - set(_unit_map.values())))
+    excess = sorted(set(unit_rev.keys()) - set(_unit_map.values()))
     if len(excess):
         raise ValueError(
             "extra keys have been passed "
