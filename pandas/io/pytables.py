@@ -2799,10 +2799,10 @@ class GenericFixed(Fixed):
             if isinstance(index, (DatetimeIndex, PeriodIndex)):
                 node._v_attrs.index_class = self._class_to_alias(type(index))
 
-            if hasattr(index, "freq"):
+            if isinstance(index, (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
                 node._v_attrs.freq = index.freq
 
-            if hasattr(index, "tz") and index.tz is not None:
+            if isinstance(index, DatetimeIndex) and index.tz is not None:
                 node._v_attrs.tz = _get_tz(index.tz)
 
     def write_multi_index(self, key, index):
