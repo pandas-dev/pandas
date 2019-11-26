@@ -118,8 +118,8 @@ def test_to_excel_with_openpyxl_engine(ext, tmpdir):
         lambda val: "color: %s" % "red" if val < 0 else "black"
     ).highlight_max()
 
-    filename = tmpdir.join("styled.xlsx")
+    filename = tmpdir / "styled.xlsx"
     styled.to_excel(filename, engine="openpyxl")
 
-    assert filename in tmpdir.listdir()
+    assert filename.exists()
     os.remove(filename)
