@@ -27,7 +27,7 @@ if [[ "$UNAME_OS" == 'Linux' ]]; then
     CONDA_OS="Linux"
 elif [[ "$UNAME_OS" == 'Darwin' ]]; then
     CONDA_OS="MacOSX"
-elif [[ "${UNAME_OS:0:4}" == 'MINGW64' ]]; then
+elif [[ "${UNAME_OS:0:7}" == 'MINGW64' ]]; then
     CONDA_OS="Windows"
 else
   echo "OS $UNAME_OS not supported"
