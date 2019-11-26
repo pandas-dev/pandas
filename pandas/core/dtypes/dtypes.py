@@ -370,7 +370,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         # We *do* want to include the real self.ordered here
         return int(self._hash_categories(self.categories, self._ordered))
 
-    def __eq__(self, other: object) -> bool:
+    def __eq__(self, other: Any) -> bool:
         """
         Rules for CDT equality:
         1) Any CDT is equal to the string 'category'
@@ -765,7 +765,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         # TODO: update this.
         return hash(str(self))
 
-    def __eq__(self, other: object) -> bool:
+    def __eq__(self, other: Any) -> bool:
         if isinstance(other, str):
             return other == self.name
 
@@ -904,7 +904,7 @@ class PeriodDtype(PandasExtensionDtype):
         # make myself hashable
         return hash(str(self))
 
-    def __eq__(self, other: object) -> bool:
+    def __eq__(self, other: Any) -> bool:
         if isinstance(other, str):
             return other == self.name or other == self.name.title()
 
@@ -1077,7 +1077,7 @@ class IntervalDtype(PandasExtensionDtype):
         # make myself hashable
         return hash(str(self))
 
-    def __eq__(self, other: object) -> bool:
+    def __eq__(self, other: Any) -> bool:
         if isinstance(other, str):
             return other.lower() in (self.name.lower(), str(self).lower())
         elif not isinstance(other, IntervalDtype):

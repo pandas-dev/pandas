@@ -1,5 +1,5 @@
 """Extend pandas with custom array types"""
-from typing import List, Optional, Tuple, Type
+from typing import Any, List, Optional, Tuple, Type
 
 import numpy as np
 
@@ -86,7 +86,7 @@ class ExtensionDtype:
     def __str__(self) -> str:
         return self.name
 
-    def __eq__(self, other: object) -> bool:
+    def __eq__(self, other: Any) -> bool:
         """
         Check whether 'other' is equal to self.
 

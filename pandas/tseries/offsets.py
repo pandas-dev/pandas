@@ -1,7 +1,7 @@
 from datetime import date, datetime, timedelta
 import functools
 import operator
-from typing import Optional
+from typing import Any, Optional
 
 from dateutil.easter import easter
 import numpy as np
@@ -2577,7 +2577,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
                 "will overflow".format(self=self, other=other)
             )
 
-    def __eq__(self, other: object) -> bool:
+    def __eq__(self, other: Any) -> bool:
         if isinstance(other, str):
             from pandas.tseries.frequencies import to_offset
 

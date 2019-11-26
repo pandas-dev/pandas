@@ -2,6 +2,7 @@
 
 from datetime import datetime
 import re
+from typing import Any
 import weakref
 
 import numpy as np
@@ -595,7 +596,7 @@ class TestFancy(Base):
 
             __repr__ = __str__
 
-            def __eq__(self, other: object) -> bool:
+            def __eq__(self, other: Any) -> bool:
                 return self.value == other.value
 
             def view(self):

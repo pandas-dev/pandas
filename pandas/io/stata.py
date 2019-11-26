@@ -16,6 +16,7 @@ from io import BytesIO
 import os
 import struct
 import sys
+from typing import Any
 import warnings
 
 from dateutil.relativedelta import relativedelta
@@ -859,7 +860,7 @@ class StataMissingValue:
         # not perfect :-/
         return "{cls}({obj})".format(cls=self.__class__, obj=self)
 
-    def __eq__(self, other: object) -> bool:
+    def __eq__(self, other: Any) -> bool:
         return (
             isinstance(other, self.__class__)
             and self.string == other.string

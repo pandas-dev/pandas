@@ -3,6 +3,7 @@ import datetime as dt
 from io import StringIO
 from itertools import product
 from string import ascii_lowercase
+from typing import Any
 
 import numpy as np
 import pytest
@@ -1230,7 +1231,7 @@ def test_count_uses_size_on_exception():
             super().__init__()
             self.msg = msg
 
-        def __eq__(self, other: object):
+        def __eq__(self, other: Any):
             # gets called in Cython to check that raising calls the method
             raise RaisingObjectException(self.msg)
 

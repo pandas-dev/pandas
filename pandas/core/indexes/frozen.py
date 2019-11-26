@@ -7,6 +7,7 @@ These are used for:
 - .levels & .codes (FrozenNDArray)
 
 """
+from typing import Any
 import warnings
 
 import numpy as np
@@ -77,7 +78,7 @@ class FrozenList(PandasObject, list):
             other = list(other)
         return self.__class__(other + list(self))
 
-    def __eq__(self, other: object) -> bool:
+    def __eq__(self, other: Any) -> bool:
         if isinstance(other, (tuple, FrozenList)):
             other = list(other)
         return super().__eq__(other)
