@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import pytest
 
@@ -106,7 +108,7 @@ def test_write_append_mode(ext, mode, expected):
 
 
 @pytest.mark.xfail(openpyxl.__version__ > "3.0.1", reason="broken change in openpyxl")
-def test_to_excel_with_openpyxl_engine(tmpdir):
+def test_to_excel_with_openpyxl_engine(ext, tmpdir):
     # GH 29854
     # TODO: Fix this once newer version of openpyxl fixes the bug
     df1 = DataFrame({"A": np.linspace(1, 10, 10)})
@@ -116,7 +118,9 @@ def test_to_excel_with_openpyxl_engine(tmpdir):
     styled = df.style.applymap(
         lambda val: "color: %s" % "red" if val < 0 else "black"
     ).highlight_max()
+
     filename = tmpdir.join("styled.xlsx")
     styled.to_excel(filename, engine="openpyxl")
 
     assert "styled.xlsx" in tmpdir.listdir()
+    os.remove(filename)
