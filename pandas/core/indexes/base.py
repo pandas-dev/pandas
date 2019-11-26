@@ -160,6 +160,12 @@ def _new_Index(cls, d):
         from pandas.core.indexes.period import _new_PeriodIndex
 
         return _new_PeriodIndex(cls, **d)
+
+    if issubclass(cls, ABCMultiIndex):
+        if "labels" in d and "codes" not in d:
+            # GH#23752 "labels" kwarg has been replaced with "codes"
+            d["codes"] = d.pop("labels")
+
     return cls.__new__(cls, **d)
 
 

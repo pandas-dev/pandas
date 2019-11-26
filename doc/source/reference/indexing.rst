@@ -305,7 +305,6 @@ MultiIndex components
 
    MultiIndex.set_levels
    MultiIndex.set_codes
-   MultiIndex.to_hierarchical
    MultiIndex.to_flat_index
    MultiIndex.to_frame
    MultiIndex.is_lexsorted
