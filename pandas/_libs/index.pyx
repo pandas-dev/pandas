@@ -109,7 +109,7 @@ cdef class IndexEngine:
             Py_ssize_t loc
 
         if is_definitely_invalid_key(val):
-            raise TypeError("'{val}' is an invalid key".format(val=val))
+            raise TypeError(f"'{val}' is an invalid key")
 
         if self.over_size_threshold and self.is_monotonic_increasing:
             if not self.is_unique:
@@ -141,8 +141,12 @@ cdef class IndexEngine:
 
         if self.is_monotonic_increasing:
             values = self._get_index_values()
-            left = values.searchsorted(val, side='left')
-            right = values.searchsorted(val, side='right')
+            try:
+                left = values.searchsorted(val, side='left')
+                right = values.searchsorted(val, side='right')
+            except TypeError:
+                # e.g. GH#29189 get_loc(None) with a Float64Index
+                raise KeyError(val)
 
             diff = right - left
             if diff == 0:
@@ -171,17 +175,17 @@ cdef class IndexEngine:
 
         raise KeyError(val)
 
-    def sizeof(self, deep=False):
+    def sizeof(self, deep: bool = False) -> int:
         """ return the sizeof our mapping """
         if not self.is_mapping_populated:
             return 0
         return self.mapping.sizeof(deep=deep)
 
-    def __sizeof__(self):
+    def __sizeof__(self) -> int:
         return self.sizeof()
 
     @property
-    def is_unique(self):
+    def is_unique(self) -> bool:
         if self.need_unique_check:
             self._do_unique_check()
 
@@ -193,14 +197,14 @@ cdef class IndexEngine:
         self._ensure_mapping_populated()
 
     @property
-    def is_monotonic_increasing(self):
+    def is_monotonic_increasing(self) -> bool:
         if self.need_monotonic_check:
             self._do_monotonic_check()
 
         return self.monotonic_inc == 1
 
     @property
-    def is_monotonic_decreasing(self):
+    def is_monotonic_decreasing(self) -> bool:
         if self.need_monotonic_check:
             self._do_monotonic_check()
 
@@ -227,7 +231,7 @@ cdef class IndexEngine:
     cdef _get_index_values(self):
         return self.vgetter()
 
-    def _call_monotonic(self, values):
+    cdef _call_monotonic(self, values):
         return algos.is_monotonic(values, timelike=False)
 
     def get_backfill_indexer(self, other, limit=None):
@@ -236,14 +240,14 @@ cdef class IndexEngine:
     def get_pad_indexer(self, other, limit=None):
         return algos.pad(self._get_index_values(), other, limit=limit)
 
-    cdef _make_hash_table(self, n):
+    cdef _make_hash_table(self, Py_ssize_t n):
         raise NotImplementedError
 
     cdef _check_type(self, object val):
         hash(val)
 
     @property
-    def is_mapping_populated(self):
+    def is_mapping_populated(self) -> bool:
         return self.mapping is not None
 
     cdef inline _ensure_mapping_populated(self):
@@ -262,7 +266,7 @@ cdef class IndexEngine:
 
         self.need_unique_check = 0
 
-    cpdef _call_map_locations(self, values):
+    cdef void _call_map_locations(self, values):
         self.mapping.map_locations(values)
 
     def clear_mapping(self):
@@ -391,7 +395,7 @@ cdef class ObjectEngine(IndexEngine):
     """
     Index Engine for use with object-dtype Index, namely the base class Index
     """
-    cdef _make_hash_table(self, n):
+    cdef _make_hash_table(self, Py_ssize_t n):
         return _hash.PyObjectHashTable(n)
 
 
@@ -418,7 +422,7 @@ cdef class DatetimeEngine(Int64Engine):
     cdef _get_index_values(self):
         return self.vgetter().view('i8')
 
-    def _call_monotonic(self, values):
+    cdef _call_monotonic(self, values):
         return algos.is_monotonic(values, timelike=True)
 
     cpdef get_loc(self, object val):
@@ -500,11 +504,13 @@ cdef class PeriodEngine(Int64Engine):
     cdef _get_index_values(self):
         return super(PeriodEngine, self).vgetter()
 
-    cpdef _call_map_locations(self, values):
-        super(PeriodEngine, self)._call_map_locations(values.view('i8'))
+    cdef void _call_map_locations(self, values):
+        # super(...) pattern doesn't seem to work with `cdef`
+        Int64Engine._call_map_locations(self, values.view('i8'))
 
-    def _call_monotonic(self, values):
-        return super(PeriodEngine, self)._call_monotonic(values.view('i8'))
+    cdef _call_monotonic(self, values):
+        # super(...) pattern doesn't seem to work with `cdef`
+        return Int64Engine._call_monotonic(self, values.view('i8'))
 
     def get_indexer(self, values):
         cdef ndarray[int64_t, ndim=1] ordinals
@@ -554,8 +560,8 @@ cpdef convert_scalar(ndarray arr, object value):
             pass
         elif value is None or value != value:
             return np.datetime64("NaT", "ns")
-        raise ValueError("cannot set a Timestamp with a non-timestamp {typ}"
-                         .format(typ=type(value).__name__))
+        raise ValueError(f"cannot set a Timestamp with a non-timestamp "
+                         f"{type(value).__name__}")
 
     elif arr.descr.type_num == NPY_TIMEDELTA:
         if util.is_array(value):
@@ -571,8 +577,8 @@ cpdef convert_scalar(ndarray arr, object value):
             pass
         elif value is None or value != value:
             return np.timedelta64("NaT", "ns")
-        raise ValueError("cannot set a Timedelta with a non-timedelta {typ}"
-                         .format(typ=type(value).__name__))
+        raise ValueError(f"cannot set a Timedelta with a non-timedelta "
+                         f"{type(value).__name__}")
 
     if (issubclass(arr.dtype.type, (np.integer, np.floating, np.complex)) and
             not issubclass(arr.dtype.type, np.bool_)):
@@ -675,7 +681,7 @@ cdef class BaseMultiIndexCodesEngine:
             # Index._get_fill_indexer), sort (integer representations of) keys:
             order = np.argsort(lab_ints)
             lab_ints = lab_ints[order]
-            indexer = (getattr(self._base, 'get_{}_indexer'.format(method))
+            indexer = (getattr(self._base, f'get_{method}_indexer')
                        (self, lab_ints, limit=limit))
             indexer = indexer[order]
         else:
@@ -685,7 +691,7 @@ cdef class BaseMultiIndexCodesEngine:
 
     def get_loc(self, object key):
         if is_definitely_invalid_key(key):
-            raise TypeError("'{key}' is an invalid key".format(key=key))
+            raise TypeError(f"'{key}' is an invalid key")
         if not isinstance(key, tuple):
             raise KeyError(key)
         try:

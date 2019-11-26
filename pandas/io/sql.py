@@ -12,7 +12,6 @@ import warnings
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas.compat import raise_with_traceback
 
 from pandas.core.dtypes.common import is_datetime64tz_dtype, is_dict_like, is_list_like
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -295,7 +294,7 @@ def read_sql_query(
         to pass parameters is database driver dependent. Check your
         database driver documentation for which of the five syntax styles,
         described in PEP 249's paramstyle, is supported.
-        Eg. for psycopg2, uses %(name)s so use params={'name' : 'value'}
+        Eg. for psycopg2, uses %(name)s so use params={'name' : 'value'}.
     parse_dates : list or dict, default: None
         - List of column names to parse as dates.
         - Dict of ``{column_name: format string}`` where format string is
@@ -362,7 +361,9 @@ def read_sql(
         or DBAPI2 connection (fallback mode)
 
         Using SQLAlchemy makes it possible to use any DB supported by that
-        library. If a DBAPI2 object, only sqlite3 is supported.
+        library. If a DBAPI2 object, only sqlite3 is supported. The user is responsible
+        for engine disposal and connection closure for the SQLAlchemy connectable. See
+        `here <https://docs.sqlalchemy.org/en/13/core/connections.html>`_
     index_col : string or list of strings, optional, default: None
         Column(s) to set as index(MultiIndex).
     coerce_float : boolean, default True
@@ -373,7 +374,7 @@ def read_sql(
         to pass parameters is database driver dependent. Check your
         database driver documentation for which of the five syntax styles,
         described in PEP 249's paramstyle, is supported.
-        Eg. for psycopg2, uses %(name)s so use params={'name' : 'value'}
+        Eg. for psycopg2, uses %(name)s so use params={'name' : 'value'}.
     parse_dates : list or dict, default: None
         - List of column names to parse as dates.
         - Dict of ``{column_name: format string}`` where format string is
@@ -1596,17 +1597,17 @@ class SQLiteDatabase(PandasSQL):
         except Exception as exc:
             try:
                 self.con.rollback()
-            except Exception:  # pragma: no cover
+            except Exception as inner_exc:  # pragma: no cover
                 ex = DatabaseError(
                     "Execution failed on sql: {sql}\n{exc}\nunable "
                     "to rollback".format(sql=args[0], exc=exc)
                 )
-                raise_with_traceback(ex)
+                raise ex from inner_exc
 
             ex = DatabaseError(
                 "Execution failed on sql '{sql}': {exc}".format(sql=args[0], exc=exc)
             )
-            raise_with_traceback(ex)
+            raise ex from exc
 
     @staticmethod
     def _query_iterator(

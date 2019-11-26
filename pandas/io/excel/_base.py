@@ -8,7 +8,7 @@ from textwrap import fill
 from pandas._config import config
 
 from pandas.errors import EmptyDataError
-from pandas.util._decorators import Appender, deprecate_kwarg
+from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import is_bool, is_float, is_integer, is_list_like
 
@@ -79,8 +79,6 @@ index_col : int, list of int, default None
     subset of data is selected with ``usecols``, index_col
     is based on the subset.
 usecols : int, str, list-like, or callable default None
-    Return a subset of the columns.
-
     * If None, then parse all columns.
     * If int, then indicates last column to be parsed.
 
@@ -97,6 +95,8 @@ usecols : int, str, list-like, or callable default None
 
     * If callable, then evaluate each column name against it and parse the
       column if the callable returns ``True``.
+
+    Returns a subset of the columns according to behavior above.
 
       .. versionadded:: 0.24.0
 
@@ -165,8 +165,9 @@ parse_dates : bool, list-like, or dict, default False
       result 'foo'
 
     If a column or index contains an unparseable date, the entire column or
-    index will be returned unaltered as an object data type. For non-standard
-    datetime parsing, use ``pd.to_datetime`` after ``pd.read_excel``.
+    index will be returned unaltered as an object data type. If you don`t want to
+    parse some cells as date just change their type in Excel to "Text".
+    For non-standard datetime parsing, use ``pd.to_datetime`` after ``pd.read_excel``.
 
     Note: A fast-path exists for iso8601-formatted dates.
 date_parser : function, optional
@@ -188,11 +189,6 @@ comment : str, default None
     Comments out remainder of line. Pass a character or characters to this
     argument to indicate comments in the input file. Any data between the
     comment string and the end of the current line is ignored.
-skip_footer : int, default 0
-    Alias of `skipfooter`.
-
-    .. deprecated:: 0.23.0
-       Use `skipfooter` instead.
 skipfooter : int, default 0
     Rows at the end to skip (0-indexed).
 convert_float : bool, default True
@@ -277,7 +273,6 @@ Comment lines in the excel input file can be skipped using the `comment` kwarg
 
 
 @Appender(_read_excel_doc)
-@deprecate_kwarg("skip_footer", "skipfooter")
 def read_excel(
     io,
     sheet_name=0,
@@ -300,11 +295,10 @@ def read_excel(
     date_parser=None,
     thousands=None,
     comment=None,
-    skip_footer=0,
     skipfooter=0,
     convert_float=True,
     mangle_dupe_cols=True,
-    **kwds
+    **kwds,
 ):
 
     for arg in ("sheet", "sheetname", "parse_cols"):
@@ -344,7 +338,7 @@ def read_excel(
         skipfooter=skipfooter,
         convert_float=convert_float,
         mangle_dupe_cols=mangle_dupe_cols,
-        **kwds
+        **kwds,
     )
 
 
@@ -417,7 +411,7 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
         skipfooter=0,
         convert_float=True,
         mangle_dupe_cols=True,
-        **kwds
+        **kwds,
     ):
 
         _validate_header_arg(header)
@@ -517,7 +511,7 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
                     skipfooter=skipfooter,
                     usecols=usecols,
                     mangle_dupe_cols=mangle_dupe_cols,
-                    **kwds
+                    **kwds,
                 )
 
                 output[asheetname] = parser.read(nrows=nrows)
@@ -552,9 +546,9 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         ``io.excel.<extension>.writer``.  NOTE: can only be passed as a keyword
         argument.
     date_format : str, default None
-        Format string for dates written into Excel files (e.g. 'YYYY-MM-DD')
+        Format string for dates written into Excel files (e.g. 'YYYY-MM-DD').
     datetime_format : str, default None
-        Format string for datetime objects written into Excel files
+        Format string for datetime objects written into Excel files.
         (e.g. 'YYYY-MM-DD HH:MM:SS')
     mode : {'w', 'a'}, default 'w'
         File mode to use (write or append).
@@ -694,7 +688,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         date_format=None,
         datetime_format=None,
         mode="w",
-        **engine_kwargs
+        **engine_kwargs,
     ):
         # validate that this engine can handle the extension
         if isinstance(path, str):
@@ -848,7 +842,7 @@ class ExcelFile:
         skipfooter=0,
         convert_float=True,
         mangle_dupe_cols=True,
-        **kwds
+        **kwds,
     ):
         """
         Parse specified sheet(s) into a DataFrame.
@@ -886,7 +880,7 @@ class ExcelFile:
             skipfooter=skipfooter,
             convert_float=convert_float,
             mangle_dupe_cols=mangle_dupe_cols,
-            **kwds
+            **kwds,
         )
 
     @property

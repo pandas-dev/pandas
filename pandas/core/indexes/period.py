@@ -20,11 +20,11 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 
-from pandas.core import common as com
 from pandas.core.accessor import delegate_names
 from pandas.core.algorithms import unique1d
 from pandas.core.arrays.period import PeriodArray, period_array, validate_dtype_freq
 from pandas.core.base import _shared_docs
+import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import _index_shared_docs, ensure_index
 from pandas.core.indexes.datetimelike import (
@@ -174,7 +174,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     _is_numeric_dtype = False
     _infer_as_myclass = True
 
-    _data = None
+    _data: PeriodArray
 
     _engine_type = libindex.PeriodEngine
     _supports_partial_string_indexing = True
@@ -194,7 +194,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         dtype=None,
         copy=False,
         name=None,
-        **fields
+        **fields,
     ):
 
         valid_field_set = {
@@ -310,23 +310,8 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         return np.asarray(self)
 
     @property
-    def freq(self):
+    def freq(self) -> DateOffset:
         return self._data.freq
-
-    @freq.setter
-    def freq(self, value):
-        value = Period._maybe_convert_freq(value)
-        # TODO: When this deprecation is enforced, PeriodIndex.freq can
-        # be removed entirely, and we'll just inherit.
-        msg = (
-            "Setting {cls}.freq has been deprecated and will be "
-            "removed in a future version; use {cls}.asfreq instead. "
-            "The {cls}.freq setter is not guaranteed to work."
-        )
-        warnings.warn(msg.format(cls=type(self).__name__), FutureWarning, stacklevel=2)
-        # PeriodArray._freq isn't actually mutable. We set the private _freq
-        # here, but people shouldn't be doing this anyway.
-        self._data._freq = value
 
     def _shallow_copy(self, values=None, **kwargs):
         # TODO: simplify, figure out type of values
@@ -447,7 +432,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         return self._engine_type(period, len(self))
 
     @Appender(_index_shared_docs["contains"])
-    def __contains__(self, key):
+    def __contains__(self, key) -> bool:
         if isinstance(key, Period):
             if key.freq != self.freq:
                 return False
@@ -574,11 +559,11 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         return self._ndarray_values.searchsorted(value, side=side, sorter=sorter)
 
     @property
-    def is_all_dates(self):
+    def is_all_dates(self) -> bool:
         return True
 
     @property
-    def is_full(self):
+    def is_full(self) -> bool:
         """
         Returns True if this PeriodIndex is range-like in that all Periods
         between start and end are present, in order.
@@ -591,7 +576,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         return ((values[1:] - values[:-1]) < 2).all()
 
     @property
-    def inferred_type(self):
+    def inferred_type(self) -> str:
         # b/c data is represented as ints make sure we can't have ambiguous
         # indexing
         return "period"
@@ -995,30 +980,32 @@ PeriodIndex._add_logical_methods_disabled()
 PeriodIndex._add_datetimelike_methods()
 
 
-def period_range(start=None, end=None, periods=None, freq=None, name=None):
+def period_range(
+    start=None, end=None, periods=None, freq=None, name=None
+) -> PeriodIndex:
     """
-    Return a fixed frequency PeriodIndex, with day (calendar) as the default
-    frequency.
+    Return a fixed frequency PeriodIndex.
+
+    The day (calendar) is the default frequency.
 
     Parameters
     ----------
     start : str or period-like, default None
-        Left bound for generating periods
+        Left bound for generating periods.
     end : str or period-like, default None
-        Right bound for generating periods
+        Right bound for generating periods.
     periods : int, default None
-        Number of periods to generate
+        Number of periods to generate.
     freq : str or DateOffset, optional
         Frequency alias. By default the freq is taken from `start` or `end`
         if those are Period objects. Otherwise, the default is ``"D"`` for
         daily frequency.
-
     name : str, default None
-        Name of the resulting PeriodIndex
+        Name of the resulting PeriodIndex.
 
     Returns
     -------
-    prng : PeriodIndex
+    PeriodIndex
 
     Notes
     -----

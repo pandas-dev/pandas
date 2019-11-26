@@ -13,11 +13,10 @@ from pandas import (
     Timestamp,
     date_range,
 )
-from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
 
 
-class TestDataFrameConvertTo(TestData):
+class TestDataFrameConvertTo:
     def test_to_dict_timestamp(self):
 
         # GH11247
@@ -84,22 +83,9 @@ class TestDataFrameConvertTo(TestData):
             index=date_range("2012-01-01", "2012-01-02"),
         )
 
-        # convert_datetime64 defaults to None
         expected = df.index.values[0]
         result = df.to_records()["index"][0]
         assert expected == result
-
-        # check for FutureWarning if convert_datetime64=False is passed
-        with tm.assert_produces_warning(FutureWarning):
-            expected = df.index.values[0]
-            result = df.to_records(convert_datetime64=False)["index"][0]
-            assert expected == result
-
-        # check for FutureWarning if convert_datetime64=True is passed
-        with tm.assert_produces_warning(FutureWarning):
-            expected = df.index[0]
-            result = df.to_records(convert_datetime64=True)["index"][0]
-            assert expected == result
 
     def test_to_records_with_multindex(self):
         # GH3189
@@ -613,3 +599,19 @@ class TestDataFrameConvertTo(TestData):
         result = df.to_dict("records")[0]
         expected = {"A_{:d}".format(i): i for i in range(256)}
         assert result == expected
+
+    def test_to_dict_orient_dtype(self):
+        # https://github.com/pandas-dev/pandas/issues/22620
+        # Input Data
+        input_data = {"a": [1, 2, 3], "b": [1.0, 2.0, 3.0], "c": ["X", "Y", "Z"]}
+        df = DataFrame(input_data)
+        # Expected Dtypes
+        expected = {"a": int, "b": float, "c": str}
+        # Extracting dtypes out of to_dict operation
+        for df_dict in df.to_dict("records"):
+            result = {
+                "a": type(df_dict["a"]),
+                "b": type(df_dict["b"]),
+                "c": type(df_dict["c"]),
+            }
+            assert result == expected

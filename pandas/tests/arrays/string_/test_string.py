@@ -3,6 +3,8 @@ import operator
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 import pandas.util.testing as tm
 
@@ -158,3 +160,30 @@ def test_reduce_missing(skipna):
         assert result == "abc"
     else:
         assert pd.isna(result)
+
+
+@td.skip_if_no("pyarrow", min_version="0.15.0")
+def test_arrow_array():
+    # protocol added in 0.15.0
+    import pyarrow as pa
+
+    data = pd.array(["a", "b", "c"], dtype="string")
+    arr = pa.array(data)
+    expected = pa.array(list(data), type=pa.string(), from_pandas=True)
+    assert arr.equals(expected)
+
+
+@td.skip_if_no("pyarrow", min_version="0.15.1.dev")
+def test_arrow_roundtrip():
+    # roundtrip possible from arrow 1.0.0
+    import pyarrow as pa
+
+    data = pd.array(["a", "b", None], dtype="string")
+    df = pd.DataFrame({"a": data})
+    table = pa.table(df)
+    assert table.field("a").type == "string"
+    result = table.to_pandas()
+    assert isinstance(result["a"].dtype, pd.StringDtype)
+    tm.assert_frame_equal(result, df)
+    # ensure the missing value is represented by NaN and not None
+    assert np.isnan(result.loc[2, "a"])

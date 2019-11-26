@@ -55,11 +55,11 @@ def maybe_integer_op_deprecated(obj):
     # GH#22535 add/sub of integers and int-arrays is deprecated
     if obj.freq is not None:
         warnings.warn("Addition/subtraction of integers and integer-arrays "
-                      "to {cls} is deprecated, will be removed in a future "
+                      f"to {type(obj).__name__} is deprecated, "
+                      "will be removed in a future "
                       "version.  Instead of adding/subtracting `n`, use "
                       "`n * self.freq`"
-                      .format(cls=type(obj).__name__),
-                      FutureWarning)
+                      , FutureWarning)
 
 
 cdef class _Timestamp(datetime):
@@ -124,7 +124,7 @@ cdef class _Timestamp(datetime):
         # now __reduce_ex__ is defined and higher priority than __reduce__
         return self.__reduce__()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         stamp = self._repr_base
         zone = None
 
@@ -144,11 +144,10 @@ cdef class _Timestamp(datetime):
             # e.g. tzlocal has no `strftime`
             pass
 
-        tz = ", tz='{0}'".format(zone) if zone is not None else ""
-        freq = "" if self.freq is None else ", freq='{0}'".format(self.freqstr)
+        tz = f", tz='{zone}'" if zone is not None else ""
+        freq = "" if self.freq is None else f", freq='{self.freqstr}'"
 
-        return "Timestamp('{stamp}'{tz}{freq})".format(stamp=stamp,
-                                                       tz=tz, freq=freq)
+        return f"Timestamp('{stamp}'{tz}{freq})"
 
     cdef bint _compare_outside_nanorange(_Timestamp self, datetime other,
                                          int op) except -1:
@@ -201,7 +200,7 @@ cdef class _Timestamp(datetime):
         """
         return np.datetime64(self.value, 'ns')
 
-    def to_numpy(self, dtype=None, copy=False):
+    def to_numpy(self, dtype=None, copy=False) -> np.datetime64:
         """
         Convert the Timestamp to a NumPy datetime64.
 
@@ -369,29 +368,28 @@ cdef class _Timestamp(datetime):
         return out[0]
 
     @property
-    def _repr_base(self):
-        return '{date} {time}'.format(date=self._date_repr,
-                                      time=self._time_repr)
+    def _repr_base(self) -> str:
+        return f"{self._date_repr} {self._time_repr}"
 
     @property
-    def _date_repr(self):
+    def _date_repr(self) -> str:
         # Ideal here would be self.strftime("%Y-%m-%d"), but
         # the datetime strftime() methods require year >= 1900
-        return '%d-%.2d-%.2d' % (self.year, self.month, self.day)
+        return f'{self.year}-{self.month:02d}-{self.day:02d}'
 
     @property
-    def _time_repr(self):
-        result = '%.2d:%.2d:%.2d' % (self.hour, self.minute, self.second)
+    def _time_repr(self) -> str:
+        result = f'{self.hour:02d}:{self.minute:02d}:{self.second:02d}'
 
         if self.nanosecond != 0:
-            result += '.%.9d' % (self.nanosecond + 1000 * self.microsecond)
+            result += f'.{self.nanosecond + 1000 * self.microsecond:09d}'
         elif self.microsecond != 0:
-            result += '.%.6d' % self.microsecond
+            result += f'.{self.microsecond:06d}'
 
         return result
 
     @property
-    def _short_repr(self):
+    def _short_repr(self) -> str:
         # format a Timestamp with only _date_repr if possible
         # otherwise _repr_base
         if (self.hour == 0 and
@@ -403,7 +401,7 @@ cdef class _Timestamp(datetime):
         return self._repr_base
 
     @property
-    def asm8(self):
+    def asm8(self) -> np.datetime64:
         """
         Return numpy datetime64 format in nanoseconds.
         """

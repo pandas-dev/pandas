@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import iNaT, lib, tslibs
+from pandas._libs import NaT, Timedelta, Timestamp, iNaT, lib
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import _int64_max, maybe_upcast_putmask
@@ -16,7 +16,6 @@ from pandas.core.dtypes.common import (
     is_any_int_dtype,
     is_bool_dtype,
     is_complex,
-    is_complex_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_datetime_or_timedelta_dtype,
@@ -53,7 +52,7 @@ class disallow:
         super().__init__()
         self.dtypes = tuple(pandas_dtype(dtype).type for dtype in dtypes)
 
-    def check(self, obj):
+    def check(self, obj) -> bool:
         return hasattr(obj, "dtype") and issubclass(obj.dtype.type, self.dtypes)
 
     def __call__(self, f):
@@ -128,7 +127,7 @@ class bottleneck_switch:
         return f
 
 
-def _bn_ok_dtype(dt, name):
+def _bn_ok_dtype(dt, name: str) -> bool:
     # Bottleneck chokes on datetime64
     if not is_object_dtype(dt) and not (
         is_datetime_or_timedelta_dtype(dt) or is_datetime64tz_dtype(dt)
@@ -149,7 +148,7 @@ def _bn_ok_dtype(dt, name):
     return False
 
 
-def _has_infs(result):
+def _has_infs(result) -> bool:
     if isinstance(result, np.ndarray):
         if result.dtype == "f8":
             return lib.has_infs_f8(result.ravel())
@@ -176,19 +175,22 @@ def _get_fill_value(dtype, fill_value=None, fill_value_typ=None):
                 return -np.inf
     else:
         if fill_value_typ is None:
-            return tslibs.iNaT
+            return iNaT
         else:
             if fill_value_typ == "+inf":
                 # need the max int here
                 return _int64_max
             else:
-                return tslibs.iNaT
+                return iNaT
 
 
 def _maybe_get_mask(
     values: np.ndarray, skipna: bool, mask: Optional[np.ndarray]
 ) -> Optional[np.ndarray]:
-    """ This function will compute a mask iff it is necessary. Otherwise,
+    """
+    Compute a mask if and only if necessary.
+
+    This function will compute a mask iff it is necessary. Otherwise,
     return the provided mask (potentially None) when a mask does not need to be
     computed.
 
@@ -214,7 +216,6 @@ def _maybe_get_mask(
     Returns
     -------
     Optional[np.ndarray]
-
     """
 
     if mask is None:
@@ -235,7 +236,8 @@ def _get_values(
     fill_value_typ: Optional[str] = None,
     mask: Optional[np.ndarray] = None,
 ) -> Tuple[np.ndarray, Optional[np.ndarray], np.dtype, np.dtype, Any]:
-    """ Utility to get the values view, mask, dtype, dtype_max, and fill_value.
+    """
+    Utility to get the values view, mask, dtype, dtype_max, and fill_value.
 
     If both mask and fill_value/fill_value_typ are not None and skipna is True,
     the values array will be copied.
@@ -270,6 +272,12 @@ def _get_values(
     fill_value : Any
         fill value used
     """
+
+    # In _get_values is only called from within nanops, and in all cases
+    #  with scalar fill_value.  This guarantee is important for the
+    #  maybe_upcast_putmask call below
+    assert is_scalar(fill_value)
+
     mask = _maybe_get_mask(values, skipna, mask)
 
     if is_datetime64tz_dtype(values):
@@ -316,19 +324,6 @@ def _get_values(
     return values, mask, dtype, dtype_max, fill_value
 
 
-def _isfinite(values):
-    if is_datetime_or_timedelta_dtype(values):
-        return isna(values)
-    if (
-        is_complex_dtype(values)
-        or is_float_dtype(values)
-        or is_integer_dtype(values)
-        or is_bool_dtype(values)
-    ):
-        return ~np.isfinite(values)
-    return ~np.isfinite(values.astype("float64"))
-
-
 def _na_ok_dtype(dtype):
     # TODO: what about datetime64tz?  PeriodDtype?
     return not issubclass(dtype.type, (np.integer, np.timedelta64, np.datetime64))
@@ -346,7 +341,7 @@ def _wrap_results(result, dtype, fill_value=None):
             assert not isna(fill_value), "Expected non-null fill_value"
             if result == fill_value:
                 result = np.nan
-            result = tslibs.Timestamp(result, tz=tz)
+            result = Timestamp(result, tz=tz)
         else:
             result = result.view(dtype)
     elif is_timedelta64_dtype(dtype):
@@ -358,21 +353,22 @@ def _wrap_results(result, dtype, fill_value=None):
             if np.fabs(result) > _int64_max:
                 raise ValueError("overflow in timedelta operation")
 
-            result = tslibs.Timedelta(result, unit="ns")
+            result = Timedelta(result, unit="ns")
         else:
             result = result.astype("m8[ns]").view(dtype)
 
     return result
 
 
-def _na_for_min_count(values, axis):
-    """Return the missing value for `values`
+def _na_for_min_count(values, axis: Optional[int]):
+    """
+    Return the missing value for `values`.
 
     Parameters
     ----------
     values : ndarray
     axis : int or None
-        axis for the reduction
+        axis for the reduction, required if values.ndim > 1.
 
     Returns
     -------
@@ -388,13 +384,14 @@ def _na_for_min_count(values, axis):
     if values.ndim == 1:
         return fill_value
     else:
+        assert axis is not None  # assertion to make mypy happy
         result_shape = values.shape[:axis] + values.shape[axis + 1 :]
         result = np.empty(result_shape, dtype=values.dtype)
         result.fill(fill_value)
         return result
 
 
-def nanany(values, axis=None, skipna=True, mask=None):
+def nanany(values, axis=None, skipna: bool = True, mask=None):
     """
     Check if any elements along an axis evaluate to True.
 
@@ -426,7 +423,7 @@ def nanany(values, axis=None, skipna=True, mask=None):
     return values.any(axis)
 
 
-def nanall(values, axis=None, skipna=True, mask=None):
+def nanall(values, axis=None, skipna: bool = True, mask=None):
     """
     Check if all elements along an axis evaluate to True.
 
@@ -663,7 +660,7 @@ def _get_counts_nanvar(
             count = np.nan
             d = np.nan
     else:
-        mask2 = count <= ddof  # type: np.ndarray
+        mask2: np.ndarray = count <= ddof
         if mask2.any():
             np.putmask(d, mask2, np.nan)
             np.putmask(count, mask2, np.nan)
@@ -700,11 +697,14 @@ def nanstd(values, axis=None, skipna=True, ddof=1, mask=None):
     >>> nanops.nanstd(s)
     1.0
     """
+    orig_dtype = values.dtype
+    values, mask, dtype, dtype_max, fill_value = _get_values(values, skipna, mask=mask)
+
     result = np.sqrt(nanvar(values, axis=axis, skipna=skipna, ddof=ddof, mask=mask))
-    return _wrap_results(result, values.dtype)
+    return _wrap_results(result, orig_dtype)
 
 
-@disallow("M8")
+@disallow("M8", "m8")
 @bottleneck_switch(ddof=1)
 def nanvar(values, axis=None, skipna=True, ddof=1, mask=None):
     """
@@ -1195,7 +1195,7 @@ def _maybe_null_out(
             else:
                 # GH12941, use None to auto cast null
                 result[null_mask] = None
-    elif result is not tslibs.NaT:
+    elif result is not NaT:
         if mask is not None:
             null_mask = mask.size - mask.sum()
         else:

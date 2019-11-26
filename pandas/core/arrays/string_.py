@@ -85,6 +85,24 @@ class StringDtype(ExtensionDtype):
     def __repr__(self) -> str:
         return "StringDtype"
 
+    def __from_arrow__(self, array):
+        """Construct StringArray from passed pyarrow Array/ChunkedArray"""
+        import pyarrow
+
+        if isinstance(array, pyarrow.Array):
+            chunks = [array]
+        else:
+            # pyarrow.ChunkedArray
+            chunks = array.chunks
+
+        results = []
+        for arr in chunks:
+            # using _from_sequence to ensure None is convered to np.nan
+            str_arr = StringArray._from_sequence(np.array(arr))
+            results.append(str_arr)
+
+        return StringArray._concat_same_type(results)
+
 
 class StringArray(PandasArray):
     """
@@ -181,6 +199,16 @@ class StringArray(PandasArray):
     @classmethod
     def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
+
+    def __arrow_array__(self, type=None):
+        """
+        Convert myself into a pyarrow Array.
+        """
+        import pyarrow as pa
+
+        if type is None:
+            type = pa.string()
+        return pa.array(self._ndarray, type=type, from_pandas=True)
 
     def __setitem__(self, key, value):
         value = extract_array(value, extract_numpy=True)

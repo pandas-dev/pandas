@@ -1,5 +1,6 @@
 """Common utility functions for rolling operations"""
 from collections import defaultdict
+from typing import Callable, Optional
 import warnings
 
 import numpy as np
@@ -26,13 +27,29 @@ _doc_template = """
 """
 
 
-class _GroupByMixin(GroupByMixin):
+def _dispatch(name: str, *args, **kwargs):
+    """
+    Dispatch to apply.
+    """
+
+    def outer(self, *args, **kwargs):
+        def f(x):
+            x = self._shallow_copy(x, groupby=self._groupby)
+            return getattr(x, name)(*args, **kwargs)
+
+        return self._groupby.apply(f)
+
+    outer.__name__ = name
+    return outer
+
+
+class WindowGroupByMixin(GroupByMixin):
     """
     Provide the groupby facilities.
     """
 
     def __init__(self, obj, *args, **kwargs):
-        parent = kwargs.pop("parent", None)  # noqa
+        kwargs.pop("parent", None)
         groupby = kwargs.pop("groupby", None)
         if groupby is None:
             groupby, obj = obj, obj.obj
@@ -41,18 +58,27 @@ class _GroupByMixin(GroupByMixin):
         self._groupby.grouper.mutated = True
         super().__init__(obj, *args, **kwargs)
 
-    count = GroupByMixin._dispatch("count")
-    corr = GroupByMixin._dispatch("corr", other=None, pairwise=None)
-    cov = GroupByMixin._dispatch("cov", other=None, pairwise=None)
+    count = _dispatch("count")
+    corr = _dispatch("corr", other=None, pairwise=None)
+    cov = _dispatch("cov", other=None, pairwise=None)
 
     def _apply(
-        self, func, name=None, window=None, center=None, check_minp=None, **kwargs
+        self,
+        func: Callable,
+        center: bool,
+        require_min_periods: int = 0,
+        floor: int = 1,
+        is_weighted: bool = False,
+        name: Optional[str] = None,
+        **kwargs,
     ):
         """
         Dispatch to apply; we are stripping all of the _apply kwargs and
         performing the original function call on the grouped object.
         """
+        kwargs.pop("floor", None)
 
+        # TODO: can we de-duplicate with _dispatch?
         def f(x, name=name, *args):
             x = self._shallow_copy(x)
 
@@ -248,6 +274,44 @@ def _use_window(minp, window):
         return window
     else:
         return minp
+
+
+def calculate_min_periods(
+    window: int,
+    min_periods: Optional[int],
+    num_values: int,
+    required_min_periods: int,
+    floor: int,
+) -> int:
+    """
+    Calculates final minimum periods value for rolling aggregations.
+
+    Parameters
+    ----------
+    window : passed window value
+    min_periods : passed min periods value
+    num_values : total number of values
+    required_min_periods : required min periods per aggregation function
+    floor : required min periods per aggregation function
+
+    Returns
+    -------
+    min_periods : int
+    """
+    if min_periods is None:
+        min_periods = window
+    else:
+        min_periods = max(required_min_periods, min_periods)
+    if min_periods > window:
+        raise ValueError(
+            "min_periods {min_periods} must be <= "
+            "window {window}".format(min_periods=min_periods, window=window)
+        )
+    elif min_periods > num_values:
+        min_periods = num_values + 1
+    elif min_periods < 0:
+        raise ValueError("min_periods must be >= 0")
+    return max(min_periods, floor)
 
 
 def _zsqrt(x):

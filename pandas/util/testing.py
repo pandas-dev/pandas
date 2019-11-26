@@ -5,7 +5,6 @@ from datetime import datetime
 from functools import wraps
 import gzip
 import os
-import re
 from shutil import rmtree
 import string
 import tempfile
@@ -23,7 +22,7 @@ from pandas._config.localization import (  # noqa:F401
 )
 
 import pandas._libs.testing as _testing
-from pandas.compat import _get_lzma_file, _import_lzma, raise_with_traceback
+from pandas.compat import _get_lzma_file, _import_lzma
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -590,14 +589,14 @@ def assert_index_equal(
     check_less_precise : bool or int, default False
         Specify comparison precision. Only used when check_exact is False.
         5 digits (False) or 3 digits (True) after decimal points are compared.
-        If int, then specify the digits to compare
+        If int, then specify the digits to compare.
     check_exact : bool, default True
         Whether to compare number exactly.
     check_categorical : bool, default True
         Whether to compare internal Categorical exactly.
     obj : str, default 'Index'
         Specify object name being compared, internally used to show appropriate
-        assertion message
+        assertion message.
     """
     __tracebackhide__ = True
 
@@ -618,8 +617,8 @@ def assert_index_equal(
     def _get_ilevel_values(index, level):
         # accept level number only
         unique = index.levels[level]
-        labels = index.codes[level]
-        filled = take_1d(unique.values, labels, fill_value=unique._na_value)
+        level_codes = index.codes[level]
+        filled = take_1d(unique.values, level_codes, fill_value=unique._na_value)
         values = unique._shallow_copy(filled, name=index.names[level])
         return values
 
@@ -1247,10 +1246,7 @@ def assert_frame_equal(
         check whether it is equivalent to 1 within the specified precision.
     check_names : bool, default True
         Whether to check that the `names` attribute for both the `index`
-        and `column` attributes of the DataFrame is identical, i.e.
-
-        * left.index.names == right.index.names
-        * left.columns.names == right.columns.names
+        and `column` attributes of the DataFrame is identical.
     by_blocks : bool, default False
         Specify how to compare internal data. If False, compare by columns.
         If True, compare by blocks.
@@ -1926,7 +1922,7 @@ def makeCustomIndex(
             label = f"{prefix}_l{i}_g{j}"
             cnt[label] = ndupe_l[i]
         # cute Counter trick
-        result = list(sorted(cnt.elements(), key=keyfunc))[:nentries]
+        result = sorted(cnt.elements(), key=keyfunc)[:nentries]
         tuples.append(result)
 
     tuples = list(zip(*tuples))

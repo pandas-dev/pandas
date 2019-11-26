@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://github.com/pandas-dev/pandas/blob/master/doc/logo/pandas_logo.png"><br>
+  <img src="https://dev.pandas.io/static/img/pandas.svg"><br>
 </div>
 
 -----------------
@@ -190,7 +190,7 @@ or for installing in [development mode](https://pip.pypa.io/en/latest/reference/
 
 
 ```sh
-python -m pip install --no-build-isolation -e .
+python -m pip install -e . --no-build-isolation --no-use-pep517
 ```
 
 If you have `make`, you can also use `make develop` to run the same command.

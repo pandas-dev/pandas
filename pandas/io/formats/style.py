@@ -8,6 +8,7 @@ from contextlib import contextmanager
 import copy
 from functools import partial
 from itertools import product
+from typing import Any, Callable, DefaultDict, Dict, List, Optional, Sequence, Tuple
 from uuid import uuid1
 
 import numpy as np
@@ -17,8 +18,7 @@ from pandas._config import get_option
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import Appender
 
-from pandas.core.dtypes.common import is_float, is_string_like
-from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.common import is_float
 
 import pandas as pd
 from pandas.api.types import is_dict_like, is_list_like
@@ -71,6 +71,11 @@ class Styler:
         The ``id`` takes the form ``T_<uuid>_row<num_row>_col<num_col>``
         where ``<uuid>`` is the unique identifier, ``<num_row>`` is the row
         number and ``<num_col>`` is the column number.
+    na_rep : str, optional
+        Representation for missing values.
+        If ``na_rep`` is None, no special formatting is applied
+
+        .. versionadded:: 1.0.0
 
     Attributes
     ----------
@@ -126,9 +131,10 @@ class Styler:
         caption=None,
         table_attributes=None,
         cell_ids=True,
+        na_rep: Optional[str] = None,
     ):
-        self.ctx = defaultdict(list)
-        self._todo = []
+        self.ctx: DefaultDict[Tuple[int, int], List[str]] = defaultdict(list)
+        self._todo: List[Tuple[Callable, Tuple, Dict]] = []
 
         if not isinstance(data, (pd.Series, pd.DataFrame)):
             raise TypeError("``data`` must be a Series or DataFrame")
@@ -149,19 +155,24 @@ class Styler:
         self.precision = precision
         self.table_attributes = table_attributes
         self.hidden_index = False
-        self.hidden_columns = []
+        self.hidden_columns: Sequence[int] = []
         self.cell_ids = cell_ids
+        self.na_rep = na_rep
 
         # display_funcs maps (row, col) -> formatting function
 
         def default_display_func(x):
-            if is_float(x):
+            if self.na_rep is not None and pd.isna(x):
+                return self.na_rep
+            elif is_float(x):
                 display_format = "{0:.{precision}f}".format(x, precision=self.precision)
                 return display_format
             else:
                 return x
 
-        self._display_funcs = defaultdict(lambda: default_display_func)
+        self._display_funcs: DefaultDict[
+            Tuple[int, int], Callable[[Any], str]
+        ] = defaultdict(lambda: default_display_func)
 
     def _repr_html_(self):
         """
@@ -416,16 +427,22 @@ class Styler:
             table_attributes=table_attr,
         )
 
-    def format(self, formatter, subset=None):
+    def format(self, formatter, subset=None, na_rep: Optional[str] = None):
         """
         Format the text display value of cells.
 
         Parameters
         ----------
-        formatter : str, callable, or dict
+        formatter : str, callable, dict or None
+            If ``formatter`` is None, the default formatter is used
         subset : IndexSlice
             An argument to ``DataFrame.loc`` that restricts which elements
             ``formatter`` is applied to.
+        na_rep : str, optional
+            Representation for missing values.
+            If ``na_rep`` is None, no special formatting is applied
+
+            .. versionadded:: 1.0.0
 
         Returns
         -------
@@ -451,6 +468,10 @@ class Styler:
         >>> df['c'] = ['a', 'b', 'c', 'd']
         >>> df.style.format({'c': str.upper})
         """
+        if formatter is None:
+            assert self._display_funcs.default_factory is not None
+            formatter = self._display_funcs.default_factory()
+
         if subset is None:
             row_locs = range(len(self.data))
             col_locs = range(len(self.data.columns))
@@ -466,16 +487,16 @@ class Styler:
         if is_dict_like(formatter):
             for col, col_formatter in formatter.items():
                 # formatter must be callable, so '{}' are converted to lambdas
-                col_formatter = _maybe_wrap_formatter(col_formatter)
+                col_formatter = _maybe_wrap_formatter(col_formatter, na_rep)
                 col_num = self.data.columns.get_indexer_for([col])[0]
 
                 for row_num in row_locs:
                     self._display_funcs[(row_num, col_num)] = col_formatter
         else:
             # single scalar to format all cells with
+            formatter = _maybe_wrap_formatter(formatter, na_rep)
             locs = product(*(row_locs, col_locs))
             for i, j in locs:
-                formatter = _maybe_wrap_formatter(formatter)
                 self._display_funcs[(i, j)] = formatter
         return self
 
@@ -553,6 +574,7 @@ class Styler:
             caption=self.caption,
             uuid=self.uuid,
             table_styles=self.table_styles,
+            na_rep=self.na_rep,
         )
         if deepcopy:
             styler.ctx = copy.deepcopy(self.ctx)
@@ -574,6 +596,7 @@ class Styler:
     def clear(self):
         """
         Reset the styler, removing any previously applied styles.
+
         Returns None.
         """
         self.ctx.clear()
@@ -632,8 +655,9 @@ class Styler:
 
     def apply(self, func, axis=0, subset=None, **kwargs):
         """
-        Apply a function column-wise, row-wise, or table-wise,
-        updating the HTML representation with the result.
+        Apply a function column-wise, row-wise, or table-wise.
+
+        Updates the HTML representation with the result.
 
         Parameters
         ----------
@@ -691,8 +715,9 @@ class Styler:
 
     def applymap(self, func, subset=None, **kwargs):
         """
-        Apply a function elementwise, updating the HTML
-        representation with the result.
+        Apply a function elementwise.
+
+        Updates the HTML representation with the result.
 
         Parameters
         ----------
@@ -719,9 +744,10 @@ class Styler:
 
     def where(self, cond, value, other=None, subset=None, **kwargs):
         """
-        Apply a function elementwise, updating the HTML
-        representation with a style which is selected in
-        accordance with the return value of a function.
+        Apply a function elementwise.
+
+        Updates the HTML representation with a style which is
+        selected in accordance with the return value of a function.
 
         .. versionadded:: 0.21.0
 
@@ -812,8 +838,9 @@ class Styler:
 
     def use(self, styles):
         """
-        Set the styles on the current Styler, possibly using styles
-        from ``Styler.export``.
+        Set the styles on the current Styler.
+
+        Possibly uses styles from ``Styler.export``.
 
         Parameters
         ----------
@@ -891,6 +918,23 @@ class Styler:
         self.table_styles = table_styles
         return self
 
+    def set_na_rep(self, na_rep: str) -> "Styler":
+        """
+        Set the missing data representation on a Styler.
+
+        .. versionadded:: 1.0.0
+
+        Parameters
+        ----------
+        na_rep : str
+
+        Returns
+        -------
+        self : Styler
+        """
+        self.na_rep = na_rep
+        return self
+
     def hide_index(self):
         """
         Hide any indices from rendering.
@@ -958,12 +1002,14 @@ class Styler:
         axis=0,
         subset=None,
         text_color_threshold=0.408,
+        vmin: Optional[float] = None,
+        vmax: Optional[float] = None,
     ):
         """
-        Color the background in a gradient according to
-        the data in each column (optionally row).
+        Color the background in a gradient style.
 
-        Requires matplotlib.
+        The background color is determined according
+        to the data in each column (optionally row). Requires matplotlib.
 
         Parameters
         ----------
@@ -985,6 +1031,18 @@ class Styler:
             0 = all text is dark colored, 1 = all text is light colored.
 
             .. versionadded:: 0.24.0
+
+        vmin : float, optional
+            Minimum data value that corresponds to colormap minimum value.
+            When None (default): the minimum value of the data will be used.
+
+            .. versionadded:: 1.0.0
+
+        vmax : float, optional
+            Maximum data value that corresponds to colormap maximum value.
+            When None (default): the maximum value of the data will be used.
+
+            .. versionadded:: 1.0.0
 
         Returns
         -------
@@ -1012,11 +1070,21 @@ class Styler:
             low=low,
             high=high,
             text_color_threshold=text_color_threshold,
+            vmin=vmin,
+            vmax=vmax,
         )
         return self
 
     @staticmethod
-    def _background_gradient(s, cmap="PuBu", low=0, high=0, text_color_threshold=0.408):
+    def _background_gradient(
+        s,
+        cmap="PuBu",
+        low=0,
+        high=0,
+        text_color_threshold=0.408,
+        vmin: Optional[float] = None,
+        vmax: Optional[float] = None,
+    ):
         """
         Color background in a range according to the data.
         """
@@ -1028,14 +1096,14 @@ class Styler:
             raise ValueError(msg)
 
         with _mpl(Styler.background_gradient) as (plt, colors):
-            smin = s.values.min()
-            smax = s.values.max()
+            smin = np.nanmin(s.to_numpy()) if vmin is None else vmin
+            smax = np.nanmax(s.to_numpy()) if vmax is None else vmax
             rng = smax - smin
             # extend lower / upper bounds, compresses color range
             norm = colors.Normalize(smin - (rng * low), smax + (rng * high))
             # matplotlib colors.Normalize modifies inplace?
             # https://github.com/matplotlib/matplotlib/issues/5427
-            rgbas = plt.cm.get_cmap(cmap)(norm(s.values))
+            rgbas = plt.cm.get_cmap(cmap)(norm(s.to_numpy(dtype=float)))
 
             def relative_luminance(rgba):
                 """
@@ -1077,8 +1145,7 @@ class Styler:
 
     def set_properties(self, subset=None, **kwargs):
         """
-        Convenience method for setting one or more non-data dependent
-        properties or each cell.
+        Method to set one or more non-data dependent properties or each cell.
 
         Parameters
         ----------
@@ -1107,12 +1174,8 @@ class Styler:
         Draw bar chart in dataframe cells.
         """
         # Get input value range.
-        smin = s.min() if vmin is None else vmin
-        if isinstance(smin, ABCSeries):
-            smin = smin.min()
-        smax = s.max() if vmax is None else vmax
-        if isinstance(smax, ABCSeries):
-            smax = smax.max()
+        smin = np.nanmin(s.to_numpy()) if vmin is None else vmin
+        smax = np.nanmax(s.to_numpy()) if vmax is None else vmax
         if align == "mid":
             smin = min(0, smin)
             smax = max(0, smax)
@@ -1121,7 +1184,7 @@ class Styler:
             smax = max(abs(smin), abs(smax))
             smin = -smax
         # Transform to percent-range of linear-gradient
-        normed = width * (s.values - smin) / (smax - smin + 1e-12)
+        normed = width * (s.to_numpy(dtype=float) - smin) / (smax - smin + 1e-12)
         zero = -width * smin / (smax - smin + 1e-12)
 
         def css_bar(start, end, color):
@@ -1300,17 +1363,15 @@ class Styler:
         Highlight the min or max in a Series or DataFrame.
         """
         attr = "background-color: {0}".format(color)
+
+        if max_:
+            extrema = data == np.nanmax(data.to_numpy())
+        else:
+            extrema = data == np.nanmin(data.to_numpy())
+
         if data.ndim == 1:  # Series from .apply
-            if max_:
-                extrema = data == data.max()
-            else:
-                extrema = data == data.min()
             return [attr if v else "" for v in extrema]
         else:  # DataFrame from .tee
-            if max_:
-                extrema = data == data.max().max()
-            else:
-                extrema = data == data.min().min()
             return pd.DataFrame(
                 np.where(extrema, attr, ""), index=data.index, columns=data.columns
             )
@@ -1318,8 +1379,9 @@ class Styler:
     @classmethod
     def from_custom_template(cls, searchpath, name):
         """
-        Factory function for creating a subclass of ``Styler``
-        with a custom template and Jinja environment.
+        Factory function for creating a subclass of ``Styler``.
+
+        Uses a custom template and Jinja environment.
 
         Parameters
         ----------
@@ -1427,7 +1489,7 @@ def _get_level_lengths(index, hidden_elements=None):
     Optional argument is a list of index positions which
     should not be visible.
 
-    Result is a dictionary of (level, inital_position): span
+    Result is a dictionary of (level, initial_position): span
     """
     sentinel = object()
     levels = index.format(sparsify=sentinel, adjoin=False, names=False)
@@ -1464,14 +1526,22 @@ def _get_level_lengths(index, hidden_elements=None):
     return non_zero_lengths
 
 
-def _maybe_wrap_formatter(formatter):
-    if is_string_like(formatter):
-        return lambda x: formatter.format(x)
+def _maybe_wrap_formatter(formatter, na_rep: Optional[str]):
+    if isinstance(formatter, str):
+        formatter_func = lambda x: formatter.format(x)
     elif callable(formatter):
-        return formatter
+        formatter_func = formatter
     else:
         msg = (
             "Expected a template string or callable, got {formatter} "
             "instead".format(formatter=formatter)
         )
+        raise TypeError(msg)
+
+    if na_rep is None:
+        return formatter_func
+    elif isinstance(na_rep, str):
+        return lambda x: na_rep if pd.isna(x) else formatter_func(x)
+    else:
+        msg = "Expected a string, got {na_rep} instead".format(na_rep=na_rep)
         raise TypeError(msg)
