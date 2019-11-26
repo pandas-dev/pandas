@@ -245,7 +245,7 @@ def to_hdf(
     key,
     value,
     mode=None,
-    complevel=None,
+    complevel: Optional[int] = None,
     complib=None,
     append=None,
     **kwargs,
@@ -460,12 +460,13 @@ class HDFStore:
     """
 
     _handle: Optional["File"]
+    _complevel: int
 
     def __init__(
         self,
         path,
         mode=None,
-        complevel=None,
+        complevel: Optional[int] = None,
         complib=None,
         fletcher32: bool = False,
         **kwargs,
@@ -1302,7 +1303,7 @@ class HDFStore:
         propindexes: bool = True,
         keys=None,
         complib=None,
-        complevel=None,
+        complevel: Optional[int] = None,
         fletcher32: bool = False,
         overwrite=True,
     ):
@@ -2590,11 +2591,11 @@ class Fixed:
         return self.parent._filters
 
     @property
-    def _complevel(self):
+    def _complevel(self) -> int:
         return self.parent._complevel
 
     @property
-    def _fletcher32(self):
+    def _fletcher32(self) -> bool:
         return self.parent._fletcher32
 
     @property
@@ -2653,7 +2654,7 @@ class Fixed:
 
     def write(self, **kwargs):
         raise NotImplementedError(
-            "cannot write on an abstract storer: sublcasses should implement"
+            "cannot write on an abstract storer: subclasses should implement"
         )
 
     def delete(self, where=None, start=None, stop=None, **kwargs):
@@ -3925,10 +3926,10 @@ class Table(Fixed):
     def create_description(
         self,
         complib=None,
-        complevel=None,
+        complevel: Optional[int] = None,
         fletcher32: bool = False,
         expectedrows: Optional[int] = None,
-    ):
+    ) -> Dict[str, Any]:
         """ create the description of the table from the axes & values """
 
         # provided expected rows if its passed
@@ -4673,8 +4674,9 @@ def _convert_index(name: str, index: Index, encoding=None, errors="strict"):
         )
 
 
-def _unconvert_index(data, kind, encoding=None, errors="strict"):
-    kind = _ensure_decoded(kind)
+def _unconvert_index(data, kind: str, encoding=None, errors="strict"):
+    index: Union[Index, np.ndarray]
+
     if kind == "datetime64":
         index = DatetimeIndex(data)
     elif kind == "timedelta64":
