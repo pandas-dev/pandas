@@ -4580,10 +4580,10 @@ def _set_tz(values, tz, preserve_UTC: bool = False, coerce: bool = False):
     return values
 
 
-def _convert_index(name: str, index, encoding=None, errors="strict"):
+def _convert_index(name: str, index: Index, encoding=None, errors="strict"):
     assert isinstance(name, str)
 
-    index_name = getattr(index, "name", None)
+    index_name = index.name
 
     if isinstance(index, DatetimeIndex):
         converted = index.asi8
