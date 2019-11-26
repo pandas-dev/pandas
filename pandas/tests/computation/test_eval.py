@@ -2002,6 +2002,23 @@ def test_inf(engine, parser):
     assert result == expected
 
 
+def test_truediv_deprecated(engine, parser):
+    # GH#29182
+    match = "The `truediv` parameter in pd.eval is deprecated"
+
+    with tm.assert_produces_warning(FutureWarning) as m:
+        pd.eval("1+1", engine=engine, parser=parser, truediv=True)
+
+    assert len(m) == 1
+    assert match in str(m[0].message)
+
+    with tm.assert_produces_warning(FutureWarning) as m:
+        pd.eval("1+1", engine=engine, parser=parser, truediv=False)
+
+    assert len(m) == 1
+    assert match in str(m[0].message)
+
+
 def test_negate_lt_eq_le(engine, parser):
     df = pd.DataFrame([[0, 10], [1, 20]], columns=["cat", "count"])
     expected = df[~(df.cat > 0)]

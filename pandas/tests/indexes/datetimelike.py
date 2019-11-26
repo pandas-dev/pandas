@@ -81,7 +81,7 @@ class DatetimeLike(Base):
 
         # don't compare the freqs
         if isinstance(expected, pd.DatetimeIndex):
-            expected.freq = None
+            expected._data.freq = None
 
         result = index.map(mapper(expected, index))
         tm.assert_index_equal(result, expected)
@@ -95,10 +95,3 @@ class DatetimeLike(Base):
         expected = pd.Index([np.nan] * len(index))
         result = index.map(mapper([], []))
         tm.assert_index_equal(result, expected)
-
-    def test_asobject_deprecated(self):
-        # GH18572
-        d = self.create_index()
-        with tm.assert_produces_warning(FutureWarning):
-            i = d.asobject
-        assert isinstance(i, pd.Index)

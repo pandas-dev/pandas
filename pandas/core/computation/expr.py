@@ -7,7 +7,7 @@ from io import StringIO
 import itertools as it
 import operator
 import tokenize
-from typing import Callable, Set, Tuple, Type, TypeVar
+from typing import Callable, Optional, Set, Tuple, Type, TypeVar
 
 import numpy as np
 
@@ -819,7 +819,18 @@ class Expr:
     level : int, optional, default 2
     """
 
-    def __init__(self, expr, engine="numexpr", parser="pandas", env=None, level=0):
+    env: Scope
+    engine: str
+    parser: str
+
+    def __init__(
+        self,
+        expr,
+        engine: str = "numexpr",
+        parser: str = "pandas",
+        env: Optional[Scope] = None,
+        level: int = 0,
+    ):
         self.expr = expr
         self.env = env or Scope(level=level + 1)
         self.engine = engine

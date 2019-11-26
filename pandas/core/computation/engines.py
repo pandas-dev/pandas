@@ -6,7 +6,7 @@ import abc
 from typing import Dict, Type
 
 from pandas.core.computation.align import align_terms, reconstruct_object
-from pandas.core.computation.ops import UndefinedVariableError, _mathops, _reductions
+from pandas.core.computation.ops import _mathops, _reductions
 
 import pandas.io.formats.printing as printing
 
@@ -109,14 +109,10 @@ class NumExprEngine(AbstractEngine):
         # convert the expression to a valid numexpr expression
         s = self.convert()
 
-        try:
-            env = self.expr.env
-            scope = env.full_scope
-            _check_ne_builtin_clash(self.expr)
-            return ne.evaluate(s, local_dict=scope)
-        except KeyError as e:
-            name = str(e)
-            raise UndefinedVariableError(name=name)
+        env = self.expr.env
+        scope = env.full_scope
+        _check_ne_builtin_clash(self.expr)
+        return ne.evaluate(s, local_dict=scope)
 
 
 class PythonEngine(AbstractEngine):

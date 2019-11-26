@@ -8,6 +8,7 @@ import tokenize
 from typing import Optional
 import warnings
 
+from pandas._libs.lib import _no_default
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.computation.engines import _engines
@@ -170,6 +171,7 @@ def eval(
     expr,
     parser="pandas",
     engine: Optional[str] = None,
+    truediv=_no_default,
     local_dict=None,
     global_dict=None,
     resolvers=(),
@@ -216,6 +218,10 @@ def eval(
                         level python. This engine is generally not that useful.
 
         More backends may be available in the future.
+
+    truediv : bool, optional
+        Whether to use true division, like in Python >= 3.
+        deprecated:: 1.0.0
 
     local_dict : dict or None, optional
         A dictionary of local variables, taken from locals() by default.
@@ -281,6 +287,14 @@ def eval(
     """
 
     inplace = validate_bool_kwarg(inplace, "inplace")
+
+    if truediv is not _no_default:
+        warnings.warn(
+            "The `truediv` parameter in pd.eval is deprecated and will be "
+            "removed in a future version.",
+            FutureWarning,
+            stacklevel=2,
+        )
 
     if isinstance(expr, str):
         _check_expression(expr)
