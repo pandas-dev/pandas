@@ -2,7 +2,6 @@ from distutils.version import LooseVersion
 from functools import reduce
 from itertools import product
 import operator
-import re
 from typing import Dict, Type
 import warnings
 
@@ -1221,12 +1220,6 @@ class TestOperationsNumExprPandas:
         res = self.eval("s / 2")
         expec = 0.5
         assert res == expec
-
-    def test_truediv_kwarg_raises(self):
-        # gh-28446
-        msg = re.escape("eval() got an unexpected keyword argument 'truediv'")
-        with pytest.raises(TypeError, match=msg):
-            self.eval("1 / 2", truediv=False)
 
     def test_failing_subscript_with_name_error(self):
         df = DataFrame(np.random.randn(5, 3))  # noqa
