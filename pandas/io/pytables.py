@@ -461,6 +461,7 @@ class HDFStore:
 
     _handle: Optional["File"]
     _complevel: int
+    _fletcher32: bool
 
     def __init__(
         self,
