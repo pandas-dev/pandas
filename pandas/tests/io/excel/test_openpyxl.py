@@ -105,7 +105,7 @@ def test_write_append_mode(ext, mode, expected):
             assert wb2.worksheets[index]["A1"].value == cell_value
 
 
-@pytest.skip(openpyxl.__version__ > "3.0.1", reason="broken change in openpyxl")
+@pytest.xfail(openpyxl.__version__ > "3.0.1", reason="broken change in openpyxl")
 def test_to_excel_with_openpyxl_engine(tmpdir):
     # GH 29854
     # TODO: Fix this once newer version of openpyxl fixes the bug
