@@ -1,5 +1,11 @@
 .. currentmodule:: pandas
 
+.. ipython:: python
+   :suppress:
+
+   import pandas as pd
+   import numpy as np
+
 .. _boolean:
 
 **************************
@@ -13,48 +19,33 @@ Nullable Boolean Data Type
 Kleene Logic
 ------------
 
-:class:`arrays.BooleanArray` implements Kleene logic (sometime called three-value logic) for
+:class:`arrays.BooleanArray` implements Kleene logic (sometimes called three-value logic) for
 logical operations like ``&`` (and), ``|`` (or) and ``^`` (exclusive-or).
 
 Here's a table for ``and``.
 
-==========  ===========  ============
-left value  right value  output value
-==========  ===========  ============
-True        True         True
-True        False        False
-True        NA           NA
-False       False        False
-False       NA           False
-NA          NA           NA
-==========  ===========  ============
-
-
-And for ``or``
-
-==========  ===========  ============
-left value  right value  output value
-==========  ===========  ============
-True        True         True
-True        False        True
-True        NA           True
-False       False        False
-False       NA           NA
-NA          NA           NA
-==========  ===========  ============
-
-And for ``xor``
-
-==========  ===========  ============
-left value  right value  output value
-==========  ===========  ============
-True        True         False
-True        False        True
-True        NA           NA
-False       False        False
-False       NA           NA
-NA          NA           NA
-==========  ===========  ============
+================= =========
+Expression        Result
+================= =========
+``True & True``   ``True``
+``True & False``  ``False``
+``True & NA``     ``NA``
+``False & False`` ``False``
+``False & NA``    ``False``
+``NA & NA``       ``NA``
+``True | True``   ``True``
+``True | False``  ``True``
+``True | NA``     ``True``
+``False | False`` ``False``
+``False | NA``    ``NA``
+``NA | NA``       ``NA``
+``True ^ True``   ``False``
+``True ^ False``  ``True``
+``True ^ NA``     ``NA``
+``False ^ False`` ``False``
+``False ^ NA``    ``NA``
+``NA ^ NA``       ``NA``
+================= =========
 
 When an ``NA`` is present in an operation, the output value is ``NA`` only if
 the result cannot be determined soley based on the other input. For example,
@@ -78,6 +69,8 @@ In ``or``
    pd.Series([True, False, np.nan], dtype="boolean") | True
 
 In ``and``
+
+.. ipython:: python
 
    pd.Series([True, False, np.nan], dtype="object") & True
    pd.Series([True, False, np.nan], dtype="boolean") & True
