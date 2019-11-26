@@ -63,9 +63,6 @@ class BaseIndexer:
 class FixedWindowIndexer(BaseIndexer):
     """Creates window boundaries that are of fixed length."""
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
     def get_window_bounds(self,
         num_values: int = 0,
         window_size: int = 0,
@@ -112,9 +109,6 @@ class FixedWindowIndexer(BaseIndexer):
 
 class VariableWindowIndexer(BaseIndexer):
     """Creates window boundaries that are of variable length, namely for time series."""
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
 
     @staticmethod
     def _get_window_bound(
