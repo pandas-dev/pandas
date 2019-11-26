@@ -485,7 +485,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
             )
         # coerce
         data = self._coerce_to_ndarray()
-        return astype_nansafe(data, dtype, copy=None)
+        return astype_nansafe(data, dtype)
 
     def value_counts(self, dropna=True):
         """
