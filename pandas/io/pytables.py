@@ -54,7 +54,7 @@ from pandas.io.common import _stringify_path
 from pandas.io.formats.printing import adjoin, pprint_thing
 
 if TYPE_CHECKING:
-    from tables import File  # noqa:F401
+    from tables import File, Node  # noqa:F401
 
 
 # versioning attribute
@@ -1269,7 +1269,7 @@ class HDFStore:
 
             yield (g._v_pathname.rstrip("/"), groups, leaves)
 
-    def get_node(self, key: str):
+    def get_node(self, key: str) -> Optional["Node"]:
         """ return the node with the key or None if it does not exist """
         self._check_if_open()
         if not key.startswith("/"):
@@ -1277,9 +1277,13 @@ class HDFStore:
 
         assert self._handle is not None
         try:
-            return self._handle.get_node(self.root, key)
+            node = self._handle.get_node(self.root, key)
         except _table_mod.exceptions.NoSuchNodeError:  # type: ignore
             return None
+
+        assert _table_mod is not None  # for mypy
+        assert isinstance(node, _table_mod.Node), type(node)
+        return node
 
     def get_storer(self, key: str) -> Union["GenericFixed", "Table"]:
         """ return the storer object for a key, raise if not in the file """
@@ -1389,7 +1393,9 @@ class HDFStore:
 
         return output
 
-    # private methods ######
+    # ------------------------------------------------------------------------
+    # private methods
+
     def _check_if_open(self):
         if not self.is_open:
             raise ClosedFileError(f"{self._path} file is not open!")
@@ -1561,7 +1567,7 @@ class HDFStore:
         if isinstance(s, Table) and index:
             s.create_index(columns=index)
 
-    def _read_group(self, group, **kwargs):
+    def _read_group(self, group: "Node", **kwargs):
         s = self._create_storer(group)
         s.infer_axes()
         return s.read(**kwargs)
@@ -1788,7 +1794,7 @@ class IndexCol:
         new_self = copy.copy(self)
         return new_self
 
-    def infer(self, handler):
+    def infer(self, handler: "Table"):
         """infer this column from the table: create and return a new object"""
         table = handler.table
         new_self = self.copy()
@@ -2092,7 +2098,7 @@ class DataCol(IndexCol):
             )
         )
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         """ compare 2 col items """
         return all(
             getattr(self, a, None) == getattr(other, a, None)
@@ -2504,9 +2510,16 @@ class Fixed:
     pandas_kind: str
     obj_type: Type[Union[DataFrame, Series]]
     ndim: int
+    parent: HDFStore
+    group: "Node"
     is_table = False
 
-    def __init__(self, parent, group, encoding=None, errors="strict", **kwargs):
+    def __init__(
+        self, parent: HDFStore, group: "Node", encoding=None, errors="strict", **kwargs
+    ):
+        assert isinstance(parent, HDFStore), type(parent)
+        assert _table_mod is not None  # needed for mypy
+        assert isinstance(group, _table_mod.Node), type(group)
         self.parent = parent
         self.group = group
         self.encoding = _ensure_encoding(encoding)
@@ -2770,7 +2783,7 @@ class GenericFixed(Fixed):
         else:
             return ret
 
-    def read_index(self, key, **kwargs):
+    def read_index(self, key: str, **kwargs):
         variety = _ensure_decoded(getattr(self.attrs, f"{key}_variety"))
 
         if variety == "multi":
@@ -2785,7 +2798,7 @@ class GenericFixed(Fixed):
         else:  # pragma: no cover
             raise TypeError(f"unrecognized index variety: {variety}")
 
-    def write_index(self, key, index):
+    def write_index(self, key: str, index):
         if isinstance(index, MultiIndex):
             setattr(self.attrs, f"{key}_variety", "multi")
             self.write_multi_index(key, index)
@@ -2816,18 +2829,18 @@ class GenericFixed(Fixed):
             if hasattr(index, "tz") and index.tz is not None:
                 node._v_attrs.tz = _get_tz(index.tz)
 
-    def write_block_index(self, key, index):
+    def write_block_index(self, key: str, index):
         self.write_array(f"{key}_blocs", index.blocs)
         self.write_array(f"{key}_blengths", index.blengths)
         setattr(self.attrs, f"{key}_length", index.length)
 
-    def read_block_index(self, key, **kwargs) -> BlockIndex:
+    def read_block_index(self, key: str, **kwargs) -> BlockIndex:
         length = getattr(self.attrs, f"{key}_length")
         blocs = self.read_array(f"{key}_blocs", **kwargs)
         blengths = self.read_array(f"{key}_blengths", **kwargs)
         return BlockIndex(length, blocs, blengths)
 
-    def write_sparse_intindex(self, key, index):
+    def write_sparse_intindex(self, key: str, index):
         self.write_array(f"{key}_indices", index.indices)
         setattr(self.attrs, f"{key}_length", index.length)
 
@@ -2836,7 +2849,7 @@ class GenericFixed(Fixed):
         indices = self.read_array(f"{key}_indices", **kwargs)
         return IntIndex(length, indices)
 
-    def write_multi_index(self, key, index):
+    def write_multi_index(self, key: str, index):
         setattr(self.attrs, f"{key}_nlevels", index.nlevels)
 
         for i, (lev, level_codes, name) in enumerate(
@@ -2863,7 +2876,7 @@ class GenericFixed(Fixed):
             label_key = f"{key}_label{i}"
             self.write_array(label_key, level_codes)
 
-    def read_multi_index(self, key, **kwargs) -> MultiIndex:
+    def read_multi_index(self, key: str, **kwargs) -> MultiIndex:
         nlevels = getattr(self.attrs, f"{key}_nlevels")
 
         levels = []
@@ -2884,7 +2897,7 @@ class GenericFixed(Fixed):
         )
 
     def read_index_node(
-        self, node, start: Optional[int] = None, stop: Optional[int] = None
+        self, node: "Node", start: Optional[int] = None, stop: Optional[int] = None
     ):
         data = node[start:stop]
         # If the index was an empty array write_array_empty() will
