@@ -92,6 +92,18 @@ def test_groupby_aggregation_mixed_dtype():
     tm.assert_frame_equal(result, expected)
 
 
+def test_groupby_aggregation_multi_level_column():
+    lst = [[1, 2, 3, 4], [2, 3, 4, 5], [3, 4, np.nan, 6], [4, 5, 6, 7]]
+    df = pd.DataFrame(np.array(lst), columns=[["a", "a", "b", "b"], [0, 1, 0, 1]])
+
+    result = df.groupby(level=1, axis=1).sum()
+
+    lst = [[4, 6], [6, 8], [3, 10], [10, 12]]
+    expected = pd.DataFrame(np.array(lst), dtype="float64")
+
+    tm.assert_frame_equal(result, expected)
+
+
 def test_agg_apply_corner(ts, tsframe):
     # nothing to group, all NA
     grouped = ts.groupby(ts * np.nan)
