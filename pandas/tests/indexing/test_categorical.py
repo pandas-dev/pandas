@@ -754,3 +754,26 @@ class TestCategoricalIndex:
         output = cur_index.map(mapper)
         # Order of categories in output can be different
         tm.assert_index_equal(expected, output)
+
+    def test_indexing_with_integer_categories(self):
+        # GH-17569
+        cat_idx = CategoricalIndex([1, 2, 3])
+        cat = DataFrame({"A": ["foo", "bar", "baz"]}, index=cat_idx)
+        # scalar
+        result = cat.loc[1]
+        expected = Series(["foo"], index=["A"], name=1)
+        tm.assert_series_equal(result, expected)
+        # list
+        result = cat.loc[[1, 2]]
+        expected = DataFrame(["foo", "bar"], index=cat_idx[:2], columns=["A"])
+        tm.assert_frame_equal(result, expected)
+        # scalar assignment
+        result = cat.copy()
+        result.loc[1] = "qux"
+        expected = DataFrame({"A": ["qux", "bar", "baz"]}, index=cat_idx)
+        tm.assert_frame_equal(result, expected)
+        # list assignment
+        result = cat.copy()
+        result.loc[[1, 2], "A"] = ["qux", "qux2"]
+        expected = DataFrame({"A": ["qux", "qux2", "baz"]}, index=cat_idx)
+        tm.assert_frame_equal(result, expected)

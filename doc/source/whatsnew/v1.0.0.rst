@@ -564,6 +564,7 @@ Indexing
 - Fix assignment of column via `.loc` with numpy non-ns datetime type (:issue:`27395`)
 - Bug in :meth:`Float64Index.astype` where ``np.inf`` was not handled properly when casting to an integer dtype (:issue:`28475`)
 - :meth:`Index.union` could fail when the left contained duplicates (:issue:`28257`)
+- Bug when indexing with ``.loc`` and the index is a :class:`CateggoricalIndex` with integer categories (:issue:`17569`)
 - :meth:`Index.get_indexer_non_unique` could fail with `TypeError` in some cases, such as when searching for ints in a string index (:issue:`28257`)
 - Bug in :meth:`Float64Index.get_loc` incorrectly raising ``TypeError`` instead of ``KeyError`` (:issue:`29189`)
 
