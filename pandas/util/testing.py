@@ -713,7 +713,7 @@ def assert_class_equal(left, right, exact=True, obj="Input"):
             return x
 
         try:
-            return x.__class__.__name__
+            return type(x).__name__
         except AttributeError:
             return repr(type(x))
 
@@ -782,13 +782,13 @@ def assert_is_valid_plot_return_object(objs):
             msg = (
                 "one of 'objs' is not a matplotlib Axes instance, type "
                 "encountered {name!r}"
-            ).format(name=el.__class__.__name__)
+            ).format(name=type(el).__name__)
             assert isinstance(el, (plt.Axes, dict)), msg
     else:
         assert isinstance(objs, (plt.Artist, tuple, dict)), (
             "objs is neither an ndarray of Artist instances nor a "
             'single Artist instance, tuple, or dict, "objs" is a {name!r}'.format(
-                name=objs.__class__.__name__
+                name=type(objs).__name__
             )
         )
 

@@ -857,11 +857,11 @@ class StataMissingValue:
 
     def __repr__(self) -> str:
         # not perfect :-/
-        return "{cls}({obj})".format(cls=self.__class__, obj=self)
+        return "{cls}({obj})".format(cls=type(self), obj=self)
 
     def __eq__(self, other):
         return (
-            isinstance(other, self.__class__)
+            isinstance(other, type(self))
             and self.string == other.string
             and self.value == other.value
         )

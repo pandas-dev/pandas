@@ -160,6 +160,12 @@ def _new_Index(cls, d):
         from pandas.core.indexes.period import _new_PeriodIndex
 
         return _new_PeriodIndex(cls, **d)
+
+    if issubclass(cls, ABCMultiIndex):
+        if "labels" in d and "codes" not in d:
+            # GH#23752 "labels" kwarg has been replaced with "codes"
+            d["codes"] = d.pop("labels")
+
     return cls.__new__(cls, **d)
 
 
@@ -826,7 +832,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             if allow_fill and fill_value is not None:
                 msg = "Unable to fill values because {0} cannot contain NA"
-                raise ValueError(msg.format(self.__class__.__name__))
+                raise ValueError(msg.format(type(self).__name__))
             taken = self.values.take(indices)
         return self._shallow_copy(taken)
 
@@ -959,7 +965,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return a string representation for this object.
         """
-        klass = self.__class__.__name__
+        klass = type(self).__name__
         data = self._format_data()
         attrs = self._format_attrs()
         space = self._format_space()
@@ -1132,19 +1138,6 @@ class Index(IndexOpsMixin, PandasObject):
             name = type(self).__name__
         return f"{name}: {len(self)} entries{index_summary}"
 
-    def summary(self, name=None):
-        """
-        Return a summarized representation.
-
-        .. deprecated:: 0.23.0
-        """
-        warnings.warn(
-            "'summary' is deprecated and will be removed in a future version.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._summary(name)
-
     # --------------------------------------------------------------------
     # Conversion Methods
 
@@ -1311,7 +1304,7 @@ class Index(IndexOpsMixin, PandasObject):
         for name in values:
             if not is_hashable(name):
                 raise TypeError(
-                    "{}.name must be a hashable type".format(self.__class__.__name__)
+                    "{}.name must be a hashable type".format(type(self).__name__)
                 )
         self.name = values[0]
 
@@ -1818,7 +1811,7 @@ class Index(IndexOpsMixin, PandasObject):
     def __reduce__(self):
         d = dict(data=self._data)
         d.update(self._get_attributes_dict())
-        return _new_Index, (self.__class__, d), None
+        return _new_Index, (type(self), d), None
 
     def __setstate__(self, state):
         """
@@ -2314,7 +2307,7 @@ class Index(IndexOpsMixin, PandasObject):
         raise ValueError(
             "The truth value of a {0} is ambiguous. "
             "Use a.empty, a.bool(), a.item(), a.any() or a.all().".format(
-                self.__class__.__name__
+                type(self).__name__
             )
         )
 

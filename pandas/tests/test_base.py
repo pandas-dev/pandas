@@ -400,7 +400,7 @@ class TestIndexOps(Ops):
 
             result = o.unique()
             if isinstance(o, Index):
-                assert isinstance(result, o.__class__)
+                assert isinstance(result, type(o))
                 tm.assert_index_equal(result, orig)
                 assert result.dtype == orig.dtype
             elif is_datetime64tz_dtype(o):

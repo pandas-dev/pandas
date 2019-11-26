@@ -87,7 +87,7 @@ cdef class _Timestamp(datetime):
                 return PyObject_RichCompareBool(val, other, op)
 
             try:
-                ots = self.__class__(other)
+                ots = type(self)(other)
             except ValueError:
                 return self._compare_outside_nanorange(other, op)
         else:
@@ -96,7 +96,7 @@ cdef class _Timestamp(datetime):
             if ndim != -1:
                 if ndim == 0:
                     if is_datetime64_object(other):
-                        other = self.__class__(other)
+                        other = type(self)(other)
                     elif is_array(other):
                         # zero-dim array, occurs if try comparison with
                         #  datetime64 scalar on the left hand side
@@ -105,7 +105,7 @@ cdef class _Timestamp(datetime):
                         #  the numpy C api to extract it.
                         other = cnp.PyArray_ToScalar(cnp.PyArray_DATA(other),
                                                      other)
-                        other = self.__class__(other)
+                        other = type(self)(other)
                     else:
                         return NotImplemented
                 elif is_array(other):
@@ -226,8 +226,7 @@ cdef class _Timestamp(datetime):
 
         if is_timedelta64_object(other):
             other_int = other.astype('timedelta64[ns]').view('i8')
-            return self.__class__(self.value + other_int,
-                                  tz=self.tzinfo, freq=self.freq)
+            return type(self)(self.value + other_int, tz=self.tzinfo, freq=self.freq)
 
         elif is_integer_object(other):
             maybe_integer_op_deprecated(self)
@@ -238,8 +237,7 @@ cdef class _Timestamp(datetime):
             elif self.freq is None:
                 raise NullFrequencyError(
                     "Cannot add integral value to Timestamp without freq.")
-            return self.__class__((self.freq * other).apply(self),
-                                  freq=self.freq)
+            return type(self)((self.freq * other).apply(self), freq=self.freq)
 
         elif PyDelta_Check(other) or hasattr(other, 'delta'):
             # delta --> offsets.Tick
@@ -253,8 +251,7 @@ cdef class _Timestamp(datetime):
                          other.seconds * 1000000 +
                          other.microseconds) * 1000
 
-            result = self.__class__(self.value + nanos,
-                                    tz=self.tzinfo, freq=self.freq)
+            result = type(self)(self.value + nanos, tz=self.tzinfo, freq=self.freq)
             return result
 
         elif is_array(other):
@@ -272,7 +269,7 @@ cdef class _Timestamp(datetime):
 
         result = datetime.__add__(self, other)
         if PyDateTime_Check(result):
-            result = self.__class__(result)
+            result = type(self)(result)
             result.nanosecond = self.nanosecond
         return result
 
@@ -304,9 +301,9 @@ cdef class _Timestamp(datetime):
         if (PyDateTime_Check(self)
                 and (PyDateTime_Check(other) or is_datetime64_object(other))):
             if isinstance(self, _Timestamp):
-                other = self.__class__(other)
+                other = type(self)(other)
             else:
-                self = other.__class__(self)
+                self = type(other)(self)
 
             # validate tz's
             if not tz_compare(self.tzinfo, other.tzinfo):

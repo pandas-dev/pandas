@@ -6,12 +6,11 @@ from datetime import timedelta
 from functools import partial
 from textwrap import dedent
 from typing import Callable, Dict, List, Optional, Set, Tuple, Union
-import warnings
 
 import numpy as np
 
-import pandas._libs.window as libwindow
-import pandas._libs.window_indexer as libwindow_indexer
+import pandas._libs.window.aggregations as window_aggregations
+import pandas._libs.window.indexers as window_indexers
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -205,7 +204,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
     @property
     def _window_type(self) -> str:
-        return self.__class__.__name__
+        return type(self).__name__
 
     def __repr__(self) -> str:
         """
@@ -381,11 +380,11 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         -------
         func : callable
         """
-        window_func = getattr(libwindow, func_name, None)
+        window_func = getattr(window_aggregations, func_name, None)
         if window_func is None:
             raise ValueError(
                 "we do not support this function "
-                "in libwindow.{func_name}".format(func_name=func_name)
+                "in window_aggregations.{func_name}".format(func_name=func_name)
             )
         return window_func
 
@@ -406,8 +405,8 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         Return an indexer class that will compute the window start and end bounds
         """
         if self.is_freq_type:
-            return libwindow_indexer.VariableWindowIndexer
-        return libwindow_indexer.FixedWindowIndexer
+            return window_indexers.VariableWindowIndexer
+        return window_indexers.FixedWindowIndexer
 
     def _apply(
         self,
@@ -1190,15 +1189,11 @@ class _Rolling_and_Expanding(_Rolling):
     raw : bool, default None
         * ``False`` : passes each row or column as a Series to the
           function.
-        * ``True`` or ``None`` : the passed function will receive ndarray
+        * ``True`` : the passed function will receive ndarray
           objects instead.
           If you are just applying a NumPy reduction function this will
           achieve much better performance.
 
-        The `raw` parameter is required and will show a FutureWarning if
-        not passed. In the future `raw` will default to False.
-
-        .. versionadded:: 0.23.0
     *args, **kwargs
         Arguments and keyword arguments to be passed into func.
 
@@ -1214,27 +1209,15 @@ class _Rolling_and_Expanding(_Rolling):
     """
     )
 
-    def apply(self, func, raw=None, args=(), kwargs={}):
+    def apply(self, func, raw=False, args=(), kwargs={}):
         from pandas import Series
 
         kwargs.pop("_level", None)
         kwargs.pop("floor", None)
         window = self._get_window()
         offset = _offset(window, self.center)
-
-        # TODO: default is for backward compat
-        # change to False in the future
-        if raw is None:
-            warnings.warn(
-                "Currently, 'apply' passes the values as ndarrays to the "
-                "applied function. In the future, this will change to passing "
-                "it as Series objects. You need to specify 'raw=True' to keep "
-                "the current behaviour, and you can pass 'raw=False' to "
-                "silence this warning",
-                FutureWarning,
-                stacklevel=3,
-            )
-            raw = True
+        if not is_bool(raw):
+            raise ValueError("raw parameter must be `True` or `False`")
 
         window_func = partial(
             self._get_cython_func_type("roll_generic"),
@@ -1898,7 +1881,7 @@ class Rolling(_Rolling_and_Expanding):
 
     @Substitution(name="rolling")
     @Appender(_shared_docs["apply"])
-    def apply(self, func, raw=None, args=(), kwargs={}):
+    def apply(self, func, raw=False, args=(), kwargs={}):
         return super().apply(func, raw=raw, args=args, kwargs=kwargs)
 
     @Substitution(name="rolling")

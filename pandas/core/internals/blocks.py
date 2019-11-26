@@ -257,11 +257,11 @@ class Block(PandasObject):
             placement = self.mgr_locs
         if ndim is None:
             ndim = self.ndim
-        return make_block(values, placement=placement, ndim=ndim, klass=self.__class__)
+        return make_block(values, placement=placement, ndim=ndim, klass=type(self))
 
     def __repr__(self) -> str:
         # don't want to print out all of the items here
-        name = pprint_thing(self.__class__.__name__)
+        name = pprint_thing(type(self).__name__)
         if self._is_single_block:
 
             result = "{name}: {len} dtype: {dtype}".format(

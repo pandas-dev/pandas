@@ -105,7 +105,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
     def __call__(self, axis=None):
         # we need to return a copy of ourselves
-        new_self = self.__class__(self.name, self.obj)
+        new_self = type(self)(self.name, self.obj)
 
         if axis is not None:
             axis = self.obj._get_axis_number(axis)

@@ -37,16 +37,6 @@ def sort(request):
     return request.param
 
 
-@pytest.fixture(params=[True, False, None])
-def sort_with_none(request):
-    """Boolean sort keyword for concat and DataFrame.append.
-
-    Includes the default of None
-    """
-    # TODO: Replace with sort once keyword changes.
-    return request.param
-
-
 class TestConcatAppendCommon:
     """
     Test common dtype coercion rules between concat and append.
@@ -775,15 +765,13 @@ class TestConcatAppendCommon:
         )
 
         expected = pd.concat([one, two], axis=1, sort=False).reindex(index=two.index)
-        with tm.assert_produces_warning(expected_warning=FutureWarning):
-            result = pd.concat([one, two], axis=1, sort=False, join_axes=[two.index])
+        result = pd.concat([one, two], axis=1, sort=False, join_axes=[two.index])
         tm.assert_frame_equal(result, expected)
 
         expected = pd.concat([one, two], axis=0, sort=False).reindex(
             columns=two.columns
         )
-        with tm.assert_produces_warning(expected_warning=FutureWarning):
-            result = pd.concat([one, two], axis=0, sort=False, join_axes=[two.columns])
+        result = pd.concat([one, two], axis=0, sort=False, join_axes=[two.columns])
         tm.assert_frame_equal(result, expected)
 
 
@@ -875,27 +863,19 @@ class TestAppend:
         tm.assert_frame_equal(result, expected)
 
     # rewrite sort fixture, since we also want to test default of None
-    def test_append_sorts(self, sort_with_none):
+    def test_append_sorts(self, sort):
         df1 = pd.DataFrame({"a": [1, 2], "b": [1, 2]}, columns=["b", "a"])
         df2 = pd.DataFrame({"a": [1, 2], "c": [3, 4]}, index=[2, 3])
 
-        if sort_with_none is None:
-            # only warn if not explicitly specified
-            # don't check stacklevel since its set for concat, and append
-            # has an extra stack.
-            ctx = tm.assert_produces_warning(FutureWarning, check_stacklevel=False)
-        else:
-            ctx = tm.assert_produces_warning(None)
-
-        with ctx:
-            result = df1.append(df2, sort=sort_with_none)
+        with tm.assert_produces_warning(None):
+            result = df1.append(df2, sort=sort)
 
         # for None / True
         expected = pd.DataFrame(
             {"b": [1, 2, None, None], "a": [1, 2, 1, 2], "c": [None, None, 3, 4]},
             columns=["a", "b", "c"],
         )
-        if sort_with_none is False:
+        if sort is False:
             expected = expected[["b", "a", "c"]]
         tm.assert_frame_equal(result, expected)
 
@@ -967,7 +947,7 @@ class TestAppend:
 
     all_indexes = indexes_can_append + indexes_cannot_append_with_other
 
-    @pytest.mark.parametrize("index", all_indexes, ids=lambda x: x.__class__.__name__)
+    @pytest.mark.parametrize("index", all_indexes, ids=lambda x: type(x).__name__)
     def test_append_same_columns_type(self, index):
         # GH18359
 
@@ -997,7 +977,7 @@ class TestAppend:
     @pytest.mark.parametrize(
         "df_columns, series_index",
         combinations(indexes_can_append, r=2),
-        ids=lambda x: x.__class__.__name__,
+        ids=lambda x: type(x).__name__,
     )
     def test_append_different_columns_types(self, df_columns, series_index):
         # GH18359
@@ -1022,12 +1002,12 @@ class TestAppend:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "index_can_append", indexes_can_append, ids=lambda x: x.__class__.__name__
+        "index_can_append", indexes_can_append, ids=lambda x: type(x).__name__
     )
     @pytest.mark.parametrize(
         "index_cannot_append_with_other",
         indexes_cannot_append_with_other,
-        ids=lambda x: x.__class__.__name__,
+        ids=lambda x: type(x).__name__,
     )
     def test_append_different_columns_types_raises(
         self, index_can_append, index_cannot_append_with_other
@@ -2629,7 +2609,7 @@ def test_concat_empty_and_non_empty_series_regression():
     tm.assert_series_equal(result, expected)
 
 
-def test_concat_sorts_columns(sort_with_none):
+def test_concat_sorts_columns(sort):
     # GH-4588
     df1 = pd.DataFrame({"a": [1, 2], "b": [1, 2]}, columns=["b", "a"])
     df2 = pd.DataFrame({"a": [3, 4], "c": [5, 6]})
@@ -2640,22 +2620,16 @@ def test_concat_sorts_columns(sort_with_none):
         columns=["a", "b", "c"],
     )
 
-    if sort_with_none is False:
+    if sort is False:
         expected = expected[["b", "a", "c"]]
 
-    if sort_with_none is None:
-        # only warn if not explicitly specified
-        ctx = tm.assert_produces_warning(FutureWarning)
-    else:
-        ctx = tm.assert_produces_warning(None)
-
     # default
-    with ctx:
-        result = pd.concat([df1, df2], ignore_index=True, sort=sort_with_none)
+    with tm.assert_produces_warning(None):
+        result = pd.concat([df1, df2], ignore_index=True, sort=sort)
     tm.assert_frame_equal(result, expected)
 
 
-def test_concat_sorts_index(sort_with_none):
+def test_concat_sorts_index(sort):
     df1 = pd.DataFrame({"a": [1, 2, 3]}, index=["c", "a", "b"])
     df2 = pd.DataFrame({"b": [1, 2]}, index=["a", "b"])
 
@@ -2663,22 +2637,16 @@ def test_concat_sorts_index(sort_with_none):
     expected = pd.DataFrame(
         {"a": [2, 3, 1], "b": [1, 2, None]}, index=["a", "b", "c"], columns=["a", "b"]
     )
-    if sort_with_none is False:
+    if sort is False:
         expected = expected.loc[["c", "a", "b"]]
 
-    if sort_with_none is None:
-        # only warn if not explicitly specified
-        ctx = tm.assert_produces_warning(FutureWarning)
-    else:
-        ctx = tm.assert_produces_warning(None)
-
     # Warn and sort by default
-    with ctx:
-        result = pd.concat([df1, df2], axis=1, sort=sort_with_none)
+    with tm.assert_produces_warning(None):
+        result = pd.concat([df1, df2], axis=1, sort=sort)
     tm.assert_frame_equal(result, expected)
 
 
-def test_concat_inner_sort(sort_with_none):
+def test_concat_inner_sort(sort):
     # https://github.com/pandas-dev/pandas/pull/20613
     df1 = pd.DataFrame({"a": [1, 2], "b": [1, 2], "c": [1, 2]}, columns=["b", "a", "c"])
     df2 = pd.DataFrame({"a": [1, 2], "b": [3, 4]}, index=[3, 4])
@@ -2686,12 +2654,10 @@ def test_concat_inner_sort(sort_with_none):
     with tm.assert_produces_warning(None):
         # unset sort should *not* warn for inner join
         # since that never sorted
-        result = pd.concat(
-            [df1, df2], sort=sort_with_none, join="inner", ignore_index=True
-        )
+        result = pd.concat([df1, df2], sort=sort, join="inner", ignore_index=True)
 
     expected = pd.DataFrame({"b": [1, 2, 3, 4], "a": [1, 2, 1, 2]}, columns=["b", "a"])
-    if sort_with_none is True:
+    if sort is True:
         expected = expected[["a", "b"]]
     tm.assert_frame_equal(result, expected)
 
@@ -2774,5 +2740,5 @@ def test_concat_datetimeindex_freq():
     # Non-monotonic index result
     result = pd.concat([expected[50:], expected[:50]])
     expected = pd.DataFrame(data[50:] + data[:50], index=dr[50:].append(dr[:50]))
-    expected.index.freq = None
+    expected.index._data.freq = None
     tm.assert_frame_equal(result, expected)

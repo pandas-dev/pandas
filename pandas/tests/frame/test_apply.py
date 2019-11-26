@@ -642,7 +642,7 @@ class TestDataFrameApply:
             }
         )
 
-        result = df.applymap(lambda x: "{0}".format(x.__class__.__name__))
+        result = df.applymap(lambda x: "{0}".format(type(x).__name__))
         expected = pd.DataFrame(
             {
                 "a": ["Timestamp", "Timestamp"],
