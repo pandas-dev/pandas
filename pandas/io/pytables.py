@@ -527,7 +527,7 @@ class HDFStore:
             f"'{type(self).__name__}' object has no attribute '{name}'"
         )
 
-    def __contains__(self, key: str):
+    def __contains__(self, key: str) -> bool:
         """ check for existence of this key
               can match the exact pathname or the pathnm w/o the leading '/'
               """
@@ -2810,9 +2810,7 @@ class GenericFixed(Fixed):
             self.write_sparse_intindex(key, index)
         else:
             setattr(self.attrs, f"{key}_variety", "regular")
-            converted = _convert_index(
-                "index", index, self.encoding, self.errors, self.format_type
-            )
+            converted = _convert_index("index", index, self.encoding, self.errors)
 
             self.write_array(key, converted.values)
 
@@ -2861,9 +2859,7 @@ class GenericFixed(Fixed):
                     "Saving a MultiIndex with an extension dtype is not supported."
                 )
             level_key = f"{key}_level{i}"
-            conv_level = _convert_index(
-                level_key, lev, self.encoding, self.errors, self.format_type
-            )
+            conv_level = _convert_index(level_key, lev, self.encoding, self.errors)
             self.write_array(level_key, conv_level.values)
             node = getattr(self.group, level_key)
             node._v_attrs.kind = conv_level.kind
@@ -3362,7 +3358,7 @@ class Table(Fixed):
         """ return a list of my values cols """
         return [i.cname for i in self.values_axes]
 
-    def _get_metadata_path(self, key) -> str:
+    def _get_metadata_path(self, key: str) -> str:
         """ return the metadata pathname for this key """
         group = self.group._v_pathname
         return f"{group}/meta/{key}/meta"
@@ -3719,9 +3715,7 @@ class Table(Fixed):
 
             if i in axes:
                 name = obj._AXIS_NAMES[i]
-                new_index = _convert_index(
-                    name, a, self.encoding, self.errors, self.format_type
-                )
+                new_index = _convert_index(name, a, self.encoding, self.errors)
                 new_index.axis = i
                 index_axes_map[i] = new_index
 
@@ -4586,7 +4580,7 @@ def _set_tz(values, tz, preserve_UTC: bool = False, coerce: bool = False):
     return values
 
 
-def _convert_index(name: str, index, encoding=None, errors="strict", format_type=None):
+def _convert_index(name: str, index, encoding=None, errors="strict"):
     assert isinstance(name, str)
 
     index_name = getattr(index, "name", None)
