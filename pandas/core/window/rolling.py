@@ -400,13 +400,13 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             self._get_roll_func("{}_fixed".format(func)), win=self._get_window()
         )
 
-    def _get_window_indexer(self):
+    def _get_window_indexer(self, index_as_array):
         """
         Return an indexer class that will compute the window start and end bounds
         """
         if self.is_freq_type:
-            return window_indexers.VariableWindowIndexer
-        return window_indexers.FixedWindowIndexer
+            return window_indexers.VariableWindowIndexer(index=index_as_array)
+        return window_indexers.FixedWindowIndexer()
 
     def _apply(
         self,
@@ -445,7 +445,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         blocks, obj = self._create_blocks()
         block_list = list(blocks)
         index_as_array = self._get_index()
-        window_indexer = self._get_window_indexer()
+        window_indexer = self._get_window_indexer(index_as_array)
 
         results = []
         exclude: List[Scalar] = []
@@ -476,9 +476,9 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                     min_periods = calculate_min_periods(
                         window, self.min_periods, len(x), require_min_periods, floor
                     )
-                    start, end = window_indexer(
-                        x, window, self.closed, index_as_array
-                    ).get_window_bounds()
+                    start, end = window_indexer.get_window_bounds(
+                        num_values=len(x), window_size=window, closed=self.closed
+                    )
                     return func(x, start, end, min_periods)
 
             else:
