@@ -16,8 +16,8 @@ Nullable Boolean Data Type
 
 .. _boolean.klean:
 
-Kleene Logic
-------------
+Kleene Logical Operations
+-------------------------
 
 :class:`arrays.BooleanArray` implements Kleene logic (sometimes called three-value logic) for
 logical operations like ``&`` (and), ``|`` (or) and ``^`` (exclusive-or).
@@ -49,7 +49,7 @@ Expression        Result
 ================= =========
 
 When an ``NA`` is present in an operation, the output value is ``NA`` only if
-the result cannot be determined soley based on the other input. For example,
+the result cannot be determined solely based on the other input. For example,
 ``True | NA`` is ``True``, because both ``True | True`` and ``True | False``
 are ``True``. In that case, we don't actually need to consider the value
 of the ``NA``.
