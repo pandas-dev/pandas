@@ -486,7 +486,6 @@ generated/pandas.DataFrame.T,../reference/api/pandas.DataFrame.T
 generated/pandas.DataFrame.timetuple,../reference/api/pandas.DataFrame.timetuple
 generated/pandas.DataFrame.to_clipboard,../reference/api/pandas.DataFrame.to_clipboard
 generated/pandas.DataFrame.to_csv,../reference/api/pandas.DataFrame.to_csv
-generated/pandas.DataFrame.to_dense,../reference/api/pandas.DataFrame.to_dense
 generated/pandas.DataFrame.to_dict,../reference/api/pandas.DataFrame.to_dict
 generated/pandas.DataFrame.to_excel,../reference/api/pandas.DataFrame.to_excel
 generated/pandas.DataFrame.to_feather,../reference/api/pandas.DataFrame.to_feather
@@ -973,7 +972,6 @@ generated/pandas.Panel.take,../reference/api/pandas.Panel.take
 generated/pandas.Panel.timetuple,../reference/api/pandas.Panel.timetuple
 generated/pandas.Panel.to_clipboard,../reference/api/pandas.Panel.to_clipboard
 generated/pandas.Panel.to_csv,../reference/api/pandas.Panel.to_csv
-generated/pandas.Panel.to_dense,../reference/api/pandas.Panel.to_dense
 generated/pandas.Panel.to_excel,../reference/api/pandas.Panel.to_excel
 generated/pandas.Panel.to_frame,../reference/api/pandas.Panel.to_frame
 generated/pandas.Panel.to_hdf,../reference/api/pandas.Panel.to_hdf
@@ -1411,7 +1409,6 @@ generated/pandas.Series.T,../reference/api/pandas.Series.T
 generated/pandas.Series.timetuple,../reference/api/pandas.Series.timetuple
 generated/pandas.Series.to_clipboard,../reference/api/pandas.Series.to_clipboard
 generated/pandas.Series.to_csv,../reference/api/pandas.Series.to_csv
-generated/pandas.Series.to_dense,../reference/api/pandas.Series.to_dense
 generated/pandas.Series.to_dict,../reference/api/pandas.Series.to_dict
 generated/pandas.Series.to_excel,../reference/api/pandas.Series.to_excel
 generated/pandas.Series.to_frame,../reference/api/pandas.Series.to_frame
