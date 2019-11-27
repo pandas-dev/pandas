@@ -948,7 +948,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return a string representation for this object.
         """
-        klass = type(self).__name__
+        klass_name = type(self).__name__
         data = self._format_data()
         attrs = self._format_attrs()
         space = self._format_space()
@@ -959,7 +959,7 @@ class Index(IndexOpsMixin, PandasObject):
         if data is None:
             data = ""
 
-        res = f"{klass}({data}{prepr})"
+        res = f"{klass_name}({data}{prepr})"
 
         return res
 
