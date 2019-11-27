@@ -628,8 +628,9 @@ class TestTypeInference:
         expected = "integer" if skipna else "integer-na"
         assert result == expected
 
-    def test_deprecation(self):
-        # GH 24050, enforced GH#???? skipna defaultt is not True
+    def test_infer_dtype_skipna_default(self):
+        # infer_dtype `skipna` default deprecated in GH#24050,
+        #  changed to True in GH#29876
         arr = np.array([1, 2, 3, np.nan], dtype=object)
 
         result = lib.infer_dtype(arr)

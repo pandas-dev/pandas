@@ -402,7 +402,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 **Other removals**
 
 - Floordiv of integer-dtyped array by :class:`Timedelta` now raises ``TypeError`` (:issue:`21036`)
-- :func:`_libs.lib.infer_dtype` argument ``skipna`` defaults to ``True`` instead of ``False`` (:issue:`24050`)
+- :func:`pandas.api.types.infer_dtype` argument ``skipna`` defaults to ``True`` instead of ``False`` (:issue:`24050`)
 - Removed the previously deprecated :meth:`Index.summary` (:issue:`18217`)
 - Removed the previously deprecated "fastpath" keyword from the :class:`Index` constructor (:issue:`23110`)
 - Removed the previously deprecated :meth:`Series.get_value`, :meth:`Series.set_value`, :meth:`DataFrame.get_value`, :meth:`DataFrame.set_value` (:issue:`17739`)
