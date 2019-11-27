@@ -1,7 +1,6 @@
 """ test the scalar Timedelta """
 from datetime import timedelta
 import re
-from typing import Any
 
 import numpy as np
 import pytest
@@ -134,7 +133,7 @@ class TestTimedeltaComparison:
                 else:
                     return self.cmp_result
 
-            def __eq__(self, other: Any):
+            def __eq__(self, other):
                 return self.generic_result()
 
             def __gt__(self, other):

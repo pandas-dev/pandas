@@ -1,7 +1,6 @@
 from datetime import datetime
 from itertools import permutations
 import struct
-from typing import Any
 
 import numpy as np
 from numpy.random import RandomState
@@ -768,7 +767,7 @@ class TestIsin:
         # with similar behavior, then we at least should
         # fall back to usual python's behavior: "a in [a] == True"
         class LikeNan:
-            def __eq__(self, other: Any) -> bool:
+            def __eq__(self, other) -> bool:
                 return False
 
             def __hash__(self):
