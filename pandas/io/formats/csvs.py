@@ -233,7 +233,7 @@ class CSVFormatter:
         cols = self.cols
         has_mi_columns = self.has_mi_columns
         header = self.header
-        encoded_labels = []  # type: List[str]
+        encoded_labels: List[str] = []
 
         has_aliases = isinstance(header, (tuple, list, np.ndarray, ABCIndexClass))
         if not (has_aliases or self.header):

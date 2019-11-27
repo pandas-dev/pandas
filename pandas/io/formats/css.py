@@ -71,6 +71,7 @@ class CSSResolver:
          ('font-size', '24pt'),
          ('font-weight', 'bold')]
         """
+        font_size: Optional[float]
 
         props = dict(self.atomize(self.parse(declarations_str)))
         if inherited is None:
@@ -105,7 +106,7 @@ class CSSResolver:
                 props["font-size"], em_pt, conversions=self.FONT_SIZE_RATIOS
             )
 
-            font_size = float(props["font-size"][:-2])  # type: Optional[float]
+            font_size = float(props["font-size"][:-2])
         else:
             font_size = None
 
