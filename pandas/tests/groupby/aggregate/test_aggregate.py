@@ -93,13 +93,20 @@ def test_groupby_aggregation_mixed_dtype():
 
 
 def test_groupby_aggregation_multi_level_column():
-    lst = [[1, 2, 3, 4], [2, 3, 4, 5], [3, 4, np.nan, 6], [4, 5, 6, 7]]
-    df = pd.DataFrame(np.array(lst), columns=[["a", "a", "b", "b"], [0, 1, 0, 1]])
+    # GH 29772
+    lst = [
+        [True, True, True, False],
+        [True, False, np.nan, False],
+        [True, True, np.nan, False],
+        [True, True, np.nan, False],
+    ]
+    df = pd.DataFrame(
+        data=lst,
+        columns=pd.MultiIndex.from_tuples([("A", 0), ("A", 1), ("B", 0), ("B", 1)]),
+    )
 
     result = df.groupby(level=1, axis=1).sum()
-
-    lst = [[4, 6], [6, 8], [3, 10], [10, 12]]
-    expected = pd.DataFrame(np.array(lst), dtype="float64")
+    expected = pd.DataFrame({0: [2.0, 1, 1, 1], 1: [1, 0, 1, 1]})
 
     tm.assert_frame_equal(result, expected)
 
