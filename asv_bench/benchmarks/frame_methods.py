@@ -565,7 +565,7 @@ class GetDtypeCounts:
 
     def time_frame_get_dtype_counts(self):
         with warnings.catch_warnings(record=True):
-            self.df.get_dtype_counts()
+            self.df._data.get_dtype_counts()
 
     def time_info(self):
         self.df.info()

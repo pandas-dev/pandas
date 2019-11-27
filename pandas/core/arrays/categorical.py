@@ -1709,23 +1709,22 @@ class Categorical(ExtensionArray, PandasObject):
             )
         return values
 
-    def ravel(self, order="C"):
+    def ravel(self, order: str = "C") -> "Categorical":
         """
-        Return a flattened (numpy) array.
+        Return a view on self.
 
         For internal compatibility with numpy arrays.
 
+        Parameters
+        ----------
+        order : str, default "C"
+            Parameter is ignored, is for compat with ndarray signature.
+
         Returns
         -------
-        numpy.array
+        Categorical
         """
-        warn(
-            "Categorical.ravel will return a Categorical object instead "
-            "of an ndarray in a future version.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return np.array(self)
+        return self.view()
 
     def view(self, dtype=None):
         if dtype is not None:

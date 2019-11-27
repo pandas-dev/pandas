@@ -29,7 +29,6 @@ Attributes and underlying data
 
    DataFrame.dtypes
    DataFrame.ftypes
-   DataFrame.get_dtype_counts
    DataFrame.select_dtypes
    DataFrame.values
    DataFrame.get_values
