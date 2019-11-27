@@ -813,7 +813,7 @@ class Index(IndexOpsMixin, PandasObject):
             )
         else:
             if allow_fill and fill_value is not None:
-                cls_name = self.__class__.__name__
+                cls_name = type(self).__name__
                 raise ValueError(
                     f"Unable to fill values because {cls_name} cannot contain NA"
                 )
@@ -1287,9 +1287,7 @@ class Index(IndexOpsMixin, PandasObject):
         # All items in 'name' need to be hashable:
         for name in values:
             if not is_hashable(name):
-                raise TypeError(
-                    f"{self.__class__.__name__}.name must be a hashable type"
-                )
+                raise TypeError(f"{type(self).__name__}.name must be a hashable type")
         self.name = values[0]
 
     names = property(fset=_set_names, fget=_get_names)
@@ -2286,7 +2284,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def __nonzero__(self):
         raise ValueError(
-            f"The truth value of a {self.__class__.__name__} is ambiguous. "
+            f"The truth value of a {type(self).__name__} is ambiguous. "
             "Use a.empty, a.bool(), a.item(), a.any() or a.all()."
         )
 
