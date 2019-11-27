@@ -773,19 +773,20 @@ def kleene_or(
 
     raise_for_nan(right, method="or")
 
-    mask = left_mask
-
-    if right_mask is not None:
-        mask = mask | right_mask
-    else:
-        mask = mask.copy()
-
     result = left | right
-    mask[left & ~left_mask] = False
+
     if right_mask is not None:
-        mask[right & ~right_mask] = False
-    elif right is True:
-        mask[:] = False
+        # output is unknown where (False & NA), (NA & False), (NA & NA)
+        mask = (
+            ((~left & ~left_mask) & right_mask)
+            | ((~right & ~right_mask) & left_mask)  # F & NA
+            | (left_mask & right_mask)  # NA & F  # NA & NA
+        )
+    else:
+        if right is True:
+            mask = np.zeros_like(left_mask)
+        else:  # mask is False
+            mask = left_mask.copy()
 
     return result, mask
 
@@ -822,17 +823,14 @@ def kleene_xor(
     raise_for_nan(right, method="xor")
     # Re-use or, and update with adjustments.
     result, mask = kleene_or(left, right, left_mask, right_mask)
-
-    # # TODO(pd.NA): change to pd.NA
-    # if lib.is_scalar(right) and right is libmissing.NA:
-    #     # True | NA == True
-    #     # True ^ NA == NA
-    #     mask[result] = True
-
     result[left & right] = False
-    mask[right & left_mask] = True
-    if right_mask is not None:
-        mask[left & right_mask] = True
+
+    if right_mask is None:
+        mask = left_mask.copy()
+
+    else:
+        # breakpoint()
+        mask = left_mask | right_mask
 
     return result, mask
 
