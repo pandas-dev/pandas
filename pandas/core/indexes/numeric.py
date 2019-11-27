@@ -1,5 +1,3 @@
-import warnings
-
 import numpy as np
 
 from pandas._libs import index as libindex
@@ -47,17 +45,8 @@ class NumericIndex(Index):
 
     _is_numeric_dtype = True
 
-    def __new__(cls, data=None, dtype=None, copy=False, name=None, fastpath=None):
+    def __new__(cls, data=None, dtype=None, copy=False, name=None):
         cls._validate_dtype(dtype)
-        if fastpath is not None:
-            warnings.warn(
-                "The 'fastpath' keyword is deprecated, and will be "
-                "removed in a future version.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            if fastpath:
-                return cls._simple_new(data, name=name)
 
         # Coerce to ndarray if not already ndarray or Index
         if not isinstance(data, (np.ndarray, Index)):

@@ -234,7 +234,7 @@ cdef class Packer:
                 default_used = 1
                 continue
             else:
-                raise TypeError("can't serialize {thing!r}".format(thing=o))
+                raise TypeError(f"can't serialize {repr(o)}")
             break
         return ret
 
