@@ -23,8 +23,8 @@ jobs:
           ENV_FILE: ci/deps/azure-36-locale.yaml
           CONDA_PY: "36"
           PATTERN: "slow"
-          LANG: "zh_CN.GB_2312-80"
-          LC_ALL: "zh_CN.GB_2312-80"
+          LANG: "zh_CN.GB2312"
+          LC_ALL: "zh_CN.GB2312"
           EXTRA_APT: "language-pack-zh-hans"
 
         py36_locale_slow:
@@ -44,8 +44,8 @@ jobs:
           ENV_FILE: ci/deps/azure-37-locale.yaml
           CONDA_PY: "37"
           PATTERN: "not slow and not network"
-          LANG: "zh_CN.GB_2312-80"
-          LC_ALL: "zh_CN.GB_2312-80"
+          LANG: "zh_CN.GB2312"
+          LC_ALL: "zh_CN.GB2312"
 
         py37_np_dev:
           ENV_FILE: ci/deps/azure-37-numpydev.yaml
