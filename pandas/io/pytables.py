@@ -2656,7 +2656,9 @@ class Fixed:
             "cannot write on an abstract storer: subclasses should implement"
         )
 
-    def delete(self, where=None, start=None, stop=None, **kwargs):
+    def delete(
+        self, where=None, start: Optional[int] = None, stop: Optional[int] = None
+    ):
         """
         support fully deleting the node in its entirety (only) - where
         specification must be None
