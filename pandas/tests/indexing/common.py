@@ -9,10 +9,6 @@ from pandas.core.dtypes.common import is_scalar
 from pandas import DataFrame, Float64Index, MultiIndex, Series, UInt64Index, date_range
 import pandas.util.testing as tm
 
-from pandas.io.formats.printing import pprint_thing
-
-_verbose = False
-
 
 def _mklbl(prefix, n):
     return ["{prefix}{i}".format(prefix=prefix, i=i) for i in range(n)]
@@ -177,31 +173,12 @@ class Base:
             tm.assert_almost_equal(result, expected)
 
     def check_result(
-        self,
-        name,
-        method1,
-        key1,
-        method2,
-        key2,
-        typs=None,
-        kinds=None,
-        axes=None,
-        fails=None,
+        self, method1, key1, method2, key2, typs=None, axes=None, fails=None,
     ):
-        def _eq(typ, kind, axis, obj, key1, key2):
+        def _eq(axis, obj, key1, key2):
             """ compare equal for these 2 keys """
             if axis > obj.ndim - 1:
                 return
-
-            def _print(result, error=None):
-                err = str(error) if error is not None else ""
-                msg = (
-                    "%-16.16s [%-16.16s]: [typ->%-8.8s,obj->%-8.8s,"
-                    "key1->(%-4.4s),key2->(%-4.4s),axis->%s] %s"
-                    % (name, result, typ, kind, method1, method2, axis, err)
-                )
-                if _verbose:
-                    pprint_thing(msg)
 
             try:
                 rs = getattr(obj, method1).__getitem__(_axify(obj, key1, axis))
@@ -215,49 +192,26 @@ class Base:
                     except (KeyError, IndexError):
                         # TODO: why is this allowed?
                         result = "no comp"
-                        _print(result)
                         return
 
-                detail = None
+                if is_scalar(rs) and is_scalar(xp):
+                    assert rs == xp
+                else:
+                    tm.assert_equal(rs, xp)
 
-                try:
-                    if is_scalar(rs) and is_scalar(xp):
-                        assert rs == xp
-                    else:
-                        tm.assert_equal(rs, xp)
-                    result = "ok"
-                except AssertionError as exc:
-                    detail = str(exc)
-                    result = "fail"
-
-                # reverse the checks
-                if fails is True:
-                    if result == "fail":
-                        result = "ok (fail)"
-
-                _print(result)
-                if not result.startswith("ok"):
-                    raise AssertionError(detail)
-
-            except AssertionError:
-                raise
             except (IndexError, TypeError, KeyError) as detail:
 
                 # if we are in fails, the ok, otherwise raise it
                 if fails is not None:
                     if isinstance(detail, fails):
-                        result = "ok ({0.__name__})".format(type(detail))
-                        _print(result)
+                        result = f"ok ({type(detail).__name__})"
                         return
 
                 result = type(detail).__name__
-                raise AssertionError(_print(result, error=detail))
+                raise AssertionError(result, detail)
 
         if typs is None:
             typs = self._typs
-
-        if kinds is None:
-            kinds = self._kinds
 
         if axes is None:
             axes = [0, 1]
@@ -266,9 +220,7 @@ class Base:
             axes = [axes]
 
         # check
-        for kind in kinds:
-            if kind not in self._kinds:
-                continue
+        for kind in self._kinds:
 
             d = getattr(self, kind)
             for ax in axes:
@@ -277,4 +229,4 @@ class Base:
                         continue
 
                     obj = d[typ]
-                    _eq(typ=typ, kind=kind, axis=ax, obj=obj, key1=key1, key2=key2)
+                    _eq(axis=ax, obj=obj, key1=key1, key2=key2)
