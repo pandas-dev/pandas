@@ -63,7 +63,8 @@ class BaseIndexer:
 class FixedWindowIndexer(BaseIndexer):
     """Creates window boundaries that are of fixed length."""
 
-    def get_window_bounds(self,
+    def get_window_bounds(
+        self,
         num_values: int = 0,
         window_size: int = 0,
         min_periods: Optional[int] = None,
@@ -183,7 +184,8 @@ class VariableWindowIndexer(BaseIndexer):
                     end[i] -= 1
         return start, end
 
-    def get_window_bounds(self,
+    def get_window_bounds(
+        self,
         num_values: int = 0,
         window_size: int = 0,
         min_periods: Optional[int] = None,
