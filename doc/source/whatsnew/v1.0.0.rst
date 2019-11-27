@@ -136,7 +136,7 @@ or "unknown" in comparison operations:
     pd.NA > 1
 
 For logical operations, ``pd.NA`` follows the rules of the
-`three-valued logic <https://en.wikipedia.org/wiki/Three-valued_logic> `__ (or
+`three-valued logic <https://en.wikipedia.org/wiki/Three-valued_logic>`__ (or
 *Kleene logic*). For example:
 
 .. ipython:: python

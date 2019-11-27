@@ -843,7 +843,7 @@ Logical operations
 ------------------
 
 For logical operations, ``pd.NA`` follows the rules of the
-`three-valued logic <https://en.wikipedia.org/wiki/Three-valued_logic> `__ (or
+`three-valued logic <https://en.wikipedia.org/wiki/Three-valued_logic>`__ (or
 *Kleene logic*, similarly to R, SQL and Julia). This logic means to only
 propagate missing values when it is logically required.
 
@@ -892,7 +892,7 @@ Since the actual value of an NA is unknown, it is ambiguous to convert NA
 to a boolean value. The following raises an error:
 
 .. ipython:: python
-   :okexception:
+   :okexcept:
 
    bool(pd.NA)
 
