@@ -3100,7 +3100,6 @@ class BlockManagerFixed(GenericFixed):
 
         items = axes[0]
         dfs = []
-        assert len(axes) == 2  # TODO: unless Series is supported?
 
         for i in range(self.nblocks):
 
@@ -3113,7 +3112,7 @@ class BlockManagerFixed(GenericFixed):
 
         if len(dfs) > 0:
             out = concat(dfs, axis=1)
-            out = out.reindex(columns=items)
+            out = out.reindex(columns=items, copy=False)
             return out
 
         return DataFrame(columns=axes[0], index=axes[1])
