@@ -91,12 +91,12 @@ class PyperclipWindowsException(PyperclipException):
         super().__init__(message)
 
 
-def _stringifyText(text) -> str:
+def _stringifyText(text):
     acceptedTypes = (str, int, float, bool)
     if not isinstance(text, acceptedTypes):
         raise PyperclipException(
             f"only str, int, float, and bool values"
-            f"can be copied to the clipboard, not {text.__class__.__name__}"
+            f"can be copied to the clipboard, not {type(text).__name__}"
         )
     return str(text)
 
@@ -156,7 +156,7 @@ def init_qt_clipboard():
         cb = app.clipboard()
         cb.setText(text)
 
-    def paste_qt() -> str:
+    def paste_qt():
         cb = app.clipboard()
         return str(cb.text())
 
@@ -273,7 +273,7 @@ def init_dev_clipboard_clipboard():
         with open("/dev/clipboard", "wt") as fo:
             fo.write(text)
 
-    def paste_dev_clipboard() -> str:
+    def paste_dev_clipboard():
         with open("/dev/clipboard", "rt") as fo:
             content = fo.read()
         return content
@@ -286,7 +286,7 @@ def init_no_clipboard():
         def __call__(self, *args, **kwargs):
             raise PyperclipException(EXCEPT_MSG)
 
-        def __bool__(self) -> bool:
+        def __bool__(self):
             return False
 
     return ClipboardUnavailable(), ClipboardUnavailable()
@@ -650,7 +650,7 @@ def lazy_load_stub_paste():
     return paste()
 
 
-def is_available() -> bool:
+def is_available():
     return copy != lazy_load_stub_copy and paste != lazy_load_stub_paste
 
 
