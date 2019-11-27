@@ -16,8 +16,8 @@ from pandas import (
     MultiIndex,
     NaT,
     Series,
-    Timestamp,
     Timedelta,
+    Timestamp,
     date_range,
     isna,
 )
@@ -123,7 +123,7 @@ class TestSeriesMissingData:
 
         # ffill
         td[2] = np.nan
-        result = td.ffill()        
+        result = td.ffill()
         expected = td.fillna(Timedelta(seconds=0))
         expected[0] = np.nan
         tm.assert_series_equal(result, expected)
