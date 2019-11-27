@@ -33,7 +33,7 @@ def adjust_negative_zero(zero, expected):
 
 # TODO: remove this kludge once mypy stops giving false positives here
 # List comprehension has incompatible type List[PandasObject]; expected List[RangeIndex]
-#  See GH#?????
+#  See GH#29725
 ser_or_index: List[Any] = [pd.Series, pd.Index]
 lefts: List[Any] = [pd.RangeIndex(10, 40, 10)]
 lefts.extend(
