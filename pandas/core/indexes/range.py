@@ -81,25 +81,8 @@ class RangeIndex(Int64Index):
     # Constructors
 
     def __new__(
-        cls,
-        start=None,
-        stop=None,
-        step=None,
-        dtype=None,
-        copy=False,
-        name=None,
-        fastpath=None,
+        cls, start=None, stop=None, step=None, dtype=None, copy=False, name=None,
     ):
-
-        if fastpath is not None:
-            warnings.warn(
-                "The 'fastpath' keyword is deprecated, and will be "
-                "removed in a future version.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            if fastpath:
-                return cls._simple_new(range(start, stop, step), name=name)
 
         cls._validate_dtype(dtype)
 
