@@ -284,7 +284,10 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             sorted_index = self.take(_as)
             return sorted_index, _as
         else:
-            sorted_values = np.sort(self._ndarray_values)
+            # NB: using asi8 instead of _ndarray_values matters in numpy 1.18
+            #  because the treatment of NaT has been changed to put NaT last
+            #  instead of first.
+            sorted_values = np.sort(self.asi8)
             attribs = self._get_attributes_dict()
             freq = attribs["freq"]
 
