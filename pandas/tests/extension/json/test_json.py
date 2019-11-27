@@ -100,7 +100,7 @@ class BaseJSON:
             check_names=kwargs.get("check_names", True),
             check_exact=kwargs.get("check_exact", False),
             check_categorical=kwargs.get("check_categorical", True),
-            obj=f"{kwargs.get("obj", "DataFrame")}.columns",
+            obj="{obj}.columns".format(obj=kwargs.get("obj", "DataFrame")),
         )
 
         jsons = (left.dtypes == "json").index
