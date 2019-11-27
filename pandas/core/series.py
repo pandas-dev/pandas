@@ -158,9 +158,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     _deprecations = (
         base.IndexOpsMixin._deprecations
         | generic.NDFrame._deprecations
-        | frozenset(
-            ["compress", "valid", "ftype", "real", "imag", "put", "ptp", "nonzero"]
-        )
+        | frozenset(["compress", "valid", "real", "imag", "put", "ptp", "nonzero"])
     )
 
     # Override cache_readonly bc Series is mutable
@@ -168,6 +166,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         base.IndexOpsMixin.hasnans.func, doc=base.IndexOpsMixin.hasnans.__doc__
     )
     _data: SingleBlockManager
+    div: Callable[["Series", Any], "Series"]
+    rdiv: Callable[["Series", Any], "Series"]
 
     # ----------------------------------------------------------------------
     # Constructors
@@ -417,42 +417,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if not is_hashable(value):
             raise TypeError("Series.name must be a hashable type")
         self.attrs["name"] = value
-
-    @property
-    def ftype(self):
-        """
-        Return if the data is sparse|dense.
-
-        .. deprecated:: 0.25.0
-           Use :func:`dtype` instead.
-        """
-        warnings.warn(
-            "Series.ftype is deprecated and will "
-            "be removed in a future version. "
-            "Use Series.dtype instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-
-        return self._data.ftype
-
-    @property
-    def ftypes(self):
-        """
-        Return if the data is sparse|dense.
-
-        .. deprecated:: 0.25.0
-           Use :func:`dtypes` instead.
-        """
-        warnings.warn(
-            "Series.ftypes is deprecated and will "
-            "be removed in a future version. "
-            "Use Series.dtype instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-
-        return self._data.ftype
 
     @property
     def values(self):
