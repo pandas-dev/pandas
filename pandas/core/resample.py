@@ -1009,13 +1009,7 @@ def _maybe_process_deprecations(r, how=None, fill_method=None, limit=None):
     return r
 
 
-if TYPE_CHECKING:
-    _Base = Resampler
-else:
-    _Base = object
-
-
-class _GroupByMixin(GroupByMixin, _Base):
+class _GroupByMixin(GroupByMixin):
     """
     Provide the groupby facilities.
     """
