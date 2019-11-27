@@ -629,12 +629,11 @@ class TestTypeInference:
         assert result == expected
 
     def test_deprecation(self):
-        # GH 24050
-        arr = np.array([1, 2, 3], dtype=object)
+        # GH 24050, enforced GH#???? skipna defaultt is not True
+        arr = np.array([1, 2, 3, np.nan], dtype=object)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = lib.infer_dtype(arr)  # default: skipna=None -> warn
-            assert result == "integer"
+        result = lib.infer_dtype(arr)
+        assert result == "integer"
 
     def test_bools(self):
         arr = np.array([True, False, True, True, True], dtype="O")
