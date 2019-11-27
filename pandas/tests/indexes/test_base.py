@@ -1732,7 +1732,7 @@ class TestIndex(Base):
     @pytest.mark.parametrize(
         "in_slice,expected",
         [
-            (pd.IndexSlice[::-1], "yxdcb"),  # type: ignore
+            (pd.IndexSlice[::-1], "yxdcb"),
             (pd.IndexSlice["b":"y":-1], ""),  # type: ignore
             (pd.IndexSlice["b"::-1], "b"),  # type: ignore
             (pd.IndexSlice[:"b":-1], "yxdcb"),  # type: ignore
