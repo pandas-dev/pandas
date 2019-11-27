@@ -595,7 +595,7 @@ class TestFancy(Base):
 
             __repr__ = __str__
 
-            def __eq__(self, other):
+            def __eq__(self, other) -> bool:
                 return self.value == other.value
 
             def view(self):

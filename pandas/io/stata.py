@@ -859,7 +859,7 @@ class StataMissingValue:
         # not perfect :-/
         return "{cls}({obj})".format(cls=self.__class__, obj=self)
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return (
             isinstance(other, self.__class__)
             and self.string == other.string

@@ -179,8 +179,8 @@ def test_rich_comparison_with_unsupported_type():
         def __ge__(self, o):
             return True
 
-        def __eq__(self, o):
-            return isinstance(o, Inf)
+        def __eq__(self, other) -> bool:
+            return isinstance(other, Inf)
 
     inf = Inf()
     timestamp = Timestamp("2018-11-30")
