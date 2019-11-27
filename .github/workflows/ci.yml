@@ -170,15 +170,14 @@ jobs:
         echo "tenant = 2977553886518025" >> $RCLONE_CONFIG_PATH
         echo "domain = default" >> $RCLONE_CONFIG_PATH
         echo "user = w4KGs3pmDxpd" >> $RCLONE_CONFIG_PATH
-        echo "key = ${{ secrets.web_hosting_password }}" >> $RCLONE_CONFIG_PATH
+        echo "key = ${{ secrets.ovh_object_store_key }}" >> $RCLONE_CONFIG_PATH
         echo "region = BHS" >> $RCLONE_CONFIG_PATH
 
     - name: Sync web
       run: |
-        if [[ "${{ github.event_name }}" == "push" ]]; then
-            export REMOTE_PATH="."
-        else
-            export REMOTE_PATH="pr/$PR_NUMBER"
+        REMOTE_PATH="dev"
+        if [[ "${{ github.event_name }}" == "pr" ]]; then
+            REMOTE_PATH="$REMOTE_PATH/pr/$PR_NUMBER"
         fi
         rclone sync pandas_web ovh_cloud_pandas_web:$REMOTE_PATH
       env:

@@ -1,0 +1,34 @@
+name: Clean on PR closed
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  clean_dev_docs:
+    name: Clean dev docs
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Set up Rclone
+      run: |
+        RCLONE_CONFIG_PATH=$HOME/.config/rclone/rclone.conf
+        mkdir -p `dirname $RCLONE_CONFIG_PATH`
+        echo "[ovh_cloud_pandas_web]" > $RCLONE_CONFIG_PATH
+        echo "type = swift" >> $RCLONE_CONFIG_PATH
+        echo "env_auth = false" >> $RCLONE_CONFIG_PATH
+        echo "auth_version = 3" >> $RCLONE_CONFIG_PATH
+        echo "auth = https://auth.cloud.ovh.net/v3/" >> $RCLONE_CONFIG_PATH
+        echo "endpoint_type = public" >> $RCLONE_CONFIG_PATH
+        echo "tenant_domain = default" >> $RCLONE_CONFIG_PATH
+        echo "tenant = 2977553886518025" >> $RCLONE_CONFIG_PATH
+        echo "domain = default" >> $RCLONE_CONFIG_PATH
+        echo "user = w4KGs3pmDxpd" >> $RCLONE_CONFIG_PATH
+        echo "key = ${{ secrets.ovh_object_storage_key }}" >> $RCLONE_CONFIG_PATH
+        echo "region = BHS" >> $RCLONE_CONFIG_PATH
+
+    - name: Clean PR path
+      run: rclone delete ovh_cloud_pandas_web:dev/pr/$PR_NUMBER
+      env:
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+
