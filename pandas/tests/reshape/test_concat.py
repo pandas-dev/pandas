@@ -765,13 +765,15 @@ class TestConcatAppendCommon:
         )
 
         expected = pd.concat([one, two], axis=1, sort=False).reindex(index=two.index)
-        result = pd.concat([one, two], axis=1, sort=False, join_axes=[two.index])
+        with tm.assert_produces_warning(FutureWarning):
+            result = pd.concat([one, two], axis=1, sort=False, join_axes=[two.index])
         tm.assert_frame_equal(result, expected)
 
         expected = pd.concat([one, two], axis=0, sort=False).reindex(
             columns=two.columns
         )
-        result = pd.concat([one, two], axis=0, sort=False, join_axes=[two.columns])
+        with tm.assert_produces_warning(FutureWarning):
+            result = pd.concat([one, two], axis=0, sort=False, join_axes=[two.columns])
         tm.assert_frame_equal(result, expected)
 
 

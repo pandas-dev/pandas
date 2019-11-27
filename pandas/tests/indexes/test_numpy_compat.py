@@ -6,9 +6,11 @@ from pandas import (
     Float64Index,
     Index,
     Int64Index,
+    PeriodIndex,
     TimedeltaIndex,
     UInt64Index,
     _np_version_under1p17,
+    _np_version_under1p18,
 )
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 import pandas.util.testing as tm
@@ -80,18 +82,22 @@ def test_numpy_ufuncs_other(indices, func):
     idx = indices
     if isinstance(idx, (DatetimeIndex, TimedeltaIndex)):
 
-        # ok under numpy >= 1.17
-        if not _np_version_under1p17 and func in [np.isfinite]:
+        if not _np_version_under1p18 and func in [np.isfinite, np.isinf, np.isnan]:
+            # numpy 1.18(dev) changed isinf and isnan to not raise on dt64/tfd64
+            result = func(idx)
+            assert isinstance(result, np.ndarray)
+
+        elif not _np_version_under1p17 and func in [np.isfinite]:
+            # ok under numpy >= 1.17
             # Results in bool array
             result = func(idx)
             assert isinstance(result, np.ndarray)
-            assert not isinstance(result, Index)
         else:
             # raise TypeError or ValueError (PeriodIndex)
             with pytest.raises(Exception):
                 func(idx)
 
-    elif isinstance(idx, DatetimeIndexOpsMixin):
+    elif isinstance(idx, PeriodIndex):
         # raise TypeError or ValueError (PeriodIndex)
         with pytest.raises(Exception):
             func(idx)
