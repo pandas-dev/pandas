@@ -374,6 +374,14 @@ class TestLogicalOps(BaseOpsUtil):
         with pytest.raises(ValueError, match=msg):
             getattr(a, op_name)(pd.array([True, False], dtype="boolean"))
 
+    def test_logical_nan_raises(self, all_logical_operators):
+        op_name = all_logical_operators
+        a = pd.array([True, False, None], dtype="boolean")
+        msg = ""
+
+        with pytest.raises(ValueError, match=msg):
+            getattr(a, op_name)(np.nan)
+
     def test_kleene_or(self):
         # A clear test of behavior.
         a = pd.array([True] * 3 + [False] * 3 + [None] * 3, dtype="boolean")
@@ -390,7 +398,7 @@ class TestLogicalOps(BaseOpsUtil):
     @pytest.mark.parametrize(
         "other, expected",
         [
-            (np.nan, [True, None, None]),
+            # (pd.NA, [True, None, None]),
             (True, [True, True, True]),
             (False, [True, False, None]),
         ],
@@ -421,7 +429,7 @@ class TestLogicalOps(BaseOpsUtil):
     @pytest.mark.parametrize(
         "other, expected",
         [
-            (np.nan, [None, False, None]),
+            # (pd.NA, [None, False, None]),
             (True, [True, False, None]),
             (False, [False, False, False]),
         ],
@@ -450,7 +458,7 @@ class TestLogicalOps(BaseOpsUtil):
     @pytest.mark.parametrize(
         "other, expected",
         [
-            (np.nan, [None, None, None]),
+            # (pd.NA, [None, None, None]),
             (True, [False, True, None]),
             (False, [True, False, None]),
         ],

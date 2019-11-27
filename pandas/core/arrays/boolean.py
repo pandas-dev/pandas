@@ -286,7 +286,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
 
     def _coerce_to_ndarray(self, force_bool: bool = False):
         """
-        Coerce to an ndarary of object dtype or bool dtype (if force_bool=True).
+        Coerce to an ndarray of object dtype or bool dtype (if force_bool=True).
 
         Parameters
         ----------
@@ -743,9 +743,9 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
 
 
 def kleene_or(
-    left: Union[bool, np.nan, np.ndarray],
-    right: Union[bool, np.nan, np.ndarary],
-    left_mask: Optional[np.ndarary],
+    left: Union[bool, np.ndarray],
+    right: Union[bool, np.ndarray],
+    left_mask: Optional[np.ndarray],
     right_mask: Optional[np.ndarray],
 ):
     """
@@ -772,8 +772,7 @@ def kleene_or(
     if left_mask is None:
         return kleene_or(right, left, right_mask, left_mask)
 
-    assert left_mask is not None
-    right_is_scalar = right_mask is None
+    raise_for_nan(right, method="or")
 
     mask = left_mask
 
@@ -783,11 +782,11 @@ def kleene_or(
         mask = mask.copy()
 
     # handle scalars:
-    if right_is_scalar and np.isnan(right):  # TODO(pd.NA): change to NA
-        result = left.copy()
-        mask = left_mask.copy()
-        mask[~result] = True
-        return result, mask
+    # if right_is_scalar and right is libmissing.NA:
+    #     result = left.copy()
+    #     mask = left_mask.copy()
+    #     mask[~result] = True
+    #     return result, mask
 
     # XXX: verify that this doesn't assume masked values are False!
     result = left | right
@@ -798,9 +797,9 @@ def kleene_or(
 
 
 def kleene_xor(
-    left: Union[bool, np.nan, np.ndarray],
-    right: Union[bool, np.nan, np.ndarary],
-    left_mask: Optional[np.ndarary],
+    left: Union[bool, np.ndarray],
+    right: Union[bool, np.ndarray],
+    left_mask: Optional[np.ndarray],
     right_mask: Optional[np.ndarray],
 ):
     """
@@ -826,29 +825,30 @@ def kleene_xor(
     if left_mask is None:
         return kleene_xor(right, left, right_mask, left_mask)
 
-    # Re-use or, and update with adustments.
+    raise_for_nan(right, method="xor")
+    # Re-use or, and update with adjustments.
     result, mask = kleene_or(left, right, left_mask, right_mask)
 
-    # TODO(pd.NA): change to pd.NA
-    if lib.is_scalar(right) and right is np.nan:
-        # True | NA == True
-        # True ^ NA == NA
-        mask[result] = True
-    else:
-        # XXX: verify that this doesn't assume masked values are False!
-        result[left & right] = False
-        mask[right & left_mask] = True
-        if right_mask is not None:
-            mask[left & right_mask] = True
+    # # TODO(pd.NA): change to pd.NA
+    # if lib.is_scalar(right) and right is libmissing.NA:
+    #     # True | NA == True
+    #     # True ^ NA == NA
+    #     mask[result] = True
+
+    # XXX: verify that this doesn't assume masked values are False!
+    result[left & right] = False
+    mask[right & left_mask] = True
+    if right_mask is not None:
+        mask[left & right_mask] = True
 
     result[mask] = False
     return result, mask
 
 
 def kleene_and(
-    left: Union[bool, np.nan, np.ndarray],
-    right: Union[bool, np.nan, np.ndarary],
-    left_mask: Optional[np.ndarary],
+    left: Union[bool, np.ndarray],
+    right: Union[bool, np.ndarray],
+    left_mask: Optional[np.ndarray],
     right_mask: Optional[np.ndarray],
 ):
     """
@@ -871,6 +871,7 @@ def kleene_and(
     if left_mask is None:
         return kleene_and(right, left, right_mask, left_mask)
 
+    raise_for_nan(right, method="and")
     mask = left_mask
 
     if right_mask is not None:
@@ -882,6 +883,7 @@ def kleene_and(
         result = left.copy()
         mask = left_mask.copy()
         if np.isnan(right):
+            # TODO(pd.NA): change to NA
             mask[result] = True
         else:
             result = result & right  # already copied.
@@ -896,6 +898,11 @@ def kleene_and(
 
     result[mask] = False
     return result, mask
+
+
+def raise_for_nan(value, method):
+    if lib.is_scalar(value) and isinstance(value, float) and np.isnan(value):
+        raise ValueError(f"Cannot perform logical '{method}' with NaN")
 
 
 BooleanArray._add_logical_ops()
