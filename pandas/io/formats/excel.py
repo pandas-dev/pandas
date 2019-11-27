@@ -397,7 +397,8 @@ class ExcelFormatter:
                 # Deprecated in GH#17295, enforced in 1.0.0
                 raise KeyError("Not all names specified in 'columns' are found")
 
-            self.df = df.reindex(columns=cols)  # TODO: Should this change?
+            self.df = df
+
         self.columns = self.df.columns
         self.float_format = float_format
         self.index = index

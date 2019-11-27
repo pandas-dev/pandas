@@ -751,7 +751,6 @@ class TestiLoc(Base):
         df2 = concat([df2, 2 * df2, 3 * df2])
 
         with pytest.raises(KeyError, match="with any missing labels"):
-            # TODO: should non-uniquness play a part in the error message?
             df2.loc[idx]
 
     def test_iloc_empty_list_indexer_is_ok(self):

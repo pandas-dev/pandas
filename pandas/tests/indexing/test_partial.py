@@ -220,7 +220,6 @@ class TestPartialSetting:
 
         expected = Series([0.2, 0.2, np.nan], index=[2, 2, 3])
         with pytest.raises(KeyError, match="with any missing labels"):
-            # TODO: should the error message have something to do with duplicates?
             ser.loc[[2, 2, 3]]
 
         result = ser.reindex([2, 2, 3])
@@ -229,7 +228,6 @@ class TestPartialSetting:
         s = Series([0.1, 0.2, 0.3], index=[1, 2, 3])
         expected = Series([0.3, np.nan, np.nan], index=[3, 4, 4])
         with pytest.raises(KeyError, match="with any missing labels"):
-            # TODO: should the error message have something to do with duplicates?
             s.loc[[3, 4, 4]]
 
         result = s.reindex([3, 4, 4])
@@ -238,7 +236,6 @@ class TestPartialSetting:
         s = Series([0.1, 0.2, 0.3, 0.4], index=[1, 2, 3, 4])
         expected = Series([np.nan, 0.3, 0.3], index=[5, 3, 3])
         with pytest.raises(KeyError, match="with any missing labels"):
-            # TODO: should the error message have something to do with duplicates?
             s.loc[[5, 3, 3]]
 
         result = s.reindex([5, 3, 3])
@@ -247,7 +244,6 @@ class TestPartialSetting:
         s = Series([0.1, 0.2, 0.3, 0.4], index=[1, 2, 3, 4])
         expected = Series([np.nan, 0.4, 0.4], index=[5, 4, 4])
         with pytest.raises(KeyError, match="with any missing labels"):
-            # TODO: should the error message have something to do with duplicates?
             s.loc[[5, 4, 4]]
 
         result = s.reindex([5, 4, 4])
@@ -256,7 +252,6 @@ class TestPartialSetting:
         s = Series([0.1, 0.2, 0.3, 0.4], index=[4, 5, 6, 7])
         expected = Series([0.4, np.nan, np.nan], index=[7, 2, 2])
         with pytest.raises(KeyError, match="with any missing labels"):
-            # TODO: should the error message have something to do with duplicates?
             s.loc[[7, 2, 2]]
 
         result = s.reindex([7, 2, 2])
@@ -265,7 +260,6 @@ class TestPartialSetting:
         s = Series([0.1, 0.2, 0.3, 0.4], index=[1, 2, 3, 4])
         expected = Series([0.4, np.nan, np.nan], index=[4, 5, 5])
         with pytest.raises(KeyError, match="with any missing labels"):
-            # TODO: should the error message have something to do with duplicates?
             s.loc[[4, 5, 5]]
 
         result = s.reindex([4, 5, 5])
