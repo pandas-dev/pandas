@@ -822,8 +822,7 @@ def kleene_xor(
 
     raise_for_nan(right, method="xor")
     # Re-use or, and update with adjustments.
-    result, mask = kleene_or(left, right, left_mask, right_mask)
-    result[left & right] = False
+    result = left ^ right
 
     if right_mask is None:
         mask = left_mask.copy()
