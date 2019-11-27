@@ -158,12 +158,6 @@ class TestCommon:
         assert indices.name == name
         assert indices.names == [name]
 
-    def test_dtype_str(self, indices):
-        with tm.assert_produces_warning(FutureWarning):
-            dtype = indices.dtype_str
-            assert isinstance(dtype, str)
-            assert dtype == str(indices.dtype)
-
     def test_hash_error(self, indices):
         index = indices
         with pytest.raises(

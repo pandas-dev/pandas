@@ -214,7 +214,7 @@ class Index(IndexOpsMixin, PandasObject):
     _deprecations: FrozenSet[str] = (
         PandasObject._deprecations
         | IndexOpsMixin._deprecations
-        | frozenset(["asobject", "contains", "dtype_str", "get_values", "set_value"])
+        | frozenset(["contains", "get_values", "set_value"])
     )
 
     # To hand over control to subclasses
@@ -669,21 +669,6 @@ class Index(IndexOpsMixin, PandasObject):
         Return the dtype object of the underlying data.
         """
         return self._data.dtype
-
-    @property
-    def dtype_str(self):
-        """
-        Return the dtype str of the underlying data.
-
-        .. deprecated:: 0.25.0
-        """
-        warnings.warn(
-            "`dtype_str` has been deprecated. Call `str` on the "
-            "dtype attribute instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return str(self.dtype)
 
     def ravel(self, order="C"):
         """

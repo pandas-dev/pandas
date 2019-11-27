@@ -635,7 +635,6 @@ generated/pandas.Index.drop,../reference/api/pandas.Index.drop
 generated/pandas.Index.droplevel,../reference/api/pandas.Index.droplevel
 generated/pandas.Index.dropna,../reference/api/pandas.Index.dropna
 generated/pandas.Index.dtype,../reference/api/pandas.Index.dtype
-generated/pandas.Index.dtype_str,../reference/api/pandas.Index.dtype_str
 generated/pandas.Index.duplicated,../reference/api/pandas.Index.duplicated
 generated/pandas.Index.empty,../reference/api/pandas.Index.empty
 generated/pandas.Index.equals,../reference/api/pandas.Index.equals
