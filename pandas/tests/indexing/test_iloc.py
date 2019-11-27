@@ -135,8 +135,8 @@ class TestiLoc(Base):
             df.iloc[index_vals, column_vals]
 
     def test_iloc_getitem_int(self):
+        # integer
         self.check_result(
-            "integer",
             "iloc",
             2,
             "iloc",
@@ -146,8 +146,8 @@ class TestiLoc(Base):
         )
 
     def test_iloc_getitem_neg_int(self):
+        # neg integer
         self.check_result(
-            "neg int",
             "iloc",
             -1,
             "iloc",
@@ -184,7 +184,6 @@ class TestiLoc(Base):
 
     def test_iloc_getitem_list_int(self):
         self.check_result(
-            "list int",
             "iloc",
             [0, 1, 2],
             "iloc",
@@ -224,7 +223,6 @@ class TestiLoc(Base):
         tm.assert_series_equal(result, expected)
 
     def test_iloc_getitem_dups(self):
-
         # GH 6766
         df1 = DataFrame([{"A": None, "B": 1}, {"A": 2, "B": 2}])
         df2 = DataFrame([{"A": 3, "B": 3}, {"A": 4, "B": 4}])
@@ -239,9 +237,11 @@ class TestiLoc(Base):
         tm.assert_series_equal(result, expected)
 
     def test_iloc_getitem_array(self):
+        # TODO: test something here?
         pass
 
     def test_iloc_getitem_bool(self):
+        # TODO: test something here?
         pass
 
     @pytest.mark.parametrize("index", [[True, False], [True, False, True, False]])
@@ -255,6 +255,7 @@ class TestiLoc(Base):
             _ = s.iloc[index]
 
     def test_iloc_getitem_slice(self):
+        # TODO: test something here?
         pass
 
     def test_iloc_getitem_slice_dups(self):

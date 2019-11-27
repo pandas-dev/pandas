@@ -95,22 +95,17 @@ class TestLoc(Base):
     def test_loc_getitem_int(self):
 
         # int label
-        self.check_result(
-            "int label", "loc", 2, "loc", 2, typs=["label"], fails=KeyError
-        )
+        self.check_result("loc", 2, "loc", 2, typs=["label"], fails=KeyError)
 
     def test_loc_getitem_label(self):
 
         # label
-        self.check_result(
-            "label", "loc", "c", "loc", "c", typs=["empty"], fails=KeyError
-        )
+        self.check_result("loc", "c", "loc", "c", typs=["empty"], fails=KeyError)
 
     def test_loc_getitem_label_out_of_range(self):
 
         # out of range label
         self.check_result(
-            "label range",
             "loc",
             "f",
             "loc",
@@ -118,45 +113,26 @@ class TestLoc(Base):
             typs=["ints", "uints", "labels", "mixed", "ts"],
             fails=KeyError,
         )
+        self.check_result("loc", "f", "ix", "f", typs=["floats"], fails=KeyError)
+        self.check_result("loc", "f", "loc", "f", typs=["floats"], fails=KeyError)
         self.check_result(
-            "label range", "loc", "f", "loc", "f", typs=["floats"], fails=KeyError
+            "loc", 20, "loc", 20, typs=["ints", "uints", "mixed"], fails=KeyError,
         )
-        self.check_result(
-            "label range",
-            "loc",
-            20,
-            "loc",
-            20,
-            typs=["ints", "uints", "mixed"],
-            fails=KeyError,
-        )
-        self.check_result(
-            "label range", "loc", 20, "loc", 20, typs=["labels"], fails=TypeError
-        )
-        self.check_result(
-            "label range", "loc", 20, "loc", 20, typs=["ts"], axes=0, fails=TypeError
-        )
-        self.check_result(
-            "label range", "loc", 20, "loc", 20, typs=["floats"], axes=0, fails=KeyError
-        )
+        self.check_result("loc", 20, "loc", 20, typs=["labels"], fails=TypeError)
+        self.check_result("loc", 20, "loc", 20, typs=["ts"], axes=0, fails=TypeError)
+        self.check_result("loc", 20, "loc", 20, typs=["floats"], axes=0, fails=KeyError)
 
     def test_loc_getitem_label_list(self):
+        # TODO: test something here?
         # list of labels
         pass
 
     def test_loc_getitem_label_list_with_missing(self):
         self.check_result(
-            "list lbl",
-            "loc",
-            [0, 1, 2],
-            "loc",
-            [0, 1, 2],
-            typs=["empty"],
-            fails=KeyError,
+            "loc", [0, 1, 2], "loc", [0, 1, 2], typs=["empty"], fails=KeyError,
         )
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             self.check_result(
-                "list lbl",
                 "loc",
                 [0, 2, 10],
                 "loc",
@@ -168,7 +144,6 @@ class TestLoc(Base):
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             self.check_result(
-                "list lbl",
                 "loc",
                 [3, 6, 7],
                 "loc",
@@ -181,7 +156,6 @@ class TestLoc(Base):
         # GH 17758 - MultiIndex and missing keys
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             self.check_result(
-                "list lbl",
                 "loc",
                 [(1, 3), (1, 4), (2, 5)],
                 "loc",
@@ -204,7 +178,6 @@ class TestLoc(Base):
     def test_loc_getitem_label_list_fails(self):
         # fails
         self.check_result(
-            "list lbl",
             "loc",
             [20, 30, 40],
             "loc",
@@ -215,12 +188,15 @@ class TestLoc(Base):
         )
 
     def test_loc_getitem_label_array_like(self):
+        # TODO: test something?
         # array like
         pass
 
     def test_loc_getitem_bool(self):
         # boolean indexers
-        pass
+        b = [True, False, True, False]
+
+        self.check_result("loc", b, "loc", b, typs=["empty"], fails=IndexError)
 
     @pytest.mark.parametrize("index", [[True, False], [True, False, True, False]])
     def test_loc_getitem_bool_diff_len(self, index):
@@ -233,6 +209,7 @@ class TestLoc(Base):
             _ = s.loc[index]
 
     def test_loc_getitem_int_slice(self):
+        # TODO: test something here?
         pass
 
     def test_loc_to_fail(self):
@@ -337,7 +314,25 @@ class TestLoc(Base):
         # GH 14316
 
         self.check_result(
-            "mixed slice",
+            "loc",
+            slice(1, 3),
+            "loc",
+            slice(1, 3),
+            typs=["labels", "mixed", "empty", "ts", "floats"],
+            fails=TypeError,
+        )
+
+        self.check_result(
+            "loc",
+            slice("20130102", "20130104"),
+            "loc",
+            slice("20130102", "20130104"),
+            typs=["ts"],
+            axes=1,
+            fails=TypeError,
+        )
+
+        self.check_result(
             "loc",
             slice(2, 8),
             "loc",
@@ -347,7 +342,6 @@ class TestLoc(Base):
             fails=TypeError,
         )
         self.check_result(
-            "mixed slice",
             "loc",
             slice(2, 8),
             "loc",
@@ -358,7 +352,6 @@ class TestLoc(Base):
         )
 
         self.check_result(
-            "mixed slice",
             "loc",
             slice(2, 4, 2),
             "loc",
