@@ -1,6 +1,5 @@
 import codecs
 import locale
-import os
 
 import pytest
 
@@ -56,20 +55,20 @@ def test_get_locales_prefix():
 
 
 @_skip_if_only_one_locale
-def test_set_locale():
+@pytest.mark.parametrize(
+    "lang,enc",
+    [
+        ("it_CH", "UTF-8"),
+        ("en_US", "ascii"),
+        ("zh_CN", "GB_2312-80"),
+        ("it_IT", "ISO-8859-1"),
+    ],
+)
+def test_set_locale(lang, enc):
     if all(x is None for x in _current_locale):
         # Not sure why, but on some Travis runs with pytest,
         #  getlocale() returned (None, None).
         pytest.skip("Current locale is not set.")
-
-    locale_override = os.environ.get("LOCALE_OVERRIDE", None)
-
-    if locale_override is None:
-        lang, enc = "it_CH", "UTF-8"
-    elif locale_override == "C":
-        lang, enc = "en_US", "ascii"
-    else:
-        lang, enc = locale_override.split(".")
 
     enc = codecs.lookup(enc).name
     new_locale = lang, enc
