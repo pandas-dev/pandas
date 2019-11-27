@@ -59,7 +59,13 @@ def test_get_locales_prefix():
 
 @_skip_if_only_one_locale
 @pytest.mark.parametrize(
-    "lang,enc", [("it_CH", "UTF-8"), ("en_US", "ascii"), ("it_IT", "ISO-8859-1"),],
+    "lang,enc",
+    [
+        ("it_CH", "UTF-8"),
+        ("en_US", "ascii"),
+        ("zh_CN", "GB2312"),
+        ("it_IT", "ISO-8859-1"),
+    ],
 )
 def test_set_locale(lang, enc):
     if all(x is None for x in _current_locale):
