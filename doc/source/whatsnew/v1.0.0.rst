@@ -108,11 +108,15 @@ Experimental ``NA`` scalar to denote missing values
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A new ``pd.NA`` value (singleton) is introduced to represent scalar missing
-values. Up to now, ``np.nan`` is used for this for float data, ``np.nan``or
+values. Up to now, ``np.nan`` is used for this for float data, ``np.nan`` or
 ``None`` for object-dtype data and ``pd.NaT`` for datetime-like data. The
 goal of ``pd.NA`` is provide a "missing" indicator that can be used
 consistently accross data types. For now, the nullable integer and boolean
 data types and the new string data type make use of ``pd.NA`` (:issue:`28095`).
+
+.. warning::
+
+   Experimental: the behaviour of ``pd.NA`` can still change without warning.
 
 For example, creating a Series using the nullable integer dtype:
 

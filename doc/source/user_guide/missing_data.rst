@@ -110,7 +110,7 @@ pandas objects provide compatibility between ``NaT`` and ``NaN``.
 .. _missing.inserting:
 
 Inserting missing data
-----------------------
+~~~~~~~~~~~~~~~~~~~~~~
 
 You can insert missing values by simply assigning to containers. The
 actual missing value used will be chosen based on the dtype.
@@ -135,9 +135,10 @@ For object containers, pandas will use the value given:
    s.loc[1] = np.nan
    s
 
+.. _missing_data.calculations:
 
 Calculations with missing data
-------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Missing values propagate naturally through arithmetic operations between pandas
 objects.
@@ -776,7 +777,7 @@ See :ref:`integer_na` for more.
 .. _missing_data.NA:
 
 Experimental ``NA`` scalar to denote missing values
----------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. warning::
 
@@ -794,16 +795,17 @@ consistently accross data types (instead of ``np.nan``, ``None`` or ``pd.NaT``
 depending on the data type).
 
 For example, when having missing values in a Series with the nullable integer
-dtype will use ``pd.NA``:
+dtype, it will use ``pd.NA``:
 
 .. ipython:: python
 
     s = pd.Series([1, 2, None], dtype="Int64")
     s
     s[2]
+    s[2] is pd.NA
 
 Propagation in arithmetic and comparison operations
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------------------------------
 
 In general, missing values *propagate* in operations involving ``pd.NA``. When
 one of the operands is unknown, the outcome of the operation is also unknown.
@@ -833,8 +835,12 @@ used:
 
    pd.isna(pd.NA)
 
+An exception on this basic propagation rule are *reductions* (such as the
+mean or the minimum), where pandas defaults to skipping missing values. See
+:ref:`above <missing_data.calculations>` for more.
+
 Logical operations
-~~~~~~~~~~~~~~~~~~
+------------------
 
 For logical operations, ``pd.NA`` follows the rules of the
 `three-valued logic <https://en.wikipedia.org/wiki/Three-valued_logic> `__ (or
@@ -843,7 +849,7 @@ propagate missing values when it is logically required.
 
 For example, for the logical "or" operation (``|``), if one of the operands
 is ``True``, we already know the result will be ``True``, regardless of the
-other values (so regardless the missing value would be ``True`` or ``False``).
+other value (so regardless the missing value would be ``True`` or ``False``).
 In this case, ``pd.NA`` does not propagate:
 
 .. ipython:: python
@@ -859,7 +865,7 @@ propagates:
 .. ipython:: python
 
    False | True
-   False | True
+   False | False
    False | pd.NA
 
 The behaviour of the logical "and" operation (``&``) can be derived using
@@ -877,3 +883,21 @@ is already ``False``):
    True & True
    True & False
    True & pd.NA
+
+
+``NA`` in a boolean context
+---------------------------
+
+Since the actual value of an NA is unknown, it is ambiguous to convert NA
+to a boolean value. The following raises an error:
+
+.. ipython:: python
+   :okexception:
+
+   bool(pd.NA)
+
+This also means that ``pd.NA`` cannot be used in a context where it is
+evaluated to a boolean, such as ``if condition: ...`` where ``condition`` can
+potentially be ``pd.NA``. In such cases, :func:`isna` can be used to check
+for ``pd.NA`` or it could be prevented that ``condition`` can be ``pd.NA``
+by for example filling missing values beforehand.
