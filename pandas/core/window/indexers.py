@@ -6,7 +6,6 @@ import numpy as np
 from pandas._libs.window.indexers import calculate_variable_window_bounds
 from pandas.util._decorators import Appender
 
-
 get_window_bounds_doc = """
 Computes the bounds of a window.
 
