@@ -10,7 +10,6 @@ from typing import Callable, Dict, List, Optional, Set, Tuple, Union
 import numpy as np
 
 import pandas._libs.window.aggregations as window_aggregations
-import pandas._libs.window.indexers as window_indexers
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -49,6 +48,7 @@ from pandas.core.window.common import (
     _zsqrt,
     calculate_min_periods,
 )
+import pandas.core.window.indexers as window_indexers
 
 
 class _Window(PandasObject, ShallowMixin, SelectionMixin):
