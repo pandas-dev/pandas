@@ -440,6 +440,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - Removed the previously deprecated :meth:`Series.valid`; use :meth:`Series.dropna` instead (:issue:`18800`)
 - Removed the previously properties :attr:`DataFrame.is_copy`, :attr:`Series.is_copy` (:issue:`18812`)
 - Removed the previously deprecated :meth:`DataFrame.get_ftype_counts`, :meth:`Series.get_ftype_counts` (:issue:`18243`)
+- Removed the previously deprecated :meth:`DataFrame.ftypes`, :meth:`Series.ftypes`, :meth:`Series.ftype` (:issue:`26744`)
 - Removed the previously deprecated :meth:`Index.get_duplicated`, use ``idx[idx.duplicated()].unique()`` instead (:issue:`20239`)
 - Removed the previously deprecated :meth:`Series.clip_upper`, :meth:`Series.clip_lower`, :meth:`DataFrame.clip_upper`, :meth:`DataFrame.clip_lower` (:issue:`24203`)
 - Removed the ability to alter :attr:`DatetimeIndex.freq`, :attr:`TimedeltaIndex.freq`, or :attr:`PeriodIndex.freq` (:issue:`20772`)

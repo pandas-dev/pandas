@@ -82,7 +82,6 @@ class BlockManager(PandasObject):
 
     get_dtype_counts
     get_dtypes
-    get_ftypes
 
     apply(func, axes, block_filter_fn)
 
@@ -250,10 +249,6 @@ class BlockManager(PandasObject):
     def get_dtypes(self):
         dtypes = np.array([blk.dtype for blk in self.blocks])
         return algos.take_1d(dtypes, self._blknos, allow_fill=False)
-
-    def get_ftypes(self):
-        ftypes = np.array([blk.ftype for blk in self.blocks])
-        return algos.take_1d(ftypes, self._blknos, allow_fill=False)
 
     def __getstate__(self):
         block_values = [b.values for b in self.blocks]
@@ -1546,18 +1541,11 @@ class SingleBlockManager(BlockManager):
     def array_dtype(self):
         return self._block.array_dtype
 
-    @property
-    def ftype(self):
-        return self._block.ftype
-
     def get_dtype_counts(self):
         return {self.dtype.name: 1}
 
     def get_dtypes(self):
         return np.array([self._block.dtype])
-
-    def get_ftypes(self):
-        return np.array([self._block.ftype])
 
     def external_values(self):
         return self._block.external_values()
