@@ -44,7 +44,6 @@ from pandas import (
     isna,
 )
 from pandas.core.arrays.categorical import Categorical
-from pandas.core.arrays.sparse import BlockIndex, IntIndex
 import pandas.core.common as com
 from pandas.core.computation.pytables import PyTablesExpr, maybe_expression
 from pandas.core.index import ensure_index
@@ -2785,31 +2784,21 @@ class GenericFixed(Fixed):
         else:
             return ret
 
-    def read_index(self, key: str, **kwargs):
+    def read_index(self, key: str, **kwargs) -> Index:
         variety = _ensure_decoded(getattr(self.attrs, f"{key}_variety"))
 
         if variety == "multi":
             return self.read_multi_index(key, **kwargs)
-        elif variety == "block":
-            return self.read_block_index(key, **kwargs)
-        elif variety == "sparseint":
-            return self.read_sparse_intindex(key, **kwargs)
         elif variety == "regular":
             _, index = self.read_index_node(getattr(self.group, key), **kwargs)
             return index
         else:  # pragma: no cover
             raise TypeError(f"unrecognized index variety: {variety}")
 
-    def write_index(self, key: str, index):
+    def write_index(self, key: str, index: Index):
         if isinstance(index, MultiIndex):
             setattr(self.attrs, f"{key}_variety", "multi")
             self.write_multi_index(key, index)
-        elif isinstance(index, BlockIndex):
-            setattr(self.attrs, f"{key}_variety", "block")
-            self.write_block_index(key, index)
-        elif isinstance(index, IntIndex):
-            setattr(self.attrs, f"{key}_variety", "sparseint")
-            self.write_sparse_intindex(key, index)
         else:
             setattr(self.attrs, f"{key}_variety", "regular")
             converted = _convert_index("index", index, self.encoding, self.errors)
@@ -2823,33 +2812,13 @@ class GenericFixed(Fixed):
             if isinstance(index, (DatetimeIndex, PeriodIndex)):
                 node._v_attrs.index_class = self._class_to_alias(type(index))
 
-            if hasattr(index, "freq"):
+            if isinstance(index, (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
                 node._v_attrs.freq = index.freq
 
-            if hasattr(index, "tz") and index.tz is not None:
+            if isinstance(index, DatetimeIndex) and index.tz is not None:
                 node._v_attrs.tz = _get_tz(index.tz)
 
-    def write_block_index(self, key: str, index):
-        self.write_array(f"{key}_blocs", index.blocs)
-        self.write_array(f"{key}_blengths", index.blengths)
-        setattr(self.attrs, f"{key}_length", index.length)
-
-    def read_block_index(self, key: str, **kwargs) -> BlockIndex:
-        length = getattr(self.attrs, f"{key}_length")
-        blocs = self.read_array(f"{key}_blocs", **kwargs)
-        blengths = self.read_array(f"{key}_blengths", **kwargs)
-        return BlockIndex(length, blocs, blengths)
-
-    def write_sparse_intindex(self, key: str, index):
-        self.write_array(f"{key}_indices", index.indices)
-        setattr(self.attrs, f"{key}_length", index.length)
-
-    def read_sparse_intindex(self, key, **kwargs) -> IntIndex:
-        length = getattr(self.attrs, f"{key}_length")
-        indices = self.read_array(f"{key}_indices", **kwargs)
-        return IntIndex(length, indices)
-
-    def write_multi_index(self, key: str, index):
+    def write_multi_index(self, key: str, index: MultiIndex):
         setattr(self.attrs, f"{key}_nlevels", index.nlevels)
 
         for i, (lev, level_codes, name) in enumerate(
