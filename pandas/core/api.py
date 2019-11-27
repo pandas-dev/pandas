@@ -12,6 +12,7 @@ from pandas.core.dtypes.missing import isna, isnull, notna, notnull
 
 from pandas.core.algorithms import factorize, unique, value_counts
 from pandas.core.arrays import Categorical
+from pandas.core.arrays.boolean import BooleanDtype
 from pandas.core.arrays.integer import (
     Int8Dtype,
     Int16Dtype,
