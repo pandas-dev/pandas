@@ -1,6 +1,5 @@
 import operator
 from typing import Any, List
-import warnings
 
 import numpy as np
 
@@ -172,18 +171,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         dtype=None,
         copy=False,
         name=None,
-        fastpath=None,
     ):
-
-        if fastpath is not None:
-            warnings.warn(
-                "The 'fastpath' keyword is deprecated, and will be "
-                "removed in a future version.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            if fastpath:
-                return cls._simple_new(data, name=name, dtype=dtype)
 
         dtype = CategoricalDtype._from_values_or_dtype(data, categories, ordered, dtype)
 
