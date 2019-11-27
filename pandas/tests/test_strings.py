@@ -202,9 +202,9 @@ class TestStringMethods:
         assert not hasattr(mi, "str")
 
     @pytest.mark.parametrize("dtype", [object, "category"])
-    @pytest.mark.parametrize("box", [Series, Index])
-    def test_api_per_dtype(self, box, dtype, any_skipna_inferred_dtype):
+    def test_api_per_dtype(self, index_or_series, dtype, any_skipna_inferred_dtype):
         # one instance of parametrized fixture
+        box = index_or_series
         inferred_dtype, values = any_skipna_inferred_dtype
 
         t = box(values, dtype=dtype)  # explicit dtype to avoid casting
@@ -236,13 +236,17 @@ class TestStringMethods:
             assert not hasattr(t, "str")
 
     @pytest.mark.parametrize("dtype", [object, "category"])
-    @pytest.mark.parametrize("box", [Series, Index])
     def test_api_per_method(
-        self, box, dtype, any_allowed_skipna_inferred_dtype, any_string_method
+        self,
+        index_or_series,
+        dtype,
+        any_allowed_skipna_inferred_dtype,
+        any_string_method,
     ):
         # this test does not check correctness of the different methods,
         # just that the methods work on the specified (inferred) dtypes,
         # and raise on all others
+        box = index_or_series
 
         # one instance of each parametrized fixture
         inferred_dtype, values = any_allowed_skipna_inferred_dtype
@@ -375,10 +379,10 @@ class TestStringMethods:
         assert i == 100
         assert s == "h"
 
-    @pytest.mark.parametrize("box", [Series, Index])
     @pytest.mark.parametrize("other", [None, Series, Index])
-    def test_str_cat_name(self, box, other):
+    def test_str_cat_name(self, index_or_series, other):
         # GH 21053
+        box = index_or_series
         values = ["a", "b"]
         if other:
             other = other(values)
@@ -387,8 +391,8 @@ class TestStringMethods:
         result = box(values, name="name").str.cat(other, sep=",")
         assert result.name == "name"
 
-    @pytest.mark.parametrize("box", [Series, Index])
-    def test_str_cat(self, box):
+    def test_str_cat(self, index_or_series):
+        box = index_or_series
         # test_cat above tests "str_cat" from ndarray;
         # here testing "str.cat" from Series/Indext to ndarray/list
         s = box(["a", "a", "b", "b", "c", np.nan])
@@ -427,9 +431,9 @@ class TestStringMethods:
         with pytest.raises(ValueError, match=rgx):
             s.str.cat(list(z))
 
-    @pytest.mark.parametrize("box", [Series, Index])
-    def test_str_cat_raises_intuitive_error(self, box):
+    def test_str_cat_raises_intuitive_error(self, index_or_series):
         # GH 11334
+        box = index_or_series
         s = box(["a", "b", "c", "d"])
         message = "Did you mean to supply a `sep` keyword?"
         with pytest.raises(ValueError, match=message):
@@ -440,8 +444,11 @@ class TestStringMethods:
     @pytest.mark.parametrize("sep", ["", None])
     @pytest.mark.parametrize("dtype_target", ["object", "category"])
     @pytest.mark.parametrize("dtype_caller", ["object", "category"])
-    @pytest.mark.parametrize("box", [Series, Index])
-    def test_str_cat_categorical(self, box, dtype_caller, dtype_target, sep):
+    def test_str_cat_categorical(
+        self, index_or_series, dtype_caller, dtype_target, sep
+    ):
+        box = index_or_series
+
         s = Index(["a", "a", "b", "a"], dtype=dtype_caller)
         s = s if box == Index else Series(s, index=s)
         t = Index(["b", "a", "b", "c"], dtype=dtype_target)
@@ -494,8 +501,8 @@ class TestStringMethods:
             # need to use outer and na_rep, as otherwise Index would not raise
             s.str.cat(t, join="outer", na_rep="-")
 
-    @pytest.mark.parametrize("box", [Series, Index])
-    def test_str_cat_mixed_inputs(self, box):
+    def test_str_cat_mixed_inputs(self, index_or_series):
+        box = index_or_series
         s = Index(["a", "b", "c", "d"])
         s = s if box == Index else Series(s, index=s)
 
@@ -596,9 +603,10 @@ class TestStringMethods:
             s.str.cat(iter([t.values, list(s)]))
 
     @pytest.mark.parametrize("join", ["left", "outer", "inner", "right"])
-    @pytest.mark.parametrize("box", [Series, Index])
-    def test_str_cat_align_indexed(self, box, join):
+    def test_str_cat_align_indexed(self, index_or_series, join):
         # https://github.com/pandas-dev/pandas/issues/18657
+        box = index_or_series
+
         s = Series(["a", "b", "c", "d"], index=["a", "b", "c", "d"])
         t = Series(["D", "A", "E", "B"], index=["d", "a", "e", "b"])
         sa, ta = s.align(t, join=join)
@@ -656,10 +664,14 @@ class TestStringMethods:
         with pytest.raises(ValueError, match=rgx):
             s.str.cat([t, z], join=join)
 
-    @pytest.mark.parametrize("box", [Series, Index])
-    @pytest.mark.parametrize("other", [Series, Index])
-    def test_str_cat_all_na(self, box, other):
+    index_or_series2 = [Series, Index]  # type: ignore
+    # List item 0 has incompatible type "Type[Series]"; expected "Type[PandasObject]"
+    # See GH#>????
+
+    @pytest.mark.parametrize("other", index_or_series2)
+    def test_str_cat_all_na(self, index_or_series, other):
         # GH 24044
+        box = index_or_series
 
         # check that all NaNs in caller / target work
         s = Index(["a", "b", "c", "d"])
