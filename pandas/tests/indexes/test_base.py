@@ -2762,32 +2762,18 @@ def test_index_subclass_constructor_wrong_kwargs(index_maker):
 
 
 def test_deprecated_fastpath():
+    msg = "[Uu]nexpected keyword argument"
+    with pytest.raises(TypeError, match=msg):
+        pd.Index(np.array(["a", "b"], dtype=object), name="test", fastpath=True)
 
-    with tm.assert_produces_warning(FutureWarning):
-        idx = pd.Index(np.array(["a", "b"], dtype=object), name="test", fastpath=True)
+    with pytest.raises(TypeError, match=msg):
+        pd.Int64Index(np.array([1, 2, 3], dtype="int64"), name="test", fastpath=True)
 
-    expected = pd.Index(["a", "b"], name="test")
-    tm.assert_index_equal(idx, expected)
+    with pytest.raises(TypeError, match=msg):
+        pd.RangeIndex(0, 5, 2, name="test", fastpath=True)
 
-    with tm.assert_produces_warning(FutureWarning):
-        idx = pd.Int64Index(
-            np.array([1, 2, 3], dtype="int64"), name="test", fastpath=True
-        )
-
-    expected = pd.Index([1, 2, 3], name="test", dtype="int64")
-    tm.assert_index_equal(idx, expected)
-
-    with tm.assert_produces_warning(FutureWarning):
-        idx = pd.RangeIndex(0, 5, 2, name="test", fastpath=True)
-
-    expected = pd.RangeIndex(0, 5, 2, name="test")
-    tm.assert_index_equal(idx, expected)
-
-    with tm.assert_produces_warning(FutureWarning):
-        idx = pd.CategoricalIndex(["a", "b", "c"], name="test", fastpath=True)
-
-    expected = pd.CategoricalIndex(["a", "b", "c"], name="test")
-    tm.assert_index_equal(idx, expected)
+    with pytest.raises(TypeError, match=msg):
+        pd.CategoricalIndex(["a", "b", "c"], name="test", fastpath=True)
 
 
 def test_shape_of_invalid_index():
