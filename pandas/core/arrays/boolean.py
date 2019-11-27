@@ -788,9 +788,12 @@ def kleene_or(
     #     mask[~result] = True
     #     return result, mask
 
-    # XXX: verify that this doesn't assume masked values are False!
     result = left | right
-    mask[result] = False
+    mask[left & ~left_mask] = False
+    if right_mask is not None:
+        mask[right & ~right_mask] = False
+    elif right is True:
+        mask[:] = False
 
     # update
     return result, mask
@@ -835,7 +838,6 @@ def kleene_xor(
     #     # True ^ NA == NA
     #     mask[result] = True
 
-    # XXX: verify that this doesn't assume masked values are False!
     result[left & right] = False
     mask[right & left_mask] = True
     if right_mask is not None:

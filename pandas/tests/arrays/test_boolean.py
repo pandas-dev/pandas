@@ -524,6 +524,37 @@ class TestLogicalOps(BaseOpsUtil):
             a, pd.array([True, False, None], dtype="boolean")
         )
 
+    @pytest.mark.parametrize(
+        "other",
+        [
+            True,
+            False,
+            # pd.NA
+            [True, False, None] * 3,
+        ],
+    )
+    def test_no_masked_assumptions(self, other, all_logical_operators):
+        # The logical operations should not assume that masked values are False!
+        a = pd.array([True] * 3 + [False] * 3 + [None] * 3, dtype="boolean")
+        b = a.copy()
+        if isinstance(other, list):
+            other = pd.array(other, dtype="boolean")
+
+        # mutate the data inplace
+        a._data[a._mask] = True
+
+        result = getattr(a, all_logical_operators)(other)
+        expected = getattr(b, all_logical_operators)(other)
+        tm.assert_extension_array_equal(result, expected)
+
+        if isinstance(other, BooleanArray):
+            other._data[other._mask] = True
+            a._data[a._mask] = False
+
+            result = getattr(a, all_logical_operators)(other)
+            expected = getattr(b, all_logical_operators)(other)
+            tm.assert_extension_array_equal(result, expected)
+
 
 class TestComparisonOps(BaseOpsUtil):
     def _compare_other(self, data, op_name, other):
