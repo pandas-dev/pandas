@@ -873,6 +873,7 @@ def kleene_and(
     if left_mask is None:
         return kleene_and(right, left, right_mask, left_mask)
 
+    assert isinstance(left, np.ndarray)
     raise_for_nan(right, method="and")
     mask = left_mask
 
