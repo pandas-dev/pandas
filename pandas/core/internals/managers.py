@@ -18,8 +18,10 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     _NS_DTYPE,
+    is_datetimelike_v_numeric,
     is_extension_array_dtype,
     is_list_like,
+    is_numeric_v_string_like,
     is_scalar,
     is_sparse,
 )
@@ -79,7 +81,6 @@ class BlockManager(PandasObject):
     copy(deep=True)
 
     get_dtype_counts
-    get_ftype_counts
     get_dtypes
     get_ftypes
 
@@ -127,7 +128,7 @@ class BlockManager(PandasObject):
         do_integrity_check: bool = True,
     ):
         self.axes = [ensure_index(ax) for ax in axes]
-        self.blocks = tuple(blocks)  # type: Tuple[Block, ...]
+        self.blocks: Tuple[Block, ...] = tuple(blocks)
 
         for block in blocks:
             if self.ndim != block.ndim:
@@ -245,9 +246,6 @@ class BlockManager(PandasObject):
 
     def get_dtype_counts(self):
         return self._get_counts(lambda b: b.dtype.name)
-
-    def get_ftype_counts(self):
-        return self._get_counts(lambda b: b.ftype)
 
     def get_dtypes(self):
         dtypes = np.array([blk.dtype for blk in self.blocks])
@@ -629,7 +627,7 @@ class BlockManager(PandasObject):
                         convert=convert,
                         regex=regex,
                     )
-                    if m.any():
+                    if m.any() or convert:
                         new_rb = _extend_blocks(result, new_rb)
                     else:
                         new_rb.append(b)
@@ -1555,9 +1553,6 @@ class SingleBlockManager(BlockManager):
     def get_dtype_counts(self):
         return {self.dtype.name: 1}
 
-    def get_ftype_counts(self):
-        return {self.ftype: 1}
-
     def get_dtypes(self):
         return np.array([self._block.dtype])
 
@@ -1924,7 +1919,11 @@ def _compare_or_regex_search(a, b, regex=False):
     is_a_array = isinstance(a, np.ndarray)
     is_b_array = isinstance(b, np.ndarray)
 
-    result = op(a)
+    if is_datetimelike_v_numeric(a, b) or is_numeric_v_string_like(a, b):
+        # GH#29553 avoid deprecation warnings from numpy
+        result = False
+    else:
+        result = op(a)
 
     if is_scalar(result) and (is_a_array or is_b_array):
         type_names = [type(a).__name__, type(b).__name__]

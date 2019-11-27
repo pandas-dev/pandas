@@ -730,7 +730,7 @@ class TestIndex(Base):
         assert first_value == x[Timestamp(expected_ts)]
 
     def test_booleanindex(self, index):
-        bool_index = np.repeat(True, len(index)).astype(bool)
+        bool_index = np.ones(len(index), dtype=bool)
         bool_index[5:30:2] = False
 
         sub_index = index[bool_index]
@@ -1384,13 +1384,6 @@ class TestIndex(Base):
         # shouldn't be formatted accidentally.
         assert "~:{range}:0" in result
         assert "{other}%s" in result
-
-    # GH18217
-    def test_summary_deprecated(self):
-        ind = Index(["{other}%s", "~:{range}:0"], name="A")
-
-        with tm.assert_produces_warning(FutureWarning):
-            ind.summary()
 
     def test_format(self, indices):
         self._check_method_works(Index.format, indices)
@@ -2769,32 +2762,18 @@ def test_index_subclass_constructor_wrong_kwargs(index_maker):
 
 
 def test_deprecated_fastpath():
+    msg = "[Uu]nexpected keyword argument"
+    with pytest.raises(TypeError, match=msg):
+        pd.Index(np.array(["a", "b"], dtype=object), name="test", fastpath=True)
 
-    with tm.assert_produces_warning(FutureWarning):
-        idx = pd.Index(np.array(["a", "b"], dtype=object), name="test", fastpath=True)
+    with pytest.raises(TypeError, match=msg):
+        pd.Int64Index(np.array([1, 2, 3], dtype="int64"), name="test", fastpath=True)
 
-    expected = pd.Index(["a", "b"], name="test")
-    tm.assert_index_equal(idx, expected)
+    with pytest.raises(TypeError, match=msg):
+        pd.RangeIndex(0, 5, 2, name="test", fastpath=True)
 
-    with tm.assert_produces_warning(FutureWarning):
-        idx = pd.Int64Index(
-            np.array([1, 2, 3], dtype="int64"), name="test", fastpath=True
-        )
-
-    expected = pd.Index([1, 2, 3], name="test", dtype="int64")
-    tm.assert_index_equal(idx, expected)
-
-    with tm.assert_produces_warning(FutureWarning):
-        idx = pd.RangeIndex(0, 5, 2, name="test", fastpath=True)
-
-    expected = pd.RangeIndex(0, 5, 2, name="test")
-    tm.assert_index_equal(idx, expected)
-
-    with tm.assert_produces_warning(FutureWarning):
-        idx = pd.CategoricalIndex(["a", "b", "c"], name="test", fastpath=True)
-
-    expected = pd.CategoricalIndex(["a", "b", "c"], name="test")
-    tm.assert_index_equal(idx, expected)
+    with pytest.raises(TypeError, match=msg):
+        pd.CategoricalIndex(["a", "b", "c"], name="test", fastpath=True)
 
 
 def test_shape_of_invalid_index():

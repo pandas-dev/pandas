@@ -55,7 +55,7 @@ class UndefinedVariableError(NameError):
     NameError subclass for local variables.
     """
 
-    def __init__(self, name, is_local):
+    def __init__(self, name, is_local: bool):
         if is_local:
             msg = "local variable {0!r} is not defined"
         else:
@@ -68,6 +68,8 @@ class Term:
         klass = Constant if not isinstance(name, str) else cls
         supr_new = super(Term, klass).__new__
         return supr_new(klass)
+
+    is_local: bool
 
     def __init__(self, name, env, side=None, encoding=None):
         # name is a str for Term, but may be something else for subclasses
@@ -389,9 +391,6 @@ class BinOp(Op):
         object
             The result of an evaluated expression.
         """
-        # handle truediv
-        if self.op == "/" and env.scope["truediv"]:
-            self.func = operator.truediv
 
         # recurse over the left/right nodes
         left = self.lhs(env)
@@ -503,12 +502,9 @@ class Div(BinOp):
     ----------
     lhs, rhs : Term or Op
         The Terms or Ops in the ``/`` expression.
-    truediv : bool
-        Whether or not to use true division. With Python 3 this happens
-        regardless of the value of ``truediv``.
     """
 
-    def __init__(self, lhs, rhs, truediv: bool, **kwargs):
+    def __init__(self, lhs, rhs, **kwargs):
         super().__init__("/", lhs, rhs, **kwargs)
 
         if not isnumeric(lhs.return_type) or not isnumeric(rhs.return_type):

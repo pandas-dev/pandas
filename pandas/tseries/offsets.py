@@ -1817,8 +1817,8 @@ class QuarterOffset(DateOffset):
     Quarter representation - doesn't call super.
     """
 
-    _default_startingMonth = None  # type: Optional[int]
-    _from_name_startingMonth = None  # type: Optional[int]
+    _default_startingMonth: Optional[int] = None
+    _from_name_startingMonth: Optional[int] = None
     _adjust_dst = True
     _attributes = frozenset(["n", "normalize", "startingMonth"])
     # TODO: Consider combining QuarterOffset and YearOffset __init__ at some
@@ -2577,7 +2577,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
                 "will overflow".format(self=self, other=other)
             )
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         if isinstance(other, str):
             from pandas.tseries.frequencies import to_offset
 

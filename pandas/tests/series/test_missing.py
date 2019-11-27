@@ -49,11 +49,6 @@ def _simple_ts(start, end, freq="D"):
 
 
 class TestSeriesMissingData:
-    def test_remove_na_deprecation(self):
-        # see gh-16971
-        with tm.assert_produces_warning(FutureWarning):
-            remove_na(Series([]))
-
     def test_timedelta_fillna(self):
         # GH 3371
         s = Series(

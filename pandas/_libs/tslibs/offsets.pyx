@@ -66,16 +66,16 @@ need_suffix = ['QS', 'BQ', 'BQS', 'YS', 'AS', 'BY', 'BA', 'BYS', 'BAS']
 
 for __prefix in need_suffix:
     for _m in MONTHS:
-        key = '%s-%s' % (__prefix, _m)
+        key = f'{__prefix}-{_m}'
         _offset_to_period_map[key] = _offset_to_period_map[__prefix]
 
 for __prefix in ['A', 'Q']:
     for _m in MONTHS:
-        _alias = '%s-%s' % (__prefix, _m)
+        _alias = f'{__prefix}-{_m}'
         _offset_to_period_map[_alias] = _alias
 
 for _d in DAYS:
-    _offset_to_period_map['W-%s' % _d] = 'W-%s' % _d
+    _offset_to_period_map[f'W-{_d}'] = f'W-{_d}'
 
 
 # ---------------------------------------------------------------------
@@ -328,7 +328,7 @@ class _BaseOffset:
     def __setattr__(self, name, value):
         raise AttributeError("DateOffset objects are immutable.")
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         if isinstance(other, str):
             try:
                 # GH#23524 if to_offset fails, we are dealing with an
@@ -432,9 +432,9 @@ class _BaseOffset:
 
         n_str = ""
         if self.n != 1:
-            n_str = "%s * " % self.n
+            n_str = f"{self.n} * "
 
-        out = '<%s' % n_str + className + plural + self._repr_attrs() + '>'
+        out = f'<{n_str}{className}{plural}{self._repr_attrs()}>'
         return out
 
     def _get_offset_day(self, datetime other):
@@ -460,16 +460,13 @@ class _BaseOffset:
         ValueError if n != int(n)
         """
         if util.is_timedelta64_object(n):
-            raise TypeError('`n` argument must be an integer, '
-                            'got {ntype}'.format(ntype=type(n)))
+            raise TypeError(f'`n` argument must be an integer, got {type(n)}')
         try:
             nint = int(n)
         except (ValueError, TypeError):
-            raise TypeError('`n` argument must be an integer, '
-                            'got {ntype}'.format(ntype=type(n)))
+            raise TypeError(f'`n` argument must be an integer, got {type(n)}')
         if n != nint:
-            raise ValueError('`n` argument must be an integer, '
-                             'got {n}'.format(n=n))
+            raise ValueError(f'`n` argument must be an integer, got {n}')
         return nint
 
     def __setstate__(self, state):

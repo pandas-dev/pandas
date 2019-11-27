@@ -202,9 +202,9 @@ class TestStringMethods:
         assert not hasattr(mi, "str")
 
     @pytest.mark.parametrize("dtype", [object, "category"])
-    @pytest.mark.parametrize("box", [Series, Index])
-    def test_api_per_dtype(self, box, dtype, any_skipna_inferred_dtype):
+    def test_api_per_dtype(self, index_or_series, dtype, any_skipna_inferred_dtype):
         # one instance of parametrized fixture
+        box = index_or_series
         inferred_dtype, values = any_skipna_inferred_dtype
 
         t = box(values, dtype=dtype)  # explicit dtype to avoid casting
@@ -236,13 +236,17 @@ class TestStringMethods:
             assert not hasattr(t, "str")
 
     @pytest.mark.parametrize("dtype", [object, "category"])
-    @pytest.mark.parametrize("box", [Series, Index])
     def test_api_per_method(
-        self, box, dtype, any_allowed_skipna_inferred_dtype, any_string_method
+        self,
+        index_or_series,
+        dtype,
+        any_allowed_skipna_inferred_dtype,
+        any_string_method,
     ):
         # this test does not check correctness of the different methods,
         # just that the methods work on the specified (inferred) dtypes,
         # and raise on all others
+        box = index_or_series
 
         # one instance of each parametrized fixture
         inferred_dtype, values = any_allowed_skipna_inferred_dtype
@@ -375,10 +379,10 @@ class TestStringMethods:
         assert i == 100
         assert s == "h"
 
-    @pytest.mark.parametrize("box", [Series, Index])
     @pytest.mark.parametrize("other", [None, Series, Index])
-    def test_str_cat_name(self, box, other):
+    def test_str_cat_name(self, index_or_series, other):
         # GH 21053
+        box = index_or_series
         values = ["a", "b"]
         if other:
             other = other(values)
@@ -387,8 +391,8 @@ class TestStringMethods:
         result = box(values, name="name").str.cat(other, sep=",")
         assert result.name == "name"
 
-    @pytest.mark.parametrize("box", [Series, Index])
-    def test_str_cat(self, box):
+    def test_str_cat(self, index_or_series):
+        box = index_or_series
         # test_cat above tests "str_cat" from ndarray;
         # here testing "str.cat" from Series/Indext to ndarray/list
         s = box(["a", "a", "b", "b", "c", np.nan])
@@ -427,9 +431,9 @@ class TestStringMethods:
         with pytest.raises(ValueError, match=rgx):
             s.str.cat(list(z))
 
-    @pytest.mark.parametrize("box", [Series, Index])
-    def test_str_cat_raises_intuitive_error(self, box):
+    def test_str_cat_raises_intuitive_error(self, index_or_series):
         # GH 11334
+        box = index_or_series
         s = box(["a", "b", "c", "d"])
         message = "Did you mean to supply a `sep` keyword?"
         with pytest.raises(ValueError, match=message):
@@ -440,8 +444,11 @@ class TestStringMethods:
     @pytest.mark.parametrize("sep", ["", None])
     @pytest.mark.parametrize("dtype_target", ["object", "category"])
     @pytest.mark.parametrize("dtype_caller", ["object", "category"])
-    @pytest.mark.parametrize("box", [Series, Index])
-    def test_str_cat_categorical(self, box, dtype_caller, dtype_target, sep):
+    def test_str_cat_categorical(
+        self, index_or_series, dtype_caller, dtype_target, sep
+    ):
+        box = index_or_series
+
         s = Index(["a", "a", "b", "a"], dtype=dtype_caller)
         s = s if box == Index else Series(s, index=s)
         t = Index(["b", "a", "b", "c"], dtype=dtype_target)
@@ -494,8 +501,8 @@ class TestStringMethods:
             # need to use outer and na_rep, as otherwise Index would not raise
             s.str.cat(t, join="outer", na_rep="-")
 
-    @pytest.mark.parametrize("box", [Series, Index])
-    def test_str_cat_mixed_inputs(self, box):
+    def test_str_cat_mixed_inputs(self, index_or_series):
+        box = index_or_series
         s = Index(["a", "b", "c", "d"])
         s = s if box == Index else Series(s, index=s)
 
@@ -596,9 +603,10 @@ class TestStringMethods:
             s.str.cat(iter([t.values, list(s)]))
 
     @pytest.mark.parametrize("join", ["left", "outer", "inner", "right"])
-    @pytest.mark.parametrize("box", [Series, Index])
-    def test_str_cat_align_indexed(self, box, join):
+    def test_str_cat_align_indexed(self, index_or_series, join):
         # https://github.com/pandas-dev/pandas/issues/18657
+        box = index_or_series
+
         s = Series(["a", "b", "c", "d"], index=["a", "b", "c", "d"])
         t = Series(["D", "A", "E", "B"], index=["d", "a", "e", "b"])
         sa, ta = s.align(t, join=join)
@@ -656,10 +664,14 @@ class TestStringMethods:
         with pytest.raises(ValueError, match=rgx):
             s.str.cat([t, z], join=join)
 
-    @pytest.mark.parametrize("box", [Series, Index])
-    @pytest.mark.parametrize("other", [Series, Index])
-    def test_str_cat_all_na(self, box, other):
+    index_or_series2 = [Series, Index]  # type: ignore
+    # List item 0 has incompatible type "Type[Series]"; expected "Type[PandasObject]"
+    # See GH#>????
+
+    @pytest.mark.parametrize("other", index_or_series2)
+    def test_str_cat_all_na(self, index_or_series, other):
         # GH 24044
+        box = index_or_series
 
         # check that all NaNs in caller / target work
         s = Index(["a", "b", "c", "d"])
@@ -731,7 +743,10 @@ class TestStringMethods:
         tm.assert_series_equal(result, exp)
 
         # mixed
-        mixed = ["a", np.nan, "b", True, datetime.today(), "foo", None, 1, 2.0]
+        mixed = np.array(
+            ["a", np.nan, "b", True, datetime.today(), "foo", None, 1, 2.0],
+            dtype=object,
+        )
         rs = strings.str_count(mixed, "a")
         xp = np.array([1, np.nan, 0, np.nan, np.nan, 0, np.nan, np.nan, np.nan])
         tm.assert_numpy_array_equal(rs, xp)
@@ -755,14 +770,14 @@ class TestStringMethods:
         expected = np.array([False, np.nan, False, False, True], dtype=np.object_)
         tm.assert_numpy_array_equal(result, expected)
 
-        values = ["foo", "xyz", "fooommm__foo", "mmm_"]
+        values = np.array(["foo", "xyz", "fooommm__foo", "mmm_"], dtype=object)
         result = strings.str_contains(values, pat)
         expected = np.array([False, False, True, True])
         assert result.dtype == np.bool_
         tm.assert_numpy_array_equal(result, expected)
 
         # case insensitive using regex
-        values = ["Foo", "xYz", "fOOomMm__fOo", "MMM_"]
+        values = np.array(["Foo", "xYz", "fOOomMm__fOo", "MMM_"], dtype=object)
         result = strings.str_contains(values, "FOO|mmm", case=False)
         expected = np.array([True, False, True, True])
         tm.assert_numpy_array_equal(result, expected)
@@ -773,7 +788,10 @@ class TestStringMethods:
         tm.assert_numpy_array_equal(result, expected)
 
         # mixed
-        mixed = ["a", np.nan, "b", True, datetime.today(), "foo", None, 1, 2.0]
+        mixed = np.array(
+            ["a", np.nan, "b", True, datetime.today(), "foo", None, 1, 2.0],
+            dtype=object,
+        )
         rs = strings.str_contains(mixed, "o")
         xp = np.array(
             [False, np.nan, False, np.nan, np.nan, True, np.nan, np.nan, np.nan],
@@ -869,7 +887,10 @@ class TestStringMethods:
         tm.assert_series_equal(result, exp.fillna(False).astype(bool))
 
         # mixed
-        mixed = ["a", np.nan, "b", True, datetime.today(), "foo", None, 1, 2.0]
+        mixed = np.array(
+            ["a", np.nan, "b", True, datetime.today(), "foo", None, 1, 2.0],
+            dtype=object,
+        )
         rs = strings.str_endswith(mixed, "f")
         xp = np.array(
             [False, np.nan, False, np.nan, np.nan, False, np.nan, np.nan, np.nan],
@@ -3489,10 +3510,13 @@ class TestStringMethods:
 
 
 def test_string_array(any_string_method):
+    method_name, args, kwargs = any_string_method
+    if method_name == "decode":
+        pytest.skip("decode requires bytes.")
+
     data = ["a", "bb", np.nan, "ccc"]
     a = Series(data, dtype=object)
     b = Series(data, dtype="string")
-    method_name, args, kwargs = any_string_method
 
     expected = getattr(a.str, method_name)(*args, **kwargs)
     result = getattr(b.str, method_name)(*args, **kwargs)
@@ -3503,8 +3527,29 @@ def test_string_array(any_string_method):
         ):
             assert result.dtype == "string"
             result = result.astype(object)
+
+        elif expected.dtype == "float" and expected.isna().any():
+            assert result.dtype == "Int64"
+            result = result.astype("float")
+
     elif isinstance(expected, DataFrame):
         columns = expected.select_dtypes(include="object").columns
         assert all(result[columns].dtypes == "string")
         result[columns] = result[columns].astype(object)
     tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method,expected",
+    [
+        ("count", [2, None]),
+        ("find", [0, None]),
+        ("index", [0, None]),
+        ("rindex", [2, None]),
+    ],
+)
+def test_string_array_numeric_integer_array(method, expected):
+    s = Series(["aba", None], dtype="string")
+    result = getattr(s.str, method)("a")
+    expected = Series(expected, dtype="Int64")
+    tm.assert_series_equal(result, expected)

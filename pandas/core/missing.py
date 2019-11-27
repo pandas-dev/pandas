@@ -14,6 +14,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_integer_dtype,
+    is_numeric_v_string_like,
     is_scalar,
     is_timedelta64_dtype,
     needs_i8_conversion,
@@ -48,14 +49,22 @@ def mask_missing(arr, values_to_mask):
     mask = None
     for x in nonna:
         if mask is None:
-            mask = arr == x
+            if is_numeric_v_string_like(arr, x):
+                # GH#29553 prevent numpy deprecation warnings
+                mask = False
+            else:
+                mask = arr == x
 
             # if x is a string and arr is not, then we get False and we must
             # expand the mask to size arr.shape
             if is_scalar(mask):
                 mask = np.zeros(arr.shape, dtype=bool)
         else:
-            mask |= arr == x
+            if is_numeric_v_string_like(arr, x):
+                # GH#29553 prevent numpy deprecation warnings
+                mask |= False
+            else:
+                mask |= arr == x
 
     if na_mask.any():
         if mask is None:
@@ -342,7 +351,7 @@ def _interpolate_scipy_wrapper(
     }
 
     if getattr(x, "is_all_dates", False):
-        # GH 5975, scipy.interp1d can't hande datetime64s
+        # GH 5975, scipy.interp1d can't handle datetime64s
         x, new_x = x._values.astype("i8"), new_x.astype("i8")
 
     if method == "pchip":

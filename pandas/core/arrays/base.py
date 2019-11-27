@@ -29,7 +29,7 @@ from pandas.core.sorting import nargsort
 
 _not_implemented_message = "{} does not implement {}."
 
-_extension_array_shared_docs = dict()  # type: Dict[str, str]
+_extension_array_shared_docs: Dict[str, str] = dict()
 
 
 def try_cast_to_ea(cls_or_instance, obj, dtype=None):
@@ -1087,6 +1087,15 @@ class ExtensionOpsMixin:
         cls.__gt__ = cls._create_comparison_method(operator.gt)
         cls.__le__ = cls._create_comparison_method(operator.le)
         cls.__ge__ = cls._create_comparison_method(operator.ge)
+
+    @classmethod
+    def _add_logical_ops(cls):
+        cls.__and__ = cls._create_logical_method(operator.and_)
+        cls.__rand__ = cls._create_logical_method(ops.rand_)
+        cls.__or__ = cls._create_logical_method(operator.or_)
+        cls.__ror__ = cls._create_logical_method(ops.ror_)
+        cls.__xor__ = cls._create_logical_method(operator.xor)
+        cls.__rxor__ = cls._create_logical_method(ops.rxor)
 
 
 class ExtensionScalarOpsMixin(ExtensionOpsMixin):

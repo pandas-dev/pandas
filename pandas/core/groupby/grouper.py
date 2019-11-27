@@ -4,7 +4,6 @@ split-apply-combine paradigm.
 """
 
 from typing import Hashable, List, Optional, Tuple
-import warnings
 
 import numpy as np
 
@@ -14,7 +13,6 @@ from pandas.core.dtypes.common import (
     ensure_categorical,
     is_categorical_dtype,
     is_datetime64_dtype,
-    is_hashable,
     is_list_like,
     is_scalar,
     is_timedelta64_dtype,
@@ -93,7 +91,7 @@ class Grouper:
     >>> df.groupby(Grouper(level='date', freq='60s', axis=1))
     """
 
-    _attributes = ("key", "level", "freq", "axis", "sort")  # type: Tuple[str, ...]
+    _attributes: Tuple[str, ...] = ("key", "level", "freq", "axis", "sort")
 
     def __new__(cls, *args, **kwargs):
         if kwargs.get("freq") is not None:
@@ -173,9 +171,7 @@ class Grouper:
                 ax = self._grouper.take(obj.index)
             else:
                 if key not in obj._info_axis:
-                    raise KeyError(
-                        "The grouper name {key} is not found".format(key=key)
-                    )
+                    raise KeyError(f"The grouper name {key} is not found")
                 ax = Index(obj[key], name=key)
 
         else:
@@ -191,9 +187,7 @@ class Grouper:
 
                 else:
                     if level not in (0, ax.name):
-                        raise ValueError(
-                            "The level {level} is not valid".format(level=level)
-                        )
+                        raise ValueError(f"The level {level} is not valid")
 
         # possibly sort
         if (self.sort or sort) and not ax.is_monotonic:
@@ -212,13 +206,13 @@ class Grouper:
 
     def __repr__(self) -> str:
         attrs_list = (
-            "{name}={val!r}".format(name=attr_name, val=getattr(self, attr_name))
+            f"{attr_name}={getattr(self, attr_name)!r}"
             for attr_name in self._attributes
             if getattr(self, attr_name) is not None
         )
         attrs = ", ".join(attrs_list)
         cls_name = self.__class__.__name__
-        return "{cls}({attrs})".format(cls=cls_name, attrs=attrs)
+        return f"{cls_name}({attrs})"
 
 
 class Grouping:
@@ -280,9 +274,7 @@ class Grouping:
         if level is not None:
             if not isinstance(level, int):
                 if level not in index.names:
-                    raise AssertionError(
-                        "Level {level} not in index".format(level=level)
-                    )
+                    raise AssertionError(f"Level {level} not in index")
                 level = index.names.index(level)
 
             if self.name is None:
@@ -350,17 +342,16 @@ class Grouping:
             ):
                 if getattr(self.grouper, "ndim", 1) != 1:
                     t = self.name or str(type(self.grouper))
-                    raise ValueError("Grouper for '{t}' not 1-dimensional".format(t=t))
+                    raise ValueError(f"Grouper for '{t}' not 1-dimensional")
                 self.grouper = self.index.map(self.grouper)
                 if not (
                     hasattr(self.grouper, "__len__")
                     and len(self.grouper) == len(self.index)
                 ):
+                    grper = pprint_thing(self.grouper)
                     errmsg = (
                         "Grouper result violates len(labels) == "
-                        "len(data)\nresult: {grper}".format(
-                            grper=pprint_thing(self.grouper)
-                        )
+                        f"len(data)\nresult: {grper}"
                     )
                     self.grouper = None  # Try for sanity
                     raise AssertionError(errmsg)
@@ -375,13 +366,13 @@ class Grouping:
                 self.grouper = self.grouper.astype("timedelta64[ns]")
 
     def __repr__(self) -> str:
-        return "Grouping({name})".format(name=self.name)
+        return f"Grouping({self.name})"
 
     def __iter__(self):
         return iter(self.indices)
 
-    _codes = None  # type: np.ndarray
-    _group_index = None  # type: Index
+    _codes: Optional[np.ndarray] = None
+    _group_index: Optional[Index] = None
 
     @property
     def ngroups(self) -> int:
@@ -412,6 +403,7 @@ class Grouping:
     def group_index(self) -> Index:
         if self._group_index is None:
             self._make_codes()
+        assert self._group_index is not None
         return self._group_index
 
     def _make_codes(self) -> None:
@@ -500,11 +492,7 @@ def get_grouper(
 
             if isinstance(level, str):
                 if obj.index.name != level:
-                    raise ValueError(
-                        "level name {level} is not the name of the index".format(
-                            level=level
-                        )
-                    )
+                    raise ValueError(f"level name {level} is not the name of the index")
             elif level > 0 or level < -1:
                 raise ValueError("level > 0 or level < -1 only valid with MultiIndex")
 
@@ -524,28 +512,6 @@ def get_grouper(
     # already have a BaseGrouper, just return it
     elif isinstance(key, ops.BaseGrouper):
         return key, [], obj
-
-    # In the future, a tuple key will always mean an actual key,
-    # not an iterable of keys. In the meantime, we attempt to provide
-    # a warning. We can assume that the user wanted a list of keys when
-    # the key is not in the index. We just have to be careful with
-    # unhashable elements of `key`. Any unhashable elements implies that
-    # they wanted a list of keys.
-    # https://github.com/pandas-dev/pandas/issues/18314
-    if isinstance(key, tuple):
-        all_hashable = is_hashable(key)
-        if (
-            all_hashable and key not in obj and set(key).issubset(obj)
-        ) or not all_hashable:
-            # column names ('a', 'b') -> ['a', 'b']
-            # arrays like (a, b) -> [a, b]
-            msg = (
-                "Interpreting tuple 'by' as a list of keys, rather than "
-                "a single key. Use 'by=[...]' instead of 'by=(...)'. In "
-                "the future, a tuple will always mean a single key."
-            )
-            warnings.warn(msg, FutureWarning, stacklevel=5)
-            key = list(key)
 
     if not isinstance(key, list):
         keys = [key]
@@ -587,8 +553,8 @@ def get_grouper(
     else:
         levels = [level] * len(keys)
 
-    groupings = []  # type: List[Grouping]
-    exclusions = []  # type: List[Hashable]
+    groupings: List[Grouping] = []
+    exclusions: List[Hashable] = []
 
     # if the actual grouper should be obj[key]
     def is_in_axis(key) -> bool:
@@ -636,12 +602,8 @@ def get_grouper(
 
         if is_categorical_dtype(gpr) and len(gpr) != obj.shape[axis]:
             raise ValueError(
-                (
-                    "Length of grouper ({len_gpr}) and axis ({len_axis})"
-                    " must be same length".format(
-                        len_gpr=len(gpr), len_axis=obj.shape[axis]
-                    )
-                )
+                f"Length of grouper ({len(gpr)}) and axis ({obj.shape[axis]})"
+                " must be same length"
             )
 
         # create the Grouping

@@ -160,6 +160,12 @@ def _new_Index(cls, d):
         from pandas.core.indexes.period import _new_PeriodIndex
 
         return _new_PeriodIndex(cls, **d)
+
+    if issubclass(cls, ABCMultiIndex):
+        if "labels" in d and "codes" not in d:
+            # GH#23752 "labels" kwarg has been replaced with "codes"
+            d["codes"] = d.pop("labels")
+
     return cls.__new__(cls, **d)
 
 
@@ -205,11 +211,11 @@ class Index(IndexOpsMixin, PandasObject):
     """
 
     # tolist is not actually deprecated, just suppressed in the __dir__
-    _deprecations = (
+    _deprecations: FrozenSet[str] = (
         PandasObject._deprecations
         | IndexOpsMixin._deprecations
         | frozenset(["asobject", "contains", "dtype_str", "get_values", "set_value"])
-    )  # type: FrozenSet[str]
+    )
 
     # To hand over control to subclasses
     _join_precedence = 1
@@ -259,14 +265,7 @@ class Index(IndexOpsMixin, PandasObject):
     # Constructors
 
     def __new__(
-        cls,
-        data=None,
-        dtype=None,
-        copy=False,
-        name=None,
-        fastpath=None,
-        tupleize_cols=True,
-        **kwargs,
+        cls, data=None, dtype=None, copy=False, name=None, tupleize_cols=True, **kwargs,
     ) -> "Index":
 
         from .range import RangeIndex
@@ -277,16 +276,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         if name is None and hasattr(data, "name"):
             name = data.name
-
-        if fastpath is not None:
-            warnings.warn(
-                "The 'fastpath' keyword is deprecated, and will be "
-                "removed in a future version.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            if fastpath:
-                return cls._simple_new(data, name)
 
         if isinstance(data, ABCPandasArray):
             # ensure users don't accidentally put a PandasArray in an index.
@@ -321,10 +310,9 @@ class Index(IndexOpsMixin, PandasObject):
                 #  the DatetimeIndex construction.
                 # Note we can pass copy=False because the .astype below
                 #  will always make a copy
-                result = DatetimeIndex(
-                    data, copy=False, name=name, **kwargs
-                )  # type: "Index"
-                return result.astype(object)
+                return DatetimeIndex(data, copy=False, name=name, **kwargs).astype(
+                    object
+                )
             else:
                 return DatetimeIndex(data, copy=copy, name=name, dtype=dtype, **kwargs)
 
@@ -332,8 +320,9 @@ class Index(IndexOpsMixin, PandasObject):
             if is_dtype_equal(_o_dtype, dtype):
                 # Note we can pass copy=False because the .astype below
                 #  will always make a copy
-                result = TimedeltaIndex(data, copy=False, name=name, **kwargs)
-                return result.astype(object)
+                return TimedeltaIndex(data, copy=False, name=name, **kwargs).astype(
+                    object
+                )
             else:
                 return TimedeltaIndex(data, copy=copy, name=name, dtype=dtype, **kwargs)
 
@@ -1131,19 +1120,6 @@ class Index(IndexOpsMixin, PandasObject):
         if name is None:
             name = type(self).__name__
         return f"{name}: {len(self)} entries{index_summary}"
-
-    def summary(self, name=None):
-        """
-        Return a summarized representation.
-
-        .. deprecated:: 0.23.0
-        """
-        warnings.warn(
-            "'summary' is deprecated and will be removed in a future version.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._summary(name)
 
     # --------------------------------------------------------------------
     # Conversion Methods

@@ -34,8 +34,9 @@ def frame_apply(
     """ construct and return a row or column based frame apply object """
 
     axis = obj._get_axis_number(axis)
+    klass: Type[FrameApply]
     if axis == 0:
-        klass = FrameRowApply  # type: Type[FrameApply]
+        klass = FrameRowApply
     elif axis == 1:
         klass = FrameColumnApply
 
@@ -226,6 +227,8 @@ class FrameApply(metaclass=abc.ABCMeta):
             if "Function does not reduce" not in str(err):
                 # catch only ValueError raised intentionally in libreduction
                 raise
+            # We expect np.apply_along_axis to give a two-dimensional result, or
+            #  also raise.
             result = np.apply_along_axis(self.f, self.axis, self.values)
 
         # TODO: mixed type case
