@@ -363,7 +363,7 @@ class _BaseOffset:
         attrs = [(k, v) for k, v in all_paras.items()
                  if (k not in exclude) and (k[0] != '_')]
         attrs = sorted(set(attrs))
-        params = tuple([str(self.__class__)] + attrs)
+        params = tuple([str(type(self))] + attrs)
         return params
 
     @property
