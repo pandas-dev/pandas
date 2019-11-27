@@ -243,7 +243,7 @@ def infer_freq(index, warn=True):
         ):
             raise TypeError(
                 "cannot infer freq from a non-convertible dtype "
-                "on a Series of {dtype}".format(dtype=index.dtype)
+                f"on a Series of {index.dtype}"
             )
         index = values
 
@@ -261,7 +261,7 @@ def infer_freq(index, warn=True):
         if isinstance(index, (pd.Int64Index, pd.Float64Index)):
             raise TypeError(
                 "cannot infer freq from a non-convertible index "
-                "type {type}".format(type=type(index))
+                f"type {type(index)}"
             )
         index = index.values
 
@@ -393,7 +393,7 @@ class _FrequencyInferer:
         if annual_rule:
             nyears = self.ydiffs[0]
             month = MONTH_ALIASES[self.rep_stamp.month]
-            alias = "{prefix}-{month}".format(prefix=annual_rule, month=month)
+            alias = f"{annual_rule}-{month}"
             return _maybe_add_count(alias, nyears)
 
         quarterly_rule = self._get_quarterly_rule()
@@ -401,7 +401,7 @@ class _FrequencyInferer:
             nquarters = self.mdiffs[0] / 3
             mod_dict = {0: 12, 2: 11, 1: 10}
             month = MONTH_ALIASES[mod_dict[self.rep_stamp.month % 3]]
-            alias = "{prefix}-{month}".format(prefix=quarterly_rule, month=month)
+            alias = f"{quarterly_rule}-{month}"
             return _maybe_add_count(alias, nquarters)
 
         monthly_rule = self._get_monthly_rule()
@@ -413,7 +413,7 @@ class _FrequencyInferer:
             if days % 7 == 0:
                 # Weekly
                 day = int_to_weekday[self.rep_stamp.weekday()]
-                return _maybe_add_count("W-{day}".format(day=day), days / 7)
+                return _maybe_add_count(f"W-{day}", days / 7)
             else:
                 return _maybe_add_count("D", days)
 
@@ -485,7 +485,7 @@ class _FrequencyInferer:
         week = week_of_months[0] + 1
         wd = int_to_weekday[weekdays[0]]
 
-        return "WOM-{week}{weekday}".format(week=week, weekday=wd)
+        return f"WOM-{week}{wd}"
 
 
 class _TimedeltaFrequencyInferer(_FrequencyInferer):
@@ -495,7 +495,7 @@ class _TimedeltaFrequencyInferer(_FrequencyInferer):
             if days % 7 == 0:
                 # Weekly
                 wd = int_to_weekday[self.rep_stamp.weekday()]
-                alias = "W-{weekday}".format(weekday=wd)
+                alias = f"W-{wd}"
                 return _maybe_add_count(alias, days / 7)
             else:
                 return _maybe_add_count("D", days)
@@ -509,6 +509,6 @@ def _maybe_add_count(base, count):
     if count != 1:
         assert count == int(count)
         count = int(count)
-        return "{count}{base}".format(count=count, base=base)
+        return f"{count}{base}"
     else:
         return base

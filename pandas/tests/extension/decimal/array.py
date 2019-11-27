@@ -23,7 +23,7 @@ class DecimalDtype(ExtensionDtype):
         self.context = context or decimal.getcontext()
 
     def __repr__(self) -> str:
-        return "DecimalDtype(context={})".format(self.context)
+        return f"DecimalDtype(context={self.context})"
 
     @classmethod
     def construct_array_type(cls):
@@ -40,7 +40,7 @@ class DecimalDtype(ExtensionDtype):
         if string == cls.name:
             return cls()
         else:
-            raise TypeError("Cannot construct a '{}' from '{}'".format(cls, string))
+            raise TypeError(f"Cannot construct a '{cls}' from '{string}'")
 
     @property
     def _is_numeric(self):
@@ -179,7 +179,7 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
             op = getattr(self.data, name)
         except AttributeError:
             raise NotImplementedError(
-                "decimal does not support the {} operation".format(name)
+                f"decimal does not support the {name} operation"
             )
         return op(axis=0)
 

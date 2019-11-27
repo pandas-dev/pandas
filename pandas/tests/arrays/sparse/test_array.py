@@ -1007,7 +1007,7 @@ class TestSparseArrayAnalytics:
                 np.cumsum(SparseArray(data), out=out)
         else:
             axis = 1  # SparseArray currently 1-D, so only axis = 0 is valid.
-            msg = "axis\\(={axis}\\) out of bounds".format(axis=axis)
+            msg = f"axis\\(={axis}\\) out of bounds"
             with pytest.raises(ValueError, match=msg):
                 SparseArray(data).cumsum(axis=axis)
 
