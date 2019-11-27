@@ -92,6 +92,25 @@ def test_groupby_aggregation_mixed_dtype():
     tm.assert_frame_equal(result, expected)
 
 
+def test_groupby_aggregation_multi_level_column():
+    # GH 29772
+    lst = [
+        [True, True, True, False],
+        [True, False, np.nan, False],
+        [True, True, np.nan, False],
+        [True, True, np.nan, False],
+    ]
+    df = pd.DataFrame(
+        data=lst,
+        columns=pd.MultiIndex.from_tuples([("A", 0), ("A", 1), ("B", 0), ("B", 1)]),
+    )
+
+    result = df.groupby(level=1, axis=1).sum()
+    expected = pd.DataFrame({0: [2.0, 1, 1, 1], 1: [1, 0, 1, 1]})
+
+    tm.assert_frame_equal(result, expected)
+
+
 def test_agg_apply_corner(ts, tsframe):
     # nothing to group, all NA
     grouped = ts.groupby(ts * np.nan)
