@@ -136,7 +136,7 @@ def read_gbq(
         adjust verbosity instead
         <https://pandas-gbq.readthedocs.io/en/latest/intro.html#logging>`__.
     progress_bar_type : Optional, str
-        If set, use the `tqdm <https://tqdm.github.io/>`_ library to
+        If set, use the `tqdm <https://tqdm.github.io/>`__ library to
         display a progress bar while the data downloads. Install the
         ``tqdm`` package to use this feature.
         Possible values of ``progress_bar_type`` include:
