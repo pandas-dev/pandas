@@ -2201,7 +2201,7 @@ cdef class _Period:
         return self.days_in_month
 
     @property
-    def is_leap_year(self):
+    def is_leap_year(self) -> bool:
         return bool(is_leapyear(self.year))
 
     @classmethod
