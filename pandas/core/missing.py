@@ -23,7 +23,7 @@ from pandas.core.dtypes.missing import isna
 
 class IndexNotSortedWarning(Warning):
     """
-    Warning raised when index not sorted and interpolate with unsupported method.
+    Warning raised when index is not sorted and interpolate with an unsupported method.
     """
 
     pass
@@ -275,11 +275,11 @@ def interpolate_1d(
                 inds = inds.view(np.int64)
             if inds.dtype == np.object_:
                 inds = lib.maybe_convert_objects(inds)
-            if not np.all(np.diff(inds) > 0):
-                msg = "interpolation method '%s' requires sorted index." % method
-                warnings.warn(msg, IndexNotSortedWarning)
         else:
             inds = xvalues
+        if not np.all(np.diff(inds) > 0):
+            msg = "interpolation method '%s' requires sorted index." % method
+            warnings.warn(msg, IndexNotSortedWarning)
         result[invalid] = np.interp(inds[invalid], inds[valid], yvalues[valid])
         result[preserve_nans] = np.nan
         return result

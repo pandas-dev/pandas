@@ -1668,3 +1668,5 @@ class TestSeriesInterpolateData:
         ts = pd.Series(data=[10, 9, np.nan, 2, 1], index=[10, 9, 3, 2, 1])
         with tm.assert_produces_warning(IndexNotSortedWarning):
             ts.interpolate(method="index")
+        with tm.assert_produces_warning(IndexNotSortedWarning):
+            ts.interpolate(method="values")
