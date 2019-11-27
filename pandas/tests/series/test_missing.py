@@ -17,6 +17,7 @@ from pandas import (
     NaT,
     Series,
     Timestamp,
+    Timedelta,
     date_range,
     isna,
 )
@@ -60,8 +61,7 @@ class TestSeriesMissingData:
         td = s.diff()
 
         # reg fillna
-        with tm.assert_produces_warning(FutureWarning):
-            result = td.fillna(0)
+        result = td.fillna(Timedelta(seconds=0))
         expected = Series(
             [
                 timedelta(0),
@@ -73,8 +73,10 @@ class TestSeriesMissingData:
         tm.assert_series_equal(result, expected)
 
         # interpreted as seconds, deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            result = td.fillna(1)
+        with pytest.raises(TypeError, match="Passing integers to fillna"):
+            td.fillna(1)
+
+        result = td.fillna(Timedelta(seconds=1))
         expected = Series(
             [
                 timedelta(seconds=1),
@@ -121,17 +123,15 @@ class TestSeriesMissingData:
 
         # ffill
         td[2] = np.nan
-        result = td.ffill()
-        with tm.assert_produces_warning(FutureWarning):
-            expected = td.fillna(0)
+        result = td.ffill()        
+        expected = td.fillna(Timedelta(seconds=0))
         expected[0] = np.nan
         tm.assert_series_equal(result, expected)
 
         # bfill
         td[2] = np.nan
         result = td.bfill()
-        with tm.assert_produces_warning(FutureWarning):
-            expected = td.fillna(0)
+        expected = td.fillna(Timedelta(seconds=0))
         expected[2] = timedelta(days=1, seconds=9 * 3600 + 60 + 1)
         tm.assert_series_equal(result, expected)
 
@@ -1596,12 +1596,6 @@ class TestSeriesInterpolateData:
         result = ts.reindex(new_index).interpolate(method="time")
 
         tm.assert_numpy_array_equal(result.values, exp.values)
-
-    def test_nonzero_warning(self):
-        # GH 24048
-        ser = pd.Series([1, 0, 3, 4])
-        with tm.assert_produces_warning(FutureWarning):
-            ser.nonzero()
 
     @pytest.mark.parametrize(
         "ind",
