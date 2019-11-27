@@ -29,7 +29,6 @@ Attributes
    Series.array
    Series.values
    Series.dtype
-   Series.ftype
    Series.shape
    Series.nbytes
    Series.ndim
@@ -43,7 +42,6 @@ Attributes
    Series.flags
    Series.empty
    Series.dtypes
-   Series.ftypes
    Series.data
    Series.name
    Series.put

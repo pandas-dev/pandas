@@ -28,7 +28,6 @@ Attributes and underlying data
    :toctree: api/
 
    DataFrame.dtypes
-   DataFrame.ftypes
    DataFrame.select_dtypes
    DataFrame.values
    DataFrame.get_values
