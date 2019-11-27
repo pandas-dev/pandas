@@ -779,8 +779,8 @@ def kleene_or(
         # output is unknown where (False & NA), (NA & False), (NA & NA)
         mask = (
             ((~left & ~left_mask) & right_mask)
-            | ((~right & ~right_mask) & left_mask)  # F & NA
-            | (left_mask & right_mask)  # NA & F  # NA & NA
+            | ((~right & ~right_mask) & left_mask)
+            | (left_mask & right_mask)
         )
     else:
         if right is True:
@@ -829,7 +829,6 @@ def kleene_xor(
         mask = left_mask.copy()
 
     else:
-        # breakpoint()
         mask = left_mask | right_mask
 
     return result, mask
