@@ -249,7 +249,7 @@ class SparseDtype(ExtensionDtype):
         has_fill_value = False
         if m:
             subtype = m.groupdict()["subtype"]
-            has_fill_value = bool(m.groupdict()["fill_value"]) or has_fill_value
+            has_fill_value = bool(m.groupdict()["fill_value"])
         elif dtype == "Sparse":
             subtype = "float64"
         else:
