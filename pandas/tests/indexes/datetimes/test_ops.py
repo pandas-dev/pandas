@@ -13,6 +13,7 @@ from pandas import (
     PeriodIndex,
     Series,
     Timestamp,
+    _np_version_under1p18,
     bdate_range,
     date_range,
 )
@@ -254,9 +255,20 @@ class TestDatetimeIndexOps(Ops):
     def test_order_without_freq(self, index_dates, expected_dates, tz_naive_fixture):
         tz = tz_naive_fixture
 
+        # FIXME: kludge since sort_values wih return_indexer==True uses the
+        #  i8 values instead of the M8 values, so the np 1.18 behavior change
+        #  does not affect it
+        orig_expected = expected_dates
+
+        if not _np_version_under1p18 and expected_dates[0] is pd.NaT:
+            # numpy 1.18.0 sorts NaT to the end instead of the beginning,
+            #  which matches float treatment of NaN
+            expected_dates = expected_dates[2:] + [pd.NaT, pd.NaT]
+
         # without freq
         index = DatetimeIndex(index_dates, tz=tz, name="idx")
         expected = DatetimeIndex(expected_dates, tz=tz, name="idx")
+        expected_with_indexer = DatetimeIndex(orig_expected, tz=tz, name="idx")
 
         ordered = index.sort_values()
         tm.assert_index_equal(ordered, expected)
@@ -267,14 +279,14 @@ class TestDatetimeIndexOps(Ops):
         assert ordered.freq is None
 
         ordered, indexer = index.sort_values(return_indexer=True)
-        tm.assert_index_equal(ordered, expected)
+        tm.assert_index_equal(ordered, expected_with_indexer)
 
         exp = np.array([0, 4, 3, 1, 2])
         tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
         assert ordered.freq is None
 
         ordered, indexer = index.sort_values(return_indexer=True, ascending=False)
-        tm.assert_index_equal(ordered, expected[::-1])
+        tm.assert_index_equal(ordered, expected_with_indexer[::-1])
 
         exp = np.array([2, 1, 3, 4, 0])
         tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
