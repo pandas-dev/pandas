@@ -165,7 +165,6 @@ class TestDataFrameMissingData:
                 [7, np.nan, 8, 9],
             ]
         )
-        cp = df.copy()
 
         # GH20987
         with pytest.raises(TypeError, match="supplying multiple axes"):
