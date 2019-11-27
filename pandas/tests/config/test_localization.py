@@ -1,11 +1,14 @@
 import codecs
 import locale
+import os
 
 import pytest
 
 from pandas._config.localization import can_set_locale, get_locales, set_locale
 
 from pandas.compat import is_platform_windows
+
+import pandas as pd
 
 _all_locales = get_locales() or []
 _current_locale = locale.getlocale()
@@ -56,13 +59,7 @@ def test_get_locales_prefix():
 
 @_skip_if_only_one_locale
 @pytest.mark.parametrize(
-    "lang,enc",
-    [
-        ("it_CH", "UTF-8"),
-        ("en_US", "ascii"),
-        ("zh_CN", "GB_2312-80"),
-        ("it_IT", "ISO-8859-1"),
-    ],
+    "lang,enc", [("it_CH", "UTF-8"), ("en_US", "ascii"), ("it_IT", "ISO-8859-1"),],
 )
 def test_set_locale(lang, enc):
     if all(x is None for x in _current_locale):
@@ -90,3 +87,13 @@ def test_set_locale(lang, enc):
     # Once we exit the "with" statement, locale should be back to what it was.
     current_locale = locale.getlocale()
     assert current_locale == _current_locale
+
+
+def test_encoding_detected():
+    system_locale = os.environ.get("LC_ALL")
+    if system_locale:
+        system_encoding = system_locale.split(".")[-1].upper().replace("-", "")
+    else:
+        system_encoding = "UTF8"
+
+    assert pd.options.display.encoding == system_encoding

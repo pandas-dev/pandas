@@ -5,14 +5,6 @@
 # https://github.com/pytest-dev/pytest/issues/1075
 export PYTHONHASHSEED=$(python -c 'import random; print(random.randint(1, 4294967295))')
 
-SYSTEM_ENCODING=`echo $LANG | cut -d. -f2`
-SYSTEM_ENCODING="${SYSTEM_ENCODING:-UTF-8}"
-PANDAS_DETECTED_ENCODING=`python -c 'import pandas; pandas.get_option("display.encoding")'`
-if [[ "$SYSTEM_ENCODING" != "$PANDAS_DETECTED_ENCODING" ]]; then
-    echo "pandas could not detect the encoding. System encoding: $SYSTEM_ENCODING, pandas detected: $PANDAS_DETECTED_ENCODING"
-    exit 1
-fi
-
 if [[ "not network" == *"$PATTERN"* ]]; then
     export http_proxy=http://1.2.3.4 https_proxy=http://1.2.3.4;
 fi
