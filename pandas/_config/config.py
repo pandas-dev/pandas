@@ -85,7 +85,7 @@ def _get_single_key(pat, silent):
     if len(keys) == 0:
         if not silent:
             _warn_if_deprecated(pat)
-        raise OptionError("No such keys(s): {pat!r}".format(pat=pat))
+        raise OptionError(f"No such keys(s): {repr(pat)}")
     if len(keys) > 1:
         raise OptionError("Pattern matched multiple keys")
     key = keys[0]
@@ -116,8 +116,8 @@ def _set_option(*args, **kwargs):
     silent = kwargs.pop("silent", False)
 
     if kwargs:
-        msg = '_set_option() got an unexpected keyword argument "{kwarg}"'
-        raise TypeError(msg.format(list(kwargs.keys())[0]))
+        kwarg = list(kwargs.keys())[0]
+        raise TypeError(f'_set_option() got an unexpected keyword argument "{kwarg}"')
 
     for k, v in zip(args[::2], args[1::2]):
         key = _get_single_key(k, silent)
@@ -441,11 +441,9 @@ def register_option(key: str, defval: object, doc="", validator=None, cb=None):
     key = key.lower()
 
     if key in _registered_options:
-        msg = "Option '{key}' has already been registered"
-        raise OptionError(msg.format(key=key))
+        raise OptionError(f"Option '{key}' has already been registered")
     if key in _reserved_keys:
-        msg = "Option '{key}' is a reserved key"
-        raise OptionError(msg.format(key=key))
+        raise OptionError(f"Option '{key}' is a reserved key")
 
     # the default value should be legal
     if validator:
@@ -457,10 +455,10 @@ def register_option(key: str, defval: object, doc="", validator=None, cb=None):
     for k in path:
         # NOTE: tokenize.Name is not a public constant
         # error: Module has no attribute "Name"  [attr-defined]
-        if not bool(re.match("^" + tokenize.Name + "$", k)):  # type: ignore
-            raise ValueError("{k} is not a valid identifier".format(k=k))
+        if not re.match("^" + tokenize.Name + "$", k):  # type: ignore
+            raise ValueError(f"{k} is not a valid identifier")
         if keyword.iskeyword(k):
-            raise ValueError("{k} is a python keyword".format(k=k))
+            raise ValueError(f"{k} is a python keyword")
 
     cursor = _global_config
     msg = "Path prefix to option '{option}' is already an option"
@@ -524,8 +522,7 @@ def deprecate_option(key, msg=None, rkey=None, removal_ver=None):
     key = key.lower()
 
     if key in _deprecated_options:
-        msg = "Option '{key}' has already been defined as deprecated."
-        raise OptionError(msg.format(key=key))
+        raise OptionError(f"Option '{key}' has already been defined as deprecated.")
 
     _deprecated_options[key] = DeprecatedOption(key, msg, rkey, removal_ver)
 
@@ -623,11 +620,11 @@ def _warn_if_deprecated(key):
             print(d.msg)
             warnings.warn(d.msg, FutureWarning)
         else:
-            msg = "'{key}' is deprecated".format(key=key)
+            msg = f"'{key}' is deprecated"
             if d.removal_ver:
-                msg += " and will be removed in {version}".format(version=d.removal_ver)
+                msg += f" and will be removed in {d.removal_ver}"
             if d.rkey:
-                msg += ", please use '{rkey}' instead.".format(rkey=d.rkey)
+                msg += f", please use '{d.rkey}' instead."
             else:
                 msg += ", please refrain from using it."
 
@@ -642,7 +639,7 @@ def _build_option_description(k):
     o = _get_registered_option(k)
     d = _get_deprecated_option(k)
 
-    s = "{k} ".format(k=k)
+    s = f"{k} "
 
     if o.doc:
         s += "\n".join(o.doc.strip().split("\n"))
@@ -650,9 +647,7 @@ def _build_option_description(k):
         s += "No description available."
 
     if o:
-        s += "\n    [default: {default}] [currently: {current}]".format(
-            default=o.defval, current=_get_option(k, True)
-        )
+        s += f"\n    [default: {o.defval}] [currently: {_get_option(k, True)}]"
 
     if d:
         s += "\n    (Deprecated"
@@ -733,7 +728,7 @@ def config_prefix(prefix):
 
     def wrap(func):
         def inner(key, *args, **kwds):
-            pkey = "{prefix}.{key}".format(prefix=prefix, key=key)
+            pkey = f"{prefix}.{key}"
             return func(pkey, *args, **kwds)
 
         return inner
@@ -770,8 +765,7 @@ def is_type_factory(_type):
 
     def inner(x):
         if type(x) != _type:
-            msg = "Value must have type '{typ!s}'"
-            raise ValueError(msg.format(typ=_type))
+            raise ValueError(f"Value must have type '{_type}'")
 
     return inner
 
@@ -794,12 +788,11 @@ def is_instance_factory(_type):
         _type = tuple(_type)
         type_repr = "|".join(map(str, _type))
     else:
-        type_repr = "'{typ}'".format(typ=_type)
+        type_repr = f"'{_type}'"
 
     def inner(x):
         if not isinstance(x, _type):
-            msg = "Value must be an instance of {type_repr}"
-            raise ValueError(msg.format(type_repr=type_repr))
+            raise ValueError(f"Value must be an instance of {type_repr}")
 
     return inner
 
@@ -815,10 +808,10 @@ def is_one_of_factory(legal_values):
             if not any(c(x) for c in callables):
                 uvals = [str(lval) for lval in legal_values]
                 pp_values = "|".join(uvals)
-                msg = "Value must be one of {pp_values}"
+                msg = f"Value must be one of {pp_values}"
                 if len(callables):
                     msg += " or a callable"
-                raise ValueError(msg.format(pp_values=pp_values))
+                raise ValueError(msg)
 
     return inner
 
