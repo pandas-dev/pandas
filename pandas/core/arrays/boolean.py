@@ -583,13 +583,12 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
 
             if op.__name__ in {"or_", "ror_"}:
                 result, mask = kleene_or(self._data, other, self._mask, mask)
-                return BooleanArray(result, mask)
             elif op.__name__ in {"and_", "rand_"}:
                 result, mask = kleene_and(self._data, other, self._mask, mask)
-                return BooleanArray(result, mask)
             elif op.__name__ in {"xor", "rxor"}:
                 result, mask = kleene_xor(self._data, other, self._mask, mask)
-                return BooleanArray(result, mask)
+
+            return BooleanArray(result, mask)
 
         name = "__{name}__".format(name=op.__name__)
         return set_function_name(logical_method, name, cls)
@@ -781,13 +780,6 @@ def kleene_or(
     else:
         mask = mask.copy()
 
-    # handle scalars:
-    # if right_is_scalar and right is libmissing.NA:
-    #     result = left.copy()
-    #     mask = left_mask.copy()
-    #     mask[~result] = True
-    #     return result, mask
-
     result = left | right
     mask[left & ~left_mask] = False
     if right_mask is not None:
@@ -795,7 +787,6 @@ def kleene_or(
     elif right is True:
         mask[:] = False
 
-    # update
     return result, mask
 
 
@@ -870,34 +861,30 @@ def kleene_and(
     result, mask: ndarray[bool]
         The result of the logical xor, and the new mask.
     """
+    # To reduce the number of cases, we ensure that `left` & `left_mask`
+    # always come from an array, not a scalar. This is safe, since because
+    # A | B == B | A
     if left_mask is None:
         return kleene_and(right, left, right_mask, left_mask)
 
     assert isinstance(left, np.ndarray)
     raise_for_nan(right, method="and")
-    mask = left_mask
 
-    if right_mask is not None:
-        mask = mask | right_mask
-    else:
-        mask = mask.copy()
+    if right_mask is None:
+        # Scalar `right`
+        # TODO(pd.NA): handle NA here.
+        result = left & right
 
-    if lib.is_scalar(right):
-        result = left.copy()
         mask = left_mask.copy()
-        if np.isnan(right):
-            # TODO(pd.NA): change to NA
-            mask[result] = True
-        else:
-            result = result & right  # already copied.
-            if right is False:
-                # unmask everything
-                mask[:] = False
+        if right is False:
+            # unmask everything
+            mask[:] = False
     else:
         result = left & right
         # unmask where either left or right is False
-        mask[~left & ~left_mask] = False
-        mask[~right & ~right_mask] = False
+        left_false = ~(left | left_mask)
+        right_false = ~(right | right_mask)
+        mask = (left_mask & ~right_false) | (right_mask & ~left_false)
 
     result[mask] = False
     return result, mask
@@ -905,7 +892,7 @@ def kleene_and(
 
 def raise_for_nan(value, method):
     if lib.is_scalar(value) and isinstance(value, float) and np.isnan(value):
-        raise ValueError(f"Cannot perform logical '{method}' with NaN")
+        raise ValueError(f"Cannot perform logical '{method}' with floating NaN")
 
 
 BooleanArray._add_logical_ops()

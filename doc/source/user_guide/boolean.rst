@@ -19,7 +19,7 @@ Nullable Boolean Data Type
 Kleene Logical Operations
 -------------------------
 
-:class:`arrays.BooleanArray` implements Kleene logic (sometimes called three-value logic) for
+:class:`arrays.BooleanArray` implements `Kleene Logic`_ (sometimes called three-value logic) for
 logical operations like ``&`` (and), ``|`` (or) and ``^`` (exclusive-or).
 
 This table demonstrates the results for every combination. These operations are symmetrical,
@@ -75,3 +75,6 @@ In ``and``
 
    pd.Series([True, False, np.nan], dtype="object") & True
    pd.Series([True, False, np.nan], dtype="boolean") & True
+
+
+.. _Kleene Logic: https://en.wikipedia.org/wiki/Three-valued_logic#Kleene_and_Priest_logics
