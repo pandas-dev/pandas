@@ -178,9 +178,7 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
         try:
             op = getattr(self.data, name)
         except AttributeError:
-            raise NotImplementedError(
-                f"decimal does not support the {name} operation"
-            )
+            raise NotImplementedError(f"decimal does not support the {name} operation")
         return op(axis=0)
 
 

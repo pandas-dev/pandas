@@ -260,8 +260,7 @@ def infer_freq(index, warn=True):
     if isinstance(index, pd.Index) and not isinstance(index, pd.DatetimeIndex):
         if isinstance(index, (pd.Int64Index, pd.Float64Index)):
             raise TypeError(
-                "cannot infer freq from a non-convertible index "
-                f"type {type(index)}"
+                "cannot infer freq from a non-convertible index " f"type {type(index)}"
             )
         index = index.values
 
