@@ -21,7 +21,6 @@ from pandas import (
     isna,
 )
 from pandas.core.missing import IndexNotSortedWarning
-from pandas.core.series import remove_na
 import pandas.util.testing as tm
 
 
