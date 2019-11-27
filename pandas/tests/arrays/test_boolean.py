@@ -360,45 +360,19 @@ class TestLogicalOps(BaseOpsUtil):
 
         return op
 
-    def _compare_other(self, data, op_name, other):
-        op = self.get_op_from_name(op_name)
-
-        # array
-        result = pd.Series(op(data, other))
-        expected = pd.Series(op(data._data, other), dtype="boolean")
-
-        # fill the nan locations
-        expected[data._mask] = np.nan
-
-        tm.assert_series_equal(result, expected)
-
-        # series
-        s = pd.Series(data)
-        result = op(s, other)
-
-        expected = pd.Series(data._data)
-        expected = op(expected, other)
-        expected = pd.Series(expected, dtype="boolean")
-
-        # fill the nan locations
-        expected[data._mask] = np.nan
-
-        tm.assert_series_equal(result, expected)
-
-    def test_scalar(self, data, all_logical_operators):
+    def test_logical_length_mismatch_raises(self, all_logical_operators):
         op_name = all_logical_operators
-        self._compare_other(data, op_name, True)
+        a = pd.array([True, False, None], dtype="boolean")
+        msg = "Lengths must match to compare"
 
-    def test_array(self, data, all_logical_operators):
-        op_name = all_logical_operators
-        if "or" in op_name:
-            pytest.skip("confusing")
-        other = pd.array([True] * len(data), dtype="boolean")
-        self._compare_other(data, op_name, other)
-        other = np.array([True] * len(data))
-        self._compare_other(data, op_name, other)
-        other = pd.Series([True] * len(data), dtype="boolean")
-        self._compare_other(data, op_name, other)
+        with pytest.raises(ValueError, match=msg):
+            getattr(a, op_name)([True, False])
+
+        with pytest.raises(ValueError, match=msg):
+            getattr(a, op_name)(np.array([True, False]))
+
+        with pytest.raises(ValueError, match=msg):
+            getattr(a, op_name)(pd.array([True, False], dtype="boolean"))
 
     def test_kleene_or(self):
         # A clear test of behavior.
@@ -429,27 +403,6 @@ class TestLogicalOps(BaseOpsUtil):
         tm.assert_extension_array_equal(result, expected)
 
         result = other | a
-        tm.assert_extension_array_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "left,right,expected",
-        [
-            ([True, False, None], True, [True, True, True]),
-            ([True, False, None], False, [True, False, None]),
-            ([True, False, None], np.nan, [True, None, None]),
-            # TODO: pd.NA
-        ],
-    )
-    def test_kleene_or_cases(self, left, right, expected):
-        if isinstance(left, list):
-            left = pd.array(left, dtype="boolean")
-        if isinstance(right, list):
-            right = pd.array(right, dtype="boolean")
-        expected = pd.array(expected, dtype="boolean")
-        result = left | right
-        tm.assert_extension_array_equal(result, expected)
-
-        result = right | left
         tm.assert_extension_array_equal(result, expected)
 
     def test_kleene_and(self):

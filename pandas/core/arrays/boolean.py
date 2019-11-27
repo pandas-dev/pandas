@@ -575,9 +575,10 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
                     raise NotImplementedError(
                         "can only perform ops with 1-d structures"
                     )
-                if len(self) != len(other):
-                    raise ValueError("Lengths must match to compare")
                 other, mask = coerce_to_array(other, copy=False)
+
+            if not lib.is_scalar(other) and len(self) != len(other):
+                raise ValueError("Lengths must match to compare")
 
             if op.__name__ in {"or_", "ror_"}:
                 result, mask = kleene_or(self._data, other, self._mask, mask)
