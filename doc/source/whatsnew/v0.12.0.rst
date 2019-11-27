@@ -417,6 +417,7 @@ Bug fixes
     original ``Series`` or ``NaN``. For example,
 
     .. ipython:: python
+        :okwarning:
 
         strs = 'go', 'bow', 'joe', 'slow'
         ds = pd.Series(strs)
