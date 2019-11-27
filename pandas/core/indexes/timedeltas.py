@@ -356,7 +356,8 @@ class TimedeltaIndex(
             result = Index._union(this, other, sort=sort)
             if isinstance(result, TimedeltaIndex):
                 if result.freq is None:
-                    result.freq = to_offset(result.inferred_freq)
+                    # TODO: find a less code-smelly way to set this
+                    result._data._freq = to_offset(result.inferred_freq)
             return result
 
     def join(self, other, how="left", level=None, return_indexers=False, sort=False):
@@ -409,7 +410,8 @@ class TimedeltaIndex(
     @Appender(Index.difference.__doc__)
     def difference(self, other, sort=None):
         new_idx = super().difference(other, sort=sort)
-        new_idx.freq = None
+        # TODO: find a less code-smelly way to set this
+        new_idx._data._freq = None
         return new_idx
 
     def _wrap_joined_index(self, joined, other):

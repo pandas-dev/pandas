@@ -1,38 +1,13 @@
 # cython: boundscheck=False, wraparound=False, cdivision=True
 
+from typing import Tuple
+
 import numpy as np
 from numpy cimport ndarray, int64_t
 
 # ----------------------------------------------------------------------
 # The indexer objects for rolling
 # These define start/end indexers to compute offsets
-
-
-class MockFixedWindowIndexer:
-    """
-
-    We are just checking parameters of the indexer,
-    and returning a consistent API with fixed/variable
-    indexers.
-
-    Parameters
-    ----------
-    values: ndarray
-        values data array
-    win: int64_t
-        window size
-    index: object
-        index of the values
-    closed: string
-        closed behavior
-    """
-    def __init__(self, ndarray values, int64_t win, object closed, object index=None):
-
-        self.start = np.empty(0, dtype='int64')
-        self.end = np.empty(0, dtype='int64')
-
-    def get_window_bounds(self):
-        return self.start, self.end
 
 
 class FixedWindowIndexer:
@@ -66,7 +41,7 @@ class FixedWindowIndexer:
         end_e = start_e + win
         self.end = np.concatenate([end_s, end_e])[:N]
 
-    def get_window_bounds(self):
+    def get_window_bounds(self) -> Tuple[np.ndarray, np.ndarray]:
         return self.start, self.end
 
 
@@ -108,7 +83,7 @@ class VariableWindowIndexer:
 
     @staticmethod
     def build(const int64_t[:] index, int64_t win, bint left_closed,
-              bint right_closed, int64_t N):
+              bint right_closed, int64_t N) -> Tuple[np.ndarray, np.ndarray]:
 
         cdef:
             ndarray[int64_t] start, end
@@ -161,5 +136,5 @@ class VariableWindowIndexer:
                     end[i] -= 1
         return start, end
 
-    def get_window_bounds(self):
+    def get_window_bounds(self) -> Tuple[np.ndarray, np.ndarray]:
         return self.start, self.end
