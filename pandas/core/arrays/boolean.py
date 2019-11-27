@@ -1,5 +1,5 @@
 import numbers
-from typing import TYPE_CHECKING, Type
+from typing import TYPE_CHECKING, Optional, Type, Union
 import warnings
 
 import numpy as np
@@ -565,6 +565,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
             assert op.__name__ in {"or_", "ror_", "and_", "rand_", "xor", "rxor"}
             other = lib.item_from_zerodim(other)
             other_is_booleanarray = isinstance(other, BooleanArray)
+            other_is_scalar = lib.is_scalar(other)
             mask = None
 
             if other_is_booleanarray:
@@ -577,7 +578,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
                     )
                 other, mask = coerce_to_array(other, copy=False)
 
-            if not lib.is_scalar(other) and len(self) != len(other):
+            if not other_is_scalar and len(self) != len(other):
                 raise ValueError("Lengths must match to compare")
 
             if op.__name__ in {"or_", "ror_"}:
@@ -741,13 +742,38 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
         return set_function_name(boolean_arithmetic_method, name, cls)
 
 
-def kleene_or(left, right, left_mask, right_mask):
+def kleene_or(
+    left: Union[bool, np.nan, np.ndarray],
+    right: Union[bool, np.nan, np.ndarary],
+    left_mask: Optional[np.ndarary],
+    right_mask: Optional[np.ndarray],
+):
+    """
+    Boolean ``or`` using Kleene logic.
+
+    Values are NA where we have ``NA | NA`` or ``NA | False``.
+    ``NA | True`` is considered True.
+
+    Parameters
+    ----------
+    left, right : ndarray, NA, or bool
+        The values of the array.
+    left_mask, right_mask : ndarray, optional
+        The masks. When
+
+    Returns
+    -------
+    result, mask: ndarray[bool]
+        The result of the logical or, and the new mask.
+    """
+    # To reduce the number of cases, we ensure that `left` & `left_mask`
+    # always come from an array, not a scalar. This is safe, since because
+    # A | B == B | A
     if left_mask is None:
         return kleene_or(right, left, right_mask, left_mask)
 
     assert left_mask is not None
-    assert isinstance(left, np.ndarray)
-    assert isinstance(left_mask, np.ndarray)
+    right_is_scalar = right_mask is None
 
     mask = left_mask
 
@@ -757,13 +783,13 @@ def kleene_or(left, right, left_mask, right_mask):
         mask = mask.copy()
 
     # handle scalars:
-    if lib.is_scalar(right) and np.isnan(right):
+    if right_is_scalar and np.isnan(right):  # TODO(pd.NA): change to NA
         result = left.copy()
         mask = left_mask.copy()
         mask[~result] = True
         return result, mask
 
-    # XXX: this implicitly relies on masked values being False!
+    # XXX: verify that this doesn't assume masked values are False!
     result = left | right
     mask[result] = False
 
@@ -771,21 +797,45 @@ def kleene_or(left, right, left_mask, right_mask):
     return result, mask
 
 
-def kleene_xor(left, right, left_mask, right_mask):
+def kleene_xor(
+    left: Union[bool, np.nan, np.ndarray],
+    right: Union[bool, np.nan, np.ndarary],
+    left_mask: Optional[np.ndarary],
+    right_mask: Optional[np.ndarray],
+):
+    """
+    Boolean ``xor`` using Kleene logic.
+
+    This is the same as ``or``, with the following adjustments
+
+    * True, True -> False
+    * True, NA   -> NA
+
+    Parameters
+    ----------
+    left, right : ndarray, NA, or bool
+        The values of the array.
+    left_mask, right_mask : ndarray, optional
+        The masks. When
+
+    Returns
+    -------
+    result, mask: ndarray[bool]
+        The result of the logical xor, and the new mask.
+    """
     if left_mask is None:
         return kleene_xor(right, left, right_mask, left_mask)
 
+    # Re-use or, and update with adustments.
     result, mask = kleene_or(left, right, left_mask, right_mask)
-    #
-    # if lib.is_scalar(right):
-    #     if right is True:
-    #         result[result] = False
-    #     result[left & right] = False
 
+    # TODO(pd.NA): change to pd.NA
     if lib.is_scalar(right) and right is np.nan:
+        # True | NA == True
+        # True ^ NA == NA
         mask[result] = True
     else:
-        # assumes masked values are False
+        # XXX: verify that this doesn't assume masked values are False!
         result[left & right] = False
         mask[right & left_mask] = True
         if right_mask is not None:
@@ -795,7 +845,29 @@ def kleene_xor(left, right, left_mask, right_mask):
     return result, mask
 
 
-def kleene_and(left, right, left_mask, right_mask):
+def kleene_and(
+    left: Union[bool, np.nan, np.ndarray],
+    right: Union[bool, np.nan, np.ndarary],
+    left_mask: Optional[np.ndarary],
+    right_mask: Optional[np.ndarray],
+):
+    """
+    Boolean ``and`` using Kleene logic.
+
+    Values are ``NA`` for ``NA & NA`` or ``True & NA``.
+
+    Parameters
+    ----------
+    left, right : ndarray, NA, or bool
+        The values of the array.
+    left_mask, right_mask : ndarray, optional
+        The masks. When
+
+    Returns
+    -------
+    result, mask: ndarray[bool]
+        The result of the logical xor, and the new mask.
+    """
     if left_mask is None:
         return kleene_and(right, left, right_mask, left_mask)
 
