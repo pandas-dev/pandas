@@ -321,7 +321,7 @@ class BlockManager(PandasObject):
         return len(self.items)
 
     def __repr__(self) -> str:
-        output = pprint_thing(type(self).__name__)
+        output = type(self).__name__
         for i, ax in enumerate(self.axes):
             if i == 0:
                 output += "\nItems: {ax}".format(ax=ax)

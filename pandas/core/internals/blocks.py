@@ -261,7 +261,7 @@ class Block(PandasObject):
 
     def __repr__(self) -> str:
         # don't want to print out all of the items here
-        name = pprint_thing(type(self).__name__)
+        name = type(self).__name__
         if self._is_single_block:
 
             result = "{name}: {len} dtype: {dtype}".format(
