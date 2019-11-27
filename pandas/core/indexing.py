@@ -228,7 +228,9 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         raise AbstractMethodError(self)
 
     def _has_valid_tuple(self, key: Tuple):
-        """ check the key for valid keys across my indexer """
+        """
+        Check the key for valid keys across my indexer.
+        """
         for i, k in enumerate(key):
             if i >= self.ndim:
                 raise IndexingError("Too many indexers")
