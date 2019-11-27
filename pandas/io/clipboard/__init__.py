@@ -275,7 +275,8 @@ def init_dev_clipboard_clipboard():
 
     def paste_dev_clipboard():
         with open("/dev/clipboard", "rt") as fo:
-            return fo.read()
+            content = fo.read()
+        return content
 
     return copy_dev_clipboard, paste_dev_clipboard
 
