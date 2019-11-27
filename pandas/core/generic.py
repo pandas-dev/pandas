@@ -176,9 +176,7 @@ class NDFrame(PandasObject, SelectionMixin):
     ]
     _internal_names_set: Set[str] = set(_internal_names)
     _accessors: Set[str] = set()
-    _deprecations: FrozenSet[str] = frozenset(
-        ["get_dtype_counts", "get_values", "ftypes", "ix"]
-    )
+    _deprecations: FrozenSet[str] = frozenset(["get_dtype_counts", "get_values", "ix"])
     _metadata: List[str] = []
     _is_copy = None
     _data: BlockManager
@@ -5588,10 +5586,6 @@ class NDFrame(PandasObject, SelectionMixin):
         pandas.Series
             The data type of each column.
 
-        See Also
-        --------
-        DataFrame.ftypes : Dtype and sparsity information.
-
         Examples
         --------
         >>> df = pd.DataFrame({'float': [1.0],
@@ -5608,55 +5602,6 @@ class NDFrame(PandasObject, SelectionMixin):
         from pandas import Series  # noqa: F811
 
         return Series(self._data.get_dtypes(), index=self._info_axis, dtype=np.object_)
-
-    @property
-    def ftypes(self):
-        """
-        Return the ftypes (indication of sparse/dense and dtype) in DataFrame.
-
-        .. deprecated:: 0.25.0
-           Use :func:`dtypes` instead.
-
-        This returns a Series with the data type of each column.
-        The result's index is the original DataFrame's columns. Columns
-        with mixed types are stored with the ``object`` dtype.  See
-        :ref:`the User Guide <basics.dtypes>` for more.
-
-        Returns
-        -------
-        pandas.Series
-            The data type and indication of sparse/dense of each column.
-
-        See Also
-        --------
-        DataFrame.dtypes: Series with just dtype information.
-
-        Notes
-        -----
-        Sparse data should have the same dtypes as its dense representation.
-
-        Examples
-        --------
-        >>> arr = np.random.RandomState(0).randn(100, 4)
-        >>> arr[arr < .8] = np.nan
-        >>> pd.DataFrame(arr).ftypes
-        0    float64:dense
-        1    float64:dense
-        2    float64:dense
-        3    float64:dense
-        dtype: object
-        """
-        warnings.warn(
-            "DataFrame.ftypes is deprecated and will "
-            "be removed in a future version. "
-            "Use DataFrame.dtypes instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-
-        from pandas import Series  # noqa: F811
-
-        return Series(self._data.get_ftypes(), index=self._info_axis, dtype=np.object_)
 
     def _to_dict_of_blocks(self, copy=True):
         """
@@ -10235,7 +10180,7 @@ class NDFrame(PandasObject, SelectionMixin):
             name2,
             axis_descr,
             "minimum",
-            lambda y, axis: np.minimum.accumulate(y, axis),
+            np.minimum.accumulate,
             "min",
             np.inf,
             np.nan,
@@ -10248,7 +10193,7 @@ class NDFrame(PandasObject, SelectionMixin):
             name2,
             axis_descr,
             "sum",
-            lambda y, axis: y.cumsum(axis),
+            np.cumsum,
             "sum",
             0.0,
             np.nan,
@@ -10261,7 +10206,7 @@ class NDFrame(PandasObject, SelectionMixin):
             name2,
             axis_descr,
             "product",
-            lambda y, axis: y.cumprod(axis),
+            np.cumprod,
             "prod",
             1.0,
             np.nan,
@@ -10274,7 +10219,7 @@ class NDFrame(PandasObject, SelectionMixin):
             name2,
             axis_descr,
             "maximum",
-            lambda y, axis: np.maximum.accumulate(y, axis),
+            np.maximum.accumulate,
             "max",
             -np.inf,
             np.nan,

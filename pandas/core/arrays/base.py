@@ -925,7 +925,7 @@ class ExtensionArray:
         data = format_object_summary(
             self, self._formatter(), indent_for_name=False
         ).rstrip(", \n")
-        class_name = "<{}>\n".format(self.__class__.__name__)
+        class_name = "<{}>\n".format(type(self).__name__)
         return template.format(
             class_name=class_name, data=data, length=len(self), dtype=self.dtype
         )

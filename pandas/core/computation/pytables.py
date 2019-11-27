@@ -441,7 +441,7 @@ class PyTablesExprVisitor(BaseExprVisitor):
         attr = node.attr
         value = node.value
 
-        ctx = node.ctx.__class__
+        ctx = type(node.ctx)
         if ctx == ast.Load:
             # resolve the value
             resolved = self.visit(value)

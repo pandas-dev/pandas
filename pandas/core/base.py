@@ -64,7 +64,7 @@ class PandasObject(DirNamesMixin):
     @property
     def _constructor(self):
         """class constructor (for this class it's just `__class__`"""
-        return self.__class__
+        return type(self)
 
     def __repr__(self) -> str:
         """
@@ -1200,7 +1200,7 @@ class IndexOpsMixin:
         if func is None:
             raise TypeError(
                 "{klass} cannot perform the operation {op}".format(
-                    klass=self.__class__.__name__, op=name
+                    klass=type(self).__name__, op=name
                 )
             )
         return func(skipna=skipna, **kwds)
