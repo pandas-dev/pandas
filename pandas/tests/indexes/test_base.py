@@ -1732,23 +1732,23 @@ class TestIndex(Base):
     @pytest.mark.parametrize(
         "in_slice,expected",
         [
-            (pd.IndexSlice[::-1], "yxdcb"),
-            (pd.IndexSlice["b":"y":-1], ""),
-            (pd.IndexSlice["b"::-1], "b"),
-            (pd.IndexSlice[:"b":-1], "yxdcb"),
-            (pd.IndexSlice[:"y":-1], "y"),
-            (pd.IndexSlice["y"::-1], "yxdcb"),
-            (pd.IndexSlice["y"::-4], "yb"),
+            (pd.IndexSlice[::-1], "yxdcb"), # type: ignore 
+            (pd.IndexSlice["b":"y":-1], ""), # type: ignore 
+            (pd.IndexSlice["b"::-1], "b"), # type: ignore 
+            (pd.IndexSlice[:"b":-1], "yxdcb"), # type: ignore 
+            (pd.IndexSlice[:"y":-1], "y"), # type: ignore
+            (pd.IndexSlice["y"::-1], "yxdcb"), # type: ignore 
+            (pd.IndexSlice["y"::-4], "yb"), # type: ignore 
             # absent labels
-            (pd.IndexSlice[:"a":-1], "yxdcb"),
-            (pd.IndexSlice[:"a":-2], "ydb"),
-            (pd.IndexSlice["z"::-1], "yxdcb"),
-            (pd.IndexSlice["z"::-3], "yc"),
-            (pd.IndexSlice["m"::-1], "dcb"),
-            (pd.IndexSlice[:"m":-1], "yx"),
-            (pd.IndexSlice["a":"a":-1], ""),
-            (pd.IndexSlice["z":"z":-1], ""),
-            (pd.IndexSlice["m":"m":-1], ""),
+            (pd.IndexSlice[:"a":-1], "yxdcb"), # type: ignore 
+            (pd.IndexSlice[:"a":-2], "ydb"), # type: ignore 
+            (pd.IndexSlice["z"::-1], "yxdcb"), # type: ignore 
+            (pd.IndexSlice["z"::-3], "yc"), # type: ignore 
+            (pd.IndexSlice["m"::-1], "dcb"), # type: ignore 
+            (pd.IndexSlice[:"m":-1], "yx"), # type: ignore 
+            (pd.IndexSlice["a":"a":-1], ""), # type: ignore 
+            (pd.IndexSlice["z":"z":-1], ""), # type: ignore 
+            (pd.IndexSlice["m":"m":-1], ""), # type: ignore 
         ],
     )
     def test_slice_locs_negative_step(self, in_slice, expected):
