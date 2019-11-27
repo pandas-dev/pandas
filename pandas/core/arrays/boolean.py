@@ -834,7 +834,6 @@ def kleene_xor(
     if right_mask is not None:
         mask[left & right_mask] = True
 
-    result[mask] = False
     return result, mask
 
 
@@ -886,7 +885,6 @@ def kleene_and(
         right_false = ~(right | right_mask)
         mask = (left_mask & ~right_false) | (right_mask & ~left_false)
 
-    result[mask] = False
     return result, mask
 
 
