@@ -31,7 +31,7 @@ from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import DateOffset, Day, Nano, Tick
 
-_shared_docs_kwargs = dict()  # type: Dict[str, str]
+_shared_docs_kwargs: Dict[str, str] = dict()
 
 
 class Resampler(_GroupBy, ShallowMixin):
@@ -1080,7 +1080,8 @@ class DatetimeIndexResampler(Resampler):
         if not len(ax):
             # reset to the new freq
             obj = obj.copy()
-            obj.index.freq = self.freq
+            # TODO: find a less code-smelly way to set this
+            obj.index._data._freq = self.freq
             return obj
 
         # do we have a regular frequency

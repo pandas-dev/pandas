@@ -93,9 +93,9 @@ Use efficient datatypes
 -----------------------
 
 The default pandas data types are not the most memory efficient. This is
-especially true for high-cardinality text data (columns with relatively few
-unique values). By using more efficient data types you can store larger datasets
-in memory.
+especially true for text data columns with relatively few unique values (commonly
+referred to as "low-cardinality" data). By using more efficient data types, you
+can store larger datasets in memory.
 
 .. ipython:: python
 

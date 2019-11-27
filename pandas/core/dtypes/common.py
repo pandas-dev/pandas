@@ -375,56 +375,6 @@ def is_categorical(arr) -> bool:
     return isinstance(arr, ABCCategorical) or is_categorical_dtype(arr)
 
 
-def is_datetimetz(arr) -> bool:
-    """
-    Check whether an array-like is a datetime array-like with a timezone
-    component in its dtype.
-
-    .. deprecated:: 0.24.0
-
-    Parameters
-    ----------
-    arr : array-like
-        The array-like to check.
-
-    Returns
-    -------
-    boolean
-        Whether or not the array-like is a datetime array-like with a
-        timezone component in its dtype.
-
-    Examples
-    --------
-    >>> is_datetimetz([1, 2, 3])
-    False
-
-    Although the following examples are both DatetimeIndex objects,
-    the first one returns False because it has no timezone component
-    unlike the second one, which returns True.
-
-    >>> is_datetimetz(pd.DatetimeIndex([1, 2, 3]))
-    False
-    >>> is_datetimetz(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern"))
-    True
-
-    The object need not be a DatetimeIndex object. It just needs to have
-    a dtype which has a timezone component.
-
-    >>> dtype = DatetimeTZDtype("ns", tz="US/Eastern")
-    >>> s = pd.Series([], dtype=dtype)
-    >>> is_datetimetz(s)
-    True
-    """
-
-    warnings.warn(
-        "'is_datetimetz' is deprecated and will be removed in a "
-        "future version.  Use 'is_datetime64tz_dtype' instead.",
-        FutureWarning,
-        stacklevel=2,
-    )
-    return is_datetime64tz_dtype(arr)
-
-
 def is_offsetlike(arr_or_obj) -> bool:
     """
     Check if obj or all elements of list-like is DateOffset
@@ -454,43 +404,6 @@ def is_offsetlike(arr_or_obj) -> bool:
     elif is_list_like(arr_or_obj) and len(arr_or_obj) and is_object_dtype(arr_or_obj):
         return all(isinstance(x, ABCDateOffset) for x in arr_or_obj)
     return False
-
-
-def is_period(arr) -> bool:
-    """
-    Check whether an array-like is a periodical index.
-
-    .. deprecated:: 0.24.0
-
-    Parameters
-    ----------
-    arr : array-like
-        The array-like to check.
-
-    Returns
-    -------
-    boolean
-        Whether or not the array-like is a periodical index.
-
-    Examples
-    --------
-    >>> is_period([1, 2, 3])
-    False
-    >>> is_period(pd.Index([1, 2, 3]))
-    False
-    >>> is_period(pd.PeriodIndex(["2017-01-01"], freq="D"))
-    True
-    """
-
-    warnings.warn(
-        "'is_period' is deprecated and will be removed in a future "
-        "version.  Use 'is_period_dtype' or is_period_arraylike' "
-        "instead.",
-        FutureWarning,
-        stacklevel=2,
-    )
-
-    return isinstance(arr, ABCPeriodIndex) or is_period_arraylike(arr)
 
 
 def is_datetime64_dtype(arr_or_dtype) -> bool:
@@ -1276,6 +1189,124 @@ def _is_unorderable_exception(e: TypeError) -> bool:
         Whether or not the exception raised is an unorderable exception.
     """
     return "'>' not supported between instances of" in str(e)
+
+
+# This exists to silence numpy deprecation warnings, see GH#29553
+def is_numeric_v_string_like(a, b):
+    """
+    Check if we are comparing a string-like object to a numeric ndarray.
+    NumPy doesn't like to compare such objects, especially numeric arrays
+    and scalar string-likes.
+
+    Parameters
+    ----------
+    a : array-like, scalar
+        The first object to check.
+    b : array-like, scalar
+        The second object to check.
+
+    Returns
+    -------
+    boolean
+        Whether we return a comparing a string-like object to a numeric array.
+
+    Examples
+    --------
+    >>> is_numeric_v_string_like(1, 1)
+    False
+    >>> is_numeric_v_string_like("foo", "foo")
+    False
+    >>> is_numeric_v_string_like(1, "foo")  # non-array numeric
+    False
+    >>> is_numeric_v_string_like(np.array([1]), "foo")
+    True
+    >>> is_numeric_v_string_like("foo", np.array([1]))  # symmetric check
+    True
+    >>> is_numeric_v_string_like(np.array([1, 2]), np.array(["foo"]))
+    True
+    >>> is_numeric_v_string_like(np.array(["foo"]), np.array([1, 2]))
+    True
+    >>> is_numeric_v_string_like(np.array([1]), np.array([2]))
+    False
+    >>> is_numeric_v_string_like(np.array(["foo"]), np.array(["foo"]))
+    False
+    """
+
+    is_a_array = isinstance(a, np.ndarray)
+    is_b_array = isinstance(b, np.ndarray)
+
+    is_a_numeric_array = is_a_array and is_numeric_dtype(a)
+    is_b_numeric_array = is_b_array and is_numeric_dtype(b)
+    is_a_string_array = is_a_array and is_string_like_dtype(a)
+    is_b_string_array = is_b_array and is_string_like_dtype(b)
+
+    is_a_scalar_string_like = not is_a_array and isinstance(a, str)
+    is_b_scalar_string_like = not is_b_array and isinstance(b, str)
+
+    return (
+        (is_a_numeric_array and is_b_scalar_string_like)
+        or (is_b_numeric_array and is_a_scalar_string_like)
+        or (is_a_numeric_array and is_b_string_array)
+        or (is_b_numeric_array and is_a_string_array)
+    )
+
+
+# This exists to silence numpy deprecation warnings, see GH#29553
+def is_datetimelike_v_numeric(a, b):
+    """
+    Check if we are comparing a datetime-like object to a numeric object.
+    By "numeric," we mean an object that is either of an int or float dtype.
+
+    Parameters
+    ----------
+    a : array-like, scalar
+        The first object to check.
+    b : array-like, scalar
+        The second object to check.
+
+    Returns
+    -------
+    boolean
+        Whether we return a comparing a datetime-like to a numeric object.
+
+    Examples
+    --------
+    >>> dt = np.datetime64(pd.datetime(2017, 1, 1))
+    >>>
+    >>> is_datetimelike_v_numeric(1, 1)
+    False
+    >>> is_datetimelike_v_numeric(dt, dt)
+    False
+    >>> is_datetimelike_v_numeric(1, dt)
+    True
+    >>> is_datetimelike_v_numeric(dt, 1)  # symmetric check
+    True
+    >>> is_datetimelike_v_numeric(np.array([dt]), 1)
+    True
+    >>> is_datetimelike_v_numeric(np.array([1]), dt)
+    True
+    >>> is_datetimelike_v_numeric(np.array([dt]), np.array([1]))
+    True
+    >>> is_datetimelike_v_numeric(np.array([1]), np.array([2]))
+    False
+    >>> is_datetimelike_v_numeric(np.array([dt]), np.array([dt]))
+    False
+    """
+
+    if not hasattr(a, "dtype"):
+        a = np.asarray(a)
+    if not hasattr(b, "dtype"):
+        b = np.asarray(b)
+
+    def is_numeric(x):
+        """
+        Check if an object has a numeric dtype (i.e. integer or float).
+        """
+        return is_integer_dtype(x) or is_float_dtype(x)
+
+    return (needs_i8_conversion(a) and is_numeric(b)) or (
+        needs_i8_conversion(b) and is_numeric(a)
+    )
 
 
 def needs_i8_conversion(arr_or_dtype) -> bool:

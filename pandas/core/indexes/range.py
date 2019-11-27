@@ -1,7 +1,7 @@
 from datetime import timedelta
 import operator
 from sys import getsizeof
-from typing import Union
+from typing import Optional, Union
 import warnings
 
 import numpy as np
@@ -73,33 +73,16 @@ class RangeIndex(Int64Index):
 
     _typ = "rangeindex"
     _engine_type = libindex.Int64Engine
-    _range = None  # type: range
+    _range: range
 
     # check whether self._data has been called
-    _cached_data = None  # type: np.ndarray
+    _cached_data: Optional[np.ndarray] = None
     # --------------------------------------------------------------------
     # Constructors
 
     def __new__(
-        cls,
-        start=None,
-        stop=None,
-        step=None,
-        dtype=None,
-        copy=False,
-        name=None,
-        fastpath=None,
+        cls, start=None, stop=None, step=None, dtype=None, copy=False, name=None,
     ):
-
-        if fastpath is not None:
-            warnings.warn(
-                "The 'fastpath' keyword is deprecated, and will be "
-                "removed in a future version.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            if fastpath:
-                return cls._simple_new(range(start, stop, step), name=name)
 
         cls._validate_dtype(dtype)
 
@@ -654,7 +637,7 @@ class RangeIndex(Int64Index):
         non_empty_indexes = [obj for obj in indexes if len(obj)]
 
         for obj in non_empty_indexes:
-            rng = obj._range  # type: range
+            rng: range = obj._range
 
             if start is None:
                 # This is set by the first non-empty index

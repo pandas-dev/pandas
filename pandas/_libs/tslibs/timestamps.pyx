@@ -89,23 +89,23 @@ class RoundTo:
            https://en.wikipedia.org/wiki/Rounding#Round_half_to_even
     """
     @property
-    def MINUS_INFTY(self):
+    def MINUS_INFTY(self) -> int:
         return 0
 
     @property
-    def PLUS_INFTY(self):
+    def PLUS_INFTY(self) -> int:
         return 1
 
     @property
-    def NEAREST_HALF_EVEN(self):
+    def NEAREST_HALF_EVEN(self) -> int:
         return 2
 
     @property
-    def NEAREST_HALF_PLUS_INFTY(self):
+    def NEAREST_HALF_PLUS_INFTY(self) -> int:
         return 3
 
     @property
-    def NEAREST_HALF_MINUS_INFTY(self):
+    def NEAREST_HALF_MINUS_INFTY(self) -> int:
         return 4
 
 
@@ -370,8 +370,8 @@ class Timestamp(_Timestamp):
         if tzinfo is not None:
             if not PyTZInfo_Check(tzinfo):
                 # tzinfo must be a datetime.tzinfo object, GH#17690
-                raise TypeError('tzinfo must be a datetime.tzinfo object, '
-                                'not %s' % type(tzinfo))
+                raise TypeError(f'tzinfo must be a datetime.tzinfo object, '
+                                f'not {type(tzinfo)}')
             elif tz is not None:
                 raise ValueError('Can provide at most one of tz, tzinfo')
 
@@ -604,7 +604,7 @@ timedelta}, default 'raise'
         """
         return self.weekday()
 
-    def day_name(self, locale=None):
+    def day_name(self, locale=None) -> str:
         """
         Return the day name of the Timestamp with specified locale.
 
@@ -621,7 +621,7 @@ timedelta}, default 'raise'
         """
         return self._get_date_name_field('day_name', locale)
 
-    def month_name(self, locale=None):
+    def month_name(self, locale=None) -> str:
         """
         Return the month name of the Timestamp with specified locale.
 
@@ -639,7 +639,7 @@ timedelta}, default 'raise'
         return self._get_date_name_field('month_name', locale)
 
     @property
-    def weekday_name(self):
+    def weekday_name(self) -> str:
         """
         .. deprecated:: 0.23.0
             Use ``Timestamp.day_name()`` instead
@@ -657,7 +657,7 @@ timedelta}, default 'raise'
         return ccalendar.get_day_of_year(self.year, self.month, self.day)
 
     @property
-    def week(self):
+    def week(self) -> int:
         """
         Return the week number of the year.
         """
@@ -666,7 +666,7 @@ timedelta}, default 'raise'
     weekofyear = week
 
     @property
-    def quarter(self):
+    def quarter(self) -> int:
         """
         Return the quarter of the year.
         """
@@ -689,7 +689,7 @@ timedelta}, default 'raise'
         return getattr(self.freq, 'freqstr', self.freq)
 
     @property
-    def is_month_start(self):
+    def is_month_start(self) -> bool:
         """
         Return True if date is first day of month.
         """
@@ -699,7 +699,7 @@ timedelta}, default 'raise'
         return self._get_start_end_field('is_month_start')
 
     @property
-    def is_month_end(self):
+    def is_month_end(self) -> bool:
         """
         Return True if date is last day of month.
         """
@@ -709,7 +709,7 @@ timedelta}, default 'raise'
         return self._get_start_end_field('is_month_end')
 
     @property
-    def is_quarter_start(self):
+    def is_quarter_start(self) -> bool:
         """
         Return True if date is first day of the quarter.
         """
@@ -719,7 +719,7 @@ timedelta}, default 'raise'
         return self._get_start_end_field('is_quarter_start')
 
     @property
-    def is_quarter_end(self):
+    def is_quarter_end(self) -> bool:
         """
         Return True if date is last day of the quarter.
         """
@@ -729,7 +729,7 @@ timedelta}, default 'raise'
         return self._get_start_end_field('is_quarter_end')
 
     @property
-    def is_year_start(self):
+    def is_year_start(self) -> bool:
         """
         Return True if date is first day of the year.
         """
@@ -739,7 +739,7 @@ timedelta}, default 'raise'
         return self._get_start_end_field('is_year_start')
 
     @property
-    def is_year_end(self):
+    def is_year_end(self) -> bool:
         """
         Return True if date is last day of the year.
         """
@@ -749,7 +749,7 @@ timedelta}, default 'raise'
         return self._get_start_end_field('is_year_end')
 
     @property
-    def is_leap_year(self):
+    def is_leap_year(self) -> bool:
         """
         Return True if year is a leap year.
         """
@@ -946,8 +946,8 @@ default 'raise'
         def validate(k, v):
             """ validate integers """
             if not is_integer_object(v):
-                raise ValueError("value must be an integer, received "
-                                 "{v} for {k}".format(v=type(v), k=k))
+                raise ValueError(f"value must be an integer, received "
+                                 f"{type(v)} for {k}")
             return v
 
         if year is not None:
@@ -1003,13 +1003,13 @@ default 'raise'
             base1, base2 = base, ""
 
         if self.microsecond != 0:
-            base1 += "%.3d" % self.nanosecond
+            base1 += f"{self.nanosecond:03d}"
         else:
-            base1 += ".%.9d" % self.nanosecond
+            base1 += f".{self.nanosecond:09d}"
 
         return base1 + base2
 
-    def _has_time_component(self):
+    def _has_time_component(self) -> bool:
         """
         Returns if the Timestamp has a time component
         in addition to the date part

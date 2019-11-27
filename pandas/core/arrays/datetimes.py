@@ -320,7 +320,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
     # -----------------------------------------------------------------
     # Constructors
 
-    _dtype = None  # type: Union[np.dtype, DatetimeTZDtype]
+    _dtype: Union[np.dtype, DatetimeTZDtype]
     _freq = None
 
     def __init__(self, values, dtype=_NS_DTYPE, freq=None, copy=False):
