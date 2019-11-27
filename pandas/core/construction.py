@@ -96,14 +96,16 @@ def array(
         :class:`datetime.timedelta`    :class:`pandas.arrays.TimedeltaArray`
         :class:`int`                   :class:`pandas.arrays.IntegerArray`
         :class:`str`                   :class:`pandas.arrays.StringArray`
+        :class:`bool`                  :class:`pandas.arrays.BooleanArray`
         ============================== =====================================
 
         For all other cases, NumPy's usual inference rules will be used.
 
         .. versionchanged:: 1.0.0
 
-           Pandas infers nullable-integer dtype for integer data and
-           string dtype for string data.
+           Pandas infers nullable-integer dtype for integer data,
+           string dtype for string data, and nullable-boolean dtype
+           for boolean data.
 
     copy : bool, default True
         Whether to copy the data, even if not necessary. Depending
@@ -244,6 +246,7 @@ def array(
     """
     from pandas.core.arrays import (
         period_array,
+        BooleanArray,
         IntegerArray,
         IntervalArray,
         PandasArray,
@@ -306,7 +309,8 @@ def array(
         elif inferred_dtype == "integer":
             return IntegerArray._from_sequence(data, copy=copy)
 
-        # TODO(BooleanArray): handle this type
+        elif inferred_dtype == "boolean":
+            return BooleanArray._from_sequence(data, copy=copy)
 
     # Pandas overrides NumPy for
     #   1. datetime64[ns]

@@ -124,6 +124,13 @@ import pandas.util.testing as tm
             pd.StringDtype(),
             pd.arrays.StringArray._from_sequence(["a", None]),
         ),
+        # Boolean
+        ([True, None], "boolean", pd.arrays.BooleanArray._from_sequence([True, None])),
+        (
+            [True, None],
+            pd.BooleanDtype(),
+            pd.arrays.BooleanArray._from_sequence([True, None]),
+        ),
         # Index
         (pd.Index([1, 2]), None, PandasArray(np.array([1, 2], dtype=np.int64))),
         # Series[EA] returns the EA
@@ -228,6 +235,9 @@ cet = pytz.timezone("CET")
         # string
         (["a", "b"], pd.arrays.StringArray._from_sequence(["a", "b"])),
         (["a", None], pd.arrays.StringArray._from_sequence(["a", None])),
+        # Boolean
+        ([True, False], pd.arrays.BooleanArray._from_sequence([True, False])),
+        ([True, None], pd.arrays.BooleanArray._from_sequence([True, None])),
     ],
 )
 def test_array_inference(data, expected):

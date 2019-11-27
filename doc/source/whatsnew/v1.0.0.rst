@@ -264,8 +264,9 @@ The following methods now also correctly output values for unobserved categories
 
 :meth:`pandas.array` now infers pandas' new extension types in several cases (:issue:`29791`):
 
-1. Sting data (including missing values) now returns a :class:`arrays.StringArray`.
+1. String data (including missing values) now returns a :class:`arrays.StringArray`.
 2. Integer data (including missing values) now returns a :class:`arrays.IntegerArray`.
+3. Boolean data (including missing values) now returns the new :class:`arrays.BooleanArray`
 
 *pandas 0.25.x*
 
