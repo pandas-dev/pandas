@@ -17,6 +17,7 @@ from .common import (
     is_complex_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
+    is_datetimelike_v_numeric,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float_dtype,
@@ -475,6 +476,10 @@ def array_equivalent(left, right, strict_nan: bool = False) -> bool:
         if not (np.prod(left.shape) and np.prod(right.shape)):
             return True
         return ((left == right) | (isna(left) & isna(right))).all()
+
+    elif is_datetimelike_v_numeric(left, right):
+        # GH#29553 avoid numpy deprecation warning
+        return False
 
     elif needs_i8_conversion(left) or needs_i8_conversion(right):
         # datetime64, timedelta64, Period
