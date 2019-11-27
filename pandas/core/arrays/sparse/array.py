@@ -4,7 +4,7 @@ SparseArray data structure
 from collections import abc
 import numbers
 import operator
-from typing import Any, Callable, List, Type, TypeVar
+from typing import Any, Callable
 import warnings
 
 import numpy as np
@@ -49,8 +49,6 @@ from pandas.core.ops.common import unpack_zerodim_and_defer
 import pandas.io.formats.printing as printing
 
 from .dtype import SparseDtype
-
-_SparseArrayT = TypeVar("_SparseArrayT", bound="SparseArray")
 
 # ----------------------------------------------------------------------------
 # Array
@@ -375,11 +373,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     @classmethod
     def _simple_new(
-        cls: Type[_SparseArrayT],
-        sparse_array: np.ndarray,
-        sparse_index: SparseIndex,
-        dtype: SparseDtype,
-    ) -> _SparseArrayT:
+        cls, sparse_array: np.ndarray, sparse_index: SparseIndex, dtype: SparseDtype,
+    ) -> "SparseArray":
         new = cls([])
         new._sparse_index = sparse_index
         new._sparse_values = sparse_array
@@ -811,14 +806,13 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         else:
             return libindex.get_value_at(self.sp_values, sp_loc)
 
-    def take(self, indices, allow_fill: bool = False, fill_value=None):
+    def take(self, indices, allow_fill=False, fill_value=None):
         if is_scalar(indices):
             raise ValueError(
                 "'indices' must be an array, not a scalar '{}'.".format(indices)
             )
         indices = np.asarray(indices, dtype=np.int32)
 
-        result: List
         if indices.size == 0:
             result = []
             kwargs = {"dtype": self.dtype}
@@ -1399,10 +1393,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     # ------------------------------------------------------------------------
 
     @classmethod
-    def _create_unary_method(
-        cls: Type[_SparseArrayT], op
-    ) -> Callable[[_SparseArrayT], _SparseArrayT]:
-        def sparse_unary_method(self: _SparseArrayT) -> _SparseArrayT:
+    def _create_unary_method(cls, op) -> Callable[["SparseArray"], "SparseArray"]:
+        def sparse_unary_method(self) -> "SparseArray":
             fill_value = op(np.array(self.fill_value)).item()
             values = op(self.sp_values)
             dtype = SparseDtype(values.dtype, fill_value)
