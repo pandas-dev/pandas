@@ -1007,10 +1007,8 @@ class TestPeriodIndexArithmetic:
             TimedeltaArray._from_sequence(["NaT"] * 9),
         ],
     )
-    def test_parr_add_sub_tdt64_nat_array(self, box_df_fail, other):
-        # FIXME: DataFrame fails because when when operating column-wise
-        #  timedelta64 entries become NaT and are treated like datetimes
-        box = box_df_fail
+    def test_parr_add_sub_tdt64_nat_array(self, box_with_array, other):
+        box = box_with_array
 
         pi = pd.period_range("1994-04-01", periods=9, freq="19D")
         expected = pd.PeriodIndex(["NaT"] * 9, freq="19D")
