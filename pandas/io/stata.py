@@ -10,7 +10,6 @@ You can find more information on http://presbrey.mit.edu/PyDTA and
 http://www.statsmodels.org/devel/
 """
 
-from collections import OrderedDict
 import datetime
 from io import BytesIO
 import os
@@ -1677,7 +1676,7 @@ the string values returned are correct."""
                 else:
                     data_formatted.append((col, data[col]))
         if requires_type_conversion:
-            data = DataFrame.from_dict(OrderedDict(data_formatted))
+            data = DataFrame.from_dict(dict(data_formatted))
         del data_formatted
 
         data = self._do_convert_missing(data, convert_missing)
@@ -1716,7 +1715,7 @@ the string values returned are correct."""
                     convert = True
                 retyped_data.append((col, data[col].astype(dtype)))
             if convert:
-                data = DataFrame.from_dict(OrderedDict(retyped_data))
+                data = DataFrame.from_dict(dict(retyped_data))
 
         if index_col is not None:
             data = data.set_index(data.pop(index_col))
@@ -1846,7 +1845,7 @@ The repeated labels are:
                 cat_converted_data.append((col, cat_data))
             else:
                 cat_converted_data.append((col, data[col]))
-        data = DataFrame.from_dict(OrderedDict(cat_converted_data))
+        data = DataFrame.from_dict(dict(cat_converted_data))
         return data
 
     @property
@@ -2195,7 +2194,7 @@ class StataWriter(StataParser):
                 data_formatted.append((col, values))
             else:
                 data_formatted.append((col, data[col]))
-        return DataFrame.from_dict(OrderedDict(data_formatted))
+        return DataFrame.from_dict(dict(data_formatted))
 
     def _replace_nans(self, data):
         # return data
@@ -2674,7 +2673,7 @@ class StataStrLWriter:
 
         self.df = df
         self.columns = columns
-        self._gso_table = OrderedDict((("", (0, 0)),))
+        self._gso_table = dict((("", (0, 0)),))
         if byteorder is None:
             byteorder = sys.byteorder
         self._byteorder = _set_endianness(byteorder)
@@ -2704,7 +2703,7 @@ class StataStrLWriter:
 
         Returns
         -------
-        gso_table : OrderedDict
+        gso_table : dict
             Ordered dictionary using the string found as keys
             and their lookup position (v,o) as values
         gso_df : DataFrame
@@ -2762,7 +2761,7 @@ class StataStrLWriter:
 
         Parameters
         ----------
-        gso_table : OrderedDict
+        gso_table : dict
             Ordered dictionary (str, vo)
 
         Returns
@@ -2992,7 +2991,7 @@ class StataWriter117(StataWriter):
         the map with 0s.  The second call writes the final map locations when
         all blocks have been written."""
         if self._map is None:
-            self._map = OrderedDict(
+            self._map = dict(
                 (
                     ("stata_data", 0),
                     ("map", self._file.tell()),

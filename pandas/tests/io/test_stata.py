@@ -1,4 +1,3 @@
-from collections import OrderedDict
 import datetime as dt
 from datetime import datetime
 import gzip
@@ -1029,7 +1028,7 @@ class TestStata:
                 cols.append((col, pd.Categorical.from_codes(codes, labels)))
             else:
                 cols.append((col, pd.Series(labels, dtype=np.float32)))
-        expected = DataFrame.from_dict(OrderedDict(cols))
+        expected = DataFrame.from_dict(dict(cols))
 
         # Read with and with out categoricals, ensure order is identical
         file = getattr(self, file)
