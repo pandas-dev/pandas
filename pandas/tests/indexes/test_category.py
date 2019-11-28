@@ -788,8 +788,10 @@ class TestCategoricalIndex(Base):
         # Index.__new__ is honored.
         #
         # Must be tested separately from other indexes because
-        # self.value is not an ndarray.
-        _base = lambda ar: ar if ar.base is None else ar.base
+        # self.values is not an ndarray.
+        # GH#????? Index.base has been removed
+        # FIXME: is this test still meaningful?
+        _base = lambda ar: ar if getattr(ar, "base", None) is None else ar.base
 
         result = CategoricalIndex(indices.values, copy=True)
         tm.assert_index_equal(indices, result)
