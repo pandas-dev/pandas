@@ -35,7 +35,7 @@ class BaseIndexer:
     """Base class for window bounds calculations"""
 
     def __init__(
-        self, index_array: Optional[np.ndarray] = None, **kwargs,
+        self, index_array: Optional[np.ndarray] = None, window_size: int = 0, **kwargs,
     ):
         """
         Parameters
@@ -44,13 +44,13 @@ class BaseIndexer:
             keyword argument that will be available when get_window_bounds is called
         """
         self.index_array = index_array
+        self.window_size = window_size
         self.__dict__.update(kwargs)
 
     @Appender(get_window_bounds_doc)
     def get_window_bounds(
         self,
         num_values: int = 0,
-        window_size: int = 0,
         min_periods: Optional[int] = None,
         center: Optional[bool] = None,
         closed: Optional[str] = None,
@@ -67,19 +67,22 @@ class FixedWindowIndexer(BaseIndexer):
     def get_window_bounds(
         self,
         num_values: int = 0,
-        window_size: int = 0,
         min_periods: Optional[int] = None,
         center: Optional[bool] = None,
         closed: Optional[str] = None,
         win_type: Optional[str] = None,
     ) -> Tuple[np.ndarray, np.ndarray]:
 
-        start_s = np.zeros(window_size, dtype="int64")
-        start_e = np.arange(window_size, num_values, dtype="int64") - window_size + 1
+        start_s = np.zeros(self.window_size, dtype="int64")
+        start_e = (
+            np.arange(self.window_size, num_values, dtype="int64")
+            - self.window_size
+            + 1
+        )
         start = np.concatenate([start_s, start_e])[:num_values]
 
-        end_s = np.arange(window_size, dtype="int64") + 1
-        end_e = start_e + window_size
+        end_s = np.arange(self.window_size, dtype="int64") + 1
+        end_e = start_e + self.window_size
         end = np.concatenate([end_s, end_e])[:num_values]
         return start, end
 
@@ -91,7 +94,6 @@ class VariableWindowIndexer(BaseIndexer):
     def get_window_bounds(
         self,
         num_values: int = 0,
-        window_size: int = 0,
         min_periods: Optional[int] = None,
         center: Optional[bool] = None,
         closed: Optional[str] = None,
@@ -99,5 +101,27 @@ class VariableWindowIndexer(BaseIndexer):
     ) -> Tuple[np.ndarray, np.ndarray]:
 
         return calculate_variable_window_bounds(
-            num_values, window_size, min_periods, center, closed, win_type, self.index_array
+            num_values,
+            self.window_size,
+            min_periods,
+            center,
+            closed,
+            win_type,
+            self.index_array,
         )
+
+
+class ExpandingIndexer(BaseIndexer):
+    """Calculate expanding window bounds, mimicking df.expanding()"""
+
+    @Appender(get_window_bounds_doc)
+    def get_window_bounds(
+        self,
+        num_values: int = 0,
+        min_periods: Optional[int] = None,
+        center: Optional[bool] = None,
+        closed: Optional[str] = None,
+        win_type: Optional[str] = None,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+
+        return np.zeros(num_values, dtype=np.int64), np.arange(1, num_values + 1)

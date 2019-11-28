@@ -132,11 +132,11 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             window.get_window_bounds
         ).parameters.keys()
         expected_signature = inspect.signature(
-            window_indexers.BaseIndexer.get_window_bounds
+            window_indexers.BaseIndexer().get_window_bounds
         ).parameters.keys()
         if get_window_bounds_signature != expected_signature:
             raise ValueError(
-                f"{type(window).__name__} does not implement the correct signature for"
+                f"{type(window).__name__} does not implement the correct signature for "
                 f"get_window_bounds"
             )
 
@@ -221,6 +221,8 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         -------
         window : int
         """
+        if isinstance(self.window, window_indexers.BaseIndexer):
+            return 0
         return self.window
 
     @property
@@ -415,14 +417,14 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
         Variable algorithms do not use window while fixed do.
         """
-        if self.is_freq_type:
+        if self.is_freq_type or isinstance(self.window, window_indexers.BaseIndexer):
             return self._get_roll_func("{}_variable".format(func))
         return partial(
             self._get_roll_func("{}_fixed".format(func)), win=self._get_window()
         )
 
     def _get_window_indexer(
-        self, index_as_array: Optional[np.ndarray]
+        self, index_as_array: Optional[np.ndarray], window: int
     ) -> window_indexers.BaseIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
@@ -430,8 +432,12 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         if isinstance(self.window, window_indexers.BaseIndexer):
             return self.window
         if self.is_freq_type:
-            return window_indexers.VariableWindowIndexer(index_array=index_as_array)
-        return window_indexers.FixedWindowIndexer()
+            return window_indexers.VariableWindowIndexer(
+                index_array=index_as_array, window_size=window
+            )
+        return window_indexers.FixedWindowIndexer(
+            index_array=index_as_array, window_size=window
+        )
 
     def _apply(
         self,
@@ -470,7 +476,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         blocks, obj = self._create_blocks()
         block_list = list(blocks)
         index_as_array = self._get_index()
-        window_indexer = self._get_window_indexer(index_as_array)
+        window_indexer = self._get_window_indexer(index_as_array, window)
 
         results = []
         exclude: List[Scalar] = []
@@ -498,11 +504,24 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
                 def calc(x):
                     x = np.concatenate((x, additional_nans))
-                    min_periods = calculate_min_periods(
-                        window, self.min_periods, len(x), require_min_periods, floor
-                    )
+                    if not isinstance(window, window_indexers.BaseIndexer):
+                        min_periods = calculate_min_periods(
+                            window, self.min_periods, len(x), require_min_periods, floor
+                        )
+                    else:
+                        min_periods = calculate_min_periods(
+                            self.min_periods or 1,
+                            self.min_periods,
+                            len(x),
+                            require_min_periods,
+                            floor,
+                        )
                     start, end = window_indexer.get_window_bounds(
-                        num_values=len(x), window_size=window, closed=self.closed
+                        num_values=len(x),
+                        min_periods=self.min_periods,
+                        center=self.center,
+                        closed=self.closed,
+                        win_type=self.win_type,
                     )
                     return func(x, start, end, min_periods)
 
@@ -1000,7 +1019,7 @@ class Window(_Window):
 
     def _get_window(
         self, other=None, win_type: Optional[Union[str, Tuple]] = None
-    ) -> np.ndarray:
+    ) -> Optional[np.ndarray]:
         """
         Get the window, weights.
 
@@ -1026,12 +1045,7 @@ class Window(_Window):
             # GH #15662. `False` makes symmetric window, rather than periodic.
             return sig.get_window(win_type, window, False).astype(float)
         elif isinstance(window, window_indexers.BaseIndexer):
-            return window.get_window_bounds(
-                win_type=self.win_type,
-                min_periods=self.min_periods,
-                center=self.center,
-                closed=self.closed,
-            )
+            return None
 
     def _get_weighted_roll_func(
         self, cfunc: Callable, check_minp: Callable, **kwargs
