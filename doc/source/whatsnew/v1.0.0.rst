@@ -455,7 +455,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - Removed previously deprecated keyword "n" from :meth:`DatetimeIndex.shift`, :meth:`TimedeltaIndex.shift`, :meth:`PeriodIndex.shift`, use "periods" instead (:issue:`22458`)
 - Changed the default value for the `raw` argument in :func:`Series.rolling().apply() <pandas.core.window.Rolling.apply>`, :func:`DataFrame.rolling().apply() <pandas.core.window.Rolling.apply>`,
 - :func:`Series.expanding().apply() <pandas.core.window.Expanding.apply>`, and :func:`DataFrame.expanding().apply() <pandas.core.window.Expanding.apply>` to ``False`` (:issue:`20584`)
--
+- Changed :meth:`Timedelta.resolution` to match the behavior of the standard library ``datetime.timedelta.resolution``, for the old behavior, use :meth:`Timedelta.resolution_string` (:issue:`26839`)
 
 .. _whatsnew_1000.performance:
 
@@ -512,6 +512,7 @@ Datetimelike
 - Bug in :func:`pandas._config.localization.get_locales` where the ``locales -a`` encodes the locales list as windows-1252 (:issue:`23638`, :issue:`24760`, :issue:`27368`)
 - Bug in :meth:`Series.var` failing to raise ``TypeError`` when called with ``timedelta64[ns]`` dtype (:issue:`28289`)
 - Bug in :meth:`DatetimeIndex.strftime` and :meth:`Series.dt.strftime` where ``NaT`` was converted to the string ``'NaT'`` instead of ``np.nan`` (:issue:`29578`)
+- Bug in :attr:`Timestamp.resolution` being a property instead of a class attribute (:issue:`?????`)
 
 Timedelta
 ^^^^^^^^^

@@ -755,15 +755,6 @@ timedelta}, default 'raise'
         """
         return bool(ccalendar.is_leapyear(self.year))
 
-    @property
-    def resolution(self):
-        """
-        Return resolution describing the smallest difference between two
-        times that can be represented by Timestamp object_state.
-        """
-        # GH#21336, GH#21365
-        return Timedelta(nanoseconds=1)
-
     def tz_localize(self, tz, ambiguous='raise', nonexistent='raise',
                     errors=None):
         """
@@ -1073,3 +1064,4 @@ cdef int64_t _NS_LOWER_BOUND = -9223372036854775000
 # Resolution is in nanoseconds
 Timestamp.min = Timestamp(_NS_LOWER_BOUND)
 Timestamp.max = Timestamp(_NS_UPPER_BOUND)
+Timestamp.resolution = Timedelta(nanoseconds=1)  # GH#21336, GH#21365
