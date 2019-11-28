@@ -1829,7 +1829,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         return self._constructor(codes, dtype=self.dtype, fastpath=True)
 
-    def take_nd(self, indexer, allow_fill=None, fill_value=None):
+    def take(self, indexer, allow_fill: bool = False, fill_value=None):
         """
         Take elements from the Categorical.
 
@@ -1838,7 +1838,7 @@ class Categorical(ExtensionArray, PandasObject):
         indexer : sequence of int
             The indices in `self` to take. The meaning of negative values in
             `indexer` depends on the value of `allow_fill`.
-        allow_fill : bool, default None
+        allow_fill : bool, default False
             How to handle negative values in `indexer`.
 
             * False: negative values in `indices` indicate positional indices
@@ -1849,11 +1849,9 @@ class Categorical(ExtensionArray, PandasObject):
               (the default). These values are set to `fill_value`. Any other
               other negative values raise a ``ValueError``.
 
-            .. versionchanged:: 0.23.0
+            .. versionchanged:: 1.0.0
 
-               Deprecated the default value of `allow_fill`. The deprecated
-               default is ``True``. In the future, this will change to
-               ``False``.
+               Default value changed from ``True`` to ``False``.
 
         fill_value : object
             The value to use for `indices` that are missing (-1), when
@@ -1903,10 +1901,6 @@ class Categorical(ExtensionArray, PandasObject):
         will raise a ``TypeError``.
         """
         indexer = np.asarray(indexer, dtype=np.intp)
-        if allow_fill is None:
-            if (indexer < 0).any():
-                warn(_take_msg, FutureWarning, stacklevel=2)
-                allow_fill = True
 
         dtype = self.dtype
 
@@ -1927,7 +1921,14 @@ class Categorical(ExtensionArray, PandasObject):
         result = type(self).from_codes(codes, dtype=dtype)
         return result
 
-    take = take_nd
+    def take_nd(self, indexer, allow_fill: bool = False, fill_value=None):
+        # GH#27745 deprecate alias that other EAs dont have
+        warn(
+            "Categorical.take_nd is deprecated, use Categorical.take instead",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.take(indexer, allow_fill=allow_fill, fill_value=fill_value)
 
     def __len__(self) -> int:
         """
