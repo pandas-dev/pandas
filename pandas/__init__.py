@@ -1,4 +1,5 @@
 # flake8: noqa
+from numpy import nan
 
 __docformat__ = "restructuredtext"
 
@@ -16,11 +17,11 @@ if missing_dependencies:
     raise ImportError(
         "Unable to import required dependencies:\n" + "\n".join(missing_dependencies)
     )
-del hard_dependencies, dependency, missing_dependencies
+del hard_dependencies, dependency, missing_dependencies 
 
 # numpy compat
 from pandas.compat.numpy import (
-    _np_version_under1p14,
+    _np_version_under1p14,      
     _np_version_under1p15,
     _np_version_under1p16,
     _np_version_under1p17,
