@@ -1,6 +1,5 @@
 import operator
 from shutil import get_terminal_size
-import textwrap
 from typing import Type, Union, cast
 from warnings import warn
 
@@ -58,18 +57,6 @@ from pandas.core.sorting import nargsort
 from pandas.io.formats import console
 
 from .base import ExtensionArray, _extension_array_shared_docs, try_cast_to_ea
-
-_take_msg = textwrap.dedent(
-    """\
-    Interpreting negative values in 'indexer' as missing values.
-    In the future, this will change to meaning positional indices
-    from the right.
-
-    Use 'allow_fill=True' to retain the previous behavior and silence this
-    warning.
-
-    Use 'allow_fill=False' to accept the new behavior."""
-)
 
 
 def _cat_compare_op(op):
