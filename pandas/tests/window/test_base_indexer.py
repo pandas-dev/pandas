@@ -13,6 +13,6 @@ def test_bad_get_window_bounds_signature():
     with pytest.raises(
         ValueError,
         match="BadIndexer does not implement the correct signature "
-              "forget_window_bounds.",
+        "forget_window_bounds.",
     ):
         Series(range(5)).rolling(indexer)
