@@ -81,7 +81,7 @@ jobs:
         if git diff upstream/master --name-only | grep -q "^asv_bench/"; then
             asv machine --yes
             asv dev | sed "/failed$/ s/^/##[error]/" | tee benchmarks.log
-            if grep "failed" benchmarks.log; then
+            if grep "failed" benchmarks.log > /dev/null ; then
                 exit 1
             fi
         else
