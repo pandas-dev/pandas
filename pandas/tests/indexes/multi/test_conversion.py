@@ -1,4 +1,3 @@
-from collections import OrderedDict
 
 import numpy as np
 import pytest
@@ -107,7 +106,7 @@ def test_to_frame_dtype_fidelity():
     original_dtypes = {name: mi.levels[i].dtype for i, name in enumerate(mi.names)}
 
     expected_df = pd.DataFrame(
-        OrderedDict(
+        dict(
             [
                 ("dates", pd.date_range("19910905", periods=6, tz="US/Eastern")),
                 ("a", [1, 1, 1, 2, 2, 2]),

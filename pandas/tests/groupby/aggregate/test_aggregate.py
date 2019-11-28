@@ -1,7 +1,6 @@
 """
 test .agg behavior / note that .apply is tested generally in test_groupby.py
 """
-from collections import OrderedDict
 import functools
 
 import numpy as np
@@ -176,10 +175,10 @@ def test_aggregate_str_func(tsframe, groupbyfunc):
 
     # group frame by function dict
     result = grouped.agg(
-        OrderedDict([["A", "var"], ["B", "std"], ["C", "mean"], ["D", "sem"]])
+        dict([["A", "var"], ["B", "std"], ["C", "mean"], ["D", "sem"]])
     )
     expected = DataFrame(
-        OrderedDict(
+        dict(
             [
                 ["A", grouped["A"].var()],
                 ["B", grouped["B"].std()],
@@ -261,21 +260,21 @@ def test_multiple_functions_tuples_and_non_tuples(df):
 def test_more_flexible_frame_multi_function(df):
     grouped = df.groupby("A")
 
-    exmean = grouped.agg(OrderedDict([["C", np.mean], ["D", np.mean]]))
-    exstd = grouped.agg(OrderedDict([["C", np.std], ["D", np.std]]))
+    exmean = grouped.agg(dict([["C", np.mean], ["D", np.mean]]))
+    exstd = grouped.agg(dict([["C", np.std], ["D", np.std]]))
 
     expected = concat([exmean, exstd], keys=["mean", "std"], axis=1)
     expected = expected.swaplevel(0, 1, axis=1).sort_index(level=0, axis=1)
 
-    d = OrderedDict([["C", [np.mean, np.std]], ["D", [np.mean, np.std]]])
+    d = dict([["C", [np.mean, np.std]], ["D", [np.mean, np.std]]])
     result = grouped.aggregate(d)
 
     tm.assert_frame_equal(result, expected)
 
     # be careful
-    result = grouped.aggregate(OrderedDict([["C", np.mean], ["D", [np.mean, np.std]]]))
+    result = grouped.aggregate(dict([["C", np.mean], ["D", [np.mean, np.std]]]))
     expected = grouped.aggregate(
-        OrderedDict([["C", np.mean], ["D", [np.mean, np.std]]])
+        dict([["C", np.mean], ["D", [np.mean, np.std]]])
     )
     tm.assert_frame_equal(result, expected)
 
@@ -288,13 +287,13 @@ def test_more_flexible_frame_multi_function(df):
     # this uses column selection & renaming
     msg = r"nested renamer is not supported"
     with pytest.raises(SpecificationError, match=msg):
-        d = OrderedDict(
-            [["C", np.mean], ["D", OrderedDict([["foo", np.mean], ["bar", np.std]])]]
+        d = dict(
+            [["C", np.mean], ["D", dict([["foo", np.mean], ["bar", np.std]])]]
         )
         grouped.aggregate(d)
 
     # But without renaming, these functions are OK
-    d = OrderedDict([["C", [np.mean]], ["D", [foo, bar]]])
+    d = dict([["C", [np.mean]], ["D", [foo, bar]]])
     grouped.aggregate(d)
 
 
@@ -303,8 +302,8 @@ def test_multi_function_flexible_mix(df):
     grouped = df.groupby("A")
 
     # Expected
-    d = OrderedDict(
-        [["C", OrderedDict([["foo", "mean"], ["bar", "std"]])], ["D", {"sum": "sum"}]]
+    d = dict(
+        [["C", dict([["foo", "mean"], ["bar", "std"]])], ["D", {"sum": "sum"}]]
     )
     # this uses column selection & renaming
     msg = r"nested renamer is not supported"
@@ -312,16 +311,16 @@ def test_multi_function_flexible_mix(df):
         grouped.aggregate(d)
 
     # Test 1
-    d = OrderedDict(
-        [["C", OrderedDict([["foo", "mean"], ["bar", "std"]])], ["D", "sum"]]
+    d = dict(
+        [["C", dict([["foo", "mean"], ["bar", "std"]])], ["D", "sum"]]
     )
     # this uses column selection & renaming
     with pytest.raises(SpecificationError, match=msg):
         grouped.aggregate(d)
 
     # Test 2
-    d = OrderedDict(
-        [["C", OrderedDict([["foo", "mean"], ["bar", "std"]])], ["D", ["sum"]]]
+    d = dict(
+        [["C", dict([["foo", "mean"], ["bar", "std"]])], ["D", ["sum"]]]
     )
     # this uses column selection & renaming
     with pytest.raises(SpecificationError, match=msg):
@@ -642,8 +641,8 @@ class TestLambdaMangling:
         assert func["A"][0](0, 2, b=3) == (0, 2, 3)
 
     def test_maybe_mangle_lambdas_named(self):
-        func = OrderedDict(
-            [("C", np.mean), ("D", OrderedDict([("foo", np.mean), ("bar", np.mean)]))]
+        func = dict(
+            [("C", np.mean), ("D", dict([("foo", np.mean), ("bar", np.mean)]))]
         )
         result = _maybe_mangle_lambdas(func)
         assert result == func
