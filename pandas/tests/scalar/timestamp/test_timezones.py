@@ -14,7 +14,6 @@ from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
 from pandas import NaT, Timestamp
-import pandas.util.testing as tm
 
 
 class TestTimestampTZOperations:
@@ -90,7 +89,7 @@ class TestTimestampTZOperations:
             ts.tz_localize(tz, nonexistent="raise")
         assert ts.tz_localize(tz, nonexistent="NaT") is NaT
 
-    def test_tz_localize_ambiguous(self):
+    def test_tz_localize_ambiguous_raise(self):
         # GH#13057
         ts = Timestamp("2015-11-1 01:00")
         with pytest.raises(AmbiguousTimeError):
