@@ -787,8 +787,8 @@ Experimental ``NA`` scalar to denote missing values
 
 Starting from pandas 1.0, an experimental ``pd.NA`` value (singleton) is
 available to represent scalar missing values. At this moment, it is used in
-the nullable integer and boolean data types and the dedicated string data type
-as the missing value indicator.
+the nullable :doc:`integer <integer_na>`, boolean and
+:ref:`dedicated string <text.types>` data types as the missing value indicator.
 
 The goal of ``pd.NA`` is provide a "missing" indicator that can be used
 consistently accross data types (instead of ``np.nan``, ``None`` or ``pd.NaT``
@@ -803,6 +803,10 @@ dtype, it will use ``pd.NA``:
     s
     s[2]
     s[2] is pd.NA
+
+Currently, pandas does not yet use those data types by default (when creating
+a DataFrame or Series, or when reading in data), so you need to specify
+the dtype explicitly.
 
 Propagation in arithmetic and comparison operations
 ---------------------------------------------------
@@ -859,7 +863,7 @@ In this case, ``pd.NA`` does not propagate:
    pd.NA | True
 
 On the other hand, if one of the operands is ``False``, the result depends
-on the value of the other operand. Therefore, in thise case ``pd.NA``
+on the value of the other operand. Therefore, in this case ``pd.NA``
 propagates:
 
 .. ipython:: python
@@ -899,5 +903,8 @@ to a boolean value. The following raises an error:
 This also means that ``pd.NA`` cannot be used in a context where it is
 evaluated to a boolean, such as ``if condition: ...`` where ``condition`` can
 potentially be ``pd.NA``. In such cases, :func:`isna` can be used to check
-for ``pd.NA`` or it could be prevented that ``condition`` can be ``pd.NA``
-by for example filling missing values beforehand.
+for ``pd.NA`` or ``condition`` being ``pd.NA`` can be avoided, for example by
+filling missing values beforehand.
+
+A similar situation occurs when using Series or DataFrame objects in ``if``
+statements, see :ref:`gotchas.truth`.
