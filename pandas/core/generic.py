@@ -3128,10 +3128,12 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        path_or_buf : str or file handle, default None
-            File path or object, if None is provided the result is returned as
-            a string.  If a file object is passed it should be opened with
-            `newline=''`, disabling universal newlines.
+        path_or_buf : str, path object, file-like object, default None
+            If a string is passed, it can be an existing local file path, as
+            well as a gcs:// or s3:// path. If a file object is passed it
+            should be opened with `newline=''`, disabling universal newlines.
+            If a path object is preferred, pandas accepts any ``os.PathLike``.
+            If None is provided the string representation is returned.
 
             .. versionchanged:: 0.24.0
 
