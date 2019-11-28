@@ -4,7 +4,6 @@ from fractions import Fraction
 from numbers import Number
 
 import sys
-import warnings
 
 import cython
 from cython import Py_ssize_t
@@ -615,7 +614,7 @@ def clean_index_list(obj: list):
 
     # don't force numpy coerce with nan's
     inferred = infer_dtype(obj, skipna=False)
-    if inferred in ['string', 'bytes', 'unicode', 'mixed', 'mixed-integer']:
+    if inferred in ['string', 'bytes', 'mixed', 'mixed-integer']:
         return np.asarray(obj, dtype=object), 0
     elif inferred in ['integer']:
         # TODO: we infer an integer but it *could* be a uint64
@@ -1094,7 +1093,7 @@ cdef _try_infer_map(v):
     return None
 
 
-def infer_dtype(value: object, skipna: object=None) -> str:
+def infer_dtype(value: object, skipna: bool = True) -> str:
     """
     Efficiently infer the type of a passed val, or list-like
     array of values. Return a string describing the type.
@@ -1102,7 +1101,7 @@ def infer_dtype(value: object, skipna: object=None) -> str:
     Parameters
     ----------
     value : scalar, list, ndarray, or pandas type
-    skipna : bool, default False
+    skipna : bool, default True
         Ignore NaN values when inferring the type.
 
         .. versionadded:: 0.21.0
@@ -1113,7 +1112,6 @@ def infer_dtype(value: object, skipna: object=None) -> str:
     Results can include:
 
     - string
-    - unicode
     - bytes
     - floating
     - integer
@@ -1199,12 +1197,6 @@ def infer_dtype(value: object, skipna: object=None) -> str:
         ndarray values
         bint seen_pdnat = False
         bint seen_val = False
-
-    if skipna is None:
-        msg = ('A future version of pandas will default to `skipna=True`. To '
-               'silence this warning, pass `skipna=True|False` explicitly.')
-        warnings.warn(msg, FutureWarning, stacklevel=2)
-        skipna = False
 
     if util.is_array(value):
         values = value
