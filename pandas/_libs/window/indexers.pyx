@@ -5,6 +5,7 @@ from numpy cimport ndarray, int64_t
 
 # Cython routines for window indexers
 
+
 def calculate_variable_window_bounds(
     int64_t num_values,
     int64_t window_size,
