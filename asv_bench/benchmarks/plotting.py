@@ -80,7 +80,6 @@ class TimeseriesPlotting:
         self.df2.plot()
 
     def time_plot_table(self):
-        raise RuntimeError("Seeing how the changes in the CI look like")
         self.df.plot(table=True)
 
 
