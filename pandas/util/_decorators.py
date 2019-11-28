@@ -4,8 +4,8 @@ from textwrap import dedent
 from typing import (
     Any,
     Callable,
-    Dict,
     List,
+    Mapping,
     Optional,
     Tuple,
     Type,
@@ -104,7 +104,7 @@ def deprecate(
 def deprecate_kwarg(
     old_arg_name: str,
     new_arg_name: Optional[str],
-    mapping: Optional[Union[Dict[Any, Any], Callable[[Any], Any]]] = None,
+    mapping: Optional[Union[Mapping[Any, Any], Callable[[Any], Any]]] = None,
     stacklevel: int = 2,
 ) -> Callable[..., Any]:
     """
@@ -171,7 +171,7 @@ def deprecate_kwarg(
 
     if mapping is not None and not hasattr(mapping, "get") and not callable(mapping):
         raise TypeError(
-            "mapping from old to new argument values " "must be dict or callable!"
+            "mapping from old to new argument values must be dict or callable!"
         )
 
     def _deprecate_kwarg(func: F) -> F:
@@ -214,7 +214,7 @@ def deprecate_kwarg(
                 warnings.warn(msg, FutureWarning, stacklevel=stacklevel)
                 if kwargs.get(new_arg_name) is not None:
                     msg = (
-                        "Can only specify '{old_name}' or '{new_name}', " "not both"
+                        "Can only specify '{old_name}' or '{new_name}', not both"
                     ).format(old_name=old_arg_name, new_name=new_arg_name)
                     raise TypeError(msg)
                 else:
@@ -327,9 +327,11 @@ class Appender:
         pass
     """
 
+    addendum: Optional[str]
+
     def __init__(self, addendum: Optional[str], join: str = "", indents: int = 0):
         if indents > 0:
-            self.addendum = indent(addendum, indents=indents)  # type: Optional[str]
+            self.addendum = indent(addendum, indents=indents)
         else:
             self.addendum = addendum
         self.join = join

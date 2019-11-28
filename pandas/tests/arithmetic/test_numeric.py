@@ -5,6 +5,7 @@ from collections import abc
 from decimal import Decimal
 from itertools import combinations
 import operator
+from typing import Any, List
 
 import numpy as np
 import pytest
@@ -29,6 +30,19 @@ def adjust_negative_zero(zero, expected):
 
     return expected
 
+
+# TODO: remove this kludge once mypy stops giving false positives here
+# List comprehension has incompatible type List[PandasObject]; expected List[RangeIndex]
+#  See GH#29725
+ser_or_index: List[Any] = [pd.Series, pd.Index]
+lefts: List[Any] = [pd.RangeIndex(10, 40, 10)]
+lefts.extend(
+    [
+        cls([10, 20, 30], dtype=dtype)
+        for dtype in ["i1", "i2", "i4", "i8", "u1", "u2", "u4", "u8", "f2", "f4", "f8"]
+        for cls in ser_or_index
+    ]
+)
 
 # ------------------------------------------------------------------
 # Comparisons
@@ -73,34 +87,15 @@ class TestNumericComparisons:
 
 
 # ------------------------------------------------------------------
-# Numeric dtypes Arithmetic with Timedelta Scalar
+# Numeric dtypes Arithmetic with Datetime/Timedelta Scalar
 
 
-class TestNumericArraylikeArithmeticWithTimedeltaLike:
+class TestNumericArraylikeArithmeticWithDatetimeLike:
 
     # TODO: also check name retentention
     @pytest.mark.parametrize("box_cls", [np.array, pd.Index, pd.Series])
     @pytest.mark.parametrize(
-        "left",
-        [pd.RangeIndex(10, 40, 10)]
-        + [
-            cls([10, 20, 30], dtype=dtype)
-            for dtype in [
-                "i1",
-                "i2",
-                "i4",
-                "i8",
-                "u1",
-                "u2",
-                "u4",
-                "u8",
-                "f2",
-                "f4",
-                "f8",
-            ]
-            for cls in [pd.Series, pd.Index]
-        ],
-        ids=lambda x: type(x).__name__ + str(x.dtype),
+        "left", lefts, ids=lambda x: type(x).__name__ + str(x.dtype),
     )
     def test_mul_td64arr(self, left, box_cls):
         # GH#22390
@@ -120,26 +115,7 @@ class TestNumericArraylikeArithmeticWithTimedeltaLike:
     # TODO: also check name retentention
     @pytest.mark.parametrize("box_cls", [np.array, pd.Index, pd.Series])
     @pytest.mark.parametrize(
-        "left",
-        [pd.RangeIndex(10, 40, 10)]
-        + [
-            cls([10, 20, 30], dtype=dtype)
-            for dtype in [
-                "i1",
-                "i2",
-                "i4",
-                "i8",
-                "u1",
-                "u2",
-                "u4",
-                "u8",
-                "f2",
-                "f4",
-                "f8",
-            ]
-            for cls in [pd.Series, pd.Index]
-        ],
-        ids=lambda x: type(x).__name__ + str(x.dtype),
+        "left", lefts, ids=lambda x: type(x).__name__ + str(x.dtype),
     )
     def test_div_td64arr(self, left, box_cls):
         # GH#22390
@@ -226,6 +202,30 @@ class TestNumericArraylikeArithmeticWithTimedeltaLike:
     )
     def test_add_sub_timedeltalike_invalid(self, numeric_idx, other, box):
         left = tm.box_expected(numeric_idx, box)
+        with pytest.raises(TypeError):
+            left + other
+        with pytest.raises(TypeError):
+            other + left
+        with pytest.raises(TypeError):
+            left - other
+        with pytest.raises(TypeError):
+            other - left
+
+    @pytest.mark.parametrize(
+        "other",
+        [
+            pd.Timestamp.now().to_pydatetime(),
+            pd.Timestamp.now(tz="UTC").to_pydatetime(),
+            pd.Timestamp.now().to_datetime64(),
+            pd.NaT,
+        ],
+    )
+    @pytest.mark.filterwarnings("ignore:elementwise comp:DeprecationWarning")
+    def test_add_sub_datetimelike_invalid(self, numeric_idx, other, box):
+        # GH#28080 numeric+datetime64 should raise; Timestamp raises
+        #  NullFrequencyError instead of TypeError so is excluded.
+        left = tm.box_expected(numeric_idx, box)
+
         with pytest.raises(TypeError):
             left + other
         with pytest.raises(TypeError):

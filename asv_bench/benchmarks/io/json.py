@@ -20,7 +20,7 @@ class ReadJSON(BaseIO):
         }
         df = DataFrame(
             np.random.randn(N, 5),
-            columns=["float_{}".format(i) for i in range(5)],
+            columns=[f"float_{i}" for i in range(5)],
             index=indexes[index],
         )
         df.to_json(self.fname, orient=orient)
@@ -43,7 +43,7 @@ class ReadJSONLines(BaseIO):
         }
         df = DataFrame(
             np.random.randn(N, 5),
-            columns=["float_{}".format(i) for i in range(5)],
+            columns=[f"float_{i}" for i in range(5)],
             index=indexes[index],
         )
         df.to_json(self.fname, orient="records", lines=True)
@@ -118,7 +118,7 @@ class ToJSON(BaseIO):
     def time_to_json(self, orient, frame):
         getattr(self, frame).to_json(self.fname, orient=orient)
 
-    def mem_to_json(self, orient, frame):
+    def peakmem_to_json(self, orient, frame):
         getattr(self, frame).to_json(self.fname, orient=orient)
 
     def time_to_json_wide(self, orient, frame):
@@ -126,7 +126,7 @@ class ToJSON(BaseIO):
         df = concat([base_df.iloc[:100]] * 1000, ignore_index=True, axis=1)
         df.to_json(self.fname, orient=orient)
 
-    def mem_to_json_wide(self, orient, frame):
+    def peakmem_to_json_wide(self, orient, frame):
         base_df = getattr(self, frame).copy()
         df = concat([base_df.iloc[:100]] * 1000, ignore_index=True, axis=1)
         df.to_json(self.fname, orient=orient)

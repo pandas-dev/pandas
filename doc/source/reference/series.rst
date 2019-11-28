@@ -29,7 +29,6 @@ Attributes
    Series.array
    Series.values
    Series.dtype
-   Series.ftype
    Series.shape
    Series.nbytes
    Series.ndim
@@ -43,9 +42,7 @@ Attributes
    Series.flags
    Series.empty
    Series.dtypes
-   Series.ftypes
    Series.data
-   Series.is_copy
    Series.name
    Series.put
 
@@ -148,8 +145,6 @@ Computations / descriptive stats
    Series.autocorr
    Series.between
    Series.clip
-   Series.clip_lower
-   Series.clip_upper
    Series.corr
    Series.count
    Series.cov
@@ -531,6 +526,19 @@ Sparse-dtype specific methods and attributes are provided under the
    Series.sparse.to_coo
 
 
+.. _api.series.metadata:
+
+Metadata
+~~~~~~~~
+
+:attr:`Series.attrs` is a dictionary for storing global metadata for this Series.
+
+.. autosummary::
+   :toctree: api/
+
+   Series.attrs
+
+
 Plotting
 --------
 ``Series.plot`` is both a callable method and a namespace attribute for
@@ -576,18 +584,7 @@ Serialization / IO / conversion
    Series.to_sql
    Series.to_msgpack
    Series.to_json
-   Series.to_sparse
    Series.to_dense
    Series.to_string
    Series.to_clipboard
    Series.to_latex
-
-
-Sparse
-------
-
-.. autosummary::
-   :toctree: api/
-
-   SparseSeries.to_coo
-   SparseSeries.from_coo

@@ -24,6 +24,7 @@ from pandas.compat.numpy import (
     _np_version_under1p15,
     _np_version_under1p16,
     _np_version_under1p17,
+    _np_version_under1p18,
 )
 
 try:
@@ -66,6 +67,8 @@ from pandas.core.api import (
     PeriodDtype,
     IntervalDtype,
     DatetimeTZDtype,
+    StringDtype,
+    BooleanDtype,
     # missing
     isna,
     isnull,
@@ -114,12 +117,7 @@ from pandas.core.api import (
     DataFrame,
 )
 
-from pandas.core.sparse.api import (
-    SparseArray,
-    SparseDataFrame,
-    SparseSeries,
-    SparseDtype,
-)
+from pandas.core.arrays.sparse import SparseArray, SparseDtype
 
 from pandas.tseries.api import infer_freq
 from pandas.tseries import offsets
@@ -196,8 +194,9 @@ del get_versions, v
 if pandas.compat.PY37:
 
     def __getattr__(name):
+        import warnings
+
         if name == "Panel":
-            import warnings
 
             warnings.warn(
                 "The Panel class is removed from pandas. Accessing it "
@@ -211,12 +210,29 @@ if pandas.compat.PY37:
                 pass
 
             return Panel
+        elif name in {"SparseSeries", "SparseDataFrame"}:
+            warnings.warn(
+                "The {} class is removed from pandas. Accessing it from "
+                "the top-level namespace will also be removed in the next "
+                "version".format(name),
+                FutureWarning,
+                stacklevel=2,
+            )
+
+            return type(name, (), {})
+
         raise AttributeError("module 'pandas' has no attribute '{}'".format(name))
 
 
 else:
 
     class Panel:
+        pass
+
+    class SparseDataFrame:
+        pass
+
+    class SparseSeries:
         pass
 
 

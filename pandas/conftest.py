@@ -293,6 +293,20 @@ def compare_operators_no_eq_ne(request):
     return request.param
 
 
+@pytest.fixture(
+    params=["__and__", "__rand__", "__or__", "__ror__", "__xor__", "__rxor__"]
+)
+def all_logical_operators(request):
+    """
+    Fixture for dunder names for common logical operations
+
+    * |
+    * &
+    * ^
+    """
+    return request.param
+
+
 @pytest.fixture(params=[None, "gzip", "bz2", "zip", "xz"])
 def compression(request):
     """
@@ -854,3 +868,16 @@ def float_frame():
     [30 rows x 4 columns]
     """
     return DataFrame(tm.getSeriesData())
+
+
+@pytest.fixture(params=[pd.Index, pd.Series], ids=["index", "series"])
+def index_or_series(request):
+    """
+    Fixture to parametrize over Index and Series, made necessary by a mypy
+    bug, giving an error:
+
+    List item 0 has incompatible type "Type[Series]"; expected "Type[PandasObject]"
+
+    See GH#29725
+    """
+    return request.param

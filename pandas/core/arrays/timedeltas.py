@@ -14,13 +14,12 @@ from pandas._libs.tslibs.timedeltas import (
     precision_from_unit,
 )
 import pandas.compat as compat
+from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
     _NS_DTYPE,
     _TD_DTYPE,
-    ensure_int64,
-    is_datetime64_dtype,
     is_dtype_equal,
     is_float_dtype,
     is_integer_dtype,
@@ -41,8 +40,10 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
+from pandas.core import nanops
 from pandas.core.algorithms import checked_add_with_arr
 import pandas.core.common as com
+from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.ops.invalid import invalid_comparison
 
 from pandas.tseries.frequencies import to_offset
@@ -80,10 +81,8 @@ def _td_array_cmp(cls, op):
     opname = "__{name}__".format(name=op.__name__)
     nat_result = opname == "__ne__"
 
+    @unpack_zerodim_and_defer(opname)
     def wrapper(self, other):
-        other = lib.item_from_zerodim(other)
-        if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
-            return NotImplemented
 
         if _is_convertible_to_td(other) or other is NaT:
             try:
@@ -160,8 +159,8 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     _scalar_type = Timedelta
     __array_priority__ = 1000
     # define my properties & methods for delegation
-    _other_ops = []  # type: List[str]
-    _bool_ops = []  # type: List[str]
+    _other_ops: List[str] = []
+    _bool_ops: List[str] = []
     _object_ops = ["freq"]
     _field_ops = ["days", "seconds", "microseconds", "nanoseconds"]
     _datetimelike_ops = _field_ops + _object_ops + _bool_ops
@@ -384,6 +383,62 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             return self
         return dtl.DatetimeLikeArrayMixin.astype(self, dtype, copy=copy)
 
+    def sum(
+        self,
+        axis=None,
+        dtype=None,
+        out=None,
+        keepdims: bool = False,
+        initial=None,
+        skipna: bool = True,
+        min_count: int = 0,
+    ):
+        nv.validate_sum(
+            (), dict(dtype=dtype, out=out, keepdims=keepdims, initial=initial)
+        )
+        if not len(self):
+            return NaT
+        if not skipna and self._hasnans:
+            return NaT
+
+        result = nanops.nansum(
+            self._data, axis=axis, skipna=skipna, min_count=min_count
+        )
+        return Timedelta(result)
+
+    def std(
+        self,
+        axis=None,
+        dtype=None,
+        out=None,
+        ddof: int = 1,
+        keepdims: bool = False,
+        skipna: bool = True,
+    ):
+        nv.validate_stat_ddof_func(
+            (), dict(dtype=dtype, out=out, keepdims=keepdims), fname="std"
+        )
+        if not len(self):
+            return NaT
+        if not skipna and self._hasnans:
+            return NaT
+
+        result = nanops.nanstd(self._data, axis=axis, skipna=skipna, ddof=ddof)
+        return Timedelta(result)
+
+    def median(
+        self,
+        axis=None,
+        out=None,
+        overwrite_input: bool = False,
+        keepdims: bool = False,
+        skipna: bool = True,
+    ):
+        nv.validate_median(
+            (), dict(out=out, overwrite_input=overwrite_input, keepdims=keepdims)
+        )
+        return nanops.nanmedian(self._data, axis=axis, skipna=skipna)
+
     # ----------------------------------------------------------------
     # Rendering Methods
 
@@ -495,7 +550,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             #  for that instead of ValueError
             raise ValueError("Cannot multiply with unequal lengths")
 
-        if is_object_dtype(other):
+        if is_object_dtype(other.dtype):
             # this multiplication will succeed only if all elements of other
             #  are int or float scalars, so we will end up with
             #  timedelta64[ns]-dtyped result
@@ -543,11 +598,11 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         if len(other) != len(self):
             raise ValueError("Cannot divide vectors with unequal lengths")
 
-        elif is_timedelta64_dtype(other):
+        elif is_timedelta64_dtype(other.dtype):
             # let numpy handle it
             return self._data / other
 
-        elif is_object_dtype(other):
+        elif is_object_dtype(other.dtype):
             # Note: we do not do type inference on the result, so either
             #  an object array or numeric-dtyped (if numpy does inference)
             #  will be returned.  GH#23829
@@ -591,12 +646,12 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         if len(other) != len(self):
             raise ValueError("Cannot divide vectors with unequal lengths")
 
-        elif is_timedelta64_dtype(other):
+        elif is_timedelta64_dtype(other.dtype):
             # let numpy handle it
             return other / self._data
 
-        elif is_object_dtype(other):
-            # Note: unlike in __truediv__, we do not _need_ to do type#
+        elif is_object_dtype(other.dtype):
+            # Note: unlike in __truediv__, we do not _need_ to do type
             #  inference on the result.  It does not raise, a numeric array
             #  is returned.  GH#23829
             result = [other[n] / self[n] for n in range(len(self))]
@@ -643,7 +698,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         if len(other) != len(self):
             raise ValueError("Cannot divide with unequal lengths")
 
-        elif is_timedelta64_dtype(other):
+        elif is_timedelta64_dtype(other.dtype):
             other = type(self)(other)
 
             # numpy timedelta64 does not natively support floordiv, so operate
@@ -655,7 +710,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
                 result[mask] = np.nan
             return result
 
-        elif is_object_dtype(other):
+        elif is_object_dtype(other.dtype):
             result = [self[n] // other[n] for n in range(len(self))]
             result = np.array(result)
             if lib.infer_dtype(result, skipna=False) == "timedelta":
@@ -663,7 +718,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
                 return type(self)(result)
             return result
 
-        elif is_integer_dtype(other) or is_float_dtype(other):
+        elif is_integer_dtype(other.dtype) or is_float_dtype(other.dtype):
             result = self._data // other
             return type(self)(result)
 
@@ -705,7 +760,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         if len(other) != len(self):
             raise ValueError("Cannot divide with unequal lengths")
 
-        elif is_timedelta64_dtype(other):
+        elif is_timedelta64_dtype(other.dtype):
             other = type(self)(other)
 
             # numpy timedelta64 does not natively support floordiv, so operate
@@ -717,7 +772,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
                 result[mask] = np.nan
             return result
 
-        elif is_object_dtype(other):
+        elif is_object_dtype(other.dtype):
             result = [other[n] // self[n] for n in range(len(self))]
             result = np.array(result)
             return result
@@ -999,18 +1054,8 @@ def sequence_to_td64ns(data, copy=False, unit="ns", errors="raise"):
             data = data.astype(_TD_DTYPE)
             copy = False
 
-    elif is_datetime64_dtype(data):
-        # GH#23539
-        warnings.warn(
-            "Passing datetime64-dtype data to TimedeltaIndex is "
-            "deprecated, will raise a TypeError in a future "
-            "version",
-            FutureWarning,
-            stacklevel=4,
-        )
-        data = ensure_int64(data).view(_TD_DTYPE)
-
     else:
+        # This includes datetime64-dtype, see GH#23539, GH#29794
         raise TypeError(
             "dtype {dtype} cannot be converted to timedelta64[ns]".format(
                 dtype=data.dtype

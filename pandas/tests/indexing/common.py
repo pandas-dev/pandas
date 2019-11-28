@@ -1,5 +1,4 @@
 """ common utilities """
-
 import itertools
 from warnings import catch_warnings, filterwarnings
 
@@ -8,11 +7,7 @@ import numpy as np
 from pandas.core.dtypes.common import is_scalar
 
 from pandas import DataFrame, Float64Index, MultiIndex, Series, UInt64Index, date_range
-from pandas.util import testing as tm
-
-from pandas.io.formats.printing import pprint_thing
-
-_verbose = False
+import pandas.util.testing as tm
 
 
 def _mklbl(prefix, n):
@@ -29,7 +24,7 @@ def _axify(obj, key, axis):
 class Base:
     """ indexing comprehensive base class """
 
-    _objs = {"series", "frame"}
+    _kinds = {"series", "frame"}
     _typs = {
         "ints",
         "uints",
@@ -101,13 +96,12 @@ class Base:
         self.series_empty = Series()
 
         # form agglomerates
-        for o in self._objs:
-
+        for kind in self._kinds:
             d = dict()
-            for t in self._typs:
-                d[t] = getattr(self, "{o}_{t}".format(o=o, t=t), None)
+            for typ in self._typs:
+                d[typ] = getattr(self, "{kind}_{typ}".format(kind=kind, typ=typ))
 
-            setattr(self, o, d)
+            setattr(self, kind, d)
 
     def generate_indices(self, f, values=False):
         """ generate the indices
@@ -117,7 +111,7 @@ class Base:
 
         axes = f.axes
         if values:
-            axes = (list(range(len(a))) for a in axes)
+            axes = (list(range(len(ax))) for ax in axes)
 
         return itertools.product(*axes)
 
@@ -179,114 +173,60 @@ class Base:
             tm.assert_almost_equal(result, expected)
 
     def check_result(
-        self,
-        name,
-        method1,
-        key1,
-        method2,
-        key2,
-        typs=None,
-        objs=None,
-        axes=None,
-        fails=None,
+        self, method1, key1, method2, key2, typs=None, axes=None, fails=None,
     ):
-        def _eq(t, o, a, obj, k1, k2):
+        def _eq(axis, obj, key1, key2):
             """ compare equal for these 2 keys """
-
-            if a is not None and a > obj.ndim - 1:
+            if axis > obj.ndim - 1:
                 return
 
-            def _print(result, error=None):
-                if error is not None:
-                    error = str(error)
-                v = (
-                    "%-16.16s [%-16.16s]: [typ->%-8.8s,obj->%-8.8s,"
-                    "key1->(%-4.4s),key2->(%-4.4s),axis->%s] %s"
-                    % (name, result, t, o, method1, method2, a, error or "")
-                )
-                if _verbose:
-                    pprint_thing(v)
-
             try:
-                rs = getattr(obj, method1).__getitem__(_axify(obj, k1, a))
+                rs = getattr(obj, method1).__getitem__(_axify(obj, key1, axis))
 
-                try:
-                    xp = self.get_result(obj, method2, k2, a)
-                except Exception:
-                    result = "no comp"
-                    _print(result)
-                    return
+                with catch_warnings(record=True):
+                    filterwarnings("ignore", "\\n.ix", FutureWarning)
+                    try:
+                        xp = self.get_result(
+                            obj=obj, method=method2, key=key2, axis=axis
+                        )
+                    except (KeyError, IndexError):
+                        # TODO: why is this allowed?
+                        result = "no comp"
+                        return
 
-                detail = None
+                if is_scalar(rs) and is_scalar(xp):
+                    assert rs == xp
+                else:
+                    tm.assert_equal(rs, xp)
 
-                try:
-                    if is_scalar(rs) and is_scalar(xp):
-                        assert rs == xp
-                    elif xp.ndim == 1:
-                        tm.assert_series_equal(rs, xp)
-                    elif xp.ndim == 2:
-                        tm.assert_frame_equal(rs, xp)
-                    result = "ok"
-                except AssertionError as e:
-                    detail = str(e)
-                    result = "fail"
-
-                # reverse the checks
-                if fails is True:
-                    if result == "fail":
-                        result = "ok (fail)"
-
-                _print(result)
-                if not result.startswith("ok"):
-                    raise AssertionError(detail)
-
-            except AssertionError:
-                raise
-            except Exception as detail:
+            except (IndexError, TypeError, KeyError) as detail:
 
                 # if we are in fails, the ok, otherwise raise it
                 if fails is not None:
                     if isinstance(detail, fails):
-                        result = "ok ({0.__name__})".format(type(detail))
-                        _print(result)
+                        result = f"ok ({type(detail).__name__})"
                         return
 
                 result = type(detail).__name__
-                raise AssertionError(_print(result, error=detail))
+                raise AssertionError(result, detail)
 
         if typs is None:
             typs = self._typs
 
-        if objs is None:
-            objs = self._objs
-
-        if axes is not None:
-            if not isinstance(axes, (tuple, list)):
-                axes = [axes]
-            else:
-                axes = list(axes)
-        else:
+        if axes is None:
             axes = [0, 1]
+        elif not isinstance(axes, (tuple, list)):
+            assert isinstance(axes, int)
+            axes = [axes]
 
         # check
-        for o in objs:
-            if o not in self._objs:
-                continue
+        for kind in self._kinds:
 
-            d = getattr(self, o)
-            for a in axes:
-                for t in typs:
-                    if t not in self._typs:
+            d = getattr(self, kind)
+            for ax in axes:
+                for typ in typs:
+                    if typ not in self._typs:
                         continue
 
-                    obj = d[t]
-                    if obj is None:
-                        continue
-
-                    def _call(obj=obj):
-                        obj = obj.copy()
-
-                        k2 = key2
-                        _eq(t, o, a, obj, key1, k2)
-
-                    _call()
+                    obj = d[typ]
+                    _eq(axis=ax, obj=obj, key1=key1, key2=key2)

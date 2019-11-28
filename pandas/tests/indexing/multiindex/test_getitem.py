@@ -3,7 +3,7 @@ import pytest
 
 from pandas import DataFrame, Index, MultiIndex, Series
 from pandas.core.indexing import IndexingError
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 # ----------------------------------------------------------------------------
 # test indexing of Series with multi-level Index
@@ -108,7 +108,7 @@ def test_series_getitem_indexing_errors(
 
 
 def test_series_getitem_corner_generator(
-    multiindex_year_month_day_dataframe_random_data
+    multiindex_year_month_day_dataframe_random_data,
 ):
     s = multiindex_year_month_day_dataframe_random_data["A"]
     result = s[(x > 0 for x in s)]

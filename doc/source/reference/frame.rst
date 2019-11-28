@@ -28,9 +28,7 @@ Attributes and underlying data
    :toctree: api/
 
    DataFrame.dtypes
-   DataFrame.ftypes
    DataFrame.get_dtype_counts
-   DataFrame.get_ftype_counts
    DataFrame.select_dtypes
    DataFrame.values
    DataFrame.get_values
@@ -40,7 +38,6 @@ Attributes and underlying data
    DataFrame.shape
    DataFrame.memory_usage
    DataFrame.empty
-   DataFrame.is_copy
 
 Conversion
 ~~~~~~~~~~
@@ -142,8 +139,6 @@ Computations / descriptive stats
    DataFrame.all
    DataFrame.any
    DataFrame.clip
-   DataFrame.clip_lower
-   DataFrame.clip_upper
    DataFrame.compound
    DataFrame.corr
    DataFrame.corrwith
@@ -274,6 +269,19 @@ Time series-related
    DataFrame.tz_convert
    DataFrame.tz_localize
 
+.. _api.frame.metadata:
+
+Metadata
+~~~~~~~~
+
+:attr:`DataFrame.attrs` is a dictionary for storing global metadata for this DataFrame.
+
+.. autosummary::
+   :toctree: api/
+
+   DataFrame.attrs
+
+
 .. _api.dataframe.plotting:
 
 Plotting
@@ -338,7 +346,6 @@ Serialization / IO / conversion
    :toctree: api/
 
    DataFrame.from_dict
-   DataFrame.from_items
    DataFrame.from_records
    DataFrame.info
    DataFrame.to_parquet
@@ -356,15 +363,7 @@ Serialization / IO / conversion
    DataFrame.to_msgpack
    DataFrame.to_gbq
    DataFrame.to_records
-   DataFrame.to_sparse
    DataFrame.to_dense
    DataFrame.to_string
    DataFrame.to_clipboard
    DataFrame.style
-
-Sparse
-~~~~~~
-.. autosummary::
-   :toctree: api/
-
-   SparseDataFrame.to_coo

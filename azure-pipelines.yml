@@ -16,95 +16,7 @@ jobs:
     name: Windows
     vmImage: vs2017-win2016
 
-- job: 'Checks'
-  pool:
-    vmImage: ubuntu-16.04
-  timeoutInMinutes: 90
-  steps:
-  - script: |
-      echo '##vso[task.prependpath]$(HOME)/miniconda3/bin'
-      echo '##vso[task.setvariable variable=ENV_FILE]environment.yml'
-      echo '##vso[task.setvariable variable=AZURE]true'
-    displayName: 'Setting environment variables'
-
-  # Do not require a conda environment
-  - script: ci/code_checks.sh patterns
-    displayName: 'Looking for unwanted patterns'
-    condition: true
-
-  - script: |
-      sudo apt-get install -y libc6-dev-i386
-      ci/setup_env.sh
-    displayName: 'Setup environment and build pandas'
-    condition: true
-
-  # Do not require pandas
-  - script: |
-      source activate pandas-dev
-      ci/code_checks.sh lint
-    displayName: 'Linting'
-    condition: true
-
-  - script: |
-      source activate pandas-dev
-      ci/code_checks.sh dependencies
-    displayName: 'Dependencies consistency'
-    condition: true
-
-  # Require pandas
-  - script: |
-      source activate pandas-dev
-      ci/code_checks.sh code
-    displayName: 'Checks on imported code'
-    condition: true
-
-  - script: |
-      source activate pandas-dev
-      ci/code_checks.sh doctests
-    displayName: 'Running doctests'
-    condition: true
-
-  - script: |
-      source activate pandas-dev
-      ci/code_checks.sh docstrings
-    displayName: 'Docstring validation'
-    condition: true
-
-  - script: |
-      source activate pandas-dev
-      ci/code_checks.sh typing
-    displayName: 'Typing validation'
-    condition: true
-
-  - script: |
-      source activate pandas-dev
-      pytest --capture=no --strict scripts
-    displayName: 'Testing docstring validation script'
-    condition: true
-
-  - script: |
-      source activate pandas-dev
-      cd asv_bench
-      asv check -E existing
-      git remote add upstream https://github.com/pandas-dev/pandas.git
-      git fetch upstream
-      if git diff upstream/master --name-only | grep -q "^asv_bench/"; then
-          asv machine --yes
-          ASV_OUTPUT="$(asv dev)"
-          if [[ $(echo "$ASV_OUTPUT" | grep "failed") ]]; then
-              echo "##vso[task.logissue type=error]Benchmarks run with errors"
-              echo "$ASV_OUTPUT"
-              exit 1
-          else
-              echo "Benchmarks run without errors"
-          fi
-      else
-          echo "Benchmarks did not run, no changes detected"
-      fi
-    displayName: 'Running benchmarks'
-    condition: true
-
-- job: 'Docs'
+- job: 'Web_and_Docs'
   pool:
     vmImage: ubuntu-16.04
   timeoutInMinutes: 90
@@ -118,6 +30,11 @@ jobs:
       sudo apt-get install -y libc6-dev-i386
       ci/setup_env.sh
     displayName: 'Setup environment and build pandas'
+
+  - script: |
+      source activate pandas-dev
+      python web/pandas_web.py web/pandas --target-path=web/build
+    displayName: 'Build website'
 
   - script: |
       source activate pandas-dev
@@ -128,15 +45,21 @@ jobs:
     displayName: 'Build documentation'
 
   - script: |
-      cd doc/build/html
+      mkdir -p to_deploy/docs
+      cp -r web/build/* to_deploy/
+      cp -r doc/build/html/* to_deploy/docs/
+    displayName: 'Merge website and docs'
+
+  - script: |
+      cd to_deploy
       git init
       touch .nojekyll
       echo "dev.pandas.io" > CNAME
       printf "User-agent: *\nDisallow: /" > robots.txt
       git add --all .
       git config user.email "pandas-dev@python.org"
-      git config user.name "pandas-docs-bot"
-      git commit -m "pandas documentation in master"
+      git config user.name "pandas-bot"
+      git commit -m "pandas web and documentation in master"
     displayName: 'Create git repo for docs build'
     condition : |
       and(not(eq(variables['Build.Reason'], 'PullRequest')),
@@ -160,10 +83,10 @@ jobs:
           eq(variables['Build.SourceBranch'], 'refs/heads/master'))
 
   - script: |
-      cd doc/build/html
+      cd to_deploy
       git remote add origin git@github.com:pandas-dev/pandas-dev.github.io.git
       git push -f origin master
-    displayName: 'Publish docs to GitHub pages'
+    displayName: 'Publish web and docs to GitHub pages'
     condition : |
       and(not(eq(variables['Build.Reason'], 'PullRequest')),
           eq(variables['Build.SourceBranch'], 'refs/heads/master'))

@@ -9,7 +9,8 @@ from pandas.io.excel._base import _BaseExcelReader
 
 
 class _ODFReader(_BaseExcelReader):
-    """Read tables out of OpenDocument formatted files
+    """
+    Read tables out of OpenDocument formatted files.
 
     Parameters
     ----------
@@ -60,7 +61,7 @@ class _ODFReader(_BaseExcelReader):
             if table.getAttribute("name") == name:
                 return table
 
-        raise ValueError("sheet {name} not found".format(name))
+        raise ValueError(f"sheet {name} not found")
 
     def get_sheet_data(self, sheet, convert_float: bool) -> List[List[Scalar]]:
         """Parse an ODF Table into a list of lists
@@ -75,12 +76,12 @@ class _ODFReader(_BaseExcelReader):
         empty_rows = 0
         max_row_len = 0
 
-        table = []  # type: List[List[Scalar]]
+        table: List[List[Scalar]] = []
 
         for i, sheet_row in enumerate(sheet_rows):
             sheet_cells = [x for x in sheet_row.childNodes if x.qname in cell_names]
             empty_cells = 0
-            table_row = []  # type: List[Scalar]
+            table_row: List[Scalar] = []
 
             for j, sheet_cell in enumerate(sheet_cells):
                 if sheet_cell.qname == table_cell_name:

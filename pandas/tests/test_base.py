@@ -159,8 +159,8 @@ class TestPandasDelegate:
 class Ops:
     def _allow_na_ops(self, obj):
         """Whether to skip test cases including NaN"""
-        if isinstance(obj, Index) and (obj.is_boolean() or not obj._can_hold_na):
-            # don't test boolean / int64 index
+        if (isinstance(obj, Index) and obj.is_boolean()) or not obj._can_hold_na:
+            # don't test boolean / integer dtypes
             return False
         return True
 
@@ -179,7 +179,7 @@ class Ops:
         self.int_series = Series(arr, index=self.int_index, name="a")
         self.float_series = Series(arr, index=self.float_index, name="a")
         self.dt_series = Series(arr, index=self.dt_index, name="a")
-        self.dt_tz_series = self.dt_tz_index.to_series(keep_tz=True)
+        self.dt_tz_series = self.dt_tz_index.to_series()
         self.period_series = Series(arr, index=self.period_index, name="a")
         self.string_series = Series(arr, index=self.string_index, name="a")
         self.unicode_series = Series(arr, index=self.unicode_index, name="a")
@@ -187,7 +187,24 @@ class Ops:
         types = ["bool", "int", "float", "dt", "dt_tz", "period", "string", "unicode"]
         self.indexes = [getattr(self, "{}_index".format(t)) for t in types]
         self.series = [getattr(self, "{}_series".format(t)) for t in types]
-        self.objs = self.indexes + self.series
+
+        # To test narrow dtypes, we use narrower *data* elements, not *index* elements
+        index = self.int_index
+        self.float32_series = Series(arr.astype(np.float32), index=index, name="a")
+
+        arr_int = np.random.choice(10, size=10, replace=False)
+        self.int8_series = Series(arr_int.astype(np.int8), index=index, name="a")
+        self.int16_series = Series(arr_int.astype(np.int16), index=index, name="a")
+        self.int32_series = Series(arr_int.astype(np.int32), index=index, name="a")
+
+        self.uint8_series = Series(arr_int.astype(np.uint8), index=index, name="a")
+        self.uint16_series = Series(arr_int.astype(np.uint16), index=index, name="a")
+        self.uint32_series = Series(arr_int.astype(np.uint32), index=index, name="a")
+
+        nrw_types = ["float32", "int8", "int16", "int32", "uint8", "uint16", "uint32"]
+        self.narrow_series = [getattr(self, "{}_series".format(t)) for t in nrw_types]
+
+        self.objs = self.indexes + self.series + self.narrow_series
 
     def check_ops_properties(self, props, filter=None, ignore_failures=False):
         for op in props:
@@ -385,6 +402,7 @@ class TestIndexOps(Ops):
             if isinstance(o, Index):
                 assert isinstance(result, o.__class__)
                 tm.assert_index_equal(result, orig)
+                assert result.dtype == orig.dtype
             elif is_datetime64tz_dtype(o):
                 # datetimetz Series returns array of Timestamp
                 assert result[0] == orig[0]
@@ -396,6 +414,7 @@ class TestIndexOps(Ops):
                 )
             else:
                 tm.assert_numpy_array_equal(result, orig.values)
+                assert result.dtype == orig.dtype
 
             assert o.nunique() == len(np.unique(o.values))
 
@@ -497,8 +516,8 @@ class TestIndexOps(Ops):
             assert o.nunique() == 8
             assert o.nunique(dropna=False) == 9
 
-    @pytest.mark.parametrize("klass", [Index, Series])
-    def test_value_counts_inferred(self, klass):
+    def test_value_counts_inferred(self, index_or_series):
+        klass = index_or_series
         s_values = ["a", "b", "b", "b", "b", "c", "d", "d", "a", "a"]
         s = klass(s_values)
         expected = Series([4, 3, 2, 1], index=["b", "a", "d", "c"])
@@ -528,8 +547,8 @@ class TestIndexOps(Ops):
         expected = Series([0.4, 0.3, 0.2, 0.1], index=["b", "a", "d", "c"])
         tm.assert_series_equal(hist, expected)
 
-    @pytest.mark.parametrize("klass", [Index, Series])
-    def test_value_counts_bins(self, klass):
+    def test_value_counts_bins(self, index_or_series):
+        klass = index_or_series
         s_values = ["a", "b", "b", "b", "b", "c", "d", "d", "a", "a"]
         s = klass(s_values)
 
@@ -593,8 +612,8 @@ class TestIndexOps(Ops):
 
         assert s.nunique() == 0
 
-    @pytest.mark.parametrize("klass", [Index, Series])
-    def test_value_counts_datetime64(self, klass):
+    def test_value_counts_datetime64(self, index_or_series):
+        klass = index_or_series
 
         # GH 3002, datetime64[ns]
         # don't test names though
@@ -634,7 +653,7 @@ class TestIndexOps(Ops):
 
         # with NaT
         s = df["dt"].copy()
-        s = klass([v for v in s.values] + [pd.NaT])
+        s = klass(list(s.values) + [pd.NaT])
 
         result = s.value_counts()
         assert result.index.dtype == "datetime64[ns]"
@@ -688,9 +707,9 @@ class TestIndexOps(Ops):
             else:
                 exp_arr = np.array(range(len(o)), dtype=np.intp)
                 exp_uniques = o
-            labels, uniques = o.factorize()
+            codes, uniques = o.factorize()
 
-            tm.assert_numpy_array_equal(labels, exp_arr)
+            tm.assert_numpy_array_equal(codes, exp_arr)
             if isinstance(o, Series):
                 tm.assert_index_equal(uniques, Index(orig), check_names=False)
             else:
@@ -717,9 +736,9 @@ class TestIndexOps(Ops):
             exp_arr = np.array(
                 [5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9], dtype=np.intp
             )
-            labels, uniques = n.factorize(sort=True)
+            codes, uniques = n.factorize(sort=True)
 
-            tm.assert_numpy_array_equal(labels, exp_arr)
+            tm.assert_numpy_array_equal(codes, exp_arr)
             if isinstance(o, Series):
                 tm.assert_index_equal(
                     uniques, Index(orig).sort_values(), check_names=False
@@ -728,8 +747,8 @@ class TestIndexOps(Ops):
                 tm.assert_index_equal(uniques, o, check_names=False)
 
             exp_arr = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4], np.intp)
-            labels, uniques = n.factorize(sort=False)
-            tm.assert_numpy_array_equal(labels, exp_arr)
+            codes, uniques = n.factorize(sort=False)
+            tm.assert_numpy_array_equal(codes, exp_arr)
 
             if isinstance(o, Series):
                 expected = Index(o.iloc[5:10].append(o.iloc[:5]))
@@ -904,7 +923,7 @@ class TestIndexOps(Ops):
 
                 expected = [fill_value] * 2 + list(values[2:])
 
-                expected = klass(expected)
+                expected = klass(expected, dtype=orig.dtype)
                 o = klass(values)
 
                 # check values has the same dtype as the original
@@ -990,6 +1009,12 @@ class TestIndexOps(Ops):
             s = pd.Series(idx)
             tm.assert_series_equal(s[indexer_klass(indexer)], s.iloc[exp_idx])
 
+    def test_get_indexer_non_unique_dtype_mismatch(self):
+        # GH 25459
+        indexes, missing = pd.Index(["A", "B"]).get_indexer_non_unique(pd.Index([0]))
+        tm.assert_numpy_array_equal(np.array([-1], dtype=np.intp), indexes)
+        tm.assert_numpy_array_equal(np.array([0], dtype=np.int64), missing)
+
 
 class TestTranspose(Ops):
     errmsg = "the 'axes' parameter is not supported"
@@ -1065,13 +1090,13 @@ class TestToIterable:
         ],
         ids=["tolist", "to_list", "list", "iter"],
     )
-    @pytest.mark.parametrize("typ", [Series, Index])
     @pytest.mark.filterwarnings("ignore:\\n    Passing:FutureWarning")
     # TODO(GH-24559): Remove the filterwarnings
-    def test_iterable(self, typ, method, dtype, rdtype):
+    def test_iterable(self, index_or_series, method, dtype, rdtype):
         # gh-10904
         # gh-13258
         # coerce iteration to underlying python / pandas types
+        typ = index_or_series
         s = typ([1], dtype=dtype)
         result = method(s)[0]
         assert isinstance(result, rdtype)
@@ -1095,11 +1120,13 @@ class TestToIterable:
         ],
         ids=["tolist", "to_list", "list", "iter"],
     )
-    @pytest.mark.parametrize("typ", [Series, Index])
-    def test_iterable_object_and_category(self, typ, method, dtype, rdtype, obj):
+    def test_iterable_object_and_category(
+        self, index_or_series, method, dtype, rdtype, obj
+    ):
         # gh-10904
         # gh-13258
         # coerce iteration to underlying python / pandas types
+        typ = index_or_series
         s = typ([obj], dtype=dtype)
         result = method(s)[0]
         assert isinstance(result, rdtype)
@@ -1119,12 +1146,12 @@ class TestToIterable:
     @pytest.mark.parametrize(
         "dtype, rdtype", dtypes + [("object", int), ("category", int)]
     )
-    @pytest.mark.parametrize("typ", [Series, Index])
     @pytest.mark.filterwarnings("ignore:\\n    Passing:FutureWarning")
     # TODO(GH-24559): Remove the filterwarnings
-    def test_iterable_map(self, typ, dtype, rdtype):
+    def test_iterable_map(self, index_or_series, dtype, rdtype):
         # gh-13236
         # coerce iteration to underlying python / pandas types
+        typ = index_or_series
         s = typ([1], dtype=dtype)
         result = s.map(type)[0]
         if not isinstance(rdtype, tuple):
@@ -1307,8 +1334,8 @@ def test_numpy_array_all_dtypes(any_numpy_dtype):
         ),
     ],
 )
-@pytest.mark.parametrize("box", [pd.Series, pd.Index])
-def test_array(array, attr, box):
+def test_array(array, attr, index_or_series):
+    box = index_or_series
     if array.dtype.name in ("Int64", "Sparse[int64, 0]") and box is pd.Index:
         pytest.skip("No index type for {}".format(array.dtype))
     result = box(array, copy=False).array
@@ -1371,8 +1398,8 @@ def test_array_multiindex_raises():
         ),
     ],
 )
-@pytest.mark.parametrize("box", [pd.Series, pd.Index])
-def test_to_numpy(array, expected, box):
+def test_to_numpy(array, expected, index_or_series):
+    box = index_or_series
     thing = box(array)
 
     if array.dtype.name in ("Int64", "Sparse[int64, 0]") and box is pd.Index:

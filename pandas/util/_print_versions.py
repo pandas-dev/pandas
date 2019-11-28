@@ -1,18 +1,20 @@
 import codecs
+import json
 import locale
 import os
 import platform
 import struct
 import subprocess
 import sys
+from typing import List, Optional, Tuple, Union
 
 from pandas.compat._optional import VERSIONS, _get_version, import_optional_dependency
 
 
-def get_sys_info():
-    "Returns system information as a dict"
+def get_sys_info() -> List[Tuple[str, Optional[Union[str, int]]]]:
+    "Returns system information as a list"
 
-    blob = []
+    blob: List[Tuple[str, Optional[Union[str, int]]]] = []
 
     # get full commit hash
     commit = None
@@ -28,12 +30,7 @@ def get_sys_info():
             pass
         else:
             if pipe.returncode == 0:
-                commit = so
-                try:
-                    commit = so.decode("utf-8")
-                except ValueError:
-                    pass
-                commit = commit.strip().strip('"')
+                commit = so.decode("utf-8").strip().strip('"')
 
     blob.append(("commit", commit))
 
@@ -98,6 +95,7 @@ def show_versions(as_json=False):
         mod = import_optional_dependency(
             modname, raise_on_missing=False, on_version="ignore"
         )
+        ver: Optional[str]
         if mod:
             ver = _get_version(mod)
         else:
@@ -105,11 +103,6 @@ def show_versions(as_json=False):
         deps_blob.append((modname, ver))
 
     if as_json:
-        try:
-            import json
-        except ImportError:
-            import simplejson as json
-
         j = dict(system=dict(sys_info), dependencies=dict(deps_blob))
 
         if as_json is True:
@@ -139,7 +132,7 @@ def main():
         "--json",
         metavar="FILE",
         nargs=1,
-        help="Save output as JSON into file, pass in " "'-' to output to stdout",
+        help="Save output as JSON into file, pass in '-' to output to stdout",
     )
 
     (options, args) = parser.parse_args()

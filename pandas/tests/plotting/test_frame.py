@@ -3,6 +3,7 @@
 """ Test cases for DataFrame.plot """
 
 from datetime import date, datetime
+import itertools
 import string
 import warnings
 
@@ -2604,12 +2605,6 @@ class TestDataFramePlots(TestPlotBase):
             ax = _check_plot_works(df.plot, yerr=np.ones((2, 12)) * 0.4)
             self._check_has_errorbars(ax, xerr=0, yerr=2)
 
-            # yerr is iterator
-            import itertools
-
-            ax = _check_plot_works(df.plot, yerr=itertools.repeat(0.1, len(df)))
-            self._check_has_errorbars(ax, xerr=0, yerr=2)
-
             # yerr is column name
             for yerr in ["yerr", "誤差"]:
                 s_df = df.copy()
@@ -2625,6 +2620,17 @@ class TestDataFramePlots(TestPlotBase):
             df_err = DataFrame({"x": ["zzz"] * 12, "y": ["zzz"] * 12})
             with pytest.raises((ValueError, TypeError)):
                 df.plot(yerr=df_err)
+
+    @pytest.mark.xfail(reason="Iterator is consumed", raises=ValueError)
+    @pytest.mark.slow
+    def test_errorbar_plot_iterator(self):
+        with warnings.catch_warnings():
+            d = {"x": np.arange(12), "y": np.arange(12, 0, -1)}
+            df = DataFrame(d)
+
+            # yerr is iterator
+            ax = _check_plot_works(df.plot, yerr=itertools.repeat(0.1, len(df)))
+            self._check_has_errorbars(ax, xerr=0, yerr=2)
 
     @pytest.mark.slow
     def test_errorbar_with_integer_column_names(self):
@@ -3228,6 +3234,21 @@ class TestDataFramePlots(TestPlotBase):
 
         tm.assert_numpy_array_equal(axs[0].get_xticks(), expected_ax1)
         tm.assert_numpy_array_equal(axs[1].get_xticks(), expected_ax2)
+
+    def test_plot_no_rows(self):
+        # GH 27758
+        df = pd.DataFrame(columns=["foo"], dtype=int)
+        assert df.empty
+        ax = df.plot()
+        assert len(ax.get_lines()) == 1
+        line = ax.get_lines()[0]
+        assert len(line.get_xdata()) == 0
+        assert len(line.get_ydata()) == 0
+
+    def test_plot_no_numeric_data(self):
+        df = pd.DataFrame(["a", "b", "c"])
+        with pytest.raises(TypeError):
+            df.plot()
 
 
 def _generate_4_axes_via_gridspec():

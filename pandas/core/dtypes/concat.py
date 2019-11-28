@@ -69,7 +69,7 @@ def get_dtype_kinds(l):
     return typs
 
 
-def concat_compat(to_concat, axis=0):
+def concat_compat(to_concat, axis: int = 0):
     """
     provide concatenation of an array of arrays each of which is a single
     'normalized' dtypes (in that for example, if it's object, then it is a
@@ -88,11 +88,10 @@ def concat_compat(to_concat, axis=0):
 
     # filter empty arrays
     # 1-d dtypes always are included here
-    def is_nonempty(x):
-        try:
-            return x.shape[axis] > 0
-        except Exception:
+    def is_nonempty(x) -> bool:
+        if x.ndim <= axis:
             return True
+        return x.shape[axis] > 0
 
     # If all arrays are empty, there's nothing to convert, just short-cut to
     # the concatenation, #3121.
@@ -138,7 +137,7 @@ def concat_compat(to_concat, axis=0):
     return np.concatenate(to_concat, axis=axis)
 
 
-def concat_categorical(to_concat, axis=0):
+def concat_categorical(to_concat, axis: int = 0):
     """Concatenate an object/categorical array of arrays, each of which is a
     single dtype
 
@@ -184,27 +183,28 @@ def concat_categorical(to_concat, axis=0):
     return result
 
 
-def union_categoricals(to_union, sort_categories=False, ignore_order=False):
+def union_categoricals(
+    to_union, sort_categories: bool = False, ignore_order: bool = False
+):
     """
-    Combine list-like of Categorical-like, unioning categories. All
-    categories must have the same dtype.
+    Combine list-like of Categorical-like, unioning categories.
+
+    All categories must have the same dtype.
 
     Parameters
     ----------
-    to_union : list-like of Categorical, CategoricalIndex,
-               or Series with dtype='category'
-    sort_categories : boolean, default False
+    to_union : list-like
+        Categorical, CategoricalIndex, or Series with dtype='category'.
+    sort_categories : bool, default False
         If true, resulting categories will be lexsorted, otherwise
         they will be ordered as they appear in the data.
-    ignore_order : boolean, default False
+    ignore_order : bool, default False
         If true, the ordered attribute of the Categoricals will be ignored.
         Results in an unordered categorical.
 
-        .. versionadded:: 0.20.0
-
     Returns
     -------
-    result : Categorical
+    Categorical
 
     Raises
     ------
@@ -357,7 +357,7 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
     return Categorical(new_codes, categories=categories, ordered=ordered, fastpath=True)
 
 
-def _concatenate_2d(to_concat, axis):
+def _concatenate_2d(to_concat, axis: int):
     # coerce to 2d if needed & concatenate
     if axis == 1:
         to_concat = [np.atleast_2d(x) for x in to_concat]

@@ -47,7 +47,7 @@ class NotThisMethod(Exception):
     pass
 
 
-HANDLERS = {}  # type: Dict[str, Dict[str, Callable]]
+HANDLERS: Dict[str, Dict[str, Callable]] = {}
 
 
 def register_vcs_handler(vcs: str, method: str) -> Callable:  # decorator
@@ -249,7 +249,7 @@ def git_pieces_from_vcs(tag_prefix, root, verbose, run_command=run_command):
         # tag
         full_tag = mo.group(1)
         if not full_tag.startswith(tag_prefix):
-            fmt = "tag '{full_tag}' doesn't start with prefix " "'{tag_prefix}'"
+            fmt = "tag '{full_tag}' doesn't start with prefix '{tag_prefix}'"
             msg = fmt.format(full_tag=full_tag, tag_prefix=tag_prefix)
             if verbose:
                 print(msg)

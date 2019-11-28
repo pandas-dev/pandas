@@ -26,13 +26,6 @@ from pandas import (
     period_range,
 )
 import pandas.util.testing as tm
-from pandas.util.testing import (
-    assert_categorical_equal,
-    assert_frame_equal,
-    assert_index_equal,
-    assert_series_equal,
-    ensure_clean,
-)
 
 from pandas.io.packers import read_msgpack, to_msgpack
 
@@ -76,11 +69,11 @@ def check_arbitrary(a, b):
         for a_, b_ in zip(a, b):
             check_arbitrary(a_, b_)
     elif isinstance(a, DataFrame):
-        assert_frame_equal(a, b)
+        tm.assert_frame_equal(a, b)
     elif isinstance(a, Series):
-        assert_series_equal(a, b)
+        tm.assert_series_equal(a, b)
     elif isinstance(a, Index):
-        assert_index_equal(a, b)
+        tm.assert_index_equal(a, b)
     elif isinstance(a, Categorical):
         # Temp,
         # Categorical.categories is changed from str to bytes in PY3
@@ -107,7 +100,7 @@ class TestPackers:
         pass
 
     def encode_decode(self, x, compress=None, **kwargs):
-        with ensure_clean(self.path) as p:
+        with tm.ensure_clean(self.path) as p:
             to_msgpack(p, x, compress=compress, **kwargs)
             return read_msgpack(p, **kwargs)
 
@@ -133,7 +126,7 @@ class TestAPI(TestPackers):
         result = read_msgpack(s)
         tm.assert_frame_equal(result, df)
 
-        with ensure_clean(self.path) as p:
+        with tm.ensure_clean(self.path) as p:
 
             s = df.to_msgpack()
             with open(p, "wb") as fh:
@@ -462,7 +455,7 @@ class TestSeries(TestPackers):
         for n in range(10):
             for s, i in self.d.items():
                 i_rec = self.encode_decode(i)
-                assert_series_equal(i, i_rec)
+                tm.assert_series_equal(i, i_rec)
 
 
 @pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
@@ -486,7 +479,7 @@ class TestCategorical(TestPackers):
         for n in range(10):
             for s, i in self.d.items():
                 i_rec = self.encode_decode(i)
-                assert_categorical_equal(i, i_rec)
+                tm.assert_categorical_equal(i, i_rec)
 
 
 @pytest.mark.filterwarnings("ignore:msgpack:FutureWarning")
@@ -516,13 +509,13 @@ class TestNDFrame(TestPackers):
 
         for s, i in self.frame.items():
             i_rec = self.encode_decode(i)
-            assert_frame_equal(i, i_rec)
+            tm.assert_frame_equal(i, i_rec)
 
     def test_multi(self):
 
         i_rec = self.encode_decode(self.frame)
         for k in self.frame.keys():
-            assert_frame_equal(self.frame[k], i_rec[k])
+            tm.assert_frame_equal(self.frame[k], i_rec[k])
 
         packed_items = tuple(
             [self.frame["float"], self.frame["float"].A, self.frame["float"].B, None]
@@ -550,7 +543,7 @@ class TestNDFrame(TestPackers):
             None,
         ]
 
-        with ensure_clean(self.path) as path:
+        with tm.ensure_clean(self.path) as path:
             to_msgpack(path, *packed_items)
             for i, packed in enumerate(read_msgpack(path, iterator=True)):
                 check_arbitrary(packed, packed_items[i])
@@ -561,11 +554,11 @@ class TestNDFrame(TestPackers):
         # inferring freq on the datetimeindex
         df = DataFrame([1, 2, 3], index=date_range("1/1/2013", "1/3/2013"))
         result = self.encode_decode(df)
-        assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, df)
 
         df = DataFrame([1, 2], index=date_range("1/1/2013", "1/2/2013"))
         result = self.encode_decode(df)
-        assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, df)
 
     def test_dataframe_duplicate_column_names(self):
 
@@ -580,52 +573,9 @@ class TestNDFrame(TestPackers):
         result_2 = self.encode_decode(expected_2)
         result_3 = self.encode_decode(expected_3)
 
-        assert_frame_equal(result_1, expected_1)
-        assert_frame_equal(result_2, expected_2)
-        assert_frame_equal(result_3, expected_3)
-
-
-@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-@pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
-@pytest.mark.filterwarnings("ignore:DataFrame.to_sparse:FutureWarning")
-@pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
-class TestSparse(TestPackers):
-    def _check_roundtrip(self, obj, comparator, **kwargs):
-
-        # currently these are not implemetned
-        # i_rec = self.encode_decode(obj)
-        # comparator(obj, i_rec, **kwargs)
-        msg = r"msgpack sparse (series|frame) is not implemented"
-        with pytest.raises(NotImplementedError, match=msg):
-            self.encode_decode(obj)
-
-    def test_sparse_series(self):
-
-        s = tm.makeStringSeries()
-        s[3:5] = np.nan
-        ss = s.to_sparse()
-        self._check_roundtrip(ss, tm.assert_series_equal, check_series_type=True)
-
-        ss2 = s.to_sparse(kind="integer")
-        self._check_roundtrip(ss2, tm.assert_series_equal, check_series_type=True)
-
-        ss3 = s.to_sparse(fill_value=0)
-        self._check_roundtrip(ss3, tm.assert_series_equal, check_series_type=True)
-
-    def test_sparse_frame(self):
-
-        s = tm.makeDataFrame()
-        s.loc[3:5, 1:3] = np.nan
-        s.loc[8:10, -2] = np.nan
-        ss = s.to_sparse()
-
-        self._check_roundtrip(ss, tm.assert_frame_equal, check_frame_type=True)
-
-        ss2 = s.to_sparse(kind="integer")
-        self._check_roundtrip(ss2, tm.assert_frame_equal, check_frame_type=True)
-
-        ss3 = s.to_sparse(fill_value=0)
-        self._check_roundtrip(ss3, tm.assert_frame_equal, check_frame_type=True)
+        tm.assert_frame_equal(result_1, expected_1)
+        tm.assert_frame_equal(result_2, expected_2)
+        tm.assert_frame_equal(result_3, expected_3)
 
 
 @pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
@@ -660,14 +610,14 @@ class TestCompression(TestPackers):
     def test_plain(self):
         i_rec = self.encode_decode(self.frame)
         for k in self.frame.keys():
-            assert_frame_equal(self.frame[k], i_rec[k])
+            tm.assert_frame_equal(self.frame[k], i_rec[k])
 
     def _test_compression(self, compress):
         i_rec = self.encode_decode(self.frame, compress=compress)
         for k in self.frame.keys():
             value = i_rec[k]
             expected = self.frame[k]
-            assert_frame_equal(value, expected)
+            tm.assert_frame_equal(value, expected)
             # make sure that we can write to the new frames
             for block in value._data.blocks:
                 assert block.values.flags.writeable
@@ -719,7 +669,7 @@ class TestCompression(TestPackers):
 
                     value = i_rec[k]
                     expected = self.frame[k]
-                    assert_frame_equal(value, expected)
+                    tm.assert_frame_equal(value, expected)
                     # make sure that we can write to the new frames even though
                     # we needed to copy the data
                     for block in value._data.blocks:
@@ -816,7 +766,7 @@ class TestCompression(TestPackers):
         df.to_sql("test", eng, if_exists="append")
         result = pandas.read_sql_table("test", eng, index_col="index")
         result.index.names = [None]
-        assert_frame_equal(expected, result)
+        tm.assert_frame_equal(expected, result)
 
     def test_readonly_axis_zlib_to_sql(self):
         # GH11880
@@ -830,7 +780,7 @@ class TestCompression(TestPackers):
         df.to_sql("test", eng, if_exists="append")
         result = pandas.read_sql_table("test", eng, index_col="index")
         result.index.names = [None]
-        assert_frame_equal(expected, result)
+        tm.assert_frame_equal(expected, result)
 
 
 @pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
@@ -857,7 +807,7 @@ class TestEncoding(TestPackers):
         for encoding in self.utf_encodings:
             for frame in self.frame.values():
                 result = self.encode_decode(frame, encoding=encoding)
-                assert_frame_equal(result, frame)
+                tm.assert_frame_equal(result, frame)
 
     def test_default_encoding(self):
         for frame in self.frame.values():
@@ -865,7 +815,7 @@ class TestEncoding(TestPackers):
             expected = frame.to_msgpack(encoding="utf8")
             assert result == expected
             result = self.encode_decode(frame)
-            assert_frame_equal(result, frame)
+            tm.assert_frame_equal(result, frame)
 
 
 files = glob.glob(
@@ -878,7 +828,6 @@ def legacy_packer(request, datapath):
     return datapath(request.param)
 
 
-@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 @pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
 class TestMsgpack:
     """

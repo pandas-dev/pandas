@@ -4,7 +4,7 @@ Module for formatting output data in HTML.
 
 from collections import OrderedDict
 from textwrap import dedent
-from typing import IO, Any, Dict, Iterable, List, Optional, Tuple, Union, cast
+from typing import IO, Any, Dict, Iterable, List, Mapping, Optional, Tuple, Union, cast
 
 from pandas._config import get_option
 
@@ -45,7 +45,7 @@ class HTMLFormatter(TableFormatter):
 
         self.frame = self.fmt.frame
         self.columns = self.fmt.tr_frame.columns
-        self.elements = []  # type: List[str]
+        self.elements: List[str] = []
         self.bold_rows = self.fmt.bold_rows
         self.escape = self.fmt.escape
         self.show_dimensions = self.fmt.show_dimensions
@@ -138,11 +138,10 @@ class HTMLFormatter(TableFormatter):
         else:
             start_tag = "<{kind}>".format(kind=kind)
 
+        esc: Union[OrderedDict[str, str], Dict]
         if self.escape:
             # escape & first to prevent double escaping of &
-            esc = OrderedDict(
-                [("&", r"&amp;"), ("<", r"&lt;"), (">", r"&gt;")]
-            )  # type: Union[OrderedDict[str, str], Dict]
+            esc = OrderedDict([("&", r"&amp;"), ("<", r"&lt;"), (">", r"&gt;")])
         else:
             esc = {}
 
@@ -377,7 +376,7 @@ class HTMLFormatter(TableFormatter):
         self.write("</thead>", indent)
 
     def _get_formatted_values(self) -> Dict[int, List[str]]:
-        with option_context("display.max_colwidth", 999999):
+        with option_context("display.max_colwidth", None):
             fmt_values = {i: self.fmt._format_col(i) for i in range(self.ncols)}
         return fmt_values
 
@@ -394,7 +393,7 @@ class HTMLFormatter(TableFormatter):
         self.write("</tbody>", indent)
 
     def _write_regular_rows(
-        self, fmt_values: Dict[int, List[str]], indent: int
+        self, fmt_values: Mapping[int, List[str]], indent: int
     ) -> None:
         truncate_h = self.fmt.truncate_h
         truncate_v = self.fmt.truncate_v
@@ -408,7 +407,7 @@ class HTMLFormatter(TableFormatter):
             else:
                 index_values = self.fmt.tr_frame.index.format()
 
-        row = []  # type: List[str]
+        row: List[str] = []
         for i in range(nrows):
 
             if truncate_v and i == (self.fmt.tr_row_num):
@@ -440,7 +439,7 @@ class HTMLFormatter(TableFormatter):
             )
 
     def _write_hierarchical_rows(
-        self, fmt_values: Dict[int, List[str]], indent: int
+        self, fmt_values: Mapping[int, List[str]], indent: int
     ) -> None:
         template = 'rowspan="{span}" valign="top"'
 

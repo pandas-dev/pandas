@@ -100,8 +100,7 @@ class IndexingError(Exception):
 
 
 class _NDFrameIndexer(_NDFrameIndexerBase):
-    _valid_types = None  # type: str
-    _exception = Exception
+    _valid_types: str
     axis = None
 
     def __call__(self, axis=None):
@@ -175,7 +174,8 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         if isinstance(ax, ABCMultiIndex) and self.name != "iloc":
             try:
                 return ax.get_loc(key)
-            except Exception:
+            except (TypeError, KeyError):
+                # TypeError e.g. passed a bool
                 pass
 
         if isinstance(key, tuple):
@@ -319,7 +319,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         # if there is only one block/type, still have to take split path
         # unless the block is one-dimensional or it can hold the value
         if not take_split_path and self.obj._data.blocks:
-            blk, = self.obj._data.blocks
+            (blk,) = self.obj._data.blocks
             if 1 < blk.ndim:  # in case of dict, keys are indices
                 val = list(value.values()) if isinstance(value, dict) else value
                 take_split_path = not blk._can_hold_element(val)
@@ -880,14 +880,6 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             # else IndexingError will be raised
             if len(tup) <= self.obj.index.nlevels and len(tup) > self.ndim:
                 raise ek
-        except Exception as e1:
-            if isinstance(tup[0], (slice, Index)):
-                raise IndexingError("Handle elsewhere")
-
-            # raise the error if we are not sorted
-            ax0 = self.obj._get_axis(0)
-            if not ax0.is_lexsorted_for_tuple(tup):
-                raise e1
 
         return None
 
@@ -1119,7 +1111,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         if com.is_bool_indexer(key):
             # A boolean indexer
             key = check_bool_indexer(labels, key)
-            inds, = key.nonzero()
+            (inds,) = key.nonzero()
             return self.obj.take(inds, axis=axis)
         else:
             # A collection of keys
@@ -1263,7 +1255,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
             if com.is_bool_indexer(obj):
                 obj = check_bool_indexer(labels, obj)
-                inds, = obj.nonzero()
+                (inds,) = obj.nonzero()
                 return inds
             else:
                 # When setting, missing keys are not allowed, even with .loc:
@@ -1290,8 +1282,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
 class _IXIndexer(_NDFrameIndexer):
     """
-    A primarily label-location based indexer, with integer position
-    fallback.
+    A primarily label-location based indexer, with integer position fallback.
 
     Warning: Starting in 0.20.0, the .ix indexer is deprecated, in
     favor of the more strict .iloc and .loc indexers.
@@ -1385,8 +1376,6 @@ class _IXIndexer(_NDFrameIndexer):
 
 
 class _LocationIndexer(_NDFrameIndexer):
-    _exception = Exception
-
     def __getitem__(self, key):
         if type(key) is tuple:
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
@@ -1417,10 +1406,7 @@ class _LocationIndexer(_NDFrameIndexer):
         labels = self.obj._get_axis(axis)
         key = check_bool_indexer(labels, key)
         inds = key.nonzero()[0]
-        try:
-            return self.obj.take(inds, axis=axis)
-        except Exception as detail:
-            raise self._exception(detail)
+        return self.obj.take(inds, axis=axis)
 
     def _get_slice_axis(self, slice_obj: slice, axis: int):
         """ this is pretty simple as we just have to deal with labels """
@@ -1685,7 +1671,6 @@ class _LocIndexer(_LocationIndexer):
         "endpoints included! Can be slices of integers if the "
         "index is integers), listlike of labels, boolean"
     )
-    _exception = KeyError
 
     @Appender(_NDFrameIndexer._validate_key.__doc__)
     def _validate_key(self, key, axis: int):
@@ -1970,7 +1955,6 @@ class _iLocIndexer(_LocationIndexer):
         "integer, integer slice (START point is INCLUDED, END "
         "point is EXCLUDED), listlike of integers, boolean array"
     )
-    _exception = IndexError
     _get_slice_axis = _NDFrameIndexer._get_slice_axis
 
     def _validate_key(self, key, axis: int):

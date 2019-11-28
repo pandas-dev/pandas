@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from cpython cimport (
+from cpython.object cimport (
     PyObject_RichCompareBool,
     Py_EQ, Py_NE)
 
@@ -1227,7 +1227,7 @@ def period_format(int64_t value, int freq, object fmt=None):
         elif freq_group == 12000:  # NANOSEC
             fmt = b'%Y-%m-%d %H:%M:%S.%n'
         else:
-            raise ValueError('Unknown freq: {freq}'.format(freq=freq))
+            raise ValueError(f'Unknown freq: {freq}')
 
     return _period_strftime(value, freq, fmt)
 
@@ -1273,17 +1273,17 @@ cdef object _period_strftime(int64_t value, int freq, object fmt):
                 raise ValueError('Unable to get quarter and year')
 
             if i == 0:
-                repl = '%d' % quarter
+                repl = str(quarter)
             elif i == 1:  # %f, 2-digit year
-                repl = '%.2d' % (year % 100)
+                repl = f'{(year % 100):02d}'
             elif i == 2:
-                repl = '%d' % year
+                repl = str(year)
             elif i == 3:
-                repl = '%03d' % (value % 1000)
+                repl = f'{(value % 1_000):03d}'
             elif i == 4:
-                repl = '%06d' % (value % 1000000)
+                repl = f'{(value % 1_000_000):06d}'
             elif i == 5:
-                repl = '%09d' % (value % 1000000000)
+                repl = f'{(value % 1_000_000_000):09d}'
 
             result = result.replace(str_extra_fmts[i], repl)
 
@@ -1391,7 +1391,7 @@ def get_period_field_arr(int code, int64_t[:] arr, int freq):
 
     func = _get_accessor_func(code)
     if func is NULL:
-        raise ValueError('Unrecognized period code: {code}'.format(code=code))
+        raise ValueError(f'Unrecognized period code: {code}')
 
     sz = len(arr)
     out = np.empty(sz, dtype=np.int64)
@@ -1578,9 +1578,8 @@ cdef class _Period:
         freq = to_offset(freq)
 
         if freq.n <= 0:
-            raise ValueError('Frequency must be positive, because it'
-                             ' represents span: {freqstr}'
-                             .format(freqstr=freq.freqstr))
+            raise ValueError(f'Frequency must be positive, because it '
+                             f'represents span: {freq.freqstr}')
 
         return freq
 
@@ -1614,9 +1613,8 @@ cdef class _Period:
                 return NotImplemented
             elif op == Py_NE:
                 return NotImplemented
-            raise TypeError('Cannot compare type {cls} with type {typ}'
-                            .format(cls=type(self).__name__,
-                                    typ=type(other).__name__))
+            raise TypeError(f'Cannot compare type {type(self).__name__} '
+                            f'with type {type(other).__name__}')
 
     def __hash__(self):
         return hash((self.ordinal, self.freqstr))
@@ -1634,8 +1632,8 @@ cdef class _Period:
                 if nanos % offset_nanos == 0:
                     ordinal = self.ordinal + (nanos // offset_nanos)
                     return Period(ordinal=ordinal, freq=self.freq)
-            msg = 'Input cannot be converted to Period(freq={0})'
-            raise IncompatibleFrequency(msg.format(self.freqstr))
+            raise IncompatibleFrequency(f'Input cannot be converted to '
+                                        f'Period(freq={self.freqstr})')
         elif util.is_offset_object(other):
             freqstr = other.rule_code
             base = get_base_alias(freqstr)
@@ -1665,9 +1663,8 @@ cdef class _Period:
                 # GH#17983
                 sname = type(self).__name__
                 oname = type(other).__name__
-                raise TypeError("unsupported operand type(s) for +: '{self}' "
-                                "and '{other}'".format(self=sname,
-                                                       other=oname))
+                raise TypeError(f"unsupported operand type(s) for +: '{sname}' "
+                                f"and '{oname}'")
             else:  # pragma: no cover
                 return NotImplemented
         elif is_period_object(other):
@@ -1709,14 +1706,14 @@ cdef class _Period:
 
     def asfreq(self, freq, how='E'):
         """
-        Convert Period to desired frequency, either at the start or end of the
-        interval
+        Convert Period to desired frequency, at the start or end of the interval.
 
         Parameters
         ----------
-        freq : string
+        freq : str
+            The desired frequency.
         how : {'E', 'S', 'end', 'start'}, default 'end'
-            Start or end of the timespan
+            Start or end of the timespan.
 
         Returns
         -------
@@ -1776,17 +1773,19 @@ cdef class _Period:
 
     def to_timestamp(self, freq=None, how='start', tz=None):
         """
-        Return the Timestamp representation of the Period at the target
-        frequency at the specified end (how) of the Period
+        Return the Timestamp representation of the Period.
+
+        Uses the target frequency specified at the part of the period specified
+        by `how`, which is either `Start` or `Finish`.
 
         Parameters
         ----------
-        freq : string or DateOffset
+        freq : str or DateOffset
             Target frequency. Default is 'D' if self.freq is week or
-            longer and 'S' otherwise
+            longer and 'S' otherwise.
         how : str, default 'S' (start)
-            'S', 'E'. Can be aliased as case insensitive
-            'Start', 'Finish', 'Begin', 'End'
+            One of 'S', 'E'. Can be aliased as case insensitive
+            'Start', 'Finish', 'Begin', 'End'.
 
         Returns
         -------
@@ -2202,7 +2201,7 @@ cdef class _Period:
         return self.days_in_month
 
     @property
-    def is_leap_year(self):
+    def is_leap_year(self) -> bool:
         return bool(is_leapyear(self.year))
 
     @classmethod
@@ -2213,18 +2212,18 @@ cdef class _Period:
     def freqstr(self):
         return self.freq.freqstr
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         base, mult = get_freq_code(self.freq)
         formatted = period_format(self.ordinal, base)
-        return "Period('%s', '%s')" % (formatted, self.freqstr)
+        return f"Period('{formatted}', '{self.freqstr}')"
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
         Return a string representation for a particular DataFrame
         """
         base, mult = get_freq_code(self.freq)
         formatted = period_format(self.ordinal, base)
-        value = ("%s" % formatted)
+        value = str(formatted)
         return value
 
     def __setstate__(self, state):
@@ -2242,7 +2241,7 @@ cdef class _Period:
         containing one or several directives.  The method recognizes the same
         directives as the :func:`time.strftime` function of the standard Python
         distribution, as well as the specific additional directives ``%f``,
-        ``%F``, ``%q``. (formatting & docs originally from scikits.timeries)
+        ``%F``, ``%q``. (formatting & docs originally from scikits.timeries).
 
         +-----------+--------------------------------+-------+
         | Directive | Meaning                        | Notes |
@@ -2380,21 +2379,30 @@ cdef class _Period:
 
 class Period(_Period):
     """
-    Represents a period of time
+    Represents a period of time.
 
     Parameters
     ----------
     value : Period or str, default None
-        The time period represented (e.g., '4Q2005')
+        The time period represented (e.g., '4Q2005').
     freq : str, default None
-        One of pandas period strings or corresponding objects
+        One of pandas period strings or corresponding objects.
+    ordinal : int, default None
+        The period offset from the gregorian proleptic epoch.
     year : int, default None
+        Year value of the period.
     month : int, default 1
+        Month value of the period.
     quarter : int, default None
+        Quarter value of the period.
     day : int, default 1
+        Day value of the period.
     hour : int, default 0
+        Hour value of the period.
     minute : int, default 0
+        Minute value of the period.
     second : int, default 0
+        Second value of the period.
     """
 
     def __new__(cls, value=None, freq=None, ordinal=None,
@@ -2448,7 +2456,10 @@ class Period(_Period):
                 converted = other.asfreq(freq)
                 ordinal = converted.ordinal
 
-        elif is_null_datetimelike(value) or value in nat_strings:
+        elif is_null_datetimelike(value) or (isinstance(value, str) and
+                                             value in nat_strings):
+            # explicit str check is necessary to avoid raising incorrectly
+            #  if we have a non-hashable value.
             ordinal = NPY_NAT
 
         elif isinstance(value, str) or util.is_integer_object(value):
@@ -2463,9 +2474,8 @@ class Period(_Period):
                 try:
                     freq = Resolution.get_freq(reso)
                 except KeyError:
-                    raise ValueError(
-                        "Invalid frequency or could not infer: {reso}"
-                        .format(reso=reso))
+                    raise ValueError(f"Invalid frequency or could not "
+                                     f"infer: {reso}")
 
         elif PyDateTime_Check(value):
             dt = value
