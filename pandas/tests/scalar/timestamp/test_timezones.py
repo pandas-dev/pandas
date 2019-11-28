@@ -94,7 +94,7 @@ class TestTimestampTZOperations:
         # GH#13057
         ts = Timestamp("2015-11-1 01:00")
         with pytest.raises(AmbiguousTimeError):
-            ts.tz_localize("US/Pacific", ambiguous="coerce")
+            ts.tz_localize("US/Pacific", ambiguous="raise")
 
     def test_tz_localize_nonexistent_invalid_arg(self):
         # GH 22644
