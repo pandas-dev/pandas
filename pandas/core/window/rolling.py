@@ -430,7 +430,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         if isinstance(self.window, window_indexers.BaseIndexer):
             return self.window
         if self.is_freq_type:
-            return window_indexers.VariableWindowIndexer(index=index_as_array)
+            return window_indexers.VariableWindowIndexer(index_array=index_as_array)
         return window_indexers.FixedWindowIndexer()
 
     def _apply(
