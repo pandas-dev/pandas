@@ -125,6 +125,7 @@ Other enhancements
 - Roundtripping DataFrames with nullable integer or string data types to parquet
   (:meth:`~DataFrame.to_parquet` / :func:`read_parquet`) using the `'pyarrow'` engine
   now preserve those data types with pyarrow >= 1.0.0 (:issue:`20612`).
+- :func:`read_excel` now can read binary Excel (xlsb) files by passing ``engine='pyxlsb'``.
 
 Build Changes
 ^^^^^^^^^^^^^

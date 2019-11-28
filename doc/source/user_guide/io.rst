@@ -3225,6 +3225,29 @@ OpenDocument spreadsheets match what can be done for `Excel files`_ using
    Currently pandas only supports *reading* OpenDocument spreadsheets. Writing
    is not implemented.
 
+.. _io.xlsb:
+
+Binary Excel (.xlsb) files
+-------------------------
+
+.. versionadded:: 1.0.0
+
+The :func:`~pandas.read_excel` method can also read binary Excel files
+using the ``pyxlsb`` module. The semantics and features for reading
+binary Excel files match what can be done for `Excel files`_ using
+``engine='pyxlsb'``.
+
+.. code-block:: python
+
+   # Returns a DataFrame
+   pd.read_excel('path_to_file.xlsb', engine='pyxlsb')
+
+.. note::
+
+   Currently pandas only supports *reading* binary Excel files. Writing
+   is not implemented.
+
+
 .. _io.clipboard:
 
 Clipboard
