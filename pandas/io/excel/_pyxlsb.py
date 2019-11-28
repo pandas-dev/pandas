@@ -8,7 +8,7 @@ from pandas.io.excel._base import _BaseExcelReader
 
 
 class _PyxlsbReader(_BaseExcelReader):
-    def __init__(self, filepath_or_buffer: FilePathOrBuffer) -> None:
+    def __init__(self, filepath_or_buffer: FilePathOrBuffer):
         """Reader using pyxlsb engine.
 
         Parameters
