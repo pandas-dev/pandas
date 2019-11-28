@@ -197,8 +197,8 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     MSG='Check that no file in the repo contains trailing whitespaces' ; echo $MSG
     INVGREP_APPEND=" <- trailing whitespaces found"
     invgrep -RI --exclude=\*.{svg,c,cpp,html,js} --exclude-dir=env "\s$" *
-    unset INVGREP_APPEND
     RET=$(($RET + $?)) ; echo $MSG "DONE"
+    unset INVGREP_APPEND
 fi
 
 ### CODE ###
