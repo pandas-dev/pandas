@@ -2637,7 +2637,7 @@ class Fixed:
 
     def write(self, **kwargs):
         raise NotImplementedError(
-            "cannot write on an abstract storer: sublcasses should implement"
+            "cannot write on an abstract storer: subclasses should implement"
         )
 
     def delete(
@@ -3995,7 +3995,7 @@ class WORMTable(Table):
                to): write out the indices and the values using _write_array
                (e.g. a CArray) create an indexing table so that we can search
         """
-        raise NotImplementedError("WORKTable needs to implement write")
+        raise NotImplementedError("WORMTable needs to implement write")
 
 
 class AppendableTable(Table):
@@ -4018,7 +4018,7 @@ class AppendableTable(Table):
         dropna=False,
         nan_rep=None,
         data_columns=None,
-        errors="strict",  # not used hre, but passed to super
+        errors="strict",  # not used here, but passed to super
     ):
 
         if not append and self.is_exists:
@@ -4052,9 +4052,6 @@ class AppendableTable(Table):
 
             # create the table
             self._handle.create_table(self.group, **options)
-        else:
-            pass
-            # table = self.table
 
         # update my info
         self.attrs.info = self.info
