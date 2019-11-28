@@ -50,18 +50,13 @@ class TestDatetimeIndexOps:
             "is_quarter_end",
             "is_year_start",
             "is_year_end",
-            "weekday_name",
         ],
     )
     def test_dti_timestamp_fields(self, field):
         # extra fields from DatetimeIndex like quarter and week
         idx = tm.makeDateIndex(100)
         expected = getattr(idx, field)[-1]
-        if field == "weekday_name":
-            with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-                result = getattr(Timestamp(idx[-1]), field)
-        else:
-            result = getattr(Timestamp(idx[-1]), field)
+        result = getattr(Timestamp(idx[-1]), field)
         assert result == expected
 
     def test_dti_timestamp_freq_fields(self):

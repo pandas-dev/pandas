@@ -44,7 +44,6 @@ from pandas import (
     isna,
 )
 from pandas.core.arrays.categorical import Categorical
-from pandas.core.arrays.sparse import BlockIndex, IntIndex
 import pandas.core.common as com
 from pandas.core.computation.pytables import PyTablesExpr, maybe_expression
 from pandas.core.index import ensure_index
@@ -779,7 +778,6 @@ class HDFStore:
         where=None,
         start: Optional[int] = None,
         stop: Optional[int] = None,
-        **kwargs,
     ):
         """
         return the selection as an Index
@@ -795,7 +793,7 @@ class HDFStore:
         tbl = self.get_storer(key)
         if not isinstance(tbl, Table):
             raise TypeError("can only read_coordinates with a table")
-        return tbl.read_coordinates(where=where, start=start, stop=stop, **kwargs)
+        return tbl.read_coordinates(where=where, start=start, stop=stop)
 
     def select_column(self, key: str, column: str, **kwargs):
         """
@@ -2092,7 +2090,7 @@ class DataCol(IndexCol):
             )
         )
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         """ compare 2 col items """
         return all(
             getattr(self, a, None) == getattr(other, a, None)
@@ -2286,7 +2284,7 @@ class DataCol(IndexCol):
         self.typ = self.get_atom_data(block)
         self.set_data(block.values.astype(self.typ.type, copy=False))
 
-    def set_atom_categorical(self, block, items, info=None, values=None):
+    def set_atom_categorical(self, block, items, info=None):
         # currently only supports a 1-D categorical
         # in a 1-D block
 
@@ -2314,17 +2312,15 @@ class DataCol(IndexCol):
     def get_atom_datetime64(self, block):
         return _tables().Int64Col(shape=block.shape[0])
 
-    def set_atom_datetime64(self, block, values=None):
+    def set_atom_datetime64(self, block):
         self.kind = "datetime64"
         self.typ = self.get_atom_datetime64(block)
-        if values is None:
-            values = block.values.view("i8")
+        values = block.values.view("i8")
         self.set_data(values, "datetime64")
 
-    def set_atom_datetime64tz(self, block, info, values=None):
+    def set_atom_datetime64tz(self, block, info):
 
-        if values is None:
-            values = block.values
+        values = block.values
 
         # convert this column to i8 in UTC, and save the tz
         values = values.asi8.reshape(block.shape)
@@ -2340,11 +2336,10 @@ class DataCol(IndexCol):
     def get_atom_timedelta64(self, block):
         return _tables().Int64Col(shape=block.shape[0])
 
-    def set_atom_timedelta64(self, block, values=None):
+    def set_atom_timedelta64(self, block):
         self.kind = "timedelta64"
         self.typ = self.get_atom_timedelta64(block)
-        if values is None:
-            values = block.values.view("i8")
+        values = block.values.view("i8")
         self.set_data(values, "timedelta64")
 
     @property
@@ -2532,10 +2527,6 @@ class Fixed:
     def pandas_type(self):
         return _ensure_decoded(getattr(self.group._v_attrs, "pandas_type", None))
 
-    @property
-    def format_type(self) -> str:
-        return "fixed"
-
     def __repr__(self) -> str:
         """ return a pretty representation of myself """
         self.infer_axes()
@@ -2633,7 +2624,13 @@ class Fixed:
         self.get_attrs()
         return True
 
-    def read(self, **kwargs):
+    def read(
+        self,
+        where=None,
+        columns=None,
+        start: Optional[int] = None,
+        stop: Optional[int] = None,
+    ):
         raise NotImplementedError(
             "cannot read on an abstract storer: subclasses should implement"
         )
@@ -2643,7 +2640,9 @@ class Fixed:
             "cannot write on an abstract storer: sublcasses should implement"
         )
 
-    def delete(self, where=None, start=None, stop=None, **kwargs):
+    def delete(
+        self, where=None, start: Optional[int] = None, stop: Optional[int] = None
+    ):
         """
         support fully deleting the node in its entirety (only) - where
         specification must be None
@@ -2770,36 +2769,24 @@ class GenericFixed(Fixed):
         else:
             return ret
 
-    def read_index(self, key, **kwargs):
+    def read_index(self, key: str, **kwargs) -> Index:
         variety = _ensure_decoded(getattr(self.attrs, f"{key}_variety"))
 
         if variety == "multi":
             return self.read_multi_index(key, **kwargs)
-        elif variety == "block":
-            return self.read_block_index(key, **kwargs)
-        elif variety == "sparseint":
-            return self.read_sparse_intindex(key, **kwargs)
         elif variety == "regular":
             _, index = self.read_index_node(getattr(self.group, key), **kwargs)
             return index
         else:  # pragma: no cover
             raise TypeError(f"unrecognized index variety: {variety}")
 
-    def write_index(self, key, index):
+    def write_index(self, key: str, index: Index):
         if isinstance(index, MultiIndex):
             setattr(self.attrs, f"{key}_variety", "multi")
             self.write_multi_index(key, index)
-        elif isinstance(index, BlockIndex):
-            setattr(self.attrs, f"{key}_variety", "block")
-            self.write_block_index(key, index)
-        elif isinstance(index, IntIndex):
-            setattr(self.attrs, f"{key}_variety", "sparseint")
-            self.write_sparse_intindex(key, index)
         else:
             setattr(self.attrs, f"{key}_variety", "regular")
-            converted = _convert_index(
-                "index", index, self.encoding, self.errors, self.format_type
-            )
+            converted = _convert_index("index", index, self.encoding, self.errors)
 
             self.write_array(key, converted.values)
 
@@ -2810,31 +2797,11 @@ class GenericFixed(Fixed):
             if isinstance(index, (DatetimeIndex, PeriodIndex)):
                 node._v_attrs.index_class = self._class_to_alias(type(index))
 
-            if hasattr(index, "freq"):
+            if isinstance(index, (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
                 node._v_attrs.freq = index.freq
 
-            if hasattr(index, "tz") and index.tz is not None:
+            if isinstance(index, DatetimeIndex) and index.tz is not None:
                 node._v_attrs.tz = _get_tz(index.tz)
-
-    def write_block_index(self, key, index):
-        self.write_array(f"{key}_blocs", index.blocs)
-        self.write_array(f"{key}_blengths", index.blengths)
-        setattr(self.attrs, f"{key}_length", index.length)
-
-    def read_block_index(self, key, **kwargs) -> BlockIndex:
-        length = getattr(self.attrs, f"{key}_length")
-        blocs = self.read_array(f"{key}_blocs", **kwargs)
-        blengths = self.read_array(f"{key}_blengths", **kwargs)
-        return BlockIndex(length, blocs, blengths)
-
-    def write_sparse_intindex(self, key, index):
-        self.write_array(f"{key}_indices", index.indices)
-        setattr(self.attrs, f"{key}_length", index.length)
-
-    def read_sparse_intindex(self, key, **kwargs) -> IntIndex:
-        length = getattr(self.attrs, f"{key}_length")
-        indices = self.read_array(f"{key}_indices", **kwargs)
-        return IntIndex(length, indices)
 
     def write_multi_index(self, key, index):
         setattr(self.attrs, f"{key}_nlevels", index.nlevels)
@@ -2848,9 +2815,7 @@ class GenericFixed(Fixed):
                     "Saving a MultiIndex with an extension dtype is not supported."
                 )
             level_key = f"{key}_level{i}"
-            conv_level = _convert_index(
-                level_key, lev, self.encoding, self.errors, self.format_type
-            )
+            conv_level = _convert_index(level_key, lev, self.encoding, self.errors)
             self.write_array(level_key, conv_level.values)
             node = getattr(self.group, level_key)
             node._v_attrs.kind = conv_level.kind
@@ -3189,10 +3154,6 @@ class Table(Fixed):
     @property
     def table_type_short(self) -> str:
         return self.table_type.split("_")[0]
-
-    @property
-    def format_type(self) -> str:
-        return "table"
 
     def __repr__(self) -> str:
         """ return a pretty representation of myself """
@@ -3544,14 +3505,17 @@ class Table(Fixed):
                         )
                     v.create_index(**kw)
 
-    def read_axes(self, where, **kwargs) -> bool:
+    def read_axes(
+        self, where, start: Optional[int] = None, stop: Optional[int] = None
+    ) -> bool:
         """
         Create the axes sniffed from the table.
 
         Parameters
         ----------
         where : ???
-        **kwargs
+        start: int or None, default None
+        stop: int or None, default None
 
         Returns
         -------
@@ -3567,21 +3531,19 @@ class Table(Fixed):
             return False
 
         # create the selection
-        selection = Selection(self, where=where, **kwargs)
+        selection = Selection(self, where=where, start=start, stop=stop)
         values = selection.select()
 
         # convert the data
         for a in self.axes:
             a.set_info(self.info)
-            # `kwargs` may contain `start` and `stop` arguments if passed to
-            # `store.select()`. If set they determine the index size.
             a.convert(
                 values,
                 nan_rep=self.nan_rep,
                 encoding=self.encoding,
                 errors=self.errors,
-                start=kwargs.get("start"),
-                stop=kwargs.get("stop"),
+                start=start,
+                stop=stop,
             )
 
         return True
@@ -3636,7 +3598,6 @@ class Table(Fixed):
         nan_rep=None,
         data_columns=None,
         min_itemsize=None,
-        **kwargs,
     ):
         """ create and return the axes
         legacy tables create an indexable column, indexable index,
@@ -3706,9 +3667,7 @@ class Table(Fixed):
 
             if i in axes:
                 name = obj._AXIS_NAMES[i]
-                new_index = _convert_index(
-                    name, a, self.encoding, self.errors, self.format_type
-                )
+                new_index = _convert_index(name, a, self.encoding, self.errors)
                 new_index.axis = i
                 index_axes_map[i] = new_index
 
@@ -3948,11 +3907,7 @@ class Table(Fixed):
         return d
 
     def read_coordinates(
-        self,
-        where=None,
-        start: Optional[int] = None,
-        stop: Optional[int] = None,
-        **kwargs,
+        self, where=None, start: Optional[int] = None, stop: Optional[int] = None,
     ):
         """select coordinates (row numbers) from a table; return the
         coordinates object
@@ -4061,7 +4016,9 @@ class AppendableTable(Table):
         chunksize=None,
         expectedrows=None,
         dropna=False,
-        **kwargs,
+        nan_rep=None,
+        data_columns=None,
+        errors="strict",  # not used hre, but passed to super
     ):
 
         if not append and self.is_exists:
@@ -4069,7 +4026,12 @@ class AppendableTable(Table):
 
         # create the axes
         self.create_axes(
-            axes=axes, obj=obj, validate=append, min_itemsize=min_itemsize, **kwargs
+            axes=axes,
+            obj=obj,
+            validate=append,
+            min_itemsize=min_itemsize,
+            nan_rep=nan_rep,
+            data_columns=data_columns,
         )
 
         for a in self.axes:
@@ -4219,11 +4181,7 @@ class AppendableTable(Table):
             self.table.flush()
 
     def delete(
-        self,
-        where=None,
-        start: Optional[int] = None,
-        stop: Optional[int] = None,
-        **kwargs,
+        self, where=None, start: Optional[int] = None, stop: Optional[int] = None,
     ):
 
         # delete all rows (and return the nrows)
@@ -4303,9 +4261,15 @@ class AppendableFrameTable(AppendableTable):
             obj = obj.T
         return obj
 
-    def read(self, where=None, columns=None, **kwargs):
+    def read(
+        self,
+        where=None,
+        columns=None,
+        start: Optional[int] = None,
+        stop: Optional[int] = None,
+    ):
 
-        if not self.read_axes(where=where, **kwargs):
+        if not self.read_axes(where=where, start=start, stop=stop):
             return None
 
         info = (
@@ -4349,7 +4313,7 @@ class AppendableFrameTable(AppendableTable):
         else:
             df = concat(frames, axis=1)
 
-        selection = Selection(self, where=where, **kwargs)
+        selection = Selection(self, where=where, start=start, stop=stop)
         # apply the selection filters & axis orderings
         df = self.process_axes(df, selection=selection, columns=columns)
 
@@ -4573,7 +4537,7 @@ def _set_tz(values, tz, preserve_UTC: bool = False, coerce: bool = False):
     return values
 
 
-def _convert_index(name: str, index, encoding=None, errors="strict", format_type=None):
+def _convert_index(name: str, index, encoding=None, errors="strict"):
     assert isinstance(name, str)
 
     index_name = getattr(index, "name", None)
