@@ -2340,10 +2340,7 @@ def network(
                 errno = getattr(err.reason, "errno", None)
 
             if errno in skip_errnos:
-                skip(
-                    "Skipping test due to known errno"
-                    f" and error {err}"
-                )
+                skip("Skipping test due to known errno" f" and error {err}")
 
             e_str = str(err)
 
@@ -2359,10 +2356,7 @@ def network(
             if raise_on_error or can_connect(url, error_classes):
                 raise
             else:
-                skip(
-                    "Skipping test due to lack of connectivity"
-                    f" and error {err}"
-                )
+                skip("Skipping test due to lack of connectivity" f" and error {err}")
 
     return wrapper
 
@@ -2623,12 +2617,12 @@ def assert_produces_warning(
                     )
                 )
         if expected_warning:
-            msg = f"Did not see expected warning of class {expected_warning.__name__!r}."
+            msg = (
+                f"Did not see expected warning of class {expected_warning.__name__!r}."
+            )
             assert saw_warning, msg
         if raise_on_extra_warnings and extra_warnings:
-            raise AssertionError(
-                f"Caused unexpected warning(s): {extra_warnings!r}."
-            )
+            raise AssertionError(f"Caused unexpected warning(s): {extra_warnings!r}.")
 
 
 class RNGContext:
