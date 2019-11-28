@@ -88,7 +88,7 @@ class TestTimestampTZOperations:
         # GH 22644
         with pytest.raises(NonExistentTimeError):
             ts.tz_localize(tz, nonexistent="raise")
-        assert ts.tz_localize(tz, nonexistent="coerce") is NaT
+        assert ts.tz_localize(tz, nonexistent="NaT") is NaT
 
     def test_tz_localize_ambiguous(self):
         # GH#13057

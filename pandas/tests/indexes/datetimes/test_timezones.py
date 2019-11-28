@@ -325,7 +325,7 @@ class TestDatetimeIndexTimezones:
         with pytest.raises(pytz.NonExistentTimeError):
             index.tz_localize(tz=tz, nonexistent="raise")
 
-        result = index.tz_localize(tz=tz, nonexistent="coerce")
+        result = index.tz_localize(tz=tz, nonexistent="NaT")
         test_times = ["2015-03-08 01:00-05:00", "NaT", "2015-03-08 03:00-04:00"]
         dti = to_datetime(test_times, utc=True)
         expected = dti.tz_convert("US/Eastern")
