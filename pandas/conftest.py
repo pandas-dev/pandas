@@ -878,6 +878,6 @@ def index_or_series(request):
 
     List item 0 has incompatible type "Type[Series]"; expected "Type[PandasObject]"
 
-    See GH#?????
+    See GH#29725
     """
     return request.param
