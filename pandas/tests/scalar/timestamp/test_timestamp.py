@@ -108,9 +108,7 @@ class TestTimestampProperties:
     )
     def test_names(self, data, time_locale):
         # GH 17354
-        # Test .weekday_name, .day_name(), .month_name
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            assert data.weekday_name == "Monday"
+        # Test .day_name(), .month_name
         if time_locale is None:
             expected_day = "Monday"
             expected_month = "August"

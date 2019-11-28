@@ -277,7 +277,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         "is_year_end",
         "is_leap_year",
     ]
-    _object_ops = ["weekday_name", "freq", "tz"]
+    _object_ops = ["freq", "tz"]
     _field_ops = [
         "year",
         "month",
@@ -1508,14 +1508,6 @@ default 'raise'
     """
     dayofweek = _field_accessor("dayofweek", "dow", _dayofweek_doc)
     weekday = dayofweek
-
-    weekday_name = _field_accessor(
-        "weekday_name",
-        "weekday_name",
-        """
-        The name of day in a week (ex: Friday)\n\n.. deprecated:: 0.23.0
-        """,
-    )
 
     dayofyear = _field_accessor(
         "dayofyear",
