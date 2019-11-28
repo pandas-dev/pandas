@@ -20,8 +20,6 @@ from pandas.util._decorators import Appender
 from pandas.core.dtypes.common import (
     _NS_DTYPE,
     _TD_DTYPE,
-    ensure_int64,
-    is_datetime64_dtype,
     is_dtype_equal,
     is_float_dtype,
     is_integer_dtype,
@@ -45,6 +43,7 @@ from pandas.core.dtypes.missing import isna
 from pandas.core import nanops
 from pandas.core.algorithms import checked_add_with_arr
 import pandas.core.common as com
+from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.ops.invalid import invalid_comparison
 
 from pandas.tseries.frequencies import to_offset
@@ -82,10 +81,8 @@ def _td_array_cmp(cls, op):
     opname = "__{name}__".format(name=op.__name__)
     nat_result = opname == "__ne__"
 
+    @unpack_zerodim_and_defer(opname)
     def wrapper(self, other):
-        other = lib.item_from_zerodim(other)
-        if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
-            return NotImplemented
 
         if _is_convertible_to_td(other) or other is NaT:
             try:
@@ -162,8 +159,8 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     _scalar_type = Timedelta
     __array_priority__ = 1000
     # define my properties & methods for delegation
-    _other_ops = []  # type: List[str]
-    _bool_ops = []  # type: List[str]
+    _other_ops: List[str] = []
+    _bool_ops: List[str] = []
     _object_ops = ["freq"]
     _field_ops = ["days", "seconds", "microseconds", "nanoseconds"]
     _datetimelike_ops = _field_ops + _object_ops + _bool_ops
@@ -1057,18 +1054,8 @@ def sequence_to_td64ns(data, copy=False, unit="ns", errors="raise"):
             data = data.astype(_TD_DTYPE)
             copy = False
 
-    elif is_datetime64_dtype(data):
-        # GH#23539
-        warnings.warn(
-            "Passing datetime64-dtype data to TimedeltaIndex is "
-            "deprecated, will raise a TypeError in a future "
-            "version",
-            FutureWarning,
-            stacklevel=4,
-        )
-        data = ensure_int64(data).view(_TD_DTYPE)
-
     else:
+        # This includes datetime64-dtype, see GH#23539, GH#29794
         raise TypeError(
             "dtype {dtype} cannot be converted to timedelta64[ns]".format(
                 dtype=data.dtype

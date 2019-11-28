@@ -8,7 +8,7 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import algos as libalgos, hashtable as htable, lib
+from pandas._libs import algos as libalgos, hashtable as htable
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender,
@@ -39,7 +39,7 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
@@ -52,6 +52,7 @@ from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array, sanitize_array
 from pandas.core.missing import interpolate_2d
+from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.sorting import nargsort
 
 from pandas.io.formats import console
@@ -72,18 +73,10 @@ _take_msg = textwrap.dedent(
 
 
 def _cat_compare_op(op):
-    opname = "__{op}__".format(op=op.__name__)
+    opname = f"__{op.__name__}__"
 
-    def f(self, other):
-        # On python2, you can usually compare any type to any type, and
-        # Categoricals can be seen as a custom type, but having different
-        # results depending whether categories are the same or not is kind of
-        # insane, so be a bit stricter here and use the python3 idea of
-        # comparing only things of equal type.
-        if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
-            return NotImplemented
-
-        other = lib.item_from_zerodim(other)
+    @unpack_zerodim_and_defer(opname)
+    def func(self, other):
         if is_list_like(other) and len(other) != len(self):
             # TODO: Could this fail if the categories are listlike objects?
             raise ValueError("Lengths must match.")
@@ -115,9 +108,9 @@ def _cat_compare_op(op):
             else:
                 other_codes = other._codes
 
-            mask = (self._codes == -1) | (other_codes == -1)
             f = getattr(self._codes, opname)
             ret = f(other_codes)
+            mask = (self._codes == -1) | (other_codes == -1)
             if mask.any():
                 # In other series, the leads to False, so do that here too
                 ret[mask] = False
@@ -128,21 +121,21 @@ def _cat_compare_op(op):
                 i = self.categories.get_loc(other)
                 ret = getattr(self._codes, opname)(i)
 
-                # check for NaN in self
-                mask = self._codes == -1
-                ret[mask] = False
+                if opname not in {"__eq__", "__ge__", "__gt__"}:
+                    # check for NaN needed if we are not equal or larger
+                    mask = self._codes == -1
+                    ret[mask] = False
                 return ret
             else:
                 if opname == "__eq__":
-                    return np.repeat(False, len(self))
+                    return np.zeros(len(self), dtype=bool)
                 elif opname == "__ne__":
-                    return np.repeat(True, len(self))
+                    return np.ones(len(self), dtype=bool)
                 else:
-                    msg = (
-                        "Cannot compare a Categorical for op {op} with a "
+                    raise TypeError(
+                        f"Cannot compare a Categorical for op {opname} with a "
                         "scalar, which is not a category."
                     )
-                    raise TypeError(msg.format(op=opname))
         else:
 
             # allow categorical vs object dtype array comparisons for equality
@@ -150,16 +143,15 @@ def _cat_compare_op(op):
             if opname in ["__eq__", "__ne__"]:
                 return getattr(np.array(self), opname)(np.array(other))
 
-            msg = (
-                "Cannot compare a Categorical for op {op} with type {typ}."
-                "\nIf you want to compare values, use 'np.asarray(cat) "
-                "<op> other'."
+            raise TypeError(
+                f"Cannot compare a Categorical for op {opname} with "
+                f"type {type(other)}.\nIf you want to compare values, "
+                "use 'np.asarray(cat) <op> other'."
             )
-            raise TypeError(msg.format(op=opname, typ=type(other)))
 
-    f.__name__ = opname
+    func.__name__ = opname
 
-    return f
+    return func
 
 
 def contains(cat, key, container):
@@ -843,8 +835,8 @@ class Categorical(ExtensionArray, PandasObject):
         On the other hand this methods does not do checks (e.g., whether the
         old categories are included in the new categories on a reorder), which
         can result in surprising changes, for example when using special string
-        dtypes on python3, which does not considers a S1 string equal to a
-        single char python string.
+        dtypes, which does not considers a S1 string equal to a single char
+        python string.
 
         Parameters
         ----------
@@ -1061,11 +1053,9 @@ class Categorical(ExtensionArray, PandasObject):
             new_categories = [new_categories]
         already_included = set(new_categories) & set(self.dtype.categories)
         if len(already_included) != 0:
-            msg = (
-                "new categories must not include old categories: "
-                "{already_included!s}"
+            raise ValueError(
+                f"new categories must not include old categories: {already_included}"
             )
-            raise ValueError(msg.format(already_included=already_included))
         new_categories = list(self.dtype.categories) + list(new_categories)
         new_dtype = CategoricalDtype(new_categories, self.ordered)
 
@@ -1111,7 +1101,7 @@ class Categorical(ExtensionArray, PandasObject):
         if not is_list_like(removals):
             removals = [removals]
 
-        removal_set = set(list(removals))
+        removal_set = set(removals)
         not_included = removal_set - set(self.dtype.categories)
         new_categories = [c for c in self.dtype.categories if c not in removal_set]
 
@@ -1121,8 +1111,7 @@ class Categorical(ExtensionArray, PandasObject):
             new_categories = [x for x in new_categories if notna(x)]
 
         if len(not_included) != 0:
-            msg = "removals must all be in old categories: {not_included!s}"
-            raise ValueError(msg.format(not_included=not_included))
+            raise ValueError(f"removals must all be in old categories: {not_included}")
 
         return self.set_categories(
             new_categories, ordered=self.ordered, rename=False, inplace=inplace
@@ -1300,9 +1289,8 @@ class Categorical(ExtensionArray, PandasObject):
                 fill_value = self.categories.get_loc(fill_value)
             else:
                 raise ValueError(
-                    "'fill_value={}' is not present "
-                    "in this Categorical's "
-                    "categories".format(fill_value)
+                    f"'fill_value={fill_value}' is not present "
+                    "in this Categorical's categories"
                 )
             if periods > 0:
                 codes[:periods] = fill_value
@@ -1343,8 +1331,8 @@ class Categorical(ExtensionArray, PandasObject):
         # for all other cases, raise for now (similarly as what happens in
         # Series.__array_prepare__)
         raise TypeError(
-            "Object with dtype {dtype} cannot perform "
-            "the numpy op {op}".format(dtype=self.dtype, op=ufunc.__name__)
+            f"Object with dtype {self.dtype} cannot perform "
+            f"the numpy op {ufunc.__name__}"
         )
 
     def __setstate__(self, state):
@@ -1543,9 +1531,9 @@ class Categorical(ExtensionArray, PandasObject):
         """ assert that we are ordered """
         if not self.ordered:
             raise TypeError(
-                "Categorical is not ordered for operation {op}\n"
+                f"Categorical is not ordered for operation {op}\n"
                 "you can use .as_ordered() to change the "
-                "Categorical to an ordered one\n".format(op=op)
+                "Categorical to an ordered one\n"
             )
 
     def _values_for_argsort(self):
@@ -1680,8 +1668,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if na_position not in ["last", "first"]:
-            msg = "invalid na_position: {na_position!r}"
-            raise ValueError(msg.format(na_position=na_position))
+            raise ValueError(f"invalid na_position: {na_position!r}")
 
         sorted_idx = nargsort(self, ascending=ascending, na_position=na_position)
 
@@ -1837,8 +1824,7 @@ class Categorical(ExtensionArray, PandasObject):
             else:
                 raise TypeError(
                     '"value" parameter must be a scalar, dict '
-                    "or Series, but you passed a "
-                    '"{0}"'.format(type(value).__name__)
+                    f'or Series, but you passed a {type(value).__name__!r}"'
                 )
 
         return self._constructor(codes, dtype=self.dtype, fastpath=True)
@@ -1931,8 +1917,11 @@ class Categorical(ExtensionArray, PandasObject):
             if fill_value in self.categories:
                 fill_value = self.categories.get_loc(fill_value)
             else:
-                msg = "'fill_value' ('{}') is not in this Categorical's categories."
-                raise TypeError(msg.format(fill_value))
+                msg = (
+                    f"'fill_value' ('{fill_value}') is not in this "
+                    "Categorical's categories."
+                )
+                raise TypeError(msg)
 
         codes = take(self._codes, indexer, allow_fill=allow_fill, fill_value=fill_value)
         result = type(self).from_codes(codes, dtype=dtype)
@@ -1940,7 +1929,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     take = take_nd
 
-    def __len__(self):
+    def __len__(self) -> int:
         """
         The length of this Categorical.
         """
@@ -1970,11 +1959,9 @@ class Categorical(ExtensionArray, PandasObject):
         head = self[:num]._get_repr(length=False, footer=False)
         tail = self[-(max_vals - num) :]._get_repr(length=False, footer=False)
 
-        result = "{head}, ..., {tail}".format(head=head[:-1], tail=tail[1:])
+        result = f"{head[:-1]}, ..., {tail[1:]}"
         if footer:
-            result = "{result}\n{footer}".format(
-                result=result, footer=self._repr_footer()
-            )
+            result = f"{result}\n{self._repr_footer()}"
 
         return str(result)
 
@@ -2008,9 +1995,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         category_strs = self._repr_categories()
         dtype = str(self.categories.dtype)
-        levheader = "Categories ({length}, {dtype}): ".format(
-            length=len(self.categories), dtype=dtype
-        )
+        levheader = f"Categories ({len(self.categories)}, {dtype}): "
         width, height = get_terminal_size()
         max_width = get_option("display.width") or width
         if console.in_ipython_frontend():
@@ -2034,10 +2019,8 @@ class Categorical(ExtensionArray, PandasObject):
         return levheader + "[" + levstring.replace(" < ... < ", " ... ") + "]"
 
     def _repr_footer(self):
-
-        return "Length: {length}\n{info}".format(
-            length=len(self), info=self._repr_categories_info()
-        )
+        info = self._repr_categories_info()
+        return f"Length: {len(self)}\n{info}"
 
     def _get_repr(self, length=True, na_rep="NaN", footer=True):
         from pandas.io.formats import format as fmt
@@ -2059,7 +2042,7 @@ class Categorical(ExtensionArray, PandasObject):
             result = self._get_repr(length=len(self) > _maxlen)
         else:
             msg = self._get_repr(length=False, footer=True).replace("\n", ", ")
-            result = "[], {repr_msg}".format(repr_msg=msg)
+            result = f"[], {msg}"
 
         return result
 
@@ -2190,8 +2173,7 @@ class Categorical(ExtensionArray, PandasObject):
     def _reduce(self, name, axis=0, **kwargs):
         func = getattr(self, name, None)
         if func is None:
-            msg = "Categorical cannot perform the operation {op}"
-            raise TypeError(msg.format(op=name))
+            raise TypeError(f"Categorical cannot perform the operation {name}")
         return func(**kwargs)
 
     def min(self, numeric_only=None, **kwargs):
@@ -2459,17 +2441,61 @@ class Categorical(ExtensionArray, PandasObject):
         array([ True, False,  True, False,  True, False])
         """
         if not is_list_like(values):
+            values_type = type(values).__name__
             raise TypeError(
                 "only list-like objects are allowed to be passed"
-                " to isin(), you passed a [{values_type}]".format(
-                    values_type=type(values).__name__
-                )
+                f" to isin(), you passed a [{values_type}]"
             )
         values = sanitize_array(values, None, None)
         null_mask = np.asarray(isna(values))
         code_values = self.categories.get_indexer(values)
         code_values = code_values[null_mask | (code_values >= 0)]
         return algorithms.isin(self.codes, code_values)
+
+    def replace(self, to_replace, value, inplace: bool = False):
+        """
+        Replaces all instances of one value with another
+
+        Parameters
+        ----------
+        to_replace: object
+            The value to be replaced
+
+        value: object
+            The value to replace it with
+
+        inplace: bool
+            Whether the operation is done in-place
+
+        Returns
+        -------
+        None if inplace is True, otherwise the new Categorical after replacement
+
+
+        Examples
+        --------
+        >>> s = pd.Categorical([1, 2, 1, 3])
+        >>> s.replace(1, 3)
+        [3, 3, 2, 3]
+        Categories (2, int64): [2, 3]
+        """
+        inplace = validate_bool_kwarg(inplace, "inplace")
+        cat = self if inplace else self.copy()
+        if to_replace in cat.categories:
+            if isna(value):
+                cat.remove_categories(to_replace, inplace=True)
+            else:
+                categories = cat.categories.tolist()
+                index = categories.index(to_replace)
+                if value in cat.categories:
+                    value_index = categories.index(value)
+                    cat._codes[cat._codes == index] = value_index
+                    cat.remove_categories(to_replace, inplace=True)
+                else:
+                    categories[index] = value
+                    cat.rename_categories(categories, inplace=True)
+        if not inplace:
+            return cat
 
 
 # The Series.cat accessor
@@ -2556,43 +2582,6 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
         res = method(*args, **kwargs)
         if res is not None:
             return Series(res, index=self._index, name=self._name)
-
-    @property
-    def categorical(self):
-        # Note: Upon deprecation, `test_tab_completion_with_categorical` will
-        # need to be updated. `categorical` will need to be removed from
-        # `ok_for_cat`.
-        warn(
-            "`Series.cat.categorical` has been deprecated. Use the "
-            "attributes on 'Series.cat' directly instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._parent
-
-    @property
-    def name(self):
-        # Note: Upon deprecation, `test_tab_completion_with_categorical` will
-        # need to be updated. `name` will need to be removed from
-        # `ok_for_cat`.
-        warn(
-            "`Series.cat.name` has been deprecated. Use `Series.name` instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._name
-
-    @property
-    def index(self):
-        # Note: Upon deprecation, `test_tab_completion_with_categorical` will
-        # need to be updated. `index` will need to be removed from
-        # ok_for_cat`.
-        warn(
-            "`Series.cat.index` has been deprecated. Use `Series.index` instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._index
 
 
 # utility routines

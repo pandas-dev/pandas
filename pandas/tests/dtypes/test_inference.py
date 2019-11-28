@@ -51,6 +51,7 @@ from pandas import (
     Timestamp,
     isna,
 )
+from pandas.core.arrays import IntegerArray
 import pandas.util.testing as tm
 
 
@@ -505,7 +506,7 @@ class TestInference:
         result = lib.maybe_convert_numeric(case, set(), coerce_numeric=coerce)
         tm.assert_almost_equal(result, expected)
 
-    @pytest.mark.parametrize("value", [-2 ** 63 - 1, 2 ** 64])
+    @pytest.mark.parametrize("value", [-(2 ** 63) - 1, 2 ** 64])
     def test_convert_int_overflow(self, value):
         # see gh-18584
         arr = np.array([value], dtype=object)
@@ -551,6 +552,20 @@ class TestInference:
         exp = arr.copy()
         out = lib.maybe_convert_objects(arr, convert_datetime=1, convert_timedelta=1)
         tm.assert_numpy_array_equal(out, exp)
+
+    @pytest.mark.parametrize(
+        "exp",
+        [
+            IntegerArray(np.array([2, 0], dtype="i8"), np.array([False, True])),
+            IntegerArray(np.array([2, 0], dtype="int64"), np.array([False, True])),
+        ],
+    )
+    def test_maybe_convert_objects_nullable_integer(self, exp):
+        # GH27335
+        arr = np.array([2, np.NaN], dtype=object)
+        result = lib.maybe_convert_objects(arr, convert_to_nullable_integer=1)
+
+        tm.assert_extension_array_equal(result, exp)
 
     def test_mixed_dtypes_remain_object_array(self):
         # GH14956
@@ -613,13 +628,13 @@ class TestTypeInference:
         expected = "integer" if skipna else "integer-na"
         assert result == expected
 
-    def test_deprecation(self):
-        # GH 24050
-        arr = np.array([1, 2, 3], dtype=object)
+    def test_infer_dtype_skipna_default(self):
+        # infer_dtype `skipna` default deprecated in GH#24050,
+        #  changed to True in GH#29876
+        arr = np.array([1, 2, 3, np.nan], dtype=object)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = lib.infer_dtype(arr)  # default: skipna=None -> warn
-            assert result == "integer"
+        result = lib.infer_dtype(arr)
+        assert result == "integer"
 
     def test_bools(self):
         arr = np.array([True, False, True, True, True], dtype="O")

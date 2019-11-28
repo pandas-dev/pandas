@@ -15,7 +15,7 @@ def _ensure_decoded(s):
     return s
 
 
-def _result_type_many(*arrays_and_dtypes):
+def result_type_many(*arrays_and_dtypes):
     """ wrapper around numpy.result_type which overcomes the NPY_MAXARGS (32)
     argument limit """
     try:

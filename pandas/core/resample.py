@@ -21,7 +21,7 @@ from pandas.core.base import DataError, ShallowMixin
 from pandas.core.generic import _shared_docs
 from pandas.core.groupby.base import GroupByMixin
 from pandas.core.groupby.generic import SeriesGroupBy
-from pandas.core.groupby.groupby import GroupBy, _GroupBy, _pipe_template, groupby
+from pandas.core.groupby.groupby import GroupBy, _GroupBy, _pipe_template, get_groupby
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.groupby.ops import BinGrouper
 from pandas.core.indexes.datetimes import DatetimeIndex, date_range
@@ -31,7 +31,7 @@ from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import DateOffset, Day, Nano, Tick
 
-_shared_docs_kwargs = dict()  # type: Dict[str, str]
+_shared_docs_kwargs: Dict[str, str] = dict()
 
 
 class Resampler(_GroupBy, ShallowMixin):
@@ -187,6 +187,7 @@ class Resampler(_GroupBy, ShallowMixin):
         """
 
         binner, bins, binlabels = self._get_binner_for_time()
+        assert len(bins) == len(binlabels)
         bin_grouper = BinGrouper(bins, binlabels, indexer=self.groupby.indexer)
         return binner, bin_grouper
 
@@ -334,7 +335,7 @@ class Resampler(_GroupBy, ShallowMixin):
         grouper = self.grouper
         if subset is None:
             subset = self.obj
-        grouped = groupby(subset, by=None, grouper=grouper, axis=self.axis)
+        grouped = get_groupby(subset, by=None, grouper=grouper, axis=self.axis)
 
         # try the key selection
         try:
@@ -353,7 +354,7 @@ class Resampler(_GroupBy, ShallowMixin):
 
         obj = self._selected_obj
 
-        grouped = groupby(obj, by=None, grouper=grouper, axis=self.axis)
+        grouped = get_groupby(obj, by=None, grouper=grouper, axis=self.axis)
 
         try:
             if isinstance(obj, ABCDataFrame) and callable(how):
@@ -793,7 +794,7 @@ class Resampler(_GroupBy, ShallowMixin):
         limit_direction="forward",
         limit_area=None,
         downcast=None,
-        **kwargs
+        **kwargs,
     ):
         """
         Interpolate values according to different methods.
@@ -807,7 +808,7 @@ class Resampler(_GroupBy, ShallowMixin):
             limit_direction=limit_direction,
             limit_area=limit_area,
             downcast=downcast,
-            **kwargs
+            **kwargs,
         )
 
     def asfreq(self, fill_value=None):
@@ -868,13 +869,32 @@ class Resampler(_GroupBy, ShallowMixin):
 
     @Appender(GroupBy.size.__doc__)
     def size(self):
-        # It's a special case as higher level does return
-        # a copy of 0-len objects. GH14962
         result = self._downsample("size")
-        if not len(self.ax) and isinstance(self._selected_obj, ABCDataFrame):
+        if not len(self.ax):
             from pandas import Series
 
-            result = Series([], index=result.index, dtype="int64")
+            if self._selected_obj.ndim == 1:
+                name = self._selected_obj.name
+            else:
+                name = None
+            result = Series([], index=result.index, dtype="int64", name=name)
+        return result
+
+    @Appender(GroupBy.count.__doc__)
+    def count(self):
+        result = self._downsample("count")
+        if not len(self.ax):
+            if self._selected_obj.ndim == 1:
+                result = self._selected_obj.__class__(
+                    [], index=result.index, dtype="int64", name=self._selected_obj.name
+                )
+            else:
+                from pandas import DataFrame
+
+                result = DataFrame(
+                    [], index=result.index, columns=result.columns, dtype="int64"
+                )
+
         return result
 
     def quantile(self, q=0.5, **kwargs):
@@ -922,14 +942,6 @@ for method in ["min", "max", "first", "last", "mean", "sem", "median", "ohlc"]:
     g.__doc__ = getattr(GroupBy, method).__doc__
     setattr(Resampler, method, g)
 
-# groupby & aggregate methods
-for method in ["count"]:
-
-    def h(self, _method=method):
-        return self._downsample(_method)
-
-    h.__doc__ = getattr(GroupBy, method).__doc__
-    setattr(Resampler, method, h)
 
 # series only methods
 for method in ["nunique"]:
@@ -1068,7 +1080,8 @@ class DatetimeIndexResampler(Resampler):
         if not len(ax):
             # reset to the new freq
             obj = obj.copy()
-            obj.index.freq = self.freq
+            # TODO: find a less code-smelly way to set this
+            obj.index._data._freq = self.freq
             return obj
 
         # do we have a regular frequency
@@ -1369,7 +1382,7 @@ class TimeGrouper(Grouper):
         kind=None,
         convention=None,
         base=0,
-        **kwargs
+        **kwargs,
     ):
         # Check for correctness of the keyword arguments which would
         # otherwise silently use the default if misspelled

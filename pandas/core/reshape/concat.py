@@ -2,6 +2,7 @@
 concat routines
 """
 
+from typing import List
 import warnings
 
 import numpy as np
@@ -13,11 +14,11 @@ from pandas.core.arrays.categorical import (
 )
 import pandas.core.common as com
 from pandas.core.generic import NDFrame
-from pandas.core.index import (
-    _all_indexes_same,
-    _get_consensus_names,
-    _get_objs_combined_axis,
+from pandas.core.indexes.api import (
+    all_indexes_same,
     ensure_index,
+    get_consensus_names,
+    get_objs_combined_axis,
 )
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import concatenate_block_managers
@@ -36,7 +37,7 @@ def concat(
     levels=None,
     names=None,
     verify_integrity: bool = False,
-    sort=None,
+    sort: bool = False,
     copy: bool = True,
 ):
     """
@@ -81,18 +82,16 @@ def concat(
     verify_integrity : bool, default False
         Check whether the new concatenated axis contains duplicates. This can
         be very expensive relative to the actual data concatenation.
-    sort : bool, default None
+    sort : bool, default False
         Sort non-concatenation axis if it is not already aligned when `join`
-        is 'outer'. The current default of sorting is deprecated and will
-        change to not-sorting in a future version of pandas.
-
-        Explicitly pass ``sort=True`` to silence the warning and sort.
-        Explicitly pass ``sort=False`` to silence the warning and not sort.
-
+        is 'outer'.
         This has no effect when ``join='inner'``, which already preserves
         the order of the non-concatenation axis.
 
         .. versionadded:: 0.23.0
+        .. versionchanged:: 1.0.0
+
+           Changed to not sort by default.
 
     copy : bool, default True
         If False, do not copy data unnecessarily.
@@ -293,7 +292,7 @@ class _Concatenator:
 
         if isinstance(objs, dict):
             if keys is None:
-                keys = com.dict_keys_to_ordered_list(objs)
+                keys = list(objs.keys())
             objs = [objs[k] for k in keys]
         else:
             objs = list(objs)
@@ -437,13 +436,13 @@ class _Concatenator:
                 mgr = self.objs[0]._data.concat(
                     [x._data for x in self.objs], self.new_axes
                 )
-                cons = _get_series_result_type(mgr, self.objs)
+                cons = self.objs[0]._constructor
                 return cons(mgr, name=name).__finalize__(self, method="concat")
 
             # combine as columns in a frame
             else:
                 data = dict(zip(range(len(self.objs)), self.objs))
-                cons = _get_series_result_type(data)
+                cons = DataFrame
 
                 index, columns = self.new_axes
                 df = cons(data, index=index)
@@ -473,7 +472,7 @@ class _Concatenator:
             if not self.copy:
                 new_data._consolidate_inplace()
 
-            cons = _get_frame_result_type(new_data, self.objs)
+            cons = self.objs[0]._constructor
             return cons._from_axes(new_data, self.new_axes).__finalize__(
                 self, method="concat"
             )
@@ -520,17 +519,13 @@ class _Concatenator:
         new_axes[self.axis] = self._get_concat_axis()
         return new_axes
 
-    def _get_comb_axis(self, i):
+    def _get_comb_axis(self, i: int) -> Index:
         data_axis = self.objs[0]._get_block_manager_axis(i)
-        try:
-            return _get_objs_combined_axis(
-                self.objs, axis=data_axis, intersect=self.intersect, sort=self.sort
-            )
-        except IndexError:
-            types = [type(x).__name__ for x in self.objs]
-            raise TypeError("Cannot concatenate list of {types}".format(types=types))
+        return get_objs_combined_axis(
+            self.objs, axis=data_axis, intersect=self.intersect, sort=self.sort
+        )
 
-    def _get_concat_axis(self):
+    def _get_concat_axis(self) -> Index:
         """
         Return index to be used along concatenation axis.
         """
@@ -541,7 +536,7 @@ class _Concatenator:
                 idx = ibase.default_index(len(self.objs))
                 return idx
             elif self.keys is None:
-                names = [None] * len(self.objs)
+                names: List = [None] * len(self.objs)
                 num = 0
                 has_names = False
                 for i, x in enumerate(self.objs):
@@ -617,7 +612,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
         else:
             levels = [ensure_index(x) for x in levels]
 
-    if not _all_indexes_same(indexes):
+    if not all_indexes_same(indexes):
         codes_list = []
 
         # things are potentially different sizes, so compute the exact codes
@@ -660,7 +655,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
                 )
 
             # also copies
-            names = names + _get_consensus_names(indexes)
+            names = names + get_consensus_names(indexes)
 
         return MultiIndex(
             levels=levels, codes=codes_list, names=names, verify_integrity=False
@@ -706,27 +701,3 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
     return MultiIndex(
         levels=new_levels, codes=new_codes, names=new_names, verify_integrity=False
     )
-
-
-def _get_series_result_type(result, objs=None):
-    """
-    return appropriate class of Series concat
-    input is either dict or array-like
-    """
-    # TODO: See if we can just inline with _constructor_expanddim
-    # now that sparse is removed.
-
-    # concat Series with axis 1
-    if isinstance(result, dict):
-        return DataFrame
-
-    # otherwise it is a SingleBlockManager (axis = 0)
-    return objs[0]._constructor
-
-
-def _get_frame_result_type(result, objs):
-    """
-    return appropriate class of DataFrame-like concat
-    """
-    # TODO: just inline this as _constructor.
-    return objs[0]

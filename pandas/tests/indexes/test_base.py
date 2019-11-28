@@ -11,7 +11,6 @@ import pytest
 import pandas._config.config as cf
 
 from pandas._libs.tslib import Timestamp
-from pandas.compat import PY36
 from pandas.compat.numpy import np_datetime64_compat
 
 from pandas.core.dtypes.common import is_unsigned_integer_dtype
@@ -34,12 +33,8 @@ from pandas import (
     period_range,
 )
 from pandas.core.algorithms import safe_sort
-from pandas.core.index import (
-    _get_combined_index,
-    ensure_index,
-    ensure_index_from_sequences,
-)
-from pandas.core.indexes.api import Index, MultiIndex
+from pandas.core.index import ensure_index, ensure_index_from_sequences
+from pandas.core.indexes.api import Index, MultiIndex, _get_combined_index
 from pandas.tests.indexes.common import Base
 from pandas.tests.indexes.conftest import indices_dict
 import pandas.util.testing as tm
@@ -355,6 +350,11 @@ class TestIndex(Base):
         result = index._simple_new(index.values, dtype)
         tm.assert_index_equal(result, index)
 
+    def test_constructor_wrong_kwargs(self):
+        # GH #19348
+        with pytest.raises(TypeError, match="Unexpected keyword arguments {'foo'}"):
+            Index([], foo="bar")
+
     @pytest.mark.parametrize(
         "vals",
         [
@@ -507,7 +507,7 @@ class TestIndex(Base):
         result = klass(list(values), dtype=dtype)
         tm.assert_index_equal(result, index)
 
-    @pytest.mark.parametrize("value", [[], iter([]), (x for x in [])])
+    @pytest.mark.parametrize("value", [[], iter([]), (_ for _ in [])])
     @pytest.mark.parametrize(
         "klass",
         [
@@ -530,7 +530,7 @@ class TestIndex(Base):
         [
             (PeriodIndex([], freq="B"), PeriodIndex),
             (PeriodIndex(iter([]), freq="B"), PeriodIndex),
-            (PeriodIndex((x for x in []), freq="B"), PeriodIndex),
+            (PeriodIndex((_ for _ in []), freq="B"), PeriodIndex),
             (RangeIndex(step=1), pd.RangeIndex),
             (MultiIndex(levels=[[1, 2], ["blue", "red"]], codes=[[], []]), MultiIndex),
         ],
@@ -730,7 +730,7 @@ class TestIndex(Base):
         assert first_value == x[Timestamp(expected_ts)]
 
     def test_booleanindex(self, index):
-        bool_index = np.repeat(True, len(index)).astype(bool)
+        bool_index = np.ones(len(index), dtype=bool)
         bool_index[5:30:2] = False
 
         sub_index = index[bool_index]
@@ -1385,13 +1385,6 @@ class TestIndex(Base):
         assert "~:{range}:0" in result
         assert "{other}%s" in result
 
-    # GH18217
-    def test_summary_deprecated(self):
-        ind = Index(["{other}%s", "~:{range}:0"], name="A")
-
-        with tm.assert_produces_warning(FutureWarning):
-            ind.summary()
-
     def test_format(self, indices):
         self._check_method_works(Index.format, indices)
 
@@ -1616,11 +1609,7 @@ class TestIndex(Base):
     def test_get_loc_raises_bad_label(self, method):
         index = pd.Index([0, 1, 2])
         if method:
-            # Messages vary across versions
-            if PY36:
-                msg = "not supported between"
-            else:
-                msg = "unorderable types"
+            msg = "not supported between"
         else:
             msg = "invalid key"
 
@@ -1737,22 +1726,22 @@ class TestIndex(Base):
         "in_slice,expected",
         [
             (pd.IndexSlice[::-1], "yxdcb"),
-            (pd.IndexSlice["b":"y":-1], ""),
-            (pd.IndexSlice["b"::-1], "b"),
-            (pd.IndexSlice[:"b":-1], "yxdcb"),
-            (pd.IndexSlice[:"y":-1], "y"),
-            (pd.IndexSlice["y"::-1], "yxdcb"),
-            (pd.IndexSlice["y"::-4], "yb"),
+            (pd.IndexSlice["b":"y":-1], ""),  # type: ignore
+            (pd.IndexSlice["b"::-1], "b"),  # type: ignore
+            (pd.IndexSlice[:"b":-1], "yxdcb"),  # type: ignore
+            (pd.IndexSlice[:"y":-1], "y"),  # type: ignore
+            (pd.IndexSlice["y"::-1], "yxdcb"),  # type: ignore
+            (pd.IndexSlice["y"::-4], "yb"),  # type: ignore
             # absent labels
-            (pd.IndexSlice[:"a":-1], "yxdcb"),
-            (pd.IndexSlice[:"a":-2], "ydb"),
-            (pd.IndexSlice["z"::-1], "yxdcb"),
-            (pd.IndexSlice["z"::-3], "yc"),
-            (pd.IndexSlice["m"::-1], "dcb"),
-            (pd.IndexSlice[:"m":-1], "yx"),
-            (pd.IndexSlice["a":"a":-1], ""),
-            (pd.IndexSlice["z":"z":-1], ""),
-            (pd.IndexSlice["m":"m":-1], ""),
+            (pd.IndexSlice[:"a":-1], "yxdcb"),  # type: ignore
+            (pd.IndexSlice[:"a":-2], "ydb"),  # type: ignore
+            (pd.IndexSlice["z"::-1], "yxdcb"),  # type: ignore
+            (pd.IndexSlice["z"::-3], "yc"),  # type: ignore
+            (pd.IndexSlice["m"::-1], "dcb"),  # type: ignore
+            (pd.IndexSlice[:"m":-1], "yx"),  # type: ignore
+            (pd.IndexSlice["a":"a":-1], ""),  # type: ignore
+            (pd.IndexSlice["z":"z":-1], ""),  # type: ignore
+            (pd.IndexSlice["m":"m":-1], ""),  # type: ignore
         ],
     )
     def test_slice_locs_negative_step(self, in_slice, expected):
@@ -1837,7 +1826,7 @@ class TestIndex(Base):
             tm.assert_index_equal(result, expected)
 
         removed = index.drop(to_drop[1])
-        msg = r"\"\[{}\] not found in axis\"".format(re.escape(to_drop[1].__repr__()))
+        msg = fr"\"\[{re.escape(to_drop[1].__repr__())}\] not found in axis\""
         for drop_me in to_drop[1], [to_drop[1]]:
             with pytest.raises(KeyError, match=msg):
                 removed.drop(drop_me)
@@ -2005,11 +1994,11 @@ class TestIndex(Base):
         index = indices
         if isinstance(index, MultiIndex):
             index = index.rename(["foo", "bar"])
-            msg = "'Level {} not found'"
+            msg = f"'Level {label} not found'"
         else:
             index = index.rename("foo")
-            msg = r"Requested level \({}\) does not match index name \(foo\)"
-        with pytest.raises(KeyError, match=msg.format(label)):
+            msg = fr"Requested level \({label}\) does not match index name \(foo\)"
+        with pytest.raises(KeyError, match=msg):
             index.isin([], level=label)
 
     @pytest.mark.parametrize("empty", [[], Series(), np.array([])])
@@ -2444,21 +2433,13 @@ class TestMixedIntIndex(Base):
 
     def test_argsort(self):
         index = self.create_index()
-        if PY36:
-            with pytest.raises(TypeError, match="'>|<' not supported"):
-                index.argsort()
-        else:
-            with pytest.raises(TypeError, match="unorderable types"):
-                index.argsort()
+        with pytest.raises(TypeError, match="'>|<' not supported"):
+            index.argsort()
 
     def test_numpy_argsort(self):
         index = self.create_index()
-        if PY36:
-            with pytest.raises(TypeError, match="'>|<' not supported"):
-                np.argsort(index)
-        else:
-            with pytest.raises(TypeError, match="unorderable types"):
-                np.argsort(index)
+        with pytest.raises(TypeError, match="'>|<' not supported"):
+            np.argsort(index)
 
     def test_copy_name(self):
         # Check that "name" argument passed at initialization is honoured
@@ -2768,7 +2749,7 @@ def test_generated_op_names(opname, indices):
         # pd.Index.__rsub__ does not exist; though the method does exist
         # for subclasses.  see GH#19723
         return
-    opname = "__{name}__".format(name=opname)
+    opname = f"__{opname}__"
     method = getattr(indices, opname)
     assert method.__name__ == opname
 
@@ -2781,32 +2762,18 @@ def test_index_subclass_constructor_wrong_kwargs(index_maker):
 
 
 def test_deprecated_fastpath():
+    msg = "[Uu]nexpected keyword argument"
+    with pytest.raises(TypeError, match=msg):
+        pd.Index(np.array(["a", "b"], dtype=object), name="test", fastpath=True)
 
-    with tm.assert_produces_warning(FutureWarning):
-        idx = pd.Index(np.array(["a", "b"], dtype=object), name="test", fastpath=True)
+    with pytest.raises(TypeError, match=msg):
+        pd.Int64Index(np.array([1, 2, 3], dtype="int64"), name="test", fastpath=True)
 
-    expected = pd.Index(["a", "b"], name="test")
-    tm.assert_index_equal(idx, expected)
+    with pytest.raises(TypeError, match=msg):
+        pd.RangeIndex(0, 5, 2, name="test", fastpath=True)
 
-    with tm.assert_produces_warning(FutureWarning):
-        idx = pd.Int64Index(
-            np.array([1, 2, 3], dtype="int64"), name="test", fastpath=True
-        )
-
-    expected = pd.Index([1, 2, 3], name="test", dtype="int64")
-    tm.assert_index_equal(idx, expected)
-
-    with tm.assert_produces_warning(FutureWarning):
-        idx = pd.RangeIndex(0, 5, 2, name="test", fastpath=True)
-
-    expected = pd.RangeIndex(0, 5, 2, name="test")
-    tm.assert_index_equal(idx, expected)
-
-    with tm.assert_produces_warning(FutureWarning):
-        idx = pd.CategoricalIndex(["a", "b", "c"], name="test", fastpath=True)
-
-    expected = pd.CategoricalIndex(["a", "b", "c"], name="test")
-    tm.assert_index_equal(idx, expected)
+    with pytest.raises(TypeError, match=msg):
+        pd.CategoricalIndex(["a", "b", "c"], name="test", fastpath=True)
 
 
 def test_shape_of_invalid_index():

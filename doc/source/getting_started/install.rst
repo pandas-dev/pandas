@@ -177,7 +177,7 @@ pandas is equipped with an exhaustive set of unit tests, covering about 97% of
 the code base as of this writing. To run it on your machine to verify that
 everything is working (and that you have all of the dependencies, soft and hard,
 installed), make sure you have `pytest
-<http://docs.pytest.org/en/latest/>`__ >= 4.0.2 and `Hypothesis
+<http://docs.pytest.org/en/latest/>`__ >= 5.0.1 and `Hypothesis
 <https://hypothesis.readthedocs.io/>`__ >= 3.58, then run:
 
 ::
@@ -218,7 +218,7 @@ Recommended dependencies
   ``numexpr`` uses multiple cores as well as smart chunking and caching to achieve large speedups.
   If installed, must be Version 2.6.2 or higher.
 
-* `bottleneck <https://github.com/kwgoodman/bottleneck>`__: for accelerating certain types of ``nan``
+* `bottleneck <https://github.com/pydata/bottleneck>`__: for accelerating certain types of ``nan``
   evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups. If installed,
   must be Version 1.2.1 or higher.
 
@@ -250,7 +250,7 @@ SQLAlchemy                1.1.4              SQL support for databases other tha
 SciPy                     0.19.0             Miscellaneous statistical functions
 XLsxWriter                0.9.8              Excel writing
 blosc                                        Compression for msgpack
-fastparquet               0.2.1              Parquet reading / writing
+fastparquet               0.3.2              Parquet reading / writing
 gcsfs                     0.2.2              Google Cloud Storage access
 html5lib                                     HTML parser for read_html (see :ref:`note <optional_html>`)
 lxml                      3.8.0              HTML parser for read_html (see :ref:`note <optional_html>`)
@@ -258,12 +258,12 @@ matplotlib                2.2.2              Visualization
 openpyxl                  2.4.8              Reading / writing for xlsx files
 pandas-gbq                0.8.0              Google Big Query access
 psycopg2                                     PostgreSQL engine for sqlalchemy
-pyarrow                   0.9.0              Parquet and feather reading / writing
+pyarrow                   0.12.0             Parquet and feather reading / writing
 pymysql                   0.7.11             MySQL engine for sqlalchemy
 pyreadstat                                   SPSS files (.sav) reading
 pytables                  3.4.2              HDF5 reading / writing
 qtpy                                         Clipboard I/O
-s3fs                      0.0.8              Amazon S3 access
+s3fs                      0.3.0              Amazon S3 access
 xarray                    0.8.2              pandas-like API for N-dimensional data
 xclip                                        Clipboard I/O on linux
 xlrd                      1.1.0              Excel reading

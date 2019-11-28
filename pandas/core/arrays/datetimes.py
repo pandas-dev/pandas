@@ -40,12 +40,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCIndexClass,
-    ABCPandasArray,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCIndexClass, ABCPandasArray, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
@@ -53,6 +48,7 @@ from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
+from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.ops.invalid import invalid_comparison
 
 from pandas.tseries.frequencies import get_period_alias, to_offset
@@ -157,11 +153,8 @@ def _dt_array_cmp(cls, op):
     opname = "__{name}__".format(name=op.__name__)
     nat_result = opname == "__ne__"
 
+    @unpack_zerodim_and_defer(opname)
     def wrapper(self, other):
-        if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
-            return NotImplemented
-
-        other = lib.item_from_zerodim(other)
 
         if isinstance(other, (datetime, np.datetime64, str)):
             if isinstance(other, (datetime, np.datetime64)):
@@ -284,7 +277,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         "is_year_end",
         "is_leap_year",
     ]
-    _object_ops = ["weekday_name", "freq", "tz"]
+    _object_ops = ["freq", "tz"]
     _field_ops = [
         "year",
         "month",
@@ -327,7 +320,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
     # -----------------------------------------------------------------
     # Constructors
 
-    _dtype = None  # type: Union[np.dtype, DatetimeTZDtype]
+    _dtype: Union[np.dtype, DatetimeTZDtype]
     _freq = None
 
     def __init__(self, values, dtype=_NS_DTYPE, freq=None, copy=False):
@@ -1516,14 +1509,6 @@ default 'raise'
     dayofweek = _field_accessor("dayofweek", "dow", _dayofweek_doc)
     weekday = dayofweek
 
-    weekday_name = _field_accessor(
-        "weekday_name",
-        "weekday_name",
-        """
-        The name of day in a week (ex: Friday)\n\n.. deprecated:: 0.23.0
-        """,
-    )
-
     dayofyear = _field_accessor(
         "dayofyear",
         "doy",
@@ -2109,14 +2094,8 @@ def maybe_convert_dtype(data, copy):
         #  with integer dtypes.  See discussion in GH#23675
 
     elif is_timedelta64_dtype(data):
-        warnings.warn(
-            "Passing timedelta64-dtype data is deprecated, will "
-            "raise a TypeError in a future version",
-            FutureWarning,
-            stacklevel=5,
-        )
-        data = data.view(_NS_DTYPE)
-
+        # GH#29794 enforcing deprecation introduced in GH#23539
+        raise TypeError(f"dtype {data.dtype} cannot be converted to datetime64[ns]")
     elif is_period_dtype(data):
         # Note: without explicitly raising here, PeriodIndex
         #  test_setops.test_join_does_not_recur fails

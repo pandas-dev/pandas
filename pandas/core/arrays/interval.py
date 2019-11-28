@@ -489,7 +489,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def __iter__(self):
         return iter(np.asarray(self))
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.left)
 
     def __getitem__(self, value):
@@ -870,7 +870,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         # repr does. So we include a newline in our template, and strip
         # any trailing newlines from format_object_summary
         data = self._format_data()
-        class_name = "<{}>\n".format(self.__class__.__name__)
+        class_name = "<{}>\n".format(type(self).__name__)
         return template.format(
             class_name=class_name,
             data=data,
@@ -880,7 +880,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         )
 
     def _format_space(self):
-        space = " " * (len(self.__class__.__name__) + 1)
+        space = " " * (len(type(self).__name__) + 1)
         return "\n{space}".format(space=space)
 
     @property

@@ -357,10 +357,8 @@ generated/pandas.DataFrame.from_csv,../reference/api/pandas.DataFrame.from_csv
 generated/pandas.DataFrame.from_dict,../reference/api/pandas.DataFrame.from_dict
 generated/pandas.DataFrame.from_items,../reference/api/pandas.DataFrame.from_items
 generated/pandas.DataFrame.from_records,../reference/api/pandas.DataFrame.from_records
-generated/pandas.DataFrame.ftypes,../reference/api/pandas.DataFrame.ftypes
 generated/pandas.DataFrame.ge,../reference/api/pandas.DataFrame.ge
 generated/pandas.DataFrame.get_dtype_counts,../reference/api/pandas.DataFrame.get_dtype_counts
-generated/pandas.DataFrame.get_ftype_counts,../reference/api/pandas.DataFrame.get_ftype_counts
 generated/pandas.DataFrame.get,../reference/api/pandas.DataFrame.get
 generated/pandas.DataFrame.get_value,../reference/api/pandas.DataFrame.get_value
 generated/pandas.DataFrame.get_values,../reference/api/pandas.DataFrame.get_values
@@ -828,7 +826,6 @@ generated/pandas.MultiIndex.sortlevel,../reference/api/pandas.MultiIndex.sortlev
 generated/pandas.MultiIndex.swaplevel,../reference/api/pandas.MultiIndex.swaplevel
 generated/pandas.MultiIndex.to_flat_index,../reference/api/pandas.MultiIndex.to_flat_index
 generated/pandas.MultiIndex.to_frame,../reference/api/pandas.MultiIndex.to_frame
-generated/pandas.MultiIndex.to_hierarchical,../reference/api/pandas.MultiIndex.to_hierarchical
 generated/pandas.notna,../reference/api/pandas.notna
 generated/pandas.notnull,../reference/api/pandas.notnull
 generated/pandas.option_context,../reference/api/pandas.option_context
@@ -884,10 +881,8 @@ generated/pandas.Panel.first_valid_index,../reference/api/pandas.Panel.first_val
 generated/pandas.Panel.floordiv,../reference/api/pandas.Panel.floordiv
 generated/pandas.Panel.from_dict,../reference/api/pandas.Panel.from_dict
 generated/pandas.Panel.fromDict,../reference/api/pandas.Panel.fromDict
-generated/pandas.Panel.ftypes,../reference/api/pandas.Panel.ftypes
 generated/pandas.Panel.ge,../reference/api/pandas.Panel.ge
 generated/pandas.Panel.get_dtype_counts,../reference/api/pandas.Panel.get_dtype_counts
-generated/pandas.Panel.get_ftype_counts,../reference/api/pandas.Panel.get_ftype_counts
 generated/pandas.Panel.get,../reference/api/pandas.Panel.get
 generated/pandas.Panel.get_value,../reference/api/pandas.Panel.get_value
 generated/pandas.Panel.get_values,../reference/api/pandas.Panel.get_values
@@ -1224,11 +1219,8 @@ generated/pandas.Series.flags,../reference/api/pandas.Series.flags
 generated/pandas.Series.floordiv,../reference/api/pandas.Series.floordiv
 generated/pandas.Series.from_array,../reference/api/pandas.Series.from_array
 generated/pandas.Series.from_csv,../reference/api/pandas.Series.from_csv
-generated/pandas.Series.ftype,../reference/api/pandas.Series.ftype
-generated/pandas.Series.ftypes,../reference/api/pandas.Series.ftypes
 generated/pandas.Series.ge,../reference/api/pandas.Series.ge
 generated/pandas.Series.get_dtype_counts,../reference/api/pandas.Series.get_dtype_counts
-generated/pandas.Series.get_ftype_counts,../reference/api/pandas.Series.get_ftype_counts
 generated/pandas.Series.get,../reference/api/pandas.Series.get
 generated/pandas.Series.get_value,../reference/api/pandas.Series.get_value
 generated/pandas.Series.get_values,../reference/api/pandas.Series.get_values

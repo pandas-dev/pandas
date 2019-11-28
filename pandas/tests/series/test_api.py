@@ -199,11 +199,6 @@ class SharedWithSparse:
         )
         self._assert_series_equal(result, expected)
 
-    def test_from_array_deprecated(self):
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=True):
-            self.series_klass.from_array([1, 2, 3])
-
     def test_sparse_accessor_updates_on_inplace(self):
         s = pd.Series([1, 1, 2, 3], dtype="Sparse[int]")
         s.drop([0, 1], inplace=True)
@@ -261,11 +256,11 @@ class TestSeriesMisc(SharedWithSparse):
 
         def get_dir(s):
             results = [r for r in s.cat.__dir__() if not r.startswith("_")]
-            return list(sorted(set(results)))
+            return sorted(set(results))
 
         s = Series(list("aabbcde")).astype("category")
         results = get_dir(s)
-        tm.assert_almost_equal(results, list(sorted(set(ok_for_cat))))
+        tm.assert_almost_equal(results, sorted(set(ok_for_cat)))
 
     @pytest.mark.parametrize(
         "index",

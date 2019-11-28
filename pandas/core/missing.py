@@ -1,6 +1,7 @@
 """
 Routines for filling missing data.
 """
+
 import numpy as np
 
 from pandas._libs import algos, lib
@@ -39,9 +40,8 @@ def mask_missing(arr, values_to_mask):
     mask = None
     for x in nonna:
         if mask is None:
-
-            # numpy elementwise comparison warning
             if is_numeric_v_string_like(arr, x):
+                # GH#29553 prevent numpy deprecation warnings
                 mask = False
             else:
                 mask = arr == x
@@ -51,9 +51,8 @@ def mask_missing(arr, values_to_mask):
             if is_scalar(mask):
                 mask = np.zeros(arr.shape, dtype=bool)
         else:
-
-            # numpy elementwise comparison warning
             if is_numeric_v_string_like(arr, x):
+                # GH#29553 prevent numpy deprecation warnings
                 mask |= False
             else:
                 mask |= arr == x
@@ -175,7 +174,7 @@ def interpolate_1d(
     fill_value=None,
     bounds_error=False,
     order=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Logic for the 1-d interpolation.  The result should be 1-d, inputs
@@ -311,7 +310,7 @@ def interpolate_1d(
             fill_value=fill_value,
             bounds_error=bounds_error,
             order=order,
-            **kwargs
+            **kwargs,
         )
         result[preserve_nans] = np.nan
         return result
@@ -340,7 +339,7 @@ def _interpolate_scipy_wrapper(
     }
 
     if getattr(x, "is_all_dates", False):
-        # GH 5975, scipy.interp1d can't hande datetime64s
+        # GH 5975, scipy.interp1d can't handle datetime64s
         x, new_x = x._values.astype("i8"), new_x.astype("i8")
 
     if method == "pchip":

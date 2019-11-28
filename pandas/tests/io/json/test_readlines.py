@@ -173,3 +173,14 @@ def test_readjson_chunks_multiple_empty_lines(chunksize):
     tm.assert_frame_equal(
         orig, test, obj="chunksize: {chunksize}".format(chunksize=chunksize)
     )
+
+
+def test_readjson_unicode(monkeypatch):
+    with tm.ensure_clean("test.json") as path:
+        monkeypatch.setattr("_bootlocale.getpreferredencoding", lambda l: "cp949")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write('{"£©µÀÆÖÞßéöÿ":["АБВГДабвгд가"]}')
+
+        result = read_json(path)
+        expected = pd.DataFrame({"£©µÀÆÖÞßéöÿ": ["АБВГДабвгд가"]})
+        tm.assert_frame_equal(result, expected)

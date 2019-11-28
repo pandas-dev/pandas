@@ -46,62 +46,32 @@ class TestDataFrameDataTypes:
         assert result["b"].dtype == np.float64
         assert result["c"].dtype == np.float64
 
-    def test_empty_frame_dtypes_ftypes(self):
+    def test_empty_frame_dtypes(self):
         empty_df = pd.DataFrame()
         tm.assert_series_equal(empty_df.dtypes, pd.Series(dtype=np.object))
 
-        # GH 26705 - Assert .ftypes is deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            tm.assert_series_equal(empty_df.ftypes, pd.Series(dtype=np.object))
-
         nocols_df = pd.DataFrame(index=[1, 2, 3])
         tm.assert_series_equal(nocols_df.dtypes, pd.Series(dtype=np.object))
-
-        # GH 26705 - Assert .ftypes is deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            tm.assert_series_equal(nocols_df.ftypes, pd.Series(dtype=np.object))
 
         norows_df = pd.DataFrame(columns=list("abc"))
         tm.assert_series_equal(
             norows_df.dtypes, pd.Series(np.object, index=list("abc"))
         )
 
-        # GH 26705 - Assert .ftypes is deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            tm.assert_series_equal(
-                norows_df.ftypes, pd.Series("object:dense", index=list("abc"))
-            )
-
         norows_int_df = pd.DataFrame(columns=list("abc")).astype(np.int32)
         tm.assert_series_equal(
             norows_int_df.dtypes, pd.Series(np.dtype("int32"), index=list("abc"))
         )
-        # GH 26705 - Assert .ftypes is deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            tm.assert_series_equal(
-                norows_int_df.ftypes, pd.Series("int32:dense", index=list("abc"))
-            )
 
         odict = OrderedDict
         df = pd.DataFrame(odict([("a", 1), ("b", True), ("c", 1.0)]), index=[1, 2, 3])
         ex_dtypes = pd.Series(
             odict([("a", np.int64), ("b", np.bool), ("c", np.float64)])
         )
-        ex_ftypes = pd.Series(
-            odict([("a", "int64:dense"), ("b", "bool:dense"), ("c", "float64:dense")])
-        )
         tm.assert_series_equal(df.dtypes, ex_dtypes)
-
-        # GH 26705 - Assert .ftypes is deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            tm.assert_series_equal(df.ftypes, ex_ftypes)
 
         # same but for empty slice of df
         tm.assert_series_equal(df[:0].dtypes, ex_dtypes)
-
-        # GH 26705 - Assert .ftypes is deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            tm.assert_series_equal(df[:0].ftypes, ex_ftypes)
 
     def test_datetime_with_tz_dtypes(self):
         tzframe = DataFrame(
@@ -474,22 +444,6 @@ class TestDataFrameDataTypes:
             result = df.dtypes
             tm.assert_series_equal(result, Series({0: np.dtype("int64")}))
 
-    def test_ftypes(self, mixed_float_frame):
-        frame = mixed_float_frame
-        expected = Series(
-            dict(
-                A="float32:dense",
-                B="float32:dense",
-                C="float16:dense",
-                D="float64:dense",
-            )
-        ).sort_values()
-
-        # GH 26705 - Assert .ftypes is deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            result = frame.ftypes.sort_values()
-        tm.assert_series_equal(result, expected)
-
     def test_astype_float(self, float_frame):
         casted = float_frame.astype(int)
         expected = DataFrame(
@@ -762,6 +716,15 @@ class TestDataFrameDataTypes:
         with pytest.raises(TypeError, match=xpr):
             df["A"].astype(cls)
 
+    def test_singlerow_slice_categoricaldtype_gives_series(self):
+        # GH29521
+        df = pd.DataFrame({"x": pd.Categorical("a b c d e".split())})
+        result = df.iloc[0]
+        raw_cat = pd.Categorical(["a"], categories=["a", "b", "c", "d", "e"])
+        expected = pd.Series(raw_cat, index=["x"], name=0, dtype="category")
+
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("dtype", ["Int64", "Int32", "Int16"])
     def test_astype_extension_dtypes(self, dtype):
         # GH 22578
@@ -840,6 +803,31 @@ class TestDataFrameDataTypes:
         df = DataFrame(np.arange(15).reshape(5, 3), columns=columns)
         df = df.astype(dtype)
         tm.assert_index_equal(df.columns, columns)
+
+    def test_df_where_change_dtype(self):
+        # GH 16979
+        df = DataFrame(np.arange(2 * 3).reshape(2, 3), columns=list("ABC"))
+        mask = np.array([[True, False, False], [False, False, True]])
+
+        result = df.where(mask)
+        expected = DataFrame(
+            [[0, np.nan, np.nan], [np.nan, np.nan, 5]], columns=list("ABC")
+        )
+
+        tm.assert_frame_equal(result, expected)
+
+        # change type to category
+        df.A = df.A.astype("category")
+        df.B = df.B.astype("category")
+        df.C = df.C.astype("category")
+
+        result = df.where(mask)
+        A = pd.Categorical([0, np.nan], categories=[0, 3])
+        B = pd.Categorical([np.nan, np.nan], categories=[1, 4])
+        C = pd.Categorical([np.nan, 5], categories=[2, 5])
+        expected = DataFrame({"A": A, "B": B, "C": C})
+
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", ["M8", "m8"])
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s", "h", "m", "D"])

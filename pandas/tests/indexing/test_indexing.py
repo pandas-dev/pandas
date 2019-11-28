@@ -7,7 +7,6 @@ import weakref
 import numpy as np
 import pytest
 
-from pandas.compat import PY36
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
@@ -222,7 +221,7 @@ class TestFancy(Base):
         expected = DataFrame(
             [{"a": 1, "b": np.nan, "c": "foo"}, {"a": 3, "b": 2, "c": np.nan}]
         )
-        tm.assert_frame_equal(df, expected, check_like=not PY36)
+        tm.assert_frame_equal(df, expected)
 
         # GH10280
         df = DataFrame(
@@ -596,7 +595,7 @@ class TestFancy(Base):
 
             __repr__ = __str__
 
-            def __eq__(self, other):
+            def __eq__(self, other) -> bool:
                 return self.value == other.value
 
             def view(self):
@@ -1210,3 +1209,16 @@ def test_1tuple_without_multiindex():
     result = ser[key]
     expected = ser[key[0]]
     tm.assert_series_equal(result, expected)
+
+
+def test_duplicate_index_mistyped_key_raises_keyerror():
+    # GH#29189 float_index.get_loc(None) should raise KeyError, not TypeError
+    ser = pd.Series([2, 5, 6, 8], index=[2.0, 4.0, 4.0, 5.0])
+    with pytest.raises(KeyError):
+        ser[None]
+
+    with pytest.raises(KeyError):
+        ser.index.get_loc(None)
+
+    with pytest.raises(KeyError):
+        ser.index._engine.get_loc(None)
