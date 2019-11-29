@@ -80,15 +80,18 @@ jobs:
         git fetch upstream
         if git diff upstream/master --name-only | grep -q "^asv_bench/"; then
             asv machine --yes
-            ASV_OUTPUT="$(asv dev)"
-            if [[ $(echo "$ASV_OUTPUT" | grep "failed") ]]; then
-                echo "##vso[task.logissue type=error]Benchmarks run with errors"
-                echo "$ASV_OUTPUT"
+            asv dev | sed "/failed$/ s/^/##[error]/" | tee benchmarks.log
+            if grep "failed" benchmarks.log > /dev/null ; then
                 exit 1
-            else
-                echo "Benchmarks run without errors"
             fi
         else
             echo "Benchmarks did not run, no changes detected"
         fi
       if: true
+
+    - name: Publish benchmarks artifact
+      uses: actions/upload-artifact@master
+      with:
+        name: Benchmarks log
+        path: asv_bench/benchmarks.log
+      if: failure()
