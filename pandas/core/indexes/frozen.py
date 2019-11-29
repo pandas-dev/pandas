@@ -63,13 +63,13 @@ class FrozenList(PandasObject, list):
 
     def __getitem__(self, n):
         if isinstance(n, slice):
-            return self.__class__(super().__getitem__(n))
+            return type(self)(super().__getitem__(n))
         return super().__getitem__(n)
 
     def __radd__(self, other):
         if isinstance(other, tuple):
             other = list(other)
-        return self.__class__(other + list(self))
+        return type(self)(other + list(self))
 
     def __eq__(self, other) -> bool:
         if isinstance(other, (tuple, FrozenList)):
@@ -79,12 +79,12 @@ class FrozenList(PandasObject, list):
     __req__ = __eq__
 
     def __mul__(self, other):
-        return self.__class__(super().__mul__(other))
+        return type(self)(super().__mul__(other))
 
     __imul__ = __mul__
 
     def __reduce__(self):
-        return self.__class__, (list(self),)
+        return type(self), (list(self),)
 
     def __hash__(self):
         return hash(tuple(self))
@@ -93,7 +93,7 @@ class FrozenList(PandasObject, list):
         """This method will not function because object is immutable."""
         raise TypeError(
             "'{cls}' does not support mutable operations.".format(
-                cls=self.__class__.__name__
+                cls=type(self).__name__
             )
         )
 
@@ -101,7 +101,7 @@ class FrozenList(PandasObject, list):
         return pprint_thing(self, quote_strings=True, escape_chars=("\t", "\r", "\n"))
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}({str(self)})"
+        return f"{type(self).__name__}({str(self)})"
 
     __setitem__ = __setslice__ = __delitem__ = __delslice__ = _disabled
     pop = append = extend = remove = sort = insert = _disabled

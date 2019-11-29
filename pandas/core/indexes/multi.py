@@ -1245,9 +1245,7 @@ class MultiIndex(Index):
                 # All items in 'names' need to be hashable:
                 if not is_hashable(name):
                     raise TypeError(
-                        "{}.name must be a hashable type".format(
-                            self.__class__.__name__
-                        )
+                        "{}.name must be a hashable type".format(type(self).__name__)
                     )
             self._names[lev] = name
 
@@ -1911,7 +1909,7 @@ class MultiIndex(Index):
             sortorder=self.sortorder,
             names=list(self.names),
         )
-        return ibase._new_Index, (self.__class__, d), None
+        return ibase._new_Index, (type(self), d), None
 
     def __setstate__(self, state):
         """Necessary for making this object picklable"""
@@ -3264,7 +3262,7 @@ class MultiIndex(Index):
         elif not is_object_dtype(dtype):
             msg = (
                 "Setting {cls} dtype to anything other than object is not supported"
-            ).format(cls=self.__class__)
+            ).format(cls=type(self))
             raise TypeError(msg)
         elif copy is True:
             return self._shallow_copy()
