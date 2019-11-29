@@ -402,10 +402,14 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 **Other removals**
 
 - Floordiv of integer-dtyped array by :class:`Timedelta` now raises ``TypeError`` (:issue:`21036`)
+- :func:`pandas.api.types.infer_dtype` argument ``skipna`` defaults to ``True`` instead of ``False`` (:issue:`24050`)
 - Removed the previously deprecated :meth:`Index.summary` (:issue:`18217`)
+- Removed the previously deprecated "fastpath" keyword from the :class:`Index` constructor (:issue:`23110`)
 - Removed the previously deprecated :meth:`Series.get_value`, :meth:`Series.set_value`, :meth:`DataFrame.get_value`, :meth:`DataFrame.set_value` (:issue:`17739`)
 - Changed the the default value of `inplace` in :meth:`DataFrame.set_index` and :meth:`Series.set_axis`. It now defaults to False (:issue:`27600`)
+- Removed the previously deprecated :attr:`Series.cat.categorical`, :attr:`Series.cat.index`, :attr:`Series.cat.name` (:issue:`24751`)
 - Removed support for nested renaming in :meth:`DataFrame.aggregate`, :meth:`Series.aggregate`, :meth:`DataFrameGroupBy.aggregate`, :meth:`SeriesGroupBy.aggregate`, :meth:`Rolling.aggregate` (:issue:`18529`)
+- Passing ``datetime64`` data to :class:`TimedeltaIndex` or ``timedelta64`` data to ``DatetimeIndex`` now raises ``TypeError`` (:issue:`23539`, :issue:`23937`)
 - A tuple passed to :meth:`DataFrame.groupby` is now exclusively treated as a single key (:issue:`18314`)
 - Removed :meth:`Series.from_array` (:issue:`18258`)
 - Removed :meth:`DataFrame.from_items` (:issue:`18458`)
@@ -439,6 +443,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - Removed the previously deprecated :meth:`Series.valid`; use :meth:`Series.dropna` instead (:issue:`18800`)
 - Removed the previously properties :attr:`DataFrame.is_copy`, :attr:`Series.is_copy` (:issue:`18812`)
 - Removed the previously deprecated :meth:`DataFrame.get_ftype_counts`, :meth:`Series.get_ftype_counts` (:issue:`18243`)
+- Removed the previously deprecated :meth:`DataFrame.ftypes`, :meth:`Series.ftypes`, :meth:`Series.ftype` (:issue:`26744`)
 - Removed the previously deprecated :meth:`Index.get_duplicated`, use ``idx[idx.duplicated()].unique()`` instead (:issue:`20239`)
 - Removed the previously deprecated :meth:`Series.clip_upper`, :meth:`Series.clip_lower`, :meth:`DataFrame.clip_upper`, :meth:`DataFrame.clip_lower` (:issue:`24203`)
 - Removed the ability to alter :attr:`DatetimeIndex.freq`, :attr:`TimedeltaIndex.freq`, or :attr:`PeriodIndex.freq` (:issue:`20772`)
@@ -452,6 +457,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - Removed previously deprecated keyword "n" from :meth:`DatetimeIndex.shift`, :meth:`TimedeltaIndex.shift`, :meth:`PeriodIndex.shift`, use "periods" instead (:issue:`22458`)
 - Changed the default value for the `raw` argument in :func:`Series.rolling().apply() <pandas.core.window.Rolling.apply>`, :func:`DataFrame.rolling().apply() <pandas.core.window.Rolling.apply>`,
 - :func:`Series.expanding().apply() <pandas.core.window.Expanding.apply>`, and :func:`DataFrame.expanding().apply() <pandas.core.window.Expanding.apply>` to ``False`` (:issue:`20584`)
+- Removed previously deprecated :attr:`Timestamp.weekday_name`, :attr:`DatetimeIndex.weekday_name`, and :attr:`Series.dt.weekday_name` (:issue:`18164`)
 -
 
 .. _whatsnew_1000.performance:
@@ -533,7 +539,8 @@ Numeric
 - Improved error message when using `frac` > 1 and `replace` = False (:issue:`27451`)
 - Bug in numeric indexes resulted in it being possible to instantiate an :class:`Int64Index`, :class:`UInt64Index`, or :class:`Float64Index` with an invalid dtype (e.g. datetime-like) (:issue:`29539`)
 - Bug in :class:`UInt64Index` precision loss while constructing from a list with values in the ``np.uint64`` range (:issue:`29526`)
--
+- Bug in :class:`NumericIndex` construction that caused indexing to fail when integers in the ``np.uint64`` range were used (:issue:`28023`)
+- Bug in :class:`NumericIndex` construction that caused :class:`UInt64Index` to be casted to :class:`Float64Index` when integers in the ``np.uint64`` range were used to index a :class:`DataFrame` (:issue:`28279`)
 
 Conversion
 ^^^^^^^^^^
