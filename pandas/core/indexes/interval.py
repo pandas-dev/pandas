@@ -483,7 +483,7 @@ class IntervalIndex(IntervalMixin, Index):
     def __reduce__(self):
         d = dict(left=self.left, right=self.right)
         d.update(self._get_attributes_dict())
-        return _new_IntervalIndex, (self.__class__, d), None
+        return _new_IntervalIndex, (type(self), d), None
 
     @Appender(_index_shared_docs["copy"])
     def copy(self, deep=False, name=None):
@@ -498,7 +498,7 @@ class IntervalIndex(IntervalMixin, Index):
 
     @Appender(_index_shared_docs["astype"])
     def astype(self, dtype, copy=True):
-        with rewrite_exception("IntervalArray", self.__class__.__name__):
+        with rewrite_exception("IntervalArray", type(self).__name__):
             new_values = self.values.astype(dtype, copy=copy)
         if is_interval_dtype(new_values):
             return self._shallow_copy(new_values.left, new_values.right)
@@ -1191,7 +1191,7 @@ class IntervalIndex(IntervalMixin, Index):
         return attrs
 
     def _format_space(self):
-        space = " " * (len(self.__class__.__name__) + 1)
+        space = " " * (len(type(self).__name__) + 1)
         return "\n{space}".format(space=space)
 
     # --------------------------------------------------------------------
