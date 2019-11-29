@@ -1,7 +1,7 @@
 """Sparse Dtype"""
 
 import re
-from typing import Any
+from typing import Any, Tuple
 
 import numpy as np
 
@@ -90,7 +90,7 @@ class SparseDtype(ExtensionDtype):
         # __eq__, so we explicitly do it here.
         return super().__hash__()
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         # We have to override __eq__ to handle NA values in _metadata.
         # The base class does simple == checks, which fail for NA.
         if isinstance(other, str):
@@ -223,7 +223,7 @@ class SparseDtype(ExtensionDtype):
             raise TypeError(msg)
 
     @staticmethod
-    def _parse_subtype(dtype):
+    def _parse_subtype(dtype: str) -> Tuple[str, bool]:
         """
         Parse a string to get the subtype
 
@@ -249,7 +249,7 @@ class SparseDtype(ExtensionDtype):
         has_fill_value = False
         if m:
             subtype = m.groupdict()["subtype"]
-            has_fill_value = m.groupdict()["fill_value"] or has_fill_value
+            has_fill_value = bool(m.groupdict()["fill_value"])
         elif dtype == "Sparse":
             subtype = "float64"
         else:

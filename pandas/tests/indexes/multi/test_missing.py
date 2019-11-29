@@ -42,9 +42,9 @@ def test_fillna(idx):
                 values[1] = np.nan
 
             if isinstance(index, PeriodIndex):
-                idx = index.__class__(values, freq=index.freq)
+                idx = type(index)(values, freq=index.freq)
             else:
-                idx = index.__class__(values)
+                idx = type(index)(values)
 
             expected = np.array([False] * len(idx), dtype=bool)
             expected[1] = True
@@ -115,7 +115,7 @@ def test_hasnans_isnans(idx):
     values = index.values
     values[1] = np.nan
 
-    index = idx.__class__(values)
+    index = type(idx)(values)
 
     expected = np.array([False] * len(index), dtype=bool)
     expected[1] = True
