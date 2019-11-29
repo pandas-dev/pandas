@@ -96,7 +96,7 @@ class BaseDtypeTests(BaseExtensionTests):
         assert dtype != "anonther_type"
 
     def test_construct_from_string(self, dtype):
-        dtype_instance = dtype.__class__.construct_from_string(dtype.name)
-        assert isinstance(dtype_instance, dtype.__class__)
+        dtype_instance = type(dtype).construct_from_string(dtype.name)
+        assert isinstance(dtype_instance, type(dtype))
         with pytest.raises(TypeError):
-            dtype.__class__.construct_from_string("another_type")
+            type(dtype).construct_from_string("another_type")

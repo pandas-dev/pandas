@@ -3692,7 +3692,7 @@ class Table(Fixed):
                 # the non_index_axes info
                 info = _get_info(self.info, i)
                 info["names"] = list(a.names)
-                info["type"] = a.__class__.__name__
+                info["type"] = type(a).__name__
 
                 self.non_index_axes.append((i, append_axis))
 
