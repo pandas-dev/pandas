@@ -804,9 +804,13 @@ class TestTimedeltas:
     def test_resolution_deprecated(self):
         # GH#21344
         td = Timedelta(days=4, hours=3)
-        with tm.assert_produces_warning(FutureWarning) as w:
-            td.resolution
-        assert "Use Timedelta.resolution_string instead" in str(w[0].message)
+        result = td.resolution
+        assert result == Timedelta(nanoseconds=1)
+
+        # Check that the attribute is available on the class, mirroring
+        #  the stdlib timedelta behavior
+        result = Timedelta.resolution
+        assert result == Timedelta(nanoseconds=1)
 
 
 @pytest.mark.parametrize(

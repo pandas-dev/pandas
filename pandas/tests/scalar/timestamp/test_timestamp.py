@@ -192,6 +192,10 @@ class TestTimestampProperties:
         dt = Timestamp("2100-01-01 00:00:00")
         assert dt.resolution == Timedelta(nanoseconds=1)
 
+        # Check that the attribute is available on the class, mirroring
+        #  the stdlib datetime behavior
+        assert Timestamp.resolution == Timedelta(nanoseconds=1)
+
 
 class TestTimestampConstructors:
     def test_constructor(self):
