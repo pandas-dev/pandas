@@ -787,7 +787,7 @@ def assert_is_valid_plot_return_object(objs):
     else:
         msg = (
             "objs is neither an ndarray of Artist instances nor a single "
-            'Artist instance, tuple, or dict, "objs" is a '
+            "ArtistArtist instance, tuple, or dict, 'objs' is a "
             f"{repr(type(objs).__name__)}"
         )
         assert isinstance(objs, (plt.Artist, tuple, dict)), msg
