@@ -38,7 +38,6 @@ Attributes
    Series.hasnans
    Series.empty
    Series.dtypes
-   Series.data
    Series.name
    Series.put
 
