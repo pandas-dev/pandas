@@ -273,9 +273,7 @@ def test_more_flexible_frame_multi_function(df):
 
     # be careful
     result = grouped.aggregate(dict([["C", np.mean], ["D", [np.mean, np.std]]]))
-    expected = grouped.aggregate(
-        dict([["C", np.mean], ["D", [np.mean, np.std]]])
-    )
+    expected = grouped.aggregate(dict([["C", np.mean], ["D", [np.mean, np.std]]]))
     tm.assert_frame_equal(result, expected)
 
     def foo(x):
@@ -287,9 +285,7 @@ def test_more_flexible_frame_multi_function(df):
     # this uses column selection & renaming
     msg = r"nested renamer is not supported"
     with pytest.raises(SpecificationError, match=msg):
-        d = dict(
-            [["C", np.mean], ["D", dict([["foo", np.mean], ["bar", np.std]])]]
-        )
+        d = dict([["C", np.mean], ["D", dict([["foo", np.mean], ["bar", np.std]])]])
         grouped.aggregate(d)
 
     # But without renaming, these functions are OK
@@ -302,26 +298,20 @@ def test_multi_function_flexible_mix(df):
     grouped = df.groupby("A")
 
     # Expected
-    d = dict(
-        [["C", dict([["foo", "mean"], ["bar", "std"]])], ["D", {"sum": "sum"}]]
-    )
+    d = dict([["C", dict([["foo", "mean"], ["bar", "std"]])], ["D", {"sum": "sum"}]])
     # this uses column selection & renaming
     msg = r"nested renamer is not supported"
     with pytest.raises(SpecificationError, match=msg):
         grouped.aggregate(d)
 
     # Test 1
-    d = dict(
-        [["C", dict([["foo", "mean"], ["bar", "std"]])], ["D", "sum"]]
-    )
+    d = dict([["C", dict([["foo", "mean"], ["bar", "std"]])], ["D", "sum"]])
     # this uses column selection & renaming
     with pytest.raises(SpecificationError, match=msg):
         grouped.aggregate(d)
 
     # Test 2
-    d = dict(
-        [["C", dict([["foo", "mean"], ["bar", "std"]])], ["D", ["sum"]]]
-    )
+    d = dict([["C", dict([["foo", "mean"], ["bar", "std"]])], ["D", ["sum"]]])
     # this uses column selection & renaming
     with pytest.raises(SpecificationError, match=msg):
         grouped.aggregate(d)
@@ -641,9 +631,7 @@ class TestLambdaMangling:
         assert func["A"][0](0, 2, b=3) == (0, 2, 3)
 
     def test_maybe_mangle_lambdas_named(self):
-        func = dict(
-            [("C", np.mean), ("D", dict([("foo", np.mean), ("bar", np.mean)]))]
-        )
+        func = dict([("C", np.mean), ("D", dict([("foo", np.mean), ("bar", np.mean)]))])
         result = _maybe_mangle_lambdas(func)
         assert result == func
 
