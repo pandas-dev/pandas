@@ -420,7 +420,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         if self.categories is None:
             data = "None, "
         else:
-            data = self.categories._format_data(name=self.__class__.__name__)
+            data = self.categories._format_data(name=type(self).__name__)
         return tpl.format(data=data, ordered=self._ordered)
 
     @staticmethod
@@ -765,7 +765,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         # TODO: update this.
         return hash(str(self))
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         if isinstance(other, str):
             return other == self.name
 
@@ -904,7 +904,7 @@ class PeriodDtype(PandasExtensionDtype):
         # make myself hashable
         return hash(str(self))
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         if isinstance(other, str):
             return other == self.name or other == self.name.title()
 
@@ -1077,7 +1077,7 @@ class IntervalDtype(PandasExtensionDtype):
         # make myself hashable
         return hash(str(self))
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         if isinstance(other, str):
             return other.lower() in (self.name.lower(), str(self).lower())
         elif not isinstance(other, IntervalDtype):
