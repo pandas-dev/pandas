@@ -3544,13 +3544,6 @@ class DataFrame(NDFrame):
         -------
         numpy.ndarray
 
-        Notes
-        -----
-        Akin to::
-
-            result = [df.get_value(row, col)
-                      for row, col in zip(row_labels, col_labels)]
-
         Examples
         --------
         values : ndarray
@@ -4763,24 +4756,12 @@ class DataFrame(NDFrame):
         kind="quicksort",
         na_position="last",
         sort_remaining=True,
-        by=None,
     ):
 
         # TODO: this can be combined with Series.sort_index impl as
         # almost identical
 
         inplace = validate_bool_kwarg(inplace, "inplace")
-        # 10726
-        if by is not None:
-            warnings.warn(
-                "by argument to sort_index is deprecated, "
-                "please use .sort_values(by=...)",
-                FutureWarning,
-                stacklevel=2,
-            )
-            if level is not None:
-                raise ValueError("unable to simultaneously sort by and level")
-            return self.sort_values(by, axis=axis, ascending=ascending, inplace=inplace)
 
         axis = self._get_axis_number(axis)
         labels = self._get_axis(axis)
