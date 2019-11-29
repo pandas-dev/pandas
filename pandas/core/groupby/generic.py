@@ -473,7 +473,7 @@ class SeriesGroupBy(GroupBy):
         """
         Transform with a non-str `func`.
         """
-        klass = self._selected_obj.__class__
+        klass = type(self._selected_obj)
 
         results = []
         for name, group in self:
