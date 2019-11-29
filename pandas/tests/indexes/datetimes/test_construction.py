@@ -485,16 +485,6 @@ class TestDatetimeIndex:
         expected = DatetimeIndex(["2013-10-07", "2013-10-08", "2013-10-09"], freq="B")
         tm.assert_index_equal(result, expected)
 
-    def test_verify_integrity_deprecated(self):
-        # GH#23919
-        with tm.assert_produces_warning(FutureWarning):
-            DatetimeIndex(["1/1/2000"], verify_integrity=False)
-
-    def test_range_kwargs_deprecated(self):
-        # GH#23919
-        with tm.assert_produces_warning(FutureWarning):
-            DatetimeIndex(start="1/1/2000", end="1/10/2000", freq="D")
-
     def test_integer_values_and_tz_deprecated(self):
         # GH-24559
         values = np.array([946684800000000000])
@@ -516,10 +506,6 @@ class TestDatetimeIndex:
         msg = "periods must be a number, got foo"
         with pytest.raises(TypeError, match=msg):
             date_range(start="1/1/2000", periods="foo", freq="D")
-
-        with pytest.raises(ValueError):
-            with tm.assert_produces_warning(FutureWarning):
-                DatetimeIndex(start="1/1/2000", end="1/10/2000")
 
         with pytest.raises(TypeError):
             DatetimeIndex("1/1/2000")

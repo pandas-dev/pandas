@@ -35,10 +35,7 @@ class TestPeriodIndex:
     def test_constructor_use_start_freq(self):
         # GH #1118
         p = Period("4/2/2012", freq="B")
-        with tm.assert_produces_warning(FutureWarning):
-            index = PeriodIndex(start=p, periods=10)
         expected = period_range(start="4/2/2012", periods=10, freq="B")
-        tm.assert_index_equal(index, expected)
 
         index = period_range(start=p, periods=10)
         tm.assert_index_equal(index, expected)
@@ -67,12 +64,6 @@ class TestPeriodIndex:
             PeriodIndex(year=years, month=months, freq="M")
         with pytest.raises(ValueError, match=msg):
             PeriodIndex(year=years, month=months, freq="2M")
-
-        msg = "Can either instantiate from fields or endpoints, but not both"
-        with pytest.raises(ValueError, match=msg):
-            PeriodIndex(
-                year=years, month=months, freq="M", start=Period("2007-01", freq="M")
-            )
 
         years = [2007, 2007, 2007]
         months = [1, 2, 3]
@@ -115,26 +106,6 @@ class TestPeriodIndex:
             PeriodIndex(year=range(2000, 2004), quarter=list(range(4)), freq="Q-DEC")
 
     def test_constructor_corner(self):
-        msg = "Not enough parameters to construct Period range"
-        with pytest.raises(ValueError, match=msg):
-            PeriodIndex(periods=10, freq="A")
-
-        start = Period("2007", freq="A-JUN")
-        end = Period("2010", freq="A-DEC")
-
-        msg = "start and end must have same freq"
-        with pytest.raises(ValueError, match=msg):
-            PeriodIndex(start=start, end=end)
-
-        msg = (
-            "Of the three parameters: start, end, and periods, exactly two"
-            " must be specified"
-        )
-        with pytest.raises(ValueError, match=msg):
-            PeriodIndex(start=start)
-        with pytest.raises(ValueError, match=msg):
-            PeriodIndex(end=end)
-
         result = period_range("2007-01", periods=10.5, freq="M")
         exp = period_range("2007-01", periods=10, freq="M")
         tm.assert_index_equal(result, exp)
@@ -368,27 +339,20 @@ class TestPeriodIndex:
         p = PeriodIndex(lops)
         tm.assert_index_equal(p, idx)
 
-    @pytest.mark.parametrize(
-        "func, warning", [(PeriodIndex, FutureWarning), (period_range, None)]
-    )
-    def test_constructor_freq_mult(self, func, warning):
+    def test_constructor_freq_mult(self):
         # GH #7811
-        with tm.assert_produces_warning(warning):
-            # must be the same, but for sure...
-            pidx = func(start="2014-01", freq="2M", periods=4)
+        pidx = period_range(start="2014-01", freq="2M", periods=4)
         expected = PeriodIndex(["2014-01", "2014-03", "2014-05", "2014-07"], freq="2M")
         tm.assert_index_equal(pidx, expected)
 
-        with tm.assert_produces_warning(warning):
-            pidx = func(start="2014-01-02", end="2014-01-15", freq="3D")
+        pidx = period_range(start="2014-01-02", end="2014-01-15", freq="3D")
         expected = PeriodIndex(
             ["2014-01-02", "2014-01-05", "2014-01-08", "2014-01-11", "2014-01-14"],
             freq="3D",
         )
         tm.assert_index_equal(pidx, expected)
 
-        with tm.assert_produces_warning(warning):
-            pidx = func(end="2014-01-01 17:00", freq="4H", periods=3)
+        pidx = period_range(end="2014-01-01 17:00", freq="4H", periods=3)
         expected = PeriodIndex(
             ["2014-01-01 09:00", "2014-01-01 13:00", "2014-01-01 17:00"], freq="4H"
         )
@@ -424,18 +388,6 @@ class TestPeriodIndex:
             pidx = period_range(start="2016-01-01", periods=2, freq=freq)
             expected = PeriodIndex(["2016-01-01 00:00", "2016-01-02 01:00"], freq="25H")
             tm.assert_index_equal(pidx, expected)
-
-    def test_constructor_range_based_deprecated(self):
-        with tm.assert_produces_warning(FutureWarning):
-            pi = PeriodIndex(freq="A", start="1/1/2001", end="12/1/2009")
-        assert len(pi) == 9
-
-    def test_constructor_range_based_deprecated_different_freq(self):
-        with tm.assert_produces_warning(FutureWarning) as m:
-            PeriodIndex(start="2000", periods=2)
-
-        (warning,) = m
-        assert 'freq="A-DEC"' in str(warning.message)
 
     def test_constructor(self):
         pi = period_range(freq="A", start="1/1/2001", end="12/1/2009")
@@ -506,21 +458,6 @@ class TestPeriodIndex:
         vals = np.array(vals)
         with pytest.raises(IncompatibleFrequency, match=msg):
             PeriodIndex(vals)
-
-    def test_constructor_error(self):
-        start = Period("02-Apr-2005", "B")
-        end_intv = Period("2006-12-31", ("w", 1))
-
-        msg = "start and end must have same freq"
-        with pytest.raises(ValueError, match=msg):
-            PeriodIndex(start=start, end=end_intv)
-
-        msg = (
-            "Of the three parameters: start, end, and periods, "
-            "exactly two must be specified"
-        )
-        with pytest.raises(ValueError, match=msg):
-            PeriodIndex(start=start)
 
     @pytest.mark.parametrize(
         "freq", ["M", "Q", "A", "D", "B", "T", "S", "L", "U", "N", "H"]
