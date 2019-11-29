@@ -32,7 +32,7 @@ class _DeprecatedModule:
         self.moved = moved
 
         # For introspection purposes.
-        self.self_dir = frozenset(dir(self.__class__))
+        self.self_dir = frozenset(dir(type(self)))
 
     def __dir__(self):
         deprmodule = self._import_deprmod()

@@ -102,7 +102,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
     def __call__(self, axis=None):
         # we need to return a copy of ourselves
-        new_self = self.__class__(self.name, self.obj)
+        new_self = type(self)(self.name, self.obj)
 
         if axis is not None:
             axis = self.obj._get_axis_number(axis)
@@ -223,7 +223,9 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         raise AbstractMethodError(self)
 
     def _has_valid_tuple(self, key: Tuple):
-        """ check the key for valid keys across my indexer """
+        """
+        Check the key for valid keys across my indexer.
+        """
         for i, k in enumerate(key):
             if i >= self.ndim:
                 raise IndexingError("Too many indexers")
@@ -1167,18 +1169,12 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             # non-missing values), but a bit later in the
             # code, so we want to avoid warning & then
             # just raising
-
-            _missing_key_warning = textwrap.dedent(
-                """
-            Passing list-likes to .loc or [] with any missing label will raise
-            KeyError in the future, you can use .reindex() as an alternative.
-
-            See the documentation here:
-            https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#deprecate-loc-reindex-listlike"""  # noqa: E501
-            )
-
             if not (ax.is_categorical() or ax.is_interval()):
-                warnings.warn(_missing_key_warning, FutureWarning, stacklevel=6)
+                raise KeyError(
+                    "Passing list-likes to .loc or [] with any missing labels "
+                    "is no longer supported, see "
+                    "https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#deprecate-loc-reindex-listlike"  # noqa:E501
+                )
 
     def _convert_to_indexer(self, obj, axis: int, raise_missing: bool = False):
         """

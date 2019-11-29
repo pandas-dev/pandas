@@ -179,17 +179,15 @@ class TestPartialSetting:
 
         # loc equiv to .reindex
         expected = Series([np.nan, 0.2, np.nan], index=[3, 2, 3])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with pytest.raises(KeyError, match="with any missing labels"):
             result = ser.loc[[3, 2, 3]]
-        tm.assert_series_equal(result, expected, check_index_type=True)
 
         result = ser.reindex([3, 2, 3])
         tm.assert_series_equal(result, expected, check_index_type=True)
 
         expected = Series([np.nan, 0.2, np.nan, np.nan], index=[3, 2, 3, "x"])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with pytest.raises(KeyError, match="with any missing labels"):
             result = ser.loc[[3, 2, 3, "x"]]
-        tm.assert_series_equal(result, expected, check_index_type=True)
 
         result = ser.reindex([3, 2, 3, "x"])
         tm.assert_series_equal(result, expected, check_index_type=True)
@@ -199,9 +197,8 @@ class TestPartialSetting:
         tm.assert_series_equal(result, expected, check_index_type=True)
 
         expected = Series([0.2, 0.2, np.nan, 0.1], index=[2, 2, "x", 1])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with pytest.raises(KeyError, match="with any missing labels"):
             result = ser.loc[[2, 2, "x", 1]]
-        tm.assert_series_equal(result, expected, check_index_type=True)
 
         result = ser.reindex([2, 2, "x", 1])
         tm.assert_series_equal(result, expected, check_index_type=True)
@@ -215,54 +212,48 @@ class TestPartialSetting:
             ser.loc[[3, 3, 3]]
 
         expected = Series([0.2, 0.2, np.nan], index=[2, 2, 3])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = ser.loc[[2, 2, 3]]
-        tm.assert_series_equal(result, expected, check_index_type=True)
+        with pytest.raises(KeyError, match="with any missing labels"):
+            ser.loc[[2, 2, 3]]
 
         result = ser.reindex([2, 2, 3])
         tm.assert_series_equal(result, expected, check_index_type=True)
 
         s = Series([0.1, 0.2, 0.3], index=[1, 2, 3])
         expected = Series([0.3, np.nan, np.nan], index=[3, 4, 4])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = s.loc[[3, 4, 4]]
-        tm.assert_series_equal(result, expected, check_index_type=True)
+        with pytest.raises(KeyError, match="with any missing labels"):
+            s.loc[[3, 4, 4]]
 
         result = s.reindex([3, 4, 4])
         tm.assert_series_equal(result, expected, check_index_type=True)
 
         s = Series([0.1, 0.2, 0.3, 0.4], index=[1, 2, 3, 4])
         expected = Series([np.nan, 0.3, 0.3], index=[5, 3, 3])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = s.loc[[5, 3, 3]]
-        tm.assert_series_equal(result, expected, check_index_type=True)
+        with pytest.raises(KeyError, match="with any missing labels"):
+            s.loc[[5, 3, 3]]
 
         result = s.reindex([5, 3, 3])
         tm.assert_series_equal(result, expected, check_index_type=True)
 
         s = Series([0.1, 0.2, 0.3, 0.4], index=[1, 2, 3, 4])
         expected = Series([np.nan, 0.4, 0.4], index=[5, 4, 4])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = s.loc[[5, 4, 4]]
-        tm.assert_series_equal(result, expected, check_index_type=True)
+        with pytest.raises(KeyError, match="with any missing labels"):
+            s.loc[[5, 4, 4]]
 
         result = s.reindex([5, 4, 4])
         tm.assert_series_equal(result, expected, check_index_type=True)
 
         s = Series([0.1, 0.2, 0.3, 0.4], index=[4, 5, 6, 7])
         expected = Series([0.4, np.nan, np.nan], index=[7, 2, 2])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = s.loc[[7, 2, 2]]
-        tm.assert_series_equal(result, expected, check_index_type=True)
+        with pytest.raises(KeyError, match="with any missing labels"):
+            s.loc[[7, 2, 2]]
 
         result = s.reindex([7, 2, 2])
         tm.assert_series_equal(result, expected, check_index_type=True)
 
         s = Series([0.1, 0.2, 0.3, 0.4], index=[1, 2, 3, 4])
         expected = Series([0.4, np.nan, np.nan], index=[4, 5, 5])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = s.loc[[4, 5, 5]]
-        tm.assert_series_equal(result, expected, check_index_type=True)
+        with pytest.raises(KeyError, match="with any missing labels"):
+            s.loc[[4, 5, 5]]
 
         result = s.reindex([4, 5, 5])
         tm.assert_series_equal(result, expected, check_index_type=True)
@@ -279,28 +270,19 @@ class TestPartialSetting:
         ser = Series([0.1, 0.2], index=idx, name="s")
 
         # loc
-        exp_idx = Index([3, 2, 3], dtype="int64", name="idx")
-        expected = Series([np.nan, 0.2, np.nan], index=exp_idx, name="s")
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = ser.loc[[3, 2, 3]]
-        tm.assert_series_equal(result, expected, check_index_type=True)
+        with pytest.raises(KeyError, match="with any missing labels"):
+            ser.loc[[3, 2, 3]]
 
-        exp_idx = Index([3, 2, 3, "x"], dtype="object", name="idx")
-        expected = Series([np.nan, 0.2, np.nan, np.nan], index=exp_idx, name="s")
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = ser.loc[[3, 2, 3, "x"]]
-        tm.assert_series_equal(result, expected, check_index_type=True)
+        with pytest.raises(KeyError, match="with any missing labels"):
+            ser.loc[[3, 2, 3, "x"]]
 
         exp_idx = Index([2, 2, 1], dtype="int64", name="idx")
         expected = Series([0.2, 0.2, 0.1], index=exp_idx, name="s")
         result = ser.loc[[2, 2, 1]]
         tm.assert_series_equal(result, expected, check_index_type=True)
 
-        exp_idx = Index([2, 2, "x", 1], dtype="object", name="idx")
-        expected = Series([0.2, 0.2, np.nan, 0.1], index=exp_idx, name="s")
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = ser.loc[[2, 2, "x", 1]]
-        tm.assert_series_equal(result, expected, check_index_type=True)
+        with pytest.raises(KeyError, match="with any missing labels"):
+            ser.loc[[2, 2, "x", 1]]
 
         # raises as nothing in in the index
         msg = (
@@ -310,46 +292,28 @@ class TestPartialSetting:
         with pytest.raises(KeyError, match=msg):
             ser.loc[[3, 3, 3]]
 
-        exp_idx = Index([2, 2, 3], dtype="int64", name="idx")
-        expected = Series([0.2, 0.2, np.nan], index=exp_idx, name="s")
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = ser.loc[[2, 2, 3]]
-        tm.assert_series_equal(result, expected, check_index_type=True)
+        with pytest.raises(KeyError, match="with any missing labels"):
+            ser.loc[[2, 2, 3]]
 
-        exp_idx = Index([3, 4, 4], dtype="int64", name="idx")
-        expected = Series([0.3, np.nan, np.nan], index=exp_idx, name="s")
         idx = Index([1, 2, 3], dtype="int64", name="idx")
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = Series([0.1, 0.2, 0.3], index=idx, name="s").loc[[3, 4, 4]]
-        tm.assert_series_equal(result, expected, check_index_type=True)
+        with pytest.raises(KeyError, match="with any missing labels"):
+            Series([0.1, 0.2, 0.3], index=idx, name="s").loc[[3, 4, 4]]
 
-        exp_idx = Index([5, 3, 3], dtype="int64", name="idx")
-        expected = Series([np.nan, 0.3, 0.3], index=exp_idx, name="s")
         idx = Index([1, 2, 3, 4], dtype="int64", name="idx")
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = Series([0.1, 0.2, 0.3, 0.4], index=idx, name="s").loc[[5, 3, 3]]
-        tm.assert_series_equal(result, expected, check_index_type=True)
+        with pytest.raises(KeyError, match="with any missing labels"):
+            Series([0.1, 0.2, 0.3, 0.4], index=idx, name="s").loc[[5, 3, 3]]
 
-        exp_idx = Index([5, 4, 4], dtype="int64", name="idx")
-        expected = Series([np.nan, 0.4, 0.4], index=exp_idx, name="s")
         idx = Index([1, 2, 3, 4], dtype="int64", name="idx")
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = Series([0.1, 0.2, 0.3, 0.4], index=idx, name="s").loc[[5, 4, 4]]
-        tm.assert_series_equal(result, expected, check_index_type=True)
+        with pytest.raises(KeyError, match="with any missing labels"):
+            Series([0.1, 0.2, 0.3, 0.4], index=idx, name="s").loc[[5, 4, 4]]
 
-        exp_idx = Index([7, 2, 2], dtype="int64", name="idx")
-        expected = Series([0.4, np.nan, np.nan], index=exp_idx, name="s")
         idx = Index([4, 5, 6, 7], dtype="int64", name="idx")
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = Series([0.1, 0.2, 0.3, 0.4], index=idx, name="s").loc[[7, 2, 2]]
-        tm.assert_series_equal(result, expected, check_index_type=True)
+        with pytest.raises(KeyError, match="with any missing labels"):
+            Series([0.1, 0.2, 0.3, 0.4], index=idx, name="s").loc[[7, 2, 2]]
 
-        exp_idx = Index([4, 5, 5], dtype="int64", name="idx")
-        expected = Series([0.4, np.nan, np.nan], index=exp_idx, name="s")
         idx = Index([1, 2, 3, 4], dtype="int64", name="idx")
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = Series([0.1, 0.2, 0.3, 0.4], index=idx, name="s").loc[[4, 5, 5]]
-        tm.assert_series_equal(result, expected, check_index_type=True)
+        with pytest.raises(KeyError, match="with any missing labels"):
+            Series([0.1, 0.2, 0.3, 0.4], index=idx, name="s").loc[[4, 5, 5]]
 
         # iloc
         exp_idx = Index([2, 2, 1, 1], dtype="int64", name="idx")

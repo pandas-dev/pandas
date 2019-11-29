@@ -206,13 +206,11 @@ class TestCategoricalIndexing:
         expected = pd.Series(Categorical(["a", "c", "c"], dtype=ser.dtype))
         tm.assert_series_equal(result, expected)
 
-    def test_where_warns(self):
+    def test_where_new_category_raises(self):
         ser = pd.Series(Categorical(["a", "b", "c"]))
-        with tm.assert_produces_warning(FutureWarning):
-            result = ser.where([True, False, True], "d")
-
-        expected = pd.Series(np.array(["a", "d", "c"], dtype="object"))
-        tm.assert_series_equal(result, expected)
+        msg = "Cannot setitem on a Categorical with a new category"
+        with pytest.raises(ValueError, match=msg):
+            ser.where([True, False, True], "d")
 
     def test_where_ordered_differs_rasies(self):
         ser = pd.Series(
@@ -221,11 +219,8 @@ class TestCategoricalIndexing:
         other = Categorical(
             ["b", "c", "a"], categories=["a", "c", "b", "d"], ordered=True
         )
-        with tm.assert_produces_warning(FutureWarning):
-            result = ser.where([True, False, True], other)
-
-        expected = pd.Series(np.array(["a", "c", "c"], dtype=object))
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(ValueError, match="without identical categories"):
+            ser.where([True, False, True], other)
 
 
 @pytest.mark.parametrize("index", [True, False])

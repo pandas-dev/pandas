@@ -744,17 +744,7 @@ timedelta}, default 'raise'
         """
         return bool(ccalendar.is_leapyear(self.year))
 
-    @property
-    def resolution(self):
-        """
-        Return resolution describing the smallest difference between two
-        times that can be represented by Timestamp object_state.
-        """
-        # GH#21336, GH#21365
-        return Timedelta(nanoseconds=1)
-
-    def tz_localize(self, tz, ambiguous='raise', nonexistent='raise',
-                    errors=None):
+    def tz_localize(self, tz, ambiguous='raise', nonexistent='raise'):
         """
         Convert naive Timestamp to local time zone, or remove
         timezone from tz-aware Timestamp.
@@ -797,18 +787,6 @@ default 'raise'
               nonexistent times.
 
             .. versionadded:: 0.24.0
-        errors : 'raise', 'coerce', default None
-            Determine how errors should be handled.
-
-            The behavior is as follows:
-
-            * 'raise' will raise a NonExistentTimeError if a timestamp is not
-              valid in the specified timezone (e.g. due to a transition from
-              or to DST time). Use ``nonexistent='raise'`` instead.
-            * 'coerce' will return NaT if the timestamp can not be converted
-              into the specified timezone. Use ``nonexistent='NaT'`` instead.
-
-            .. deprecated:: 0.24.0
 
         Returns
         -------
@@ -821,19 +799,6 @@ default 'raise'
         """
         if ambiguous == 'infer':
             raise ValueError('Cannot infer offset with only one time.')
-
-        if errors is not None:
-            warnings.warn("The errors argument is deprecated and will be "
-                          "removed in a future release. Use "
-                          "nonexistent='NaT' or nonexistent='raise' "
-                          "instead.", FutureWarning)
-            if errors == 'coerce':
-                nonexistent = 'NaT'
-            elif errors == 'raise':
-                nonexistent = 'raise'
-            else:
-                raise ValueError("The errors argument must be either 'coerce' "
-                                 "or 'raise'.")
 
         nonexistent_options = ('raise', 'NaT', 'shift_forward',
                                'shift_backward')
@@ -1062,3 +1027,4 @@ cdef int64_t _NS_LOWER_BOUND = -9223372036854775000
 # Resolution is in nanoseconds
 Timestamp.min = Timestamp(_NS_LOWER_BOUND)
 Timestamp.max = Timestamp(_NS_UPPER_BOUND)
+Timestamp.resolution = Timedelta(nanoseconds=1)  # GH#21336, GH#21365
