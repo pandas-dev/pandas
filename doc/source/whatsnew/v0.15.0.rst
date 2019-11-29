@@ -311,14 +311,15 @@ Timezone handling improvements
 - ``tz_localize(None)`` for tz-aware ``Timestamp`` and ``DatetimeIndex`` now removes timezone holding local time,
   previously this resulted in ``Exception`` or ``TypeError`` (:issue:`7812`)
 
-  .. code-block:: ipython
+  .. ipython:: python
+     :okwarning:
 
      ts = pd.Timestamp('2014-08-01 09:00', tz='US/Eastern')
      ts
      ts.tz_localize(None)
 
-     didx = pd.DatetimeIndex(start='2014-08-01 09:00', freq='H',
-                             periods=10, tz='US/Eastern')
+     didx = pd.date_range(start='2014-08-01 09:00', freq='H',
+                          periods=10, tz='US/Eastern')
      didx
      didx.tz_localize(None)
 
