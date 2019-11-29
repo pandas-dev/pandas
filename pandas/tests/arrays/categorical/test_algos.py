@@ -89,10 +89,12 @@ def test_isin_empty(empty):
 class TestTake:
     # https://github.com/pandas-dev/pandas/issues/20664
 
-    def test_take_warns(self):
+    def test_take_default_allow_fill(self):
         cat = pd.Categorical(["a", "b"])
-        with tm.assert_produces_warning(FutureWarning):
-            cat.take([0, -1])
+        with tm.assert_produces_warning(None):
+            result = cat.take([0, -1])
+
+        assert result.equals(cat)
 
     def test_take_positive_no_warning(self):
         cat = pd.Categorical(["a", "b"])
@@ -158,3 +160,8 @@ class TestTake:
         xpr = r"'fill_value' \('d'\) is not in this Categorical's categories."
         with pytest.raises(TypeError, match=xpr):
             cat.take([0, 1, -1], fill_value="d", allow_fill=True)
+
+    def test_take_nd_deprecated(self):
+        cat = pd.Categorical(["a", "b", "c"])
+        with tm.assert_produces_warning(FutureWarning):
+            cat.take_nd([0, 1])
