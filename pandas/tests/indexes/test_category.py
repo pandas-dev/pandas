@@ -789,7 +789,7 @@ class TestCategoricalIndex(Base):
         #
         # Must be tested separately from other indexes because
         # self.values is not an ndarray.
-        # GH#????? Index.base has been removed
+        # GH#29918 Index.base has been removed
         # FIXME: is this test still meaningful?
         _base = lambda ar: ar if getattr(ar, "base", None) is None else ar.base
 

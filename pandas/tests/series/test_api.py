@@ -433,10 +433,11 @@ class TestSeriesMisc(SharedWithSparse):
         tm.assert_series_equal(result, expected)
 
         # .item()
-        s = Series([1])
-        result = s.item()
-        assert result == 1
-        assert s.item() == s.iloc[0]
+        with tm.assert_produces_warning(FutureWarning):
+            s = Series([1])
+            result = s.item()
+            assert result == 1
+            assert s.item() == s.iloc[0]
 
         # using an ndarray like function
         s = Series(np.random.randn(10))

@@ -5,6 +5,7 @@ import builtins
 from collections import OrderedDict
 import textwrap
 from typing import Dict, FrozenSet, List, Optional
+import warnings
 
 import numpy as np
 
@@ -627,7 +628,7 @@ class IndexOpsMixin:
     # ndarray compatibility
     __array_priority__ = 1000
     _deprecations: FrozenSet[str] = frozenset(
-        ["tolist"]  # tolist is not deprecated, just suppressed in the __dir__
+        ["tolist", "item"]  # tolist is not deprecated, just suppressed in the __dir__
     )
 
     def transpose(self, *args, **kwargs):
@@ -684,14 +685,19 @@ class IndexOpsMixin:
         """
         Return the first element of the underlying data as a python scalar.
 
+        .. deprecated:: 0.25.0
+
         Returns
         -------
         scalar
             The first element of %(klass)s.
         """
-        if len(self) == 1:
-            return next(iter(self))
-        raise ValueError("can only convert an array of size 1 to a Python scalar")
+        warnings.warn(
+            "`item` has been deprecated and will be removed in a future version",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.values.item()
 
     @property
     def nbytes(self):

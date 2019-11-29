@@ -33,13 +33,9 @@ Attributes
    Series.nbytes
    Series.ndim
    Series.size
-   Series.strides
-   Series.itemsize
-   Series.base
    Series.T
    Series.memory_usage
    Series.hasnans
-   Series.flags
    Series.empty
    Series.dtypes
    Series.data
