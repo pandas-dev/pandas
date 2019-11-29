@@ -955,7 +955,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         dtype = tz_to_dtype(tz)
         return self._simple_new(self.asi8, dtype=dtype, freq=self.freq)
 
-    def tz_localize(self, tz, ambiguous="raise", nonexistent="raise", errors=None):
+    def tz_localize(self, tz, ambiguous="raise", nonexistent="raise"):
         """
         Localize tz-naive Datetime Array/Index to tz-aware
         Datetime Array/Index.
@@ -1003,17 +1003,6 @@ default 'raise'
               nonexistent times.
 
             .. versionadded:: 0.24.0
-
-        errors : {'raise', 'coerce'}, default None
-            The method to handle errors:
-
-            - 'raise' will raise a NonExistentTimeError if a timestamp is not
-              valid in the specified time zone (e.g. due to a transition from
-              or to DST time). Use ``nonexistent='raise'`` instead.
-            - 'coerce' will return NaT if the timestamp can not be converted
-              to the specified time zone. Use ``nonexistent='NaT'`` instead.
-
-            .. deprecated:: 0.24.0
 
         Returns
         -------
@@ -1105,23 +1094,6 @@ default 'raise'
         1   2015-03-29 03:30:00+02:00
         dtype: datetime64[ns, 'Europe/Warsaw']
         """
-        if errors is not None:
-            warnings.warn(
-                "The errors argument is deprecated and will be "
-                "removed in a future release. Use "
-                "nonexistent='NaT' or nonexistent='raise' "
-                "instead.",
-                FutureWarning,
-            )
-            if errors == "coerce":
-                nonexistent = "NaT"
-            elif errors == "raise":
-                nonexistent = "raise"
-            else:
-                raise ValueError(
-                    "The errors argument must be either 'coerce' or 'raise'."
-                )
-
         nonexistent_options = ("raise", "NaT", "shift_forward", "shift_backward")
         if nonexistent not in nonexistent_options and not isinstance(
             nonexistent, timedelta
