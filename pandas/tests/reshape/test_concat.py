@@ -949,7 +949,7 @@ class TestAppend:
 
     all_indexes = indexes_can_append + indexes_cannot_append_with_other
 
-    @pytest.mark.parametrize("index", all_indexes, ids=lambda x: x.__class__.__name__)
+    @pytest.mark.parametrize("index", all_indexes, ids=lambda x: type(x).__name__)
     def test_append_same_columns_type(self, index):
         # GH18359
 
@@ -979,7 +979,7 @@ class TestAppend:
     @pytest.mark.parametrize(
         "df_columns, series_index",
         combinations(indexes_can_append, r=2),
-        ids=lambda x: x.__class__.__name__,
+        ids=lambda x: type(x).__name__,
     )
     def test_append_different_columns_types(self, df_columns, series_index):
         # GH18359
@@ -1004,12 +1004,12 @@ class TestAppend:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "index_can_append", indexes_can_append, ids=lambda x: x.__class__.__name__
+        "index_can_append", indexes_can_append, ids=lambda x: type(x).__name__
     )
     @pytest.mark.parametrize(
         "index_cannot_append_with_other",
         indexes_cannot_append_with_other,
-        ids=lambda x: x.__class__.__name__,
+        ids=lambda x: type(x).__name__,
     )
     def test_append_different_columns_types_raises(
         self, index_can_append, index_cannot_append_with_other
