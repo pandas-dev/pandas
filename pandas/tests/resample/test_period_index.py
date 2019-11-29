@@ -548,19 +548,6 @@ class TestPeriodIndex:
         exp = ts.to_timestamp().resample("A").mean().to_period()
         tm.assert_series_equal(result, exp)
 
-    def test_period_resample_sum_min_count(self):
-        # GH 19974
-        index = date_range(start="2018", freq="M", periods=6)
-        data = np.ones(6)
-        data[3:6] = np.nan
-        period = Series(data, index).to_period()
-        result = period.resample("Q").sum(min_count=1)
-
-        index = PeriodIndex(["2018Q1", "2018Q2"], freq="Q-DEC")
-        expected = Series([3, np.nan], index)
-
-        tm.assert_series_equal(result, expected)
-
     def test_resample_weekly_bug_1726(self):
         # 8/6/12 is a Monday
         ind = date_range(start="8/6/2012", end="8/26/2012", freq="D")

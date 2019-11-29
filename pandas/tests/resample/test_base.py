@@ -7,7 +7,7 @@ import pandas as pd
 from pandas import DataFrame, Series
 from pandas.core.groupby.groupby import DataError
 from pandas.core.groupby.grouper import Grouper
-from pandas.core.indexes.datetimes import date_range
+from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 from pandas.core.indexes.period import PeriodIndex, period_range
 from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 import pandas.util.testing as tm
@@ -267,3 +267,79 @@ def test_resample_quantile(series):
     result = s.resample(freq).quantile(q)
     expected = s.resample(freq).agg(lambda x: x.quantile(q)).rename(s.name)
     tm.assert_series_equal(result, expected)
+
+
+@all_ts
+@pytest.mark.parametrize(
+    "freq, result_name, result_data, result_index, result_freq",
+    [
+        (
+            "D",
+            "dti",
+            [1.0] * 5 + [np.nan] * 5,
+            ["2005-01-{}".format(i) for i in range(1, 11)],
+            "D",
+        ),
+        (
+            "D",
+            "pi",
+            [1.0] * 5 + [np.nan] * 5,
+            ["2005-01-{}".format(i) for i in range(1, 11)],
+            "D",
+        ),
+        (
+            "D",
+            "tdi",
+            [1.0] * 5 + [np.nan] * 5,
+            ["{} days".format(i) for i in range(1, 11)],
+            "D",
+        ),
+        (
+            "W",
+            "dti",
+            [2.0, 3.0, np.nan],
+            ["2005-01-02", "2005-01-09", "2005-01-16"],
+            "W-SUN",
+        ),
+        (
+            "W",
+            "pi",
+            [2.0, 3.0, np.nan],
+            ["2004-12-27/2005-01-02", "2005-01-03/2005-01-09", "2005-01-10/2005-01-16"],
+            "W-SUN",
+        ),
+        ("W", "", "", "", ""),
+        ("M", "dti", [5.0], ["2005-01-31"], "M"),
+        ("M", "pi", [5.0], ["2005-01"], "M"),
+        ("M", "", "", "", ""),
+    ],
+)
+def test_resample_sum(
+    series, freq, result_name, result_data, result_index, result_freq
+):
+    # GH 19974
+    series[:5] = 1
+    series[5:] = np.nan
+
+    if isinstance(series.index, TimedeltaIndex) and freq != "D":
+        msg = ".* is a non-fixed frequency"
+        with pytest.raises(ValueError, match=msg):
+            result = series.resample(freq).sum(min_count=1)
+
+    else:
+        result = series.resample(freq).sum(min_count=1)
+
+        if isinstance(series.index, DatetimeIndex) and result_name == "dti":
+            index = DatetimeIndex(result_index, freq=result_freq)
+            expected = Series(result_data, index, name=result_name)
+            tm.assert_series_equal(result, expected)
+
+        if isinstance(series.index, PeriodIndex) and result_name == "pi":
+            index = PeriodIndex(result_index, freq=result_freq)
+            expected = Series(result_data, index, name=result_name)
+            tm.assert_series_equal(result, expected)
+
+        if isinstance(series.index, TimedeltaIndex) and result_name == "tdi":
+            index = TimedeltaIndex(result_index, freq=result_freq)
+            expected = Series(result_data, index, name=result_name)
+            tm.assert_series_equal(result, expected)
