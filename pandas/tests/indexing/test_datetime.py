@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 
 from dateutil import tz
 import numpy as np
+import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, Series, Timestamp, date_range
@@ -242,11 +243,8 @@ class TestDatetimeIndex:
             Timestamp("2011-01-02"),
             Timestamp("2011-01-03"),
         ]
-        exp = Series(
-            [np.nan, 0.2, np.nan], index=pd.DatetimeIndex(keys, name="idx"), name="s"
-        )
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            tm.assert_series_equal(ser.loc[keys], exp, check_index_type=True)
+        with pytest.raises(KeyError, match="with any missing labels"):
+            ser.loc[keys]
 
     def test_series_partial_set_period(self):
         # GH 11497
@@ -273,12 +271,8 @@ class TestDatetimeIndex:
             pd.Period("2011-01-02", freq="D"),
             pd.Period("2011-01-03", freq="D"),
         ]
-        exp = Series(
-            [np.nan, 0.2, np.nan], index=pd.PeriodIndex(keys, name="idx"), name="s"
-        )
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = ser.loc[keys]
-        tm.assert_series_equal(result, exp)
+        with pytest.raises(KeyError, match="with any missing labels"):
+            ser.loc[keys]
 
     def test_nanosecond_getitem_setitem_with_tz(self):
         # GH 11679
