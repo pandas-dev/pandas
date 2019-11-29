@@ -752,7 +752,7 @@ class TestIndex(Base):
     @pytest.mark.parametrize("dtype", [np.int_, np.bool_])
     def test_empty_fancy(self, index, dtype):
         empty_arr = np.array([], dtype=dtype)
-        empty_index = index.__class__([])
+        empty_index = type(index)([])
 
         assert index[[]].identical(empty_index)
         assert index[empty_arr].identical(empty_index)
@@ -762,7 +762,7 @@ class TestIndex(Base):
         # pd.DatetimeIndex is excluded, because it overrides getitem and should
         # be tested separately.
         empty_farr = np.array([], dtype=np.float_)
-        empty_index = index.__class__([])
+        empty_index = type(index)([])
 
         assert index[[]].identical(empty_index)
         # np.ndarray only accepts ndarray of int & bool dtypes, so should Index
@@ -2446,8 +2446,8 @@ class TestMixedIntIndex(Base):
         # GH12309
         index = self.create_index()
 
-        first = index.__class__(index, copy=True, name="mario")
-        second = first.__class__(first, copy=False)
+        first = type(index)(index, copy=True, name="mario")
+        second = type(first)(first, copy=False)
 
         # Even though "copy=False", we want a new object.
         assert first is not second
