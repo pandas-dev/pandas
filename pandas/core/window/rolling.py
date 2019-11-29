@@ -227,7 +227,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
     @property
     def _window_type(self) -> str:
-        return self.__class__.__name__
+        return type(self).__name__
 
     def __repr__(self) -> str:
         """

@@ -3544,13 +3544,6 @@ class DataFrame(NDFrame):
         -------
         numpy.ndarray
 
-        Notes
-        -----
-        Akin to::
-
-            result = [df.get_value(row, col)
-                      for row, col in zip(row_labels, col_labels)]
-
         Examples
         --------
         values : ndarray

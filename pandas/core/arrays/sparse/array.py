@@ -260,6 +260,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     _pandas_ftype = "sparse"
     _subtyp = "sparse_array"  # register ABCSparseArray
     _deprecations = PandasObject._deprecations | frozenset(["get_values"])
+    _sparse_index: SparseIndex
 
     def __init__(
         self,
@@ -372,8 +373,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     @classmethod
     def _simple_new(
-        cls, sparse_array: np.ndarray, sparse_index: SparseIndex, dtype: SparseDtype
-    ) -> ABCSparseArray:
+        cls, sparse_array: np.ndarray, sparse_index: SparseIndex, dtype: SparseDtype,
+    ) -> "SparseArray":
         new = cls([])
         new._sparse_index = sparse_index
         new._sparse_values = sparse_array
@@ -1392,8 +1393,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     # ------------------------------------------------------------------------
 
     @classmethod
-    def _create_unary_method(cls, op):
-        def sparse_unary_method(self):
+    def _create_unary_method(cls, op) -> Callable[["SparseArray"], "SparseArray"]:
+        def sparse_unary_method(self) -> "SparseArray":
             fill_value = op(np.array(self.fill_value)).item()
             values = op(self.sp_values)
             dtype = SparseDtype(values.dtype, fill_value)
