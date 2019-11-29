@@ -478,3 +478,24 @@ def test_groupby_agg_ea_method(monkeypatch):
     s = pd.Series(DecimalArray(data))
     result = s.groupby(np.array([0, 0, 0, 1, 1])).agg(lambda x: x.values.my_sum())
     tm.assert_series_equal(result, expected, check_names=False)
+
+
+def test_indexing_no_materialize(monkeypatch):
+    # See https://github.com/pandas-dev/pandas/issues/29708
+    # Ensure that indexing operations do not materialize (convert to a numpy
+    # array) the ExtensionArray unnecessary
+
+    def DecimalArray__array__(self, dtype=None):
+        raise Exception("tried to convert a DecimalArray to a numpy array")
+
+    monkeypatch.setattr(DecimalArray, "__array__", DecimalArray__array__, raising=False)
+
+    data = make_data()
+    s = pd.Series(DecimalArray(data))
+    df = pd.DataFrame({"a": s, "b": range(len(s))})
+
+    # ensure the following operations do not raise an error
+    s[s > 0.5]
+    df[s > 0.5]
+    s.at[0]
+    df.at[0, "a"]

@@ -4577,21 +4577,23 @@ class Index(IndexOpsMixin, PandasObject):
         # use this, e.g. DatetimeIndex
         # Things like `Series._get_value` (via .at) pass the EA directly here.
         s = getattr(series, "_values", series)
-        if isinstance(s, (ExtensionArray, Index)) and is_scalar(key):
-            # GH 20882, 21257
-            # Unify Index and ExtensionArray treatment
-            # First try to convert the key to a location
-            # If that fails, raise a KeyError if an integer
-            # index, otherwise, see if key is an integer, and
-            # try that
-            try:
-                iloc = self.get_loc(key)
-                return s[iloc]
-            except KeyError:
-                if len(self) > 0 and (self.holds_integer() or self.is_boolean()):
-                    raise
-                elif is_integer(key):
-                    return s[key]
+        if isinstance(s, ExtensionArray):
+            if is_scalar(key):
+                # GH 20882, 21257
+                # First try to convert the key to a location
+                # If that fails, raise a KeyError if an integer
+                # index, otherwise, see if key is an integer, and
+                # try that
+                try:
+                    iloc = self.get_loc(key)
+                    return s[iloc]
+                except KeyError:
+                    if len(self) > 0 and (self.holds_integer() or self.is_boolean()):
+                        raise
+                    elif is_integer(key):
+                        return s[key]
+            else:
+                raise InvalidIndexError(key)
 
         s = com.values_from_object(series)
         k = com.values_from_object(key)
