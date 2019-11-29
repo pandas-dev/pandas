@@ -251,7 +251,7 @@ class NDFrame(PandasObject, SelectionMixin):
             if dtype.kind == "V":
                 raise NotImplementedError(
                     "compound dtypes are not implemented"
-                    " in the {0} constructor".format(self.__class__.__name__)
+                    " in the {0} constructor".format(type(self).__name__)
                 )
 
         return dtype
@@ -1543,7 +1543,7 @@ class NDFrame(PandasObject, SelectionMixin):
         raise ValueError(
             "The truth value of a {0} is ambiguous. "
             "Use a.empty, a.bool(), a.item(), a.any() or a.all().".format(
-                self.__class__.__name__
+                type(self).__name__
             )
         )
 
@@ -1568,7 +1568,7 @@ class NDFrame(PandasObject, SelectionMixin):
         elif is_scalar(v):
             raise ValueError(
                 "bool cannot act on a non-boolean single element "
-                "{0}".format(self.__class__.__name__)
+                "{0}".format(type(self).__name__)
             )
 
         self.__nonzero__()
@@ -1874,7 +1874,7 @@ class NDFrame(PandasObject, SelectionMixin):
     def __hash__(self):
         raise TypeError(
             "{0!r} objects are mutable, thus they cannot be"
-            " hashed".format(self.__class__.__name__)
+            " hashed".format(type(self).__name__)
         )
 
     def __iter__(self):
@@ -2068,7 +2068,7 @@ class NDFrame(PandasObject, SelectionMixin):
         # string representation based upon iterating over self
         # (since, by definition, `PandasContainers` are iterable)
         prepr = "[%s]" % ",".join(map(pprint_thing, self))
-        return f"{self.__class__.__name__}({prepr})"
+        return f"{type(self).__name__}({prepr})"
 
     def _repr_latex_(self):
         """
