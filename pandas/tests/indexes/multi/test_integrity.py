@@ -210,7 +210,7 @@ def test_metadata_immutable(idx):
     # ditto for labels
     with pytest.raises(TypeError, match=mutable_regex):
         codes[0] = codes[0]
-    with pytest.raises(TypeError, match=mutable_regex):
+    with pytest.raises(ValueError, match="assignment destination is read-only"):
         codes[0][0] = codes[0][0]
     # and for names
     names = idx.names
