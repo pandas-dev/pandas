@@ -420,7 +420,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         if self.categories is None:
             data = "None, "
         else:
-            data = self.categories._format_data(name=self.__class__.__name__)
+            data = self.categories._format_data(name=type(self).__name__)
         return tpl.format(data=data, ordered=self._ordered)
 
     @staticmethod
@@ -676,7 +676,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
                     "to DatetimeTZDtype is deprecated. Use "
                     "'DatetimeTZDtype.construct_from_string()' instead."
                 )
-                warnings.warn(msg.format(tz=tz), FutureWarning, stacklevel=2)
+                raise ValueError(msg)
             else:
                 raise ValueError("DatetimeTZDtype only supports ns units")
 

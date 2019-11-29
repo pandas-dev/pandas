@@ -33,21 +33,6 @@ class TestSeriesTimezones:
         with pytest.raises(TypeError, match="Already tz-aware"):
             ts.tz_localize("US/Eastern")
 
-    @pytest.mark.filterwarnings("ignore::FutureWarning")
-    def test_tz_localize_errors_deprecation(self):
-        # GH 22644
-        tz = "Europe/Warsaw"
-        n = 60
-        rng = date_range(start="2015-03-29 02:00:00", periods=n, freq="min")
-        ts = Series(rng)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            with pytest.raises(ValueError):
-                ts.dt.tz_localize(tz, errors="foo")
-            # make sure errors='coerce' gets mapped correctly to nonexistent
-            result = ts.dt.tz_localize(tz, errors="coerce")
-            expected = ts.dt.tz_localize(tz, nonexistent="NaT")
-            tm.assert_series_equal(result, expected)
-
     def test_series_tz_localize_ambiguous_bool(self):
         # make sure that we are correctly accepting bool values as ambiguous
 
