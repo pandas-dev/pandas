@@ -363,7 +363,7 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
         """
         super().__init__()
         if name is None:
-            name = type(self).__name__
+            name = self.__class__.__name__
         self.name = name
 
         if rules is not None:
