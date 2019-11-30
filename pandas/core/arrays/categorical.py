@@ -527,13 +527,6 @@ class Categorical(ExtensionArray, PandasObject):
 
     to_list = tolist
 
-    @property
-    def base(self) -> None:
-        """
-        compat, we are always our own object
-        """
-        return None
-
     @classmethod
     def _from_inferred_categories(
         cls, inferred_categories, inferred_codes, dtype, true_values=None

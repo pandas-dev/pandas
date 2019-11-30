@@ -41,9 +41,6 @@ Properties
    Index.ndim
    Index.size
    Index.empty
-   Index.strides
-   Index.itemsize
-   Index.base
    Index.T
    Index.memory_usage
 
