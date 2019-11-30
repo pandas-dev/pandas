@@ -1,5 +1,5 @@
 from datetime import date, datetime, time as dt_time, timedelta
-from typing import Dict, List, Tuple, Type
+from typing import Dict, List, Optional, Tuple, Type
 
 import numpy as np
 import pytest
@@ -95,7 +95,7 @@ _ApplyCases = List[Tuple[BaseOffset, Dict[datetime, datetime]]]
 
 
 class Base:
-    _offset = None  # type: Type[DateOffset]
+    _offset: Optional[Type[DateOffset]] = None
     d = Timestamp(datetime(2008, 1, 2))
 
     timezones = [
@@ -358,7 +358,7 @@ class TestCommon(Base):
         ts = Timestamp(dt) + Nano(5)
 
         if (
-            offset_s.__class__.__name__ == "DateOffset"
+            type(offset_s).__name__ == "DateOffset"
             and (funcname == "apply" or normalize)
             and ts.nanosecond > 0
         ):
@@ -395,7 +395,7 @@ class TestCommon(Base):
             ts = Timestamp(dt, tz=tz) + Nano(5)
 
             if (
-                offset_s.__class__.__name__ == "DateOffset"
+                type(offset_s).__name__ == "DateOffset"
                 and (funcname == "apply" or normalize)
                 and ts.nanosecond > 0
             ):
@@ -743,7 +743,7 @@ class TestBusinessDay(Base):
         for offset, d, expected in tests:
             assert_onOffset(offset, d, expected)
 
-    apply_cases = []  # type: _ApplyCases
+    apply_cases: _ApplyCases = []
     apply_cases.append(
         (
             BDay(),
@@ -2631,7 +2631,7 @@ class TestCustomBusinessDay(Base):
         offset, d, expected = case
         assert_onOffset(offset, d, expected)
 
-    apply_cases = []  # type: _ApplyCases
+    apply_cases: _ApplyCases = []
     apply_cases.append(
         (
             CDay(),
@@ -2878,7 +2878,7 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
         offset, d, expected = case
         assert_onOffset(offset, d, expected)
 
-    apply_cases = []  # type: _ApplyCases
+    apply_cases: _ApplyCases = []
     apply_cases.append(
         (
             CBMonthEnd(),
@@ -3027,7 +3027,7 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
         offset, dt, expected = case
         assert_onOffset(offset, dt, expected)
 
-    apply_cases = []  # type: _ApplyCases
+    apply_cases: _ApplyCases = []
     apply_cases.append(
         (
             CBMonthBegin(),

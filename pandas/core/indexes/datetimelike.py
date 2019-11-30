@@ -3,7 +3,6 @@ Base and utility classes for tseries type pandas objects.
 """
 import operator
 from typing import Set
-import warnings
 
 import numpy as np
 
@@ -11,7 +10,7 @@ from pandas._libs import NaT, iNaT, lib
 from pandas._libs.algos import unique_deltas
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import Appender, cache_readonly, deprecate_kwarg
+from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -36,7 +35,6 @@ import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.tools.timedeltas import to_timedelta
 
-import pandas.io.formats.printing as printing
 from pandas.tseries.frequencies import to_offset
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -105,11 +103,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         """
         return self._data.freq
 
-    @freq.setter
-    def freq(self, value):
-        # validation is handled by _data setter
-        self._data.freq = value
-
     @property
     def freqstr(self):
         """
@@ -148,7 +141,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         return wrapper
 
     @property
-    def _ndarray_values(self):
+    def _ndarray_values(self) -> np.ndarray:
         return self._data._ndarray_values
 
     # ------------------------------------------------------------------------
@@ -291,7 +284,10 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             sorted_index = self.take(_as)
             return sorted_index, _as
         else:
-            sorted_values = np.sort(self._ndarray_values)
+            # NB: using asi8 instead of _ndarray_values matters in numpy 1.18
+            #  because the treatment of NaT has been changed to put NaT last
+            #  instead of first.
+            sorted_values = np.sort(self.asi8)
             attribs = self._get_attributes_dict()
             freq = attribs["freq"]
 
@@ -332,23 +328,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
     _na_value = NaT
     """The expected NA value to use with this index."""
-
-    @property
-    def asobject(self):
-        """
-        Return object Index which contains boxed values.
-
-        .. deprecated:: 0.23.0
-            Use ``astype(object)`` instead.
-
-        *this is an internal non-public method*
-        """
-        warnings.warn(
-            "'asobject' is deprecated. Use 'astype(object)' instead",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.astype(object)
 
     def _convert_tolerance(self, tolerance, target):
         tolerance = np.asarray(to_timedelta(tolerance).to_numpy())
@@ -496,7 +475,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             if attrib == "freq":
                 freq = self.freqstr
                 if freq is not None:
-                    freq = "'%s'" % freq
+                    freq = f"{freq!r}"
                 attrs.append(("freq", freq))
         return attrs
 
@@ -613,7 +592,8 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             result = Index.intersection(self, other, sort=sort)
             if isinstance(result, type(self)):
                 if result.freq is None:
-                    result.freq = to_offset(result.inferred_freq)
+                    # TODO: find a less code-smelly way to set this
+                    result._data._freq = to_offset(result.inferred_freq)
             return result
 
         elif (
@@ -627,7 +607,9 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
             # Invalidate the freq of `result`, which may not be correct at
             # this point, depending on the values.
-            result.freq = None
+
+            # TODO: find a less code-smelly way to set this
+            result._data._freq = None
             if hasattr(self, "tz"):
                 result = self._shallow_copy(
                     result._values, name=result.name, tz=result.tz, freq=None
@@ -635,7 +617,8 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             else:
                 result = self._shallow_copy(result._values, name=result.name, freq=None)
             if result.freq is None:
-                result.freq = to_offset(result.inferred_freq)
+                # TODO: find a less code-smelly way to set this
+                result._data._freq = to_offset(result.inferred_freq)
             return result
 
         # to make our life easier, "sort" the two ranges
@@ -686,17 +669,13 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         """
         formatter = self._formatter_func
         if len(self) > 0:
-            index_summary = ", %s to %s" % (formatter(self[0]), formatter(self[-1]))
+            index_summary = f", {formatter(self[0])} to {formatter(self[-1])}"
         else:
             index_summary = ""
 
         if name is None:
             name = type(self).__name__
-        result = "%s: %s entries%s" % (
-            printing.pprint_thing(name),
-            len(self),
-            index_summary,
-        )
+        result = f"{name}: {len(self)} entries{index_summary}"
         if self.freq:
             result += "\nFreq: %s" % self.freqstr
 
@@ -737,8 +716,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         #  _data.astype call above
         return Index(new_values, dtype=new_values.dtype, name=self.name, copy=False)
 
-    @deprecate_kwarg(old_arg_name="n", new_arg_name="periods")
-    def shift(self, periods, freq=None):
+    def shift(self, periods=1, freq=None):
         """
         Shift index by desired number of time frequency increments.
 
@@ -747,7 +725,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
         Parameters
         ----------
-        periods : int
+        periods : int, default 1
             Number of periods (or increments) to shift by,
             can be positive or negative.
 
@@ -832,9 +810,9 @@ class DatetimelikeDelegateMixin(PandasDelegate):
     """
 
     # raw_methods : dispatch methods that shouldn't be boxed in an Index
-    _raw_methods = set()  # type: Set[str]
+    _raw_methods: Set[str] = set()
     # raw_properties : dispatch properties that shouldn't be boxed in an Index
-    _raw_properties = set()  # type: Set[str]
+    _raw_properties: Set[str] = set()
     name = None
     _data: ExtensionArray
 

@@ -161,7 +161,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     _scalar_type = Period
 
     # Names others delegate to us
-    _other_ops = []  # type: List[str]
+    _other_ops: List[str] = []
     _bool_ops = ["is_leap_year"]
     _object_ops = ["start_time", "end_time", "freq"]
     _field_ops = [
@@ -596,7 +596,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         if date_format:
             formatter = lambda dt: dt.strftime(date_format)
         else:
-            formatter = lambda dt: "%s" % dt
+            formatter = lambda dt: str(dt)
 
         if self._hasnans:
             mask = self._isnan
@@ -617,14 +617,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         if is_period_dtype(dtype):
             return self.asfreq(dtype.freq)
         return super().astype(dtype, copy=copy)
-
-    @property
-    def flags(self):
-        # TODO: remove
-        # We need this since reduction.SeriesBinGrouper uses values.flags
-        # Ideally, we wouldn't be passing objects down there in the first
-        # place.
-        return self._data.flags
 
     # ------------------------------------------------------------------
     # Arithmetic Methods
@@ -894,9 +886,9 @@ def period_array(
 
     data = np.asarray(data)
 
+    dtype: Optional[PeriodDtype]
     if freq:
-        # typed Optional here because the else block below assigns None
-        dtype = PeriodDtype(freq)  # type: Optional[PeriodDtype]
+        dtype = PeriodDtype(freq)
     else:
         dtype = None
 

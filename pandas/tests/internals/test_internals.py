@@ -134,7 +134,7 @@ def create_block(typestr, placement, item_shape=None, num_offset=0):
         arr = values.sp_values.view()
         arr += num_offset - 1
     else:
-        raise ValueError('Unsupported typestr: "%s"' % typestr)
+        raise ValueError(f'Unsupported typestr: "{typestr}"')
 
     return make_block(values, placement=placement, ndim=len(shape))
 
@@ -307,12 +307,6 @@ class TestBlock:
         newb = self.fblock.copy()
         with pytest.raises(Exception):
             newb.delete(3)
-
-    def test_make_block_same_class(self):
-        # issue 19431
-        block = create_block("M8[ns, US/Eastern]", [3])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            block.make_block_same_class(block.values, dtype=block.values.dtype)
 
 
 class TestDatetimeBlock:
@@ -1255,13 +1249,6 @@ def test_holder(typestr, holder):
     assert blk._holder is holder
 
 
-def test_deprecated_fastpath():
-    # GH#19265
-    values = np.random.rand(3, 3)
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        make_block(values, placement=np.arange(3), fastpath=True)
-
-
 def test_validate_ndim():
     values = np.array([1.0, 2.0])
     placement = slice(2)
@@ -1297,3 +1284,10 @@ def test_make_block_no_pandas_array():
     result = make_block(arr.to_numpy(), slice(len(arr)), dtype=arr.dtype)
     assert result.is_integer is True
     assert result.is_extension is False
+
+
+def test_dataframe_not_equal():
+    # see GH28839
+    df1 = pd.DataFrame({"a": [1, 2], "b": ["s", "d"]})
+    df2 = pd.DataFrame({"a": ["s", "d"], "b": [1, 2]})
+    assert df1.equals(df2) is False

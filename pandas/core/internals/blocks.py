@@ -251,25 +251,17 @@ class Block(PandasObject):
 
         return make_block(values, placement=placement, ndim=self.ndim)
 
-    def make_block_same_class(self, values, placement=None, ndim=None, dtype=None):
+    def make_block_same_class(self, values, placement=None, ndim=None):
         """ Wrap given values in a block of same type as self. """
-        if dtype is not None:
-            # issue 19431 fastparquet is passing this
-            warnings.warn(
-                "dtype argument is deprecated, will be removed in a future release.",
-                FutureWarning,
-            )
         if placement is None:
             placement = self.mgr_locs
         if ndim is None:
             ndim = self.ndim
-        return make_block(
-            values, placement=placement, ndim=ndim, klass=self.__class__, dtype=dtype
-        )
+        return make_block(values, placement=placement, ndim=ndim, klass=type(self))
 
     def __repr__(self) -> str:
         # don't want to print out all of the items here
-        name = pprint_thing(self.__class__.__name__)
+        name = type(self).__name__
         if self._is_single_block:
 
             result = "{name}: {len} dtype: {dtype}".format(
@@ -2825,6 +2817,8 @@ class ObjectBlock(Block):
             if convert:
                 block = [b.convert(numeric=False, copy=True) for b in block]
             return block
+        if convert:
+            return [self.convert(numeric=False, copy=True)]
         return self
 
 
@@ -2893,36 +2887,29 @@ class CategoricalBlock(ExtensionBlock):
             values, placement=placement or slice(0, len(values), 1), ndim=self.ndim
         )
 
-    def where(
+    def replace(
         self,
-        other,
-        cond,
-        align=True,
-        errors="raise",
-        try_cast: bool = False,
-        axis: int = 0,
-    ) -> List["Block"]:
-        # TODO(CategoricalBlock.where):
-        # This can all be deleted in favor of ExtensionBlock.where once
-        # we enforce the deprecation.
-        object_msg = (
-            "Implicitly converting categorical to object-dtype ndarray. "
-            "One or more of the values in 'other' are not present in this "
-            "categorical's categories. A future version of pandas will raise "
-            "a ValueError when 'other' contains different categories.\n\n"
-            "To preserve the current behavior, add the new categories to "
-            "the categorical before calling 'where', or convert the "
-            "categorical to a different dtype."
-        )
-        try:
-            # Attempt to do preserve categorical dtype.
-            result = super().where(other, cond, align, errors, try_cast, axis)
-        except (TypeError, ValueError):
-            warnings.warn(object_msg, FutureWarning, stacklevel=6)
-            result = self.astype(object).where(
-                other, cond, align=align, errors=errors, try_cast=try_cast, axis=axis
+        to_replace,
+        value,
+        inplace: bool = False,
+        filter=None,
+        regex: bool = False,
+        convert: bool = True,
+    ):
+        inplace = validate_bool_kwarg(inplace, "inplace")
+        result = self if inplace else self.copy()
+        if filter is None:  # replace was called on a series
+            result.values.replace(to_replace, value, inplace=True)
+            if convert:
+                return result.convert(numeric=False, copy=not inplace)
+            else:
+                return result
+        else:  # replace was called on a DataFrame
+            if not isna(value):
+                result.values.add_categories(value, inplace=True)
+            return super(CategoricalBlock, result).replace(
+                to_replace, value, inplace, filter, regex, convert
             )
-        return result
 
 
 # -----------------------------------------------------------------
@@ -2975,7 +2962,7 @@ def get_block_type(values, dtype=None):
     return cls
 
 
-def make_block(values, placement, klass=None, ndim=None, dtype=None, fastpath=None):
+def make_block(values, placement, klass=None, ndim=None, dtype=None):
     # Ensure that we don't allow PandasArray / PandasDtype in internals.
     # For now, blocks should be backed by ndarrays when possible.
     if isinstance(values, ABCPandasArray):
@@ -2986,12 +2973,6 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None, fastpath=No
     if isinstance(dtype, PandasDtype):
         dtype = dtype.numpy_dtype
 
-    if fastpath is not None:
-        # GH#19265 pyarrow is passing this
-        warnings.warn(
-            "fastpath argument is deprecated, will be removed in a future release.",
-            FutureWarning,
-        )
     if klass is None:
         dtype = dtype or values.dtype
         klass = get_block_type(values, dtype)

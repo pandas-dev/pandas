@@ -92,6 +92,25 @@ def test_groupby_aggregation_mixed_dtype():
     tm.assert_frame_equal(result, expected)
 
 
+def test_groupby_aggregation_multi_level_column():
+    # GH 29772
+    lst = [
+        [True, True, True, False],
+        [True, False, np.nan, False],
+        [True, True, np.nan, False],
+        [True, True, np.nan, False],
+    ]
+    df = pd.DataFrame(
+        data=lst,
+        columns=pd.MultiIndex.from_tuples([("A", 0), ("A", 1), ("B", 0), ("B", 1)]),
+    )
+
+    result = df.groupby(level=1, axis=1).sum()
+    expected = pd.DataFrame({0: [2.0, 1, 1, 1], 1: [1, 0, 1, 1]})
+
+    tm.assert_frame_equal(result, expected)
+
+
 def test_agg_apply_corner(ts, tsframe):
     # nothing to group, all NA
     grouped = ts.groupby(ts * np.nan)
@@ -267,16 +286,16 @@ def test_more_flexible_frame_multi_function(df):
         return np.std(x, ddof=1)
 
     # this uses column selection & renaming
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+    msg = r"nested renamer is not supported"
+    with pytest.raises(SpecificationError, match=msg):
         d = OrderedDict(
             [["C", np.mean], ["D", OrderedDict([["foo", np.mean], ["bar", np.std]])]]
         )
-        result = grouped.aggregate(d)
+        grouped.aggregate(d)
 
+    # But without renaming, these functions are OK
     d = OrderedDict([["C", [np.mean]], ["D", [foo, bar]]])
-    expected = grouped.aggregate(d)
-
-    tm.assert_frame_equal(result, expected)
+    grouped.aggregate(d)
 
 
 def test_multi_function_flexible_mix(df):
@@ -288,26 +307,25 @@ def test_multi_function_flexible_mix(df):
         [["C", OrderedDict([["foo", "mean"], ["bar", "std"]])], ["D", {"sum": "sum"}]]
     )
     # this uses column selection & renaming
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        expected = grouped.aggregate(d)
+    msg = r"nested renamer is not supported"
+    with pytest.raises(SpecificationError, match=msg):
+        grouped.aggregate(d)
 
     # Test 1
     d = OrderedDict(
         [["C", OrderedDict([["foo", "mean"], ["bar", "std"]])], ["D", "sum"]]
     )
     # this uses column selection & renaming
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        result = grouped.aggregate(d)
-    tm.assert_frame_equal(result, expected)
+    with pytest.raises(SpecificationError, match=msg):
+        grouped.aggregate(d)
 
     # Test 2
     d = OrderedDict(
         [["C", OrderedDict([["foo", "mean"], ["bar", "std"]])], ["D", ["sum"]]]
     )
     # this uses column selection & renaming
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        result = grouped.aggregate(d)
-    tm.assert_frame_equal(result, expected)
+    with pytest.raises(SpecificationError, match=msg):
+        grouped.aggregate(d)
 
 
 def test_groupby_agg_coercing_bools():

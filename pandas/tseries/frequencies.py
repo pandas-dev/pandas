@@ -49,7 +49,7 @@ _ONE_DAY = 24 * _ONE_HOUR
 # Offset names ("time rules") and related functions
 
 #: cache of previously seen offsets
-_offset_map = {}  # type: Dict[str, DateOffset]
+_offset_map: Dict[str, DateOffset] = {}
 
 
 def get_period_alias(offset_str):
@@ -308,7 +308,7 @@ class _FrequencyInferer:
         return unique_deltas(self.index.asi8)
 
     @cache_readonly
-    def is_unique(self):
+    def is_unique(self) -> bool:
         return len(self.deltas) == 1
 
     @cache_readonly

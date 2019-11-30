@@ -321,7 +321,7 @@ def format_object_summary(
     if display_width is None:
         display_width = get_option("display.width") or 80
     if name is None:
-        name = obj.__class__.__name__
+        name = type(obj).__name__
 
     if indent_for_name:
         name_len = len(name)
@@ -513,7 +513,7 @@ def format_object_attrs(
     list of 2-tuple
 
     """
-    attrs = []  # type: List[Tuple[str, Union[str, int]]]
+    attrs: List[Tuple[str, Union[str, int]]] = []
     if hasattr(obj, "dtype") and include_dtype:
         # error: "Sequence[Any]" has no attribute "dtype"
         attrs.append(("dtype", "'{}'".format(obj.dtype)))  # type: ignore

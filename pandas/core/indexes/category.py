@@ -1,6 +1,5 @@
 import operator
 from typing import Any
-import warnings
 
 import numpy as np
 
@@ -172,18 +171,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         dtype=None,
         copy=False,
         name=None,
-        fastpath=None,
     ):
-
-        if fastpath is not None:
-            warnings.warn(
-                "The 'fastpath' keyword is deprecated, and will be "
-                "removed in a future version.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            if fastpath:
-                return cls._simple_new(data, name=name, dtype=dtype)
 
         dtype = CategoricalDtype._from_values_or_dtype(data, categories, ordered, dtype)
 
@@ -276,7 +264,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             dtype = self.dtype
         return super()._shallow_copy(values=values, dtype=dtype, **kwargs)
 
-    def _is_dtype_compat(self, other):
+    def _is_dtype_compat(self, other) -> bool:
         """
         *this is an internal non-public method*
 
@@ -357,7 +345,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         ]
         if self.name is not None:
             attrs.append(("name", ibase.default_pprint(self.name)))
-        attrs.append(("dtype", "'%s'" % self.dtype.name))
+        attrs.append(("dtype", f"'{self.dtype.name}'"))
         max_seq_items = get_option("display.max_seq_items") or len(self)
         if len(self) > max_seq_items:
             attrs.append(("length", len(self)))
@@ -407,7 +395,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         return self._data._reverse_indexer()
 
     @Appender(_index_shared_docs["contains"] % _index_doc_kwargs)
-    def __contains__(self, key):
+    def __contains__(self, key) -> bool:
         # if key is a NaN, check if any NaN is in self.
         if is_scalar(key) and isna(key):
             return self.hasnans
@@ -455,7 +443,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     # introspection
     @cache_readonly
-    def is_unique(self):
+    def is_unique(self) -> bool:
         return self._engine.is_unique
 
     @property

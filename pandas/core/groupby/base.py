@@ -3,7 +3,11 @@ Provide basic components for groupby. These defintiions
 hold the whitelist of methods that are exposed on the
 SeriesGroupBy and the DataFrameGroupBy objects.
 """
+import collections
+
 from pandas.core.dtypes.common import is_list_like, is_scalar
+
+OutputKey = collections.namedtuple("OutputKey", ["label", "position"])
 
 
 class GroupByMixin:
@@ -37,7 +41,7 @@ class GroupByMixin:
         except IndexError:
             groupby = self._groupby
 
-        self = self.__class__(subset, groupby=groupby, parent=self, **kwargs)
+        self = type(self)(subset, groupby=groupby, parent=self, **kwargs)
         self._reset_cache()
         if subset.ndim == 2:
             if is_scalar(key) and key in subset or is_list_like(key):

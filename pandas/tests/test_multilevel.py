@@ -583,6 +583,17 @@ Thur,Lunch,Yes,51.51,17"""
             with pytest.raises(KeyError, match="does not match index name"):
                 getattr(s, method)("mistake")
 
+    def test_unused_level_raises(self):
+        # GH 20410
+        mi = MultiIndex(
+            levels=[["a_lot", "onlyone", "notevenone"], [1970, ""]],
+            codes=[[1, 0], [1, 0]],
+        )
+        df = DataFrame(-1, index=range(3), columns=mi)
+
+        with pytest.raises(KeyError, match="notevenone"):
+            df["notevenone"]
+
     def test_unstack_level_name(self):
         result = self.frame.unstack("second")
         expected = self.frame.unstack(level=1)
@@ -1988,6 +1999,15 @@ Thur,Lunch,Yes,51.51,17"""
         data = ["a", "b", "c", "d"]
         m_df = Series(data, index=m_idx)
         assert m_df.repeat(3).shape == (3 * len(data),)
+
+    def test_subsets_multiindex_dtype(self):
+        # GH 20757
+        data = [["x", 1]]
+        columns = [("a", "b", np.nan), ("a", "c", 0.0)]
+        df = DataFrame(data, columns=pd.MultiIndex.from_tuples(columns))
+        expected = df.dtypes.a.b
+        result = df.a.b.dtypes
+        tm.assert_series_equal(result, expected)
 
 
 class TestSorted(Base):

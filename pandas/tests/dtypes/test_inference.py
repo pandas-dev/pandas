@@ -506,7 +506,7 @@ class TestInference:
         result = lib.maybe_convert_numeric(case, set(), coerce_numeric=coerce)
         tm.assert_almost_equal(result, expected)
 
-    @pytest.mark.parametrize("value", [-2 ** 63 - 1, 2 ** 64])
+    @pytest.mark.parametrize("value", [-(2 ** 63) - 1, 2 ** 64])
     def test_convert_int_overflow(self, value):
         # see gh-18584
         arr = np.array([value], dtype=object)
@@ -628,13 +628,13 @@ class TestTypeInference:
         expected = "integer" if skipna else "integer-na"
         assert result == expected
 
-    def test_deprecation(self):
-        # GH 24050
-        arr = np.array([1, 2, 3], dtype=object)
+    def test_infer_dtype_skipna_default(self):
+        # infer_dtype `skipna` default deprecated in GH#24050,
+        #  changed to True in GH#29876
+        arr = np.array([1, 2, 3, np.nan], dtype=object)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = lib.infer_dtype(arr)  # default: skipna=None -> warn
-            assert result == "integer"
+        result = lib.infer_dtype(arr)
+        assert result == "integer"
 
     def test_bools(self):
         arr = np.array([True, False, True, True, True], dtype="O")

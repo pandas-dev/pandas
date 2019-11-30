@@ -135,9 +135,8 @@ cdef class Reducer:
                 else:
                     res = self.f(chunk)
 
-                if (not _is_sparse_array(res) and hasattr(res, 'values')
-                        and util.is_array(res.values)):
-                    res = res.values
+                # TODO: reason for not squeezing here?
+                res = _extract_result(res, squeeze=False)
                 if i == 0:
                     # On the first pass, we check the output shape to see
                     #  if this looks like a reduction.
@@ -189,6 +188,27 @@ cdef class _BaseGrouper:
 
         return cached_typ, cached_ityp
 
+    cdef inline object _apply_to_group(self,
+                                       object cached_typ, object cached_ityp,
+                                       Slider islider, Slider vslider,
+                                       Py_ssize_t group_size, bint initialized):
+        """
+        Call self.f on our new group, then update to the next group.
+        """
+        cached_ityp._engine.clear_mapping()
+        res = self.f(cached_typ)
+        res = _extract_result(res)
+        if not initialized:
+            # On the first pass, we check the output shape to see
+            #  if this looks like a reduction.
+            initialized = 1
+            _check_result_array(res, len(self.dummy_arr))
+
+        islider.advance(group_size)
+        vslider.advance(group_size)
+
+        return res, initialized
+
 
 cdef class SeriesBinGrouper(_BaseGrouper):
     """
@@ -217,7 +237,7 @@ cdef class SeriesBinGrouper(_BaseGrouper):
         self.typ = series._constructor
         self.ityp = series.index._constructor
         self.index = series.index.values
-        self.name = getattr(series, 'name', None)
+        self.name = series.name
 
         self.dummy_arr, self.dummy_index = self._check_dummy(dummy)
 
@@ -265,19 +285,11 @@ cdef class SeriesBinGrouper(_BaseGrouper):
                 cached_typ, cached_ityp = self._update_cached_objs(
                     cached_typ, cached_ityp, islider, vslider)
 
-                cached_ityp._engine.clear_mapping()
-                res = self.f(cached_typ)
-                res = _extract_result(res)
-                if not initialized:
-                    # On the first pass, we check the output shape to see
-                    #  if this looks like a reduction.
-                    initialized = 1
-                    _check_result_array(res, len(self.dummy_arr))
+                res, initialized = self._apply_to_group(cached_typ, cached_ityp,
+                                                        islider, vslider,
+                                                        group_size, initialized)
 
                 result[i] = res
-
-                islider.advance(group_size)
-                vslider.advance(group_size)
 
         finally:
             # so we don't free the wrong memory
@@ -322,7 +334,7 @@ cdef class SeriesGrouper(_BaseGrouper):
         self.typ = series._constructor
         self.ityp = series.index._constructor
         self.index = series.index.values
-        self.name = getattr(series, 'name', None)
+        self.name = series.name
 
         self.dummy_arr, self.dummy_index = self._check_dummy(dummy)
         self.ngroups = ngroups
@@ -367,20 +379,12 @@ cdef class SeriesGrouper(_BaseGrouper):
                     cached_typ, cached_ityp = self._update_cached_objs(
                         cached_typ, cached_ityp, islider, vslider)
 
-                    cached_ityp._engine.clear_mapping()
-                    res = self.f(cached_typ)
-                    res = _extract_result(res)
-                    if not initialized:
-                        # On the first pass, we check the output shape to see
-                        #  if this looks like a reduction.
-                        initialized = 1
-                        _check_result_array(res, len(self.dummy_arr))
+                    res, initialized = self._apply_to_group(cached_typ, cached_ityp,
+                                                            islider, vslider,
+                                                            group_size, initialized)
 
                     result[lab] = res
                     counts[lab] = group_size
-                    islider.advance(group_size)
-                    vslider.advance(group_size)
-
                     group_size = 0
 
         finally:
@@ -397,18 +401,17 @@ cdef class SeriesGrouper(_BaseGrouper):
         return result, counts
 
 
-cdef inline _extract_result(object res):
+cdef inline _extract_result(object res, bint squeeze=True):
     """ extract the result object, it might be a 0-dim ndarray
         or a len-1 0-dim, or a scalar """
     if (not _is_sparse_array(res) and hasattr(res, 'values')
             and util.is_array(res.values)):
         res = res.values
-    if not np.isscalar(res):
-        if util.is_array(res):
-            if res.ndim == 0:
-                res = res.item()
-            elif res.ndim == 1 and len(res) == 1:
-                res = res[0]
+    if util.is_array(res):
+        if res.ndim == 0:
+            res = res.item()
+        elif squeeze and res.ndim == 1 and len(res) == 1:
+            res = res[0]
     return res
 
 

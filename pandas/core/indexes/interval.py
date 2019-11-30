@@ -2,7 +2,6 @@
 from operator import le, lt
 import textwrap
 from typing import Any, Optional, Tuple, Union
-import warnings
 
 import numpy as np
 
@@ -343,7 +342,7 @@ class IntervalIndex(IntervalMixin, Index):
         right = self._maybe_convert_i8(self.right)
         return IntervalTree(left, right, closed=self.closed)
 
-    def __contains__(self, key):
+    def __contains__(self, key) -> bool:
         """
         return a boolean if this key is IN the index
         We *only* accept an Interval
@@ -455,19 +454,6 @@ class IntervalIndex(IntervalMixin, Index):
         # Avoid materializing ndarray[Interval]
         return self._data.size
 
-    @property
-    def itemsize(self):
-        msg = (
-            "IntervalIndex.itemsize is deprecated and will be removed in "
-            "a future version"
-        )
-        warnings.warn(msg, FutureWarning, stacklevel=2)
-
-        # suppress the warning from the underlying left/right itemsize
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            return self.left.itemsize + self.right.itemsize
-
     def __len__(self) -> int:
         return len(self.left)
 
@@ -483,7 +469,7 @@ class IntervalIndex(IntervalMixin, Index):
         return self._data
 
     @cache_readonly
-    def _ndarray_values(self):
+    def _ndarray_values(self) -> np.ndarray:
         return np.array(self._data)
 
     def __array__(self, result=None):
@@ -497,7 +483,7 @@ class IntervalIndex(IntervalMixin, Index):
     def __reduce__(self):
         d = dict(left=self.left, right=self.right)
         d.update(self._get_attributes_dict())
-        return _new_IntervalIndex, (self.__class__, d), None
+        return _new_IntervalIndex, (type(self), d), None
 
     @Appender(_index_shared_docs["copy"])
     def copy(self, deep=False, name=None):
@@ -512,7 +498,7 @@ class IntervalIndex(IntervalMixin, Index):
 
     @Appender(_index_shared_docs["astype"])
     def astype(self, dtype, copy=True):
-        with rewrite_exception("IntervalArray", self.__class__.__name__):
+        with rewrite_exception("IntervalArray", type(self).__name__):
             new_values = self.values.astype(dtype, copy=copy)
         if is_interval_dtype(new_values):
             return self._shallow_copy(new_values.left, new_values.right)
@@ -529,7 +515,7 @@ class IntervalIndex(IntervalMixin, Index):
         return "interval"
 
     @Appender(Index.memory_usage.__doc__)
-    def memory_usage(self, deep=False):
+    def memory_usage(self, deep: bool = False) -> int:
         # we don't use an explicit engine
         # so return the bytes here
         return self.left.memory_usage(deep=deep) + self.right.memory_usage(deep=deep)
@@ -542,7 +528,7 @@ class IntervalIndex(IntervalMixin, Index):
         return self._data.mid
 
     @cache_readonly
-    def is_monotonic(self):
+    def is_monotonic(self) -> bool:
         """
         Return True if the IntervalIndex is monotonic increasing (only equal or
         increasing values), else False
@@ -550,7 +536,7 @@ class IntervalIndex(IntervalMixin, Index):
         return self.is_monotonic_increasing
 
     @cache_readonly
-    def is_monotonic_increasing(self):
+    def is_monotonic_increasing(self) -> bool:
         """
         Return True if the IntervalIndex is monotonic increasing (only equal or
         increasing values), else False
@@ -1205,7 +1191,7 @@ class IntervalIndex(IntervalMixin, Index):
         return attrs
 
     def _format_space(self):
-        space = " " * (len(self.__class__.__name__) + 1)
+        space = " " * (len(type(self).__name__) + 1)
         return "\n{space}".format(space=space)
 
     # --------------------------------------------------------------------
@@ -1213,7 +1199,7 @@ class IntervalIndex(IntervalMixin, Index):
     def argsort(self, *args, **kwargs):
         return np.lexsort((self.right, self.left))
 
-    def equals(self, other):
+    def equals(self, other) -> bool:
         """
         Determines if two IntervalIndex objects contain the same elements
         """
@@ -1374,7 +1360,7 @@ class IntervalIndex(IntervalMixin, Index):
 IntervalIndex._add_logical_methods_disabled()
 
 
-def _is_valid_endpoint(endpoint):
+def _is_valid_endpoint(endpoint) -> bool:
     """helper for interval_range to check if start/end are valid types"""
     return any(
         [
@@ -1386,7 +1372,7 @@ def _is_valid_endpoint(endpoint):
     )
 
 
-def _is_type_compatible(a, b):
+def _is_type_compatible(a, b) -> bool:
     """helper for interval_range to check type compat of start/end/freq"""
     is_ts_compat = lambda x: isinstance(x, (Timestamp, DateOffset))
     is_td_compat = lambda x: isinstance(x, (Timedelta, DateOffset))

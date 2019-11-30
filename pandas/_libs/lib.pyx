@@ -4,7 +4,6 @@ from fractions import Fraction
 from numbers import Number
 
 import sys
-import warnings
 
 import cython
 from cython import Py_ssize_t
@@ -615,7 +614,7 @@ def clean_index_list(obj: list):
 
     # don't force numpy coerce with nan's
     inferred = infer_dtype(obj, skipna=False)
-    if inferred in ['string', 'bytes', 'unicode', 'mixed', 'mixed-integer']:
+    if inferred in ['string', 'bytes', 'mixed', 'mixed-integer']:
         return np.asarray(obj, dtype=object), 0
     elif inferred in ['integer']:
         # TODO: we infer an integer but it *could* be a uint64
@@ -1094,7 +1093,7 @@ cdef _try_infer_map(v):
     return None
 
 
-def infer_dtype(value: object, skipna: object=None) -> str:
+def infer_dtype(value: object, skipna: bool = True) -> str:
     """
     Efficiently infer the type of a passed val, or list-like
     array of values. Return a string describing the type.
@@ -1102,7 +1101,7 @@ def infer_dtype(value: object, skipna: object=None) -> str:
     Parameters
     ----------
     value : scalar, list, ndarray, or pandas type
-    skipna : bool, default False
+    skipna : bool, default True
         Ignore NaN values when inferring the type.
 
         .. versionadded:: 0.21.0
@@ -1113,7 +1112,6 @@ def infer_dtype(value: object, skipna: object=None) -> str:
     Results can include:
 
     - string
-    - unicode
     - bytes
     - floating
     - integer
@@ -1199,12 +1197,6 @@ def infer_dtype(value: object, skipna: object=None) -> str:
         ndarray values
         bint seen_pdnat = False
         bint seen_val = False
-
-    if skipna is None:
-        msg = ('A future version of pandas will default to `skipna=True`. To '
-               'silence this warning, pass `skipna=True|False` explicitly.')
-        warnings.warn(msg, FutureWarning, stacklevel=2)
-        skipna = False
 
     if util.is_array(value):
         values = value
@@ -2208,9 +2200,13 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
     return objects
 
 
+_no_default = object()
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=1):
+def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=1,
+                   object na_value=_no_default, object dtype=object):
     """
     Substitute for np.vectorize with pandas-friendly dtype inference
 
@@ -2218,6 +2214,15 @@ def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=1)
     ----------
     arr : ndarray
     f : function
+    mask : ndarray
+        uint8 dtype ndarray indicating values not to apply `f` to.
+    convert : bool, default True
+        Whether to call `maybe_convert_objects` on the resulting ndarray
+    na_value : Any, optional
+        The result value to use for masked values. By default, the
+        input value is used
+    dtype : numpy.dtype
+        The numpy dtype to use for the result ndarray.
 
     Returns
     -------
@@ -2225,14 +2230,17 @@ def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=1)
     """
     cdef:
         Py_ssize_t i, n
-        ndarray[object] result
+        ndarray result
         object val
 
     n = len(arr)
-    result = np.empty(n, dtype=object)
+    result = np.empty(n, dtype=dtype)
     for i in range(n):
         if mask[i]:
-            val = arr[i]
+            if na_value is _no_default:
+                val = arr[i]
+            else:
+                val = na_value
         else:
             val = f(arr[i])
 

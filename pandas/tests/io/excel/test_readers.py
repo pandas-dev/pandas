@@ -88,26 +88,17 @@ class TestReaders:
         df_ref = df_ref.reindex(columns=["A", "B", "C"])
 
         # usecols as int
-        with tm.assert_produces_warning(
-            FutureWarning, check_stacklevel=False, raise_on_extra_warnings=False
-        ):
+        msg = "Passing an integer for `usecols`"
+        with pytest.raises(ValueError, match=msg):
             with ignore_xlrd_time_clock_warning():
-                df1 = pd.read_excel(
-                    "test1" + read_ext, "Sheet1", index_col=0, usecols=3
-                )
+                pd.read_excel("test1" + read_ext, "Sheet1", index_col=0, usecols=3)
 
         # usecols as int
-        with tm.assert_produces_warning(
-            FutureWarning, check_stacklevel=False, raise_on_extra_warnings=False
-        ):
+        with pytest.raises(ValueError, match=msg):
             with ignore_xlrd_time_clock_warning():
-                df2 = pd.read_excel(
+                pd.read_excel(
                     "test1" + read_ext, "Sheet2", skiprows=[1], index_col=0, usecols=3
                 )
-
-        # TODO add index to xls file)
-        tm.assert_frame_equal(df1, df_ref, check_names=False)
-        tm.assert_frame_equal(df2, df_ref, check_names=False)
 
     def test_usecols_list(self, read_ext, df_ref):
 
@@ -893,7 +884,7 @@ class TestExcelFileRead:
     def test_unexpected_kwargs_raises(self, read_ext, arg):
         # gh-17964
         kwarg = {arg: "Sheet1"}
-        msg = "unexpected keyword argument `{}`".format(arg)
+        msg = r"unexpected keyword argument `{}`".format(arg)
 
         with pd.ExcelFile("test1" + read_ext) as excel:
             with pytest.raises(TypeError, match=msg):
@@ -916,14 +907,6 @@ class TestExcelFileRead:
         with pd.ExcelFile("test1" + read_ext) as excel:
             df3 = pd.read_excel(excel, 0, index_col=0, skipfooter=1)
         tm.assert_frame_equal(df3, df1.iloc[:-1])
-
-        with tm.assert_produces_warning(
-            FutureWarning, check_stacklevel=False, raise_on_extra_warnings=False
-        ):
-            with pd.ExcelFile("test1" + read_ext) as excel:
-                df4 = pd.read_excel(excel, 0, index_col=0, skip_footer=1)
-
-            tm.assert_frame_equal(df3, df4)
 
         with pd.ExcelFile("test1" + read_ext) as excel:
             df3 = excel.parse(0, index_col=0, skipfooter=1)

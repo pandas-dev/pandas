@@ -3,14 +3,16 @@ channels:
   - defaults
 dependencies:
   - python=3.7.*
-  - pytz
-  - Cython>=0.29.13
-  # universal
-  # pytest < 5 until defaults has pytest-xdist>=1.29.0
-  - pytest>=4.0.2,<5.0
-  - pytest-xdist
-  - pytest-mock
+
+  # tools
+  - cython>=0.29.13
+  - pytest>=5.0.1
+  - pytest-xdist>=1.21
   - hypothesis>=3.58.0
+  - pytest-azurepipelines
+
+  # pandas dependencies
+  - pytz
   - pip
   - pip:
     - "git+git://github.com/dateutil/dateutil.git"
@@ -18,5 +20,3 @@ dependencies:
     - "--pre"
     - "numpy"
     - "scipy"
-    # https://github.com/pandas-dev/pandas/issues/27421
-    - pytest-azurepipelines<1.0.0

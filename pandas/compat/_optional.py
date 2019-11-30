@@ -8,7 +8,7 @@ import warnings
 VERSIONS = {
     "bs4": "4.6.0",
     "bottleneck": "1.2.1",
-    "fastparquet": "0.2.1",
+    "fastparquet": "0.3.2",
     "gcsfs": "0.2.2",
     "lxml.etree": "3.8.0",
     "matplotlib": "2.2.2",
@@ -16,8 +16,9 @@ VERSIONS = {
     "odfpy": "1.3.0",
     "openpyxl": "2.4.8",
     "pandas_gbq": "0.8.0",
-    "pyarrow": "0.9.0",
+    "pyarrow": "0.12.0",
     "pytables": "3.4.2",
+    "pytest": "5.0.1",
     "s3fs": "0.3.0",
     "scipy": "0.19.0",
     "sqlalchemy": "1.1.4",
@@ -28,15 +29,6 @@ VERSIONS = {
     "xlsxwriter": "0.9.8",
 }
 
-message = (
-    "Missing optional dependency '{name}'. {extra} "
-    "Use pip or conda to install {name}."
-)
-version_message = (
-    "Pandas requires version '{minimum_version}' or newer of '{name}' "
-    "(version '{actual_version}' currently installed)."
-)
-
 
 def _get_version(module: types.ModuleType) -> str:
     version = getattr(module, "__version__", None)
@@ -45,7 +37,7 @@ def _get_version(module: types.ModuleType) -> str:
         version = getattr(module, "__VERSION__", None)
 
     if version is None:
-        raise ImportError("Can't determine version for {}".format(module.__name__))
+        raise ImportError(f"Can't determine version for {module.__name__}")
     return version
 
 
@@ -86,11 +78,15 @@ def import_optional_dependency(
         is False, or when the package's version is too old and `on_version`
         is ``'warn'``.
     """
+    msg = (
+        f"Missing optional dependency '{name}'. {extra} "
+        f"Use pip or conda to install {name}."
+    )
     try:
         module = importlib.import_module(name)
     except ImportError:
         if raise_on_missing:
-            raise ImportError(message.format(name=name, extra=extra)) from None
+            raise ImportError(msg) from None
         else:
             return None
 
@@ -99,8 +95,9 @@ def import_optional_dependency(
         version = _get_version(module)
         if distutils.version.LooseVersion(version) < minimum_version:
             assert on_version in {"warn", "raise", "ignore"}
-            msg = version_message.format(
-                minimum_version=minimum_version, name=name, actual_version=version
+            msg = (
+                f"Pandas requires version '{minimum_version}' or newer of '{name}' "
+                f"(version '{version}' currently installed)."
             )
             if on_version == "warn":
                 warnings.warn(msg, UserWarning)

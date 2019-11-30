@@ -87,16 +87,16 @@ class PyperclipException(RuntimeError):
 
 class PyperclipWindowsException(PyperclipException):
     def __init__(self, message):
-        message += " (%s)" % ctypes.WinError()
+        message += f" ({ctypes.WinError()})"
         super().__init__(message)
 
 
-def _stringifyText(text):
+def _stringifyText(text) -> str:
     acceptedTypes = (str, int, float, bool)
     if not isinstance(text, acceptedTypes):
         raise PyperclipException(
-            f"only str, int, float, and bool values"
-            f"can be copied to the clipboard, not {text.__class__.__name__}"
+            f"only str, int, float, and bool values "
+            f"can be copied to the clipboard, not {type(text).__name__}"
         )
     return str(text)
 
@@ -156,7 +156,7 @@ def init_qt_clipboard():
         cb = app.clipboard()
         cb.setText(text)
 
-    def paste_qt():
+    def paste_qt() -> str:
         cb = app.clipboard()
         return str(cb.text())
 
@@ -270,14 +270,12 @@ def init_dev_clipboard_clipboard():
         if "\r" in text:
             warnings.warn("Pyperclip cannot handle \\r characters on Cygwin.")
 
-        fo = open("/dev/clipboard", "wt")
-        fo.write(text)
-        fo.close()
+        with open("/dev/clipboard", "wt") as fo:
+            fo.write(text)
 
-    def paste_dev_clipboard():
-        fo = open("/dev/clipboard", "rt")
-        content = fo.read()
-        fo.close()
+    def paste_dev_clipboard() -> str:
+        with open("/dev/clipboard", "rt") as fo:
+            content = fo.read()
         return content
 
     return copy_dev_clipboard, paste_dev_clipboard
@@ -288,7 +286,7 @@ def init_no_clipboard():
         def __call__(self, *args, **kwargs):
             raise PyperclipException(EXCEPT_MSG)
 
-        def __bool__(self):
+        def __bool__(self) -> bool:
             return False
 
     return ClipboardUnavailable(), ClipboardUnavailable()
@@ -599,9 +597,9 @@ def set_clipboard(clipboard):
     }
 
     if clipboard not in clipboard_types:
+        allowed_clipboard_types = [repr(_) for _ in clipboard_types.keys()]
         raise ValueError(
-            "Argument must be one of %s"
-            % (", ".join([repr(_) for _ in clipboard_types.keys()]))
+            f"Argument must be one of {', '.join(allowed_clipboard_types)}"
         )
 
     # Sets pyperclip's copy() and paste() functions:
@@ -652,7 +650,7 @@ def lazy_load_stub_paste():
     return paste()
 
 
-def is_available():
+def is_available() -> bool:
     return copy != lazy_load_stub_copy and paste != lazy_load_stub_paste
 
 

@@ -21,17 +21,11 @@ class TestTimedeltaArithmetic:
             Timestamp("1700-01-01") + timedelta(days=13 * 19999)
 
     def test_array_timedelta_floordiv(self):
-        # https://github.com/pandas-dev/pandas/issues/19761
+        # deprected GH#19761, enforced GH#29797
         ints = pd.date_range("2012-10-08", periods=4, freq="D").view("i8")
-        msg = r"Use 'array // timedelta.value'"
-        with tm.assert_produces_warning(FutureWarning) as m:
-            result = ints // Timedelta(1, unit="s")
 
-        assert msg in str(m[0].message)
-        expected = np.array(
-            [1349654400, 1349740800, 1349827200, 1349913600], dtype="i8"
-        )
-        tm.assert_numpy_array_equal(result, expected)
+        with pytest.raises(TypeError, match="Invalid dtype"):
+            ints // Timedelta(1, unit="s")
 
     def test_ops_error_str(self):
         # GH 13624
@@ -810,9 +804,13 @@ class TestTimedeltas:
     def test_resolution_deprecated(self):
         # GH#21344
         td = Timedelta(days=4, hours=3)
-        with tm.assert_produces_warning(FutureWarning) as w:
-            td.resolution
-        assert "Use Timedelta.resolution_string instead" in str(w[0].message)
+        result = td.resolution
+        assert result == Timedelta(nanoseconds=1)
+
+        # Check that the attribute is available on the class, mirroring
+        #  the stdlib timedelta behavior
+        result = Timedelta.resolution
+        assert result == Timedelta(nanoseconds=1)
 
 
 @pytest.mark.parametrize(

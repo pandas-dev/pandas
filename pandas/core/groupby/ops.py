@@ -90,7 +90,7 @@ class BaseGrouper:
 
         self._filter_empty_groups = self.compressed = len(groupings) != 1
         self.axis = axis
-        self._groupings = list(groupings)  # type: List[grouper.Grouping]
+        self._groupings: List[grouper.Grouping] = list(groupings)
         self.sort = sort
         self.group_keys = group_keys
         self.mutated = mutated
@@ -153,7 +153,7 @@ class BaseGrouper:
         group_keys = self._get_group_keys()
         result_values = None
 
-        sdata = splitter._get_sorted_data()  # type: FrameOrSeries
+        sdata: FrameOrSeries = splitter._get_sorted_data()
         if sdata.ndim == 2 and np.any(sdata.dtypes.apply(is_extension_array_dtype)):
             # calling splitter.fast_apply will raise TypeError via apply_frame_axis0
             #  if we pass EA instead of ndarray
@@ -424,8 +424,15 @@ class BaseGrouper:
         return func, values
 
     def _cython_operation(
-        self, kind: str, values, how: str, axis: int, min_count: int = -1, **kwargs
-    ):
+        self, kind: str, values, how: str, axis, min_count: int = -1, **kwargs
+    ) -> Tuple[np.ndarray, Optional[List[str]]]:
+        """
+        Returns the values of a cython operation as a Tuple of [data, names].
+
+        Names is only useful when dealing with 2D results, like ohlc
+        (see self._name_functions).
+        """
+
         assert kind in ["transform", "aggregate"]
         orig_values = values
 
@@ -445,18 +452,16 @@ class BaseGrouper:
         # categoricals are only 1d, so we
         # are not setup for dim transforming
         if is_categorical_dtype(values) or is_sparse(values):
-            raise NotImplementedError(
-                "{dtype} dtype not supported".format(dtype=values.dtype)
-            )
+            raise NotImplementedError(f"{values.dtype} dtype not supported")
         elif is_datetime64_any_dtype(values):
             if how in ["add", "prod", "cumsum", "cumprod"]:
                 raise NotImplementedError(
-                    "datetime64 type does not support {how} operations".format(how=how)
+                    f"datetime64 type does not support {how} operations"
                 )
         elif is_timedelta64_dtype(values):
             if how in ["prod", "cumprod"]:
                 raise NotImplementedError(
-                    "timedelta64 type does not support {how} operations".format(how=how)
+                    f"timedelta64 type does not support {how} operations"
                 )
 
         if is_datetime64tz_dtype(values.dtype):
@@ -509,9 +514,7 @@ class BaseGrouper:
             out_dtype = "float"
         else:
             if is_numeric:
-                out_dtype = "{kind}{itemsize}".format(
-                    kind=values.dtype.kind, itemsize=values.dtype.itemsize
-                )
+                out_dtype = f"{values.dtype.kind}{values.dtype.itemsize}"
             else:
                 out_dtype = "object"
 
@@ -548,7 +551,7 @@ class BaseGrouper:
         if vdim == 1 and arity == 1:
             result = result[:, 0]
 
-        names = self._name_functions.get(how, None)  # type: Optional[List[str]]
+        names: Optional[List[str]] = self._name_functions.get(how, None)
 
         if swapped:
             result = result.swapaxes(0, axis)
@@ -604,11 +607,11 @@ class BaseGrouper:
             # SeriesGrouper would raise if we were to call _aggregate_series_fast
             return self._aggregate_series_pure_python(obj, func)
 
-        elif is_extension_array_dtype(obj.dtype) and obj.dtype.kind != "M":
+        elif is_extension_array_dtype(obj.dtype):
             # _aggregate_series_fast would raise TypeError when
             #  calling libreduction.Slider
+            # In the datetime64tz case it would incorrectly cast to tz-naive
             # TODO: can we get a performant workaround for EAs backed by ndarray?
-            # TODO: is the datetime64tz case supposed to go through here?
             return self._aggregate_series_pure_python(obj, func)
 
         elif isinstance(obj.index, MultiIndex):
@@ -657,7 +660,15 @@ class BaseGrouper:
             res = func(group)
             if result is None:
                 if isinstance(res, (Series, Index, np.ndarray)):
-                    raise ValueError("Function does not reduce")
+                    if len(res) == 1:
+                        # e.g. test_agg_lambda_with_timezone lambda e: e.head(1)
+                        # FIXME: are we potentially losing import res.index info?
+
+                        # TODO: use `.item()` if/when we un-deprecate it.
+                        # For non-Series we could just do `res[0]`
+                        res = next(iter(res))
+                    else:
+                        raise ValueError("Function does not reduce")
                 result = np.empty(ngroups, dtype="O")
 
             counts[label] = group.shape[0]
@@ -912,7 +923,7 @@ class FrameSplitter(DataSplitter):
 
 def get_splitter(data: FrameOrSeries, *args, **kwargs) -> DataSplitter:
     if isinstance(data, Series):
-        klass = SeriesSplitter  # type: Type[DataSplitter]
+        klass: Type[DataSplitter] = SeriesSplitter
     else:
         # i.e. DataFrame
         klass = FrameSplitter

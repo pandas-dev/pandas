@@ -317,7 +317,7 @@ def get_callable_name(obj):
         return get_callable_name(obj.func)
     # fall back to class name
     if hasattr(obj, "__call__"):
-        return obj.__class__.__name__
+        return type(obj).__name__
     # everything failed (probably because the argument
     # wasn't actually callable); we return None
     # instead of the empty string in this case to allow
@@ -451,7 +451,7 @@ def pipe(obj, func, *args, **kwargs):
     if isinstance(func, tuple):
         func, target = func
         if target in kwargs:
-            msg = "%s is both the pipe target and a keyword argument" % target
+            msg = f"{target} is both the pipe target and a keyword argument"
             raise ValueError(msg)
         kwargs[target] = obj
         return func(*args, **kwargs)

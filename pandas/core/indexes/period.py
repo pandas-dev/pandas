@@ -310,23 +310,8 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         return np.asarray(self)
 
     @property
-    def freq(self):
+    def freq(self) -> DateOffset:
         return self._data.freq
-
-    @freq.setter
-    def freq(self, value):
-        value = Period._maybe_convert_freq(value)
-        # TODO: When this deprecation is enforced, PeriodIndex.freq can
-        # be removed entirely, and we'll just inherit.
-        msg = (
-            "Setting {cls}.freq has been deprecated and will be "
-            "removed in a future version; use {cls}.asfreq instead. "
-            "The {cls}.freq setter is not guaranteed to work."
-        )
-        warnings.warn(msg.format(cls=type(self).__name__), FutureWarning, stacklevel=2)
-        # PeriodArray._freq isn't actually mutable. We set the private _freq
-        # here, but people shouldn't be doing this anyway.
-        self._data._freq = value
 
     def _shallow_copy(self, values=None, **kwargs):
         # TODO: simplify, figure out type of values
@@ -447,7 +432,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         return self._engine_type(period, len(self))
 
     @Appender(_index_shared_docs["contains"])
-    def __contains__(self, key):
+    def __contains__(self, key) -> bool:
         if isinstance(key, Period):
             if key.freq != self.freq:
                 return False
@@ -578,7 +563,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         return True
 
     @property
-    def is_full(self):
+    def is_full(self) -> bool:
         """
         Returns True if this PeriodIndex is range-like in that all Periods
         between start and end are present, in order.
@@ -926,20 +911,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
     _unpickle_compat = __setstate__
 
-    @property
-    def flags(self):
-        """ return the ndarray.flags for the underlying data """
-        warnings.warn(
-            "{obj}.flags is deprecated and will be removed "
-            "in a future version".format(obj=type(self).__name__),
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._ndarray_values.flags
-
     def item(self):
         """
-        return the first element of the underlying data as a python
+        Return the first element of the underlying data as a python
         scalar
 
         .. deprecated:: 0.25.0
@@ -958,30 +932,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             # copy numpy's message here because Py26 raises an IndexError
             raise ValueError("can only convert an array of size 1 to a Python scalar")
 
-    @property
-    def data(self):
-        """ return the data pointer of the underlying data """
-        warnings.warn(
-            "{obj}.data is deprecated and will be removed "
-            "in a future version".format(obj=type(self).__name__),
-            FutureWarning,
-            stacklevel=2,
-        )
-        return np.asarray(self._data).data
-
-    @property
-    def base(self):
-        """ return the base object if the memory of the underlying data is
-        shared
-        """
-        warnings.warn(
-            "{obj}.base is deprecated and will be removed "
-            "in a future version".format(obj=type(self).__name__),
-            FutureWarning,
-            stacklevel=2,
-        )
-        return np.asarray(self._data)
-
     def memory_usage(self, deep=False):
         result = super().memory_usage(deep=deep)
         if hasattr(self, "_cache") and "_int64index" in self._cache:
@@ -995,7 +945,9 @@ PeriodIndex._add_logical_methods_disabled()
 PeriodIndex._add_datetimelike_methods()
 
 
-def period_range(start=None, end=None, periods=None, freq=None, name=None):
+def period_range(
+    start=None, end=None, periods=None, freq=None, name=None
+) -> PeriodIndex:
     """
     Return a fixed frequency PeriodIndex.
 
