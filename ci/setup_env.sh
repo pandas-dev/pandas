@@ -2,14 +2,17 @@
 
 # edit the locale file if needed
 if [ -n "$LC_ALL" ]; then
+    echo "sudo apt-get install -y language-pack-${LC_ALL:0:2}"
+    sudo apt-get install -y language-pack-${LC_ALL:0:2}
+
     echo "Adding locale to the first line of pandas/__init__.py"
     rm -f pandas/__init__.pyc
     SEDC="3iimport locale\nlocale.setlocale(locale.LC_ALL, '$LC_ALL')\n"
     sed -i "$SEDC" pandas/__init__.py
+
     echo "[head -4 pandas/__init__.py]"
     head -4 pandas/__init__.py
     echo
-    sudo locale-gen "$LC_ALL"
 fi
 
 MINICONDA_DIR="$HOME/miniconda3"

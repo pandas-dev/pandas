@@ -97,9 +97,9 @@ def test_set_locale(lang, enc):
 
 def test_encoding_detected():
     system_locale = os.environ.get("LC_ALL")
-    if system_locale:
-        system_encoding = system_locale.split(".")[-1].upper().replace("-", "")
-    else:
-        system_encoding = "UTF8"
+    system_encoding = system_locale.split(".")[-1] if system_locale else "utf-8"
 
-    assert pd.options.display.encoding == system_encoding
+    assert (
+        codecs.lookup(pd.options.display.encoding).name
+        == codecs.lookup(system_encoding).name
+    )
