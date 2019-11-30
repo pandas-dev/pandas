@@ -105,12 +105,11 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
 
     # Imports - Check formatting using isort see setup.cfg for settings
     MSG='Check import format using isort ' ; echo $MSG
-    set -o pipefail
-    isort_cmd="isort --recursive --check-only pandas asv_bench"
-    if [[ "$AZURE" == "true" ]]; then
-         eval $isort_cmd | awk '{ORS=""} {print "##vso[task.logissue type=error;sourcepath="$2";]"} {$1=$2=""; print $0}'
+    ISORT_CMD="isort --recursive --check-only pandas asv_bench"
+    if [[ "$GITHUB_ACTIONS" == "true" ]]; then
+         eval $ISORT_CMD | awk '{print "##[error]" $0}'
     else
-        eval $isort_cmd
+        eval $ISORT_CMD
     fi
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
