@@ -911,20 +911,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
     _unpickle_compat = __setstate__
 
-    @property
-    def flags(self):
-        """ return the ndarray.flags for the underlying data """
-        warnings.warn(
-            "{obj}.flags is deprecated and will be removed "
-            "in a future version".format(obj=type(self).__name__),
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._ndarray_values.flags
-
     def item(self):
         """
-        return the first element of the underlying data as a python
+        Return the first element of the underlying data as a python
         scalar
 
         .. deprecated:: 0.25.0
@@ -942,30 +931,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             # TODO: is this still necessary?
             # copy numpy's message here because Py26 raises an IndexError
             raise ValueError("can only convert an array of size 1 to a Python scalar")
-
-    @property
-    def data(self):
-        """ return the data pointer of the underlying data """
-        warnings.warn(
-            "{obj}.data is deprecated and will be removed "
-            "in a future version".format(obj=type(self).__name__),
-            FutureWarning,
-            stacklevel=2,
-        )
-        return np.asarray(self._data).data
-
-    @property
-    def base(self):
-        """ return the base object if the memory of the underlying data is
-        shared
-        """
-        warnings.warn(
-            "{obj}.base is deprecated and will be removed "
-            "in a future version".format(obj=type(self).__name__),
-            FutureWarning,
-            stacklevel=2,
-        )
-        return np.asarray(self._data)
 
     def memory_usage(self, deep=False):
         result = super().memory_usage(deep=deep)
