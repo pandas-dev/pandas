@@ -257,12 +257,12 @@ def test_more_flexible_frame_multi_function(df):
     grouped = df.groupby("A")
 
     exmean = grouped.agg({"C": np.mean, "D": np.mean})
-    exstd = grouped.agg({"C", np.std, "D", np.std})
+    exstd = grouped.agg({"C": np.std, "D": np.std})
 
     expected = concat([exmean, exstd], keys=["mean", "std"], axis=1)
     expected = expected.swaplevel(0, 1, axis=1).sort_index(level=0, axis=1)
 
-    d = dict([["C", [np.mean, np.std]], ["D", [np.mean, np.std]]])
+    d = {"C": [np.mean, np.std], "D": [np.mean, np.std]}
     result = grouped.aggregate(d)
 
     tm.assert_frame_equal(result, expected)
