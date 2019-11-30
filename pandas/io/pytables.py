@@ -1706,7 +1706,6 @@ class IndexCol:
 
     name: str
     cname: str
-    kind_attr: str
 
     def __init__(
         self,
@@ -1717,12 +1716,10 @@ class IndexCol:
         cname: Optional[str] = None,
         itemsize=None,
         axis=None,
-        kind_attr: Optional[str] = None,
         pos=None,
         freq=None,
         tz=None,
         index_name=None,
-        **kwargs,
     ):
 
         if not isinstance(name, str):
@@ -1734,7 +1731,6 @@ class IndexCol:
         self.itemsize = itemsize
         self.name = name
         self.cname = cname or name
-        self.kind_attr = kind_attr or f"{name}_kind"
         self.axis = axis
         self.pos = pos
         self.freq = freq
@@ -1751,7 +1747,10 @@ class IndexCol:
         #  constructor annotations.
         assert isinstance(self.name, str)
         assert isinstance(self.cname, str)
-        assert isinstance(self.kind_attr, str)
+
+    @property
+    def kind_attr(self) -> str:
+        return f"{self.name}_kind"
 
     def set_pos(self, pos: int):
         """ set the position of this column in the Table """
@@ -2044,11 +2043,12 @@ class DataCol(IndexCol):
     _info_fields = ["tz", "ordered"]
 
     @classmethod
-    def create_for_block(cls, i=None, name=None, cname=None, version=None, **kwargs):
+    def create_for_block(
+        cls, i: int, name=None, version=None, pos: Optional[int] = None
+    ):
         """ return a new datacol with the block i """
 
-        if cname is None:
-            cname = name or f"values_block_{i}"
+        cname = name or f"values_block_{i}"
         if name is None:
             name = cname
 
@@ -2063,27 +2063,24 @@ class DataCol(IndexCol):
         except IndexError:
             pass
 
-        return cls(name=name, cname=cname, **kwargs)
+        return cls(name=name, cname=cname, pos=pos)
 
     def __init__(
-        self,
-        values=None,
-        kind=None,
-        typ=None,
-        cname=None,
-        data=None,
-        meta=None,
-        metadata=None,
-        block=None,
-        **kwargs,
+        self, name: str, values=None, kind=None, typ=None, cname=None, pos=None,
     ):
-        super().__init__(values=values, kind=kind, typ=typ, cname=cname, **kwargs)
+        super().__init__(
+            name=name, values=values, kind=kind, typ=typ, pos=pos, cname=cname
+        )
         self.dtype = None
-        self.dtype_attr = f"{self.name}_dtype"
-        self.meta = meta
-        self.meta_attr = f"{self.name}_meta"
-        self.set_data(data)
-        self.set_metadata(metadata)
+        self.data = None
+
+    @property
+    def dtype_attr(self) -> str:
+        return f"{self.name}_dtype"
+
+    @property
+    def meta_attr(self) -> str:
+        return f"{self.name}_meta"
 
     def __repr__(self) -> str:
         temp = tuple(
@@ -3156,8 +3153,15 @@ class Table(Fixed):
     is_table = True
     is_shape_reversed = False
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    index_axes: List[IndexCol]
+    non_index_axes: List[Tuple[int, Any]]
+    values_axes: List[DataCol]
+    data_columns: List
+    metadata: List
+    info: Dict
+
+    def __init__(self, parent: HDFStore, group: "Node", **kwargs):
+        super().__init__(parent, group, **kwargs)
         self.index_axes = []
         self.non_index_axes = []
         self.values_axes = []
@@ -3303,18 +3307,18 @@ class Table(Fixed):
         """ return a dict of the kinds allowable columns for this object """
 
         # compute the values_axes queryables
-        return dict(
-            [(a.cname, a) for a in self.index_axes]
-            + [
-                (self.storage_obj_type._AXIS_NAMES[axis], None)
-                for axis, values in self.non_index_axes
-            ]
-            + [
-                (v.cname, v)
-                for v in self.values_axes
-                if v.name in set(self.data_columns)
-            ]
-        )
+        d1 = [(a.cname, a) for a in self.index_axes]
+        d2 = [
+            (self.storage_obj_type._AXIS_NAMES[axis], None)
+            for axis, values in self.non_index_axes
+        ]
+        d3 = [
+            (v.cname, v) for v in self.values_axes if v.name in set(self.data_columns)
+        ]
+
+        return dict(d1 + d2 + d3)  # type: ignore
+        # error: List comprehension has incompatible type
+        #  List[Tuple[Any, None]]; expected List[Tuple[str, IndexCol]]
 
     def index_cols(self):
         """ return a list of my index cols """
@@ -4435,9 +4439,7 @@ class GenericTable(AppendableFrameTable):
             for i, n in enumerate(d._v_names):
                 assert isinstance(n, str)
 
-                dc = GenericDataIndexableCol(
-                    name=n, pos=i, values=[n], version=self.version
-                )
+                dc = GenericDataIndexableCol(name=n, pos=i, values=[n])
                 self._indexables.append(dc)
 
         return self._indexables
