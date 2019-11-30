@@ -58,7 +58,7 @@ def ignore_xlrd_time_clock_warning():
             ],
         ),
         pytest.param(
-            None,
+            "pyxlsb",
             marks=[
                 td.skip_if_no("pyxlsb"),
                 pytest.mark.filterwarnings("ignore:.*(tree\\.iter|html argument)"),
@@ -80,7 +80,7 @@ class TestReaders:
         """
         Change directory and set engine for read_excel calls.
         """
-        if engine == "openpyxl" and read_ext in (".xls", ".xlsb"):
+        if engine == "openpyxl" and read_ext == ".xls":
             pytest.skip()
         if engine == "odf" and read_ext != ".ods":
             pytest.skip()
@@ -824,17 +824,19 @@ class TestExcelFileRead:
             pytest.skip()
         if read_ext == ".ods" and engine != "odf":
             pytest.skip()
-        if engine == "openpyxl" and read_ext in (".xls", ".xlsb"):
+        if engine == "openpyxl" and read_ext == ".xls":
             pytest.skip()
         if engine == "pyxlsb" and read_ext != ".xlsb":
             pytest.skip()
+        if read_ext == ".xlsb" and engine != "pyxlsb":
+            pytest.skip()
+
 
         func = partial(pd.ExcelFile, engine=engine)
         monkeypatch.chdir(datapath("io", "data", "excel"))
         monkeypatch.setattr(pd, "ExcelFile", func)
 
     def test_excel_passes_na(self, read_ext):
-
         with pd.ExcelFile("test4" + read_ext) as excel:
             parsed = pd.read_excel(
                 excel, "Sheet1", keep_default_na=False, na_values=["apple"]
