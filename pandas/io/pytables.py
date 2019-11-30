@@ -250,16 +250,19 @@ def to_hdf(
     append: bool = False,
     format: Optional[str] = None,
     errors: str = "strict",
+    encoding: str = "UTF-8",
     **kwargs,
 ):
     """ store this object, close it if we opened it """
 
     if append:
         f = lambda store: store.append(
-            key, value, format=format, errors=errors, **kwargs
+            key, value, format=format, errors=errors, encoding=encoding, **kwargs
         )
     else:
-        f = lambda store: store.put(key, value, format=format, errors=errors, **kwargs)
+        f = lambda store: store.put(
+            key, value, format=format, errors=errors, encoding=encoding, **kwargs
+        )
 
     path_or_buf = _stringify_path(path_or_buf)
     if isinstance(path_or_buf, str):
@@ -1037,7 +1040,7 @@ class HDFStore:
         format=None,
         append=True,
         columns=None,
-        dropna=None,
+        dropna: Optional[bool] = None,
         **kwargs,
     ):
         """
@@ -1065,7 +1068,7 @@ class HDFStore:
         chunksize    : size to chunk the writing
         expectedrows : expected TOTAL row size of this table
         encoding     : default None, provide an encoding for strings
-        dropna       : bool, default False
+        dropna : bool, default False
             Do not write an ALL nan row to the store settable
             by the option 'io.hdf.dropna_table'.
 

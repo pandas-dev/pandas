@@ -2433,6 +2433,7 @@ class NDFrame(PandasObject, SelectionMixin):
         append: bool_t = False,
         format: Optional[str] = None,
         errors: str = "strict",
+        encoding: str = "UTF-8",
         **kwargs,
     ):
         """
@@ -2549,6 +2550,7 @@ class NDFrame(PandasObject, SelectionMixin):
             append=append,
             format=format,
             errors=errors,
+            encoding=encoding,
             **kwargs,
         )
 
