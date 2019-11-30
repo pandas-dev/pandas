@@ -2423,7 +2423,9 @@ class NDFrame(PandasObject, SelectionMixin):
             indent=indent,
         )
 
-    def to_hdf(self, path_or_buf, key, **kwargs):
+    def to_hdf(
+        self, path_or_buf, key: str, mode: str = "a", append: bool_t = False, **kwargs
+    ):
         """
         Write the contained data to an HDF5 file using HDFStore.
 
@@ -2526,7 +2528,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         from pandas.io import pytables
 
-        pytables.to_hdf(path_or_buf, key, self, **kwargs)
+        pytables.to_hdf(path_or_buf, key, self, mode=mode, append=append, **kwargs)
 
     def to_msgpack(self, path_or_buf=None, encoding="utf-8", **kwargs):
         """

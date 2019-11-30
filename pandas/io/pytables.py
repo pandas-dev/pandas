@@ -54,6 +54,7 @@ from pandas.io.formats.printing import adjoin, pprint_thing
 
 if TYPE_CHECKING:
     from tables import File, Node  # noqa:F401
+    from pandas.core.generic import NDFrame  # noqa:F401
 
 
 # versioning attribute
@@ -241,12 +242,12 @@ def _tables():
 
 def to_hdf(
     path_or_buf,
-    key,
-    value,
-    mode=None,
+    key: str,
+    value: "NDFrame",
+    mode: str = "a",
     complevel: Optional[int] = None,
     complib=None,
-    append=None,
+    append: bool = False,
     **kwargs,
 ):
     """ store this object, close it if we opened it """
