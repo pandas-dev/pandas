@@ -51,7 +51,8 @@ class _PyxlsbReader(_BaseExcelReader):
     def _convert_cell(self, cell, convert_float: bool) -> Scalar:
         # Todo: there is no way to distinguish between floats and datetimes in pyxlsb
         # This means that there is no way to read datetime types from an xlsb file yet
-
+        if cell.v is None:
+            return ""  # Prevents non-named columns from not showing up as Unnamed: i
         if isinstance(cell.v, float) and convert_float:
             val = int(cell.v)
             if val == cell.v:
