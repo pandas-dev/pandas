@@ -2673,7 +2673,7 @@ class StataStrLWriter:
 
         self.df = df
         self.columns = columns
-        self._gso_table = dict((("", (0, 0)),))
+        self._gso_table = {"": (0, 0)}
         if byteorder is None:
             byteorder = sys.byteorder
         self._byteorder = _set_endianness(byteorder)

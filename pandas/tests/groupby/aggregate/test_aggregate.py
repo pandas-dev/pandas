@@ -174,18 +174,14 @@ def test_aggregate_str_func(tsframe, groupbyfunc):
     tm.assert_frame_equal(result, expected)
 
     # group frame by function dict
-    result = grouped.agg(
-        dict([["A", "var"], ["B", "std"], ["C", "mean"], ["D", "sem"]])
-    )
+    result = grouped.agg({"A": "var", "B": "std", "C": "mean", "D": "sem"})
     expected = DataFrame(
-        dict(
-            [
-                ["A", grouped["A"].var()],
-                ["B", grouped["B"].std()],
-                ["C", grouped["C"].mean()],
-                ["D", grouped["D"].sem()],
-            ]
-        )
+        {
+            "A": grouped["A"].var(),
+            "B": grouped["B"].std(),
+            "C": grouped["C"].mean(),
+            "D": grouped["D"].sem(),
+        }
     )
     tm.assert_frame_equal(result, expected)
 
@@ -260,8 +256,8 @@ def test_multiple_functions_tuples_and_non_tuples(df):
 def test_more_flexible_frame_multi_function(df):
     grouped = df.groupby("A")
 
-    exmean = grouped.agg(dict([["C", np.mean], ["D", np.mean]]))
-    exstd = grouped.agg(dict([["C", np.std], ["D", np.std]]))
+    exmean = grouped.agg({"C": np.mean, "D": np.mean})
+    exstd = grouped.agg({"C", np.std, "D", np.std})
 
     expected = concat([exmean, exstd], keys=["mean", "std"], axis=1)
     expected = expected.swaplevel(0, 1, axis=1).sort_index(level=0, axis=1)
@@ -272,8 +268,8 @@ def test_more_flexible_frame_multi_function(df):
     tm.assert_frame_equal(result, expected)
 
     # be careful
-    result = grouped.aggregate(dict([["C", np.mean], ["D", [np.mean, np.std]]]))
-    expected = grouped.aggregate(dict([["C", np.mean], ["D", [np.mean, np.std]]]))
+    result = grouped.aggregate({"C": np.mean, "D": [np.mean, np.std]})
+    expected = grouped.aggregate({"C": np.mean, "D": [np.mean, np.std]})
     tm.assert_frame_equal(result, expected)
 
     def foo(x):
@@ -289,7 +285,7 @@ def test_more_flexible_frame_multi_function(df):
         grouped.aggregate(d)
 
     # But without renaming, these functions are OK
-    d = dict([["C", [np.mean]], ["D", [foo, bar]]])
+    d = {"C": [np.mean], "D": [foo, bar]}
     grouped.aggregate(d)
 
 
@@ -298,20 +294,20 @@ def test_multi_function_flexible_mix(df):
     grouped = df.groupby("A")
 
     # Expected
-    d = dict([["C", dict([["foo", "mean"], ["bar", "std"]])], ["D", {"sum": "sum"}]])
+    d = {"C": {"foo": "mean", "bar": "std"}, "D": {"sum": "sum"}}
     # this uses column selection & renaming
     msg = r"nested renamer is not supported"
     with pytest.raises(SpecificationError, match=msg):
         grouped.aggregate(d)
 
     # Test 1
-    d = dict([["C", dict([["foo", "mean"], ["bar", "std"]])], ["D", "sum"]])
+    d = {"C": {"foo": "mean", "bar": "std"}, "D": "sum"}
     # this uses column selection & renaming
     with pytest.raises(SpecificationError, match=msg):
         grouped.aggregate(d)
 
     # Test 2
-    d = dict([["C", dict([["foo", "mean"], ["bar", "std"]])], ["D", ["sum"]]])
+    d = {"C": {"foo": "mean", "bar": "std"}, "D": "sum"}
     # this uses column selection & renaming
     with pytest.raises(SpecificationError, match=msg):
         grouped.aggregate(d)
@@ -631,7 +627,7 @@ class TestLambdaMangling:
         assert func["A"][0](0, 2, b=3) == (0, 2, 3)
 
     def test_maybe_mangle_lambdas_named(self):
-        func = dict([("C", np.mean), ("D", dict([("foo", np.mean), ("bar", np.mean)]))])
+        func = {"C": np.mean, "D": {"foo": np.mean, "bar": np.mean}}
         result = _maybe_mangle_lambdas(func)
         assert result == func
 

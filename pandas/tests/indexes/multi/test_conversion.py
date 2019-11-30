@@ -105,14 +105,12 @@ def test_to_frame_dtype_fidelity():
     original_dtypes = {name: mi.levels[i].dtype for i, name in enumerate(mi.names)}
 
     expected_df = pd.DataFrame(
-        dict(
-            [
-                ("dates", pd.date_range("19910905", periods=6, tz="US/Eastern")),
-                ("a", [1, 1, 1, 2, 2, 2]),
-                ("b", pd.Categorical(["a", "a", "b", "b", "c", "c"], ordered=True)),
-                ("c", ["x", "x", "y", "z", "x", "y"]),
-            ]
-        )
+        {
+            "dates": pd.date_range("19910905", periods=6, tz="US/Eastern"),
+            "a": [1, 1, 1, 2, 2, 2],
+            "b": pd.Categorical(["a", "a", "b", "b", "c", "c"], ordered=True),
+            "c": ["x", "x", "y", "z", "x", "y"],
+        }
     )
     df = mi.to_frame(index=False)
     df_dtypes = df.dtypes.to_dict()

@@ -652,14 +652,12 @@ def test_from_frame_error(non_frame):
 def test_from_frame_dtype_fidelity():
     # GH 22420
     df = pd.DataFrame(
-        dict(
-            [
-                ("dates", pd.date_range("19910905", periods=6, tz="US/Eastern")),
-                ("a", [1, 1, 1, 2, 2, 2]),
-                ("b", pd.Categorical(["a", "a", "b", "b", "c", "c"], ordered=True)),
-                ("c", ["x", "x", "y", "z", "x", "y"]),
-            ]
-        )
+        {
+            "dates": pd.date_range("19910905", periods=6, tz="US/Eastern"),
+            "a": [1, 1, 1, 2, 2, 2],
+            "b": pd.Categorical(["a", "a", "b", "b", "c", "c"], ordered=True),
+            "c": ["x", "x", "y", "z", "x", "y"],
+        }
     )
     original_dtypes = df.dtypes.to_dict()
 
