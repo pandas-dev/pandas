@@ -60,17 +60,17 @@ class TestTimedeltaIndex:
     def test_dt64_data_invalid(self):
         # GH#23539
         # passing tz-aware DatetimeIndex raises, naive or ndarray[datetime64]
-        #  does not yet, but will in the future
+        #  raise as of GH#29794
         dti = pd.date_range("2016-01-01", periods=3)
 
         msg = "cannot be converted to timedelta64"
         with pytest.raises(TypeError, match=msg):
             TimedeltaIndex(dti.tz_localize("Europe/Brussels"))
 
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match=msg):
             TimedeltaIndex(dti)
 
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match=msg):
             TimedeltaIndex(np.asarray(dti))
 
     def test_float64_ns_rounded(self):

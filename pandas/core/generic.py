@@ -92,7 +92,7 @@ from pandas.tseries.frequencies import to_offset
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
-_shared_docs = dict()  # type: Dict[str, str]
+_shared_docs: Dict[str, str] = dict()
 _shared_doc_kwargs = dict(
     axes="keywords for axes",
     klass="Series/DataFrame",
@@ -154,7 +154,7 @@ class NDFrame(PandasObject, SelectionMixin):
     copy : bool, default False
     """
 
-    _internal_names = [
+    _internal_names: List[str] = [
         "_data",
         "_cacher",
         "_item_cache",
@@ -168,24 +168,13 @@ class NDFrame(PandasObject, SelectionMixin):
         "_metadata",
         "__array_struct__",
         "__array_interface__",
-    ]  # type: List[str]
-    _internal_names_set = set(_internal_names)  # type: Set[str]
-    _accessors = set()  # type: Set[str]
-    _deprecations = frozenset(
-        [
-            "clip_lower",
-            "clip_upper",
-            "get_dtype_counts",
-            "get_ftype_counts",
-            "get_values",
-            "is_copy",
-            "ftypes",
-            "ix",
-        ]
-    )  # type: FrozenSet[str]
-    _metadata = []  # type: List[str]
+    ]
+    _internal_names_set: Set[str] = set(_internal_names)
+    _accessors: Set[str] = set()
+    _deprecations: FrozenSet[str] = frozenset(["get_dtype_counts", "get_values", "ix"])
+    _metadata: List[str] = []
     _is_copy = None
-    _data = None  # type: BlockManager
+    _data: BlockManager
     _attrs: Dict[Optional[Hashable], Any]
 
     # ----------------------------------------------------------------------
@@ -252,29 +241,6 @@ class NDFrame(PandasObject, SelectionMixin):
     def attrs(self, value: Mapping[Optional[Hashable], Any]) -> None:
         self._attrs = dict(value)
 
-    @property
-    def is_copy(self):
-        """
-        Return the copy.
-        """
-        warnings.warn(
-            "Attribute 'is_copy' is deprecated and will be removed "
-            "in a future version.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._is_copy
-
-    @is_copy.setter
-    def is_copy(self, msg):
-        warnings.warn(
-            "Attribute 'is_copy' is deprecated and will be removed "
-            "in a future version.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        self._is_copy = msg
-
     def _validate_dtype(self, dtype):
         """ validate the passed dtype """
 
@@ -285,7 +251,7 @@ class NDFrame(PandasObject, SelectionMixin):
             if dtype.kind == "V":
                 raise NotImplementedError(
                     "compound dtypes are not implemented"
-                    " in the {0} constructor".format(self.__class__.__name__)
+                    " in the {0} constructor".format(type(self).__name__)
                 )
 
         return dtype
@@ -1568,7 +1534,7 @@ class NDFrame(PandasObject, SelectionMixin):
         raise ValueError(
             "The truth value of a {0} is ambiguous. "
             "Use a.empty, a.bool(), a.item(), a.any() or a.all().".format(
-                self.__class__.__name__
+                type(self).__name__
             )
         )
 
@@ -1593,7 +1559,7 @@ class NDFrame(PandasObject, SelectionMixin):
         elif is_scalar(v):
             raise ValueError(
                 "bool cannot act on a non-boolean single element "
-                "{0}".format(self.__class__.__name__)
+                "{0}".format(type(self).__name__)
             )
 
         self.__nonzero__()
@@ -1899,7 +1865,7 @@ class NDFrame(PandasObject, SelectionMixin):
     def __hash__(self):
         raise TypeError(
             "{0!r} objects are mutable, thus they cannot be"
-            " hashed".format(self.__class__.__name__)
+            " hashed".format(type(self).__name__)
         )
 
     def __iter__(self):
@@ -2093,7 +2059,7 @@ class NDFrame(PandasObject, SelectionMixin):
         # string representation based upon iterating over self
         # (since, by definition, `PandasContainers` are iterable)
         prepr = "[%s]" % ",".join(map(pprint_thing, self))
-        return f"{self.__class__.__name__}({prepr})"
+        return f"{type(self).__name__}({prepr})"
 
     def _repr_latex_(self):
         """
@@ -2628,7 +2594,11 @@ class NDFrame(PandasObject, SelectionMixin):
             Name of SQL table.
         con : sqlalchemy.engine.Engine or sqlite3.Connection
             Using SQLAlchemy makes it possible to use any DB supported by that
-            library. Legacy support is provided for sqlite3.Connection objects.
+            library. Legacy support is provided for sqlite3.Connection objects. The user
+            is responsible for engine disposal and connection closure for the SQLAlchemy
+            connectable See `here \
+                <https://docs.sqlalchemy.org/en/13/core/connections.html>`_
+
         schema : str, optional
             Specify the schema (if database flavor supports this). If None, use
             default schema.
@@ -3631,7 +3601,7 @@ class NDFrame(PandasObject, SelectionMixin):
         result._set_is_copy(self, copy=not result._is_view)
         return result
 
-    _xs = xs  # type: Callable
+    _xs: Callable = xs
 
     def __getitem__(self, item):
         raise AbstractMethodError(self)
@@ -5595,49 +5565,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
         return Series(self._data.get_dtype_counts())
 
-    def get_ftype_counts(self):
-        """
-        Return counts of unique ftypes in this object.
-
-        .. deprecated:: 0.23.0
-
-        Returns
-        -------
-        dtype : Series
-            Series with the count of columns with each type and
-            sparsity (dense/sparse).
-
-        See Also
-        --------
-        ftypes : Return ftypes (indication of sparse/dense and dtype) in
-            this object.
-
-        Examples
-        --------
-        >>> a = [['a', 1, 1.0], ['b', 2, 2.0], ['c', 3, 3.0]]
-        >>> df = pd.DataFrame(a, columns=['str', 'int', 'float'])
-        >>> df
-          str  int  float
-        0   a    1    1.0
-        1   b    2    2.0
-        2   c    3    3.0
-
-        >>> df.get_ftype_counts()  # doctest: +SKIP
-        float64:dense    1
-        int64:dense      1
-        object:dense     1
-        dtype: int64
-        """
-        warnings.warn(
-            "get_ftype_counts is deprecated and will be removed in a future version",
-            FutureWarning,
-            stacklevel=2,
-        )
-
-        from pandas import Series
-
-        return Series(self._data.get_ftype_counts())
-
     @property
     def dtypes(self):
         """
@@ -5652,10 +5579,6 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         pandas.Series
             The data type of each column.
-
-        See Also
-        --------
-        DataFrame.ftypes : Dtype and sparsity information.
 
         Examples
         --------
@@ -5673,55 +5596,6 @@ class NDFrame(PandasObject, SelectionMixin):
         from pandas import Series
 
         return Series(self._data.get_dtypes(), index=self._info_axis, dtype=np.object_)
-
-    @property
-    def ftypes(self):
-        """
-        Return the ftypes (indication of sparse/dense and dtype) in DataFrame.
-
-        .. deprecated:: 0.25.0
-           Use :func:`dtypes` instead.
-
-        This returns a Series with the data type of each column.
-        The result's index is the original DataFrame's columns. Columns
-        with mixed types are stored with the ``object`` dtype.  See
-        :ref:`the User Guide <basics.dtypes>` for more.
-
-        Returns
-        -------
-        pandas.Series
-            The data type and indication of sparse/dense of each column.
-
-        See Also
-        --------
-        DataFrame.dtypes: Series with just dtype information.
-
-        Notes
-        -----
-        Sparse data should have the same dtypes as its dense representation.
-
-        Examples
-        --------
-        >>> arr = np.random.RandomState(0).randn(100, 4)
-        >>> arr[arr < .8] = np.nan
-        >>> pd.DataFrame(arr).ftypes
-        0    float64:dense
-        1    float64:dense
-        2    float64:dense
-        3    float64:dense
-        dtype: object
-        """
-        warnings.warn(
-            "DataFrame.ftypes is deprecated and will "
-            "be removed in a future version. "
-            "Use DataFrame.dtypes instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-
-        from pandas import Series
-
-        return Series(self._data.get_ftypes(), index=self._info_axis, dtype=np.object_)
 
     def _to_dict_of_blocks(self, copy=True):
         """
@@ -7525,208 +7399,6 @@ class NDFrame(PandasObject, SelectionMixin):
             )
 
         return result
-
-    def clip_upper(self, threshold, axis=None, inplace=False):
-        """
-        Trim values above a given threshold.
-
-        .. deprecated:: 0.24.0
-            Use clip(upper=threshold) instead.
-
-        Elements above the `threshold` will be changed to match the
-        `threshold` value(s). Threshold can be a single value or an array,
-        in the latter case it performs the truncation element-wise.
-
-        Parameters
-        ----------
-        threshold : numeric or array-like
-            Maximum value allowed. All values above threshold will be set to
-            this value.
-
-            * float : every value is compared to `threshold`.
-            * array-like : The shape of `threshold` should match the object
-              it's compared to. When `self` is a Series, `threshold` should be
-              the length. When `self` is a DataFrame, `threshold` should 2-D
-              and the same shape as `self` for ``axis=None``, or 1-D and the
-              same length as the axis being compared.
-
-        axis : {0 or 'index', 1 or 'columns'}, default 0
-            Align object with `threshold` along the given axis.
-        inplace : bool, default False
-            Whether to perform the operation in place on the data.
-
-            .. versionadded:: 0.21.0
-
-        Returns
-        -------
-        Series or DataFrame
-            Original data with values trimmed.
-
-        See Also
-        --------
-        Series.clip : General purpose method to trim Series values to given
-            threshold(s).
-        DataFrame.clip : General purpose method to trim DataFrame values to
-            given threshold(s).
-
-        Examples
-        --------
-        >>> s = pd.Series([1, 2, 3, 4, 5])
-        >>> s
-        0    1
-        1    2
-        2    3
-        3    4
-        4    5
-        dtype: int64
-
-        >>> s.clip(upper=3)
-        0    1
-        1    2
-        2    3
-        3    3
-        4    3
-        dtype: int64
-
-        >>> elemwise_thresholds = [5, 4, 3, 2, 1]
-        >>> elemwise_thresholds
-        [5, 4, 3, 2, 1]
-
-        >>> s.clip(upper=elemwise_thresholds)
-        0    1
-        1    2
-        2    3
-        3    2
-        4    1
-        dtype: int64
-        """
-        warnings.warn(
-            "clip_upper(threshold) is deprecated, use clip(upper=threshold) instead",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._clip_with_one_bound(
-            threshold, method=self.le, axis=axis, inplace=inplace
-        )
-
-    def clip_lower(self, threshold, axis=None, inplace=False):
-        """
-        Trim values below a given threshold.
-
-        .. deprecated:: 0.24.0
-            Use clip(lower=threshold) instead.
-
-        Elements below the `threshold` will be changed to match the
-        `threshold` value(s). Threshold can be a single value or an array,
-        in the latter case it performs the truncation element-wise.
-
-        Parameters
-        ----------
-        threshold : numeric or array-like
-            Minimum value allowed. All values below threshold will be set to
-            this value.
-
-            * float : every value is compared to `threshold`.
-            * array-like : The shape of `threshold` should match the object
-              it's compared to. When `self` is a Series, `threshold` should be
-              the length. When `self` is a DataFrame, `threshold` should 2-D
-              and the same shape as `self` for ``axis=None``, or 1-D and the
-              same length as the axis being compared.
-
-        axis : {0 or 'index', 1 or 'columns'}, default 0
-            Align `self` with `threshold` along the given axis.
-
-        inplace : bool, default False
-            Whether to perform the operation in place on the data.
-
-            .. versionadded:: 0.21.0
-
-        Returns
-        -------
-        Series or DataFrame
-            Original data with values trimmed.
-
-        See Also
-        --------
-        Series.clip : General purpose method to trim Series values to given
-            threshold(s).
-        DataFrame.clip : General purpose method to trim DataFrame values to
-            given threshold(s).
-
-        Examples
-        --------
-
-        Series single threshold clipping:
-
-        >>> s = pd.Series([5, 6, 7, 8, 9])
-        >>> s.clip(lower=8)
-        0    8
-        1    8
-        2    8
-        3    8
-        4    9
-        dtype: int64
-
-        Series clipping element-wise using an array of thresholds. `threshold`
-        should be the same length as the Series.
-
-        >>> elemwise_thresholds = [4, 8, 7, 2, 5]
-        >>> s.clip(lower=elemwise_thresholds)
-        0    5
-        1    8
-        2    7
-        3    8
-        4    9
-        dtype: int64
-
-        DataFrames can be compared to a scalar.
-
-        >>> df = pd.DataFrame({"A": [1, 3, 5], "B": [2, 4, 6]})
-        >>> df
-           A  B
-        0  1  2
-        1  3  4
-        2  5  6
-
-        >>> df.clip(lower=3)
-           A  B
-        0  3  3
-        1  3  4
-        2  5  6
-
-        Or to an array of values. By default, `threshold` should be the same
-        shape as the DataFrame.
-
-        >>> df.clip(lower=np.array([[3, 4], [2, 2], [6, 2]]))
-           A  B
-        0  3  4
-        1  3  4
-        2  6  6
-
-        Control how `threshold` is broadcast with `axis`. In this case
-        `threshold` should be the same length as the axis specified by
-        `axis`.
-
-        >>> df.clip(lower=[3, 3, 5], axis='index')
-           A  B
-        0  3  3
-        1  3  4
-        2  5  6
-
-        >>> df.clip(lower=[4, 5], axis='columns')
-           A  B
-        0  4  5
-        1  4  5
-        2  5  6
-        """
-        warnings.warn(
-            "clip_lower(threshold) is deprecated, use clip(lower=threshold) instead",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._clip_with_one_bound(
-            threshold, method=self.ge, axis=axis, inplace=inplace
-        )
 
     def groupby(
         self,
@@ -10499,7 +10171,7 @@ class NDFrame(PandasObject, SelectionMixin):
             name2,
             axis_descr,
             "minimum",
-            lambda y, axis: np.minimum.accumulate(y, axis),
+            np.minimum.accumulate,
             "min",
             np.inf,
             np.nan,
@@ -10512,7 +10184,7 @@ class NDFrame(PandasObject, SelectionMixin):
             name2,
             axis_descr,
             "sum",
-            lambda y, axis: y.cumsum(axis),
+            np.cumsum,
             "sum",
             0.0,
             np.nan,
@@ -10525,7 +10197,7 @@ class NDFrame(PandasObject, SelectionMixin):
             name2,
             axis_descr,
             "product",
-            lambda y, axis: y.cumprod(axis),
+            np.cumprod,
             "prod",
             1.0,
             np.nan,
@@ -10538,7 +10210,7 @@ class NDFrame(PandasObject, SelectionMixin):
             name2,
             axis_descr,
             "maximum",
-            lambda y, axis: np.maximum.accumulate(y, axis),
+            np.maximum.accumulate,
             "max",
             -np.inf,
             np.nan,

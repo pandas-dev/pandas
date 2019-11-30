@@ -381,9 +381,9 @@ class DataFrame(NDFrame):
     def _constructor(self) -> Type["DataFrame"]:
         return DataFrame
 
-    _constructor_sliced = Series  # type: Type[Series]
-    _deprecations = NDFrame._deprecations | frozenset([])  # type: FrozenSet[str]
-    _accessors = set()  # type: Set[str]
+    _constructor_sliced: Type[Series] = Series
+    _deprecations: FrozenSet[str] = NDFrame._deprecations | frozenset([])
+    _accessors: Set[str] = set()
 
     @property
     def _constructor_expanddim(self):
@@ -3544,13 +3544,6 @@ class DataFrame(NDFrame):
         -------
         numpy.ndarray
 
-        Notes
-        -----
-        Akin to::
-
-            result = [df.get_value(row, col)
-                      for row, col in zip(row_labels, col_labels)]
-
         Examples
         --------
         values : ndarray
@@ -4771,24 +4764,12 @@ class DataFrame(NDFrame):
         kind="quicksort",
         na_position="last",
         sort_remaining=True,
-        by=None,
     ):
 
         # TODO: this can be combined with Series.sort_index impl as
         # almost identical
 
         inplace = validate_bool_kwarg(inplace, "inplace")
-        # 10726
-        if by is not None:
-            warnings.warn(
-                "by argument to sort_index is deprecated, "
-                "please use .sort_values(by=...)",
-                FutureWarning,
-                stacklevel=2,
-            )
-            if level is not None:
-                raise ValueError("unable to simultaneously sort by and level")
-            return self.sort_values(by, axis=axis, ascending=ascending, inplace=inplace)
 
         axis = self._get_axis_number(axis)
         labels = self._get_axis(axis)
@@ -7606,6 +7587,23 @@ class DataFrame(NDFrame):
         def f(x):
             return op(x, axis=axis, skipna=skipna, **kwds)
 
+        def _get_data(axis_matters):
+            if filter_type is None or filter_type == "numeric":
+                data = self._get_numeric_data()
+            elif filter_type == "bool":
+                if axis_matters:
+                    # GH#25101, GH#24434
+                    data = self._get_bool_data() if axis == 0 else self
+                else:
+                    data = self._get_bool_data()
+            else:  # pragma: no cover
+                msg = (
+                    "Generating numeric_only data with filter_type {f}"
+                    "not supported.".format(f=filter_type)
+                )
+                raise NotImplementedError(msg)
+            return data
+
         if numeric_only is None:
             values = self.values
             try:
@@ -7616,7 +7614,7 @@ class DataFrame(NDFrame):
                     # TODO: combine with hasattr(result, 'dtype') further down
                     # hard since we don't have `values` down there.
                     result = np.bool_(result)
-            except TypeError as err:
+            except TypeError:
                 # e.g. in nanops trying to convert strs to float
 
                 # try by-column first
@@ -7639,31 +7637,15 @@ class DataFrame(NDFrame):
                         result = result.iloc[0]
                     return result
 
-                if filter_type is None or filter_type == "numeric":
-                    data = self._get_numeric_data()
-                elif filter_type == "bool":
-                    data = self._get_bool_data()
-                else:  # pragma: no cover
-                    raise NotImplementedError(
-                        "Handling exception with filter_type {f} not"
-                        "implemented.".format(f=filter_type)
-                    ) from err
+                # TODO: why doesnt axis matter here?
+                data = _get_data(axis_matters=False)
                 with np.errstate(all="ignore"):
                     result = f(data.values)
                 labels = data._get_agg_axis(axis)
         else:
             if numeric_only:
-                if filter_type is None or filter_type == "numeric":
-                    data = self._get_numeric_data()
-                elif filter_type == "bool":
-                    # GH 25101, # GH 24434
-                    data = self._get_bool_data() if axis == 0 else self
-                else:  # pragma: no cover
-                    msg = (
-                        "Generating numeric_only data with filter_type {f}"
-                        "not supported.".format(f=filter_type)
-                    )
-                    raise NotImplementedError(msg)
+                data = _get_data(axis_matters=True)
+
                 values = data.values
                 labels = data._get_agg_axis(axis)
             else:

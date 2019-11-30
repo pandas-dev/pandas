@@ -554,6 +554,10 @@ class TestSeriesAnalytics:
         ts.iloc[[0, 3, 5]] = np.nan
         tm.assert_series_equal(ts.count(level=1), right - 1)
 
+        # GH29478
+        with pd.option_context("use_inf_as_na", True):
+            assert pd.Series([pd.Timestamp("1990/1/1")]).count() == 1
+
     def test_dot(self):
         a = Series(np.random.randn(4), index=["p", "q", "r", "s"])
         b = DataFrame(
@@ -655,11 +659,6 @@ class TestSeriesAnalytics:
     def test_clip(self, datetime_series):
         val = datetime_series.median()
 
-        with tm.assert_produces_warning(FutureWarning):
-            assert datetime_series.clip_lower(val).min() == val
-        with tm.assert_produces_warning(FutureWarning):
-            assert datetime_series.clip_upper(val).max() == val
-
         assert datetime_series.clip(lower=val).min() == val
         assert datetime_series.clip(upper=val).max() == val
 
@@ -678,10 +677,8 @@ class TestSeriesAnalytics:
 
         for s in sers:
             thresh = s[2]
-            with tm.assert_produces_warning(FutureWarning):
-                lower = s.clip_lower(thresh)
-            with tm.assert_produces_warning(FutureWarning):
-                upper = s.clip_upper(thresh)
+            lower = s.clip(lower=thresh)
+            upper = s.clip(upper=thresh)
             assert lower[notna(lower)].min() == thresh
             assert upper[notna(upper)].max() == thresh
             assert list(isna(s)) == list(isna(lower))
@@ -703,12 +700,6 @@ class TestSeriesAnalytics:
         # GH #6966
 
         s = Series([1.0, 1.0, 4.0])
-        threshold = Series([1.0, 2.0, 3.0])
-
-        with tm.assert_produces_warning(FutureWarning):
-            tm.assert_series_equal(s.clip_lower(threshold), Series([1.0, 2.0, 4.0]))
-        with tm.assert_produces_warning(FutureWarning):
-            tm.assert_series_equal(s.clip_upper(threshold), Series([1.0, 1.0, 3.0]))
 
         lower = Series([1.0, 2.0, 3.0])
         upper = Series([1.5, 2.5, 3.5])

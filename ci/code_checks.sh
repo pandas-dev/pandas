@@ -34,17 +34,13 @@ function invgrep {
     #
     # This is useful for the CI, as we want to fail if one of the patterns
     # that we want to avoid is found by grep.
-    if [[ "$AZURE" == "true" ]]; then
-        set -o pipefail
-        grep -n "$@" | awk -F ":" '{print "##vso[task.logissue type=error;sourcepath=" $1 ";linenumber=" $2 ";] Found unwanted pattern: " $3}'
-    else
-        grep "$@"
-    fi
-    return $((! $?))
+    grep -n "$@" | sed "s/^/$INVGREP_PREPEND/" | sed "s/$/$INVGREP_APPEND/" ; EXIT_STATUS=${PIPESTATUS[0]}
+    return $((! $EXIT_STATUS))
 }
 
-if [[ "$AZURE" == "true" ]]; then
-    FLAKE8_FORMAT="##vso[task.logissue type=error;sourcepath=%(path)s;linenumber=%(row)s;columnnumber=%(col)s;code=%(code)s;]%(text)s"
+if [[ "$GITHUB_ACTIONS" == "true" ]]; then
+    FLAKE8_FORMAT="##[error]%(path)s:%(row)s:%(col)s:%(code):%(text)s"
+    INVGREP_PREPEND="##[error]"
 else
     FLAKE8_FORMAT="default"
 fi
@@ -194,15 +190,15 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --include="*.py" --include="*.pyx" -E 'class.*:\n\n( )+"""' .
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Check that no file in the repo contains trailing whitespaces' ; echo $MSG
-    set -o pipefail
-    if [[ "$AZURE" == "true" ]]; then
-        # we exclude all c/cpp files as the c/cpp files of pandas code base are tested when Linting .c and .h files
-        ! grep -n '--exclude=*.'{svg,c,cpp,html,js} --exclude-dir=env -RI "\s$" * | awk -F ":" '{print "##vso[task.logissue type=error;sourcepath=" $1 ";linenumber=" $2 ";] Tailing whitespaces found: " $3}'
-    else
-        ! grep -n '--exclude=*.'{svg,c,cpp,html,js} --exclude-dir=env -RI "\s$" * | awk -F ":" '{print $1 ":" $2 ":Tailing whitespaces found: " $3}'
-    fi
+    MSG='Check for use of comment-based annotation syntax' ; echo $MSG
+    invgrep -R --include="*.py" -P '# type: (?!ignore)' pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Check that no file in the repo contains trailing whitespaces' ; echo $MSG
+    INVGREP_APPEND=" <- trailing whitespaces found"
+    invgrep -RI --exclude=\*.{svg,c,cpp,html,js} --exclude-dir=env "\s$" *
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+    unset INVGREP_APPEND
 fi
 
 ### CODE ###

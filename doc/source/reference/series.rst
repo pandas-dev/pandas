@@ -29,7 +29,6 @@ Attributes
    Series.array
    Series.values
    Series.dtype
-   Series.ftype
    Series.shape
    Series.nbytes
    Series.ndim
@@ -43,9 +42,7 @@ Attributes
    Series.flags
    Series.empty
    Series.dtypes
-   Series.ftypes
    Series.data
-   Series.is_copy
    Series.name
    Series.put
 
@@ -148,8 +145,6 @@ Computations / descriptive stats
    Series.autocorr
    Series.between
    Series.clip
-   Series.clip_lower
-   Series.clip_upper
    Series.corr
    Series.count
    Series.cov
