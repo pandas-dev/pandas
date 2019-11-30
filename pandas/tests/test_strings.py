@@ -327,7 +327,7 @@ class TestStringMethods:
         strs = "google", "wikimedia", "wikipedia", "wikitravel"
         ds = Series(strs)
 
-        with tm.assert_produces_warning(DeprecationWarning):
+        with tm.assert_produces_warning(FutureWarning):
             for s in ds.str:
                 # iter must yield a Series
                 assert isinstance(s, Series)
@@ -350,7 +350,7 @@ class TestStringMethods:
 
         i, s = 100, 1
 
-        with tm.assert_produces_warning(DeprecationWarning):
+        with tm.assert_produces_warning(FutureWarning):
             for i, s in enumerate(ds.str):
                 pass
 
@@ -362,7 +362,7 @@ class TestStringMethods:
     def test_iter_single_element(self):
         ds = Series(["a"])
 
-        with tm.assert_produces_warning(DeprecationWarning):
+        with tm.assert_produces_warning(FutureWarning):
             for i, s in enumerate(ds.str):
                 pass
 
@@ -374,7 +374,7 @@ class TestStringMethods:
 
         i, s = 100, "h"
 
-        with tm.assert_produces_warning(DeprecationWarning):
+        with tm.assert_produces_warning(FutureWarning):
             for i, s in enumerate(ds.str):
                 pass
 

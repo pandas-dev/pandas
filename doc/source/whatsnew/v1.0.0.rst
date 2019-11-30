@@ -360,7 +360,7 @@ Avoid iterating over ``Series.str``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Iterating over the `.str` accessor of :class:`Series` will now raise a
- `DeprecationWarning` and be removed in future releases (:issue:`28277`).
+ `FutureWarning` and be removed in future releases (:issue:`28277`).
 Since no clear purpose of this feature could be derived, there will be
  no replacement.
 
@@ -376,7 +376,7 @@ Since no clear purpose of this feature could be derived, there will be
    In [3]: generator = (_ for _ in s.str)
    In [4]: next(generator)
    Out[4]:
-   DeprecationWarning: Columnar iteration over characters will be deprecated in future releases.
+   FutureWarning: Columnar iteration over characters will be deprecated in future releases.
        0    a
        1    a
    dtype: object

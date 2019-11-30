@@ -2093,7 +2093,7 @@ class StringMethods(NoNewAttributesMixin):
     def __iter__(self):
         warnings.warn(
             "Columnar iteration over characters will be deprecated in future releases.",
-            DeprecationWarning,
+            FutureWarning,
             stacklevel=2,
         )
         i = 0
