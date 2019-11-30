@@ -80,6 +80,13 @@ class TestCategoricalIndex:
         with pytest.raises(TypeError, match=msg):
             df.loc["d", "C"] = 10
 
+        msg = (
+            r"cannot do label indexing on <class 'pandas\.core\.indexes\.category"
+            r"\.CategoricalIndex'> with these indexers \[1\] of <class 'int'>"
+        )
+        with pytest.raises(TypeError, match=msg):
+            df.loc[1]
+
     def test_getitem_scalar(self):
 
         cats = Categorical([Timestamp("12-31-1999"), Timestamp("12-31-2000")])
