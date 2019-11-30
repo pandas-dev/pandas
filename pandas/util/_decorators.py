@@ -84,13 +84,18 @@ def deprecate(
         if empty1 or empty2 and not summary:
             raise AssertionError(doc_error_msg)
         wrapper.__doc__ = dedent(
-            f"""
-        {summary.strip()}
+            """
+        {summary}
 
-        .. deprecated:: {version}
-            {msg}
+        .. deprecated:: {depr_version}
+            {depr_msg}
 
-        {dedent(doc)}"""
+        {rest_of_docstring}"""
+        ).format(
+            summary=summary.strip(),
+            depr_version=version,
+            depr_msg=msg,
+            rest_of_docstring=dedent(doc),
         )
 
     return wrapper
