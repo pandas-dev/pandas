@@ -235,7 +235,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                     "[{types}] types".format(types=self._valid_types)
                 )
 
-    def _is_nested_tuple_indexer(self, tup: Tuple):
+    def _is_nested_tuple_indexer(self, tup: Tuple) -> bool:
         if any(isinstance(ax, ABCMultiIndex) for ax in self.obj.axes):
             return any(is_nested_tuple(tup, ax) for ax in self.obj.axes)
         return False
@@ -268,10 +268,10 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         ax = self.obj._get_axis(min(axis, self.ndim - 1))
         return ax._convert_slice_indexer(key, kind=self.name)
 
-    def _has_valid_setitem_indexer(self, indexer):
+    def _has_valid_setitem_indexer(self, indexer) -> bool:
         return True
 
-    def _has_valid_positional_setitem_indexer(self, indexer):
+    def _has_valid_positional_setitem_indexer(self, indexer) -> bool:
         """ validate that an positional indexer cannot enlarge its target
         will raise if needed, does not modify the indexer externally
         """
@@ -1581,7 +1581,7 @@ class _LocIndexer(_LocationIndexer):
         if not is_list_like_indexer(key):
             self._convert_scalar_indexer(key, axis)
 
-    def _is_scalar_access(self, key: Tuple):
+    def _is_scalar_access(self, key: Tuple) -> bool:
         # this is a shortcut accessor to both .loc and .iloc
         # that provide the equivalent access of .at and .iat
         # a) avoid getting things via sections and (to minimize dtype changes)
@@ -1894,7 +1894,7 @@ class _iLocIndexer(_LocationIndexer):
     def _has_valid_setitem_indexer(self, indexer):
         self._has_valid_positional_setitem_indexer(indexer)
 
-    def _is_scalar_access(self, key: Tuple):
+    def _is_scalar_access(self, key: Tuple) -> bool:
         # this is a shortcut accessor to both .loc and .iloc
         # that provide the equivalent access of .at and .iat
         # a) avoid getting things via sections and (to minimize dtype changes)
@@ -1918,7 +1918,7 @@ class _iLocIndexer(_LocationIndexer):
         values = self.obj._get_value(*key, takeable=True)
         return values
 
-    def _validate_integer(self, key: int, axis: int):
+    def _validate_integer(self, key: int, axis: int) -> None:
         """
         Check that 'key' is a valid position in the desired axis.
 
@@ -2344,7 +2344,7 @@ def maybe_convert_ix(*args):
         return args
 
 
-def is_nested_tuple(tup, labels):
+def is_nested_tuple(tup, labels) -> bool:
     # check for a compatible nested tuple and multiindexes among the axes
     if not isinstance(tup, tuple):
         return False
@@ -2357,12 +2357,12 @@ def is_nested_tuple(tup, labels):
     return False
 
 
-def is_label_like(key):
+def is_label_like(key) -> bool:
     # select a label or row
     return not isinstance(key, slice) and not is_list_like_indexer(key)
 
 
-def need_slice(obj):
+def need_slice(obj) -> bool:
     return (
         obj.start is not None
         or obj.stop is not None
@@ -2383,7 +2383,7 @@ def _non_reducing_slice(slice_):
     if isinstance(slice_, kinds):
         slice_ = IndexSlice[:, slice_]
 
-    def pred(part):
+    def pred(part) -> bool:
         # true when slice does *not* reduce, False when part is a tuple,
         # i.e. MultiIndex slice
         return (isinstance(part, slice) or is_list_like(part)) and not isinstance(
@@ -2415,7 +2415,7 @@ def _maybe_numeric_slice(df, slice_, include_bool=False):
     return slice_
 
 
-def _can_do_equal_len(labels, value, plane_indexer, lplane_indexer, obj):
+def _can_do_equal_len(labels, value, plane_indexer, lplane_indexer, obj) -> bool:
     """ return True if we have an equal len settable """
     if not len(labels) == 1 or not np.iterable(value) or is_scalar(plane_indexer[0]):
         return False
