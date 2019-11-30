@@ -7575,6 +7575,19 @@ class DataFrame(NDFrame):
     def _reduce(
         self, op, name, axis=0, skipna=True, numeric_only=None, filter_type=None, **kwds
     ):
+
+        dtype_is_dt = self.dtypes.apply(lambda x: x.kind == "M")
+        if numeric_only is None and name in ["mean", "median"] and dtype_is_dt.any():
+            warnings.warn(
+                "DataFrame.mean and DataFrame.median with numeric_only=None "
+                "will include datetime64 and datetime64tz columns in a "
+                "future version.",
+                FutureWarning,
+                stacklevel=3,
+            )
+            cols = self.columns[~dtype_is_dt]
+            self = self[cols]
+
         if axis is None and filter_type == "bool":
             labels = None
             constructor = None
@@ -7614,8 +7627,10 @@ class DataFrame(NDFrame):
                     # TODO: combine with hasattr(result, 'dtype') further down
                     # hard since we don't have `values` down there.
                     result = np.bool_(result)
-            except TypeError:
+            except (TypeError, ValueError):
                 # e.g. in nanops trying to convert strs to float
+                # TODO: the ValueError is raised in trying to convert str
+                #  to float, should we make that a TypError?
 
                 # try by-column first
                 if filter_type is None and axis == 0:

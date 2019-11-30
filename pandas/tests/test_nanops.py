@@ -985,7 +985,6 @@ class TestNankurtFixedValues:
 
 class TestDatetime64NaNOps:
     @pytest.mark.parametrize("tz", [None, "UTC"])
-    @pytest.mark.xfail(reason="disabled")
     # Enabling mean changes the behavior of DataFrame.mean
     # See https://github.com/pandas-dev/pandas/issues/24752
     def test_nanmean(self, tz):
