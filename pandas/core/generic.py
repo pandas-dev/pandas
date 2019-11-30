@@ -2490,6 +2490,7 @@ class NDFrame(PandasObject, SelectionMixin):
             Specifies how encoding and decoding errors are to be handled.
             See the errors argument for :func:`open` for a full list
             of options.
+        encoding : str, default "UTF-8"
         data_columns : list of columns or True, optional
             List of columns to create as indexed data columns for on-disk
             queries, or True to use all columns. By default only the axes
