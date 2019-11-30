@@ -676,6 +676,7 @@ class TestTimestampConstructors:
         kwargs = {"year": 2018, "month": 1, "day": 1, "tzinfo": utc}
         with pytest.raises(ValueError, match="Cannot pass a datetime or Timestamp"):
             Timestamp(box(**kwargs), tz="US/Pacific")
+            Timestamp(box(**kwargs), tzinfo="US/Pacific")
 
     def test_dont_convert_dateutil_utc_to_pytz_utc(self):
         result = Timestamp(datetime(2018, 1, 1), tz=tzutc())
