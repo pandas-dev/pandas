@@ -176,7 +176,7 @@ def _isna_old(obj):
         raise NotImplementedError("isna is not defined for MultiIndex")
     elif isinstance(obj, type):
         return False
-    elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndexClass)):
+    elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndexClass, ABCExtensionArray)):
         return _isna_ndarraylike_old(obj)
     elif isinstance(obj, ABCGeneric):
         return obj._constructor(obj._data.isna(func=_isna_old))

@@ -257,11 +257,11 @@ class Block(PandasObject):
             placement = self.mgr_locs
         if ndim is None:
             ndim = self.ndim
-        return make_block(values, placement=placement, ndim=ndim, klass=self.__class__)
+        return make_block(values, placement=placement, ndim=ndim, klass=type(self))
 
     def __repr__(self) -> str:
         # don't want to print out all of the items here
-        name = pprint_thing(self.__class__.__name__)
+        name = type(self).__name__
         if self._is_single_block:
 
             result = "{name}: {len} dtype: {dtype}".format(
@@ -2886,37 +2886,6 @@ class CategoricalBlock(ExtensionBlock):
         return make_block(
             values, placement=placement or slice(0, len(values), 1), ndim=self.ndim
         )
-
-    def where(
-        self,
-        other,
-        cond,
-        align=True,
-        errors="raise",
-        try_cast: bool = False,
-        axis: int = 0,
-    ) -> List["Block"]:
-        # TODO(CategoricalBlock.where):
-        # This can all be deleted in favor of ExtensionBlock.where once
-        # we enforce the deprecation.
-        object_msg = (
-            "Implicitly converting categorical to object-dtype ndarray. "
-            "One or more of the values in 'other' are not present in this "
-            "categorical's categories. A future version of pandas will raise "
-            "a ValueError when 'other' contains different categories.\n\n"
-            "To preserve the current behavior, add the new categories to "
-            "the categorical before calling 'where', or convert the "
-            "categorical to a different dtype."
-        )
-        try:
-            # Attempt to do preserve categorical dtype.
-            result = super().where(other, cond, align, errors, try_cast, axis)
-        except (TypeError, ValueError):
-            warnings.warn(object_msg, FutureWarning, stacklevel=6)
-            result = self.astype(object).where(
-                other, cond, align=align, errors=errors, try_cast=try_cast, axis=axis
-            )
-        return result
 
     def replace(
         self,

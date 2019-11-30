@@ -38,7 +38,7 @@ class DatetimeLike(Base):
         idx.name = "foo"
         assert not "length={}".format(len(idx)) in str(idx)
         assert "'foo'" in str(idx)
-        assert idx.__class__.__name__ in str(idx)
+        assert type(idx).__name__ in str(idx)
 
         if hasattr(idx, "tz"):
             if idx.tz is not None:
