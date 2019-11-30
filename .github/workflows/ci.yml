@@ -127,9 +127,11 @@ jobs:
         mkdir -p pandas_web/docs
         cp -r web/build/* pandas_web/
         cp -r doc/build/html/* pandas_web/docs/
+      if: github.event_name == "push"
 
     - name: Install Rclone
       run: sudo apt install rclone -y
+      if: github.event_name == "push"
 
     - name: Set up Rclone
       run: |
@@ -147,13 +149,8 @@ jobs:
         echo "user = w4KGs3pmDxpd" >> $RCLONE_CONFIG_PATH
         echo "key = ${{ secrets.ovh_object_store_key }}" >> $RCLONE_CONFIG_PATH
         echo "region = BHS" >> $RCLONE_CONFIG_PATH
+      if: github.event_name == "push"
 
     - name: Sync web
-      run: |
-        REMOTE_PATH="dev"
-        if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            REMOTE_PATH="$REMOTE_PATH/pr/$PR_NUMBER"
-        fi
-        rclone sync pandas_web ovh_cloud_pandas_web:$REMOTE_PATH
-      env:
-        PR_NUMBER: ${{ github.event.pull_request.number }}
+      run: rclone sync pandas_web ovh_cloud_pandas_web:dev
+      if: github.event_name == "push"
