@@ -2424,7 +2424,16 @@ class NDFrame(PandasObject, SelectionMixin):
         )
 
     def to_hdf(
-        self, path_or_buf, key: str, mode: str = "a", append: bool_t = False, **kwargs
+        self,
+        path_or_buf,
+        key: str,
+        mode: str = "a",
+        complevel: Optional[int] = None,
+        complib: Optional[str] = None,
+        append: bool_t = False,
+        format: Optional[str] = None,
+        errors: str = "strict",
+        **kwargs,
     ):
         """
         Write the contained data to an HDF5 file using HDFStore.
@@ -2453,21 +2462,6 @@ class NDFrame(PandasObject, SelectionMixin):
             - 'a': append, an existing file is opened for reading and
               writing, and if the file does not exist it is created.
             - 'r+': similar to 'a', but the file must already exist.
-        format : {'fixed', 'table'}, default 'fixed'
-            Possible values:
-
-            - 'fixed': Fixed format. Fast writing/reading. Not-appendable,
-              nor searchable.
-            - 'table': Table format. Write as a PyTables Table structure
-              which may perform worse but allow more flexible operations
-              like searching / selecting subsets of the data.
-        append : bool, default False
-            For Table formats, append the input data to the existing.
-        data_columns : list of columns or True, optional
-            List of columns to create as indexed data columns for on-disk
-            queries, or True to use all columns. By default only the axes
-            of the object are indexed. See :ref:`io.hdf5-query-data-columns`.
-            Applicable only to format='table'.
         complevel : {0-9}, optional
             Specifies a compression level for data.
             A value of 0 disables compression.
@@ -2479,14 +2473,31 @@ class NDFrame(PandasObject, SelectionMixin):
             'blosc:zlib', 'blosc:zstd'}.
             Specifying a compression library which is not available issues
             a ValueError.
-        fletcher32 : bool, default False
-            If applying compression use the fletcher32 checksum.
-        dropna : bool, default False
-            If true, ALL nan rows will not be written to store.
+        append : bool, default False
+            For Table formats, append the input data to the existing.
+        format : {'fixed', 'table', None}, default 'fixed'
+            Possible values:
+
+            - 'fixed': Fixed format. Fast writing/reading. Not-appendable,
+              nor searchable.
+            - 'table': Table format. Write as a PyTables Table structure
+              which may perform worse but allow more flexible operations
+              like searching / selecting subsets of the data.
+            - If None, pd.get_option('io.hdf.default_format') is checked,
+              followed by fallback to "fixed"
         errors : str, default 'strict'
             Specifies how encoding and decoding errors are to be handled.
             See the errors argument for :func:`open` for a full list
             of options.
+        data_columns : list of columns or True, optional
+            List of columns to create as indexed data columns for on-disk
+            queries, or True to use all columns. By default only the axes
+            of the object are indexed. See :ref:`io.hdf5-query-data-columns`.
+            Applicable only to format='table'.
+        fletcher32 : bool, default False
+            If applying compression use the fletcher32 checksum.
+        dropna : bool, default False
+            If true, ALL nan rows will not be written to store.
 
         See Also
         --------
@@ -2528,7 +2539,18 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         from pandas.io import pytables
 
-        pytables.to_hdf(path_or_buf, key, self, mode=mode, append=append, **kwargs)
+        pytables.to_hdf(
+            path_or_buf,
+            key,
+            self,
+            mode=mode,
+            complevel=complevel,
+            complib=complib,
+            append=append,
+            format=format,
+            errors=errors,
+            **kwargs,
+        )
 
     def to_msgpack(self, path_or_buf=None, encoding="utf-8", **kwargs):
         """

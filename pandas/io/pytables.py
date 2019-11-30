@@ -246,16 +246,20 @@ def to_hdf(
     value: "NDFrame",
     mode: str = "a",
     complevel: Optional[int] = None,
-    complib=None,
+    complib: Optional[str] = None,
     append: bool = False,
+    format: Optional[str] = None,
+    errors: str = "strict",
     **kwargs,
 ):
     """ store this object, close it if we opened it """
 
     if append:
-        f = lambda store: store.append(key, value, **kwargs)
+        f = lambda store: store.append(
+            key, value, format=format, errors=errors, **kwargs
+        )
     else:
-        f = lambda store: store.put(key, value, **kwargs)
+        f = lambda store: store.put(key, value, format=format, errors=errors, **kwargs)
 
     path_or_buf = _stringify_path(path_or_buf)
     if isinstance(path_or_buf, str):
