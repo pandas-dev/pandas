@@ -455,7 +455,6 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - Removed the previously deprecated :attr:`DatetimeIndex.offset` (:issue:`20730`)
 - Removed the previously deprecated :meth:`DatetimeIndex.asobject`, :meth:`TimedeltaIndex.asobject`, :meth:`PeriodIndex.asobject`, use ``astype(object)`` instead (:issue:`29801`)
 - Removed previously deprecated "order" argument from :func:`factorize` (:issue:`19751`)
-- Removed previously deprecated "v" argument from :meth:`FrozenNDarray.searchsorted`, use "value" instead (:issue:`22672`)
 - :func:`read_stata` and :meth:`DataFrame.to_stata` no longer supports the "encoding" argument (:issue:`21400`)
 - In :func:`concat` the default value for ``sort`` has been changed from ``None`` to ``False`` (:issue:`20613`)
 - Removed previously deprecated "raise_conflict" argument from :meth:`DataFrame.update`, use "errors" instead (:issue:`23585`)
