@@ -441,7 +441,7 @@ class Index(IndexOpsMixin, PandasObject):
                         except IncompatibleFrequency:
                             pass
             if kwargs:
-                raise TypeError(f"Unexpected keyword arguments {set(kwargs)!r}")
+                raise TypeError(f"Unexpected keyword arguments {repr(set(kwargs))}")
             return cls._simple_new(subarr, name, **kwargs)
 
         elif hasattr(data, "__array__"):
@@ -2932,7 +2932,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if limit is not None:
             raise ValueError(
-                f"limit argument for {method!r} method only well-defined "
+                f"limit argument for {repr(method)} method only well-defined "
                 "if index and target are monotonic"
             )
 
@@ -3984,7 +3984,7 @@ class Index(IndexOpsMixin, PandasObject):
         #  in order to keep mypy happy
         return TypeError(
             f"{cls.__name__}(...) must be called with a collection of some "
-            f"kind, {data!r} was passed"
+            f"kind, {repr(data)} was passed"
         )
 
     @classmethod
@@ -4103,7 +4103,7 @@ class Index(IndexOpsMixin, PandasObject):
         return key in self
 
     def __hash__(self):
-        raise TypeError(f"unhashable type: {type(self).__name__!r}")
+        raise TypeError(f"unhashable type: {repr(type(self).__name__)}")
 
     def __setitem__(self, key, value):
         raise TypeError("Index does not support mutable operations")
@@ -5043,7 +5043,7 @@ class Index(IndexOpsMixin, PandasObject):
             if isinstance(slc, np.ndarray):
                 raise KeyError(
                     f"Cannot get {side} slice bound for non-unique "
-                    f"label: {original_label!r}"
+                    f"label: {repr(original_label)}"
                 )
 
         if isinstance(slc, slice):
