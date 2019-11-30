@@ -8,7 +8,17 @@ from datetime import date
 import itertools
 import os
 import re
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Hashable,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 import warnings
 
 import numpy as np
@@ -3023,6 +3033,8 @@ class SeriesFixed(GenericFixed):
     pandas_kind = "series"
     attributes = ["name"]
 
+    name: Optional[Hashable]
+
     @property
     def shape(self):
         try:
@@ -3052,6 +3064,8 @@ class SeriesFixed(GenericFixed):
 class BlockManagerFixed(GenericFixed):
     attributes = ["ndim", "nblocks"]
     is_shape_reversed = False
+
+    nblocks: int
 
     @property
     def shape(self):
@@ -4386,6 +4400,7 @@ class AppendableSeriesTable(AppendableFrameTable):
 
         is_multi_index = self.is_multi_index
         if columns is not None and is_multi_index:
+            assert isinstance(self.levels, list)  # needed for mypy
             for n in self.levels:
                 if n not in columns:
                     columns.insert(0, n)
