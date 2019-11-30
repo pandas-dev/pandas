@@ -107,7 +107,7 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     MSG='Check import format using isort ' ; echo $MSG
     ISORT_CMD="isort --recursive --check-only pandas asv_bench"
     if [[ "$GITHUB_ACTIONS" == "true" ]]; then
-         eval $ISORT_CMD | awk '{print "##[error]" $0}'
+        eval $ISORT_CMD | awk '{print "##[error]" $0}'
     else
         eval $ISORT_CMD
     fi
