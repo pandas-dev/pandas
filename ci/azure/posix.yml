@@ -19,6 +19,7 @@ jobs:
           ENV_FILE: ci/deps/azure-36-minimum_versions.yaml
           CONDA_PY: "36"
           PATTERN: "not slow and not network"
+
         py36_locale_slow_old_np:
           ENV_FILE: ci/deps/azure-36-locale.yaml
           CONDA_PY: "36"
@@ -33,6 +34,7 @@ jobs:
           PATTERN: "not slow and not network"
           LANG: "it_IT.ISO-8859-1"
           LC_ALL: "it_IT.ISO-8859-1"
+          EXTRA_APT: "language-pack-it"
 
         py36_32bit:
           ENV_FILE: ci/deps/azure-36-32bit.yaml
@@ -46,6 +48,7 @@ jobs:
           PATTERN: "not slow and not network"
           LANG: "zh_CN.GB2312"
           LC_ALL: "zh_CN.GB2312"
+          EXTRA_APT: "language-pack-zh-hans"
 
         py37_np_dev:
           ENV_FILE: ci/deps/azure-37-numpydev.yaml
@@ -58,6 +61,7 @@ jobs:
   steps:
     - script: |
         if [ "$(uname)" == "Linux" ]; then sudo apt-get install -y libc6-dev-i386 $EXTRA_APT; fi
+        uname -a
         echo '##vso[task.prependpath]$(HOME)/miniconda3/bin'
         echo "Creating Environment"
         ci/setup_env.sh
