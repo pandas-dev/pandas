@@ -3969,10 +3969,9 @@ def test_get_offset():
 
     for name, expected in pairs:
         offset = get_offset(name)
-        assert (
-            offset == expected
-        ), "Expected {name!r} to yield {expected!r} (actual: {offset!r})".format(
-            name=name, expected=expected, offset=offset
+        assert offset == expected, (
+            f"Expected {repr(name)} to yield {repr(expected)} "
+            f"(actual: {repr(offset)})"
         )
 
 
@@ -4170,9 +4169,9 @@ class TestDST:
 
     def _make_timestamp(self, string, hrs_offset, tz):
         if hrs_offset >= 0:
-            offset_string = "{hrs:02d}00".format(hrs=hrs_offset)
+            offset_string = f"{hrs_offset:02}00"
         else:
-            offset_string = "-{hrs:02d}00".format(hrs=-1 * hrs_offset)
+            offset_string = f"-{(hrs_offset * -1):02}00"
         return Timestamp(string + offset_string).tz_convert(tz)
 
     def test_springforward_plural(self):
