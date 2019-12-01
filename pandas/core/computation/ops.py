@@ -145,7 +145,7 @@ class Term:
     def raw(self) -> str:
         return pprint_thing(
             "{0}(name={1!r}, type={2})"
-            "".format(self.__class__.__name__, self.name, self.type)
+            "".format(type(self).__name__, self.name, self.type)
         )
 
     @property
@@ -391,9 +391,6 @@ class BinOp(Op):
         object
             The result of an evaluated expression.
         """
-        # handle truediv
-        if self.op == "/" and env.scope["truediv"]:
-            self.func = operator.truediv
 
         # recurse over the left/right nodes
         left = self.lhs(env)
@@ -505,12 +502,9 @@ class Div(BinOp):
     ----------
     lhs, rhs : Term or Op
         The Terms or Ops in the ``/`` expression.
-    truediv : bool
-        Whether or not to use true division. With Python 3 this happens
-        regardless of the value of ``truediv``.
     """
 
-    def __init__(self, lhs, rhs, truediv: bool, **kwargs):
+    def __init__(self, lhs, rhs, **kwargs):
         super().__init__("/", lhs, rhs, **kwargs)
 
         if not isnumeric(lhs.return_type) or not isnumeric(rhs.return_type):

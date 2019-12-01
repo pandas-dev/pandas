@@ -1734,34 +1734,23 @@ def test_empty_dataframe_groupby():
     tm.assert_frame_equal(result, expected)
 
 
-def test_tuple_warns():
+def test_tuple_as_grouping():
     # https://github.com/pandas-dev/pandas/issues/18314
     df = pd.DataFrame(
         {
-            ("a", "b"): [1, 1, 2, 2],
-            "a": [1, 1, 1, 2],
-            "b": [1, 2, 2, 2],
+            ("a", "b"): [1, 1, 1, 1],
+            "a": [2, 2, 2, 2],
+            "b": [2, 2, 2, 2],
             "c": [1, 1, 1, 1],
         }
     )
-    with tm.assert_produces_warning(FutureWarning) as w:
-        df[["a", "b", "c"]].groupby(("a", "b")).c.mean()
 
-    assert "Interpreting tuple 'by' as a list" in str(w[0].message)
+    with pytest.raises(KeyError):
+        df[["a", "b", "c"]].groupby(("a", "b"))
 
-    with tm.assert_produces_warning(None):
-        df.groupby(("a", "b")).c.mean()
-
-
-def test_tuple_warns_unhashable():
-    # https://github.com/pandas-dev/pandas/issues/18314
-    business_dates = date_range(start="4/1/2014", end="6/30/2014", freq="B")
-    df = DataFrame(1, index=business_dates, columns=["a", "b"])
-
-    with tm.assert_produces_warning(FutureWarning) as w:
-        df.groupby((df.index.year, df.index.month)).nth([0, 3, -1])
-
-    assert "Interpreting tuple 'by' as a list" in str(w[0].message)
+    result = df.groupby(("a", "b"))["c"].sum()
+    expected = pd.Series([4], name="c", index=pd.Index([1], name=("a", "b")))
+    tm.assert_series_equal(result, expected)
 
 
 def test_tuple_correct_keyerror():
@@ -1951,6 +1940,16 @@ def test_groupby_only_none_group():
     expected = pd.Series([np.nan], name="x")
 
     tm.assert_series_equal(actual, expected)
+
+
+def test_groupby_duplicate_index():
+    # GH#29189 the groupby call here used to raise
+    ser = pd.Series([2, 5, 6, 8], index=[2.0, 4.0, 4.0, 5.0])
+    gb = ser.groupby(level=0)
+
+    result = gb.mean()
+    expected = pd.Series([2, 5.5, 8], index=[2.0, 4.0, 5.0])
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("bool_agg_func", ["any", "all"])

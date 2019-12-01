@@ -423,7 +423,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
         d = dict(data=self._data)
         d.update(self._get_attributes_dict())
-        return _new_DatetimeIndex, (self.__class__, d), None
+        return _new_DatetimeIndex, (type(self), d), None
 
     def __setstate__(self, state):
         """Necessary for making this object picklable"""
@@ -467,7 +467,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     @Appender(Index.difference.__doc__)
     def difference(self, other, sort=None):
         new_idx = super().difference(other, sort=sort)
-        new_idx.freq = None
+        new_idx._data._freq = None
         return new_idx
 
     # --------------------------------------------------------------------
@@ -522,7 +522,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
                 if result.freq is None and (
                     this.freq is not None or other.freq is not None
                 ):
-                    result.freq = to_offset(result.inferred_freq)
+                    result._data._freq = to_offset(result.inferred_freq)
             return result
 
     def union_many(self, others):
@@ -1208,7 +1208,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             )
         )
         warnings.warn(msg, FutureWarning, stacklevel=2)
-        self.freq = value
+        self._data.freq = value
 
     def __getitem__(self, key):
         result = self._data.__getitem__(key)

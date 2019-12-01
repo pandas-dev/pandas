@@ -535,6 +535,18 @@ class TestRollingTS:
         expected["B"] = [0.0, 1, 2, 3, 4]
         tm.assert_frame_equal(result, expected)
 
+    def test_minutes_freq_max(self):
+        # GH 21096
+        n = 10
+        index = date_range(start="2018-1-1 01:00:00", freq="1min", periods=n)
+        s = Series(data=0, index=index)
+        s.iloc[1] = np.nan
+        s.iloc[-1] = 2
+        result = s.rolling(window=f"{n}min").max()
+        expected = Series(data=[0] * (n - 1) + [2.0], index=index)
+
+        tm.assert_series_equal(result, expected)
+
     def test_ragged_apply(self, raw):
 
         df = self.ragged
