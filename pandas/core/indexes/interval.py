@@ -2,7 +2,6 @@
 from operator import le, lt
 import textwrap
 from typing import Any, Optional, Tuple, Union
-import warnings
 
 import numpy as np
 
@@ -454,19 +453,6 @@ class IntervalIndex(IntervalMixin, Index):
     def size(self):
         # Avoid materializing ndarray[Interval]
         return self._data.size
-
-    @property
-    def itemsize(self):
-        msg = (
-            "IntervalIndex.itemsize is deprecated and will be removed in "
-            "a future version"
-        )
-        warnings.warn(msg, FutureWarning, stacklevel=2)
-
-        # suppress the warning from the underlying left/right itemsize
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            return self.left.itemsize + self.right.itemsize
 
     def __len__(self) -> int:
         return len(self.left)

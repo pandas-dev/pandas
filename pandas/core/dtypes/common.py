@@ -269,10 +269,6 @@ def is_sparse(arr) -> bool:
     bool
         Whether or not the array-like is a pandas sparse array.
 
-    See Also
-    --------
-    Series.to_dense : Return dense representation of a Series.
-
     Examples
     --------
     Returns `True` if the parameter is a 1-D pandas sparse array.

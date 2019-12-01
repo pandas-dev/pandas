@@ -618,14 +618,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
             return self.asfreq(dtype.freq)
         return super().astype(dtype, copy=copy)
 
-    @property
-    def flags(self):
-        # TODO: remove
-        # We need this since reduction.SeriesBinGrouper uses values.flags
-        # Ideally, we wouldn't be passing objects down there in the first
-        # place.
-        return self._data.flags
-
     # ------------------------------------------------------------------
     # Arithmetic Methods
     _create_comparison_method = classmethod(_period_array_cmp)

@@ -33,16 +33,11 @@ Attributes
    Series.nbytes
    Series.ndim
    Series.size
-   Series.strides
-   Series.itemsize
-   Series.base
    Series.T
    Series.memory_usage
    Series.hasnans
-   Series.flags
    Series.empty
    Series.dtypes
-   Series.data
    Series.name
    Series.put
 
@@ -584,7 +579,6 @@ Serialization / IO / conversion
    Series.to_sql
    Series.to_msgpack
    Series.to_json
-   Series.to_dense
    Series.to_string
    Series.to_clipboard
    Series.to_latex

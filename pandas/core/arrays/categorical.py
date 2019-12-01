@@ -526,13 +526,6 @@ class Categorical(ExtensionArray, PandasObject):
 
     to_list = tolist
 
-    @property
-    def base(self) -> None:
-        """
-        compat, we are always our own object
-        """
-        return None
-
     @classmethod
     def _from_inferred_categories(
         cls, inferred_categories, inferred_codes, dtype, true_values=None
@@ -1679,24 +1672,6 @@ class Categorical(ExtensionArray, PandasObject):
                 self.rename_categories(Series(self.categories).rank().values)
             )
         return values
-
-    def ravel(self, order="C"):
-        """
-        Return a flattened (numpy) array.
-
-        For internal compatibility with numpy arrays.
-
-        Returns
-        -------
-        numpy.array
-        """
-        warn(
-            "Categorical.ravel will return a Categorical object instead "
-            "of an ndarray in a future version.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return np.array(self)
 
     def view(self, dtype=None):
         if dtype is not None:
