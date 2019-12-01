@@ -499,7 +499,7 @@ and we want to use an expanding window where ``use_expanding`` is ``True`` other
 
    class CustomIndexer(BaseIndexer):
 
-       def get_window_bounds(self, num_values, min_periods, center, closed):
+       def get_window_bounds(self, num_values, min_periods, center, closed, win_type):
            start = np.empty(num_values, dtype=np.int64)
            end = np.empty(num_values, dtype=np.int64)
            for i in range(num_values):
