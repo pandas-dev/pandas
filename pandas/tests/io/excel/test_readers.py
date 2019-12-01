@@ -831,7 +831,6 @@ class TestExcelFileRead:
         if read_ext == ".xlsb" and engine != "pyxlsb":
             pytest.skip()
 
-
         func = partial(pd.ExcelFile, engine=engine)
         monkeypatch.chdir(datapath("io", "data", "excel"))
         monkeypatch.setattr(pd, "ExcelFile", func)
