@@ -1,7 +1,7 @@
 #!/bin/bash -e
 
 # edit the locale file if needed
-if [ -n "$LC_ALL" ]; then
+if [[ "$(uname)" == "Linux" && -n "$LC_ALL" ]]; then
     echo "Adding locale to the first line of pandas/__init__.py"
     rm -f pandas/__init__.pyc
     SEDC="3iimport locale\nlocale.setlocale(locale.LC_ALL, '$LC_ALL')\n"
