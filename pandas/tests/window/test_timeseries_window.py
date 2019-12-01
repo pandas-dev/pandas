@@ -535,15 +535,34 @@ class TestRollingTS:
         expected["B"] = [0.0, 1, 2, 3, 4]
         tm.assert_frame_equal(result, expected)
 
-    def test_minutes_freq_max(self):
+    @pytest.mark.parametrize(
+        "freq, op, result_data",
+        [
+            ("ms", "min", [0.0] * 10),
+            ("ms", "mean", [0.0] * 9 + [2.0 / 9]),
+            ("ms", "max", [0.0] * 9 + [2.0]),
+            ("s", "min", [0.0] * 10),
+            ("s", "mean", [0.0] * 9 + [2.0 / 9]),
+            ("s", "max", [0.0] * 9 + [2.0]),
+            ("min", "min", [0.0] * 10),
+            ("min", "mean", [0.0] * 9 + [2.0 / 9]),
+            ("min", "max", [0.0] * 9 + [2.0]),
+            ("h", "min", [0.0] * 10),
+            ("h", "mean", [0.0] * 9 + [2.0 / 9]),
+            ("h", "max", [0.0] * 9 + [2.0]),
+            ("D", "min", [0.0] * 10),
+            ("D", "mean", [0.0] * 9 + [2.0 / 9]),
+            ("D", "max", [0.0] * 9 + [2.0]),
+        ],
+    )
+    def test_freqs_ops(self, freq, op, result_data):
         # GH 21096
-        n = 10
-        index = date_range(start="2018-1-1 01:00:00", freq="1min", periods=n)
+        index = date_range(start="2018-1-1 01:00:00", freq=f"1{freq}", periods=10)
         s = Series(data=0, index=index)
         s.iloc[1] = np.nan
         s.iloc[-1] = 2
-        result = s.rolling(window=f"{n}min").max()
-        expected = Series(data=[0] * (n - 1) + [2.0], index=index)
+        result = getattr(s.rolling(window=f"10{freq}"), op)()
+        expected = Series(data=result_data, index=index)
 
         tm.assert_series_equal(result, expected)
 
