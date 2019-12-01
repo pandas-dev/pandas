@@ -268,12 +268,12 @@ def validate_all(prefix, ignore_deprecated=False):
     result = {}
     seen = {}
 
-    # functions from the API docs
     api_doc_fnames = os.path.join(BASE_PATH, "doc", "source", "reference", "*.rst")
     api_items = []
     for api_doc_fname in glob.glob(api_doc_fnames):
         with open(api_doc_fname) as f:
             api_items += list(get_api_items(f))
+
     for func_name, func_obj, section, subsection in api_items:
         if prefix and not func_name.startswith(prefix):
             continue
@@ -294,20 +294,6 @@ def validate_all(prefix, ignore_deprecated=False):
         )
 
         seen[shared_code_key] = func_name
-
-    # functions from introspecting Series and DataFrame
-    api_item_names = set(list(zip(*api_items))[0])
-    for class_ in (pandas.Series, pandas.DataFrame):
-        for member in inspect.getmembers(class_):
-            func_name = "pandas.{}.{}".format(class_.__name__, member[0])
-            if not member[0].startswith("_") and func_name not in api_item_names:
-                if prefix and not func_name.startswith(prefix):
-                    continue
-                doc_info = validate_one(func_name)
-                if ignore_deprecated and doc_info["deprecated"]:
-                    continue
-                result[func_name] = doc_info
-                result[func_name]["in_api"] = False
 
     return result
 
@@ -332,25 +318,15 @@ def main(func_name, prefix, errors, output_format, ignore_deprecated):
         if output_format == "json":
             output = json.dumps(result)
         else:
-            if output_format == "default":
-                output_format = "{text}\n"
-            elif output_format == "azure":
-                output_format = (
-                    "##vso[task.logissue type=error;"
-                    "sourcepath={path};"
-                    "linenumber={row};"
-                    "code={code};"
-                    "]{text}\n"
-                )
-            else:
+            output_format = "{path}:{row}:{code}:{name}:{description}\n"
+            if output_format == "actions":
+                output_format = "##[error]" + output_format
+            elif output_format != "default":
                 raise ValueError('Unknown output_format "{}"'.format(output_format))
 
             output = ""
             for name, res in result.items():
                 for err_code, err_desc in res["errors"]:
-                    # The script would be faster if instead of filtering the
-                    # errors after validating them, it didn't validate them
-                    # initially. But that would complicate the code too much
                     if errors and err_code not in errors:
                         continue
                     exit_status += 1
@@ -359,30 +335,27 @@ def main(func_name, prefix, errors, output_format, ignore_deprecated):
                         path=res["file"],
                         row=res["file_line"],
                         code=err_code,
-                        text="{}: {}".format(name, err_desc),
+                        name=name,
+                        description=err_desc,
                     )
 
         sys.stdout.write(output)
 
     else:
         result = validate_one(func_name)
+
         sys.stderr.write(header("Docstring ({})".format(func_name)))
         sys.stderr.write("{}\n".format(result["docstring"]))
+
         sys.stderr.write(header("Validation"))
         if result["errors"]:
             sys.stderr.write("{} Errors found:\n".format(len(result["errors"])))
             for err_code, err_desc in result["errors"]:
-                # Failing examples are printed at the end
-                if err_code == "EX02":
+                if err_code == "EX02":  # Failing examples are printed at the end
                     sys.stderr.write("\tExamples do not pass tests\n")
                     continue
                 sys.stderr.write("\t{}\n".format(err_desc))
-        if result["warnings"]:
-            sys.stderr.write("{} Warnings found:\n".format(len(result["warnings"])))
-            for wrn_code, wrn_desc in result["warnings"]:
-                sys.stderr.write("\t{}\n".format(wrn_desc))
-
-        if not result["errors"]:
+        else result["errors"]:
             sys.stderr.write('Docstring for "{}" correct. :)\n'.format(func_name))
 
         if result["examples_errors"]:
@@ -393,7 +366,7 @@ def main(func_name, prefix, errors, output_format, ignore_deprecated):
 
 
 if __name__ == "__main__":
-    format_opts = "default", "json", "azure"
+    format_opts = "default", "json", "actions"
     func_help = (
         "function or method to validate (e.g. pandas.DataFrame.head) "
         "if not provided, all docstrings are validated and returned "
