@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from datetime import datetime
 from decimal import Decimal
 from io import StringIO
@@ -598,7 +597,7 @@ def test_groupby_as_index_agg(df):
     expected = grouped.mean()
     tm.assert_frame_equal(result, expected)
 
-    result2 = grouped.agg(OrderedDict([["C", np.mean], ["D", np.sum]]))
+    result2 = grouped.agg({"C": np.mean, "D": np.sum})
     expected2 = grouped.mean()
     expected2["D"] = grouped.sum()["D"]
     tm.assert_frame_equal(result2, expected2)
@@ -617,7 +616,7 @@ def test_groupby_as_index_agg(df):
     expected = grouped.mean()
     tm.assert_frame_equal(result, expected)
 
-    result2 = grouped.agg(OrderedDict([["C", np.mean], ["D", np.sum]]))
+    result2 = grouped.agg({"C": np.mean, "D": np.sum})
     expected2 = grouped.mean()
     expected2["D"] = grouped.sum()["D"]
     tm.assert_frame_equal(result2, expected2)
