@@ -407,7 +407,7 @@ def encode(obj):
         if isinstance(obj, RangeIndex):
             return {
                 "typ": "range_index",
-                "klass": obj.__class__.__name__,
+                "klass": type(obj).__name__,
                 "name": getattr(obj, "name", None),
                 "start": obj._range.start,
                 "stop": obj._range.stop,
@@ -416,7 +416,7 @@ def encode(obj):
         elif isinstance(obj, PeriodIndex):
             return {
                 "typ": "period_index",
-                "klass": obj.__class__.__name__,
+                "klass": type(obj).__name__,
                 "name": getattr(obj, "name", None),
                 "freq": getattr(obj, "freqstr", None),
                 "dtype": obj.dtype.name,
@@ -432,7 +432,7 @@ def encode(obj):
                 obj = obj.tz_convert("UTC")
             return {
                 "typ": "datetime_index",
-                "klass": obj.__class__.__name__,
+                "klass": type(obj).__name__,
                 "name": getattr(obj, "name", None),
                 "dtype": obj.dtype.name,
                 "data": convert(obj.asi8),
@@ -447,7 +447,7 @@ def encode(obj):
                 typ = "interval_array"
             return {
                 "typ": typ,
-                "klass": obj.__class__.__name__,
+                "klass": type(obj).__name__,
                 "name": getattr(obj, "name", None),
                 "left": getattr(obj, "left", None),
                 "right": getattr(obj, "right", None),
@@ -456,7 +456,7 @@ def encode(obj):
         elif isinstance(obj, MultiIndex):
             return {
                 "typ": "multi_index",
-                "klass": obj.__class__.__name__,
+                "klass": type(obj).__name__,
                 "names": getattr(obj, "names", None),
                 "dtype": obj.dtype.name,
                 "data": convert(obj.values),
@@ -465,7 +465,7 @@ def encode(obj):
         else:
             return {
                 "typ": "index",
-                "klass": obj.__class__.__name__,
+                "klass": type(obj).__name__,
                 "name": getattr(obj, "name", None),
                 "dtype": obj.dtype.name,
                 "data": convert(obj.values),
@@ -475,7 +475,7 @@ def encode(obj):
     elif isinstance(obj, Categorical):
         return {
             "typ": "category",
-            "klass": obj.__class__.__name__,
+            "klass": type(obj).__name__,
             "name": getattr(obj, "name", None),
             "codes": obj.codes,
             "categories": obj.categories,
@@ -486,7 +486,7 @@ def encode(obj):
     elif isinstance(obj, Series):
         return {
             "typ": "series",
-            "klass": obj.__class__.__name__,
+            "klass": type(obj).__name__,
             "name": getattr(obj, "name", None),
             "index": obj.index,
             "dtype": obj.dtype.name,
@@ -501,7 +501,7 @@ def encode(obj):
         # the block manager
         return {
             "typ": "block_manager",
-            "klass": obj.__class__.__name__,
+            "klass": type(obj).__name__,
             "axes": data.axes,
             "blocks": [
                 {
@@ -509,7 +509,7 @@ def encode(obj):
                     "values": convert(b.values),
                     "shape": b.values.shape,
                     "dtype": b.dtype.name,
-                    "klass": b.__class__.__name__,
+                    "klass": type(b).__name__,
                     "compress": compressor,
                 }
                 for b in data.blocks
@@ -556,7 +556,7 @@ def encode(obj):
     elif isinstance(obj, BlockIndex):
         return {
             "typ": "block_index",
-            "klass": obj.__class__.__name__,
+            "klass": type(obj).__name__,
             "blocs": obj.blocs,
             "blengths": obj.blengths,
             "length": obj.length,
@@ -564,7 +564,7 @@ def encode(obj):
     elif isinstance(obj, IntIndex):
         return {
             "typ": "int_index",
-            "klass": obj.__class__.__name__,
+            "klass": type(obj).__name__,
             "indices": obj.indices,
             "length": obj.length,
         }

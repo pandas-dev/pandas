@@ -333,20 +333,8 @@ class TestIndexOps(Ops):
                 assert getattr(o, p, None) is not None
 
             # deprecated properties
-            for p in ["flags", "strides", "itemsize"]:
-                with tm.assert_produces_warning(FutureWarning):
-                    assert getattr(o, p, None) is not None
-
-            with tm.assert_produces_warning(FutureWarning):
-                assert hasattr(o, "base")
-
-            # If we have a datetime-like dtype then needs a view to work
-            # but the user is responsible for that
-            try:
-                with tm.assert_produces_warning(FutureWarning):
-                    assert o.data is not None
-            except ValueError:
-                pass
+            for p in ["flags", "strides", "itemsize", "base", "data"]:
+                assert not hasattr(o, p)
 
             with pytest.raises(ValueError):
                 with tm.assert_produces_warning(FutureWarning):
@@ -400,7 +388,7 @@ class TestIndexOps(Ops):
 
             result = o.unique()
             if isinstance(o, Index):
-                assert isinstance(result, o.__class__)
+                assert isinstance(result, type(o))
                 tm.assert_index_equal(result, orig)
                 assert result.dtype == orig.dtype
             elif is_datetime64tz_dtype(o):

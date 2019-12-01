@@ -99,7 +99,7 @@ class Resampler(_GroupBy, ShallowMixin):
             if getattr(self.groupby, k, None) is not None
         )
         return "{klass} [{attrs}]".format(
-            klass=self.__class__.__name__, attrs=", ".join(attrs)
+            klass=type(self).__name__, attrs=", ".join(attrs)
         )
 
     def __getattr__(self, attr):
@@ -889,7 +889,7 @@ class Resampler(_GroupBy, ShallowMixin):
         result = self._downsample("count")
         if not len(self.ax):
             if self._selected_obj.ndim == 1:
-                result = self._selected_obj.__class__(
+                result = type(self._selected_obj)(
                     [], index=result.index, dtype="int64", name=self._selected_obj.name
                 )
             else:

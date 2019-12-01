@@ -210,7 +210,7 @@ class Grouper(Generic[FrameOrSeries]):
             if getattr(self, attr_name) is not None
         )
         attrs = ", ".join(attrs_list)
-        cls_name = self.__class__.__name__
+        cls_name = type(self).__name__
         return f"{cls_name}({attrs})"
 
 

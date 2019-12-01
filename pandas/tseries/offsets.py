@@ -311,9 +311,8 @@ class DateOffset(BaseOffset):
 
         if type(self) is not DateOffset:
             raise NotImplementedError(
-                "DateOffset subclass {name} "
-                "does not have a vectorized "
-                "implementation".format(name=self.__class__.__name__)
+                f"DateOffset subclass {type(self).__name__} "
+                "does not have a vectorized implementation"
             )
         kwds = self.kwds
         relativedelta_fast = {
@@ -404,7 +403,7 @@ class DateOffset(BaseOffset):
         """
         dt = as_timestamp(dt)
         if not self.onOffset(dt):
-            dt = dt - self.__class__(1, normalize=self.normalize, **self.kwds)
+            dt = dt - type(self)(1, normalize=self.normalize, **self.kwds)
         return dt
 
     def rollforward(self, dt):
@@ -418,7 +417,7 @@ class DateOffset(BaseOffset):
         """
         dt = as_timestamp(dt)
         if not self.onOffset(dt):
-            dt = dt + self.__class__(1, normalize=self.normalize, **self.kwds)
+            dt = dt + type(self)(1, normalize=self.normalize, **self.kwds)
         return dt
 
     def onOffset(self, dt):
