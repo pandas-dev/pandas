@@ -3250,6 +3250,19 @@ class TestDataFramePlots(TestPlotBase):
         with pytest.raises(TypeError):
             df.plot()
 
+    def test_group_subplot(self):
+        d = {
+            'a': np.arange(10),
+            'b': np.arange(10) + 1,
+            'c': np.arange(10) + 1,
+            'd': np.arange(10),
+            'e': np.arange(10),
+        }
+        df = pd.DataFrame(d)
+
+        ax = df.plot(subplots=[('b', 'e'), ('c', 'd')])
+        assert len(ax) == 3  # 2 groups + single column a
+
 
 def _generate_4_axes_via_gridspec():
     import matplotlib.pyplot as plt
