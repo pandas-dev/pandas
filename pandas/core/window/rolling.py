@@ -523,6 +523,12 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                         closed=self.closed,
                         win_type=self.win_type,
                     )
+                    if np.any(np.diff(start) < 0) or np.any(np.diff(end) < 0):
+                        # Our "variable" algorithms assume monotonically increasing bounds
+                        # and a custom window indexer can produce any start, end sequence
+                        return func(
+                            x, start, end, min_periods, is_monotonic_bounds=False
+                        )
                     return func(x, start, end, min_periods)
 
             else:
