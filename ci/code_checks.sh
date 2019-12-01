@@ -194,6 +194,10 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --include="*.py" -P '# type: (?!ignore)' pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Check for use of foo.__class__ instead of type(foo)' ; echo $MSG
+    invgrep -R --include=*.{py,pyx} '\.__class__' pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     MSG='Check that no file in the repo contains trailing whitespaces' ; echo $MSG
     INVGREP_APPEND=" <- trailing whitespaces found"
     invgrep -RI --exclude=\*.{svg,c,cpp,html,js} --exclude-dir=env "\s$" *
