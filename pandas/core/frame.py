@@ -9,7 +9,7 @@ alignment and a host of useful data manipulation methods having to do with the
 labeling information
 """
 import collections
-from collections import OrderedDict, abc
+from collections import abc
 from io import StringIO
 import itertools
 import sys
@@ -8170,10 +8170,10 @@ ops.add_special_arithmetic_methods(DataFrame)
 
 def _from_nested_dict(data):
     # TODO: this should be seriously cythonized
-    new_data = OrderedDict()
+    new_data = {}
     for index, s in data.items():
         for col, v in s.items():
-            new_data[col] = new_data.get(col, OrderedDict())
+            new_data[col] = new_data.get(col, {})
             new_data[col][index] = v
     return new_data
 
