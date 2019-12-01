@@ -59,12 +59,16 @@ jobs:
           EXTRA_APT: "xsel"
 
   steps:
-    - script: |
-        if [ "$(uname)" == "Linux" ]; then sudo apt-get install -y libc6-dev-i386 $EXTRA_APT; fi
-        uname -a
-        echo '##vso[task.prependpath]$(HOME)/miniconda3/bin'
-        echo "Creating Environment"
-        ci/setup_env.sh
+    - script: if [ "$(uname)" == "Linux" ]; then sudo apt-get install -y libc6-dev-i386 $EXTRA_APT; fi
+      displayName: 'Install extra packages'
+
+    - sctipt: locale -a
+      displayName: 'Show available locales'
+
+    - script: echo '##vso[task.prependpath]$(HOME)/miniconda3/bin'
+      displayName: 'Set conda path'
+
+    - script: ci/setup_env.sh
       displayName: 'Setup environment and build pandas'
 
     - script: |
