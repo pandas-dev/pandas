@@ -59,6 +59,24 @@ def test_isin_cats():
     tm.assert_numpy_array_equal(expected, result)
 
 
+@pytest.mark.parametrize(
+    "to_replace, value, result",
+    [("b", "c", ["a", "c"]), ("c", "d", ["a", "b"]), ("b", None, ["a", None])],
+)
+def test_replace(to_replace, value, result):
+    # GH 26988
+    cat = pd.Categorical(["a", "b"])
+    expected = pd.Categorical(result)
+    result = cat.replace(to_replace, value)
+    tm.assert_categorical_equal(result, expected)
+    if to_replace == "b":  # the "c" test is supposed to be unchanged
+        with pytest.raises(AssertionError):
+            # ensure non-inplace call does not affect original
+            tm.assert_categorical_equal(cat, expected)
+    cat.replace(to_replace, value, inplace=True)
+    tm.assert_categorical_equal(cat, expected)
+
+
 @pytest.mark.parametrize("empty", [[], pd.Series(), np.array([])])
 def test_isin_empty(empty):
     s = pd.Categorical(["a", "b"])
@@ -71,10 +89,12 @@ def test_isin_empty(empty):
 class TestTake:
     # https://github.com/pandas-dev/pandas/issues/20664
 
-    def test_take_warns(self):
+    def test_take_default_allow_fill(self):
         cat = pd.Categorical(["a", "b"])
-        with tm.assert_produces_warning(FutureWarning):
-            cat.take([0, -1])
+        with tm.assert_produces_warning(None):
+            result = cat.take([0, -1])
+
+        assert result.equals(cat)
 
     def test_take_positive_no_warning(self):
         cat = pd.Categorical(["a", "b"])
@@ -140,3 +160,8 @@ class TestTake:
         xpr = r"'fill_value' \('d'\) is not in this Categorical's categories."
         with pytest.raises(TypeError, match=xpr):
             cat.take([0, 1, -1], fill_value="d", allow_fill=True)
+
+    def test_take_nd_deprecated(self):
+        cat = pd.Categorical(["a", "b", "c"])
+        with tm.assert_produces_warning(FutureWarning):
+            cat.take_nd([0, 1])

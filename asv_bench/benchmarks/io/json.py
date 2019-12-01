@@ -20,7 +20,7 @@ class ReadJSON(BaseIO):
         }
         df = DataFrame(
             np.random.randn(N, 5),
-            columns=["float_{}".format(i) for i in range(5)],
+            columns=[f"float_{i}" for i in range(5)],
             index=indexes[index],
         )
         df.to_json(self.fname, orient=orient)
@@ -43,7 +43,7 @@ class ReadJSONLines(BaseIO):
         }
         df = DataFrame(
             np.random.randn(N, 5),
-            columns=["float_{}".format(i) for i in range(5)],
+            columns=[f"float_{i}" for i in range(5)],
             index=indexes[index],
         )
         df.to_json(self.fname, orient="records", lines=True)

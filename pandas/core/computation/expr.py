@@ -7,11 +7,10 @@ from io import StringIO
 import itertools as it
 import operator
 import tokenize
-from typing import Type
+from typing import Optional, Type
 
 import numpy as np
 
-import pandas as pd
 import pandas.core.common as com
 from pandas.core.computation.common import (
     _BACKTICK_QUOTED_STRING,
@@ -40,7 +39,7 @@ from pandas.core.computation.scope import Scope
 import pandas.io.formats.printing as printing
 
 
-def tokenize_string(source):
+def tokenize_string(source: str):
     """
     Tokenize a Python source code string.
 
@@ -171,7 +170,7 @@ def _compose(*funcs):
 
 
 def _preparse(
-    source,
+    source: str,
     f=_compose(
         _replace_locals,
         _replace_booleans,
@@ -379,7 +378,7 @@ class BaseExprVisitor(ast.NodeVisitor):
     preparser : callable
     """
 
-    const_type = Constant  # type: Type[Term]
+    const_type: Type[Term] = Constant
     term_type = Term
 
     binary_ops = _cmp_ops_syms + _bool_ops_syms + _arith_ops_syms
@@ -436,7 +435,7 @@ class BaseExprVisitor(ast.NodeVisitor):
                     e.msg = "Python keyword not valid identifier in numexpr query"
                 raise e
 
-        method = "visit_" + node.__class__.__name__
+        method = "visit_" + type(node).__name__
         visitor = getattr(self, method)
         return visitor(node, **kwargs)
 
@@ -565,8 +564,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         return self._maybe_evaluate_binop(op, op_class, left, right)
 
     def visit_Div(self, node, **kwargs):
-        truediv = self.env.scope["truediv"]
-        return lambda lhs, rhs: Div(lhs, rhs, truediv)
+        return lambda lhs, rhs: Div(lhs, rhs)
 
     def visit_UnaryOp(self, node, **kwargs):
         op = self.visit(node.op)
@@ -600,6 +598,8 @@ class BaseExprVisitor(ast.NodeVisitor):
         return self.visit(node.value)
 
     def visit_Subscript(self, node, **kwargs):
+        import pandas as pd
+
         value = self.visit(node.value)
         slobj = self.visit(node.slice)
         result = pd.eval(
@@ -812,18 +812,25 @@ class Expr:
     engine : str, optional, default 'numexpr'
     parser : str, optional, default 'pandas'
     env : Scope, optional, default None
-    truediv : bool, optional, default True
     level : int, optional, default 2
     """
 
+    env: Scope
+    engine: str
+    parser: str
+
     def __init__(
-        self, expr, engine="numexpr", parser="pandas", env=None, truediv=True, level=0
+        self,
+        expr,
+        engine: str = "numexpr",
+        parser: str = "pandas",
+        env: Optional[Scope] = None,
+        level: int = 0,
     ):
         self.expr = expr
         self.env = env or Scope(level=level + 1)
         self.engine = engine
         self.parser = parser
-        self.env.scope["truediv"] = truediv
         self._visitor = _parsers[parser](self.env, self.engine, self.parser)
         self.terms = self.parse()
 

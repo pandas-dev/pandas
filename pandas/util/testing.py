@@ -316,7 +316,7 @@ def assert_almost_equal(
             check_exact=False,
             exact=check_dtype,
             check_less_precise=check_less_precise,
-            **kwargs
+            **kwargs,
         )
 
     elif isinstance(left, pd.Series):
@@ -326,7 +326,7 @@ def assert_almost_equal(
             check_exact=False,
             check_dtype=check_dtype,
             check_less_precise=check_less_precise,
-            **kwargs
+            **kwargs,
         )
 
     elif isinstance(left, pd.DataFrame):
@@ -336,7 +336,7 @@ def assert_almost_equal(
             check_exact=False,
             check_dtype=check_dtype,
             check_less_precise=check_less_precise,
-            **kwargs
+            **kwargs,
         )
 
     else:
@@ -359,7 +359,7 @@ def assert_almost_equal(
             right,
             check_dtype=check_dtype,
             check_less_precise=check_less_precise,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -713,7 +713,7 @@ def assert_class_equal(left, right, exact=True, obj="Input"):
             return x
 
         try:
-            return x.__class__.__name__
+            return type(x).__name__
         except AttributeError:
             return repr(type(x))
 
@@ -780,17 +780,17 @@ def assert_is_valid_plot_return_object(objs):
     if isinstance(objs, (pd.Series, np.ndarray)):
         for el in objs.ravel():
             msg = (
-                "one of 'objs' is not a matplotlib Axes instance, type "
-                "encountered {name!r}"
-            ).format(name=el.__class__.__name__)
+                "one of 'objs' is not a matplotlib Axes instance, "
+                f"type encountered {repr(type(el).__name__)}"
+            )
             assert isinstance(el, (plt.Axes, dict)), msg
     else:
-        assert isinstance(objs, (plt.Artist, tuple, dict)), (
-            "objs is neither an ndarray of Artist instances nor a "
-            'single Artist instance, tuple, or dict, "objs" is a {name!r}'.format(
-                name=objs.__class__.__name__
-            )
+        msg = (
+            "objs is neither an ndarray of Artist instances nor a single "
+            "ArtistArtist instance, tuple, or dict, 'objs' is a "
+            f"{repr(type(objs).__name__)}"
         )
+        assert isinstance(objs, (plt.Artist, tuple, dict)), msg
 
 
 def isiterable(obj):
@@ -1952,7 +1952,7 @@ def makeCustomIndex(
             label = "{prefix}_l{i}_g{j}".format(prefix=prefix, i=i, j=j)
             cnt[label] = ndupe_l[i]
         # cute Counter trick
-        result = list(sorted(cnt.elements(), key=keyfunc))[:nentries]
+        result = sorted(cnt.elements(), key=keyfunc)[:nentries]
         tuples.append(result)
 
     tuples = list(zip(*tuples))

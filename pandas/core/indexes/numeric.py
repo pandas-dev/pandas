@@ -1,8 +1,6 @@
-import warnings
-
 import numpy as np
 
-from pandas._libs import index as libindex
+from pandas._libs import index as libindex, lib
 from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.cast import astype_nansafe
@@ -15,6 +13,8 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
     is_scalar,
+    is_signed_integer_dtype,
+    is_unsigned_integer_dtype,
     needs_i8_conversion,
     pandas_dtype,
 )
@@ -22,10 +22,12 @@ from pandas.core.dtypes.generic import (
     ABCFloat64Index,
     ABCInt64Index,
     ABCRangeIndex,
+    ABCSeries,
     ABCUInt64Index,
 )
 from pandas.core.dtypes.missing import isna
 
+from pandas._typing import Dtype
 from pandas.core import algorithms
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, InvalidIndexError, _index_shared_docs
@@ -43,20 +45,19 @@ class NumericIndex(Index):
 
     _is_numeric_dtype = True
 
-    def __new__(cls, data=None, dtype=None, copy=False, name=None, fastpath=None):
+    def __new__(cls, data=None, dtype=None, copy=False, name=None):
+        cls._validate_dtype(dtype)
 
-        if fastpath is not None:
-            warnings.warn(
-                "The 'fastpath' keyword is deprecated, and will be "
-                "removed in a future version.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            if fastpath:
-                return cls._simple_new(data, name=name)
+        # Coerce to ndarray if not already ndarray or Index
+        if not isinstance(data, (np.ndarray, Index)):
+            if is_scalar(data):
+                raise cls._scalar_data_error(data)
 
-        # is_scalar, generators handled in coerce_to_ndarray
-        data = cls._coerce_to_ndarray(data)
+            # other iterable of some kind
+            if not isinstance(data, (ABCSeries, list, tuple)):
+                data = list(data)
+
+            data = np.asarray(data, dtype=dtype)
 
         if issubclass(data.dtype.type, str):
             cls._string_data_error(data)
@@ -70,6 +71,22 @@ class NumericIndex(Index):
         if name is None and hasattr(data, "name"):
             name = data.name
         return cls._simple_new(subarr, name=name)
+
+    @classmethod
+    def _validate_dtype(cls, dtype: Dtype) -> None:
+        if dtype is None:
+            return
+        validation_metadata = {
+            "int64index": (is_signed_integer_dtype, "signed integer"),
+            "uint64index": (is_unsigned_integer_dtype, "unsigned integer"),
+            "float64index": (is_float_dtype, "float"),
+            "rangeindex": (is_signed_integer_dtype, "signed integer"),
+        }
+
+        validation_func, expected = validation_metadata[cls._typ]
+        if not validation_func(dtype):
+            msg = f"Incorrect `dtype` passed: expected {expected}, received {dtype}"
+            raise ValueError(msg)
 
     @Appender(_index_shared_docs["_maybe_cast_slice_bound"])
     def _maybe_cast_slice_bound(self, label, side, kind):
@@ -206,7 +223,7 @@ class IntegerIndex(NumericIndex):
     This is an abstract class for Int64Index, UInt64Index.
     """
 
-    def __contains__(self, key):
+    def __contains__(self, key) -> bool:
         """
         Check if key is a float and has a decimal. If it has, return False.
         """
@@ -233,7 +250,7 @@ class Int64Index(IntegerIndex):
         return "integer"
 
     @property
-    def asi8(self):
+    def asi8(self) -> np.ndarray:
         # do not cache or you'll create a memory leak
         return self.values.view("i8")
 
@@ -288,7 +305,7 @@ class UInt64Index(IntegerIndex):
         return "integer"
 
     @property
-    def asi8(self):
+    def asi8(self) -> np.ndarray:
         # do not cache or you'll create a memory leak
         return self.values.view("u8")
 
@@ -303,13 +320,15 @@ class UInt64Index(IntegerIndex):
 
     @Appender(_index_shared_docs["_convert_arr_indexer"])
     def _convert_arr_indexer(self, keyarr):
-        # Cast the indexer to uint64 if possible so
-        # that the values returned from indexing are
-        # also uint64.
-        keyarr = com.asarray_tuplesafe(keyarr)
-        if is_integer_dtype(keyarr):
-            return com.asarray_tuplesafe(keyarr, dtype=np.uint64)
-        return keyarr
+        # Cast the indexer to uint64 if possible so that the values returned
+        # from indexing are also uint64.
+        dtype = None
+        if is_integer_dtype(keyarr) or (
+            lib.infer_dtype(keyarr, skipna=False) == "integer"
+        ):
+            dtype = np.uint64
+
+        return com.asarray_tuplesafe(keyarr, dtype=dtype)
 
     @Appender(_index_shared_docs["_convert_index_indexer"])
     def _convert_index_indexer(self, keyarr):
@@ -425,7 +444,7 @@ class Float64Index(NumericIndex):
 
         return new_values
 
-    def equals(self, other):
+    def equals(self, other) -> bool:
         """
         Determines if two Index objects contain the same elements.
         """
@@ -447,7 +466,7 @@ class Float64Index(NumericIndex):
         except (TypeError, ValueError):
             return False
 
-    def __contains__(self, other):
+    def __contains__(self, other) -> bool:
         if super().__contains__(other):
             return True
 
@@ -482,7 +501,7 @@ class Float64Index(NumericIndex):
         return super().get_loc(key, method=method, tolerance=tolerance)
 
     @cache_readonly
-    def is_unique(self):
+    def is_unique(self) -> bool:
         return super().is_unique and self._nan_idxs.size < 2
 
     @Appender(Index.isin.__doc__)

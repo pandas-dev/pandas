@@ -2,14 +2,12 @@
 Functions for preparing various inputs passed to the DataFrame or Series
 constructors before passing them to a BlockManager.
 """
-from collections import OrderedDict, abc
+from collections import abc
 
 import numpy as np
 import numpy.ma as ma
 
 from pandas._libs import lib
-import pandas.compat as compat
-from pandas.compat import PY36
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
@@ -39,13 +37,9 @@ from pandas.core.dtypes.generic import (
 from pandas.core import algorithms, common as com
 from pandas.core.arrays import Categorical
 from pandas.core.construction import sanitize_array
-from pandas.core.index import (
-    Index,
-    _get_objs_combined_axis,
-    _union_indexes,
-    ensure_index,
-)
+from pandas.core.index import Index, ensure_index, get_objs_combined_axis
 from pandas.core.indexes import base as ibase
+from pandas.core.indexes.api import union_indexes
 from pandas.core.internals import (
     create_block_manager_from_arrays,
     create_block_manager_from_blocks,
@@ -235,7 +229,7 @@ def init_dict(data, index, columns, dtype=None):
             arrays.loc[missing] = [val] * missing.sum()
 
     else:
-        keys = com.dict_keys_to_ordered_list(data)
+        keys = list(data.keys())
         columns = data_names = Index(keys)
         arrays = (com.maybe_iterable_to_list(data[k]) for k in keys)
         # GH#24096 need copy to be deep for datetime64tz case
@@ -331,7 +325,6 @@ def extract_index(data):
         have_raw_arrays = False
         have_series = False
         have_dicts = False
-        have_ordered = False
 
         for val in data:
             if isinstance(val, ABCSeries):
@@ -339,8 +332,6 @@ def extract_index(data):
                 indexes.append(val.index)
             elif isinstance(val, dict):
                 have_dicts = True
-                if isinstance(val, OrderedDict):
-                    have_ordered = True
                 indexes.append(list(val.keys()))
             elif is_list_like(val) and getattr(val, "ndim", 1) == 1:
                 have_raw_arrays = True
@@ -350,9 +341,9 @@ def extract_index(data):
             raise ValueError("If using all scalar values, you must pass an index")
 
         if have_series:
-            index = _union_indexes(indexes)
+            index = union_indexes(indexes)
         elif have_dicts:
-            index = _union_indexes(indexes, sort=not (compat.PY36 or have_ordered))
+            index = union_indexes(indexes, sort=False)
 
         if have_raw_arrays:
             lengths = list(set(raw_lengths))
@@ -498,7 +489,9 @@ def _list_to_arrays(data, columns, coerce_float=False, dtype=None):
 
 def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
     if columns is None:
-        columns = _get_objs_combined_axis(data, sort=False)
+        # We know pass_data is non-empty because data[0] is a Series
+        pass_data = [x for x in data if isinstance(x, (ABCSeries, ABCDataFrame))]
+        columns = get_objs_combined_axis(pass_data, sort=False)
 
     indexer_cache = {}
 
@@ -531,7 +524,7 @@ def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
     """Convert list of dicts to numpy arrays
 
     if `columns` is not passed, column names are inferred from the records
-    - for OrderedDict and (on Python>=3.6) dicts, the column names match
+    - for OrderedDict and dicts, the column names match
       the key insertion-order from the first record to the last.
     - For other kinds of dict-likes, the keys are lexically sorted.
 
@@ -548,10 +541,10 @@ def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
     tuple
         arrays, columns
     """
+
     if columns is None:
         gen = (list(x.keys()) for x in data)
-        types = (dict, OrderedDict) if PY36 else OrderedDict
-        sort = not any(isinstance(d, types) for d in data)
+        sort = not any(isinstance(d, dict) for d in data)
         columns = lib.fast_unique_multiple_list_gen(gen, sort=sort)
 
     # assure that they are of the base dict class and not of derived

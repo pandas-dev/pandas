@@ -1,5 +1,3 @@
-import itertools
-
 import numpy as np
 import pytest
 
@@ -223,17 +221,13 @@ class TestMultiIndexLoc:
         # GH 3053
         # loc should treat integer slices like label slices
 
-        index = MultiIndex.from_tuples(
-            [t for t in itertools.product([6, 7, 8], ["a", "b"])]
-        )
+        index = MultiIndex.from_product([[6, 7, 8], ["a", "b"]])
         df = DataFrame(np.random.randn(6, 6), index, index)
         result = df.loc[6:8, :]
         expected = df
         tm.assert_frame_equal(result, expected)
 
-        index = MultiIndex.from_tuples(
-            [t for t in itertools.product([10, 20, 30], ["a", "b"])]
-        )
+        index = MultiIndex.from_product([[10, 20, 30], ["a", "b"]])
         df = DataFrame(np.random.randn(6, 6), index, index)
         result = df.loc[20:30, :]
         expected = df.iloc[2:]

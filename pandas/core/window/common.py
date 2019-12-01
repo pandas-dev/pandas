@@ -1,5 +1,6 @@
 """Common utility functions for rolling operations"""
 from collections import defaultdict
+from typing import Callable, Optional
 import warnings
 
 import numpy as np
@@ -62,12 +63,20 @@ class WindowGroupByMixin(GroupByMixin):
     cov = _dispatch("cov", other=None, pairwise=None)
 
     def _apply(
-        self, func, name=None, window=None, center=None, check_minp=None, **kwargs
+        self,
+        func: Callable,
+        center: bool,
+        require_min_periods: int = 0,
+        floor: int = 1,
+        is_weighted: bool = False,
+        name: Optional[str] = None,
+        **kwargs,
     ):
         """
         Dispatch to apply; we are stripping all of the _apply kwargs and
         performing the original function call on the grouped object.
         """
+        kwargs.pop("floor", None)
 
         # TODO: can we de-duplicate with _dispatch?
         def f(x, name=name, *args):
@@ -265,6 +274,44 @@ def _use_window(minp, window):
         return window
     else:
         return minp
+
+
+def calculate_min_periods(
+    window: int,
+    min_periods: Optional[int],
+    num_values: int,
+    required_min_periods: int,
+    floor: int,
+) -> int:
+    """
+    Calculates final minimum periods value for rolling aggregations.
+
+    Parameters
+    ----------
+    window : passed window value
+    min_periods : passed min periods value
+    num_values : total number of values
+    required_min_periods : required min periods per aggregation function
+    floor : required min periods per aggregation function
+
+    Returns
+    -------
+    min_periods : int
+    """
+    if min_periods is None:
+        min_periods = window
+    else:
+        min_periods = max(required_min_periods, min_periods)
+    if min_periods > window:
+        raise ValueError(
+            "min_periods {min_periods} must be <= "
+            "window {window}".format(min_periods=min_periods, window=window)
+        )
+    elif min_periods > num_values:
+        min_periods = num_values + 1
+    elif min_periods < 0:
+        raise ValueError("min_periods must be >= 0")
+    return max(min_periods, floor)
 
 
 def _zsqrt(x):

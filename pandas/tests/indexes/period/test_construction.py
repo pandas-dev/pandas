@@ -434,7 +434,7 @@ class TestPeriodIndex:
         with tm.assert_produces_warning(FutureWarning) as m:
             PeriodIndex(start="2000", periods=2)
 
-        warning, = m
+        (warning,) = m
         assert 'freq="A-DEC"' in str(warning.message)
 
     def test_constructor(self):

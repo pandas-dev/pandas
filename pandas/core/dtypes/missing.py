@@ -17,6 +17,7 @@ from .common import (
     is_complex_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
+    is_datetimelike_v_numeric,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float_dtype,
@@ -175,7 +176,7 @@ def _isna_old(obj):
         raise NotImplementedError("isna is not defined for MultiIndex")
     elif isinstance(obj, type):
         return False
-    elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndexClass)):
+    elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndexClass, ABCExtensionArray)):
         return _isna_ndarraylike_old(obj)
     elif isinstance(obj, ABCGeneric):
         return obj._constructor(obj._data.isna(func=_isna_old))
@@ -375,7 +376,7 @@ def notna(obj):
 notnull = notna
 
 
-def _isna_compat(arr, fill_value=np.nan):
+def _isna_compat(arr, fill_value=np.nan) -> bool:
     """
     Parameters
     ----------
@@ -392,7 +393,7 @@ def _isna_compat(arr, fill_value=np.nan):
     return True
 
 
-def array_equivalent(left, right, strict_nan: bool = False):
+def array_equivalent(left, right, strict_nan: bool = False) -> bool:
     """
     True if two arrays, left and right, have equal non-NaN elements, and NaNs
     in corresponding locations.  False otherwise. It is assumed that left and
@@ -448,7 +449,7 @@ def array_equivalent(left, right, strict_nan: bool = False):
                     return False
             else:
                 try:
-                    if np.any(left_value != right_value):
+                    if np.any(np.asarray(left_value != right_value)):
                         return False
                 except TypeError as err:
                     if "Cannot compare tz-naive" in str(err):
@@ -464,6 +465,10 @@ def array_equivalent(left, right, strict_nan: bool = False):
         if not (np.prod(left.shape) and np.prod(right.shape)):
             return True
         return ((left == right) | (isna(left) & isna(right))).all()
+
+    elif is_datetimelike_v_numeric(left, right):
+        # GH#29553 avoid numpy deprecation warning
+        return False
 
     elif needs_i8_conversion(left) or needs_i8_conversion(right):
         # datetime64, timedelta64, Period

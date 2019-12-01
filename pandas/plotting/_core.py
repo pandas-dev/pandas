@@ -23,7 +23,7 @@ def hist_series(
     figsize=None,
     bins=10,
     backend=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Draw histogram of the input series using matplotlib.
@@ -83,7 +83,7 @@ def hist_series(
         yrot=yrot,
         figsize=figsize,
         bins=bins,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -103,7 +103,7 @@ def hist_frame(
     layout=None,
     bins=10,
     backend=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Make a histogram of the DataFrame's.
@@ -206,7 +206,7 @@ def hist_frame(
         figsize=figsize,
         layout=layout,
         bins=bins,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -400,7 +400,7 @@ def boxplot(
     figsize=None,
     layout=None,
     return_type=None,
-    **kwargs
+    **kwargs,
 ):
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.boxplot(
@@ -414,7 +414,7 @@ def boxplot(
         figsize=figsize,
         layout=layout,
         return_type=return_type,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -432,7 +432,7 @@ def boxplot_frame(
     layout=None,
     return_type=None,
     backend=None,
-    **kwargs
+    **kwargs,
 ):
     plot_backend = _get_plot_backend(backend)
     return plot_backend.boxplot_frame(
@@ -446,7 +446,7 @@ def boxplot_frame(
         figsize=figsize,
         layout=layout,
         return_type=return_type,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -463,7 +463,7 @@ def boxplot_frame_groupby(
     sharex=False,
     sharey=True,
     backend=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Make box plots from DataFrameGroupBy data.
@@ -536,7 +536,7 @@ def boxplot_frame_groupby(
         layout=layout,
         sharex=sharex,
         sharey=sharey,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -736,26 +736,23 @@ class PlotAccessor(PandasObject):
             ]
         else:
             raise TypeError(
-                (
-                    "Called plot accessor for type {}, expected Series or DataFrame"
-                ).format(type(data).__name__)
+                f"Called plot accessor for type {type(data).__name__}, "
+                "expected Series or DataFrame"
             )
 
         if args and isinstance(data, ABCSeries):
+            positional_args = str(args)[1:-1]
+            keyword_args = ", ".join(
+                f"{name}={value!r}" for (name, default), value in zip(arg_def, args)
+            )
             msg = (
                 "`Series.plot()` should not be called with positional "
                 "arguments, only keyword arguments. The order of "
                 "positional arguments will change in the future. "
-                "Use `Series.plot({})` instead of `Series.plot({})`."
+                f"Use `Series.plot({keyword_args})` instead of "
+                f"`Series.plot({positional_args})`."
             )
-            positional_args = str(args)[1:-1]
-            keyword_args = ", ".join(
-                "{}={!r}".format(name, value)
-                for (name, default), value in zip(arg_def, args)
-            )
-            warnings.warn(
-                msg.format(keyword_args, positional_args), FutureWarning, stacklevel=3
-            )
+            warnings.warn(msg, FutureWarning, stacklevel=3)
 
         pos_args = {name: value for value, (name, _) in zip(args, arg_def)}
         if backend_name == "pandas.plotting._matplotlib":
@@ -776,8 +773,13 @@ class PlotAccessor(PandasObject):
         )
 
         kind = self._kind_aliases.get(kind, kind)
+
+        # when using another backend, get out of the way
+        if plot_backend.__name__ != "pandas.plotting._matplotlib":
+            return plot_backend.plot(self._parent, x=x, y=y, kind=kind, **kwargs)
+
         if kind not in self._all_kinds:
-            raise ValueError("{} is not a valid plot kind".format(kind))
+            raise ValueError(f"{kind} is not a valid plot kind")
 
         # The original data structured can be transformed before passed to the
         # backend. For example, for DataFrame is common to set the index as the
@@ -791,14 +793,13 @@ class PlotAccessor(PandasObject):
             if isinstance(data, ABCDataFrame):
                 return plot_backend.plot(data, x=x, y=y, kind=kind, **kwargs)
             else:
-                raise ValueError(
-                    ("plot kind {} can only be used for data frames").format(kind)
-                )
+                raise ValueError(f"plot kind {kind} can only be used for data frames")
         elif kind in self._series_kinds:
             if isinstance(data, ABCDataFrame):
                 if y is None and kwargs.get("subplots") is False:
-                    msg = "{} requires either y column or 'subplots=True'"
-                    raise ValueError(msg.format(kind))
+                    raise ValueError(
+                        f"{kind} requires either y column or 'subplots=True'"
+                    )
                 elif y is not None:
                     if is_integer(y) and not data.columns.holds_integer():
                         y = data.columns[y]
@@ -1634,12 +1635,11 @@ def _find_backend(backend: str):
                 _backends[backend] = module
                 return module
 
-    msg = (
-        "Could not find plotting backend '{name}'. Ensure that you've installed the "
-        "package providing the '{name}' entrypoint, or that the package has a"
+    raise ValueError(
+        f"Could not find plotting backend '{backend}'. Ensure that you've installed "
+        f"the package providing the '{backend}' entrypoint, or that the package has a "
         "top-level `.plot` method."
     )
-    raise ValueError(msg.format(name=backend))
 
 
 def _get_plot_backend(backend=None):

@@ -92,7 +92,7 @@ if __debug__:
 
 
 def _groupby_and_merge(
-    by, on, left, right, _merge_pieces, check_duplicates: bool = True
+    by, on, left, right: "DataFrame", _merge_pieces, check_duplicates: bool = True
 ):
     """
     groupby & merge; we are always performing a left-by type operation
@@ -313,7 +313,7 @@ def merge_asof(
     suffixes=("_x", "_y"),
     tolerance=None,
     allow_exact_matches: bool = True,
-    direction="backward",
+    direction: str = "backward",
 ):
     """
     Perform an asof merge. This is similar to a left-join except that we
@@ -565,8 +565,8 @@ class _MergeOperation:
     ):
         _left = _validate_operand(left)
         _right = _validate_operand(right)
-        self.left = self.orig_left = _validate_operand(_left)  # type: "DataFrame"
-        self.right = self.orig_right = _validate_operand(_right)  # type: "DataFrame"
+        self.left = self.orig_left = _left
+        self.right = self.orig_right = _right
         self.how = how
         self.axis = axis
 
@@ -583,8 +583,9 @@ class _MergeOperation:
 
         self.indicator = indicator
 
+        self.indicator_name: Optional[str]
         if isinstance(self.indicator, str):
-            self.indicator_name = self.indicator  # type: Optional[str]
+            self.indicator_name = self.indicator
         elif isinstance(self.indicator, bool):
             self.indicator_name = "_merge" if self.indicator else None
         else:
@@ -1299,11 +1300,13 @@ def _get_join_indexers(
         right_keys
     ), "left_key and right_keys must be the same length"
 
-    # bind `sort` arg. of _factorize_keys
-    fkeys = partial(_factorize_keys, sort=sort)
-
     # get left & right join labels and num. of levels at each location
-    llab, rlab, shape = map(list, zip(*map(fkeys, left_keys, right_keys)))
+    mapped = (
+        _factorize_keys(left_keys[n], right_keys[n], sort=sort)
+        for n in range(len(left_keys))
+    )
+    zipped = zip(*mapped)
+    llab, rlab, shape = [list(x) for x in zipped]
 
     # get flat i8 keys from label lists
     lkey, rkey = _get_join_keys(llab, rlab, shape, sort)
@@ -1311,7 +1314,7 @@ def _get_join_indexers(
     # factorize keys to a dense i8 space
     # `count` is the num. of unique keys
     # set(lkey) | set(rkey) == range(count)
-    lkey, rkey, count = fkeys(lkey, rkey)
+    lkey, rkey, count = _factorize_keys(lkey, rkey, sort=sort)
 
     # preserve left frame order if how == 'left' and sort == False
     kwargs = copy.copy(kwargs)
@@ -1487,12 +1490,12 @@ class _OrderedMerge(_MergeOperation):
         return result
 
 
-def _asof_function(direction):
+def _asof_function(direction: str):
     name = "asof_join_{dir}".format(dir=direction)
     return getattr(libjoin, name, None)
 
 
-def _asof_by_function(direction):
+def _asof_by_function(direction: str):
     name = "asof_join_{dir}_on_X_by_Y".format(dir=direction)
     return getattr(libjoin, name, None)
 
@@ -1536,7 +1539,7 @@ class _AsOfMerge(_OrderedMerge):
         how: str = "asof",
         tolerance=None,
         allow_exact_matches: bool = True,
-        direction="backward",
+        direction: str = "backward",
     ):
 
         self.by = by
@@ -1775,11 +1778,11 @@ class _AsOfMerge(_OrderedMerge):
 
 def _get_multiindex_indexer(join_keys, index: MultiIndex, sort: bool):
 
-    # bind `sort` argument
-    fkeys = partial(_factorize_keys, sort=sort)
-
     # left & right join labels and num. of levels at each location
-    mapped = (fkeys(index.levels[n], join_keys[n]) for n in range(len(index.levels)))
+    mapped = (
+        _factorize_keys(index.levels[n], join_keys[n], sort=sort)
+        for n in range(index.nlevels)
+    )
     zipped = zip(*mapped)
     rcodes, lcodes, shape = [list(x) for x in zipped]
     if sort:
@@ -1804,7 +1807,7 @@ def _get_multiindex_indexer(join_keys, index: MultiIndex, sort: bool):
     lkey, rkey = _get_join_keys(lcodes, rcodes, shape, sort)
 
     # factorize keys to a dense i8 space
-    lkey, rkey, count = fkeys(lkey, rkey)
+    lkey, rkey, count = _factorize_keys(lkey, rkey, sort=sort)
 
     return libjoin.left_outer_join(lkey, rkey, count, sort=sort)
 

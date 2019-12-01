@@ -188,8 +188,8 @@ class TestCategoricalIndex(Base):
         # GH 10039
         # set ops (+/-) raise TypeError
         idx = pd.Index(pd.Categorical(["a", "b"]))
-        msg = "cannot perform {} with this index type: CategoricalIndex"
-        with pytest.raises(TypeError, match=msg.format(op_name)):
+        msg = f"cannot perform {op_name} with this index type: CategoricalIndex"
+        with pytest.raises(TypeError, match=msg):
             func(idx)
 
     def test_method_delegation(self):
@@ -788,8 +788,10 @@ class TestCategoricalIndex(Base):
         # Index.__new__ is honored.
         #
         # Must be tested separately from other indexes because
-        # self.value is not an ndarray.
-        _base = lambda ar: ar if ar.base is None else ar.base
+        # self.values is not an ndarray.
+        # GH#29918 Index.base has been removed
+        # FIXME: is this test still meaningful?
+        _base = lambda ar: ar if getattr(ar, "base", None) is None else ar.base
 
         result = CategoricalIndex(indices.values, copy=True)
         tm.assert_index_equal(indices, result)
