@@ -53,6 +53,7 @@ from pandas import (
     concat,
     isna,
 )
+from pandas._typing import FrameOrSeries
 from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
 from pandas.core.computation.pytables import PyTablesExpr, maybe_expression
@@ -251,20 +252,27 @@ def _tables():
 
 def to_hdf(
     path_or_buf,
-    key,
-    value,
-    mode=None,
+    key: str,
+    value: FrameOrSeries,
+    mode: str = "a",
     complevel: Optional[int] = None,
-    complib=None,
-    append=None,
+    complib: Optional[str] = None,
+    append: bool = False,
+    format: Optional[str] = None,
+    errors: str = "strict",
+    encoding: str = "UTF-8",
     **kwargs,
 ):
     """ store this object, close it if we opened it """
 
     if append:
-        f = lambda store: store.append(key, value, **kwargs)
+        f = lambda store: store.append(
+            key, value, format=format, errors=errors, encoding=encoding, **kwargs
+        )
     else:
-        f = lambda store: store.put(key, value, **kwargs)
+        f = lambda store: store.put(
+            key, value, format=format, errors=errors, encoding=encoding, **kwargs
+        )
 
     path_or_buf = _stringify_path(path_or_buf)
     if isinstance(path_or_buf, str):
@@ -1042,7 +1050,7 @@ class HDFStore:
         format=None,
         append=True,
         columns=None,
-        dropna=None,
+        dropna: Optional[bool] = None,
         **kwargs,
     ):
         """
@@ -1070,7 +1078,7 @@ class HDFStore:
         chunksize    : size to chunk the writing
         expectedrows : expected TOTAL row size of this table
         encoding     : default None, provide an encoding for strings
-        dropna       : bool, default False
+        dropna : bool, default False
             Do not write an ALL nan row to the store settable
             by the option 'io.hdf.dropna_table'.
 
