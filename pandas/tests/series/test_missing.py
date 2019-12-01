@@ -1655,3 +1655,10 @@ class TestSeriesInterpolateData:
             pytest.skip(
                 "This interpolation method is not supported for Timedelta Index yet."
             )
+
+    def test_interpolate_unsorted_index(self):
+        # GH 21037
+        ts = pd.Series(data=[10, 9, np.nan, 2, 1], index=[10, 9, 3, 2, 1])
+        result = ts.interpolate(method="index").sort_index(ascending=True)
+        expected = ts.sort_index(ascending=True).interpolate(method="index")
+        tm.assert_series_equal(result, expected)
