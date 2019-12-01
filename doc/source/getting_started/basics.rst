@@ -2006,7 +2006,7 @@ The number of columns of each type in a ``DataFrame`` can be found by calling
 
 Numeric dtypes will propagate and can coexist in DataFrames.
 If a dtype is passed (either directly via the ``dtype`` keyword, a passed ``ndarray``,
-or a passed ``Series``, then it will be preserved in DataFrame operations. Furthermore,
+or a passed ``Series``), then it will be preserved in DataFrame operations. Furthermore,
 different numeric dtypes will **NOT** be combined. The following example will give you a taste.
 
 .. ipython:: python
