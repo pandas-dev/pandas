@@ -27,7 +27,6 @@ from pandas.core.dtypes.common import (
     is_dict_like,
     is_dtype_equal,
     is_extension_array_dtype,
-    is_float_dtype,
     is_integer_dtype,
     is_iterator,
     is_list_like,
@@ -527,13 +526,6 @@ class Categorical(ExtensionArray, PandasObject):
 
     to_list = tolist
 
-    @property
-    def base(self) -> None:
-        """
-        compat, we are always our own object
-        """
-        return None
-
     @classmethod
     def _from_inferred_categories(
         cls, inferred_categories, inferred_codes, dtype, true_values=None
@@ -653,22 +645,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         codes = np.asarray(codes)  # #21767
         if len(codes) and not is_integer_dtype(codes):
-            msg = "codes need to be array-like integers"
-            if is_float_dtype(codes):
-                icodes = codes.astype("i8")
-                if (icodes == codes).all():
-                    msg = None
-                    codes = icodes
-                    warn(
-                        (
-                            "float codes will be disallowed in the future and "
-                            "raise a ValueError"
-                        ),
-                        FutureWarning,
-                        stacklevel=2,
-                    )
-            if msg:
-                raise ValueError(msg)
+            raise ValueError("codes need to be array-like integers")
 
         if len(codes) and (codes.max() >= len(dtype.categories) or codes.min() < -1):
             raise ValueError("codes need to be between -1 and len(categories)-1")
@@ -1695,24 +1672,6 @@ class Categorical(ExtensionArray, PandasObject):
                 self.rename_categories(Series(self.categories).rank().values)
             )
         return values
-
-    def ravel(self, order="C"):
-        """
-        Return a flattened (numpy) array.
-
-        For internal compatibility with numpy arrays.
-
-        Returns
-        -------
-        numpy.array
-        """
-        warn(
-            "Categorical.ravel will return a Categorical object instead "
-            "of an ndarray in a future version.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return np.array(self)
 
     def view(self, dtype=None):
         if dtype is not None:

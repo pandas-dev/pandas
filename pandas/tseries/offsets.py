@@ -359,8 +359,8 @@ class DateOffset(BaseOffset):
             kwd = set(kwds) - relativedelta_fast
             raise NotImplementedError(
                 "DateOffset with relativedelta "
-                "keyword(s) {kwd} not able to be "
-                "applied vectorized".format(kwd=kwd)
+                f"keyword(s) {kwd} not able to be "
+                "applied vectorized"
             )
 
     def isAnchored(self):
@@ -379,7 +379,7 @@ class DateOffset(BaseOffset):
                 continue
             elif attr not in exclude:
                 value = getattr(self, attr)
-                attrs.append("{attr}={value}".format(attr=attr, value=value))
+                attrs.append(f"{attr}={value}")
 
         out = ""
         if attrs:
@@ -449,7 +449,7 @@ class DateOffset(BaseOffset):
             return repr(self)
 
         if self.n != 1:
-            fstr = "{n}{code}".format(n=self.n, code=code)
+            fstr = f"{self.n}{code}"
         else:
             fstr = code
 
@@ -467,7 +467,7 @@ class DateOffset(BaseOffset):
 
     @property
     def nanos(self):
-        raise ValueError("{name} is a non-fixed frequency".format(name=self))
+        raise ValueError(f"{self} is a non-fixed frequency")
 
 
 class SingleConstructorOffset(DateOffset):
@@ -475,7 +475,7 @@ class SingleConstructorOffset(DateOffset):
     def _from_name(cls, suffix=None):
         # default _from_name calls cls with no args
         if suffix:
-            raise ValueError("Bad freq suffix {suffix}".format(suffix=suffix))
+            raise ValueError(f"Bad freq suffix {suffix}")
         return cls()
 
 
@@ -513,7 +513,7 @@ class BusinessMixin:
 
     def _repr_attrs(self):
         if self.offset:
-            attrs = ["offset={offset!r}".format(offset=self.offset)]
+            attrs = [f"offset={repr(self.offset)}"]
         else:
             attrs = None
         out = ""
@@ -966,10 +966,10 @@ class BusinessHourMixin(BusinessMixin):
     def _repr_attrs(self):
         out = super()._repr_attrs()
         hours = ",".join(
-            "{}-{}".format(st.strftime("%H:%M"), en.strftime("%H:%M"))
+            f'{st.strftime("%H:%M")}-{en.strftime("%H:%M")}'
             for st, en in zip(self.start, self.end)
         )
-        attrs = ["{prefix}={hours}".format(prefix=self._prefix, hours=hours)]
+        attrs = [f"{self._prefix}={hours}"]
         out += ": " + ", ".join(attrs)
         return out
 
@@ -1113,7 +1113,7 @@ class MonthOffset(SingleConstructorOffset):
             return self.rule_code
         else:
             month = ccalendar.MONTH_ALIASES[self.n]
-            return "{code}-{month}".format(code=self.rule_code, month=month)
+            return f"{self.code_rule}-{month}"
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -1296,9 +1296,10 @@ class SemiMonthOffset(DateOffset):
         else:
             object.__setattr__(self, "day_of_month", int(day_of_month))
         if not self._min_day_of_month <= self.day_of_month <= 27:
-            msg = "day_of_month must be {min}<=day_of_month<=27, got {day}"
             raise ValueError(
-                msg.format(min=self._min_day_of_month, day=self.day_of_month)
+                "day_of_month must be "
+                f"{self._min_day_of_month}<=day_of_month<=27, "
+                f"got {self.day_of_month}"
             )
 
     @classmethod
@@ -1307,7 +1308,7 @@ class SemiMonthOffset(DateOffset):
 
     @property
     def rule_code(self):
-        suffix = "-{day_of_month}".format(day_of_month=self.day_of_month)
+        suffix = f"-{self.day_of_month}"
         return self._prefix + suffix
 
     @apply_wraps
@@ -1527,9 +1528,7 @@ class Week(DateOffset):
 
         if self.weekday is not None:
             if self.weekday < 0 or self.weekday > 6:
-                raise ValueError(
-                    "Day must be 0<=day<=6, got {day}".format(day=self.weekday)
-                )
+                raise ValueError(f"Day must be 0<=day<=6, got {self.weekday}")
 
     def isAnchored(self):
         return self.n == 1 and self.weekday is not None
@@ -1541,9 +1540,7 @@ class Week(DateOffset):
 
         if not isinstance(other, datetime):
             raise TypeError(
-                "Cannot add {typ} to {cls}".format(
-                    typ=type(other).__name__, cls=type(self).__name__
-                )
+                f"Cannot add {type(other).__name__} to {type(self).__name__}"
             )
 
         k = self.n
@@ -1621,7 +1618,7 @@ class Week(DateOffset):
         suffix = ""
         if self.weekday is not None:
             weekday = ccalendar.int_to_weekday[self.weekday]
-            suffix = "-{weekday}".format(weekday=weekday)
+            suffix = f"-{weekday}"
         return self._prefix + suffix
 
     @classmethod
@@ -1690,13 +1687,9 @@ class WeekOfMonth(_WeekOfMonthMixin, DateOffset):
         object.__setattr__(self, "week", week)
 
         if self.weekday < 0 or self.weekday > 6:
-            raise ValueError(
-                "Day must be 0<=day<=6, got {day}".format(day=self.weekday)
-            )
+            raise ValueError(f"Day must be 0<=day<=6, got {self.weekday}")
         if self.week < 0 or self.week > 3:
-            raise ValueError(
-                "Week must be 0<=week<=3, got {week}".format(week=self.week)
-            )
+            raise ValueError(f"Week must be 0<=week<=3, got {self.week}")
 
     def _get_offset_day(self, other):
         """
@@ -1719,16 +1712,12 @@ class WeekOfMonth(_WeekOfMonthMixin, DateOffset):
     @property
     def rule_code(self):
         weekday = ccalendar.int_to_weekday.get(self.weekday, "")
-        return "{prefix}-{week}{weekday}".format(
-            prefix=self._prefix, week=self.week + 1, weekday=weekday
-        )
+        return f"{self._prefix}-{self.week + 1}{weekday}"
 
     @classmethod
     def _from_name(cls, suffix=None):
         if not suffix:
-            raise ValueError(
-                "Prefix {prefix!r} requires a suffix.".format(prefix=cls._prefix)
-            )
+            raise ValueError(f"Prefix {repr(cls._prefix)} requires a suffix.")
         # TODO: handle n here...
         # only one digit weeks (1 --> week 0, 2 --> week 1, etc.)
         week = int(suffix[0]) - 1
@@ -1768,9 +1757,7 @@ class LastWeekOfMonth(_WeekOfMonthMixin, DateOffset):
             raise ValueError("N cannot be 0")
 
         if self.weekday < 0 or self.weekday > 6:
-            raise ValueError(
-                "Day must be 0<=day<=6, got {day}".format(day=self.weekday)
-            )
+            raise ValueError(f"Day must be 0<=day<=6, got {self.weekday}")
 
     def _get_offset_day(self, other):
         """
@@ -1794,14 +1781,12 @@ class LastWeekOfMonth(_WeekOfMonthMixin, DateOffset):
     @property
     def rule_code(self):
         weekday = ccalendar.int_to_weekday.get(self.weekday, "")
-        return "{prefix}-{weekday}".format(prefix=self._prefix, weekday=weekday)
+        return f"{self._prefix}-{weekday}"
 
     @classmethod
     def _from_name(cls, suffix=None):
         if not suffix:
-            raise ValueError(
-                "Prefix {prefix!r} requires a suffix.".format(prefix=cls._prefix)
-            )
+            raise ValueError(f"Prefix {repr(cls._prefix)} requires a suffix.")
         # TODO: handle n here...
         weekday = ccalendar.weekday_to_int[suffix]
         return cls(weekday=weekday)
@@ -1847,7 +1832,7 @@ class QuarterOffset(DateOffset):
     @property
     def rule_code(self):
         month = ccalendar.MONTH_ALIASES[self.startingMonth]
-        return "{prefix}-{month}".format(prefix=self._prefix, month=month)
+        return f"{self._prefix}-{month}"
 
     @apply_wraps
     def apply(self, other):
@@ -1990,7 +1975,7 @@ class YearOffset(DateOffset):
     @property
     def rule_code(self):
         month = ccalendar.MONTH_ALIASES[self.month]
-        return "{prefix}-{month}".format(prefix=self._prefix, month=month)
+        return f"{self._prefix}-{month}"
 
 
 class BYearEnd(YearOffset):
@@ -2104,9 +2089,7 @@ class FY5253(DateOffset):
             raise ValueError("N cannot be 0")
 
         if self.variation not in ["nearest", "last"]:
-            raise ValueError(
-                "{variation} is not a valid variation".format(variation=self.variation)
-            )
+            raise ValueError(f"{self.variation} is not a valid variation")
 
     def isAnchored(self):
         return (
@@ -2211,7 +2194,7 @@ class FY5253(DateOffset):
     def rule_code(self):
         prefix = self._prefix
         suffix = self.get_rule_code_suffix()
-        return "{prefix}-{suffix}".format(prefix=prefix, suffix=suffix)
+        return f"{prefix}-{suffix}"
 
     def _get_suffix_prefix(self):
         if self.variation == "nearest":
@@ -2223,9 +2206,7 @@ class FY5253(DateOffset):
         prefix = self._get_suffix_prefix()
         month = ccalendar.MONTH_ALIASES[self.startingMonth]
         weekday = ccalendar.int_to_weekday[self.weekday]
-        return "{prefix}-{month}-{weekday}".format(
-            prefix=prefix, month=month, weekday=weekday
-        )
+        return f"{prefix}-{month}-{weekday}"
 
     @classmethod
     def _parse_suffix(cls, varion_code, startingMonth_code, weekday_code):
@@ -2234,9 +2215,7 @@ class FY5253(DateOffset):
         elif varion_code == "L":
             variation = "last"
         else:
-            raise ValueError(
-                "Unable to parse varion_code: {code}".format(code=varion_code)
-            )
+            raise ValueError(f"Unable to parse varion_code: {varion_code}")
 
         startingMonth = ccalendar.MONTH_TO_CAL_NUM[startingMonth_code]
         weekday = ccalendar.weekday_to_int[weekday_code]
@@ -2461,9 +2440,7 @@ class FY5253Quarter(DateOffset):
     def rule_code(self):
         suffix = self._offset.get_rule_code_suffix()
         qtr = self.qtr_with_extra_week
-        return "{prefix}-{suffix}-{qtr}".format(
-            prefix=self._prefix, suffix=suffix, qtr=qtr
-        )
+        return f"{self._prefix}-{suffix}-{qtr}"
 
     @classmethod
     def _from_name(cls, *args):
@@ -2532,12 +2509,11 @@ def _tick_comp(op):
         except AttributeError:
             # comparing with a non-Tick object
             raise TypeError(
-                "Invalid comparison between {cls} and {typ}".format(
-                    cls=type(self).__name__, typ=type(other).__name__
-                )
+                f"Invalid comparison between {type(self).__name__} "
+                f"and {type(other).__name__}"
             )
 
-    f.__name__ = "__{opname}__".format(opname=op.__name__)
+    f.__name__ = f"__{op.__name__}__"
     return f
 
 
@@ -2572,8 +2548,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
             return NotImplemented
         except OverflowError:
             raise OverflowError(
-                "the add operation between {self} and {other} "
-                "will overflow".format(self=self, other=other)
+                f"the add operation between {self} and {other} will overflow"
             )
 
     def __eq__(self, other) -> bool:
@@ -2645,9 +2620,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
         elif isinstance(other, type(self)):
             return type(self)(self.n + other.n)
 
-        raise ApplyTypeError(
-            "Unhandled type: {type_str}".format(type_str=type(other).__name__)
-        )
+        raise ApplyTypeError(f"Unhandled type: {type(other).__name__}")
 
     def isAnchored(self):
         return False
@@ -2783,9 +2756,7 @@ def generate_range(start=None, end=None, periods=None, offset=BDay()):
             # faster than cur + offset
             next_date = offset.apply(cur)
             if next_date <= cur:
-                raise ValueError(
-                    "Offset {offset} did not increment date".format(offset=offset)
-                )
+                raise ValueError(f"Offset {offset} did not increment date")
             cur = next_date
     else:
         while cur >= end:
@@ -2799,9 +2770,7 @@ def generate_range(start=None, end=None, periods=None, offset=BDay()):
             # faster than cur + offset
             next_date = offset.apply(cur)
             if next_date >= cur:
-                raise ValueError(
-                    "Offset {offset} did not decrement date".format(offset=offset)
-                )
+                raise ValueError(f"Offset {offset} did not decrement date")
             cur = next_date
 
 
