@@ -8,7 +8,17 @@ from datetime import date
 import itertools
 import os
 import re
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Hashable,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 import warnings
 
 import numpy as np
@@ -2781,13 +2791,16 @@ class GenericFixed(Fixed):
         else:
             return ret
 
-    def read_index(self, key: str, **kwargs) -> Index:
+    def read_index(
+        self, key: str, start: Optional[int] = None, stop: Optional[int] = None
+    ) -> Index:
         variety = _ensure_decoded(getattr(self.attrs, f"{key}_variety"))
 
         if variety == "multi":
-            return self.read_multi_index(key, **kwargs)
+            return self.read_multi_index(key, start=start, stop=stop)
         elif variety == "regular":
-            _, index = self.read_index_node(getattr(self.group, key), **kwargs)
+            node = getattr(self.group, key)
+            _, index = self.read_index_node(node, start=start, stop=stop)
             return index
         else:  # pragma: no cover
             raise TypeError(f"unrecognized index variety: {variety}")
@@ -2840,7 +2853,9 @@ class GenericFixed(Fixed):
             label_key = f"{key}_label{i}"
             self.write_array(label_key, level_codes)
 
-    def read_multi_index(self, key: str, **kwargs) -> MultiIndex:
+    def read_multi_index(
+        self, key: str, start: Optional[int] = None, stop: Optional[int] = None
+    ) -> MultiIndex:
         nlevels = getattr(self.attrs, f"{key}_nlevels")
 
         levels = []
@@ -2848,12 +2863,13 @@ class GenericFixed(Fixed):
         names = []
         for i in range(nlevels):
             level_key = f"{key}_level{i}"
-            name, lev = self.read_index_node(getattr(self.group, level_key), **kwargs)
+            node = getattr(self.group, level_key)
+            name, lev = self.read_index_node(node, start=start, stop=stop)
             levels.append(lev)
             names.append(name)
 
             label_key = f"{key}_label{i}"
-            level_codes = self.read_array(label_key, **kwargs)
+            level_codes = self.read_array(label_key, start=start, stop=stop)
             codes.append(level_codes)
 
         return MultiIndex(
@@ -3014,6 +3030,8 @@ class SeriesFixed(GenericFixed):
     pandas_kind = "series"
     attributes = ["name"]
 
+    name: Optional[Hashable]
+
     @property
     def shape(self):
         try:
@@ -3021,10 +3039,16 @@ class SeriesFixed(GenericFixed):
         except (TypeError, AttributeError):
             return None
 
-    def read(self, **kwargs):
-        kwargs = self.validate_read(kwargs)
-        index = self.read_index("index", **kwargs)
-        values = self.read_array("values", **kwargs)
+    def read(
+        self,
+        where=None,
+        columns=None,
+        start: Optional[int] = None,
+        stop: Optional[int] = None,
+    ):
+        self.validate_read({"where": where, "columns": columns})
+        index = self.read_index("index", start=start, stop=stop)
+        values = self.read_array("values", start=start, stop=stop)
         return Series(values, index=index, name=self.name)
 
     def write(self, obj, **kwargs):
@@ -3037,6 +3061,8 @@ class SeriesFixed(GenericFixed):
 class BlockManagerFixed(GenericFixed):
     attributes = ["ndim", "nblocks"]
     is_shape_reversed = False
+
+    nblocks: int
 
     @property
     def shape(self):
@@ -3069,10 +3095,15 @@ class BlockManagerFixed(GenericFixed):
         except AttributeError:
             return None
 
-    def read(self, start=None, stop=None, **kwargs):
+    def read(
+        self,
+        where=None,
+        columns=None,
+        start: Optional[int] = None,
+        stop: Optional[int] = None,
+    ):
         # start, stop applied to rows, so 0th axis only
-
-        kwargs = self.validate_read(kwargs)
+        self.validate_read({"columns": columns, "where": where})
         select_axis = self.obj_type()._get_block_manager_axis(0)
 
         axes = []
@@ -4360,14 +4391,21 @@ class AppendableSeriesTable(AppendableFrameTable):
             obj.columns = [name]
         return super().write(obj=obj, data_columns=obj.columns.tolist(), **kwargs)
 
-    def read(self, columns=None, **kwargs):
+    def read(
+        self,
+        where=None,
+        columns=None,
+        start: Optional[int] = None,
+        stop: Optional[int] = None,
+    ):
 
         is_multi_index = self.is_multi_index
         if columns is not None and is_multi_index:
+            assert isinstance(self.levels, list)  # needed for mypy
             for n in self.levels:
                 if n not in columns:
                     columns.insert(0, n)
-        s = super().read(columns=columns, **kwargs)
+        s = super().read(where=where, columns=columns, start=start, stop=stop)
         if is_multi_index:
             s.set_index(self.levels, inplace=True)
 
@@ -4468,9 +4506,15 @@ class AppendableMultiFrameTable(AppendableFrameTable):
                 data_columns.insert(0, n)
         return super().write(obj=obj, data_columns=data_columns, **kwargs)
 
-    def read(self, **kwargs):
+    def read(
+        self,
+        where=None,
+        columns=None,
+        start: Optional[int] = None,
+        stop: Optional[int] = None,
+    ):
 
-        df = super().read(**kwargs)
+        df = super().read(where=where, columns=columns, start=start, stop=stop)
         df = df.set_index(self.levels)
 
         # remove names for 'level_%d'
