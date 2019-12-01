@@ -557,9 +557,7 @@ class TestRollingTS:
     )
     def test_freqs_ops(self, freq, op, result_data):
         # GH 21096
-        index = date_range(
-            start="2018-1-1 01:00:00", freq=f"1{freq}", periods=10
-        )
+        index = date_range(start="2018-1-1 01:00:00", freq=f"1{freq}", periods=10)
         s = Series(data=0, index=index)
         s.iloc[1] = np.nan
         s.iloc[-1] = 2
