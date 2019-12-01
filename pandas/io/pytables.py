@@ -43,6 +43,7 @@ from pandas import (
     concat,
     isna,
 )
+from pandas._typing import FrameOrSeries
 from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
 from pandas.core.computation.pytables import PyTablesExpr, maybe_expression
@@ -54,7 +55,6 @@ from pandas.io.formats.printing import adjoin, pprint_thing
 
 if TYPE_CHECKING:
     from tables import File, Node  # noqa:F401
-    from pandas.core.generic import NDFrame  # noqa:F401
 
 
 # versioning attribute
@@ -243,7 +243,7 @@ def _tables():
 def to_hdf(
     path_or_buf,
     key: str,
-    value: "NDFrame",
+    value: FrameOrSeries,
     mode: str = "a",
     complevel: Optional[int] = None,
     complib: Optional[str] = None,
