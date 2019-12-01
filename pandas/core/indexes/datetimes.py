@@ -423,7 +423,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
         d = dict(data=self._data)
         d.update(self._get_attributes_dict())
-        return _new_DatetimeIndex, (self.__class__, d), None
+        return _new_DatetimeIndex, (type(self), d), None
 
     def __setstate__(self, state):
         """Necessary for making this object picklable"""

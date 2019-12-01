@@ -54,7 +54,7 @@ cdef class BlockPlacement:
         else:
             v = self._as_array
 
-        return f'{self.__class__.__name__}({v})'
+        return f'{type(self).__name__}({v})'
 
     def __repr__(self) -> str:
         return str(self)

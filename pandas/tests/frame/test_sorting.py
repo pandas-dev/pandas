@@ -385,17 +385,11 @@ class TestDataFrameSortIndexKinds:
         random.shuffle(B)
         frame = DataFrame({"A": A, "B": B, "C": np.random.randn(100)})
 
-        # use .sort_values #9816
-        with tm.assert_produces_warning(FutureWarning):
-            frame.sort_index(by=["A", "B"])
         result = frame.sort_values(by=["A", "B"])
         indexer = np.lexsort((frame["B"], frame["A"]))
         expected = frame.take(indexer)
         tm.assert_frame_equal(result, expected)
 
-        # use .sort_values #9816
-        with tm.assert_produces_warning(FutureWarning):
-            frame.sort_index(by=["A", "B"], ascending=False)
         result = frame.sort_values(by=["A", "B"], ascending=False)
         indexer = np.lexsort(
             (frame["B"].rank(ascending=False), frame["A"].rank(ascending=False))
@@ -403,9 +397,6 @@ class TestDataFrameSortIndexKinds:
         expected = frame.take(indexer)
         tm.assert_frame_equal(result, expected)
 
-        # use .sort_values #9816
-        with tm.assert_produces_warning(FutureWarning):
-            frame.sort_index(by=["B", "A"])
         result = frame.sort_values(by=["B", "A"])
         indexer = np.lexsort((frame["A"], frame["B"]))
         expected = frame.take(indexer)
@@ -452,14 +443,8 @@ class TestDataFrameSortIndexKinds:
 
         df = DataFrame({"A": A, "B": B, "C": np.random.randn(100)})
 
-        # use .sort_values #9816
-        with tm.assert_produces_warning(FutureWarning):
-            df.sort_index(by=["A", "B"], ascending=[1, 0])
-        result = df.sort_values(by=["A", "B"], ascending=[1, 0])
-
         ex_indexer = np.lexsort((df.B.max() - df.B, df.A))
         expected = df.take(ex_indexer)
-        tm.assert_frame_equal(result, expected)
 
         # test with multiindex, too
         idf = df.set_index(["A", "B"])
@@ -471,59 +456,6 @@ class TestDataFrameSortIndexKinds:
         # also, Series!
         result = idf["C"].sort_index(ascending=[1, 0])
         tm.assert_series_equal(result, expected["C"])
-
-    def test_sort_index_duplicates(self):
-
-        # with 9816, these are all translated to .sort_values
-
-        df = DataFrame([range(5, 9), range(4)], columns=["a", "a", "b", "b"])
-
-        with pytest.raises(ValueError, match="not unique"):
-            # use .sort_values #9816
-            with tm.assert_produces_warning(FutureWarning):
-                df.sort_index(by="a")
-        with pytest.raises(ValueError, match="not unique"):
-            df.sort_values(by="a")
-
-        with pytest.raises(ValueError, match="not unique"):
-            # use .sort_values #9816
-            with tm.assert_produces_warning(FutureWarning):
-                df.sort_index(by=["a"])
-        with pytest.raises(ValueError, match="not unique"):
-            df.sort_values(by=["a"])
-
-        with pytest.raises(ValueError, match="not unique"):
-            # use .sort_values #9816
-            with tm.assert_produces_warning(FutureWarning):
-                # multi-column 'by' is separate codepath
-                df.sort_index(by=["a", "b"])
-        with pytest.raises(ValueError, match="not unique"):
-            # multi-column 'by' is separate codepath
-            df.sort_values(by=["a", "b"])
-
-        # with multi-index
-        # GH4370
-        df = DataFrame(
-            np.random.randn(4, 2), columns=MultiIndex.from_tuples([("a", 0), ("a", 1)])
-        )
-        with pytest.raises(ValueError, match="level"):
-            # use .sort_values #9816
-            with tm.assert_produces_warning(FutureWarning):
-                df.sort_index(by="a")
-        with pytest.raises(ValueError, match="level"):
-            df.sort_values(by="a")
-
-        # convert tuples to a list of tuples
-        # use .sort_values #9816
-        with tm.assert_produces_warning(FutureWarning):
-            df.sort_index(by=[("a", 1)])
-        expected = df.sort_values(by=[("a", 1)])
-
-        # use .sort_values #9816
-        with tm.assert_produces_warning(FutureWarning):
-            df.sort_index(by=("a", 1))
-        result = df.sort_values(by=("a", 1))
-        tm.assert_frame_equal(result, expected)
 
     def test_sort_index_level(self):
         mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list("ABC"))
