@@ -675,11 +675,13 @@ class TestTimestampConstructors:
             Timestamp("2012-01-01", freq=[])
 
     @pytest.mark.parametrize("box", [datetime, Timestamp])
-    def test_depreciate_tz_and_tzinfo_in_datetime_input(self, box):
+    def test_raise_tz_and_tzinfo_in_datetime_input(self, box):
         # GH 23579
         kwargs = {"year": 2018, "month": 1, "day": 1, "tzinfo": utc}
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(ValueError, match="Cannot pass a datetime or Timestamp"):
             Timestamp(box(**kwargs), tz="US/Pacific")
+        with pytest.raises(ValueError, match="Cannot pass a datetime or Timestamp"):
+            Timestamp(box(**kwargs), tzinfo=pytz.timezone("US/Pacific"))
 
     def test_dont_convert_dateutil_utc_to_pytz_utc(self):
         result = Timestamp(datetime(2018, 1, 1), tz=tzutc())
