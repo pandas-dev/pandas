@@ -62,7 +62,7 @@ jobs:
     - script: if [ "$(uname)" == "Linux" ]; then sudo apt-get install -y libc6-dev-i386 $EXTRA_APT; fi
       displayName: 'Install extra packages'
 
-    - sctipt: locale -a
+    - script: locale -a
       displayName: 'Show available locales'
 
     - script: echo '##vso[task.prependpath]$(HOME)/miniconda3/bin'
