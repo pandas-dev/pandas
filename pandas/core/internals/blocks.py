@@ -2444,15 +2444,11 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         # interpreted as nanoseconds
         if is_integer(value):
             # Deprecation GH#24694, GH#19233
-            warnings.warn(
-                "Passing integers to fillna is deprecated, will "
-                "raise a TypeError in a future version.  To retain "
-                "the old behavior, pass pd.Timedelta(seconds=n) "
-                "instead.",
-                FutureWarning,
-                stacklevel=6,
+            raise TypeError(
+                "Passing integers to fillna for timedelta64[ns] dtype is no "
+                "longer supporetd.  To obtain the old behavior, pass "
+                "`pd.Timedelta(seconds=n)` instead."
             )
-            value = Timedelta(value, unit="s")
         return super().fillna(value, **kwargs)
 
     def should_store(self, value):
