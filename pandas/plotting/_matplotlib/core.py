@@ -1,6 +1,7 @@
 import re
 from typing import Optional
 import warnings
+from collections import Iterable
 
 import numpy as np
 
@@ -115,6 +116,31 @@ class MPLPlot:
         self.sort_columns = sort_columns
 
         self.subplots = subplots
+        if isinstance(self.subplots, Iterable):
+            # subplots is a list of tuples where each tuple is a group of
+            # columns to be grouped together (one ax per group).
+            # we consolidate the subplots list such that:
+            # - the tuples contain indexes instead of column names
+            # - the columns that aren't yet in the list are added in a group
+            #   of their own.
+            # For example with columns from a to g, and
+            # subplots = [(a, c), (b, f, e)],
+            # we end up with [(ai, ci), (bi, fi, ei), (di,), (gi,)]
+            # This way, we can handle self.subplots in a homogeneous manner
+            # later.
+            # TODO: also accept indexes instead of just names?
+            # TODO: we're potentially messing with the order of the axes here
+            cols_in_groups = set(col for group in self.subplots for col in group)
+            cols_remaining = set(data.columns) - cols_in_groups
+
+            subplots = []
+            index = list(data.columns).index
+            for group in self.subplots:
+                subplots.append(tuple(index(col) for col in group))
+            for col in cols_remaining:
+                subplots.append((index(col),))
+
+            self.subplots = subplots
 
         if sharex is None:
             if ax is None:
@@ -323,8 +349,11 @@ class MPLPlot:
 
     def _setup_subplots(self):
         if self.subplots:
+            naxes = (
+                self.nseries if isinstance(self.subplots, bool) else len(self.subplots)
+            )
             fig, axes = _subplots(
-                naxes=self.nseries,
+                naxes=naxes,
                 sharex=self.sharex,
                 sharey=self.sharey,
                 figsize=self.figsize,
@@ -690,9 +719,20 @@ class MPLPlot:
         else:
             return getattr(ax, "right_ax", ax)
 
+    def _col_idx_to_axis_idx(self, i):
+        if isinstance(self.subplots, list):
+            # Some columns are be grouped together in the same ax
+            for group_idx, group in enumerate(self.subplots):
+                if i in group:
+                    return group_idx
+        else:
+            # One ax per column
+            return i
+
     def _get_ax(self, i):
         # get the twinx ax if appropriate
         if self.subplots:
+            i = self._col_idx_to_axis_idx(i)
             ax = self.axes[i]
             ax = self._maybe_right_yaxis(ax, i)
             self.axes[i] = ax
