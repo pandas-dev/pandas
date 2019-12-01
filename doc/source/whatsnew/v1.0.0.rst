@@ -102,6 +102,50 @@ String accessor methods returning integers will return a value with :class:`Int6
 We recommend explicitly using the ``string`` data type when working with strings.
 See :ref:`text.types` for more.
 
+.. _whatsnew_100.NA:
+
+Experimental ``NA`` scalar to denote missing values
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A new ``pd.NA`` value (singleton) is introduced to represent scalar missing
+values. Up to now, ``np.nan`` is used for this for float data, ``np.nan`` or
+``None`` for object-dtype data and ``pd.NaT`` for datetime-like data. The
+goal of ``pd.NA`` is provide a "missing" indicator that can be used
+consistently accross data types. For now, the nullable integer and boolean
+data types and the new string data type make use of ``pd.NA`` (:issue:`28095`).
+
+.. warning::
+
+   Experimental: the behaviour of ``pd.NA`` can still change without warning.
+
+For example, creating a Series using the nullable integer dtype:
+
+.. ipython:: python
+
+    s = pd.Series([1, 2, None], dtype="Int64")
+    s
+    s[2]
+
+Compared to ``np.nan``, ``pd.NA`` behaves differently in certain operations.
+In addition to arithmetic operations, ``pd.NA`` also propagates as "missing"
+or "unknown" in comparison operations:
+
+.. ipython:: python
+
+    np.nan > 1
+    pd.NA > 1
+
+For logical operations, ``pd.NA`` follows the rules of the
+`three-valued logic <https://en.wikipedia.org/wiki/Three-valued_logic>`__ (or
+*Kleene logic*). For example:
+
+.. ipython:: python
+
+    pd.NA | True
+
+For more, see :ref:`NA section <missing_data.NA>` in the user guide on missing
+data.
+
 .. _whatsnew_100.boolean:
 
 Boolean data type with missing values support
