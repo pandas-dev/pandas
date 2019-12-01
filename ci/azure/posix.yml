@@ -59,6 +59,9 @@ jobs:
           EXTRA_APT: "xsel"
 
   steps:
+    - script: if [ -z $LANG ]; then sudo locale-gen $LANG; fi
+      displayName: 'Generate locale'
+
     - script: |
         if [ "$(uname)" == "Linux" ]; then
           sudo apt-get update
