@@ -15,9 +15,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
-    - name: Setting conda path
-      run: echo "::set-env name=PATH::${HOME}/miniconda3/bin:${PATH}"
-
     - name: Checkout
       uses: actions/checkout@v1
 
