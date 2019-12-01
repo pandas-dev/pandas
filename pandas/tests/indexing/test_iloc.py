@@ -137,11 +137,8 @@ class TestiLoc(Base):
     def test_iloc_getitem_int(self):
 
         # integer
+        self.check_result("iloc", 2, "ix", {0: 4, 1: 6, 2: 8}, typs=["ints", "uints"])
         self.check_result(
-            "integer", "iloc", 2, "ix", {0: 4, 1: 6, 2: 8}, typs=["ints", "uints"]
-        )
-        self.check_result(
-            "integer",
             "iloc",
             2,
             "indexer",
@@ -153,11 +150,8 @@ class TestiLoc(Base):
     def test_iloc_getitem_neg_int(self):
 
         # neg integer
+        self.check_result("iloc", -1, "ix", {0: 6, 1: 9, 2: 12}, typs=["ints", "uints"])
         self.check_result(
-            "neg int", "iloc", -1, "ix", {0: 6, 1: 9, 2: 12}, typs=["ints", "uints"]
-        )
-        self.check_result(
-            "neg int",
             "iloc",
             -1,
             "indexer",
@@ -196,7 +190,6 @@ class TestiLoc(Base):
 
         # list of ints
         self.check_result(
-            "list int",
             "iloc",
             [0, 1, 2],
             "ix",
@@ -204,15 +197,9 @@ class TestiLoc(Base):
             typs=["ints", "uints"],
         )
         self.check_result(
-            "list int",
-            "iloc",
-            [2],
-            "ix",
-            {0: [4], 1: [6], 2: [8]},
-            typs=["ints", "uints"],
+            "iloc", [2], "ix", {0: [4], 1: [6], 2: [8]}, typs=["ints", "uints"],
         )
         self.check_result(
-            "list int",
             "iloc",
             [0, 1, 2],
             "indexer",
@@ -224,7 +211,6 @@ class TestiLoc(Base):
         # array of ints (GH5006), make sure that a single indexer is returning
         # the correct type
         self.check_result(
-            "array int",
             "iloc",
             np.array([0, 1, 2]),
             "ix",
@@ -232,7 +218,6 @@ class TestiLoc(Base):
             typs=["ints", "uints"],
         )
         self.check_result(
-            "array int",
             "iloc",
             np.array([2]),
             "ix",
@@ -240,7 +225,6 @@ class TestiLoc(Base):
             typs=["ints", "uints"],
         )
         self.check_result(
-            "array int",
             "iloc",
             np.array([0, 1, 2]),
             "indexer",
@@ -279,12 +263,10 @@ class TestiLoc(Base):
     def test_iloc_getitem_dups(self):
 
         self.check_result(
-            "list int (dups)",
             "iloc",
             [0, 1, 1, 3],
             "ix",
             {0: [0, 2, 2, 6], 1: [0, 3, 3, 9]},
-            kinds=["series", "frame"],
             typs=["ints", "uints"],
         )
 
@@ -306,7 +288,6 @@ class TestiLoc(Base):
         # array like
         s = Series(index=range(1, 4))
         self.check_result(
-            "array like",
             "iloc",
             s.index,
             "ix",
@@ -318,9 +299,8 @@ class TestiLoc(Base):
 
         # boolean indexers
         b = [True, False, True, False]
-        self.check_result("bool", "iloc", b, "ix", b, typs=["ints", "uints"])
+        self.check_result("iloc", b, "ix", b, typs=["ints", "uints"])
         self.check_result(
-            "bool",
             "iloc",
             b,
             "ix",
@@ -343,7 +323,6 @@ class TestiLoc(Base):
 
         # slices
         self.check_result(
-            "slice",
             "iloc",
             slice(1, 3),
             "ix",
@@ -351,7 +330,6 @@ class TestiLoc(Base):
             typs=["ints", "uints"],
         )
         self.check_result(
-            "slice",
             "iloc",
             slice(1, 3),
             "indexer",
@@ -750,20 +728,8 @@ class TestiLoc(Base):
         df2 = DataFrame({"A": [0.1] * 1000, "B": [1] * 1000})
         df2 = concat([df2, 2 * df2, 3 * df2])
 
-        sidx = df2.index.to_series()
-        expected = df2.iloc[idx[idx <= sidx.max()]]
-
-        new_list = []
-        for r, s in expected.iterrows():
-            new_list.append(s)
-            new_list.append(s * 2)
-            new_list.append(s * 3)
-
-        expected = DataFrame(new_list)
-        expected = concat([expected, DataFrame(index=idx[idx > sidx.max()])], sort=True)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = df2.loc[idx]
-        tm.assert_frame_equal(result, expected, check_index_type=False)
+        with pytest.raises(KeyError, match="with any missing labels"):
+            df2.loc[idx]
 
     def test_iloc_empty_list_indexer_is_ok(self):
 
