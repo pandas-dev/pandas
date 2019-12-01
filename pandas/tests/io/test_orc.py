@@ -1,27 +1,17 @@
 """ test orc compat """
 import datetime
-import distutils
+from decimal import Decimal
 import os
 
 import numpy as np
 import pytest
-
-from pandas.compat import is_platform_windows
 
 import pandas as pd
 import pandas.util.testing as tm
 
 from pandas.io.orc import PyArrowImpl, get_engine, read_orc
 
-try:
-    import pyarrow  # noqa
-
-    if distutils.version.LooseVersion(pyarrow.__version__) < "0.13.0":
-        raise ImportError("pyarrow must be >= 0.13.0 for read_orc")
-
-    _HAVE_PYARROW = True
-except ImportError:
-    _HAVE_PYARROW = False
+pyarrow = pytest.importorskip("pyarrow")
 
 pytestmark = pytest.mark.filterwarnings(
     "ignore:RangeIndex.* is deprecated:DeprecationWarning"
@@ -33,16 +23,7 @@ def dirpath(datapath):
     return datapath("io", "data", "orc")
 
 
-@pytest.fixture
-def pa():
-    if not _HAVE_PYARROW:
-        pytest.skip("pyarrow is not installed")
-    if is_platform_windows():
-        pytest.skip("pyarrow orc not available by default on windows")
-    return "pyarrow"
-
-
-def test_options_get_engine(pa):
+def test_options_get_engine():
     assert isinstance(get_engine("pyarrow"), PyArrowImpl)
 
     with pd.option_context("io.orc.engine", "pyarrow"):
@@ -61,7 +42,7 @@ def test_invalid_engine(dirpath):
         read_orc(inputfile, engine=engine, columns=["boolean1"])
 
 
-def test_orc_reader_empty(dirpath, pa):
+def test_orc_reader_empty(dirpath):
     columns = [
         "boolean1",
         "byte1",
@@ -94,7 +75,7 @@ def test_orc_reader_empty(dirpath, pa):
     tm.assert_equal(expected, got)
 
 
-def test_orc_reader_basic(dirpath, pa):
+def test_orc_reader_basic(dirpath):
     data = {
         "boolean1": np.array([False, True], dtype="bool"),
         "byte1": np.array([1, 100], dtype="int8"),
@@ -114,8 +95,7 @@ def test_orc_reader_basic(dirpath, pa):
     tm.assert_equal(expected, got)
 
 
-def test_orc_reader_decimal(dirpath, pa):
-    from decimal import Decimal
+def test_orc_reader_decimal(dirpath):
 
     # Only testing the first 10 rows of data
     data = {
@@ -143,7 +123,7 @@ def test_orc_reader_decimal(dirpath, pa):
     tm.assert_equal(expected, got)
 
 
-def test_orc_reader_date_low(dirpath, pa):
+def test_orc_reader_date_low(dirpath):
     data = {
         "time": np.array(
             [
@@ -184,7 +164,7 @@ def test_orc_reader_date_low(dirpath, pa):
     tm.assert_equal(expected, got)
 
 
-def test_orc_reader_date_high(dirpath, pa):
+def test_orc_reader_date_high(dirpath):
     data = {
         "time": np.array(
             [
@@ -225,7 +205,7 @@ def test_orc_reader_date_high(dirpath, pa):
     tm.assert_equal(expected, got)
 
 
-def test_orc_reader_snappy_compressed(dirpath, pa):
+def test_orc_reader_snappy_compressed(dirpath):
     data = {
         "int1": np.array(
             [

@@ -1,6 +1,5 @@
 """ orc compat """
 
-import distutils
 from typing import List, Optional
 
 from pandas.compat._optional import import_optional_dependency
@@ -12,28 +11,13 @@ from pandas.io.common import get_filepath_or_buffer
 
 
 def get_engine(engine: str) -> "PyArrowImpl":
-    """ return our implementation """
+    """ return our implementation; we only support a pyarrow impl """
 
     if engine == "auto":
         engine = get_option("io.orc.engine")
 
-    if engine == "auto":
-        # try engines in this order
-        try:
-            return PyArrowImpl()
-        except ImportError:
-            pass
-
-        raise ImportError(
-            "Unable to find a usable engine; "
-            "tried using: 'pyarrow'.\n"
-            "pyarrow is required for orc "
-            "support"
-        )
-
     if engine not in ["pyarrow"]:
         raise ValueError("engine must be 'pyarrow'")
-
     return PyArrowImpl()
 
 
@@ -43,12 +27,15 @@ class PyArrowImpl:
             "pyarrow", extra="pyarrow is required for orc support."
         )
 
-        # we require a newer version of pyarrow thaN we support for parquet
-        import pyarrow
-
-        if distutils.version.LooseVersion(pyarrow.__version__) < "0.13.0":
-            raise ImportError("pyarrow must be >= 0.13.0 for read_orc")
-
+        try:
+            import pyarrow
+        except ImportError:
+            raise ImportError(
+                "Unable to find a usable engine; "
+                "tried using: 'pyarrow'.\n"
+                "pyarrow is required for orc "
+                "support"
+            )
         import pyarrow.orc
 
         self.api = pyarrow
@@ -57,9 +44,7 @@ class PyArrowImpl:
         self, path: FilePathOrBuffer, columns: Optional[List[str]] = None, **kwargs
     ) -> DataFrame:
         path, _, _, _ = get_filepath_or_buffer(path)
-
-        py_file = self.api.input_stream(path)
-        orc_file = self.api.orc.ORCFile(py_file)
+        orc_file = self.api.orc.ORCFile(path)
 
         result = orc_file.read(columns=columns, **kwargs).to_pandas()
 
