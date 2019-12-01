@@ -299,32 +299,13 @@ class TestFancy(Base):
         tm.assert_frame_equal(result, expected)
 
         rows = ["C", "B", "E"]
-        expected = DataFrame(
-            {
-                "test": [11, 9, np.nan],
-                "test1": [7.0, 6, np.nan],
-                "other": ["d", "c", np.nan],
-            },
-            index=rows,
-        )
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = df.loc[rows]
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(KeyError, match="with any missing labels"):
+            df.loc[rows]
 
         # see GH5553, make sure we use the right indexer
         rows = ["F", "G", "H", "C", "B", "E"]
-        expected = DataFrame(
-            {
-                "test": [np.nan, np.nan, np.nan, 11, 9, np.nan],
-                "test1": [np.nan, np.nan, np.nan, 7.0, 6, np.nan],
-                "other": [np.nan, np.nan, np.nan, "d", "c", np.nan],
-            },
-            index=rows,
-        )
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = df.loc[rows]
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(KeyError, match="with any missing labels"):
+            df.loc[rows]
 
         # List containing only missing label
         dfnu = DataFrame(np.random.randn(5, 3), index=list("AABCD"))
@@ -340,38 +321,25 @@ class TestFancy(Base):
 
         # GH 4619; duplicate indexer with missing label
         df = DataFrame({"A": [0, 1, 2]})
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = df.loc[[0, 8, 0]]
-        expected = DataFrame({"A": [0, np.nan, 0]}, index=[0, 8, 0])
-        tm.assert_frame_equal(result, expected, check_index_type=False)
+        with pytest.raises(KeyError, match="with any missing labels"):
+            df.loc[[0, 8, 0]]
 
         df = DataFrame({"A": list("abc")})
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = df.loc[[0, 8, 0]]
-        expected = DataFrame({"A": ["a", np.nan, "a"]}, index=[0, 8, 0])
-        tm.assert_frame_equal(result, expected, check_index_type=False)
+        with pytest.raises(KeyError, match="with any missing labels"):
+            df.loc[[0, 8, 0]]
 
         # non unique with non unique selector
         df = DataFrame({"test": [5, 7, 9, 11]}, index=["A", "A", "B", "C"])
-        expected = DataFrame(
-            {"test": [5, 7, 5, 7, np.nan]}, index=["A", "A", "A", "A", "E"]
-        )
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = df.loc[["A", "A", "E"]]
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(KeyError, match="with any missing labels"):
+            df.loc[["A", "A", "E"]]
 
     def test_dups_fancy_indexing2(self):
         # GH 5835
         # dups on index and missing values
         df = DataFrame(np.random.randn(5, 5), columns=["A", "B", "B", "B", "A"])
 
-        expected = pd.concat(
-            [df.loc[:, ["A", "B"]], DataFrame(np.nan, columns=["C"], index=df.index)],
-            axis=1,
-        )
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = df.loc[:, ["A", "B", "C"]]
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(KeyError, match="with any missing labels"):
+            df.loc[:, ["A", "B", "C"]]
 
         # GH 6504, multi-axis indexing
         df = DataFrame(

@@ -676,7 +676,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
                     "to DatetimeTZDtype is deprecated. Use "
                     "'DatetimeTZDtype.construct_from_string()' instead."
                 )
-                warnings.warn(msg.format(tz=tz), FutureWarning, stacklevel=2)
+                raise ValueError(msg)
             else:
                 raise ValueError("DatetimeTZDtype only supports ns units")
 

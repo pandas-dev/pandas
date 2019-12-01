@@ -4,14 +4,8 @@ frozen (immutable) data structures to support MultiIndexing
 These are used for:
 
 - .names (FrozenList)
-- .levels & .codes (FrozenNDArray)
 
 """
-import warnings
-
-import numpy as np
-
-from pandas.core.dtypes.cast import coerce_indexer_dtype
 
 from pandas.core.base import PandasObject
 
@@ -111,77 +105,3 @@ class FrozenList(PandasObject, list):
 
     __setitem__ = __setslice__ = __delitem__ = __delslice__ = _disabled
     pop = append = extend = remove = sort = insert = _disabled
-
-
-class FrozenNDArray(PandasObject, np.ndarray):
-
-    # no __array_finalize__ for now because no metadata
-    def __new__(cls, data, dtype=None, copy=False):
-        warnings.warn(
-            "\nFrozenNDArray is deprecated and will be removed in a "
-            "future version.\nPlease use `numpy.ndarray` instead.\n",
-            FutureWarning,
-            stacklevel=2,
-        )
-
-        if copy is None:
-            copy = not isinstance(data, FrozenNDArray)
-        res = np.array(data, dtype=dtype, copy=copy).view(cls)
-        return res
-
-    def _disabled(self, *args, **kwargs):
-        """This method will not function because object is immutable."""
-        raise TypeError(
-            "'{cls}' does not support mutable operations.".format(cls=type(self))
-        )
-
-    __setitem__ = __setslice__ = __delitem__ = __delslice__ = _disabled
-    put = itemset = fill = _disabled
-
-    def _shallow_copy(self):
-        return self.view()
-
-    def values(self):
-        """returns *copy* of underlying array"""
-        arr = self.view(np.ndarray).copy()
-        return arr
-
-    def __repr__(self) -> str:
-        """
-        Return a string representation for this object.
-        """
-        prepr = pprint_thing(self, escape_chars=("\t", "\r", "\n"), quote_strings=True)
-        return f"{type(self).__name__}({prepr}, dtype='{self.dtype}')"
-
-    def searchsorted(self, value, side="left", sorter=None):
-        """
-        Find indices to insert `value` so as to maintain order.
-
-        For full documentation, see `numpy.searchsorted`
-
-        See Also
-        --------
-        numpy.searchsorted : Equivalent function.
-        """
-
-        # We are much more performant if the searched
-        # indexer is the same type as the array.
-        #
-        # This doesn't matter for int64, but DOES
-        # matter for smaller int dtypes.
-        #
-        # xref: https://github.com/numpy/numpy/issues/5370
-        try:
-            value = self.dtype.type(value)
-        except ValueError:
-            pass
-
-        return super().searchsorted(value, side=side, sorter=sorter)
-
-
-def _ensure_frozen(array_like, categories, copy=False):
-    array_like = coerce_indexer_dtype(array_like, categories)
-    array_like = array_like.view(FrozenNDArray)
-    if copy:
-        array_like = array_like.copy()
-    return array_like

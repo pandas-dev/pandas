@@ -9,7 +9,7 @@ alignment and a host of useful data manipulation methods having to do with the
 labeling information
 """
 import collections
-from collections import OrderedDict, abc
+from collections import abc
 from io import StringIO
 import itertools
 import sys
@@ -4764,24 +4764,12 @@ class DataFrame(NDFrame):
         kind="quicksort",
         na_position="last",
         sort_remaining=True,
-        by=None,
     ):
 
         # TODO: this can be combined with Series.sort_index impl as
         # almost identical
 
         inplace = validate_bool_kwarg(inplace, "inplace")
-        # 10726
-        if by is not None:
-            warnings.warn(
-                "by argument to sort_index is deprecated, "
-                "please use .sort_values(by=...)",
-                FutureWarning,
-                stacklevel=2,
-            )
-            if level is not None:
-                raise ValueError("unable to simultaneously sort by and level")
-            return self.sort_values(by, axis=axis, ascending=ascending, inplace=inplace)
 
         axis = self._get_axis_number(axis)
         labels = self._get_axis(axis)
@@ -8182,10 +8170,10 @@ ops.add_special_arithmetic_methods(DataFrame)
 
 def _from_nested_dict(data):
     # TODO: this should be seriously cythonized
-    new_data = OrderedDict()
+    new_data = {}
     for index, s in data.items():
         for col, v in s.items():
-            new_data[col] = new_data.get(col, OrderedDict())
+            new_data[col] = new_data.get(col, {})
             new_data[col][index] = v
     return new_data
 
