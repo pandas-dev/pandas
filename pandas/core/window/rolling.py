@@ -222,7 +222,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         window : int
         """
         if isinstance(self.window, window_indexers.BaseIndexer):
-            return 0
+            return self.min_periods or 0
         return self.window
 
     @property
@@ -521,7 +521,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                         min_periods=self.min_periods,
                         center=self.center,
                         closed=self.closed,
-                        win_type=self.win_type,
                     )
                     if np.any(np.diff(start) < 0) or np.any(np.diff(end) < 0):
                         # Our "variable" algorithms assume monotonically increasing bounds
@@ -961,7 +960,11 @@ class Window(_Window):
         super().validate()
 
         window = self.window
-        if isinstance(window, (list, tuple, np.ndarray, window_indexers.BaseIndexer)):
+        if isinstance(window, window_indexers.BaseIndexer):
+            raise NotImplementedError(
+                "BaseIndexer subclasses not implemented with win_types."
+            )
+        elif isinstance(window, (list, tuple, np.ndarray)):
             pass
         elif is_integer(window):
             if window <= 0:
@@ -1025,7 +1028,7 @@ class Window(_Window):
 
     def _get_window(
         self, other=None, win_type: Optional[Union[str, Tuple]] = None
-    ) -> Optional[np.ndarray]:
+    ) -> np.ndarray:
         """
         Get the window, weights.
 
@@ -1050,8 +1053,6 @@ class Window(_Window):
 
             # GH #15662. `False` makes symmetric window, rather than periodic.
             return sig.get_window(win_type, window, False).astype(float)
-        elif isinstance(window, window_indexers.BaseIndexer):
-            return None
 
     def _get_weighted_roll_func(
         self, cfunc: Callable, check_minp: Callable, **kwargs
@@ -1820,7 +1821,8 @@ class Rolling(_Rolling_and_Expanding):
                 self.min_periods = 1
 
         elif isinstance(self.window, window_indexers.BaseIndexer):
-            pass
+            # Passed BaseIndexer subclass should handle all other rolling kwargs
+            return
         elif not is_integer(self.window):
             raise ValueError("window must be an integer")
         elif self.window < 0:

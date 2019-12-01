@@ -12,7 +12,6 @@ def calculate_variable_window_bounds(
     object min_periods,  # unused but here to match get_window_bounds signature
     object center,  # unused but here to match get_window_bounds signature
     object closed,
-    object win_type,  # unused but here to match get_window_bounds signature
     const int64_t[:] index
 ):
     cdef:

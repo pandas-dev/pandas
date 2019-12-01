@@ -54,7 +54,6 @@ class BaseIndexer:
         min_periods: Optional[int] = None,
         center: Optional[bool] = None,
         closed: Optional[str] = None,
-        win_type: Optional[str] = None,
     ) -> Tuple[np.ndarray, np.ndarray]:
 
         raise NotImplementedError
@@ -70,7 +69,6 @@ class FixedWindowIndexer(BaseIndexer):
         min_periods: Optional[int] = None,
         center: Optional[bool] = None,
         closed: Optional[str] = None,
-        win_type: Optional[str] = None,
     ) -> Tuple[np.ndarray, np.ndarray]:
 
         start_s = np.zeros(self.window_size, dtype="int64")
@@ -97,17 +95,10 @@ class VariableWindowIndexer(BaseIndexer):
         min_periods: Optional[int] = None,
         center: Optional[bool] = None,
         closed: Optional[str] = None,
-        win_type: Optional[str] = None,
     ) -> Tuple[np.ndarray, np.ndarray]:
 
         return calculate_variable_window_bounds(
-            num_values,
-            self.window_size,
-            min_periods,
-            center,
-            closed,
-            win_type,
-            self.index_array,
+            num_values, self.window_size, min_periods, center, closed, self.index_array,
         )
 
 
@@ -121,7 +112,6 @@ class ExpandingIndexer(BaseIndexer):
         min_periods: Optional[int] = None,
         center: Optional[bool] = None,
         closed: Optional[str] = None,
-        win_type: Optional[str] = None,
     ) -> Tuple[np.ndarray, np.ndarray]:
 
         return np.zeros(num_values, dtype=np.int64), np.arange(1, num_values + 1)
