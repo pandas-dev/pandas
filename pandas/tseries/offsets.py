@@ -1,7 +1,7 @@
 from datetime import date, datetime, timedelta
 import functools
 import operator
-from typing import Optional
+from typing import Any, List, Optional
 
 from dateutil.easter import easter
 import numpy as np
@@ -255,7 +255,7 @@ class DateOffset(BaseOffset):
     # default for prior pickles
     normalize = False
 
-    def __init__(self, n=1, normalize=False, **kwds):
+    def __init__(self, n: int = 1, normalize: bool = False, **kwds) -> None:
         BaseOffset.__init__(self, n, normalize)
 
         off, use_rd = liboffsets._determine_offset(kwds)
@@ -363,7 +363,7 @@ class DateOffset(BaseOffset):
                 "applied vectorized".format(kwd=kwd)
             )
 
-    def isAnchored(self):
+    def isAnchored(self) -> bool:
         # TODO: Does this make sense for the general case?  It would help
         # if there were a canonical docstring for what isAnchored means.
         return self.n == 1
@@ -371,7 +371,7 @@ class DateOffset(BaseOffset):
     # TODO: Combine this with BusinessMixin version by defining a whitelisted
     # set of attributes on each object rather than the existing behavior of
     # iterating over internal ``__dict__``
-    def _repr_attrs(self):
+    def _repr_attrs(self) -> str:
         exclude = {"n", "inc", "normalize"}
         attrs = []
         for attr in sorted(self.__dict__):
@@ -387,10 +387,10 @@ class DateOffset(BaseOffset):
         return out
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self.rule_code
 
-    def rollback(self, dt):
+    def rollback(self, dt) -> Timestamp:
         """
         Roll provided date backward to next offset only if not on offset.
 
@@ -404,7 +404,7 @@ class DateOffset(BaseOffset):
             dt = dt - type(self)(1, normalize=self.normalize, **self.kwds)
         return dt
 
-    def rollforward(self, dt):
+    def rollforward(self, dt) -> Timestamp:
         """
         Roll provided date forward to next offset only if not on offset.
 
@@ -418,7 +418,7 @@ class DateOffset(BaseOffset):
             dt = dt + type(self)(1, normalize=self.normalize, **self.kwds)
         return dt
 
-    def onOffset(self, dt):
+    def onOffset(self, dt) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         # XXX, see #1395
@@ -434,15 +434,15 @@ class DateOffset(BaseOffset):
 
     # way to get around weirdness with rule_code
     @property
-    def _prefix(self):
+    def _prefix(self) -> str:
         raise NotImplementedError("Prefix not defined")
 
     @property
-    def rule_code(self):
+    def rule_code(self) -> str:
         return self._prefix
 
     @cache_readonly
-    def freqstr(self):
+    def freqstr(self) -> str:
         try:
             code = self.rule_code
         except NotImplementedError:
@@ -462,11 +462,11 @@ class DateOffset(BaseOffset):
 
         return fstr
 
-    def _offset_str(self):
+    def _offset_str(self) -> str:
         return ""
 
     @property
-    def nanos(self):
+    def nanos(self) -> str:
         raise ValueError("{name} is a non-fixed frequency".format(name=self))
 
 
@@ -485,7 +485,7 @@ class _CustomMixin:
     and weekdays attributes.
     """
 
-    def __init__(self, weekmask, holidays, calendar):
+    def __init__(self, weekmask, holidays, calendar) -> None:
         calendar, holidays = _get_calendar(
             weekmask=weekmask, holidays=holidays, calendar=calendar
         )
@@ -531,12 +531,14 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
     _adjust_dst = True
     _attributes = frozenset(["n", "normalize", "offset"])
 
-    def __init__(self, n=1, normalize=False, offset=timedelta(0)):
+    def __init__(
+        self, n: int = 1, normalize: bool = False, offset=timedelta(0)
+    ) -> None:
         BaseOffset.__init__(self, n, normalize)
         object.__setattr__(self, "_offset", offset)
 
-    def _offset_str(self):
-        def get_str(td):
+    def _offset_str(self) -> str:
+        def get_str(td) -> str:
             off_str = ""
             if td.days > 0:
                 off_str += str(td.days) + "D"
@@ -631,14 +633,14 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
         result = shifted.to_timestamp() + time
         return result
 
-    def onOffset(self, dt):
+    def onOffset(self, dt) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         return dt.weekday() < 5
 
 
 class BusinessHourMixin(BusinessMixin):
-    def __init__(self, start="09:00", end="17:00", offset=timedelta(0)):
+    def __init__(self, start="09:00", end="17:00", offset=timedelta(0)) -> None:
         # must be validated here to equality check
         if not is_list_like(start):
             start = [start]
@@ -780,7 +782,7 @@ class BusinessHourMixin(BusinessMixin):
         """
         return self._next_opening_time(other, sign=-1)
 
-    def _get_business_hours_by_sec(self, start, end):
+    def _get_business_hours_by_sec(self, start, end) -> int:
         """
         Return business hours in a day by seconds.
         """
@@ -984,8 +986,13 @@ class BusinessHour(BusinessHourMixin, SingleConstructorOffset):
     _attributes = frozenset(["n", "normalize", "start", "end", "offset"])
 
     def __init__(
-        self, n=1, normalize=False, start="09:00", end="17:00", offset=timedelta(0)
-    ):
+        self,
+        n: int = 1,
+        normalize: bool = False,
+        start: str = "09:00",
+        end: str = "17:00",
+        offset=timedelta(0),
+    ) -> None:
         BaseOffset.__init__(self, n, normalize)
         super().__init__(start=start, end=end, offset=offset)
 
@@ -1016,13 +1023,13 @@ class CustomBusinessDay(_CustomMixin, BusinessDay):
 
     def __init__(
         self,
-        n=1,
-        normalize=False,
-        weekmask="Mon Tue Wed Thu Fri",
+        n: int = 1,
+        normalize: bool = False,
+        weekmask: str = "Mon Tue Wed Thu Fri",
         holidays=None,
         calendar=None,
         offset=timedelta(0),
-    ):
+    ) -> None:
         BaseOffset.__init__(self, n, normalize)
         object.__setattr__(self, "_offset", offset)
 
@@ -1061,7 +1068,7 @@ class CustomBusinessDay(_CustomMixin, BusinessDay):
     def apply_index(self, i):
         raise NotImplementedError
 
-    def onOffset(self, dt):
+    def onOffset(self, dt) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         day64 = _to_dt64(dt, "datetime64[D]")
@@ -1081,15 +1088,15 @@ class CustomBusinessHour(_CustomMixin, BusinessHourMixin, SingleConstructorOffse
 
     def __init__(
         self,
-        n=1,
-        normalize=False,
-        weekmask="Mon Tue Wed Thu Fri",
+        n: int = 1,
+        normalize: bool = False,
+        weekmask: str = "Mon Tue Wed Thu Fri",
         holidays=None,
         calendar=None,
-        start="09:00",
-        end="17:00",
+        start: str = "09:00",
+        end: str = "17:00",
         offset=timedelta(0),
-    ):
+    ) -> None:
         BaseOffset.__init__(self, n, normalize)
         object.__setattr__(self, "_offset", offset)
 
@@ -1108,14 +1115,14 @@ class MonthOffset(SingleConstructorOffset):
     __init__ = BaseOffset.__init__
 
     @property
-    def name(self):
+    def name(self) -> str:
         if self.isAnchored:
             return self.rule_code
         else:
             month = ccalendar.MONTH_ALIASES[self.n]
             return "{code}-{month}".format(code=self.rule_code, month=month)
 
-    def onOffset(self, dt):
+    def onOffset(self, dt) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         return dt.day == self._get_offset_day(dt)
@@ -1202,13 +1209,13 @@ class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
 
     def __init__(
         self,
-        n=1,
-        normalize=False,
-        weekmask="Mon Tue Wed Thu Fri",
+        n: int = 1,
+        normalize: bool = False,
+        weekmask: str = "Mon Tue Wed Thu Fri",
         holidays=None,
         calendar=None,
         offset=timedelta(0),
-    ):
+    ) -> None:
         BaseOffset.__init__(self, n, normalize)
         object.__setattr__(self, "_offset", offset)
 
@@ -1288,7 +1295,7 @@ class SemiMonthOffset(DateOffset):
     _min_day_of_month = 2
     _attributes = frozenset(["n", "normalize", "day_of_month"])
 
-    def __init__(self, n=1, normalize=False, day_of_month=None):
+    def __init__(self, n: int = 1, normalize: bool = False, day_of_month=None) -> None:
         BaseOffset.__init__(self, n, normalize)
 
         if day_of_month is None:
@@ -1306,7 +1313,7 @@ class SemiMonthOffset(DateOffset):
         return cls(day_of_month=suffix)
 
     @property
-    def rule_code(self):
+    def rule_code(self) -> str:
         suffix = "-{day_of_month}".format(day_of_month=self.day_of_month)
         return self._prefix + suffix
 
@@ -1402,7 +1409,7 @@ class SemiMonthEnd(SemiMonthOffset):
     _prefix = "SM"
     _min_day_of_month = 1
 
-    def onOffset(self, dt):
+    def onOffset(self, dt) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         days_in_month = ccalendar.get_days_in_month(dt.year, dt.month)
@@ -1460,12 +1467,12 @@ class SemiMonthBegin(SemiMonthOffset):
 
     _prefix = "SMS"
 
-    def onOffset(self, dt):
+    def onOffset(self, dt) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         return dt.day in (1, self.day_of_month)
 
-    def _apply(self, n, other):
+    def _apply(self, n: int, other):
         months = n // 2 + n % 2
         day = 1 if n % 2 else self.day_of_month
         return shift_month(other, months, day)
@@ -1521,7 +1528,7 @@ class Week(DateOffset):
     _prefix = "W"
     _attributes = frozenset(["n", "normalize", "weekday"])
 
-    def __init__(self, n=1, normalize=False, weekday=None):
+    def __init__(self, n: int = 1, normalize: bool = False, weekday=None) -> None:
         BaseOffset.__init__(self, n, normalize)
         object.__setattr__(self, "weekday", weekday)
 
@@ -1531,7 +1538,7 @@ class Week(DateOffset):
                     "Day must be 0<=day<=6, got {day}".format(day=self.weekday)
                 )
 
-    def isAnchored(self):
+    def isAnchored(self) -> bool:
         return self.n == 1 and self.weekday is not None
 
     @apply_wraps
@@ -1609,7 +1616,7 @@ class Week(DateOffset):
 
         return base + off + Timedelta(1, "ns") - Timedelta(1, "D")
 
-    def onOffset(self, dt):
+    def onOffset(self, dt) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         elif self.weekday is None:
@@ -1617,7 +1624,7 @@ class Week(DateOffset):
         return dt.weekday() == self.weekday
 
     @property
-    def rule_code(self):
+    def rule_code(self) -> str:
         suffix = ""
         if self.weekday is not None:
             weekday = ccalendar.int_to_weekday[self.weekday]
@@ -1684,7 +1691,9 @@ class WeekOfMonth(_WeekOfMonthMixin, DateOffset):
     _adjust_dst = True
     _attributes = frozenset(["n", "normalize", "week", "weekday"])
 
-    def __init__(self, n=1, normalize=False, week=0, weekday=0):
+    def __init__(
+        self, n: int = 1, normalize: bool = False, week: int = 0, weekday: int = 0
+    ) -> None:
         BaseOffset.__init__(self, n, normalize)
         object.__setattr__(self, "weekday", weekday)
         object.__setattr__(self, "week", week)
@@ -1698,7 +1707,7 @@ class WeekOfMonth(_WeekOfMonthMixin, DateOffset):
                 "Week must be 0<=week<=3, got {week}".format(week=self.week)
             )
 
-    def _get_offset_day(self, other):
+    def _get_offset_day(self, other) -> int:
         """
         Find the day in the same month as other that has the same
         weekday as self.weekday and is the self.week'th such day in the month.
@@ -1717,7 +1726,7 @@ class WeekOfMonth(_WeekOfMonthMixin, DateOffset):
         return 1 + shift_days + self.week * 7
 
     @property
-    def rule_code(self):
+    def rule_code(self) -> str:
         weekday = ccalendar.int_to_weekday.get(self.weekday, "")
         return "{prefix}-{week}{weekday}".format(
             prefix=self._prefix, week=self.week + 1, weekday=weekday
@@ -1760,7 +1769,7 @@ class LastWeekOfMonth(_WeekOfMonthMixin, DateOffset):
     _adjust_dst = True
     _attributes = frozenset(["n", "normalize", "weekday"])
 
-    def __init__(self, n=1, normalize=False, weekday=0):
+    def __init__(self, n: int = 1, normalize: bool = False, weekday: int = 0) -> None:
         BaseOffset.__init__(self, n, normalize)
         object.__setattr__(self, "weekday", weekday)
 
@@ -1772,7 +1781,7 @@ class LastWeekOfMonth(_WeekOfMonthMixin, DateOffset):
                 "Day must be 0<=day<=6, got {day}".format(day=self.weekday)
             )
 
-    def _get_offset_day(self, other):
+    def _get_offset_day(self, other) -> int:
         """
         Find the day in the same month as other that has the same
         weekday as self.weekday and is the last such day in the month.
@@ -1792,7 +1801,7 @@ class LastWeekOfMonth(_WeekOfMonthMixin, DateOffset):
         return dim - shift_days
 
     @property
-    def rule_code(self):
+    def rule_code(self) -> str:
         weekday = ccalendar.int_to_weekday.get(self.weekday, "")
         return "{prefix}-{weekday}".format(prefix=self._prefix, weekday=weekday)
 
@@ -1824,14 +1833,14 @@ class QuarterOffset(DateOffset):
     #       point.  Also apply_index, onOffset, rule_code if
     #       startingMonth vs month attr names are resolved
 
-    def __init__(self, n=1, normalize=False, startingMonth=None):
+    def __init__(self, n: int = 1, normalize: bool = False, startingMonth=None) -> None:
         BaseOffset.__init__(self, n, normalize)
 
         if startingMonth is None:
             startingMonth = self._default_startingMonth
         object.__setattr__(self, "startingMonth", startingMonth)
 
-    def isAnchored(self):
+    def isAnchored(self) -> bool:
         return self.n == 1 and self.startingMonth is not None
 
     @classmethod
@@ -1845,7 +1854,7 @@ class QuarterOffset(DateOffset):
         return cls(**kwargs)
 
     @property
-    def rule_code(self):
+    def rule_code(self) -> str:
         month = ccalendar.MONTH_ALIASES[self.startingMonth]
         return "{prefix}-{month}".format(prefix=self._prefix, month=month)
 
@@ -1863,7 +1872,7 @@ class QuarterOffset(DateOffset):
         months = qtrs * 3 - months_since
         return shift_month(other, months, self._day_opt)
 
-    def onOffset(self, dt):
+    def onOffset(self, dt) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         mod_month = (dt.month - self.startingMonth) % 3
@@ -1966,12 +1975,12 @@ class YearOffset(DateOffset):
             shifted, freq=dtindex.freq, dtype=dtindex.dtype
         )
 
-    def onOffset(self, dt):
+    def onOffset(self, dt) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         return dt.month == self.month and dt.day == self._get_offset_day(dt)
 
-    def __init__(self, n=1, normalize=False, month=None):
+    def __init__(self, n: int = 1, normalize: bool = False, month=None) -> None:
         BaseOffset.__init__(self, n, normalize)
 
         month = month if month is not None else self._default_month
@@ -1988,7 +1997,7 @@ class YearOffset(DateOffset):
         return cls(**kwargs)
 
     @property
-    def rule_code(self):
+    def rule_code(self) -> str:
         month = ccalendar.MONTH_ALIASES[self.month]
         return "{prefix}-{month}".format(prefix=self._prefix, month=month)
 
@@ -2092,8 +2101,13 @@ class FY5253(DateOffset):
     _attributes = frozenset(["weekday", "startingMonth", "variation"])
 
     def __init__(
-        self, n=1, normalize=False, weekday=0, startingMonth=1, variation="nearest"
-    ):
+        self,
+        n: int = 1,
+        normalize: bool = False,
+        weekday: int = 0,
+        startingMonth: int = 1,
+        variation: str = "nearest",
+    ) -> None:
         BaseOffset.__init__(self, n, normalize)
         object.__setattr__(self, "startingMonth", startingMonth)
         object.__setattr__(self, "weekday", weekday)
@@ -2108,12 +2122,12 @@ class FY5253(DateOffset):
                 "{variation} is not a valid variation".format(variation=self.variation)
             )
 
-    def isAnchored(self):
+    def isAnchored(self) -> bool:
         return (
             self.n == 1 and self.startingMonth is not None and self.weekday is not None
         )
 
-    def onOffset(self, dt):
+    def onOffset(self, dt) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         dt = datetime(dt.year, dt.month, dt.day)
@@ -2208,18 +2222,18 @@ class FY5253(DateOffset):
                 return target_date + timedelta(days_forward - 7)
 
     @property
-    def rule_code(self):
+    def rule_code(self) -> str:
         prefix = self._prefix
         suffix = self.get_rule_code_suffix()
         return "{prefix}-{suffix}".format(prefix=prefix, suffix=suffix)
 
-    def _get_suffix_prefix(self):
+    def _get_suffix_prefix(self) -> str:
         if self.variation == "nearest":
             return "N"
         else:
             return "L"
 
-    def get_rule_code_suffix(self):
+    def get_rule_code_suffix(self) -> str:
         prefix = self._get_suffix_prefix()
         month = ccalendar.MONTH_ALIASES[self.startingMonth]
         weekday = ccalendar.int_to_weekday[self.weekday]
@@ -2316,13 +2330,13 @@ class FY5253Quarter(DateOffset):
 
     def __init__(
         self,
-        n=1,
-        normalize=False,
-        weekday=0,
-        startingMonth=1,
-        qtr_with_extra_week=1,
-        variation="nearest",
-    ):
+        n: int = 1,
+        normalize: bool = False,
+        weekday: int = 0,
+        startingMonth: int = 1,
+        qtr_with_extra_week: int = 1,
+        variation: str = "nearest",
+    ) -> None:
         BaseOffset.__init__(self, n, normalize)
 
         object.__setattr__(self, "startingMonth", startingMonth)
@@ -2341,7 +2355,7 @@ class FY5253Quarter(DateOffset):
             variation=self.variation,
         )
 
-    def isAnchored(self):
+    def isAnchored(self) -> bool:
         return self.n == 1 and self._offset.isAnchored()
 
     def _rollback_to_year(self, other):
@@ -2419,7 +2433,7 @@ class FY5253Quarter(DateOffset):
 
         return res
 
-    def get_weeks(self, dt):
+    def get_weeks(self, dt) -> List[int]:
         ret = [13] * 4
 
         year_has_extra_week = self.year_has_extra_week(dt)
@@ -2429,7 +2443,7 @@ class FY5253Quarter(DateOffset):
 
         return ret
 
-    def year_has_extra_week(self, dt):
+    def year_has_extra_week(self, dt) -> bool:
         # Avoid round-down errors --> normalize to get
         # e.g. '370D' instead of '360D23H'
         norm = Timestamp(dt).normalize().tz_localize(None)
@@ -2440,7 +2454,7 @@ class FY5253Quarter(DateOffset):
         assert weeks_in_year in [52, 53], weeks_in_year
         return weeks_in_year == 53
 
-    def onOffset(self, dt):
+    def onOffset(self, dt) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         if self._offset.onOffset(dt):
@@ -2458,7 +2472,7 @@ class FY5253Quarter(DateOffset):
         return False
 
     @property
-    def rule_code(self):
+    def rule_code(self) -> str:
         suffix = self._offset.get_rule_code_suffix()
         qtr = self.qtr_with_extra_week
         return "{prefix}-{suffix}-{qtr}".format(
@@ -2513,7 +2527,7 @@ class Easter(DateOffset):
         )
         return new
 
-    def onOffset(self, dt):
+    def onOffset(self, dt) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         return date(dt.year, dt.month, dt.day) == easter(dt.year)
@@ -2546,7 +2560,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
     _prefix = "undefined"
     _attributes = frozenset(["n", "normalize"])
 
-    def __init__(self, n=1, normalize=False):
+    def __init__(self, n: int = 1, normalize: bool = False) -> None:
         BaseOffset.__init__(self, n, normalize)
         if normalize:
             raise ValueError(
@@ -2576,7 +2590,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
                 "will overflow".format(self=self, other=other)
             )
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: Any) -> bool:
         if isinstance(other, str):
             from pandas.tseries.frequencies import to_offset
 
@@ -2598,7 +2612,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
     def __hash__(self):
         return hash(self._params)
 
-    def __ne__(self, other):
+    def __ne__(self, other: Any) -> bool:
         if isinstance(other, str):
             from pandas.tseries.frequencies import to_offset
 
@@ -2649,7 +2663,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
             "Unhandled type: {type_str}".format(type_str=type(other).__name__)
         )
 
-    def isAnchored(self):
+    def isAnchored(self) -> bool:
         return False
 
 
