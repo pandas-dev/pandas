@@ -3460,12 +3460,12 @@ class Table(Fixed):
         """ create/cache the indexables if they don't exist """
         if self._indexables is None:
 
-            self._indexables = []
+            _indexables = []
 
             # Note: each of the `name` kwargs below are str, ensured
             #  by the definition in index_cols.
             # index columns
-            self._indexables.extend(
+            _indexables.extend(
                 [
                     IndexCol(name=name, axis=axis, pos=i)
                     for i, (axis, name) in enumerate(self.attrs.index_cols)
@@ -3474,7 +3474,7 @@ class Table(Fixed):
 
             # values columns
             dc = set(self.data_columns)
-            base_pos = len(self._indexables)
+            base_pos = len(_indexables)
 
             def f(i, c):
                 assert isinstance(c, str)
@@ -3487,9 +3487,11 @@ class Table(Fixed):
 
             # Note: the definition of `values_cols` ensures that each
             #  `c` below is a str.
-            self._indexables.extend(
+            _indexables.extend(
                 [f(i, c) for i, c in enumerate(self.attrs.values_cols)]
             )
+
+            self._indexables = _indexables
 
         return self._indexables
 
@@ -3703,6 +3705,7 @@ class Table(Fixed):
         else:
             existing_table = None
 
+        assert self.ndim == 2  # with next check, we must have len(axes) == 1
         # currently support on ndim-1 axes
         if len(axes) != self.ndim - 1:
             raise ValueError(
@@ -3720,14 +3723,16 @@ class Table(Fixed):
         self.nan_rep = nan_rep
 
         # create axes to index and non_index
-        index_axes_map = dict()
         for i, a in enumerate(obj.axes):
 
             if i in axes:
                 name = obj._AXIS_NAMES[i]
                 new_index = _convert_index(name, a, self.encoding, self.errors)
                 new_index.axis = i
-                index_axes_map[i] = new_index
+
+                # Because we are always 2D, only one axis ever gets here, so
+                #  we know it will have pos=0
+                new_index.set_pos(0)
 
             else:
 
@@ -3754,20 +3759,18 @@ class Table(Fixed):
 
                 self.non_index_axes.append((i, append_axis))
 
-        # set axis positions (based on the axes)
-        new_index_axes = [index_axes_map[a] for a in axes]
-        for j, iax in enumerate(new_index_axes):
-            iax.set_pos(j)
-            iax.update_info(self.info)
-        self.index_axes = new_index_axes
+        new_index.update_info(self.info)
+        self.index_axes = [new_index]
 
         j = len(self.index_axes)
+        assert j == 1
 
         # check for column conflicts
         for a in self.axes:
             a.maybe_set_size(min_itemsize=min_itemsize)
 
         # reindex by our non_index_axes & compute data_columns
+        assert len(self.non_index_axes) == 1
         for a in self.non_index_axes:
             obj = _reindex_axis(obj, a[0], a[1])
 
@@ -4152,21 +4155,7 @@ class AppendableTable(Table):
         # broadcast the indexes if needed
         indexes = [a.cvalues for a in self.index_axes]
         nindexes = len(indexes)
-        bindexes = []
-        for i, idx in enumerate(indexes):
-
-            # broadcast to all other indexes except myself
-            if i > 0 and i < nindexes:
-                repeater = np.prod([indexes[bi].shape[0] for bi in range(0, i)])
-                idx = np.tile(idx, repeater)
-
-            if i < nindexes - 1:
-                repeater = np.prod(
-                    [indexes[bi].shape[0] for bi in range(i + 1, nindexes)]
-                )
-                idx = np.repeat(idx, repeater)
-
-            bindexes.append(idx)
+        assert nindexes == 1, nindexes  # ensures we dont need to broadcast
 
         # transpose the values so first dimension is last
         # reshape the values if needed
@@ -4191,7 +4180,7 @@ class AppendableTable(Table):
 
             self.write_data_chunk(
                 rows,
-                indexes=[a[start_i:end_i] for a in bindexes],
+                indexes=[a[start_i:end_i] for a in indexes],
                 mask=mask[start_i:end_i] if mask is not None else None,
                 values=[v[start_i:end_i] for v in bvalues],
             )
@@ -4477,13 +4466,15 @@ class GenericTable(AppendableFrameTable):
             d = self.description
 
             # the index columns is just a simple index
-            self._indexables = [GenericIndexCol(name="index", axis=0)]
+            _indexables = [GenericIndexCol(name="index", axis=0)]
 
             for i, n in enumerate(d._v_names):
                 assert isinstance(n, str)
 
                 dc = GenericDataIndexableCol(name=n, pos=i, values=[n])
-                self._indexables.append(dc)
+                _indexables.append(dc)
+
+            self._indexables = _indexables
 
         return self._indexables
 
