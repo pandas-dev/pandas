@@ -385,13 +385,6 @@ static PyObject *get_item(PyObject *obj, Py_ssize_t i) {
     return ret;
 }
 
-static void *CDouble(JSOBJ obj, JSONTypeContext *tc, void *outValue,
-                     size_t *_outLen) {
-    PRINTMARK();
-    *((double *)outValue) = GET_TC(tc)->doubleValue;
-    return NULL;
-}
-
 static void *CLong(JSOBJ obj, JSONTypeContext *tc, void *outValue,
                    size_t *_outLen) {
     PRINTMARK();
@@ -402,20 +395,6 @@ static void *CLong(JSOBJ obj, JSONTypeContext *tc, void *outValue,
 static void *PyLongToINT64(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
                            size_t *_outLen) {
     *((JSINT64 *)outValue) = GET_TC(tc)->longValue;
-    return NULL;
-}
-
-static void *NpyFloatToDOUBLE(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
-                              size_t *_outLen) {
-    PyObject *obj = (PyObject *)_obj;
-    PyArray_CastScalarToCtype(obj, outValue, PyArray_DescrFromType(NPY_DOUBLE));
-    return NULL;
-}
-
-static void *PyFloatToDOUBLE(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
-                             size_t *_outLen) {
-    PyObject *obj = (PyObject *)_obj;
-    *((double *)outValue) = PyFloat_AsDouble(obj);
     return NULL;
 }
 
@@ -571,7 +550,6 @@ static int NpyTypeToJSONType(PyObject *obj, JSONTypeContext *tc, int npyType,
             return JT_NULL;
         }
         GET_TC(tc)->doubleValue = (double)doubleVal;
-        GET_TC(tc)->PyTypeToJSON = CDouble;
         return JT_DOUBLE;
     }
 
@@ -1847,7 +1825,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         if (npy_isnan(val) || npy_isinf(val)) {
             tc->type = JT_NULL;
         } else {
-            pc->PyTypeToJSON = PyFloatToDOUBLE;
+	    GET_TC(tc)->doubleValue = val;
             tc->type = JT_DOUBLE;
         }
         return;
@@ -1863,7 +1841,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         return;
     } else if (PyObject_TypeCheck(obj, type_decimal)) {
         PRINTMARK();
-        pc->PyTypeToJSON = PyFloatToDOUBLE;
+	GET_TC(tc)->doubleValue = PyFloat_AsDouble(obj);
         tc->type = JT_DOUBLE;
         return;
     } else if (PyDateTime_Check(obj) || PyDate_Check(obj)) {
@@ -1966,7 +1944,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         return;
     } else if (PyArray_IsScalar(obj, Float) || PyArray_IsScalar(obj, Double)) {
         PRINTMARK();
-        pc->PyTypeToJSON = NpyFloatToDOUBLE;
+	PyArray_CastScalarToCtype(obj, &(GET_TC(tc)->doubleValue), PyArray_DescrFromType(NPY_DOUBLE));
         tc->type = JT_DOUBLE;
         return;
     } else if (PyArray_Check(obj) && PyArray_CheckScalar(obj)) {
@@ -2327,9 +2305,7 @@ JSINT32 Object_getIntValue(JSOBJ obj, JSONTypeContext *tc) {
 }
 
 double Object_getDoubleValue(JSOBJ obj, JSONTypeContext *tc) {
-    double ret;
-    GET_TC(tc)->PyTypeToJSON(obj, tc, &ret, NULL);
-    return ret;
+  return GET_TC(tc)->doubleValue;
 }
 
 static void Object_releaseObject(JSOBJ _obj) { Py_DECREF((PyObject *)_obj); }
