@@ -5571,7 +5571,7 @@ class NDFrame(PandasObject, SelectionMixin):
             for k, v, in self._data.to_dict(copy=copy).items()
         }
 
-    def astype(self, dtype, copy=True, errors="raise"):
+    def astype(self, dtype, copy: bool_t = True, errors: str = "raise"):
         """
         Cast a pandas object to a specified dtype ``dtype``.
 
@@ -5697,10 +5697,10 @@ class NDFrame(PandasObject, SelectionMixin):
         elif is_extension_array_dtype(dtype) and self.ndim > 1:
             # GH 18099/22869: columnwise conversion to extension dtype
             # GH 24704: use iloc to handle duplicate column names
-            results = (
+            results = [
                 self.iloc[:, i].astype(dtype, copy=copy)
                 for i in range(len(self.columns))
-            )
+            ]
 
         else:
             # else, only a single dtype is given

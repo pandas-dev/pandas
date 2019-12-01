@@ -340,33 +340,20 @@ class BlockManager(PandasObject):
                 "tot_items: {1}".format(len(self.items), tot_items)
             )
 
-    def apply(
-        self,
-        f,
-        axes=None,
-        filter=None,
-        do_integrity_check=False,
-        consolidate=True,
-        **kwargs,
-    ):
+    def apply(self, f: str, filter=None, **kwargs):
         """
-        iterate over the blocks, collect and create a new block manager
+        Iterate over the blocks, collect and create a new BlockManager.
 
         Parameters
         ----------
-        f : the callable or function name to operate on at the block level
-        axes : optional (if not supplied, use self.axes)
+        f : str
+            Name of the Block method to apply.
         filter : list, if supplied, only call the block if the filter is in
                  the block
-        do_integrity_check : boolean, default False. Do the block manager
-            integrity check
-        consolidate: boolean, default True. Join together blocks having same
-            dtype
 
         Returns
         -------
-        Block Manager (new object)
-
+        BlockManager
         """
 
         result_blocks = []
@@ -380,8 +367,7 @@ class BlockManager(PandasObject):
             else:
                 kwargs["filter"] = filter_locs
 
-        if consolidate:
-            self._consolidate_inplace()
+        self._consolidate_inplace()
 
         if f == "where":
             align_copy = True
@@ -429,11 +415,8 @@ class BlockManager(PandasObject):
             result_blocks = _extend_blocks(applied, result_blocks)
 
         if len(result_blocks) == 0:
-            return self.make_empty(axes or self.axes)
-        bm = type(self)(
-            result_blocks, axes or self.axes, do_integrity_check=do_integrity_check
-        )
-        bm._consolidate_inplace()
+            return self.make_empty(self.axes)
+        bm = type(self)(result_blocks, self.axes, do_integrity_check=False)
         return bm
 
     def quantile(
@@ -540,8 +523,8 @@ class BlockManager(PandasObject):
             [make_block(values, ndim=1, placement=np.arange(len(values)))], axes[0]
         )
 
-    def isna(self, func, **kwargs):
-        return self.apply("apply", func=func, **kwargs)
+    def isna(self, func):
+        return self.apply("apply", func=func)
 
     def where(self, **kwargs):
         return self.apply("where", **kwargs)
@@ -567,8 +550,8 @@ class BlockManager(PandasObject):
     def downcast(self, **kwargs):
         return self.apply("downcast", **kwargs)
 
-    def astype(self, dtype, **kwargs):
-        return self.apply("astype", dtype=dtype, **kwargs)
+    def astype(self, dtype, copy: bool = False, errors: str = "raise"):
+        return self.apply("astype", dtype=dtype, copy=copy, errors=errors)
 
     def convert(self, **kwargs):
         return self.apply("convert", **kwargs)
@@ -768,14 +751,19 @@ class BlockManager(PandasObject):
         """
         # this preserves the notion of view copying of axes
         if deep:
-            if deep == "all":
-                copy = lambda ax: ax.copy(deep=True)
-            else:
-                copy = lambda ax: ax.view()
-            new_axes = [copy(ax) for ax in self.axes]
+
+            def copy_func(ax):
+                if deep == "all":
+                    return ax.copy(deep=True)
+                else:
+                    return ax.view()
+
+            new_axes = [copy_func(ax) for ax in self.axes]
         else:
             new_axes = list(self.axes)
-        return self.apply("copy", axes=new_axes, deep=deep, do_integrity_check=False)
+        res = self.apply("copy", deep=deep)
+        res.axes = new_axes
+        return res
 
     def as_array(self, transpose=False, items=None):
         """Convert the blockmanager data into an numpy array.
@@ -1526,10 +1514,6 @@ class SingleBlockManager(BlockManager):
     @property
     def index(self):
         return self.axes[0]
-
-    def convert(self, **kwargs):
-        """ convert the whole block as one """
-        return self.apply("convert", **kwargs)
 
     @property
     def dtype(self):
