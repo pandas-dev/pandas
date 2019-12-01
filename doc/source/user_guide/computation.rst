@@ -469,7 +469,7 @@ default of the index) in a DataFrame.
 .. _stats.custom_rolling_window:
 
 Custom window rolling
-~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
 
 .. versionadded:: 1.0
 
