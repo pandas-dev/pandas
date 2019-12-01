@@ -200,7 +200,6 @@ class TestDatetime64:
             assert len(dti.is_quarter_end) == 365
             assert len(dti.is_year_start) == 365
             assert len(dti.is_year_end) == 365
-            assert len(dti.weekday_name) == 365
 
             dti.name = "name"
 
@@ -339,11 +338,8 @@ class TestDatetime64:
         ]
         for day, name, eng_name in zip(range(4, 11), expected_days, english_days):
             name = name.capitalize()
-            assert dti.weekday_name[day] == eng_name
             assert dti.day_name(locale=time_locale)[day] == name
             ts = Timestamp(datetime(2016, 4, day))
-            with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-                assert ts.weekday_name == eng_name
             assert ts.day_name(locale=time_locale) == name
         dti = dti.append(DatetimeIndex([pd.NaT]))
         assert np.isnan(dti.day_name(locale=time_locale)[-1])

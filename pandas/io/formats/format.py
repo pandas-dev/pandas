@@ -352,7 +352,7 @@ class SeriesFormatter:
 
         if len(series) == 0:
             return "{name}([], {footer})".format(
-                name=self.series.__class__.__name__, footer=footer
+                name=type(self.series).__name__, footer=footer
             )
 
         fmt_index, have_header = self._get_formatted_index()

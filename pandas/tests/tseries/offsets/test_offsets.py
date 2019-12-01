@@ -358,7 +358,7 @@ class TestCommon(Base):
         ts = Timestamp(dt) + Nano(5)
 
         if (
-            offset_s.__class__.__name__ == "DateOffset"
+            type(offset_s).__name__ == "DateOffset"
             and (funcname == "apply" or normalize)
             and ts.nanosecond > 0
         ):
@@ -395,7 +395,7 @@ class TestCommon(Base):
             ts = Timestamp(dt, tz=tz) + Nano(5)
 
             if (
-                offset_s.__class__.__name__ == "DateOffset"
+                type(offset_s).__name__ == "DateOffset"
                 and (funcname == "apply" or normalize)
                 and ts.nanosecond > 0
             ):
