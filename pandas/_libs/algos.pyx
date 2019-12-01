@@ -84,8 +84,8 @@ cpdef ndarray[int64_t, ndim=1] unique_deltas(const int64_t[:] arr):
 
     Returns
     -------
-    result : ndarray[int64_t]
-        result is sorted
+    ndarray[int64_t]
+        An ordered ndarray[int64_t]
     """
     cdef:
         Py_ssize_t i, n = len(arr)
@@ -150,9 +150,10 @@ def is_lexsorted(list_of_arrays: list) -> bint:
 @cython.wraparound(False)
 def groupsort_indexer(const int64_t[:] index, Py_ssize_t ngroups):
     """
-    compute a 1-d indexer that is an ordering of the passed index,
-    ordered by the groups. This is a reverse of the label
-    factorization process.
+    Compute a 1-d indexer.
+
+    The indexer is an ordering of the passed index,
+    ordered by the groups.
 
     Parameters
     ----------
@@ -161,7 +162,14 @@ def groupsort_indexer(const int64_t[:] index, Py_ssize_t ngroups):
     ngroups: int64
         number of groups
 
-    return a tuple of (1-d indexer ordered by groups, group counts)
+    Returns
+    -------
+    tuple
+        1-d indexer ordered by groups, group counts
+
+    Notes
+    -----
+    This is a reverse of the label factorization process.
     """
 
     cdef:
@@ -391,6 +399,7 @@ def _validate_limit(nobs: int, limit=None) -> int:
     Returns
     -------
     int
+        The limit.
     """
     if limit is None:
         lim = nobs
@@ -669,7 +678,8 @@ def is_monotonic(ndarray[algos_t, ndim=1] arr, bint timelike):
     """
     Returns
     -------
-    is_monotonic_inc, is_monotonic_dec, is_unique
+    tuple
+        is_monotonic_inc, is_monotonic_dec, is_unique
     """
     cdef:
         Py_ssize_t i, n
@@ -1148,6 +1158,77 @@ def rank_2d(rank_t[:, :] in_arr, axis=0, ties_method='average',
         return ranks.T
     else:
         return ranks
+
+
+ctypedef fused diff_t:
+    float64_t
+    float32_t
+    int8_t
+    int16_t
+    int32_t
+    int64_t
+
+ctypedef fused out_t:
+    float32_t
+    float64_t
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def diff_2d(ndarray[diff_t, ndim=2] arr,
+            ndarray[out_t, ndim=2] out,
+            Py_ssize_t periods, int axis):
+    cdef:
+        Py_ssize_t i, j, sx, sy, start, stop
+        bint f_contig = arr.flags.f_contiguous
+
+    # Disable for unsupported dtype combinations,
+    #  see https://github.com/cython/cython/issues/2646
+    if (out_t is float32_t
+            and not (diff_t is float32_t or diff_t is int8_t or diff_t is int16_t)):
+        raise NotImplementedError
+    elif (out_t is float64_t
+          and (diff_t is float32_t or diff_t is int8_t or diff_t is int16_t)):
+        raise NotImplementedError
+    else:
+        # We put this inside an indented else block to avoid cython build
+        #  warnings about unreachable code
+        sx, sy = (<object>arr).shape
+        with nogil:
+            if f_contig:
+                if axis == 0:
+                    if periods >= 0:
+                        start, stop = periods, sx
+                    else:
+                        start, stop = 0, sx + periods
+                    for j in range(sy):
+                        for i in range(start, stop):
+                            out[i, j] = arr[i, j] - arr[i - periods, j]
+                else:
+                    if periods >= 0:
+                        start, stop = periods, sy
+                    else:
+                        start, stop = 0, sy + periods
+                    for j in range(start, stop):
+                        for i in range(sx):
+                            out[i, j] = arr[i, j] - arr[i, j - periods]
+            else:
+                if axis == 0:
+                    if periods >= 0:
+                        start, stop = periods, sx
+                    else:
+                        start, stop = 0, sx + periods
+                    for i in range(start, stop):
+                        for j in range(sy):
+                            out[i, j] = arr[i, j] - arr[i - periods, j]
+                else:
+                    if periods >= 0:
+                        start, stop = periods, sy
+                    else:
+                        start, stop = 0, sy + periods
+                    for i in range(sx):
+                        for j in range(start, stop):
+                            out[i, j] = arr[i, j] - arr[i, j - periods]
 
 
 # generated from template

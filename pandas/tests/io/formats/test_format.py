@@ -18,7 +18,7 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas.compat import PY36, is_platform_32bit, is_platform_windows
+from pandas.compat import is_platform_32bit, is_platform_windows
 
 import pandas as pd
 from pandas import (
@@ -62,10 +62,7 @@ def filepath_or_buffer(filepath_or_buffer_id, tmp_path):
         yield buf
         assert not buf.closed
     else:
-        if PY36:
-            assert isinstance(tmp_path, Path)
-        else:
-            assert hasattr(tmp_path, "__fspath__")
+        assert isinstance(tmp_path, Path)
         if filepath_or_buffer_id == "pathlike":
             yield tmp_path / "foo"
         else:

@@ -311,7 +311,7 @@ class TestCategoricalConstructors:
         c = Categorical(s)
 
         expected = type(dtl)(s)
-        expected.freq = None
+        expected._data.freq = None
 
         tm.assert_index_equal(c.categories, expected)
         tm.assert_numpy_array_equal(c.codes, np.arange(5, dtype="int8"))
@@ -322,7 +322,7 @@ class TestCategoricalConstructors:
         c = Categorical(s2)
 
         expected = type(dtl)(s2.dropna())
-        expected.freq = None
+        expected._data.freq = None
 
         tm.assert_index_equal(c.categories, expected)
 

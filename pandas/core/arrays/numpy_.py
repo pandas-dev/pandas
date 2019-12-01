@@ -44,7 +44,7 @@ class PandasDtype(ExtensionDtype):
         self._name = dtype.name
         self._type = dtype.type
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "PandasDtype({!r})".format(self.name)
 
     @property

@@ -11,7 +11,7 @@ cdef class _NDFrameIndexerBase:
         self._ndim = None
 
     @property
-    def ndim(self):
+    def ndim(self) -> int:
         # Delay `ndim` instantiation until required as reading it
         # from `obj` isn't entirely cheap.
         ndim = self._ndim

@@ -146,7 +146,7 @@ class Indexing:
 
     def setup(self, dtype):
         N = 10 ** 6
-        self.idx = getattr(tm, "make{}Index".format(dtype))(N)
+        self.idx = getattr(tm, f"make{dtype}Index")(N)
         self.array_mask = (np.arange(N) % 3) == 0
         self.series_mask = Series(self.array_mask)
         self.sorted = self.idx.sort_values()

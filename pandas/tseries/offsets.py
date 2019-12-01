@@ -36,8 +36,6 @@ from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes.inference import is_list_like
 
-from pandas.core.tools.datetimes import to_datetime
-
 __all__ = [
     "Day",
     "BusinessDay",
@@ -311,9 +309,8 @@ class DateOffset(BaseOffset):
 
         if type(self) is not DateOffset:
             raise NotImplementedError(
-                "DateOffset subclass {name} "
-                "does not have a vectorized "
-                "implementation".format(name=self.__class__.__name__)
+                f"DateOffset subclass {type(self).__name__} "
+                "does not have a vectorized implementation"
             )
         kwds = self.kwds
         relativedelta_fast = {
@@ -404,7 +401,7 @@ class DateOffset(BaseOffset):
         """
         dt = as_timestamp(dt)
         if not self.onOffset(dt):
-            dt = dt - self.__class__(1, normalize=self.normalize, **self.kwds)
+            dt = dt - type(self)(1, normalize=self.normalize, **self.kwds)
         return dt
 
     def rollforward(self, dt):
@@ -418,7 +415,7 @@ class DateOffset(BaseOffset):
         """
         dt = as_timestamp(dt)
         if not self.onOffset(dt):
-            dt = dt + self.__class__(1, normalize=self.normalize, **self.kwds)
+            dt = dt + type(self)(1, normalize=self.normalize, **self.kwds)
         return dt
 
     def onOffset(self, dt):
@@ -1819,8 +1816,8 @@ class QuarterOffset(DateOffset):
     Quarter representation - doesn't call super.
     """
 
-    _default_startingMonth = None  # type: Optional[int]
-    _from_name_startingMonth = None  # type: Optional[int]
+    _default_startingMonth: Optional[int] = None
+    _from_name_startingMonth: Optional[int] = None
     _adjust_dst = True
     _attributes = frozenset(["n", "normalize", "startingMonth"])
     # TODO: Consider combining QuarterOffset and YearOffset __init__ at some
@@ -2579,7 +2576,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
                 "will overflow".format(self=self, other=other)
             )
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         if isinstance(other, str):
             from pandas.tseries.frequencies import to_offset
 
@@ -2752,8 +2749,10 @@ def generate_range(start=None, end=None, periods=None, offset=BDay()):
 
     offset = to_offset(offset)
 
-    start = to_datetime(start)
-    end = to_datetime(end)
+    start = Timestamp(start)
+    start = start if start is not NaT else None
+    end = Timestamp(end)
+    end = end if end is not NaT else None
 
     if start and not offset.onOffset(start):
         start = offset.rollforward(start)

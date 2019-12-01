@@ -7,7 +7,7 @@ import os
 import numpy as np
 import pytest
 
-from pandas.compat import PY35, is_platform_32bit, is_platform_windows
+from pandas.compat import is_platform_32bit, is_platform_windows
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -160,9 +160,6 @@ class TestPandasContainer:
 
         expected = self.frame.copy()
 
-        if not numpy and PY35 and orient in ("index", "columns"):
-            expected = expected.sort_index()
-
         assert_json_roundtrip_equal(result, expected, orient)
 
     @pytest.mark.parametrize("dtype", [False, np.int64])
@@ -174,9 +171,6 @@ class TestPandasContainer:
             data, orient=orient, convert_axes=convert_axes, numpy=numpy, dtype=dtype
         )
         expected = self.intframe.copy()
-        if not numpy and PY35 and orient in ("index", "columns"):
-            expected = expected.sort_index()
-
         if (
             numpy
             and (is_platform_32bit() or is_platform_windows())
@@ -209,9 +203,6 @@ class TestPandasContainer:
         )
 
         expected = df.copy()
-        if not numpy and PY35 and orient in ("index", "columns"):
-            expected = expected.sort_index()
-
         if not dtype:
             expected = expected.astype(np.int64)
 
@@ -250,7 +241,7 @@ class TestPandasContainer:
         expected.index = expected.index.astype(str)  # Categorical not preserved
         expected.index.name = None  # index names aren't preserved in JSON
 
-        if not numpy and (orient == "index" or (PY35 and orient == "columns")):
+        if not numpy and orient == "index":
             expected = expected.sort_index()
 
         assert_json_roundtrip_equal(result, expected, orient)
@@ -317,7 +308,7 @@ class TestPandasContainer:
         expected = df.copy()
         expected = expected.assign(**expected.select_dtypes("number").astype(np.int64))
 
-        if not numpy and (orient == "index" or (PY35 and orient == "columns")):
+        if not numpy and orient == "index":
             expected = expected.sort_index()
 
         assert_json_roundtrip_equal(result, expected, orient)
@@ -594,7 +585,7 @@ class TestPandasContainer:
                 self.hexed = hexed
                 self.binary = bytes.fromhex(hexed)
 
-            def __str__(self):
+            def __str__(self) -> str:
                 return self.hexed
 
         hexed = "574b4454ba8c5eb4f98a8f45"
@@ -652,8 +643,6 @@ class TestPandasContainer:
         result = pd.read_json(data, typ="series", orient=orient, numpy=numpy)
         expected = self.series.copy()
 
-        if not numpy and PY35 and orient in ("index", "columns"):
-            expected = expected.sort_index()
         if orient in ("values", "records"):
             expected = expected.reset_index(drop=True)
         if orient != "split":
@@ -670,8 +659,6 @@ class TestPandasContainer:
         )
         expected = self.objSeries.copy()
 
-        if not numpy and PY35 and orient in ("index", "columns"):
-            expected = expected.sort_index()
         if orient in ("values", "records"):
             expected = expected.reset_index(drop=True)
         if orient != "split":
@@ -686,8 +673,6 @@ class TestPandasContainer:
         expected = self.empty_series.copy()
 
         # TODO: see what causes inconsistency
-        if not numpy and PY35 and orient == "index":
-            expected = expected.sort_index()
         if orient in ("values", "records"):
             expected = expected.reset_index(drop=True)
         else:
@@ -1611,11 +1596,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         # GH 12004
         df = pd.DataFrame([["foo", "bar"], ["baz", "qux"]], columns=["a", "b"])
         result = df.to_json(orient=orient, indent=4)
-
-        if PY35:
-            assert json.loads(result) == json.loads(expected)
-        else:
-            assert result == expected
+        assert result == expected
 
     def test_json_negative_indent_raises(self):
         with pytest.raises(ValueError, match="must be a nonnegative integer"):

@@ -9,7 +9,7 @@ from warnings import catch_warnings, simplefilter
 import numpy as np
 import pytest
 
-from pandas.compat import PY36, is_platform_little_endian, is_platform_windows
+from pandas.compat import is_platform_little_endian, is_platform_windows
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_categorical_dtype
@@ -2829,16 +2829,16 @@ class TestHDFStore:
 
             expected = store.select("df")
 
-            results = [s for s in store.select("df", iterator=True)]
+            results = list(store.select("df", iterator=True))
             result = concat(results)
             tm.assert_frame_equal(expected, result)
 
-            results = [s for s in store.select("df", chunksize=100)]
+            results = list(store.select("df", chunksize=100))
             assert len(results) == 5
             result = concat(results)
             tm.assert_frame_equal(expected, result)
 
-            results = [s for s in store.select("df", chunksize=150)]
+            results = list(store.select("df", chunksize=150))
             result = concat(results)
             tm.assert_frame_equal(result, expected)
 
@@ -2858,7 +2858,7 @@ class TestHDFStore:
             df = tm.makeTimeDataFrame(500)
             df.to_hdf(path, "df", format="table")
 
-            results = [s for s in read_hdf(path, "df", chunksize=100)]
+            results = list(read_hdf(path, "df", chunksize=100))
             result = concat(results)
 
             assert len(results) == 5
@@ -2879,12 +2879,9 @@ class TestHDFStore:
 
             # full selection
             expected = store.select_as_multiple(["df1", "df2"], selector="df1")
-            results = [
-                s
-                for s in store.select_as_multiple(
-                    ["df1", "df2"], selector="df1", chunksize=150
-                )
-            ]
+            results = list(
+                store.select_as_multiple(["df1", "df2"], selector="df1", chunksize=150)
+            )
             result = concat(results)
             tm.assert_frame_equal(expected, result)
 
@@ -2939,19 +2936,19 @@ class TestHDFStore:
             end_dt = expected.index[-1]
 
             # select w/iterator and no where clause works
-            results = [s for s in store.select("df", chunksize=chunksize)]
+            results = list(store.select("df", chunksize=chunksize))
             result = concat(results)
             tm.assert_frame_equal(expected, result)
 
             # select w/iterator and where clause, single term, begin of range
             where = "index >= '{beg_dt}'".format(beg_dt=beg_dt)
-            results = [s for s in store.select("df", where=where, chunksize=chunksize)]
+            results = list(store.select("df", where=where, chunksize=chunksize))
             result = concat(results)
             tm.assert_frame_equal(expected, result)
 
             # select w/iterator and where clause, single term, end of range
             where = "index <= '{end_dt}'".format(end_dt=end_dt)
-            results = [s for s in store.select("df", where=where, chunksize=chunksize)]
+            results = list(store.select("df", where=where, chunksize=chunksize))
             result = concat(results)
             tm.assert_frame_equal(expected, result)
 
@@ -2959,7 +2956,7 @@ class TestHDFStore:
             where = "index >= '{beg_dt}' & index <= '{end_dt}'".format(
                 beg_dt=beg_dt, end_dt=end_dt
             )
-            results = [s for s in store.select("df", where=where, chunksize=chunksize)]
+            results = list(store.select("df", where=where, chunksize=chunksize))
             result = concat(results)
             tm.assert_frame_equal(expected, result)
 
@@ -2981,14 +2978,14 @@ class TestHDFStore:
 
             # select w/iterator and where clause, single term, begin of range
             where = "index >= '{beg_dt}'".format(beg_dt=beg_dt)
-            results = [s for s in store.select("df", where=where, chunksize=chunksize)]
+            results = list(store.select("df", where=where, chunksize=chunksize))
             result = concat(results)
             rexpected = expected[expected.index >= beg_dt]
             tm.assert_frame_equal(rexpected, result)
 
             # select w/iterator and where clause, single term, end of range
             where = "index <= '{end_dt}'".format(end_dt=end_dt)
-            results = [s for s in store.select("df", where=where, chunksize=chunksize)]
+            results = list(store.select("df", where=where, chunksize=chunksize))
             result = concat(results)
             rexpected = expected[expected.index <= end_dt]
             tm.assert_frame_equal(rexpected, result)
@@ -2997,7 +2994,7 @@ class TestHDFStore:
             where = "index >= '{beg_dt}' & index <= '{end_dt}'".format(
                 beg_dt=beg_dt, end_dt=end_dt
             )
-            results = [s for s in store.select("df", where=where, chunksize=chunksize)]
+            results = list(store.select("df", where=where, chunksize=chunksize))
             result = concat(results)
             rexpected = expected[
                 (expected.index >= beg_dt) & (expected.index <= end_dt)
@@ -3015,7 +3012,7 @@ class TestHDFStore:
 
             # select w/iterator and where clause, single term, begin of range
             where = "index > '{end_dt}'".format(end_dt=end_dt)
-            results = [s for s in store.select("df", where=where, chunksize=chunksize)]
+            results = list(store.select("df", where=where, chunksize=chunksize))
             assert 0 == len(results)
 
     def test_select_iterator_many_empty_frames(self, setup_path):
@@ -3037,14 +3034,14 @@ class TestHDFStore:
 
             # select w/iterator and where clause, single term, begin of range
             where = "index >= '{beg_dt}'".format(beg_dt=beg_dt)
-            results = [s for s in store.select("df", where=where, chunksize=chunksize)]
+            results = list(store.select("df", where=where, chunksize=chunksize))
             result = concat(results)
             rexpected = expected[expected.index >= beg_dt]
             tm.assert_frame_equal(rexpected, result)
 
             # select w/iterator and where clause, single term, end of range
             where = "index <= '{end_dt}'".format(end_dt=end_dt)
-            results = [s for s in store.select("df", where=where, chunksize=chunksize)]
+            results = list(store.select("df", where=where, chunksize=chunksize))
 
             assert len(results) == 1
             result = concat(results)
@@ -3055,7 +3052,7 @@ class TestHDFStore:
             where = "index >= '{beg_dt}' & index <= '{end_dt}'".format(
                 beg_dt=beg_dt, end_dt=end_dt
             )
-            results = [s for s in store.select("df", where=where, chunksize=chunksize)]
+            results = list(store.select("df", where=where, chunksize=chunksize))
 
             # should be 1, is 10
             assert len(results) == 1
@@ -3075,7 +3072,7 @@ class TestHDFStore:
             where = "index <= '{beg_dt}' & index >= '{end_dt}'".format(
                 beg_dt=beg_dt, end_dt=end_dt
             )
-            results = [s for s in store.select("df", where=where, chunksize=chunksize)]
+            results = list(store.select("df", where=where, chunksize=chunksize))
 
             # should be []
             assert len(results) == 0
@@ -4734,7 +4731,6 @@ class TestHDFStore:
             result = pd.read_hdf(path, key="data", mode="r")
         tm.assert_series_equal(result, series)
 
-    @pytest.mark.skipif(not PY36, reason="Need python 3.6")
     def test_fspath(self):
         with tm.ensure_clean("foo.h5") as path:
             with pd.HDFStore(path) as store:

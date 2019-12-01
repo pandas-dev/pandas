@@ -52,15 +52,11 @@ def test_basic_getitem_with_labels(datetime_series):
     s = Series(np.random.randn(10), index=list(range(0, 20, 2)))
     inds = [0, 2, 5, 7, 8]
     arr_inds = np.array([0, 2, 5, 7, 8])
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        result = s[inds]
-    expected = s.reindex(inds)
-    tm.assert_series_equal(result, expected)
+    with pytest.raises(KeyError, match="with any missing labels"):
+        s[inds]
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        result = s[arr_inds]
-    expected = s.reindex(arr_inds)
-    tm.assert_series_equal(result, expected)
+    with pytest.raises(KeyError, match="with any missing labels"):
+        s[arr_inds]
 
     # GH12089
     # with tz for values
@@ -262,12 +258,11 @@ def test_getitem_dups_with_missing():
     # breaks reindex, so need to use .loc internally
     # GH 4246
     s = Series([1, 2, 3, 4], ["foo", "bar", "foo", "bah"])
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        expected = s.loc[["foo", "bar", "bah", "bam"]]
+    with pytest.raises(KeyError, match="with any missing labels"):
+        s.loc[["foo", "bar", "bah", "bam"]]
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        result = s[["foo", "bar", "bah", "bam"]]
-    tm.assert_series_equal(result, expected)
+    with pytest.raises(KeyError, match="with any missing labels"):
+        s[["foo", "bar", "bah", "bam"]]
 
 
 def test_getitem_dups():
@@ -389,6 +384,22 @@ def test_setslice(datetime_series):
     sl = datetime_series[5:20]
     assert len(sl) == len(sl.index)
     assert sl.index.is_unique is True
+
+
+def test_2d_to_1d_assignment_raises():
+    x = np.random.randn(2, 2)
+    y = pd.Series(range(2))
+
+    msg = (
+        r"shape mismatch: value array of shape \(2,2\) could not be"
+        r" broadcast to indexing result of shape \(2,\)"
+    )
+    with pytest.raises(ValueError, match=msg):
+        y.loc[range(2)] = x
+
+    msg = r"could not broadcast input array from shape \(2,2\) into shape \(2\)"
+    with pytest.raises(ValueError, match=msg):
+        y.loc[:] = x
 
 
 # FutureWarning from NumPy about [slice(None, 5).

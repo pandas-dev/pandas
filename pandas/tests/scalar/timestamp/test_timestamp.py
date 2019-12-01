@@ -108,9 +108,7 @@ class TestTimestampProperties:
     )
     def test_names(self, data, time_locale):
         # GH 17354
-        # Test .weekday_name, .day_name(), .month_name
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            assert data.weekday_name == "Monday"
+        # Test .day_name(), .month_name
         if time_locale is None:
             expected_day = "Monday"
             expected_month = "August"
@@ -194,6 +192,10 @@ class TestTimestampProperties:
         dt = Timestamp("2100-01-01 00:00:00")
         assert dt.resolution == Timedelta(nanoseconds=1)
 
+        # Check that the attribute is available on the class, mirroring
+        #  the stdlib datetime behavior
+        assert Timestamp.resolution == Timedelta(nanoseconds=1)
+
 
 class TestTimestampConstructors:
     def test_constructor(self):
@@ -202,8 +204,6 @@ class TestTimestampConstructors:
         base_expected = 1404205200000000000
 
         # confirm base representation is correct
-        import calendar
-
         assert calendar.timegm(base_dt.timetuple()) * 1000000000 == base_expected
 
         tests = [
@@ -275,8 +275,6 @@ class TestTimestampConstructors:
         base_expected = 1404205200000000000
 
         # confirm base representation is correct
-        import calendar
-
         assert calendar.timegm(base_dt.timetuple()) * 1000000000 == base_expected
 
         tests = [

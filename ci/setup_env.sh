@@ -1,10 +1,5 @@
 #!/bin/bash -e
 
-if [ "$JOB" == "3.8-dev" ]; then
-    /bin/bash ci/build38.sh
-    exit 0
-fi
-
 # edit the locale file if needed
 if [ -n "$LOCALE_OVERRIDE" ]; then
     echo "Adding locale to the first line of pandas/__init__.py"
@@ -113,6 +108,11 @@ echo "remove any installed pandas package"
 echo "w/o removing anything else"
 conda remove pandas -y --force || true
 pip uninstall -y pandas || true
+
+echo
+echo "remove postgres if has been installed with conda"
+echo "we use the one from the CI"
+conda remove postgresql -y --force || true
 
 echo
 echo "conda list pandas"
