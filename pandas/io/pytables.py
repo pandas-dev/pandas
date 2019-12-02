@@ -3905,7 +3905,7 @@ class Table(Fixed):
                 existing_col = None
 
             col = klass.create_for_block(i=i, name=name, version=self.version)
-            self.values = list(b_items)
+            col.values = list(b_items)
             col.set_atom(
                 block=b,
                 existing_col=existing_col,
