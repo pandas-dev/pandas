@@ -2412,6 +2412,8 @@ class NDFrame(PandasObject, SelectionMixin):
         complib: Optional[str] = None,
         append: bool_t = False,
         format: Optional[str] = None,
+        min_itemsize=None,
+        data_columns=None,
         errors: str = "strict",
         encoding: str = "UTF-8",
         **kwargs,
@@ -2471,6 +2473,8 @@ class NDFrame(PandasObject, SelectionMixin):
             See the errors argument for :func:`open` for a full list
             of options.
         encoding : str, default "UTF-8"
+        min_itemsize : dict, optional
+            Map column names to minimum string sizes for columns.
         data_columns : list of columns or True, optional
             List of columns to create as indexed data columns for on-disk
             queries, or True to use all columns. By default only the axes
@@ -2530,6 +2534,8 @@ class NDFrame(PandasObject, SelectionMixin):
             complib=complib,
             append=append,
             format=format,
+            min_itemsize=min_itemsize,
+            data_columns=data_columns,
             errors=errors,
             encoding=encoding,
             **kwargs,

@@ -259,6 +259,8 @@ def to_hdf(
     complib: Optional[str] = None,
     append: bool = False,
     format: Optional[str] = None,
+    min_itemsize=None,
+    data_columns=None,
     errors: str = "strict",
     encoding: str = "UTF-8",
     **kwargs,
@@ -267,11 +269,25 @@ def to_hdf(
 
     if append:
         f = lambda store: store.append(
-            key, value, format=format, errors=errors, encoding=encoding, **kwargs
+            key,
+            value,
+            format=format,
+            min_itemsize=min_itemsize,
+            data_columns=data_columns,
+            errors=errors,
+            encoding=encoding,
+            **kwargs,
         )
     else:
         f = lambda store: store.put(
-            key, value, format=format, errors=errors, encoding=encoding, **kwargs
+            key,
+            value,
+            format=format,
+            min_itemsize=min_itemsize,
+            data_columns=data_columns,
+            errors=errors,
+            encoding=encoding,
+            **kwargs,
         )
 
     path_or_buf = _stringify_path(path_or_buf)
@@ -957,7 +973,22 @@ class HDFStore:
 
         return it.get_result(coordinates=True)
 
-    def put(self, key: str, value, format=None, append=False, **kwargs):
+    def put(
+        self,
+        key: str,
+        value: FrameOrSeries,
+        format=None,
+        index=True,
+        append=False,
+        complib=None,
+        complevel: Optional[int] = None,
+        min_itemsize=None,
+        nan_rep=None,
+        data_columns=None,
+        encoding=None,
+        errors: str = "strict",
+        **kwargs,
+    ):
         """
         Store object in HDFStore.
 
@@ -986,8 +1017,22 @@ class HDFStore:
         """
         if format is None:
             format = get_option("io.hdf.default_format") or "fixed"
-        kwargs = self._validate_format(format, kwargs)
-        self._write_to_group(key, value, append=append, **kwargs)
+        format = self._validate_format(format)
+        self._write_to_group(
+            key,
+            value,
+            format=format,
+            index=index,
+            append=append,
+            complib=complib,
+            complevel=complevel,
+            min_itemsize=min_itemsize,
+            nan_rep=nan_rep,
+            data_columns=data_columns,
+            encoding=encoding,
+            errors=errors,
+            **kwargs,
+        )
 
     def remove(self, key: str, where=None, start=None, stop=None):
         """
@@ -1046,11 +1091,21 @@ class HDFStore:
     def append(
         self,
         key: str,
-        value,
+        value: FrameOrSeries,
         format=None,
+        axes=None,
+        index=True,
         append=True,
+        complib=None,
+        complevel: Optional[int] = None,
         columns=None,
+        min_itemsize=None,
+        chunksize=None,
+        expectedrows=None,
         dropna: Optional[bool] = None,
+        data_columns=None,
+        encoding=None,
+        errors: str = "strict",
         **kwargs,
     ):
         """
@@ -1096,8 +1151,25 @@ class HDFStore:
             dropna = get_option("io.hdf.dropna_table")
         if format is None:
             format = get_option("io.hdf.default_format") or "table"
-        kwargs = self._validate_format(format, kwargs)
-        self._write_to_group(key, value, append=append, dropna=dropna, **kwargs)
+        format = self._validate_format(format)
+        self._write_to_group(
+            key,
+            value,
+            format=format,
+            axes=axes,
+            index=index,
+            append=append,
+            complib=complib,
+            complevel=complevel,
+            min_itemsize=min_itemsize,
+            chunksize=chunksize,
+            expectedrows=expectedrows,
+            dropna=dropna,
+            data_columns=data_columns,
+            encoding=encoding,
+            errors=errors,
+            **kwargs,
+        )
 
     def append_to_multiple(
         self,
@@ -1418,17 +1490,16 @@ class HDFStore:
         if not self.is_open:
             raise ClosedFileError(f"{self._path} file is not open!")
 
-    def _validate_format(self, format: str, kwargs: Dict[str, Any]) -> Dict[str, Any]:
+    def _validate_format(self, format: str) -> str:
         """ validate / deprecate formats; return the new kwargs """
-        kwargs = kwargs.copy()
 
         # validate
         try:
-            kwargs["format"] = _FORMAT_MAP[format.lower()]
+            format = _FORMAT_MAP[format.lower()]
         except KeyError:
             raise TypeError(f"invalid HDFStore format specified [{format}]")
 
-        return kwargs
+        return format
 
     def _create_storer(
         self,
