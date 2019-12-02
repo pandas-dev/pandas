@@ -2554,10 +2554,11 @@ class Fixed:
     ndim: int
     parent: HDFStore
     group: "Node"
+    errors: str
     is_table = False
 
     def __init__(
-        self, parent: HDFStore, group: "Node", encoding=None, errors="strict", **kwargs
+        self, parent: HDFStore, group: "Node", encoding=None, errors: str = "strict"
     ):
         assert isinstance(parent, HDFStore), type(parent)
         assert _table_mod is not None  # needed for mypy
@@ -3229,8 +3230,10 @@ class Table(Fixed):
     metadata: List
     info: Dict
 
-    def __init__(self, parent: HDFStore, group: "Node", **kwargs):
-        super().__init__(parent, group, **kwargs)
+    def __init__(
+        self, parent: HDFStore, group: "Node", encoding=None, errors: str = "strict"
+    ):
+        super().__init__(parent, group, encoding=encoding, errors=errors)
         self.index_axes = []
         self.non_index_axes = []
         self.values_axes = []
