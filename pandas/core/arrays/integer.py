@@ -1,5 +1,5 @@
 import numbers
-from typing import Type
+from typing import Any, Tuple, Type
 import warnings
 
 import numpy as np
@@ -377,18 +377,19 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             return self._data[item]
         return type(self)(self._data[item], self._mask[item])
 
-    def _coerce_to_ndarray(self, dtype=None):
+    def _coerce_to_ndarray(self, dtype=None, na_value=libmissing.NA):
         """
         coerce to an ndarary of object dtype
         """
         # TODO(jreback) make this better
-        data = self._data.astype(object)
-
-        if dtype is not None and is_float_dtype(dtype):
+        if dtype is None:
+            dtype = object
+        elif is_float_dtype(dtype) and na_value is libmissing.NA:
+            # XXX: Do we want to implicitly treat NA as NaN here?
+            # We should be deliberate in this decision.
             na_value = np.nan
-        else:
-            na_value = self._na_value
 
+        data = self._data.astype(dtype)
         data[self._mask] = na_value
         return data
 
@@ -614,6 +615,9 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             )
 
         return Series(array, index=index)
+
+    def _values_for_factorize(self) -> Tuple[np.ndarray, Any]:
+        return self._coerce_to_ndarray(na_value=np.nan), np.nan
 
     def _values_for_argsort(self) -> np.ndarray:
         """Return values for sorting.
