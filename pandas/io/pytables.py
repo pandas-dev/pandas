@@ -284,7 +284,19 @@ def to_hdf(
         f(path_or_buf)
 
 
-def read_hdf(path_or_buf, key=None, mode: str = "r", **kwargs):
+def read_hdf(
+    path_or_buf,
+    key=None,
+    mode: str = "r",
+    errors: str = "strict",
+    where=None,
+    start: Optional[int] = None,
+    stop: Optional[int] = None,
+    columns=None,
+    iterator=False,
+    chunksize: Optional[int] = None,
+    **kwargs,
+):
     """
     Read from the store, close it if we opened it.
 
@@ -350,6 +362,9 @@ def read_hdf(path_or_buf, key=None, mode: str = "r", **kwargs):
     >>> df.to_hdf('./store.h5', 'data')
     >>> reread = pd.read_hdf('./store.h5')
     """
+    assert not kwargs, kwargs
+    # NB: in principle more kwargs could be passed to HDFStore, but in
+    #  tests none are.
 
     if mode not in ["r", "r+", "a"]:
         raise ValueError(
@@ -357,8 +372,8 @@ def read_hdf(path_or_buf, key=None, mode: str = "r", **kwargs):
             f"Allowed modes are r, r+ and a."
         )
     # grab the scope
-    if "where" in kwargs:
-        kwargs["where"] = _ensure_term(kwargs["where"], scope_level=1)
+    if where is not None:
+        where = _ensure_term(where, scope_level=1)
 
     if isinstance(path_or_buf, HDFStore):
         if not path_or_buf.is_open:
@@ -382,7 +397,7 @@ def read_hdf(path_or_buf, key=None, mode: str = "r", **kwargs):
         if not exists:
             raise FileNotFoundError(f"File {path_or_buf} does not exist")
 
-        store = HDFStore(path_or_buf, mode=mode, **kwargs)
+        store = HDFStore(path_or_buf, mode=mode, errors=errors, **kwargs)
         # can't auto open/close if we are using an iterator
         # so delegate to the iterator
         auto_close = True
@@ -405,7 +420,16 @@ def read_hdf(path_or_buf, key=None, mode: str = "r", **kwargs):
                         "contains multiple datasets."
                     )
             key = candidate_only_group._v_pathname
-        return store.select(key, auto_close=auto_close, **kwargs)
+        return store.select(
+            key,
+            where=where,
+            start=start,
+            stop=stop,
+            columns=columns,
+            iterator=iterator,
+            chunksize=chunksize,
+            auto_close=auto_close,
+        )
     except (ValueError, TypeError, KeyError):
         if not isinstance(path_or_buf, HDFStore):
             # if there is an error, close the store if we opened it.
@@ -734,7 +758,6 @@ class HDFStore:
         iterator=False,
         chunksize=None,
         auto_close: bool = False,
-        **kwargs,
     ):
         """
         Retrieve pandas object stored in file, optionally based on where criteria.
@@ -850,7 +873,6 @@ class HDFStore:
         iterator=False,
         chunksize=None,
         auto_close: bool = False,
-        **kwargs,
     ):
         """
         Retrieve pandas objects from multiple tables.
@@ -888,7 +910,7 @@ class HDFStore:
                 stop=stop,
                 iterator=iterator,
                 chunksize=chunksize,
-                **kwargs,
+                auto_close=auto_close,
             )
 
         if not isinstance(keys, (list, tuple)):
