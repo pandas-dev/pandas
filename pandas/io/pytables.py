@@ -328,7 +328,7 @@ def read_hdf(path_or_buf, key=None, mode: str = "r", **kwargs):
     key : object, optional
         The group identifier in the store. Can be omitted if the HDF file
         contains a single pandas object.
-    mode : {'r', 'r+', 'a'}, optional
+    mode : {'r', 'r+', 'a'}, default 'r'
         Mode to use when opening the file. Ignored if path_or_buf is a
         :class:`pandas.HDFStore`. Default is 'r'.
     where : list, optional
@@ -433,7 +433,7 @@ def read_hdf(path_or_buf, key=None, mode: str = "r", **kwargs):
         raise
 
 
-def _is_metadata_of(group, parent_group) -> bool:
+def _is_metadata_of(group: "Node", parent_group: "Node") -> bool:
     """Check if a given group is a metadata group for a given parent_group."""
     if group._v_depth <= parent_group._v_depth:
         return False
@@ -948,9 +948,7 @@ class HDFStore:
             # retrieve the objs, _where is always passed as a set of
             # coordinates here
             objs = [
-                t.read(
-                    where=_where, columns=columns, start=_start, stop=_stop, **kwargs
-                )
+                t.read(where=_where, columns=columns, start=_start, stop=_stop)
                 for t in tbls
             ]
 
@@ -1491,7 +1489,7 @@ class HDFStore:
             raise ClosedFileError(f"{self._path} file is not open!")
 
     def _validate_format(self, format: str) -> str:
-        """ validate / deprecate formats; return the new kwargs """
+        """ validate / deprecate formats """
 
         # validate
         try:
@@ -1603,7 +1601,7 @@ class HDFStore:
     def _write_to_group(
         self,
         key: str,
-        value,
+        value: FrameOrSeries,
         format,
         axes=None,
         index=True,
@@ -1686,10 +1684,10 @@ class HDFStore:
         if isinstance(s, Table) and index:
             s.create_index(columns=index)
 
-    def _read_group(self, group: "Node", **kwargs):
+    def _read_group(self, group: "Node"):
         s = self._create_storer(group)
         s.infer_axes()
-        return s.read(**kwargs)
+        return s.read()
 
 
 class TableIterator:
@@ -2823,28 +2821,22 @@ class GenericFixed(Fixed):
 
         return klass
 
-    def validate_read(self, kwargs: Dict[str, Any]) -> Dict[str, Any]:
+    def validate_read(self, columns, where):
         """
-        remove table keywords from kwargs and return
         raise if any keywords are passed which are not-None
         """
-        kwargs = copy.copy(kwargs)
-
-        columns = kwargs.pop("columns", None)
         if columns is not None:
             raise TypeError(
                 "cannot pass a column specification when reading "
                 "a Fixed format store. this store must be "
                 "selected in its entirety"
             )
-        where = kwargs.pop("where", None)
         if where is not None:
             raise TypeError(
                 "cannot pass a where specification when reading "
                 "from a Fixed format store. this store must be "
                 "selected in its entirety"
             )
-        return kwargs
 
     @property
     def is_exists(self) -> bool:
@@ -3156,7 +3148,7 @@ class SeriesFixed(GenericFixed):
         start: Optional[int] = None,
         stop: Optional[int] = None,
     ):
-        self.validate_read({"where": where, "columns": columns})
+        self.validate_read(columns, where)
         index = self.read_index("index", start=start, stop=stop)
         values = self.read_array("values", start=start, stop=stop)
         return Series(values, index=index, name=self.name)
@@ -3213,7 +3205,7 @@ class BlockManagerFixed(GenericFixed):
         stop: Optional[int] = None,
     ):
         # start, stop applied to rows, so 0th axis only
-        self.validate_read({"columns": columns, "where": where})
+        self.validate_read(columns, where)
         select_axis = self.obj_type()._get_block_manager_axis(0)
 
         axes = []
