@@ -1021,8 +1021,8 @@ class DataFrame(NDFrame):
         return len(self.index)
 
     def dot(
-        self, other: Union[Series, DataFrame, np.ndarray]
-    ) -> Union[Series, DataFrame, np.ndarray]:
+        self, other: Union[Series, DataFrame]
+    ) -> Union[Series, DataFrame]:
         """
         Compute the matrix multiplication between the DataFrame and other.
 
@@ -4633,7 +4633,7 @@ class DataFrame(NDFrame):
         duplicated = self.duplicated(subset, keep=keep)
 
         if inplace:
-            (inds,) = (-duplicated)._ndarray_values.nonzero()
+            inds = (-duplicated)._ndarray_values.nonzero()[0]
             new_data = self._data.take(inds)
             self._update_inplace(new_data)
         else:
