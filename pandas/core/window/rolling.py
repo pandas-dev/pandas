@@ -212,12 +212,13 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         """
 
         attrs = (
-            f"{k}={getattr(self, k)}"
+            "{k}={v}".format(k=k, v=getattr(self, k))
             for k in self._attributes
             if getattr(self, k, None) is not None
         )
-        attrs = ",".join(attrs)
-        return f"{self._window_type} [{attrs}]"
+        return "{klass} [{attrs}]".format(
+            klass=self._window_type, attrs=",".join(attrs)
+        )
 
     def __iter__(self):
         url = "https://github.com/pandas-dev/pandas/issues/11704"
