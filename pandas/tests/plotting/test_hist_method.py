@@ -167,6 +167,10 @@ class TestDataFramePlots(TestPlotBase):
         with tm.assert_produces_warning(UserWarning):
             _check_plot_works(df.hist, bins=5)
 
+        # check bins argument with string
+        with tm.assert_produces_warning(UserWarning):
+            _check_plot_works(df.hist, bins="auto")
+
         # make sure xlabelsize and xrot are handled
         ser = df[0]
         xf, yf = 20, 18
