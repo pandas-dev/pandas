@@ -385,13 +385,6 @@ static PyObject *get_item(PyObject *obj, Py_ssize_t i) {
     return ret;
 }
 
-static void *CLong(JSOBJ obj, JSONTypeContext *tc, void *outValue,
-                   size_t *_outLen) {
-    PRINTMARK();
-    *((JSINT64 *)outValue) = GET_TC(tc)->longValue;
-    return NULL;
-}
-
 static void *PyLongToINT64(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
                            size_t *_outLen) {
     *((JSINT64 *)outValue) = GET_TC(tc)->longValue;
@@ -582,7 +575,6 @@ static int NpyTypeToJSONType(PyObject *obj, JSONTypeContext *tc, int npyType,
         }
         castfunc(value, &longVal, 1, NULL, NULL);
         GET_TC(tc)->longValue = (JSINT64)longVal;
-        GET_TC(tc)->PyTypeToJSON = CLong;
         return JT_LONG;
     }
 
