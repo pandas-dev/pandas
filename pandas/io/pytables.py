@@ -2164,12 +2164,6 @@ class DataCol(IndexCol):
         self.data, data = None, self.data
         return data
 
-    def set_metadata(self, metadata):
-        """ record the metadata """
-        if metadata is not None:
-            metadata = np.array(metadata, copy=False).ravel()
-        self.metadata = metadata
-
     def set_kind(self):
         # set my kind if we can
 
@@ -2201,7 +2195,6 @@ class DataCol(IndexCol):
     def set_atom(
         self,
         block,
-        block_items,
         existing_col,
         min_itemsize,
         nan_rep,
@@ -2211,13 +2204,15 @@ class DataCol(IndexCol):
     ):
         """ create and setup my atom from the block b """
 
-        self.values = list(block_items)
-
         # short-cut certain block types
         if block.is_categorical:
-            return self.set_atom_categorical(block, items=block_items, info=info)
+            self.set_atom_categorical(block)
+            self.update_info(info)
+            return
         elif block.is_datetimetz:
-            return self.set_atom_datetime64tz(block, info=info)
+            self.set_atom_datetime64tz(block)
+            self.update_info(info)
+            return
         elif block.is_datetime:
             return self.set_atom_datetime64(block)
         elif block.is_timedelta:
@@ -2245,13 +2240,7 @@ class DataCol(IndexCol):
         # end up here ###
         elif inferred_type == "string" or dtype == "object":
             self.set_atom_string(
-                block,
-                block_items,
-                existing_col,
-                min_itemsize,
-                nan_rep,
-                encoding,
-                errors,
+                block, existing_col, min_itemsize, nan_rep, encoding, errors,
             )
 
         # set as a data block
@@ -2262,7 +2251,7 @@ class DataCol(IndexCol):
         return _tables().StringCol(itemsize=itemsize, shape=block.shape[0])
 
     def set_atom_string(
-        self, block, block_items, existing_col, min_itemsize, nan_rep, encoding, errors
+        self, block, existing_col, min_itemsize, nan_rep, encoding, errors
     ):
         # fill nan items with myself, don't disturb the blocks by
         # trying to downcast
@@ -2277,13 +2266,14 @@ class DataCol(IndexCol):
 
             # we cannot serialize this data, so report an exception on a column
             # by column basis
-            for i, item in enumerate(block_items):
+            for i in range(len(block.shape[0])):
 
                 col = block.iget(i)
                 inferred_type = lib.infer_dtype(col.ravel(), skipna=False)
                 if inferred_type != "string":
+                    iloc = block.mgr_locs.indexer[i]
                     raise TypeError(
-                        f"Cannot serialize the column [{item}] because\n"
+                        f"Cannot serialize the column [{iloc}] because\n"
                         f"its data contents are [{inferred_type}] object dtype"
                     )
 
@@ -2336,7 +2326,7 @@ class DataCol(IndexCol):
         self.typ = self.get_atom_data(block)
         self.set_data(block.values.astype(self.typ.type, copy=False))
 
-    def set_atom_categorical(self, block, items, info=None):
+    def set_atom_categorical(self, block):
         # currently only supports a 1-D categorical
         # in a 1-D block
 
@@ -2346,8 +2336,6 @@ class DataCol(IndexCol):
         self.dtype = codes.dtype.name
         if values.ndim > 1:
             raise NotImplementedError("only support 1-d categoricals")
-        if len(items) > 1:
-            raise NotImplementedError("only support single block categoricals")
 
         # write the codes; must be in a block shape
         self.ordered = values.ordered
@@ -2356,10 +2344,7 @@ class DataCol(IndexCol):
 
         # write the categories
         self.meta = "category"
-        self.set_metadata(block.values.categories)
-
-        # update the info
-        self.update_info(info)
+        self.metadata = np.array(block.values.categories, copy=False).ravel()
 
     def get_atom_datetime64(self, block):
         return _tables().Int64Col(shape=block.shape[0])
@@ -2370,7 +2355,7 @@ class DataCol(IndexCol):
         values = block.values.view("i8")
         self.set_data(values, "datetime64")
 
-    def set_atom_datetime64tz(self, block, info):
+    def set_atom_datetime64tz(self, block):
 
         values = block.values
 
@@ -2379,7 +2364,6 @@ class DataCol(IndexCol):
 
         # store a converted timezone
         self.tz = _get_tz(block.values.tz)
-        self.update_info(info)
 
         self.kind = "datetime64"
         self.typ = self.get_atom_datetime64(block)
@@ -3873,9 +3857,9 @@ class Table(Fixed):
                 existing_col = None
 
             col = klass.create_for_block(i=i, name=name, version=self.version)
+            self.values = list(b_items)
             col.set_atom(
                 block=b,
-                block_items=b_items,
                 existing_col=existing_col,
                 min_itemsize=min_itemsize,
                 nan_rep=nan_rep,
