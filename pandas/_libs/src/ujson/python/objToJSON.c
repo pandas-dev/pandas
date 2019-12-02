@@ -385,12 +385,6 @@ static PyObject *get_item(PyObject *obj, Py_ssize_t i) {
     return ret;
 }
 
-static void *PyLongToINT64(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
-                           size_t *_outLen) {
-    *((JSINT64 *)outValue) = GET_TC(tc)->longValue;
-    return NULL;
-}
-
 static void *PyBytesToUTF8(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
                             size_t *_outLen) {
     PyObject *obj = (PyObject *)_obj;
@@ -559,7 +553,10 @@ static int NpyTypeToJSONType(PyObject *obj, JSONTypeContext *tc, int npyType,
             PRINTMARK();
             return JT_NULL;
         }
+
         GET_TC(tc)->longValue = (JSINT64)longVal;
+	printf("longval is %ld\n", longVal);
+	printf("stored longval is %lld\n", GET_TC(tc)->longValue);
         GET_TC(tc)->PyTypeToJSON = NpyDatetime64ToJSON;
         return ((PyObjectEncoder *)tc->encoder)->datetimeIso ? JT_UTF8
                                                              : JT_LONG;
@@ -1799,7 +1796,6 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
 
     if (PyLong_Check(obj)) {
         PRINTMARK();
-        pc->PyTypeToJSON = PyLongToINT64;
         tc->type = JT_LONG;
         GET_TC(tc)->longValue = PyLong_AsLongLong(obj);
 
@@ -1844,12 +1840,15 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         }
 
         PRINTMARK();
-        pc->PyTypeToJSON = PyDateTimeToJSON;
         if (enc->datetimeIso) {
             PRINTMARK();
+	    pc->PyTypeToJSON = PyDateTimeToJSON;
             tc->type = JT_UTF8;
         } else {
             PRINTMARK();
+	    // TODO: last argument here is unused; should decouple string
+	    // from long datetimelike conversion routines
+	    PyDateTimeToJSON(obj, tc, &(GET_TC(tc)->longValue), 0);
             tc->type = JT_LONG;
         }
         return;
@@ -1910,12 +1909,10 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         GET_TC(tc)->longValue = value;
 
         PRINTMARK();
-        pc->PyTypeToJSON = PyLongToINT64;
         tc->type = JT_LONG;
         return;
     } else if (PyArray_IsScalar(obj, Integer)) {
         PRINTMARK();
-        pc->PyTypeToJSON = PyLongToINT64;
         tc->type = JT_LONG;
         PyArray_CastScalarToCtype(obj, &(GET_TC(tc)->longValue),
                                   PyArray_DescrFromType(NPY_INT64));
@@ -2285,9 +2282,7 @@ const char *Object_getStringValue(JSOBJ obj, JSONTypeContext *tc,
 }
 
 JSINT64 Object_getLongValue(JSOBJ obj, JSONTypeContext *tc) {
-    JSINT64 ret;
-    GET_TC(tc)->PyTypeToJSON(obj, tc, &ret, NULL);
-    return ret;
+  return GET_TC(tc)->longValue;
 }
 
 JSINT32 Object_getIntValue(JSOBJ obj, JSONTypeContext *tc) {
