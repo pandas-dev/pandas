@@ -2222,8 +2222,7 @@ class DataCol(IndexCol):
     def get_atom_string(self, shape, itemsize):
         return _tables().StringCol(itemsize=itemsize, shape=shape[0])
 
-    def set_atom_string(self, itemsize, data_converted):
-
+    def set_atom_string(self, itemsize: int, data_converted: np.ndarray):
         self.itemsize = itemsize
         self.kind = "string"
         self.typ = self.get_atom_string(data_converted.shape, itemsize)
