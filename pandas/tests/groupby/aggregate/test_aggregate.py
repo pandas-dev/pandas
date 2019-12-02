@@ -1,7 +1,6 @@
 """
 test .agg behavior / note that .apply is tested generally in test_groupby.py
 """
-from collections import OrderedDict
 import functools
 
 import numpy as np
@@ -92,6 +91,25 @@ def test_groupby_aggregation_mixed_dtype():
     tm.assert_frame_equal(result, expected)
 
 
+def test_groupby_aggregation_multi_level_column():
+    # GH 29772
+    lst = [
+        [True, True, True, False],
+        [True, False, np.nan, False],
+        [True, True, np.nan, False],
+        [True, True, np.nan, False],
+    ]
+    df = pd.DataFrame(
+        data=lst,
+        columns=pd.MultiIndex.from_tuples([("A", 0), ("A", 1), ("B", 0), ("B", 1)]),
+    )
+
+    result = df.groupby(level=1, axis=1).sum()
+    expected = pd.DataFrame({0: [2.0, 1, 1, 1], 1: [1, 0, 1, 1]})
+
+    tm.assert_frame_equal(result, expected)
+
+
 def test_agg_apply_corner(ts, tsframe):
     # nothing to group, all NA
     grouped = ts.groupby(ts * np.nan)
@@ -156,18 +174,14 @@ def test_aggregate_str_func(tsframe, groupbyfunc):
     tm.assert_frame_equal(result, expected)
 
     # group frame by function dict
-    result = grouped.agg(
-        OrderedDict([["A", "var"], ["B", "std"], ["C", "mean"], ["D", "sem"]])
-    )
+    result = grouped.agg({"A": "var", "B": "std", "C": "mean", "D": "sem"})
     expected = DataFrame(
-        OrderedDict(
-            [
-                ["A", grouped["A"].var()],
-                ["B", grouped["B"].std()],
-                ["C", grouped["C"].mean()],
-                ["D", grouped["D"].sem()],
-            ]
-        )
+        {
+            "A": grouped["A"].var(),
+            "B": grouped["B"].std(),
+            "C": grouped["C"].mean(),
+            "D": grouped["D"].sem(),
+        }
     )
     tm.assert_frame_equal(result, expected)
 
@@ -242,22 +256,20 @@ def test_multiple_functions_tuples_and_non_tuples(df):
 def test_more_flexible_frame_multi_function(df):
     grouped = df.groupby("A")
 
-    exmean = grouped.agg(OrderedDict([["C", np.mean], ["D", np.mean]]))
-    exstd = grouped.agg(OrderedDict([["C", np.std], ["D", np.std]]))
+    exmean = grouped.agg({"C": np.mean, "D": np.mean})
+    exstd = grouped.agg({"C": np.std, "D": np.std})
 
     expected = concat([exmean, exstd], keys=["mean", "std"], axis=1)
     expected = expected.swaplevel(0, 1, axis=1).sort_index(level=0, axis=1)
 
-    d = OrderedDict([["C", [np.mean, np.std]], ["D", [np.mean, np.std]]])
+    d = {"C": [np.mean, np.std], "D": [np.mean, np.std]}
     result = grouped.aggregate(d)
 
     tm.assert_frame_equal(result, expected)
 
     # be careful
-    result = grouped.aggregate(OrderedDict([["C", np.mean], ["D", [np.mean, np.std]]]))
-    expected = grouped.aggregate(
-        OrderedDict([["C", np.mean], ["D", [np.mean, np.std]]])
-    )
+    result = grouped.aggregate({"C": np.mean, "D": [np.mean, np.std]})
+    expected = grouped.aggregate({"C": np.mean, "D": [np.mean, np.std]})
     tm.assert_frame_equal(result, expected)
 
     def foo(x):
@@ -269,13 +281,11 @@ def test_more_flexible_frame_multi_function(df):
     # this uses column selection & renaming
     msg = r"nested renamer is not supported"
     with pytest.raises(SpecificationError, match=msg):
-        d = OrderedDict(
-            [["C", np.mean], ["D", OrderedDict([["foo", np.mean], ["bar", np.std]])]]
-        )
+        d = dict([["C", np.mean], ["D", dict([["foo", np.mean], ["bar", np.std]])]])
         grouped.aggregate(d)
 
     # But without renaming, these functions are OK
-    d = OrderedDict([["C", [np.mean]], ["D", [foo, bar]]])
+    d = {"C": [np.mean], "D": [foo, bar]}
     grouped.aggregate(d)
 
 
@@ -284,26 +294,20 @@ def test_multi_function_flexible_mix(df):
     grouped = df.groupby("A")
 
     # Expected
-    d = OrderedDict(
-        [["C", OrderedDict([["foo", "mean"], ["bar", "std"]])], ["D", {"sum": "sum"}]]
-    )
+    d = {"C": {"foo": "mean", "bar": "std"}, "D": {"sum": "sum"}}
     # this uses column selection & renaming
     msg = r"nested renamer is not supported"
     with pytest.raises(SpecificationError, match=msg):
         grouped.aggregate(d)
 
     # Test 1
-    d = OrderedDict(
-        [["C", OrderedDict([["foo", "mean"], ["bar", "std"]])], ["D", "sum"]]
-    )
+    d = {"C": {"foo": "mean", "bar": "std"}, "D": "sum"}
     # this uses column selection & renaming
     with pytest.raises(SpecificationError, match=msg):
         grouped.aggregate(d)
 
     # Test 2
-    d = OrderedDict(
-        [["C", OrderedDict([["foo", "mean"], ["bar", "std"]])], ["D", ["sum"]]]
-    )
+    d = {"C": {"foo": "mean", "bar": "std"}, "D": "sum"}
     # this uses column selection & renaming
     with pytest.raises(SpecificationError, match=msg):
         grouped.aggregate(d)
@@ -623,9 +627,7 @@ class TestLambdaMangling:
         assert func["A"][0](0, 2, b=3) == (0, 2, 3)
 
     def test_maybe_mangle_lambdas_named(self):
-        func = OrderedDict(
-            [("C", np.mean), ("D", OrderedDict([("foo", np.mean), ("bar", np.mean)]))]
-        )
+        func = {"C": np.mean, "D": {"foo": np.mean, "bar": np.mean}}
         result = _maybe_mangle_lambdas(func)
         assert result == func
 

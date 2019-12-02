@@ -9,7 +9,7 @@ alignment and a host of useful data manipulation methods having to do with the
 labeling information
 """
 import collections
-from collections import OrderedDict, abc
+from collections import abc
 from io import StringIO
 import itertools
 import sys
@@ -3544,13 +3544,6 @@ class DataFrame(NDFrame):
         -------
         numpy.ndarray
 
-        Notes
-        -----
-        Akin to::
-
-            result = [df.get_value(row, col)
-                      for row, col in zip(row_labels, col_labels)]
-
         Examples
         --------
         values : ndarray
@@ -4482,7 +4475,7 @@ class DataFrame(NDFrame):
             * 0, or 'index' : Drop rows which contain missing values.
             * 1, or 'columns' : Drop columns which contain missing value.
 
-            .. deprecated:: 0.23.0
+            .. versionchanged:: 1.0.0
 
                Pass tuple or list to drop on multiple axes.
                Only a single axis is allowed.
@@ -4572,43 +4565,35 @@ class DataFrame(NDFrame):
         inplace = validate_bool_kwarg(inplace, "inplace")
         if isinstance(axis, (tuple, list)):
             # GH20987
-            msg = (
-                "supplying multiple axes to axis is deprecated and "
-                "will be removed in a future version."
-            )
-            warnings.warn(msg, FutureWarning, stacklevel=2)
+            raise TypeError("supplying multiple axes to axis is no longer supported.")
 
-            result = self
-            for ax in axis:
-                result = result.dropna(how=how, thresh=thresh, subset=subset, axis=ax)
+        axis = self._get_axis_number(axis)
+        agg_axis = 1 - axis
+
+        agg_obj = self
+        if subset is not None:
+            ax = self._get_axis(agg_axis)
+            indices = ax.get_indexer_for(subset)
+            check = indices == -1
+            if check.any():
+                raise KeyError(list(np.compress(check, subset)))
+            agg_obj = self.take(indices, axis=agg_axis)
+
+        count = agg_obj.count(axis=agg_axis)
+
+        if thresh is not None:
+            mask = count >= thresh
+        elif how == "any":
+            mask = count == len(agg_obj._get_axis(agg_axis))
+        elif how == "all":
+            mask = count > 0
         else:
-            axis = self._get_axis_number(axis)
-            agg_axis = 1 - axis
-
-            agg_obj = self
-            if subset is not None:
-                ax = self._get_axis(agg_axis)
-                indices = ax.get_indexer_for(subset)
-                check = indices == -1
-                if check.any():
-                    raise KeyError(list(np.compress(check, subset)))
-                agg_obj = self.take(indices, axis=agg_axis)
-
-            count = agg_obj.count(axis=agg_axis)
-
-            if thresh is not None:
-                mask = count >= thresh
-            elif how == "any":
-                mask = count == len(agg_obj._get_axis(agg_axis))
-            elif how == "all":
-                mask = count > 0
+            if how is not None:
+                raise ValueError("invalid how option: {h}".format(h=how))
             else:
-                if how is not None:
-                    raise ValueError("invalid how option: {h}".format(h=how))
-                else:
-                    raise TypeError("must specify how or thresh")
+                raise TypeError("must specify how or thresh")
 
-            result = self.loc(axis=axis)[mask]
+        result = self.loc(axis=axis)[mask]
 
         if inplace:
             self._update_inplace(result)
@@ -4771,24 +4756,12 @@ class DataFrame(NDFrame):
         kind="quicksort",
         na_position="last",
         sort_remaining=True,
-        by=None,
     ):
 
         # TODO: this can be combined with Series.sort_index impl as
         # almost identical
 
         inplace = validate_bool_kwarg(inplace, "inplace")
-        # 10726
-        if by is not None:
-            warnings.warn(
-                "by argument to sort_index is deprecated, "
-                "please use .sort_values(by=...)",
-                FutureWarning,
-                stacklevel=2,
-            )
-            if level is not None:
-                raise ValueError("unable to simultaneously sort by and level")
-            return self.sort_values(by, axis=axis, ascending=ascending, inplace=inplace)
 
         axis = self._get_axis_number(axis)
         labels = self._get_axis(axis)
@@ -7606,6 +7579,23 @@ class DataFrame(NDFrame):
         def f(x):
             return op(x, axis=axis, skipna=skipna, **kwds)
 
+        def _get_data(axis_matters):
+            if filter_type is None or filter_type == "numeric":
+                data = self._get_numeric_data()
+            elif filter_type == "bool":
+                if axis_matters:
+                    # GH#25101, GH#24434
+                    data = self._get_bool_data() if axis == 0 else self
+                else:
+                    data = self._get_bool_data()
+            else:  # pragma: no cover
+                msg = (
+                    "Generating numeric_only data with filter_type {f}"
+                    "not supported.".format(f=filter_type)
+                )
+                raise NotImplementedError(msg)
+            return data
+
         if numeric_only is None:
             values = self.values
             try:
@@ -7616,7 +7606,7 @@ class DataFrame(NDFrame):
                     # TODO: combine with hasattr(result, 'dtype') further down
                     # hard since we don't have `values` down there.
                     result = np.bool_(result)
-            except TypeError as err:
+            except TypeError:
                 # e.g. in nanops trying to convert strs to float
 
                 # try by-column first
@@ -7639,31 +7629,15 @@ class DataFrame(NDFrame):
                         result = result.iloc[0]
                     return result
 
-                if filter_type is None or filter_type == "numeric":
-                    data = self._get_numeric_data()
-                elif filter_type == "bool":
-                    data = self._get_bool_data()
-                else:  # pragma: no cover
-                    raise NotImplementedError(
-                        "Handling exception with filter_type {f} not"
-                        "implemented.".format(f=filter_type)
-                    ) from err
+                # TODO: why doesnt axis matter here?
+                data = _get_data(axis_matters=False)
                 with np.errstate(all="ignore"):
                     result = f(data.values)
                 labels = data._get_agg_axis(axis)
         else:
             if numeric_only:
-                if filter_type is None or filter_type == "numeric":
-                    data = self._get_numeric_data()
-                elif filter_type == "bool":
-                    # GH 25101, # GH 24434
-                    data = self._get_bool_data() if axis == 0 else self
-                else:  # pragma: no cover
-                    msg = (
-                        "Generating numeric_only data with filter_type {f}"
-                        "not supported.".format(f=filter_type)
-                    )
-                    raise NotImplementedError(msg)
+                data = _get_data(axis_matters=True)
+
                 values = data.values
                 labels = data._get_agg_axis(axis)
             else:
@@ -8149,10 +8123,9 @@ class DataFrame(NDFrame):
         else:
             if not is_list_like(values):
                 raise TypeError(
-                    "only list-like or dict-like objects are "
-                    "allowed to be passed to DataFrame.isin(), "
-                    "you passed a "
-                    "{0!r}".format(type(values).__name__)
+                    f"only list-like or dict-like objects are allowed "
+                    f"to be passed to DataFrame.isin(), "
+                    f"you passed a {repr(type(values).__name__)}"
                 )
             return DataFrame(
                 algorithms.isin(self.values.ravel(), values).reshape(self.shape),
@@ -8188,10 +8161,10 @@ ops.add_special_arithmetic_methods(DataFrame)
 
 def _from_nested_dict(data):
     # TODO: this should be seriously cythonized
-    new_data = OrderedDict()
+    new_data = {}
     for index, s in data.items():
         for col, v in s.items():
-            new_data[col] = new_data.get(col, OrderedDict())
+            new_data[col] = new_data.get(col, {})
             new_data[col][index] = v
     return new_data
 
