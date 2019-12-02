@@ -1313,7 +1313,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
 
     elif isinstance(val, str):
         if is_string_array(values, skipna=skipna):
-            return 'string'
+            return "string"
 
     elif isinstance(val, bytes):
         if is_bytes_array(values, skipna=skipna):
