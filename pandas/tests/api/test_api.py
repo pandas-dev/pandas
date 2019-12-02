@@ -46,7 +46,7 @@ class TestPDApi(Base):
     deprecated_modules: List[str] = []
 
     # misc
-    misc = ["IndexSlice", "NaT"]
+    misc = ["IndexSlice", "NaT", "NA"]
 
     # top-level classes
     classes = [
@@ -80,6 +80,7 @@ class TestPDApi(Base):
         "PeriodDtype",
         "IntervalDtype",
         "DatetimeTZDtype",
+        "BooleanDtype",
         "Int8Dtype",
         "Int16Dtype",
         "Int32Dtype",
@@ -188,6 +189,7 @@ class TestPDApi(Base):
         "_np_version_under1p15",
         "_np_version_under1p16",
         "_np_version_under1p17",
+        "_np_version_under1p18",
         "_tslib",
         "_typing",
         "_version",

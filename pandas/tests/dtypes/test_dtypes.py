@@ -187,7 +187,7 @@ class TestDatetimeTZDtype(Base):
 
     def test_alias_to_unit_raises(self):
         # 23990
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(ValueError, match="Passing a dtype alias"):
             DatetimeTZDtype("datetime64[ns, US/Central]")
 
     def test_alias_to_unit_bad_alias_raises(self):

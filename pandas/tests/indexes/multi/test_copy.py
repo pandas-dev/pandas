@@ -35,12 +35,6 @@ def test_shallow_copy(idx):
     assert_multiindex_copied(i_copy, idx)
 
 
-def test_labels_deprecated(idx):
-    # GH23752
-    with tm.assert_produces_warning(FutureWarning):
-        idx.copy(labels=idx.codes)
-
-
 def test_view(idx):
     i_view = idx.view()
     assert_multiindex_copied(i_view, idx)

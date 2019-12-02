@@ -32,7 +32,6 @@ Properties
    Index.has_duplicates
    Index.hasnans
    Index.dtype
-   Index.dtype_str
    Index.inferred_type
    Index.is_all_dates
    Index.shape
@@ -42,9 +41,6 @@ Properties
    Index.ndim
    Index.size
    Index.empty
-   Index.strides
-   Index.itemsize
-   Index.base
    Index.T
    Index.memory_usage
 
@@ -305,7 +301,6 @@ MultiIndex components
 
    MultiIndex.set_levels
    MultiIndex.set_codes
-   MultiIndex.to_hierarchical
    MultiIndex.to_flat_index
    MultiIndex.to_frame
    MultiIndex.is_lexsorted

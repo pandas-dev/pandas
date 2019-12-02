@@ -687,17 +687,10 @@ class TestMoments(Base):
         result = s.rolling(2, min_periods=0).apply(len, raw=raw)
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("klass", [Series, DataFrame])
-    @pytest.mark.parametrize(
-        "method", [lambda x: x.rolling(window=2), lambda x: x.expanding()]
-    )
-    def test_apply_future_warning(self, klass, method):
-
-        # gh-5071
-        s = klass(np.arange(3))
-
-        with tm.assert_produces_warning(FutureWarning):
-            method(s).apply(lambda x: len(x))
+    @pytest.mark.parametrize("bad_raw", [None, 1, 0])
+    def test_rolling_apply_invalid_raw(self, bad_raw):
+        with pytest.raises(ValueError, match="raw parameter must be `True` or `False`"):
+            Series(range(3)).rolling(1).apply(len, raw=bad_raw)
 
     def test_rolling_apply_out_of_bounds(self, raw):
         # gh-1850
