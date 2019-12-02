@@ -296,10 +296,8 @@ class TestStringMethods:
         else:
             # GH 23011, GH 23163
             msg = (
-                "Cannot use .str.{name} with values of inferred dtype "
-                "{inferred_dtype!r}.".format(
-                    name=method_name, inferred_dtype=inferred_dtype
-                )
+                f"Cannot use .str.{method_name} with values of "
+                f"inferred dtype {repr(inferred_dtype)}."
             )
             with pytest.raises(TypeError, match=msg):
                 method(*args, **kwargs)

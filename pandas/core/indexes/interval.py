@@ -2,7 +2,6 @@
 from operator import le, lt
 import textwrap
 from typing import Any, Optional, Tuple, Union
-import warnings
 
 import numpy as np
 
@@ -84,9 +83,7 @@ def _get_next_label(label):
     elif is_float_dtype(dtype):
         return np.nextafter(label, np.infty)
     else:
-        raise TypeError(
-            "cannot determine next label for type {typ!r}".format(typ=type(label))
-        )
+        raise TypeError(f"cannot determine next label for type {repr(type(label))}")
 
 
 def _get_prev_label(label):
@@ -100,9 +97,7 @@ def _get_prev_label(label):
     elif is_float_dtype(dtype):
         return np.nextafter(label, -np.infty)
     else:
-        raise TypeError(
-            "cannot determine next label for type {typ!r}".format(typ=type(label))
-        )
+        raise TypeError(f"cannot determine next label for type {repr(type(label))}")
 
 
 def _get_interval_closed_bounds(interval):
@@ -455,19 +450,6 @@ class IntervalIndex(IntervalMixin, Index):
         # Avoid materializing ndarray[Interval]
         return self._data.size
 
-    @property
-    def itemsize(self):
-        msg = (
-            "IntervalIndex.itemsize is deprecated and will be removed in "
-            "a future version"
-        )
-        warnings.warn(msg, FutureWarning, stacklevel=2)
-
-        # suppress the warning from the underlying left/right itemsize
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            return self.left.itemsize + self.right.itemsize
-
     def __len__(self) -> int:
         return len(self.left)
 
@@ -497,7 +479,7 @@ class IntervalIndex(IntervalMixin, Index):
     def __reduce__(self):
         d = dict(left=self.left, right=self.right)
         d.update(self._get_attributes_dict())
-        return _new_IntervalIndex, (self.__class__, d), None
+        return _new_IntervalIndex, (type(self), d), None
 
     @Appender(_index_shared_docs["copy"])
     def copy(self, deep=False, name=None):
@@ -512,7 +494,7 @@ class IntervalIndex(IntervalMixin, Index):
 
     @Appender(_index_shared_docs["astype"])
     def astype(self, dtype, copy=True):
-        with rewrite_exception("IntervalArray", self.__class__.__name__):
+        with rewrite_exception("IntervalArray", type(self).__name__):
             new_values = self.values.astype(dtype, copy=copy)
         if is_interval_dtype(new_values):
             return self._shallow_copy(new_values.left, new_values.right)
@@ -1205,7 +1187,7 @@ class IntervalIndex(IntervalMixin, Index):
         return attrs
 
     def _format_space(self):
-        space = " " * (len(self.__class__.__name__) + 1)
+        space = " " * (len(type(self).__name__) + 1)
         return "\n{space}".format(space=space)
 
     # --------------------------------------------------------------------

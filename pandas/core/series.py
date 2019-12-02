@@ -256,9 +256,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             elif is_extension_array_dtype(data):
                 pass
             elif isinstance(data, (set, frozenset)):
-                raise TypeError(
-                    "{0!r} type is unordered".format(data.__class__.__name__)
-                )
+                raise TypeError(f"{repr(type(data).__name__)} type is unordered")
             elif isinstance(data, ABCSparseArray):
                 # handle sparse passed here (and force conversion)
                 data = data.to_dense()
@@ -529,55 +527,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         warnings.warn(msg, FutureWarning, stacklevel=2)
         nv.validate_compress(args, kwargs)
         return self[condition]
-
-    def nonzero(self):
-        """
-        Return the *integer* indices of the elements that are non-zero.
-
-        .. deprecated:: 0.24.0
-           Please use .to_numpy().nonzero() as a replacement.
-
-        This method is equivalent to calling `numpy.nonzero` on the
-        series data. For compatibility with NumPy, the return value is
-        the same (a tuple with an array of indices for each dimension),
-        but it will always be a one-item tuple because series only have
-        one dimension.
-
-        Returns
-        -------
-        numpy.ndarray
-            Indices of elements that are non-zero.
-
-        See Also
-        --------
-        numpy.nonzero
-
-        Examples
-        --------
-        >>> s = pd.Series([0, 3, 0, 4])
-        >>> s.nonzero()
-        (array([1, 3]),)
-        >>> s.iloc[s.nonzero()[0]]
-        1    3
-        3    4
-        dtype: int64
-
-        # same return although index of s is different
-        >>> s = pd.Series([0, 3, 0, 4], index=['a', 'b', 'c', 'd'])
-        >>> s.nonzero()
-        (array([1, 3]),)
-        >>> s.iloc[s.nonzero()[0]]
-        b    3
-        d    4
-        dtype: int64
-        """
-        msg = (
-            "Series.nonzero() is deprecated "
-            "and will be removed in a future version."
-            "Use Series.to_numpy().nonzero() instead"
-        )
-        warnings.warn(msg, FutureWarning, stacklevel=2)
-        return self._values.nonzero()
 
     def put(self, *args, **kwargs):
         """
@@ -1535,9 +1484,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # catch contract violations
         if not isinstance(result, str):
             raise AssertionError(
-                "result must be of type unicode, type"
-                " of result is {0!r}"
-                "".format(result.__class__.__name__)
+                "result must be of type str, type"
+                f" of result is {repr(type(result).__name__)}"
             )
 
         if buf is None:
@@ -3872,9 +3820,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             self._get_axis_number(axis)
 
         if isinstance(delegate, Categorical):
-            # TODO deprecate numeric_only argument for Categorical and use
-            # skipna as well, see GH25303
-            return delegate._reduce(name, numeric_only=numeric_only, **kwds)
+            return delegate._reduce(name, skipna=skipna, **kwds)
         elif isinstance(delegate, ExtensionArray):
             # dispatch to ExtensionArray interface
             return delegate._reduce(name, skipna=skipna, **kwds)
