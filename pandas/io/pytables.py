@@ -2253,8 +2253,8 @@ class DataCol(IndexCol):
         min_itemsize,
         nan_rep,
         info,
-        encoding=None,
-        errors="strict",
+        encoding: str,
+        errors: str = "strict",
     ):
         """ create and setup my atom from the block b """
 
@@ -2309,7 +2309,7 @@ class DataCol(IndexCol):
         return _tables().StringCol(itemsize=itemsize, shape=block.shape[0])
 
     def set_atom_string(
-        self, block, block_items, existing_col, min_itemsize, nan_rep, encoding, errors
+        self, block, block_items, existing_col, min_itemsize, nan_rep, encoding: str, errors: str
     ):
         # fill nan items with myself, don't disturb the blocks by
         # trying to downcast
@@ -4510,7 +4510,7 @@ class AppendableSeriesTable(AppendableFrameTable):
         columns=None,
         start: Optional[int] = None,
         stop: Optional[int] = None,
-    ):
+    ) -> Series:
 
         is_multi_index = self.is_multi_index
         if columns is not None and is_multi_index:
@@ -4638,7 +4638,7 @@ class AppendableMultiFrameTable(AppendableFrameTable):
         return df
 
 
-def _reindex_axis(obj, axis: int, labels: Index, other=None):
+def _reindex_axis(obj: DataFrame, axis: int, labels: Index, other=None) -> DataFrame:
     ax = obj._get_axis(axis)
     labels = ensure_index(labels)
 
