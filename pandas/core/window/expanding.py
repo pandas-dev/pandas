@@ -209,10 +209,9 @@ class Expanding(_Rolling_and_Expanding):
 
     >>> arr = [1, 2, 3, 4, 999]
     >>> import scipy.stats
-    >>> precision = 6  # limit the printed precision to 6 digits
-    >>> print(f"{scipy.stats.kurtosis(arr[:-1], bias=False):.{precision}f}")
+    >>> print(f"{scipy.stats.kurtosis(arr[:-1], bias=False):.6f}")
     -1.200000
-    >>> print(f"{scipy.stats.kurtosis(arr, bias=False):.{precision}f}")
+    >>> print(f"{scipy.stats.kurtosis(arr, bias=False):.6f}")
     4.999874
     >>> s = pd.Series(arr)
     >>> s.expanding(4).kurt()

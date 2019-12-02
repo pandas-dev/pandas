@@ -1628,12 +1628,11 @@ class _Rolling_and_Expanding(_Rolling):
 
     >>> v1 = [3, 3, 3, 5, 8]
     >>> v2 = [3, 4, 4, 4, 8]
-    >>> precision = 6  # limit the printed precision to 6 digits
     >>> # numpy returns a 2X2 array, the correlation coefficient
     >>> # is the number at entry [0][1]
-    >>> print(f"{np.corrcoef(v1[:-1], v2[:-1])[0][1]:.{precision}f}")
+    >>> print(f"{np.corrcoef(v1[:-1], v2[:-1])[0][1]:.6f}")
     0.333333
-    >>> print(f"{np.corrcoef(v1[1:], v2[1:])[0][1]:.{precision}f}")
+    >>> print(f"{np.corrcoef(v1[1:], v2[1:])[0][1]:.6f}")
     0.916949
     >>> s1 = pd.Series(v1)
     >>> s2 = pd.Series(v2)
@@ -1933,11 +1932,10 @@ class Rolling(_Rolling_and_Expanding):
     four matching the equivalent function call using `scipy.stats`.
 
     >>> arr = [1, 2, 3, 4, 999]
-    >>> precision = 6  # limit the printed precision to 6 digits
     >>> import scipy.stats
-    >>> print(f"{scipy.stats.kurtosis(arr[:-1], bias=False):.{precision}f}")
+    >>> print(f"{scipy.stats.kurtosis(arr[:-1], bias=False):.6f}")
     -1.200000
-    >>> print(f"{scipy.stats.kurtosis(arr[1:], bias=False):.{precision}f}")
+    >>> print(f"{scipy.stats.kurtosis(arr[1:], bias=False):.6f}")
     3.999946
     >>> s = pd.Series(arr)
     >>> s.rolling(4).kurt()
