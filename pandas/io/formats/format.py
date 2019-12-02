@@ -35,6 +35,7 @@ import numpy as np
 from pandas._config.config import get_option, set_option
 
 from pandas._libs import lib
+from pandas._libs.missing import NA
 from pandas._libs.tslib import format_array_from_datetime
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas._libs.tslibs.nattype import NaTType
@@ -1223,6 +1224,8 @@ class GenericArrayFormatter:
                     # determine na_rep if x is None or NaT-like
                     if x is None:
                         return "None"
+                    elif x is NA:
+                        return "NA"
                     elif x is NaT or np.isnat(x):
                         return "NaT"
                 except (TypeError, ValueError):

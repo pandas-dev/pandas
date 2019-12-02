@@ -27,7 +27,7 @@ def engine(request):
 
 def skip_if_no_pandas_parser(parser):
     if parser != "pandas":
-        pytest.skip("cannot evaluate with parser {0!r}".format(parser))
+        pytest.skip(f"cannot evaluate with parser {repr(parser)}")
 
 
 class TestCompat:

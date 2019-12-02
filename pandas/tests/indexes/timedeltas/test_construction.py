@@ -10,16 +10,6 @@ import pandas.util.testing as tm
 
 
 class TestTimedeltaIndex:
-    def test_verify_integrity_deprecated(self):
-        # GH#23919
-        with tm.assert_produces_warning(FutureWarning):
-            TimedeltaIndex(["1 Day"], verify_integrity=False)
-
-    def test_range_kwargs_deprecated(self):
-        # GH#23919
-        with tm.assert_produces_warning(FutureWarning):
-            TimedeltaIndex(start="1 Day", end="3 Days", freq="D")
-
     def test_int64_nocopy(self):
         # GH#23539 check that a copy isn't made when we pass int64 data
         #  and copy=False
@@ -165,10 +155,6 @@ class TestTimedeltaIndex:
         msg = "periods must be a number, got foo"
         with pytest.raises(TypeError, match=msg):
             timedelta_range(start="1 days", periods="foo", freq="D")
-
-        with pytest.raises(ValueError):
-            with tm.assert_produces_warning(FutureWarning):
-                TimedeltaIndex(start="1 days", end="10 days")
 
         with pytest.raises(TypeError):
             TimedeltaIndex("1 days")

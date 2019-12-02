@@ -32,7 +32,6 @@ Properties
    Index.has_duplicates
    Index.hasnans
    Index.dtype
-   Index.dtype_str
    Index.inferred_type
    Index.is_all_dates
    Index.shape
