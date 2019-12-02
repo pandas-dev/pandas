@@ -212,7 +212,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         """
 
         attrs = (
-            "{k}={getattr(self, k)}"
+            f"{k}={getattr(self, k)}"
             for k in self._attributes
             if getattr(self, k, None) is not None
         )
@@ -250,8 +250,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         elif needs_i8_conversion(values.dtype):
             raise NotImplementedError(
                 f"ops for {self._window_type} for this "
-                f"dtype {values.dtype} are not "
-                "implemented"
+                f"dtype {values.dtype} are not implemented"
             )
         else:
             try:
@@ -382,7 +381,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         window_func = getattr(window_aggregations, func_name, None)
         if window_func is None:
             raise ValueError(
-                "we do not support this function " f"in window_aggregations.{func_name}"
+                f"we do not support this function in window_aggregations.{func_name}"
             )
         return window_func
 
