@@ -1020,9 +1020,7 @@ class DataFrame(NDFrame):
         """
         return len(self.index)
 
-    def dot(
-        self, other: Union[Series, DataFrame]
-    ) -> Union[Series, DataFrame]:
+    def dot(self, other: Union[Series, DataFrame]) -> Union[Series, DataFrame]:
         """
         Compute the matrix multiplication between the DataFrame and other.
 
