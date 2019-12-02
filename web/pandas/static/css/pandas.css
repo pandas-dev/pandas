@@ -23,6 +23,12 @@ a {
 code {
     white-space: pre;
 }
+.blue {
+    color: #150458;
+}
+.pink {
+    color: #e70488;
+}
 .fab {
     font-size: 1.2rem;
     color: #666;

@@ -44,8 +44,8 @@ class PandasDtype(ExtensionDtype):
         self._name = dtype.name
         self._type = dtype.type
 
-    def __repr__(self):
-        return "PandasDtype({!r})".format(self.name)
+    def __repr__(self) -> str:
+        return f"PandasDtype({repr(self.name)})"
 
     @property
     def numpy_dtype(self):
@@ -278,6 +278,9 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         return new_values
 
     def take(self, indices, allow_fill=False, fill_value=None):
+        if fill_value is None:
+            # Primarily for subclasses
+            fill_value = self.dtype.na_value
         result = take(
             self._ndarray, indices, allow_fill=allow_fill, fill_value=fill_value
         )

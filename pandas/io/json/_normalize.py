@@ -183,7 +183,7 @@ def json_normalize(
     1   {'height': 130, 'weight': 60}  NaN    Mose Reg
     2   {'height': 130, 'weight': 60}  2.0  Faye Raker
 
-    Normalizes nested data upto level 1.
+    Normalizes nested data up to level 1.
 
     >>> data = [{'id': 1,
     ...          'name': "Cole Volk",
@@ -267,10 +267,10 @@ def json_normalize(
     meta = [m if isinstance(m, list) else [m] for m in meta]
 
     # Disastrously inefficient for now
-    records = []  # type: List
+    records: List = []
     lengths = []
 
-    meta_vals = defaultdict(list)  # type: DefaultDict
+    meta_vals: DefaultDict = defaultdict(list)
     meta_keys = [sep.join(val) for val in meta]
 
     def _recursive_extract(data, path, seen_meta, level=0):

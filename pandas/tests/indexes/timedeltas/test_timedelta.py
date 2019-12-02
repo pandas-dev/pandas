@@ -16,11 +16,6 @@ from pandas import (
     timedelta_range,
 )
 import pandas.util.testing as tm
-from pandas.util.testing import (
-    assert_almost_equal,
-    assert_index_equal,
-    assert_series_equal,
-)
 
 from ..datetimelike import DatetimeLike
 
@@ -118,7 +113,7 @@ class TestTimedeltaIndex(DatetimeLike):
         result = index.isin(list(index))
         assert result.all()
 
-        assert_almost_equal(
+        tm.assert_almost_equal(
             index.isin([index[2], 5]), np.array([False, False, True, False])
         )
 
@@ -309,36 +304,36 @@ class TestTimedeltaIndex(DatetimeLike):
 
         result = td / np.timedelta64(1, "D")
         expected = Series([31, 31, (31 * 86400 + 5 * 60 + 3) / 86400.0, np.nan])
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = td.astype("timedelta64[D]")
         expected = Series([31, 31, 31, np.nan])
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = td / np.timedelta64(1, "s")
         expected = Series([31 * 86400, 31 * 86400, 31 * 86400 + 5 * 60 + 3, np.nan])
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = td.astype("timedelta64[s]")
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # tdi
         td = TimedeltaIndex(td)
 
         result = td / np.timedelta64(1, "D")
         expected = Index([31, 31, (31 * 86400 + 5 * 60 + 3) / 86400.0, np.nan])
-        assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         result = td.astype("timedelta64[D]")
         expected = Index([31, 31, 31, np.nan])
-        assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         result = td / np.timedelta64(1, "s")
         expected = Index([31 * 86400, 31 * 86400, 31 * 86400 + 5 * 60 + 3, np.nan])
-        assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         result = td.astype("timedelta64[s]")
-        assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("unit", ["Y", "y", "M"])
     def test_unit_m_y_deprecated(self, unit):

@@ -6,7 +6,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, compat
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 
 class TestToCSV:

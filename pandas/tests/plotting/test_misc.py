@@ -266,7 +266,7 @@ class TestDataFramePlots(TestPlotBase):
 
         df = DataFrame(
             {
-                "feat": [i for i in range(30)],
+                "feat": list(range(30)),
                 "class": [2 for _ in range(10)]
                 + [3 for _ in range(10)]
                 + [1 for _ in range(10)],
@@ -279,8 +279,7 @@ class TestDataFramePlots(TestPlotBase):
         )
         ordered_color_label_tuples = sorted(color_label_tuples, key=lambda x: x[1])
         prev_next_tupels = zip(
-            [i for i in ordered_color_label_tuples[0:-1]],
-            [i for i in ordered_color_label_tuples[1:]],
+            list(ordered_color_label_tuples[0:-1]), list(ordered_color_label_tuples[1:])
         )
         for prev, nxt in prev_next_tupels:
             # labels and colors are ordered strictly increasing

@@ -797,7 +797,7 @@ The columns were lexicographically sorted previously,
 
 The column order now matches the insertion-order of the keys in the ``dict``,
 considering all the records from top to bottom. As a consequence, the column
-order of the resulting DataFrame has changed compared to previous pandas verisons.
+order of the resulting DataFrame has changed compared to previous pandas versions.
 
 .. ipython:: python
 
@@ -886,7 +886,7 @@ Other API changes
 - Using an unsupported version of Beautiful Soup 4 will now raise an ``ImportError`` instead of a ``ValueError`` (:issue:`27063`)
 - :meth:`Series.to_excel` and :meth:`DataFrame.to_excel` will now raise a ``ValueError`` when saving timezone aware data. (:issue:`27008`, :issue:`7056`)
 - :meth:`ExtensionArray.argsort` places NA values at the end of the sorted array. (:issue:`21801`)
-- :meth:`DataFrame.to_hdf` and :meth:`Series.to_hdf` will now raise a ``NotImplementedError`` when saving a :class:`MultiIndex` with extention data types for a ``fixed`` format. (:issue:`7775`)
+- :meth:`DataFrame.to_hdf` and :meth:`Series.to_hdf` will now raise a ``NotImplementedError`` when saving a :class:`MultiIndex` with extension data types for a ``fixed`` format. (:issue:`7775`)
 - Passing duplicate ``names`` in :meth:`read_csv` will now raise a ``ValueError`` (:issue:`17346`)
 
 .. _whatsnew_0250.deprecations:
@@ -1106,7 +1106,7 @@ Indexing
 
 - Improved exception message when calling :meth:`DataFrame.iloc` with a list of non-numeric objects (:issue:`25753`).
 - Improved exception message when calling ``.iloc`` or ``.loc`` with a boolean indexer with different length (:issue:`26658`).
-- Bug in ``KeyError`` exception message when indexing a :class:`MultiIndex` with a non-existant key not displaying the original key (:issue:`27250`).
+- Bug in ``KeyError`` exception message when indexing a :class:`MultiIndex` with a non-existent key not displaying the original key (:issue:`27250`).
 - Bug in ``.iloc`` and ``.loc`` with a boolean indexer not raising an ``IndexError`` when too few items are passed (:issue:`26658`).
 - Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` where ``KeyError`` was not raised for a ``MultiIndex`` when the key was less than or equal to the number of levels in the :class:`MultiIndex` (:issue:`14885`).
 - Bug in which :meth:`DataFrame.append` produced an erroneous warning indicating that a ``KeyError`` will be thrown in the future when the data to be appended contains new columns (:issue:`22252`).

@@ -3,8 +3,6 @@ import json
 import numpy as np
 import pytest
 
-from pandas.compat import PY36
-
 from pandas import DataFrame, Index
 import pandas.util.testing as tm
 
@@ -382,7 +380,7 @@ class TestJSONNormalize:
             },
         ]
         expected = DataFrame(ex_data)
-        tm.assert_frame_equal(result, expected, check_like=not PY36)
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         "max_level,expected",
@@ -524,7 +522,7 @@ class TestNestedToRecord:
         columns = ["city", "number", "state", "street", "zip", "name"]
         columns = ["number", "street", "city", "state", "zip", "name"]
         expected = DataFrame(ex_data, columns=columns)
-        tm.assert_frame_equal(result, expected, check_like=not PY36)
+        tm.assert_frame_equal(result, expected)
 
     def test_donot_drop_nonevalues(self):
         # GH21356
@@ -554,7 +552,7 @@ class TestNestedToRecord:
 
     def test_nonetype_top_level_bottom_level(self):
         # GH21158: If inner level json has a key with a null value
-        # make sure it doesnt do a new_d.pop twice and except
+        # make sure it does not do a new_d.pop twice and except
         data = {
             "id": None,
             "location": {
@@ -586,7 +584,7 @@ class TestNestedToRecord:
 
     def test_nonetype_multiple_levels(self):
         # GH21158: If inner level json has a key with a null value
-        # make sure it doesnt do a new_d.pop twice and except
+        # make sure it does not do a new_d.pop twice and except
         data = {
             "id": None,
             "location": {

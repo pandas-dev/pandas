@@ -27,7 +27,6 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64_ns_dtype,
     is_extension_array_dtype,
-    is_extension_type,
     is_float_dtype,
     is_integer_dtype,
     is_iterator,
@@ -527,7 +526,7 @@ def _try_cast(
             and not (is_iterator(subarr) or isinstance(subarr, np.ndarray))
         ):
             subarr = construct_1d_object_array_from_listlike(subarr)
-        elif not is_extension_type(subarr):
+        elif not is_extension_array_dtype(subarr):
             subarr = construct_1d_ndarray_preserving_na(subarr, dtype, copy=copy)
     except OutOfBoundsDatetime:
         # in case of out of bound datetime64 -> always raise

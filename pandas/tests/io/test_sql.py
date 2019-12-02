@@ -275,7 +275,7 @@ class PandasSQLTest:
         else:
             return self.conn.cursor()
 
-    @pytest.fixture(params=[("io", "data", "iris.csv")])
+    @pytest.fixture(params=[("data", "iris.csv")])
     def load_iris_data(self, datapath, request):
         import io
 
@@ -583,7 +583,7 @@ class _TestSQLApi(PandasSQLTest):
     """
 
     flavor = "sqlite"
-    mode = None  # type: str
+    mode: str
 
     def setup_connect(self):
         self.conn = self.connect()
@@ -1234,7 +1234,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     """
 
-    flavor = None  # type: str
+    flavor: str
 
     @pytest.fixture(autouse=True, scope="class")
     def setup_class(cls):

@@ -293,6 +293,29 @@ class TestSeriesReplace:
         expected = pd.Series(numeric)
         tm.assert_series_equal(expected, result, check_dtype=False)
 
+    def test_replace_categorical_single(self):
+        # GH 26988
+        dti = pd.date_range("2016-01-01", periods=3, tz="US/Pacific")
+        s = pd.Series(dti)
+        c = s.astype("category")
+
+        expected = c.copy()
+        expected = expected.cat.add_categories("foo")
+        expected[2] = "foo"
+        expected = expected.cat.remove_unused_categories()
+        assert c[2] != "foo"
+
+        result = c.replace(c[2], "foo")
+        tm.assert_series_equal(expected, result)
+        assert c[2] != "foo"  # ensure non-inplace call does not alter original
+
+        c.replace(c[2], "foo", inplace=True)
+        tm.assert_series_equal(expected, c)
+
+        first_value = c[0]
+        c.replace(c[1], c[0], inplace=True)
+        assert c[0] == c[1] == first_value  # test replacing with existing value
+
     def test_replace_with_no_overflowerror(self):
         # GH 25616
         # casts to object without Exception from OverflowError
@@ -304,4 +327,35 @@ class TestSeriesReplace:
         s = pd.Series([0, "100000000000000000000", "100000000000000000001"])
         result = s.replace(["100000000000000000000"], [1])
         expected = pd.Series([0, 1, "100000000000000000001"])
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "ser, to_replace, exp",
+        [
+            ([1, 2, 3], {1: 2, 2: 3, 3: 4}, [2, 3, 4]),
+            (["1", "2", "3"], {"1": "2", "2": "3", "3": "4"}, ["2", "3", "4"]),
+        ],
+    )
+    def test_replace_commutative(self, ser, to_replace, exp):
+        # GH 16051
+        # DataFrame.replace() overwrites when values are non-numeric
+
+        series = pd.Series(ser)
+
+        expected = pd.Series(exp)
+        result = series.replace(to_replace)
+
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "ser, exp", [([1, 2, 3], [1, True, 3]), (["x", 2, 3], ["x", True, 3])]
+    )
+    def test_replace_no_cast(self, ser, exp):
+        # GH 9113
+        # BUG: replace int64 dtype with bool coerces to int64
+
+        series = pd.Series(ser)
+        result = series.replace(2, True)
+        expected = pd.Series(exp)
+
         tm.assert_series_equal(result, expected)

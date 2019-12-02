@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import numpy as np
 import pytest
@@ -7,7 +7,7 @@ from pandas.errors import UnsupportedFunctionCall
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, Series
+from pandas import DataFrame, Index, Series
 from pandas.core.window import Rolling
 from pandas.tests.window.common import Base
 import pandas.util.testing as tm
@@ -361,3 +361,60 @@ class TestRolling(Base):
             }
         )
         tm.assert_frame_equal(result, expected)
+
+
+def test_rolling_window_as_string():
+    # see gh-22590
+    date_today = datetime.now()
+    days = pd.date_range(date_today, date_today + timedelta(365), freq="D")
+
+    npr = np.random.RandomState(seed=421)
+
+    data = npr.randint(1, high=100, size=len(days))
+    df = DataFrame({"DateCol": days, "metric": data})
+
+    df.set_index("DateCol", inplace=True)
+    result = df.rolling(window="21D", min_periods=2, closed="left")["metric"].agg("max")
+
+    expData = (
+        [np.nan] * 2
+        + [88.0] * 16
+        + [97.0] * 9
+        + [98.0]
+        + [99.0] * 21
+        + [95.0] * 16
+        + [93.0] * 5
+        + [89.0] * 5
+        + [96.0] * 21
+        + [94.0] * 14
+        + [90.0] * 13
+        + [88.0] * 2
+        + [90.0] * 9
+        + [96.0] * 21
+        + [95.0] * 6
+        + [91.0]
+        + [87.0] * 6
+        + [92.0] * 21
+        + [83.0] * 2
+        + [86.0] * 10
+        + [87.0] * 5
+        + [98.0] * 21
+        + [97.0] * 14
+        + [93.0] * 7
+        + [87.0] * 4
+        + [86.0] * 4
+        + [95.0] * 21
+        + [85.0] * 14
+        + [83.0] * 2
+        + [76.0] * 5
+        + [81.0] * 2
+        + [98.0] * 21
+        + [95.0] * 14
+        + [91.0] * 7
+        + [86.0]
+        + [93.0] * 3
+        + [95.0] * 20
+    )
+
+    expected = Series(expData, index=Index(days, name="DateCol"), name="metric")
+    tm.assert_series_equal(result, expected)
