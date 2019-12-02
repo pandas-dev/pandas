@@ -229,7 +229,11 @@ def array(
     [1.1, 2.2]
     Length: 2, dtype: float64
 
-    Or the NumPy dtype can be specified
+    As mentioned in the "Notes" section, new extension types may be added
+    in the future (by pandas or 3rd party libraries), causing the return
+    value to no longer be a :class:`arrays.PandasArray`. Specify the `dtype`
+    as a NumPy dtype if you need to ensure there's no future change in
+    behavior.
 
     >>> pd.array([1, 2], dtype=np.dtype("int32"))
     <PandasArray>
