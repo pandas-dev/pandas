@@ -2473,7 +2473,7 @@ class NDFrame(PandasObject, SelectionMixin):
             See the errors argument for :func:`open` for a full list
             of options.
         encoding : str, default "UTF-8"
-        min_itemsize : dict, optional
+        min_itemsize : dict or int, optional
             Map column names to minimum string sizes for columns.
         data_columns : list of columns or True, optional
             List of columns to create as indexed data columns for on-disk
