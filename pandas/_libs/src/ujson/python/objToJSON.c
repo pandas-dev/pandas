@@ -386,7 +386,7 @@ static PyObject *get_item(PyObject *obj, Py_ssize_t i) {
 }
 
 static void *PyBytesToUTF8(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
-                            size_t *_outLen) {
+                           size_t *_outLen) {
     PyObject *obj = (PyObject *)_obj;
     *_outLen = PyBytes_GET_SIZE(obj);
     return PyBytes_AS_STRING(obj);
@@ -554,31 +554,31 @@ static int NpyTypeToJSONType(PyObject *obj, JSONTypeContext *tc, int npyType,
             return JT_NULL;
         }
 
-	if (((PyObjectEncoder *)tc->encoder)->datetimeIso) {
-	  GET_TC(tc)->longValue = (JSINT64)longVal;
-	  GET_TC(tc)->PyTypeToJSON = NpyDatetime64ToJSON;
-	  return JT_UTF8;
-	} else {
+        if (((PyObjectEncoder *)tc->encoder)->datetimeIso) {
+            GET_TC(tc)->longValue = (JSINT64)longVal;
+            GET_TC(tc)->PyTypeToJSON = NpyDatetime64ToJSON;
+            return JT_UTF8;
+        } else {
 
-	  // TODO: consolidate uses of this switch
-	  switch (((PyObjectEncoder *)tc->encoder)->datetimeUnit) {
-	  case NPY_FR_ns:
-	    break;
-	  case NPY_FR_us:
-	    longVal /= 1000LL;
-	    break;
-	  case NPY_FR_ms:
-	    longVal /= 1000000LL;
-	    break;
-	  case NPY_FR_s:
-	    longVal /= 1000000000LL;
-	    break;
-	  default:
-	    break;  // TODO: should raise error
-	  }
-	  GET_TC(tc)->longValue = longVal;
-	  return JT_LONG;
-	}
+            // TODO: consolidate uses of this switch
+            switch (((PyObjectEncoder *)tc->encoder)->datetimeUnit) {
+            case NPY_FR_ns:
+                break;
+            case NPY_FR_us:
+                longVal /= 1000LL;
+                break;
+            case NPY_FR_ms:
+                longVal /= 1000000LL;
+                break;
+            case NPY_FR_s:
+                longVal /= 1000000000LL;
+                break;
+            default:
+                break; // TODO: should raise error
+            }
+            GET_TC(tc)->longValue = longVal;
+            return JT_LONG;
+        }
     }
 
     if (PyTypeNum_ISINTEGER(npyType)) {
@@ -1832,7 +1832,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         if (npy_isnan(val) || npy_isinf(val)) {
             tc->type = JT_NULL;
         } else {
-	    GET_TC(tc)->doubleValue = val;
+            GET_TC(tc)->doubleValue = val;
             tc->type = JT_DOUBLE;
         }
         return;
@@ -1848,7 +1848,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         return;
     } else if (PyObject_TypeCheck(obj, type_decimal)) {
         PRINTMARK();
-	GET_TC(tc)->doubleValue = PyFloat_AsDouble(obj);
+        GET_TC(tc)->doubleValue = PyFloat_AsDouble(obj);
         tc->type = JT_DOUBLE;
         return;
     } else if (PyDateTime_Check(obj) || PyDate_Check(obj)) {
@@ -1861,13 +1861,13 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         PRINTMARK();
         if (enc->datetimeIso) {
             PRINTMARK();
-	    pc->PyTypeToJSON = PyDateTimeToJSON;
+            pc->PyTypeToJSON = PyDateTimeToJSON;
             tc->type = JT_UTF8;
         } else {
             PRINTMARK();
-	    // TODO: last argument here is unused; should decouple string
-	    // from long datetimelike conversion routines
-	    PyDateTimeToJSON(obj, tc, &(GET_TC(tc)->longValue), 0);
+            // TODO: last argument here is unused; should decouple string
+            // from long datetimelike conversion routines
+            PyDateTimeToJSON(obj, tc, &(GET_TC(tc)->longValue), 0);
             tc->type = JT_LONG;
         }
         return;
@@ -1952,7 +1952,8 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         return;
     } else if (PyArray_IsScalar(obj, Float) || PyArray_IsScalar(obj, Double)) {
         PRINTMARK();
-	PyArray_CastScalarToCtype(obj, &(GET_TC(tc)->doubleValue), PyArray_DescrFromType(NPY_DOUBLE));
+        PyArray_CastScalarToCtype(obj, &(GET_TC(tc)->doubleValue),
+                                  PyArray_DescrFromType(NPY_DOUBLE));
         tc->type = JT_DOUBLE;
         return;
     } else if (PyArray_Check(obj) && PyArray_CheckScalar(obj)) {
@@ -2301,11 +2302,11 @@ const char *Object_getStringValue(JSOBJ obj, JSONTypeContext *tc,
 }
 
 JSINT64 Object_getLongValue(JSOBJ obj, JSONTypeContext *tc) {
-  return GET_TC(tc)->longValue;
+    return GET_TC(tc)->longValue;
 }
 
 double Object_getDoubleValue(JSOBJ obj, JSONTypeContext *tc) {
-  return GET_TC(tc)->doubleValue;
+    return GET_TC(tc)->doubleValue;
 }
 
 static void Object_releaseObject(JSOBJ _obj) { Py_DECREF((PyObject *)_obj); }
@@ -2360,7 +2361,7 @@ PyObject *objToJSON(PyObject *self, PyObject *args, PyObject *kwargs) {
         Object_endTypeContext,
         Object_getStringValue,
         Object_getLongValue,
-        NULL,  // getIntValue is unused
+        NULL, // getIntValue is unused
         Object_getDoubleValue,
         Object_iterBegin,
         Object_iterNext,
