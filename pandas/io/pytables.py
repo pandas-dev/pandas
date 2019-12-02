@@ -2214,8 +2214,7 @@ class DataCol(IndexCol):
             self.set_atom_complex(block)
 
         elif use_str:
-            # TODO: should we reshape data_converted to orig shape?
-            self.set_atom_string(itemsize, data_converted, block.shape)
+            self.set_atom_string(itemsize, data_converted)
         else:
             # set as a data block
             self.set_atom_data(block)
@@ -2223,11 +2222,11 @@ class DataCol(IndexCol):
     def get_atom_string(self, shape, itemsize):
         return _tables().StringCol(itemsize=itemsize, shape=shape[0])
 
-    def set_atom_string(self, itemsize, data_converted, shape):
+    def set_atom_string(self, itemsize, data_converted):
 
         self.itemsize = itemsize
         self.kind = "string"
-        self.typ = self.get_atom_string(shape, itemsize)
+        self.typ = self.get_atom_string(data_converted.shape, itemsize)
         self.set_data(data_converted.astype(f"|S{itemsize}", copy=False))
 
     def get_atom_coltype(self, kind=None):
@@ -4671,7 +4670,7 @@ def _unconvert_index(data, kind: str, encoding=None, errors="strict"):
 
 
 def _maybe_convert_for_string_atom(
-    name, block, existing_col, min_itemsize, nan_rep, encoding, errors
+    name: str, block, existing_col, min_itemsize, nan_rep, encoding, errors
 ):
     use_str = False
 
@@ -4720,9 +4719,9 @@ def _maybe_convert_for_string_atom(
                 )
 
     # itemsize is the maximum length of a string (along any dimension)
-    data_converted = _convert_string_array(
-        data, encoding, errors
-    )  # TODO: do we need to reshape?
+    data_converted = _convert_string_array(data, encoding, errors).reshape(data.shape)
+    # NB: the reshape here is new!
+    assert data_converted.shape == block.shape, (data_converted.shape, block.shape)
     itemsize = data_converted.itemsize
 
     # specified min_itemsize?
