@@ -1932,13 +1932,10 @@ def forbid_nonstring_types(forbidden, name=None):
         @wraps(func)
         def wrapper(self, *args, **kwargs):
             if self._inferred_dtype not in allowed_types:
-                msg = (
-                    "Cannot use .str.{name} with values of inferred dtype "
-                    "{inf_type!r}.".format(
-                        name=func_name, inf_type=self._inferred_dtype
-                    )
+                raise TypeError(
+                    f"Cannot use .str.{func_name} with values of "
+                    f"inferred dtype {repr(self._inferred_dtype)}."
                 )
-                raise TypeError(msg)
             return func(self, *args, **kwargs)
 
         wrapper.__name__ = func_name

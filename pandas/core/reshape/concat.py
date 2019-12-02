@@ -542,8 +542,8 @@ class _Concatenator:
                 for i, x in enumerate(self.objs):
                     if not isinstance(x, Series):
                         raise TypeError(
-                            "Cannot concatenate type 'Series' "
-                            "with object of type {type!r}".format(type=type(x).__name__)
+                            f"Cannot concatenate type 'Series' with object "
+                            f"of type {repr(type(x).__name__)}"
                         )
                     if x.name is not None:
                         names[i] = x.name
