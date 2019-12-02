@@ -972,10 +972,10 @@ class TextFileReader(BaseIterator):
             elif engine not in ("python", "python-fwf"):
                 # wait until regex engine integrated
                 fallback_reason = (
-                    "the 'c' engine does not support"
-                    " regex separators (separators > 1 char and"
-                    r" different from '\s+' are"
-                    " interpreted as regex)"
+                    "the 'c' engine does not support "
+                    "regex separators (separators > 1 char and "
+                    r"different from '\s+' are "
+                    "interpreted as regex)"
                 )
                 engine = "python"
         elif delim_whitespace:
@@ -990,9 +990,9 @@ class TextFileReader(BaseIterator):
                 encodeable = False
             if not encodeable and engine not in ("python", "python-fwf"):
                 fallback_reason = (
-                    "the separator encoded in {encoding}"
-                    " is > 1 char long, and the 'c' engine"
-                    " does not support such separators".format(encoding=encoding)
+                    "the separator encoded in {encoding} "
+                    "is > 1 char long, and the 'c' engine "
+                    "does not support such separators".format(encoding=encoding)
                 )
                 engine = "python"
 
@@ -1021,21 +1021,19 @@ class TextFileReader(BaseIterator):
         if "python" in engine:
             for arg in _python_unsupported:
                 if fallback_reason and result[arg] != _c_parser_defaults[arg]:
-                    msg = (
-                        "Falling back to the 'python' engine because"
-                        " {reason}, but this causes {option!r} to be"
-                        " ignored as it is not supported by the 'python'"
-                        " engine."
-                    ).format(reason=fallback_reason, option=arg)
-                    raise ValueError(msg)
+                    raise ValueError(
+                        f"Falling back to the 'python' engine because "
+                        f"{fallback_reason}, but this causes {repr(arg)} to be "
+                        f"ignored as it is not supported by the 'python' engine."
+                    )
                 del result[arg]
 
         if fallback_reason:
             warnings.warn(
                 (
-                    "Falling back to the 'python' engine because"
-                    " {0}; you can avoid this warning by specifying"
-                    " engine='python'."
+                    "Falling back to the 'python' engine because "
+                    "{0}; you can avoid this warning by specifying "
+                    "engine='python'."
                 ).format(fallback_reason),
                 ParserWarning,
                 stacklevel=5,
@@ -1056,8 +1054,8 @@ class TextFileReader(BaseIterator):
             depr_default = _deprecated_defaults[arg]
 
             msg = (
-                "The '{arg}' argument has been deprecated "
-                "and will be removed in a future version.".format(arg=arg)
+                f"The {repr(arg)} argument has been deprecated and will be "
+                f"removed in a future version."
             )
 
             if result.get(arg, depr_default) != depr_default:
@@ -1081,9 +1079,8 @@ class TextFileReader(BaseIterator):
         if converters is not None:
             if not isinstance(converters, dict):
                 raise TypeError(
-                    "Type converters must be a dict or"
-                    " subclass, input was "
-                    "a {0!r}".format(type(converters).__name__)
+                    f"Type converters must be a dict or subclass, "
+                    f"input was a {repr(type(converters).__name__)}"
                 )
         else:
             converters = {}

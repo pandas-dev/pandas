@@ -560,9 +560,7 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
             unique_tables.add(table)
 
         if not result:
-            raise ValueError(
-                "No tables found matching pattern {patt!r}".format(patt=match.pattern)
-            )
+            raise ValueError(f"No tables found matching pattern {repr(match.pattern)}")
         return result
 
     def _text_getter(self, obj):
@@ -618,7 +616,7 @@ def _build_xpath_expr(attrs) -> str:
     if "class_" in attrs:
         attrs["class"] = attrs.pop("class_")
 
-    s = ["@{key}={val!r}".format(key=k, val=v) for k, v in attrs.items()]
+    s = [f"@{k}={repr(v)}" for k, v in attrs.items()]
     return "[{expr}]".format(expr=" and ".join(s))
 
 
@@ -661,8 +659,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
 
         # 1. check all descendants for the given pattern and only search tables
         # 2. go up the tree until we find a table
-        query = "//table//*[re:test(text(), {patt!r})]/ancestor::table"
-        xpath_expr = query.format(patt=pattern)
+        xpath_expr = f"//table//*[re:test(text(), {repr(pattern)})]/ancestor::table"
 
         # if any table attributes were given build an xpath expression to
         # search for them
@@ -682,9 +679,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
                         elem.getparent().remove(elem)
 
         if not tables:
-            raise ValueError(
-                "No tables found matching regex {patt!r}".format(patt=pattern)
-            )
+            raise ValueError(f"No tables found matching regex {repr(pattern)}")
         return tables
 
     def _equals_tag(self, obj, tag):
@@ -833,8 +828,7 @@ def _parser_dispatch(flavor):
     valid_parsers = list(_valid_parsers.keys())
     if flavor not in valid_parsers:
         raise ValueError(
-            "{invalid!r} is not a valid flavor, valid flavors "
-            "are {valid}".format(invalid=flavor, valid=valid_parsers)
+            f"{repr(flavor)} is not a valid flavor, valid flavors are {valid_parsers}"
         )
 
     if flavor in ("bs4", "html5lib"):
@@ -863,13 +857,13 @@ def _validate_flavor(flavor):
     elif isinstance(flavor, abc.Iterable):
         if not all(isinstance(flav, str) for flav in flavor):
             raise TypeError(
-                "Object of type {typ!r} is not an iterable of "
-                "strings".format(typ=type(flavor).__name__)
+                f"Object of type {repr(type(flavor).__name__)} "
+                f"is not an iterable of strings"
             )
     else:
-        fmt = "{flavor!r}" if isinstance(flavor, str) else "{flavor}"
-        fmt += " is not a valid flavor"
-        raise ValueError(fmt.format(flavor=flavor))
+        msg = repr(flavor) if isinstance(flavor, str) else str(flavor)
+        msg += " is not a valid flavor"
+        raise ValueError(msg)
 
     flavor = tuple(flavor)
     valid_flavors = set(_valid_parsers)
