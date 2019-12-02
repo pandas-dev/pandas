@@ -56,11 +56,12 @@ class UndefinedVariableError(NameError):
     """
 
     def __init__(self, name, is_local: bool):
+        base_msg = f"{repr(name)} is not defined"
         if is_local:
-            msg = "local variable {0!r} is not defined"
+            msg = f"local variable {base_msg}"
         else:
-            msg = "name {0!r} is not defined"
-        super().__init__(msg.format(name))
+            msg = f"name {base_msg}"
+        super().__init__(msg)
 
 
 class Term:
@@ -143,10 +144,7 @@ class Term:
 
     @property
     def raw(self) -> str:
-        return pprint_thing(
-            "{0}(name={1!r}, type={2})"
-            "".format(type(self).__name__, self.name, self.type)
-        )
+        return f"{type(self).__name__}(name={repr(self.name)}, type={self.type})"
 
     @property
     def is_datetime(self) -> bool:
@@ -374,8 +372,7 @@ class BinOp(Op):
             # has to be made a list for python3
             keys = list(_binary_ops_dict.keys())
             raise ValueError(
-                "Invalid binary operator {0!r}, valid"
-                " operators are {1}".format(op, keys)
+                f"Invalid binary operator {repr(op)}, valid operators are {keys}"
             )
 
     def __call__(self, env):
@@ -548,8 +545,8 @@ class UnaryOp(Op):
             self.func = _unary_ops_dict[op]
         except KeyError:
             raise ValueError(
-                "Invalid unary operator {0!r}, valid operators "
-                "are {1}".format(op, _unary_ops_syms)
+                f"Invalid unary operator {repr(op)}, "
+                f"valid operators are {_unary_ops_syms}"
             )
 
     def __call__(self, env):
