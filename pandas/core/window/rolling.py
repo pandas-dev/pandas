@@ -211,14 +211,13 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         Provide a nice str repr of our rolling object.
         """
 
-        attrs = (
-            "{k}={v}".format(k=k, v=getattr(self, k))
-            for k in self._attributes
-            if getattr(self, k, None) is not None
+        attrs_list = (
+            f"{attr_name}={getattr(self, attr_name)}"
+            for attr_name in self._attributes
+            if getattr(self, attr_name, None) is not None
         )
-        return "{klass} [{attrs}]".format(
-            klass=self._window_type, attrs=",".join(attrs)
-        )
+        attrs = ",".join(attrs_list)
+        return "{klass} [{attrs}]".format(klass=self._window_type, attrs=attrs)
 
     def __iter__(self):
         url = "https://github.com/pandas-dev/pandas/issues/11704"
