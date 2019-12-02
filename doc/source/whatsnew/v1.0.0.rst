@@ -194,6 +194,7 @@ Other enhancements
 - Roundtripping DataFrames with nullable integer or string data types to parquet
   (:meth:`~DataFrame.to_parquet` / :func:`read_parquet`) using the `'pyarrow'` engine
   now preserve those data types with pyarrow >= 1.0.0 (:issue:`20612`).
+- Add :meth:`ExtensionArray.argmax`, :meth:`ExtensionArray.max`, :meth:`ExtensionArray.argmin` and :meth:`ExtensionArray.min` (:issue:`24382`)
 
 Build Changes
 ^^^^^^^^^^^^^
