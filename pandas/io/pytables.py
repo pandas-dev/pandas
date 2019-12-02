@@ -259,8 +259,8 @@ def to_hdf(
     complib: Optional[str] = None,
     append: bool = False,
     format: Optional[str] = None,
-    min_itemsize=None,
-    data_columns=None,
+    min_itemsize: Optional[Union[int, Dict[str, int]]] = None,
+    data_columns: Optional[List[str]] = None,
     errors: str = "strict",
     encoding: str = "UTF-8",
     **kwargs,
@@ -980,12 +980,11 @@ class HDFStore:
         append=False,
         complib=None,
         complevel: Optional[int] = None,
-        min_itemsize=None,
+        min_itemsize: Optional[Union[int, Dict[str, int]]] = None,
         nan_rep=None,
-        data_columns=None,
+        data_columns: Optional[List[str]] = None,
         encoding=None,
         errors: str = "strict",
-        **kwargs,
     ):
         """
         Store object in HDFStore.
@@ -1029,7 +1028,6 @@ class HDFStore:
             data_columns=data_columns,
             encoding=encoding,
             errors=errors,
-            **kwargs,
         )
 
     def remove(self, key: str, where=None, start=None, stop=None):
@@ -1097,14 +1095,13 @@ class HDFStore:
         complib=None,
         complevel: Optional[int] = None,
         columns=None,
-        min_itemsize=None,
+        min_itemsize: Optional[Union[int, Dict[str, int]]] = None,
         chunksize=None,
         expectedrows=None,
         dropna: Optional[bool] = None,
-        data_columns=None,
+        data_columns: Optional[List[str]] = None,
         encoding=None,
         errors: str = "strict",
-        **kwargs,
     ):
         """
         Append to Table in file. Node must already exist and be Table
@@ -1166,7 +1163,6 @@ class HDFStore:
             data_columns=data_columns,
             encoding=encoding,
             errors=errors,
-            **kwargs,
         )
 
     def append_to_multiple(
@@ -1609,7 +1605,7 @@ class HDFStore:
         complib=None,
         complevel: Optional[int] = None,
         fletcher32=None,
-        min_itemsize=None,
+        min_itemsize: Optional[Union[int, Dict[str, int]]] = None,
         chunksize=None,
         expectedrows=None,
         dropna=False,
