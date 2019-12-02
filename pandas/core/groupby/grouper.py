@@ -206,7 +206,7 @@ class Grouper:
 
     def __repr__(self) -> str:
         attrs_list = (
-            f"{attr_name}={getattr(self, attr_name)!r}"
+            f"{attr_name}={repr(getattr(self, attr_name))}"
             for attr_name in self._attributes
             if getattr(self, attr_name) is not None
         )

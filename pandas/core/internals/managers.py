@@ -1905,9 +1905,7 @@ def _compare_or_regex_search(a, b, regex=False):
             type_names[1] = "ndarray(dtype={dtype})".format(dtype=b.dtype)
 
         raise TypeError(
-            "Cannot compare types {a!r} and {b!r}".format(
-                a=type_names[0], b=type_names[1]
-            )
+            f"Cannot compare types {repr(type_names[0])} and {repr(type_names[1])}"
         )
     return result
 

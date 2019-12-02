@@ -8123,10 +8123,9 @@ class DataFrame(NDFrame):
         else:
             if not is_list_like(values):
                 raise TypeError(
-                    "only list-like or dict-like objects are "
-                    "allowed to be passed to DataFrame.isin(), "
-                    "you passed a "
-                    "{0!r}".format(type(values).__name__)
+                    f"only list-like or dict-like objects are allowed "
+                    f"to be passed to DataFrame.isin(), "
+                    f"you passed a {repr(type(values).__name__)}"
                 )
             return DataFrame(
                 algorithms.isin(self.values.ravel(), values).reshape(self.shape),
