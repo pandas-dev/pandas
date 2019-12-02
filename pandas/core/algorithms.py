@@ -1194,10 +1194,8 @@ class SelectNFrame(SelectN):
             dtype = frame[column].dtype
             if not self.is_valid_dtype_n_method(dtype):
                 raise TypeError(
-                    (
-                        "Column {column!r} has dtype {dtype}, cannot use method "
-                        "{method!r} with this dtype"
-                    ).format(column=column, dtype=dtype, method=method)
+                    f"Column {repr(column)} has dtype {dtype}, "
+                    f"cannot use method {repr(method)} with this dtype"
                 )
 
         def get_indexer(current_indexer, other_indexer):

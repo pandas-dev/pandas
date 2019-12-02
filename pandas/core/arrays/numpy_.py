@@ -45,7 +45,7 @@ class PandasDtype(ExtensionDtype):
         self._type = dtype.type
 
     def __repr__(self) -> str:
-        return "PandasDtype({!r})".format(self.name)
+        return f"PandasDtype({repr(self.name)})"
 
     @property
     def numpy_dtype(self):

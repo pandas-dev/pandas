@@ -179,8 +179,8 @@ cdef class IntervalMixin:
             When `other` is not closed exactly the same as self.
         """
         if self.closed != other.closed:
-            msg = f"'{name}.closed' is '{other.closed}', expected '{self.closed}'."
-            raise ValueError(msg)
+            raise ValueError(f"'{name}.closed' is {repr(other.closed)}, "
+                             f"expected {repr(self.closed)}.")
 
 
 cdef _interval_like(other):
@@ -316,7 +316,7 @@ cdef class Interval(IntervalMixin):
                 not tz_compare(left.tzinfo, right.tzinfo)):
             # GH 18538
             msg = (f"left and right must have the same time zone, got "
-                   f"'{left.tzinfo}' and '{right.tzinfo}'")
+                   f"{repr(left.tzinfo)}' and {repr(right.tzinfo)}")
             raise ValueError(msg)
         self.left = left
         self.right = right
@@ -379,7 +379,7 @@ cdef class Interval(IntervalMixin):
 
         left, right = self._repr_base()
         name = type(self).__name__
-        repr_str = f'{name}({left!r}, {right!r}, closed={self.closed!r})'
+        repr_str = f'{name}({repr(left)}, {repr(right)}, closed={repr(self.closed)})'
         return repr_str
 
     def __str__(self) -> str:

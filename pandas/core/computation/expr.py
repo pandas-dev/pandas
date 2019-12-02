@@ -294,9 +294,7 @@ def _node_not_implemented(node_name, cls):
     """
 
     def f(self, *args, **kwargs):
-        raise NotImplementedError(
-            "{name!r} nodes are not implemented".format(name=node_name)
-        )
+        raise NotImplementedError(f"{repr(node_name)} nodes are not implemented")
 
     return f
 
