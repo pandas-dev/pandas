@@ -16,8 +16,8 @@ def get_engine(engine: str) -> "PyArrowImpl":
     if engine == "auto":
         engine = get_option("io.orc.engine")
 
-    if engine not in ["pyarrow"]:
-        raise ValueError("engine must be 'pyarrow'")
+    if engine not in ["auto", "pyarrow"]:
+        raise ValueError("engine must be 'pyarrow or auto'")
     return PyArrowImpl()
 
 
