@@ -554,10 +554,31 @@ static int NpyTypeToJSONType(PyObject *obj, JSONTypeContext *tc, int npyType,
             return JT_NULL;
         }
 
-        GET_TC(tc)->longValue = (JSINT64)longVal;
-        GET_TC(tc)->PyTypeToJSON = NpyDatetime64ToJSON;
-        return ((PyObjectEncoder *)tc->encoder)->datetimeIso ? JT_UTF8
-                                                             : JT_LONG;
+	if (((PyObjectEncoder *)tc->encoder)->datetimeIso) {
+	  GET_TC(tc)->longValue = (JSINT64)longVal;
+	  GET_TC(tc)->PyTypeToJSON = NpyDatetime64ToJSON;
+	  return JT_UTF8;
+	} else {
+
+	  // TODO: consolidate uses of this switch
+	  switch (((PyObjectEncoder *)tc->encoder)->datetimeUnit) {
+	  case NPY_FR_ns:
+	    break;
+	  case NPY_FR_us:
+	    longVal /= 1000LL;
+	    break;
+	  case NPY_FR_ms:
+	    longVal /= 1000000LL;
+	    break;
+	  case NPY_FR_s:
+	    longVal /= 1000000000LL;
+	    break;
+	  default:
+	    break;  // TODO: should raise error
+	  }
+	  GET_TC(tc)->longValue = longVal;
+	  return JT_LONG;
+	}
     }
 
     if (PyTypeNum_ISINTEGER(npyType)) {
