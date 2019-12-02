@@ -163,7 +163,9 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         if attr in self.obj:
             return self[attr]
 
-        raise AttributeError(f"{type(self).__name__} object has no attribute {attr}")
+        raise AttributeError(
+            f"'{type(self).__name__}' object has no attribute '{attr}'"
+        )
 
     def _dir_additions(self):
         return self.obj._dir_additions()
