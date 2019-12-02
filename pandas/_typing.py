@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from pandas.core.indexes.base import Index  # noqa: F401
     from pandas.core.series import Series  # noqa: F401
     from pandas.core.generic import NDFrame  # noqa: F401
+    from pandas.io.formats.style import Styler  # noqa: F401
 
 
 AnyArrayLike = TypeVar("AnyArrayLike", "ExtensionArray", "Index", "Series", np.ndarray)
