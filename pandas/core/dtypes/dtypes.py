@@ -574,8 +574,8 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                     "Constructing a CategoricalDtype without specifying "
                     "`ordered` will default to `ordered=False` in a future "
                     "version, which will cause the resulting categorical's "
-                    "`ordered` attribute to change to False; `ordered=True`"
-                    " must be explicitly passed in order to be retained"
+                    "`ordered` attribute to change to False; `ordered=True` "
+                    "must be explicitly passed in order to be retained"
                 )
                 warnings.warn(msg, FutureWarning, stacklevel=3)
 
