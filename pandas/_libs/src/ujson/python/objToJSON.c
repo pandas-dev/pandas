@@ -555,8 +555,6 @@ static int NpyTypeToJSONType(PyObject *obj, JSONTypeContext *tc, int npyType,
         }
 
         GET_TC(tc)->longValue = (JSINT64)longVal;
-	printf("longval is %ld\n", longVal);
-	printf("stored longval is %lld\n", GET_TC(tc)->longValue);
         GET_TC(tc)->PyTypeToJSON = NpyDatetime64ToJSON;
         return ((PyObjectEncoder *)tc->encoder)->datetimeIso ? JT_UTF8
                                                              : JT_LONG;
@@ -2285,12 +2283,6 @@ JSINT64 Object_getLongValue(JSOBJ obj, JSONTypeContext *tc) {
   return GET_TC(tc)->longValue;
 }
 
-JSINT32 Object_getIntValue(JSOBJ obj, JSONTypeContext *tc) {
-    JSINT32 ret;
-    GET_TC(tc)->PyTypeToJSON(obj, tc, &ret, NULL);
-    return ret;
-}
-
 double Object_getDoubleValue(JSOBJ obj, JSONTypeContext *tc) {
   return GET_TC(tc)->doubleValue;
 }
@@ -2347,7 +2339,7 @@ PyObject *objToJSON(PyObject *self, PyObject *args, PyObject *kwargs) {
         Object_endTypeContext,
         Object_getStringValue,
         Object_getLongValue,
-        Object_getIntValue,
+        NULL,  // getIntValue is unused
         Object_getDoubleValue,
         Object_iterBegin,
         Object_iterNext,
