@@ -319,8 +319,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                 if dtype == "category":
                     dtype = CategoricalDtype(categories, ordered)
                 else:
-                    msg = "Unknown dtype {dtype!r}"
-                    raise ValueError(msg.format(dtype=dtype))
+                    raise ValueError(f"Unknown dtype {repr(dtype)}")
             elif categories is not None or ordered is not None:
                 raise ValueError(
                     "Cannot specify `categories` or `ordered` together with `dtype`."
@@ -512,8 +511,9 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         from pandas.core.indexes.base import Index
 
         if not fastpath and not is_list_like(categories):
-            msg = "Parameter 'categories' must be list-like, was {!r}"
-            raise TypeError(msg.format(categories))
+            raise TypeError(
+                f"Parameter 'categories' must be list-like, was {repr(categories)}"
+            )
         elif not isinstance(categories, ABCIndexClass):
             categories = Index(categories, tupleize_cols=False)
 
@@ -549,11 +549,10 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             # dtype='category' should not change anything
             return self
         elif not self.is_dtype(dtype):
-            msg = (
-                "a CategoricalDtype must be passed to perform an update, "
-                "got {dtype!r}"
-            ).format(dtype=dtype)
-            raise ValueError(msg)
+            raise ValueError(
+                f"a CategoricalDtype must be passed to perform an update, "
+                f"got {repr(dtype)}"
+            )
         else:
             # from here on, dtype is a CategoricalDtype
             dtype = cast(CategoricalDtype, dtype)
