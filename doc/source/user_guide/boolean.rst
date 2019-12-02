@@ -14,7 +14,7 @@ Nullable Boolean Data Type
 
 .. versionadded:: 1.0.0
 
-.. _boolean.klean:
+.. _boolean.kleene:
 
 Kleene Logical Operations
 -------------------------
