@@ -49,7 +49,11 @@ from pandas.core.window.common import (
     _zsqrt,
     calculate_min_periods,
 )
-import pandas.core.window.indexers as window_indexers
+from pandas.core.window.indexers import (
+    BaseIndexer,
+    FixedWindowIndexer,
+    VariableWindowIndexer,
+)
 
 
 class _Window(PandasObject, ShallowMixin, SelectionMixin):
@@ -119,7 +123,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             raise ValueError("closed must be 'right', 'left', 'both' or 'neither'")
         if not isinstance(self.obj, (ABCSeries, ABCDataFrame)):
             raise TypeError("invalid type: {}".format(type(self)))
-        if isinstance(self.window, window_indexers.BaseIndexer):
+        if isinstance(self.window, BaseIndexer):
             self._validate_get_window_bounds_signature(self.window)
 
     @staticmethod
@@ -132,7 +136,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             window.get_window_bounds
         ).parameters.keys()
         expected_signature = inspect.signature(
-            window_indexers.BaseIndexer().get_window_bounds
+            BaseIndexer().get_window_bounds
         ).parameters.keys()
         if get_window_bounds_signature != expected_signature:
             raise ValueError(
@@ -221,7 +225,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         -------
         window : int
         """
-        if isinstance(self.window, window_indexers.BaseIndexer):
+        if isinstance(self.window, BaseIndexer):
             return self.min_periods or 0
         return self.window
 
@@ -417,7 +421,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
         Variable algorithms do not use window while fixed do.
         """
-        if self.is_freq_type or isinstance(self.window, window_indexers.BaseIndexer):
+        if self.is_freq_type or isinstance(self.window, BaseIndexer):
             return self._get_roll_func("{}_variable".format(func))
         return partial(
             self._get_roll_func("{}_fixed".format(func)), win=self._get_window()
@@ -425,19 +429,15 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
     def _get_window_indexer(
         self, index_as_array: Optional[np.ndarray], window: int
-    ) -> window_indexers.BaseIndexer:
+    ) -> BaseIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
         """
-        if isinstance(self.window, window_indexers.BaseIndexer):
+        if isinstance(self.window, BaseIndexer):
             return self.window
         if self.is_freq_type:
-            return window_indexers.VariableWindowIndexer(
-                index_array=index_as_array, window_size=window
-            )
-        return window_indexers.FixedWindowIndexer(
-            index_array=index_as_array, window_size=window
-        )
+            return VariableWindowIndexer(index_array=index_as_array, window_size=window)
+        return FixedWindowIndexer(index_array=index_as_array, window_size=window)
 
     def _apply(
         self,
@@ -504,7 +504,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
                 def calc(x):
                     x = np.concatenate((x, additional_nans))
-                    if not isinstance(window, window_indexers.BaseIndexer):
+                    if not isinstance(window, BaseIndexer):
                         min_periods = calculate_min_periods(
                             window, self.min_periods, len(x), require_min_periods, floor
                         )
@@ -961,7 +961,7 @@ class Window(_Window):
         super().validate()
 
         window = self.window
-        if isinstance(window, window_indexers.BaseIndexer):
+        if isinstance(window, BaseIndexer):
             raise NotImplementedError(
                 "BaseIndexer subclasses not implemented with win_types."
             )
@@ -1821,7 +1821,7 @@ class Rolling(_Rolling_and_Expanding):
             if self.min_periods is None:
                 self.min_periods = 1
 
-        elif isinstance(self.window, window_indexers.BaseIndexer):
+        elif isinstance(self.window, BaseIndexer):
             # Passed BaseIndexer subclass should handle all other rolling kwargs
             return
         elif not is_integer(self.window):
