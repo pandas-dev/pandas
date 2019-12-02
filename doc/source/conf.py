@@ -622,7 +622,10 @@ def linkcode_resolve(domain, info):
     if "+" in pandas.__version__:
         return f"http://github.com/pandas-dev/pandas/blob/master/pandas/{fn}{linespec}"
     else:
-        return f"http://github.com/pandas-dev/pandas/blob/v{pandas.__version__}/pandas/{fn}{linespec}"
+        return (
+            f"http://github.com/pandas-dev/pandas/blob/v{pandas.__version__}"
+            f"/pandas/{fn}{linespec}"
+        )
 
 
 # remove the docstring of the flags attribute (inherited from numpy ndarray)

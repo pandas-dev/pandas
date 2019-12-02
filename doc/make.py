@@ -204,18 +204,17 @@ class DocBuilder:
                     )
 
                 with open(path, "w") as moved_page_fd:
-                    html = f"""
-                    <html>
-                        <head>
-                            <meta http-equiv="refresh" content="0;URL={row[1]}.html"/>
-                        </head>
-                        <body>
-                            <p>
-                                The page has been moved to <a href="{row[1]}.html">{title}</a>
-                            </p>
-                        </body>
-                    <html>
-                    """
+                    html = f"""\
+<html>
+    <head>
+        <meta http-equiv="refresh" content="0;URL={row[1]}.html"/>
+    </head>
+    <body>
+        <p>
+            The page has been moved to <a href="{row[1]}.html">{title}</a>
+        </p>
+    </body>
+<html>"""
 
                     moved_page_fd.write(html)
 
