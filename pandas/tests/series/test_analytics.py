@@ -554,6 +554,10 @@ class TestSeriesAnalytics:
         ts.iloc[[0, 3, 5]] = np.nan
         tm.assert_series_equal(ts.count(level=1), right - 1)
 
+        # GH29478
+        with pd.option_context("use_inf_as_na", True):
+            assert pd.Series([pd.Timestamp("1990/1/1")]).count() == 1
+
     def test_dot(self):
         a = Series(np.random.randn(4), index=["p", "q", "r", "s"])
         b = DataFrame(

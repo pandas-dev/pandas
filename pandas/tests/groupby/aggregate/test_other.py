@@ -2,7 +2,6 @@
 test all other .agg behavior
 """
 
-from collections import OrderedDict
 import datetime as dt
 from functools import partial
 
@@ -96,8 +95,7 @@ def test_agg_period_index():
     index = period_range(start="1999-01", periods=5, freq="M")
     s1 = Series(np.random.rand(len(index)), index=index)
     s2 = Series(np.random.rand(len(index)), index=index)
-    series = [("s1", s1), ("s2", s2)]
-    df = DataFrame.from_dict(OrderedDict(series))
+    df = DataFrame.from_dict({"s1": s1, "s2": s2})
     grouped = df.groupby(df.index.month)
     list(grouped)
 
