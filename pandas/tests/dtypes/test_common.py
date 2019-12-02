@@ -474,6 +474,34 @@ def test_is_datetime_or_timedelta_dtype():
     assert com.is_datetime_or_timedelta_dtype(np.array([], dtype=np.datetime64))
 
 
+def test_is_numeric_v_string_like():
+    assert not com.is_numeric_v_string_like(1, 1)
+    assert not com.is_numeric_v_string_like(1, "foo")
+    assert not com.is_numeric_v_string_like("foo", "foo")
+    assert not com.is_numeric_v_string_like(np.array([1]), np.array([2]))
+    assert not com.is_numeric_v_string_like(np.array(["foo"]), np.array(["foo"]))
+
+    assert com.is_numeric_v_string_like(np.array([1]), "foo")
+    assert com.is_numeric_v_string_like("foo", np.array([1]))
+    assert com.is_numeric_v_string_like(np.array([1, 2]), np.array(["foo"]))
+    assert com.is_numeric_v_string_like(np.array(["foo"]), np.array([1, 2]))
+
+
+def test_is_datetimelike_v_numeric():
+    dt = np.datetime64(pd.datetime(2017, 1, 1))
+
+    assert not com.is_datetimelike_v_numeric(1, 1)
+    assert not com.is_datetimelike_v_numeric(dt, dt)
+    assert not com.is_datetimelike_v_numeric(np.array([1]), np.array([2]))
+    assert not com.is_datetimelike_v_numeric(np.array([dt]), np.array([dt]))
+
+    assert com.is_datetimelike_v_numeric(1, dt)
+    assert com.is_datetimelike_v_numeric(1, dt)
+    assert com.is_datetimelike_v_numeric(np.array([dt]), 1)
+    assert com.is_datetimelike_v_numeric(np.array([1]), dt)
+    assert com.is_datetimelike_v_numeric(np.array([dt]), np.array([1]))
+
+
 def test_needs_i8_conversion():
     assert not com.needs_i8_conversion(str)
     assert not com.needs_i8_conversion(np.int64)
