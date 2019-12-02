@@ -260,7 +260,9 @@ class SeriesGroupBy(GroupBy):
                 result = self._aggregate_named(func, *args, **kwargs)
 
             index = Index(sorted(result), name=self.grouper.names[0])
-            ret = create_series_with_explicit_dtype(result, index=index)
+            ret = create_series_with_explicit_dtype(
+                result, index=index, dtype_if_empty=object
+            )
 
         if not self.as_index:  # pragma: no cover
             print("Warning, ignoring as_index=True")
@@ -1207,17 +1209,17 @@ class DataFrameGroupBy(GroupBy):
                 return DataFrame()
             elif isinstance(v, NDFrame):
 
-                # this is to silence a FutureWarning
+                # this is to silence a DeprecationWarning
                 # TODO: Remove when default dtype of empty Series is object
                 kwargs = v._construct_axes_dict()
                 if v._constructor is Series:
-                    is_empty = "data" not in kwargs or not kwargs["data"]
-                    if "dtype" not in kwargs and is_empty:
-                        kwargs["dtype"] = object
+                    backup = create_series_with_explicit_dtype(
+                        **kwargs, dtype_if_empty=object
+                    )
+                else:
+                    backup = v._constructor(**kwargs)
 
-                values = [
-                    x if (x is not None) else v._constructor(**kwargs) for x in values
-                ]
+                values = [x if (x is not None) else backup for x in values]
 
             v = values[0]
 

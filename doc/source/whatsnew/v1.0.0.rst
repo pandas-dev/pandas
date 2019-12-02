@@ -357,10 +357,10 @@ When :class:`Categorical` contains ``np.nan``,
    pd.Categorical([1, 2, np.nan], ordered=True).min()
 
 
-Default dtype of empty :class:`pandas.core.series.Series`
+Default dtype of empty :class:`pandas.Series`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Initialising an empty :class:`pandas.core.series.Series` without specifying a dtype will raise a `FutureWarning` now
+Initialising an empty :class:`pandas.Series` without specifying a dtype will raise a `DeprecationWarning` now
 (:issue:`17261`). The default dtype will change from ``float64`` to ``object`` in future releases so that it is
 consistent with the behaviour of :class:`DataFrame` and :class:`Index`.
 
@@ -370,7 +370,7 @@ consistent with the behaviour of :class:`DataFrame` and :class:`Index`.
 
    In [1]: pd.Series()
    Out[2]:
-   FutureWarning: The default dtype for empty Series will be 'object' instead of 'float64' in the next version. Specify a dtype explicitly to silence this warning.
+   DeprecationWarning: The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.
    Series([], dtype: float64)
 
 .. _whatsnew_1000.api_breaking.deps:

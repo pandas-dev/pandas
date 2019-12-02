@@ -570,10 +570,21 @@ def _try_cast(
 # see gh-17261
 def is_empty_data(data):
     """
-    Utility to check if a Series is instantiated with empty data
+    Utility to check if a Series is instantiated with empty data,
+    which does not contain dtype information.
+
+    Parameters
+    ----------
+    data : array-like, Iterable, dict, or scalar value
+        Contains data stored in Series.
+
+    Returns
+    -------
+    bool
     """
     is_none = data is None
-    is_simple_empty = isinstance(data, (list, tuple, dict)) and not data
+    is_list_like_without_dtype = is_list_like(data) and not hasattr(data, "dtype")
+    is_simple_empty = is_list_like_without_dtype and not data
     return is_none or is_simple_empty
 
 
@@ -589,14 +600,29 @@ def create_series_with_explicit_dtype(
     """
     Helper to pass an explicit dtype when instantiating an empty Series.
 
-    The signature of this function mirrors the signature of Series.__init__
-    but adds the additional keyword argument `dtype_if_empty`.
-
-    This silences a FutureWarning described in the GitHub issue
+    This silences a DeprecationWarning described in the GitHub issue
     mentioned above.
+
+    Parameters
+    ----------
+    data : Mirrored from Series.__init__
+    index : Mirrored from Series.__init__
+    dtype : Mirrored from Series.__init__
+    name : Mirrored from Series.__init__
+    copy : Mirrored from Series.__init__
+    fastpath : Mirrored from Series.__init__
+    dtype_if_empty : str, numpy.dtype, or ExtensionDtype
+        This dtype will be passed explicitly if an empty Series will
+        be instantiated.
+
+    Returns
+    -------
+    Series
     """
     from pandas.core.series import Series
 
     if is_empty_data(data) and dtype is None:
         dtype = dtype_if_empty
-    return Series(data, index, dtype, name, copy, fastpath)
+    return Series(
+        data=data, index=index, dtype=dtype, name=name, copy=copy, fastpath=fastpath
+    )

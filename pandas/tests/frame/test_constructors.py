@@ -1217,7 +1217,9 @@ class TestDataFrameConstructors:
             OrderedDict([["a", 1.5], ["b", 3], ["c", 4]]),
             OrderedDict([["b", 3], ["c", 4], ["d", 6]]),
         ]
-        data = [create_series_with_explicit_dtype(d) for d in data]
+        data = [
+            create_series_with_explicit_dtype(d, dtype_if_empty=object) for d in data
+        ]
 
         result = DataFrame(data)
         sdict = OrderedDict(zip(range(len(data)), data))

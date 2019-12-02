@@ -1015,7 +1015,7 @@ class SeriesParser(Parser):
             self.check_keys_split(decoded)
             self.obj = create_series_with_explicit_dtype(**decoded)
         else:
-            self.obj = create_series_with_explicit_dtype(data)
+            self.obj = create_series_with_explicit_dtype(data, dtype_if_empty=object)
 
     def _parse_numpy(self):
         load_kwargs = {
@@ -1033,9 +1033,9 @@ class SeriesParser(Parser):
             self.check_keys_split(decoded)
             self.obj = create_series_with_explicit_dtype(**decoded)
         elif self.orient in ["columns", "index"]:
-            self.obj = create_series_with_explicit_dtype(*data)
+            self.obj = create_series_with_explicit_dtype(*data, dtype_if_empty=object)
         else:
-            self.obj = create_series_with_explicit_dtype(data)
+            self.obj = create_series_with_explicit_dtype(data, dtype_if_empty=object)
 
     def _try_convert_types(self):
         if self.obj is None:

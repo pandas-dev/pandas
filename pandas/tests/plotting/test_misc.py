@@ -34,7 +34,7 @@ def test_get_accessor_args():
 
     with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         x, y, kind, kwargs = func(
-            backend_name="", data=Series(), args=["line", None], kwargs={}
+            backend_name="", data=Series(dtype=object), args=["line", None], kwargs={}
         )
     assert x is None
     assert y is None

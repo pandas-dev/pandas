@@ -180,19 +180,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def __init__(
         self, data=None, index=None, dtype=None, name=None, copy=False, fastpath=False
     ):
-        if is_empty_data(data) and dtype is None:
-            # Empty Series should have dtype object to be consistent
-            # with the behaviour of DataFrame and Index
-            warnings.warn(
-                "The default dtype for empty Series will be 'object' instead"
-                " of 'float64' in the next version. Specify a dtype explicitly"
-                " to silence this warning.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            # uncomment the line below when removing the FutureWarning
-            # dtype = np.dtype(object)
-
         # we are called internally, so short-circuit
         if fastpath:
 
@@ -205,6 +192,18 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 index = data.index
 
         else:
+
+            if is_empty_data(data) and dtype is None:
+                # gh-17261
+                warnings.warn(
+                    "The default dtype for empty Series will be 'object' instead"
+                    " of 'float64' in a future version. Specify a dtype explicitly"
+                    " to silence this warning.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+                # uncomment the line below when removing the DeprecationWarning
+                # dtype = np.dtype(object)
 
             if index is not None:
                 index = ensure_index(index)
@@ -345,6 +344,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             keys, values = [], []
 
         # Input is now list-like, so rely on "standard" construction:
+
+        # TODO: passing np.float64 to not break anything yet. See GH-17261
         s = create_series_with_explicit_dtype(
             values, index=keys, dtype=dtype, dtype_if_empty=np.float64
         )

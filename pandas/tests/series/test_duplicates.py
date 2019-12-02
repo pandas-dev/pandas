@@ -71,7 +71,7 @@ def test_unique_data_ownership():
 )
 def test_is_unique(data, expected):
     # GH11946 / GH25180
-    s = create_series_with_explicit_dtype(data)
+    s = create_series_with_explicit_dtype(data, dtype_if_empty=object)
     assert s.is_unique is expected
 
 

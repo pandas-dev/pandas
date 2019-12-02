@@ -1017,7 +1017,7 @@ class TestDataFrameFormatting:
     def test_to_string_buffer_all_unicode(self):
         buf = StringIO()
 
-        empty = DataFrame({"c/\u03c3": Series()})
+        empty = DataFrame({"c/\u03c3": Series(dtype=object)})
         nonempty = DataFrame({"c/\u03c3": Series([1, 2, 3])})
 
         print(empty, file=buf)

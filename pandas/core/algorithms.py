@@ -601,7 +601,7 @@ _shared_docs[
 )
 @Appender(_shared_docs["factorize"])
 def factorize(
-    values, sort: bool = False, na_sentinel: int = -1, size_hint: Optional[int] = None
+    values, sort: bool = False, na_sentinel: int = -1, size_hint: Optional[int] = None,
 ) -> Tuple[np.ndarray, Union[np.ndarray, ABCIndex]]:
     # Implementation notes: This method is responsible for 3 things
     # 1.) coercing data to array-like (ndarray, Index, extension array)

@@ -6111,7 +6111,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
             if self.ndim == 1:
                 if isinstance(value, (dict, ABCSeries)):
-                    value = create_series_with_explicit_dtype(value)
+                    value = create_series_with_explicit_dtype(
+                        value, dtype_if_empty=object
+                    )
                 elif not is_list_like(value):
                     pass
                 else:

@@ -412,7 +412,7 @@ class TestSeriesDtypes:
             "m",  # Generic timestamps raise a ValueError. Already tested.
         ):
             init_empty = Series([], dtype=dtype)
-            with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
                 as_type_empty = Series([]).astype(dtype)
             tm.assert_series_equal(init_empty, as_type_empty)
 
@@ -477,7 +477,7 @@ class TestSeriesDtypes:
         tm.assert_series_equal(actual, expected)
 
     def test_is_homogeneous_type(self):
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
             empty = Series()
         assert empty._is_homogeneous_type
         assert Series([1, 2])._is_homogeneous_type

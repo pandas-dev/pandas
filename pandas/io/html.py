@@ -763,7 +763,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
 
 def _expand_elements(body):
     data = [len(elem) for elem in body]
-    lens = create_series_with_explicit_dtype(data)
+    lens = create_series_with_explicit_dtype(data, dtype_if_empty=object)
     lens_max = lens.max()
     not_max = lens[lens != lens_max]
 
