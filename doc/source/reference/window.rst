@@ -34,6 +34,8 @@ Standard moving window functions
    Rolling.quantile
    Window.mean
    Window.sum
+   Window.var
+   Window.std
 
 .. _api.functions_expanding:
 

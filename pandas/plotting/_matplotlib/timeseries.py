@@ -25,6 +25,7 @@ from pandas.plotting._matplotlib.converter import (
     TimeSeries_DateFormatter,
     TimeSeries_DateLocator,
     TimeSeries_TimedeltaFormatter,
+    register_pandas_matplotlib_converters,
 )
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.offsets import DateOffset
@@ -33,6 +34,7 @@ from pandas.tseries.offsets import DateOffset
 # Plotting functions and monkey patches
 
 
+@register_pandas_matplotlib_converters
 def tsplot(series, plotf, ax=None, **kwargs):
     """
     Plots a Series on the given Matplotlib axes or the current axes
@@ -56,7 +58,7 @@ def tsplot(series, plotf, ax=None, **kwargs):
         "'tsplot' is deprecated and will be removed in a "
         "future version. Please use Series.plot() instead.",
         FutureWarning,
-        stacklevel=2,
+        stacklevel=3,
     )
 
     # Used inferred freq is possible, need a test case for inferred
@@ -304,25 +306,9 @@ def _maybe_convert_index(ax, data):
 # Do we need the rest for convenience?
 
 
-def format_timedelta_ticks(x, pos, n_decimals):
-    """
-    Convert seconds to 'D days HH:MM:SS.F'
-    """
-    s, ns = divmod(x, 1e9)
-    m, s = divmod(s, 60)
-    h, m = divmod(m, 60)
-    d, h = divmod(h, 24)
-    decimals = int(ns * 10 ** (n_decimals - 9))
-    s = r"{:02d}:{:02d}:{:02d}".format(int(h), int(m), int(s))
-    if n_decimals > 0:
-        s += ".{{:0{:0d}d}}".format(n_decimals).format(decimals)
-    if d != 0:
-        s = "{:d} days ".format(int(d)) + s
-    return s
-
-
 def _format_coord(freq, t, y):
-    return "t = {0}  y = {1:8f}".format(Period(ordinal=int(t), freq=freq), y)
+    time_period = Period(ordinal=int(t), freq=freq)
+    return f"t = {time_period}  y = {y:8f}"
 
 
 def format_dateaxis(subplot, freq, index):

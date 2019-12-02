@@ -1,6 +1,6 @@
 import numpy as np
-import pandas as pd
 
+import pandas as pd
 
 ops = ["mean", "sum", "median", "std", "skew", "kurt", "mad", "prod", "sem", "var"]
 
@@ -113,11 +113,22 @@ class Correlation:
             nanops._USE_BOTTLENECK = use_bottleneck
         self.df = pd.DataFrame(np.random.randn(1000, 30))
         self.df2 = pd.DataFrame(np.random.randn(1000, 30))
+        self.df_wide = pd.DataFrame(np.random.randn(1000, 200))
+        self.df_wide_nans = self.df_wide.where(np.random.random((1000, 200)) < 0.9)
         self.s = pd.Series(np.random.randn(1000))
         self.s2 = pd.Series(np.random.randn(1000))
 
     def time_corr(self, method, use_bottleneck):
         self.df.corr(method=method)
+
+    def time_corr_wide(self, method, use_bottleneck):
+        self.df_wide.corr(method=method)
+
+    def time_corr_wide_nans(self, method, use_bottleneck):
+        self.df_wide_nans.corr(method=method)
+
+    def peakmem_corr_wide(self, method, use_bottleneck):
+        self.df_wide.corr(method=method)
 
     def time_corr_series(self, method, use_bottleneck):
         self.s.corr(self.s2, method=method)
@@ -148,4 +159,4 @@ class Covariance:
         self.s.cov(self.s2)
 
 
-from .pandas_vb_common import setup  # noqa: F401
+from .pandas_vb_common import setup  # noqa: F401 isort:skip

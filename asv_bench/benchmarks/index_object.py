@@ -1,15 +1,17 @@
 import gc
+
 import numpy as np
-import pandas.util.testing as tm
+
 from pandas import (
+    DatetimeIndex,
+    Float64Index,
+    Index,
+    IntervalIndex,
+    RangeIndex,
     Series,
     date_range,
-    DatetimeIndex,
-    Index,
-    RangeIndex,
-    Float64Index,
-    IntervalIndex,
 )
+import pandas.util.testing as tm
 
 
 class SetOperations:
@@ -144,7 +146,7 @@ class Indexing:
 
     def setup(self, dtype):
         N = 10 ** 6
-        self.idx = getattr(tm, "make{}Index".format(dtype))(N)
+        self.idx = getattr(tm, f"make{dtype}Index")(N)
         self.array_mask = (np.arange(N) % 3) == 0
         self.series_mask = Series(self.array_mask)
         self.sorted = self.idx.sort_values()
@@ -243,4 +245,4 @@ class GC:
             gc.enable()
 
 
-from .pandas_vb_common import setup  # noqa: F401
+from .pandas_vb_common import setup  # noqa: F401 isort:skip

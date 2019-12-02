@@ -9,7 +9,6 @@ from pandas.core.dtypes.missing import isna, remove_na_arraylike
 import pandas.core.common as com
 
 from pandas.io.formats.printing import pprint_thing
-from pandas.plotting._matplotlib import converter
 from pandas.plotting._matplotlib.core import LinePlot, MPLPlot
 from pandas.plotting._matplotlib.tools import _flatten, _set_ticks_props, _subplots
 
@@ -50,7 +49,7 @@ class HistPlot(LinePlot):
         bottom=0,
         column_num=0,
         stacking_id=None,
-        **kwds
+        **kwds,
     ):
         if column_num == 0:
             cls._initialize_stacker(ax, stacking_id, len(bins) - 1)
@@ -146,7 +145,7 @@ class KdePlot(HistPlot):
         ind=None,
         column_num=None,
         stacking_id=None,
-        **kwds
+        **kwds,
     ):
         from scipy.stats import gaussian_kde
 
@@ -178,13 +177,13 @@ def _grouped_plot(
     layout=None,
     rot=0,
     ax=None,
-    **kwargs
+    **kwargs,
 ):
 
     if figsize == "default":
         # allowed to specify mpl default with 'default'
         warnings.warn(
-            "figsize='default' is deprecated. Specify figure " "size by tuple instead",
+            "figsize='default' is deprecated. Specify figure size by tuple instead",
             FutureWarning,
             stacklevel=5,
         )
@@ -227,7 +226,7 @@ def _grouped_hist(
     xrot=None,
     ylabelsize=None,
     yrot=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Grouped histogram
@@ -255,7 +254,6 @@ def _grouped_hist(
     def plot_group(group, ax):
         ax.hist(group.dropna().values, bins=bins, **kwargs)
 
-    converter._WARN = False  # no warning for pandas plots
     xrot = xrot or rot
 
     fig, axes = _grouped_plot(
@@ -292,15 +290,13 @@ def hist_series(
     yrot=None,
     figsize=None,
     bins=10,
-    **kwds
+    **kwds,
 ):
     import matplotlib.pyplot as plt
 
     if by is None:
         if kwds.get("layout", None) is not None:
-            raise ValueError(
-                "The 'layout' keyword is not supported when " "'by' is None"
-            )
+            raise ValueError("The 'layout' keyword is not supported when 'by' is None")
         # hack until the plotting interface is a bit more unified
         fig = kwds.pop(
             "figure", plt.gcf() if plt.get_fignums() else plt.figure(figsize=figsize)
@@ -339,7 +335,7 @@ def hist_series(
             xrot=xrot,
             ylabelsize=ylabelsize,
             yrot=yrot,
-            **kwds
+            **kwds,
         )
 
     if hasattr(axes, "ndim"):
@@ -363,9 +359,8 @@ def hist_frame(
     figsize=None,
     layout=None,
     bins=10,
-    **kwds
+    **kwds,
 ):
-    converter._WARN = False  # no warning for pandas plots
     if by is not None:
         axes = _grouped_hist(
             data,
@@ -382,7 +377,7 @@ def hist_frame(
             xrot=xrot,
             ylabelsize=ylabelsize,
             yrot=yrot,
-            **kwds
+            **kwds,
         )
         return axes
 
@@ -394,7 +389,7 @@ def hist_frame(
     naxes = len(data.columns)
 
     if naxes == 0:
-        raise ValueError("hist method requires numerical columns, " "nothing to plot.")
+        raise ValueError("hist method requires numerical columns, nothing to plot.")
 
     fig, axes = _subplots(
         naxes=naxes,

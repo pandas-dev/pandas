@@ -143,6 +143,18 @@ class TestTimedeltaArray:
 
 
 class TestReductions:
+    @pytest.mark.parametrize("name", ["sum", "std", "min", "max", "median"])
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reductions_empty(self, name, skipna):
+        tdi = pd.TimedeltaIndex([])
+        arr = tdi.array
+
+        result = getattr(tdi, name)(skipna=skipna)
+        assert result is pd.NaT
+
+        result = getattr(arr, name)(skipna=skipna)
+        assert result is pd.NaT
+
     def test_min_max(self):
         arr = TimedeltaArray._from_sequence(["3H", "3H", "NaT", "2H", "5H", "4H"])
 
@@ -160,11 +172,87 @@ class TestReductions:
         result = arr.max(skipna=False)
         assert result is pd.NaT
 
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_min_max_empty(self, skipna):
-        arr = TimedeltaArray._from_sequence([])
-        result = arr.min(skipna=skipna)
+    def test_sum(self):
+        tdi = pd.TimedeltaIndex(["3H", "3H", "NaT", "2H", "5H", "4H"])
+        arr = tdi.array
+
+        result = arr.sum(skipna=True)
+        expected = pd.Timedelta(hours=17)
+        assert isinstance(result, pd.Timedelta)
+        assert result == expected
+
+        result = tdi.sum(skipna=True)
+        assert isinstance(result, pd.Timedelta)
+        assert result == expected
+
+        result = arr.sum(skipna=False)
         assert result is pd.NaT
 
-        result = arr.max(skipna=skipna)
+        result = tdi.sum(skipna=False)
+        assert result is pd.NaT
+
+        result = arr.sum(min_count=9)
+        assert result is pd.NaT
+
+        result = tdi.sum(min_count=9)
+        assert result is pd.NaT
+
+        result = arr.sum(min_count=1)
+        assert isinstance(result, pd.Timedelta)
+        assert result == expected
+
+        result = tdi.sum(min_count=1)
+        assert isinstance(result, pd.Timedelta)
+        assert result == expected
+
+    def test_npsum(self):
+        # GH#25335 np.sum should return a Timedelta, not timedelta64
+        tdi = pd.TimedeltaIndex(["3H", "3H", "2H", "5H", "4H"])
+        arr = tdi.array
+
+        result = np.sum(tdi)
+        expected = pd.Timedelta(hours=17)
+        assert isinstance(result, pd.Timedelta)
+        assert result == expected
+
+        result = np.sum(arr)
+        assert isinstance(result, pd.Timedelta)
+        assert result == expected
+
+    def test_std(self):
+        tdi = pd.TimedeltaIndex(["0H", "4H", "NaT", "4H", "0H", "2H"])
+        arr = tdi.array
+
+        result = arr.std(skipna=True)
+        expected = pd.Timedelta(hours=2)
+        assert isinstance(result, pd.Timedelta)
+        assert result == expected
+
+        result = tdi.std(skipna=True)
+        assert isinstance(result, pd.Timedelta)
+        assert result == expected
+
+        result = arr.std(skipna=False)
+        assert result is pd.NaT
+
+        result = tdi.std(skipna=False)
+        assert result is pd.NaT
+
+    def test_median(self):
+        tdi = pd.TimedeltaIndex(["0H", "3H", "NaT", "5H06m", "0H", "2H"])
+        arr = tdi.array
+
+        result = arr.median(skipna=True)
+        expected = pd.Timedelta(hours=2)
+        assert isinstance(result, pd.Timedelta)
+        assert result == expected
+
+        result = tdi.median(skipna=True)
+        assert isinstance(result, pd.Timedelta)
+        assert result == expected
+
+        result = arr.std(skipna=False)
+        assert result is pd.NaT
+
+        result = tdi.std(skipna=False)
         assert result is pd.NaT

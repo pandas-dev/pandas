@@ -10,7 +10,7 @@ from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
-from pandas.core.dtypes.inference import is_array_like, is_list_like
+from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import isna
 
 from pandas import compat
@@ -44,8 +44,8 @@ class PandasDtype(ExtensionDtype):
         self._name = dtype.name
         self._type = dtype.type
 
-    def __repr__(self):
-        return "PandasDtype({!r})".format(self.name)
+    def __repr__(self) -> str:
+        return f"PandasDtype({repr(self.name)})"
 
     @property
     def numpy_dtype(self):
@@ -229,21 +229,16 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
     def __setitem__(self, key, value):
         value = extract_array(value, extract_numpy=True)
 
-        if not lib.is_scalar(key) and is_list_like(key):
+        scalar_key = lib.is_scalar(key)
+        scalar_value = lib.is_scalar(value)
+
+        if not scalar_key and scalar_value:
             key = np.asarray(key)
 
-        if not lib.is_scalar(value):
-            value = np.asarray(value)
+        if not scalar_value:
+            value = np.asarray(value, dtype=self._ndarray.dtype)
 
-        values = self._ndarray
-        t = np.result_type(value, values)
-        if t != self._ndarray.dtype:
-            values = values.astype(t, casting="safe")
-            values[key] = value
-            self._dtype = PandasDtype(t)
-            self._ndarray = values
-        else:
-            self._ndarray[key] = value
+        self._ndarray[key] = value
 
     def __len__(self) -> int:
         return len(self._ndarray)
@@ -283,6 +278,9 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         return new_values
 
     def take(self, indices, allow_fill=False, fill_value=None):
+        if fill_value is None:
+            # Primarily for subclasses
+            fill_value = self.dtype.na_value
         result = take(
             self._ndarray, indices, allow_fill=allow_fill, fill_value=fill_value
         )

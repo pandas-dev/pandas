@@ -44,29 +44,10 @@ class TestSeriesDtypes:
         assert as_typed.dtype == dtype
         assert as_typed.name == s.name
 
-    def test_asobject_deprecated(self):
-        s = Series(np.random.randn(5), name="foo")
-        with tm.assert_produces_warning(FutureWarning):
-            o = s.asobject
-        assert isinstance(o, np.ndarray)
-
     def test_dtype(self, datetime_series):
 
         assert datetime_series.dtype == np.dtype("float64")
         assert datetime_series.dtypes == np.dtype("float64")
-
-        # GH 26705 - Assert .ftype is deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            assert datetime_series.ftype == "float64:dense"
-
-        # GH 26705 - Assert .ftypes is deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            assert datetime_series.ftypes == "float64:dense"
-        # GH18243 - Assert .get_ftype_counts is deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            tm.assert_series_equal(
-                datetime_series.get_ftype_counts(), Series(1, ["float64:dense"])
-            )
 
     @pytest.mark.parametrize("value", [np.nan, np.inf])
     @pytest.mark.parametrize("dtype", [np.int32, np.int64])
@@ -228,11 +209,10 @@ class TestSeriesDtypes:
         with pytest.raises(KeyError, match=msg):
             s.astype(dt5)
 
-    def test_astype_categories_deprecation_raises(self):
-
-        # deprecated 17636
+    def test_astype_categories_raises(self):
+        # deprecated 17636, removed in GH-27141
         s = Series(["a", "b", "a"])
-        with pytest.raises(ValueError, match="Got an unexpected"):
+        with pytest.raises(TypeError, match="got an unexpected"):
             s.astype("category", categories=["a", "b"], ordered=True)
 
     @pytest.mark.parametrize(
@@ -378,6 +358,15 @@ class TestSeriesDtypes:
             result = s.astype("category")
             tm.assert_series_equal(result, expected)
 
+    def test_astype_bool_missing_to_categorical(self):
+        # GH-19182
+        s = Series([True, False, np.nan])
+        assert s.dtypes == np.object_
+
+        result = s.astype(CategoricalDtype(categories=[True, False]))
+        expected = Series(Categorical([True, False, np.nan], categories=[True, False]))
+        tm.assert_series_equal(result, expected)
+
     def test_astype_categoricaldtype(self):
         s = Series(["a", "b", "a"])
         result = s.astype(CategoricalDtype(["a", "b"], ordered=True))
@@ -519,3 +508,13 @@ class TestSeriesDtypes:
         result = pd.Series(data).values
         expected = np.array(data.astype(object))
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_reindex_astype_order_consistency(self):
+        # GH 17444
+        s = Series([1, 2, 3], index=[2, 0, 1])
+        new_index = [0, 1, 2]
+        temp_dtype = "category"
+        new_dtype = str
+        s1 = s.reindex(new_index).astype(temp_dtype).astype(new_dtype)
+        s2 = s.astype(temp_dtype).reindex(new_index).astype(new_dtype)
+        tm.assert_series_equal(s1, s2)

@@ -1235,8 +1235,7 @@ Operators now preserve dtypes
 
 - Sparse data structure now can preserve ``dtype`` after arithmetic ops (:issue:`13848`)
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: python
 
    s = pd.SparseSeries([0, 2, 0, 1], fill_value=0, dtype=np.int64)
    s.dtype
@@ -1245,8 +1244,7 @@ Operators now preserve dtypes
 
 - Sparse data structure now support ``astype`` to convert internal ``dtype`` (:issue:`13900`)
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: python
 
    s = pd.SparseSeries([1., 0., 2., 0.], fill_value=0)
    s

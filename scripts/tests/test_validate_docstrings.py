@@ -1,12 +1,14 @@
+import functools
 import io
 import random
 import string
 import textwrap
-import pytest
-import numpy as np
-import pandas as pd
 
+import numpy as np
+import pytest
 import validate_docstrings
+
+import pandas as pd
 
 validate_one = validate_docstrings.validate_one
 
@@ -38,6 +40,21 @@ class GoodDocStrings:
         """
         pass
 
+    def swap(self, arr, i, j, *args, **kwargs):
+        """
+        Swap two indicies on an array.
+
+        Parameters
+        ----------
+        arr : list
+            The list having indexes swapped.
+        i, j : int
+            The indexes being swapped.
+        *args, **kwargs
+            Extraneous parameters are being permitted.
+        """
+        pass
+
     def sample(self):
         """
         Generate and return a random number.
@@ -51,6 +68,23 @@ class GoodDocStrings:
             Random number generated.
         """
         return random.random()
+
+    @functools.lru_cache(None)
+    def decorated_sample(self, max):
+        """
+        Generate and return a random integer between 0 and max.
+
+        Parameters
+        ----------
+        max : int
+            The maximum value of the random number.
+
+        Returns
+        -------
+        int
+            Random number generated.
+        """
+        return random.randint(0, max)
 
     def random_letters(self):
         """
@@ -254,6 +288,21 @@ class GoodDocStrings:
             return
         else:
             return None
+
+    def multiple_variables_on_one_line(self, matrix, a, b, i, j):
+        """
+        Swap two values in a matrix.
+
+        Parameters
+        ----------
+        matrix : list of list
+            A double list that represents a matrix.
+        a, b : int
+            The indicies of the first value.
+        i, j : int
+            The indicies of the second value.
+        """
+        pass
 
 
 class BadGenericDocStrings:
@@ -633,6 +682,17 @@ class BadParameters:
         """
         pass
 
+    def bad_parameter_spacing(self, a, b):
+        """
+        The parameters on the same line have an extra space between them.
+
+        Parameters
+        ----------
+        a,  b : int
+            Foo bar baz.
+        """
+        pass
+
 
 class BadReturns:
     def return_not_documented(self):
@@ -826,7 +886,9 @@ class TestValidator:
         "func",
         [
             "plot",
+            "swap",
             "sample",
+            "decorated_sample",
             "random_letters",
             "sample_values",
             "head",
@@ -836,6 +898,7 @@ class TestValidator:
             "good_imports",
             "no_returns",
             "empty_returns",
+            "multiple_variables_on_one_line",
         ],
     )
     def test_good_functions(self, capsys, func):
@@ -1001,6 +1064,11 @@ class TestValidator:
                 "list_incorrect_parameter_type",
                 ('Parameter "kind" type should use "str" instead of "string"',),
             ),
+            (
+                "BadParameters",
+                "bad_parameter_spacing",
+                ("Parameters {b} not documented", "Unknown parameters { b}"),
+            ),
             pytest.param(
                 "BadParameters",
                 "blank_lines",
@@ -1028,7 +1096,7 @@ class TestValidator:
             (
                 "BadReturns",
                 "no_capitalization",
-                ("Return value description should start with a capital " "letter",),
+                ("Return value description should start with a capital letter",),
             ),
             (
                 "BadReturns",
