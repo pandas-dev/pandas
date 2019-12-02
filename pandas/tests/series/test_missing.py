@@ -1656,9 +1656,13 @@ class TestSeriesInterpolateData:
                 "This interpolation method is not supported for Timedelta Index yet."
             )
 
-    def test_interpolate_unsorted_index(self):
+    @pytest.mark.parametrize(
+        "ascending, expected_values",
+        [(True, [1, 2, 3, 9, 10]), (False, [10, 9, 3, 2, 1])],
+    )
+    def test_interpolate_unsorted_index(self, ascending, expected_values):
         # GH 21037
         ts = pd.Series(data=[10, 9, np.nan, 2, 1], index=[10, 9, 3, 2, 1])
-        result = ts.interpolate(method="index").sort_index(ascending=True)
-        expected = ts.sort_index(ascending=True).interpolate(method="index")
+        result = ts.sort_index(ascending=ascending).interpolate(method="index")
+        expected = pd.Series(data=expected_values, index=expected_values, dtype=float)
         tm.assert_series_equal(result, expected)
