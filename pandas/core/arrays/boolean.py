@@ -777,9 +777,11 @@ def kleene_or(
 
     if right_mask is not None:
         # output is unknown where (False & NA), (NA & False), (NA & NA)
+        left_false = ~(left | left_mask)
+        right_false = ~(right | right_mask)
         mask = (
-            ((~left & ~left_mask) & right_mask)
-            | ((~right & ~right_mask) & left_mask)
+            (left_false & right_mask)
+            | (right_false & left_mask)
             | (left_mask & right_mask)
         )
     else:
