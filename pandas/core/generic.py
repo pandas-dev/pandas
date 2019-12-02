@@ -27,7 +27,7 @@ import numpy as np
 
 from pandas._config import config
 
-from pandas._libs import Timestamp, iNaT, properties
+from pandas._libs import Timestamp, iNaT, lib, properties
 from pandas.compat import set_function_name
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -2412,11 +2412,12 @@ class NDFrame(PandasObject, SelectionMixin):
         complib: Optional[str] = None,
         append: bool_t = False,
         format: Optional[str] = None,
+        index: bool_t = True,
         min_itemsize: Optional[Union[int, Dict[str, int]]] = None,
+        nan_rep=lib._no_default,
         data_columns: Optional[List[str]] = None,
         errors: str = "strict",
         encoding: str = "UTF-8",
-        **kwargs,
     ):
         """
         Write the contained data to an HDF5 file using HDFStore.
@@ -2475,15 +2476,14 @@ class NDFrame(PandasObject, SelectionMixin):
         encoding : str, default "UTF-8"
         min_itemsize : dict or int, optional
             Map column names to minimum string sizes for columns.
+        nan_rep : Any, optional
+            How to represent null values as str.
+            Not allowed with append=True.
         data_columns : list of columns or True, optional
             List of columns to create as indexed data columns for on-disk
             queries, or True to use all columns. By default only the axes
             of the object are indexed. See :ref:`io.hdf5-query-data-columns`.
             Applicable only to format='table'.
-        fletcher32 : bool, default False
-            If applying compression use the fletcher32 checksum.
-        dropna : bool, default False
-            If true, ALL nan rows will not be written to store.
 
         See Also
         --------
@@ -2534,11 +2534,12 @@ class NDFrame(PandasObject, SelectionMixin):
             complib=complib,
             append=append,
             format=format,
+            index=index,
             min_itemsize=min_itemsize,
+            nan_rep=nan_rep,
             data_columns=data_columns,
             errors=errors,
             encoding=encoding,
-            **kwargs,
         )
 
     def to_msgpack(self, path_or_buf=None, encoding="utf-8", **kwargs):

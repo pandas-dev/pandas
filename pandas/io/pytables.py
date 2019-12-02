@@ -259,35 +259,40 @@ def to_hdf(
     complib: Optional[str] = None,
     append: bool = False,
     format: Optional[str] = None,
+    index: bool = True,
     min_itemsize: Optional[Union[int, Dict[str, int]]] = None,
+    nan_rep=lib._no_default,
     data_columns: Optional[List[str]] = None,
     errors: str = "strict",
     encoding: str = "UTF-8",
-    **kwargs,
 ):
     """ store this object, close it if we opened it """
 
     if append:
+        if nan_rep is not lib._no_default:
+            raise ValueError("Cannot pass nan_rep with append=True")
         f = lambda store: store.append(
             key,
             value,
             format=format,
+            index=index,
             min_itemsize=min_itemsize,
             data_columns=data_columns,
             errors=errors,
             encoding=encoding,
-            **kwargs,
         )
     else:
+        nan_rep = None if nan_rep is lib._no_default else nan_rep
         f = lambda store: store.put(
             key,
             value,
             format=format,
+            index=index,
             min_itemsize=min_itemsize,
+            nan_rep=nan_rep,
             data_columns=data_columns,
             errors=errors,
             encoding=encoding,
-            **kwargs,
         )
 
     path_or_buf = _stringify_path(path_or_buf)
