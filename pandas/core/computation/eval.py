@@ -167,7 +167,7 @@ def _check_for_locals(expr: str, stack_level: int, parser: str):
 
 def eval(
     expr,
-    parser="pandas",
+    parser: str = "pandas",
     engine=None,
     truediv=_no_default,
     local_dict=None,
@@ -306,6 +306,9 @@ def eval(
             "multi-line expressions are only valid in the "
             "context of data, use DataFrame.eval"
         )
+    engine = _check_engine(engine)
+    _check_parser(parser)
+    _check_resolvers(resolvers)
 
     ret = None
     first_expr = True
@@ -313,9 +316,6 @@ def eval(
 
     for expr in exprs:
         expr = _convert_expression(expr)
-        engine = _check_engine(engine)
-        _check_parser(parser)
-        _check_resolvers(resolvers)
         _check_for_locals(expr, level, parser)
 
         # get our (possibly passed-in) scope
