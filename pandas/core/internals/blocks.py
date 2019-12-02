@@ -867,7 +867,7 @@ class Block(PandasObject):
             values[indexer] = value
 
         elif (
-            self.is_categorical_astype(arr_value.dtype)
+            is_categorical_dtype(arr_value.dtype)
             and not is_categorical_dtype(values)
             and exact_match
         ):
