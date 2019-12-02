@@ -1191,13 +1191,31 @@ class HDFStore:
 
             self.append(k, val, data_columns=dc, **kwargs)
 
-    def create_table_index(self, key: str, **kwargs):
+    def create_table_index(
+        self,
+        key: str,
+        columns=None,
+        optlevel: Optional[int] = None,
+        kind: Optional[str] = None,
+    ):
         """
         Create a pytables index on the table.
 
         Parameters
         ----------
         key : str
+        columns : None, bool, or listlike[str]
+            Indicate which columns to create an index on.
+
+            * False : Do not create any indexes.
+            * True : Create indexes on all columns.
+            * None : Create indexes on all columns.
+            * listlike : Create indexes on the given columns.
+
+        optlevel : int or None, default None
+            Optimization level, if None, pytables defaults to 6.
+        kind : str or None, default None
+            Kind of index, if None, pytables defaults to "medium"
 
         Raises
         ------
@@ -1212,7 +1230,7 @@ class HDFStore:
 
         if not isinstance(s, Table):
             raise TypeError("cannot create table index on a Fixed format store")
-        s.create_index(**kwargs)
+        s.create_index(columns=columns, optlevel=optlevel, kind=kind)
 
     def groups(self):
         """
@@ -3519,7 +3537,7 @@ class Table(Fixed):
 
         return self._indexables
 
-    def create_index(self, columns=None, optlevel=None, kind=None):
+    def create_index(self, columns=None, optlevel=None, kind: Optional[str] = None):
         """
         Create a pytables index on the specified columns
           note: cannot index Time64Col() or ComplexCol currently;
@@ -3527,10 +3545,18 @@ class Table(Fixed):
 
         Parameters
         ----------
-        columns : False (don't create an index), True (create all columns
-            index), None or list_like (the indexers to index)
-        optlevel: optimization level (defaults to 6)
-        kind    : kind of index (defaults to 'medium')
+        columns : None, bool, or listlike[str]
+            Indicate which columns to create an index on.
+
+            * False : Do not create any indexes.
+            * True : Create indexes on all columns.
+            * None : Create indexes on all columns.
+            * listlike : Create indexes on the given columns.
+
+        optlevel : int or None, default None
+            Optimization level, if None, pytables defaults to 6.
+        kind : str or None, default None
+            Kind of index, if None, pytables defaults to "medium"
 
         Raises
         ------
