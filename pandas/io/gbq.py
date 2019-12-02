@@ -27,7 +27,7 @@ def read_gbq(
     use_bqstorage_api=None,
     private_key=None,
     verbose=None,
-    progress_bar_type="tqdm",
+    progress_bar_type=None,
 ):
     """
     Load data from Google BigQuery.
@@ -155,7 +155,8 @@ def read_gbq(
             progress bar as a graphical dialog box.
 
         Note that his feature requires version 0.12.0 or later of the
-        ``pandas-gbq`` package. And it requires the ``tqdm`` package.
+        ``pandas-gbq`` package. And it requires the ``tqdm`` package. Slightly
+        different than ``pandas-gbq``, here the default is ``None``.
 
         .. versionadded:: 1.0.0
 
@@ -177,7 +178,8 @@ def read_gbq(
     if use_bqstorage_api is not None:
         kwargs["use_bqstorage_api"] = use_bqstorage_api
 
-    kwargs["progress_bar_type"] = progress_bar_type
+    if progress_bar_type is not None:
+        kwargs["progress_bar_type"] = progress_bar_type
     # END: new kwargs
 
     # START: deprecated kwargs.  Don't populate unless explicitly set.
