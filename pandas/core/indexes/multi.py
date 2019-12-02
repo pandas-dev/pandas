@@ -3147,7 +3147,7 @@ class MultiIndex(Index):
             return False
 
         if not isinstance(other, MultiIndex):
-            if not is_object_dtype(other):  # d-level MultiIndex can equal d-tuple Index
+            if not is_object_dtype(other.dtype):  # d-level MultiIndex can equal d-tuple Index
                 if self.nlevels != other.nlevels:
                     return False
 

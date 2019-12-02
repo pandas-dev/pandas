@@ -4334,7 +4334,7 @@ class Index(IndexOpsMixin, PandasObject):
             return other.equals(self)
 
         if isinstance(other, ABCMultiIndex):
-            if not is_object_dtype(self):  # d-level MultiIndex can equal d-tuple Index
+            if not is_object_dtype(self.dtype):  # d-level MultiIndex can equal d-tuple Index
                 if self.nlevels != other.nlevels:
                     return False
 
