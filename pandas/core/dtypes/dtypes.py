@@ -329,6 +329,17 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
         return dtype
 
+    @classmethod
+    def construct_from_string(cls, string: str):
+        if not isinstance(string, str):
+            raise TypeError(f"Expects a string, got {type(string)}")
+        if string != cls.name:
+            raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
+
+        # need to specify ordered=None to ensure that specifying dtype="category"
+        # doesn't override the ordered value for existing categoricals
+        return cls(ordered=None)
+
     def _finalize(self, categories, ordered: Ordered, fastpath: bool = False) -> None:
 
         if ordered is not None:
