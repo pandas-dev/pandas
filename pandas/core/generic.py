@@ -171,9 +171,7 @@ class NDFrame(PandasObject, SelectionMixin):
     ]
     _internal_names_set: Set[str] = set(_internal_names)
     _accessors: Set[str] = set()
-    _deprecations: FrozenSet[str] = frozenset(
-        ["get_dtype_counts", "get_values", "ftypes", "ix"]
-    )
+    _deprecations: FrozenSet[str] = frozenset(["get_values", "ix"])
     _metadata: List[str] = []
     _is_copy = None
     _data: BlockManager
@@ -253,7 +251,7 @@ class NDFrame(PandasObject, SelectionMixin):
             if dtype.kind == "V":
                 raise NotImplementedError(
                     "compound dtypes are not implemented"
-                    " in the {0} constructor".format(self.__class__.__name__)
+                    " in the {0} constructor".format(type(self).__name__)
                 )
 
         return dtype
@@ -1536,7 +1534,7 @@ class NDFrame(PandasObject, SelectionMixin):
         raise ValueError(
             "The truth value of a {0} is ambiguous. "
             "Use a.empty, a.bool(), a.item(), a.any() or a.all().".format(
-                self.__class__.__name__
+                type(self).__name__
             )
         )
 
@@ -1561,7 +1559,7 @@ class NDFrame(PandasObject, SelectionMixin):
         elif is_scalar(v):
             raise ValueError(
                 "bool cannot act on a non-boolean single element "
-                "{0}".format(self.__class__.__name__)
+                "{0}".format(type(self).__name__)
             )
 
         self.__nonzero__()
@@ -1866,8 +1864,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def __hash__(self):
         raise TypeError(
-            "{0!r} objects are mutable, thus they cannot be"
-            " hashed".format(self.__class__.__name__)
+            f"{repr(type(self).__name__)} objects are mutable, "
+            f"thus they cannot be hashed"
         )
 
     def __iter__(self):
@@ -1990,26 +1988,6 @@ class NDFrame(PandasObject, SelectionMixin):
     #    values = self.values
     #    return dict(typestr=values.dtype.str,shape=values.shape,data=values)
 
-    def to_dense(self):
-        """
-        Return dense representation of Series/DataFrame (as opposed to sparse).
-
-        .. deprecated:: 0.25.0
-
-        Returns
-        -------
-        %(klass)s
-            Dense %(klass)s.
-        """
-        warnings.warn(
-            "DataFrame/Series.to_dense is deprecated "
-            "and will be removed in a future version",
-            FutureWarning,
-            stacklevel=2,
-        )
-        # compat
-        return self
-
     # ----------------------------------------------------------------------
     # Picklability
 
@@ -2061,7 +2039,7 @@ class NDFrame(PandasObject, SelectionMixin):
         # string representation based upon iterating over self
         # (since, by definition, `PandasContainers` are iterable)
         prepr = "[%s]" % ",".join(map(pprint_thing, self))
-        return f"{self.__class__.__name__}({prepr})"
+        return f"{type(self).__name__}({prepr})"
 
     def _repr_latex_(self):
         """
@@ -2425,7 +2403,19 @@ class NDFrame(PandasObject, SelectionMixin):
             indent=indent,
         )
 
-    def to_hdf(self, path_or_buf, key, **kwargs):
+    def to_hdf(
+        self,
+        path_or_buf,
+        key: str,
+        mode: str = "a",
+        complevel: Optional[int] = None,
+        complib: Optional[str] = None,
+        append: bool_t = False,
+        format: Optional[str] = None,
+        errors: str = "strict",
+        encoding: str = "UTF-8",
+        **kwargs,
+    ):
         """
         Write the contained data to an HDF5 file using HDFStore.
 
@@ -2453,21 +2443,6 @@ class NDFrame(PandasObject, SelectionMixin):
             - 'a': append, an existing file is opened for reading and
               writing, and if the file does not exist it is created.
             - 'r+': similar to 'a', but the file must already exist.
-        format : {'fixed', 'table'}, default 'fixed'
-            Possible values:
-
-            - 'fixed': Fixed format. Fast writing/reading. Not-appendable,
-              nor searchable.
-            - 'table': Table format. Write as a PyTables Table structure
-              which may perform worse but allow more flexible operations
-              like searching / selecting subsets of the data.
-        append : bool, default False
-            For Table formats, append the input data to the existing.
-        data_columns : list of columns or True, optional
-            List of columns to create as indexed data columns for on-disk
-            queries, or True to use all columns. By default only the axes
-            of the object are indexed. See :ref:`io.hdf5-query-data-columns`.
-            Applicable only to format='table'.
         complevel : {0-9}, optional
             Specifies a compression level for data.
             A value of 0 disables compression.
@@ -2479,14 +2454,32 @@ class NDFrame(PandasObject, SelectionMixin):
             'blosc:zlib', 'blosc:zstd'}.
             Specifying a compression library which is not available issues
             a ValueError.
-        fletcher32 : bool, default False
-            If applying compression use the fletcher32 checksum.
-        dropna : bool, default False
-            If true, ALL nan rows will not be written to store.
+        append : bool, default False
+            For Table formats, append the input data to the existing.
+        format : {'fixed', 'table', None}, default 'fixed'
+            Possible values:
+
+            - 'fixed': Fixed format. Fast writing/reading. Not-appendable,
+              nor searchable.
+            - 'table': Table format. Write as a PyTables Table structure
+              which may perform worse but allow more flexible operations
+              like searching / selecting subsets of the data.
+            - If None, pd.get_option('io.hdf.default_format') is checked,
+              followed by fallback to "fixed"
         errors : str, default 'strict'
             Specifies how encoding and decoding errors are to be handled.
             See the errors argument for :func:`open` for a full list
             of options.
+        encoding : str, default "UTF-8"
+        data_columns : list of columns or True, optional
+            List of columns to create as indexed data columns for on-disk
+            queries, or True to use all columns. By default only the axes
+            of the object are indexed. See :ref:`io.hdf5-query-data-columns`.
+            Applicable only to format='table'.
+        fletcher32 : bool, default False
+            If applying compression use the fletcher32 checksum.
+        dropna : bool, default False
+            If true, ALL nan rows will not be written to store.
 
         See Also
         --------
@@ -2528,7 +2521,19 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         from pandas.io import pytables
 
-        pytables.to_hdf(path_or_buf, key, self, **kwargs)
+        pytables.to_hdf(
+            path_or_buf,
+            key,
+            self,
+            mode=mode,
+            complevel=complevel,
+            complib=complib,
+            append=append,
+            format=format,
+            errors=errors,
+            encoding=encoding,
+            **kwargs,
+        )
 
     def to_msgpack(self, path_or_buf=None, encoding="utf-8", **kwargs):
         """
@@ -5522,51 +5527,6 @@ class NDFrame(PandasObject, SelectionMixin):
     def _internal_get_values(self):
         return self.values
 
-    def get_dtype_counts(self):
-        """
-        Return counts of unique dtypes in this object.
-
-        .. deprecated:: 0.25.0
-
-        Use `.dtypes.value_counts()` instead.
-
-        Returns
-        -------
-        dtype : Series
-            Series with the count of columns with each dtype.
-
-        See Also
-        --------
-        dtypes : Return the dtypes in this object.
-
-        Examples
-        --------
-        >>> a = [['a', 1, 1.0], ['b', 2, 2.0], ['c', 3, 3.0]]
-        >>> df = pd.DataFrame(a, columns=['str', 'int', 'float'])
-        >>> df
-          str  int  float
-        0   a    1    1.0
-        1   b    2    2.0
-        2   c    3    3.0
-
-        >>> df.get_dtype_counts()
-        float64    1
-        int64      1
-        object     1
-        dtype: int64
-        """
-        warnings.warn(
-            "`get_dtype_counts` has been deprecated and will be "
-            "removed in a future version. For DataFrames use "
-            "`.dtypes.value_counts()",
-            FutureWarning,
-            stacklevel=2,
-        )
-
-        from pandas import Series
-
-        return Series(self._data.get_dtype_counts())
-
     @property
     def dtypes(self):
         """
@@ -5581,10 +5541,6 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         pandas.Series
             The data type of each column.
-
-        See Also
-        --------
-        DataFrame.ftypes : Dtype and sparsity information.
 
         Examples
         --------
@@ -5603,55 +5559,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
         return Series(self._data.get_dtypes(), index=self._info_axis, dtype=np.object_)
 
-    @property
-    def ftypes(self):
-        """
-        Return the ftypes (indication of sparse/dense and dtype) in DataFrame.
-
-        .. deprecated:: 0.25.0
-           Use :func:`dtypes` instead.
-
-        This returns a Series with the data type of each column.
-        The result's index is the original DataFrame's columns. Columns
-        with mixed types are stored with the ``object`` dtype.  See
-        :ref:`the User Guide <basics.dtypes>` for more.
-
-        Returns
-        -------
-        pandas.Series
-            The data type and indication of sparse/dense of each column.
-
-        See Also
-        --------
-        DataFrame.dtypes: Series with just dtype information.
-
-        Notes
-        -----
-        Sparse data should have the same dtypes as its dense representation.
-
-        Examples
-        --------
-        >>> arr = np.random.RandomState(0).randn(100, 4)
-        >>> arr[arr < .8] = np.nan
-        >>> pd.DataFrame(arr).ftypes
-        0    float64:dense
-        1    float64:dense
-        2    float64:dense
-        3    float64:dense
-        dtype: object
-        """
-        warnings.warn(
-            "DataFrame.ftypes is deprecated and will "
-            "be removed in a future version. "
-            "Use DataFrame.dtypes instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-
-        from pandas import Series
-
-        return Series(self._data.get_ftypes(), index=self._info_axis, dtype=np.object_)
-
     def _to_dict_of_blocks(self, copy=True):
         """
         Return a dict of dtype -> Constructor Types that
@@ -5664,7 +5571,7 @@ class NDFrame(PandasObject, SelectionMixin):
             for k, v, in self._data.to_dict(copy=copy).items()
         }
 
-    def astype(self, dtype, copy=True, errors="raise"):
+    def astype(self, dtype, copy: bool_t = True, errors: str = "raise"):
         """
         Cast a pandas object to a specified dtype ``dtype``.
 
@@ -5790,10 +5697,10 @@ class NDFrame(PandasObject, SelectionMixin):
         elif is_extension_array_dtype(dtype) and self.ndim > 1:
             # GH 18099/22869: columnwise conversion to extension dtype
             # GH 24704: use iloc to handle duplicate column names
-            results = (
+            results = [
                 self.iloc[:, i].astype(dtype, copy=copy)
                 for i in range(len(self.columns))
-            )
+            ]
 
         else:
             # else, only a single dtype is given
@@ -6660,11 +6567,9 @@ class NDFrame(PandasObject, SelectionMixin):
                     or is_dict_like(regex)
                 ):
                     raise TypeError(
-                        "'regex' must be a string or a compiled "
-                        "regular expression or a list or dict of "
-                        "strings or regular expressions, you "
-                        "passed a"
-                        " {0!r}".format(type(regex).__name__)
+                        f"'regex' must be a string or a compiled regular expression "
+                        f"or a list or dict of strings or regular expressions, "
+                        f"you passed a {repr(type(regex).__name__)}"
                     )
                 return self.replace(
                     regex, value, inplace=inplace, limit=limit, regex=True
@@ -6690,10 +6595,9 @@ class NDFrame(PandasObject, SelectionMixin):
                         to_replace=to_replace, value=value, inplace=inplace, regex=regex
                     )
                 else:
-                    msg = ('Invalid "to_replace" type: ' "{0!r}").format(
-                        type(to_replace).__name__
+                    raise TypeError(
+                        f'Invalid "to_replace" type: {repr(type(to_replace).__name__)}'
                     )
-                    raise TypeError(msg)  # pragma: no cover
 
         if inplace:
             self._update_inplace(new_data)
@@ -10226,7 +10130,7 @@ class NDFrame(PandasObject, SelectionMixin):
             name2,
             axis_descr,
             "minimum",
-            lambda y, axis: np.minimum.accumulate(y, axis),
+            np.minimum.accumulate,
             "min",
             np.inf,
             np.nan,
@@ -10239,7 +10143,7 @@ class NDFrame(PandasObject, SelectionMixin):
             name2,
             axis_descr,
             "sum",
-            lambda y, axis: y.cumsum(axis),
+            np.cumsum,
             "sum",
             0.0,
             np.nan,
@@ -10252,7 +10156,7 @@ class NDFrame(PandasObject, SelectionMixin):
             name2,
             axis_descr,
             "product",
-            lambda y, axis: y.cumprod(axis),
+            np.cumprod,
             "prod",
             1.0,
             np.nan,
@@ -10265,7 +10169,7 @@ class NDFrame(PandasObject, SelectionMixin):
             name2,
             axis_descr,
             "maximum",
-            lambda y, axis: np.maximum.accumulate(y, axis),
+            np.maximum.accumulate,
             "max",
             -np.inf,
             np.nan,

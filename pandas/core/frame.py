@@ -9,7 +9,7 @@ alignment and a host of useful data manipulation methods having to do with the
 labeling information
 """
 import collections
-from collections import OrderedDict, abc
+from collections import abc
 from io import StringIO
 import itertools
 import sys
@@ -3544,13 +3544,6 @@ class DataFrame(NDFrame):
         -------
         numpy.ndarray
 
-        Notes
-        -----
-        Akin to::
-
-            result = [df.get_value(row, col)
-                      for row, col in zip(row_labels, col_labels)]
-
         Examples
         --------
         values : ndarray
@@ -4482,7 +4475,7 @@ class DataFrame(NDFrame):
             * 0, or 'index' : Drop rows which contain missing values.
             * 1, or 'columns' : Drop columns which contain missing value.
 
-            .. deprecated:: 0.23.0
+            .. versionchanged:: 1.0.0
 
                Pass tuple or list to drop on multiple axes.
                Only a single axis is allowed.
@@ -4572,43 +4565,35 @@ class DataFrame(NDFrame):
         inplace = validate_bool_kwarg(inplace, "inplace")
         if isinstance(axis, (tuple, list)):
             # GH20987
-            msg = (
-                "supplying multiple axes to axis is deprecated and "
-                "will be removed in a future version."
-            )
-            warnings.warn(msg, FutureWarning, stacklevel=2)
+            raise TypeError("supplying multiple axes to axis is no longer supported.")
 
-            result = self
-            for ax in axis:
-                result = result.dropna(how=how, thresh=thresh, subset=subset, axis=ax)
+        axis = self._get_axis_number(axis)
+        agg_axis = 1 - axis
+
+        agg_obj = self
+        if subset is not None:
+            ax = self._get_axis(agg_axis)
+            indices = ax.get_indexer_for(subset)
+            check = indices == -1
+            if check.any():
+                raise KeyError(list(np.compress(check, subset)))
+            agg_obj = self.take(indices, axis=agg_axis)
+
+        count = agg_obj.count(axis=agg_axis)
+
+        if thresh is not None:
+            mask = count >= thresh
+        elif how == "any":
+            mask = count == len(agg_obj._get_axis(agg_axis))
+        elif how == "all":
+            mask = count > 0
         else:
-            axis = self._get_axis_number(axis)
-            agg_axis = 1 - axis
-
-            agg_obj = self
-            if subset is not None:
-                ax = self._get_axis(agg_axis)
-                indices = ax.get_indexer_for(subset)
-                check = indices == -1
-                if check.any():
-                    raise KeyError(list(np.compress(check, subset)))
-                agg_obj = self.take(indices, axis=agg_axis)
-
-            count = agg_obj.count(axis=agg_axis)
-
-            if thresh is not None:
-                mask = count >= thresh
-            elif how == "any":
-                mask = count == len(agg_obj._get_axis(agg_axis))
-            elif how == "all":
-                mask = count > 0
+            if how is not None:
+                raise ValueError("invalid how option: {h}".format(h=how))
             else:
-                if how is not None:
-                    raise ValueError("invalid how option: {h}".format(h=how))
-                else:
-                    raise TypeError("must specify how or thresh")
+                raise TypeError("must specify how or thresh")
 
-            result = self.loc(axis=axis)[mask]
+        result = self.loc(axis=axis)[mask]
 
         if inplace:
             self._update_inplace(result)
@@ -4771,24 +4756,12 @@ class DataFrame(NDFrame):
         kind="quicksort",
         na_position="last",
         sort_remaining=True,
-        by=None,
     ):
 
         # TODO: this can be combined with Series.sort_index impl as
         # almost identical
 
         inplace = validate_bool_kwarg(inplace, "inplace")
-        # 10726
-        if by is not None:
-            warnings.warn(
-                "by argument to sort_index is deprecated, "
-                "please use .sort_values(by=...)",
-                FutureWarning,
-                stacklevel=2,
-            )
-            if level is not None:
-                raise ValueError("unable to simultaneously sort by and level")
-            return self.sort_values(by, axis=axis, ascending=ascending, inplace=inplace)
 
         axis = self._get_axis_number(axis)
         labels = self._get_axis(axis)
@@ -8150,10 +8123,9 @@ class DataFrame(NDFrame):
         else:
             if not is_list_like(values):
                 raise TypeError(
-                    "only list-like or dict-like objects are "
-                    "allowed to be passed to DataFrame.isin(), "
-                    "you passed a "
-                    "{0!r}".format(type(values).__name__)
+                    f"only list-like or dict-like objects are allowed "
+                    f"to be passed to DataFrame.isin(), "
+                    f"you passed a {repr(type(values).__name__)}"
                 )
             return DataFrame(
                 algorithms.isin(self.values.ravel(), values).reshape(self.shape),
@@ -8189,10 +8161,10 @@ ops.add_special_arithmetic_methods(DataFrame)
 
 def _from_nested_dict(data):
     # TODO: this should be seriously cythonized
-    new_data = OrderedDict()
+    new_data = {}
     for index, s in data.items():
         for col, v in s.items():
-            new_data[col] = new_data.get(col, OrderedDict())
+            new_data[col] = new_data.get(col, {})
             new_data[col][index] = v
     return new_data
 

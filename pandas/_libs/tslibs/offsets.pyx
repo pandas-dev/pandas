@@ -1,6 +1,7 @@
 import cython
 
 import time
+from typing import Any
 from cpython.datetime cimport (PyDateTime_IMPORT,
                                PyDateTime_Check,
                                PyDelta_Check,
@@ -328,7 +329,7 @@ class _BaseOffset:
     def __setattr__(self, name, value):
         raise AttributeError("DateOffset objects are immutable.")
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: Any) -> bool:
         if isinstance(other, str):
             try:
                 # GH#23524 if to_offset fails, we are dealing with an
@@ -363,7 +364,7 @@ class _BaseOffset:
         attrs = [(k, v) for k, v in all_paras.items()
                  if (k not in exclude) and (k[0] != '_')]
         attrs = sorted(set(attrs))
-        params = tuple([str(self.__class__)] + attrs)
+        params = tuple([str(type(self))] + attrs)
         return params
 
     @property

@@ -294,9 +294,7 @@ def _node_not_implemented(node_name, cls):
     """
 
     def f(self, *args, **kwargs):
-        raise NotImplementedError(
-            "{name!r} nodes are not implemented".format(name=node_name)
-        )
+        raise NotImplementedError(f"{repr(node_name)} nodes are not implemented")
 
     return f
 
@@ -435,7 +433,7 @@ class BaseExprVisitor(ast.NodeVisitor):
                     e.msg = "Python keyword not valid identifier in numexpr query"
                 raise e
 
-        method = "visit_" + node.__class__.__name__
+        method = "visit_" + type(node).__name__
         visitor = getattr(self, method)
         return visitor(node, **kwargs)
 

@@ -49,14 +49,6 @@ class TestSeriesDtypes:
         assert datetime_series.dtype == np.dtype("float64")
         assert datetime_series.dtypes == np.dtype("float64")
 
-        # GH 26705 - Assert .ftype is deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            assert datetime_series.ftype == "float64:dense"
-
-        # GH 26705 - Assert .ftypes is deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            assert datetime_series.ftypes == "float64:dense"
-
     @pytest.mark.parametrize("value", [np.nan, np.inf])
     @pytest.mark.parametrize("dtype", [np.int32, np.int64])
     def test_astype_cast_nan_inf_int(self, dtype, value):
