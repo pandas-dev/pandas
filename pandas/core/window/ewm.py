@@ -232,7 +232,7 @@ class EWM(_Rolling):
                 if cfunc is None:
                     raise ValueError(
                         "we do not support this function "
-                        "in window_aggregations.{func}".format(func=func)
+                        f"in window_aggregations.{func}"
                     )
 
                 def func(arg):

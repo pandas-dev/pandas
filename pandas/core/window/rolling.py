@@ -117,7 +117,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         ]:
             raise ValueError("closed must be 'right', 'left', 'both' or 'neither'")
         if not isinstance(self.obj, (ABCSeries, ABCDataFrame)):
-            raise TypeError("invalid type: {}".format(type(self)))
+            raise TypeError(f"invalid type: {type(self)}")
 
     def _create_blocks(self):
         """
@@ -164,7 +164,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             return self[attr]
 
         raise AttributeError(
-            "%r object has no attribute %r" % (type(self).__name__, attr)
+            f"'{type(self).__name__}' object has no attribute '{attr}'"
         )
 
     def _dir_additions(self):
@@ -211,18 +211,17 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         Provide a nice str repr of our rolling object.
         """
 
-        attrs = (
-            "{k}={v}".format(k=k, v=getattr(self, k))
-            for k in self._attributes
-            if getattr(self, k, None) is not None
+        attrs_list = (
+            f"{attr_name}={getattr(self, attr_name)}"
+            for attr_name in self._attributes
+            if getattr(self, attr_name, None) is not None
         )
-        return "{klass} [{attrs}]".format(
-            klass=self._window_type, attrs=",".join(attrs)
-        )
+        attrs = ",".join(attrs_list)
+        return f"{self._window_type} [{attrs}]"
 
     def __iter__(self):
         url = "https://github.com/pandas-dev/pandas/issues/11704"
-        raise NotImplementedError("See issue #11704 {url}".format(url=url))
+        raise NotImplementedError(f"See issue #11704 {url}")
 
     def _get_index(self) -> Optional[np.ndarray]:
         """
@@ -250,15 +249,14 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             values = ensure_float64(values)
         elif needs_i8_conversion(values.dtype):
             raise NotImplementedError(
-                "ops for {action} for this "
-                "dtype {dtype} are not "
-                "implemented".format(action=self._window_type, dtype=values.dtype)
+                f"ops for {self._window_type} for this "
+                f"dtype {values.dtype} are not implemented"
             )
         else:
             try:
                 values = ensure_float64(values)
             except (ValueError, TypeError):
-                raise TypeError("cannot handle this type -> {0}".format(values.dtype))
+                raise TypeError(f"cannot handle this type -> {values.dtype}")
 
         # Convert inf to nan for C funcs
         inf = np.isinf(values)
@@ -383,8 +381,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         window_func = getattr(window_aggregations, func_name, None)
         if window_func is None:
             raise ValueError(
-                "we do not support this function "
-                "in window_aggregations.{func_name}".format(func_name=func_name)
+                f"we do not support this function in window_aggregations.{func_name}"
             )
         return window_func
 
@@ -395,10 +392,8 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         Variable algorithms do not use window while fixed do.
         """
         if self.is_freq_type:
-            return self._get_roll_func("{}_variable".format(func))
-        return partial(
-            self._get_roll_func("{}_fixed".format(func)), win=self._get_window()
-        )
+            return self._get_roll_func(f"{func}_variable")
+        return partial(self._get_roll_func(f"{func}_fixed"), win=self._get_window())
 
     def _get_window_indexer(self):
         """
@@ -917,11 +912,11 @@ class Window(_Window):
             import scipy.signal as sig
 
             if not isinstance(self.win_type, str):
-                raise ValueError("Invalid win_type {0}".format(self.win_type))
+                raise ValueError(f"Invalid win_type {self.win_type}")
             if getattr(sig, self.win_type, None) is None:
-                raise ValueError("Invalid win_type {0}".format(self.win_type))
+                raise ValueError(f"Invalid win_type {self.win_type}")
         else:
-            raise ValueError("Invalid window {0}".format(window))
+            raise ValueError(f"Invalid window {window}")
 
     def _get_win_type(self, kwargs: Dict) -> Union[str, Tuple]:
         """
@@ -958,11 +953,10 @@ class Window(_Window):
             return win_type
 
         def _pop_args(win_type, arg_names, kwargs):
-            msg = "%s window requires %%s" % win_type
             all_args = []
             for n in arg_names:
                 if n not in kwargs:
-                    raise ValueError(msg % n)
+                    raise ValueError(f"{win_type} window requires {n}")
                 all_args.append(kwargs.pop(n))
             return all_args
 
@@ -1634,12 +1628,11 @@ class _Rolling_and_Expanding(_Rolling):
 
     >>> v1 = [3, 3, 3, 5, 8]
     >>> v2 = [3, 4, 4, 4, 8]
-    >>> fmt = "{0:.6f}"  # limit the printed precision to 6 digits
     >>> # numpy returns a 2X2 array, the correlation coefficient
     >>> # is the number at entry [0][1]
-    >>> print(fmt.format(np.corrcoef(v1[:-1], v2[:-1])[0][1]))
+    >>> print(f"{np.corrcoef(v1[:-1], v2[:-1])[0][1]:.6f}")
     0.333333
-    >>> print(fmt.format(np.corrcoef(v1[1:], v2[1:])[0][1]))
+    >>> print(f"{np.corrcoef(v1[1:], v2[1:])[0][1]:.6f}")
     0.916949
     >>> s1 = pd.Series(v1)
     >>> s2 = pd.Series(v2)
@@ -1729,9 +1722,9 @@ class Rolling(_Rolling_and_Expanding):
             return Index(self.obj[self.on])
         else:
             raise ValueError(
-                "invalid on specified as {on}, "
+                f"invalid on specified as {self.on}, "
                 "must be a column (of DataFrame), an Index "
-                "or None".format(on=self.on)
+                "or None"
             )
 
     def validate(self):
@@ -1780,9 +1773,7 @@ class Rolling(_Rolling_and_Expanding):
             formatted = self.on
             if self.on is None:
                 formatted = "index"
-            raise ValueError(
-                "{formatted} must be monotonic".format(formatted=formatted)
-            )
+            raise ValueError(f"{formatted} must be monotonic")
 
     def _validate_freq(self):
         """
@@ -1794,9 +1785,9 @@ class Rolling(_Rolling_and_Expanding):
             return to_offset(self.window)
         except (TypeError, ValueError):
             raise ValueError(
-                "passed window {window} is not "
+                f"passed window {self.window} is not "
                 "compatible with a datetimelike "
-                "index".format(window=self.window)
+                "index"
             )
 
     _agg_see_also_doc = dedent(
@@ -1941,11 +1932,10 @@ class Rolling(_Rolling_and_Expanding):
     four matching the equivalent function call using `scipy.stats`.
 
     >>> arr = [1, 2, 3, 4, 999]
-    >>> fmt = "{0:.6f}"  # limit the printed precision to 6 digits
     >>> import scipy.stats
-    >>> print(fmt.format(scipy.stats.kurtosis(arr[:-1], bias=False)))
+    >>> print(f"{scipy.stats.kurtosis(arr[:-1], bias=False):.6f}")
     -1.200000
-    >>> print(fmt.format(scipy.stats.kurtosis(arr[1:], bias=False)))
+    >>> print(f"{scipy.stats.kurtosis(arr[1:], bias=False):.6f}")
     3.999946
     >>> s = pd.Series(arr)
     >>> s.rolling(4).kurt()

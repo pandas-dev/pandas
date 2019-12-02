@@ -303,10 +303,7 @@ def calculate_min_periods(
     else:
         min_periods = max(required_min_periods, min_periods)
     if min_periods > window:
-        raise ValueError(
-            "min_periods {min_periods} must be <= "
-            "window {window}".format(min_periods=min_periods, window=window)
-        )
+        raise ValueError(f"min_periods {min_periods} must be <= window {window}")
     elif min_periods > num_values:
         min_periods = num_values + 1
     elif min_periods < 0:
