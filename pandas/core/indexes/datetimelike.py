@@ -491,7 +491,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin, _Base):
             if attrib == "freq":
                 freq = self.freqstr
                 if freq is not None:
-                    freq = f"{freq!r}"
+                    freq = repr(freq)
                 attrs.append(("freq", freq))
         return attrs
 

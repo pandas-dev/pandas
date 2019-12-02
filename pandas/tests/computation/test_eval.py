@@ -1114,11 +1114,11 @@ class TestAlignment:
             if not is_python_engine:
                 assert len(w) == 1
                 msg = str(w[0].message)
+                loged = np.log10(s.size - df.shape[1])
                 expected = (
-                    "Alignment difference on axis {0} is larger"
-                    " than an order of magnitude on term {1!r}, "
-                    "by more than {2:.4g}; performance may suffer"
-                    "".format(1, "df", np.log10(s.size - df.shape[1]))
+                    f"Alignment difference on axis 1 is larger "
+                    f"than an order of magnitude on term 'df', "
+                    f"by more than {loged:.4g}; performance may suffer"
                 )
                 assert msg == expected
 

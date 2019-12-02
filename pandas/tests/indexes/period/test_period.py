@@ -156,17 +156,6 @@ class TestPeriodIndex(DatetimeLike):
         with pytest.raises(IncompatibleFrequency, match=msg):
             pi._shallow_copy(pi, freq="H")
 
-    def test_dtype_str(self):
-        pi = pd.PeriodIndex([], freq="M")
-        with tm.assert_produces_warning(FutureWarning):
-            assert pi.dtype_str == "period[M]"
-            assert pi.dtype_str == str(pi.dtype)
-
-        with tm.assert_produces_warning(FutureWarning):
-            pi = pd.PeriodIndex([], freq="3M")
-            assert pi.dtype_str == "period[3M]"
-            assert pi.dtype_str == str(pi.dtype)
-
     def test_view_asi8(self):
         idx = pd.PeriodIndex([], freq="M")
 
@@ -540,15 +529,10 @@ class TestPeriodIndex(DatetimeLike):
         assert s["05Q4"] == s[2]
 
     def test_pindex_multiples(self):
-        with tm.assert_produces_warning(FutureWarning):
-            pi = PeriodIndex(start="1/1/11", end="12/31/11", freq="2M")
         expected = PeriodIndex(
             ["2011-01", "2011-03", "2011-05", "2011-07", "2011-09", "2011-11"],
             freq="2M",
         )
-        tm.assert_index_equal(pi, expected)
-        assert pi.freq == offsets.MonthEnd(2)
-        assert pi.freqstr == "2M"
 
         pi = period_range(start="1/1/11", end="12/31/11", freq="2M")
         tm.assert_index_equal(pi, expected)

@@ -1,5 +1,4 @@
 import abc
-from collections import OrderedDict
 from datetime import date, datetime, timedelta
 from io import BytesIO
 import os
@@ -433,9 +432,9 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
             sheets = [sheet_name]
 
         # handle same-type duplicates.
-        sheets = list(OrderedDict.fromkeys(sheets).keys())
+        sheets = list(dict.fromkeys(sheets).keys())
 
-        output: Dict[Union[str, int], Union["Series", DataFrame]] = OrderedDict()
+        output: Dict[Union[str, int], Union["Series", DataFrame]] = {}
 
         for asheetname in sheets:
             if verbose:

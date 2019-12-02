@@ -743,7 +743,7 @@ class PlotAccessor(PandasObject):
         if args and isinstance(data, ABCSeries):
             positional_args = str(args)[1:-1]
             keyword_args = ", ".join(
-                f"{name}={value!r}" for (name, default), value in zip(arg_def, args)
+                f"{name}={repr(value)}" for (name, default), value in zip(arg_def, args)
             )
             msg = (
                 "`Series.plot()` should not be called with positional "

@@ -1027,7 +1027,7 @@ class _MergeOperation:
                     )
                 ]
             else:
-                left_keys = [self.left.index.values]
+                left_keys = [self.left.index._values]
 
         if left_drop:
             self.left = self.left._drop_labels_or_levels(left_drop)

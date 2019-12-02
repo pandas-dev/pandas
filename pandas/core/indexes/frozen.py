@@ -7,6 +7,8 @@ These are used for:
 
 """
 
+from typing import Any
+
 from pandas.core.base import PandasObject
 
 from pandas.io.formats.printing import pprint_thing
@@ -71,7 +73,7 @@ class FrozenList(PandasObject, list):
             other = list(other)
         return type(self)(other + list(self))
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: Any) -> bool:
         if isinstance(other, (tuple, FrozenList)):
             other = list(other)
         return super().__eq__(other)
