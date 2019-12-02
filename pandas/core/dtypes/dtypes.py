@@ -575,14 +575,11 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             # from here on, dtype is a CategoricalDtype
             dtype = cast(CategoricalDtype, dtype)
 
-        # dtype is CDT: keep current categories/ordered if None
-        new_categories = dtype.categories
-        if new_categories is None:
-            new_categories = self.categories
-
-        new_ordered = dtype.ordered
-        if new_ordered is None:
-            new_ordered = self.ordered
+        # update categories/ordered unless they've been explicitly passed as None
+        new_categories = (
+            dtype.categories if dtype.categories is not None else self.categories
+        )
+        new_ordered = dtype.ordered if dtype.ordered is not None else self.ordered
 
         return CategoricalDtype(new_categories, new_ordered)
 
