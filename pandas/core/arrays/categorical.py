@@ -1632,7 +1632,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if na_position not in ["last", "first"]:
-            raise ValueError(f"invalid na_position: {na_position!r}")
+            raise ValueError(f"invalid na_position: {repr(na_position)}")
 
         sorted_idx = nargsort(self, ascending=ascending, na_position=na_position)
 
@@ -1769,8 +1769,8 @@ class Categorical(ExtensionArray, PandasObject):
 
             else:
                 raise TypeError(
-                    '"value" parameter must be a scalar, dict '
-                    f'or Series, but you passed a {type(value).__name__!r}"'
+                    f"'value' parameter must be a scalar, dict "
+                    f"or Series, but you passed a {type(value).__name__}"
                 )
 
         return self._constructor(codes, dtype=self.dtype, fastpath=True)

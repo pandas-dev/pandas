@@ -1864,8 +1864,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def __hash__(self):
         raise TypeError(
-            "{0!r} objects are mutable, thus they cannot be"
-            " hashed".format(type(self).__name__)
+            f"{repr(type(self).__name__)} objects are mutable, "
+            f"thus they cannot be hashed"
         )
 
     def __iter__(self):
@@ -2403,7 +2403,19 @@ class NDFrame(PandasObject, SelectionMixin):
             indent=indent,
         )
 
-    def to_hdf(self, path_or_buf, key, **kwargs):
+    def to_hdf(
+        self,
+        path_or_buf,
+        key: str,
+        mode: str = "a",
+        complevel: Optional[int] = None,
+        complib: Optional[str] = None,
+        append: bool_t = False,
+        format: Optional[str] = None,
+        errors: str = "strict",
+        encoding: str = "UTF-8",
+        **kwargs,
+    ):
         """
         Write the contained data to an HDF5 file using HDFStore.
 
@@ -2431,21 +2443,6 @@ class NDFrame(PandasObject, SelectionMixin):
             - 'a': append, an existing file is opened for reading and
               writing, and if the file does not exist it is created.
             - 'r+': similar to 'a', but the file must already exist.
-        format : {'fixed', 'table'}, default 'fixed'
-            Possible values:
-
-            - 'fixed': Fixed format. Fast writing/reading. Not-appendable,
-              nor searchable.
-            - 'table': Table format. Write as a PyTables Table structure
-              which may perform worse but allow more flexible operations
-              like searching / selecting subsets of the data.
-        append : bool, default False
-            For Table formats, append the input data to the existing.
-        data_columns : list of columns or True, optional
-            List of columns to create as indexed data columns for on-disk
-            queries, or True to use all columns. By default only the axes
-            of the object are indexed. See :ref:`io.hdf5-query-data-columns`.
-            Applicable only to format='table'.
         complevel : {0-9}, optional
             Specifies a compression level for data.
             A value of 0 disables compression.
@@ -2457,14 +2454,32 @@ class NDFrame(PandasObject, SelectionMixin):
             'blosc:zlib', 'blosc:zstd'}.
             Specifying a compression library which is not available issues
             a ValueError.
-        fletcher32 : bool, default False
-            If applying compression use the fletcher32 checksum.
-        dropna : bool, default False
-            If true, ALL nan rows will not be written to store.
+        append : bool, default False
+            For Table formats, append the input data to the existing.
+        format : {'fixed', 'table', None}, default 'fixed'
+            Possible values:
+
+            - 'fixed': Fixed format. Fast writing/reading. Not-appendable,
+              nor searchable.
+            - 'table': Table format. Write as a PyTables Table structure
+              which may perform worse but allow more flexible operations
+              like searching / selecting subsets of the data.
+            - If None, pd.get_option('io.hdf.default_format') is checked,
+              followed by fallback to "fixed"
         errors : str, default 'strict'
             Specifies how encoding and decoding errors are to be handled.
             See the errors argument for :func:`open` for a full list
             of options.
+        encoding : str, default "UTF-8"
+        data_columns : list of columns or True, optional
+            List of columns to create as indexed data columns for on-disk
+            queries, or True to use all columns. By default only the axes
+            of the object are indexed. See :ref:`io.hdf5-query-data-columns`.
+            Applicable only to format='table'.
+        fletcher32 : bool, default False
+            If applying compression use the fletcher32 checksum.
+        dropna : bool, default False
+            If true, ALL nan rows will not be written to store.
 
         See Also
         --------
@@ -2506,7 +2521,19 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         from pandas.io import pytables
 
-        pytables.to_hdf(path_or_buf, key, self, **kwargs)
+        pytables.to_hdf(
+            path_or_buf,
+            key,
+            self,
+            mode=mode,
+            complevel=complevel,
+            complib=complib,
+            append=append,
+            format=format,
+            errors=errors,
+            encoding=encoding,
+            **kwargs,
+        )
 
     def to_msgpack(self, path_or_buf=None, encoding="utf-8", **kwargs):
         """
@@ -5544,7 +5571,7 @@ class NDFrame(PandasObject, SelectionMixin):
             for k, v, in self._data.to_dict(copy=copy).items()
         }
 
-    def astype(self, dtype, copy=True, errors="raise"):
+    def astype(self, dtype, copy: bool_t = True, errors: str = "raise"):
         """
         Cast a pandas object to a specified dtype ``dtype``.
 
@@ -5670,10 +5697,10 @@ class NDFrame(PandasObject, SelectionMixin):
         elif is_extension_array_dtype(dtype) and self.ndim > 1:
             # GH 18099/22869: columnwise conversion to extension dtype
             # GH 24704: use iloc to handle duplicate column names
-            results = (
+            results = [
                 self.iloc[:, i].astype(dtype, copy=copy)
                 for i in range(len(self.columns))
-            )
+            ]
 
         else:
             # else, only a single dtype is given
@@ -6540,11 +6567,9 @@ class NDFrame(PandasObject, SelectionMixin):
                     or is_dict_like(regex)
                 ):
                     raise TypeError(
-                        "'regex' must be a string or a compiled "
-                        "regular expression or a list or dict of "
-                        "strings or regular expressions, you "
-                        "passed a"
-                        " {0!r}".format(type(regex).__name__)
+                        f"'regex' must be a string or a compiled regular expression "
+                        f"or a list or dict of strings or regular expressions, "
+                        f"you passed a {repr(type(regex).__name__)}"
                     )
                 return self.replace(
                     regex, value, inplace=inplace, limit=limit, regex=True
@@ -6570,10 +6595,9 @@ class NDFrame(PandasObject, SelectionMixin):
                         to_replace=to_replace, value=value, inplace=inplace, regex=regex
                     )
                 else:
-                    msg = ('Invalid "to_replace" type: ' "{0!r}").format(
-                        type(to_replace).__name__
+                    raise TypeError(
+                        f'Invalid "to_replace" type: {repr(type(to_replace).__name__)}'
                     )
-                    raise TypeError(msg)  # pragma: no cover
 
         if inplace:
             self._update_inplace(new_data)

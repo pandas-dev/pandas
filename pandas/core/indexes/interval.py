@@ -83,9 +83,7 @@ def _get_next_label(label):
     elif is_float_dtype(dtype):
         return np.nextafter(label, np.infty)
     else:
-        raise TypeError(
-            "cannot determine next label for type {typ!r}".format(typ=type(label))
-        )
+        raise TypeError(f"cannot determine next label for type {repr(type(label))}")
 
 
 def _get_prev_label(label):
@@ -99,9 +97,7 @@ def _get_prev_label(label):
     elif is_float_dtype(dtype):
         return np.nextafter(label, -np.infty)
     else:
-        raise TypeError(
-            "cannot determine next label for type {typ!r}".format(typ=type(label))
-        )
+        raise TypeError(f"cannot determine next label for type {repr(type(label))}")
 
 
 def _get_interval_closed_bounds(interval):

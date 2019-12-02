@@ -15,6 +15,7 @@ from io import BytesIO
 import os
 import struct
 import sys
+from typing import Any
 import warnings
 
 from dateutil.relativedelta import relativedelta
@@ -857,7 +858,7 @@ class StataMissingValue:
     def __repr__(self) -> str:
         return f"{type(self)}({self})"
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: Any) -> bool:
         return (
             isinstance(other, type(self))
             and self.string == other.string
