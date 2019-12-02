@@ -4,7 +4,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import lib
+from pandas._libs import lib, missing as libmissing
 from pandas.compat import set_function_name
 from pandas.util._decorators import cache_readonly
 
@@ -43,7 +43,7 @@ class _IntegerDtype(ExtensionDtype):
     name: str
     base = None
     type: Type
-    na_value = np.nan
+    na_value = libmissing.NA
 
     def __repr__(self) -> str:
         sign = "U" if self.is_unsigned_integer else ""
@@ -377,14 +377,19 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             return self._data[item]
         return type(self)(self._data[item], self._mask[item])
 
-    def _coerce_to_ndarray(self):
+    def _coerce_to_ndarray(self, dtype=None):
         """
         coerce to an ndarary of object dtype
         """
-
         # TODO(jreback) make this better
         data = self._data.astype(object)
-        data[self._mask] = self._na_value
+
+        if dtype is not None and is_float_dtype(dtype):
+            na_value = np.nan
+        else:
+            na_value = self._na_value
+
+        data[self._mask] = na_value
         return data
 
     __array_priority__ = 1000  # higher than ndarray so ops dispatch to us
@@ -394,7 +399,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         the array interface, return my values
         We return an object array here to preserve our scalar values
         """
-        return self._coerce_to_ndarray()
+        return self._coerce_to_ndarray(dtype=dtype)
 
     def __arrow_array__(self, type=None):
         """
@@ -510,7 +515,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
     @property
     def _na_value(self):
-        return np.nan
+        return self.dtype.na_value
 
     @classmethod
     def _concat_same_type(cls, to_concat):
@@ -549,7 +554,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             return type(self)(result, mask=self._mask, copy=False)
 
         # coerce
-        data = self._coerce_to_ndarray()
+        data = self._coerce_to_ndarray(dtype=dtype)
         return astype_nansafe(data, dtype, copy=None)
 
     @property
@@ -673,7 +678,8 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         # coerce to a nan-aware float if needed
         if mask.any():
             data = self._data.astype("float64")
-            data[mask] = self._na_value
+            # We explicitly use NaN within reductions.
+            data[mask] = np.nan
 
         op = getattr(nanops, "nan" + name)
         result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)

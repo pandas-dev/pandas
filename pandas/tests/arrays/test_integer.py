@@ -108,13 +108,17 @@ def test_repr_array_long():
 
 
 class TestConstructors:
+    def test_uses_pandas_na(self):
+        a = pd.array([1, None], dtype=pd.Int64Dtype())
+        assert a[1] is pd.NA
+
     def test_from_dtype_from_float(self, data):
         # construct from our dtype & string dtype
         dtype = data.dtype
 
         # from float
         expected = pd.Series(data)
-        result = pd.Series(np.array(data).astype("float"), dtype=str(dtype))
+        result = pd.Series(np.array(data, dtype="float"), dtype=str(dtype))
         tm.assert_series_equal(result, expected)
 
         # from int / list
@@ -464,7 +468,8 @@ class TestCasting:
 
         # coerce to same numpy_dtype - mixed
         s = pd.Series(mixed)
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
+            # XXX: Should this be TypeError or ValueError?
             s.astype(all_data.dtype.numpy_dtype)
 
         # coerce to object
@@ -507,7 +512,7 @@ def test_frame_repr(data_missing):
 
     df = pd.DataFrame({"A": data_missing})
     result = repr(df)
-    expected = "     A\n0  NaN\n1    1"
+    expected = "    A\n0  NA\n1   1"
     assert result == expected
 
 
@@ -523,7 +528,7 @@ def test_conversions(data_missing):
     # we assert that we are exactly equal
     # including type conversions of scalars
     result = df["A"].astype("object").values
-    expected = np.array([np.nan, 1], dtype=object)
+    expected = np.array([pd.NA, 1], dtype=object)
     tm.assert_numpy_array_equal(result, expected)
 
     for r, e in zip(result, expected):
@@ -750,9 +755,11 @@ def test_reduce_to_float(op):
 def test_astype_nansafe():
     # see gh-22343
     arr = integer_array([np.nan, 1, 2], dtype="Int8")
-    msg = "cannot convert float NaN to integer"
+    # XXX: determine the proper exception here, from int(NA).
+    # msg = "cannot convert float NaN to integer"
+    msg = ""
 
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(TypeError, match=msg):
         arr.astype("uint32")
 
 
