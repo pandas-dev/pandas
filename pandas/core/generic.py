@@ -1864,8 +1864,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def __hash__(self):
         raise TypeError(
-            "{0!r} objects are mutable, thus they cannot be"
-            " hashed".format(type(self).__name__)
+            f"{repr(type(self).__name__)} objects are mutable, "
+            f"thus they cannot be hashed"
         )
 
     def __iter__(self):
@@ -6567,11 +6567,9 @@ class NDFrame(PandasObject, SelectionMixin):
                     or is_dict_like(regex)
                 ):
                     raise TypeError(
-                        "'regex' must be a string or a compiled "
-                        "regular expression or a list or dict of "
-                        "strings or regular expressions, you "
-                        "passed a"
-                        " {0!r}".format(type(regex).__name__)
+                        f"'regex' must be a string or a compiled regular expression "
+                        f"or a list or dict of strings or regular expressions, "
+                        f"you passed a {repr(type(regex).__name__)}"
                     )
                 return self.replace(
                     regex, value, inplace=inplace, limit=limit, regex=True
@@ -6597,10 +6595,9 @@ class NDFrame(PandasObject, SelectionMixin):
                         to_replace=to_replace, value=value, inplace=inplace, regex=regex
                     )
                 else:
-                    msg = ('Invalid "to_replace" type: ' "{0!r}").format(
-                        type(to_replace).__name__
+                    raise TypeError(
+                        f'Invalid "to_replace" type: {repr(type(to_replace).__name__)}'
                     )
-                    raise TypeError(msg)  # pragma: no cover
 
         if inplace:
             self._update_inplace(new_data)
