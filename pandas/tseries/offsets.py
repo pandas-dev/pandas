@@ -1,7 +1,7 @@
 from datetime import date, datetime, timedelta
 import functools
 import operator
-from typing import Optional
+from typing import Any, Optional
 
 from dateutil.easter import easter
 import numpy as np
@@ -2551,7 +2551,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
                 f"the add operation between {self} and {other} will overflow"
             )
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: Any) -> bool:
         if isinstance(other, str):
             from pandas.tseries.frequencies import to_offset
 
