@@ -1,40 +1,16 @@
 """ orc compat """
 
 import distutils
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 from pandas.compat._optional import import_optional_dependency
 
-from pandas import DataFrame, get_option
 from pandas._typing import FilePathOrBuffer
 
 from pandas.io.common import get_filepath_or_buffer
 
-
-def get_engine(engine: str) -> "PyArrowImpl":
-    """ return our implementation """
-
-    if engine == "auto":
-        engine = get_option("io.orc.engine")
-
-    if engine == "auto":
-        # try engines in this order
-        try:
-            return PyArrowImpl()
-        except ImportError:
-            pass
-
-        raise ImportError(
-            "Unable to find a usable engine; "
-            "tried using: 'pyarrow'.\n"
-            "pyarrow is required for orc "
-            "support"
-        )
-
-    if engine not in ["pyarrow"]:
-        raise ValueError("engine must be 'pyarrow'")
-
-    return PyArrowImpl()
+if TYPE_CHECKING:
+    from pandas import DataFrame
 
 
 class PyArrowImpl:
@@ -55,22 +31,15 @@ class PyArrowImpl:
 
     def read(
         self, path: FilePathOrBuffer, columns: Optional[List[str]] = None, **kwargs
-    ) -> DataFrame:
+    ) -> "DataFrame":
         path, _, _, _ = get_filepath_or_buffer(path)
-
-        py_file = self.api.input_stream(path)
-        orc_file = self.api.orc.ORCFile(py_file)
-
+        orc_file = self.api.orc.ORCFile(path)
         result = orc_file.read(columns=columns, **kwargs).to_pandas()
-
         return result
 
 
 def read_orc(
-    path: FilePathOrBuffer,
-    engine: str = "auto",
-    columns: Optional[List[str]] = None,
-    **kwargs,
+    path: FilePathOrBuffer, columns: Optional[List[str]] = None, **kwargs,
 ):
     """
     Load an ORC object from the file path, returning a DataFrame.
@@ -91,18 +60,15 @@ def read_orc(
         By file-like object, we refer to objects with a ``read()`` method,
         such as a file handler (e.g. via builtin ``open`` function)
         or ``StringIO``.
-    engine : {'auto', 'pyarrow'}, default 'auto'
-        ORC library to use. If 'auto', then the option ``io.orc.engine`` is
-        used. The default ``io.orc.engine`` behavior is to try 'pyarrow'.
     columns : list, default=None
         If not None, only these columns will be read from the file.
     **kwargs
-        Any additional kwargs are passed to the engine.
+        Any additional kwargs are passed to pyarrow.
 
     Returns
     -------
     DataFrame
     """
 
-    impl = get_engine(engine)
+    impl = PyArrowImpl()
     return impl.read(path, columns=columns, **kwargs)
