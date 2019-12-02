@@ -330,7 +330,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         return dtype
 
     @classmethod
-    def construct_from_string(cls, string: str):
+    def construct_from_string(cls, string: str_type) -> "CategoricalDtype":
         if not isinstance(string, str):
             raise TypeError(f"Expects a string, got {type(string)}")
         if string != cls.name:
