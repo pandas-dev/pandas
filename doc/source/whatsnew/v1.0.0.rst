@@ -465,6 +465,8 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - :meth:`pandas.Series.str.cat` now defaults to aligning ``others``, using ``join='left'`` (:issue:`27611`)
 - :meth:`pandas.Series.str.cat` does not accept list-likes *within* list-likes anymore (:issue:`27611`)
 - :meth:`Series.where` with ``Categorical`` dtype (or :meth:`DataFrame.where` with ``Categorical`` column) no longer allows setting new categories (:issue:`24114`)
+- :class:`DatetimeIndex`, :class:`TimedeltaIndex`, and :class:`PeriodIndex` constructors no longer allow ``start``, ``end``, and ``periods`` keywords, use :func:`date_range`, :func:`timedelta_range`, and :func:`period_range` instead (:issue:`23919`)
+- :class:`DatetimeIndex` and :class:`TimedeltaIndex` constructors no longer have a ``verify_integrity`` keyword argument (:issue:`23919`)
 - :func:`core.internals.blocks.make_block` no longer accepts the "fastpath" keyword(:issue:`19265`)
 - :meth:`Block.make_block_same_class` no longer accepts the "dtype" keyword(:issue:`19434`)
 - Removed the previously deprecated :meth:`ExtensionArray._formatting_values`. Use :attr:`ExtensionArray._formatter` instead. (:issue:`23601`)
