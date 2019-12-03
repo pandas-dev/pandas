@@ -618,7 +618,9 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             # w/o passing the dtype
             array = np.append(array, [self._mask.sum()])
             index = Index(
-                np.concatenate([index.values, np.array([np.nan], dtype=object)]),
+                np.concatenate(
+                    [index.values, np.array([self.dtype.na_value], dtype=object)]
+                ),
                 dtype=object,
             )
 
