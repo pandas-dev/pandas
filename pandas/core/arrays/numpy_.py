@@ -118,6 +118,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
     # pandas internals, which turns off things like block consolidation.
     _typ = "npy_extension"
     __array_priority__ = 1000
+    _ndarray: np.ndarray
 
     # ------------------------------------------------------------------------
     # Constructors
