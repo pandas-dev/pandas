@@ -27,7 +27,7 @@ import numpy as np
 
 from pandas._config import config
 
-from pandas._libs import Timestamp, iNaT, lib, properties
+from pandas._libs import Timestamp, iNaT, properties
 from pandas.compat import set_function_name
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -2414,7 +2414,8 @@ class NDFrame(PandasObject, SelectionMixin):
         format: Optional[str] = None,
         index: bool_t = True,
         min_itemsize: Optional[Union[int, Dict[str, int]]] = None,
-        nan_rep=lib._no_default,
+        nan_rep=None,
+        dropna: Optional[bool_t] = None,
         data_columns: Optional[List[str]] = None,
         errors: str = "strict",
         encoding: str = "UTF-8",
@@ -2537,6 +2538,7 @@ class NDFrame(PandasObject, SelectionMixin):
             index=index,
             min_itemsize=min_itemsize,
             nan_rep=nan_rep,
+            dropna=dropna,
             data_columns=data_columns,
             errors=errors,
             encoding=encoding,

@@ -261,7 +261,8 @@ def to_hdf(
     format: Optional[str] = None,
     index: bool = True,
     min_itemsize: Optional[Union[int, Dict[str, int]]] = None,
-    nan_rep=lib._no_default,
+    nan_rep=None,
+    dropna: Optional[bool] = None,
     data_columns: Optional[List[str]] = None,
     errors: str = "strict",
     encoding: str = "UTF-8",
@@ -269,20 +270,20 @@ def to_hdf(
     """ store this object, close it if we opened it """
 
     if append:
-        if nan_rep is not lib._no_default:
-            raise ValueError("Cannot pass nan_rep with append=True")
         f = lambda store: store.append(
             key,
             value,
             format=format,
             index=index,
             min_itemsize=min_itemsize,
+            nan_rep=nan_rep,
+            dropna=dropna,
             data_columns=data_columns,
             errors=errors,
             encoding=encoding,
         )
     else:
-        nan_rep = None if nan_rep is lib._no_default else nan_rep
+        # NB: dropna is not passed to `put`
         f = lambda store: store.put(
             key,
             value,
@@ -1123,6 +1124,7 @@ class HDFStore:
         complevel: Optional[int] = None,
         columns=None,
         min_itemsize: Optional[Union[int, Dict[str, int]]] = None,
+        nan_rep=None,
         chunksize=None,
         expectedrows=None,
         dropna: Optional[bool] = None,
@@ -1184,6 +1186,7 @@ class HDFStore:
             complib=complib,
             complevel=complevel,
             min_itemsize=min_itemsize,
+            nan_rep=nan_rep,
             chunksize=chunksize,
             expectedrows=expectedrows,
             dropna=dropna,
