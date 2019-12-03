@@ -179,16 +179,6 @@ class TestTimedeltaIndex(DatetimeLike):
 
         tm.assert_numpy_array_equal(dexer, np.array([0, 2, 1]), check_dtype=False)
 
-    def test_get_duplicates(self):
-        idx = TimedeltaIndex(["1 day", "2 day", "2 day", "3 day", "3day", "4day"])
-
-        with tm.assert_produces_warning(FutureWarning):
-            # Deprecated - see GH20239
-            result = idx.get_duplicates()
-
-        ex = TimedeltaIndex(["2 day", "3day"])
-        tm.assert_index_equal(result, ex)
-
     def test_argmin_argmax(self):
         idx = TimedeltaIndex(["1 day 00:00:05", "1 day 00:00:01", "1 day 00:00:02"])
         assert idx.argmin() == 1
