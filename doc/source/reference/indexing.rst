@@ -32,7 +32,6 @@ Properties
    Index.has_duplicates
    Index.hasnans
    Index.dtype
-   Index.dtype_str
    Index.inferred_type
    Index.is_all_dates
    Index.shape
@@ -153,7 +152,6 @@ Selecting
    Index.asof
    Index.asof_locs
    Index.contains
-   Index.get_duplicates
    Index.get_indexer
    Index.get_indexer_for
    Index.get_indexer_non_unique

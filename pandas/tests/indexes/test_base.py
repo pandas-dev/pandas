@@ -2394,11 +2394,6 @@ Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
         with pytest.raises(AttributeError, match="Can't set attribute"):
             index.is_unique = False
 
-    def test_get_duplicates_deprecated(self):
-        index = pd.Index([1, 2, 3])
-        with tm.assert_produces_warning(FutureWarning):
-            index.get_duplicates()
-
     def test_tab_complete_warning(self, ip):
         # https://github.com/pandas-dev/pandas/issues/16409
         pytest.importorskip("IPython", minversion="6.0.0")

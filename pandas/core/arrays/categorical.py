@@ -27,7 +27,6 @@ from pandas.core.dtypes.common import (
     is_dict_like,
     is_dtype_equal,
     is_extension_array_dtype,
-    is_float_dtype,
     is_integer_dtype,
     is_iterator,
     is_list_like,
@@ -646,22 +645,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         codes = np.asarray(codes)  # #21767
         if len(codes) and not is_integer_dtype(codes):
-            msg = "codes need to be array-like integers"
-            if is_float_dtype(codes):
-                icodes = codes.astype("i8")
-                if (icodes == codes).all():
-                    msg = None
-                    codes = icodes
-                    warn(
-                        (
-                            "float codes will be disallowed in the future and "
-                            "raise a ValueError"
-                        ),
-                        FutureWarning,
-                        stacklevel=2,
-                    )
-            if msg:
-                raise ValueError(msg)
+            raise ValueError("codes need to be array-like integers")
 
         if len(codes) and (codes.max() >= len(dtype.categories) or codes.min() < -1):
             raise ValueError("codes need to be between -1 and len(categories)-1")
@@ -1648,7 +1632,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if na_position not in ["last", "first"]:
-            raise ValueError(f"invalid na_position: {na_position!r}")
+            raise ValueError(f"invalid na_position: {repr(na_position)}")
 
         sorted_idx = nargsort(self, ascending=ascending, na_position=na_position)
 
@@ -1688,24 +1672,6 @@ class Categorical(ExtensionArray, PandasObject):
                 self.rename_categories(Series(self.categories).rank().values)
             )
         return values
-
-    def ravel(self, order="C"):
-        """
-        Return a flattened (numpy) array.
-
-        For internal compatibility with numpy arrays.
-
-        Returns
-        -------
-        numpy.array
-        """
-        warn(
-            "Categorical.ravel will return a Categorical object instead "
-            "of an ndarray in a future version.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return np.array(self)
 
     def view(self, dtype=None):
         if dtype is not None:
@@ -1803,8 +1769,8 @@ class Categorical(ExtensionArray, PandasObject):
 
             else:
                 raise TypeError(
-                    '"value" parameter must be a scalar, dict '
-                    f'or Series, but you passed a {type(value).__name__!r}"'
+                    f"'value' parameter must be a scalar, dict "
+                    f"or Series, but you passed a {type(value).__name__}"
                 )
 
         return self._constructor(codes, dtype=self.dtype, fastpath=True)
@@ -2157,7 +2123,8 @@ class Categorical(ExtensionArray, PandasObject):
             raise TypeError(f"Categorical cannot perform the operation {name}")
         return func(**kwargs)
 
-    def min(self, numeric_only=None, **kwargs):
+    @deprecate_kwarg(old_arg_name="numeric_only", new_arg_name="skipna")
+    def min(self, skipna=True):
         """
         The minimum value of the object.
 
@@ -2173,17 +2140,18 @@ class Categorical(ExtensionArray, PandasObject):
         min : the minimum of this `Categorical`
         """
         self.check_for_ordered("min")
-        if numeric_only:
-            good = self._codes != -1
-            pointer = self._codes[good].min(**kwargs)
+        good = self._codes != -1
+        if not good.all():
+            if skipna:
+                pointer = self._codes[good].min()
+            else:
+                return np.nan
         else:
-            pointer = self._codes.min(**kwargs)
-        if pointer == -1:
-            return np.nan
-        else:
-            return self.categories[pointer]
+            pointer = self._codes.min()
+        return self.categories[pointer]
 
-    def max(self, numeric_only=None, **kwargs):
+    @deprecate_kwarg(old_arg_name="numeric_only", new_arg_name="skipna")
+    def max(self, skipna=True):
         """
         The maximum value of the object.
 
@@ -2199,15 +2167,15 @@ class Categorical(ExtensionArray, PandasObject):
         max : the maximum of this `Categorical`
         """
         self.check_for_ordered("max")
-        if numeric_only:
-            good = self._codes != -1
-            pointer = self._codes[good].max(**kwargs)
+        good = self._codes != -1
+        if not good.all():
+            if skipna:
+                pointer = self._codes[good].max()
+            else:
+                return np.nan
         else:
-            pointer = self._codes.max(**kwargs)
-        if pointer == -1:
-            return np.nan
-        else:
-            return self.categories[pointer]
+            pointer = self._codes.max()
+        return self.categories[pointer]
 
     def mode(self, dropna=True):
         """

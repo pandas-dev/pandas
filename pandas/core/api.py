@@ -55,3 +55,5 @@ from pandas.tseries.offsets import DateOffset
 
 # DataFrame needs to be imported after NamedAgg to avoid a circular import
 from pandas.core.frame import DataFrame  # isort:skip
+
+from pandas._libs.missing import NA
