@@ -554,8 +554,11 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
     @classmethod
     def _create_logical_method(cls, op):
         def logical_method(self, other):
+            from pandas.arrays import IntegerArray
 
-            if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
+            if isinstance(
+                other, (ABCDataFrame, ABCSeries, ABCIndexClass, IntegerArray)
+            ):
                 # Rely on pandas to unbox and dispatch to us.
                 return NotImplemented
 

@@ -365,10 +365,10 @@ class TestComparisonOps(BaseOpsUtil):
 
         # array
         result = pd.Series(op(data, other))
-        expected = pd.Series(op(data._data, other))
+        expected = pd.Series(op(data._data, other), dtype="boolean")
 
         # fill the nan locations
-        expected[data._mask] = op_name == "__ne__"
+        expected[data._mask] = pd.NA
 
         tm.assert_series_equal(result, expected)
 
@@ -376,11 +376,10 @@ class TestComparisonOps(BaseOpsUtil):
         s = pd.Series(data)
         result = op(s, other)
 
-        expected = pd.Series(data._data)
-        expected = op(expected, other)
+        expected = op(pd.Series(data._data), other)
 
         # fill the nan locations
-        expected[data._mask] = op_name == "__ne__"
+        expected[data._mask] = pd.NA
 
         tm.assert_series_equal(result, expected)
 
@@ -392,6 +391,17 @@ class TestComparisonOps(BaseOpsUtil):
         op_name = all_compare_operators
         other = pd.Series([0] * len(data))
         self._compare_other(data, op_name, other)
+
+    def test_compare_boolean_array(self):
+        left = pd.array([0, 1, None, None], dtype="Int64")
+        right = pd.array([True, True, False, None], dtype="boolean")
+        expected = pd.array([False, True, None, None], dtype="boolean")
+
+        result = left == right
+        tm.assert_extension_array_equal(result, expected)
+
+        result = right == left
+        tm.assert_extension_array_equal(result, expected)
 
 
 class TestCasting:

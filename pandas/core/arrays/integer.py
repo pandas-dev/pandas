@@ -653,13 +653,13 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
     @classmethod
     def _create_comparison_method(cls, op):
-        op_name = op.__name__
-
         @unpack_zerodim_and_defer(op.__name__)
         def cmp_method(self, other):
+            from pandas.arrays import BooleanArray
+
             mask = None
 
-            if isinstance(other, IntegerArray):
+            if isinstance(other, (BooleanArray, IntegerArray)):
                 other, mask = other._data, other._mask
 
             elif is_list_like(other):
@@ -684,8 +684,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             else:
                 mask = self._mask | mask
 
-            result[mask] = op_name == "ne"
-            return result
+            return BooleanArray(result, mask)
 
         name = "__{name}__".format(name=op.__name__)
         return set_function_name(cmp_method, name, cls)
