@@ -1934,8 +1934,8 @@ def forbid_nonstring_types(forbidden, name=None):
             if self._inferred_dtype not in allowed_types:
                 msg = (
                     "Cannot use .str.{name} with values of inferred dtype "
-                    "{inf_type!r}.".format(
-                        name=func_name, inf_type=self._inferred_dtype
+                    f"{repr(self._inferred_dtype)}.".format(
+                        name=func_name
                     )
                 )
                 raise TypeError(msg)
