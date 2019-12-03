@@ -3832,6 +3832,8 @@ class Table(Fixed):
 
                 self.non_index_axes.append((i, append_axis))
 
+        # Note: we can't do this update_info inside the loop because self.info
+        #  is modified at another step in the loop above.
         new_index.update_info(self.info)
         self.index_axes = [new_index]
 
