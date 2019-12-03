@@ -249,8 +249,8 @@ def get_filepath_or_buffer(
         return _expand_user(filepath_or_buffer), None, compression, False
 
     if not is_file_like(filepath_or_buffer):
-        msg = "Invalid file path or buffer object type: {_type}"
-        raise ValueError(msg.format(_type=type(filepath_or_buffer)))
+        msg = f"Invalid file path or buffer object type: {type(filepath_or_buffer)}"
+        raise ValueError(msg)
 
     return filepath_or_buffer, None, compression, False
 
@@ -358,9 +358,9 @@ def _infer_compression(
     if compression in _compression_to_extension:
         return compression
 
-    msg = "Unrecognized compression type: {}".format(compression)
+    msg = f"Unrecognized compression type: {compression}"
     valid = ["infer", None] + sorted(_compression_to_extension)
-    msg += "\nValid compression types are {}".format(valid)
+    msg += f"\nValid compression types are {valid}"
     raise ValueError(msg)
 
 
@@ -458,12 +458,12 @@ def _get_handle(
                     f = zf.open(zip_names.pop())
                 elif len(zip_names) == 0:
                     raise ValueError(
-                        "Zero files found in ZIP file {}".format(path_or_buf)
+                        f"Zero files found in ZIP file {path_or_buf}"
                     )
                 else:
                     raise ValueError(
-                        "Multiple files found in ZIP file."
-                        " Only one file per ZIP: {}".format(zip_names)
+                        f"Multiple files found in ZIP file."
+                        " Only one file per ZIP: {zip_names}"
                     )
 
         # XZ Compression
@@ -472,7 +472,7 @@ def _get_handle(
 
         # Unrecognized Compression
         else:
-            msg = "Unrecognized compression type: {}".format(compression)
+            msg = f"Unrecognized compression type: {compression}"
             raise ValueError(msg)
 
         handles.append(f)
