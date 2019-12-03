@@ -6,11 +6,35 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Categorical, DataFrame, Series, compat, date_range, timedelta_range
+from pandas import (
+    Categorical,
+    DataFrame,
+    Series,
+    SparseDtype,
+    compat,
+    date_range,
+    timedelta_range,
+)
 import pandas.util.testing as tm
 
 
-class TestDataFrameMisc:
+class SharedWithSparse:
+    """
+    A collection of tests DataFrame and SparseDataFrame can share.
+
+    In generic tests on this class, use ``self._assert_frame_equal()`` and
+    ``self._assert_series_equal()`` which are implemented in sub-classes
+    and dispatch correctly.
+    """
+
+    def _assert_frame_equal(self, left, right):
+        """Dispatch to frame class dependent assertion"""
+        raise NotImplementedError
+
+    def _assert_series_equal(self, left, right):
+        """Dispatch to series class dependent assertion"""
+        raise NotImplementedError
+
     def test_copy_index_name_checking(self, float_frame):
         # don't want to be able to modify the index stored elsewhere after
         # making a copy
@@ -117,16 +141,16 @@ class TestDataFrameMisc:
     def test_not_hashable(self):
         empty_frame = DataFrame()
 
-        df = DataFrame([1])
-        msg = "'DataFrame' objects are mutable, thus they cannot be hashed"
+        df = self.klass([1])
+        msg = "'(Sparse)?DataFrame' objects are mutable, thus they cannot be hashed"
         with pytest.raises(TypeError, match=msg):
             hash(df)
         with pytest.raises(TypeError, match=msg):
             hash(empty_frame)
 
     def test_new_empty_index(self):
-        df1 = DataFrame(np.random.randn(0, 3))
-        df2 = DataFrame(np.random.randn(0, 3))
+        df1 = self.klass(np.random.randn(0, 3))
+        df2 = self.klass(np.random.randn(0, 3))
         df1.index.name = "foo"
         assert df2.index.name is None
 
@@ -137,7 +161,7 @@ class TestDataFrameMisc:
         assert result.index is float_frame.index
         assert result.columns is float_frame.columns
 
-        tm.assert_frame_equal(result, float_frame.apply(np.sqrt))
+        self._assert_frame_equal(result, float_frame.apply(np.sqrt))
 
     def test_get_agg_axis(self, float_frame):
         cols = float_frame._get_agg_axis(0)
@@ -163,9 +187,9 @@ class TestDataFrameMisc:
         assert not df.empty
 
     def test_iteritems(self):
-        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=["a", "a", "b"])
+        df = self.klass([[1, 2, 3], [4, 5, 6]], columns=["a", "a", "b"])
         for k, v in df.items():
-            assert isinstance(v, DataFrame._constructor_sliced)
+            assert isinstance(v, self.klass._constructor_sliced)
 
     def test_items(self):
         # GH 17213, GH 13918
@@ -182,15 +206,15 @@ class TestDataFrameMisc:
     def test_iterrows(self, float_frame, float_string_frame):
         for k, v in float_frame.iterrows():
             exp = float_frame.loc[k]
-            tm.assert_series_equal(v, exp)
+            self._assert_series_equal(v, exp)
 
         for k, v in float_string_frame.iterrows():
             exp = float_string_frame.loc[k]
-            tm.assert_series_equal(v, exp)
+            self._assert_series_equal(v, exp)
 
     def test_iterrows_iso8601(self):
         # GH 19671
-        s = DataFrame(
+        s = self.klass(
             {
                 "non_iso8601": ["M1701", "M1802", "M1903", "M2004"],
                 "iso8601": date_range("2000-01-01", periods=4, freq="M"),
@@ -198,7 +222,7 @@ class TestDataFrameMisc:
         )
         for k, v in s.iterrows():
             exp = s.loc[k]
-            tm.assert_series_equal(v, exp)
+            self._assert_series_equal(v, exp)
 
     def test_iterrows_corner(self):
         # gh-12222
@@ -224,19 +248,19 @@ class TestDataFrameMisc:
 
     def test_itertuples(self, float_frame):
         for i, tup in enumerate(float_frame.itertuples()):
-            s = DataFrame._constructor_sliced(tup[1:])
+            s = self.klass._constructor_sliced(tup[1:])
             s.name = tup[0]
             expected = float_frame.iloc[i, :].reset_index(drop=True)
-            tm.assert_series_equal(s, expected)
+            self._assert_series_equal(s, expected)
 
-        df = DataFrame(
+        df = self.klass(
             {"floats": np.random.randn(5), "ints": range(5)}, columns=["floats", "ints"]
         )
 
         for tup in df.itertuples(index=False):
             assert isinstance(tup[1], int)
 
-        df = DataFrame(data={"a": [1, 2, 3], "b": [4, 5, 6]})
+        df = self.klass(data={"a": [1, 2, 3], "b": [4, 5, 6]})
         dfaa = df[["a", "a"]]
 
         assert list(dfaa.itertuples()) == [(0, 1, 1), (1, 2, 2), (2, 3, 3)]
@@ -291,7 +315,7 @@ class TestDataFrameMisc:
     def test_len(self, float_frame):
         assert len(float_frame) == len(float_frame.index)
 
-    def test_values_mixed_dtypes(self, float_frame, float_string_frame):
+    def test_values(self, float_frame, float_string_frame):
         frame = float_frame
         arr = frame.values
 
@@ -308,7 +332,7 @@ class TestDataFrameMisc:
         arr = float_string_frame[["foo", "A"]].values
         assert arr[0, 0] == "bar"
 
-        df = DataFrame({"complex": [1j, 2j, 3j], "real": [1, 2, 3]})
+        df = self.klass({"complex": [1j, 2j, 3j], "real": [1, 2, 3]})
         arr = df.values
         assert arr[0, 0] == 1j
 
@@ -348,17 +372,17 @@ class TestDataFrameMisc:
 
         # mixed type
         index, data = tm.getMixedTypeDict()
-        mixed = DataFrame(data, index=index)
+        mixed = self.klass(data, index=index)
 
         mixed_T = mixed.T
         for col, s in mixed_T.items():
             assert s.dtype == np.object_
 
     def test_swapaxes(self):
-        df = DataFrame(np.random.randn(10, 5))
-        tm.assert_frame_equal(df.T, df.swapaxes(0, 1))
-        tm.assert_frame_equal(df.T, df.swapaxes(1, 0))
-        tm.assert_frame_equal(df, df.swapaxes(0, 0))
+        df = self.klass(np.random.randn(10, 5))
+        self._assert_frame_equal(df.T, df.swapaxes(0, 1))
+        self._assert_frame_equal(df.T, df.swapaxes(1, 0))
+        self._assert_frame_equal(df, df.swapaxes(0, 0))
         msg = (
             "No axis named 2 for object type"
             r" <class 'pandas.core(.sparse)?.frame.(Sparse)?DataFrame'>"
@@ -389,7 +413,7 @@ class TestDataFrameMisc:
         assert values.shape[1] == len(float_string_frame.columns)
 
     def test_repr_with_mi_nat(self, float_string_frame):
-        df = DataFrame(
+        df = self.klass(
             {"X": [1, 2]}, index=[[pd.NaT, pd.Timestamp("20130101")], ["a", "b"]]
         )
         result = repr(df)
@@ -406,18 +430,18 @@ class TestDataFrameMisc:
             assert v.name == k
 
     def test_empty_nonzero(self):
-        df = DataFrame([1, 2, 3])
+        df = self.klass([1, 2, 3])
         assert not df.empty
-        df = DataFrame(index=[1], columns=[1])
+        df = self.klass(index=[1], columns=[1])
         assert not df.empty
-        df = DataFrame(index=["a", "b"], columns=["c", "d"]).dropna()
+        df = self.klass(index=["a", "b"], columns=["c", "d"]).dropna()
         assert df.empty
         assert df.T.empty
         empty_frames = [
-            DataFrame(),
-            DataFrame(index=[1]),
-            DataFrame(columns=[1]),
-            DataFrame({1: []}),
+            self.klass(),
+            self.klass(index=[1]),
+            self.klass(columns=[1]),
+            self.klass({1: []}),
         ]
         for df in empty_frames:
             assert df.empty
@@ -425,7 +449,7 @@ class TestDataFrameMisc:
 
     def test_with_datetimelikes(self):
 
-        df = DataFrame(
+        df = self.klass(
             {
                 "A": date_range("20130101", periods=10),
                 "B": timedelta_range("1 day", periods=10),
@@ -434,8 +458,19 @@ class TestDataFrameMisc:
         t = df.T
 
         result = t.dtypes.value_counts()
-        expected = Series({np.dtype("object"): 10})
+        if self.klass is DataFrame:
+            expected = Series({np.dtype("object"): 10})
+        else:
+            expected = Series({SparseDtype(dtype=object): 10})
         tm.assert_series_equal(result, expected)
+
+
+class TestDataFrameMisc(SharedWithSparse):
+
+    klass = DataFrame
+    # SharedWithSparse tests use generic, klass-agnostic assertion
+    _assert_frame_equal = staticmethod(tm.assert_frame_equal)
+    _assert_series_equal = staticmethod(tm.assert_series_equal)
 
     def test_values(self, float_frame):
         float_frame.values[:, 0] = 5.0
