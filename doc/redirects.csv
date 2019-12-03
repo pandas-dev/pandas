@@ -636,7 +636,6 @@ generated/pandas.Index.equals,../reference/api/pandas.Index.equals
 generated/pandas.Index.factorize,../reference/api/pandas.Index.factorize
 generated/pandas.Index.fillna,../reference/api/pandas.Index.fillna
 generated/pandas.Index.format,../reference/api/pandas.Index.format
-generated/pandas.Index.get_duplicates,../reference/api/pandas.Index.get_duplicates
 generated/pandas.Index.get_indexer_for,../reference/api/pandas.Index.get_indexer_for
 generated/pandas.Index.get_indexer,../reference/api/pandas.Index.get_indexer
 generated/pandas.Index.get_indexer_non_unique,../reference/api/pandas.Index.get_indexer_non_unique
