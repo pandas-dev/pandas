@@ -6,6 +6,7 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas.compat import set_function_name
+from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import astype_nansafe
@@ -664,6 +665,16 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
             result = np.bool_(result)
 
         return result
+
+    def any(self, axis=None, out=None, keepdims=False, skipna=True):
+        # Note: needed to implement for
+        # pandas/tests/arrays/test_integer.py::test_preserve_dtypes[sum]
+        nv.validate_any((), dict(out=out, keepdims=keepdims))
+        return self._reduce("any", skipna=skipna)
+
+    def all(self, axis=None, out=None, keepdims=False, skipna=True):
+        nv.validate_any((), dict(out=out, keepdims=keepdims))
+        return self._reduce("all", skipna=skipna)
 
     def _maybe_mask_result(self, result, mask, other, op_name):
         """

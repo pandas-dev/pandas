@@ -189,6 +189,10 @@ class TestArithmeticOps(BaseOpsUtil):
             # Series op sets 1//0 to np.inf, which IntegerArray does not do (yet)
             mask2 = np.isinf(expected) & np.isnan(result)
             expected[mask2] = np.nan
+        if op_name == "__pow__":
+            # https://github.com/pandas-dev/pandas/issues/29997
+            # unclear what 1 ** NA is.
+            pytest.skip(msg="GH-29997")
         tm.assert_series_equal(result, expected)
 
     def _check_op_integer(self, result, expected, mask, s, op_name, other):
@@ -212,16 +216,23 @@ class TestArithmeticOps(BaseOpsUtil):
                 else:
                     expected = expected.fillna(0)
             else:
-                expected[(s.values == 0) & ((expected == 0) | expected.isna())] = 0
+                expected[
+                    (s.values == 0).fillna(False)
+                    & ((expected == 0).fillna(False) | expected.isna())
+                ] = 0
         try:
-            expected[(expected == np.inf) | (expected == -np.inf)] = fill_value
+            expected[
+                ((expected == np.inf) | (expected == -np.inf)).fillna(False)
+            ] = fill_value
             original = expected
             expected = expected.astype(s.dtype)
 
         except ValueError:
 
             expected = expected.astype(float)
-            expected[(expected == np.inf) | (expected == -np.inf)] = fill_value
+            expected[
+                ((expected == np.inf) | (expected == -np.inf)).fillna(False)
+            ] = fill_value
             original = expected
             expected = expected.astype(s.dtype)
 
@@ -343,6 +354,7 @@ class TestArithmeticOps(BaseOpsUtil):
         with pytest.raises(NotImplementedError):
             opa(np.arange(len(s)).reshape(-1, len(s)))
 
+    @pytest.mark.xfail(reason="GH-29997")
     def test_pow(self):
         # https://github.com/pandas-dev/pandas/issues/22022
         a = integer_array([1, np.nan, np.nan, 1])
@@ -353,6 +365,7 @@ class TestArithmeticOps(BaseOpsUtil):
 
     def test_rpow_one_to_na(self):
         # https://github.com/pandas-dev/pandas/issues/22022
+        # https://github.com/pandas-dev/pandas/issues/29997
         arr = integer_array([np.nan, np.nan])
         result = np.array([1.0, 2.0]) ** arr
         expected = np.array([1.0, np.nan])
@@ -702,7 +715,7 @@ def test_cross_type_arithmetic():
     tm.assert_series_equal(result, expected)
 
     result = (df.A + df.C) * 3 == 12
-    expected = pd.Series([False, True, False])
+    expected = pd.Series([False, True, None], dtype="boolean")
     tm.assert_series_equal(result, expected)
 
     result = df.A + df.B
