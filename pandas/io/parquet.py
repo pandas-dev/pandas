@@ -1,5 +1,6 @@
 """ parquet compat """
 
+from typing import Any, Dict, Optional
 from warnings import catch_warnings
 
 from pandas.compat._optional import import_optional_dependency
@@ -10,7 +11,7 @@ from pandas import DataFrame, get_option
 from pandas.io.common import get_filepath_or_buffer, is_gcs_url, is_s3_url
 
 
-def get_engine(engine):
+def get_engine(engine: str) -> "BaseImpl":
     """ return our implementation """
 
     if engine == "auto":
@@ -35,19 +36,15 @@ def get_engine(engine):
             "support"
         )
 
-    if engine not in ["pyarrow", "fastparquet"]:
-        raise ValueError("engine must be one of 'pyarrow', 'fastparquet'")
-
     if engine == "pyarrow":
         return PyArrowImpl()
     elif engine == "fastparquet":
         return FastParquetImpl()
 
+    raise ValueError("engine must be one of 'pyarrow', 'fastparquet'")
+
 
 class BaseImpl:
-
-    api = None  # module
-
     @staticmethod
     def validate_dataframe(df):
 
@@ -74,7 +71,7 @@ class BaseImpl:
 
 class PyArrowImpl(BaseImpl):
     def __init__(self):
-        pyarrow = import_optional_dependency(
+        import_optional_dependency(
             "pyarrow", extra="pyarrow is required for parquet support."
         )
         import pyarrow.parquet
@@ -87,13 +84,14 @@ class PyArrowImpl(BaseImpl):
         path,
         compression="snappy",
         coerce_timestamps="ms",
-        index=None,
+        index: Optional[bool] = None,
         partition_cols=None,
-        **kwargs
+        **kwargs,
     ):
         self.validate_dataframe(df)
         path, _, _, _ = get_filepath_or_buffer(path, mode="wb")
 
+        from_pandas_kwargs: Dict[str, Any]
         if index is None:
             from_pandas_kwargs = {}
         else:
@@ -106,7 +104,7 @@ class PyArrowImpl(BaseImpl):
                 compression=compression,
                 coerce_timestamps=coerce_timestamps,
                 partition_cols=partition_cols,
-                **kwargs
+                **kwargs,
             )
         else:
             self.api.parquet.write_table(
@@ -114,7 +112,7 @@ class PyArrowImpl(BaseImpl):
                 path,
                 compression=compression,
                 coerce_timestamps=coerce_timestamps,
-                **kwargs
+                **kwargs,
             )
 
     def read(self, path, columns=None, **kwargs):
@@ -176,7 +174,7 @@ class FastParquetImpl(BaseImpl):
                 compression=compression,
                 write_index=index,
                 partition_on=partition_cols,
-                **kwargs
+                **kwargs,
             )
 
     def read(self, path, columns=None, **kwargs):
@@ -203,9 +201,9 @@ def to_parquet(
     path,
     engine="auto",
     compression="snappy",
-    index=None,
+    index: Optional[bool] = None,
     partition_cols=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Write a DataFrame to the parquet format.
@@ -252,7 +250,7 @@ def to_parquet(
         compression=compression,
         index=index,
         partition_cols=partition_cols,
-        **kwargs
+        **kwargs,
     )
 
 

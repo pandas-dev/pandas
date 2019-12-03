@@ -51,7 +51,7 @@ def _to_ijv(ss, row_levels=(0,), column_levels=(1,), sort_labels=False):
             """
             labels = Index(map(tuple, labels)).unique().tolist()  # squish
             if sort_labels:
-                labels = sorted(list(labels))
+                labels = sorted(labels)
             d = OrderedDict((k, i) for i, k in enumerate(labels))
             return d
 

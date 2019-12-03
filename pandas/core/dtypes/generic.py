@@ -5,7 +5,7 @@
 # objects
 def create_pandas_abc_type(name, attr, comp):
     @classmethod
-    def _check(cls, inst):
+    def _check(cls, inst) -> bool:
         return getattr(inst, attr, "_typ") in comp
 
     dct = dict(__instancecheck__=_check, __subclasscheck__=_check)
@@ -74,7 +74,7 @@ ABCPandasArray = create_pandas_abc_type("ABCPandasArray", "_typ", ("npy_extensio
 
 
 class _ABCGeneric(type):
-    def __instancecheck__(cls, inst):
+    def __instancecheck__(cls, inst) -> bool:
         return hasattr(inst, "_data")
 
 

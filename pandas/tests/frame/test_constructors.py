@@ -8,9 +8,8 @@ import numpy.ma as ma
 import numpy.ma.mrecords as mrecords
 import pytest
 
-from pandas.compat import PY36, is_platform_little_endian
+from pandas.compat import is_platform_little_endian
 
-from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
@@ -50,13 +49,13 @@ class TestDataFrameConstructors:
             lambda: DataFrame({}),
             lambda: DataFrame(()),
             lambda: DataFrame([]),
-            lambda: DataFrame((x for x in [])),
+            lambda: DataFrame((_ for _ in [])),
             lambda: DataFrame(range(0)),
             lambda: DataFrame(data=None),
             lambda: DataFrame(data={}),
             lambda: DataFrame(data=()),
             lambda: DataFrame(data=[]),
-            lambda: DataFrame(data=(x for x in [])),
+            lambda: DataFrame(data=(_ for _ in [])),
             lambda: DataFrame(data=range(0)),
         ],
     )
@@ -72,7 +71,7 @@ class TestDataFrameConstructors:
         [
             ([[]], RangeIndex(1), RangeIndex(0)),
             ([[], []], RangeIndex(2), RangeIndex(0)),
-            ([(x for x in [])], RangeIndex(1), RangeIndex(0)),
+            ([(_ for _ in [])], RangeIndex(1), RangeIndex(0)),
         ],
     )
     def test_emptylike_constructor(self, emptylike, expected_index, expected_columns):
@@ -245,9 +244,9 @@ class TestDataFrameConstructors:
             np.array([2 ** 64], dtype=object),
             np.array([2 ** 65]),
             [2 ** 64 + 1],
-            np.array([-2 ** 63 - 4], dtype=object),
-            np.array([-2 ** 64 - 1]),
-            [-2 ** 65 - 2],
+            np.array([-(2 ** 63) - 4], dtype=object),
+            np.array([-(2 ** 64) - 1]),
+            [-(2 ** 65) - 2],
         ],
     )
     def test_constructor_int_overflow(self, values):
@@ -387,7 +386,6 @@ class TestDataFrameConstructors:
         result = DataFrame(data, index=idx, columns=cols)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.skipif(not PY36, reason="Insertion order for Python>=3.6")
     def test_constructor_dict_order_insertion(self):
         datetime_series = tm.makeTimeSeries(nper=30)
         datetime_series_short = tm.makeTimeSeries(nper=25)
@@ -397,18 +395,6 @@ class TestDataFrameConstructors:
         d = {"b": datetime_series_short, "a": datetime_series}
         frame = DataFrame(data=d)
         expected = DataFrame(data=d, columns=list("ba"))
-        tm.assert_frame_equal(frame, expected)
-
-    @pytest.mark.skipif(PY36, reason="order by value for Python<3.6")
-    def test_constructor_dict_order_by_values(self):
-        datetime_series = tm.makeTimeSeries(nper=30)
-        datetime_series_short = tm.makeTimeSeries(nper=25)
-
-        # GH19018
-        # initialization ordering: by value if python<3.6
-        d = {"b": datetime_series_short, "a": datetime_series}
-        frame = DataFrame(data=d)
-        expected = DataFrame(data=d, columns=list("ab"))
         tm.assert_frame_equal(frame, expected)
 
     def test_constructor_multi_index(self):
@@ -423,6 +409,25 @@ class TestDataFrameConstructors:
         mi = MultiIndex.from_tuples(tuples)
         df = DataFrame(index=mi, columns=mi)
         assert pd.isna(df).values.ravel().all()
+
+    def test_constructor_2d_index(self):
+        # GH 25416
+        # handling of 2d index in construction
+        df = pd.DataFrame([[1]], columns=[[1]], index=[1, 2])
+        expected = pd.DataFrame(
+            [1, 1],
+            index=pd.Int64Index([1, 2], dtype="int64"),
+            columns=pd.MultiIndex(levels=[[1]], codes=[[0]]),
+        )
+        tm.assert_frame_equal(df, expected)
+
+        df = pd.DataFrame([[1]], columns=[[1]], index=[[1, 2]])
+        expected = pd.DataFrame(
+            [1, 1],
+            index=pd.MultiIndex(levels=[[1, 2]], codes=[[0, 1]]),
+            columns=pd.MultiIndex(levels=[[1]], codes=[[0]]),
+        )
+        tm.assert_frame_equal(df, expected)
 
     def test_constructor_error_msgs(self):
         msg = "Empty data passed with indices specified."
@@ -1354,7 +1359,7 @@ class TestDataFrameConstructors:
             }
         )
         result = DataFrame(data)
-        tm.assert_frame_equal(result, expected, check_like=not PY36)
+        tm.assert_frame_equal(result, expected)
 
     def test_constructor_orient(self, float_string_frame):
         data_dict = float_string_frame.T._series
@@ -1404,6 +1409,23 @@ class TestDataFrameConstructors:
             DataFrame.from_dict(
                 dict([("A", [1, 2]), ("B", [4, 5])]), columns=["one", "two"]
             )
+
+    @pytest.mark.parametrize(
+        "data_dict, keys",
+        [
+            ([{("a",): 1}, {("a",): 2}], [("a",)]),
+            ([OrderedDict([(("a",), 1), (("b",), 2)])], [("a",), ("b",)]),
+            ([{("a", "b"): 1}], [("a", "b")]),
+        ],
+    )
+    def test_constructor_from_dict_tuples(self, data_dict, keys):
+        # GH 16769
+        df = DataFrame.from_dict(data_dict)
+
+        result = df.columns
+        expected = Index(keys, dtype="object", tupleize_cols=False)
+
+        tm.assert_index_equal(result, expected)
 
     def test_constructor_Series_named(self):
         a = Series([1, 2, 3], index=["a", "b", "c"], name="x")
@@ -1484,92 +1506,6 @@ class TestDataFrameConstructors:
         result = DataFrame(float_frame._data, index=index, columns=columns)
         tm.assert_index_equal(result.index, Index(index))
         tm.assert_index_equal(result.columns, Index(columns))
-
-    def test_constructor_from_items(self, float_frame, float_string_frame):
-        items = [(c, float_frame[c]) for c in float_frame.columns]
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            recons = DataFrame.from_items(items)
-        tm.assert_frame_equal(recons, float_frame)
-
-        # pass some columns
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            recons = DataFrame.from_items(items, columns=["C", "B", "A"])
-        tm.assert_frame_equal(recons, float_frame.loc[:, ["C", "B", "A"]])
-
-        # orient='index'
-
-        row_items = [
-            (idx, float_string_frame.xs(idx)) for idx in float_string_frame.index
-        ]
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            recons = DataFrame.from_items(
-                row_items, columns=float_string_frame.columns, orient="index"
-            )
-        tm.assert_frame_equal(recons, float_string_frame)
-        assert recons["A"].dtype == np.float64
-
-        msg = "Must pass columns with orient='index'"
-        with pytest.raises(TypeError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-                DataFrame.from_items(row_items, orient="index")
-
-        # orient='index', but thar be tuples
-        arr = construct_1d_object_array_from_listlike(
-            [("bar", "baz")] * len(float_string_frame)
-        )
-        float_string_frame["foo"] = arr
-        row_items = [
-            (idx, list(float_string_frame.xs(idx))) for idx in float_string_frame.index
-        ]
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            recons = DataFrame.from_items(
-                row_items, columns=float_string_frame.columns, orient="index"
-            )
-        tm.assert_frame_equal(recons, float_string_frame)
-        assert isinstance(recons["foo"][0], tuple)
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            rs = DataFrame.from_items(
-                [("A", [1, 2, 3]), ("B", [4, 5, 6])],
-                orient="index",
-                columns=["one", "two", "three"],
-            )
-        xp = DataFrame(
-            [[1, 2, 3], [4, 5, 6]], index=["A", "B"], columns=["one", "two", "three"]
-        )
-        tm.assert_frame_equal(rs, xp)
-
-    def test_constructor_from_items_scalars(self):
-        # GH 17312
-        msg = (
-            r"The value in each \(key, value\) "
-            "pair must be an array, Series, or dict"
-        )
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-                DataFrame.from_items([("A", 1), ("B", 4)])
-
-        msg = (
-            r"The value in each \(key, value\) "
-            "pair must be an array, Series, or dict"
-        )
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-                DataFrame.from_items(
-                    [("A", 1), ("B", 2)], columns=["col1"], orient="index"
-                )
-
-    def test_from_items_deprecation(self):
-        # GH 17320
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            DataFrame.from_items([("A", [1, 2, 3]), ("B", [4, 5, 6])])
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            DataFrame.from_items(
-                [("A", [1, 2, 3]), ("B", [4, 5, 6])],
-                columns=["col1", "col2", "col3"],
-                orient="index",
-            )
 
     def test_constructor_mix_series_nonseries(self, float_frame):
         df = DataFrame(
@@ -1772,7 +1708,7 @@ class TestDataFrameConstructors:
         # preserver an index with a tz on dict construction
         i = date_range("1/1/2011", periods=5, freq="10s", tz="US/Eastern")
 
-        expected = DataFrame({"a": i.to_series(keep_tz=True).reset_index(drop=True)})
+        expected = DataFrame({"a": i.to_series().reset_index(drop=True)})
         df = DataFrame()
         df["a"] = i
         tm.assert_frame_equal(df, expected)
@@ -1783,9 +1719,7 @@ class TestDataFrameConstructors:
         # multiples
         i_no_tz = date_range("1/1/2011", periods=5, freq="10s")
         df = DataFrame({"a": i, "b": i_no_tz})
-        expected = DataFrame(
-            {"a": i.to_series(keep_tz=True).reset_index(drop=True), "b": i_no_tz}
-        )
+        expected = DataFrame({"a": i.to_series().reset_index(drop=True), "b": i_no_tz})
         tm.assert_frame_equal(df, expected)
 
     def test_constructor_datetimes_with_nulls(self):

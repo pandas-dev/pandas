@@ -1,10 +1,7 @@
-try:
-    import json
-except ImportError:
-    import simplejson as json
 import calendar
 import datetime
 import decimal
+import json
 import locale
 import math
 import re
@@ -624,7 +621,7 @@ class TestUltraJSONTests:
             def recursive_attr(self):
                 return _TestObject("recursive_attr")
 
-            def __str__(self):
+            def __str__(self) -> str:
                 return str(self.val)
 
         msg = "Maximum recursion level reached"

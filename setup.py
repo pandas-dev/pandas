@@ -83,12 +83,7 @@ else:
 
 
 _pxi_dep_template = {
-    "algos": [
-        "_libs/algos_common_helper.pxi.in",
-        "_libs/algos_take_helper.pxi.in",
-        "_libs/algos_rank_helper.pxi.in",
-    ],
-    "groupby": ["_libs/groupby_helper.pxi.in"],
+    "algos": ["_libs/algos_common_helper.pxi.in", "_libs/algos_take_helper.pxi.in"],
     "hashtable": [
         "_libs/hashtable_class_helper.pxi.in",
         "_libs/hashtable_func_helper.pxi.in",
@@ -167,7 +162,7 @@ The two primary data structures of pandas, Series (1-dimensional) and DataFrame
 (2-dimensional), handle the vast majority of typical use cases in finance,
 statistics, social science, and many areas of engineering. For R users,
 DataFrame provides everything that R's ``data.frame`` provides and much
-more. pandas is built on top of `NumPy <http://www.numpy.org>`__ and is
+more. pandas is built on top of `NumPy <https://www.numpy.org>`__ and is
 intended to integrate well within a scientific computing environment with many
 other 3rd party libraries.
 
@@ -211,11 +206,11 @@ DISTNAME = "pandas"
 LICENSE = "BSD"
 AUTHOR = "The PyData Development Team"
 EMAIL = "pydata@googlegroups.com"
-URL = "http://pandas.pydata.org"
+URL = "https://pandas.pydata.org"
 DOWNLOAD_URL = ""
 PROJECT_URLS = {
     "Bug Tracker": "https://github.com/pandas-dev/pandas/issues",
-    "Documentation": "http://pandas.pydata.org/pandas-docs/stable/",
+    "Documentation": "https://pandas.pydata.org/pandas-docs/stable/",
     "Source Code": "https://github.com/pandas-dev/pandas",
 }
 CLASSIFIERS = [
@@ -225,7 +220,6 @@ CLASSIFIERS = [
     "Intended Audience :: Science/Research",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.5",
     "Programming Language :: Python :: 3.6",
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
@@ -332,7 +326,6 @@ class CheckSDist(sdist_class):
         "pandas/_libs/missing.pyx",
         "pandas/_libs/reduction.pyx",
         "pandas/_libs/testing.pyx",
-        "pandas/_libs/skiplist.pyx",
         "pandas/_libs/sparse.pyx",
         "pandas/_libs/ops.pyx",
         "pandas/_libs/parsers.pyx",
@@ -351,12 +344,13 @@ class CheckSDist(sdist_class):
         "pandas/_libs/tslibs/resolution.pyx",
         "pandas/_libs/tslibs/parsing.pyx",
         "pandas/_libs/tslibs/tzconversion.pyx",
+        "pandas/_libs/window/indexers.pyx",
         "pandas/_libs/writers.pyx",
         "pandas/io/sas/sas.pyx",
     ]
 
     _cpp_pyxfiles = [
-        "pandas/_libs/window.pyx",
+        "pandas/_libs/window/aggregations.pyx",
         "pandas/io/msgpack/_packer.pyx",
         "pandas/io/msgpack/_unpacker.pyx",
     ]
@@ -469,7 +463,7 @@ if is_platform_windows():
         extra_link_args.append("/DEBUG")
 else:
     # args to ignore warnings
-    extra_compile_args = ["-Wno-unused-function"]
+    extra_compile_args = []
     extra_link_args = []
     if debugging_symbols_requested:
         extra_compile_args.append("-g")
@@ -548,7 +542,7 @@ common_include = ["pandas/_libs/src/klib", "pandas/_libs/src"]
 ts_include = ["pandas/_libs/tslibs/src", "pandas/_libs/tslibs"]
 
 
-lib_depends = ["pandas/_libs/src/parse_helper.h", "pandas/_libs/src/compat_helper.h"]
+lib_depends = ["pandas/_libs/src/parse_helper.h"]
 
 np_datetime_headers = [
     "pandas/_libs/tslibs/src/datetime/np_datetime.h",
@@ -564,7 +558,7 @@ tseries_depends = np_datetime_headers
 
 ext_data = {
     "_libs.algos": {"pyxfile": "_libs/algos", "depends": _pxi_dep["algos"]},
-    "_libs.groupby": {"pyxfile": "_libs/groupby", "depends": _pxi_dep["groupby"]},
+    "_libs.groupby": {"pyxfile": "_libs/groupby"},
     "_libs.hashing": {"pyxfile": "_libs/hashing", "include": [], "depends": []},
     "_libs.hashtable": {
         "pyxfile": "_libs/hashtable",
@@ -606,10 +600,6 @@ ext_data = {
     "_libs.ops": {"pyxfile": "_libs/ops"},
     "_libs.properties": {"pyxfile": "_libs/properties", "include": []},
     "_libs.reshape": {"pyxfile": "_libs/reshape", "depends": []},
-    "_libs.skiplist": {
-        "pyxfile": "_libs/skiplist",
-        "depends": ["pandas/_libs/src/skiplist.h"],
-    },
     "_libs.sparse": {"pyxfile": "_libs/sparse", "depends": _pxi_dep["sparse"]},
     "_libs.tslib": {
         "pyxfile": "_libs/tslib",
@@ -693,7 +683,12 @@ ext_data = {
         "sources": np_datetime_sources,
     },
     "_libs.testing": {"pyxfile": "_libs/testing"},
-    "_libs.window": {"pyxfile": "_libs/window", "language": "c++", "suffix": ".cpp"},
+    "_libs.window.aggregations": {
+        "pyxfile": "_libs/window/aggregations",
+        "language": "c++",
+        "suffix": ".cpp"
+    },
+    "_libs.window.indexers": {"pyxfile": "_libs/window/indexers"},
     "_libs.writers": {"pyxfile": "_libs/writers"},
     "io.sas._sas": {"pyxfile": "io/sas/sas"},
     "io.msgpack._packer": {
@@ -819,7 +814,7 @@ setup(
     long_description=LONG_DESCRIPTION,
     classifiers=CLASSIFIERS,
     platforms="any",
-    python_requires=">=3.5.3",
+    python_requires=">=3.6.1",
     extras_require={
         "test": [
             # sync with setup.cfg minversion & install.rst
@@ -831,5 +826,5 @@ setup(
     entry_points={
         "pandas_plotting_backends": ["matplotlib = pandas:plotting._matplotlib"]
     },
-    **setuptools_kwargs
+    **setuptools_kwargs,
 )

@@ -16,11 +16,6 @@ from pandas import (
     timedelta_range,
 )
 import pandas.util.testing as tm
-from pandas.util.testing import (
-    assert_almost_equal,
-    assert_index_equal,
-    assert_series_equal,
-)
 
 from ..datetimelike import DatetimeLike
 
@@ -118,7 +113,7 @@ class TestTimedeltaIndex(DatetimeLike):
         result = index.isin(list(index))
         assert result.all()
 
-        assert_almost_equal(
+        tm.assert_almost_equal(
             index.isin([index[2], 5]), np.array([False, False, True, False])
         )
 
@@ -184,16 +179,6 @@ class TestTimedeltaIndex(DatetimeLike):
 
         tm.assert_numpy_array_equal(dexer, np.array([0, 2, 1]), check_dtype=False)
 
-    def test_get_duplicates(self):
-        idx = TimedeltaIndex(["1 day", "2 day", "2 day", "3 day", "3day", "4day"])
-
-        with tm.assert_produces_warning(FutureWarning):
-            # Deprecated - see GH20239
-            result = idx.get_duplicates()
-
-        ex = TimedeltaIndex(["2 day", "3day"])
-        tm.assert_index_equal(result, ex)
-
     def test_argmin_argmax(self):
         idx = TimedeltaIndex(["1 day 00:00:05", "1 day 00:00:01", "1 day 00:00:02"])
         assert idx.argmin() == 1
@@ -239,7 +224,7 @@ class TestTimedeltaIndex(DatetimeLike):
     def test_hash_error(self):
         index = timedelta_range("1 days", periods=10)
         with pytest.raises(
-            TypeError, match=("unhashable type: {0.__name__!r}".format(type(index)))
+            TypeError, match=(f"unhashable type: {repr(type(index).__name__)}")
         ):
             hash(index)
 
@@ -309,36 +294,36 @@ class TestTimedeltaIndex(DatetimeLike):
 
         result = td / np.timedelta64(1, "D")
         expected = Series([31, 31, (31 * 86400 + 5 * 60 + 3) / 86400.0, np.nan])
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = td.astype("timedelta64[D]")
         expected = Series([31, 31, 31, np.nan])
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = td / np.timedelta64(1, "s")
         expected = Series([31 * 86400, 31 * 86400, 31 * 86400 + 5 * 60 + 3, np.nan])
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = td.astype("timedelta64[s]")
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # tdi
         td = TimedeltaIndex(td)
 
         result = td / np.timedelta64(1, "D")
         expected = Index([31, 31, (31 * 86400 + 5 * 60 + 3) / 86400.0, np.nan])
-        assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         result = td.astype("timedelta64[D]")
         expected = Index([31, 31, 31, np.nan])
-        assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         result = td / np.timedelta64(1, "s")
         expected = Index([31 * 86400, 31 * 86400, 31 * 86400 + 5 * 60 + 3, np.nan])
-        assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         result = td.astype("timedelta64[s]")
-        assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("unit", ["Y", "y", "M"])
     def test_unit_m_y_deprecated(self, unit):

@@ -199,7 +199,7 @@ skip_if_no_ne = pytest.mark.skipif(
 
 def skip_if_np_lt(ver_str, reason=None, *args, **kwds):
     if reason is None:
-        reason = "NumPy %s or greater required" % ver_str
+        reason = f"NumPy {ver_str} or greater required"
     return pytest.mark.skipif(
         _np_version < LooseVersion(ver_str), reason=reason, *args, **kwds
     )

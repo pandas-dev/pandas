@@ -22,7 +22,7 @@ from pandas.core.dtypes.missing import notna
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import SparseArray
-from pandas.core.arrays.categorical import _factorize_from_iterable
+from pandas.core.arrays.categorical import factorize_from_iterable
 from pandas.core.construction import extract_array
 from pandas.core.frame import DataFrame
 from pandas.core.index import Index, MultiIndex
@@ -88,7 +88,7 @@ class _Unstacker:
 
     def __init__(
         self,
-        values,
+        values: np.ndarray,
         index,
         level=-1,
         value_columns=None,
@@ -239,8 +239,7 @@ class _Unstacker:
             sorted_values = sorted_values.astype(name, copy=False)
 
         # fill in our values & mask
-        f = getattr(libreshape, "unstack_{name}".format(name=name))
-        f(
+        libreshape.unstack(
             sorted_values,
             mask.view("u1"),
             stride,
@@ -505,7 +504,7 @@ def stack(frame, level=-1, dropna=True):
     def factorize(index):
         if index.is_unique:
             return index, np.arange(len(index))
-        codes, categories = _factorize_from_iterable(index)
+        codes, categories = factorize_from_iterable(index)
         return categories, codes
 
     N, K = frame.shape
@@ -726,7 +725,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
         new_names = list(this.index.names)
         new_codes = [lab.repeat(levsize) for lab in this.index.codes]
     else:
-        old_codes, old_levels = _factorize_from_iterable(this.index)
+        old_codes, old_levels = factorize_from_iterable(this.index)
         new_levels = [old_levels]
         new_codes = [old_codes.repeat(levsize)]
         new_names = [this.index.name]  # something better?
@@ -864,6 +863,8 @@ def get_dummies(
         # determine columns being encoded
         if columns is None:
             data_to_encode = data.select_dtypes(include=dtypes_to_encode)
+        elif not is_list_like(columns):
+            raise TypeError("Input must be a list-like for parameter `columns`")
         else:
             data_to_encode = data[columns]
 
@@ -948,7 +949,7 @@ def _get_dummies_1d(
     from pandas.core.reshape.concat import concat
 
     # Series avoids inconsistent NaN handling
-    codes, levels = _factorize_from_iterable(Series(data))
+    codes, levels = factorize_from_iterable(Series(data))
 
     if dtype is None:
         dtype = np.uint8
@@ -957,7 +958,7 @@ def _get_dummies_1d(
     if is_object_dtype(dtype):
         raise ValueError("dtype=object is not a valid dtype for get_dummies")
 
-    def get_empty_frame(data):
+    def get_empty_frame(data) -> DataFrame:
         if isinstance(data, Series):
             index = data.index
         else:
@@ -984,7 +985,7 @@ def _get_dummies_1d(
     else:
 
         # PY2 embedded unicode, gh-22084
-        def _make_col_name(prefix, prefix_sep, level):
+        def _make_col_name(prefix, prefix_sep, level) -> str:
             fstr = "{prefix}{prefix_sep}{level}"
             return fstr.format(prefix=prefix, prefix_sep=prefix_sep, level=level)
 
@@ -1045,43 +1046,7 @@ def _get_dummies_1d(
         return DataFrame(dummy_mat, index=index, columns=dummy_cols)
 
 
-def make_axis_dummies(frame, axis="minor", transform=None):
-    """
-    Construct 1-0 dummy variables corresponding to designated axis
-    labels
-
-    Parameters
-    ----------
-    frame : DataFrame
-    axis : {'major', 'minor'}, default 'minor'
-    transform : function, default None
-        Function to apply to axis labels first. For example, to
-        get "day of week" dummies in a time series regression
-        you might call::
-
-            make_axis_dummies(panel, axis='major',
-                              transform=lambda d: d.weekday())
-    Returns
-    -------
-    dummies : DataFrame
-        Column names taken from chosen axis
-    """
-    numbers = {"major": 0, "minor": 1}
-    num = numbers.get(axis, axis)
-
-    items = frame.index.levels[num]
-    codes = frame.index.codes[num]
-    if transform is not None:
-        mapped_items = items.map(transform)
-        codes, items = _factorize_from_iterable(mapped_items.take(codes))
-
-    values = np.eye(len(items), dtype=float)
-    values = values.take(codes, axis=0)
-
-    return DataFrame(values, columns=items, index=frame.index)
-
-
-def _reorder_for_extension_array_stack(arr, n_rows, n_columns):
+def _reorder_for_extension_array_stack(arr, n_rows: int, n_columns: int):
     """
     Re-orders the values when stacking multiple extension-arrays.
 

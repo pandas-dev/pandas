@@ -1,7 +1,7 @@
 """
 Missing data handling for arithmetic operations.
 
-In particular, pandas conventions regarding divison by zero differ
+In particular, pandas conventions regarding division by zero differ
 from numpy in the following ways:
     1) np.array([-1, 0, 1], dtype=dtype1) // np.array([0, 0, 0], dtype=dtype2)
        gives [nan, nan, nan] for most dtype combinations, and [0, 0, 0] for

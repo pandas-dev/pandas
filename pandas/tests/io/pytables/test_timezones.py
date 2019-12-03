@@ -13,7 +13,6 @@ from pandas.tests.io.pytables.common import (
     ensure_clean_store,
 )
 import pandas.util.testing as tm
-from pandas.util.testing import assert_frame_equal, set_timezone
 
 
 def _compare_with_tz(a, b):
@@ -57,7 +56,7 @@ def test_append_with_timezones_dateutil(setup_path):
         store.append("df_tz", df, data_columns=["A"])
         result = store["df_tz"]
         _compare_with_tz(result, df)
-        assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, df)
 
         # select with tz aware
         expected = df[df.A >= df.A[3]]
@@ -76,7 +75,7 @@ def test_append_with_timezones_dateutil(setup_path):
         store.append("df_tz", df)
         result = store["df_tz"]
         _compare_with_tz(result, df)
-        assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, df)
 
         df = DataFrame(
             dict(
@@ -93,7 +92,7 @@ def test_append_with_timezones_dateutil(setup_path):
         store.append("df_tz", df, data_columns=["A", "B"])
         result = store["df_tz"]
         _compare_with_tz(result, df)
-        assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, df)
 
         # can't append with diff timezone
         df = DataFrame(
@@ -124,12 +123,12 @@ def test_append_with_timezones_dateutil(setup_path):
         _maybe_remove(store, "df")
         store.put("df", df)
         result = store.select("df")
-        assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, df)
 
         _maybe_remove(store, "df")
         store.append("df", df)
         result = store.select("df")
-        assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, df)
 
 
 def test_append_with_timezones_pytz(setup_path):
@@ -152,7 +151,7 @@ def test_append_with_timezones_pytz(setup_path):
         store.append("df_tz", df, data_columns=["A"])
         result = store["df_tz"]
         _compare_with_tz(result, df)
-        assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, df)
 
         # select with tz aware
         _compare_with_tz(store.select("df_tz", where="A>=df.A[3]"), df[df.A >= df.A[3]])
@@ -169,7 +168,7 @@ def test_append_with_timezones_pytz(setup_path):
         store.append("df_tz", df)
         result = store["df_tz"]
         _compare_with_tz(result, df)
-        assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, df)
 
         df = DataFrame(
             dict(
@@ -186,7 +185,7 @@ def test_append_with_timezones_pytz(setup_path):
         store.append("df_tz", df, data_columns=["A", "B"])
         result = store["df_tz"]
         _compare_with_tz(result, df)
-        assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, df)
 
         # can't append with diff timezone
         df = DataFrame(
@@ -215,12 +214,12 @@ def test_append_with_timezones_pytz(setup_path):
         _maybe_remove(store, "df")
         store.put("df", df)
         result = store.select("df")
-        assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, df)
 
         _maybe_remove(store, "df")
         store.append("df", df)
         result = store.select("df")
-        assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, df)
 
 
 def test_tseries_select_index_column(setup_path):
@@ -264,7 +263,7 @@ def test_timezones_fixed(setup_path):
         df = DataFrame(np.random.randn(len(rng), 4), index=rng)
         store["df"] = df
         result = store["df"]
-        assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, df)
 
         # as data
         # GH11411
@@ -280,7 +279,7 @@ def test_timezones_fixed(setup_path):
         )
         store["df"] = df
         result = store["df"]
-        assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, df)
 
 
 def test_fixed_offset_tz(setup_path):
@@ -307,20 +306,20 @@ def test_store_timezone(setup_path):
         df = DataFrame([1, 2, 3], index=[today, today, today])
         store["obj1"] = df
         result = store["obj1"]
-        assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, df)
 
     # with tz setting
     with ensure_clean_store(setup_path) as store:
 
-        with set_timezone("EST5EDT"):
+        with tm.set_timezone("EST5EDT"):
             today = datetime.date(2013, 9, 10)
             df = DataFrame([1, 2, 3], index=[today, today, today])
             store["obj1"] = df
 
-        with set_timezone("CST6CDT"):
+        with tm.set_timezone("CST6CDT"):
             result = store["obj1"]
 
-        assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, df)
 
 
 def test_legacy_datetimetz_object(datapath, setup_path):
@@ -336,7 +335,7 @@ def test_legacy_datetimetz_object(datapath, setup_path):
         datapath("io", "data", "legacy_hdf", "datetimetz_object.h5"), mode="r"
     ) as store:
         result = store["df"]
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
 
 def test_dst_transitions(setup_path):
@@ -355,7 +354,7 @@ def test_dst_transitions(setup_path):
             df = DataFrame({"A": range(len(i)), "B": i}, index=i)
             store.append("df", df)
             result = store.select("df")
-            assert_frame_equal(result, df)
+            tm.assert_frame_equal(result, df)
 
 
 def test_read_with_where_tz_aware_index(setup_path):
@@ -370,7 +369,7 @@ def test_read_with_where_tz_aware_index(setup_path):
         with pd.HDFStore(path) as store:
             store.append(key, expected, format="table", append=True)
         result = pd.read_hdf(path, key, where="DATE > 20151130")
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
 
 def test_py2_created_with_datetimez(datapath, setup_path):
@@ -384,4 +383,4 @@ def test_py2_created_with_datetimez(datapath, setup_path):
         datapath("io", "data", "legacy_hdf", "gh26443.h5"), mode="r"
     ) as store:
         result = store["key"]
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)

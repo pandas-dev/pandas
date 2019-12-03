@@ -3,14 +3,26 @@ import operator
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 import pandas.util.testing as tm
+
+
+def test_repr_with_NA():
+    a = pd.array(["a", pd.NA, "b"], dtype="string")
+    for obj in [a, pd.Series(a), pd.DataFrame({"a": a})]:
+        assert "NA" in repr(obj) and "NaN" not in repr(obj)
+        assert "NA" in str(obj) and "NaN" not in str(obj)
+        if hasattr(obj, "_repr_html_"):
+            html_repr = obj._repr_html_()
+            assert "NA" in html_repr and "NaN" not in html_repr
 
 
 def test_none_to_nan():
     a = pd.arrays.StringArray._from_sequence(["a", None, "b"])
     assert a[1] is not None
-    assert np.isnan(a[1])
+    assert a[1] is pd.NA
 
 
 def test_setitem_validates():
@@ -20,6 +32,15 @@ def test_setitem_validates():
 
     with pytest.raises(ValueError, match="strings"):
         a[:] = np.array([1, 2])
+
+
+def test_setitem_with_scalar_string():
+    # is_float_dtype considers some strings, like 'd', to be floats
+    # which can cause issues.
+    arr = pd.array(["a", "c"], dtype="string")
+    arr[0] = "d"
+    expected = pd.array(["d", "c"], dtype="string")
+    tm.assert_extension_array_equal(arr, expected)
 
 
 @pytest.mark.parametrize(
@@ -158,3 +179,30 @@ def test_reduce_missing(skipna):
         assert result == "abc"
     else:
         assert pd.isna(result)
+
+
+@td.skip_if_no("pyarrow", min_version="0.15.0")
+def test_arrow_array():
+    # protocol added in 0.15.0
+    import pyarrow as pa
+
+    data = pd.array(["a", "b", "c"], dtype="string")
+    arr = pa.array(data)
+    expected = pa.array(list(data), type=pa.string(), from_pandas=True)
+    assert arr.equals(expected)
+
+
+@td.skip_if_no("pyarrow", min_version="0.15.1.dev")
+def test_arrow_roundtrip():
+    # roundtrip possible from arrow 1.0.0
+    import pyarrow as pa
+
+    data = pd.array(["a", "b", None], dtype="string")
+    df = pd.DataFrame({"a": data})
+    table = pa.table(df)
+    assert table.field("a").type == "string"
+    result = table.to_pandas()
+    assert isinstance(result["a"].dtype, pd.StringDtype)
+    tm.assert_frame_equal(result, df)
+    # ensure the missing value is represented by NaN and not None
+    assert np.isnan(result.loc[2, "a"])
