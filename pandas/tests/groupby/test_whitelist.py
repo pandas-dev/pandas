@@ -242,13 +242,13 @@ def test_groupby_blacklist(df_letters):
 
             # e.g., to_csv
             defined_but_not_allowed = (
-                f"(?:^Cannot.+{repr(bl)}.+{repr(type(gb).__name__)}.+try "
+                f"(?:^Cannot.+{repr(bl)}.+'{type(gb).__name__}'.+try "
                 f"using the 'apply' method$)"
             )
 
             # e.g., query, eval
             not_defined = (
-                f"(?:^{repr(type(gb).__name__)} object has no attribute {repr(bl)}$)"
+                f"(?:^'{type(gb).__name__}' object has no attribute {repr(bl)}$)"
             )
 
             msg = f"{defined_but_not_allowed}|{not_defined}"
