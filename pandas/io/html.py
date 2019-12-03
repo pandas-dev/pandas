@@ -57,7 +57,7 @@ def _importers():
 _RE_WHITESPACE = re.compile(r"[\r\n]+|\s{2,}")
 
 
-def _remove_whitespace(s, regex=_RE_WHITESPACE):
+def _remove_whitespace(s: str, regex=_RE_WHITESPACE) -> str:
     """
     Replace extra whitespace inside of a string with a single space.
 
@@ -65,8 +65,7 @@ def _remove_whitespace(s, regex=_RE_WHITESPACE):
     ----------
     s : str or unicode
         The string from which to remove extra whitespace.
-
-    regex : regex
+    regex : re.Pattern
         The regular expression to use to remove extra whitespace.
 
     Returns
@@ -253,7 +252,8 @@ class _HtmlFrameParser:
         raise AbstractMethodError(self)
 
     def _parse_td(self, obj):
-        """Return the td elements from a row element.
+        """
+        Return the td elements from a row element.
 
         Parameters
         ----------
@@ -560,9 +560,7 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
             unique_tables.add(table)
 
         if not result:
-            raise ValueError(
-                "No tables found matching pattern {patt!r}".format(patt=match.pattern)
-            )
+            raise ValueError(f"No tables found matching pattern {repr(match.pattern)}")
         return result
 
     def _text_getter(self, obj):
@@ -600,7 +598,7 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
         )
 
 
-def _build_xpath_expr(attrs):
+def _build_xpath_expr(attrs) -> str:
     """Build an xpath expression to simulate bs4's ability to pass in kwargs to
     search for attributes when using the lxml parser.
 
@@ -618,7 +616,7 @@ def _build_xpath_expr(attrs):
     if "class_" in attrs:
         attrs["class"] = attrs.pop("class_")
 
-    s = ["@{key}={val!r}".format(key=k, val=v) for k, v in attrs.items()]
+    s = [f"@{k}={repr(v)}" for k, v in attrs.items()]
     return "[{expr}]".format(expr=" and ".join(s))
 
 
@@ -661,8 +659,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
 
         # 1. check all descendants for the given pattern and only search tables
         # 2. go up the tree until we find a table
-        query = "//table//*[re:test(text(), {patt!r})]/ancestor::table"
-        xpath_expr = query.format(patt=pattern)
+        xpath_expr = f"//table//*[re:test(text(), {repr(pattern)})]/ancestor::table"
 
         # if any table attributes were given build an xpath expression to
         # search for them
@@ -682,9 +679,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
                         elem.getparent().remove(elem)
 
         if not tables:
-            raise ValueError(
-                "No tables found matching regex {patt!r}".format(patt=pattern)
-            )
+            raise ValueError(f"No tables found matching regex {repr(pattern)}")
         return tables
 
     def _equals_tag(self, obj, tag):
@@ -810,7 +805,8 @@ _valid_parsers = {
 
 
 def _parser_dispatch(flavor):
-    """Choose the parser based on the input flavor.
+    """
+    Choose the parser based on the input flavor.
 
     Parameters
     ----------
@@ -832,8 +828,7 @@ def _parser_dispatch(flavor):
     valid_parsers = list(_valid_parsers.keys())
     if flavor not in valid_parsers:
         raise ValueError(
-            "{invalid!r} is not a valid flavor, valid flavors "
-            "are {valid}".format(invalid=flavor, valid=valid_parsers)
+            f"{repr(flavor)} is not a valid flavor, valid flavors are {valid_parsers}"
         )
 
     if flavor in ("bs4", "html5lib"):
@@ -850,7 +845,7 @@ def _parser_dispatch(flavor):
     return _valid_parsers[flavor]
 
 
-def _print_as_set(s):
+def _print_as_set(s) -> str:
     return "{" + "{arg}".format(arg=", ".join(pprint_thing(el) for el in s)) + "}"
 
 
@@ -862,13 +857,13 @@ def _validate_flavor(flavor):
     elif isinstance(flavor, abc.Iterable):
         if not all(isinstance(flav, str) for flav in flavor):
             raise TypeError(
-                "Object of type {typ!r} is not an iterable of "
-                "strings".format(typ=type(flavor).__name__)
+                f"Object of type {repr(type(flavor).__name__)} "
+                f"is not an iterable of strings"
             )
     else:
-        fmt = "{flavor!r}" if isinstance(flavor, str) else "{flavor}"
-        fmt += " is not a valid flavor"
-        raise ValueError(fmt.format(flavor=flavor))
+        msg = repr(flavor) if isinstance(flavor, str) else str(flavor)
+        msg += " is not a valid flavor"
+        raise ValueError(msg)
 
     flavor = tuple(flavor)
     valid_flavors = set(_valid_parsers)
@@ -895,7 +890,7 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
 
         try:
             tables = p.parse_tables()
-        except Exception as caught:
+        except ValueError as caught:
             # if `io` is an io-like object, check if it's seekable
             # and try to rewind it before trying the next parser
             if hasattr(io, "seekable") and io.seekable():

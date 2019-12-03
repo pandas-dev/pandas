@@ -99,32 +99,11 @@ class TestTSPlot(TestPlotBase):
         with pytest.raises(TypeError, match=msg):
             df["A"].plot()
 
-    def test_tsplot_deprecated(self):
-        from pandas.tseries.plotting import tsplot
-
-        _, ax = self.plt.subplots()
-        ts = tm.makeTimeSeries()
-
-        with tm.assert_produces_warning(FutureWarning):
-            tsplot(ts, self.plt.Axes.plot, ax=ax)
-
     @pytest.mark.slow
     def test_tsplot(self):
 
-        from pandas.tseries.plotting import tsplot
-
         _, ax = self.plt.subplots()
         ts = tm.makeTimeSeries()
-
-        def f(*args, **kwds):
-            with tm.assert_produces_warning(FutureWarning):
-                return tsplot(s, self.plt.Axes.plot, *args, **kwds)
-
-        for s in self.period_ser:
-            _check_plot_works(f, s.index.freq, ax=ax, series=s)
-
-        for s in self.datetime_ser:
-            _check_plot_works(f, s.index.freq.rule_code, ax=ax, series=s)
 
         for s in self.period_ser:
             _check_plot_works(s.plot, ax=ax)
@@ -193,17 +172,6 @@ class TestTSPlot(TestPlotBase):
         daily.plot(ax=ax)
         check_format_of_first_point(ax, "t = 2014-01-01  y = 1.000000")
         tm.close()
-
-        # tsplot
-        from pandas.tseries.plotting import tsplot
-
-        _, ax = self.plt.subplots()
-        with tm.assert_produces_warning(FutureWarning):
-            tsplot(annual, self.plt.Axes.plot, ax=ax)
-        check_format_of_first_point(ax, "t = 2014  y = 1.000000")
-        with tm.assert_produces_warning(FutureWarning):
-            tsplot(daily, self.plt.Axes.plot, ax=ax)
-        check_format_of_first_point(ax, "t = 2014-01-01  y = 1.000000")
 
     @pytest.mark.slow
     def test_line_plot_period_series(self):
@@ -892,16 +860,6 @@ class TestTSPlot(TestPlotBase):
         for l in ax.get_lines():
             assert PeriodIndex(data=l.get_xdata()).freq == idxh.freq
 
-        _, ax = self.plt.subplots()
-        from pandas.tseries.plotting import tsplot
-
-        with tm.assert_produces_warning(FutureWarning):
-            tsplot(high, self.plt.Axes.plot, ax=ax)
-        with tm.assert_produces_warning(FutureWarning):
-            lines = tsplot(low, self.plt.Axes.plot, ax=ax)
-        for l in lines:
-            assert PeriodIndex(data=l.get_xdata()).freq == idxh.freq
-
     @pytest.mark.slow
     def test_from_weekly_resampling(self):
         idxh = date_range("1/1/1999", periods=52, freq="W")
@@ -925,21 +883,6 @@ class TestTSPlot(TestPlotBase):
             else:
                 tm.assert_numpy_array_equal(xdata, expected_h)
         tm.close()
-
-        _, ax = self.plt.subplots()
-        from pandas.tseries.plotting import tsplot
-
-        with tm.assert_produces_warning(FutureWarning):
-            tsplot(low, self.plt.Axes.plot, ax=ax)
-        with tm.assert_produces_warning(FutureWarning):
-            lines = tsplot(high, self.plt.Axes.plot, ax=ax)
-        for l in lines:
-            assert PeriodIndex(data=l.get_xdata()).freq == idxh.freq
-            xdata = l.get_xdata(orig=False)
-            if len(xdata) == 12:  # idxl lines
-                tm.assert_numpy_array_equal(xdata, expected_l)
-            else:
-                tm.assert_numpy_array_equal(xdata, expected_h)
 
     @pytest.mark.slow
     def test_from_resampling_area_line_mixed(self):

@@ -179,8 +179,8 @@ class TestIndexReductions:
         [
             (0, 400, 3),
             (500, 0, -6),
-            (-10 ** 6, 10 ** 6, 4),
-            (10 ** 6, -10 ** 6, -4),
+            (-(10 ** 6), 10 ** 6, 4),
+            (10 ** 6, -(10 ** 6), -4),
             (0, 10, 20),
         ],
     )
@@ -1043,7 +1043,7 @@ class TestCategoricalSeriesReductions:
         )
         _min = cat.min()
         _max = cat.max()
-        assert np.isnan(_min)
+        assert _min == "c"
         assert _max == "b"
 
         cat = Series(
@@ -1053,30 +1053,24 @@ class TestCategoricalSeriesReductions:
         )
         _min = cat.min()
         _max = cat.max()
-        assert np.isnan(_min)
+        assert _min == 2
         assert _max == 1
 
-    def test_min_max_numeric_only(self):
-        # TODO deprecate numeric_only argument for Categorical and use
-        # skipna as well, see GH25303
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_min_max_skipna(self, skipna):
+        # GH 25303
         cat = Series(
             Categorical(["a", "b", np.nan, "a"], categories=["b", "a"], ordered=True)
         )
+        _min = cat.min(skipna=skipna)
+        _max = cat.max(skipna=skipna)
 
-        _min = cat.min()
-        _max = cat.max()
-        assert np.isnan(_min)
-        assert _max == "a"
-
-        _min = cat.min(numeric_only=True)
-        _max = cat.max(numeric_only=True)
-        assert _min == "b"
-        assert _max == "a"
-
-        _min = cat.min(numeric_only=False)
-        _max = cat.max(numeric_only=False)
-        assert np.isnan(_min)
-        assert _max == "a"
+        if skipna is True:
+            assert _min == "b"
+            assert _max == "a"
+        else:
+            assert np.isnan(_min)
+            assert np.isnan(_max)
 
 
 class TestSeriesMode:

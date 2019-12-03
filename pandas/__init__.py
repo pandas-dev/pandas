@@ -24,6 +24,7 @@ from pandas.compat.numpy import (
     _np_version_under1p15,
     _np_version_under1p16,
     _np_version_under1p17,
+    _np_version_under1p18,
 )
 
 try:
@@ -67,7 +68,9 @@ from pandas.core.api import (
     IntervalDtype,
     DatetimeTZDtype,
     StringDtype,
+    BooleanDtype,
     # missing
+    NA,
     isna,
     isnull,
     notna,

@@ -35,7 +35,7 @@ def test_read_xlrd_book(read_ext, frame):
 
 # TODO: test for openpyxl as well
 def test_excel_table_sheet_by_index(datapath, read_ext):
-    path = datapath("io", "data", "test1{}".format(read_ext))
+    path = datapath("io", "data", "excel", "test1{}".format(read_ext))
     with pd.ExcelFile(path) as excel:
         with pytest.raises(xlrd.XLRDError):
             pd.read_excel(excel, "asdf")

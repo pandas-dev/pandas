@@ -63,8 +63,9 @@ class CSSToExcelConverter:
 
     compute_css = CSSResolver()
 
-    def __call__(self, declarations_str):
-        """Convert CSS declarations to ExcelWriter style
+    def __call__(self, declarations_str: str):
+        """
+        Convert CSS declarations to ExcelWriter style.
 
         Parameters
         ----------
@@ -279,6 +280,7 @@ class CSSToExcelConverter:
                 if "text-shadow" in props
                 else None
             ),
+            # FIXME: dont leave commented-out
             # 'vertAlign':,
             # 'charset': ,
             # 'scheme': ,
@@ -391,16 +393,12 @@ class ExcelFormatter:
             if not len(Index(cols) & df.columns):
                 raise KeyError("passes columns are not ALL present dataframe")
 
-            # deprecatedin gh-17295
-            # 1 missing is ok (for now)
             if len(Index(cols) & df.columns) != len(cols):
-                warnings.warn(
-                    "Not all names specified in 'columns' are found; "
-                    "this will raise a KeyError in the future",
-                    FutureWarning,
-                )
+                # Deprecated in GH#17295, enforced in 1.0.0
+                raise KeyError("Not all names specified in 'columns' are found")
 
-            self.df = df.reindex(columns=cols)
+            self.df = df
+
         self.columns = self.df.columns
         self.float_format = float_format
         self.index = index
@@ -665,7 +663,7 @@ class ExcelFormatter:
         for cell in self._generate_body(gcolidx):
             yield cell
 
-    def _generate_body(self, coloffset):
+    def _generate_body(self, coloffset: int):
         if self.styler is None:
             styles = None
         else:

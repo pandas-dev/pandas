@@ -399,22 +399,6 @@ static void *CLong(JSOBJ obj, JSONTypeContext *tc, void *outValue,
     return NULL;
 }
 
-#ifdef _LP64
-static void *PyIntToINT64(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
-                          size_t *_outLen) {
-    PyObject *obj = (PyObject *)_obj;
-    *((JSINT64 *)outValue) = PyLong_AsLong(obj);
-    return NULL;
-}
-#else
-static void *PyIntToINT32(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
-                          size_t *_outLen) {
-    PyObject *obj = (PyObject *)_obj;
-    *((JSINT32 *)outValue) = PyLong_AsLong(obj);
-    return NULL;
-}
-#endif
-
 static void *PyLongToINT64(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
                            size_t *_outLen) {
     *((JSINT64 *)outValue) = GET_TC(tc)->longValue;

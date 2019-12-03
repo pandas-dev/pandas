@@ -207,25 +207,6 @@ def test_is_categorical():
     assert not com.is_categorical([1, 2, 3])
 
 
-def test_is_datetimetz():
-    with tm.assert_produces_warning(FutureWarning):
-        assert not com.is_datetimetz([1, 2, 3])
-        assert not com.is_datetimetz(pd.DatetimeIndex([1, 2, 3]))
-
-        assert com.is_datetimetz(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern"))
-
-        dtype = DatetimeTZDtype("ns", tz="US/Eastern")
-        s = pd.Series([], dtype=dtype)
-        assert com.is_datetimetz(s)
-
-
-def test_is_period_deprecated():
-    with tm.assert_produces_warning(FutureWarning):
-        assert not com.is_period([1, 2, 3])
-        assert not com.is_period(pd.Index([1, 2, 3]))
-        assert com.is_period(pd.PeriodIndex(["2017-01-01"], freq="D"))
-
-
 def test_is_datetime64_dtype():
     assert not com.is_datetime64_dtype(object)
     assert not com.is_datetime64_dtype([1, 2, 3])
@@ -309,7 +290,7 @@ def test_is_datetime_arraylike():
     assert com.is_datetime_arraylike(pd.DatetimeIndex([1, 2, 3]))
 
 
-integer_dtypes = []  # type: List
+integer_dtypes: List = []
 
 
 @pytest.mark.parametrize(
@@ -341,7 +322,7 @@ def test_is_not_integer_dtype(dtype):
     assert not com.is_integer_dtype(dtype)
 
 
-signed_integer_dtypes = []  # type: List
+signed_integer_dtypes: List = []
 
 
 @pytest.mark.parametrize(
@@ -377,7 +358,7 @@ def test_is_not_signed_integer_dtype(dtype):
     assert not com.is_signed_integer_dtype(dtype)
 
 
-unsigned_integer_dtypes = []  # type: List
+unsigned_integer_dtypes: List = []
 
 
 @pytest.mark.parametrize(
@@ -493,6 +474,34 @@ def test_is_datetime_or_timedelta_dtype():
     assert com.is_datetime_or_timedelta_dtype(np.array([], dtype=np.datetime64))
 
 
+def test_is_numeric_v_string_like():
+    assert not com.is_numeric_v_string_like(1, 1)
+    assert not com.is_numeric_v_string_like(1, "foo")
+    assert not com.is_numeric_v_string_like("foo", "foo")
+    assert not com.is_numeric_v_string_like(np.array([1]), np.array([2]))
+    assert not com.is_numeric_v_string_like(np.array(["foo"]), np.array(["foo"]))
+
+    assert com.is_numeric_v_string_like(np.array([1]), "foo")
+    assert com.is_numeric_v_string_like("foo", np.array([1]))
+    assert com.is_numeric_v_string_like(np.array([1, 2]), np.array(["foo"]))
+    assert com.is_numeric_v_string_like(np.array(["foo"]), np.array([1, 2]))
+
+
+def test_is_datetimelike_v_numeric():
+    dt = np.datetime64(pd.datetime(2017, 1, 1))
+
+    assert not com.is_datetimelike_v_numeric(1, 1)
+    assert not com.is_datetimelike_v_numeric(dt, dt)
+    assert not com.is_datetimelike_v_numeric(np.array([1]), np.array([2]))
+    assert not com.is_datetimelike_v_numeric(np.array([dt]), np.array([dt]))
+
+    assert com.is_datetimelike_v_numeric(1, dt)
+    assert com.is_datetimelike_v_numeric(1, dt)
+    assert com.is_datetimelike_v_numeric(np.array([dt]), 1)
+    assert com.is_datetimelike_v_numeric(np.array([1]), dt)
+    assert com.is_datetimelike_v_numeric(np.array([dt]), np.array([1]))
+
+
 def test_needs_i8_conversion():
     assert not com.needs_i8_conversion(str)
     assert not com.needs_i8_conversion(np.int64)
@@ -547,6 +556,9 @@ def test_is_bool_dtype():
     assert com.is_bool_dtype(np.bool)
     assert com.is_bool_dtype(np.array([True, False]))
     assert com.is_bool_dtype(pd.Index([True, False]))
+
+    assert com.is_bool_dtype(pd.BooleanDtype())
+    assert com.is_bool_dtype(pd.array([True, False, None], dtype="boolean"))
 
 
 @pytest.mark.filterwarnings("ignore:'is_extension_type' is deprecated:FutureWarning")

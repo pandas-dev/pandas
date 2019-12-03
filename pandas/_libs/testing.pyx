@@ -180,13 +180,15 @@ cpdef assert_almost_equal(a, b,
         # classes can't be the same, to raise error
         assert_class_equal(a, b, obj=obj)
 
-    if a == b:
-        # object comparison
-        return True
     if isna(a) and isna(b):
         # TODO: Should require same-dtype NA?
         # nan / None comparison
         return True
+
+    if a == b:
+        # object comparison
+        return True
+
     if is_comparable_as_number(a) and is_comparable_as_number(b):
         if array_equivalent(a, b, strict_nan=True):
             # inf comparison

@@ -247,10 +247,9 @@ def test_agg_consistency():
 
     r = df.resample("3T")
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        expected = r[["A", "B", "C"]].agg({"r1": "mean", "r2": "sum"})
-        result = r.agg({"r1": "mean", "r2": "sum"})
-    tm.assert_frame_equal(result, expected, check_like=True)
+    msg = "nested renamer is not supported"
+    with pytest.raises(pd.core.base.SpecificationError, match=msg):
+        r.agg({"r1": "mean", "r2": "sum"})
 
 
 # TODO: once GH 14008 is fixed, move these tests into
@@ -307,26 +306,23 @@ def test_agg():
         result = t["A"].aggregate(["mean", "sum"])
     tm.assert_frame_equal(result, expected)
 
-    expected = pd.concat([a_mean, a_sum], axis=1)
-    expected.columns = pd.MultiIndex.from_tuples([("A", "mean"), ("A", "sum")])
+    msg = "nested renamer is not supported"
     for t in cases:
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = t.aggregate({"A": {"mean": "mean", "sum": "sum"}})
-        tm.assert_frame_equal(result, expected, check_like=True)
+        with pytest.raises(pd.core.base.SpecificationError, match=msg):
+            t.aggregate({"A": {"mean": "mean", "sum": "sum"}})
 
     expected = pd.concat([a_mean, a_sum, b_mean, b_sum], axis=1)
     expected.columns = pd.MultiIndex.from_tuples(
         [("A", "mean"), ("A", "sum"), ("B", "mean2"), ("B", "sum2")]
     )
     for t in cases:
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = t.aggregate(
+        with pytest.raises(pd.core.base.SpecificationError, match=msg):
+            t.aggregate(
                 {
                     "A": {"mean": "mean", "sum": "sum"},
                     "B": {"mean2": "mean", "sum2": "sum"},
                 }
             )
-        tm.assert_frame_equal(result, expected, check_like=True)
 
     expected = pd.concat([a_mean, a_std, b_mean, b_std], axis=1)
     expected.columns = pd.MultiIndex.from_tuples(
@@ -383,12 +379,10 @@ def test_agg_misc():
         [("result1", "A"), ("result1", "B"), ("result2", "A"), ("result2", "B")]
     )
 
+    msg = "nested renamer is not supported"
     for t in cases:
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = t[["A", "B"]].agg(
-                OrderedDict([("result1", np.sum), ("result2", np.mean)])
-            )
-        tm.assert_frame_equal(result, expected, check_like=True)
+        with pytest.raises(pd.core.base.SpecificationError, match=msg):
+            t[["A", "B"]].agg(OrderedDict([("result1", np.sum), ("result2", np.mean)]))
 
     # agg with different hows
     expected = pd.concat(
@@ -408,21 +402,11 @@ def test_agg_misc():
 
     # series like aggs
     for t in cases:
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = t["A"].agg({"A": ["sum", "std"]})
-        expected = pd.concat([t["A"].sum(), t["A"].std()], axis=1)
-        expected.columns = pd.MultiIndex.from_tuples([("A", "sum"), ("A", "std")])
-        tm.assert_frame_equal(result, expected, check_like=True)
+        with pytest.raises(pd.core.base.SpecificationError, match=msg):
+            t["A"].agg({"A": ["sum", "std"]})
 
-        expected = pd.concat(
-            [t["A"].agg(["sum", "std"]), t["A"].agg(["mean", "std"])], axis=1
-        )
-        expected.columns = pd.MultiIndex.from_tuples(
-            [("A", "sum"), ("A", "std"), ("B", "mean"), ("B", "std")]
-        )
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = t["A"].agg({"A": ["sum", "std"], "B": ["mean", "std"]})
-        tm.assert_frame_equal(result, expected, check_like=True)
+        with pytest.raises(pd.core.base.SpecificationError, match=msg):
+            t["A"].agg({"A": ["sum", "std"], "B": ["mean", "std"]})
 
     # errors
     # invalid names in the agg specification
@@ -451,28 +435,20 @@ def test_agg_nested_dicts():
         df.groupby(pd.Grouper(freq="2D")),
     ]
 
-    msg = r"cannot perform renaming for r(1|2) with a nested dictionary"
+    msg = "nested renamer is not supported"
     for t in cases:
         with pytest.raises(pd.core.base.SpecificationError, match=msg):
             t.aggregate({"r1": {"A": ["mean", "sum"]}, "r2": {"B": ["mean", "sum"]}})
 
     for t in cases:
-        expected = pd.concat(
-            [t["A"].mean(), t["A"].std(), t["B"].mean(), t["B"].std()], axis=1
-        )
-        expected.columns = pd.MultiIndex.from_tuples(
-            [("ra", "mean"), ("ra", "std"), ("rb", "mean"), ("rb", "std")]
-        )
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = t[["A", "B"]].agg(
+        with pytest.raises(pd.core.base.SpecificationError, match=msg):
+            t[["A", "B"]].agg(
                 {"A": {"ra": ["mean", "std"]}, "B": {"rb": ["mean", "std"]}}
             )
-        tm.assert_frame_equal(result, expected, check_like=True)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = t.agg({"A": {"ra": ["mean", "std"]}, "B": {"rb": ["mean", "std"]}})
-        tm.assert_frame_equal(result, expected, check_like=True)
+        with pytest.raises(pd.core.base.SpecificationError, match=msg):
+            t.agg({"A": {"ra": ["mean", "std"]}, "B": {"rb": ["mean", "std"]}})
 
 
 def test_try_aggregate_non_existing_column():

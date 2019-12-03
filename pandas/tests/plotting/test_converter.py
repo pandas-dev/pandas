@@ -22,7 +22,7 @@ try:
     from pandas.plotting._matplotlib import converter
 except ImportError:
     # try / except, rather than skip, to avoid internal refactoring
-    # causing an improprer skip
+    # causing an improper skip
     pass
 
 pytest.importorskip("matplotlib.pyplot")

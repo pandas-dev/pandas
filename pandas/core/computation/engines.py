@@ -4,8 +4,8 @@ Engine classes for :func:`~pandas.eval`
 
 import abc
 
-from pandas.core.computation.align import _align, _reconstruct_object
-from pandas.core.computation.ops import UndefinedVariableError, _mathops, _reductions
+from pandas.core.computation.align import align_terms, reconstruct_object
+from pandas.core.computation.ops import _mathops, _reductions
 
 import pandas.io.formats.printing as printing
 
@@ -46,8 +46,9 @@ class AbstractEngine(metaclass=abc.ABCMeta):
         self.aligned_axes = None
         self.result_type = None
 
-    def convert(self):
-        """Convert an expression for evaluation.
+    def convert(self) -> str:
+        """
+        Convert an expression for evaluation.
 
         Defaults to return the expression as a string.
         """
@@ -66,16 +67,16 @@ class AbstractEngine(metaclass=abc.ABCMeta):
             The result of the passed expression.
         """
         if not self._is_aligned:
-            self.result_type, self.aligned_axes = _align(self.expr.terms)
+            self.result_type, self.aligned_axes = align_terms(self.expr.terms)
 
         # make sure no names in resolvers and locals/globals clash
         res = self._evaluate()
-        return _reconstruct_object(
+        return reconstruct_object(
             self.result_type, res, self.aligned_axes, self.expr.terms.return_type
         )
 
     @property
-    def _is_aligned(self):
+    def _is_aligned(self) -> bool:
         return self.aligned_axes is not None and self.result_type is not None
 
     @abc.abstractmethod
@@ -104,7 +105,7 @@ class NumExprEngine(AbstractEngine):
     def __init__(self, expr):
         super().__init__(expr)
 
-    def convert(self):
+    def convert(self) -> str:
         return str(super().convert())
 
     def _evaluate(self):
@@ -113,19 +114,10 @@ class NumExprEngine(AbstractEngine):
         # convert the expression to a valid numexpr expression
         s = self.convert()
 
-        try:
-            env = self.expr.env
-            scope = env.full_scope
-            truediv = scope["truediv"]
-            _check_ne_builtin_clash(self.expr)
-            return ne.evaluate(s, local_dict=scope, truediv=truediv)
-        except KeyError as e:
-            # python 3 compat kludge
-            try:
-                msg = e.message
-            except AttributeError:
-                msg = str(e)
-            raise UndefinedVariableError(msg)
+        env = self.expr.env
+        scope = env.full_scope
+        _check_ne_builtin_clash(self.expr)
+        return ne.evaluate(s, local_dict=scope)
 
 
 class PythonEngine(AbstractEngine):

@@ -52,15 +52,11 @@ def test_basic_getitem_with_labels(datetime_series):
     s = Series(np.random.randn(10), index=list(range(0, 20, 2)))
     inds = [0, 2, 5, 7, 8]
     arr_inds = np.array([0, 2, 5, 7, 8])
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        result = s[inds]
-    expected = s.reindex(inds)
-    tm.assert_series_equal(result, expected)
+    with pytest.raises(KeyError, match="with any missing labels"):
+        s[inds]
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        result = s[arr_inds]
-    expected = s.reindex(arr_inds)
-    tm.assert_series_equal(result, expected)
+    with pytest.raises(KeyError, match="with any missing labels"):
+        s[arr_inds]
 
     # GH12089
     # with tz for values
@@ -262,12 +258,11 @@ def test_getitem_dups_with_missing():
     # breaks reindex, so need to use .loc internally
     # GH 4246
     s = Series([1, 2, 3, 4], ["foo", "bar", "foo", "bah"])
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        expected = s.loc[["foo", "bar", "bah", "bam"]]
+    with pytest.raises(KeyError, match="with any missing labels"):
+        s.loc[["foo", "bar", "bah", "bam"]]
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        result = s[["foo", "bar", "bah", "bam"]]
-    tm.assert_series_equal(result, expected)
+    with pytest.raises(KeyError, match="with any missing labels"):
+        s[["foo", "bar", "bah", "bam"]]
 
 
 def test_getitem_dups():

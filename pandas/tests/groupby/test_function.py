@@ -1300,8 +1300,8 @@ def test_size_groupby_all_null():
         ([np.nan, 4.0, np.nan, 2.0, np.nan], [np.nan, 4.0, np.nan, 2.0, np.nan]),
         # Timestamps
         (
-            [x for x in pd.date_range("1/1/18", freq="D", periods=5)],
-            [x for x in pd.date_range("1/1/18", freq="D", periods=5)][::-1],
+            list(pd.date_range("1/1/18", freq="D", periods=5)),
+            list(pd.date_range("1/1/18", freq="D", periods=5))[::-1],
         ),
         # All NA
         ([np.nan] * 5, [np.nan] * 5),

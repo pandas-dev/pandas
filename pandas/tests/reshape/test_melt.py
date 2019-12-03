@@ -317,6 +317,22 @@ class TestMelt:
         ):
             multi.melt(["A"], ["F"], col_level=0)
 
+    def test_melt_mixed_int_str_id_vars(self):
+        # GH 29718
+        df = DataFrame({0: ["foo"], "a": ["bar"], "b": [1], "d": [2]})
+        result = melt(df, id_vars=[0, "a"], value_vars=["b", "d"])
+        expected = DataFrame(
+            {0: ["foo"] * 2, "a": ["bar"] * 2, "variable": list("bd"), "value": [1, 2]}
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_melt_mixed_int_str_value_vars(self):
+        # GH 29718
+        df = DataFrame({0: ["foo"], "a": ["bar"]})
+        result = melt(df, value_vars=[0, "a"])
+        expected = DataFrame({"variable": [0, "a"], "value": ["foo", "bar"]})
+        tm.assert_frame_equal(result, expected)
+
 
 class TestLreshape:
     def test_pairs(self):
