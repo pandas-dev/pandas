@@ -814,7 +814,7 @@ class Window(_Window):
 
         If a BaseIndexer subclass is passed, calculates the window boundaries
         based on the defined ``get_window_bounds`` method. Additional rolling
-        keyword arguments, namely `min_periods`, `center`, `win_type`, and
+        keyword arguments, namely `min_periods`, `center`, and
         `closed` will be passed to `get_window_bounds`.
     min_periods : int, default None
         Minimum number of observations in window required to have a value
