@@ -4232,21 +4232,7 @@ class AppendableTable(Table):
         # broadcast the indexes if needed
         indexes = [a.cvalues for a in self.index_axes]
         nindexes = len(indexes)
-        bindexes = []
-        for i, idx in enumerate(indexes):
-
-            # broadcast to all other indexes except myself
-            if i > 0 and i < nindexes:
-                repeater = np.prod([indexes[bi].shape[0] for bi in range(0, i)])
-                idx = np.tile(idx, repeater)
-
-            if i < nindexes - 1:
-                repeater = np.prod(
-                    [indexes[bi].shape[0] for bi in range(i + 1, nindexes)]
-                )
-                idx = np.repeat(idx, repeater)
-
-            bindexes.append(idx)
+        assert nindexes == 1, nindexes  # ensures we dont need to broadcast
 
         # transpose the values so first dimension is last
         # reshape the values if needed
@@ -4271,7 +4257,7 @@ class AppendableTable(Table):
 
             self.write_data_chunk(
                 rows,
-                indexes=[a[start_i:end_i] for a in bindexes],
+                indexes=[a[start_i:end_i] for a in indexes],
                 mask=mask[start_i:end_i] if mask is not None else None,
                 values=[v[start_i:end_i] for v in bvalues],
             )
