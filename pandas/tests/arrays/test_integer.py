@@ -225,7 +225,7 @@ class TestArithmeticOps(BaseOpsUtil):
             original = expected
             expected = expected.astype(s.dtype)
 
-        expected[mask] = np.nan
+        expected[mask] = pd.NA
 
         # assert that the expected astype is ok
         # (skip for unsigned as they have wrap around)
@@ -380,6 +380,7 @@ class TestComparisonOps(BaseOpsUtil):
 
         # fill the nan locations
         expected[data._mask] = pd.NA
+        expected = expected.astype("boolean")
 
         tm.assert_series_equal(result, expected)
 
