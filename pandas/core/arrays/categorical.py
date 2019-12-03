@@ -303,7 +303,7 @@ class Categorical(ExtensionArray, PandasObject):
     _dtype = CategoricalDtype(ordered=False)
     # tolist is not actually deprecated, just suppressed in the __dir__
     _deprecations = PandasObject._deprecations | frozenset(
-        ["tolist", "itemsize", "get_values"]
+        ["tolist", "itemsize"]
     )
     _typ = "categorical"
 
@@ -1462,6 +1462,17 @@ class Categorical(ExtensionArray, PandasObject):
         return Series(count, index=CategoricalIndex(ix), dtype="int64")
 
     def _internal_get_values(self):
+        """
+        Return the values.
+
+        For internal compatibility with pandas formatting.
+
+        Returns
+        -------
+        np.ndarray or Index
+            A numpy array of the same dtype as categorical.categories.dtype or
+            Index if datetime / periods.
+        """
         # if we are a datetime and period index, return Index to keep metadata
         if needs_i8_conversion(self.categories):
             return self.categories.take(self._codes, fill_value=np.nan)
