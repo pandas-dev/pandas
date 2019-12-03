@@ -1,5 +1,4 @@
 # flake8: noqa
-import warnings
 
 # TODO `_matplotlib` module should be private, so the plotting backend
 # can be changed. Decide whether all these should be public and exposed
@@ -19,14 +18,3 @@ from pandas.plotting._matplotlib.converter import (
     get_finder,
     time2num,
 )
-
-
-def register():
-    from pandas.plotting import register_matplotlib_converters
-
-    msg = (
-        "'pandas.tseries.converter.register' has been moved and renamed to "
-        "'pandas.plotting.register_matplotlib_converters'. "
-    )
-    warnings.warn(msg, FutureWarning, stacklevel=2)
-    register_matplotlib_converters()
