@@ -4,7 +4,7 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.dtypes import CategoricalDtype, DatetimeTZDtype
+from pandas.core.dtypes.dtypes import CategoricalDtype, DatetimeTZDtype, IntervalDtype
 
 import pandas as pd
 from pandas import (
@@ -699,14 +699,7 @@ class TestDataFrameDataTypes:
         expected = DataFrame({k: Categorical(d[k], dtype=dtype) for k in d})
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "cls",
-        [
-            pd.api.types.CategoricalDtype,
-            pd.api.types.DatetimeTZDtype,
-            pd.api.types.IntervalDtype,
-        ],
-    )
+    @pytest.mark.parametrize("cls", [CategoricalDtype, DatetimeTZDtype, IntervalDtype])
     def test_astype_categoricaldtype_class_raises(self, cls):
         df = DataFrame({"A": ["a", "a", "b", "c"]})
         xpr = "Expected an instance of {}".format(cls.__name__)
