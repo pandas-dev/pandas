@@ -4,7 +4,7 @@ import os
 import numpy as np
 import pytest
 
-from pandas.compat import PY37
+from pandas.compat import PY37, is_platform_mac
 
 import pandas as pd
 from pandas import DataFrame
@@ -86,7 +86,9 @@ def test_write_cells_merge_styled(ext):
         assert xcell_a2.font == openpyxl_sty_merged
 
 
-@pytest.mark.xfail(openpyxl_gt301 and PY37, reason="broken change in openpyxl")
+@pytest.mark.xfail(
+    openpyxl_gt301 and PY37 and is_platform_mac(), reason="broken change in openpyxl"
+)
 @pytest.mark.parametrize(
     "mode,expected", [("w", ["baz"]), ("a", ["foo", "bar", "baz"])]
 )
@@ -113,7 +115,9 @@ def test_write_append_mode(ext, mode, expected):
             assert wb2.worksheets[index]["A1"].value == cell_value
 
 
-@pytest.mark.xfail(openpyxl_gt301 and PY37, reason="broken change in openpyxl")
+@pytest.mark.xfail(
+    openpyxl_gt301 and PY37 and is_platform_mac(), reason="broken change in openpyxl"
+)
 def test_to_excel_with_openpyxl_engine(ext, tmpdir):
     # GH 29854
     # TODO: Fix this once newer version of openpyxl fixes the bug
