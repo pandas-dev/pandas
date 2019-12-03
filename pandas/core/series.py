@@ -158,7 +158,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     _deprecations = (
         base.IndexOpsMixin._deprecations
         | generic.NDFrame._deprecations
-        | frozenset(["compress"])
+        | frozenset(["compress", "ptp"])
     )
 
     # Override cache_readonly bc Series is mutable
@@ -4431,6 +4431,7 @@ Series._setup_axes(
     docs={"index": "The index (axis labels) of the Series."},
 )
 Series._add_numeric_operations()
+Series._add_series_only_operations()
 Series._add_series_or_dataframe_operations()
 
 # Add arithmetic!
