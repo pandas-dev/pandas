@@ -142,7 +142,7 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
                 # combine method result in 'biggest' (int64) dtype
                 expected = expected.astype(s.dtype)
                 pass
-            if op_name == "__rpow__":
+            if op_name in {"__pow__", "__rpow__"}:
                 # TODO: https://github.com/pandas-dev/pandas/issues/29997
                 # pow(1, NA) is NA or 1?
                 pytest.skip("TODO-29997")
@@ -168,11 +168,19 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
     def check_opname(self, s, op_name, other, exc=None):
-        pytest.skip(msg="TODO: NA comparisions")
         super().check_opname(s, op_name, other, exc=None)
 
     def _compare_other(self, s, data, op_name, other):
         self.check_opname(s, op_name, other)
+
+    def _check_op(self, s, op, other, op_name, exc=NotImplementedError):
+        if exc is None:
+            result = op(s, other)
+            expected = s.combine(other, op).astype("boolean")
+            self.assert_series_equal(result, expected)
+        else:
+            with pytest.raises(exc):
+                op(s, other)
 
 
 class TestInterface(base.BaseInterfaceTests):
