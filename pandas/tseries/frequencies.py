@@ -1,6 +1,6 @@
 from datetime import timedelta
 import re
-from typing import Dict
+from typing import Dict, Optional
 
 import numpy as np
 from pytz import AmbiguousTimeError
@@ -52,8 +52,10 @@ _ONE_DAY = 24 * _ONE_HOUR
 _offset_map: Dict[str, DateOffset] = {}
 
 
-def get_period_alias(offset_str):
-    """ alias to closest period strings BQ->Q etc"""
+def get_period_alias(offset_str: str) -> Optional[str]:
+    """
+    Alias to closest period strings BQ->Q etc.
+    """
     return _offset_to_period_map.get(offset_str, None)
 
 
@@ -68,7 +70,7 @@ _name_to_offset_map = {
 }
 
 
-def to_offset(freq):
+def to_offset(freq) -> Optional[DateOffset]:
     """
     Return DateOffset object from string or tuple representation
     or datetime.timedelta object.
@@ -179,9 +181,9 @@ def to_offset(freq):
     return delta
 
 
-def get_offset(name):
+def get_offset(name: str) -> DateOffset:
     """
-    Return DateOffset object associated with rule name
+    Return DateOffset object associated with rule name.
 
     Examples
     --------
@@ -214,7 +216,7 @@ def get_offset(name):
 # Period codes
 
 
-def infer_freq(index, warn=True):
+def infer_freq(index, warn: bool = True) -> Optional[str]:
     """
     Infer the most likely frequency given the input index. If the frequency is
     uncertain, a warning will be printed.
@@ -247,6 +249,7 @@ def infer_freq(index, warn=True):
             )
         index = values
 
+    inferer: _FrequencyInferer
     if is_period_arraylike(index):
         raise TypeError(
             "PeriodIndex given. Check the `freq` attribute "
@@ -280,7 +283,7 @@ class _FrequencyInferer:
     Not sure if I can avoid the state machine here
     """
 
-    def __init__(self, index, warn=True):
+    def __init__(self, index, warn: bool = True):
         self.index = index
         self.values = index.asi8
 
@@ -315,7 +318,7 @@ class _FrequencyInferer:
     def is_unique_asi8(self):
         return len(self.deltas_asi8) == 1
 
-    def get_freq(self):
+    def get_freq(self) -> Optional[str]:
         """
         Find the appropriate frequency string to describe the inferred
         frequency of self.values
@@ -388,7 +391,7 @@ class _FrequencyInferer:
     def ydiffs(self):
         return unique_deltas(self.fields["Y"].astype("i8"))
 
-    def _infer_daily_rule(self):
+    def _infer_daily_rule(self) -> Optional[str]:
         annual_rule = self._get_annual_rule()
         if annual_rule:
             nyears = self.ydiffs[0]
@@ -424,7 +427,9 @@ class _FrequencyInferer:
         if wom_rule:
             return wom_rule
 
-    def _get_annual_rule(self):
+        return None
+
+    def _get_annual_rule(self) -> Optional[str]:
         if len(self.ydiffs) > 1:
             return None
 
@@ -434,7 +439,7 @@ class _FrequencyInferer:
         pos_check = self.month_position_check()
         return {"cs": "AS", "bs": "BAS", "ce": "A", "be": "BA"}.get(pos_check)
 
-    def _get_quarterly_rule(self):
+    def _get_quarterly_rule(self) -> Optional[str]:
         if len(self.mdiffs) > 1:
             return None
 
@@ -444,13 +449,13 @@ class _FrequencyInferer:
         pos_check = self.month_position_check()
         return {"cs": "QS", "bs": "BQS", "ce": "Q", "be": "BQ"}.get(pos_check)
 
-    def _get_monthly_rule(self):
+    def _get_monthly_rule(self) -> Optional[str]:
         if len(self.mdiffs) > 1:
             return None
         pos_check = self.month_position_check()
         return {"cs": "MS", "bs": "BMS", "ce": "M", "be": "BM"}.get(pos_check)
 
-    def _is_business_daily(self):
+    def _is_business_daily(self) -> bool:
         # quick check: cannot be business daily
         if self.day_deltas != [1, 3]:
             return False
@@ -465,7 +470,7 @@ class _FrequencyInferer:
             | ((weekdays > 0) & (weekdays <= 4) & (shifts == 1))
         )
 
-    def _get_wom_rule(self):
+    def _get_wom_rule(self) -> Optional[str]:
         #         wdiffs = unique(np.diff(self.index.week))
         # We also need -47, -49, -48 to catch index spanning year boundary
         #     if not lib.ismember(wdiffs, set([4, 5, -47, -49, -48])).all():
@@ -501,11 +506,11 @@ class _TimedeltaFrequencyInferer(_FrequencyInferer):
                 return _maybe_add_count("D", days)
 
 
-def _is_multiple(us, mult):
+def _is_multiple(us, mult: int) -> bool:
     return us % mult == 0
 
 
-def _maybe_add_count(base, count):
+def _maybe_add_count(base: str, count: float) -> str:
     if count != 1:
         assert count == int(count)
         count = int(count)
