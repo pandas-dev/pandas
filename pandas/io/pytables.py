@@ -284,7 +284,19 @@ def to_hdf(
         f(path_or_buf)
 
 
-def read_hdf(path_or_buf, key=None, mode: str = "r", **kwargs):
+def read_hdf(
+    path_or_buf,
+    key=None,
+    mode: str = "r",
+    errors: str = "strict",
+    where=None,
+    start: Optional[int] = None,
+    stop: Optional[int] = None,
+    columns=None,
+    iterator=False,
+    chunksize: Optional[int] = None,
+    **kwargs,
+):
     """
     Read from the store, close it if we opened it.
 
@@ -312,7 +324,7 @@ def read_hdf(path_or_buf, key=None, mode: str = "r", **kwargs):
     key : object, optional
         The group identifier in the store. Can be omitted if the HDF file
         contains a single pandas object.
-    mode : {'r', 'r+', 'a'}, optional
+    mode : {'r', 'r+', 'a'}, default 'r'
         Mode to use when opening the file. Ignored if path_or_buf is a
         :class:`pandas.HDFStore`. Default is 'r'.
     where : list, optional
@@ -350,6 +362,9 @@ def read_hdf(path_or_buf, key=None, mode: str = "r", **kwargs):
     >>> df.to_hdf('./store.h5', 'data')
     >>> reread = pd.read_hdf('./store.h5')
     """
+    assert not kwargs, kwargs
+    # NB: in principle more kwargs could be passed to HDFStore, but in
+    #  tests none are.
 
     if mode not in ["r", "r+", "a"]:
         raise ValueError(
@@ -357,8 +372,8 @@ def read_hdf(path_or_buf, key=None, mode: str = "r", **kwargs):
             f"Allowed modes are r, r+ and a."
         )
     # grab the scope
-    if "where" in kwargs:
-        kwargs["where"] = _ensure_term(kwargs["where"], scope_level=1)
+    if where is not None:
+        where = _ensure_term(where, scope_level=1)
 
     if isinstance(path_or_buf, HDFStore):
         if not path_or_buf.is_open:
@@ -382,7 +397,7 @@ def read_hdf(path_or_buf, key=None, mode: str = "r", **kwargs):
         if not exists:
             raise FileNotFoundError(f"File {path_or_buf} does not exist")
 
-        store = HDFStore(path_or_buf, mode=mode, **kwargs)
+        store = HDFStore(path_or_buf, mode=mode, errors=errors, **kwargs)
         # can't auto open/close if we are using an iterator
         # so delegate to the iterator
         auto_close = True
@@ -405,7 +420,16 @@ def read_hdf(path_or_buf, key=None, mode: str = "r", **kwargs):
                         "contains multiple datasets."
                     )
             key = candidate_only_group._v_pathname
-        return store.select(key, auto_close=auto_close, **kwargs)
+        return store.select(
+            key,
+            where=where,
+            start=start,
+            stop=stop,
+            columns=columns,
+            iterator=iterator,
+            chunksize=chunksize,
+            auto_close=auto_close,
+        )
     except (ValueError, TypeError, KeyError):
         if not isinstance(path_or_buf, HDFStore):
             # if there is an error, close the store if we opened it.
@@ -417,7 +441,7 @@ def read_hdf(path_or_buf, key=None, mode: str = "r", **kwargs):
         raise
 
 
-def _is_metadata_of(group, parent_group) -> bool:
+def _is_metadata_of(group: "Node", parent_group: "Node") -> bool:
     """Check if a given group is a metadata group for a given parent_group."""
     if group._v_depth <= parent_group._v_depth:
         return False
@@ -734,7 +758,6 @@ class HDFStore:
         iterator=False,
         chunksize=None,
         auto_close: bool = False,
-        **kwargs,
     ):
         """
         Retrieve pandas object stored in file, optionally based on where criteria.
@@ -850,7 +873,6 @@ class HDFStore:
         iterator=False,
         chunksize=None,
         auto_close: bool = False,
-        **kwargs,
     ):
         """
         Retrieve pandas objects from multiple tables.
@@ -888,7 +910,7 @@ class HDFStore:
                 stop=stop,
                 iterator=iterator,
                 chunksize=chunksize,
-                **kwargs,
+                auto_close=auto_close,
             )
 
         if not isinstance(keys, (list, tuple)):
@@ -932,9 +954,7 @@ class HDFStore:
             # retrieve the objs, _where is always passed as a set of
             # coordinates here
             objs = [
-                t.read(
-                    where=_where, columns=columns, start=_start, stop=_stop, **kwargs
-                )
+                t.read(where=_where, columns=columns, start=_start, stop=_stop)
                 for t in tbls
             ]
 
@@ -957,7 +977,7 @@ class HDFStore:
 
         return it.get_result(coordinates=True)
 
-    def put(self, key: str, value, format=None, append=False, **kwargs):
+    def put(self, key: str, value: FrameOrSeries, format=None, append=False, **kwargs):
         """
         Store object in HDFStore.
 
@@ -986,8 +1006,8 @@ class HDFStore:
         """
         if format is None:
             format = get_option("io.hdf.default_format") or "fixed"
-        kwargs = self._validate_format(format, kwargs)
-        self._write_to_group(key, value, append=append, **kwargs)
+        format = self._validate_format(format)
+        self._write_to_group(key, value, format=format, append=append, **kwargs)
 
     def remove(self, key: str, where=None, start=None, stop=None):
         """
@@ -1046,7 +1066,7 @@ class HDFStore:
     def append(
         self,
         key: str,
-        value,
+        value: FrameOrSeries,
         format=None,
         append=True,
         columns=None,
@@ -1096,8 +1116,10 @@ class HDFStore:
             dropna = get_option("io.hdf.dropna_table")
         if format is None:
             format = get_option("io.hdf.default_format") or "table"
-        kwargs = self._validate_format(format, kwargs)
-        self._write_to_group(key, value, append=append, dropna=dropna, **kwargs)
+        format = self._validate_format(format)
+        self._write_to_group(
+            key, value, format=format, append=append, dropna=dropna, **kwargs
+        )
 
     def append_to_multiple(
         self,
@@ -1191,13 +1213,31 @@ class HDFStore:
 
             self.append(k, val, data_columns=dc, **kwargs)
 
-    def create_table_index(self, key: str, **kwargs):
+    def create_table_index(
+        self,
+        key: str,
+        columns=None,
+        optlevel: Optional[int] = None,
+        kind: Optional[str] = None,
+    ):
         """
         Create a pytables index on the table.
 
         Parameters
         ----------
         key : str
+        columns : None, bool, or listlike[str]
+            Indicate which columns to create an index on.
+
+            * False : Do not create any indexes.
+            * True : Create indexes on all columns.
+            * None : Create indexes on all columns.
+            * listlike : Create indexes on the given columns.
+
+        optlevel : int or None, default None
+            Optimization level, if None, pytables defaults to 6.
+        kind : str or None, default None
+            Kind of index, if None, pytables defaults to "medium"
 
         Raises
         ------
@@ -1212,7 +1252,7 @@ class HDFStore:
 
         if not isinstance(s, Table):
             raise TypeError("cannot create table index on a Fixed format store")
-        s.create_index(**kwargs)
+        s.create_index(columns=columns, optlevel=optlevel, kind=kind)
 
     def groups(self):
         """
@@ -1418,20 +1458,24 @@ class HDFStore:
         if not self.is_open:
             raise ClosedFileError(f"{self._path} file is not open!")
 
-    def _validate_format(self, format: str, kwargs: Dict[str, Any]) -> Dict[str, Any]:
-        """ validate / deprecate formats; return the new kwargs """
-        kwargs = kwargs.copy()
+    def _validate_format(self, format: str) -> str:
+        """ validate / deprecate formats """
 
         # validate
         try:
-            kwargs["format"] = _FORMAT_MAP[format.lower()]
+            format = _FORMAT_MAP[format.lower()]
         except KeyError:
             raise TypeError(f"invalid HDFStore format specified [{format}]")
 
-        return kwargs
+        return format
 
     def _create_storer(
-        self, group, format=None, value=None, **kwargs
+        self,
+        group,
+        format=None,
+        value=None,
+        encoding: str = "UTF-8",
+        errors: str = "strict",
     ) -> Union["GenericFixed", "Table"]:
         """ return a suitable class to operate """
 
@@ -1439,8 +1483,7 @@ class HDFStore:
             # return instead of raising so mypy can tell where we are raising
             return TypeError(
                 f"cannot properly create the storer for: [{t}] [group->"
-                f"{group},value->{type(value)},format->{format},"
-                f"kwargs->{kwargs}]"
+                f"{group},value->{type(value)},format->{format}"
             )
 
         pt = _ensure_decoded(getattr(group._v_attrs, "pandas_type", None))
@@ -1476,7 +1519,9 @@ class HDFStore:
         # a storer node
         if "table" not in pt:
             try:
-                return globals()[_STORER_MAP[pt]](self, group, **kwargs)
+                return globals()[_STORER_MAP[pt]](
+                    self, group, encoding=encoding, errors=errors
+                )
             except KeyError:
                 raise error("_STORER_MAP")
 
@@ -1517,20 +1562,31 @@ class HDFStore:
                     pass
 
         try:
-            return globals()[_TABLE_MAP[tt]](self, group, **kwargs)
+            return globals()[_TABLE_MAP[tt]](
+                self, group, encoding=encoding, errors=errors
+            )
         except KeyError:
             raise error("_TABLE_MAP")
 
     def _write_to_group(
         self,
         key: str,
-        value,
+        value: FrameOrSeries,
         format,
+        axes=None,
         index=True,
         append=False,
         complib=None,
+        complevel: Optional[int] = None,
+        fletcher32=None,
+        min_itemsize=None,
+        chunksize=None,
+        expectedrows=None,
+        dropna=False,
+        nan_rep=None,
+        data_columns=None,
         encoding=None,
-        **kwargs,
+        errors: str = "strict",
     ):
         group = self.get_node(key)
 
@@ -1565,7 +1621,7 @@ class HDFStore:
                     group = self._handle.create_group(path, p)
                 path = new_path
 
-        s = self._create_storer(group, format, value, encoding=encoding, **kwargs)
+        s = self._create_storer(group, format, value, encoding=encoding, errors=errors)
         if append:
             # raise if we are trying to append to a Fixed format,
             #       or a table that exists (and we are putting)
@@ -1580,15 +1636,28 @@ class HDFStore:
             raise ValueError("Compression not supported on Fixed format stores")
 
         # write the object
-        s.write(obj=value, append=append, complib=complib, **kwargs)
+        s.write(
+            obj=value,
+            axes=axes,
+            append=append,
+            complib=complib,
+            complevel=complevel,
+            fletcher32=fletcher32,
+            min_itemsize=min_itemsize,
+            chunksize=chunksize,
+            expectedrows=expectedrows,
+            dropna=dropna,
+            nan_rep=nan_rep,
+            data_columns=data_columns,
+        )
 
         if isinstance(s, Table) and index:
             s.create_index(columns=index)
 
-    def _read_group(self, group: "Node", **kwargs):
+    def _read_group(self, group: "Node"):
         s = self._create_storer(group)
         s.infer_axes()
-        return s.read(**kwargs)
+        return s.read()
 
 
 class TableIterator:
@@ -1787,7 +1856,7 @@ class IndexCol:
             )
         )
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: Any) -> bool:
         """ compare 2 col items """
         return all(
             getattr(self, a, None) == getattr(other, a, None)
@@ -2113,7 +2182,7 @@ class DataCol(IndexCol):
             )
         )
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: Any) -> bool:
         """ compare 2 col items """
         return all(
             getattr(self, a, None) == getattr(other, a, None)
@@ -2524,10 +2593,11 @@ class Fixed:
     ndim: int
     parent: HDFStore
     group: "Node"
+    errors: str
     is_table = False
 
     def __init__(
-        self, parent: HDFStore, group: "Node", encoding=None, errors="strict", **kwargs
+        self, parent: HDFStore, group: "Node", encoding=None, errors: str = "strict"
     ):
         assert isinstance(parent, HDFStore), type(parent)
         assert _table_mod is not None  # needed for mypy
@@ -2721,28 +2791,22 @@ class GenericFixed(Fixed):
 
         return klass
 
-    def validate_read(self, kwargs: Dict[str, Any]) -> Dict[str, Any]:
+    def validate_read(self, columns, where):
         """
-        remove table keywords from kwargs and return
         raise if any keywords are passed which are not-None
         """
-        kwargs = copy.copy(kwargs)
-
-        columns = kwargs.pop("columns", None)
         if columns is not None:
             raise TypeError(
                 "cannot pass a column specification when reading "
                 "a Fixed format store. this store must be "
                 "selected in its entirety"
             )
-        where = kwargs.pop("where", None)
         if where is not None:
             raise TypeError(
                 "cannot pass a where specification when reading "
                 "from a Fixed format store. this store must be "
                 "selected in its entirety"
             )
-        return kwargs
 
     @property
     def is_exists(self) -> bool:
@@ -3054,7 +3118,7 @@ class SeriesFixed(GenericFixed):
         start: Optional[int] = None,
         stop: Optional[int] = None,
     ):
-        self.validate_read({"where": where, "columns": columns})
+        self.validate_read(columns, where)
         index = self.read_index("index", start=start, stop=stop)
         values = self.read_array("values", start=start, stop=stop)
         return Series(values, index=index, name=self.name)
@@ -3111,7 +3175,7 @@ class BlockManagerFixed(GenericFixed):
         stop: Optional[int] = None,
     ):
         # start, stop applied to rows, so 0th axis only
-        self.validate_read({"columns": columns, "where": where})
+        self.validate_read(columns, where)
         select_axis = self.obj_type()._get_block_manager_axis(0)
 
         axes = []
@@ -3199,8 +3263,10 @@ class Table(Fixed):
     metadata: List
     info: Dict
 
-    def __init__(self, parent: HDFStore, group: "Node", **kwargs):
-        super().__init__(parent, group, **kwargs)
+    def __init__(
+        self, parent: HDFStore, group: "Node", encoding=None, errors: str = "strict"
+    ):
+        super().__init__(parent, group, encoding=encoding, errors=errors)
         self.index_axes = []
         self.non_index_axes = []
         self.values_axes = []
@@ -3493,7 +3559,7 @@ class Table(Fixed):
 
         return self._indexables
 
-    def create_index(self, columns=None, optlevel=None, kind=None):
+    def create_index(self, columns=None, optlevel=None, kind: Optional[str] = None):
         """
         Create a pytables index on the specified columns
           note: cannot index Time64Col() or ComplexCol currently;
@@ -3501,10 +3567,18 @@ class Table(Fixed):
 
         Parameters
         ----------
-        columns : False (don't create an index), True (create all columns
-            index), None or list_like (the indexers to index)
-        optlevel: optimization level (defaults to 6)
-        kind    : kind of index (defaults to 'medium')
+        columns : None, bool, or listlike[str]
+            Indicate which columns to create an index on.
+
+            * False : Do not create any indexes.
+            * True : Create indexes on all columns.
+            * None : Create indexes on all columns.
+            * listlike : Create indexes on the given columns.
+
+        optlevel : int or None, default None
+            Optimization level, if None, pytables defaults to 6.
+        kind : str or None, default None
+            Kind of index, if None, pytables defaults to "medium"
 
         Raises
         ------
@@ -4076,7 +4150,6 @@ class AppendableTable(Table):
         dropna=False,
         nan_rep=None,
         data_columns=None,
-        errors="strict",  # not used here, but passed to super
     ):
 
         if not append and self.is_exists:
