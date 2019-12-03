@@ -58,7 +58,6 @@ from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
 from pandas.core.computation.pytables import PyTablesExpr, maybe_expression
 from pandas.core.index import ensure_index
-from pandas.core.internals import BlockManager, _block_shape, make_block
 
 from pandas.io.common import _stringify_path
 from pandas.io.formats.printing import adjoin, pprint_thing
@@ -362,9 +361,6 @@ def read_hdf(
     >>> df.to_hdf('./store.h5', 'data')
     >>> reread = pd.read_hdf('./store.h5')
     """
-    assert not kwargs, kwargs
-    # NB: in principle more kwargs could be passed to HDFStore, but in
-    #  tests none are.
 
     if mode not in ["r", "r+", "a"]:
         raise ValueError(
@@ -501,13 +497,14 @@ class HDFStore:
     """
 
     _handle: Optional["File"]
+    _mode: str
     _complevel: int
     _fletcher32: bool
 
     def __init__(
         self,
         path,
-        mode=None,
+        mode: str = "a",
         complevel: Optional[int] = None,
         complib=None,
         fletcher32: bool = False,
@@ -838,7 +835,13 @@ class HDFStore:
             raise TypeError("can only read_coordinates with a table")
         return tbl.read_coordinates(where=where, start=start, stop=stop)
 
-    def select_column(self, key: str, column: str, **kwargs):
+    def select_column(
+        self,
+        key: str,
+        column: str,
+        start: Optional[int] = None,
+        stop: Optional[int] = None,
+    ):
         """
         return a single column from the table. This is generally only useful to
         select an indexable
@@ -846,8 +849,10 @@ class HDFStore:
         Parameters
         ----------
         key : str
-        column: str
+        column : str
             The column of interest.
+        start : int or None, default None
+        stop : int or None, default None
 
         Raises
         ------
@@ -860,7 +865,7 @@ class HDFStore:
         tbl = self.get_storer(key)
         if not isinstance(tbl, Table):
             raise TypeError("can only read_column with a table")
-        return tbl.read_column(column=column, **kwargs)
+        return tbl.read_column(column=column, start=start, stop=stop)
 
     def select_as_multiple(
         self,
@@ -2399,7 +2404,7 @@ class DataCol(IndexCol):
         # write the codes; must be in a block shape
         self.ordered = values.ordered
         self.typ = self.get_atom_data(block, kind=codes.dtype.name)
-        self.set_data(_block_shape(codes))
+        self.set_data(codes)
 
         # write the categories
         self.meta = "category"
@@ -2598,9 +2603,9 @@ class Fixed:
 
         Parameters
         ----------
-
-        parent : my parent HDFStore
-        group  : the group node where the table resides
+        parent : HDFStore
+        group : Node
+            The group node where the table resides.
         """
 
     pandas_kind: str
@@ -2892,7 +2897,7 @@ class GenericFixed(Fixed):
             return self.read_multi_index(key, start=start, stop=stop)
         elif variety == "regular":
             node = getattr(self.group, key)
-            _, index = self.read_index_node(node, start=start, stop=stop)
+            index = self.read_index_node(node, start=start, stop=stop)
             return index
         else:  # pragma: no cover
             raise TypeError(f"unrecognized index variety: {variety}")
@@ -2952,13 +2957,13 @@ class GenericFixed(Fixed):
 
         levels = []
         codes = []
-        names = []
+        names: List[Optional[Hashable]] = []
         for i in range(nlevels):
             level_key = f"{key}_level{i}"
             node = getattr(self.group, level_key)
-            name, lev = self.read_index_node(node, start=start, stop=stop)
+            lev = self.read_index_node(node, start=start, stop=stop)
             levels.append(lev)
-            names.append(name)
+            names.append(lev.name)
 
             label_key = f"{key}_label{i}"
             level_codes = self.read_array(label_key, start=start, stop=stop)
@@ -2970,7 +2975,7 @@ class GenericFixed(Fixed):
 
     def read_index_node(
         self, node: "Node", start: Optional[int] = None, stop: Optional[int] = None
-    ):
+    ) -> Index:
         data = node[start:stop]
         # If the index was an empty array write_array_empty() will
         # have written a sentinel. Here we relace it with the original.
@@ -3018,7 +3023,7 @@ class GenericFixed(Fixed):
 
         index.name = name
 
-        return name, index
+        return index
 
     def write_array_empty(self, key: str, value):
         """ write a 0-len array """
@@ -3152,7 +3157,6 @@ class SeriesFixed(GenericFixed):
 
 class BlockManagerFixed(GenericFixed):
     attributes = ["ndim", "nblocks"]
-    is_shape_reversed = False
 
     nblocks: int
 
@@ -3179,10 +3183,6 @@ class BlockManagerFixed(GenericFixed):
 
             shape.append(items)
 
-            # hacky - this works for frames, but is reversed for panels
-            if self.is_shape_reversed:
-                shape = shape[::-1]
-
             return shape
         except AttributeError:
             return None
@@ -3206,17 +3206,23 @@ class BlockManagerFixed(GenericFixed):
             axes.append(ax)
 
         items = axes[0]
-        blocks = []
+        dfs = []
+
         for i in range(self.nblocks):
 
             blk_items = self.read_index(f"block{i}_items")
             values = self.read_array(f"block{i}_values", start=_start, stop=_stop)
-            blk = make_block(
-                values, placement=items.get_indexer(blk_items), ndim=len(axes)
-            )
-            blocks.append(blk)
 
-        return self.obj_type(BlockManager(blocks, axes))
+            columns = items[items.get_indexer(blk_items)]
+            df = DataFrame(values.T, columns=columns, index=axes[1])
+            dfs.append(df)
+
+        if len(dfs) > 0:
+            out = concat(dfs, axis=1)
+            out = out.reindex(columns=items, copy=False)
+            return out
+
+        return DataFrame(columns=axes[0], index=axes[1])
 
     def write(self, obj, **kwargs):
         super().write(obj, **kwargs)
@@ -3274,7 +3280,6 @@ class Table(Fixed):
     table_type: str
     levels = 1
     is_table = True
-    is_shape_reversed = False
 
     index_axes: List[IndexCol]
     non_index_axes: List[Tuple[int, Any]]
@@ -3359,10 +3364,6 @@ class Table(Fixed):
     def is_multi_index(self) -> bool:
         """the levels attribute is 1 or a list in the case of a multi-index"""
         return isinstance(self.levels, list)
-
-    def validate_metadata(self, existing):
-        """ create / validate metadata """
-        self.metadata = [c.name for c in self.values_axes if c.metadata is not None]
 
     def validate_multiindex(self, obj):
         """validate that we can store the multi-index; reset and return the
@@ -3666,8 +3667,8 @@ class Table(Fixed):
         Parameters
         ----------
         where : ???
-        start: int or None, default None
-        stop: int or None, default None
+        start : int or None, default None
+        stop : int or None, default None
 
         Returns
         -------
@@ -3961,7 +3962,7 @@ class Table(Fixed):
         self.validate_min_itemsize(min_itemsize)
 
         # validate our metadata
-        self.validate_metadata(existing_table)
+        self.metadata = [c.name for c in self.values_axes if c.metadata is not None]
 
         # validate the axes if we have an existing table
         if validate:
@@ -4464,9 +4465,15 @@ class AppendableFrameTable(AppendableTable):
             if values.ndim == 1 and isinstance(values, np.ndarray):
                 values = values.reshape((1, values.shape[0]))
 
-            block = make_block(values, placement=np.arange(len(cols_)), ndim=2)
-            mgr = BlockManager([block], [cols_, index_])
-            frames.append(DataFrame(mgr))
+            if isinstance(values, np.ndarray):
+                df = DataFrame(values.T, columns=cols_, index=index_)
+            elif isinstance(values, Index):
+                df = DataFrame(values, columns=cols_, index=index_)
+            else:
+                # Categorical
+                df = DataFrame([values], columns=cols_, index=index_)
+            assert (df.dtypes == values.dtype).all(), (df.dtypes, values.dtype)
+            frames.append(df)
 
         if len(frames) == 1:
             df = frames[0]
@@ -4500,8 +4507,7 @@ class AppendableSeriesTable(AppendableFrameTable):
         """ we are going to write this as a frame table """
         if not isinstance(obj, DataFrame):
             name = obj.name or "values"
-            obj = DataFrame({name: obj}, index=obj.index)
-            obj.columns = [name]
+            obj = obj.to_frame(name)
         return super().write(obj=obj, data_columns=obj.columns.tolist(), **kwargs)
 
     def read(
