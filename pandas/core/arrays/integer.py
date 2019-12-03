@@ -267,6 +267,11 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
     .. versionadded:: 0.24.0
 
+    .. versionchanged:: 1.0.0
+
+       Now uses :attr:`pandas.NA` as its missing value, rather
+       than :attr:`numpy.nan`.
+
     .. warning::
 
        IntegerArray is currently experimental, and its API or internal
@@ -803,6 +808,12 @@ IntegerArray._add_comparison_ops()
 
 _dtype_docstring = """
 An ExtensionDtype for {dtype} integer data.
+
+.. versionchanged:: 1.0.0
+
+   Now uses :attr:`pandas.NA` as its missing value,
+   rather than :attr:`numpy.nan`.
+
 
 Attributes
 ----------
