@@ -171,9 +171,9 @@ class TestDatetime64SeriesComparison:
         ],
     )
     @pytest.mark.parametrize("reverse", [True, False])
-    @pytest.mark.parametrize("box", [Series, pd.Index])
     @pytest.mark.parametrize("dtype", [None, object])
-    def test_nat_comparisons(self, dtype, box, reverse, pair):
+    def test_nat_comparisons(self, dtype, index_or_series, reverse, pair):
+        box = index_or_series
         l, r = pair
         if reverse:
             # add lhs / rhs switched data
@@ -2383,14 +2383,16 @@ class TestDatetimeIndexArithmetic:
         result4 = index + ser.values
         tm.assert_index_equal(result4, expected)
 
-    @pytest.mark.parametrize("other_box", [pd.Index, Series])
     @pytest.mark.parametrize("op", [operator.add, roperator.radd, operator.sub])
     @pytest.mark.parametrize(
         "names", [(None, None, None), ("foo", "bar", None), ("foo", "foo", "foo")]
     )
-    def test_dti_addsub_offset_arraylike(self, tz_naive_fixture, names, op, other_box):
+    def test_dti_addsub_offset_arraylike(
+        self, tz_naive_fixture, names, op, index_or_series
+    ):
         # GH#18849, GH#19744
         box = pd.Index
+        other_box = index_or_series
         from .test_timedelta64 import get_upcast_box
 
         tz = tz_naive_fixture
