@@ -129,7 +129,7 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
             expected = s.combine(other, op)
 
             if op_name in ("__rtruediv__", "__truediv__", "__div__"):
-                expected = expected.astype(float)
+                expected = expected.fillna(np.nan).astype(float)
                 if op_name == "__rtruediv__":
                     # TODO reverse operators result in object dtype
                     result = result.astype(float)
