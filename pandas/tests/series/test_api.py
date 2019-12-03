@@ -24,18 +24,7 @@ import pandas.util.testing as tm
 import pandas.io.formats.printing as printing
 
 
-class SharedWithSparse:
-    """
-    A collection of tests Series and SparseSeries can share.
-
-    In generic tests on this class, use ``self._assert_series_equal()``
-    which is implemented in sub-classes.
-    """
-
-    def _assert_series_equal(self, left, right):
-        """Dispatch to series class dependent assertion"""
-        raise NotImplementedError
-
+class TestSeriesMisc:
     def test_scalarop_preserve_name(self, datetime_series):
         result = datetime_series * 2
         assert result.name == datetime_series.name
@@ -132,19 +121,19 @@ class SharedWithSparse:
 
     def test_constructor_dict(self):
         d = {"a": 0.0, "b": 1.0, "c": 2.0}
-        result = self.series_klass(d)
-        expected = self.series_klass(d, index=sorted(d.keys()))
-        self._assert_series_equal(result, expected)
+        result = Series(d)
+        expected = Series(d, index=sorted(d.keys()))
+        tm.assert_series_equal(result, expected)
 
-        result = self.series_klass(d, index=["b", "c", "d", "a"])
-        expected = self.series_klass([1, 2, np.nan, 0], index=["b", "c", "d", "a"])
-        self._assert_series_equal(result, expected)
+        result = Series(d, index=["b", "c", "d", "a"])
+        expected = Series([1, 2, np.nan, 0], index=["b", "c", "d", "a"])
+        tm.assert_series_equal(result, expected)
 
     def test_constructor_subclass_dict(self):
         data = tm.TestSubDict((x, 10.0 * x) for x in range(10))
-        series = self.series_klass(data)
-        expected = self.series_klass(dict(data.items()))
-        self._assert_series_equal(series, expected)
+        series = Series(data)
+        expected = Series(dict(data.items()))
+        tm.assert_series_equal(series, expected)
 
     def test_constructor_ordereddict(self):
         # GH3283
@@ -152,44 +141,44 @@ class SharedWithSparse:
             ("col{i}".format(i=i), np.random.random()) for i in range(12)
         )
 
-        series = self.series_klass(data)
-        expected = self.series_klass(list(data.values()), list(data.keys()))
-        self._assert_series_equal(series, expected)
+        series = Series(data)
+        expected = Series(list(data.values()), list(data.keys()))
+        tm.assert_series_equal(series, expected)
 
         # Test with subclass
         class A(OrderedDict):
             pass
 
-        series = self.series_klass(A(data))
-        self._assert_series_equal(series, expected)
+        series = Series(A(data))
+        tm.assert_series_equal(series, expected)
 
     def test_constructor_dict_multiindex(self):
         d = {("a", "a"): 0.0, ("b", "a"): 1.0, ("b", "c"): 2.0}
         _d = sorted(d.items())
-        result = self.series_klass(d)
-        expected = self.series_klass(
+        result = Series(d)
+        expected = Series(
             [x[1] for x in _d], index=pd.MultiIndex.from_tuples([x[0] for x in _d])
         )
-        self._assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         d["z"] = 111.0
         _d.insert(0, ("z", d["z"]))
-        result = self.series_klass(d)
-        expected = self.series_klass(
+        result = Series(d)
+        expected = Series(
             [x[1] for x in _d], index=pd.Index([x[0] for x in _d], tupleize_cols=False)
         )
         result = result.reindex(index=expected.index)
-        self._assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_constructor_dict_timedelta_index(self):
         # GH #12169 : Resample category data with timedelta index
         # construct Series from dict as data and TimedeltaIndex as index
         # will result NaN in result Series data
-        expected = self.series_klass(
+        expected = Series(
             data=["A", "B", "C"], index=pd.to_timedelta([0, 10, 20], unit="s")
         )
 
-        result = self.series_klass(
+        result = Series(
             data={
                 pd.to_timedelta(0, unit="s"): "A",
                 pd.to_timedelta(10, unit="s"): "B",
@@ -197,19 +186,12 @@ class SharedWithSparse:
             },
             index=pd.to_timedelta([0, 10, 20], unit="s"),
         )
-        self._assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_sparse_accessor_updates_on_inplace(self):
         s = pd.Series([1, 1, 2, 3], dtype="Sparse[int]")
         s.drop([0, 1], inplace=True)
         assert s.sparse.density == 1.0
-
-
-class TestSeriesMisc(SharedWithSparse):
-
-    series_klass = Series
-    # SharedWithSparse tests use generic, series_klass-agnostic assertion
-    _assert_series_equal = staticmethod(tm.assert_series_equal)
 
     def test_tab_completion(self):
         # GH 9910
