@@ -69,6 +69,7 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import IndexOpsMixin, PandasObject
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.frozen import FrozenList
 import pandas.core.missing as missing
@@ -4576,7 +4577,7 @@ class Index(IndexOpsMixin, PandasObject):
         # if we have something that is Index-like, then
         # use this, e.g. DatetimeIndex
         # Things like `Series._get_value` (via .at) pass the EA directly here.
-        s = getattr(series, "_values", series)
+        s = extract_array(series, extract_numpy=True)
         if isinstance(s, ExtensionArray):
             if is_scalar(key):
                 # GH 20882, 21257
@@ -4593,6 +4594,8 @@ class Index(IndexOpsMixin, PandasObject):
                     elif is_integer(key):
                         return s[key]
             else:
+                # if key is not a scalar, directly raise an error (the code below
+                # would convert to numpy arrays and raise later any way) - GH29926
                 raise InvalidIndexError(key)
 
         s = com.values_from_object(series)
