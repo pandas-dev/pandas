@@ -123,7 +123,7 @@ def _get_lzma_file(lzma):
 
     Returns
     -------
-    class
+    lzma.LZMAFile
         The lzma.LZMAFile class.
 
     Raises
