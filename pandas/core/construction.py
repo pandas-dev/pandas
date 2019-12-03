@@ -94,9 +94,18 @@ def array(
         :class:`pandas.Period`         :class:`pandas.arrays.PeriodArray`
         :class:`datetime.datetime`     :class:`pandas.arrays.DatetimeArray`
         :class:`datetime.timedelta`    :class:`pandas.arrays.TimedeltaArray`
+        :class:`int`                   :class:`pandas.arrays.IntegerArray`
+        :class:`str`                   :class:`pandas.arrays.StringArray`
+        :class:`bool`                  :class:`pandas.arrays.BooleanArray`
         ============================== =====================================
 
         For all other cases, NumPy's usual inference rules will be used.
+
+        .. versionchanged:: 1.0.0
+
+           Pandas infers nullable-integer dtype for integer data,
+           string dtype for string data, and nullable-boolean dtype
+           for boolean data.
 
     copy : bool, default True
         Whether to copy the data, even if not necessary. Depending
@@ -154,14 +163,6 @@ def array(
     ['a', 'b']
     Length: 2, dtype: str32
 
-    Or use the dedicated constructor for the array you're expecting, and
-    wrap that in a PandasArray
-
-    >>> pd.array(np.array(['a', 'b'], dtype='<U1'))
-    <PandasArray>
-    ['a', 'b']
-    Length: 2, dtype: str32
-
     Finally, Pandas has arrays that mostly overlap with NumPy
 
       * :class:`arrays.DatetimeArray`
@@ -184,20 +185,28 @@ def array(
 
     Examples
     --------
-    If a dtype is not specified, `data` is passed through to
-    :meth:`numpy.array`, and a :class:`arrays.PandasArray` is returned.
+    If a dtype is not specified, pandas will infer the best dtype from the values.
+    See the description of `dtype` for the types pandas infers for.
 
     >>> pd.array([1, 2])
-    <PandasArray>
+    <IntegerArray>
     [1, 2]
-    Length: 2, dtype: int64
+    Length: 2, dtype: Int64
 
-    Or the NumPy dtype can be specified
+    >>> pd.array([1, 2, np.nan])
+    <IntegerArray>
+    [1, 2, NaN]
+    Length: 3, dtype: Int64
 
-    >>> pd.array([1, 2], dtype=np.dtype("int32"))
-    <PandasArray>
-    [1, 2]
-    Length: 2, dtype: int32
+    >>> pd.array(["a", None, "c"])
+    <StringArray>
+    ['a', nan, 'c']
+    Length: 3, dtype: string
+
+    >>> pd.array([pd.Period('2000', freq="D"), pd.Period("2000", freq="D")])
+    <PeriodArray>
+    ['2000-01-01', '2000-01-01']
+    Length: 2, dtype: period[D]
 
     You can use the string alias for `dtype`
 
@@ -212,29 +221,24 @@ def array(
     [a, b, a]
     Categories (3, object): [a < b < c]
 
-    Because omitting the `dtype` passes the data through to NumPy,
-    a mixture of valid integers and NA will return a floating-point
-    NumPy array.
+    If pandas does not infer a dedicated extension type a
+    :class:`arrays.PandasArray` is returned.
 
-    >>> pd.array([1, 2, np.nan])
+    >>> pd.array([1.1, 2.2])
     <PandasArray>
-    [1.0,  2.0, nan]
-    Length: 3, dtype: float64
+    [1.1, 2.2]
+    Length: 2, dtype: float64
 
-    To use pandas' nullable :class:`pandas.arrays.IntegerArray`, specify
-    the dtype:
+    As mentioned in the "Notes" section, new extension types may be added
+    in the future (by pandas or 3rd party libraries), causing the return
+    value to no longer be a :class:`arrays.PandasArray`. Specify the `dtype`
+    as a NumPy dtype if you need to ensure there's no future change in
+    behavior.
 
-    >>> pd.array([1, 2, np.nan], dtype='Int64')
-    <IntegerArray>
-    [1, 2, NaN]
-    Length: 3, dtype: Int64
-
-    Pandas will infer an ExtensionArray for some types of data:
-
-    >>> pd.array([pd.Period('2000', freq="D"), pd.Period("2000", freq="D")])
-    <PeriodArray>
-    ['2000-01-01', '2000-01-01']
-    Length: 2, dtype: period[D]
+    >>> pd.array([1, 2], dtype=np.dtype("int32"))
+    <PandasArray>
+    [1, 2]
+    Length: 2, dtype: int32
 
     `data` must be 1-dimensional. A ValueError is raised when the input
     has the wrong dimensionality.
@@ -246,20 +250,25 @@ def array(
     """
     from pandas.core.arrays import (
         period_array,
+        BooleanArray,
+        IntegerArray,
         IntervalArray,
         PandasArray,
         DatetimeArray,
         TimedeltaArray,
+        StringArray,
     )
 
     if lib.is_scalar(data):
         msg = "Cannot pass scalar '{}' to 'pandas.array'."
         raise ValueError(msg.format(data))
 
-    data = extract_array(data, extract_numpy=True)
-
-    if dtype is None and isinstance(data, ABCExtensionArray):
+    if dtype is None and isinstance(
+        data, (ABCSeries, ABCIndexClass, ABCExtensionArray)
+    ):
         dtype = data.dtype
+
+    data = extract_array(data, extract_numpy=True)
 
     # this returns None for not-found dtypes.
     if isinstance(dtype, str):
@@ -270,7 +279,7 @@ def array(
         return cls._from_sequence(data, dtype=dtype, copy=copy)
 
     if dtype is None:
-        inferred_dtype = lib.infer_dtype(data, skipna=False)
+        inferred_dtype = lib.infer_dtype(data, skipna=True)
         if inferred_dtype == "period":
             try:
                 return period_array(data, copy=copy)
@@ -298,7 +307,14 @@ def array(
             # timedelta, timedelta64
             return TimedeltaArray._from_sequence(data, copy=copy)
 
-        # TODO(BooleanArray): handle this type
+        elif inferred_dtype == "string":
+            return StringArray._from_sequence(data, copy=copy)
+
+        elif inferred_dtype == "integer":
+            return IntegerArray._from_sequence(data, copy=copy)
+
+        elif inferred_dtype == "boolean":
+            return BooleanArray._from_sequence(data, copy=copy)
 
     # Pandas overrides NumPy for
     #   1. datetime64[ns]
