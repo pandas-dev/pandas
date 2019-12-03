@@ -10,6 +10,12 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 from pandas.core.base import PandasObject
 
+from typing import (
+    List,
+    Tuple,
+    Union,
+)
+
 
 def hist_series(
     self,
@@ -391,14 +397,14 @@ backend : str, default None
 @Appender(_boxplot_doc)
 def boxplot(
     data,
-    column=None,
+    column: Union[str, List[str]] = None,
     by=None,
     ax=None,
-    fontsize=None,
-    rot=0,
-    grid=True,
-    figsize=None,
-    layout=None,
+    fontsize: Union[float, str] = None,
+    rot: Union[float, int] = 0,
+    grid: bool = True,
+    figsize: Tuple[int, float] = None,
+    layout: Tuple[int] = None,
     return_type=None,
     **kwargs,
 ):
