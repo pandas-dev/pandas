@@ -14,6 +14,33 @@ def calculate_variable_window_bounds(
     object closed,
     const int64_t[:] index
 ):
+    """
+    Calculate window boundaries for rolling windows from a time offset.
+
+    Parameters
+    ----------
+    num_values : int64
+        total number of values
+
+    window_size : int64
+        window size calculated from the offset
+
+    min_periods : object
+        ignored, exists for compatibility
+
+    center : object
+        ignored, exists for compatibility
+
+    closed : str
+        string of side of the window that should be closed
+
+    index : ndarray[int64]
+        time series index to roll over
+
+    Returns
+    -------
+    (ndarray[int64], ndarray[int64])
+    """
     cdef:
         bint left_closed = False
         bint right_closed = False

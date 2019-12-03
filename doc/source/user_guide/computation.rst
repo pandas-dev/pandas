@@ -493,26 +493,35 @@ For example, if we have the following ``DataFrame``:
 and we want to use an expanding window where ``use_expanding`` is ``True`` otherwise a window of size
 1, we can create the following ``BaseIndexer``:
 
-.. ipython:: python
+.. code-block:: ipython
 
-   from pandas.api.indexers import BaseIndexer
+   In [2]: from pandas.api.indexers import BaseIndexer
+   ...:
+   ...: class CustomIndexer(BaseIndexer):
+   ...:
+   ...:    def get_window_bounds(self, num_values, min_periods, center, closed):
+   ...:        start = np.empty(num_values, dtype=np.int64)
+   ...:        end = np.empty(num_values, dtype=np.int64)
+   ...:        for i in range(num_values):
+   ...:            if self.use_expanding[i]:
+   ...:                start[i] = 0
+   ...:                end[i] = i + 1
+   ...:            else:
+   ...:                start[i] = i
+   ...:                end[i] = i + self.window_size
+   ...:        return start, end
+   ...:
 
-   class CustomIndexer(BaseIndexer):
+   In [3]: indexer = CustomIndexer(window_size=1, use_expanding=use_expanding)
 
-       def get_window_bounds(self, num_values, min_periods, center, closed):
-           start = np.empty(num_values, dtype=np.int64)
-           end = np.empty(num_values, dtype=np.int64)
-           for i in range(num_values):
-               if self.use_expanding[i]:
-                   start[i] = 0
-                   end[i] = i + 1
-               else:
-                   start[i] = i
-                   end[i] = i + self.window_size
-           return start, end
-
-   indexer = CustomIndexer(window_size=1, use_expanding=use_expanding)
-   df.rolling(indexer).sum()
+   In [4]: df.rolling(indexer).sum()
+   Out[4]:
+       values
+   0     0.0
+   1     1.0
+   2     3.0
+   3     3.0
+   4    10.0
 
 
 .. _stats.rolling_window.endpoints:

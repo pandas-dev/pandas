@@ -420,9 +420,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         """
         if self.is_freq_type or isinstance(self.window, BaseIndexer):
             return self._get_roll_func(f"{func}_variable")
-        return partial(
-            self._get_roll_func(f"{func}_fixed"), win=self._get_window()
-        )
+        return partial(self._get_roll_func(f"{func}_fixed"), win=self._get_window())
 
     def _get_window_indexer(
         self, index_as_array: Optional[np.ndarray], window: int

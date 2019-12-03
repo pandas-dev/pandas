@@ -114,4 +114,7 @@ class ExpandingIndexer(BaseIndexer):
         closed: Optional[str] = None,
     ) -> Tuple[np.ndarray, np.ndarray]:
 
-        return np.zeros(num_values, dtype=np.int64), np.arange(1, num_values + 1)
+        return (
+            np.zeros(num_values, dtype=np.int64),
+            np.arange(1, num_values + 1, dtype=np.int64),
+        )
