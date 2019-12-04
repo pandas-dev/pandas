@@ -356,6 +356,13 @@ def test_ufunc_reduce_raises(values):
 
 
 class TestLogicalOps(BaseOpsUtil):
+    def test_numpy_scalars_ok(self, all_logical_operators):
+        a = pd.array([True, False, None], dtype="boolean")
+        op = getattr(a, all_logical_operators)
+
+        tm.assert_extension_array_equal(op(True), op(np.bool(True)))
+        tm.assert_extension_array_equal(op(False), op(np.bool(False)))
+
     def get_op_from_name(self, op_name):
         short_opname = op_name.strip("_")
         short_opname = short_opname if "xor" in short_opname else short_opname + "_"
@@ -402,6 +409,12 @@ class TestLogicalOps(BaseOpsUtil):
 
         with pytest.raises(ValueError, match=msg):
             getattr(a, op_name)(np.nan)
+
+    @pytest.mark.parametrize("other", ["a", 1])
+    def test_non_bool_or_na_other_raises(self, other, all_logical_operators):
+        a = pd.array([True, False], dtype="boolean")
+        with pytest.raises(TypeError, match=str(type(other).__name__)):
+            getattr(a, all_logical_operators)(other)
 
     def test_kleene_or(self):
         # A clear test of behavior.

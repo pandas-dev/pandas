@@ -584,6 +584,13 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
                     )
                 other, mask = coerce_to_array(other, copy=False)
 
+            if other_is_scalar and not isinstance(other, (type(libmissing.NA), bool)):
+                raise TypeError(
+                    "'other' should be pandas.NA or a bool. Got {} instead".format(
+                        type(other).__name__
+                    )
+                )
+
             if not other_is_scalar and len(self) != len(other):
                 raise ValueError("Lengths must match to compare")
 
