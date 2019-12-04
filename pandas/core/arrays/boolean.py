@@ -787,6 +787,8 @@ def kleene_or(
     if left_mask is None:
         return kleene_or(right, left, right_mask, left_mask)
 
+    assert isinstance(left, np.ndarray)
+
     raise_for_nan(right, method="or")
 
     if right is libmissing.NA:
