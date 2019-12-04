@@ -613,7 +613,7 @@ def linkcode_resolve(domain, info):
         lineno = None
 
     if lineno:
-        linespec = f"#L{lineno}-L{lineno + len(lineno) - 1}"
+        linespec = f"#L{lineno}-L{lineno + len(source) - 1}"
     else:
         linespec = ""
 
