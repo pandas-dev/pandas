@@ -4113,9 +4113,7 @@ class DataFrame(NDFrame):
                 try:
                     found = col in self.columns
                 except TypeError:
-                    raise TypeError(
-                        f"{err_msg}. Received column of type {type(col)}"
-                    )
+                    raise TypeError(f"{err_msg}. Received column of type {type(col)}")
                 else:
                     if not found:
                         missing.append(col)
