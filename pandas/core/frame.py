@@ -4191,7 +4191,7 @@ class DataFrame(NDFrame):
 
     def reset_index(
         self,
-        level: Union[Hashable, Tuple, List, None] = None,
+        level: Optional[Union[Hashable, Sequence[Hashable]] = None,
         drop: bool = False,
         inplace: bool = False,
         col_level: Hashable = 0,
