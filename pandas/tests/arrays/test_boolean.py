@@ -541,11 +541,12 @@ def test_reductions_return_types(dropna, data, all_numeric_reductions):
     ],
 )
 def test_any_all(values, exp_any, exp_all, exp_any_noskip, exp_all_noskip):
-    arr = pd.array(values, dtype="boolean")
-    assert arr.any() is exp_any
-    assert arr.all() is exp_all
-    assert arr.any(skipna=False) is exp_any_noskip
-    assert arr.all(skipna=False) is exp_all_noskip
+    for con in [pd.array, pd.Series]:
+        a = con(values, dtype="boolean")
+        assert a.any() is exp_any
+        assert a.all() is exp_all
+        assert a.any(skipna=False) is exp_any_noskip
+        assert a.all(skipna=False) is exp_all_noskip
 
 
 # TODO when BooleanArray coerces to object dtype numpy array, need to do conversion

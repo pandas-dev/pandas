@@ -670,6 +670,10 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
         return set_function_name(cmp_method, name, cls)
 
     def _reduce(self, name, skipna=True, **kwargs):
+
+        if name in {"any", "all"}:
+            return getattr(self, name)(skipna=skipna, **kwargs)
+
         data = self._data
         mask = self._mask
 
@@ -681,12 +685,8 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
         op = getattr(nanops, "nan" + name)
         result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)
 
-        # if we have a boolean op, don't coerce
-        if name in ["any", "all"]:
-            pass
-
         # if we have numeric op that would result in an int, coerce to int if possible
-        elif name in ["sum", "prod"] and notna(result):
+        if name in ["sum", "prod"] and notna(result):
             int_result = np.int64(result)
             if int_result == result:
                 result = int_result
