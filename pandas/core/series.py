@@ -2944,7 +2944,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             sortedIdx[n:] = idx[good][argsorted]
             sortedIdx[:n] = idx[bad]
         else:
-            raise ValueError("invalid na_position: {!r}".format(na_position))
+            raise ValueError(f"invalid na_position: {repr(na_position)}")
 
         result = self._constructor(arr[sortedIdx], index=self.index[sortedIdx])
 
