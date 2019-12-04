@@ -135,9 +135,8 @@ cdef class Reducer:
                 else:
                     res = self.f(chunk)
 
-                if (not _is_sparse_array(res) and hasattr(res, 'values')
-                        and util.is_array(res.values)):
-                    res = res.values
+                # TODO: reason for not squeezing here?
+                res = _extract_result(res, squeeze=False)
                 if i == 0:
                     # On the first pass, we check the output shape to see
                     #  if this looks like a reduction.
@@ -402,18 +401,17 @@ cdef class SeriesGrouper(_BaseGrouper):
         return result, counts
 
 
-cdef inline _extract_result(object res):
+cdef inline _extract_result(object res, bint squeeze=True):
     """ extract the result object, it might be a 0-dim ndarray
         or a len-1 0-dim, or a scalar """
     if (not _is_sparse_array(res) and hasattr(res, 'values')
             and util.is_array(res.values)):
         res = res.values
-    if not np.isscalar(res):
-        if util.is_array(res):
-            if res.ndim == 0:
-                res = res.item()
-            elif res.ndim == 1 and len(res) == 1:
-                res = res[0]
+    if util.is_array(res):
+        if res.ndim == 0:
+            res = res.item()
+        elif squeeze and res.ndim == 1 and len(res) == 1:
+            res = res[0]
     return res
 
 

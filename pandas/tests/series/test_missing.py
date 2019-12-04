@@ -16,11 +16,11 @@ from pandas import (
     MultiIndex,
     NaT,
     Series,
+    Timedelta,
     Timestamp,
     date_range,
     isna,
 )
-from pandas.core.series import remove_na
 import pandas.util.testing as tm
 
 
@@ -48,11 +48,6 @@ def _simple_ts(start, end, freq="D"):
 
 
 class TestSeriesMissingData:
-    def test_remove_na_deprecation(self):
-        # see gh-16971
-        with tm.assert_produces_warning(FutureWarning):
-            remove_na(Series([]))
-
     def test_timedelta_fillna(self):
         # GH 3371
         s = Series(
@@ -66,8 +61,7 @@ class TestSeriesMissingData:
         td = s.diff()
 
         # reg fillna
-        with tm.assert_produces_warning(FutureWarning):
-            result = td.fillna(0)
+        result = td.fillna(Timedelta(seconds=0))
         expected = Series(
             [
                 timedelta(0),
@@ -79,8 +73,10 @@ class TestSeriesMissingData:
         tm.assert_series_equal(result, expected)
 
         # interpreted as seconds, deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            result = td.fillna(1)
+        with pytest.raises(TypeError, match="Passing integers to fillna"):
+            td.fillna(1)
+
+        result = td.fillna(Timedelta(seconds=1))
         expected = Series(
             [
                 timedelta(seconds=1),
@@ -128,16 +124,14 @@ class TestSeriesMissingData:
         # ffill
         td[2] = np.nan
         result = td.ffill()
-        with tm.assert_produces_warning(FutureWarning):
-            expected = td.fillna(0)
+        expected = td.fillna(Timedelta(seconds=0))
         expected[0] = np.nan
         tm.assert_series_equal(result, expected)
 
         # bfill
         td[2] = np.nan
         result = td.bfill()
-        with tm.assert_produces_warning(FutureWarning):
-            expected = td.fillna(0)
+        expected = td.fillna(Timedelta(seconds=0))
         expected[2] = timedelta(days=1, seconds=9 * 3600 + 60 + 1)
         tm.assert_series_equal(result, expected)
 
@@ -1603,12 +1597,6 @@ class TestSeriesInterpolateData:
 
         tm.assert_numpy_array_equal(result.values, exp.values)
 
-    def test_nonzero_warning(self):
-        # GH 24048
-        ser = pd.Series([1, 0, 3, 4])
-        with tm.assert_produces_warning(FutureWarning):
-            ser.nonzero()
-
     @pytest.mark.parametrize(
         "ind",
         [
@@ -1661,3 +1649,14 @@ class TestSeriesInterpolateData:
             pytest.skip(
                 "This interpolation method is not supported for Timedelta Index yet."
             )
+
+    @pytest.mark.parametrize(
+        "ascending, expected_values",
+        [(True, [1, 2, 3, 9, 10]), (False, [10, 9, 3, 2, 1])],
+    )
+    def test_interpolate_unsorted_index(self, ascending, expected_values):
+        # GH 21037
+        ts = pd.Series(data=[10, 9, np.nan, 2, 1], index=[10, 9, 3, 2, 1])
+        result = ts.sort_index(ascending=ascending).interpolate(method="index")
+        expected = pd.Series(data=expected_values, index=expected_values, dtype=float)
+        tm.assert_series_equal(result, expected)

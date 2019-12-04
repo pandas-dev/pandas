@@ -51,7 +51,7 @@ from .base import ExtensionArray, ExtensionOpsMixin
 
 
 class AttributesMixin:
-    _data = None  # type: np.ndarray
+    _data: np.ndarray
 
     @classmethod
     def _simple_new(cls, values, **kwargs):
@@ -1486,7 +1486,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             values = self
 
         if not len(values):
-            # short-circut for empty max / min
+            # short-circuit for empty max / min
             return NaT
 
         result = nanops.nanmean(values.view("i8"), skipna=skipna)

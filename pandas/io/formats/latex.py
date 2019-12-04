@@ -133,7 +133,7 @@ class LatexFormatter(TableFormatter):
         if self.fmt.has_index_names and self.fmt.show_index_names:
             nlevels += 1
         strrows = list(zip(*strcols))
-        self.clinebuf = []  # type: List[List[int]]
+        self.clinebuf: List[List[int]] = []
 
         for i, row in enumerate(strrows):
             if i == nlevels and self.fmt.header:

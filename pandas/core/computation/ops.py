@@ -55,12 +55,13 @@ class UndefinedVariableError(NameError):
     NameError subclass for local variables.
     """
 
-    def __init__(self, name, is_local):
+    def __init__(self, name, is_local: bool):
+        base_msg = f"{repr(name)} is not defined"
         if is_local:
-            msg = "local variable {0!r} is not defined"
+            msg = f"local variable {base_msg}"
         else:
-            msg = "name {0!r} is not defined"
-        super().__init__(msg.format(name))
+            msg = f"name {base_msg}"
+        super().__init__(msg)
 
 
 class Term:
@@ -68,6 +69,8 @@ class Term:
         klass = Constant if not isinstance(name, str) else cls
         supr_new = super(Term, klass).__new__
         return supr_new(klass)
+
+    is_local: bool
 
     def __init__(self, name, env, side=None, encoding=None):
         # name is a str for Term, but may be something else for subclasses
@@ -141,10 +144,7 @@ class Term:
 
     @property
     def raw(self) -> str:
-        return pprint_thing(
-            "{0}(name={1!r}, type={2})"
-            "".format(self.__class__.__name__, self.name, self.type)
-        )
+        return f"{type(self).__name__}(name={repr(self.name)}, type={self.type})"
 
     @property
     def is_datetime(self) -> bool:
@@ -372,8 +372,7 @@ class BinOp(Op):
             # has to be made a list for python3
             keys = list(_binary_ops_dict.keys())
             raise ValueError(
-                "Invalid binary operator {0!r}, valid"
-                " operators are {1}".format(op, keys)
+                f"Invalid binary operator {repr(op)}, valid operators are {keys}"
             )
 
     def __call__(self, env):
@@ -389,9 +388,6 @@ class BinOp(Op):
         object
             The result of an evaluated expression.
         """
-        # handle truediv
-        if self.op == "/" and env.scope["truediv"]:
-            self.func = operator.truediv
 
         # recurse over the left/right nodes
         left = self.lhs(env)
@@ -503,12 +499,9 @@ class Div(BinOp):
     ----------
     lhs, rhs : Term or Op
         The Terms or Ops in the ``/`` expression.
-    truediv : bool
-        Whether or not to use true division. With Python 3 this happens
-        regardless of the value of ``truediv``.
     """
 
-    def __init__(self, lhs, rhs, truediv: bool, **kwargs):
+    def __init__(self, lhs, rhs, **kwargs):
         super().__init__("/", lhs, rhs, **kwargs)
 
         if not isnumeric(lhs.return_type) or not isnumeric(rhs.return_type):
@@ -552,8 +545,8 @@ class UnaryOp(Op):
             self.func = _unary_ops_dict[op]
         except KeyError:
             raise ValueError(
-                "Invalid unary operator {0!r}, valid operators "
-                "are {1}".format(op, _unary_ops_syms)
+                f"Invalid unary operator {repr(op)}, "
+                f"valid operators are {_unary_ops_syms}"
             )
 
     def __call__(self, env):
