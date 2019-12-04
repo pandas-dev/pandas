@@ -1935,7 +1935,7 @@ def forbid_nonstring_types(forbidden, name=None):
                 msg = (
                     f"Cannot use .str.{repr(func_name)} with values of inferred dtype "
                     f"{repr(self._inferred_dtype)}."
-                    )
+                    
                 )
                 raise TypeError(msg)
             return func(self, *args, **kwargs)
