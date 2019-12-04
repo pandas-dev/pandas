@@ -960,7 +960,7 @@ def read_html(
         This value is converted to a regular expression so that there is
         consistent behavior between Beautiful Soup and lxml.
 
-    flavor : str or None, container of strings
+    flavor : str or None
         The parsing engine to use. 'bs4' and 'html5lib' are synonymous with
         each other, they are both there for backwards compatibility. The
         default of ``None`` tries to use ``lxml`` to parse and if that fails it
@@ -974,7 +974,7 @@ def read_html(
         The column (or list of columns) to use to create the index.
 
     skiprows : int or list-like or slice or None, optional
-        0-based. Number of rows to skip after parsing the column integer. If a
+        Number of rows to skip after parsing the column integer. 0-based. If a
         sequence of integers or a slice is given, will skip the rows indexed by
         that sequence.  Note that a single element sequence means 'skip the nth
         row' whereas an integer means 'skip n rows'.
@@ -1024,18 +1024,19 @@ def read_html(
         transformed content.
 
     na_values : iterable, default None
-        Custom NA values
+        Custom NA values.
 
     keep_default_na : bool, default True
         If na_values are specified and keep_default_na is False the default NaN
-        values are overridden, otherwise they're appended to
+        values are overridden, otherwise they're appended to.
 
     displayed_only : bool, default True
-        Whether elements with "display: none" should be parsed
+        Whether elements with "display: none" should be parsed.
 
     Returns
     -------
-    dfs : list of DataFrames
+    dfs
+        A list of DataFrames.
 
     See Also
     --------

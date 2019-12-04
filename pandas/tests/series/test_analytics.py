@@ -1028,6 +1028,24 @@ class TestSeriesAnalytics:
         expected = ts.astype(float).shift(1)
         tm.assert_series_equal(shifted, expected)
 
+    def test_shift_object_non_scalar_fill(self):
+        # shift requires scalar fill_value except for object dtype
+        ser = Series(range(3))
+        with pytest.raises(ValueError, match="fill_value must be a scalar"):
+            ser.shift(1, fill_value=[])
+
+        df = ser.to_frame()
+        with pytest.raises(ValueError, match="fill_value must be a scalar"):
+            df.shift(1, fill_value=np.arange(3))
+
+        obj_ser = ser.astype(object)
+        result = obj_ser.shift(1, fill_value={})
+        assert result[0] == {}
+
+        obj_df = obj_ser.to_frame()
+        result = obj_df.shift(1, fill_value={})
+        assert result.iloc[0, 0] == {}
+
     def test_shift_categorical(self):
         # GH 9416
         s = pd.Series(["a", "b", "c", "d"], dtype="category")

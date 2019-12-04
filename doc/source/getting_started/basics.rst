@@ -753,28 +753,51 @@ on an entire ``DataFrame`` or ``Series``, row- or column-wise, or elementwise.
 Tablewise function application
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-``DataFrames`` and ``Series`` can of course just be passed into functions.
+``DataFrames`` and ``Series`` can be passed into functions.
 However, if the function needs to be called in a chain, consider using the :meth:`~DataFrame.pipe` method.
-Compare the following
 
-.. code-block:: python
+First some setup:
 
-   # f, g, and h are functions taking and returning ``DataFrames``
-   >>> f(g(h(df), arg1=1), arg2=2, arg3=3)
+.. ipython:: python
 
-with the equivalent
+    def extract_city_name(df):
+        """
+        Chicago, IL -> Chicago for city_name column
+        """
+        df['city_name'] = df['city_and_code'].str.split(",").str.get(0)
+        return df
 
-.. code-block:: python
+    def add_country_name(df, country_name=None):
+        """
+        Chicago -> Chicago-US for city_name column
+        """
+        col = 'city_name'
+        df['city_and_country'] = df[col] + country_name
+        return df
 
-   >>> (df.pipe(h)
-   ...    .pipe(g, arg1=1)
-   ...    .pipe(f, arg2=2, arg3=3))
+    df_p = pd.DataFrame({'city_and_code': ['Chicago, IL']})
+
+
+``extract_city_name`` and ``add_country_name`` are functions taking and returning ``DataFrames``.
+
+Now compare the following:
+
+.. ipython:: python
+
+    add_country_name(extract_city_name(df_p), country_name='US')
+
+Is equivalent to:
+
+.. ipython:: python
+
+    (df_p.pipe(extract_city_name)
+         .pipe(add_country_name, country_name="US"))
 
 Pandas encourages the second style, which is known as method chaining.
 ``pipe`` makes it easy to use your own or another library's functions
 in method chains, alongside pandas' methods.
 
-In the example above, the functions ``f``, ``g``, and ``h`` each expected the ``DataFrame`` as the first positional argument.
+In the example above, the functions ``extract_city_name`` and ``add_country_name`` each expected a ``DataFrame`` as the first positional argument.
 What if the function you wish to apply takes its data as, say, the second argument?
 In this case, provide ``pipe`` with a tuple of ``(callable, data_keyword)``.
 ``.pipe`` will route the ``DataFrame`` to the argument specified in the tuple.

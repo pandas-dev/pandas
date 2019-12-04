@@ -32,7 +32,7 @@ class _GroupByMixin(GroupByMixin):
     """
 
     def __init__(self, obj, *args, **kwargs):
-        parent = kwargs.pop("parent", None)  # noqa
+        kwargs.pop("parent", None)
         groupby = kwargs.pop("groupby", None)
         if groupby is None:
             groupby, obj = obj, obj.obj

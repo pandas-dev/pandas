@@ -128,6 +128,43 @@ def clean_interp_method(method, **kwargs):
     return method
 
 
+def find_valid_index(values, how: str):
+    """
+    Retrieves the index of the first valid value.
+
+    Parameters
+    ----------
+    values : ndarray or ExtensionArray
+    how : {'first', 'last'}
+        Use this parameter to change between the first or last valid index.
+
+    Returns
+    -------
+    int or None
+    """
+    assert how in ["first", "last"]
+
+    if len(values) == 0:  # early stop
+        return None
+
+    is_valid = ~isna(values)
+
+    if values.ndim == 2:
+        is_valid = is_valid.any(1)  # reduce axis 1
+
+    if how == "first":
+        idxpos = is_valid[::].argmax()
+
+    if how == "last":
+        idxpos = len(values) - 1 - is_valid[::-1].argmax()
+
+    chk_notna = is_valid[idxpos]
+
+    if not chk_notna:
+        return None
+    return idxpos
+
+
 def interpolate_1d(
     xvalues,
     yvalues,
@@ -192,14 +229,10 @@ def interpolate_1d(
     # default limit is unlimited GH #16282
     limit = algos._validate_limit(nobs=None, limit=limit)
 
-    from pandas import Series
-
-    ys = Series(yvalues)
-
     # These are sets of index pointers to invalid values... i.e. {0, 1, etc...
     all_nans = set(np.flatnonzero(invalid))
-    start_nans = set(range(ys.first_valid_index()))
-    end_nans = set(range(1 + ys.last_valid_index(), len(valid)))
+    start_nans = set(range(find_valid_index(yvalues, "first")))
+    end_nans = set(range(1 + find_valid_index(yvalues, "last"), len(valid)))
     mid_nans = all_nans - start_nans - end_nans
 
     # Like the sets above, preserve_nans contains indices of invalid values,

@@ -35,7 +35,7 @@ from pandas.core.dtypes.generic import (
 )
 
 from pandas._typing import Axis, FrameOrSeries, Scalar
-from pandas.core.base import DataError, PandasObject, SelectionMixin
+from pandas.core.base import DataError, PandasObject, SelectionMixin, ShallowMixin
 import pandas.core.common as com
 from pandas.core.index import Index, ensure_index
 from pandas.core.window.common import (
@@ -50,7 +50,7 @@ from pandas.core.window.common import (
 )
 
 
-class _Window(PandasObject, SelectionMixin):
+class _Window(PandasObject, ShallowMixin, SelectionMixin):
     _attributes = [
         "window",
         "min_periods",
@@ -1642,17 +1642,18 @@ class _Rolling_and_Expanding(_Rolling):
 
 class Rolling(_Rolling_and_Expanding):
     @cache_readonly
-    def is_datetimelike(self):
+    def is_datetimelike(self) -> bool:
         return isinstance(
             self._on, (ABCDatetimeIndex, ABCTimedeltaIndex, ABCPeriodIndex)
         )
 
     @cache_readonly
-    def _on(self):
+    def _on(self) -> Index:
         if self.on is None:
             if self.axis == 0:
                 return self.obj.index
-            elif self.axis == 1:
+            else:
+                # i.e. self.axis == 1
                 return self.obj.columns
         elif isinstance(self.on, Index):
             return self.on
@@ -1660,9 +1661,9 @@ class Rolling(_Rolling_and_Expanding):
             return Index(self.obj[self.on])
         else:
             raise ValueError(
-                "invalid on specified as {0}, "
+                "invalid on specified as {on}, "
                 "must be a column (of DataFrame), an Index "
-                "or None".format(self.on)
+                "or None".format(on=self.on)
             )
 
     def validate(self):
@@ -1711,7 +1712,9 @@ class Rolling(_Rolling_and_Expanding):
             formatted = self.on
             if self.on is None:
                 formatted = "index"
-            raise ValueError("{0} must be monotonic".format(formatted))
+            raise ValueError(
+                "{formatted} must be monotonic".format(formatted=formatted)
+            )
 
     def _validate_freq(self):
         """
@@ -1723,9 +1726,9 @@ class Rolling(_Rolling_and_Expanding):
             return to_offset(self.window)
         except (TypeError, ValueError):
             raise ValueError(
-                "passed window {0} is not "
+                "passed window {window} is not "
                 "compatible with a datetimelike "
-                "index".format(self.window)
+                "index".format(window=self.window)
             )
 
     _agg_see_also_doc = dedent(
