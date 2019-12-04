@@ -9,7 +9,7 @@ import numpy as np
 
 import pandas._libs.lib as lib
 import pandas._libs.ops as libops
-from pandas.util._decorators import Appender, deprecate_kwarg
+from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -2628,9 +2628,6 @@ class StringMethods(NoNewAttributesMixin):
     ----------
     sep : str, default whitespace
         String to split on.
-    pat : str, default whitespace
-        .. deprecated:: 0.24.0
-           Use ``sep`` instead.
     expand : bool, default True
         If True, return DataFrame/MultiIndex expanding dimensionality.
         If False, return Series/Index.
@@ -2708,7 +2705,6 @@ class StringMethods(NoNewAttributesMixin):
             "also": "rpartition : Split the string at the last occurrence of `sep`.",
         }
     )
-    @deprecate_kwarg(old_arg_name="pat", new_arg_name="sep")
     @forbid_nonstring_types(["bytes"])
     def partition(self, sep=" ", expand=True):
         f = lambda x: x.partition(sep)
@@ -2724,7 +2720,6 @@ class StringMethods(NoNewAttributesMixin):
             "also": "partition : Split the string at the first occurrence of `sep`.",
         }
     )
-    @deprecate_kwarg(old_arg_name="pat", new_arg_name="sep")
     @forbid_nonstring_types(["bytes"])
     def rpartition(self, sep=" ", expand=True):
         f = lambda x: x.rpartition(sep)
