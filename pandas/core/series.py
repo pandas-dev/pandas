@@ -104,7 +104,7 @@ def _coerce_method(converter):
     def wrapper(self):
         if len(self) == 1:
             return converter(self.iloc[0])
-        raise TypeError(f"cannot convert the series to {str(converter)}")
+        raise TypeError(f"cannot convert the series to {converter}")
 
     wrapper.__name__ = f"__{converter.__name__}__"
     return wrapper
