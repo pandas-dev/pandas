@@ -63,11 +63,6 @@ from pandas.errors import (ParserError, DtypeWarning,
 
 lzma = _import_lzma()
 
-# Import CParserError as alias of ParserError for backwards compatibility.
-# Ultimately, we want to remove this import. See gh-12665 and gh-14479.
-CParserError = ParserError
-
-
 cdef:
     float64_t INF = <float64_t>np.inf
     float64_t NEGINF = -INF
