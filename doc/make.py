@@ -111,7 +111,7 @@ class DocBuilder:
         """
         subprocess.check_call(args, stdout=sys.stdout, stderr=sys.stderr)
 
-    def _sphinx_build(self, kind):
+    def _sphinx_build(self, kind: str):
         """
         Call sphinx to build documentation.
 
@@ -285,22 +285,19 @@ def main():
     cmds = [method for method in dir(DocBuilder) if not method.startswith("_")]
 
     joined = ",".join(cmds)
-    joined_epilog = f"Commands: {joined}"
-
-    joined_cmds = ", ".join(cmds)
-
     argparser = argparse.ArgumentParser(
-        description="pandas documentation builder", epilog=joined_epilog,
+        description="pandas documentation builder", epilog=f"Commands: {joined}",
     )
 
+    joined = ", ".join(cmds)
     argparser.add_argument(
-        "command", nargs="?", default="html", help=f"command to run: {joined_cmds}",
+        "command", nargs="?", default="html", help=f"command to run: {joined}",
     )
     argparser.add_argument(
         "--num-jobs", type=int, default=0, help="number of jobs used by sphinx-build"
     )
     argparser.add_argument(
-        "--no-api", default=False, action="store_true", help="omit api and autosummary"
+        "--no-api", default=False, help="omit api and autosummary", action="store_true"
     )
     argparser.add_argument(
         "--single",
@@ -321,7 +318,10 @@ def main():
         action="count",
         dest="verbosity",
         default=0,
-        help="increase verbosity (can be repeated), passed to the sphinx build command",
+        help=(
+            "increase verbosity (can be repeated), "
+            "passed to the sphinx build command"
+        ),
     )
     argparser.add_argument(
         "--warnings-are-errors",
