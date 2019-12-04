@@ -139,8 +139,8 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         if copy:
             values = values.copy()
 
-        self._ndarray: np.ndarray = values
-        self._dtype: ExtensionDtype = PandasDtype(values.dtype)
+        self._ndarray = values
+        self._dtype = PandasDtype(values.dtype)
 
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
