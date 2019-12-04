@@ -4114,7 +4114,7 @@ class DataFrame(NDFrame):
                     found = col in self.columns
                 except TypeError:
                     raise TypeError(
-                        'The parameter "keys" may be a column key, one-dimensional '
+                       f"{err_msg} Received column of type {type(col)}"
                         "array, or a list containing only valid column keys and "
                         f"one-dimensional arrays. Received column of type {type(col)}"
                     )
