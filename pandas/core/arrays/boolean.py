@@ -6,6 +6,7 @@ import numpy as np
 
 from pandas._libs import lib, missing as libmissing
 from pandas.compat import set_function_name
+from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import astype_nansafe
@@ -557,8 +558,9 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
         data[self._mask] = -1
         return data
 
-    def any(self, skipna=True):
-        # nv.validate_any((), dict(out=out, keepdims=keepdims))
+    def any(self, skipna=True, **kwargs):
+        kwargs.pop("axis", None)
+        nv.validate_any((), kwargs)
         valid_values = self._data[~self._mask]
         if skipna:
             return valid_values.any()
@@ -569,8 +571,9 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
             else:
                 return self.dtype.na_value
 
-    def all(self, skipna=True):
-        # nv.validate_any((), dict(out=out, keepdims=keepdims))
+    def all(self, skipna=True, **kwargs):
+        kwargs.pop("axis", None)
+        nv.validate_all((), kwargs)
         valid_values = self._data[~self._mask]
         if skipna:
             return valid_values.all()

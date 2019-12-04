@@ -554,6 +554,9 @@ def test_any_all(values, exp_any, exp_all, exp_any_noskip, exp_all_noskip):
         assert a.any(skipna=False) is exp_any_noskip
         assert a.all(skipna=False) is exp_all_noskip
 
+        assert np.any(a.any()) is exp_any
+        assert np.all(a.all()) is exp_all
+
 
 # TODO when BooleanArray coerces to object dtype numpy array, need to do conversion
 # manually in the indexing code
