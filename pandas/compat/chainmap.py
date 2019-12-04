@@ -10,6 +10,12 @@ class DeepChainMap(ChainMap):
         self.maps[0][key] = value
 
     def __delitem__(self, key):
+        """
+        Raises
+        ------
+        KeyError
+            If `key` doesn't exist.
+        """
         for mapping in self.maps:
             if key in mapping:
                 del mapping[key]
