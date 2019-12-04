@@ -30,11 +30,9 @@ matrix:
       - python: 3.5
 
     include:
-    - dist: bionic
-      # 18.04
-      python: 3.8.0
+    - dist: trusty
       env:
-        - JOB="3.8-dev" PATTERN="(not slow and not network)"
+        - JOB="3.8" ENV_FILE="ci/deps/travis-38.yaml" PATTERN="(not slow and not network)"
 
     - dist: trusty
       env:
@@ -85,19 +83,10 @@ install:
   - ci/submit_cython_cache.sh
   - echo "install done"
 
-
-before_script:
-  # display server (for clipboard functionality) needs to be started here,
-  # does not work if done in install:setup_env.sh (GH-26103)
-  - export DISPLAY=":99.0"
-  - echo "sh -e /etc/init.d/xvfb start"
-  - if [ "$JOB" != "3.8-dev" ]; then sh -e /etc/init.d/xvfb start; fi
-  - sleep 3
-
 script:
   - echo "script start"
   - echo "$JOB"
-  - if [ "$JOB" != "3.8-dev" ]; then source activate pandas-dev; fi
+  - source activate pandas-dev
   - ci/run_tests.sh
 
 after_script:

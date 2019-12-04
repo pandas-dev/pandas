@@ -2160,10 +2160,6 @@ def test_suppress_error_output(all_parsers, capsys):
     assert captured.err == ""
 
 
-@pytest.mark.skipif(
-    compat.is_platform_windows() and not compat.PY36,
-    reason="On Python < 3.6 won't pass on Windows",
-)
 @pytest.mark.parametrize("filename", ["sé-es-vé.csv", "ru-sй.csv", "中文文件名.csv"])
 def test_filename_with_special_chars(all_parsers, filename):
     # see gh-15086.

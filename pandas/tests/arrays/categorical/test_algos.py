@@ -11,23 +11,23 @@ def test_factorize(categories, ordered):
     cat = pd.Categorical(
         ["b", "b", "a", "c", None], categories=categories, ordered=ordered
     )
-    labels, uniques = pd.factorize(cat)
-    expected_labels = np.array([0, 0, 1, 2, -1], dtype=np.intp)
+    codes, uniques = pd.factorize(cat)
+    expected_codes = np.array([0, 0, 1, 2, -1], dtype=np.intp)
     expected_uniques = pd.Categorical(
         ["b", "a", "c"], categories=categories, ordered=ordered
     )
 
-    tm.assert_numpy_array_equal(labels, expected_labels)
+    tm.assert_numpy_array_equal(codes, expected_codes)
     tm.assert_categorical_equal(uniques, expected_uniques)
 
 
 def test_factorized_sort():
     cat = pd.Categorical(["b", "b", None, "a"])
-    labels, uniques = pd.factorize(cat, sort=True)
-    expected_labels = np.array([1, 1, -1, 0], dtype=np.intp)
+    codes, uniques = pd.factorize(cat, sort=True)
+    expected_codes = np.array([1, 1, -1, 0], dtype=np.intp)
     expected_uniques = pd.Categorical(["a", "b"])
 
-    tm.assert_numpy_array_equal(labels, expected_labels)
+    tm.assert_numpy_array_equal(codes, expected_codes)
     tm.assert_categorical_equal(uniques, expected_uniques)
 
 
@@ -36,13 +36,13 @@ def test_factorized_sort_ordered():
         ["b", "b", None, "a"], categories=["c", "b", "a"], ordered=True
     )
 
-    labels, uniques = pd.factorize(cat, sort=True)
-    expected_labels = np.array([0, 0, -1, 1], dtype=np.intp)
+    codes, uniques = pd.factorize(cat, sort=True)
+    expected_codes = np.array([0, 0, -1, 1], dtype=np.intp)
     expected_uniques = pd.Categorical(
         ["b", "a"], categories=["c", "b", "a"], ordered=True
     )
 
-    tm.assert_numpy_array_equal(labels, expected_labels)
+    tm.assert_numpy_array_equal(codes, expected_codes)
     tm.assert_categorical_equal(uniques, expected_uniques)
 
 
@@ -59,6 +59,24 @@ def test_isin_cats():
     tm.assert_numpy_array_equal(expected, result)
 
 
+@pytest.mark.parametrize(
+    "to_replace, value, result",
+    [("b", "c", ["a", "c"]), ("c", "d", ["a", "b"]), ("b", None, ["a", None])],
+)
+def test_replace(to_replace, value, result):
+    # GH 26988
+    cat = pd.Categorical(["a", "b"])
+    expected = pd.Categorical(result)
+    result = cat.replace(to_replace, value)
+    tm.assert_categorical_equal(result, expected)
+    if to_replace == "b":  # the "c" test is supposed to be unchanged
+        with pytest.raises(AssertionError):
+            # ensure non-inplace call does not affect original
+            tm.assert_categorical_equal(cat, expected)
+    cat.replace(to_replace, value, inplace=True)
+    tm.assert_categorical_equal(cat, expected)
+
+
 @pytest.mark.parametrize("empty", [[], pd.Series(), np.array([])])
 def test_isin_empty(empty):
     s = pd.Categorical(["a", "b"])
@@ -71,10 +89,12 @@ def test_isin_empty(empty):
 class TestTake:
     # https://github.com/pandas-dev/pandas/issues/20664
 
-    def test_take_warns(self):
+    def test_take_default_allow_fill(self):
         cat = pd.Categorical(["a", "b"])
-        with tm.assert_produces_warning(FutureWarning):
-            cat.take([0, -1])
+        with tm.assert_produces_warning(None):
+            result = cat.take([0, -1])
+
+        assert result.equals(cat)
 
     def test_take_positive_no_warning(self):
         cat = pd.Categorical(["a", "b"])
@@ -140,3 +160,8 @@ class TestTake:
         xpr = r"'fill_value' \('d'\) is not in this Categorical's categories."
         with pytest.raises(TypeError, match=xpr):
             cat.take([0, 1, -1], fill_value="d", allow_fill=True)
+
+    def test_take_nd_deprecated(self):
+        cat = pd.Categorical(["a", "b", "c"])
+        with tm.assert_produces_warning(FutureWarning):
+            cat.take_nd([0, 1])

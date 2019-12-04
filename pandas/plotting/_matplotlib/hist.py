@@ -49,7 +49,7 @@ class HistPlot(LinePlot):
         bottom=0,
         column_num=0,
         stacking_id=None,
-        **kwds
+        **kwds,
     ):
         if column_num == 0:
             cls._initialize_stacker(ax, stacking_id, len(bins) - 1)
@@ -145,7 +145,7 @@ class KdePlot(HistPlot):
         ind=None,
         column_num=None,
         stacking_id=None,
-        **kwds
+        **kwds,
     ):
         from scipy.stats import gaussian_kde
 
@@ -177,7 +177,7 @@ def _grouped_plot(
     layout=None,
     rot=0,
     ax=None,
-    **kwargs
+    **kwargs,
 ):
 
     if figsize == "default":
@@ -226,7 +226,7 @@ def _grouped_hist(
     xrot=None,
     ylabelsize=None,
     yrot=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Grouped histogram
@@ -290,7 +290,7 @@ def hist_series(
     yrot=None,
     figsize=None,
     bins=10,
-    **kwds
+    **kwds,
 ):
     import matplotlib.pyplot as plt
 
@@ -335,7 +335,7 @@ def hist_series(
             xrot=xrot,
             ylabelsize=ylabelsize,
             yrot=yrot,
-            **kwds
+            **kwds,
         )
 
     if hasattr(axes, "ndim"):
@@ -359,7 +359,7 @@ def hist_frame(
     figsize=None,
     layout=None,
     bins=10,
-    **kwds
+    **kwds,
 ):
     if by is not None:
         axes = _grouped_hist(
@@ -377,7 +377,7 @@ def hist_frame(
             xrot=xrot,
             ylabelsize=ylabelsize,
             yrot=yrot,
-            **kwds
+            **kwds,
         )
         return axes
 

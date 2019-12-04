@@ -85,7 +85,7 @@ def test_is_unique_class_ne(capsys):
 
     with capsys.disabled():
         li = [Foo(i) for i in range(5)]
-        s = Series(li, index=[i for i in range(5)])
+        s = Series(li, index=list(range(5)))
     s.is_unique
     captured = capsys.readouterr()
     assert len(captured.err) == 0

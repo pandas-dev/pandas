@@ -11,8 +11,8 @@ from pandas.util._decorators import Appender
 
 
 class DirNamesMixin:
-    _accessors = set()  # type: Set[str]
-    _deprecations = frozenset()  # type: FrozenSet[str]
+    _accessors: Set[str] = set()
+    _deprecations: FrozenSet[str] = frozenset()
 
     def _dir_deletions(self):
         """
@@ -183,9 +183,9 @@ def _register_accessor(name, cls):
     def decorator(accessor):
         if hasattr(cls, name):
             warnings.warn(
-                "registration of accessor {!r} under name {!r} for type "
-                "{!r} is overriding a preexisting attribute with the same "
-                "name.".format(accessor, name, cls),
+                f"registration of accessor {repr(accessor)} under name "
+                f"{repr(name)} for type {repr(cls)} is overriding a preexisting"
+                f"attribute with the same name.",
                 UserWarning,
                 stacklevel=2,
             )

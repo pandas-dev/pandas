@@ -1044,6 +1044,7 @@ class TestArithmetic:
         assert NaT - p is NaT
 
         p = Period("NaT", freq="M")
+        assert p is NaT
         assert p + NaT is NaT
         assert NaT + p is NaT
         assert p - NaT is NaT
@@ -1284,6 +1285,7 @@ class TestArithmetic:
         # freq is DateOffset
         for freq in ["A", "2A", "3A"]:
             p = Period("NaT", freq=freq)
+            assert p is NaT
             for o in [offsets.YearEnd(2)]:
                 assert p + o is NaT
                 assert o + p is NaT
@@ -1300,6 +1302,7 @@ class TestArithmetic:
 
         for freq in ["M", "2M", "3M"]:
             p = Period("NaT", freq=freq)
+            assert p is NaT
             for o in [offsets.MonthEnd(2), offsets.MonthEnd(12)]:
                 assert p + o is NaT
                 assert o + p is NaT
@@ -1317,6 +1320,7 @@ class TestArithmetic:
         # freq is Tick
         for freq in ["D", "2D", "3D"]:
             p = Period("NaT", freq=freq)
+            assert p is NaT
             for o in [
                 offsets.Day(5),
                 offsets.Hour(24),
@@ -1340,6 +1344,7 @@ class TestArithmetic:
 
         for freq in ["H", "2H", "3H"]:
             p = Period("NaT", freq=freq)
+            assert p is NaT
             for o in [
                 offsets.Day(2),
                 offsets.Hour(3),
@@ -1439,6 +1444,7 @@ class TestArithmetic:
         # freq is DateOffset
         for freq in ["A", "2A", "3A"]:
             p = Period("NaT", freq=freq)
+            assert p is NaT
             for o in [offsets.YearEnd(2)]:
                 assert p - o is NaT
 
@@ -1453,6 +1459,7 @@ class TestArithmetic:
 
         for freq in ["M", "2M", "3M"]:
             p = Period("NaT", freq=freq)
+            assert p is NaT
             for o in [offsets.MonthEnd(2), offsets.MonthEnd(12)]:
                 assert p - o is NaT
 
@@ -1468,6 +1475,7 @@ class TestArithmetic:
         # freq is Tick
         for freq in ["D", "2D", "3D"]:
             p = Period("NaT", freq=freq)
+            assert p is NaT
             for o in [
                 offsets.Day(5),
                 offsets.Hour(24),
@@ -1489,6 +1497,7 @@ class TestArithmetic:
 
         for freq in ["H", "2H", "3H"]:
             p = Period("NaT", freq=freq)
+            assert p is NaT
             for o in [
                 offsets.Day(2),
                 offsets.Hour(3),
@@ -1511,6 +1520,7 @@ class TestArithmetic:
     @pytest.mark.parametrize("freq", ["M", "2M", "3M"])
     def test_nat_ops(self, freq):
         p = Period("NaT", freq=freq)
+        assert p is NaT
         assert p + 1 is NaT
         assert 1 + p is NaT
         assert p - 1 is NaT

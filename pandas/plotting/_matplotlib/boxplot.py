@@ -74,9 +74,8 @@ class BoxPlot(LinePlot):
                 for key, values in self.color.items():
                     if key not in valid_keys:
                         raise ValueError(
-                            "color dict contains invalid "
-                            "key '{0}' "
-                            "The key must be either {1}".format(key, valid_keys)
+                            f"color dict contains invalid key '{key}'. "
+                            f"The key must be either {valid_keys}"
                         )
         else:
             self.color = None
@@ -184,7 +183,7 @@ def _grouped_plot_by_column(
     ax=None,
     layout=None,
     return_type=None,
-    **kwargs
+    **kwargs,
 ):
     grouped = data.groupby(by)
     if columns is None:
@@ -217,7 +216,7 @@ def _grouped_plot_by_column(
         result = axes
 
     byline = by[0] if len(by) == 1 else by
-    fig.suptitle("Boxplot grouped by {byline}".format(byline=byline))
+    fig.suptitle(f"Boxplot grouped by {byline}")
     fig.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.2)
 
     return result
@@ -234,7 +233,7 @@ def boxplot(
     figsize=None,
     layout=None,
     return_type=None,
-    **kwds
+    **kwds,
 ):
 
     import matplotlib.pyplot as plt
@@ -268,9 +267,8 @@ def boxplot(
                         result[key_to_index[key]] = value
                     else:
                         raise ValueError(
-                            "color dict contains invalid "
-                            "key '{0}' "
-                            "The key must be either {1}".format(key, valid_keys)
+                            f"color dict contains invalid key '{key}'. "
+                            f"The key must be either {valid_keys}"
                         )
             else:
                 result.fill(colors)
@@ -359,7 +357,7 @@ def boxplot_frame(
     figsize=None,
     layout=None,
     return_type=None,
-    **kwds
+    **kwds,
 ):
     import matplotlib.pyplot as plt
 
@@ -374,7 +372,7 @@ def boxplot_frame(
         figsize=figsize,
         layout=layout,
         return_type=return_type,
-        **kwds
+        **kwds,
     )
     plt.draw_if_interactive()
     return ax
@@ -392,7 +390,7 @@ def boxplot_frame_groupby(
     layout=None,
     sharex=False,
     sharey=True,
-    **kwds
+    **kwds,
 ):
     if subplots is True:
         naxes = len(grouped)
@@ -432,6 +430,6 @@ def boxplot_frame_groupby(
             ax=ax,
             figsize=figsize,
             layout=layout,
-            **kwds
+            **kwds,
         )
     return ret
