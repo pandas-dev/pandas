@@ -27,6 +27,9 @@ dependencies:
   - xlrd=1.1.0
   - xlsxwriter=0.9.8
   - xlwt=1.2.0
+  # lowest supported version of pyarrow (putting it here instead of in
+  # azure-36-minimum_versions because it needs numpy >= 1.14)
+  - pyarrow=0.12
   - pip
   - pip:
     - html5lib==1.0b2
