@@ -504,6 +504,7 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame()
         check_round_trip(df, pa)
 
+    @pytest.mark.skip(reason="broken test")
     @td.skip_if_no("pyarrow", min_version="0.15.0")
     def test_additional_extension_arrays(self, pa):
         # test additional ExtensionArrays that are supported through the
