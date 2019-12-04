@@ -1,6 +1,6 @@
 from datetime import timedelta
 import re
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple, Union, overload
 
 import numpy as np
 from pytz import AmbiguousTimeError
@@ -70,7 +70,19 @@ _name_to_offset_map = {
 }
 
 
-def to_offset(freq) -> Optional[DateOffset]:
+@overload
+def to_offset(freq: None) -> None:
+    ...
+
+
+@overload
+def to_offset(
+    freq: Union[str, Tuple[str, int], Tuple[int, str], timedelta, DateOffset]
+) -> DateOffset:
+    ...
+
+
+def to_offset(freq):
     """
     Return DateOffset object from string or tuple representation
     or datetime.timedelta object.
