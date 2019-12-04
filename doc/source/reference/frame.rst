@@ -28,10 +28,8 @@ Attributes and underlying data
    :toctree: api/
 
    DataFrame.dtypes
-   DataFrame.get_dtype_counts
    DataFrame.select_dtypes
    DataFrame.values
-   DataFrame.get_values
    DataFrame.axes
    DataFrame.ndim
    DataFrame.size
@@ -363,7 +361,6 @@ Serialization / IO / conversion
    DataFrame.to_msgpack
    DataFrame.to_gbq
    DataFrame.to_records
-   DataFrame.to_dense
    DataFrame.to_string
    DataFrame.to_clipboard
    DataFrame.style

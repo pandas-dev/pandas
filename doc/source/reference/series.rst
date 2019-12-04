@@ -39,7 +39,6 @@ Attributes
    Series.empty
    Series.dtypes
    Series.name
-   Series.put
 
 Conversion
 ----------
@@ -54,7 +53,6 @@ Conversion
    Series.to_period
    Series.to_timestamp
    Series.to_list
-   Series.get_values
    Series.__array__
 
 Indexing, iteration
@@ -579,7 +577,6 @@ Serialization / IO / conversion
    Series.to_sql
    Series.to_msgpack
    Series.to_json
-   Series.to_dense
    Series.to_string
    Series.to_clipboard
    Series.to_latex

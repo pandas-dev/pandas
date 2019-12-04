@@ -1268,7 +1268,7 @@ def test_block_shape():
 
 def test_make_block_no_pandas_array():
     # https://github.com/pandas-dev/pandas/pull/24866
-    arr = pd.array([1, 2])
+    arr = pd.arrays.PandasArray(np.array([1, 2]))
 
     # PandasArray, no dtype
     result = make_block(arr, slice(len(arr)))

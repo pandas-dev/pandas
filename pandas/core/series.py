@@ -158,7 +158,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     _deprecations = (
         base.IndexOpsMixin._deprecations
         | generic.NDFrame._deprecations
-        | frozenset(["compress", "valid", "real", "imag", "put", "ptp", "nonzero"])
+        | frozenset(["compress", "ptp"])
     )
 
     # Override cache_readonly bc Series is mutable
@@ -465,27 +465,16 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return self._data.internal_values()
 
-    def get_values(self):
+    def _internal_get_values(self):
         """
         Same as values (but handles sparseness conversions); is a view.
-
-        .. deprecated:: 0.25.0
-            Use :meth:`Series.to_numpy` or :attr:`Series.array` instead.
 
         Returns
         -------
         numpy.ndarray
             Data of the Series.
         """
-        warnings.warn(
-            "The 'get_values' method is deprecated and will be removed in a "
-            "future version. Use '.to_numpy()' or '.array' instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._internal_get_values()
 
-    def _internal_get_values(self):
         return self._data.get_values()
 
     # ops
@@ -527,72 +516,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         warnings.warn(msg, FutureWarning, stacklevel=2)
         nv.validate_compress(args, kwargs)
         return self[condition]
-
-    def nonzero(self):
-        """
-        Return the *integer* indices of the elements that are non-zero.
-
-        .. deprecated:: 0.24.0
-           Please use .to_numpy().nonzero() as a replacement.
-
-        This method is equivalent to calling `numpy.nonzero` on the
-        series data. For compatibility with NumPy, the return value is
-        the same (a tuple with an array of indices for each dimension),
-        but it will always be a one-item tuple because series only have
-        one dimension.
-
-        Returns
-        -------
-        numpy.ndarray
-            Indices of elements that are non-zero.
-
-        See Also
-        --------
-        numpy.nonzero
-
-        Examples
-        --------
-        >>> s = pd.Series([0, 3, 0, 4])
-        >>> s.nonzero()
-        (array([1, 3]),)
-        >>> s.iloc[s.nonzero()[0]]
-        1    3
-        3    4
-        dtype: int64
-
-        # same return although index of s is different
-        >>> s = pd.Series([0, 3, 0, 4], index=['a', 'b', 'c', 'd'])
-        >>> s.nonzero()
-        (array([1, 3]),)
-        >>> s.iloc[s.nonzero()[0]]
-        b    3
-        d    4
-        dtype: int64
-        """
-        msg = (
-            "Series.nonzero() is deprecated "
-            "and will be removed in a future version."
-            "Use Series.to_numpy().nonzero() instead"
-        )
-        warnings.warn(msg, FutureWarning, stacklevel=2)
-        return self._values.nonzero()
-
-    def put(self, *args, **kwargs):
-        """
-        Apply the `put` method to its `values` attribute if it has one.
-
-        .. deprecated:: 0.25.0
-
-        See Also
-        --------
-        numpy.ndarray.put
-        """
-        warnings.warn(
-            "`put` has been deprecated and will be removed in a future version.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        self._values.put(*args, **kwargs)
 
     def __len__(self) -> int:
         """
@@ -825,46 +748,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     # ----------------------------------------------------------------------
     # Unary Methods
-
-    @property
-    def real(self):
-        """
-        Return the real value of vector.
-
-        .. deprecated:: 0.25.0
-        """
-        warnings.warn(
-            "`real` is deprecated and will be removed in a future version. "
-            "To eliminate this warning for a Series `ser`, use "
-            "`np.real(ser.to_numpy())` or `ser.to_numpy().real`.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.values.real
-
-    @real.setter
-    def real(self, v):
-        self.values.real = v
-
-    @property
-    def imag(self):
-        """
-        Return imag value of vector.
-
-        .. deprecated:: 0.25.0
-        """
-        warnings.warn(
-            "`imag` is deprecated and will be removed in a future version. "
-            "To eliminate this warning for a Series `ser`, use "
-            "`np.imag(ser.to_numpy())` or `ser.to_numpy().imag`.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.values.imag
-
-    @imag.setter
-    def imag(self, v):
-        self.values.imag = v
 
     # coercion
     __float__ = _coerce_method(float)
@@ -2993,7 +2876,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             sortedIdx[n:] = idx[good][argsorted]
             sortedIdx[:n] = idx[bad]
         else:
-            raise ValueError("invalid na_position: {!r}".format(na_position))
+            raise ValueError(f"invalid na_position: {repr(na_position)}")
 
         result = self._constructor(arr[sortedIdx], index=self.index[sortedIdx])
 
@@ -3869,9 +3752,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             self._get_axis_number(axis)
 
         if isinstance(delegate, Categorical):
-            # TODO deprecate numeric_only argument for Categorical and use
-            # skipna as well, see GH25303
-            return delegate._reduce(name, numeric_only=numeric_only, **kwds)
+            return delegate._reduce(name, skipna=skipna, **kwds)
         elif isinstance(delegate, ExtensionArray):
             # dispatch to ExtensionArray interface
             return delegate._reduce(name, skipna=skipna, **kwds)

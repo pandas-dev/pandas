@@ -401,9 +401,8 @@ class Timestamp(_Timestamp):
             freq = None
 
         if getattr(ts_input, 'tzinfo', None) is not None and tz is not None:
-            warnings.warn("Passing a datetime or Timestamp with tzinfo and the"
-                          " tz parameter will raise in the future. Use"
-                          " tz_convert instead.", FutureWarning)
+            raise ValueError("Cannot pass a datetime or Timestamp with tzinfo with the"
+                             " tz parameter. Use tz_convert instead.")
 
         ts = convert_to_tsobject(ts_input, tz, unit, 0, 0, nanosecond or 0)
 
