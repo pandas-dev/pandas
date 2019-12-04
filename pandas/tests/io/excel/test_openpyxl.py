@@ -1,4 +1,3 @@
-from distutils.version import LooseVersion
 import os
 
 import numpy as np
