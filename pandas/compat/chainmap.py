@@ -6,7 +6,7 @@ class DeepChainMap(ChainMap):
         for mapping in self.maps:
             if key in mapping:
                 mapping[key] = value
-                break
+                return
         self.maps[0][key] = value
 
     def __delitem__(self, key):
@@ -19,5 +19,5 @@ class DeepChainMap(ChainMap):
         for mapping in self.maps:
             if key in mapping:
                 del mapping[key]
-                break
+                return
         raise KeyError(key)
