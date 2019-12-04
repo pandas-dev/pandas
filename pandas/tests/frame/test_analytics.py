@@ -2617,7 +2617,7 @@ class TestNLargestNSmallest:
 
             error_msg = (
                 f"Column 'b' has dtype object, "
-                f"cannot use method {repr(nselect_method)} with this dtype"
+                f"cannot use method '{nselect_method}' with this dtype"
             )
             with pytest.raises(TypeError, match=error_msg):
                 getattr(df, nselect_method)(n, order)
