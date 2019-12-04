@@ -1764,6 +1764,9 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         return values
 
     def to_dense(self):
+        if self.dtype.kind == "O":
+            # See https://github.com/numpy/numpy/issues/15041
+            return np.asarray(self.values, dtype=object)
         return np.asarray(self.values)
 
     def to_native_types(self, slicer=None, na_rep="nan", quoting=None, **kwargs):

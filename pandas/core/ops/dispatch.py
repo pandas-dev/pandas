@@ -2,6 +2,7 @@
 Functions for defining unary operations.
 """
 from typing import Any, Callable, Union
+import warnings
 
 import numpy as np
 
@@ -132,19 +133,24 @@ def dispatch_to_extension_op(
     # The op calls will raise TypeError if the op is not defined
     # on the ExtensionArray
 
-    try:
-        res_values = op(left, right)
-    except NullFrequencyError:
-        # DatetimeIndex and TimedeltaIndex with freq == None raise ValueError
-        # on add/sub of integers (or int-like).  We re-raise as a TypeError.
-        if keep_null_freq:
-            # TODO: remove keep_null_freq after Timestamp+int deprecation
-            #  GH#22535 is enforced
-            raise
-        raise TypeError(
-            "incompatible type for a datetime/timedelta "
-            "operation [{name}]".format(name=op.__name__)
-        )
+    with warnings.catch_warnings():
+        # See https://github.com/numpy/numpy/issues/15041
+        warnings.filterwarnings("ignore", ".*with automatic object dtype.*")
+
+        try:
+            res_values = op(left, right)
+        except NullFrequencyError:
+            # DatetimeIndex and TimedeltaIndex with freq == None raise ValueError
+            # on add/sub of integers (or int-like).  We re-raise as a TypeError.
+            if keep_null_freq:
+                # TODO: remove keep_null_freq after Timestamp+int deprecation
+                #  GH#22535 is enforced
+                raise
+            raise TypeError(
+                "incompatible type for a datetime/timedelta "
+                "operation [{name}]".format(name=op.__name__)
+            )
+
     return res_values
 
 

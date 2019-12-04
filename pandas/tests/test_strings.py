@@ -2853,7 +2853,8 @@ class TestStringMethods:
         result = values.str.partition("_", expand=False)
         exp = Index(
             np.array(
-                [("a", "_", "b_c"), ("c", "_", "d_e"), ("f", "_", "g_h"), np.nan, None]
+                [("a", "_", "b_c"), ("c", "_", "d_e"), ("f", "_", "g_h"), np.nan, None],
+                dtype=object,
             )
         )
         tm.assert_index_equal(result, exp)
@@ -2862,7 +2863,8 @@ class TestStringMethods:
         result = values.str.rpartition("_", expand=False)
         exp = Index(
             np.array(
-                [("a_b", "_", "c"), ("c_d", "_", "e"), ("f_g", "_", "h"), np.nan, None]
+                [("a_b", "_", "c"), ("c_d", "_", "e"), ("f_g", "_", "h"), np.nan, None],
+                dtype=object,
             )
         )
         tm.assert_index_equal(result, exp)

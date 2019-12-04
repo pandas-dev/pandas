@@ -74,10 +74,20 @@ def cat_core(list_of_columns: List, sep: str):
     """
     if sep == "":
         # no need to interleave sep if it is empty
-        return np.sum(list_of_columns, axis=0)
+        with warnings.catch_warnings():
+            # See https://github.com/numpy/numpy/issues/15041
+            warnings.filterwarnings("ignore", ".*with automatic object dtype.*")
+            out = np.sum(list_of_columns, axis=0)
+        return out
+
     list_with_sep = [sep] * (2 * len(list_of_columns) - 1)
     list_with_sep[::2] = list_of_columns
-    return np.sum(list_with_sep, axis=0)
+
+    with warnings.catch_warnings():
+        # See https://github.com/numpy/numpy/issues/15041
+        warnings.filterwarnings("ignore", ".*with automatic object dtype.*")
+        out = np.sum(list_with_sep, axis=0)
+    return out
 
 
 def cat_safe(list_of_columns: List, sep: str):

@@ -1482,6 +1482,11 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
         if is_categorical_dtype(values.dtype):
             # Categorical is special for now, so that we can preserve tzinfo
             array = values._internal_get_values()
+        elif values.dtype.kind == "O":
+            # numpy>=1.18 wants object dtype passed explicitly
+            # Note: dtype.kind check works for json extension tests, while
+            #  dtype == object check does not.
+            array = np.asarray(values, dtype=object)
         else:
             array = np.asarray(values)
 
