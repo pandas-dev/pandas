@@ -4195,7 +4195,7 @@ class DataFrame(NDFrame):
         drop: bool = False,
         inplace: bool = False,
         col_level: Hashable = 0,
-        col_fill: Union[Hashable, None] = "",
+        col_fill: Optional[Hashable] = "",
     ) -> "DataFrame":
         """
         Reset the index, or a level of it.
