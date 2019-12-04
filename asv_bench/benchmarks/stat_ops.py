@@ -7,7 +7,7 @@ ops = ["mean", "sum", "median", "std", "skew", "kurt", "mad", "prod", "sem", "va
 
 class FrameOps:
 
-    params = [ops, ["float", "int"], [0, 1], [True, False]]
+    params = [ops, ["float", "int"], [0, 1]]
     param_names = ["op", "dtype", "axis"]
 
     def setup(self, op, dtype, axis):
@@ -40,7 +40,7 @@ class FrameMultiIndexOps:
 
 class SeriesOps:
 
-    params = [ops, ["float", "int"], [True, False]]
+    params = [ops, ["float", "int"]]
     param_names = ["op", "dtype"]
 
     def setup(self, op, dtype):
@@ -89,7 +89,7 @@ class Rank:
 
 class Correlation:
 
-    params = [["spearman", "kendall", "pearson"], [True, False]]
+    params = [["spearman", "kendall", "pearson"]]
     param_names = ["method"]
 
     def setup(self, method):
@@ -124,7 +124,7 @@ class Correlation:
 
 class Covariance:
 
-    params = [[True, False]]
+    params = []
     param_names = []
 
     def setup(self):
