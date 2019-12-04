@@ -4192,7 +4192,7 @@ class DataFrame(NDFrame):
         inplace: bool = False,
         col_level: Hashable = 0,
         col_fill: Union[Hashable, None] = "",
-    ) -> pd.DataFrame:
+    ) -> DataFrame:
         """
         Reset the index, or a level of it.
 
@@ -4591,7 +4591,7 @@ class DataFrame(NDFrame):
         subset: Union[Sequence[Hashable], Hashable] = None,
         keep: Union[str, bool] = "first",
         inplace: bool = False,
-    ) -> pd.DataFrame:
+    ) -> DataFrame:
         """
         Return DataFrame with duplicate rows removed.
 
@@ -8117,8 +8117,8 @@ class DataFrame(NDFrame):
         else:
             if not is_list_like(values):
                 raise TypeError(
-                    f"only list-like or dict-like objects are allowed "
-                    f"to be passed to DataFrame.isin(), "
+                    "only list-like or dict-like objects are allowed "
+                    "to be passed to DataFrame.isin(), "
                     f"you passed a {repr(type(values).__name__)}"
                 )
             return DataFrame(
