@@ -671,16 +671,22 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
                 if len(self) != len(other):
                     raise ValueError("Lengths must match to compare")
 
-            # numpy will show a DeprecationWarning on invalid elementwise
-            # comparisons, this will raise in the future
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", "elementwise", FutureWarning)
-                with np.errstate(all="ignore"):
-                    result = op(self._data, other)
+            if other is libmissing.NA:
+                # numpy does not handle pd.NA well as "other" scalar (it returns
+                # a scalar False instead of an array)
+                result = np.zeros(self._data.shape, dtype="bool")
+                mask = np.ones(self._data.shape, dtype="bool")
+            else:
+                # numpy will show a DeprecationWarning on invalid elementwise
+                # comparisons, this will raise in the future
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", "elementwise", FutureWarning)
+                    with np.errstate(all="ignore"):
+                        result = op(self._data, other)
 
             # nans propagate
             if mask is None:
-                mask = self._mask
+                mask = self._mask.copy()
             else:
                 mask = self._mask | mask
 
@@ -747,6 +753,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         @unpack_zerodim_and_defer(op.__name__)
         def integer_arithmetic_method(self, other):
+            # nans propagate
 
             mask = None
 
@@ -771,15 +778,14 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
                 if not (is_float(other) or is_integer(other)):
                     raise TypeError("can only perform ops with numeric values")
 
-            # nans propagate
             if mask is None:
-                mask = self._mask
+                mask = self._mask.copy()
             else:
                 mask = self._mask | mask
 
             # 1 ** np.nan is 1. So we have to unmask those.
             if op_name == "pow":
-                mask = np.where(self == 1, False, mask)
+                mask = np.where(self._data == 1, False, mask)
 
             elif op_name == "rpow":
                 mask = np.where(other == 1, False, mask)
