@@ -4196,7 +4196,7 @@ class DataFrame(NDFrame):
         inplace: bool = False,
         col_level: Hashable = 0,
         col_fill: Union[Hashable, None] = "",
-    ) -> pandas.DataFrame:
+    ) -> "DataFrame":
         """
         Reset the index, or a level of it.
 
@@ -4595,7 +4595,7 @@ class DataFrame(NDFrame):
         subset: Union[Sequence[Hashable], Hashable] = None,
         keep: Union[str, bool] = "first",
         inplace: bool = False,
-    ) -> pandas.DataFrame:
+    ) -> "DataFrame":
         """
         Return DataFrame with duplicate rows removed.
 
