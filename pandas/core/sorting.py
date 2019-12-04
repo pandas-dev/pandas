@@ -208,7 +208,7 @@ def lexsort_indexer(keys, orders=None, na_position="last"):
             cat = Categorical(key, ordered=True)
 
         if na_position not in ["last", "first"]:
-            raise ValueError("invalid na_position: {!r}".format(na_position))
+            raise ValueError(f"invalid na_position: {repr(na_position)}")
 
         n = len(cat.categories)
         codes = cat.codes.copy()
@@ -264,7 +264,7 @@ def nargsort(items, kind="quicksort", ascending: bool = True, na_position="last"
     elif na_position == "first":
         indexer = np.concatenate([nan_idx, indexer])
     else:
-        raise ValueError("invalid na_position: {!r}".format(na_position))
+        raise ValueError(f"invalid na_position: {repr(na_position)}")
     return indexer
 
 
