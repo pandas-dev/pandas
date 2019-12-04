@@ -4698,7 +4698,7 @@ def _set_tz(
     values: Union[np.ndarray, Index],
     tz: Optional[Union[str, tzinfo]],
     coerce: bool = False,
-):
+) -> Union[np.ndarray, DatetimeIndex]:
     """
     coerce the values to a DatetimeIndex if tz is set
     preserve the input shape if possible
@@ -4710,7 +4710,7 @@ def _set_tz(
     coerce : if we do not have a passed timezone, coerce to M8[ns] ndarray
     """
     if isinstance(values, DatetimeIndex):
-        # If we values is tzaware, the tz gets dropped in the values.ravel()
+        # If values is tzaware, the tz gets dropped in the values.ravel()
         #  call below (which returns an ndarray).  So we are only non-lossy
         #  if `tz` matches `values.tz`.
         assert values.tz is None or values.tz == tz
