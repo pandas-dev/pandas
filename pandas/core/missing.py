@@ -277,7 +277,11 @@ def interpolate_1d(
                 inds = lib.maybe_convert_objects(inds)
         else:
             inds = xvalues
-        result[invalid] = np.interp(inds[invalid], inds[valid], yvalues[valid])
+        # np.interp requires sorted X values, #21037
+        indexer = np.argsort(inds[valid])
+        result[invalid] = np.interp(
+            inds[invalid], inds[valid][indexer], yvalues[valid][indexer]
+        )
         result[preserve_nans] = np.nan
         return result
 
