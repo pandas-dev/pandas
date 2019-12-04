@@ -4410,8 +4410,7 @@ class DataFrame(NDFrame):
                         if len(col_name) not in (1, self.columns.nlevels):
                             raise ValueError(
                                 "col_fill=None is incompatible "
-                                "with incomplete column name "
-                                f"{name}"
+                                f"with incomplete column name {name}"
                             )
                         col_fill = col_name[0]
 
@@ -7586,7 +7585,7 @@ class DataFrame(NDFrame):
                     data = self._get_bool_data()
             else:  # pragma: no cover
                 msg = (
-                    f"Generating numeric_only data with filter_type {filter_type}"
+                    f"Generating numeric_only data with filter_type {filter_type} "
                     "not supported."
                 )
                 raise NotImplementedError(msg)
@@ -8166,4 +8165,4 @@ def _from_nested_dict(data):
 
 
 def _put_str(s, space):
-    return f"{s}"[:space].ljust(space)
+    return str(s)[:space].ljust(space)
