@@ -127,7 +127,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             self._validate_get_window_bounds_signature(self.window)
 
     @staticmethod
-    def _validate_get_window_bounds_signature(window):
+    def _validate_get_window_bounds_signature(window: BaseIndexer) -> None:
         """
         Validate that the passed BaseIndexer subclass has
         a get_window_bounds with the correct signature.
