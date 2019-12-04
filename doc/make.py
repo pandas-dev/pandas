@@ -90,9 +90,9 @@ class DocBuilder:
         else:
             raise ValueError(
                 f"--single={single_doc} not understood. "
-                f"Value should be a valid path to a .rst or .ipynb file, "
-                f"or a valid pandas object "
-                f"(e.g. categorical.rst or pandas.DataFrame.head)"
+                "Value should be a valid path to a .rst or .ipynb file, "
+                "or a valid pandas object "
+                "(e.g. categorical.rst or pandas.DataFrame.head)"
             )
 
     @staticmethod
