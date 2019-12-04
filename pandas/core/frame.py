@@ -2332,7 +2332,7 @@ class DataFrame(NDFrame):
                 counts = self.count()
                 if len(cols) != len(counts):  # pragma: no cover
                     raise AssertionError(
-                        "Columns must equal counts " f"({len(cols)} != {len(counts)})"
+                        f"Columns must equal counts ({len(cols)} != {len(counts)})"
                     )
                 tmpl = "{count} non-null {dtype}"
 
@@ -4113,7 +4113,11 @@ class DataFrame(NDFrame):
                 try:
                     found = col in self.columns
                 except TypeError:
-                    raise TypeError(err_msg + f" Received column of type {type(col)}")
+                    raise TypeError(
+                        'The parameter "keys" may be a column key, one-dimensional '
+                        "array, or a list containing only valid column keys and "
+                        f"one-dimensional arrays. Received column of type {type(col)}"
+                    )
                 else:
                     if not found:
                         missing.append(col)
@@ -4192,7 +4196,7 @@ class DataFrame(NDFrame):
         inplace: bool = False,
         col_level: Hashable = 0,
         col_fill: Union[Hashable, None] = "",
-    ) -> DataFrame:
+    ) -> pandas.DataFrame:
         """
         Reset the index, or a level of it.
 
@@ -4591,7 +4595,7 @@ class DataFrame(NDFrame):
         subset: Union[Sequence[Hashable], Hashable] = None,
         keep: Union[str, bool] = "first",
         inplace: bool = False,
-    ) -> DataFrame:
+    ) -> pandas.DataFrame:
         """
         Return DataFrame with duplicate rows removed.
 
@@ -4632,7 +4636,7 @@ class DataFrame(NDFrame):
         self,
         subset: Union[Sequence[Hashable], Hashable] = None,
         keep: Union[str, bool] = "first",
-    ) -> pd.Series:
+    ) -> pandas.Series:
         """
         Return boolean Series denoting duplicate rows.
 
