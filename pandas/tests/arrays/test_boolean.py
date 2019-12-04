@@ -427,7 +427,7 @@ class TestLogicalOps(BaseOpsUtil):
     @pytest.mark.parametrize(
         "other, expected",
         [
-            # (pd.NA, [True, None, None]),
+            (pd.NA, [True, None, None]),
             (True, [True, True, True]),
             (False, [True, False, None]),
         ],
@@ -471,7 +471,7 @@ class TestLogicalOps(BaseOpsUtil):
     @pytest.mark.parametrize(
         "other, expected",
         [
-            # (pd.NA, [None, False, None]),
+            (pd.NA, [None, False, None]),
             (True, [True, False, None]),
             (False, [False, False, False]),
         ],
@@ -513,7 +513,7 @@ class TestLogicalOps(BaseOpsUtil):
     @pytest.mark.parametrize(
         "other, expected",
         [
-            # (pd.NA, [None, None, None]),
+            (pd.NA, [None, None, None]),
             (True, [False, True, None]),
             (False, [True, False, None]),
         ],

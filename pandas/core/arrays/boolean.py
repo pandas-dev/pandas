@@ -782,7 +782,10 @@ def kleene_or(
 
     raise_for_nan(right, method="or")
 
-    result = left | right
+    if right is libmissing.NA:
+        result = left.copy()
+    else:
+        result = left | right
 
     if right_mask is not None:
         # output is unknown where (False & NA), (NA & False), (NA & NA)
@@ -796,7 +799,10 @@ def kleene_or(
     else:
         if right is True:
             mask = np.zeros_like(left_mask)
-        else:  # mask is False
+        elif right is libmissing.NA:
+            mask = (~left & ~left_mask) | left_mask
+        else:
+            # False
             mask = left_mask.copy()
 
     return result, mask
@@ -832,12 +838,16 @@ def kleene_xor(
         return kleene_xor(right, left, right_mask, left_mask)
 
     raise_for_nan(right, method="xor")
-    # Re-use or, and update with adjustments.
-    result = left ^ right
+    if right is libmissing.NA:
+        result = np.zeros_like(left)
+    else:
+        result = left ^ right
 
     if right_mask is None:
-        mask = left_mask.copy()
-
+        if right is libmissing.NA:
+            mask = np.ones_like(left_mask)
+        else:
+            mask = left_mask.copy()
     else:
         mask = left_mask | right_mask
 
@@ -876,17 +886,22 @@ def kleene_and(
     assert isinstance(left, np.ndarray)
     raise_for_nan(right, method="and")
 
-    if right_mask is None:
-        # Scalar `right`
-        # TODO(pd.NA): handle NA here.
-        result = left & right
-
-        mask = left_mask.copy()
-        if right is False:
-            # unmask everything
-            mask[:] = False
+    if right is libmissing.NA:
+        result = np.zeros_like(left)
     else:
         result = left & right
+
+    if right_mask is None:
+        # Scalar `right`
+        if right is libmissing.NA:
+            mask = (left & ~left_mask) | left_mask
+
+        else:
+            mask = left_mask.copy()
+            if right is False:
+                # unmask everything
+                mask[:] = False
+    else:
         # unmask where either left or right is False
         left_false = ~(left | left_mask)
         right_false = ~(right | right_mask)
