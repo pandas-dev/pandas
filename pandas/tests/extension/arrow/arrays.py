@@ -33,7 +33,7 @@ class ArrowBoolDtype(ExtensionDtype):
         if string == cls.name:
             return cls()
         else:
-            raise TypeError("Cannot construct a '{}' from '{}'".format(cls, string))
+            raise TypeError(f"Cannot construct a '{cls}' from '{string}'")
 
     @classmethod
     def construct_array_type(cls):
@@ -56,7 +56,7 @@ class ArrowStringDtype(ExtensionDtype):
         if string == cls.name:
             return cls()
         else:
-            raise TypeError("Cannot construct a '{}' from '{}'".format(cls, string))
+            raise TypeError(f"Cannot construct a '{cls}' from '{string}'")
 
     @classmethod
     def construct_array_type(cls):
@@ -79,7 +79,7 @@ class ArrowExtensionArray(ExtensionArray):
         return cls.from_scalars(scalars)
 
     def __repr__(self):
-        return "{cls}({data})".format(cls=type(self).__name__, data=repr(self._data))
+        return f"{type(self).__name__}({repr(self._data)})"
 
     def __getitem__(self, item):
         if pd.api.types.is_scalar(item):
