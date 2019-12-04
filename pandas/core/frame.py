@@ -4634,7 +4634,7 @@ class DataFrame(NDFrame):
 
     def duplicated(
         self,
-        subset: Union[Sequence[Hashable], Hashable] = None,
+        subset: Optional[Union[Hashable, Sequence[Hashable]] = None,
         keep: Union[str, bool] = "first",
     ) -> "Series":
         """
