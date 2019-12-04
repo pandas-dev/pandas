@@ -61,7 +61,7 @@ class BooleanDtype(ExtensionDtype):
     @property
     def na_value(self) -> "Scalar":
         """
-        BooleanDtype uses :attr:`pd.NA` as the missing NA value.
+        BooleanDtype uses :attr:`pandas.NA` as the missing NA value.
 
         .. warning::
 
@@ -281,31 +281,28 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
             return self._data[item]
         return type(self)(self._data[item], self._mask[item])
 
-    def _coerce_to_ndarray(
-        self, force_bool: bool = False, na_value: "Scalar" = lib._no_default
-    ):
+    def _coerce_to_ndarray(self, dtype=None, na_value: "Scalar" = libmissing.NA):
         """
         Coerce to an ndarary of object dtype or bool dtype (if force_bool=True).
 
         Parameters
         ----------
-        force_bool : bool, default False
-            If True, return bool array or raise error if not possible (in
-            presence of missing values)
+        dtype : dtype, default object
+            The numpy dtype to convert to
         na_value : scalar, optional
              Scalar missing value indicator to use in numpy array. Defaults
              to the native missing value indicator of this array (pd.NA).
         """
-        if force_bool:
+        if dtype is None:
+            dtype = object
+        if is_bool_dtype(dtype):
             if not self.isna().any():
                 return self._data
             else:
                 raise ValueError(
                     "cannot convert to bool numpy array in presence of missing values"
                 )
-        if na_value is lib._no_default:
-            na_value = self._na_value
-        data = self._data.astype(object)
+        data = self._data.astype(dtype)
         data[self._mask] = na_value
         return data
 
@@ -316,15 +313,8 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
         the array interface, return my values
         We return an object array here to preserve our scalar values
         """
-        if dtype is not None:
-            if is_bool_dtype(dtype):
-                return self._coerce_to_ndarray(force_bool=True)
-            # TODO can optimize this to not go through object dtype for
-            # numeric dtypes
-            arr = self._coerce_to_ndarray()
-            return arr.astype(dtype, copy=False)
         # by default (no dtype specified), return an object array
-        return self._coerce_to_ndarray()
+        return self._coerce_to_ndarray(dtype=dtype)
 
     def __arrow_array__(self, type=None):
         """
@@ -496,7 +486,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
                 raise ValueError("cannot convert NA to integer")
         # for float dtype, ensure we use np.nan before casting (numpy cannot
         # deal with pd.NA)
-        na_value = lib._no_default
+        na_value = self._na_value
         if is_float_dtype(dtype):
             na_value = np.nan
         # coerce
