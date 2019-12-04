@@ -39,7 +39,6 @@ Attributes
    Series.empty
    Series.dtypes
    Series.name
-   Series.put
 
 Conversion
 ----------
