@@ -3838,8 +3838,8 @@ class Table(Fixed):
             )
 
         # create according to the new data
-        nia: List = []
-        dcs = []
+        new_non_index_axes: List = []
+        new_data_columns: List[Optional[str]] = []
 
         # nan_representation
         if nan_rep is None:
@@ -3861,7 +3861,7 @@ class Table(Fixed):
                 # necessary
                 append_axis = list(a)
                 if existing_table is not None:
-                    indexer = len(nia)
+                    indexer = len(new_non_index_axes)
                     exist_axis = existing_table.non_index_axes[indexer][1]
                     if not array_equivalent(
                         np.array(append_axis), np.array(exist_axis)
@@ -3878,9 +3878,9 @@ class Table(Fixed):
                 info["names"] = list(a.names)
                 info["type"] = type(a).__name__
 
-                nia.append((i, append_axis))
+                new_non_index_axes.append((i, append_axis))
 
-        self.non_index_axes = nia
+        self.non_index_axes = new_non_index_axes
 
         # set axis positions (based on the axes)
         new_index_axes = [index_axes_map[a] for a in axes]
@@ -3895,7 +3895,7 @@ class Table(Fixed):
             a.maybe_set_size(min_itemsize=min_itemsize)
 
         # reindex by our non_index_axes & compute data_columns
-        for a in nia:
+        for a in new_non_index_axes:
             obj = _reindex_axis(obj, a[0], a[1])
 
         def get_blk_items(mgr, blocks):
@@ -3907,8 +3907,8 @@ class Table(Fixed):
         block_obj = self.get_object(obj, transposed)._consolidate()
         blocks = block_obj._data.blocks
         blk_items = get_blk_items(block_obj._data, blocks)
-        if len(nia):
-            axis, axis_labels = nia[0]
+        if len(new_non_index_axes):
+            axis, axis_labels = new_non_index_axes[0]
             data_columns = self.validate_data_columns(data_columns, min_itemsize)
             if len(data_columns):
                 mgr = block_obj.reindex(
@@ -3960,7 +3960,7 @@ class Table(Fixed):
                 if not (name is None or isinstance(name, str)):
                     # TODO: should the message here be more specifically non-str?
                     raise ValueError("cannot have non-object label DataIndexableCol")
-                dcs.append(name)
+                new_data_columns.append(name)
 
             # make sure that we match up the existing columns
             # if we have an existing table
@@ -3993,7 +3993,7 @@ class Table(Fixed):
             j += 1
 
         self.nan_rep = nan_rep
-        self.data_columns = dcs
+        self.data_columns = new_data_columns
         self.values_axes = vaxes
         self.index_axes = new_index_axes
 
