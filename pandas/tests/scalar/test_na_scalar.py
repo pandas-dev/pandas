@@ -48,7 +48,7 @@ def test_arithmetic_ops(all_arithmetic_functions):
 
 def test_comparison_ops():
 
-    for other in [NA, 1, 1.0, "a", np.int64(1), np.nan]:
+    for other in [NA, 1, 1.0, "a", np.int64(1), np.nan, np.bool_(True)]:
         assert (NA == other) is NA
         assert (NA != other) is NA
         assert (NA > other) is NA
@@ -56,7 +56,7 @@ def test_comparison_ops():
         assert (NA < other) is NA
         assert (NA <= other) is NA
 
-        if isinstance(other, np.int64):
+        if isinstance(other, (np.int64, np.bool_)):
             # for numpy scalars we get a deprecation warning and False as result
             # for equality or error for larger/lesser than
             continue
