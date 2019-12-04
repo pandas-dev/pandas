@@ -1119,7 +1119,6 @@ generated/pandas.Series.pow,../reference/api/pandas.Series.pow
 generated/pandas.Series.prod,../reference/api/pandas.Series.prod
 generated/pandas.Series.product,../reference/api/pandas.Series.product
 generated/pandas.Series.ptp,../reference/api/pandas.Series.ptp
-generated/pandas.Series.put,../reference/api/pandas.Series.put
 generated/pandas.Series.quantile,../reference/api/pandas.Series.quantile
 generated/pandas.Series.radd,../reference/api/pandas.Series.radd
 generated/pandas.Series.rank,../reference/api/pandas.Series.rank

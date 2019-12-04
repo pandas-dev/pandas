@@ -5,12 +5,12 @@ import xml.etree.ElementTree as et
 
 def main(filename):
     if not os.path.isfile(filename):
-        return
+        raise RuntimeError(f"Could not find junit file {repr(filename)}")
 
     tree = et.parse(filename)
     root = tree.getroot()
     current_class = ""
-    for el in root.findall("testcase"):
+    for el in root.iter("testcase"):
         cn = el.attrib["classname"]
         for sk in el.findall("skipped"):
             old_class = current_class
@@ -32,8 +32,7 @@ if __name__ == "__main__":
             print("-" * 80)
         else:
             print(
-                "#{i} {class_name}.{test_name}: {message}".format(
-                    **dict(test_data, i=i)
-                )
+                f"#{i} {test_data['class_name']}."
+                f"{test_data['test_name']}: {test_data['message']}"
             )
             i += 1
