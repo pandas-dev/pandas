@@ -3,7 +3,6 @@ Internal module for formatting output data in csv, html,
 and latex files. This module also applies to display formatting.
 """
 
-import codecs
 from contextlib import contextmanager
 from datetime import tzinfo
 import decimal
@@ -495,7 +494,7 @@ class TableFormatter:
         if hasattr(buf, "write"):
             yield buf
         elif isinstance(buf, str):
-            with codecs.open(buf, "w", encoding=encoding) as f:
+            with open(buf, "w", encoding=encoding) as f:
                 yield f
         else:
             raise TypeError("buf is not a file name and it has no write method")
