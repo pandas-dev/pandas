@@ -44,15 +44,13 @@ jobs:
           PATTERN: "not slow and not network"
           LOCALE_OVERRIDE: "zh_CN.UTF-8"
 
-        # Disabled for NumPy object-dtype warning.
-        # https://github.com/pandas-dev/pandas/issues/30043
-        # py37_np_dev:
-        #   ENV_FILE: ci/deps/azure-37-numpydev.yaml
-        #   CONDA_PY: "37"
-        #   PATTERN: "not slow and not network"
-        #   TEST_ARGS: "-W error"
-        #   PANDAS_TESTING_MODE: "deprecate"
-        #   EXTRA_APT: "xsel"
+        py37_np_dev:
+          ENV_FILE: ci/deps/azure-37-numpydev.yaml
+          CONDA_PY: "37"
+          PATTERN: "not slow and not network"
+          TEST_ARGS: "-W error"
+          PANDAS_TESTING_MODE: "deprecate"
+          EXTRA_APT: "xsel"
 
   steps:
     - script: |
