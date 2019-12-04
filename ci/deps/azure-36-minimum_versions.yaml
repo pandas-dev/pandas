@@ -27,4 +27,3 @@ dependencies:
   - xlsxwriter=0.9.8
   - xlwt=1.2.0
   - html5lib=1.0.1
-  - pyarrow=0.12
