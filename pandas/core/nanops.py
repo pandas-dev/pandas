@@ -62,7 +62,7 @@ class disallow:
             if any(self.check(obj) for obj in obj_iter):
                 f_name = f.__name__.replace("nan", "")
                 raise TypeError(
-                    f"reduction operation {repr(f_name)} not allowed for this dtype"
+                    f"reduction operation '{f_name}' not allowed for this dtype"
                 )
             try:
                 with np.errstate(invalid="ignore"):
