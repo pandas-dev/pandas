@@ -4825,7 +4825,6 @@ def _maybe_convert_for_string_atom(
 
     # itemsize is the maximum length of a string (along any dimension)
     data_converted = _convert_string_array(data, encoding, errors).reshape(data.shape)
-    # NB: the reshape here is new!
     assert data_converted.shape == block.shape, (data_converted.shape, block.shape)
     itemsize = data_converted.itemsize
 
