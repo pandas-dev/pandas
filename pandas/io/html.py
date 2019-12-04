@@ -617,7 +617,7 @@ def _build_xpath_expr(attrs) -> str:
         attrs["class"] = attrs.pop("class_")
 
     s = [f"@{k}={repr(v)}" for k, v in attrs.items()]
-    return "[{' and '.join(s)}]"
+    return f"[{' and '.join(s)}]"
 
 
 _re_namespace = {"re": "http://exslt.org/regular-expressions"}
