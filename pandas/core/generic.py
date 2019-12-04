@@ -9133,7 +9133,7 @@ class NDFrame(PandasObject, SelectionMixin):
             if freq == orig_freq:
                 new_data = self._data.copy()
                 new_data.axes[block_axis] = index.shift(periods)
-            else:
+            elif orig_freq is not None:
                 msg = (
                     f"Given freq {freq.rule_code} does not match"
                     f" PeriodIndex freq {orig_freq.rule_code}"
