@@ -275,7 +275,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     if len(index) != len(data):
                         raise ValueError(
                             f"Length of passed values is {len(data)}, "
-                            "index implies {len(index)}."
+                            f"index implies {len(index)}."
                         )
                 except TypeError:
                     pass
