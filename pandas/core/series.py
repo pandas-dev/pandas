@@ -158,7 +158,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     _deprecations = (
         base.IndexOpsMixin._deprecations
         | generic.NDFrame._deprecations
-        | frozenset(["compress", "valid", "real", "imag", "put", "ptp", "nonzero"])
+        | frozenset(["compress", "ptp"])
     )
 
     # Override cache_readonly bc Series is mutable
@@ -528,23 +528,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         nv.validate_compress(args, kwargs)
         return self[condition]
 
-    def put(self, *args, **kwargs):
-        """
-        Apply the `put` method to its `values` attribute if it has one.
-
-        .. deprecated:: 0.25.0
-
-        See Also
-        --------
-        numpy.ndarray.put
-        """
-        warnings.warn(
-            "`put` has been deprecated and will be removed in a future version.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        self._values.put(*args, **kwargs)
-
     def __len__(self) -> int:
         """
         Return the length of the Series.
@@ -776,46 +759,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     # ----------------------------------------------------------------------
     # Unary Methods
-
-    @property
-    def real(self):
-        """
-        Return the real value of vector.
-
-        .. deprecated:: 0.25.0
-        """
-        warnings.warn(
-            "`real` is deprecated and will be removed in a future version. "
-            "To eliminate this warning for a Series `ser`, use "
-            "`np.real(ser.to_numpy())` or `ser.to_numpy().real`.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.values.real
-
-    @real.setter
-    def real(self, v):
-        self.values.real = v
-
-    @property
-    def imag(self):
-        """
-        Return imag value of vector.
-
-        .. deprecated:: 0.25.0
-        """
-        warnings.warn(
-            "`imag` is deprecated and will be removed in a future version. "
-            "To eliminate this warning for a Series `ser`, use "
-            "`np.imag(ser.to_numpy())` or `ser.to_numpy().imag`.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.values.imag
-
-    @imag.setter
-    def imag(self, v):
-        self.values.imag = v
 
     # coercion
     __float__ = _coerce_method(float)
