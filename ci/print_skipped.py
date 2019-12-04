@@ -5,7 +5,7 @@ import xml.etree.ElementTree as et
 
 def main(filename):
     if not os.path.isfile(filename):
-        raise RuntimeError(f"Could not find junit file {filename!r}")
+        raise RuntimeError(f"Could not find junit file {repr(filename)}")
 
     tree = et.parse(filename)
     root = tree.getroot()
