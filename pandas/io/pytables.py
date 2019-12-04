@@ -4,7 +4,7 @@ to disk
 """
 
 import copy
-from datetime import date
+from datetime import date, tzinfo
 import itertools
 import os
 import re
@@ -2918,7 +2918,8 @@ class GenericFixed(Fixed):
             if dtype == "datetime64":
 
                 # reconstruct a timezone if indicated
-                ret = _set_tz(ret, getattr(attrs, "tz", None), coerce=True)
+                tz = getattr(attrs, "tz", None)
+                ret = _set_tz(ret, tz, coerce=True)
 
             elif dtype == "timedelta64":
                 ret = np.asarray(ret, dtype="m8[ns]")
@@ -4164,7 +4165,7 @@ class Table(Fixed):
                     encoding=self.encoding,
                     errors=self.errors,
                 )
-                return Series(_set_tz(a.take_data(), a.tz, True), name=column)
+                return Series(_set_tz(a.take_data(), a.tz), name=column)
 
         raise KeyError(f"column [{column}] not found in the table")
 
@@ -4693,37 +4694,39 @@ def _get_info(info, name):
 # tz to/from coercion
 
 
-def _get_tz(tz):
+def _get_tz(tz: tzinfo) -> Union[str, tzinfo]:
     """ for a tz-aware type, return an encoded zone """
     zone = timezones.get_timezone(tz)
-    if zone is None:
-        zone = tz.utcoffset().total_seconds()
     return zone
 
 
-def _set_tz(values, tz, preserve_UTC: bool = False, coerce: bool = False):
+def _set_tz(
+    values: Union[np.ndarray, Index],
+    tz: Optional[Union[str, tzinfo]],
+    coerce: bool = False,
+) -> Union[np.ndarray, DatetimeIndex]:
     """
     coerce the values to a DatetimeIndex if tz is set
     preserve the input shape if possible
 
     Parameters
     ----------
-    values : ndarray
-    tz : string/pickled tz object
-    preserve_UTC : bool,
-        preserve the UTC of the result
+    values : ndarray or Index
+    tz : str or tzinfo
     coerce : if we do not have a passed timezone, coerce to M8[ns] ndarray
     """
+    if isinstance(values, DatetimeIndex):
+        # If values is tzaware, the tz gets dropped in the values.ravel()
+        #  call below (which returns an ndarray).  So we are only non-lossy
+        #  if `tz` matches `values.tz`.
+        assert values.tz is None or values.tz == tz
+
     if tz is not None:
         name = getattr(values, "name", None)
         values = values.ravel()
         tz = timezones.get_timezone(_ensure_decoded(tz))
         values = DatetimeIndex(values, name=name)
-        if values.tz is None:
-            values = values.tz_localize("UTC").tz_convert(tz)
-        if preserve_UTC:
-            if tz == "UTC":
-                values = list(values)
+        values = values.tz_localize("UTC").tz_convert(tz)
     elif coerce:
         values = np.asarray(values, dtype="M8[ns]")
 
