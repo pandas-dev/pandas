@@ -101,13 +101,14 @@ def test_to_boolean_array_all_none():
 @pytest.mark.parametrize(
     "a, b",
     [
-        ([True, None], [True, np.nan]),
-        ([None], [np.nan]),
-        ([None, np.nan], [np.nan, np.nan]),
-        ([np.nan, np.nan], [np.nan, np.nan]),
+        ([True, False, None, np.nan, pd.NA], [True, False, None, None, None]),
+        ([True, np.nan], [True, None]),
+        ([True, pd.NA], [True, None]),
+        ([np.nan, np.nan], [None, None]),
+        (np.array([np.nan, np.nan], dtype=float), [None, None]),
     ],
 )
-def test_to_boolean_array_none_is_nan(a, b):
+def test_to_boolean_array_missing_indicators(a, b):
     result = pd.array(a, dtype="boolean")
     expected = pd.array(b, dtype="boolean")
     tm.assert_extension_array_equal(result, expected)
@@ -216,7 +217,7 @@ def test_coerce_to_numpy_array():
     # with missing values -> object dtype
     arr = pd.array([True, False, None], dtype="boolean")
     result = np.array(arr)
-    expected = np.array([True, False, None], dtype="object")
+    expected = np.array([True, False, pd.NA], dtype="object")
     tm.assert_numpy_array_equal(result, expected)
 
     # also with no missing values -> object dtype
@@ -238,12 +239,11 @@ def test_coerce_to_numpy_array():
 def test_astype():
     # with missing values
     arr = pd.array([True, False, None], dtype="boolean")
-    msg = "cannot convert float NaN to"
 
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(ValueError, match="cannot convert NA to integer"):
         arr.astype("int64")
 
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(ValueError, match="cannot convert float NaN to"):
         arr.astype("bool")
 
     result = arr.astype("float64")
@@ -278,6 +278,14 @@ def test_astype_to_integer_array():
     result = arr.astype("Int64")
     expected = pd.array([1, 0, None], dtype="Int64")
     tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("na", [None, np.nan, pd.NA])
+def test_setitem_missing_values(na):
+    arr = pd.array([True, False, None], dtype="boolean")
+    expected = pd.array([True, None, None], dtype="boolean")
+    arr[1] = na
+    tm.assert_extension_array_equal(arr, expected)
 
 
 @pytest.mark.parametrize(
@@ -406,9 +414,8 @@ class TestComparisonOps(BaseOpsUtil):
         # array
         result = pd.Series(op(data, other))
         expected = pd.Series(op(data._data, other), dtype="boolean")
-
-        # fill the nan locations
-        expected[data._mask] = op_name == "__ne__"
+        # propagate NAs
+        expected[data._mask] = pd.NA
 
         tm.assert_series_equal(result, expected)
 
@@ -419,9 +426,8 @@ class TestComparisonOps(BaseOpsUtil):
         expected = pd.Series(data._data)
         expected = op(expected, other)
         expected = expected.astype("boolean")
-
-        # fill the nan locations
-        expected[data._mask] = op_name == "__ne__"
+        # propagate NAs
+        expected[data._mask] = pd.NA
 
         tm.assert_series_equal(result, expected)
 
@@ -437,6 +443,47 @@ class TestComparisonOps(BaseOpsUtil):
         self._compare_other(data, op_name, other)
         other = pd.Series([True] * len(data))
         self._compare_other(data, op_name, other)
+
+    @pytest.mark.parametrize("other", [True, False, pd.NA])
+    def test_scalar(self, other, all_compare_operators):
+        op = self.get_op_from_name(all_compare_operators)
+        a = pd.array([True, False, None], dtype="boolean")
+
+        result = op(a, other)
+
+        if other is pd.NA:
+            expected = pd.array([None, None, None], dtype="boolean")
+        else:
+            values = op(a._data, other)
+            expected = BooleanArray(values, a._mask, copy=True)
+        tm.assert_extension_array_equal(result, expected)
+
+        # ensure we haven't mutated anything inplace
+        result[0] = None
+        tm.assert_extension_array_equal(
+            a, pd.array([True, False, None], dtype="boolean")
+        )
+
+    def test_array(self, all_compare_operators):
+        op = self.get_op_from_name(all_compare_operators)
+        a = pd.array([True] * 3 + [False] * 3 + [None] * 3, dtype="boolean")
+        b = pd.array([True, False, None] * 3, dtype="boolean")
+
+        result = op(a, b)
+
+        values = op(a._data, b._data)
+        mask = a._mask | b._mask
+        expected = BooleanArray(values, mask)
+        tm.assert_extension_array_equal(result, expected)
+
+        # ensure we haven't mutated anything inplace
+        result[0] = None
+        tm.assert_extension_array_equal(
+            a, pd.array([True] * 3 + [False] * 3 + [None] * 3, dtype="boolean")
+        )
+        tm.assert_extension_array_equal(
+            b, pd.array([True, False, None] * 3, dtype="boolean")
+        )
 
 
 class TestArithmeticOps(BaseOpsUtil):

@@ -289,7 +289,8 @@ cdef inline bint is_null_period(v):
 def _create_binary_propagating_op(name, divmod=False):
 
     def method(self, other):
-        if other is C_NA or isinstance(other, str) or isinstance(other, numbers.Number):
+        if (other is C_NA or isinstance(other, str)
+                or isinstance(other, (numbers.Number, np.bool_))):
             if divmod:
                 return NA, NA
             else:
