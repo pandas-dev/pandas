@@ -3847,52 +3847,47 @@ class Table(Fixed):
         if nan_rep is None:
             nan_rep = "nan"
 
-        # create axes to index and non_index
-        for i, a in enumerate(obj.axes):
+        # We construct the non-index-axis first, since that alters self.info
+        idx = [x for x in [0, 1] if x not in axes][0]
 
-            if i in axes:
-                name = obj._AXIS_NAMES[i]
-                new_index = _convert_index(name, a, self.encoding, self.errors)
-                new_index.axis = i
+        a = obj.axes[idx]
+        # we might be able to change the axes on the appending data if necessary
+        append_axis = list(a)
+        if existing_table is not None:
+            indexer = len(new_non_index_axes)  # i.e. 0
+            exist_axis = existing_table.non_index_axes[indexer][1]
+            if not array_equivalent(np.array(append_axis), np.array(exist_axis)):
 
-                # Because we are always 2D, only one axis ever gets here, so
-                #  we know it will have pos=0
-                new_index.set_pos(0)
+                # ahah! -> reindex
+                if array_equivalent(
+                    np.array(sorted(append_axis)), np.array(sorted(exist_axis))
+                ):
+                    append_axis = exist_axis
 
-            else:
+        # the non_index_axes info
+        info = self.info.setdefault(idx, {})
+        info["names"] = list(a.names)
+        info["type"] = type(a).__name__
 
-                # we might be able to change the axes on the appending data if
-                # necessary
-                append_axis = list(a)
-                if existing_table is not None:
-                    indexer = len(new_non_index_axes)
-                    exist_axis = existing_table.non_index_axes[indexer][1]
-                    if not array_equivalent(
-                        np.array(append_axis), np.array(exist_axis)
-                    ):
+        new_non_index_axes.append((idx, append_axis))
 
-                        # ahah! -> reindex
-                        if array_equivalent(
-                            np.array(sorted(append_axis)), np.array(sorted(exist_axis))
-                        ):
-                            append_axis = exist_axis
+        # Now we can construct our new index axis
+        idx = axes[0]
+        a = obj.axes[idx]
+        name = obj._AXIS_NAMES[idx]
+        new_index = _convert_index(name, a, self.encoding, self.errors)
+        new_index.axis = idx
 
-                # the non_index_axes info
-                info = _get_info(self.info, i)
-                info["names"] = list(a.names)
-                info["type"] = type(a).__name__
-
-                new_non_index_axes.append((i, append_axis))
+        # Because we are always 2D, there is only one new_index, so
+        #  we know it will have pos=0
+        new_index.set_pos(0)
+        new_index.update_info(self.info)
+        new_index.maybe_set_size(min_itemsize)  # check for column conflicts
 
         self.non_index_axes = new_non_index_axes
 
-        # Note: we can't do this update_info inside the loop because self.info
-        #  is modified at another step in the loop above.
-        new_index.update_info(self.info)
-        new_index.maybe_set_size(min_itemsize)  # check for column conflicts
         new_index_axes = [new_index]
-
-        j = len(new_index_axes)
+        j = len(new_index_axes)  # i.e. 1
         assert j == 1
 
         # reindex by our non_index_axes & compute data_columns
