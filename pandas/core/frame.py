@@ -4636,7 +4636,7 @@ class DataFrame(NDFrame):
         self,
         subset: Union[Sequence[Hashable], Hashable] = None,
         keep: Union[str, bool] = "first",
-    ) -> pandas.Series:
+    ) -> "Series":
         """
         Return boolean Series denoting duplicate rows.
 
