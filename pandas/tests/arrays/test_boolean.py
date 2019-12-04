@@ -541,6 +541,12 @@ def test_reductions_return_types(dropna, data, all_numeric_reductions):
     ],
 )
 def test_any_all(values, exp_any, exp_all, exp_any_noskip, exp_all_noskip):
+    # the methods return numpy scalars
+    exp_any = pd.NA if exp_any is pd.NA else np.bool_(exp_any)
+    exp_all = pd.NA if exp_all is pd.NA else np.bool_(exp_all)
+    exp_any_noskip = pd.NA if exp_any_noskip is pd.NA else np.bool_(exp_any_noskip)
+    exp_all_noskip = pd.NA if exp_all_noskip is pd.NA else np.bool_(exp_all_noskip)
+
     for con in [pd.array, pd.Series]:
         a = con(values, dtype="boolean")
         assert a.any() is exp_any

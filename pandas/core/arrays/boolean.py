@@ -561,10 +561,10 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
         # nv.validate_any((), dict(out=out, keepdims=keepdims))
         valid_values = self._data[~self._mask]
         if skipna:
-            return valid_values.any().item()
+            return valid_values.any()
         else:
-            result = valid_values.any().item()
-            if result is True or len(self) == 0:
+            result = valid_values.any()
+            if result or len(self) == 0:
                 return result
             else:
                 return self.dtype.na_value
@@ -573,10 +573,10 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
         # nv.validate_any((), dict(out=out, keepdims=keepdims))
         valid_values = self._data[~self._mask]
         if skipna:
-            return valid_values.all().item()
+            return valid_values.all()
         else:
-            result = valid_values.all().item()
-            if result is False or len(self) == 0:
+            result = valid_values.all()
+            if not result or len(self) == 0:
                 return result
             else:
                 return self.dtype.na_value
