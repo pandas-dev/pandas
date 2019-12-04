@@ -3889,14 +3889,11 @@ class Table(Fixed):
         # Note: we can't do this update_info inside the loop because self.info
         #  is modified at another step in the loop above.
         new_index.update_info(self.info)
+        new_index.maybe_set_size(min_itemsize)  # check for column conflicts
         new_index_axes = [new_index]
 
         j = len(new_index_axes)
         assert j == 1
-
-        # check for column conflicts
-        for a in new_index_axes:
-            a.maybe_set_size(min_itemsize=min_itemsize)
 
         # reindex by our non_index_axes & compute data_columns
         assert len(new_non_index_axes) == 1
@@ -3906,7 +3903,7 @@ class Table(Fixed):
         def get_blk_items(mgr, blocks):
             return [mgr.items.take(blk.mgr_locs) for blk in blocks]
 
-        transposed = new_index_axes[0].axis == 1
+        transposed = new_index.axis == 1
 
         # figure out data_columns and get out blocks
         block_obj = self.get_object(obj, transposed)._consolidate()
