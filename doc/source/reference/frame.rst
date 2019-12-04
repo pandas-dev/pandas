@@ -30,7 +30,6 @@ Attributes and underlying data
    DataFrame.dtypes
    DataFrame.select_dtypes
    DataFrame.values
-   DataFrame.get_values
    DataFrame.axes
    DataFrame.ndim
    DataFrame.size
