@@ -47,9 +47,6 @@ from pandas._typing import FilePathOrBuffer
 
 lzma = _import_lzma()
 
-# gh-12665: Alias for now and remove later.
-CParserError = ParserError
-
 # common NA values
 # no longer excluding inf representations
 # '1.#INF','-1.#INF', '1.#INF000000',
