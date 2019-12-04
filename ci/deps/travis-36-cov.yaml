@@ -27,7 +27,8 @@ dependencies:
   - numexpr
   - numpy=1.15.*
   - odfpy
-  - openpyxl
+  - openpyxl<=3.0.1
+  # https://github.com/pandas-dev/pandas/pull/30009 openpyxl 3.0.2 broke
   - pandas-gbq
   # https://github.com/pydata/pandas-gbq/issues/271
   - google-cloud-bigquery<=1.11
