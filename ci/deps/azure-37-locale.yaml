@@ -1,6 +1,5 @@
 name: pandas-dev
 channels:
-  - defaults
   - conda-forge
 dependencies:
   - python=3.7.*
@@ -33,3 +32,4 @@ dependencies:
   - xlrd
   - xlsxwriter
   - xlwt
+  - pyarrow>=0.15
