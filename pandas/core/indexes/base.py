@@ -69,6 +69,7 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import IndexOpsMixin, PandasObject
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.frozen import FrozenList
 import pandas.core.missing as missing
@@ -2137,68 +2138,6 @@ class Index(IndexOpsMixin, PandasObject):
         array([ True, False,  True, False,  True])
         """
         return super().duplicated(keep=keep)
-
-    def get_duplicates(self):
-        """
-        Extract duplicated index elements.
-
-        .. deprecated:: 0.23.0
-            Use idx[idx.duplicated()].unique() instead
-
-        Returns a sorted list of index elements which appear more than once in
-        the index.
-
-        Returns
-        -------
-        array-like
-            List of duplicated indexes.
-
-        See Also
-        --------
-        Index.duplicated : Return boolean array denoting duplicates.
-        Index.drop_duplicates : Return Index with duplicates removed.
-
-        Examples
-        --------
-
-        Works on different Index of types.
-
-        >>> pd.Index([1, 2, 2, 3, 3, 3, 4]).get_duplicates()  # doctest: +SKIP
-        [2, 3]
-
-        Note that for a DatetimeIndex, it does not return a list but a new
-        DatetimeIndex:
-
-        >>> dates = pd.to_datetime(['2018-01-01', '2018-01-02', '2018-01-03',
-        ...                         '2018-01-03', '2018-01-04', '2018-01-04'],
-        ...                        format='%Y-%m-%d')
-        >>> pd.Index(dates).get_duplicates()  # doctest: +SKIP
-        DatetimeIndex(['2018-01-03', '2018-01-04'],
-                      dtype='datetime64[ns]', freq=None)
-
-        Sorts duplicated elements even when indexes are unordered.
-
-        >>> pd.Index([1, 2, 3, 2, 3, 4, 3]).get_duplicates()  # doctest: +SKIP
-        [2, 3]
-
-        Return empty array-like structure when all elements are unique.
-
-        >>> pd.Index([1, 2, 3, 4]).get_duplicates()  # doctest: +SKIP
-        []
-        >>> dates = pd.to_datetime(['2018-01-01', '2018-01-02', '2018-01-03'],
-        ...                        format='%Y-%m-%d')
-        >>> pd.Index(dates).get_duplicates()  # doctest: +SKIP
-        DatetimeIndex([], dtype='datetime64[ns]', freq=None)
-        """
-        warnings.warn(
-            "'get_duplicates' is deprecated and will be removed in "
-            "a future release. You can use "
-            "idx[idx.duplicated()].unique() instead",
-            FutureWarning,
-            stacklevel=2,
-        )
-
-        return self[self.duplicated()].unique()
 
     def _get_unique_index(self, dropna=False):
         """
@@ -4551,22 +4490,26 @@ class Index(IndexOpsMixin, PandasObject):
         # if we have something that is Index-like, then
         # use this, e.g. DatetimeIndex
         # Things like `Series._get_value` (via .at) pass the EA directly here.
-        s = getattr(series, "_values", series)
-        if isinstance(s, (ExtensionArray, Index)) and is_scalar(key):
-            # GH 20882, 21257
-            # Unify Index and ExtensionArray treatment
-            # First try to convert the key to a location
-            # If that fails, raise a KeyError if an integer
-            # index, otherwise, see if key is an integer, and
-            # try that
-            try:
-                iloc = self.get_loc(key)
-                return s[iloc]
-            except KeyError:
-                if len(self) > 0 and (self.holds_integer() or self.is_boolean()):
-                    raise
-                elif is_integer(key):
-                    return s[key]
+        s = extract_array(series, extract_numpy=True)
+        if isinstance(s, ExtensionArray):
+            if is_scalar(key):
+                # GH 20882, 21257
+                # First try to convert the key to a location
+                # If that fails, raise a KeyError if an integer
+                # index, otherwise, see if key is an integer, and
+                # try that
+                try:
+                    iloc = self.get_loc(key)
+                    return s[iloc]
+                except KeyError:
+                    if len(self) > 0 and (self.holds_integer() or self.is_boolean()):
+                        raise
+                    elif is_integer(key):
+                        return s[key]
+            else:
+                # if key is not a scalar, directly raise an error (the code below
+                # would convert to numpy arrays and raise later any way) - GH29926
+                raise InvalidIndexError(key)
 
         s = com.values_from_object(series)
         k = com.values_from_object(key)

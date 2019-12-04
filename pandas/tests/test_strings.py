@@ -296,10 +296,8 @@ class TestStringMethods:
         else:
             # GH 23011, GH 23163
             msg = (
-                "Cannot use .str.{name} with values of inferred dtype "
-                "{inferred_dtype!r}.".format(
-                    name=method_name, inferred_dtype=inferred_dtype
-                )
+                f"Cannot use .str.{method_name} with values of "
+                f"inferred dtype {repr(inferred_dtype)}."
             )
             with pytest.raises(TypeError, match=msg):
                 method(*args, **kwargs)
@@ -2968,23 +2966,21 @@ class TestStringMethods:
         assert res.nlevels == 1
         tm.assert_index_equal(res, exp)
 
-    def test_partition_deprecation(self):
+    def test_partition_sep_kwarg(self):
         # GH 22676; depr kwarg "pat" in favor of "sep"
         values = Series(["a_b_c", "c_d_e", np.nan, "f_g_h"])
 
         # str.partition
         # using sep -> no warning
         expected = values.str.partition(sep="_")
-        with tm.assert_produces_warning(FutureWarning):
-            result = values.str.partition(pat="_")
-            tm.assert_frame_equal(result, expected)
+        result = values.str.partition("_")
+        tm.assert_frame_equal(result, expected)
 
         # str.rpartition
         # using sep -> no warning
         expected = values.str.rpartition(sep="_")
-        with tm.assert_produces_warning(FutureWarning):
-            result = values.str.rpartition(pat="_")
-            tm.assert_frame_equal(result, expected)
+        result = values.str.rpartition("_")
+        tm.assert_frame_equal(result, expected)
 
     def test_pipe_failures(self):
         # #2119
