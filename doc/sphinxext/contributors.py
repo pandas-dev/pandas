@@ -27,7 +27,7 @@ class ContributorsDirective(Directive):
         except git.GitCommandError as exc:
             return [
                 self.state.document.reporter.warning(
-                    "Cannot find contributors for range '{}': {}".format(range_, exc),
+                    f"Cannot find contributors for range {repr(range_)}: {exc}",
                     line=self.lineno,
                 )
             ]
