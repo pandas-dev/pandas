@@ -10,12 +10,7 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 from pandas.core.base import PandasObject
 
-from typing import (
-    List,
-    Optional,
-    Tuple,
-    Union,
-)
+from typing import List, Optional, Tuple, Union
 
 
 def hist_series(
