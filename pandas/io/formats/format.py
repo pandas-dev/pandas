@@ -494,7 +494,11 @@ class TableFormatter:
         if hasattr(buf, "write"):
             yield buf
         elif isinstance(buf, str):
-            with open(buf, "w", encoding=encoding) as f:
+            with open(buf, "w", encoding=encoding, newline="") as f:
+                # GH#30034 open instead of codecs.open prevents a file leak
+                #  if we have an invalid encoding argument.
+                # newline="" is needed to roundtrip correctly on
+                #  windows test_to_latex_filename
                 yield f
         else:
             raise TypeError("buf is not a file name and it has no write method")
