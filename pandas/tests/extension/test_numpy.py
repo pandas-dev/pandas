@@ -260,6 +260,20 @@ class TestMethods(BaseNumPyTests, base.BaseMethodsTests):
         expected = data[2]
         assert result == expected
 
+    @pytest.mark.parametrize(
+        "method",
+        ["argmax", "max", "argmin", "min"],)
+    def test_extremize_empty_array(self, method, data):
+        # GH 24382
+        err_msg = ("zero-size array does not support")
+        empty_arr = data[:0]
+        if method in ("max", "min"):
+            result = getattr(empty_arr, method)()
+            assert np.isnan(result)
+        else:
+            with pytest.raises(ValueError):
+                getattr(empty_arr, method)()
+
 
 @skip_nested
 class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):
