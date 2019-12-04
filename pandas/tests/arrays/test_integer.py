@@ -397,14 +397,44 @@ class TestComparisonOps(BaseOpsUtil):
 
         tm.assert_series_equal(result, expected)
 
-    def test_compare_scalar(self, data, all_compare_operators):
-        op_name = all_compare_operators
-        self._compare_other(data, op_name, 0)
+    @pytest.mark.parametrize("other", [True, False, pd.NA])
+    def test_scalar(self, other, all_compare_operators):
+        op = self.get_op_from_name(all_compare_operators)
+        a = pd.array([1, 0, None], dtype="Int64")
 
-    def test_compare_array(self, data, all_compare_operators):
-        op_name = all_compare_operators
-        other = pd.Series([0] * len(data))
-        self._compare_other(data, op_name, other)
+        result = op(a, other)
+
+        if other is pd.NA:
+            expected = pd.array([None, None, None], dtype="Int64")
+        else:
+            values = op(a._data, other)
+            expected = pd.arrays.BooleanArray(values, a._mask, copy=True)
+        tm.assert_extension_array_equal(result, expected)
+
+        # ensure we haven't mutated anything inplace
+        result[0] = pd.NA
+        tm.assert_extension_array_equal(a, pd.array([1, 0, None], dtype="Int64"))
+
+    def test_array(self, all_compare_operators):
+        op = self.get_op_from_name(all_compare_operators)
+        a = pd.array([0, 1, 2, None, None, None], dtype="Int64")
+        b = pd.array([0, 1, None, 0, 1, None], dtype="Int64")
+
+        result = op(a, b)
+        values = op(a._data, b._data)
+        mask = a._mask | b._mask
+
+        expected = pd.arrays.BooleanArray(values, mask)
+        tm.assert_extension_array_equal(result, expected)
+
+        # ensure we haven't mutated anything inplace
+        result[0] = pd.NA
+        tm.assert_extension_array_equal(
+            a, pd.array([0, 1, 2, None, None, None], dtype="Int64")
+        )
+        tm.assert_extension_array_equal(
+            b, pd.array([0, 1, None, 0, 1, None], dtype="Int64")
+        )
 
     def test_compare_boolean_array(self):
         left = pd.array([0, 1, None, None], dtype="Int64")
