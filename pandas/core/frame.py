@@ -1112,7 +1112,7 @@ class DataFrame(NDFrame):
             rvals = np.asarray(other)
             if lvals.shape[1] != rvals.shape[0]:
                 raise ValueError(
-                    "Dot product shape mismatch, " f"{lvals.shape} vs {rvals.shape}"
+                    f"Dot product shape mismatch, {lvals.shape} vs {rvals.shape}"
                 )
 
         if isinstance(other, DataFrame):
