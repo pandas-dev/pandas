@@ -5523,31 +5523,6 @@ class NDFrame(PandasObject, SelectionMixin):
         --------
         values : Numpy representation of DataFrame.
         SparseArray : Container for sparse data.
-
-        Examples
-        --------
-        >>> df = pd.DataFrame({'a': [1, 2], 'b': [True, False],
-        ...                    'c': [1.0, 2.0]})
-        >>> df
-           a      b    c
-        0  1   True  1.0
-        1  2  False  2.0
-
-        >>> df._internal_get_values()
-        array([[1, True, 1.0], [2, False, 2.0]], dtype=object)
-
-        >>> df = pd.DataFrame({"a": pd.SparseArray([1, None, None]),
-        ...                    "c": [1.0, 2.0, 3.0]})
-        >>> df
-             a    c
-        0  1.0  1.0
-        1  NaN  2.0
-        2  NaN  3.0
-
-        >>> df._internal_get_values()
-        array([[ 1.,  1.],
-               [nan,  2.],
-               [nan,  3.]])
         """
         return self.values
 
