@@ -26,14 +26,6 @@ cdef _check_result_array(object obj, Py_ssize_t cnt):
         raise ValueError('Function does not reduce')
 
 
-cdef bint _is_sparse_array(object obj):
-    # TODO can be removed one SparseArray.values is removed (GH26421)
-    if hasattr(obj, '_subtyp'):
-        if obj._subtyp == 'sparse_array':
-            return True
-    return False
-
-
 cdef class Reducer:
     """
     Performs generic reduction operation on a C or Fortran-contiguous ndarray
@@ -404,8 +396,7 @@ cdef class SeriesGrouper(_BaseGrouper):
 cdef inline _extract_result(object res, bint squeeze=True):
     """ extract the result object, it might be a 0-dim ndarray
         or a len-1 0-dim, or a scalar """
-    if (not _is_sparse_array(res) and hasattr(res, 'values')
-            and util.is_array(res.values)):
+    if hasattr(res, 'values') and util.is_array(res.values):
         res = res.values
     if util.is_array(res):
         if res.ndim == 0:

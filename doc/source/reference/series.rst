@@ -53,7 +53,6 @@ Conversion
    Series.to_period
    Series.to_timestamp
    Series.to_list
-   Series.get_values
    Series.__array__
 
 Indexing, iteration

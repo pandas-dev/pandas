@@ -504,9 +504,3 @@ class TestPrivateCategoricalAPI:
         new = Index(expected)
         result = _recode_for_categories(codes, old, new)
         tm.assert_numpy_array_equal(result, expected)
-
-    def test_deprecated_get_values(self):
-        cat = Categorical(["a", "b", "c", "a"])
-        with tm.assert_produces_warning(FutureWarning):
-            res = cat.get_values()
-        tm.assert_numpy_array_equal(res, np.array(cat))

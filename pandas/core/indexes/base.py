@@ -215,7 +215,7 @@ class Index(IndexOpsMixin, PandasObject):
     _deprecations: FrozenSet[str] = (
         PandasObject._deprecations
         | IndexOpsMixin._deprecations
-        | frozenset(["contains", "get_values", "set_value"])
+        | frozenset(["contains", "set_value"])
     )
 
     # To hand over control to subclasses
@@ -3753,12 +3753,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self._data
 
-    def get_values(self):
+    def _internal_get_values(self):
         """
         Return `Index` data as an `numpy.ndarray`.
-
-        .. deprecated:: 0.25.0
-            Use :meth:`Index.to_numpy` or :attr:`Index.array` instead.
 
         Returns
         -------
@@ -3767,7 +3764,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        Index.values : The attribute that get_values wraps.
+        Index.values : The attribute that _internal_get_values wraps.
 
         Examples
         --------
@@ -3780,33 +3777,24 @@ class Index(IndexOpsMixin, PandasObject):
         a  1  2  3
         b  4  5  6
         c  7  8  9
-        >>> df.index.get_values()
+        >>> df.index._internal_get_values()
         array(['a', 'b', 'c'], dtype=object)
 
         Standalone `Index` values:
 
         >>> idx = pd.Index(['1', '2', '3'])
-        >>> idx.get_values()
+        >>> idx._internal_get_values()
         array(['1', '2', '3'], dtype=object)
 
         `MultiIndex` arrays also have only one dimension:
 
         >>> midx = pd.MultiIndex.from_arrays([[1, 2, 3], ['a', 'b', 'c']],
         ...                                  names=('number', 'letter'))
-        >>> midx.get_values()
+        >>> midx._internal_get_values()
         array([(1, 'a'), (2, 'b'), (3, 'c')], dtype=object)
-        >>> midx.get_values().ndim
+        >>> midx._internal_get_values().ndim
         1
         """
-        warnings.warn(
-            "The 'get_values' method is deprecated and will be removed in a "
-            "future version. Use '.to_numpy()' or '.array' instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._internal_get_values()
-
-    def _internal_get_values(self):
         return self.values
 
     @Appender(IndexOpsMixin.memory_usage.__doc__)

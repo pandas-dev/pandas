@@ -568,23 +568,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         """
         return self.sp_index.npoints
 
-    @property
-    def values(self):
-        """
-        Dense values
-
-        .. deprecated:: 0.25.0
-
-            Use ``np.asarray(...)`` or the ``.to_dense()`` method instead.
-        """
-        msg = (
-            "The SparseArray.values attribute is deprecated and will be "
-            "removed in a future version. You can use `np.asarray(...)` or "
-            "the `.to_dense()` method instead."
-        )
-        warnings.warn(msg, FutureWarning, stacklevel=2)
-        return self.to_dense()
-
     def isna(self):
         # If null fill value, we want SparseDtype[bool, true]
         # to preserve the same memory usage.
@@ -1136,22 +1119,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         arr : NumPy array
         """
         return np.asarray(self, dtype=self.sp_values.dtype)
-
-    def get_values(self):
-        """
-        Convert SparseArray to a NumPy array.
-
-        .. deprecated:: 0.25.0
-            Use `to_dense` instead.
-
-        """
-        warnings.warn(
-            "The 'get_values' method is deprecated and will be removed in a "
-            "future version. Use the 'to_dense' method instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._internal_get_values()
 
     _internal_get_values = to_dense
 
