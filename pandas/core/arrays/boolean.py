@@ -557,6 +557,30 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
         data[self._mask] = -1
         return data
 
+    def any(self, skipna=True):
+        # nv.validate_any((), dict(out=out, keepdims=keepdims))
+        valid_values = self._data[~self._mask]
+        if skipna:
+            return valid_values.any().item()
+        else:
+            result = valid_values.any().item()
+            if result is True or len(self) == 0:
+                return result
+            else:
+                return self.dtype.na_value
+
+    def all(self, skipna=True):
+        # nv.validate_any((), dict(out=out, keepdims=keepdims))
+        valid_values = self._data[~self._mask]
+        if skipna:
+            return valid_values.all().item()
+        else:
+            result = valid_values.all().item()
+            if result is False or len(self) == 0:
+                return result
+            else:
+                return self.dtype.na_value
+
     @classmethod
     def _create_logical_method(cls, op):
         def logical_method(self, other):
