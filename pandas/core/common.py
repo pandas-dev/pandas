@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from functools import partial
 import inspect
 from typing import Any, Iterable, Union
+import warnings
 
 import numpy as np
 
@@ -224,7 +225,13 @@ def asarray_tuplesafe(values, dtype=None):
     if isinstance(values, list) and dtype in [np.object_, object]:
         return construct_1d_object_array_from_listlike(values)
 
-    result = np.asarray(values, dtype=dtype)
+    if dtype is None:
+        with warnings.catch_warnings():
+            # See https://github.com/numpy/numpy/issues/15041
+            warnings.filterwarnings("ignore", ".*with automatic object dtype.*")
+            result = np.asarray(values)
+    else:
+        result = np.asarray(values, dtype=dtype)
 
     if issubclass(result.dtype.type, str):
         result = np.asarray(values, dtype=object)

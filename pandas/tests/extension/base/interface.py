@@ -32,7 +32,11 @@ class BaseInterfaceTests(BaseExtensionTests):
         assert result == s.nbytes
 
     def test_array_interface(self, data):
-        result = np.array(data)
+        if hasattr(data, "dtype") and data.dtype.kind == "O":
+            # e.g. JSONArray
+            result = np.array(data, dtype=object)
+        else:
+            result = np.array(data)
         assert result[0] == data[0]
 
         result = np.array(data, dtype=object)

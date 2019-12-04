@@ -84,6 +84,7 @@ def test_same_ordering(datapath):
     assert_framelist_equal(dfs_lxml, dfs_bs4)
 
 
+@td.skip_if_no("bs4")
 @pytest.mark.parametrize(
     "flavor",
     [
