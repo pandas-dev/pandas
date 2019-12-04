@@ -260,19 +260,41 @@ def to_hdf(
     complib: Optional[str] = None,
     append: bool = False,
     format: Optional[str] = None,
+    index: bool = True,
+    min_itemsize: Optional[Union[int, Dict[str, int]]] = None,
+    nan_rep=None,
+    dropna: Optional[bool] = None,
+    data_columns: Optional[List[str]] = None,
     errors: str = "strict",
     encoding: str = "UTF-8",
-    **kwargs,
 ):
     """ store this object, close it if we opened it """
 
     if append:
         f = lambda store: store.append(
-            key, value, format=format, errors=errors, encoding=encoding, **kwargs
+            key,
+            value,
+            format=format,
+            index=index,
+            min_itemsize=min_itemsize,
+            nan_rep=nan_rep,
+            dropna=dropna,
+            data_columns=data_columns,
+            errors=errors,
+            encoding=encoding,
         )
     else:
+        # NB: dropna is not passed to `put`
         f = lambda store: store.put(
-            key, value, format=format, errors=errors, encoding=encoding, **kwargs
+            key,
+            value,
+            format=format,
+            index=index,
+            min_itemsize=min_itemsize,
+            nan_rep=nan_rep,
+            data_columns=data_columns,
+            errors=errors,
+            encoding=encoding,
         )
 
     path_or_buf = _stringify_path(path_or_buf)
@@ -984,7 +1006,21 @@ class HDFStore:
 
         return it.get_result(coordinates=True)
 
-    def put(self, key: str, value: FrameOrSeries, format=None, append=False, **kwargs):
+    def put(
+        self,
+        key: str,
+        value: FrameOrSeries,
+        format=None,
+        index=True,
+        append=False,
+        complib=None,
+        complevel: Optional[int] = None,
+        min_itemsize: Optional[Union[int, Dict[str, int]]] = None,
+        nan_rep=None,
+        data_columns: Optional[List[str]] = None,
+        encoding=None,
+        errors: str = "strict",
+    ):
         """
         Store object in HDFStore.
 
@@ -1014,7 +1050,20 @@ class HDFStore:
         if format is None:
             format = get_option("io.hdf.default_format") or "fixed"
         format = self._validate_format(format)
-        self._write_to_group(key, value, format=format, append=append, **kwargs)
+        self._write_to_group(
+            key,
+            value,
+            format=format,
+            index=index,
+            append=append,
+            complib=complib,
+            complevel=complevel,
+            min_itemsize=min_itemsize,
+            nan_rep=nan_rep,
+            data_columns=data_columns,
+            encoding=encoding,
+            errors=errors,
+        )
 
     def remove(self, key: str, where=None, start=None, stop=None):
         """
@@ -1075,10 +1124,20 @@ class HDFStore:
         key: str,
         value: FrameOrSeries,
         format=None,
+        axes=None,
+        index=True,
         append=True,
+        complib=None,
+        complevel: Optional[int] = None,
         columns=None,
+        min_itemsize: Optional[Union[int, Dict[str, int]]] = None,
+        nan_rep=None,
+        chunksize=None,
+        expectedrows=None,
         dropna: Optional[bool] = None,
-        **kwargs,
+        data_columns: Optional[List[str]] = None,
+        encoding=None,
+        errors: str = "strict",
     ):
         """
         Append to Table in file. Node must already exist and be Table
@@ -1125,7 +1184,22 @@ class HDFStore:
             format = get_option("io.hdf.default_format") or "table"
         format = self._validate_format(format)
         self._write_to_group(
-            key, value, format=format, append=append, dropna=dropna, **kwargs
+            key,
+            value,
+            format=format,
+            axes=axes,
+            index=index,
+            append=append,
+            complib=complib,
+            complevel=complevel,
+            min_itemsize=min_itemsize,
+            nan_rep=nan_rep,
+            chunksize=chunksize,
+            expectedrows=expectedrows,
+            dropna=dropna,
+            data_columns=data_columns,
+            encoding=encoding,
+            errors=errors,
         )
 
     def append_to_multiple(
@@ -1586,7 +1660,7 @@ class HDFStore:
         complib=None,
         complevel: Optional[int] = None,
         fletcher32=None,
-        min_itemsize=None,
+        min_itemsize: Optional[Union[int, Dict[str, int]]] = None,
         chunksize=None,
         expectedrows=None,
         dropna=False,
