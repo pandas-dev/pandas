@@ -12,6 +12,7 @@ from pandas.core.base import PandasObject
 
 from typing import (
     List,
+    Optional,
     Tuple,
     Union,
 )
@@ -397,14 +398,14 @@ backend : str, default None
 @Appender(_boxplot_doc)
 def boxplot(
     data,
-    column: Union[str, List[str]] = None,
+    column: Optional[Union[str, List[str]]] = None,
     by=None,
     ax=None,
-    fontsize: Union[float, str] = None,
-    rot: Union[float, int] = 0,
+    fontsize: Optional[Union[float, str]] = None,
+    rot: Optional[Union[float, int]] = 0,
     grid: bool = True,
-    figsize: Tuple[int, float] = None,
-    layout: Tuple[int] = None,
+    figsize: Optional[Tuple[int, float]] = None,
+    layout: Optional[Tuple[int]] = None,
     return_type=None,
     **kwargs,
 ):
