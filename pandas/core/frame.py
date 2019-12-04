@@ -4592,7 +4592,7 @@ class DataFrame(NDFrame):
 
     def drop_duplicates(
         self,
-        subset: Union[Sequence[Hashable], Hashable] = None,
+        subset: Optional[Union[Hashable, Sequence[Hashable]] = None,
         keep: Union[str, bool] = "first",
         inplace: bool = False,
     ) -> "DataFrame":
