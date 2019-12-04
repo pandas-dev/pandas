@@ -7530,7 +7530,7 @@ class DataFrame(NDFrame):
 
         if not isinstance(count_axis, ABCMultiIndex):
             raise TypeError(
-                "Can only count levels on hierarchical " f"{self._get_axis_name(axis)}."
+                f"Can only count levels on hierarchical {self._get_axis_name(axis)}."
             )
 
         if frame._is_mixed_type:
