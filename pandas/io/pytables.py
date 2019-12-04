@@ -29,6 +29,7 @@ from pandas._libs import lib, writers as libwriters
 from pandas._libs.tslibs import timezones
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import PerformanceWarning
+from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -3522,43 +3523,39 @@ class Table(Fixed):
                     "data_column"
                 )
 
-    @property
+    @cache_readonly
     def indexables(self):
         """ create/cache the indexables if they don't exist """
-        if self._indexables is None:
+        _indexables = []
 
-            self._indexables = []
+        # Note: each of the `name` kwargs below are str, ensured
+        #  by the definition in index_cols.
+        # index columns
+        _indexables.extend(
+            [
+                IndexCol(name=name, axis=axis, pos=i)
+                for i, (axis, name) in enumerate(self.attrs.index_cols)
+            ]
+        )
 
-            # Note: each of the `name` kwargs below are str, ensured
-            #  by the definition in index_cols.
-            # index columns
-            self._indexables.extend(
-                [
-                    IndexCol(name=name, axis=axis, pos=i)
-                    for i, (axis, name) in enumerate(self.attrs.index_cols)
-                ]
+        # values columns
+        dc = set(self.data_columns)
+        base_pos = len(_indexables)
+
+        def f(i, c):
+            assert isinstance(c, str)
+            klass = DataCol
+            if c in dc:
+                klass = DataIndexableCol
+            return klass.create_for_block(
+                i=i, name=c, pos=base_pos + i, version=self.version
             )
 
-            # values columns
-            dc = set(self.data_columns)
-            base_pos = len(self._indexables)
+        # Note: the definition of `values_cols` ensures that each
+        #  `c` below is a str.
+        _indexables.extend([f(i, c) for i, c in enumerate(self.attrs.values_cols)])
 
-            def f(i, c):
-                assert isinstance(c, str)
-                klass = DataCol
-                if c in dc:
-                    klass = DataIndexableCol
-                return klass.create_for_block(
-                    i=i, name=c, pos=base_pos + i, version=self.version
-                )
-
-            # Note: the definition of `values_cols` ensures that each
-            #  `c` below is a str.
-            self._indexables.extend(
-                [f(i, c) for i, c in enumerate(self.attrs.values_cols)]
-            )
-
-        return self._indexables
+        return _indexables
 
     def create_index(self, columns=None, optlevel=None, kind: Optional[str] = None):
         """
@@ -4140,7 +4137,6 @@ class WORMTable(Table):
 class AppendableTable(Table):
     """ support the new appendable table formats """
 
-    _indexables = None
     table_type = "appendable"
 
     def write(
@@ -4540,23 +4536,21 @@ class GenericTable(AppendableFrameTable):
         ]
         self.data_columns = [a.name for a in self.values_axes]
 
-    @property
+    @cache_readonly
     def indexables(self):
         """ create the indexables from the table description """
-        if self._indexables is None:
+        d = self.description
 
-            d = self.description
+        # the index columns is just a simple index
+        _indexables = [GenericIndexCol(name="index", axis=0)]
 
-            # the index columns is just a simple index
-            self._indexables = [GenericIndexCol(name="index", axis=0)]
+        for i, n in enumerate(d._v_names):
+            assert isinstance(n, str)
 
-            for i, n in enumerate(d._v_names):
-                assert isinstance(n, str)
+            dc = GenericDataIndexableCol(name=n, pos=i, values=[n])
+            _indexables.append(dc)
 
-                dc = GenericDataIndexableCol(name=n, pos=i, values=[n])
-                self._indexables.append(dc)
-
-        return self._indexables
+        return _indexables
 
     def write(self, **kwargs):
         raise NotImplementedError("cannot write on an generic table")
