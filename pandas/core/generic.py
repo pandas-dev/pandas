@@ -321,9 +321,6 @@ class NDFrame(PandasObject, SelectionMixin):
         # typ
         setattr(cls, "_typ", cls.__name__.lower())
 
-        # indexing support
-        cls._ix = None
-
         if info_axis is not None:
             cls._info_axis_number = info_axis
             cls._info_axis_name = axes[info_axis]
