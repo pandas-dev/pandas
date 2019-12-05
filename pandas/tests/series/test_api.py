@@ -498,12 +498,6 @@ class TestSeriesMisc:
         s = Series(range(9), dtype="Int64")
         assert s.size == 9
 
-    def test_get_values_deprecation(self):
-        s = Series(range(9))
-        with tm.assert_produces_warning(FutureWarning):
-            res = s.get_values()
-        tm.assert_numpy_array_equal(res, s.values)
-
 
 class TestCategoricalSeries:
     @pytest.mark.parametrize(

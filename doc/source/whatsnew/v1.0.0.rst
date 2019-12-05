@@ -169,6 +169,16 @@ You can use the alias ``"boolean"`` as well.
    s = pd.Series([True, False, None], dtype="boolean")
    s
 
+.. _whatsnew_1000.custom_window:
+
+Defining custom windows for rolling operations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We've added a :func:`pandas.api.indexers.BaseIndexer` class that allows users to define how
+window bounds are created during ``rolling`` operations. Users can define their own ``get_window_bounds``
+method on a :func:`pandas.api.indexers.BaseIndexer` subclass that will generate the start and end
+indices used for each window during the rolling aggregation. For more details and example usage, see
+the :ref:`custom window rolling documentation <stats.custom_rolling_window>`
 
 .. _whatsnew_1000.enhancements.other:
 
@@ -499,6 +509,10 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 
 **Other removals**
 
+- Removed the previously deprecated :func:`pandas.plotting._matplotlib.tsplot`, use :meth:`Series.plot` instead (:issue:`19980`)
+- :func:`pandas.tseries.converter.register` has been moved to :func:`pandas.plotting.register_matplotlib_converters` (:issue:`18307`)
+- :meth:`Series.plot` no longer accepts positional arguments, pass keyword arguments instead (:issue:`30003`)
+- :meth:`DataFrame.hist` and :meth:`Series.hist` no longer allows ``figsize="default"``, specify figure size by passinig a tuple instead (:issue:`30003`)
 - Floordiv of integer-dtyped array by :class:`Timedelta` now raises ``TypeError`` (:issue:`21036`)
 - :func:`pandas.api.types.infer_dtype` argument ``skipna`` defaults to ``True`` instead of ``False`` (:issue:`24050`)
 - Removed the previously deprecated :meth:`Index.summary` (:issue:`18217`)
