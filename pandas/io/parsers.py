@@ -913,8 +913,8 @@ class TextFileReader(BaseIterator):
                         pass
                     else:
                         raise ValueError(
-                            f"The {repr(argname)} option is not supported with the"
-                            f" {repr(engine)} engine"
+                            "The %r option is not supported with the"
+                            " %r engine" % (argname, engine)
                         )
             else:
                 value = _deprecated_defaults.get(argname, default)
@@ -3607,8 +3607,8 @@ class FixedWidthReader(BaseIterator):
 
         if not isinstance(self.colspecs, (tuple, list)):
             raise TypeError(
-                f"column specifications must be a list or tuple, "
-                f"input was a {repr(type(colspecs).__name__)}"
+                "column specifications must be a list or tuple, "
+                "input was a %r" % type(colspecs).__name__
             )
 
         for colspec in self.colspecs:
