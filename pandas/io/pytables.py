@@ -1092,6 +1092,8 @@ class HDFStore:
         except KeyError:
             # the key is not a valid store, re-raising KeyError
             raise
+        except AssertionError:
+            raise
         except Exception:
             # In tests we get here with ClosedFileError, TypeError, and
             #  _table_mod.NoSuchNodeError.  TODO: Catch only these?
@@ -1519,6 +1521,8 @@ class HDFStore:
                         if s is not None:
                             keys.append(pprint_thing(s.pathname or k))
                             values.append(pprint_thing(s or "invalid_HDFStore node"))
+                    except AssertionError:
+                        raise
                     except Exception as detail:
                         keys.append(k)
                         dstr = pprint_thing(detail)
@@ -1680,7 +1684,7 @@ class HDFStore:
             self._handle.remove_node(group, recursive=True)
             group = None
 
-        # we don't want to store a table node at all if are object is 0-len
+        # we don't want to store a table node at all if our object is 0-len
         # as there are not dtypes
         if getattr(value, "empty", None) and (format == "table" or append):
             return
@@ -2420,7 +2424,6 @@ class DataCol(IndexCol):
         self.typ = self.get_atom_string(block, itemsize)
         self.set_data(data_converted.astype(f"|S{itemsize}", copy=False))
 
-    # TODO: how do we annotate that this may be a subclass of Col?
     def get_atom_coltype(self, kind: str) -> Type["Col"]:
         """ return the PyTables column class for this column """
         if kind.startswith("uint"):
