@@ -268,9 +268,7 @@ class StringArray(PandasArray):
         DataFrame.min : Return the minimum values in a DataFrame.
         """
         if len(self) == 0:
-            raise ValueError(
-                "zero-size array does not support min"
-            )
+            raise ValueError("zero-size array does not support min")
 
         min_idx = self.argmin()
         return self[min_idx]
@@ -291,9 +289,7 @@ class StringArray(PandasArray):
         DataFrame.max : Return the maximum values in a DataFrame.
         """
         if len(self) == 0:
-            raise ValueError(
-                "zero-size array does not support max"
-            )
+            raise ValueError("zero-size array does not support max")
 
         max_idx = self.argmax()
         return self[max_idx]

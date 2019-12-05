@@ -76,11 +76,11 @@ class TestMethods(BasePeriodTests, base.BaseMethodsTests):
         pass
 
     @pytest.mark.parametrize(
-        "method",
-        ["argmax", "max", "argmin", "min"],)
+        "method", ["argmax", "max", "argmin", "min"],
+    )
     def test_extremize_empty_array(self, method, data):
         # GH 24382
-        err_msg = ("zero-size array does not support")
+        err_msg = "zero-size array does not support"
         empty_arr = data[:0]
         if method in ("max", "min"):
             result = getattr(empty_arr, method)()

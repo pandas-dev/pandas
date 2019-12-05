@@ -84,14 +84,14 @@ class BaseMethodsTests(BaseExtensionTests):
         assert result == expected
 
     @pytest.mark.parametrize(
-        "method",
-        ["argmax", "max", "argmin", "min"],)
+        "method", ["argmax", "max", "argmin", "min"],
+    )
     def test_extremize_empty_array(self, method, data_missing_for_sorting):
         # GH 24382
-        err_msg = ("zero-size array")
-        #empty = data_missing_for_sorting[:0]
-        #pytest.set_trace()
-        #empty.max()
+        err_msg = "zero-size array"
+        # empty = data_missing_for_sorting[:0]
+        # pytest.set_trace()
+        # empty.max()
         with pytest.raises(ValueError, match=err_msg):
             getattr(data_missing_for_sorting[:0], method)()
 
