@@ -169,6 +169,16 @@ You can use the alias ``"boolean"`` as well.
    s = pd.Series([True, False, None], dtype="boolean")
    s
 
+.. _whatsnew_1000.custom_window:
+
+Defining custom windows for rolling operations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We've added a :func:`pandas.api.indexers.BaseIndexer` class that allows users to define how
+window bounds are created during ``rolling`` operations. Users can define their own ``get_window_bounds``
+method on a :func:`pandas.api.indexers.BaseIndexer` subclass that will generate the start and end
+indices used for each window during the rolling aggregation. For more details and example usage, see
+the :ref:`custom window rolling documentation <stats.custom_rolling_window>`
 
 .. _whatsnew_1000.enhancements.other:
 

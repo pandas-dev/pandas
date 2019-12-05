@@ -183,7 +183,8 @@ cdef inline void remove_sum(float64_t val, int64_t *nobs, float64_t *sum_x) nogi
 
 
 def roll_sum_variable(ndarray[float64_t] values, ndarray[int64_t] start,
-                      ndarray[int64_t] end, int64_t minp):
+                      ndarray[int64_t] end, int64_t minp,
+                      bint is_monotonic_bounds=True):
     cdef:
         float64_t sum_x = 0
         int64_t s, e
@@ -198,11 +199,10 @@ def roll_sum_variable(ndarray[float64_t] values, ndarray[int64_t] start,
             s = start[i]
             e = end[i]
 
-            if i == 0:
+            if i == 0 or not is_monotonic_bounds:
 
                 # setup
-                sum_x = 0.0
-                nobs = 0
+
                 for j in range(s, e):
                     add_sum(values[j], &nobs, &sum_x)
 
@@ -217,6 +217,10 @@ def roll_sum_variable(ndarray[float64_t] values, ndarray[int64_t] start,
                     add_sum(values[j], &nobs, &sum_x)
 
             output[i] = calc_sum(minp, nobs, sum_x)
+
+            if not is_monotonic_bounds:
+                for j in range(s, e):
+                    remove_sum(values[j], &nobs, &sum_x)
 
     return output
 
@@ -327,7 +331,8 @@ def roll_mean_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
 
 
 def roll_mean_variable(ndarray[float64_t] values, ndarray[int64_t] start,
-                       ndarray[int64_t] end, int64_t minp):
+                       ndarray[int64_t] end, int64_t minp,
+                       bint is_monotonic_bounds=True):
     cdef:
         float64_t val, sum_x = 0
         int64_t s, e
@@ -342,11 +347,9 @@ def roll_mean_variable(ndarray[float64_t] values, ndarray[int64_t] start,
             s = start[i]
             e = end[i]
 
-            if i == 0:
+            if i == 0 or not is_monotonic_bounds:
 
                 # setup
-                sum_x = 0.0
-                nobs = 0
                 for j in range(s, e):
                     val = values[j]
                     add_mean(val, &nobs, &sum_x, &neg_ct)
@@ -365,6 +368,10 @@ def roll_mean_variable(ndarray[float64_t] values, ndarray[int64_t] start,
 
             output[i] = calc_mean(minp, nobs, neg_ct, sum_x)
 
+            if not is_monotonic_bounds:
+                for j in range(s, e):
+                    val = values[j]
+                    remove_mean(val, &nobs, &sum_x, &neg_ct)
     return output
 
 # ----------------------------------------------------------------------
@@ -486,7 +493,8 @@ def roll_var_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
 
 
 def roll_var_variable(ndarray[float64_t] values, ndarray[int64_t] start,
-                      ndarray[int64_t] end, int64_t minp, int ddof=1):
+                      ndarray[int64_t] end, int64_t minp, int ddof=1,
+                      bint is_monotonic_bounds=True):
     """
     Numerically stable implementation using Welford's method.
     """
@@ -508,7 +516,7 @@ def roll_var_variable(ndarray[float64_t] values, ndarray[int64_t] start,
 
             # Over the first window, observations can only be added
             # never removed
-            if i == 0:
+            if i == 0 or not is_monotonic_bounds:
 
                 for j in range(s, e):
                     add_var(values[j], &nobs, &mean_x, &ssqdm_x)
@@ -527,6 +535,10 @@ def roll_var_variable(ndarray[float64_t] values, ndarray[int64_t] start,
                     remove_var(values[j], &nobs, &mean_x, &ssqdm_x)
 
             output[i] = calc_var(minp, ddof, nobs, ssqdm_x)
+
+            if not is_monotonic_bounds:
+                for j in range(s, e):
+                    remove_var(values[j], &nobs, &mean_x, &ssqdm_x)
 
     return output
 
@@ -629,7 +641,8 @@ def roll_skew_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
 
 
 def roll_skew_variable(ndarray[float64_t] values, ndarray[int64_t] start,
-                       ndarray[int64_t] end, int64_t minp):
+                       ndarray[int64_t] end, int64_t minp,
+                       bint is_monotonic_bounds=True):
     cdef:
         float64_t val, prev
         float64_t x = 0, xx = 0, xxx = 0
@@ -648,7 +661,7 @@ def roll_skew_variable(ndarray[float64_t] values, ndarray[int64_t] start,
 
             # Over the first window, observations can only be added
             # never removed
-            if i == 0:
+            if i == 0 or not is_monotonic_bounds:
 
                 for j in range(s, e):
                     val = values[j]
@@ -670,6 +683,11 @@ def roll_skew_variable(ndarray[float64_t] values, ndarray[int64_t] start,
                     remove_skew(val, &nobs, &x, &xx, &xxx)
 
             output[i] = calc_skew(minp, nobs, x, xx, xxx)
+
+            if not is_monotonic_bounds:
+                for j in range(s, e):
+                    val = values[j]
+                    remove_skew(val, &nobs, &x, &xx, &xxx)
 
     return output
 
@@ -776,7 +794,8 @@ def roll_kurt_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
 
 
 def roll_kurt_variable(ndarray[float64_t] values, ndarray[int64_t] start,
-                       ndarray[int64_t] end, int64_t minp):
+                       ndarray[int64_t] end, int64_t minp,
+                       bint is_monotonic_bounds=True):
     cdef:
         float64_t val, prev
         float64_t x = 0, xx = 0, xxx = 0, xxxx = 0
@@ -794,7 +813,7 @@ def roll_kurt_variable(ndarray[float64_t] values, ndarray[int64_t] start,
 
             # Over the first window, observations can only be added
             # never removed
-            if i == 0:
+            if i == 0 or not is_monotonic_bounds:
 
                 for j in range(s, e):
                     add_kurt(values[j], &nobs, &x, &xx, &xxx, &xxxx)
@@ -813,6 +832,10 @@ def roll_kurt_variable(ndarray[float64_t] values, ndarray[int64_t] start,
                     remove_kurt(values[j], &nobs, &x, &xx, &xxx, &xxxx)
 
             output[i] = calc_kurt(minp, nobs, x, xx, xxx, xxxx)
+
+            if not is_monotonic_bounds:
+                for j in range(s, e):
+                    remove_kurt(values[j], &nobs, &x, &xx, &xxx, &xxxx)
 
     return output
 
@@ -1007,7 +1030,8 @@ def roll_min_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
 
 
 def roll_min_variable(ndarray[float64_t] values, ndarray[int64_t] start,
-                      ndarray[int64_t] end, int64_t minp):
+                      ndarray[int64_t] end, int64_t minp,
+                      bint is_monotonic_bounds=True):
     """
     Moving max of 1d array of any numeric type along axis=0 ignoring NaNs.
 
@@ -1400,7 +1424,10 @@ def roll_generic_variable(object obj,
                           ndarray[int64_t] start, ndarray[int64_t] end,
                           int64_t minp,
                           int offset, object func, bint raw,
-                          object args, object kwargs):
+                          object args, object kwargs,
+                          bint is_monotonic_bounds=True):
+    # is_monotonic_bounds unused since variable algorithm doesn't calculate
+    # adds/subtracts across windows, but matches other *_variable functions
     cdef:
         ndarray[float64_t] output, counts, bufarr
         ndarray[float64_t, cast=True] arr
