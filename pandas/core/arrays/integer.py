@@ -394,16 +394,16 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             # We should be deliberate in this decision.
             na_value = np.nan
 
-        data = self._data.astype(dtype)
+        if is_integer_dtype(dtype):
+            if not self.isna().any():
+                return self._data
+            else:
+                raise ValueError(
+                    "cannot convert to integer NumPy array with missing values"
+                )
 
-        if (
-            is_integer_dtype(dtype)
-            and na_value is libmissing.NA
-            and not self._mask.any()
-        ):
-            return data
-        else:
-            data[self._mask] = na_value
+        data = self._data.astype(dtype)
+        data[self._mask] = na_value
         return data
 
     __array_priority__ = 1000  # higher than ndarray so ops dispatch to us
