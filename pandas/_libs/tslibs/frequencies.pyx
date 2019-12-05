@@ -15,7 +15,7 @@ opattern = re.compile(
     r'([+\-]?\d*|[+\-]?\d*\.\d*)\s*([A-Za-z]+([\-][\dA-Za-z\-]+)?)'
 )
 
-INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
+INVALID_FREQ_ERR_MSG = lambda arg: f"Invalid frequency: {arg}"
 
 # ---------------------------------------------------------------------
 # Period codes
@@ -223,7 +223,7 @@ cpdef _period_str_to_code(str freqstr):
     try:
         return _period_code_map[freqstr]
     except KeyError:
-        raise ValueError(INVALID_FREQ_ERR_MSG.format(freqstr))
+        raise ValueError(INVALID_FREQ_ERR_MSG(freqstr))
 
 
 cpdef str get_freq_str(base, mult=1):
