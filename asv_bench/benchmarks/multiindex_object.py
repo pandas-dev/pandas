@@ -149,7 +149,7 @@ class CategoricalLevel:
 
 class Equals:
     def setup(self):
-        idx_large_fast = RangeIndex(1000000)
+        idx_large_fast = RangeIndex(100000)
         idx_small_slow = date_range(start="1/1/2012", periods=1)
         self.mi_large_slow = MultiIndex.from_product([idx_large_fast, idx_small_slow])
 
