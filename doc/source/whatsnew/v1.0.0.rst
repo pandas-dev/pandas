@@ -358,7 +358,7 @@ When :class:`Categorical` contains ``np.nan``,
 
 
 Default dtype of empty :class:`pandas.Series`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Initialising an empty :class:`pandas.Series` without specifying a dtype will raise a `DeprecationWarning` now
 (:issue:`17261`). The default dtype will change from ``float64`` to ``object`` in future releases so that it is

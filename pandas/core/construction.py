@@ -4,7 +4,7 @@ and Index.__new__.
 
 These should not depend on core.internals.
 """
-from typing import Optional, Sequence, Union, cast
+from typing import TYPE_CHECKING, Any, Optional, Sequence, Union, cast
 
 import numpy as np
 import numpy.ma as ma
@@ -44,7 +44,12 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
+from pandas._typing import ArrayLike, Dtype
 import pandas.core.common as com
+
+if TYPE_CHECKING:
+    from pandas.core.series import Series
+    from pandas.core.index import Index
 
 
 def array(
@@ -567,8 +572,7 @@ def _try_cast(
     return subarr
 
 
-# see gh-17261
-def is_empty_data(data):
+def is_empty_data(data: Any) -> bool:
     """
     Utility to check if a Series is instantiated with empty data,
     which does not contain dtype information.
@@ -589,19 +593,18 @@ def is_empty_data(data):
 
 
 def create_series_with_explicit_dtype(
-    data=None,
-    index=None,
-    dtype=None,
-    name=None,
-    copy=False,
-    fastpath=False,
-    dtype_if_empty=object,
-):
+    data: Any = None,
+    index: Optional[Union[ArrayLike, Index]] = None,
+    dtype: Optional[Dtype] = None,
+    name: Optional[str] = None,
+    copy: bool = False,
+    fastpath: bool = False,
+    dtype_if_empty: Dtype = object,
+) -> Series:
     """
     Helper to pass an explicit dtype when instantiating an empty Series.
 
-    This silences a DeprecationWarning described in the GitHub issue
-    mentioned above.
+    This silences a DeprecationWarning described in GitHub-17261.
 
     Parameters
     ----------
