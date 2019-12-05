@@ -65,7 +65,7 @@ from pandas.io.common import _stringify_path
 from pandas.io.formats.printing import adjoin, pprint_thing
 
 if TYPE_CHECKING:
-    from tables import File, Node  # noqa:F401
+    from tables import File, Node, Col  # noqa:F401
 
 
 # versioning attribute
@@ -2420,11 +2420,10 @@ class DataCol(IndexCol):
         self.typ = self.get_atom_string(block, itemsize)
         self.set_data(data_converted.astype(f"|S{itemsize}", copy=False))
 
-    def get_atom_coltype(self, kind=None):
+    # TODO: how do we annotate that this may be a subclass of Col?
+    def get_atom_coltype(self, kind: str) -> Type["Col"]:
         """ return the PyTables column class for this column """
-        if kind is None:
-            kind = self.kind
-        if self.kind.startswith("uint"):
+        if kind.startswith("uint"):
             k4 = kind[4:]
             col_name = f"UInt{k4}Col"
         else:
@@ -2433,8 +2432,8 @@ class DataCol(IndexCol):
 
         return getattr(_tables(), col_name)
 
-    def get_atom_data(self, block, kind=None):
-        return self.get_atom_coltype(kind=kind)(shape=block.shape[0])
+    def get_atom_data(self, shape, kind: str) -> "Col":
+        return self.get_atom_coltype(kind=kind)(shape=shape[0])
 
     def set_atom_complex(self, block):
         self.kind = block.dtype.name
@@ -2443,8 +2442,9 @@ class DataCol(IndexCol):
         self.set_data(block.values.astype(self.typ.type, copy=False))
 
     def set_atom_data(self, block):
-        self.kind = block.dtype.name
-        self.typ = self.get_atom_data(block)
+        kind = block.dtype.name
+        self.kind = kind
+        self.typ = self.get_atom_data(block.shape, kind=kind)
         self.set_data(block.values.astype(self.typ.type, copy=False))
 
     def set_atom_categorical(self, block):
@@ -2453,19 +2453,22 @@ class DataCol(IndexCol):
 
         values = block.values
         codes = values.codes
-        self.kind = "integer"
+
         self.dtype = codes.dtype.name
         if values.ndim > 1:
             raise NotImplementedError("only support 1-d categoricals")
 
+        assert self.dtype.startswith("int"), self.dtype
+
         # write the codes; must be in a block shape
         self.ordered = values.ordered
-        self.typ = self.get_atom_data(block, kind=codes.dtype.name)
-        self.set_data(codes)
+        self.typ = self.get_atom_data(block.shape, kind=codes.dtype.name)
+        self.set_data(codes, self.dtype)
 
         # write the categories
         self.meta = "category"
         self.metadata = np.array(block.values.categories, copy=False).ravel()
+        assert self.kind == "integer", self.kind
 
     def get_atom_datetime64(self, block):
         return _tables().Int64Col(shape=block.shape[0])
@@ -2624,7 +2627,7 @@ class DataIndexableCol(DataCol):
     def get_atom_string(self, block, itemsize):
         return _tables().StringCol(itemsize=itemsize)
 
-    def get_atom_data(self, block, kind=None):
+    def get_atom_data(self, shape, kind: str) -> "Col":
         return self.get_atom_coltype(kind=kind)()
 
     def get_atom_datetime64(self, block):
