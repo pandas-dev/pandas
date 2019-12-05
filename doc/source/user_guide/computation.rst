@@ -466,6 +466,64 @@ default of the index) in a DataFrame.
    dft
    dft.rolling('2s', on='foo').sum()
 
+.. _stats.custom_rolling_window:
+
+Custom window rolling
+~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 1.0
+
+In addition to accepting an integer or offset as a ``window`` argument, ``rolling`` also accepts
+a ``BaseIndexer`` subclass that allows a user to define a custom method for calculating window bounds.
+The ``BaseIndexer`` subclass will need to define a ``get_window_bounds`` method that returns
+a tuple of two arrays, the first being the starting indices of the windows and second being the
+ending indices of the windows. Additionally, ``num_values``, ``min_periods``, ``center``, ``closed``
+and will automatically be passed to ``get_window_bounds`` and the defined method must
+always accept these arguments.
+
+For example, if we have the following ``DataFrame``:
+
+.. ipython:: python
+
+   use_expanding = [True, False, True, False, True]
+   use_expanding
+   df = pd.DataFrame({'values': range(5)})
+   df
+
+and we want to use an expanding window where ``use_expanding`` is ``True`` otherwise a window of size
+1, we can create the following ``BaseIndexer``:
+
+.. code-block:: ipython
+
+   In [2]: from pandas.api.indexers import BaseIndexer
+   ...:
+   ...: class CustomIndexer(BaseIndexer):
+   ...:
+   ...:    def get_window_bounds(self, num_values, min_periods, center, closed):
+   ...:        start = np.empty(num_values, dtype=np.int64)
+   ...:        end = np.empty(num_values, dtype=np.int64)
+   ...:        for i in range(num_values):
+   ...:            if self.use_expanding[i]:
+   ...:                start[i] = 0
+   ...:                end[i] = i + 1
+   ...:            else:
+   ...:                start[i] = i
+   ...:                end[i] = i + self.window_size
+   ...:        return start, end
+   ...:
+
+   In [3]: indexer = CustomIndexer(window_size=1, use_expanding=use_expanding)
+
+   In [4]: df.rolling(indexer).sum()
+   Out[4]:
+       values
+   0     0.0
+   1     1.0
+   2     3.0
+   3     3.0
+   4    10.0
+
+
 .. _stats.rolling_window.endpoints:
 
 Rolling window endpoints

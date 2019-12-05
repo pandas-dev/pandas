@@ -546,6 +546,7 @@ def test_reductions_return_types(dropna, data, all_numeric_reductions):
 #         result = arr[mask]
 
 
+@pytest.mark.skip(reason="broken test")
 @td.skip_if_no("pyarrow", min_version="0.15.0")
 def test_arrow_array(data):
     # protocol added in 0.15.0
