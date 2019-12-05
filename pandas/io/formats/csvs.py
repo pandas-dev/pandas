@@ -5,6 +5,7 @@ Module for formatting output data into CSV files.
 import csv as csvlib
 from io import StringIO
 import os
+from typing import Any, Dict, List
 import warnings
 from zipfile import ZipFile
 
@@ -187,7 +188,7 @@ class CSVFormatter:
             close = True
 
         try:
-            writer_kwargs = dict(
+            writer_kwargs: Dict[str, Any] = dict(
                 lineterminator=self.line_terminator,
                 delimiter=self.sep,
                 quoting=self.quoting,
@@ -198,8 +199,7 @@ class CSVFormatter:
             if self.encoding == "ascii":
                 self.writer = csvlib.writer(f, **writer_kwargs)
             else:
-                writer_kwargs["encoding"] = self.encoding
-                self.writer = UnicodeWriter(f, **writer_kwargs)
+                self.writer = UnicodeWriter(f, encoding=self.encoding, **writer_kwargs)
 
             self._save()
 
@@ -233,7 +233,7 @@ class CSVFormatter:
         cols = self.cols
         has_mi_columns = self.has_mi_columns
         header = self.header
-        encoded_labels = []
+        encoded_labels: List[str] = []
 
         has_aliases = isinstance(header, (tuple, list, np.ndarray, ABCIndexClass))
         if not (has_aliases or self.header):
