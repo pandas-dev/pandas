@@ -1,7 +1,7 @@
 """
 Data structure for 1-dimensional cross-sectional and time series data
 """
-from collections.abc import Mapping
+from collections import abc
 from io import StringIO
 from shutil import get_terminal_size
 from textwrap import dedent
@@ -252,7 +252,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 else:
                     data = data.reindex(index, copy=copy)
                 data = data._data
-            elif isinstance(data, Mapping):
+            elif isinstance(data, abc.Mapping):
                 data, index = self._init_dict(data, index, dtype)
                 dtype = None
                 copy = False
@@ -3515,7 +3515,7 @@ Name: Max Speed, dtype: float64
 
         Parameters
         ----------
-        arg : function, collections.abc.Mapping subclass or Series
+        arg : function, colletions.abc.Mapping subclass or Series
             Mapping correspondence.
         na_action : {None, 'ignore'}, default None
             If 'ignore', propagate NaN values, without passing them to the
