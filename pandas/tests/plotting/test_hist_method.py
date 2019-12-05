@@ -313,7 +313,8 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         with pytest.raises(AttributeError):
             _grouped_hist(df.A, by=df.C, foo="bar")
 
-        with tm.assert_produces_warning(FutureWarning):
+        msg = "Specify figure size by tuple instead"
+        with pytest.raises(ValueError, match=msg):
             df.hist(by="C", figsize="default")
 
     @pytest.mark.slow

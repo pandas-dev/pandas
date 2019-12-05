@@ -1,5 +1,4 @@
 import importlib
-import warnings
 
 from pandas._config import get_option
 
@@ -752,7 +751,7 @@ class PlotAccessor(PandasObject):
                 f"Use `Series.plot({keyword_args})` instead of "
                 f"`Series.plot({positional_args})`."
             )
-            warnings.warn(msg, FutureWarning, stacklevel=3)
+            raise TypeError(msg)
 
         pos_args = {name: value for value, (name, _) in zip(args, arg_def)}
         if backend_name == "pandas.plotting._matplotlib":

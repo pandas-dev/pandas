@@ -1,7 +1,6 @@
 # TODO: Use the fact that axis can have units to simplify the process
 
 import functools
-import warnings
 
 import numpy as np
 
@@ -25,56 +24,12 @@ from pandas.plotting._matplotlib.converter import (
     TimeSeries_DateFormatter,
     TimeSeries_DateLocator,
     TimeSeries_TimedeltaFormatter,
-    register_pandas_matplotlib_converters,
 )
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.offsets import DateOffset
 
 # ---------------------------------------------------------------------
 # Plotting functions and monkey patches
-
-
-@register_pandas_matplotlib_converters
-def tsplot(series, plotf, ax=None, **kwargs):
-    """
-    Plots a Series on the given Matplotlib axes or the current axes
-
-    Parameters
-    ----------
-    axes : Axes
-    series : Series
-
-    Notes
-    _____
-    Supports same kwargs as Axes.plot
-
-
-    .. deprecated:: 0.23.0
-       Use Series.plot() instead
-    """
-    import matplotlib.pyplot as plt
-
-    warnings.warn(
-        "'tsplot' is deprecated and will be removed in a "
-        "future version. Please use Series.plot() instead.",
-        FutureWarning,
-        stacklevel=3,
-    )
-
-    # Used inferred freq is possible, need a test case for inferred
-    if ax is None:
-        ax = plt.gca()
-
-    freq, series = _maybe_resample(series, ax, kwargs)
-
-    # Set ax with freq info
-    _decorate_axes(ax, freq, kwargs)
-    ax._plot_data.append((series, plotf, kwargs))
-    lines = plotf(ax, series.index._mpl_repr(), series.values, **kwargs)
-
-    # set date formatter, locators and rescale limits
-    format_dateaxis(ax, ax.freq, series.index)
-    return lines
 
 
 def _maybe_resample(series, ax, kwargs):

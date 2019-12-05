@@ -32,14 +32,9 @@ def test_get_accessor_args():
     with pytest.raises(TypeError, match=msg):
         func(backend_name="", data=[], args=[], kwargs={})
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        x, y, kind, kwargs = func(
-            backend_name="", data=Series(), args=["line", None], kwargs={}
-        )
-    assert x is None
-    assert y is None
-    assert kind == "line"
-    assert kwargs == {"ax": None}
+    msg = "should not be called with positional arguments"
+    with pytest.raises(TypeError, match=msg):
+        func(backend_name="", data=Series(), args=["line", None], kwargs={})
 
     x, y, kind, kwargs = func(
         backend_name="",
