@@ -40,7 +40,6 @@ except ImportError as e:  # pragma: no cover
     )
 
 from datetime import datetime
-from pandas import api as api
 
 from pandas._config import (
     get_option,
