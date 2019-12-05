@@ -1139,12 +1139,12 @@ def test_extension_array_cross_section_converts():
         (
             lambda x: x.loc,
             AttributeError,
-            "type object 'NDFrame' has no attribute '_AXIS_ALIASES'",
+            "type object 'NDFrame' has no attribute '_AXIS_NAMES'",
         ),
         (
             lambda x: x.iloc,
             AttributeError,
-            "type object 'NDFrame' has no attribute '_AXIS_ALIASES'",
+            "type object 'NDFrame' has no attribute '_AXIS_NAMES'",
         ),
     ],
 )

@@ -377,6 +377,8 @@ class DataFrame(NDFrame):
     2  7  8  9
     """
 
+    _typ = "dataframe"
+
     @property
     def _constructor(self) -> Type["DataFrame"]:
         return DataFrame
@@ -8143,10 +8145,6 @@ class DataFrame(NDFrame):
 
 DataFrame._setup_axes(
     ["index", "columns"],
-    info_axis=1,
-    stat_axis=0,
-    axes_are_reversed=True,
-    aliases={"rows": 0},
     docs={
         "index": "The index (row labels) of the DataFrame.",
         "columns": "The column labels of the DataFrame.",
