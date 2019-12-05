@@ -628,6 +628,7 @@ Performance improvements
 - Performance improvement when comparing a :class:`Categorical` with a scalar and the scalar is not found in the categories (:issue:`29750`)
 - Performance improvement when checking if values in a :class:`Categorical` are equal, equal or larger or larger than a given scalar.
   The improvement is not present if checking if the :class:`Categorical` is less than or less than or equal than the scalar (:issue:`29820`)
+- Performance improvement in :meth:`Index.equals` and  :meth:`MultiIndex.equals` (:issue:`29134`)
 
 .. _whatsnew_1000.bug_fixes:
 
