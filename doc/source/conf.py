@@ -568,7 +568,7 @@ class PandasAutosummary(Autosummary):
         for item in items:
             display_name, sig, summary, real_name = item
             if self._is_deprecated(real_name):
-                summary = "(DEPRECATED) %s" % summary
+                summary = f"(DEPRECATED) {summary}"
             yield display_name, sig, summary, real_name
 
     def get_items(self, names):
