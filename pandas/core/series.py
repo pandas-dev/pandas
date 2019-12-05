@@ -158,7 +158,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     _deprecations = (
         base.IndexOpsMixin._deprecations
         | generic.NDFrame._deprecations
-        | frozenset(["compress", "valid", "real", "imag", "put", "ptp", "nonzero"])
+        | frozenset(["compress", "ptp"])
     )
 
     # Override cache_readonly bc Series is mutable
@@ -465,27 +465,16 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return self._data.internal_values()
 
-    def get_values(self):
+    def _internal_get_values(self):
         """
         Same as values (but handles sparseness conversions); is a view.
-
-        .. deprecated:: 0.25.0
-            Use :meth:`Series.to_numpy` or :attr:`Series.array` instead.
 
         Returns
         -------
         numpy.ndarray
             Data of the Series.
         """
-        warnings.warn(
-            "The 'get_values' method is deprecated and will be removed in a "
-            "future version. Use '.to_numpy()' or '.array' instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._internal_get_values()
 
-    def _internal_get_values(self):
         return self._data.get_values()
 
     # ops
@@ -527,23 +516,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         warnings.warn(msg, FutureWarning, stacklevel=2)
         nv.validate_compress(args, kwargs)
         return self[condition]
-
-    def put(self, *args, **kwargs):
-        """
-        Apply the `put` method to its `values` attribute if it has one.
-
-        .. deprecated:: 0.25.0
-
-        See Also
-        --------
-        numpy.ndarray.put
-        """
-        warnings.warn(
-            "`put` has been deprecated and will be removed in a future version.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        self._values.put(*args, **kwargs)
 
     def __len__(self) -> int:
         """
@@ -776,46 +748,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     # ----------------------------------------------------------------------
     # Unary Methods
-
-    @property
-    def real(self):
-        """
-        Return the real value of vector.
-
-        .. deprecated:: 0.25.0
-        """
-        warnings.warn(
-            "`real` is deprecated and will be removed in a future version. "
-            "To eliminate this warning for a Series `ser`, use "
-            "`np.real(ser.to_numpy())` or `ser.to_numpy().real`.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.values.real
-
-    @real.setter
-    def real(self, v):
-        self.values.real = v
-
-    @property
-    def imag(self):
-        """
-        Return imag value of vector.
-
-        .. deprecated:: 0.25.0
-        """
-        warnings.warn(
-            "`imag` is deprecated and will be removed in a future version. "
-            "To eliminate this warning for a Series `ser`, use "
-            "`np.imag(ser.to_numpy())` or `ser.to_numpy().imag`.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.values.imag
-
-    @imag.setter
-    def imag(self, v):
-        self.values.imag = v
 
     # coercion
     __float__ = _coerce_method(float)
@@ -2944,7 +2876,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             sortedIdx[n:] = idx[good][argsorted]
             sortedIdx[:n] = idx[bad]
         else:
-            raise ValueError("invalid na_position: {!r}".format(na_position))
+            raise ValueError(f"invalid na_position: {repr(na_position)}")
 
         result = self._constructor(arr[sortedIdx], index=self.index[sortedIdx])
 

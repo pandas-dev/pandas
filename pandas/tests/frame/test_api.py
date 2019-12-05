@@ -528,9 +528,3 @@ class TestDataFrameMisc:
         with tm.assert_produces_warning(None):
             with provisionalcompleter("ignore"):
                 list(ip.Completer.completions("df.", 1))
-
-    def test_get_values_deprecated(self):
-        df = DataFrame({"a": [1, 2], "b": [0.1, 0.2]})
-        with tm.assert_produces_warning(FutureWarning):
-            res = df.get_values()
-        tm.assert_numpy_array_equal(res, df.values)
