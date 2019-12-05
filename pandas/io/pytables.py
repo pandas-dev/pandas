@@ -3668,15 +3668,15 @@ class Table(Fixed):
         """ return the data for this obj """
         return obj
 
-    def validate_data_columns(self, data_columns, min_itemsize):
+    def validate_data_columns(self, data_columns, min_itemsize, non_index_axes):
         """take the input data_columns and min_itemize and create a data
         columns spec
         """
 
-        if not len(self.non_index_axes):
+        if not len(non_index_axes):
             return []
 
-        axis, axis_labels = self.non_index_axes[0]
+        axis, axis_labels = non_index_axes[0]
         info = self.info.get(axis, dict())
         if info.get("type") == "MultiIndex" and data_columns:
             raise ValueError(
@@ -3835,7 +3835,9 @@ class Table(Fixed):
         blk_items = get_blk_items(block_obj._data, blocks)
         if len(new_non_index_axes):
             axis, axis_labels = new_non_index_axes[0]
-            data_columns = self.validate_data_columns(data_columns, min_itemsize)
+            data_columns = self.validate_data_columns(
+                data_columns, min_itemsize, new_non_index_axes
+            )
             if len(data_columns):
                 mgr = block_obj.reindex(
                     Index(axis_labels).difference(Index(data_columns)), axis=axis
@@ -3931,6 +3933,7 @@ class Table(Fixed):
         self.data_columns = new_data_columns
         self.values_axes = vaxes
         self.index_axes = new_index_axes
+        self.non_index_axes = new_non_index_axes
 
         # validate our min_itemsize
         self.validate_min_itemsize(min_itemsize)
