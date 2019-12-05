@@ -4743,14 +4743,15 @@ class NDFrame(PandasObject, SelectionMixin):
             return self.reindex(**{name: [r for r in items if r in labels]})
         elif like:
 
-            def f(x):
+            def f(x) -> bool:
+                assert like is not None  # needed for mypy
                 return like in ensure_str(x)
 
             values = labels.map(f)
             return self.loc(axis=axis)[values]
         elif regex:
 
-            def f(x):
+            def f(x) -> bool:
                 return matcher.search(ensure_str(x)) is not None
 
             matcher = re.compile(regex)
