@@ -2313,111 +2313,34 @@ class DataCol(IndexCol):
             if self.typ is None:
                 self.typ = getattr(self.description, self.cname, None)
 
-    def set_atom(
-        self,
-        block,
-        existing_col,
-        min_itemsize,
-        nan_rep,
-        info,
-        encoding=None,
-        errors="strict",
-    ):
+    def set_atom(self, block, itemsize: int, data_converted, use_str: bool):
         """ create and setup my atom from the block b """
 
         # short-cut certain block types
         if block.is_categorical:
             self.set_atom_categorical(block)
-            self.update_info(info)
-            return
         elif block.is_datetimetz:
             self.set_atom_datetime64tz(block)
-            self.update_info(info)
-            return
         elif block.is_datetime:
-            return self.set_atom_datetime64(block)
+            self.set_atom_datetime64(block)
         elif block.is_timedelta:
-            return self.set_atom_timedelta64(block)
+            self.set_atom_timedelta64(block)
         elif block.is_complex:
-            return self.set_atom_complex(block)
+            self.set_atom_complex(block)
 
-        dtype = block.dtype.name
-        inferred_type = lib.infer_dtype(block.values, skipna=False)
-
-        if inferred_type == "date":
-            raise TypeError("[date] is not implemented as a table column")
-        elif inferred_type == "datetime":
-            # after GH#8260
-            # this only would be hit for a multi-timezone dtype
-            # which is an error
-
-            raise TypeError(
-                "too many timezones in this block, create separate data columns"
-            )
-        elif inferred_type == "unicode":
-            raise TypeError("[unicode] is not implemented as a table column")
-
-        # this is basically a catchall; if say a datetime64 has nans then will
-        # end up here ###
-        elif inferred_type == "string" or dtype == "object":
-            self.set_atom_string(
-                block, existing_col, min_itemsize, nan_rep, encoding, errors,
-            )
-
-        # set as a data block
+        elif use_str:
+            self.set_atom_string(itemsize, data_converted)
         else:
+            # set as a data block
             self.set_atom_data(block)
 
-    def get_atom_string(self, block, itemsize):
-        return _tables().StringCol(itemsize=itemsize, shape=block.shape[0])
+    def get_atom_string(self, shape, itemsize):
+        return _tables().StringCol(itemsize=itemsize, shape=shape[0])
 
-    def set_atom_string(
-        self, block, existing_col, min_itemsize, nan_rep, encoding, errors
-    ):
-        # fill nan items with myself, don't disturb the blocks by
-        # trying to downcast
-        block = block.fillna(nan_rep, downcast=False)
-        if isinstance(block, list):
-            block = block[0]
-        data = block.values
-
-        # see if we have a valid string type
-        inferred_type = lib.infer_dtype(data.ravel(), skipna=False)
-        if inferred_type != "string":
-
-            # we cannot serialize this data, so report an exception on a column
-            # by column basis
-            for i in range(len(block.shape[0])):
-
-                col = block.iget(i)
-                inferred_type = lib.infer_dtype(col.ravel(), skipna=False)
-                if inferred_type != "string":
-                    iloc = block.mgr_locs.indexer[i]
-                    raise TypeError(
-                        f"Cannot serialize the column [{iloc}] because\n"
-                        f"its data contents are [{inferred_type}] object dtype"
-                    )
-
-        # itemsize is the maximum length of a string (along any dimension)
-        data_converted = _convert_string_array(data, encoding, errors)
-        itemsize = data_converted.itemsize
-
-        # specified min_itemsize?
-        if isinstance(min_itemsize, dict):
-            min_itemsize = int(
-                min_itemsize.get(self.name) or min_itemsize.get("values") or 0
-            )
-        itemsize = max(min_itemsize or 0, itemsize)
-
-        # check for column in the values conflicts
-        if existing_col is not None:
-            eci = existing_col.validate_col(itemsize)
-            if eci > itemsize:
-                itemsize = eci
-
+    def set_atom_string(self, itemsize: int, data_converted: np.ndarray):
         self.itemsize = itemsize
         self.kind = "string"
-        self.typ = self.get_atom_string(block, itemsize)
+        self.typ = self.get_atom_string(data_converted.shape, itemsize)
         self.set_data(data_converted.astype(f"|S{itemsize}", copy=False))
 
     def get_atom_coltype(self, kind=None):
@@ -2621,7 +2544,7 @@ class DataIndexableCol(DataCol):
             # TODO: should the message here be more specifically non-str?
             raise ValueError("cannot have non-object label DataIndexableCol")
 
-    def get_atom_string(self, block, itemsize):
+    def get_atom_string(self, shape, itemsize):
         return _tables().StringCol(itemsize=itemsize)
 
     def get_atom_data(self, block, kind=None):
@@ -3972,17 +3895,26 @@ class Table(Fixed):
             else:
                 existing_col = None
 
-            col = klass.create_for_block(i=i, name=name, version=self.version)
-            col.values = list(b_items)
-            col.set_atom(
-                block=b,
+            new_name = name or f"values_block_{i}"
+            itemsize, data_converted, use_str = _maybe_convert_for_string_atom(
+                new_name,
+                b,
                 existing_col=existing_col,
                 min_itemsize=min_itemsize,
                 nan_rep=nan_rep,
                 encoding=self.encoding,
                 errors=self.errors,
-                info=self.info,
             )
+
+            col = klass.create_for_block(i=i, name=new_name, version=self.version)
+            col.values = list(b_items)
+            col.set_atom(
+                block=b,
+                itemsize=itemsize,
+                data_converted=data_converted,
+                use_str=use_str,
+            )
+            col.update_info(self.info)
             col.set_pos(j)
 
             vaxes.append(col)
@@ -4845,6 +4777,74 @@ def _unconvert_index(data, kind: str, encoding=None, errors="strict"):
     else:  # pragma: no cover
         raise ValueError(f"unrecognized index type {kind}")
     return index
+
+
+def _maybe_convert_for_string_atom(
+    name: str, block, existing_col, min_itemsize, nan_rep, encoding, errors
+):
+    use_str = False
+
+    if not block.is_object:
+        return block.dtype.itemsize, block.values, use_str
+
+    dtype_name = block.dtype.name
+    inferred_type = lib.infer_dtype(block.values, skipna=False)
+
+    if inferred_type == "date":
+        raise TypeError("[date] is not implemented as a table column")
+    elif inferred_type == "datetime":
+        # after GH#8260
+        # this only would be hit for a multi-timezone dtype which is an error
+        raise TypeError(
+            "too many timezones in this block, create separate data columns"
+        )
+
+    elif not (inferred_type == "string" or dtype_name == "object"):
+        return block.dtype.itemsize, block.values, use_str
+
+    use_str = True
+
+    block = block.fillna(nan_rep, downcast=False)
+    if isinstance(block, list):
+        # Note: because block is always object dtype, fillna goes
+        #  through a path such that the result is always a 1-element list
+        block = block[0]
+    data = block.values
+
+    # see if we have a valid string type
+    inferred_type = lib.infer_dtype(data.ravel(), skipna=False)
+    if inferred_type != "string":
+
+        # we cannot serialize this data, so report an exception on a column
+        # by column basis
+        for i in range(len(block.shape[0])):
+
+            col = block.iget(i)
+            inferred_type = lib.infer_dtype(col.ravel(), skipna=False)
+            if inferred_type != "string":
+                iloc = block.mgr_locs.indexer[i]
+                raise TypeError(
+                    f"Cannot serialize the column [{iloc}] because\n"
+                    f"its data contents are [{inferred_type}] object dtype"
+                )
+
+    # itemsize is the maximum length of a string (along any dimension)
+    data_converted = _convert_string_array(data, encoding, errors).reshape(data.shape)
+    assert data_converted.shape == block.shape, (data_converted.shape, block.shape)
+    itemsize = data_converted.itemsize
+
+    # specified min_itemsize?
+    if isinstance(min_itemsize, dict):
+        min_itemsize = int(min_itemsize.get(name) or min_itemsize.get("values") or 0)
+    itemsize = max(min_itemsize or 0, itemsize)
+
+    # check for column in the values conflicts
+    if existing_col is not None:
+        eci = existing_col.validate_col(itemsize)
+        if eci > itemsize:
+            itemsize = eci
+
+    return itemsize, data_converted, use_str
 
 
 def _convert_string_array(data, encoding, errors, itemsize=None):
