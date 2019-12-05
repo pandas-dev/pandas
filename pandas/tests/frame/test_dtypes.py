@@ -583,7 +583,7 @@ class TestDataFrameDataTypes:
         # GH 25353
         result = DataFrame([np.NaN]).astype(str)
         expected = DataFrame([np.nan], dtype=object)
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         # see gh-11302
         result = DataFrame([1.12345678901234567890]).astype(str)
