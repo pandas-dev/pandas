@@ -77,4 +77,18 @@ In ``and``
    pd.Series([True, False, np.nan], dtype="boolean") & True
 
 
+.. warning::
+
+   At the moment, NumPy's boolean scalars ``np.bool_(False)``
+   and ``np.bool_(True)`` do not defer to :class:`arrays.BooleanArray`
+   for binary operations. If the first argument of a logical operation
+   is a ``np.bool_``, you'll get the wrong result.
+
+   .. ipython:: python
+
+      a = pd.array([True, False, pd.NA], dtype="boolean")
+      a | np.bool_(True)  # correct
+      np.bool_(True) | a  # incorrect!
+
+
 .. _Kleene Logic: https://en.wikipedia.org/wiki/Three-valued_logic#Kleene_and_Priest_logics
