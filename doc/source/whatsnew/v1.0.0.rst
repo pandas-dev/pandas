@@ -169,6 +169,16 @@ You can use the alias ``"boolean"`` as well.
    s = pd.Series([True, False, None], dtype="boolean")
    s
 
+.. _whatsnew_1000.custom_window:
+
+Defining custom windows for rolling operations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We've added a :func:`pandas.api.indexers.BaseIndexer` class that allows users to define how
+window bounds are created during ``rolling`` operations. Users can define their own ``get_window_bounds``
+method on a :func:`pandas.api.indexers.BaseIndexer` subclass that will generate the start and end
+indices used for each window during the rolling aggregation. For more details and example usage, see
+the :ref:`custom window rolling documentation <stats.custom_rolling_window>`
 
 .. _whatsnew_1000.enhancements.other:
 
@@ -499,6 +509,10 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 
 **Other removals**
 
+- Removed the previously deprecated :func:`pandas.plotting._matplotlib.tsplot`, use :meth:`Series.plot` instead (:issue:`19980`)
+- :func:`pandas.tseries.converter.register` has been moved to :func:`pandas.plotting.register_matplotlib_converters` (:issue:`18307`)
+- :meth:`Series.plot` no longer accepts positional arguments, pass keyword arguments instead (:issue:`30003`)
+- :meth:`DataFrame.hist` and :meth:`Series.hist` no longer allows ``figsize="default"``, specify figure size by passinig a tuple instead (:issue:`30003`)
 - Floordiv of integer-dtyped array by :class:`Timedelta` now raises ``TypeError`` (:issue:`21036`)
 - :func:`pandas.api.types.infer_dtype` argument ``skipna`` defaults to ``True`` instead of ``False`` (:issue:`24050`)
 - Removed the previously deprecated :meth:`Index.summary` (:issue:`18217`)
@@ -565,6 +579,9 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - Passing multiple axes to :meth:`DataFrame.dropna` is no longer supported (:issue:`20995`)
 - Removed previously deprecated :meth:`Series.nonzero`, use `to_numpy().nonzero()` instead (:issue:`24048`)
 - Passing floating dtype ``codes`` to :meth:`Categorical.from_codes` is no longer supported, pass ``codes.astype(np.int64)`` instead (:issue:`21775`)
+- :meth:`Series.str.partition` and :meth:`Series.str.rpartition` no longer accept "pat" keyword, use "sep" instead (:issue:`23767`)
+- Removed the previously deprecated :meth:`Series.put` (:issue:`27106`)
+- Removed the previously deprecated :attr:`Series.real`, :attr:`Series.imag` (:issue:`27106`)
 - Removed the previously deprecated :meth:`Series.to_dense`, :meth:`DataFrame.to_dense` (:issue:`26684`)
 - Removed the previously deprecated :meth:`Index.dtype_str`, use ``str(index.dtype)`` instead (:issue:`27106`)
 - :meth:`Categorical.ravel` returns a :class:`Categorical` instead of a ``ndarray`` (:issue:`27199`)

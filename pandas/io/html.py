@@ -587,7 +587,7 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
     def _setup_build_doc(self):
         raw_text = _read(self.io)
         if not raw_text:
-            raise ValueError("No text parsed from document: {doc}".format(doc=self.io))
+            raise ValueError(f"No text parsed from document: {self.io}")
         return raw_text
 
     def _build_doc(self):
@@ -616,8 +616,8 @@ def _build_xpath_expr(attrs) -> str:
     if "class_" in attrs:
         attrs["class"] = attrs.pop("class_")
 
-    s = [f"@{k}={repr(v)}" for k, v in attrs.items()]
-    return "[{expr}]".format(expr=" and ".join(s))
+    s = " and ".join([f"@{k}={repr(v)}" for k, v in attrs.items()])
+    return f"[{s}]"
 
 
 _re_namespace = {"re": "http://exslt.org/regular-expressions"}
@@ -846,7 +846,8 @@ def _parser_dispatch(flavor):
 
 
 def _print_as_set(s) -> str:
-    return "{" + "{arg}".format(arg=", ".join(pprint_thing(el) for el in s)) + "}"
+    arg = ", ".join(pprint_thing(el) for el in s)
+    return f"{{{arg}}}"
 
 
 def _validate_flavor(flavor):
@@ -871,10 +872,8 @@ def _validate_flavor(flavor):
 
     if not flavor_set & valid_flavors:
         raise ValueError(
-            "{invalid} is not a valid set of flavors, valid "
-            "flavors are {valid}".format(
-                invalid=_print_as_set(flavor_set), valid=_print_as_set(valid_flavors)
-            )
+            f"{_print_as_set(flavor_set)} is not a valid set of flavors, valid "
+            f"flavors are {_print_as_set(valid_flavors)}"
         )
     return flavor
 
@@ -898,11 +897,11 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
             elif hasattr(io, "seekable") and not io.seekable():
                 # if we couldn't rewind it, let the user know
                 raise ValueError(
-                    "The flavor {} failed to parse your input. "
+                    f"The flavor {flav} failed to parse your input. "
                     "Since you passed a non-rewindable file "
                     "object, we can't rewind it to try "
                     "another parser. Try read_html() with a "
-                    "different flavor.".format(flav)
+                    "different flavor."
                 )
 
             retained = caught
