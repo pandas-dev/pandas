@@ -1882,7 +1882,6 @@ class IndexCol:
         kind=None,
         typ=None,
         cname: Optional[str] = None,
-        itemsize=None,
         axis=None,
         pos=None,
         freq=None,
@@ -1896,7 +1895,6 @@ class IndexCol:
         self.values = values
         self.kind = kind
         self.typ = typ
-        self.itemsize = itemsize
         self.name = name
         self.cname = cname or name
         self.axis = axis
@@ -1915,6 +1913,11 @@ class IndexCol:
         #  constructor annotations.
         assert isinstance(self.name, str)
         assert isinstance(self.cname, str)
+
+    @property
+    def itemsize(self) -> int:
+        # Assumes self.typ has already been initialized
+        return self.typ.itemsize
 
     @property
     def kind_attr(self) -> str:
@@ -2338,7 +2341,6 @@ class DataCol(IndexCol):
         return _tables().StringCol(itemsize=itemsize, shape=shape[0])
 
     def set_atom_string(self, itemsize: int, data_converted: np.ndarray):
-        self.itemsize = itemsize
         self.kind = "string"
         self.typ = self.get_atom_string(data_converted.shape, itemsize)
         self.set_data(data_converted.astype(f"|S{itemsize}", copy=False))
@@ -4724,7 +4726,6 @@ def _convert_index(name: str, index: Index, encoding=None, errors="strict"):
             converted,
             "string",
             _tables().StringCol(itemsize),
-            itemsize=itemsize,
             index_name=index_name,
         )
 
