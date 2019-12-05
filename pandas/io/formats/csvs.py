@@ -188,7 +188,7 @@ class CSVFormatter:
             close = True
 
         try:
-            kwargs: Dict[str, Any] = dict(
+            writer_kwargs: Dict[str, Any] = dict(
                 lineterminator=self.line_terminator,
                 delimiter=self.sep,
                 quoting=self.quoting,
@@ -197,9 +197,9 @@ class CSVFormatter:
                 quotechar=self.quotechar,
             )
             if self.encoding == "ascii":
-                self.writer = csvlib.writer(f, **kwargs)
+                self.writer = csvlib.writer(f, **writer_kwargs)
             else:
-                self.writer = UnicodeWriter(f, encoding=self.encoding, **kwargs)
+                self.writer = UnicodeWriter(f, encoding=self.encoding, **writer_kwargs)
 
             self._save()
 

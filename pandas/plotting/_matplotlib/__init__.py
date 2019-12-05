@@ -26,7 +26,6 @@ from pandas.plotting._matplotlib.misc import (
     radviz,
     scatter_matrix,
 )
-from pandas.plotting._matplotlib.timeseries import tsplot
 from pandas.plotting._matplotlib.tools import table
 
 if TYPE_CHECKING:
@@ -71,7 +70,6 @@ __all__ = [
     "boxplot",
     "boxplot_frame",
     "boxplot_frame_groupby",
-    "tsplot",
     "table",
     "andrews_curves",
     "autocorrelation_plot",
