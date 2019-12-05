@@ -103,11 +103,11 @@ def is_platform_32bit() -> bool:
 
 def _import_lzma():
     """
-    Attempts to import the lzma module.
+    Importing the `lzma` module.
 
     Warns
     -----
-    When the lzma module is not available.
+    When the `lzma` module is not available.
     """
     try:
         import lzma
@@ -124,22 +124,22 @@ def _import_lzma():
 
 def _get_lzma_file(lzma):
     """
-    Attempting to get the lzma.LZMAFile class.
+    Importing the `LZMAFile` class from the `lzma` module.
 
     Returns
     -------
     class
-        The lzma.LZMAFile class.
+        The `LZMAFile` class from the `lzma` module.
 
     Raises
     ------
     RuntimeError
-        If the module lzma was not imported correctly, or didn't exist.
+        If the `lzma` module was not imported correctly, or didn't exist.
     """
     if lzma is None:
         raise RuntimeError(
             "lzma module not available. "
-            "A Python re-install with the proper "
-            "dependencies might be required to solve this issue."
+            "A Python re-install with the proper dependencies, "
+            "might be required to solve this issue."
         )
     return lzma.LZMAFile
