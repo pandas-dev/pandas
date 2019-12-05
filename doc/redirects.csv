@@ -360,7 +360,6 @@ generated/pandas.DataFrame.from_records,../reference/api/pandas.DataFrame.from_r
 generated/pandas.DataFrame.ge,../reference/api/pandas.DataFrame.ge
 generated/pandas.DataFrame.get,../reference/api/pandas.DataFrame.get
 generated/pandas.DataFrame.get_value,../reference/api/pandas.DataFrame.get_value
-generated/pandas.DataFrame.get_values,../reference/api/pandas.DataFrame.get_values
 generated/pandas.DataFrame.groupby,../reference/api/pandas.DataFrame.groupby
 generated/pandas.DataFrame.gt,../reference/api/pandas.DataFrame.gt
 generated/pandas.DataFrame.head,../reference/api/pandas.DataFrame.head
@@ -643,7 +642,6 @@ generated/pandas.Index.get_level_values,../reference/api/pandas.Index.get_level_
 generated/pandas.Index.get_loc,../reference/api/pandas.Index.get_loc
 generated/pandas.Index.get_slice_bound,../reference/api/pandas.Index.get_slice_bound
 generated/pandas.Index.get_value,../reference/api/pandas.Index.get_value
-generated/pandas.Index.get_values,../reference/api/pandas.Index.get_values
 generated/pandas.Index.groupby,../reference/api/pandas.Index.groupby
 generated/pandas.Index.has_duplicates,../reference/api/pandas.Index.has_duplicates
 generated/pandas.Index.hasnans,../reference/api/pandas.Index.hasnans
@@ -1044,7 +1042,6 @@ generated/pandas.Series.from_csv,../reference/api/pandas.Series.from_csv
 generated/pandas.Series.ge,../reference/api/pandas.Series.ge
 generated/pandas.Series.get,../reference/api/pandas.Series.get
 generated/pandas.Series.get_value,../reference/api/pandas.Series.get_value
-generated/pandas.Series.get_values,../reference/api/pandas.Series.get_values
 generated/pandas.Series.groupby,../reference/api/pandas.Series.groupby
 generated/pandas.Series.gt,../reference/api/pandas.Series.gt
 generated/pandas.Series.hasnans,../reference/api/pandas.Series.hasnans
