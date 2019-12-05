@@ -208,7 +208,7 @@ def lexsort_indexer(keys, orders=None, na_position="last"):
             cat = Categorical(key, ordered=True)
 
         if na_position not in ["last", "first"]:
-            raise ValueError(f"invalid na_position: '{na_position}'")
+            raise ValueError(f"invalid na_position: {na_position}")
 
         n = len(cat.categories)
         codes = cat.codes.copy()
