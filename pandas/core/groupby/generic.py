@@ -51,6 +51,7 @@ from pandas._typing import FrameOrSeries
 import pandas.core.algorithms as algorithms
 from pandas.core.base import DataError, SpecificationError
 import pandas.core.common as com
+from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.frame import DataFrame
 from pandas.core.generic import ABCDataFrame, ABCSeries, NDFrame, _shared_docs
 from pandas.core.groupby import base
@@ -259,7 +260,9 @@ class SeriesGroupBy(GroupBy):
                 result = self._aggregate_named(func, *args, **kwargs)
 
             index = Index(sorted(result), name=self.grouper.names[0])
-            ret = Series(result, index=index)
+            ret = create_series_with_explicit_dtype(
+                result, index=index, dtype_if_empty=object
+            )
 
         if not self.as_index:  # pragma: no cover
             print("Warning, ignoring as_index=True")
@@ -407,7 +410,7 @@ class SeriesGroupBy(GroupBy):
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
         if len(keys) == 0:
             # GH #6265
-            return Series([], name=self._selection_name, index=keys)
+            return Series([], name=self._selection_name, index=keys, dtype=np.float64)
 
         def _get_index() -> Index:
             if self.grouper.nkeys > 1:
@@ -493,7 +496,7 @@ class SeriesGroupBy(GroupBy):
 
             result = concat(results).sort_index()
         else:
-            result = Series()
+            result = Series(dtype=np.float64)
 
         # we will only try to coerce the result type if
         # we have a numeric dtype, as these are *always* user-defined funcs
@@ -1205,10 +1208,18 @@ class DataFrameGroupBy(GroupBy):
             if v is None:
                 return DataFrame()
             elif isinstance(v, NDFrame):
-                values = [
-                    x if x is not None else v._constructor(**v._construct_axes_dict())
-                    for x in values
-                ]
+
+                # this is to silence a DeprecationWarning
+                # TODO: Remove when default dtype of empty Series is object
+                kwargs = v._construct_axes_dict()
+                if v._constructor is Series:
+                    backup = create_series_with_explicit_dtype(
+                        **kwargs, dtype_if_empty=object
+                    )
+                else:
+                    backup = v._constructor(**kwargs)
+
+                values = [x if (x is not None) else backup for x in values]
 
             v = values[0]
 
