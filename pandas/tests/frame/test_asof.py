@@ -67,7 +67,9 @@ class TestFrameAsof:
         df = date_range_frame.iloc[:N].copy()
         result = df.asof("1989-12-31")
 
-        expected = Series(index=["A", "B"], name=Timestamp("1989-12-31"))
+        expected = Series(
+            index=["A", "B"], name=Timestamp("1989-12-31"), dtype=np.float64
+        )
         tm.assert_series_equal(result, expected)
 
         result = df.asof(to_datetime(["1989-12-31"]))
