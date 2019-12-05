@@ -7,6 +7,7 @@ Top level ``eval`` module.
 import tokenize
 import warnings
 
+from pandas._libs.lib import _no_default
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.computation.engines import _engines
@@ -46,8 +47,7 @@ def _check_engine(engine):
     if engine not in _engines:
         valid = list(_engines.keys())
         raise KeyError(
-            "Invalid engine {engine!r} passed, valid engines are"
-            " {valid}".format(engine=engine, valid=valid)
+            f"Invalid engine {repr(engine)} passed, valid engines are {valid}"
         )
 
     # TODO: validate this in a more general way (thinking of future engines
@@ -81,8 +81,8 @@ def _check_parser(parser: str):
 
     if parser not in _parsers:
         raise KeyError(
-            "Invalid parser {parser!r} passed, valid parsers are"
-            " {valid}".format(parser=parser, valid=_parsers.keys())
+            f"Invalid parser {repr(parser)} passed, "
+            f"valid parsers are {_parsers.keys()}"
         )
 
 
@@ -92,8 +92,8 @@ def _check_resolvers(resolvers):
             if not hasattr(resolver, "__getitem__"):
                 name = type(resolver).__name__
                 raise TypeError(
-                    "Resolver of type {name!r} does not implement "
-                    "the __getitem__ method".format(name=name)
+                    f"Resolver of type {repr(name)} does not "
+                    f"implement the __getitem__ method"
                 )
 
 
@@ -169,7 +169,7 @@ def eval(
     expr,
     parser="pandas",
     engine=None,
-    truediv=True,
+    truediv=_no_default,
     local_dict=None,
     global_dict=None,
     resolvers=(),
@@ -219,6 +219,8 @@ def eval(
 
     truediv : bool, optional
         Whether to use true division, like in Python >= 3.
+        deprecated:: 1.0.0
+
     local_dict : dict or None, optional
         A dictionary of local variables, taken from locals() by default.
     global_dict : dict or None, optional
@@ -284,6 +286,14 @@ def eval(
 
     inplace = validate_bool_kwarg(inplace, "inplace")
 
+    if truediv is not _no_default:
+        warnings.warn(
+            "The `truediv` parameter in pd.eval is deprecated and will be "
+            "removed in a future version.",
+            FutureWarning,
+            stacklevel=2,
+        )
+
     if isinstance(expr, str):
         _check_expression(expr)
         exprs = [e.strip() for e in expr.splitlines() if e.strip() != ""]
@@ -317,7 +327,7 @@ def eval(
             target=target,
         )
 
-        parsed_expr = Expr(expr, engine=engine, parser=parser, env=env, truediv=truediv)
+        parsed_expr = Expr(expr, engine=engine, parser=parser, env=env)
 
         # construct the engine and evaluate the parsed expression
         eng = _engines[engine]

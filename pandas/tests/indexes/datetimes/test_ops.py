@@ -413,12 +413,12 @@ class TestDatetimeIndexOps(Ops):
         idx = DatetimeIndex(values, tz=tz)
 
         # can set to an offset, converting from string if necessary
-        idx.freq = freq
+        idx._data.freq = freq
         assert idx.freq == freq
         assert isinstance(idx.freq, ABCDateOffset)
 
         # can reset to None
-        idx.freq = None
+        idx._data.freq = None
         assert idx.freq is None
 
     def test_freq_setter_errors(self):
@@ -431,11 +431,11 @@ class TestDatetimeIndexOps(Ops):
             "passed frequency 5D"
         )
         with pytest.raises(ValueError, match=msg):
-            idx.freq = "5D"
+            idx._data.freq = "5D"
 
         # setting with non-freq string
         with pytest.raises(ValueError, match="Invalid frequency"):
-            idx.freq = "foo"
+            idx._data.freq = "foo"
 
     def test_offset_deprecated(self):
         # GH 20716
@@ -549,8 +549,6 @@ class TestCustomDatetimeIndex:
         idx = pd.date_range(start=START, end=END, periods=3)
         tm.assert_index_equal(idx.shift(periods=0), idx)
         tm.assert_index_equal(idx.shift(0), idx)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=True):
-            tm.assert_index_equal(idx.shift(n=0), idx)
 
     def test_pickle_unpickle(self):
         unpickled = tm.round_trip_pickle(self.rng)

@@ -260,6 +260,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     _pandas_ftype = "sparse"
     _subtyp = "sparse_array"  # register ABCSparseArray
     _deprecations = PandasObject._deprecations | frozenset(["get_values"])
+    _sparse_index: SparseIndex
 
     def __init__(
         self,
@@ -372,8 +373,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     @classmethod
     def _simple_new(
-        cls, sparse_array: np.ndarray, sparse_index: SparseIndex, dtype: SparseDtype
-    ) -> ABCSparseArray:
+        cls, sparse_array: np.ndarray, sparse_index: SparseIndex, dtype: SparseDtype,
+    ) -> "SparseArray":
         new = cls([])
         new._sparse_index = sparse_index
         new._sparse_values = sparse_array
@@ -566,23 +567,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         3
         """
         return self.sp_index.npoints
-
-    @property
-    def values(self):
-        """
-        Dense values
-
-        .. deprecated:: 0.25.0
-
-            Use ``np.asarray(...)`` or the ``.to_dense()`` method instead.
-        """
-        msg = (
-            "The SparseArray.values attribute is deprecated and will be "
-            "removed in a future version. You can use `np.asarray(...)` or "
-            "the `.to_dense()` method instead."
-        )
-        warnings.warn(msg, FutureWarning, stacklevel=2)
-        return self.to_dense()
 
     def isna(self):
         # If null fill value, we want SparseDtype[bool, true]
@@ -1136,22 +1120,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         """
         return np.asarray(self, dtype=self.sp_values.dtype)
 
-    def get_values(self):
-        """
-        Convert SparseArray to a NumPy array.
-
-        .. deprecated:: 0.25.0
-            Use `to_dense` instead.
-
-        """
-        warnings.warn(
-            "The 'get_values' method is deprecated and will be removed in a "
-            "future version. Use the 'to_dense' method instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._internal_get_values()
-
     _internal_get_values = to_dense
 
     # ------------------------------------------------------------------------
@@ -1392,8 +1360,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     # ------------------------------------------------------------------------
 
     @classmethod
-    def _create_unary_method(cls, op):
-        def sparse_unary_method(self):
+    def _create_unary_method(cls, op) -> Callable[["SparseArray"], "SparseArray"]:
+        def sparse_unary_method(self) -> "SparseArray":
             fill_value = op(np.array(self.fill_value)).item()
             values = op(self.sp_values)
             dtype = SparseDtype(values.dtype, fill_value)

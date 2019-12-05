@@ -8,7 +8,7 @@ from contextlib import contextmanager
 import copy
 from functools import partial
 from itertools import product
-from typing import Optional
+from typing import Any, Callable, DefaultDict, Dict, List, Optional, Sequence, Tuple
 from uuid import uuid1
 
 import numpy as np
@@ -71,6 +71,11 @@ class Styler:
         The ``id`` takes the form ``T_<uuid>_row<num_row>_col<num_col>``
         where ``<uuid>`` is the unique identifier, ``<num_row>`` is the row
         number and ``<num_col>`` is the column number.
+    na_rep : str, optional
+        Representation for missing values.
+        If ``na_rep`` is None, no special formatting is applied
+
+        .. versionadded:: 1.0.0
 
     Attributes
     ----------
@@ -126,9 +131,10 @@ class Styler:
         caption=None,
         table_attributes=None,
         cell_ids=True,
+        na_rep: Optional[str] = None,
     ):
-        self.ctx = defaultdict(list)
-        self._todo = []
+        self.ctx: DefaultDict[Tuple[int, int], List[str]] = defaultdict(list)
+        self._todo: List[Tuple[Callable, Tuple, Dict]] = []
 
         if not isinstance(data, (pd.Series, pd.DataFrame)):
             raise TypeError("``data`` must be a Series or DataFrame")
@@ -149,19 +155,24 @@ class Styler:
         self.precision = precision
         self.table_attributes = table_attributes
         self.hidden_index = False
-        self.hidden_columns = []
+        self.hidden_columns: Sequence[int] = []
         self.cell_ids = cell_ids
+        self.na_rep = na_rep
 
         # display_funcs maps (row, col) -> formatting function
 
         def default_display_func(x):
-            if is_float(x):
+            if self.na_rep is not None and pd.isna(x):
+                return self.na_rep
+            elif is_float(x):
                 display_format = "{0:.{precision}f}".format(x, precision=self.precision)
                 return display_format
             else:
                 return x
 
-        self._display_funcs = defaultdict(lambda: default_display_func)
+        self._display_funcs: DefaultDict[
+            Tuple[int, int], Callable[[Any], str]
+        ] = defaultdict(lambda: default_display_func)
 
     def _repr_html_(self):
         """
@@ -416,16 +427,22 @@ class Styler:
             table_attributes=table_attr,
         )
 
-    def format(self, formatter, subset=None):
+    def format(self, formatter, subset=None, na_rep: Optional[str] = None):
         """
         Format the text display value of cells.
 
         Parameters
         ----------
-        formatter : str, callable, or dict
+        formatter : str, callable, dict or None
+            If ``formatter`` is None, the default formatter is used
         subset : IndexSlice
             An argument to ``DataFrame.loc`` that restricts which elements
             ``formatter`` is applied to.
+        na_rep : str, optional
+            Representation for missing values.
+            If ``na_rep`` is None, no special formatting is applied
+
+            .. versionadded:: 1.0.0
 
         Returns
         -------
@@ -451,6 +468,10 @@ class Styler:
         >>> df['c'] = ['a', 'b', 'c', 'd']
         >>> df.style.format({'c': str.upper})
         """
+        if formatter is None:
+            assert self._display_funcs.default_factory is not None
+            formatter = self._display_funcs.default_factory()
+
         if subset is None:
             row_locs = range(len(self.data))
             col_locs = range(len(self.data.columns))
@@ -466,16 +487,16 @@ class Styler:
         if is_dict_like(formatter):
             for col, col_formatter in formatter.items():
                 # formatter must be callable, so '{}' are converted to lambdas
-                col_formatter = _maybe_wrap_formatter(col_formatter)
+                col_formatter = _maybe_wrap_formatter(col_formatter, na_rep)
                 col_num = self.data.columns.get_indexer_for([col])[0]
 
                 for row_num in row_locs:
                     self._display_funcs[(row_num, col_num)] = col_formatter
         else:
             # single scalar to format all cells with
+            formatter = _maybe_wrap_formatter(formatter, na_rep)
             locs = product(*(row_locs, col_locs))
             for i, j in locs:
-                formatter = _maybe_wrap_formatter(formatter)
                 self._display_funcs[(i, j)] = formatter
         return self
 
@@ -553,6 +574,7 @@ class Styler:
             caption=self.caption,
             uuid=self.uuid,
             table_styles=self.table_styles,
+            na_rep=self.na_rep,
         )
         if deepcopy:
             styler.ctx = copy.deepcopy(self.ctx)
@@ -894,6 +916,23 @@ class Styler:
         ... )
         """
         self.table_styles = table_styles
+        return self
+
+    def set_na_rep(self, na_rep: str) -> "Styler":
+        """
+        Set the missing data representation on a Styler.
+
+        .. versionadded:: 1.0.0
+
+        Parameters
+        ----------
+        na_rep : str
+
+        Returns
+        -------
+        self : Styler
+        """
+        self.na_rep = na_rep
         return self
 
     def hide_index(self):
@@ -1450,7 +1489,7 @@ def _get_level_lengths(index, hidden_elements=None):
     Optional argument is a list of index positions which
     should not be visible.
 
-    Result is a dictionary of (level, inital_position): span
+    Result is a dictionary of (level, initial_position): span
     """
     sentinel = object()
     levels = index.format(sparsify=sentinel, adjoin=False, names=False)
@@ -1487,14 +1526,22 @@ def _get_level_lengths(index, hidden_elements=None):
     return non_zero_lengths
 
 
-def _maybe_wrap_formatter(formatter):
+def _maybe_wrap_formatter(formatter, na_rep: Optional[str]):
     if isinstance(formatter, str):
-        return lambda x: formatter.format(x)
+        formatter_func = lambda x: formatter.format(x)
     elif callable(formatter):
-        return formatter
+        formatter_func = formatter
     else:
         msg = (
             "Expected a template string or callable, got {formatter} "
             "instead".format(formatter=formatter)
         )
+        raise TypeError(msg)
+
+    if na_rep is None:
+        return formatter_func
+    elif isinstance(na_rep, str):
+        return lambda x: na_rep if pd.isna(x) else formatter_func(x)
+    else:
+        msg = "Expected a string, got {na_rep} instead".format(na_rep=na_rep)
         raise TypeError(msg)

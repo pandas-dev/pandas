@@ -238,7 +238,7 @@ def test_get_calendar():
         rules = []
 
     calendar = get_calendar("TestCalendar")
-    assert TestCalendar == calendar.__class__
+    assert TestCalendar == type(calendar)
 
 
 def test_factory():

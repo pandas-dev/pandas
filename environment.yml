@@ -51,7 +51,7 @@ dependencies:
   - botocore>=1.11
   - hypothesis>=3.82
   - moto  # mock S3
-  - pytest>=4.0.2
+  - pytest>=5.0.1
   - pytest-cov
   - pytest-xdist>=1.21
   - seaborn
@@ -75,10 +75,10 @@ dependencies:
 
   # optional for io
   - beautifulsoup4>=4.6.0  # pandas.read_html
-  - fastparquet>=0.2.1  # pandas.read_parquet, DataFrame.to_parquet
+  - fastparquet>=0.3.2  # pandas.read_parquet, DataFrame.to_parquet
   - html5lib  # pandas.read_html
   - lxml  # pandas.read_html
-  - openpyxl  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
+  - openpyxl<=3.0.1  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
   - pyarrow>=0.13.1  # pandas.read_parquet, DataFrame.to_parquet, pandas.read_feather, DataFrame.to_feather
   - pyqt>=5.9.2  # pandas.read_clipboard
   - pytables>=3.4.2  # pandas.read_hdf, DataFrame.to_hdf

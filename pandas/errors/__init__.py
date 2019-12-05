@@ -167,9 +167,7 @@ class AbstractMethodError(NotImplementedError):
     def __init__(self, class_instance, methodtype="method"):
         types = {"method", "classmethod", "staticmethod", "property"}
         if methodtype not in types:
-            msg = "methodtype must be one of {}, got {} instead.".format(
-                methodtype, types
-            )
+            msg = f"methodtype must be one of {methodtype}, got {types} instead."
             raise ValueError(msg)
         self.methodtype = methodtype
         self.class_instance = class_instance
@@ -178,6 +176,6 @@ class AbstractMethodError(NotImplementedError):
         if self.methodtype == "classmethod":
             name = self.class_instance.__name__
         else:
-            name = self.class_instance.__class__.__name__
-        msg = "This {methodtype} must be defined in the concrete class {name}"
+            name = type(self.class_instance).__name__
+        msg = f"This {self.methodtype} must be defined in the concrete class {name}"
         return msg.format(methodtype=self.methodtype, name=name)

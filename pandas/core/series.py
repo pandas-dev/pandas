@@ -96,23 +96,6 @@ _shared_doc_kwargs = dict(
 )
 
 
-# see gh-16971
-def remove_na(arr):
-    """
-    Remove null values from array like structure.
-
-    .. deprecated:: 0.21.0
-        Use s[s.notnull()] instead.
-    """
-
-    warnings.warn(
-        "remove_na is deprecated and is a private function. Do not use.",
-        FutureWarning,
-        stacklevel=2,
-    )
-    return remove_na_arraylike(arr)
-
-
 def _coerce_method(converter):
     """
     Install the scalar coercion methods.
@@ -170,31 +153,21 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Copy input data.
     """
 
-    _metadata = []  # type: List[str]
+    _metadata: List[str] = []
     _accessors = {"dt", "cat", "str", "sparse"}
     _deprecations = (
         base.IndexOpsMixin._deprecations
         | generic.NDFrame._deprecations
-        | frozenset(
-            [
-                "asobject",
-                "compress",
-                "valid",
-                "ftype",
-                "real",
-                "imag",
-                "put",
-                "ptp",
-                "nonzero",
-            ]
-        )
+        | frozenset(["compress", "ptp"])
     )
 
     # Override cache_readonly bc Series is mutable
     hasnans = property(
         base.IndexOpsMixin.hasnans.func, doc=base.IndexOpsMixin.hasnans.__doc__
     )
-    _data = None  # type: SingleBlockManager
+    _data: SingleBlockManager
+    div: Callable[["Series", Any], "Series"]
+    rdiv: Callable[["Series", Any], "Series"]
 
     # ----------------------------------------------------------------------
     # Constructors
@@ -283,9 +256,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             elif is_extension_array_dtype(data):
                 pass
             elif isinstance(data, (set, frozenset)):
-                raise TypeError(
-                    "{0!r} type is unordered".format(data.__class__.__name__)
-                )
+                raise TypeError(f"{repr(type(data).__name__)} type is unordered")
             elif isinstance(data, ABCSparseArray):
                 # handle sparse passed here (and force conversion)
                 data = data.to_dense()
@@ -363,32 +334,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if data and index is not None:
             s = s.reindex(index, copy=False)
         return s._data, s.index
-
-    @classmethod
-    def from_array(
-        cls, arr, index=None, name=None, dtype=None, copy=False, fastpath=False
-    ):
-        """
-        Construct Series from array.
-
-        .. deprecated:: 0.23.0
-            Use pd.Series(..) constructor instead.
-
-        Returns
-        -------
-        Series
-            Constructed Series.
-        """
-        warnings.warn(
-            "'from_array' is deprecated and will be removed in a "
-            "future version. Please use the pd.Series(..) "
-            "constructor instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return cls(
-            arr, index=index, name=name, dtype=dtype, copy=copy, fastpath=fastpath
-        )
 
     # ----------------------------------------------------------------------
 
@@ -472,42 +417,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         self.attrs["name"] = value
 
     @property
-    def ftype(self):
-        """
-        Return if the data is sparse|dense.
-
-        .. deprecated:: 0.25.0
-           Use :func:`dtype` instead.
-        """
-        warnings.warn(
-            "Series.ftype is deprecated and will "
-            "be removed in a future version. "
-            "Use Series.dtype instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-
-        return self._data.ftype
-
-    @property
-    def ftypes(self):
-        """
-        Return if the data is sparse|dense.
-
-        .. deprecated:: 0.25.0
-           Use :func:`dtypes` instead.
-        """
-        warnings.warn(
-            "Series.ftypes is deprecated and will "
-            "be removed in a future version. "
-            "Use Series.dtype instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-
-        return self._data.ftype
-
-    @property
     def values(self):
         """
         Return Series as ndarray or ndarray-like depending on the dtype.
@@ -556,46 +465,17 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return self._data.internal_values()
 
-    def get_values(self):
+    def _internal_get_values(self):
         """
         Same as values (but handles sparseness conversions); is a view.
-
-        .. deprecated:: 0.25.0
-            Use :meth:`Series.to_numpy` or :attr:`Series.array` instead.
 
         Returns
         -------
         numpy.ndarray
             Data of the Series.
         """
-        warnings.warn(
-            "The 'get_values' method is deprecated and will be removed in a "
-            "future version. Use '.to_numpy()' or '.array' instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._internal_get_values()
 
-    def _internal_get_values(self):
         return self._data.get_values()
-
-    @property
-    def asobject(self):
-        """
-        Return object Series which contains boxed values.
-
-        .. deprecated:: 0.23.0
-
-           Use ``astype(object)`` instead.
-
-        *this is an internal non-public method*
-        """
-        warnings.warn(
-            "'asobject' is deprecated. Use 'astype(object)' instead",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.astype(object).values
 
     # ops
     def ravel(self, order="C"):
@@ -636,72 +516,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         warnings.warn(msg, FutureWarning, stacklevel=2)
         nv.validate_compress(args, kwargs)
         return self[condition]
-
-    def nonzero(self):
-        """
-        Return the *integer* indices of the elements that are non-zero.
-
-        .. deprecated:: 0.24.0
-           Please use .to_numpy().nonzero() as a replacement.
-
-        This method is equivalent to calling `numpy.nonzero` on the
-        series data. For compatibility with NumPy, the return value is
-        the same (a tuple with an array of indices for each dimension),
-        but it will always be a one-item tuple because series only have
-        one dimension.
-
-        Returns
-        -------
-        numpy.ndarray
-            Indices of elements that are non-zero.
-
-        See Also
-        --------
-        numpy.nonzero
-
-        Examples
-        --------
-        >>> s = pd.Series([0, 3, 0, 4])
-        >>> s.nonzero()
-        (array([1, 3]),)
-        >>> s.iloc[s.nonzero()[0]]
-        1    3
-        3    4
-        dtype: int64
-
-        # same return although index of s is different
-        >>> s = pd.Series([0, 3, 0, 4], index=['a', 'b', 'c', 'd'])
-        >>> s.nonzero()
-        (array([1, 3]),)
-        >>> s.iloc[s.nonzero()[0]]
-        b    3
-        d    4
-        dtype: int64
-        """
-        msg = (
-            "Series.nonzero() is deprecated "
-            "and will be removed in a future version."
-            "Use Series.to_numpy().nonzero() instead"
-        )
-        warnings.warn(msg, FutureWarning, stacklevel=2)
-        return self._values.nonzero()
-
-    def put(self, *args, **kwargs):
-        """
-        Apply the `put` method to its `values` attribute if it has one.
-
-        .. deprecated:: 0.25.0
-
-        See Also
-        --------
-        numpy.ndarray.put
-        """
-        warnings.warn(
-            "`put` has been deprecated and will be removed in a future version.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        self._values.put(*args, **kwargs)
 
     def __len__(self) -> int:
         """
@@ -835,9 +649,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         inputs = tuple(extract_array(x, extract_numpy=True) for x in inputs)
         result = getattr(ufunc, method)(*inputs, **kwargs)
+
+        name: Optional[Hashable]
         if len(set(names)) == 1:
-            # we require names to be hashable, right?
-            name = names[0]  # type: Any
+            name = names[0]
         else:
             name = None
 
@@ -933,46 +748,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     # ----------------------------------------------------------------------
     # Unary Methods
-
-    @property
-    def real(self):
-        """
-        Return the real value of vector.
-
-        .. deprecated:: 0.25.0
-        """
-        warnings.warn(
-            "`real` is deprecated and will be removed in a future version. "
-            "To eliminate this warning for a Series `ser`, use "
-            "`np.real(ser.to_numpy())` or `ser.to_numpy().real`.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.values.real
-
-    @real.setter
-    def real(self, v):
-        self.values.real = v
-
-    @property
-    def imag(self):
-        """
-        Return imag value of vector.
-
-        .. deprecated:: 0.25.0
-        """
-        warnings.warn(
-            "`imag` is deprecated and will be removed in a future version. "
-            "To eliminate this warning for a Series `ser`, use "
-            "`np.imag(ser.to_numpy())` or `ser.to_numpy().imag`.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.values.imag
-
-    @imag.setter
-    def imag(self, v):
-        self.values.imag = v
 
     # coercion
     __float__ = _coerce_method(float)
@@ -1641,9 +1416,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # catch contract violations
         if not isinstance(result, str):
             raise AssertionError(
-                "result must be of type unicode, type"
-                " of result is {0!r}"
-                "".format(result.__class__.__name__)
+                "result must be of type str, type"
+                f" of result is {repr(type(result).__name__)}"
             )
 
         if buf is None:
@@ -2087,7 +1861,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             will be NA.
         *args, **kwargs
             Additional arguments and keywords have no effect but might be
-            accepted for compatability with NumPy.
+            accepted for compatibility with NumPy.
 
         Returns
         -------
@@ -3102,7 +2876,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             sortedIdx[n:] = idx[good][argsorted]
             sortedIdx[:n] = idx[bad]
         else:
-            raise ValueError("invalid na_position: {!r}".format(na_position))
+            raise ValueError(f"invalid na_position: {repr(na_position)}")
 
         result = self._constructor(arr[sortedIdx], index=self.index[sortedIdx])
 
@@ -3978,9 +3752,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             self._get_axis_number(axis)
 
         if isinstance(delegate, Categorical):
-            # TODO deprecate numeric_only argument for Categorical and use
-            # skipna as well, see GH25303
-            return delegate._reduce(name, numeric_only=numeric_only, **kwds)
+            return delegate._reduce(name, skipna=skipna, **kwds)
         elif isinstance(delegate, ExtensionArray):
             # dispatch to ExtensionArray interface
             return delegate._reduce(name, skipna=skipna, **kwds)
@@ -4470,101 +4242,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         return lmask & rmask
 
-    @Appender(generic.NDFrame.to_csv.__doc__)
-    def to_csv(self, *args, **kwargs):
-
-        names = [
-            "path_or_buf",
-            "sep",
-            "na_rep",
-            "float_format",
-            "columns",
-            "header",
-            "index",
-            "index_label",
-            "mode",
-            "encoding",
-            "compression",
-            "quoting",
-            "quotechar",
-            "line_terminator",
-            "chunksize",
-            "date_format",
-            "doublequote",
-            "escapechar",
-            "decimal",
-        ]
-
-        old_names = [
-            "path_or_buf",
-            "index",
-            "sep",
-            "na_rep",
-            "float_format",
-            "header",
-            "index_label",
-            "mode",
-            "encoding",
-            "compression",
-            "date_format",
-            "decimal",
-        ]
-
-        if "path" in kwargs:
-            warnings.warn(
-                "The signature of `Series.to_csv` was aligned "
-                "to that of `DataFrame.to_csv`, and argument "
-                "'path' will be renamed to 'path_or_buf'.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            kwargs["path_or_buf"] = kwargs.pop("path")
-
-        if len(args) > 1:
-            # Either "index" (old signature) or "sep" (new signature) is being
-            # passed as second argument (while the first is the same)
-            maybe_sep = args[1]
-
-            if not (isinstance(maybe_sep, str) and len(maybe_sep) == 1):
-                # old signature
-                warnings.warn(
-                    "The signature of `Series.to_csv` was aligned "
-                    "to that of `DataFrame.to_csv`. Note that the "
-                    "order of arguments changed, and the new one "
-                    "has 'sep' in first place, for which \"{}\" is "
-                    "not a valid value. The old order will cease to "
-                    "be supported in a future version. Please refer "
-                    "to the documentation for `DataFrame.to_csv` "
-                    "when updating your function "
-                    "calls.".format(maybe_sep),
-                    FutureWarning,
-                    stacklevel=2,
-                )
-                names = old_names
-
-        pos_args = dict(zip(names[: len(args)], args))
-
-        for key in pos_args:
-            if key in kwargs:
-                raise ValueError(
-                    "Argument given by name ('{}') and position "
-                    "({})".format(key, names.index(key))
-                )
-            kwargs[key] = pos_args[key]
-
-        if kwargs.get("header", None) is None:
-            warnings.warn(
-                "The signature of `Series.to_csv` was aligned "
-                "to that of `DataFrame.to_csv`, and argument "
-                "'header' will change its default value from False "
-                "to True: please pass an explicit value to suppress "
-                "this warning.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            kwargs["header"] = False  # Backwards compatibility.
-        return self.to_frame().to_csv(**kwargs)
-
     @Appender(generic._shared_docs["isna"] % _shared_doc_kwargs)
     def isna(self):
         return super().isna()
@@ -4668,26 +4345,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 pass
             else:
                 return self.copy()
-
-    def valid(self, inplace=False, **kwargs):
-        """
-        Return Series without null values.
-
-        .. deprecated:: 0.23.0
-            Use :meth:`Series.dropna` instead.
-
-        Returns
-        -------
-        Series
-            Series without null values.
-        """
-        warnings.warn(
-            "Method .valid will be removed in a future version. "
-            "Use .dropna instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.dropna(inplace=inplace, **kwargs)
 
     # ----------------------------------------------------------------------
     # Time series-oriented methods

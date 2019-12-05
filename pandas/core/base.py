@@ -36,7 +36,7 @@ from pandas.core.algorithms import duplicated, unique1d, value_counts
 from pandas.core.arrays import ExtensionArray
 import pandas.core.nanops as nanops
 
-_shared_docs = dict()  # type: Dict[str, str]
+_shared_docs: Dict[str, str] = dict()
 _indexops_doc_kwargs = dict(
     klass="IndexOpsMixin",
     inplace="",
@@ -51,7 +51,7 @@ class PandasObject(DirNamesMixin):
     @property
     def _constructor(self):
         """class constructor (for this class it's just `__class__`"""
-        return self.__class__
+        return type(self)
 
     def __repr__(self) -> str:
         """
@@ -114,9 +114,7 @@ class NoNewAttributesMixin:
             or key in type(self).__dict__
             or getattr(self, key, None) is not None
         ):
-            raise AttributeError(
-                "You cannot add any new attribute '{key}'".format(key=key)
-            )
+            raise AttributeError(f"You cannot add any new attribute '{key}'")
         object.__setattr__(self, key, value)
 
 
@@ -220,28 +218,22 @@ class SelectionMixin:
 
     def __getitem__(self, key):
         if self._selection is not None:
-            raise IndexError(
-                "Column(s) {selection} already selected".format(
-                    selection=self._selection
-                )
-            )
+            raise IndexError(f"Column(s) {self._selection} already selected")
 
         if isinstance(key, (list, tuple, ABCSeries, ABCIndexClass, np.ndarray)):
             if len(self.obj.columns.intersection(key)) != len(key):
                 bad_keys = list(set(key).difference(self.obj.columns))
-                raise KeyError(
-                    "Columns not found: {missing}".format(missing=str(bad_keys)[1:-1])
-                )
+                raise KeyError(f"Columns not found: {str(bad_keys)[1:-1]}")
             return self._gotitem(list(key), ndim=2)
 
         elif not getattr(self, "as_index", False):
             if key not in self.obj.columns:
-                raise KeyError("Column not found: {key}".format(key=key))
+                raise KeyError(f"Column not found: {key}")
             return self._gotitem(key, ndim=2)
 
         else:
             if key not in self.obj:
-                raise KeyError("Column not found: {key}".format(key=key))
+                raise KeyError(f"Column not found: {key}")
             return self._gotitem(key, ndim=1)
 
     def _gotitem(self, key, ndim, subset=None):
@@ -283,9 +275,7 @@ class SelectionMixin:
             # people may try to aggregate on a non-callable attribute
             # but don't let them think they can pass args to it
             assert len(args) == 0
-            assert (
-                len([kwarg for kwarg in kwargs if kwarg not in ["axis", "_level"]]) == 0
-            )
+            assert len([kwarg for kwarg in kwargs if kwarg not in ["axis"]]) == 0
             return f
 
         f = getattr(np, arg, None)
@@ -295,8 +285,7 @@ class SelectionMixin:
                 return f(self, *args, **kwargs)
 
         raise AttributeError(
-            "'{arg}' is not a valid function for "
-            "'{cls}' object".format(arg=arg, cls=type(self).__name__)
+            f"'{arg}' is not a valid function for '{type(self).__name__}' object"
         )
 
     def _aggregate(self, arg, *args, **kwargs):
@@ -324,33 +313,16 @@ class SelectionMixin:
         _axis = kwargs.pop("_axis", None)
         if _axis is None:
             _axis = getattr(self, "axis", 0)
-        _level = kwargs.pop("_level", None)
 
         if isinstance(arg, str):
             return self._try_aggregate_string_function(arg, *args, **kwargs), None
 
         if isinstance(arg, dict):
-
             # aggregate based on the passed dict
             if _axis != 0:  # pragma: no cover
                 raise ValueError("Can only pass dict with axis=0")
 
             obj = self._selected_obj
-
-            def nested_renaming_depr(level: int = 4):
-                # deprecation of nested renaming
-                # GH 15931
-                msg = textwrap.dedent(
-                    """\
-                using a dict with renaming is deprecated and will be removed
-                in a future version.
-
-                For column-specific groupby renaming, use named aggregation
-
-                    >>> df.groupby(...).agg(name=('column', aggfunc))
-                """
-                )
-                warnings.warn(msg, FutureWarning, stacklevel=level)
 
             # if we have a dict of any non-scalars
             # eg. {'A' : ['mean']}, normalize all to
@@ -374,20 +346,11 @@ class SelectionMixin:
                     # not ok
                     # {'ra' : { 'A' : 'mean' }}
                     if isinstance(v, dict):
-                        is_nested_renamer = True
-
-                        if k not in obj.columns:
-                            msg = (
-                                "cannot perform renaming for {key} with a "
-                                "nested dictionary"
-                            ).format(key=k)
-                            raise SpecificationError(msg)
-                        nested_renaming_depr(4 + (_level or 0))
-
+                        raise SpecificationError("nested renamer is not supported")
                     elif isinstance(obj, ABCSeries):
-                        nested_renaming_depr()
+                        raise SpecificationError("nested renamer is not supported")
                     elif isinstance(obj, ABCDataFrame) and k not in obj.columns:
-                        raise KeyError("Column '{col}' does not exist!".format(col=k))
+                        raise KeyError(f"Column '{k}' does not exist!")
 
                 arg = new_arg
 
@@ -398,7 +361,7 @@ class SelectionMixin:
                 if isinstance(obj, ABCDataFrame) and len(
                     obj.columns.intersection(keys)
                 ) != len(keys):
-                    nested_renaming_depr()
+                    raise SpecificationError("nested renamer is not supported")
 
             from pandas.core.reshape.concat import concat
 
@@ -411,14 +374,14 @@ class SelectionMixin:
                     raise SpecificationError(
                         "nested dictionary is ambiguous in aggregation"
                     )
-                return colg.aggregate(how, _level=(_level or 0) + 1)
+                return colg.aggregate(how)
 
             def _agg_2dim(name, how):
                 """
                 aggregate a 2-dim with how
                 """
                 colg = self._gotitem(self._selection, ndim=2, subset=obj)
-                return colg.aggregate(how, _level=None)
+                return colg.aggregate(how)
 
             def _agg(arg, func):
                 """
@@ -535,7 +498,7 @@ class SelectionMixin:
             return result, True
         elif is_list_like(arg):
             # we require a list, but not an 'str'
-            return self._aggregate_multiple_funcs(arg, _level=_level, _axis=_axis), None
+            return self._aggregate_multiple_funcs(arg, _axis=_axis), None
         else:
             result = None
 
@@ -546,7 +509,7 @@ class SelectionMixin:
         # caller can react
         return result, True
 
-    def _aggregate_multiple_funcs(self, arg, _level, _axis):
+    def _aggregate_multiple_funcs(self, arg, _axis):
         from pandas.core.reshape.concat import concat
 
         if _axis != 0:
@@ -631,7 +594,7 @@ class SelectionMixin:
 
 
 class ShallowMixin:
-    _attributes = []  # type: List[str]
+    _attributes: List[str] = []
 
     def _shallow_copy(self, obj=None, **kwargs):
         """
@@ -655,17 +618,9 @@ class IndexOpsMixin:
 
     # ndarray compatibility
     __array_priority__ = 1000
-    _deprecations = frozenset(
-        [
-            "tolist",  # tolist is not deprecated, just suppressed in the __dir__
-            "base",
-            "data",
-            "item",
-            "itemsize",
-            "flags",
-            "strides",
-        ]
-    )  # type: FrozenSet[str]
+    _deprecations: FrozenSet[str] = frozenset(
+        ["tolist", "item"]  # tolist is not deprecated, just suppressed in the __dir__
+    )
 
     def transpose(self, *args, **kwargs):
         """
@@ -736,36 +691,6 @@ class IndexOpsMixin:
         return self.values.item()
 
     @property
-    def data(self):
-        """
-        Return the data pointer of the underlying data.
-
-        .. deprecated:: 0.23.0
-        """
-        warnings.warn(
-            "{obj}.data is deprecated and will be removed "
-            "in a future version".format(obj=type(self).__name__),
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.values.data
-
-    @property
-    def itemsize(self):
-        """
-        Return the size of the dtype of the item of the underlying data.
-
-        .. deprecated:: 0.23.0
-        """
-        warnings.warn(
-            "{obj}.itemsize is deprecated and will be removed "
-            "in a future version".format(obj=type(self).__name__),
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._ndarray_values.itemsize
-
-    @property
     def nbytes(self):
         """
         Return the number of bytes in the underlying data.
@@ -773,56 +698,11 @@ class IndexOpsMixin:
         return self._values.nbytes
 
     @property
-    def strides(self):
-        """
-        Return the strides of the underlying data.
-
-        .. deprecated:: 0.23.0
-        """
-        warnings.warn(
-            "{obj}.strides is deprecated and will be removed "
-            "in a future version".format(obj=type(self).__name__),
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._ndarray_values.strides
-
-    @property
     def size(self):
         """
         Return the number of elements in the underlying data.
         """
         return len(self._values)
-
-    @property
-    def flags(self):
-        """
-        Return the ndarray.flags for the underlying data.
-
-        .. deprecated:: 0.23.0
-        """
-        warnings.warn(
-            "{obj}.flags is deprecated and will be removed "
-            "in a future version".format(obj=type(self).__name__),
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.values.flags
-
-    @property
-    def base(self):
-        """
-        Return the base object if the memory of the underlying data is shared.
-
-        .. deprecated:: 0.23.0
-        """
-        warnings.warn(
-            "{obj}.base is deprecated and will be removed "
-            "in a future version".format(obj=type(self).__name__),
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.values.base
 
     @property
     def array(self) -> ExtensionArray:
@@ -1212,9 +1092,7 @@ class IndexOpsMixin:
         func = getattr(self, name, None)
         if func is None:
             raise TypeError(
-                "{klass} cannot perform the operation {op}".format(
-                    klass=self.__class__.__name__, op=name
-                )
+                f"{type(self).__name__} cannot perform the operation {name}"
             )
         return func(skipna=skipna, **kwds)
 

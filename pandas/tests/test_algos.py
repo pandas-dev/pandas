@@ -256,7 +256,7 @@ class TestFactorize:
         # gh 19727 - check warning is raised for deprecated keyword, order.
         # Test not valid once order keyword is removed.
         data = np.array([2 ** 63, 1, 2 ** 63], dtype=np.uint64)
-        with tm.assert_produces_warning(expected_warning=FutureWarning):
+        with pytest.raises(TypeError, match="got an unexpected keyword"):
             algos.factorize(data, order=True)
         with tm.assert_produces_warning(False):
             algos.factorize(data)
@@ -767,7 +767,7 @@ class TestIsin:
         # with similar behavior, then we at least should
         # fall back to usual python's behavior: "a in [a] == True"
         class LikeNan:
-            def __eq__(self, other):
+            def __eq__(self, other) -> bool:
                 return False
 
             def __hash__(self):

@@ -29,7 +29,7 @@ from pandas.core.sorting import nargsort
 
 _not_implemented_message = "{} does not implement {}."
 
-_extension_array_shared_docs = dict()  # type: Dict[str, str]
+_extension_array_shared_docs: Dict[str, str] = dict()
 
 
 def try_cast_to_ea(cls_or_instance, obj, dtype=None):
@@ -451,7 +451,9 @@ class ExtensionArray:
         # Note: this is used in `ExtensionArray.argsort`.
         return np.array(self)
 
-    def argsort(self, ascending=True, kind="quicksort", *args, **kwargs):
+    def argsort(
+        self, ascending: bool = True, kind: str = "quicksort", *args, **kwargs
+    ) -> np.ndarray:
         """
         Return the indices that would sort this array.
 
@@ -467,7 +469,7 @@ class ExtensionArray:
 
         Returns
         -------
-        index_array : ndarray
+        ndarray
             Array of indices that sort ``self``. If NaN values are contained,
             NaN values are placed at the end.
 
@@ -923,7 +925,7 @@ class ExtensionArray:
         data = format_object_summary(
             self, self._formatter(), indent_for_name=False
         ).rstrip(", \n")
-        class_name = "<{}>\n".format(self.__class__.__name__)
+        class_name = "<{}>\n".format(type(self).__name__)
         return template.format(
             class_name=class_name, data=data, length=len(self), dtype=self.dtype
         )
@@ -1088,6 +1090,15 @@ class ExtensionOpsMixin:
         cls.__le__ = cls._create_comparison_method(operator.le)
         cls.__ge__ = cls._create_comparison_method(operator.ge)
 
+    @classmethod
+    def _add_logical_ops(cls):
+        cls.__and__ = cls._create_logical_method(operator.and_)
+        cls.__rand__ = cls._create_logical_method(ops.rand_)
+        cls.__or__ = cls._create_logical_method(operator.or_)
+        cls.__ror__ = cls._create_logical_method(ops.ror_)
+        cls.__xor__ = cls._create_logical_method(operator.xor)
+        cls.__rxor__ = cls._create_logical_method(ops.rxor)
+
 
 class ExtensionScalarOpsMixin(ExtensionOpsMixin):
     """
@@ -1189,10 +1200,9 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
 
             if op.__name__ in {"divmod", "rdivmod"}:
                 a, b = zip(*res)
-                res = _maybe_convert(a), _maybe_convert(b)
-            else:
-                res = _maybe_convert(res)
-            return res
+                return _maybe_convert(a), _maybe_convert(b)
+
+            return _maybe_convert(res)
 
         op_name = ops._get_op_name(op, True)
         return set_function_name(_binop, op_name, cls)
