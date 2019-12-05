@@ -3259,8 +3259,9 @@ def test_filepath_or_buffer_arg(
         ):
             getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
     elif encoding == "foo":
-        with pytest.raises(LookupError, match="unknown encoding"):
-            getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
+        with tm.assert_produces_warning(None):
+            with pytest.raises(LookupError, match="unknown encoding"):
+                getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
     else:
         expected = getattr(df, method)()
         getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
