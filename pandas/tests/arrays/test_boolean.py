@@ -405,9 +405,9 @@ class TestLogicalOps(BaseOpsUtil):
     def test_logical_nan_raises(self, all_logical_operators):
         op_name = all_logical_operators
         a = pd.array([True, False, None], dtype="boolean")
-        msg = ""
+        msg = "Got float instead"
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             getattr(a, op_name)(np.nan)
 
     @pytest.mark.parametrize("other", ["a", 1])
@@ -442,7 +442,9 @@ class TestLogicalOps(BaseOpsUtil):
         [
             (pd.NA, [True, None, None]),
             (True, [True, True, True]),
+            (np.bool_(True), [True, True, True]),
             (False, [True, False, None]),
+            (np.bool_(False), [True, False, None]),
         ],
     )
     def test_kleene_or_scalar(self, other, expected):
@@ -452,13 +454,16 @@ class TestLogicalOps(BaseOpsUtil):
         expected = pd.array(expected, dtype="boolean")
         tm.assert_extension_array_equal(result, expected)
 
-        result = other | a
-        tm.assert_extension_array_equal(result, expected)
+        if not isinstance(other, np.bool_):
+            # NumPy scalars don't dispatch, so they give the wrong answer.
 
-        # ensure we haven't mutated anything inplace
-        tm.assert_extension_array_equal(
-            a, pd.array([True, False, None], dtype="boolean")
-        )
+            result = other | a
+            tm.assert_extension_array_equal(result, expected)
+
+            # ensure we haven't mutated anything inplace
+            tm.assert_extension_array_equal(
+                a, pd.array([True, False, None], dtype="boolean")
+            )
 
     def test_kleene_and(self):
         # A clear test of behavior.
@@ -487,6 +492,8 @@ class TestLogicalOps(BaseOpsUtil):
             (pd.NA, [None, False, None]),
             (True, [True, False, None]),
             (False, [False, False, False]),
+            (np.bool_(True), [True, False, None]),
+            (np.bool_(False), [False, False, False]),
         ],
     )
     def test_kleene_and_scalar(self, other, expected):
@@ -495,13 +502,15 @@ class TestLogicalOps(BaseOpsUtil):
         expected = pd.array(expected, dtype="boolean")
         tm.assert_extension_array_equal(result, expected)
 
-        result = other & a
-        tm.assert_extension_array_equal(result, expected)
+        if not isinstance(other, np.bool_):
+            # NumPy scalars don't dispatch, so they give the wrong answer.
+            result = other & a
+            tm.assert_extension_array_equal(result, expected)
 
-        # ensure we haven't mutated anything inplace
-        tm.assert_extension_array_equal(
-            a, pd.array([True, False, None], dtype="boolean")
-        )
+            # ensure we haven't mutated anything inplace
+            tm.assert_extension_array_equal(
+                a, pd.array([True, False, None], dtype="boolean")
+            )
 
     def test_kleene_xor(self):
         a = pd.array([True] * 3 + [False] * 3 + [None] * 3, dtype="boolean")
@@ -528,7 +537,8 @@ class TestLogicalOps(BaseOpsUtil):
         [
             (pd.NA, [None, None, None]),
             (True, [False, True, None]),
-            (False, [True, False, None]),
+            (np.bool_(True), [False, True, None]),
+            (np.bool_(False), [True, False, None]),
         ],
     )
     def test_kleene_xor_scalar(self, other, expected):
@@ -537,13 +547,15 @@ class TestLogicalOps(BaseOpsUtil):
         expected = pd.array(expected, dtype="boolean")
         tm.assert_extension_array_equal(result, expected)
 
-        result = other ^ a
-        tm.assert_extension_array_equal(result, expected)
+        if not isinstance(other, np.bool_):
+            # NumPy scalars don't dispatch, so they give the wrong answer.
+            result = other ^ a
+            tm.assert_extension_array_equal(result, expected)
 
-        # ensure we haven't mutated anything inplace
-        tm.assert_extension_array_equal(
-            a, pd.array([True, False, None], dtype="boolean")
-        )
+            # ensure we haven't mutated anything inplace
+            tm.assert_extension_array_equal(
+                a, pd.array([True, False, None], dtype="boolean")
+            )
 
     @pytest.mark.parametrize(
         "other",

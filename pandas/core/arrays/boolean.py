@@ -583,10 +583,12 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
                         "can only perform ops with 1-d structures"
                     )
                 other, mask = coerce_to_array(other, copy=False)
+            elif isinstance(other, np.bool_):
+                other = other.item()
 
-            if other_is_scalar and not isinstance(other, (type(libmissing.NA), bool)):
+            if other_is_scalar and not (other is libmissing.NA or lib.is_bool(other)):
                 raise TypeError(
-                    "'other' should be pandas.NA or a bool. Got {} instead".format(
+                    "'other' should be pandas.NA or a bool. Got {} instead.".format(
                         type(other).__name__
                     )
                 )
@@ -595,11 +597,11 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
                 raise ValueError("Lengths must match to compare")
 
             if op.__name__ in {"or_", "ror_"}:
-                result, mask = nanops.kleene_or(self._data, other, self._mask, mask)
+                result, mask = ops.kleene_or(self._data, other, self._mask, mask)
             elif op.__name__ in {"and_", "rand_"}:
-                result, mask = nanops.kleene_and(self._data, other, self._mask, mask)
+                result, mask = ops.kleene_and(self._data, other, self._mask, mask)
             elif op.__name__ in {"xor", "rxor"}:
-                result, mask = nanops.kleene_xor(self._data, other, self._mask, mask)
+                result, mask = ops.kleene_xor(self._data, other, self._mask, mask)
 
             return BooleanArray(result, mask)
 
