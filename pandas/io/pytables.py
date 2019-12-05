@@ -2273,15 +2273,25 @@ class DataCol(IndexCol):
             for a in ["name", "cname", "dtype", "pos"]
         )
 
-    def set_data(self, data, dtype=None):
+    def set_data(self, data: Union[np.ndarray, ABCExtensionArray]):
+        assert data is not None
+
+        if is_categorical_dtype(data.dtype):
+            data = data.codes
+
+        # For datetime64tz we need to drop the TZ in tests TODO: why?
+        dtype_name = data.dtype.name.split("[")[0]
+
+        if data.dtype.kind in ["m", "M"]:
+            data = np.asarray(data.view("i8"))
+            # TODO: we used to reshape for the dt64tz case, but no longer
+            #  doing that doesnt seem to break anything.  why?
+
         self.data = data
-        if data is not None:
-            if dtype is not None:
-                self.dtype = dtype
-                self.set_kind()
-            elif self.dtype is None:
-                self.dtype = data.dtype.name
-                self.set_kind()
+
+        if self.dtype is None:
+            self.dtype = dtype_name
+            self.set_kind()
 
     def take_data(self):
         """ return the data & release the memory """
@@ -2365,12 +2375,12 @@ class DataCol(IndexCol):
         self.kind = block.dtype.name
         itemsize = int(self.kind.split("complex")[-1]) // 8
         self.typ = _tables().ComplexCol(itemsize=itemsize, shape=block.shape[0])
-        self.set_data(block.values.astype(self.typ.type, copy=False))
+        self.set_data(block.values)
 
     def set_atom_data(self, block):
         self.kind = block.dtype.name
         self.typ = self.get_atom_data(block)
-        self.set_data(block.values.astype(self.typ.type, copy=False))
+        self.set_data(block.values)
 
     def set_atom_categorical(self, block):
         # currently only supports a 1-D categorical
@@ -2386,7 +2396,7 @@ class DataCol(IndexCol):
         # write the codes; must be in a block shape
         self.ordered = values.ordered
         self.typ = self.get_atom_data(block, kind=codes.dtype.name)
-        self.set_data(codes)
+        self.set_data(block.values)
 
         # write the categories
         self.meta = "category"
@@ -2398,22 +2408,16 @@ class DataCol(IndexCol):
     def set_atom_datetime64(self, block):
         self.kind = "datetime64"
         self.typ = self.get_atom_datetime64(block)
-        values = block.values.view("i8")
-        self.set_data(values, "datetime64")
+        self.set_data(block.values)
 
     def set_atom_datetime64tz(self, block):
-
-        values = block.values
-
-        # convert this column to i8 in UTC, and save the tz
-        values = values.asi8.reshape(block.shape)
 
         # store a converted timezone
         self.tz = _get_tz(block.values.tz)
 
         self.kind = "datetime64"
         self.typ = self.get_atom_datetime64(block)
-        self.set_data(values, "datetime64")
+        self.set_data(block.values)
 
     def get_atom_timedelta64(self, block):
         return _tables().Int64Col(shape=block.shape[0])
@@ -2421,8 +2425,7 @@ class DataCol(IndexCol):
     def set_atom_timedelta64(self, block):
         self.kind = "timedelta64"
         self.typ = self.get_atom_timedelta64(block)
-        values = block.values.view("i8")
-        self.set_data(values, "timedelta64")
+        self.set_data(block.values)
 
     @property
     def shape(self):
@@ -2456,6 +2459,7 @@ class DataCol(IndexCol):
         if values.dtype.fields is not None:
             values = values[self.cname]
 
+        # NB: unlike in the other calls to set_data, self.dtype may not be None here
         self.set_data(values)
 
         # use the meta if needed
