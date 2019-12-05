@@ -1,4 +1,5 @@
 import numbers
+from typing import Union
 
 import numpy as np
 from numpy.lib.mixins import NDArrayOperatorsMixin
@@ -117,11 +118,12 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
     # pandas internals, which turns off things like block consolidation.
     _typ = "npy_extension"
     __array_priority__ = 1000
+    _ndarray: np.ndarray
 
     # ------------------------------------------------------------------------
     # Constructors
 
-    def __init__(self, values, copy=False):
+    def __init__(self, values: Union[np.ndarray, "PandasArray"], copy: bool = False):
         if isinstance(values, type(self)):
             values = values._ndarray
         if not isinstance(values, np.ndarray):
