@@ -48,8 +48,8 @@ from pandas._typing import ArrayLike, Dtype
 import pandas.core.common as com
 
 if TYPE_CHECKING:
-    from pandas.core.series import Series
-    from pandas.core.index import Index
+    from pandas.core.series import Series  # noqa: F401
+    from pandas.core.index import Index  # noqa: F401
 
 
 def array(
@@ -594,13 +594,13 @@ def is_empty_data(data: Any) -> bool:
 
 def create_series_with_explicit_dtype(
     data: Any = None,
-    index: Optional[Union[ArrayLike, Index]] = None,
+    index: Optional[Union[ArrayLike, "Index"]] = None,
     dtype: Optional[Dtype] = None,
     name: Optional[str] = None,
     copy: bool = False,
     fastpath: bool = False,
     dtype_if_empty: Dtype = object,
-) -> Series:
+) -> "Series":
     """
     Helper to pass an explicit dtype when instantiating an empty Series.
 
