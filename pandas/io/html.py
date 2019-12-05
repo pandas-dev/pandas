@@ -14,7 +14,7 @@ from pandas.errors import AbstractMethodError, EmptyDataError
 
 from pandas.core.dtypes.common import is_list_like
 
-from pandas import Series
+from pandas.core.construction import create_series_with_explicit_dtype
 
 from pandas.io.common import _is_url, _validate_header_arg, urlopen
 from pandas.io.formats.printing import pprint_thing
@@ -762,7 +762,8 @@ class _LxmlFrameParser(_HtmlFrameParser):
 
 
 def _expand_elements(body):
-    lens = Series([len(elem) for elem in body])
+    data = [len(elem) for elem in body]
+    lens = create_series_with_explicit_dtype(data, dtype_if_empty=object)
     lens_max = lens.max()
     not_max = lens[lens != lens_max]
 

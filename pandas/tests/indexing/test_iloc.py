@@ -286,7 +286,7 @@ class TestiLoc(Base):
     def test_iloc_getitem_array(self):
 
         # array like
-        s = Series(index=range(1, 4))
+        s = Series(index=range(1, 4), dtype=object)
         self.check_result(
             "iloc",
             s.index,
@@ -499,7 +499,7 @@ class TestiLoc(Base):
         tm.assert_frame_equal(result, expected)
 
         # with index-like
-        s = Series(index=range(1, 5))
+        s = Series(index=range(1, 5), dtype=object)
         result = df.iloc[s.index]
         with catch_warnings(record=True):
             filterwarnings("ignore", "\\n.ix", FutureWarning)
