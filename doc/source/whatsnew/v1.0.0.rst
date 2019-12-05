@@ -541,6 +541,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - Removed the previously deprecated ``time_rule`` keyword from (non-public) :func:`offsets.generate_range`, which has been moved to :func:`core.arrays._ranges.generate_range` (:issue:`24157`)
 - :meth:`DataFrame.loc` or :meth:`Series.loc` with listlike indexers and missing labels will no longer reindex (:issue:`17295`)
 - :meth:`DataFrame.to_excel` and :meth:`Series.to_excel` with non-existent columns will no longer reindex (:issue:`17295`)
+- :func:`concat` parameter "join_axes" has been removed, use ``reindex_like`` on the result instead (:issue:`22318`)
 - Removed the previously deprecated "by" keyword from :meth:`DataFrame.sort_index`, use :meth:`DataFrame.sort_values` instead (:issue:`10726`)
 - Removed support for nested renaming in :meth:`DataFrame.aggregate`, :meth:`Series.aggregate`, :meth:`DataFrameGroupBy.aggregate`, :meth:`SeriesGroupBy.aggregate`, :meth:`Rolling.aggregate` (:issue:`18529`)
 - Passing ``datetime64`` data to :class:`TimedeltaIndex` or ``timedelta64`` data to ``DatetimeIndex`` now raises ``TypeError`` (:issue:`23539`, :issue:`23937`)
