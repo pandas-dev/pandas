@@ -504,8 +504,8 @@ class Div(BinOp):
         The Terms or Ops in the ``/`` expression.
     """
 
-    def __init__(self, lhs, rhs, **kwargs):
-        super().__init__("/", lhs, rhs, **kwargs)
+    def __init__(self, lhs, rhs):
+        super().__init__("/", lhs, rhs)
 
         if not isnumeric(lhs.return_type) or not isnumeric(rhs.return_type):
             raise TypeError(
