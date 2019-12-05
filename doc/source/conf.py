@@ -406,12 +406,6 @@ if pattern is None:
         "statsmodels": ("http://www.statsmodels.org/devel/", None),
     }
 
-# extlinks alias
-extlinks = {
-    "issue": ("https://github.com/pandas-dev/pandas/issues/%s", "GH"),
-    "wiki": ("https://github.com/pandas-dev/pandas/wiki/%s", "wiki "),
-}
-
 
 ipython_warning_is_error = False
 ipython_exec_lines = [
