@@ -145,7 +145,8 @@ def _maybe_cache(arg, format, cache, convert_listlike):
     """
     from pandas import Series
 
-    cache_array = Series()
+    cache_array = Series(dtype=object)
+
     if cache:
         # Perform a quicker unique check
         if not should_cache(arg):
