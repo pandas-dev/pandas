@@ -1882,7 +1882,6 @@ class IndexCol:
         kind=None,
         typ=None,
         cname: Optional[str] = None,
-        itemsize=None,
         axis=None,
         pos=None,
         freq=None,
@@ -1896,7 +1895,6 @@ class IndexCol:
         self.values = values
         self.kind = kind
         self.typ = typ
-        self.itemsize = itemsize
         self.name = name
         self.cname = cname or name
         self.axis = axis
@@ -1915,6 +1913,11 @@ class IndexCol:
         #  constructor annotations.
         assert isinstance(self.name, str)
         assert isinstance(self.cname, str)
+
+    @property
+    def itemsize(self) -> int:
+        # Assumes self.typ has already been initialized
+        return self.typ.itemsize
 
     @property
     def kind_attr(self) -> str:
@@ -2270,15 +2273,25 @@ class DataCol(IndexCol):
             for a in ["name", "cname", "dtype", "pos"]
         )
 
-    def set_data(self, data, dtype=None):
+    def set_data(self, data: Union[np.ndarray, ABCExtensionArray]):
+        assert data is not None
+
+        if is_categorical_dtype(data.dtype):
+            data = data.codes
+
+        # For datetime64tz we need to drop the TZ in tests TODO: why?
+        dtype_name = data.dtype.name.split("[")[0]
+
+        if data.dtype.kind in ["m", "M"]:
+            data = np.asarray(data.view("i8"))
+            # TODO: we used to reshape for the dt64tz case, but no longer
+            #  doing that doesnt seem to break anything.  why?
+
         self.data = data
-        if data is not None:
-            if dtype is not None:
-                self.dtype = dtype
-                self.set_kind()
-            elif self.dtype is None:
-                self.dtype = data.dtype.name
-                self.set_kind()
+
+        if self.dtype is None:
+            self.dtype = dtype_name
+            self.set_kind()
 
     def take_data(self):
         """ return the data & release the memory """
@@ -2313,111 +2326,33 @@ class DataCol(IndexCol):
             if self.typ is None:
                 self.typ = getattr(self.description, self.cname, None)
 
-    def set_atom(
-        self,
-        block,
-        existing_col,
-        min_itemsize,
-        nan_rep,
-        info,
-        encoding=None,
-        errors="strict",
-    ):
+    def set_atom(self, block, itemsize: int, data_converted, use_str: bool):
         """ create and setup my atom from the block b """
 
         # short-cut certain block types
         if block.is_categorical:
             self.set_atom_categorical(block)
-            self.update_info(info)
-            return
         elif block.is_datetimetz:
             self.set_atom_datetime64tz(block)
-            self.update_info(info)
-            return
         elif block.is_datetime:
-            return self.set_atom_datetime64(block)
+            self.set_atom_datetime64(block)
         elif block.is_timedelta:
-            return self.set_atom_timedelta64(block)
+            self.set_atom_timedelta64(block)
         elif block.is_complex:
-            return self.set_atom_complex(block)
+            self.set_atom_complex(block)
 
-        dtype = block.dtype.name
-        inferred_type = lib.infer_dtype(block.values, skipna=False)
-
-        if inferred_type == "date":
-            raise TypeError("[date] is not implemented as a table column")
-        elif inferred_type == "datetime":
-            # after GH#8260
-            # this only would be hit for a multi-timezone dtype
-            # which is an error
-
-            raise TypeError(
-                "too many timezones in this block, create separate data columns"
-            )
-        elif inferred_type == "unicode":
-            raise TypeError("[unicode] is not implemented as a table column")
-
-        # this is basically a catchall; if say a datetime64 has nans then will
-        # end up here ###
-        elif inferred_type == "string" or dtype == "object":
-            self.set_atom_string(
-                block, existing_col, min_itemsize, nan_rep, encoding, errors,
-            )
-
-        # set as a data block
+        elif use_str:
+            self.set_atom_string(itemsize, data_converted)
         else:
+            # set as a data block
             self.set_atom_data(block)
 
-    def get_atom_string(self, block, itemsize):
-        return _tables().StringCol(itemsize=itemsize, shape=block.shape[0])
+    def get_atom_string(self, shape, itemsize):
+        return _tables().StringCol(itemsize=itemsize, shape=shape[0])
 
-    def set_atom_string(
-        self, block, existing_col, min_itemsize, nan_rep, encoding, errors
-    ):
-        # fill nan items with myself, don't disturb the blocks by
-        # trying to downcast
-        block = block.fillna(nan_rep, downcast=False)
-        if isinstance(block, list):
-            block = block[0]
-        data = block.values
-
-        # see if we have a valid string type
-        inferred_type = lib.infer_dtype(data.ravel(), skipna=False)
-        if inferred_type != "string":
-
-            # we cannot serialize this data, so report an exception on a column
-            # by column basis
-            for i in range(len(block.shape[0])):
-
-                col = block.iget(i)
-                inferred_type = lib.infer_dtype(col.ravel(), skipna=False)
-                if inferred_type != "string":
-                    iloc = block.mgr_locs.indexer[i]
-                    raise TypeError(
-                        f"Cannot serialize the column [{iloc}] because\n"
-                        f"its data contents are [{inferred_type}] object dtype"
-                    )
-
-        # itemsize is the maximum length of a string (along any dimension)
-        data_converted = _convert_string_array(data, encoding, errors)
-        itemsize = data_converted.itemsize
-
-        # specified min_itemsize?
-        if isinstance(min_itemsize, dict):
-            min_itemsize = int(
-                min_itemsize.get(self.name) or min_itemsize.get("values") or 0
-            )
-        itemsize = max(min_itemsize or 0, itemsize)
-
-        # check for column in the values conflicts
-        if existing_col is not None:
-            eci = existing_col.validate_col(itemsize)
-            if eci > itemsize:
-                itemsize = eci
-
-        self.itemsize = itemsize
+    def set_atom_string(self, itemsize: int, data_converted: np.ndarray):
         self.kind = "string"
-        self.typ = self.get_atom_string(block, itemsize)
+        self.typ = self.get_atom_string(data_converted.shape, itemsize)
         self.set_data(data_converted.astype(f"|S{itemsize}", copy=False))
 
     def get_atom_coltype(self, kind=None):
@@ -2440,12 +2375,12 @@ class DataCol(IndexCol):
         self.kind = block.dtype.name
         itemsize = int(self.kind.split("complex")[-1]) // 8
         self.typ = _tables().ComplexCol(itemsize=itemsize, shape=block.shape[0])
-        self.set_data(block.values.astype(self.typ.type, copy=False))
+        self.set_data(block.values)
 
     def set_atom_data(self, block):
         self.kind = block.dtype.name
         self.typ = self.get_atom_data(block)
-        self.set_data(block.values.astype(self.typ.type, copy=False))
+        self.set_data(block.values)
 
     def set_atom_categorical(self, block):
         # currently only supports a 1-D categorical
@@ -2461,7 +2396,7 @@ class DataCol(IndexCol):
         # write the codes; must be in a block shape
         self.ordered = values.ordered
         self.typ = self.get_atom_data(block, kind=codes.dtype.name)
-        self.set_data(codes)
+        self.set_data(block.values)
 
         # write the categories
         self.meta = "category"
@@ -2473,22 +2408,16 @@ class DataCol(IndexCol):
     def set_atom_datetime64(self, block):
         self.kind = "datetime64"
         self.typ = self.get_atom_datetime64(block)
-        values = block.values.view("i8")
-        self.set_data(values, "datetime64")
+        self.set_data(block.values)
 
     def set_atom_datetime64tz(self, block):
-
-        values = block.values
-
-        # convert this column to i8 in UTC, and save the tz
-        values = values.asi8.reshape(block.shape)
 
         # store a converted timezone
         self.tz = _get_tz(block.values.tz)
 
         self.kind = "datetime64"
         self.typ = self.get_atom_datetime64(block)
-        self.set_data(values, "datetime64")
+        self.set_data(block.values)
 
     def get_atom_timedelta64(self, block):
         return _tables().Int64Col(shape=block.shape[0])
@@ -2496,8 +2425,7 @@ class DataCol(IndexCol):
     def set_atom_timedelta64(self, block):
         self.kind = "timedelta64"
         self.typ = self.get_atom_timedelta64(block)
-        values = block.values.view("i8")
-        self.set_data(values, "timedelta64")
+        self.set_data(block.values)
 
     @property
     def shape(self):
@@ -2531,6 +2459,7 @@ class DataCol(IndexCol):
         if values.dtype.fields is not None:
             values = values[self.cname]
 
+        # NB: unlike in the other calls to set_data, self.dtype may not be None here
         self.set_data(values)
 
         # use the meta if needed
@@ -2621,7 +2550,7 @@ class DataIndexableCol(DataCol):
             # TODO: should the message here be more specifically non-str?
             raise ValueError("cannot have non-object label DataIndexableCol")
 
-    def get_atom_string(self, block, itemsize):
+    def get_atom_string(self, shape, itemsize):
         return _tables().StringCol(itemsize=itemsize)
 
     def get_atom_data(self, block, kind=None):
@@ -3739,15 +3668,15 @@ class Table(Fixed):
         """ return the data for this obj """
         return obj
 
-    def validate_data_columns(self, data_columns, min_itemsize):
+    def validate_data_columns(self, data_columns, min_itemsize, non_index_axes):
         """take the input data_columns and min_itemize and create a data
         columns spec
         """
 
-        if not len(self.non_index_axes):
+        if not len(non_index_axes):
             return []
 
-        axis, axis_labels = self.non_index_axes[0]
+        axis, axis_labels = non_index_axes[0]
         info = self.info.get(axis, dict())
         if info.get("type") == "MultiIndex" and data_columns:
             raise ValueError(
@@ -3832,6 +3761,7 @@ class Table(Fixed):
         else:
             existing_table = None
 
+        assert self.ndim == 2  # with next check, we must have len(axes) == 1
         # currently support on ndim-1 axes
         if len(axes) != self.ndim - 1:
             raise ValueError(
@@ -3846,63 +3776,58 @@ class Table(Fixed):
         if nan_rep is None:
             nan_rep = "nan"
 
-        # create axes to index and non_index
-        index_axes_map = dict()
-        for i, a in enumerate(obj.axes):
+        # We construct the non-index-axis first, since that alters self.info
+        idx = [x for x in [0, 1] if x not in axes][0]
 
-            if i in axes:
-                name = obj._AXIS_NAMES[i]
-                new_index = _convert_index(name, a, self.encoding, self.errors)
-                new_index.axis = i
-                index_axes_map[i] = new_index
+        a = obj.axes[idx]
+        # we might be able to change the axes on the appending data if necessary
+        append_axis = list(a)
+        if existing_table is not None:
+            indexer = len(new_non_index_axes)  # i.e. 0
+            exist_axis = existing_table.non_index_axes[indexer][1]
+            if not array_equivalent(np.array(append_axis), np.array(exist_axis)):
 
-            else:
+                # ahah! -> reindex
+                if array_equivalent(
+                    np.array(sorted(append_axis)), np.array(sorted(exist_axis))
+                ):
+                    append_axis = exist_axis
 
-                # we might be able to change the axes on the appending data if
-                # necessary
-                append_axis = list(a)
-                if existing_table is not None:
-                    indexer = len(new_non_index_axes)
-                    exist_axis = existing_table.non_index_axes[indexer][1]
-                    if not array_equivalent(
-                        np.array(append_axis), np.array(exist_axis)
-                    ):
+        # the non_index_axes info
+        info = self.info.setdefault(idx, {})
+        info["names"] = list(a.names)
+        info["type"] = type(a).__name__
 
-                        # ahah! -> reindex
-                        if array_equivalent(
-                            np.array(sorted(append_axis)), np.array(sorted(exist_axis))
-                        ):
-                            append_axis = exist_axis
+        new_non_index_axes.append((idx, append_axis))
 
-                # the non_index_axes info
-                info = _get_info(self.info, i)
-                info["names"] = list(a.names)
-                info["type"] = type(a).__name__
+        # Now we can construct our new index axis
+        idx = axes[0]
+        a = obj.axes[idx]
+        name = obj._AXIS_NAMES[idx]
+        new_index = _convert_index(name, a, self.encoding, self.errors)
+        new_index.axis = idx
 
-                new_non_index_axes.append((i, append_axis))
+        # Because we are always 2D, there is only one new_index, so
+        #  we know it will have pos=0
+        new_index.set_pos(0)
+        new_index.update_info(self.info)
+        new_index.maybe_set_size(min_itemsize)  # check for column conflicts
 
         self.non_index_axes = new_non_index_axes
 
-        # set axis positions (based on the axes)
-        new_index_axes = [index_axes_map[a] for a in axes]
-        for j, iax in enumerate(new_index_axes):
-            iax.set_pos(j)
-            iax.update_info(self.info)
-
-        j = len(new_index_axes)
-
-        # check for column conflicts
-        for a in new_index_axes:
-            a.maybe_set_size(min_itemsize=min_itemsize)
+        new_index_axes = [new_index]
+        j = len(new_index_axes)  # i.e. 1
+        assert j == 1
 
         # reindex by our non_index_axes & compute data_columns
+        assert len(new_non_index_axes) == 1
         for a in new_non_index_axes:
             obj = _reindex_axis(obj, a[0], a[1])
 
         def get_blk_items(mgr, blocks):
             return [mgr.items.take(blk.mgr_locs) for blk in blocks]
 
-        transposed = new_index_axes[0].axis == 1
+        transposed = new_index.axis == 1
 
         # figure out data_columns and get out blocks
         block_obj = self.get_object(obj, transposed)._consolidate()
@@ -3910,7 +3835,9 @@ class Table(Fixed):
         blk_items = get_blk_items(block_obj._data, blocks)
         if len(new_non_index_axes):
             axis, axis_labels = new_non_index_axes[0]
-            data_columns = self.validate_data_columns(data_columns, min_itemsize)
+            data_columns = self.validate_data_columns(
+                data_columns, min_itemsize, new_non_index_axes
+            )
             if len(data_columns):
                 mgr = block_obj.reindex(
                     Index(axis_labels).difference(Index(data_columns)), axis=axis
@@ -3976,17 +3903,26 @@ class Table(Fixed):
             else:
                 existing_col = None
 
-            col = klass.create_for_block(i=i, name=name, version=self.version)
-            col.values = list(b_items)
-            col.set_atom(
-                block=b,
+            new_name = name or f"values_block_{i}"
+            itemsize, data_converted, use_str = _maybe_convert_for_string_atom(
+                new_name,
+                b,
                 existing_col=existing_col,
                 min_itemsize=min_itemsize,
                 nan_rep=nan_rep,
                 encoding=self.encoding,
                 errors=self.errors,
-                info=self.info,
             )
+
+            col = klass.create_for_block(i=i, name=new_name, version=self.version)
+            col.values = list(b_items)
+            col.set_atom(
+                block=b,
+                itemsize=itemsize,
+                data_converted=data_converted,
+                use_str=use_str,
+            )
+            col.update_info(self.info)
             col.set_pos(j)
 
             vaxes.append(col)
@@ -3997,6 +3933,7 @@ class Table(Fixed):
         self.data_columns = new_data_columns
         self.values_axes = vaxes
         self.index_axes = new_index_axes
+        self.non_index_axes = new_non_index_axes
 
         # validate our min_itemsize
         self.validate_min_itemsize(min_itemsize)
@@ -4796,7 +4733,6 @@ def _convert_index(name: str, index: Index, encoding=None, errors="strict"):
             converted,
             "string",
             _tables().StringCol(itemsize),
-            itemsize=itemsize,
             index_name=index_name,
         )
 
@@ -4849,6 +4785,74 @@ def _unconvert_index(data, kind: str, encoding=None, errors="strict"):
     else:  # pragma: no cover
         raise ValueError(f"unrecognized index type {kind}")
     return index
+
+
+def _maybe_convert_for_string_atom(
+    name: str, block, existing_col, min_itemsize, nan_rep, encoding, errors
+):
+    use_str = False
+
+    if not block.is_object:
+        return block.dtype.itemsize, block.values, use_str
+
+    dtype_name = block.dtype.name
+    inferred_type = lib.infer_dtype(block.values, skipna=False)
+
+    if inferred_type == "date":
+        raise TypeError("[date] is not implemented as a table column")
+    elif inferred_type == "datetime":
+        # after GH#8260
+        # this only would be hit for a multi-timezone dtype which is an error
+        raise TypeError(
+            "too many timezones in this block, create separate data columns"
+        )
+
+    elif not (inferred_type == "string" or dtype_name == "object"):
+        return block.dtype.itemsize, block.values, use_str
+
+    use_str = True
+
+    block = block.fillna(nan_rep, downcast=False)
+    if isinstance(block, list):
+        # Note: because block is always object dtype, fillna goes
+        #  through a path such that the result is always a 1-element list
+        block = block[0]
+    data = block.values
+
+    # see if we have a valid string type
+    inferred_type = lib.infer_dtype(data.ravel(), skipna=False)
+    if inferred_type != "string":
+
+        # we cannot serialize this data, so report an exception on a column
+        # by column basis
+        for i in range(len(block.shape[0])):
+
+            col = block.iget(i)
+            inferred_type = lib.infer_dtype(col.ravel(), skipna=False)
+            if inferred_type != "string":
+                iloc = block.mgr_locs.indexer[i]
+                raise TypeError(
+                    f"Cannot serialize the column [{iloc}] because\n"
+                    f"its data contents are [{inferred_type}] object dtype"
+                )
+
+    # itemsize is the maximum length of a string (along any dimension)
+    data_converted = _convert_string_array(data, encoding, errors).reshape(data.shape)
+    assert data_converted.shape == block.shape, (data_converted.shape, block.shape)
+    itemsize = data_converted.itemsize
+
+    # specified min_itemsize?
+    if isinstance(min_itemsize, dict):
+        min_itemsize = int(min_itemsize.get(name) or min_itemsize.get("values") or 0)
+    itemsize = max(min_itemsize or 0, itemsize)
+
+    # check for column in the values conflicts
+    if existing_col is not None:
+        eci = existing_col.validate_col(itemsize)
+        if eci > itemsize:
+            itemsize = eci
+
+    return itemsize, data_converted, use_str
 
 
 def _convert_string_array(data, encoding, errors, itemsize=None):

@@ -405,7 +405,7 @@ class TestiLoc(Base):
         tm.assert_frame_equal(result, expected)
 
         # with index-like
-        s = Series(index=range(1, 5))
+        s = Series(index=range(1, 5), dtype=object)
         result = df.iloc[s.index]
         expected = df.loc[[2, 4, 6, 8]]
         tm.assert_frame_equal(result, expected)

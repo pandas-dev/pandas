@@ -54,7 +54,12 @@ from pandas.core.arrays import ExtensionArray, try_cast_to_ea
 from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 import pandas.core.common as com
-from pandas.core.construction import extract_array, sanitize_array
+from pandas.core.construction import (
+    create_series_with_explicit_dtype,
+    extract_array,
+    is_empty_data,
+    sanitize_array,
+)
 from pandas.core.index import (
     Float64Index,
     Index,
@@ -104,9 +109,9 @@ def _coerce_method(converter):
     def wrapper(self):
         if len(self) == 1:
             return converter(self.iloc[0])
-        raise TypeError("cannot convert the series to {0}".format(str(converter)))
+        raise TypeError(f"cannot convert the series to {converter}")
 
-    wrapper.__name__ = "__{name}__".format(name=converter.__name__)
+    wrapper.__name__ = f"__{converter.__name__}__"
     return wrapper
 
 
@@ -153,6 +158,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Copy input data.
     """
 
+    _typ = "series"
+
     _metadata: List[str] = []
     _accessors = {"dt", "cat", "str", "sparse"}
     _deprecations = (
@@ -175,7 +182,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def __init__(
         self, data=None, index=None, dtype=None, name=None, copy=False, fastpath=False
     ):
-
         # we are called internally, so short-circuit
         if fastpath:
 
@@ -188,6 +194,18 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 index = data.index
 
         else:
+
+            if is_empty_data(data) and dtype is None:
+                # gh-17261
+                warnings.warn(
+                    "The default dtype for empty Series will be 'object' instead"
+                    " of 'float64' in a future version. Specify a dtype explicitly"
+                    " to silence this warning.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+                # uncomment the line below when removing the DeprecationWarning
+                # dtype = np.dtype(object)
 
             if index is not None:
                 index = ensure_index(index)
@@ -274,8 +292,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 try:
                     if len(index) != len(data):
                         raise ValueError(
-                            "Length of passed values is {val}, "
-                            "index implies {ind}".format(val=len(data), ind=len(index))
+                            f"Length of passed values is {len(data)}, "
+                            f"index implies {len(index)}."
                         )
                 except TypeError:
                     pass
@@ -328,7 +346,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             keys, values = [], []
 
         # Input is now list-like, so rely on "standard" construction:
-        s = Series(values, index=keys, dtype=dtype)
+
+        # TODO: passing np.float64 to not break anything yet. See GH-17261
+        s = create_series_with_explicit_dtype(
+            values, index=keys, dtype=dtype, dtype_if_empty=np.float64
+        )
 
         # Now we just make sure the order is respected, if any
         if data and index is not None:
@@ -1453,7 +1475,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         --------
         >>> s = pd.Series(['A', 'B', 'C'])
         >>> for index, value in s.items():
-        ...     print("Index : {}, Value : {}".format(index, value))
+        ...     print(f"Index : {index}, Value : {value}")
         Index : 0, Value : A
         Index : 1, Value : B
         Index : 2, Value : C
@@ -2160,7 +2182,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         raise ValueError(
             "method must be either 'pearson', "
             "'spearman', 'kendall', or a callable, "
-            "'{method}' was supplied".format(method=method)
+            f"'{method}' was supplied"
         )
 
     def cov(self, other, min_periods=None):
@@ -2876,7 +2898,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             sortedIdx[n:] = idx[good][argsorted]
             sortedIdx[:n] = idx[bad]
         else:
-            raise ValueError(f"invalid na_position: {repr(na_position)}")
+            raise ValueError(f"invalid na_position: {na_position}")
 
         result = self._constructor(arr[sortedIdx], index=self.index[sortedIdx])
 
@@ -3768,7 +3790,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         elif isinstance(delegate, np.ndarray):
             if numeric_only:
                 raise NotImplementedError(
-                    "Series.{0} does not implement numeric_only.".format(name)
+                    f"Series.{name} does not implement numeric_only."
                 )
             with np.errstate(all="ignore"):
                 return op(delegate, skipna=skipna, **kwds)
@@ -4413,11 +4435,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
 
 Series._setup_axes(
-    ["index"],
-    info_axis=0,
-    stat_axis=0,
-    aliases={"rows": 0},
-    docs={"index": "The index (axis labels) of the Series."},
+    ["index"], docs={"index": "The index (axis labels) of the Series."},
 )
 Series._add_numeric_operations()
 Series._add_series_only_operations()
