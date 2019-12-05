@@ -264,7 +264,7 @@ def nargsort(items, kind="quicksort", ascending: bool = True, na_position="last"
     elif na_position == "first":
         indexer = np.concatenate([nan_idx, indexer])
     else:
-        raise ValueError(f"invalid na_position: {repr(na_position)}")
+        raise ValueError(f"invalid na_position: {na_position}")
     return indexer
 
 
