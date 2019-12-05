@@ -104,6 +104,25 @@ class TestTimeConversionFormats:
     @pytest.mark.parametrize(
         "input_s, expected",
         [
+            # strings with None
+            [
+                Series(["19801222", None, "20010112"]),
+                Series([Timestamp("19801222"), Timestamp(None), Timestamp("20010112")]),
+            ],
+            # Integers with None
+            [
+                Series([19801222, None, 20010112]),
+                Series([Timestamp("19801222"), Timestamp(None), Timestamp("20010112")]),
+            ],
+        ],
+    )
+    def test_to_datetime_format_YYYYMMDD_with_none(self, input_s, expected):
+        result = pd.to_datetime(input_s, format="%Y%m%d")
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "input_s, expected",
+        [
             # NaN before strings with invalid date values
             [
                 Series(["19801222", np.nan, "20010012", "10019999"]),
