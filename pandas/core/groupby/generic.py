@@ -1217,7 +1217,7 @@ class DataFrameGroupBy(GroupBy):
                 kwargs = v._construct_axes_dict()
                 if v._constructor is Series:
                     backup = create_series_with_explicit_dtype(
-                        **kwargs, dtype_if_empty=object
+                        dtype_if_empty=object, **kwargs
                     )
                 else:
                     backup = v._constructor(**kwargs)
