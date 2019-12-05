@@ -108,7 +108,7 @@ class TestMoments(Base):
         assert np.isnan(result).all()
 
         # empty
-        vals = pd.Series([])
+        vals = pd.Series([], dtype=object)
         result = vals.rolling(5, center=True, win_type="boxcar").mean()
         assert len(result) == 0
 
@@ -674,7 +674,7 @@ class TestMoments(Base):
 
         self._check_moment_func(np.mean, name="apply", func=f, raw=raw)
 
-        expected = Series([])
+        expected = Series([], dtype="float64")
         result = expected.rolling(10).apply(lambda x: x.mean(), raw=raw)
         tm.assert_series_equal(result, expected)
 
@@ -1193,8 +1193,10 @@ class TestMoments(Base):
                 assert not result[11:].isna().any()
 
             # check series of length 0
-            result = getattr(Series().ewm(com=50, min_periods=min_periods), name)()
-            tm.assert_series_equal(result, Series())
+            result = getattr(
+                Series(dtype=object).ewm(com=50, min_periods=min_periods), name
+            )()
+            tm.assert_series_equal(result, Series(dtype="float64"))
 
             # check series of length 1
             result = getattr(Series([1.0]).ewm(50, min_periods=min_periods), name)()
@@ -1214,7 +1216,7 @@ class TestMoments(Base):
 def _create_consistency_data():
     def create_series():
         return [
-            Series(),
+            Series(dtype=object),
             Series([np.nan]),
             Series([np.nan, np.nan]),
             Series([3.0]),
@@ -1989,8 +1991,9 @@ class TestMomentsConsistency(Base):
             assert not np.isnan(result.values[11:]).any()
 
             # check series of length 0
-            result = func(Series([]), Series([]), 50, min_periods=min_periods)
-            tm.assert_series_equal(result, Series([]))
+            empty = Series([], dtype=np.float64)
+            result = func(empty, empty, 50, min_periods=min_periods)
+            tm.assert_series_equal(result, empty)
 
             # check series of length 1
             result = func(Series([1.0]), Series([1.0]), 50, min_periods=min_periods)
@@ -2190,7 +2193,7 @@ class TestMomentsConsistency(Base):
 
     def test_moment_functions_zero_length(self):
         # GH 8056
-        s = Series()
+        s = Series(dtype=np.float64)
         s_expected = s
         df1 = DataFrame()
         df1_expected = df1
@@ -2409,7 +2412,7 @@ class TestMomentsConsistency(Base):
         # here to make this pass
         self._check_expanding(expanding_mean, np.mean, preserve_nan=False)
 
-        ser = Series([])
+        ser = Series([], dtype=np.float64)
         tm.assert_series_equal(ser, ser.expanding().apply(lambda x: x.mean(), raw=raw))
 
         # GH 8080
