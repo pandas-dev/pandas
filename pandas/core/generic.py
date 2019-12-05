@@ -721,12 +721,37 @@ class NDFrame(PandasObject, SelectionMixin):
         new_axes = self._construct_axes_dict_from(
             self, [self._get_axis(x) for x in axes_names]
         )
-        new_values = self.values.transpose(axes_numbers)
-        if kwargs.pop("copy", None) or (len(args) and args[-1]):
-            new_values = new_values.copy()
+
+        if (
+            self._is_homogeneous_type
+            and len(self._data.blocks)
+            and is_extension_array_dtype(self._data.blocks[0].dtype)
+        ):
+            kwargs.pop("copy", None)  # by definition, we're copying
+            dtype = self._data.blocks[0].dtype
+            arr_type = dtype.construct_array_type()
+
+            # Slow, but unavoidable with 1D EAs.
+            new_values = []
+            for i in range(len(self)):
+                new_values.append(
+                    arr_type._from_sequence(
+                        [block.values[i] for block in self._data.blocks], dtype=dtype
+                    )
+                )
+            columns = new_axes.pop("columns")
+            new_values = dict(zip(columns, new_values))
+            result = self._constructor(new_values, **new_axes)
+
+        else:
+            new_values = self.values.transpose(axes_numbers)
+            if kwargs.pop("copy", None) or (len(args) and args[-1]):
+                new_values = new_values.copy()
+
+            result = self._constructor(new_values, **new_axes)
 
         nv.validate_transpose(tuple(), kwargs)
-        return self._constructor(new_values, **new_axes).__finalize__(self)
+        return result.__finalize__(self)
 
     def swapaxes(self, axis1, axis2, copy=True):
         """
