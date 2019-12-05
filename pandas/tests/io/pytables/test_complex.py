@@ -9,7 +9,6 @@ import pandas as pd
 from pandas import DataFrame, Series
 from pandas.tests.io.pytables.common import ensure_clean_path, ensure_clean_store
 import pandas.util.testing as tm
-from pandas.util.testing import assert_frame_equal
 
 from pandas.io.pytables import read_hdf
 
@@ -26,7 +25,7 @@ def test_complex_fixed(setup_path):
     with ensure_clean_path(setup_path) as path:
         df.to_hdf(path, "df")
         reread = read_hdf(path, "df")
-        assert_frame_equal(df, reread)
+        tm.assert_frame_equal(df, reread)
 
     df = DataFrame(
         np.random.rand(4, 5).astype(np.complex128),
@@ -36,7 +35,7 @@ def test_complex_fixed(setup_path):
     with ensure_clean_path(setup_path) as path:
         df.to_hdf(path, "df")
         reread = read_hdf(path, "df")
-        assert_frame_equal(df, reread)
+        tm.assert_frame_equal(df, reread)
 
 
 def test_complex_table(setup_path):
@@ -49,7 +48,7 @@ def test_complex_table(setup_path):
     with ensure_clean_path(setup_path) as path:
         df.to_hdf(path, "df", format="table")
         reread = read_hdf(path, "df")
-        assert_frame_equal(df, reread)
+        tm.assert_frame_equal(df, reread)
 
     df = DataFrame(
         np.random.rand(4, 5).astype(np.complex128),
@@ -60,7 +59,7 @@ def test_complex_table(setup_path):
     with ensure_clean_path(setup_path) as path:
         df.to_hdf(path, "df", format="table", mode="w")
         reread = read_hdf(path, "df")
-        assert_frame_equal(df, reread)
+        tm.assert_frame_equal(df, reread)
 
 
 @td.xfail_non_writeable
@@ -84,7 +83,7 @@ def test_complex_mixed_fixed(setup_path):
     with ensure_clean_path(setup_path) as path:
         df.to_hdf(path, "df")
         reread = read_hdf(path, "df")
-        assert_frame_equal(df, reread)
+        tm.assert_frame_equal(df, reread)
 
 
 def test_complex_mixed_table(setup_path):
@@ -108,12 +107,12 @@ def test_complex_mixed_table(setup_path):
     with ensure_clean_store(setup_path) as store:
         store.append("df", df, data_columns=["A", "B"])
         result = store.select("df", where="A>2")
-        assert_frame_equal(df.loc[df.A > 2], result)
+        tm.assert_frame_equal(df.loc[df.A > 2], result)
 
     with ensure_clean_path(setup_path) as path:
         df.to_hdf(path, "df", format="table")
         reread = read_hdf(path, "df")
-        assert_frame_equal(df, reread)
+        tm.assert_frame_equal(df, reread)
 
 
 def test_complex_across_dimensions_fixed(setup_path):
@@ -183,4 +182,4 @@ def test_complex_append(setup_path):
         store.append("df", df, data_columns=["b"])
         store.append("df", df)
         result = store.select("df")
-        assert_frame_equal(pd.concat([df, df], 0), result)
+        tm.assert_frame_equal(pd.concat([df, df], 0), result)

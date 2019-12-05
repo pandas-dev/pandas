@@ -185,7 +185,7 @@ skip_if_has_locale = pytest.mark.skipif(
 )
 skip_if_not_us_locale = pytest.mark.skipif(
     _skip_if_not_us_locale(),
-    reason="Specific locale is set " "{lang}".format(lang=locale.getlocale()[0]),
+    reason="Specific locale is set {lang}".format(lang=locale.getlocale()[0]),
 )
 skip_if_no_scipy = pytest.mark.skipif(
     _skip_if_no_scipy(), reason="Missing SciPy requirement"
@@ -199,7 +199,7 @@ skip_if_no_ne = pytest.mark.skipif(
 
 def skip_if_np_lt(ver_str, reason=None, *args, **kwds):
     if reason is None:
-        reason = "NumPy %s or greater required" % ver_str
+        reason = f"NumPy {ver_str} or greater required"
     return pytest.mark.skipif(
         _np_version < LooseVersion(ver_str), reason=reason, *args, **kwds
     )

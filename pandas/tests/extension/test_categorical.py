@@ -93,10 +93,7 @@ class TestConstructors(base.BaseConstructorsTests):
 
 
 class TestReshaping(base.BaseReshapingTests):
-    def test_ravel(self, data):
-        # GH#27199 Categorical.ravel returns self until after deprecation cycle
-        with tm.assert_produces_warning(FutureWarning):
-            data.ravel()
+    pass
 
 
 class TestGetitem(base.BaseGetitemTests):
@@ -206,6 +203,42 @@ class TestCasting(base.BaseCastingTests):
         msg = "Cannot (cast|convert)"
         with pytest.raises((ValueError, TypeError), match=msg):
             s.astype(int)
+
+    @pytest.mark.parametrize(
+        "expected",
+        [
+            pd.Series(["2019", "2020"], dtype="datetime64[ns, UTC]"),
+            pd.Series([0, 0], dtype="timedelta64[ns]"),
+            pd.Series([pd.Period("2019"), pd.Period("2020")], dtype="period[A-DEC]"),
+            pd.Series([pd.Interval(0, 1), pd.Interval(1, 2)], dtype="interval"),
+            pd.Series([1, np.nan], dtype="Int64"),
+        ],
+    )
+    def test_cast_category_to_extension_dtype(self, expected):
+        # GH 28668
+        result = expected.astype("category").astype(expected.dtype)
+
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype, expected",
+        [
+            (
+                "datetime64[ns]",
+                np.array(["2015-01-01T00:00:00.000000000"], dtype="datetime64[ns]"),
+            ),
+            (
+                "datetime64[ns, MET]",
+                pd.DatetimeIndex(
+                    [pd.Timestamp("2015-01-01 00:00:00+0100", tz="MET")]
+                ).array,
+            ),
+        ],
+    )
+    def test_consistent_casting(self, dtype, expected):
+        # GH 28448
+        result = pd.Categorical("2015-01-01").astype(dtype)
+        assert result == expected
 
 
 class TestArithmeticOps(base.BaseArithmeticOpsTests):

@@ -12,10 +12,8 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_datetime64_ns_dtype,
     is_datetime64tz_dtype,
-    is_datetimetz,
     is_dtype_equal,
     is_interval_dtype,
-    is_period,
     is_period_dtype,
     is_string_dtype,
 )
@@ -189,7 +187,7 @@ class TestDatetimeTZDtype(Base):
 
     def test_alias_to_unit_raises(self):
         # 23990
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(ValueError, match="Passing a dtype alias"):
             DatetimeTZDtype("datetime64[ns, US/Central]")
 
     def test_alias_to_unit_bad_alias_raises(self):
@@ -294,25 +292,15 @@ class TestDatetimeTZDtype(Base):
         assert not is_datetime64tz_dtype(np.dtype("float64"))
         assert not is_datetime64tz_dtype(1.0)
 
-        with tm.assert_produces_warning(FutureWarning):
-            assert is_datetimetz(s)
-            assert is_datetimetz(s.dtype)
-            assert not is_datetimetz(np.dtype("float64"))
-            assert not is_datetimetz(1.0)
-
     def test_dst(self):
 
         dr1 = date_range("2013-01-01", periods=3, tz="US/Eastern")
         s1 = Series(dr1, name="A")
         assert is_datetime64tz_dtype(s1)
-        with tm.assert_produces_warning(FutureWarning):
-            assert is_datetimetz(s1)
 
         dr2 = date_range("2013-08-01", periods=3, tz="US/Eastern")
         s2 = Series(dr2, name="A")
         assert is_datetime64tz_dtype(s2)
-        with tm.assert_produces_warning(FutureWarning):
-            assert is_datetimetz(s2)
         assert s1.dtype == s2.dtype
 
     @pytest.mark.parametrize("tz", ["UTC", "US/Eastern"])
@@ -457,22 +445,14 @@ class TestPeriodDtype(Base):
 
         assert is_period_dtype(pidx.dtype)
         assert is_period_dtype(pidx)
-        with tm.assert_produces_warning(FutureWarning):
-            assert is_period(pidx)
 
         s = Series(pidx, name="A")
 
         assert is_period_dtype(s.dtype)
         assert is_period_dtype(s)
-        with tm.assert_produces_warning(FutureWarning):
-            assert is_period(s)
 
         assert not is_period_dtype(np.dtype("float64"))
         assert not is_period_dtype(1.0)
-        with tm.assert_produces_warning(FutureWarning):
-            assert not is_period(np.dtype("float64"))
-        with tm.assert_produces_warning(FutureWarning):
-            assert not is_period(1.0)
 
     def test_empty(self):
         dt = PeriodDtype()

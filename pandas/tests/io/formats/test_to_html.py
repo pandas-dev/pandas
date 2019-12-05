@@ -7,7 +7,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, option_context
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 import pandas.io.formats.format as fmt
 
@@ -97,6 +97,14 @@ def test_to_html_unicode(df, expected, datapath):
     expected = expected_html(datapath, expected)
     result = df.to_html()
     assert result == expected
+
+
+def test_to_html_encoding(float_frame, tmp_path):
+    # GH 28663
+    path = tmp_path / "test.html"
+    float_frame.to_html(path, encoding="gbk")
+    with open(str(path), "r", encoding="gbk") as f:
+        assert float_frame.to_html() == f.read()
 
 
 def test_to_html_decimal(datapath):
@@ -233,6 +241,15 @@ def test_to_html_truncate(datapath):
     result = df.to_html(max_rows=8, max_cols=4)
     expected = expected_html(datapath, "truncate")
     assert result == expected
+
+
+@pytest.mark.parametrize("size", [1, 5])
+def test_html_invalid_formatters_arg_raises(size):
+    # issue-28469
+    df = DataFrame(columns=["a", "b", "c"])
+    msg = "Formatters length({}) should match DataFrame number of columns(3)"
+    with pytest.raises(ValueError, match=re.escape(msg.format(size))):
+        df.to_html(formatters=["{}".format] * size)
 
 
 def test_to_html_truncate_formatter(datapath):

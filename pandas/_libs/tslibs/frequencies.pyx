@@ -197,7 +197,7 @@ cpdef _base_and_stride(str freqstr):
     groups = opattern.match(freqstr)
 
     if not groups:
-        raise ValueError("Could not evaluate {freq}".format(freq=freqstr))
+        raise ValueError(f"Could not evaluate {freqstr}")
 
     stride = groups.group(1)
 

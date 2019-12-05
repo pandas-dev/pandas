@@ -1,6 +1,5 @@
 #!/bin/bash -e
 
-
 # edit the locale file if needed
 if [ -n "$LOCALE_OVERRIDE" ]; then
     echo "Adding locale to the first line of pandas/__init__.py"
@@ -51,6 +50,7 @@ echo
 echo "update conda"
 conda config --set ssl_verify false
 conda config --set quiet true --set always_yes true --set changeps1 false
+conda install pip  # create conda to create a historical artifact for pip & setuptools
 conda update -n base conda
 
 echo "conda info -a"
@@ -110,6 +110,11 @@ conda remove pandas -y --force || true
 pip uninstall -y pandas || true
 
 echo
+echo "remove postgres if has been installed with conda"
+echo "we use the one from the CI"
+conda remove postgresql -y --force || true
+
+echo
 echo "conda list pandas"
 conda list pandas
 
@@ -118,8 +123,8 @@ conda list pandas
 echo "[Build extensions]"
 python setup.py build_ext -q -i
 
-# XXX: Some of our environments end up with old verisons of pip (10.x)
-# Adding a new enough verison of pip to the requirements explodes the
+# XXX: Some of our environments end up with old versions of pip (10.x)
+# Adding a new enough version of pip to the requirements explodes the
 # solve time. Just using pip to update itself.
 # - py35_macos
 # - py35_compat

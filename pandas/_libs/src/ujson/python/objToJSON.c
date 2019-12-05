@@ -399,22 +399,6 @@ static void *CLong(JSOBJ obj, JSONTypeContext *tc, void *outValue,
     return NULL;
 }
 
-#ifdef _LP64
-static void *PyIntToINT64(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
-                          size_t *_outLen) {
-    PyObject *obj = (PyObject *)_obj;
-    *((JSINT64 *)outValue) = PyLong_AsLong(obj);
-    return NULL;
-}
-#else
-static void *PyIntToINT32(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
-                          size_t *_outLen) {
-    PyObject *obj = (PyObject *)_obj;
-    *((JSINT32 *)outValue) = PyLong_AsLong(obj);
-    return NULL;
-}
-#endif
-
 static void *PyLongToINT64(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
                            size_t *_outLen) {
     *((JSINT64 *)outValue) = GET_TC(tc)->longValue;
@@ -1986,11 +1970,9 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         tc->type = JT_DOUBLE;
         return;
     } else if (PyArray_Check(obj) && PyArray_CheckScalar(obj)) {
-        tmpObj = PyObject_Repr(obj);
         PyErr_Format(PyExc_TypeError,
-                     "%s (0d array) is not JSON serializable at the moment",
-                     PyBytes_AS_STRING(tmpObj));
-        Py_DECREF(tmpObj);
+                     "%R (0d array) is not JSON serializable at the moment",
+                     obj);
         goto INVALID;
     }
 

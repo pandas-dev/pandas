@@ -173,7 +173,7 @@ def read_gbq(
         location=location,
         configuration=configuration,
         credentials=credentials,
-        **kwargs
+        **kwargs,
     )
 
 
