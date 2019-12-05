@@ -153,6 +153,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Copy input data.
     """
 
+    _typ = "series"
+
     _metadata: List[str] = []
     _accessors = {"dt", "cat", "str", "sparse"}
     _deprecations = (
@@ -4413,11 +4415,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
 
 Series._setup_axes(
-    ["index"],
-    info_axis=0,
-    stat_axis=0,
-    aliases={"rows": 0},
-    docs={"index": "The index (axis labels) of the Series."},
+    ["index"], docs={"index": "The index (axis labels) of the Series."},
 )
 Series._add_numeric_operations()
 Series._add_series_only_operations()
