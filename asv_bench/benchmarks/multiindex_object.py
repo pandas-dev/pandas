@@ -2,7 +2,7 @@ import string
 
 import numpy as np
 
-from pandas import DataFrame, MultiIndex, date_range
+from pandas import DataFrame, MultiIndex, RangeIndex, date_range
 import pandas.util.testing as tm
 
 
@@ -145,6 +145,18 @@ class CategoricalLevel:
 
     def time_categorical_level(self):
         self.df.set_index(["a", "b"])
+
+
+class Equals:
+    def setup(self):
+        idx_large_fast = RangeIndex(100000)
+        idx_small_slow = date_range(start="1/1/2012", periods=1)
+        self.mi_large_slow = MultiIndex.from_product([idx_large_fast, idx_small_slow])
+
+        self.idx_non_object = RangeIndex(1)
+
+    def time_equals_non_object_index(self):
+        self.mi_large_slow.equals(self.idx_non_object)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
