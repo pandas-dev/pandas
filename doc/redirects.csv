@@ -319,7 +319,6 @@ generated/pandas.DataFrame.clip_upper,../reference/api/pandas.DataFrame.clip_upp
 generated/pandas.DataFrame.columns,../reference/api/pandas.DataFrame.columns
 generated/pandas.DataFrame.combine_first,../reference/api/pandas.DataFrame.combine_first
 generated/pandas.DataFrame.combine,../reference/api/pandas.DataFrame.combine
-generated/pandas.DataFrame.compound,../reference/api/pandas.DataFrame.compound
 generated/pandas.DataFrame.convert_objects,../reference/api/pandas.DataFrame.convert_objects
 generated/pandas.DataFrame.copy,../reference/api/pandas.DataFrame.copy
 generated/pandas.DataFrame.corr,../reference/api/pandas.DataFrame.corr
@@ -950,7 +949,6 @@ generated/pandas.Series.clip_lower,../reference/api/pandas.Series.clip_lower
 generated/pandas.Series.clip_upper,../reference/api/pandas.Series.clip_upper
 generated/pandas.Series.combine_first,../reference/api/pandas.Series.combine_first
 generated/pandas.Series.combine,../reference/api/pandas.Series.combine
-generated/pandas.Series.compound,../reference/api/pandas.Series.compound
 generated/pandas.Series.compress,../reference/api/pandas.Series.compress
 generated/pandas.Series.convert_objects,../reference/api/pandas.Series.convert_objects
 generated/pandas.Series.copy,../reference/api/pandas.Series.copy
