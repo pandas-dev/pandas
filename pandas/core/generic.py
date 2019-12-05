@@ -181,7 +181,6 @@ class NDFrame(PandasObject, SelectionMixin):
     _metadata: List[str] = []
     _is_copy = None
     _data: BlockManager
-    _AXIS_NAMES: Dict[int, str]
     _attrs: Dict[Optional[Hashable], Any]
     _typ: str
 
