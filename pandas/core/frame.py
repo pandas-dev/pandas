@@ -15,6 +15,7 @@ import itertools
 import sys
 from textwrap import dedent
 from typing import (
+    Any,
     FrozenSet,
     Hashable,
     Iterable,
@@ -25,6 +26,7 @@ from typing import (
     Tuple,
     Type,
     Union,
+    cast,
 )
 import warnings
 
@@ -4192,7 +4194,7 @@ class DataFrame(NDFrame):
         inplace: bool = False,
         col_level: Hashable = 0,
         col_fill: Optional[Hashable] = "",
-    ) -> "DataFrame":
+    ) -> Optional["DataFrame"]:
         """
         Reset the index, or a level of it.
 
@@ -4220,8 +4222,8 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        DataFrame
-            DataFrame with the new index.
+        DataFrame or None
+            DataFrame with the new index or None if ``inplace=True``.
 
         See Also
         --------
@@ -4386,6 +4388,7 @@ class DataFrame(NDFrame):
                 new_index = self.index.droplevel(level)
 
         if not drop:
+            to_insert: Iterable[Tuple[Any, Optional[Any]]]
             if isinstance(self.index, ABCMultiIndex):
                 names = [
                     (n if n is not None else f"level_{i}")
@@ -4424,6 +4427,8 @@ class DataFrame(NDFrame):
         new_obj.index = new_index
         if not inplace:
             return new_obj
+
+        return None
 
     # ----------------------------------------------------------------------
     # Reindex-based selection methods
@@ -4590,7 +4595,7 @@ class DataFrame(NDFrame):
         subset: Optional[Union[Hashable, Sequence[Hashable]]] = None,
         keep: Union[str, bool] = "first",
         inplace: bool = False,
-    ) -> "DataFrame":
+    ) -> Optional["DataFrame"]:
         """
         Return DataFrame with duplicate rows removed.
 
@@ -4613,6 +4618,7 @@ class DataFrame(NDFrame):
         Returns
         -------
         DataFrame
+            DataFrame with duplicates removed or None if ``inplace=True``
         """
         if self.empty:
             return self.copy()
@@ -4626,6 +4632,8 @@ class DataFrame(NDFrame):
             self._update_inplace(new_data)
         else:
             return self[-duplicated]
+
+        return None
 
     def duplicated(
         self,
@@ -4674,6 +4682,9 @@ class DataFrame(NDFrame):
             and subset in self.columns
         ):
             subset = (subset,)
+
+        #  needed for mypy since can't narrow types using np.iterable
+        subset = cast(Iterable, subset)
 
         # Verify all columns in subset exist in the queried dataframe
         # Otherwise, raise a KeyError, same as if you try to __getitem__ with a
@@ -6024,6 +6035,8 @@ class DataFrame(NDFrame):
             raise ValueError("columns must be unique")
 
         df = self.reset_index(drop=True)
+        # TODO: use overload to refine return type of reset_index
+        assert df is not None  # needed for mypy
         result = df[column].explode()
         result = df.drop([column], axis=1).join(result)
         result.index = self.index.take(result.index)
