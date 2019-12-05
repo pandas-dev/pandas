@@ -75,8 +75,8 @@ will be completed:
    df2.all                df2.columns
    df2.any                df2.combine
    df2.append             df2.combine_first
-   df2.apply              df2.compound
-   df2.applymap           df2.consolidate
+   df2.apply              df2.consolidate
+   df2.applymap
    df2.D
 
 As you can see, the columns ``A``, ``B``, ``C``, and ``D`` are automatically
