@@ -843,7 +843,7 @@ class TestSeriesAnalytics:
         result = s.isin(s[0:2])
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("empty", [[], Series(), np.array([])])
+    @pytest.mark.parametrize("empty", [[], Series(dtype=object), np.array([])])
     def test_isin_empty(self, empty):
         # see gh-16991
         s = Series(["a", "b"])

@@ -79,7 +79,7 @@ class TestReductions:
                 assert pd.isna(getattr(obj, opname)())
                 assert pd.isna(getattr(obj, opname)(skipna=False))
 
-                obj = klass([])
+                obj = klass([], dtype=object)
                 assert pd.isna(getattr(obj, opname)())
                 assert pd.isna(getattr(obj, opname)(skipna=False))
 
@@ -528,7 +528,7 @@ class TestSeriesReductions:
         with pd.option_context("use_bottleneck", use_bottleneck):
             # GH#9422 / GH#18921
             # Entirely empty
-            s = Series([])
+            s = Series([], dtype=object)
             # NA by default
             result = getattr(s, method)()
             assert result == unit
@@ -900,7 +900,7 @@ class TestSeriesReductions:
     @pytest.mark.parametrize(
         "test_input,error_type",
         [
-            (pd.Series([]), ValueError),
+            (pd.Series([], dtype="float64"), ValueError),
             # For strings, or any Series with dtype 'O'
             (pd.Series(["foo", "bar", "baz"]), TypeError),
             (pd.Series([(1,), (2,)]), TypeError),
