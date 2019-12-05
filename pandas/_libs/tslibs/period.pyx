@@ -1209,8 +1209,8 @@ def period_format(int64_t value, int freq, object fmt=None):
         elif freq_group == 4000:  # WK
             left = period_asfreq(value, freq, 6000, 0)
             right = period_asfreq(value, freq, 6000, 1)
-            return '%s/%s' % (period_format(left, 6000),
-                              period_format(right, 6000))
+            return f'{period_format(left, 6000)}/{period_format(right, 6000)}'
+                              )
         elif (freq_group == 5000      # BUS
               or freq_group == 6000):  # DAY
             fmt = b'%Y-%m-%d'
@@ -1455,7 +1455,7 @@ def extract_ordinals(ndarray[object] values, freq):
                 ordinals[i] = p.ordinal
 
                 if p.freqstr != freqstr:
-                    msg = DIFFERENT_FREQ.format(cls="PeriodIndex",
+                    msg = DIFFERENT_FREQ(cls="PeriodIndex",
                                                 own_freq=freqstr,
                                                 other_freq=p.freqstr)
                     raise IncompatibleFrequency(msg)
@@ -1549,8 +1549,9 @@ cdef int64_t[:] localize_dt64arr_to_period(int64_t[:] stamps,
     return result
 
 
-DIFFERENT_FREQ = ("Input has different freq={other_freq} "
-                  "from {cls}(freq={own_freq})")
+
+DIFFERENT_FREQ = lambda other_freq, cls, own_freq: f"Input has different freq={other_freq} " \
+                  f"from {cls}(freq={own_freq})"
 
 
 class IncompatibleFrequency(ValueError):
@@ -1598,7 +1599,7 @@ cdef class _Period:
     def __richcmp__(self, other, op):
         if is_period_object(other):
             if other.freq != self.freq:
-                msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
+                msg = DIFFERENT_FREQ(cls=type(self).__name__,
                                             own_freq=self.freqstr,
                                             other_freq=other.freqstr)
                 raise IncompatibleFrequency(msg)
@@ -1640,7 +1641,7 @@ cdef class _Period:
             if base == self.freq.rule_code:
                 ordinal = self.ordinal + other.n
                 return Period(ordinal=ordinal, freq=self.freq)
-            msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
+            msg = DIFFERENT_FREQ(cls=type(self).__name__,
                                         own_freq=self.freqstr,
                                         other_freq=other.freqstr)
             raise IncompatibleFrequency(msg)
@@ -1684,7 +1685,7 @@ cdef class _Period:
                 return Period(ordinal=ordinal, freq=self.freq)
             elif is_period_object(other):
                 if other.freq != self.freq:
-                    msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
+                    msg = DIFFERENT_FREQ(cls=type(self).__name__,
                                                 own_freq=self.freqstr,
                                                 other_freq=other.freqstr)
                     raise IncompatibleFrequency(msg)
