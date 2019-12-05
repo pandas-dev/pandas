@@ -296,12 +296,7 @@ for old, new in moved_classes:
 
     for method in methods:
         # ... and each of its public methods
-        moved_api_pages.append(
-            (
-                "{old}.{method}".format(old=old, method=method),
-                "{new}.{method}".format(new=new, method=method),
-            )
-        )
+        moved_api_pages.append((f"{old}.{method}", f"{new}.{method}",))
 
 if pattern is None:
     html_additional_pages = {
@@ -309,7 +304,7 @@ if pattern is None:
     }
 
 
-header = """\
+header = f"""\
 .. currentmodule:: pandas
 
 .. ipython:: python
@@ -323,10 +318,8 @@ header = """\
    pd.options.display.max_rows = 15
 
    import os
-   os.chdir(r'{}')
-""".format(
-    os.path.dirname(os.path.dirname(__file__))
-)
+   os.chdir(r'{os.path.dirname(os.path.dirname(__file__))}')
+"""
 
 
 html_context = {
@@ -620,19 +613,18 @@ def linkcode_resolve(domain, info):
         lineno = None
 
     if lineno:
-        linespec = "#L{:d}-L{:d}".format(lineno, lineno + len(source) - 1)
+        linespec = f"#L{lineno}-L{lineno + len(source) - 1}"
     else:
         linespec = ""
 
     fn = os.path.relpath(fn, start=os.path.dirname(pandas.__file__))
 
     if "+" in pandas.__version__:
-        return "http://github.com/pandas-dev/pandas/blob/master/pandas/{}{}".format(
-            fn, linespec
-        )
+        return f"http://github.com/pandas-dev/pandas/blob/master/pandas/{fn}{linespec}"
     else:
-        return "http://github.com/pandas-dev/pandas/blob/v{}/pandas/{}{}".format(
-            pandas.__version__, fn, linespec
+        return (
+            f"http://github.com/pandas-dev/pandas/blob/"
+            f"v{pandas.__version__}/pandas/{fn}{linespec}"
         )
 
 
