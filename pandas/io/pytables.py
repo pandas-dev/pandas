@@ -1882,7 +1882,6 @@ class IndexCol:
         kind=None,
         typ=None,
         cname: Optional[str] = None,
-        itemsize=None,
         axis=None,
         pos=None,
         freq=None,
@@ -1896,7 +1895,6 @@ class IndexCol:
         self.values = values
         self.kind = kind
         self.typ = typ
-        self.itemsize = itemsize
         self.name = name
         self.cname = cname or name
         self.axis = axis
@@ -1915,6 +1913,11 @@ class IndexCol:
         #  constructor annotations.
         assert isinstance(self.name, str)
         assert isinstance(self.cname, str)
+
+    @property
+    def itemsize(self) -> int:
+        # Assumes self.typ has already been initialized
+        return self.typ.itemsize
 
     @property
     def kind_attr(self) -> str:
@@ -2270,15 +2273,25 @@ class DataCol(IndexCol):
             for a in ["name", "cname", "dtype", "pos"]
         )
 
-    def set_data(self, data, dtype=None):
+    def set_data(self, data: Union[np.ndarray, ABCExtensionArray]):
+        assert data is not None
+
+        if is_categorical_dtype(data.dtype):
+            data = data.codes
+
+        # For datetime64tz we need to drop the TZ in tests TODO: why?
+        dtype_name = data.dtype.name.split("[")[0]
+
+        if data.dtype.kind in ["m", "M"]:
+            data = np.asarray(data.view("i8"))
+            # TODO: we used to reshape for the dt64tz case, but no longer
+            #  doing that doesnt seem to break anything.  why?
+
         self.data = data
-        if data is not None:
-            if dtype is not None:
-                self.dtype = dtype
-                self.set_kind()
-            elif self.dtype is None:
-                self.dtype = data.dtype.name
-                self.set_kind()
+
+        if self.dtype is None:
+            self.dtype = dtype_name
+            self.set_kind()
 
     def take_data(self):
         """ return the data & release the memory """
@@ -2313,7 +2326,7 @@ class DataCol(IndexCol):
             if self.typ is None:
                 self.typ = getattr(self.description, self.cname, None)
 
-    def set_atom(self, block, itemsize: int, data_converted, use_str: bool):
+    def set_atom(self, block, data_converted, use_str: bool):
         """ create and setup my atom from the block b """
 
         # short-cut certain block types
@@ -2329,7 +2342,7 @@ class DataCol(IndexCol):
             self.set_atom_complex(block)
 
         elif use_str:
-            self.set_atom_string(itemsize, data_converted)
+            self.set_atom_string(data_converted)
         else:
             # set as a data block
             self.set_atom_data(block)
@@ -2337,11 +2350,11 @@ class DataCol(IndexCol):
     def get_atom_string(self, shape, itemsize):
         return _tables().StringCol(itemsize=itemsize, shape=shape[0])
 
-    def set_atom_string(self, itemsize: int, data_converted: np.ndarray):
-        self.itemsize = itemsize
+    def set_atom_string(self, data_converted: np.ndarray):
+        itemsize = data_converted.dtype.itemsize
         self.kind = "string"
         self.typ = self.get_atom_string(data_converted.shape, itemsize)
-        self.set_data(data_converted.astype(f"|S{itemsize}", copy=False))
+        self.set_data(data_converted)
 
     def get_atom_coltype(self, kind=None):
         """ return the PyTables column class for this column """
@@ -2363,12 +2376,12 @@ class DataCol(IndexCol):
         self.kind = block.dtype.name
         itemsize = int(self.kind.split("complex")[-1]) // 8
         self.typ = _tables().ComplexCol(itemsize=itemsize, shape=block.shape[0])
-        self.set_data(block.values.astype(self.typ.type, copy=False))
+        self.set_data(block.values)
 
     def set_atom_data(self, block):
         self.kind = block.dtype.name
         self.typ = self.get_atom_data(block)
-        self.set_data(block.values.astype(self.typ.type, copy=False))
+        self.set_data(block.values)
 
     def set_atom_categorical(self, block):
         # currently only supports a 1-D categorical
@@ -2384,7 +2397,7 @@ class DataCol(IndexCol):
         # write the codes; must be in a block shape
         self.ordered = values.ordered
         self.typ = self.get_atom_data(block, kind=codes.dtype.name)
-        self.set_data(codes)
+        self.set_data(block.values)
 
         # write the categories
         self.meta = "category"
@@ -2396,22 +2409,16 @@ class DataCol(IndexCol):
     def set_atom_datetime64(self, block):
         self.kind = "datetime64"
         self.typ = self.get_atom_datetime64(block)
-        values = block.values.view("i8")
-        self.set_data(values, "datetime64")
+        self.set_data(block.values)
 
     def set_atom_datetime64tz(self, block):
-
-        values = block.values
-
-        # convert this column to i8 in UTC, and save the tz
-        values = values.asi8.reshape(block.shape)
 
         # store a converted timezone
         self.tz = _get_tz(block.values.tz)
 
         self.kind = "datetime64"
         self.typ = self.get_atom_datetime64(block)
-        self.set_data(values, "datetime64")
+        self.set_data(block.values)
 
     def get_atom_timedelta64(self, block):
         return _tables().Int64Col(shape=block.shape[0])
@@ -2419,8 +2426,7 @@ class DataCol(IndexCol):
     def set_atom_timedelta64(self, block):
         self.kind = "timedelta64"
         self.typ = self.get_atom_timedelta64(block)
-        values = block.values.view("i8")
-        self.set_data(values, "timedelta64")
+        self.set_data(block.values)
 
     @property
     def shape(self):
@@ -2454,6 +2460,7 @@ class DataCol(IndexCol):
         if values.dtype.fields is not None:
             values = values[self.cname]
 
+        # NB: unlike in the other calls to set_data, self.dtype may not be None here
         self.set_data(values)
 
         # use the meta if needed
@@ -3662,15 +3669,15 @@ class Table(Fixed):
         """ return the data for this obj """
         return obj
 
-    def validate_data_columns(self, data_columns, min_itemsize):
+    def validate_data_columns(self, data_columns, min_itemsize, non_index_axes):
         """take the input data_columns and min_itemize and create a data
         columns spec
         """
 
-        if not len(self.non_index_axes):
+        if not len(non_index_axes):
             return []
 
-        axis, axis_labels = self.non_index_axes[0]
+        axis, axis_labels = non_index_axes[0]
         info = self.info.get(axis, dict())
         if info.get("type") == "MultiIndex" and data_columns:
             raise ValueError(
@@ -3829,7 +3836,9 @@ class Table(Fixed):
         blk_items = get_blk_items(block_obj._data, blocks)
         if len(new_non_index_axes):
             axis, axis_labels = new_non_index_axes[0]
-            data_columns = self.validate_data_columns(data_columns, min_itemsize)
+            data_columns = self.validate_data_columns(
+                data_columns, min_itemsize, new_non_index_axes
+            )
             if len(data_columns):
                 mgr = block_obj.reindex(
                     Index(axis_labels).difference(Index(data_columns)), axis=axis
@@ -3896,7 +3905,7 @@ class Table(Fixed):
                 existing_col = None
 
             new_name = name or f"values_block_{i}"
-            itemsize, data_converted, use_str = _maybe_convert_for_string_atom(
+            data_converted, use_str = _maybe_convert_for_string_atom(
                 new_name,
                 b,
                 existing_col=existing_col,
@@ -3908,12 +3917,7 @@ class Table(Fixed):
 
             col = klass.create_for_block(i=i, name=new_name, version=self.version)
             col.values = list(b_items)
-            col.set_atom(
-                block=b,
-                itemsize=itemsize,
-                data_converted=data_converted,
-                use_str=use_str,
-            )
+            col.set_atom(block=b, data_converted=data_converted, use_str=use_str)
             col.update_info(self.info)
             col.set_pos(j)
 
@@ -3925,6 +3929,7 @@ class Table(Fixed):
         self.data_columns = new_data_columns
         self.values_axes = vaxes
         self.index_axes = new_index_axes
+        self.non_index_axes = new_non_index_axes
 
         # validate our min_itemsize
         self.validate_min_itemsize(min_itemsize)
@@ -4724,7 +4729,6 @@ def _convert_index(name: str, index: Index, encoding=None, errors="strict"):
             converted,
             "string",
             _tables().StringCol(itemsize),
-            itemsize=itemsize,
             index_name=index_name,
         )
 
@@ -4785,7 +4789,7 @@ def _maybe_convert_for_string_atom(
     use_str = False
 
     if not block.is_object:
-        return block.dtype.itemsize, block.values, use_str
+        return block.values, use_str
 
     dtype_name = block.dtype.name
     inferred_type = lib.infer_dtype(block.values, skipna=False)
@@ -4800,7 +4804,7 @@ def _maybe_convert_for_string_atom(
         )
 
     elif not (inferred_type == "string" or dtype_name == "object"):
-        return block.dtype.itemsize, block.values, use_str
+        return block.values, use_str
 
     use_str = True
 
@@ -4844,7 +4848,8 @@ def _maybe_convert_for_string_atom(
         if eci > itemsize:
             itemsize = eci
 
-    return itemsize, data_converted, use_str
+    data_converted = data_converted.astype(f"|S{itemsize}", copy=False)
+    return data_converted, use_str
 
 
 def _convert_string_array(data, encoding, errors, itemsize=None):
