@@ -2326,7 +2326,7 @@ class DataCol(IndexCol):
             if self.typ is None:
                 self.typ = getattr(self.description, self.cname, None)
 
-    def set_atom(self, block, itemsize: int, data_converted, use_str: bool):
+    def set_atom(self, block, data_converted, use_str: bool):
         """ create and setup my atom from the block b """
 
         # short-cut certain block types
@@ -2342,7 +2342,7 @@ class DataCol(IndexCol):
             self.set_atom_complex(block)
 
         elif use_str:
-            self.set_atom_string(itemsize, data_converted)
+            self.set_atom_string(data_converted)
         else:
             # set as a data block
             self.set_atom_data(block)
@@ -2350,10 +2350,11 @@ class DataCol(IndexCol):
     def get_atom_string(self, shape, itemsize):
         return _tables().StringCol(itemsize=itemsize, shape=shape[0])
 
-    def set_atom_string(self, itemsize: int, data_converted: np.ndarray):
+    def set_atom_string(self, data_converted: np.ndarray):
+        itemsize = data_converted.dtype.itemsize
         self.kind = "string"
         self.typ = self.get_atom_string(data_converted.shape, itemsize)
-        self.set_data(data_converted.astype(f"|S{itemsize}", copy=False))
+        self.set_data(data_converted)
 
     def get_atom_coltype(self, kind=None):
         """ return the PyTables column class for this column """
@@ -3904,7 +3905,7 @@ class Table(Fixed):
                 existing_col = None
 
             new_name = name or f"values_block_{i}"
-            itemsize, data_converted, use_str = _maybe_convert_for_string_atom(
+            data_converted, use_str = _maybe_convert_for_string_atom(
                 new_name,
                 b,
                 existing_col=existing_col,
@@ -3916,12 +3917,7 @@ class Table(Fixed):
 
             col = klass.create_for_block(i=i, name=new_name, version=self.version)
             col.values = list(b_items)
-            col.set_atom(
-                block=b,
-                itemsize=itemsize,
-                data_converted=data_converted,
-                use_str=use_str,
-            )
+            col.set_atom(block=b, data_converted=data_converted, use_str=use_str)
             col.update_info(self.info)
             col.set_pos(j)
 
@@ -4793,7 +4789,7 @@ def _maybe_convert_for_string_atom(
     use_str = False
 
     if not block.is_object:
-        return block.dtype.itemsize, block.values, use_str
+        return block.values, use_str
 
     dtype_name = block.dtype.name
     inferred_type = lib.infer_dtype(block.values, skipna=False)
@@ -4808,7 +4804,7 @@ def _maybe_convert_for_string_atom(
         )
 
     elif not (inferred_type == "string" or dtype_name == "object"):
-        return block.dtype.itemsize, block.values, use_str
+        return block.values, use_str
 
     use_str = True
 
@@ -4852,7 +4848,8 @@ def _maybe_convert_for_string_atom(
         if eci > itemsize:
             itemsize = eci
 
-    return itemsize, data_converted, use_str
+    data_converted = data_converted.astype(f"|S{itemsize}", copy=False)
+    return data_converted, use_str
 
 
 def _convert_string_array(data, encoding, errors, itemsize=None):
