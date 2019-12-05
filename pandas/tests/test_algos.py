@@ -812,7 +812,7 @@ class TestIsin:
         result = algos.isin(comps, values)
         tm.assert_numpy_array_equal(expected, result)
 
-    @pytest.mark.parametrize("empty", [[], Series(), np.array([])])
+    @pytest.mark.parametrize("empty", [[], Series(dtype=object), np.array([])])
     def test_empty(self, empty):
         # see gh-16991
         vals = Index(["a", "b"])

@@ -114,7 +114,7 @@ class BoxPlot(LinePlot):
 
     def _make_plot(self):
         if self.subplots:
-            self._return_obj = pd.Series()
+            self._return_obj = pd.Series(dtype=object)
 
             for i, (label, y) in enumerate(self._iter_data()):
                 ax = self._get_ax(i)
@@ -405,7 +405,8 @@ def boxplot_frame_groupby(
         )
         axes = _flatten(axes)
 
-        ret = pd.Series()
+        ret = pd.Series(dtype=object)
+
         for (key, group), ax in zip(grouped, axes):
             d = group.boxplot(
                 ax=ax, column=column, fontsize=fontsize, rot=rot, grid=grid, **kwds

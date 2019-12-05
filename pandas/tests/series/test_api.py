@@ -266,7 +266,7 @@ class TestSeriesMisc:
     )
     def test_index_tab_completion(self, index):
         # dir contains string-like values of the Index.
-        s = pd.Series(index=index)
+        s = pd.Series(index=index, dtype=object)
         dir_s = dir(s)
         for i, x in enumerate(s.index.unique(level=0)):
             if i < 100:
@@ -275,7 +275,7 @@ class TestSeriesMisc:
                 assert x not in dir_s
 
     def test_not_hashable(self):
-        s_empty = Series()
+        s_empty = Series(dtype=object)
         s = Series([1])
         msg = "'Series' objects are mutable, thus they cannot be hashed"
         with pytest.raises(TypeError, match=msg):
@@ -474,10 +474,11 @@ class TestSeriesMisc:
             s.str.repeat(2)
 
     def test_empty_method(self):
-        s_empty = pd.Series()
+        s_empty = pd.Series(dtype=object)
         assert s_empty.empty
 
-        for full_series in [pd.Series([1]), pd.Series(index=[1])]:
+        s2 = pd.Series(index=[1], dtype=object)
+        for full_series in [pd.Series([1]), s2]:
             assert not full_series.empty
 
     def test_tab_complete_warning(self, ip):

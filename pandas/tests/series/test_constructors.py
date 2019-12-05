@@ -52,8 +52,10 @@ class TestSeriesConstructors:
         ],
     )
     def test_empty_constructor(self, constructor, check_index_type):
-        expected = Series()
-        result = constructor()
+        with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+            expected = Series()
+            result = constructor()
+
         assert len(result.index) == 0
         tm.assert_series_equal(result, expected, check_index_type=check_index_type)
 
@@ -76,8 +78,8 @@ class TestSeriesConstructors:
         assert int(Series([1.0])) == 1
 
     def test_constructor(self, datetime_series):
-        empty_series = Series()
-
+        with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+            empty_series = Series()
         assert datetime_series.index.is_all_dates
 
         # Pass in Series
@@ -94,7 +96,8 @@ class TestSeriesConstructors:
         assert mixed[1] is np.NaN
 
         assert not empty_series.index.is_all_dates
-        assert not Series().index.is_all_dates
+        with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+            assert not Series().index.is_all_dates
 
         # exception raised is of type Exception
         with pytest.raises(Exception, match="Data must be 1-dimensional"):
@@ -113,8 +116,9 @@ class TestSeriesConstructors:
 
     @pytest.mark.parametrize("input_class", [list, dict, OrderedDict])
     def test_constructor_empty(self, input_class):
-        empty = Series()
-        empty2 = Series(input_class())
+        with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+            empty = Series()
+            empty2 = Series(input_class())
 
         # these are Index() and RangeIndex() which don't compare type equal
         # but are just .equals
@@ -132,8 +136,9 @@ class TestSeriesConstructors:
 
         if input_class is not list:
             # With index:
-            empty = Series(index=range(10))
-            empty2 = Series(input_class(), index=range(10))
+            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+                empty = Series(index=range(10))
+                empty2 = Series(input_class(), index=range(10))
             tm.assert_series_equal(empty, empty2)
 
             # With index and dtype float64:
@@ -165,7 +170,8 @@ class TestSeriesConstructors:
         assert len(result) == 0
 
     def test_constructor_no_data_index_order(self):
-        result = pd.Series(index=["b", "a", "c"])
+        with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+            result = pd.Series(index=["b", "a", "c"])
         assert result.index.tolist() == ["b", "a", "c"]
 
     def test_constructor_no_data_string_type(self):
@@ -631,7 +637,8 @@ class TestSeriesConstructors:
         assert s._data.blocks[0].values is not index
 
     def test_constructor_pass_none(self):
-        s = Series(None, index=range(5))
+        with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+            s = Series(None, index=range(5))
         assert s.dtype == np.float64
 
         s = Series(None, index=range(5), dtype=object)
@@ -639,8 +646,9 @@ class TestSeriesConstructors:
 
         # GH 7431
         # inference on the index
-        s = Series(index=np.array([None]))
-        expected = Series(index=Index([None]))
+        with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+            s = Series(index=np.array([None]))
+            expected = Series(index=Index([None]))
         tm.assert_series_equal(s, expected)
 
     def test_constructor_pass_nan_nat(self):
@@ -1029,7 +1037,7 @@ class TestSeriesConstructors:
         pidx = tm.makePeriodIndex(100)
         d = {pidx[0]: 0, pidx[1]: 1}
         result = Series(d, index=pidx)
-        expected = Series(np.nan, pidx)
+        expected = Series(np.nan, pidx, dtype=np.float64)
         expected.iloc[0] = 0
         expected.iloc[1] = 1
         tm.assert_series_equal(result, expected)
@@ -1135,7 +1143,7 @@ class TestSeriesConstructors:
 
     def test_fromValue(self, datetime_series):
 
-        nans = Series(np.NaN, index=datetime_series.index)
+        nans = Series(np.NaN, index=datetime_series.index, dtype=np.float64)
         assert nans.dtype == np.float_
         assert len(nans) == len(datetime_series)
 

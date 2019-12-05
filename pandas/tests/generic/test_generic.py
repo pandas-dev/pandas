@@ -33,6 +33,7 @@ class Generic:
             if is_scalar(value):
                 if value == "empty":
                     arr = None
+                    dtype = np.float64
 
                     # remove the info axis
                     kwargs.pop(self._typ._info_axis_name, None)
@@ -732,13 +733,10 @@ class TestNDFrame:
         tm.assert_series_equal(df.squeeze(), df["A"])
 
         # don't fail with 0 length dimensions GH11229 & GH8999
-        empty_series = Series([], name="five")
+        empty_series = Series([], name="five", dtype=np.float64)
         empty_frame = DataFrame([empty_series])
-
-        [
-            tm.assert_series_equal(empty_series, higher_dim.squeeze())
-            for higher_dim in [empty_series, empty_frame]
-        ]
+        tm.assert_series_equal(empty_series, empty_series.squeeze())
+        tm.assert_series_equal(empty_series, empty_frame.squeeze())
 
         # axis argument
         df = tm.makeTimeDataFrame(nper=1).iloc[:, :1]
@@ -898,10 +896,10 @@ class TestNDFrame:
         # GH 8437
         a = pd.Series([False, np.nan])
         b = pd.Series([False, np.nan])
-        c = pd.Series(index=range(2))
-        d = pd.Series(index=range(2))
-        e = pd.Series(index=range(2))
-        f = pd.Series(index=range(2))
+        c = pd.Series(index=range(2), dtype=object)
+        d = c.copy()
+        e = c.copy()
+        f = c.copy()
         c[:-1] = d[:-1] = e[0] = f[0] = False
         assert a.equals(a)
         assert a.equals(b)
@@ -940,7 +938,7 @@ class TestNDFrame:
 
     @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
     def test_axis_classmethods(self, box):
-        obj = box()
+        obj = box(dtype=object)
         values = (
             list(box._AXIS_NAMES.keys())
             + list(box._AXIS_NUMBERS.keys())

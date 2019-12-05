@@ -29,7 +29,7 @@ def test_mixed_type():
 
 
 def test_empty():
-    s = pd.Series()
+    s = pd.Series(dtype=object)
     result = s.explode()
     expected = s.copy()
     tm.assert_series_equal(result, expected)

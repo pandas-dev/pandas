@@ -1,4 +1,5 @@
 from collections import OrderedDict
+import functools
 from io import StringIO
 from itertools import islice
 import os
@@ -14,6 +15,7 @@ from pandas.core.dtypes.common import ensure_str, is_period_dtype
 
 from pandas import DataFrame, MultiIndex, Series, isna, to_datetime
 from pandas._typing import JSONSerializable
+from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.reshape.concat import concat
 
 from pandas.io.common import (
@@ -1006,44 +1008,34 @@ class SeriesParser(Parser):
     _split_keys = ("name", "index", "data")
 
     def _parse_no_numpy(self):
+        data = loads(self.json, precise_float=self.precise_float)
 
-        json = self.json
-        orient = self.orient
-        if orient == "split":
-            decoded = {
-                str(k): v
-                for k, v in loads(json, precise_float=self.precise_float).items()
-            }
+        if self.orient == "split":
+            decoded = {str(k): v for k, v in data.items()}
             self.check_keys_split(decoded)
-            self.obj = Series(dtype=None, **decoded)
+            self.obj = create_series_with_explicit_dtype(**decoded)
         else:
-            self.obj = Series(loads(json, precise_float=self.precise_float), dtype=None)
+            self.obj = create_series_with_explicit_dtype(data, dtype_if_empty=object)
 
     def _parse_numpy(self):
+        load_kwargs = {
+            "dtype": None,
+            "numpy": True,
+            "precise_float": self.precise_float,
+        }
+        if self.orient in ["columns", "index"]:
+            load_kwargs["labelled"] = True
+        loads_ = functools.partial(loads, **load_kwargs)
+        data = loads_(self.json)
 
-        json = self.json
-        orient = self.orient
-        if orient == "split":
-            decoded = loads(
-                json, dtype=None, numpy=True, precise_float=self.precise_float
-            )
-            decoded = {str(k): v for k, v in decoded.items()}
+        if self.orient == "split":
+            decoded = {str(k): v for k, v in data.items()}
             self.check_keys_split(decoded)
-            self.obj = Series(**decoded)
-        elif orient == "columns" or orient == "index":
-            self.obj = Series(
-                *loads(
-                    json,
-                    dtype=None,
-                    numpy=True,
-                    labelled=True,
-                    precise_float=self.precise_float,
-                )
-            )
+            self.obj = create_series_with_explicit_dtype(**decoded)
+        elif self.orient in ["columns", "index"]:
+            self.obj = create_series_with_explicit_dtype(*data, dtype_if_empty=object)
         else:
-            self.obj = Series(
-                loads(json, dtype=None, numpy=True, precise_float=self.precise_float)
-            )
+            self.obj = create_series_with_explicit_dtype(data, dtype_if_empty=object)
 
     def _try_convert_types(self):
         if self.obj is None:

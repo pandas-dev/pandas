@@ -77,7 +77,7 @@ def test_replace(to_replace, value, result):
     tm.assert_categorical_equal(cat, expected)
 
 
-@pytest.mark.parametrize("empty", [[], pd.Series(), np.array([])])
+@pytest.mark.parametrize("empty", [[], pd.Series(dtype=object), np.array([])])
 def test_isin_empty(empty):
     s = pd.Categorical(["a", "b"])
     expected = np.array([False, False], dtype=bool)

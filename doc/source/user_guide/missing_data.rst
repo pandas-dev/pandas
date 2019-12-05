@@ -190,7 +190,7 @@ The sum of an empty or all-NA Series or column of a DataFrame is 0.
 
    pd.Series([np.nan]).sum()
 
-   pd.Series([]).sum()
+   pd.Series([], dtype="float64").sum()
 
 The product of an empty or all-NA Series or column of a DataFrame is 1.
 
@@ -198,7 +198,7 @@ The product of an empty or all-NA Series or column of a DataFrame is 1.
 
    pd.Series([np.nan]).prod()
 
-   pd.Series([]).prod()
+   pd.Series([], dtype="float64").prod()
 
 
 NA values in GroupBy

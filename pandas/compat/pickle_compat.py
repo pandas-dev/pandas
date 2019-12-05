@@ -64,7 +64,7 @@ class _LoadSparseSeries:
             stacklevel=6,
         )
 
-        return Series()
+        return Series(dtype=object)
 
 
 class _LoadSparseFrame:

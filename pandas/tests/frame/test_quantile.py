@@ -472,7 +472,7 @@ class TestDataFrameQuantile:
         df = pd.DataFrame(pd.date_range("1/1/18", periods=5))
         df.columns.name = "captain tightpants"
         result = df.quantile(0.5)
-        expected = pd.Series([], index=[], name=0.5)
+        expected = pd.Series([], index=[], name=0.5, dtype=np.float64)
         expected.index.name = "captain tightpants"
         tm.assert_series_equal(result, expected)
 

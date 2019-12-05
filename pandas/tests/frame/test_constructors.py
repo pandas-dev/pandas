@@ -25,6 +25,7 @@ from pandas import (
     date_range,
     isna,
 )
+from pandas.core.construction import create_series_with_explicit_dtype
 import pandas.util.testing as tm
 
 MIXED_FLOAT_DTYPES = ["float16", "float32", "float64"]
@@ -1216,7 +1217,9 @@ class TestDataFrameConstructors:
             OrderedDict([["a", 1.5], ["b", 3], ["c", 4]]),
             OrderedDict([["b", 3], ["c", 4], ["d", 6]]),
         ]
-        data = [Series(d) for d in data]
+        data = [
+            create_series_with_explicit_dtype(d, dtype_if_empty=object) for d in data
+        ]
 
         result = DataFrame(data)
         sdict = OrderedDict(zip(range(len(data)), data))
@@ -1226,7 +1229,7 @@ class TestDataFrameConstructors:
         result2 = DataFrame(data, index=np.arange(6))
         tm.assert_frame_equal(result, result2)
 
-        result = DataFrame([Series()])
+        result = DataFrame([Series(dtype=object)])
         expected = DataFrame(index=[0])
         tm.assert_frame_equal(result, expected)
 
@@ -1450,7 +1453,7 @@ class TestDataFrameConstructors:
             DataFrame(s, columns=[1, 2])
 
         # #2234
-        a = Series([], name="x")
+        a = Series([], name="x", dtype=object)
         df = DataFrame(a)
         assert df.columns[0] == "x"
 
@@ -2356,11 +2359,11 @@ class TestDataFrameConstructors:
 
     def test_to_frame_with_falsey_names(self):
         # GH 16114
-        result = Series(name=0).to_frame().dtypes
-        expected = Series({0: np.float64})
+        result = Series(name=0, dtype=object).to_frame().dtypes
+        expected = Series({0: object})
         tm.assert_series_equal(result, expected)
 
-        result = DataFrame(Series(name=0)).dtypes
+        result = DataFrame(Series(name=0, dtype=object)).dtypes
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", [None, "uint8", "category"])

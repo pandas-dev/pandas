@@ -72,6 +72,7 @@ from pandas.core import missing, nanops
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
 import pandas.core.common as com
+from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.index import (
     Index,
     InvalidIndexError,
@@ -6042,9 +6043,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
             if self.ndim == 1:
                 if isinstance(value, (dict, ABCSeries)):
-                    from pandas import Series
-
-                    value = Series(value)
+                    value = create_series_with_explicit_dtype(
+                        value, dtype_if_empty=object
+                    )
                 elif not is_list_like(value):
                     pass
                 else:
@@ -6996,7 +6997,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 if not is_series:
                     from pandas import Series
 
-                    return Series(index=self.columns, name=where)
+                    return Series(index=self.columns, name=where, dtype=np.float64)
                 return np.nan
 
             # It's always much faster to use a *while* loop here for

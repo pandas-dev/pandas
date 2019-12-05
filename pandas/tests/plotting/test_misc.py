@@ -34,7 +34,7 @@ def test_get_accessor_args():
 
     msg = "should not be called with positional arguments"
     with pytest.raises(TypeError, match=msg):
-        func(backend_name="", data=Series(), args=["line", None], kwargs={})
+        func(backend_name="", data=Series(dtype=object), args=["line", None], kwargs={})
 
     x, y, kind, kwargs = func(
         backend_name="",
@@ -48,7 +48,10 @@ def test_get_accessor_args():
     assert kwargs == {"grid": False}
 
     x, y, kind, kwargs = func(
-        backend_name="pandas.plotting._matplotlib", data=Series(), args=[], kwargs={}
+        backend_name="pandas.plotting._matplotlib",
+        data=Series(dtype=object),
+        args=[],
+        kwargs={},
     )
     assert x is None
     assert y is None

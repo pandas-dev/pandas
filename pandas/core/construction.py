@@ -4,7 +4,7 @@ and Index.__new__.
 
 These should not depend on core.internals.
 """
-from typing import Optional, Sequence, Union, cast
+from typing import TYPE_CHECKING, Any, Optional, Sequence, Union, cast
 
 import numpy as np
 import numpy.ma as ma
@@ -44,7 +44,12 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
+from pandas._typing import ArrayLike, Dtype
 import pandas.core.common as com
+
+if TYPE_CHECKING:
+    from pandas.core.series import Series  # noqa: F401
+    from pandas.core.index import Index  # noqa: F401
 
 
 def array(
@@ -565,3 +570,62 @@ def _try_cast(
         else:
             subarr = np.array(arr, dtype=object, copy=copy)
     return subarr
+
+
+def is_empty_data(data: Any) -> bool:
+    """
+    Utility to check if a Series is instantiated with empty data,
+    which does not contain dtype information.
+
+    Parameters
+    ----------
+    data : array-like, Iterable, dict, or scalar value
+        Contains data stored in Series.
+
+    Returns
+    -------
+    bool
+    """
+    is_none = data is None
+    is_list_like_without_dtype = is_list_like(data) and not hasattr(data, "dtype")
+    is_simple_empty = is_list_like_without_dtype and not data
+    return is_none or is_simple_empty
+
+
+def create_series_with_explicit_dtype(
+    data: Any = None,
+    index: Optional[Union[ArrayLike, "Index"]] = None,
+    dtype: Optional[Dtype] = None,
+    name: Optional[str] = None,
+    copy: bool = False,
+    fastpath: bool = False,
+    dtype_if_empty: Dtype = object,
+) -> "Series":
+    """
+    Helper to pass an explicit dtype when instantiating an empty Series.
+
+    This silences a DeprecationWarning described in GitHub-17261.
+
+    Parameters
+    ----------
+    data : Mirrored from Series.__init__
+    index : Mirrored from Series.__init__
+    dtype : Mirrored from Series.__init__
+    name : Mirrored from Series.__init__
+    copy : Mirrored from Series.__init__
+    fastpath : Mirrored from Series.__init__
+    dtype_if_empty : str, numpy.dtype, or ExtensionDtype
+        This dtype will be passed explicitly if an empty Series will
+        be instantiated.
+
+    Returns
+    -------
+    Series
+    """
+    from pandas.core.series import Series
+
+    if is_empty_data(data) and dtype is None:
+        dtype = dtype_if_empty
+    return Series(
+        data=data, index=index, dtype=dtype, name=name, copy=copy, fastpath=fastpath
+    )

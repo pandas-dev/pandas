@@ -585,9 +585,18 @@ class TestGrouping:
     @pytest.mark.parametrize(
         "func,expected",
         [
-            ("transform", pd.Series(name=2, index=pd.RangeIndex(0, 0, 1))),
-            ("agg", pd.Series(name=2, index=pd.Float64Index([], name=1))),
-            ("apply", pd.Series(name=2, index=pd.Float64Index([], name=1))),
+            (
+                "transform",
+                pd.Series(name=2, dtype=np.float64, index=pd.RangeIndex(0, 0, 1)),
+            ),
+            (
+                "agg",
+                pd.Series(name=2, dtype=np.float64, index=pd.Float64Index([], name=1)),
+            ),
+            (
+                "apply",
+                pd.Series(name=2, dtype=np.float64, index=pd.Float64Index([], name=1)),
+            ),
         ],
     )
     def test_evaluate_with_empty_groups(self, func, expected):
@@ -602,7 +611,7 @@ class TestGrouping:
 
     def test_groupby_empty(self):
         # https://github.com/pandas-dev/pandas/issues/27190
-        s = pd.Series([], name="name")
+        s = pd.Series([], name="name", dtype="float64")
         gr = s.groupby([])
 
         result = gr.mean()
@@ -731,7 +740,7 @@ class TestGetGroup:
     def test_groupby_with_empty(self):
         index = pd.DatetimeIndex(())
         data = ()
-        series = pd.Series(data, index)
+        series = pd.Series(data, index, dtype=object)
         grouper = pd.Grouper(freq="D")
         grouped = series.groupby(grouper)
         assert next(iter(grouped), None) is None

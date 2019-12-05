@@ -707,6 +707,7 @@ A ``Series`` will now correctly promote its dtype for assignment with incompat v
 
 
 .. ipython:: python
+   :okwarning:
 
    s = pd.Series()
 

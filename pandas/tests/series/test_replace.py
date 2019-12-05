@@ -245,7 +245,10 @@ class TestSeriesReplace:
         # GH 15289
         s = pd.Series(list("abcd"))
         tm.assert_series_equal(s, s.replace(dict()))
-        tm.assert_series_equal(s, s.replace(pd.Series([])))
+
+        with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+            empty_series = pd.Series([])
+        tm.assert_series_equal(s, s.replace(empty_series))
 
     def test_replace_string_with_number(self):
         # GH 15743

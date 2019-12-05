@@ -358,6 +358,7 @@ results will fit in memory, so we can safely call ``compute`` without running
 out of memory. At that point it's just a regular pandas object.
 
 .. ipython:: python
+   :okwarning:
 
    @savefig dask_resample.png
    ddf[['x', 'y']].resample("1D").mean().cumsum().compute().plot()

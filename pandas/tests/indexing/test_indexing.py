@@ -895,7 +895,7 @@ class TestMisc(Base):
         # range can cause an indexing error
         # GH 11652
         for x in [5, 999999, 1000000]:
-            s = Series(index=range(x))
+            s = Series(index=range(x), dtype=np.float64)
             s.loc[range(1)] = 42
             tm.assert_series_equal(s.loc[range(1)], Series(42.0, index=[0]))
 

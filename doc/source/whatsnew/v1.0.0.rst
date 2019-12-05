@@ -366,6 +366,23 @@ When :class:`Categorical` contains ``np.nan``,
 
    pd.Categorical([1, 2, np.nan], ordered=True).min()
 
+
+Default dtype of empty :class:`pandas.Series`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Initialising an empty :class:`pandas.Series` without specifying a dtype will raise a `DeprecationWarning` now
+(:issue:`17261`). The default dtype will change from ``float64`` to ``object`` in future releases so that it is
+consistent with the behaviour of :class:`DataFrame` and :class:`Index`.
+
+*pandas 1.0.0*
+
+.. code-block:: ipython
+
+   In [1]: pd.Series()
+   Out[2]:
+   DeprecationWarning: The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.
+   Series([], dtype: float64)
+
 .. _whatsnew_1000.api_breaking.deps:
 
 Increased minimum versions for dependencies
@@ -494,7 +511,7 @@ Removal of prior version deprecations/changes
 
 Previously, pandas would register converters with matplotlib as a side effect of importing pandas (:issue:`18720`).
 This changed the output of plots made via matplotlib plots after pandas was imported, even if you were using
-matplotlib directly rather than rather than :meth:`~DataFrame.plot`.
+matplotlib directly rather than :meth:`~DataFrame.plot`.
 
 To use pandas formatters with a matplotlib plot, specify
 

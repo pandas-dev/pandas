@@ -105,7 +105,9 @@ def test_getitem_get(datetime_series, string_series, object_series):
 
     # None
     # GH 5652
-    for s in [Series(), Series(index=list("abc"))]:
+    s1 = Series(dtype=object)
+    s2 = Series(dtype=object, index=list("abc"))
+    for s in [s1, s2]:
         result = s.get(None)
         assert result is None
 
@@ -130,7 +132,7 @@ def test_getitem_generator(string_series):
 
 def test_type_promotion():
     # GH12599
-    s = pd.Series()
+    s = pd.Series(dtype=object)
     s["a"] = pd.Timestamp("2016-01-01")
     s["b"] = 3.0
     s["c"] = "foo"
@@ -168,7 +170,7 @@ def test_getitem_out_of_bounds(datetime_series):
         datetime_series[len(datetime_series)]
 
     # GH #917
-    s = Series([])
+    s = Series([], dtype=object)
     with pytest.raises(IndexError, match=msg):
         s[-1]
 
@@ -324,12 +326,12 @@ def test_setitem(datetime_series, string_series):
 
     # Test for issue #10193
     key = pd.Timestamp("2012-01-01")
-    series = pd.Series()
+    series = pd.Series(dtype=object)
     series[key] = 47
     expected = pd.Series(47, [key])
     tm.assert_series_equal(series, expected)
 
-    series = pd.Series([], pd.DatetimeIndex([], freq="D"))
+    series = pd.Series([], pd.DatetimeIndex([], freq="D"), dtype=object)
     series[key] = 47
     expected = pd.Series(47, pd.DatetimeIndex([key], freq="D"))
     tm.assert_series_equal(series, expected)
@@ -637,7 +639,7 @@ def test_setitem_na():
 
 def test_timedelta_assignment():
     # GH 8209
-    s = Series([])
+    s = Series([], dtype=object)
     s.loc["B"] = timedelta(1)
     tm.assert_series_equal(s, Series(Timedelta("1 days"), index=["B"]))
 

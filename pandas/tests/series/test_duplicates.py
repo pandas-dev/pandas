@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import Categorical, Series
+from pandas.core.construction import create_series_with_explicit_dtype
 import pandas.util.testing as tm
 
 
@@ -70,7 +71,7 @@ def test_unique_data_ownership():
 )
 def test_is_unique(data, expected):
     # GH11946 / GH25180
-    s = Series(data)
+    s = create_series_with_explicit_dtype(data, dtype_if_empty=object)
     assert s.is_unique is expected
 
 

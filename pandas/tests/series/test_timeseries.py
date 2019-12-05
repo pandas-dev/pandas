@@ -346,10 +346,9 @@ class TestTimeSeries:
 
     def test_asfreq_datetimeindex_empty_series(self):
         # GH 14320
-        expected = Series(index=pd.DatetimeIndex(["2016-09-29 11:00"])).asfreq("H")
-        result = Series(index=pd.DatetimeIndex(["2016-09-29 11:00"]), data=[3]).asfreq(
-            "H"
-        )
+        index = pd.DatetimeIndex(["2016-09-29 11:00"])
+        expected = Series(index=index, dtype=object).asfreq("H")
+        result = Series([3], index=index.copy()).asfreq("H")
         tm.assert_index_equal(expected.index, result.index)
 
     def test_pct_change(self, datetime_series):
@@ -410,7 +409,7 @@ class TestTimeSeries:
         )
         tm.assert_series_equal(rs_freq, rs_periods)
 
-        empty_ts = Series(index=datetime_series.index)
+        empty_ts = Series(index=datetime_series.index, dtype=object)
         rs_freq = empty_ts.pct_change(freq=freq, fill_method=fill_method, limit=limit)
         rs_periods = empty_ts.pct_change(periods, fill_method=fill_method, limit=limit)
         tm.assert_series_equal(rs_freq, rs_periods)
@@ -457,12 +456,12 @@ class TestTimeSeries:
         assert ts.last_valid_index() is None
         assert ts.first_valid_index() is None
 
-        ser = Series([], index=[])
+        ser = Series([], index=[], dtype=object)
         assert ser.last_valid_index() is None
         assert ser.first_valid_index() is None
 
         # GH12800
-        empty = Series()
+        empty = Series(dtype=object)
         assert empty.last_valid_index() is None
         assert empty.first_valid_index() is None
 

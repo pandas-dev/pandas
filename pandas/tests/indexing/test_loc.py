@@ -217,7 +217,7 @@ class TestLoc(Base):
         # array like
         self.check_result(
             "loc",
-            Series(index=[0, 2, 4]).index,
+            Series(index=[0, 2, 4], dtype=object).index,
             "ix",
             [0, 2, 4],
             typs=["ints", "uints"],
@@ -225,7 +225,7 @@ class TestLoc(Base):
         )
         self.check_result(
             "loc",
-            Series(index=[3, 6, 9]).index,
+            Series(index=[3, 6, 9], dtype=object).index,
             "ix",
             [3, 6, 9],
             typs=["ints", "uints"],
@@ -282,7 +282,7 @@ class TestLoc(Base):
         # GH  7496
         # loc should not fallback
 
-        s = Series()
+        s = Series(dtype=object)
         s.loc[1] = 1
         s.loc["a"] = 2
 
@@ -794,13 +794,13 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         ]
         expected = pd.Series(vals, index=["foo", "bar"])
 
-        ser = pd.Series()
+        ser = pd.Series(dtype=object)
         ser["foo"] = vals[0]
         ser["bar"] = vals[1]
 
         tm.assert_series_equal(ser, expected)
 
-        ser = pd.Series()
+        ser = pd.Series(dtype=object)
         ser.loc["foo"] = vals[0]
         ser.loc["bar"] = vals[1]
 
@@ -1016,7 +1016,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         data = [1, 2, 3, 4, 5, 6] + [None] * 4
         expected = Series(data, index=range(2010, 2020))
 
-        result = pd.Series(index=range(2010, 2020))
+        result = pd.Series(index=range(2010, 2020), dtype=np.float64)
         result.loc[2015:2010:-1] = [6, 5, 4, 3, 2, 1]
 
         tm.assert_series_equal(result, expected)

@@ -205,7 +205,11 @@ class TestSeriesDtypes:
 
         # GH16717
         # if dtypes provided is empty, it should error
-        dt5 = dtype_class({})
+        if dtype_class is Series:
+            dt5 = dtype_class({}, dtype=object)
+        else:
+            dt5 = dtype_class({})
+
         with pytest.raises(KeyError, match=msg):
             s.astype(dt5)
 
@@ -408,7 +412,8 @@ class TestSeriesDtypes:
             "m",  # Generic timestamps raise a ValueError. Already tested.
         ):
             init_empty = Series([], dtype=dtype)
-            as_type_empty = Series([]).astype(dtype)
+            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+                as_type_empty = Series([]).astype(dtype)
             tm.assert_series_equal(init_empty, as_type_empty)
 
     def test_arg_for_errors_in_astype(self):
@@ -472,7 +477,9 @@ class TestSeriesDtypes:
         tm.assert_series_equal(actual, expected)
 
     def test_is_homogeneous_type(self):
-        assert Series()._is_homogeneous_type
+        with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+            empty = Series()
+        assert empty._is_homogeneous_type
         assert Series([1, 2])._is_homogeneous_type
         assert Series(pd.Categorical([1, 2]))._is_homogeneous_type
 

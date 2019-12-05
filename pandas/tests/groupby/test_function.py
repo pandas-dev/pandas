@@ -1047,7 +1047,7 @@ def test_nunique_with_object():
 
 def test_nunique_with_empty_series():
     # GH 12553
-    data = pd.Series(name="name")
+    data = pd.Series(name="name", dtype=object)
     result = data.groupby(level=0).nunique()
     expected = pd.Series(name="name", dtype="int64")
     tm.assert_series_equal(result, expected)

@@ -589,7 +589,7 @@ class TestIndexOps(Ops):
             tm.assert_numpy_array_equal(s.unique(), exp)
         assert s.nunique() == 3
 
-        s = klass({})
+        s = klass({}) if klass is dict else klass({}, dtype=object)
         expected = Series([], dtype=np.int64)
         tm.assert_series_equal(s.value_counts(), expected, check_index_type=False)
         # returned dtype differs depending on original

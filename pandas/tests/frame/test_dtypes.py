@@ -656,8 +656,8 @@ class TestDataFrameDataTypes:
         # GH 16717
         # if dtypes provided is empty, the resulting DataFrame
         # should be the same as the original DataFrame
-        dt7 = dtype_class({})
-        result = df.astype(dt7)
+        dt7 = dtype_class({}) if dtype_class is dict else dtype_class({}, dtype=object)
+        equiv = df.astype(dt7)
         tm.assert_frame_equal(df, equiv)
         tm.assert_frame_equal(df, original)
 
