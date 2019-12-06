@@ -275,7 +275,7 @@ class _KeyMapper:
     Ease my suffering. Map compressed group id -> key tuple
     """
 
-    def __init__(self, comp_ids, ngroups: int, levels, labels) -> None:
+    def __init__(self, comp_ids, ngroups: int, levels, labels):
         self.levels = levels
         self.labels = labels
         self.comp_ids = comp_ids.astype(np.int64)
