@@ -2334,7 +2334,7 @@ class DataCol(IndexCol):
             if self.typ is None:
                 self.typ = getattr(self.description, self.cname, None)
 
-    def set_atom(self, block, data_converted, use_str: bool):
+    def set_atom(self, block):
         """ create and setup my atom from the block b """
 
         # short-cut certain block types
@@ -2342,18 +2342,6 @@ class DataCol(IndexCol):
             self.set_atom_categorical(block)
         elif block.is_datetimetz:
             self.set_atom_datetime64tz(block)
-        elif block.is_datetime:
-            self.set_atom_datetime64(block)
-        elif block.is_timedelta:
-            self.set_atom_timedelta64(block)
-        elif block.is_complex:
-            self.set_atom_complex(block)
-
-        elif use_str:
-            self.set_atom_string(data_converted)
-        else:
-            # set as a data block
-            self.set_atom_data(block)
 
     @classmethod
     def _get_atom(cls, values: Union[np.ndarray, ABCExtensionArray]) -> "Col":
@@ -2391,10 +2379,6 @@ class DataCol(IndexCol):
     def get_atom_string(cls, shape, itemsize):
         return _tables().StringCol(itemsize=itemsize, shape=shape[0])
 
-    def set_atom_string(self, data_converted: np.ndarray):
-        self.kind = "string"
-        self.set_data(data_converted)
-
     @classmethod
     def get_atom_coltype(cls, kind: str) -> Type["Col"]:
         """ return the PyTables column class for this column """
@@ -2411,59 +2395,34 @@ class DataCol(IndexCol):
     def get_atom_data(cls, shape, kind: str) -> "Col":
         return cls.get_atom_coltype(kind=kind)(shape=shape[0])
 
-    def set_atom_complex(self, block):
-        self.kind = block.dtype.name
-        self.set_data(block.values)
-
-    def set_atom_data(self, block):
-        self.kind = block.dtype.name
-        self.set_data(block.values)
-
     def set_atom_categorical(self, block):
         # currently only supports a 1-D categorical
         # in a 1-D block
 
         values = block.values
-        codes = values.codes
 
         if values.ndim > 1:
             raise NotImplementedError("only support 1-d categoricals")
 
-        assert codes.dtype.name.startswith("int"), codes.dtype.name
-
         # write the codes; must be in a block shape
         self.ordered = values.ordered
-        self.set_data(block.values)
 
         # write the categories
         self.meta = "category"
-        self.metadata = np.array(block.values.categories, copy=False).ravel()
-        assert self.kind == "integer", self.kind
-        assert self.dtype == codes.dtype.name, codes.dtype.name
+        self.metadata = np.array(values.categories, copy=False).ravel()
 
     @classmethod
     def get_atom_datetime64(cls, shape):
         return _tables().Int64Col(shape=shape[0])
-
-    def set_atom_datetime64(self, block):
-        self.kind = "datetime64"
-        self.set_data(block.values)
 
     def set_atom_datetime64tz(self, block):
 
         # store a converted timezone
         self.tz = _get_tz(block.values.tz)
 
-        self.kind = "datetime64"
-        self.set_data(block.values)
-
     @classmethod
     def get_atom_timedelta64(cls, shape):
         return _tables().Int64Col(shape=shape[0])
-
-    def set_atom_timedelta64(self, block):
-        self.kind = "timedelta64"
-        self.set_data(block.values)
 
     @property
     def shape(self):
@@ -3946,7 +3905,7 @@ class Table(Fixed):
                 existing_col = None
 
             new_name = name or f"values_block_{i}"
-            data_converted, use_str = _maybe_convert_for_string_atom(
+            data_converted = _maybe_convert_for_string_atom(
                 new_name,
                 b,
                 existing_col=existing_col,
@@ -3961,7 +3920,8 @@ class Table(Fixed):
             col = klass.create_for_block(i=i, name=new_name, version=self.version)
             col.values = list(b_items)
             col.typ = typ
-            col.set_atom(block=b, data_converted=data_converted, use_str=use_str)
+            col.set_atom(block=b)
+            col.set_data(data_converted)
             col.update_info(self.info)
             col.set_pos(j)
 
@@ -4830,10 +4790,9 @@ def _unconvert_index(data, kind: str, encoding=None, errors="strict"):
 def _maybe_convert_for_string_atom(
     name: str, block, existing_col, min_itemsize, nan_rep, encoding, errors
 ):
-    use_str = False
 
     if not block.is_object:
-        return block.values, use_str
+        return block.values
 
     dtype_name = block.dtype.name
     inferred_type = lib.infer_dtype(block.values, skipna=False)
@@ -4848,9 +4807,7 @@ def _maybe_convert_for_string_atom(
         )
 
     elif not (inferred_type == "string" or dtype_name == "object"):
-        return block.values, use_str
-
-    use_str = True
+        return block.values
 
     block = block.fillna(nan_rep, downcast=False)
     if isinstance(block, list):
@@ -4893,7 +4850,7 @@ def _maybe_convert_for_string_atom(
             itemsize = eci
 
     data_converted = data_converted.astype(f"|S{itemsize}", copy=False)
-    return data_converted, use_str
+    return data_converted
 
 
 def _convert_string_array(data, encoding, errors, itemsize=None):
