@@ -156,7 +156,7 @@ type dedicated to boolean data that can hold missing values. With the default
 ``'bool`` data type based on a numpy bool array, the column can only hold
 True or False values and not missing values. This new :class:`BooleanDtype`
 can store missing values as well by keeping track of this in a separate mask.
-(:issue:`29555`)
+(:issue:`29555`, :issue:`30095`)
 
 .. ipython:: python
 
