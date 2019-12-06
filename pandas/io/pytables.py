@@ -65,7 +65,7 @@ from pandas.io.common import _stringify_path
 from pandas.io.formats.printing import adjoin, pprint_thing
 
 if TYPE_CHECKING:
-    from tables import File, Node  # noqa:F401
+    from tables import File, Node, Col  # noqa:F401
 
 
 # versioning attribute
@@ -1092,6 +1092,9 @@ class HDFStore:
         except KeyError:
             # the key is not a valid store, re-raising KeyError
             raise
+        except AssertionError:
+            # surface any assertion errors for e.g. debugging
+            raise
         except Exception:
             # In tests we get here with ClosedFileError, TypeError, and
             #  _table_mod.NoSuchNodeError.  TODO: Catch only these?
@@ -1519,6 +1522,9 @@ class HDFStore:
                         if s is not None:
                             keys.append(pprint_thing(s.pathname or k))
                             values.append(pprint_thing(s or "invalid_HDFStore node"))
+                    except AssertionError:
+                        # surface any assertion errors for e.g. debugging
+                        raise
                     except Exception as detail:
                         keys.append(k)
                         dstr = pprint_thing(detail)
@@ -1680,7 +1686,7 @@ class HDFStore:
             self._handle.remove_node(group, recursive=True)
             group = None
 
-        # we don't want to store a table node at all if are object is 0-len
+        # we don't want to store a table node at all if our object is 0-len
         # as there are not dtypes
         if getattr(value, "empty", None) and (format == "table" or append):
             return
@@ -2356,11 +2362,9 @@ class DataCol(IndexCol):
         self.typ = self.get_atom_string(data_converted.shape, itemsize)
         self.set_data(data_converted)
 
-    def get_atom_coltype(self, kind=None):
+    def get_atom_coltype(self, kind: str) -> Type["Col"]:
         """ return the PyTables column class for this column """
-        if kind is None:
-            kind = self.kind
-        if self.kind.startswith("uint"):
+        if kind.startswith("uint"):
             k4 = kind[4:]
             col_name = f"UInt{k4}Col"
         else:
@@ -2369,8 +2373,8 @@ class DataCol(IndexCol):
 
         return getattr(_tables(), col_name)
 
-    def get_atom_data(self, block, kind=None):
-        return self.get_atom_coltype(kind=kind)(shape=block.shape[0])
+    def get_atom_data(self, shape, kind: str) -> "Col":
+        return self.get_atom_coltype(kind=kind)(shape=shape[0])
 
     def set_atom_complex(self, block):
         self.kind = block.dtype.name
@@ -2380,7 +2384,7 @@ class DataCol(IndexCol):
 
     def set_atom_data(self, block):
         self.kind = block.dtype.name
-        self.typ = self.get_atom_data(block)
+        self.typ = self.get_atom_data(block.shape, kind=block.dtype.name)
         self.set_data(block.values)
 
     def set_atom_categorical(self, block):
@@ -2389,19 +2393,22 @@ class DataCol(IndexCol):
 
         values = block.values
         codes = values.codes
-        self.kind = "integer"
-        self.dtype = codes.dtype.name
+
         if values.ndim > 1:
             raise NotImplementedError("only support 1-d categoricals")
 
+        assert codes.dtype.name.startswith("int"), codes.dtype.name
+
         # write the codes; must be in a block shape
         self.ordered = values.ordered
-        self.typ = self.get_atom_data(block, kind=codes.dtype.name)
+        self.typ = self.get_atom_data(block.shape, kind=codes.dtype.name)
         self.set_data(block.values)
 
         # write the categories
         self.meta = "category"
         self.metadata = np.array(block.values.categories, copy=False).ravel()
+        assert self.kind == "integer", self.kind
+        assert self.dtype == codes.dtype.name, codes.dtype.name
 
     def get_atom_datetime64(self, block):
         return _tables().Int64Col(shape=block.shape[0])
@@ -2554,7 +2561,7 @@ class DataIndexableCol(DataCol):
     def get_atom_string(self, shape, itemsize):
         return _tables().StringCol(itemsize=itemsize)
 
-    def get_atom_data(self, block, kind=None):
+    def get_atom_data(self, shape, kind: str) -> "Col":
         return self.get_atom_coltype(kind=kind)()
 
     def get_atom_datetime64(self, block):
