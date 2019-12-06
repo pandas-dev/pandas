@@ -2,9 +2,9 @@
 
 .. _api.arrays:
 
-=========================
-Pandas arrays and scalars
-=========================
+=============
+Pandas arrays
+=============
 
 .. currentmodule:: pandas
 
@@ -27,21 +27,6 @@ Sparse              :class:`SparseDtype`      (none)             :ref:`api.array
 Strings             :class:`StringDtype`      :class:`str`       :ref:`api.arrays.string`
 Boolean (with NA)   :class:`BooleanDtype`     :class:`bool`      :ref:`api.arrays.bool`
 =================== ========================= ================== =============================
-
-As the table shows, each extension type is associated with an array class. Pandas may define
-a dedicated scalar for the type (for example, :class:`arrays.IntervalArray` uses :class:`Interval`)
-or it may re-use Python's scalars (for example, :class:`StringArray` uses Python's :class:`str`).
-
-Additionally, pandas defines a singleton scalar missing value :class:`pandas.NA`. This
-value is distinct from ``float('nan')``, :attr:`numpy.nan` and Python's :class:`None`.
-
-.. autosummary::
-   :toctree: api/
-
-   NA
-
-Creating Arrays
----------------
 
 Pandas and third-party libraries can extend NumPy's type system (see :ref:`extending.extension-types`).
 The top-level :meth:`array` method can be used to create a new array, which may be
