@@ -57,13 +57,7 @@ def ignore_xlrd_time_clock_warning():
                 pytest.mark.filterwarnings("ignore:.*(tree\\.iter|html argument)"),
             ],
         ),
-        pytest.param(
-            "pyxlsb",
-            marks=[
-                td.skip_if_no("pyxlsb"),
-                pytest.mark.filterwarnings("ignore:.*(tree\\.iter|html argument)"),
-            ],
-        ),
+        pytest.param("pyxlsb", marks=td.skip_if_no("pyxlsb")),
         pytest.param("odf", marks=td.skip_if_no("odf")),
     ]
 )
