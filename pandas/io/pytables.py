@@ -2353,7 +2353,8 @@ class DataCol(IndexCol):
             # set as a data block
             self.set_atom_data(block)
 
-    def _get_atom(self, values: Union[np.ndarray, ABCExtensionArray]) -> "Col":
+    @classmethod
+    def _get_atom(cls, values: Union[np.ndarray, ABCExtensionArray]) -> "Col":
         """
         Get an appropriately typed and shaped pytables.Col object for values.
         """
@@ -2368,30 +2369,32 @@ class DataCol(IndexCol):
 
         if is_categorical_dtype(dtype):
             codes = values.codes
-            atom = self.get_atom_data(shape, kind=codes.dtype.name)
+            atom = cls.get_atom_data(shape, kind=codes.dtype.name)
         elif dtype.kind == "M":
-            atom = self.get_atom_datetime64(shape)
+            atom = cls.get_atom_datetime64(shape)
         elif dtype.kind == "m":
-            atom = self.get_atom_timedelta64(shape)
+            atom = cls.get_atom_timedelta64(shape)
         elif dtype.kind == "c":
             atom = _tables().ComplexCol(itemsize=itemsize, shape=shape[0])
 
         elif dtype.kind == "S":
-            atom = self.get_atom_string(shape, itemsize)
+            atom = cls.get_atom_string(shape, itemsize)
 
         else:
-            atom = self.get_atom_data(shape, kind=dtype.name)
+            atom = cls.get_atom_data(shape, kind=dtype.name)
 
         return atom
 
-    def get_atom_string(self, shape, itemsize):
+    @classmethod
+    def get_atom_string(cls, shape, itemsize):
         return _tables().StringCol(itemsize=itemsize, shape=shape[0])
 
     def set_atom_string(self, data_converted: np.ndarray):
         self.kind = "string"
         self.set_data(data_converted)
 
-    def get_atom_coltype(self, kind: str) -> Type["Col"]:
+    @classmethod
+    def get_atom_coltype(cls, kind: str) -> Type["Col"]:
         """ return the PyTables column class for this column """
         if kind.startswith("uint"):
             k4 = kind[4:]
@@ -2402,8 +2405,9 @@ class DataCol(IndexCol):
 
         return getattr(_tables(), col_name)
 
-    def get_atom_data(self, shape, kind: str) -> "Col":
-        return self.get_atom_coltype(kind=kind)(shape=shape[0])
+    @classmethod
+    def get_atom_data(cls, shape, kind: str) -> "Col":
+        return cls.get_atom_coltype(kind=kind)(shape=shape[0])
 
     def set_atom_complex(self, block):
         self.kind = block.dtype.name
@@ -2435,7 +2439,8 @@ class DataCol(IndexCol):
         assert self.kind == "integer", self.kind
         assert self.dtype == codes.dtype.name, codes.dtype.name
 
-    def get_atom_datetime64(self, shape):
+    @classmethod
+    def get_atom_datetime64(cls, shape):
         return _tables().Int64Col(shape=shape[0])
 
     def set_atom_datetime64(self, block):
@@ -2450,7 +2455,8 @@ class DataCol(IndexCol):
         self.kind = "datetime64"
         self.set_data(block.values)
 
-    def get_atom_timedelta64(self, shape):
+    @classmethod
+    def get_atom_timedelta64(cls, shape):
         return _tables().Int64Col(shape=shape[0])
 
     def set_atom_timedelta64(self, block):
@@ -2580,16 +2586,20 @@ class DataIndexableCol(DataCol):
             # TODO: should the message here be more specifically non-str?
             raise ValueError("cannot have non-object label DataIndexableCol")
 
-    def get_atom_string(self, shape, itemsize):
+    @classmethod
+    def get_atom_string(cls, shape, itemsize):
         return _tables().StringCol(itemsize=itemsize)
 
-    def get_atom_data(self, shape, kind: str) -> "Col":
-        return self.get_atom_coltype(kind=kind)()
+    @classmethod
+    def get_atom_data(cls, shape, kind: str) -> "Col":
+        return cls.get_atom_coltype(kind=kind)()
 
-    def get_atom_datetime64(self, shape):
+    @classmethod
+    def get_atom_datetime64(cls, shape):
         return _tables().Int64Col()
 
-    def get_atom_timedelta64(self, shape):
+    @classmethod
+    def get_atom_timedelta64(cls, shape):
         return _tables().Int64Col()
 
 
@@ -3944,9 +3954,11 @@ class Table(Fixed):
                 errors=self.errors,
             )
 
+            typ = klass._get_atom(data_converted)
+
             col = klass.create_for_block(i=i, name=new_name, version=self.version)
             col.values = list(b_items)
-            col.typ = col._get_atom(data_converted)
+            col.typ = typ
             col.set_atom(block=b, data_converted=data_converted, use_str=use_str)
             col.update_info(self.info)
             col.set_pos(j)
