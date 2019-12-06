@@ -2501,7 +2501,7 @@ class DataFrame(NDFrame):
             )
         return result
 
-    def transpose(self, *args, **kwargs):
+    def transpose(self, *args, copy=False, **kwargs):
         """
         Transpose index and columns.
 
@@ -2593,8 +2593,33 @@ class DataFrame(NDFrame):
         1    object
         dtype: object
         """
-        nv.validate_transpose(args, dict())
-        return super().transpose(1, 0, **kwargs)
+        if args == () or args == (None,):
+            args = (1, 0)
+        else:
+            raise ValueError(
+                "the 'axes' parameter is not supported in pandas.DataFrame.transpose"
+            )
+        # construct the args
+
+        if self._is_homogeneous_type and is_extension_array_dtype(self.iloc[:, 0]):
+            dtype = self.dtypes.iloc[0]
+            arr_type = dtype.construct_array_type()
+            values = self.values
+
+            new_values = [arr_type._from_sequence(row, dtype=dtype) for row in values]
+            result = self._constructor(
+                dict(zip(self.index, new_values)), index=self.columns
+            )
+
+        else:
+            new_values = self.values.transpose(args)
+            if copy:
+                new_values = new_values.copy()
+            result = self._constructor(
+                new_values, index=self.columns, columns=self.index
+            )
+
+        return result.__finalize__(self)
 
     T = property(transpose)
 
