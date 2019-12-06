@@ -6,7 +6,6 @@ import pytest
 from pandas.errors import NullFrequencyError
 
 from pandas import Timedelta, Timestamp
-import pandas.util.testing as tm
 
 from pandas.tseries import offsets
 from pandas.tseries.frequencies import to_offset
@@ -97,10 +96,12 @@ class TestTimestampArithmetic:
         # addition/subtraction of integers
         ts = Timestamp(dt, freq="D")
 
-        with tm.assert_produces_warning(FutureWarning):
+        msg = "Addition/subtraction of integers"
+        with pytest.raises(TypeError, match=msg):
             # GH#22535 add/sub with integers is deprecated
-            assert type(ts + 1) == Timestamp
-            assert type(ts - 1) == Timestamp
+            ts + 1
+        with pytest.raises(TypeError, match=msg):
+            ts - 1
 
         # Timestamp + datetime not supported, though subtraction is supported
         # and yields timedelta more tests in tseries/base/tests/test_base.py
@@ -128,11 +129,6 @@ class TestTimestampArithmetic:
     def test_addition_subtraction_preserve_frequency(self, freq, td, td64):
         ts = Timestamp("2014-03-05 00:00:00", freq=freq)
         original_freq = ts.freq
-
-        with tm.assert_produces_warning(FutureWarning):
-            # GH#22535 add/sub with integers is deprecated
-            assert (ts + 1).freq == original_freq
-            assert (ts - 1).freq == original_freq
 
         assert (ts + 1 * original_freq).freq == original_freq
         assert (ts - 1 * original_freq).freq == original_freq
@@ -206,17 +202,14 @@ class TestTimestampArithmetic:
         ],
     )
     def test_add_int_with_freq(self, ts, other):
-        with tm.assert_produces_warning(FutureWarning):
-            result1 = ts + other
-        with tm.assert_produces_warning(FutureWarning):
-            result2 = other + ts
 
-        assert np.all(result1 == result2)
+        with pytest.raises(TypeError):
+            ts + other
+        with pytest.raises(TypeError):
+            other + ts
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = result1 - other
-
-        assert np.all(result == ts)
+        with pytest.raises(TypeError):
+            ts - other
 
         with pytest.raises(TypeError):
             other - ts
