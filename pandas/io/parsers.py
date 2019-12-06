@@ -3600,7 +3600,7 @@ class FixedWidthReader(BaseIterator):
         self.comment = comment
         if colspecs == "infer":
             self.colspecs = self.detect_colspecs(
-                infer_nrows=infer_nrows, skiprows=skiprow
+                infer_nrows=infer_nrows, skiprows=skiprows
             )
         else:
             self.colspecs = colspecs
