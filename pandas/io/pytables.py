@@ -34,10 +34,12 @@ from pandas.util._decorators import cache_readonly
 from pandas.core.dtypes.common import (
     ensure_object,
     is_categorical_dtype,
+    is_complex_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_extension_array_dtype,
     is_list_like,
+    is_string_dtype,
     is_timedelta64_dtype,
 )
 from pandas.core.dtypes.generic import ABCExtensionArray
@@ -2370,14 +2372,14 @@ class DataCol(IndexCol):
         if is_categorical_dtype(dtype):
             codes = values.codes
             atom = cls.get_atom_data(shape, kind=codes.dtype.name)
-        elif dtype.kind == "M":
+        elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
             atom = cls.get_atom_datetime64(shape)
-        elif dtype.kind == "m":
+        elif is_timedelta64_dtype(dtype):
             atom = cls.get_atom_timedelta64(shape)
-        elif dtype.kind == "c":
+        elif is_complex_dtype(dtype):
             atom = _tables().ComplexCol(itemsize=itemsize, shape=shape[0])
 
-        elif dtype.kind == "S":
+        elif is_string_dtype(dtype):
             atom = cls.get_atom_string(shape, itemsize)
 
         else:
