@@ -13,7 +13,7 @@ import pytz
 from pandas._libs.tslibs.conversion import localize_pydatetime
 from pandas._libs.tslibs.offsets import shift_months
 from pandas.compat.numpy import np_datetime64_compat
-from pandas.errors import NullFrequencyError, PerformanceWarning
+from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import (
@@ -1856,10 +1856,8 @@ class TestTimestampSeriesArithmetic:
         method = getattr(ser, op)
         msg = "|".join(
             [
-                "incompatible type for a .* operation",
-                "cannot evaluate a numeric op",
-                "ufunc .* cannot use operands",
-                "cannot (add|subtract)",
+                "Addition/subtraction of integers and integer-arrays",
+                "cannot subtract .* from ndarray",
             ]
         )
         with pytest.raises(TypeError, match=msg):
@@ -1941,38 +1939,23 @@ class TestDatetimeIndexArithmetic:
     # -------------------------------------------------------------
     # Binary operations DatetimeIndex and int
 
-    def test_dti_add_int(self, tz_naive_fixture, one):
+    def test_dti_addsub_int(self, tz_naive_fixture, one):
         # Variants of `one` for #19012
         tz = tz_naive_fixture
         rng = pd.date_range("2000-01-01 09:00", freq="H", periods=10, tz=tz)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = rng + one
-        expected = pd.date_range("2000-01-01 10:00", freq="H", periods=10, tz=tz)
-        tm.assert_index_equal(result, expected)
+        msg = "Addition/subtraction of integers"
 
-    def test_dti_iadd_int(self, tz_naive_fixture, one):
-        tz = tz_naive_fixture
-        rng = pd.date_range("2000-01-01 09:00", freq="H", periods=10, tz=tz)
-        expected = pd.date_range("2000-01-01 10:00", freq="H", periods=10, tz=tz)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with pytest.raises(TypeError, match=msg):
+            rng + one
+
+        with pytest.raises(TypeError, match=msg):
             rng += one
-        tm.assert_index_equal(rng, expected)
 
-    def test_dti_sub_int(self, tz_naive_fixture, one):
-        tz = tz_naive_fixture
-        rng = pd.date_range("2000-01-01 09:00", freq="H", periods=10, tz=tz)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = rng - one
-        expected = pd.date_range("2000-01-01 08:00", freq="H", periods=10, tz=tz)
-        tm.assert_index_equal(result, expected)
+        with pytest.raises(TypeError, match=msg):
+            rng - one
 
-    def test_dti_isub_int(self, tz_naive_fixture, one):
-        tz = tz_naive_fixture
-        rng = pd.date_range("2000-01-01 09:00", freq="H", periods=10, tz=tz)
-        expected = pd.date_range("2000-01-01 08:00", freq="H", periods=10, tz=tz)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with pytest.raises(TypeError, match=msg):
             rng -= one
-        tm.assert_index_equal(rng, expected)
 
     # -------------------------------------------------------------
     # __add__/__sub__ with integer arrays
@@ -1984,14 +1967,13 @@ class TestDatetimeIndexArithmetic:
         dti = pd.date_range("2016-01-01", periods=2, freq=freq)
         other = int_holder([4, -1])
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            expected = DatetimeIndex([dti[n] + other[n] for n in range(len(dti))])
-            result = dti + other
-        tm.assert_index_equal(result, expected)
+        msg = "Addition/subtraction of integers"
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = other + dti
-        tm.assert_index_equal(result, expected)
+        with pytest.raises(TypeError, match=msg):
+            dti + other
+
+        with pytest.raises(TypeError, match=msg):
+            other + dti
 
     @pytest.mark.parametrize("freq", ["W", "M", "MS", "Q"])
     @pytest.mark.parametrize("int_holder", [np.array, pd.Index])
@@ -2000,34 +1982,26 @@ class TestDatetimeIndexArithmetic:
         dti = pd.date_range("2016-01-01", periods=2, freq=freq)
         other = int_holder([4, -1])
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            expected = DatetimeIndex([dti[n] + other[n] for n in range(len(dti))])
+        msg = "Addition/subtraction of integers"
 
-        # tm.assert_produces_warning does not handle cases where we expect
-        # two warnings, in this case PerformanceWarning and FutureWarning.
-        # Until that is fixed, we don't catch either
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            result = dti + other
-        tm.assert_index_equal(result, expected)
+        with pytest.raises(TypeError, match=msg):
+            dti + other
 
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            result = other + dti
-        tm.assert_index_equal(result, expected)
+        with pytest.raises(TypeError, match=msg):
+            other + dti
 
     @pytest.mark.parametrize("int_holder", [np.array, pd.Index])
     def test_dti_add_intarray_no_freq(self, int_holder):
         # GH#19959
         dti = pd.DatetimeIndex(["2016-01-01", "NaT", "2017-04-05 06:07:08"])
         other = int_holder([9, 4, -1])
-        nfmsg = "Cannot shift with no freq"
         tmsg = "cannot subtract DatetimeArray from"
-        with pytest.raises(NullFrequencyError, match=nfmsg):
+        msg = "Addition/subtraction of integers"
+        with pytest.raises(TypeError, match=msg):
             dti + other
-        with pytest.raises(NullFrequencyError, match=nfmsg):
+        with pytest.raises(TypeError, match=msg):
             other + dti
-        with pytest.raises(NullFrequencyError, match=nfmsg):
+        with pytest.raises(TypeError, match=msg):
             dti - other
         with pytest.raises(TypeError, match=tmsg):
             other - dti

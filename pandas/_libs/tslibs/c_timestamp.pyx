@@ -51,15 +51,18 @@ class NullFrequencyError(ValueError):
     pass
 
 
-def maybe_integer_op_deprecated(obj):
-    # GH#22535 add/sub of integers and int-arrays is deprecated
-    if obj.freq is not None:
-        warnings.warn("Addition/subtraction of integers and integer-arrays "
-                      f"to {type(obj).__name__} is deprecated, "
-                      "will be removed in a future "
-                      "version.  Instead of adding/subtracting `n`, use "
-                      "`n * self.freq`"
-                      , FutureWarning)
+def integer_op_not_supported(obj):
+    # GH#22535 add/sub of integers and int-arrays is no longer allowed
+    # Note we return rather than raise the exception so we can raise in
+    #  the caller; mypy finds this more palatable.
+    cls = type(obj).__name__
+
+    int_addsub_msg = (
+        f"Addition/subtraction of integers and integer-arrays with {cls} is "
+        "no longer supported.  Instead of adding/subtracting `n`, "
+        "use `n * obj.freq`"
+    )
+    return TypeError(int_addsub_msg)
 
 
 cdef class _Timestamp(datetime):
@@ -229,15 +232,7 @@ cdef class _Timestamp(datetime):
             return type(self)(self.value + other_int, tz=self.tzinfo, freq=self.freq)
 
         elif is_integer_object(other):
-            maybe_integer_op_deprecated(self)
-
-            if self is NaT:
-                # to be compat with Period
-                return NaT
-            elif self.freq is None:
-                raise NullFrequencyError(
-                    "Cannot add integral value to Timestamp without freq.")
-            return type(self)((self.freq * other).apply(self), freq=self.freq)
+            raise integer_op_not_supported(self)
 
         elif PyDelta_Check(other) or hasattr(other, 'delta'):
             # delta --> offsets.Tick
@@ -256,12 +251,7 @@ cdef class _Timestamp(datetime):
 
         elif is_array(other):
             if other.dtype.kind in ['i', 'u']:
-                maybe_integer_op_deprecated(self)
-                if self.freq is None:
-                    raise NullFrequencyError(
-                        "Cannot add integer-dtype array "
-                        "to Timestamp without freq.")
-                return self.freq * other + self
+                raise integer_op_not_supported(self)
 
         # index/series like
         elif hasattr(other, '_typ'):
@@ -283,12 +273,7 @@ cdef class _Timestamp(datetime):
 
         elif is_array(other):
             if other.dtype.kind in ['i', 'u']:
-                maybe_integer_op_deprecated(self)
-                if self.freq is None:
-                    raise NullFrequencyError(
-                        "Cannot subtract integer-dtype array "
-                        "from Timestamp without freq.")
-                return self - self.freq * other
+                raise integer_op_not_supported(self)
 
         typ = getattr(other, '_typ', None)
         if typ is not None:

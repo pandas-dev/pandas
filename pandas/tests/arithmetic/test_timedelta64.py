@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 
-from pandas.errors import NullFrequencyError, OutOfBoundsDatetime, PerformanceWarning
+from pandas.errors import OutOfBoundsDatetime, PerformanceWarning
 
 import pandas as pd
 from pandas import (
@@ -409,7 +409,7 @@ class TestTimedelta64ArithmeticUnsorted:
             tdi[0:1] + dti
 
         # random indexes
-        with pytest.raises(NullFrequencyError):
+        with pytest.raises(TypeError):
             tdi + pd.Int64Index([1, 2, 3])
 
         # this is a union!
@@ -997,17 +997,13 @@ class TestTimedeltaArraylikeAddSubOps:
         tdser = pd.Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
         tdser = tm.box_expected(tdser, box)
 
-        err = TypeError
-        if box in [pd.Index, tm.to_array] and not isinstance(other, float):
-            err = NullFrequencyError
-
-        with pytest.raises(err):
+        with pytest.raises(TypeError):
             tdser + other
-        with pytest.raises(err):
+        with pytest.raises(TypeError):
             other + tdser
-        with pytest.raises(err):
+        with pytest.raises(TypeError):
             tdser - other
-        with pytest.raises(err):
+        with pytest.raises(TypeError):
             other - tdser
 
     @pytest.mark.parametrize(
@@ -1039,18 +1035,15 @@ class TestTimedeltaArraylikeAddSubOps:
         box = box_with_array
         tdser = pd.Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
         tdser = tm.box_expected(tdser, box)
-        err = TypeError
-        if box in [pd.Index, tm.to_array] and not dtype.startswith("float"):
-            err = NullFrequencyError
 
         vector = vec.astype(dtype)
-        with pytest.raises(err):
+        with pytest.raises(TypeError):
             tdser + vector
-        with pytest.raises(err):
+        with pytest.raises(TypeError):
             vector + tdser
-        with pytest.raises(err):
+        with pytest.raises(TypeError):
             tdser - vector
-        with pytest.raises(err):
+        with pytest.raises(TypeError):
             vector - tdser
 
     # ------------------------------------------------------------------
