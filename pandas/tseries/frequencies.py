@@ -141,7 +141,7 @@ def to_offset(freq) -> Optional[DateOffset]:
                     else:
                         delta = delta + offset
         except ValueError:
-            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq))
+            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG(freq))
 
     else:
         delta = None
@@ -173,10 +173,10 @@ def to_offset(freq) -> Optional[DateOffset]:
                 else:
                     delta = delta + offset
         except (ValueError, TypeError):
-            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq))
+            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG(freq))
 
     if delta is None:
-        raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq))
+        raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG(freq))
 
     return delta
 
@@ -205,7 +205,7 @@ def get_offset(name: str) -> DateOffset:
             offset = klass._from_name(*split[1:])
         except (ValueError, TypeError, KeyError):
             # bad prefix or suffix
-            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(name))
+            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG(name))
         # cache
         _offset_map[name] = offset
 
