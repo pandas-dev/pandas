@@ -2407,9 +2407,11 @@ Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
 
     def test_contains_method_removed(self, indices):
         # GH#30103 method removed for all types except IntervalIndex
-        err = AttributeError if not isinstance(indices, pd.IntervalIndex) else None
-        with pytest.raises(err):
+        if isinstance(indices, pd.IntervalIndex):
             indices.contains(1)
+        else:
+            with pytest.raises(AttributeError):
+                indices.contains(1)
 
 
 class TestMixedIntIndex(Base):
