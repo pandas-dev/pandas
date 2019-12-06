@@ -30,7 +30,6 @@ Attributes and underlying data
    DataFrame.dtypes
    DataFrame.select_dtypes
    DataFrame.values
-   DataFrame.get_values
    DataFrame.axes
    DataFrame.ndim
    DataFrame.size
@@ -138,7 +137,6 @@ Computations / descriptive stats
    DataFrame.all
    DataFrame.any
    DataFrame.clip
-   DataFrame.compound
    DataFrame.corr
    DataFrame.corrwith
    DataFrame.count
