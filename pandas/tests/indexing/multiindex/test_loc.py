@@ -48,7 +48,9 @@ class TestMultiIndexLoc:
 
         empty = Series(data=[], dtype=np.float64)
         expected = Series(
-            [], index=MultiIndex(levels=index.levels, codes=[[], []], dtype=np.float64)
+            [],
+            index=MultiIndex(levels=index.levels, codes=[[], []], dtype=np.float64),
+            dtype=np.float64,
         )
         result = x.loc[empty]
         tm.assert_series_equal(result, expected)
@@ -70,7 +72,9 @@ class TestMultiIndexLoc:
         # empty array:
         empty = np.array([])
         expected = Series(
-            [], index=MultiIndex(levels=index.levels, codes=[[], []], dtype=np.float64)
+            [],
+            index=MultiIndex(levels=index.levels, codes=[[], []], dtype=np.float64),
+            dtype="float64",
         )
         result = x.loc[empty]
         tm.assert_series_equal(result, expected)

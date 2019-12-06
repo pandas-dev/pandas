@@ -15,6 +15,8 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import ABCMultiIndex, ABCSeries
 
+from pandas.core.construction import create_series_with_explicit_dtype
+
 if TYPE_CHECKING:
     from pandas import DataFrame, Series, Index
 
@@ -203,7 +205,7 @@ class FrameApply(metaclass=abc.ABCMeta):
 
         if not should_reduce:
             try:
-                r = self.f(Series([]))
+                r = self.f(Series([], dtype=np.float64))
             except Exception:
                 pass
             else:
@@ -211,7 +213,7 @@ class FrameApply(metaclass=abc.ABCMeta):
 
         if should_reduce:
             if len(self.agg_axis):
-                r = self.f(Series([]))
+                r = self.f(Series([], dtype=np.float64))
             else:
                 r = np.nan
 
@@ -346,6 +348,7 @@ class FrameApply(metaclass=abc.ABCMeta):
     def wrap_results(
         self, results: ResType, res_index: "Index"
     ) -> Union["Series", "DataFrame"]:
+        from pandas import Series
 
         # see if we can infer the results
         if len(results) > 0 and 0 in results and is_sequence(results[0]):
@@ -353,7 +356,17 @@ class FrameApply(metaclass=abc.ABCMeta):
             return self.wrap_results_for_axis(results, res_index)
 
         # dict of scalars
-        result = self.obj._constructor_sliced(results)
+
+        # the default dtype of an empty Series will be `object`, but this
+        # code can be hit by df.mean() where the result should have dtype
+        # float64 even if it's an empty Series.
+        constructor_sliced = self.obj._constructor_sliced
+        if constructor_sliced is Series:
+            result = create_series_with_explicit_dtype(
+                results, dtype_if_empty=np.float64
+            )
+        else:
+            result = constructor_sliced(results)
         result.index = res_index
 
         return result

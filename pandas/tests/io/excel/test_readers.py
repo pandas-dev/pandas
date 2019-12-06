@@ -543,6 +543,7 @@ class TestReaders:
         tm.assert_frame_equal(expected, actual)
 
     @td.skip_if_no("py.path")
+    @td.check_file_leaks
     def test_read_from_py_localpath(self, read_ext):
 
         # GH12655
@@ -881,6 +882,7 @@ class TestExcelFileRead:
         tm.assert_frame_equal(parsed, expected)
 
     @pytest.mark.parametrize("arg", ["sheet", "sheetname", "parse_cols"])
+    @td.check_file_leaks
     def test_unexpected_kwargs_raises(self, read_ext, arg):
         # gh-17964
         kwarg = {arg: "Sheet1"}

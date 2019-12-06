@@ -139,7 +139,7 @@ def test_resample_empty_dataframe(empty_frame, freq, resample_method):
         expected = df.copy()
     else:
         # GH14962
-        expected = Series([])
+        expected = Series([], dtype=object)
 
     if isinstance(df.index, PeriodIndex):
         expected.index = df.index.asfreq(freq=freq)

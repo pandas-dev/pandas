@@ -4172,6 +4172,12 @@ class Index(IndexOpsMixin, PandasObject):
             # if other is not object, use other's logic for coercion
             return other.equals(self)
 
+        if isinstance(other, ABCMultiIndex):
+            # d-level MultiIndex can equal d-tuple Index
+            if not is_object_dtype(self.dtype):
+                if self.nlevels != other.nlevels:
+                    return False
+
         return array_equivalent(
             com.values_from_object(self), com.values_from_object(other)
         )

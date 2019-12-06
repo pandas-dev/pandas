@@ -54,7 +54,12 @@ from pandas.core.arrays import ExtensionArray, try_cast_to_ea
 from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 import pandas.core.common as com
-from pandas.core.construction import extract_array, sanitize_array
+from pandas.core.construction import (
+    create_series_with_explicit_dtype,
+    extract_array,
+    is_empty_data,
+    sanitize_array,
+)
 from pandas.core.index import (
     Float64Index,
     Index,
@@ -153,6 +158,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Copy input data.
     """
 
+    _typ = "series"
+
     _metadata: List[str] = []
     _accessors = {"dt", "cat", "str", "sparse"}
     _deprecations = (
@@ -175,7 +182,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def __init__(
         self, data=None, index=None, dtype=None, name=None, copy=False, fastpath=False
     ):
-
         # we are called internally, so short-circuit
         if fastpath:
 
@@ -188,6 +194,18 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 index = data.index
 
         else:
+
+            if is_empty_data(data) and dtype is None:
+                # gh-17261
+                warnings.warn(
+                    "The default dtype for empty Series will be 'object' instead"
+                    " of 'float64' in a future version. Specify a dtype explicitly"
+                    " to silence this warning.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+                # uncomment the line below when removing the DeprecationWarning
+                # dtype = np.dtype(object)
 
             if index is not None:
                 index = ensure_index(index)
@@ -328,7 +346,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             keys, values = [], []
 
         # Input is now list-like, so rely on "standard" construction:
-        s = Series(values, index=keys, dtype=dtype)
+
+        # TODO: passing np.float64 to not break anything yet. See GH-17261
+        s = create_series_with_explicit_dtype(
+            values, index=keys, dtype=dtype, dtype_if_empty=np.float64
+        )
 
         # Now we just make sure the order is respected, if any
         if data and index is not None:
@@ -662,14 +684,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             elif result.ndim > 1:
                 # e.g. np.subtract.outer
                 if method == "outer":
-                    msg = (
-                        "outer method for ufunc {} is not implemented on "
-                        "pandas objects. Returning an ndarray, but in the "
-                        "future this will raise a 'NotImplementedError'. "
-                        "Consider explicitly converting the Series "
-                        "to an array with '.array' first."
-                    )
-                    warnings.warn(msg.format(ufunc), FutureWarning, stacklevel=3)
+                    # GH#27198
+                    raise NotImplementedError
                 return result
             return self._constructor(result, index=index, name=name, copy=False)
 
@@ -4413,11 +4429,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
 
 Series._setup_axes(
-    ["index"],
-    info_axis=0,
-    stat_axis=0,
-    aliases={"rows": 0},
-    docs={"index": "The index (axis labels) of the Series."},
+    ["index"], docs={"index": "The index (axis labels) of the Series."},
 )
 Series._add_numeric_operations()
 Series._add_series_only_operations()
