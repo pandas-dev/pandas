@@ -2334,7 +2334,7 @@ class DataCol(IndexCol):
             if self.typ is None:
                 self.typ = getattr(self.description, self.cname, None)
 
-    def set_atom(self, block, data_converted):
+    def set_atom(self, block):
         """ create and setup my atom from the block b """
 
         # short-cut certain block types
@@ -3920,7 +3920,7 @@ class Table(Fixed):
             col = klass.create_for_block(i=i, name=new_name, version=self.version)
             col.values = list(b_items)
             col.typ = typ
-            col.set_atom(block=b, data_converted=data_converted)
+            col.set_atom(block=b)
             col.set_data(data_converted)
             col.update_info(self.info)
             col.set_pos(j)
