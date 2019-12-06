@@ -921,22 +921,6 @@ class TestToDatetime:
         result = DatetimeIndex([ts_str] * 2)
         tm.assert_index_equal(result, expected)
 
-    def test_iso_8601_strings_same_offset_no_box(self):
-        # GH 22446
-        data = ["2018-01-04 09:01:00+09:00", "2018-01-04 09:02:00+09:00"]
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = pd.to_datetime(data, box=False)
-
-        expected = np.array(
-            [
-                datetime(2018, 1, 4, 9, 1, tzinfo=pytz.FixedOffset(540)),
-                datetime(2018, 1, 4, 9, 2, tzinfo=pytz.FixedOffset(540)),
-            ],
-            dtype=object,
-        )
-        tm.assert_numpy_array_equal(result, expected)
-
     def test_iso_8601_strings_with_different_offsets(self):
         # GH 17697, 11736
         ts_strings = ["2015-11-18 15:30:00+05:30", "2015-11-18 16:30:00+06:30", NaT]
@@ -1022,16 +1006,6 @@ class TestToDatetime:
     def test_timestamp_utc_true(self, ts, expected):
         # GH 24415
         result = to_datetime(ts, utc=True)
-        assert result == expected
-
-    def test_to_datetime_box_deprecated(self):
-        expected = np.datetime64("2018-09-09")
-
-        # Deprecated - see GH24416
-        with tm.assert_produces_warning(FutureWarning):
-            pd.to_datetime(expected, box=False)
-
-        result = pd.to_datetime(expected).to_datetime64()
         assert result == expected
 
     @pytest.mark.parametrize("dt_str", ["00010101", "13000101", "30000101", "99990101"])
@@ -1344,16 +1318,6 @@ class TestToDatetimeUnit:
         df = DataFrame({"year": [2000, 2001], "month": [1.5, 1], "day": [1, 1]})
         with pytest.raises(ValueError):
             to_datetime(df, cache=cache)
-
-    def test_dataframe_box_false(self):
-        # GH 23760
-        df = pd.DataFrame({"year": [2015, 2016], "month": [2, 3], "day": [4, 5]})
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = pd.to_datetime(df, box=False)
-
-        expected = np.array(["2015-02-04", "2016-03-05"], dtype="datetime64[ns]")
-        tm.assert_numpy_array_equal(result, expected)
 
     def test_dataframe_utc_true(self):
         # GH 23760
