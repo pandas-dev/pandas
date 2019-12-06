@@ -17,6 +17,7 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_integer_dtype,
     is_list_like,
+    is_numeric_dtype,
     is_scalar,
     pandas_dtype,
 )
@@ -130,7 +131,7 @@ def coerce_to_array(values, mask=None, copy: bool = False):
     if isinstance(values, np.ndarray) and values.dtype == np.bool_:
         if copy:
             values = values.copy()
-    elif isinstance(values, np.ndarray) and values.dtype in (np.int_, np.float_):
+    elif isinstance(values, np.ndarray) and is_numeric_dtype(values.dtype):
         mask_values = isna(values)
 
         values_bool = np.zeros(len(values), dtype=bool)
