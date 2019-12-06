@@ -1207,7 +1207,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             # This check must come after the check for np.timedelta64
             # as is_integer returns True for these
             if not is_period_dtype(self):
-                raise integer_op_not_supported(self)  # TODO: but not for Period?
+                raise integer_op_not_supported(self)
             result = self._time_shift(other)
 
         # array-like others
@@ -1222,7 +1222,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             return self._add_datetime_arraylike(other)
         elif is_integer_dtype(other):
             if not is_period_dtype(self):
-                raise integer_op_not_supported(self)  # TODO: but not for Period?
+                raise integer_op_not_supported(self)
             result = self._addsub_int_array(other, operator.add)
         else:
             # Includes Categorical, other ExtensionArrays
@@ -1259,7 +1259,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             # This check must come after the check for np.timedelta64
             # as is_integer returns True for these
             if not is_period_dtype(self):
-                raise integer_op_not_supported(self)  # TODO: but not for Period?
+                raise integer_op_not_supported(self)
             result = self._time_shift(-other)
 
         elif isinstance(other, Period):
@@ -1280,7 +1280,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             result = self._sub_period_array(other)
         elif is_integer_dtype(other):
             if not is_period_dtype(self):
-                raise integer_op_not_supported(self)  # TODO: but not for Period?
+                raise integer_op_not_supported(self)
             result = self._addsub_int_array(other, operator.sub)
         else:
             # Includes ExtensionArrays, float_dtype
