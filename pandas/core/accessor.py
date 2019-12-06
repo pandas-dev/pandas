@@ -58,7 +58,9 @@ class PandasDelegate:
         raise TypeError("You cannot call method {name}".format(name=name))
 
     @classmethod
-    def _add_delegate_accessors(cls, delegate, accessors, typ, overwrite=False):
+    def _add_delegate_accessors(
+        cls, delegate, accessors, typ: str, overwrite: bool = False
+    ):
         """
         Add accessors to cls from the delegate class.
 
@@ -107,7 +109,7 @@ class PandasDelegate:
                 setattr(cls, name, f)
 
 
-def delegate_names(delegate, accessors, typ, overwrite=False):
+def delegate_names(delegate, accessors, typ: str, overwrite: bool = False):
     """
     Add delegated names to a class using a class decorator.  This provides
     an alternative usage to directly calling `_add_delegate_accessors`
@@ -162,7 +164,7 @@ class CachedAccessor:
         the single argument ``data``.
     """
 
-    def __init__(self, name, accessor):
+    def __init__(self, name: str, accessor) -> None:
         self._name = name
         self._accessor = accessor
 

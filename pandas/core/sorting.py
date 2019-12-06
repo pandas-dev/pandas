@@ -187,7 +187,7 @@ def indexer_from_factorized(labels, shape, compress: bool = True):
     return get_group_index_sorter(ids, ngroups)
 
 
-def lexsort_indexer(keys, orders=None, na_position="last"):
+def lexsort_indexer(keys, orders=None, na_position: str = "last"):
     from pandas.core.arrays import Categorical
 
     labels = []
@@ -233,7 +233,9 @@ def lexsort_indexer(keys, orders=None, na_position="last"):
     return indexer_from_factorized(labels, shape)
 
 
-def nargsort(items, kind="quicksort", ascending: bool = True, na_position="last"):
+def nargsort(
+    items, kind: str = "quicksort", ascending: bool = True, na_position: str = "last"
+):
     """
     This is intended to be a drop-in replacement for np.argsort which
     handles NaNs. It adds ascending and na_position parameters.
@@ -273,7 +275,7 @@ class _KeyMapper:
     Ease my suffering. Map compressed group id -> key tuple
     """
 
-    def __init__(self, comp_ids, ngroups, levels, labels):
+    def __init__(self, comp_ids, ngroups: int, levels, labels):
         self.levels = levels
         self.labels = labels
         self.comp_ids = comp_ids.astype(np.int64)
