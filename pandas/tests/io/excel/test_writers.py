@@ -809,6 +809,7 @@ class TestExcelWriter:
             )
             tm.assert_frame_equal(result, expected)
 
+    # FIXME: dont leave commented-out
     # def test_to_excel_header_styling_xls(self, engine, ext):
 
     #     import StringIO
