@@ -832,6 +832,12 @@ return ``False``.
    pd.NA == pd.NA
    pd.NA < 2.5
 
+There are a few special cases when the result is known, even when one of the
+operands is ``NA``.
+
+* ``pd.NA ** 0`` is always 0.
+* ``1 ** pd.NA`` is always 1.
+
 To check if a value is equal to ``pd.NA``, the :func:`isna` function can be
 used:
 

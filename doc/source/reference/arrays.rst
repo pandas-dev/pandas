@@ -40,15 +40,6 @@ value is distinct from ``float('nan')``, :attr:`numpy.nan` and Python's :class:`
 
    NA
 
-In binary operations, :class:`NA` is treated as numeric. Generally, ``NA`` propagates, so
-the result of ``op(NA, other)`` will be ``NA``. There are a few special cases when the
-result is known, even when one of the operands is ``NA``.
-
-* ``pd.NA ** 0`` is always 0.
-* ``1 ** pd.NA`` is always 1.
-
-In logical operations, :class:`NA` uses Kleene logic.
-
 Creating Arrays
 ---------------
 
