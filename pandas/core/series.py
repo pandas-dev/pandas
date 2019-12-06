@@ -13,7 +13,7 @@ from pandas._config import get_option
 
 from pandas._libs import index as libindex, lib, reshape, tslibs
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender, Substitution, deprecate
+from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_bool_kwarg, validate_percentile
 
 from pandas.core.dtypes.common import (
@@ -2000,36 +2000,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if i == -1:
             return np.nan
         return self.index[i]
-
-    # ndarray compat
-    argmin = deprecate(
-        "argmin",
-        idxmin,
-        "0.21.0",
-        msg=dedent(
-            """
-        The current behaviour of 'Series.argmin' is deprecated, use 'idxmin'
-        instead.
-        The behavior of 'argmin' will be corrected to return the positional
-        minimum in the future. For now, use 'series.values.argmin' or
-        'np.argmin(np.array(values))' to get the position of the minimum
-        row."""
-        ),
-    )
-    argmax = deprecate(
-        "argmax",
-        idxmax,
-        "0.21.0",
-        msg=dedent(
-            """
-        The current behaviour of 'Series.argmax' is deprecated, use 'idxmax'
-        instead.
-        The behavior of 'argmax' will be corrected to return the positional
-        maximum in the future. For now, use 'series.values.argmax' or
-        'np.argmax(np.array(values))' to get the position of the maximum
-        row."""
-        ),
-    )
 
     def round(self, decimals=0, *args, **kwargs):
         """
