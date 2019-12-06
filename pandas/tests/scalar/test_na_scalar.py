@@ -73,7 +73,19 @@ def test_comparison_ops():
 
 
 @pytest.mark.parametrize(
-    "value", [0, 0.0, False, np.bool_(False), np.int_(0), np.float_(0)]
+    "value",
+    [
+        0,
+        0.0,
+        -0,
+        -0.0,
+        False,
+        np.bool_(False),
+        np.int_(0),
+        np.float_(0),
+        np.int_(-0),
+        np.float_(-0),
+    ],
 )
 def test_pow_special(value):
     result = pd.NA ** value
@@ -82,11 +94,23 @@ def test_pow_special(value):
 
 
 @pytest.mark.parametrize(
-    "value", [1, 1.0, True, np.bool_(True), np.int_(1), np.float_(1)]
+    "value",
+    [
+        1,
+        1.0,
+        -1,
+        -1.0,
+        True,
+        np.bool_(True),
+        np.int_(1),
+        np.float_(1),
+        np.int_(-1),
+        np.float_(-1),
+    ],
 )
 def test_rpow_special(value):
     result = value ** pd.NA
-    assert result == 1
+    assert result == value
     if not isinstance(value, (np.float_, np.bool_, np.int_)):
         assert isinstance(result, type(value))
 
