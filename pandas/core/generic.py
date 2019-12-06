@@ -633,17 +633,6 @@ class NDFrame(PandasObject, SelectionMixin):
         1  2   5
         2  3   6
         """
-        if is_scalar(labels):
-            warnings.warn(
-                'set_axis now takes "labels" as first argument, and '
-                '"axis" as named parameter. The old form, with "axis" as '
-                'first parameter and "labels" as second, is still supported '
-                "but will be deprecated in a future version of pandas.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            labels, axis = axis, labels
-
         if inplace:
             setattr(self, self._get_axis_name(axis), labels)
         else:
