@@ -843,7 +843,7 @@ class TestSeriesAnalytics:
         result = s.isin(s[0:2])
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("empty", [[], Series(), np.array([])])
+    @pytest.mark.parametrize("empty", [[], Series(dtype=object), np.array([])])
     def test_isin_empty(self, empty):
         # see gh-16991
         s = Series(["a", "b"])
@@ -1275,15 +1275,6 @@ class TestSeriesAnalytics:
         )
         with pytest.raises(ValueError, match=msg):
             np.sum(s, keepdims=True)
-
-    def test_compound_deprecated(self):
-        s = Series([0.1, 0.2, 0.3, 0.4])
-        with tm.assert_produces_warning(FutureWarning):
-            s.compound()
-
-        df = pd.DataFrame({"s": s})
-        with tm.assert_produces_warning(FutureWarning):
-            df.compound()
 
 
 main_dtypes = [

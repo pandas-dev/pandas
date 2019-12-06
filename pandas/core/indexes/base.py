@@ -69,6 +69,7 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import IndexOpsMixin, PandasObject
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.frozen import FrozenList
 import pandas.core.missing as missing
@@ -214,7 +215,7 @@ class Index(IndexOpsMixin, PandasObject):
     _deprecations: FrozenSet[str] = (
         PandasObject._deprecations
         | IndexOpsMixin._deprecations
-        | frozenset(["contains", "get_values", "set_value"])
+        | frozenset(["contains", "set_value"])
     )
 
     # To hand over control to subclasses
@@ -3752,12 +3753,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self._data
 
-    def get_values(self):
+    def _internal_get_values(self):
         """
         Return `Index` data as an `numpy.ndarray`.
-
-        .. deprecated:: 0.25.0
-            Use :meth:`Index.to_numpy` or :attr:`Index.array` instead.
 
         Returns
         -------
@@ -3766,7 +3764,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        Index.values : The attribute that get_values wraps.
+        Index.values : The attribute that _internal_get_values wraps.
 
         Examples
         --------
@@ -3779,33 +3777,24 @@ class Index(IndexOpsMixin, PandasObject):
         a  1  2  3
         b  4  5  6
         c  7  8  9
-        >>> df.index.get_values()
+        >>> df.index._internal_get_values()
         array(['a', 'b', 'c'], dtype=object)
 
         Standalone `Index` values:
 
         >>> idx = pd.Index(['1', '2', '3'])
-        >>> idx.get_values()
+        >>> idx._internal_get_values()
         array(['1', '2', '3'], dtype=object)
 
         `MultiIndex` arrays also have only one dimension:
 
         >>> midx = pd.MultiIndex.from_arrays([[1, 2, 3], ['a', 'b', 'c']],
         ...                                  names=('number', 'letter'))
-        >>> midx.get_values()
+        >>> midx._internal_get_values()
         array([(1, 'a'), (2, 'b'), (3, 'c')], dtype=object)
-        >>> midx.get_values().ndim
+        >>> midx._internal_get_values().ndim
         1
         """
-        warnings.warn(
-            "The 'get_values' method is deprecated and will be removed in a "
-            "future version. Use '.to_numpy()' or '.array' instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._internal_get_values()
-
-    def _internal_get_values(self):
         return self.values
 
     @Appender(IndexOpsMixin.memory_usage.__doc__)
@@ -4183,6 +4172,12 @@ class Index(IndexOpsMixin, PandasObject):
             # if other is not object, use other's logic for coercion
             return other.equals(self)
 
+        if isinstance(other, ABCMultiIndex):
+            # d-level MultiIndex can equal d-tuple Index
+            if not is_object_dtype(self.dtype):
+                if self.nlevels != other.nlevels:
+                    return False
+
         return array_equivalent(
             com.values_from_object(self), com.values_from_object(other)
         )
@@ -4489,22 +4484,26 @@ class Index(IndexOpsMixin, PandasObject):
         # if we have something that is Index-like, then
         # use this, e.g. DatetimeIndex
         # Things like `Series._get_value` (via .at) pass the EA directly here.
-        s = getattr(series, "_values", series)
-        if isinstance(s, (ExtensionArray, Index)) and is_scalar(key):
-            # GH 20882, 21257
-            # Unify Index and ExtensionArray treatment
-            # First try to convert the key to a location
-            # If that fails, raise a KeyError if an integer
-            # index, otherwise, see if key is an integer, and
-            # try that
-            try:
-                iloc = self.get_loc(key)
-                return s[iloc]
-            except KeyError:
-                if len(self) > 0 and (self.holds_integer() or self.is_boolean()):
-                    raise
-                elif is_integer(key):
-                    return s[key]
+        s = extract_array(series, extract_numpy=True)
+        if isinstance(s, ExtensionArray):
+            if is_scalar(key):
+                # GH 20882, 21257
+                # First try to convert the key to a location
+                # If that fails, raise a KeyError if an integer
+                # index, otherwise, see if key is an integer, and
+                # try that
+                try:
+                    iloc = self.get_loc(key)
+                    return s[iloc]
+                except KeyError:
+                    if len(self) > 0 and (self.holds_integer() or self.is_boolean()):
+                        raise
+                    elif is_integer(key):
+                        return s[key]
+            else:
+                # if key is not a scalar, directly raise an error (the code below
+                # would convert to numpy arrays and raise later any way) - GH29926
+                raise InvalidIndexError(key)
 
         s = com.values_from_object(series)
         k = com.values_from_object(key)

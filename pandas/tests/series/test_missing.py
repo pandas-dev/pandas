@@ -710,7 +710,7 @@ class TestSeriesMissingData:
         tm.assert_series_equal(result, expected)
         result = s1.fillna({})
         tm.assert_series_equal(result, s1)
-        result = s1.fillna(Series(()))
+        result = s1.fillna(Series((), dtype=object))
         tm.assert_series_equal(result, s1)
         result = s2.fillna(s1)
         tm.assert_series_equal(result, s2)
@@ -834,7 +834,8 @@ class TestSeriesMissingData:
         #     tm.assert_series_equal(selector, expected)
 
     def test_dropna_empty(self):
-        s = Series([])
+        s = Series([], dtype=object)
+
         assert len(s.dropna()) == 0
         s.dropna(inplace=True)
         assert len(s) == 0
@@ -1163,7 +1164,7 @@ class TestSeriesInterpolateData:
         s = Series([np.nan, np.nan])
         tm.assert_series_equal(s.interpolate(**kwargs), s)
 
-        s = Series([]).interpolate()
+        s = Series([], dtype=object).interpolate()
         tm.assert_series_equal(s.interpolate(**kwargs), s)
 
     def test_interpolate_index_values(self):
@@ -1649,3 +1650,14 @@ class TestSeriesInterpolateData:
             pytest.skip(
                 "This interpolation method is not supported for Timedelta Index yet."
             )
+
+    @pytest.mark.parametrize(
+        "ascending, expected_values",
+        [(True, [1, 2, 3, 9, 10]), (False, [10, 9, 3, 2, 1])],
+    )
+    def test_interpolate_unsorted_index(self, ascending, expected_values):
+        # GH 21037
+        ts = pd.Series(data=[10, 9, np.nan, 2, 1], index=[10, 9, 3, 2, 1])
+        result = ts.sort_index(ascending=ascending).interpolate(method="index")
+        expected = pd.Series(data=expected_values, index=expected_values, dtype=float)
+        tm.assert_series_equal(result, expected)
