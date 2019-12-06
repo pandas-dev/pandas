@@ -892,6 +892,12 @@ class ExcelFile:
 
     def close(self):
         """close io if necessary"""
+        if self.engine == "openpyxl":
+            # https://stackoverflow.com/questions/31416842/
+            #  openpyxl-does-not-close-excel-workbook-in-read-only-mode
+            wb = self.book
+            wb._archive.close()
+
         if hasattr(self.io, "close"):
             self.io.close()
 
@@ -899,4 +905,8 @@ class ExcelFile:
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+
+    def __del__(self):
+        # Ensure we don't leak file descriptors
         self.close()
