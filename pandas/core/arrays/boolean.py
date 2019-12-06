@@ -185,7 +185,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
     a boolean array with the mask (True indicating missing).
 
     BooleanArray implements Kleene logic (sometimes called three-value
-    logic) for logical operations. See :ref:`` for more.
+    logic) for logical operations. See :ref:`boolean.kleene` for more.
 
     To construct an BooleanArray from generic array-like input, use
     :func:`pandas.array` specifying ``dtype="boolean"`` (see examples
