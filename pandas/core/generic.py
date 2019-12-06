@@ -10117,29 +10117,6 @@ class NDFrame(PandasObject, SelectionMixin):
             nanops.nanstd,
         )
 
-        @Substitution(
-            desc="Return the compound percentage of the values for "
-            "the requested axis.\n\n.. deprecated:: 0.25.0",
-            name1=name,
-            name2=name2,
-            axis_descr=axis_descr,
-            min_count="",
-            see_also="",
-            examples="",
-        )
-        @Appender(_num_doc)
-        def compound(self, axis=None, skipna=None, level=None):
-            msg = (
-                "The 'compound' method is deprecated and will be"
-                "removed in a future version."
-            )
-            warnings.warn(msg, FutureWarning, stacklevel=2)
-            if skipna is None:
-                skipna = True
-            return (1 + self).prod(axis=axis, skipna=skipna, level=level) - 1
-
-        cls.compound = compound
-
         cls.cummin = _make_cum_function(
             cls,
             "cummin",

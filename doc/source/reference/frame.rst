@@ -137,7 +137,6 @@ Computations / descriptive stats
    DataFrame.all
    DataFrame.any
    DataFrame.clip
-   DataFrame.compound
    DataFrame.corr
    DataFrame.corrwith
    DataFrame.count
