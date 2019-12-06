@@ -2406,7 +2406,7 @@ Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
                 list(ip.Completer.completions("idx.", 4))
 
     def test_contains_method_removed(self, indices):
-        # method removed for all types except IntervalIndex
+        # GH#30103 method removed for all types except IntervalIndex
         err = AttributeError if not isinstance(indices, pd.IntervalIndex) else None
         with pytest.raises(err):
             indices.contains(1)
