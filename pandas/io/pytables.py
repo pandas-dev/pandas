@@ -34,10 +34,12 @@ from pandas.util._decorators import cache_readonly
 from pandas.core.dtypes.common import (
     ensure_object,
     is_categorical_dtype,
+    is_complex_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_extension_array_dtype,
     is_list_like,
+    is_string_dtype,
     is_timedelta64_dtype,
 )
 from pandas.core.dtypes.generic import ABCExtensionArray
@@ -65,7 +67,7 @@ from pandas.io.common import _stringify_path
 from pandas.io.formats.printing import adjoin, pprint_thing
 
 if TYPE_CHECKING:
-    from tables import File, Node  # noqa:F401
+    from tables import File, Node, Col  # noqa:F401
 
 
 # versioning attribute
@@ -1092,6 +1094,9 @@ class HDFStore:
         except KeyError:
             # the key is not a valid store, re-raising KeyError
             raise
+        except AssertionError:
+            # surface any assertion errors for e.g. debugging
+            raise
         except Exception:
             # In tests we get here with ClosedFileError, TypeError, and
             #  _table_mod.NoSuchNodeError.  TODO: Catch only these?
@@ -1519,6 +1524,9 @@ class HDFStore:
                         if s is not None:
                             keys.append(pprint_thing(s.pathname or k))
                             values.append(pprint_thing(s or "invalid_HDFStore node"))
+                    except AssertionError:
+                        # surface any assertion errors for e.g. debugging
+                        raise
                     except Exception as detail:
                         keys.append(k)
                         dstr = pprint_thing(detail)
@@ -1680,7 +1688,7 @@ class HDFStore:
             self._handle.remove_node(group, recursive=True)
             group = None
 
-        # we don't want to store a table node at all if are object is 0-len
+        # we don't want to store a table node at all if our object is 0-len
         # as there are not dtypes
         if getattr(value, "empty", None) and (format == "table" or append):
             return
@@ -2333,20 +2341,50 @@ class DataCol(IndexCol):
             # set as a data block
             self.set_atom_data(block)
 
-    def get_atom_string(self, shape, itemsize):
+    @classmethod
+    def _get_atom(cls, values: Union[np.ndarray, ABCExtensionArray]) -> "Col":
+        """
+        Get an appropriately typed and shaped pytables.Col object for values.
+        """
+
+        dtype = values.dtype
+        itemsize = dtype.itemsize
+
+        shape = values.shape
+        if values.ndim == 1:
+            # EA, use block shape pretending it is 2D
+            shape = (1, values.size)
+
+        if is_categorical_dtype(dtype):
+            codes = values.codes
+            atom = cls.get_atom_data(shape, kind=codes.dtype.name)
+        elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
+            atom = cls.get_atom_datetime64(shape)
+        elif is_timedelta64_dtype(dtype):
+            atom = cls.get_atom_timedelta64(shape)
+        elif is_complex_dtype(dtype):
+            atom = _tables().ComplexCol(itemsize=itemsize, shape=shape[0])
+
+        elif is_string_dtype(dtype):
+            atom = cls.get_atom_string(shape, itemsize)
+
+        else:
+            atom = cls.get_atom_data(shape, kind=dtype.name)
+
+        return atom
+
+    @classmethod
+    def get_atom_string(cls, shape, itemsize):
         return _tables().StringCol(itemsize=itemsize, shape=shape[0])
 
     def set_atom_string(self, data_converted: np.ndarray):
-        itemsize = data_converted.dtype.itemsize
         self.kind = "string"
-        self.typ = self.get_atom_string(data_converted.shape, itemsize)
         self.set_data(data_converted)
 
-    def get_atom_coltype(self, kind=None):
+    @classmethod
+    def get_atom_coltype(cls, kind: str) -> Type["Col"]:
         """ return the PyTables column class for this column """
-        if kind is None:
-            kind = self.kind
-        if self.kind.startswith("uint"):
+        if kind.startswith("uint"):
             k4 = kind[4:]
             col_name = f"UInt{k4}Col"
         else:
@@ -2355,18 +2393,16 @@ class DataCol(IndexCol):
 
         return getattr(_tables(), col_name)
 
-    def get_atom_data(self, block, kind=None):
-        return self.get_atom_coltype(kind=kind)(shape=block.shape[0])
+    @classmethod
+    def get_atom_data(cls, shape, kind: str) -> "Col":
+        return cls.get_atom_coltype(kind=kind)(shape=shape[0])
 
     def set_atom_complex(self, block):
         self.kind = block.dtype.name
-        itemsize = int(self.kind.split("complex")[-1]) // 8
-        self.typ = _tables().ComplexCol(itemsize=itemsize, shape=block.shape[0])
         self.set_data(block.values)
 
     def set_atom_data(self, block):
         self.kind = block.dtype.name
-        self.typ = self.get_atom_data(block)
         self.set_data(block.values)
 
     def set_atom_categorical(self, block):
@@ -2375,26 +2411,28 @@ class DataCol(IndexCol):
 
         values = block.values
         codes = values.codes
-        self.kind = "integer"
-        self.dtype = codes.dtype.name
+
         if values.ndim > 1:
             raise NotImplementedError("only support 1-d categoricals")
 
+        assert codes.dtype.name.startswith("int"), codes.dtype.name
+
         # write the codes; must be in a block shape
         self.ordered = values.ordered
-        self.typ = self.get_atom_data(block, kind=codes.dtype.name)
         self.set_data(block.values)
 
         # write the categories
         self.meta = "category"
         self.metadata = np.array(block.values.categories, copy=False).ravel()
+        assert self.kind == "integer", self.kind
+        assert self.dtype == codes.dtype.name, codes.dtype.name
 
-    def get_atom_datetime64(self, block):
-        return _tables().Int64Col(shape=block.shape[0])
+    @classmethod
+    def get_atom_datetime64(cls, shape):
+        return _tables().Int64Col(shape=shape[0])
 
     def set_atom_datetime64(self, block):
         self.kind = "datetime64"
-        self.typ = self.get_atom_datetime64(block)
         self.set_data(block.values)
 
     def set_atom_datetime64tz(self, block):
@@ -2403,15 +2441,14 @@ class DataCol(IndexCol):
         self.tz = _get_tz(block.values.tz)
 
         self.kind = "datetime64"
-        self.typ = self.get_atom_datetime64(block)
         self.set_data(block.values)
 
-    def get_atom_timedelta64(self, block):
-        return _tables().Int64Col(shape=block.shape[0])
+    @classmethod
+    def get_atom_timedelta64(cls, shape):
+        return _tables().Int64Col(shape=shape[0])
 
     def set_atom_timedelta64(self, block):
         self.kind = "timedelta64"
-        self.typ = self.get_atom_timedelta64(block)
         self.set_data(block.values)
 
     @property
@@ -2537,16 +2574,20 @@ class DataIndexableCol(DataCol):
             # TODO: should the message here be more specifically non-str?
             raise ValueError("cannot have non-object label DataIndexableCol")
 
-    def get_atom_string(self, shape, itemsize):
+    @classmethod
+    def get_atom_string(cls, shape, itemsize):
         return _tables().StringCol(itemsize=itemsize)
 
-    def get_atom_data(self, block, kind=None):
-        return self.get_atom_coltype(kind=kind)()
+    @classmethod
+    def get_atom_data(cls, shape, kind: str) -> "Col":
+        return cls.get_atom_coltype(kind=kind)()
 
-    def get_atom_datetime64(self, block):
+    @classmethod
+    def get_atom_datetime64(cls, shape):
         return _tables().Int64Col()
 
-    def get_atom_timedelta64(self, block):
+    @classmethod
+    def get_atom_timedelta64(cls, shape):
         return _tables().Int64Col()
 
 
@@ -3902,7 +3943,10 @@ class Table(Fixed):
             )
             adj_name = _maybe_adjust_name(new_name, self.version)
 
-            col = klass(name=adj_name, cname=new_name, values=list(b_items))
+            typ = klass._get_atom(data_converted)
+
+            col = klass(name=adj_name, cname=new_name, values=list(b_items), typ=typ)
+
             col.set_atom(block=b, data_converted=data_converted, use_str=use_str)
             col.update_info(self.info)
             col.set_pos(j)
