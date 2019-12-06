@@ -453,9 +453,9 @@ class TestIndex(Base):
             index = Index(vals)
             assert isinstance(index, TimedeltaIndex)
 
-    @pytest.mark.parametrize("attr, utc", [["values", False], ["asi8", True]])
+    @pytest.mark.parametrize("attr", ["values", "asi8"])
     @pytest.mark.parametrize("klass", [pd.Index, pd.DatetimeIndex])
-    def test_constructor_dtypes_datetime(self, tz_naive_fixture, attr, utc, klass):
+    def test_constructor_dtypes_datetime(self, tz_naive_fixture, attr, klass):
         # Test constructing with a datetimetz dtype
         # .values produces numpy datetimes, so these are considered naive
         # .asi8 produces integers, so these are considered epoch timestamps
@@ -466,30 +466,27 @@ class TestIndex(Base):
         index = index.tz_localize(tz_naive_fixture)
         dtype = index.dtype
 
-        if (
-            tz_naive_fixture
-            and attr == "asi8"
-            and str(tz_naive_fixture) not in ("UTC", "tzutc()", "UTC+00:00")
-        ):
-            ex_warn = FutureWarning
+        if attr == "asi8":
+            result = pd.DatetimeIndex(arg).tz_localize(tz_naive_fixture)
         else:
-            ex_warn = None
-
-        # stacklevel is checked elsewhere. We don't do it here since
-        # Index will have an frame, throwing off the expected.
-        with tm.assert_produces_warning(ex_warn, check_stacklevel=False):
             result = klass(arg, tz=tz_naive_fixture)
         tm.assert_index_equal(result, index)
 
-        with tm.assert_produces_warning(ex_warn, check_stacklevel=False):
+        if attr == "asi8":
+            result = pd.DatetimeIndex(arg).astype(dtype)
+        else:
             result = klass(arg, dtype=dtype)
         tm.assert_index_equal(result, index)
 
-        with tm.assert_produces_warning(ex_warn, check_stacklevel=False):
+        if attr == "asi8":
+            result = pd.DatetimeIndex(list(arg)).tz_localize(tz_naive_fixture)
+        else:
             result = klass(list(arg), tz=tz_naive_fixture)
         tm.assert_index_equal(result, index)
 
-        with tm.assert_produces_warning(ex_warn, check_stacklevel=False):
+        if attr == "asi8":
+            result = pd.DatetimeIndex(list(arg)).astype(dtype)
+        else:
             result = klass(list(arg), dtype=dtype)
         tm.assert_index_equal(result, index)
 

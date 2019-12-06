@@ -2222,26 +2222,12 @@ class DataCol(IndexCol):
     _info_fields = ["tz", "ordered"]
 
     @classmethod
-    def create_for_block(
-        cls, i: int, name=None, version=None, pos: Optional[int] = None
-    ):
+    def create_for_block(cls, name: str, version, pos: int):
         """ return a new datacol with the block i """
+        assert isinstance(name, str)
 
-        cname = name or f"values_block_{i}"
-        if name is None:
-            name = cname
-
-        # prior to 0.10.1, we named values blocks like: values_block_0 an the
-        # name values_0
-        try:
-            if version[0] == 0 and version[1] <= 10 and version[2] == 0:
-                m = re.search(r"values_block_(\d+)", name)
-                if m:
-                    grp = m.groups()[0]
-                    name = f"values_{grp}"
-        except IndexError:
-            pass
-
+        cname = name
+        name = _maybe_adjust_name(name, version)
         return cls(name=name, cname=cname, pos=pos)
 
     def __init__(
@@ -2334,7 +2320,7 @@ class DataCol(IndexCol):
             if self.typ is None:
                 self.typ = getattr(self.description, self.cname, None)
 
-    def set_atom(self, block, data_converted, use_str: bool):
+    def set_atom(self, block):
         """ create and setup my atom from the block b """
 
         # short-cut certain block types
@@ -2342,18 +2328,6 @@ class DataCol(IndexCol):
             self.set_atom_categorical(block)
         elif block.is_datetimetz:
             self.set_atom_datetime64tz(block)
-        elif block.is_datetime:
-            self.set_atom_datetime64(block)
-        elif block.is_timedelta:
-            self.set_atom_timedelta64(block)
-        elif block.is_complex:
-            self.set_atom_complex(block)
-
-        elif use_str:
-            self.set_atom_string(data_converted)
-        else:
-            # set as a data block
-            self.set_atom_data(block)
 
     @classmethod
     def _get_atom(cls, values: Union[np.ndarray, ABCExtensionArray]) -> "Col":
@@ -2391,10 +2365,6 @@ class DataCol(IndexCol):
     def get_atom_string(cls, shape, itemsize):
         return _tables().StringCol(itemsize=itemsize, shape=shape[0])
 
-    def set_atom_string(self, data_converted: np.ndarray):
-        self.kind = "string"
-        self.set_data(data_converted)
-
     @classmethod
     def get_atom_coltype(cls, kind: str) -> Type["Col"]:
         """ return the PyTables column class for this column """
@@ -2411,59 +2381,34 @@ class DataCol(IndexCol):
     def get_atom_data(cls, shape, kind: str) -> "Col":
         return cls.get_atom_coltype(kind=kind)(shape=shape[0])
 
-    def set_atom_complex(self, block):
-        self.kind = block.dtype.name
-        self.set_data(block.values)
-
-    def set_atom_data(self, block):
-        self.kind = block.dtype.name
-        self.set_data(block.values)
-
     def set_atom_categorical(self, block):
         # currently only supports a 1-D categorical
         # in a 1-D block
 
         values = block.values
-        codes = values.codes
 
         if values.ndim > 1:
             raise NotImplementedError("only support 1-d categoricals")
 
-        assert codes.dtype.name.startswith("int"), codes.dtype.name
-
         # write the codes; must be in a block shape
         self.ordered = values.ordered
-        self.set_data(block.values)
 
         # write the categories
         self.meta = "category"
-        self.metadata = np.array(block.values.categories, copy=False).ravel()
-        assert self.kind == "integer", self.kind
-        assert self.dtype == codes.dtype.name, codes.dtype.name
+        self.metadata = np.array(values.categories, copy=False).ravel()
 
     @classmethod
     def get_atom_datetime64(cls, shape):
         return _tables().Int64Col(shape=shape[0])
-
-    def set_atom_datetime64(self, block):
-        self.kind = "datetime64"
-        self.set_data(block.values)
 
     def set_atom_datetime64tz(self, block):
 
         # store a converted timezone
         self.tz = _get_tz(block.values.tz)
 
-        self.kind = "datetime64"
-        self.set_data(block.values)
-
     @classmethod
     def get_atom_timedelta64(cls, shape):
         return _tables().Int64Col(shape=shape[0])
-
-    def set_atom_timedelta64(self, block):
-        self.kind = "timedelta64"
-        self.set_data(block.values)
 
     @property
     def shape(self):
@@ -3576,7 +3521,7 @@ class Table(Fixed):
             if c in dc:
                 klass = DataIndexableCol
             return klass.create_for_block(
-                i=i, name=c, pos=base_pos + i, version=self.version
+                name=c, pos=base_pos + i, version=self.version
             )
 
         # Note: the definition of `values_cols` ensures that each
@@ -3946,7 +3891,7 @@ class Table(Fixed):
                 existing_col = None
 
             new_name = name or f"values_block_{i}"
-            data_converted, use_str = _maybe_convert_for_string_atom(
+            data_converted = _maybe_convert_for_string_atom(
                 new_name,
                 b,
                 existing_col=existing_col,
@@ -3955,15 +3900,16 @@ class Table(Fixed):
                 encoding=self.encoding,
                 errors=self.errors,
             )
+            adj_name = _maybe_adjust_name(new_name, self.version)
 
             typ = klass._get_atom(data_converted)
 
-            col = klass.create_for_block(i=i, name=new_name, version=self.version)
-            col.values = list(b_items)
-            col.typ = typ
-            col.set_atom(block=b, data_converted=data_converted, use_str=use_str)
+            col = klass(
+                name=adj_name, cname=new_name, values=list(b_items), typ=typ, pos=j
+            )
+            col.set_atom(block=b)
+            col.set_data(data_converted)
             col.update_info(self.info)
-            col.set_pos(j)
 
             vaxes.append(col)
 
@@ -4830,10 +4776,9 @@ def _unconvert_index(data, kind: str, encoding=None, errors="strict"):
 def _maybe_convert_for_string_atom(
     name: str, block, existing_col, min_itemsize, nan_rep, encoding, errors
 ):
-    use_str = False
 
     if not block.is_object:
-        return block.values, use_str
+        return block.values
 
     dtype_name = block.dtype.name
     inferred_type = lib.infer_dtype(block.values, skipna=False)
@@ -4848,9 +4793,7 @@ def _maybe_convert_for_string_atom(
         )
 
     elif not (inferred_type == "string" or dtype_name == "object"):
-        return block.values, use_str
-
-    use_str = True
+        return block.values
 
     block = block.fillna(nan_rep, downcast=False)
     if isinstance(block, list):
@@ -4893,7 +4836,7 @@ def _maybe_convert_for_string_atom(
             itemsize = eci
 
     data_converted = data_converted.astype(f"|S{itemsize}", copy=False)
-    return data_converted, use_str
+    return data_converted
 
 
 def _convert_string_array(data, encoding, errors, itemsize=None):
@@ -4989,6 +4932,31 @@ def _need_convert(kind) -> bool:
     if kind in ("datetime64", "string"):
         return True
     return False
+
+
+def _maybe_adjust_name(name: str, version) -> str:
+    """
+    Prior to 0.10.1, we named values blocks like: values_block_0 an the
+    name values_0, adjust the given name if necessary.
+
+    Parameters
+    ----------
+    name : str
+    version : Tuple[int, int, int]
+
+    Returns
+    -------
+    str
+    """
+    try:
+        if version[0] == 0 and version[1] <= 10 and version[2] == 0:
+            m = re.search(r"values_block_(\d+)", name)
+            if m:
+                grp = m.groups()[0]
+                name = f"values_{grp}"
+    except IndexError:
+        pass
+    return name
 
 
 class Selection:
