@@ -470,10 +470,11 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
                 key = cast(Sequence, key)
                 if len(key) != len(value) and not com.is_bool_indexer(key):
                     msg = (
-                        "shape mismatch: value array of length '{}' does "
-                        "not match indexing result of length '{}'."
+                        f"shape mismatch: value array of length '{len(key)}' "
+                        "does not match indexing result of length "
+                        f"'{len(value)}'."
                     )
-                    raise ValueError(msg.format(len(key), len(value)))
+                    raise ValueError(msg)
                 elif not len(key):
                     return
 
@@ -487,12 +488,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             value = iNaT
         else:
             msg = (
-                "'value' should be a '{scalar}', 'NaT', or array of those. "
-                "Got '{typ}' instead."
+                f"'value' should be a '{self._scalar_type.__name__}', 'NaT', "
+                f"or array of those. Got '{type(value).__name__}' instead."
             )
-            raise TypeError(
-                msg.format(scalar=self._scalar_type.__name__, typ=type(value).__name__)
-            )
+            raise TypeError(msg)
         self._data[key] = value
         self._maybe_clear_freq()
 
@@ -532,8 +531,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         ) or is_float_dtype(dtype):
             # disallow conversion between datetime/timedelta,
             # and conversions for any datetimelike to float
-            msg = "Cannot cast {name} to dtype {dtype}"
-            raise TypeError(msg.format(name=type(self).__name__, dtype=dtype))
+            msg = f"Cannot cast {type(self).__name__} to dtype {dtype}"
+            raise TypeError(msg)
         elif is_categorical_dtype(dtype):
             return Categorical(self, dtype=dtype)
         else:
@@ -637,9 +636,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             value = self._scalar_from_string(value)
 
         if not (isinstance(value, (self._scalar_type, type(self))) or isna(value)):
-            raise ValueError(
-                "Unexpected type for 'value': {valtype}".format(valtype=type(value))
-            )
+            raise ValueError(f"Unexpected type for 'value': {type(value)}")
 
         self._check_compatible_with(value)
         if isinstance(value, type(self)):
@@ -759,8 +756,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         if is_array_like(value):
             if len(value) != len(self):
                 raise ValueError(
-                    "Length of 'value' does not match. Got ({}) "
-                    " expected {}".format(len(value), len(self))
+                    f"Length of 'value' does not match. Got ({len(value)}) "
+                    f" expected {len(self)}"
                 )
             value = value[mask]
 
@@ -880,10 +877,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             #  raise a ValueError, which we re-raise with a more targeted
             #  message.
             raise ValueError(
-                "Inferred frequency {infer} from passed values "
-                "does not conform to passed frequency {passed}".format(
-                    infer=inferred, passed=freq.freqstr
-                )
+                f"Inferred frequency {inferred} from passed values "
+                f"does not conform to passed frequency {freq.freqstr}"
             )
 
     # monotonicity/uniqueness properties are called via frequencies.infer_freq,
@@ -922,9 +917,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
     def _add_datetimelike_scalar(self, other):
         # Overriden by TimedeltaArray
         raise TypeError(
-            "cannot add {cls} and {typ}".format(
-                cls=type(self).__name__, typ=type(other).__name__
-            )
+            f"cannot add {type(self).__name__} and " f"{type(other).__name__}"
         )
 
     _add_datetime_arraylike = _add_datetimelike_scalar
@@ -932,17 +925,13 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
     def _sub_datetimelike_scalar(self, other):
         # Overridden by DatetimeArray
         assert other is not NaT
-        raise TypeError(
-            "cannot subtract a datelike from a {cls}".format(cls=type(self).__name__)
-        )
+        raise TypeError(f"cannot subtract a datelike from a {type(self).__name__}")
 
     _sub_datetime_arraylike = _sub_datetimelike_scalar
 
     def _sub_period(self, other):
         # Overriden by PeriodArray
-        raise TypeError(
-            "cannot subtract Period from a {cls}".format(cls=type(self).__name__)
-        )
+        raise TypeError(f"cannot subtract Period from a {type(self).__name__}")
 
     def _add_offset(self, offset):
         raise AbstractMethodError(self)
@@ -1022,9 +1011,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         """
         if is_period_dtype(self):
             raise TypeError(
-                "Cannot add {cls} and {typ}".format(
-                    cls=type(self).__name__, typ=type(NaT).__name__
-                )
+                f"Cannot add {type(self).__name__} and {type(NaT).__name__}"
             )
 
         # GH#19124 pd.NaT is treated like a timedelta for both timedelta
@@ -1064,9 +1051,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         """
         if not is_period_dtype(self):
             raise TypeError(
-                "cannot subtract {dtype}-dtype from {cls}".format(
-                    dtype=other.dtype, cls=type(self).__name__
-                )
+                f"cannot subtract {other.dtype}-dtype from {type(self).__name__}"
             )
 
         if len(self) != len(other):
@@ -1140,7 +1125,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
 
         warnings.warn(
             "Adding/subtracting array of DateOffsets to "
-            "{cls} not vectorized".format(cls=type(self).__name__),
+            f"{type(self).__name__} not vectorized",
             PerformanceWarning,
         )
 
@@ -1313,17 +1298,11 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             # GH#19959 datetime - datetime is well-defined as timedelta,
             # but any other type - datetime is not well-defined.
             raise TypeError(
-                "cannot subtract {cls} from {typ}".format(
-                    cls=type(self).__name__, typ=type(other).__name__
-                )
+                f"cannot subtract {type(self).__name__} from {type(other).__name__}"
             )
         elif is_period_dtype(self.dtype) and is_timedelta64_dtype(other):
             # TODO: Can we simplify/generalize these cases at all?
-            raise TypeError(
-                "cannot subtract {cls} from {dtype}".format(
-                    cls=type(self).__name__, dtype=other.dtype
-                )
-            )
+            raise TypeError(f"cannot subtract {type(self).__name__} from {other.dtype}")
         elif is_timedelta64_dtype(self.dtype):
             if lib.is_integer(other) or is_integer_dtype(other):
                 # need to subtract before negating, since that flips freq
@@ -1472,9 +1451,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         if is_period_dtype(self):
             # See discussion in GH#24757
             raise TypeError(
-                "mean is not implemented for {cls} since the meaning is "
-                "ambiguous.  An alternative is "
-                "obj.to_timestamp(how='start').mean()".format(cls=type(self).__name__)
+                f"mean is not implemented for {type(self).__name__} since the "
+                "meaning is ambiguous.  An alternative is "
+                "obj.to_timestamp(how='start').mean()"
             )
 
         mask = self.isna()
@@ -1520,9 +1499,7 @@ def validate_periods(periods):
         if lib.is_float(periods):
             periods = int(periods)
         elif not lib.is_integer(periods):
-            raise TypeError(
-                "periods must be a number, got {periods}".format(periods=periods)
-            )
+            raise TypeError(f"periods must be a number, got {periods}")
     return periods
 
 
@@ -1583,9 +1560,9 @@ def validate_inferred_freq(freq, inferred_freq, freq_infer):
     if inferred_freq is not None:
         if freq is not None and freq != inferred_freq:
             raise ValueError(
-                "Inferred frequency {inferred} from passed "
+                f"Inferred frequency {inferred_freq} from passed "
                 "values does not conform to passed frequency "
-                "{passed}".format(inferred=inferred_freq, passed=freq.freqstr)
+                f"{freq.freqstr}"
             )
         elif freq is None:
             freq = inferred_freq

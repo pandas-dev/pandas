@@ -520,8 +520,8 @@ class ExtensionArray:
         if is_array_like(value):
             if len(value) != len(self):
                 raise ValueError(
-                    "Length of 'value' does not match. Got ({}) "
-                    " expected {}".format(len(value), len(self))
+                    f"Length of 'value' does not match. Got ({len(value)}) "
+                    f"expected {len(self)}"
                 )
             value = value[mask]
 
@@ -918,17 +918,14 @@ class ExtensionArray:
     def __repr__(self) -> str:
         from pandas.io.formats.printing import format_object_summary
 
-        template = "{class_name}{data}\nLength: {length}, dtype: {dtype}"
         # the short repr has no trailing newline, while the truncated
         # repr does. So we include a newline in our template, and strip
         # any trailing newlines from format_object_summary
         data = format_object_summary(
             self, self._formatter(), indent_for_name=False
         ).rstrip(", \n")
-        class_name = "<{}>\n".format(type(self).__name__)
-        return template.format(
-            class_name=class_name, data=data, length=len(self), dtype=self.dtype
-        )
+        class_name = f"<{type(self).__name__}>\n"
+        return f"{class_name}{data}\nLength: {len(self)}, dtype: {self.dtype}"
 
     def _formatter(self, boxed: bool = False) -> Callable[[Any], Optional[str]]:
         """Formatting function for scalar values.
@@ -1044,11 +1041,7 @@ class ExtensionArray:
         ------
         TypeError : subclass does not define reductions
         """
-        raise TypeError(
-            "cannot perform {name} with type {dtype}".format(
-                name=name, dtype=self.dtype
-            )
-        )
+        raise TypeError(f"cannot perform {name} with type {self.dtype}")
 
 
 class ExtensionOpsMixin:
