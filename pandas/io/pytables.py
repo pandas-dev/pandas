@@ -65,7 +65,7 @@ from pandas.io.common import _stringify_path
 from pandas.io.formats.printing import adjoin, pprint_thing
 
 if TYPE_CHECKING:
-    from tables import File, Node  # noqa:F401
+    from tables import File, Node, Col  # noqa:F401
 
 
 # versioning attribute
@@ -2352,15 +2352,11 @@ class DataCol(IndexCol):
 
     def set_atom_string(self, data_converted: np.ndarray):
         itemsize = data_converted.dtype.itemsize
-        self.kind = "string"
         self.typ = self.get_atom_string(data_converted.shape, itemsize)
-        self.set_data(data_converted)
 
-    def get_atom_coltype(self, kind=None):
+    def get_atom_coltype(self, kind: str) -> Type["Col"]:
         """ return the PyTables column class for this column """
-        if kind is None:
-            kind = self.kind
-        if self.kind.startswith("uint"):
+        if kind.startswith("uint"):
             k4 = kind[4:]
             col_name = f"UInt{k4}Col"
         else:
@@ -2369,19 +2365,15 @@ class DataCol(IndexCol):
 
         return getattr(_tables(), col_name)
 
-    def get_atom_data(self, block, kind=None):
-        return self.get_atom_coltype(kind=kind)(shape=block.shape[0])
+    def get_atom_data(self, shape, kind: str) -> "Col":
+        return self.get_atom_coltype(kind=kind)(shape=shape[0])
 
     def set_atom_complex(self, block):
-        self.kind = block.dtype.name
-        itemsize = int(self.kind.split("complex")[-1]) // 8
+        itemsize = block.dtype.itemsize
         self.typ = _tables().ComplexCol(itemsize=itemsize, shape=block.shape[0])
-        self.set_data(block.values)
 
     def set_atom_data(self, block):
-        self.kind = block.dtype.name
-        self.typ = self.get_atom_data(block)
-        self.set_data(block.values)
+        self.typ = self.get_atom_data(block.shape, kind=block.dtype.name)
 
     def set_atom_categorical(self, block):
         # currently only supports a 1-D categorical
@@ -2389,15 +2381,12 @@ class DataCol(IndexCol):
 
         values = block.values
         codes = values.codes
-        self.kind = "integer"
-        self.dtype = codes.dtype.name
         if values.ndim > 1:
             raise NotImplementedError("only support 1-d categoricals")
 
         # write the codes; must be in a block shape
         self.ordered = values.ordered
-        self.typ = self.get_atom_data(block, kind=codes.dtype.name)
-        self.set_data(block.values)
+        self.typ = self.get_atom_data(block.shape, kind=codes.dtype.name)
 
         # write the categories
         self.meta = "category"
@@ -2407,26 +2396,20 @@ class DataCol(IndexCol):
         return _tables().Int64Col(shape=block.shape[0])
 
     def set_atom_datetime64(self, block):
-        self.kind = "datetime64"
         self.typ = self.get_atom_datetime64(block)
-        self.set_data(block.values)
 
     def set_atom_datetime64tz(self, block):
 
         # store a converted timezone
         self.tz = _get_tz(block.values.tz)
 
-        self.kind = "datetime64"
         self.typ = self.get_atom_datetime64(block)
-        self.set_data(block.values)
 
     def get_atom_timedelta64(self, block):
         return _tables().Int64Col(shape=block.shape[0])
 
     def set_atom_timedelta64(self, block):
-        self.kind = "timedelta64"
         self.typ = self.get_atom_timedelta64(block)
-        self.set_data(block.values)
 
     @property
     def shape(self):
@@ -2554,7 +2537,7 @@ class DataIndexableCol(DataCol):
     def get_atom_string(self, shape, itemsize):
         return _tables().StringCol(itemsize=itemsize)
 
-    def get_atom_data(self, block, kind=None):
+    def get_atom_data(self, shape, kind: str) -> "Col":
         return self.get_atom_coltype(kind=kind)()
 
     def get_atom_datetime64(self, block):
@@ -3918,6 +3901,7 @@ class Table(Fixed):
             col = klass.create_for_block(i=i, name=new_name, version=self.version)
             col.values = list(b_items)
             col.set_atom(block=b, data_converted=data_converted, use_str=use_str)
+            col.set_data(data_converted)
             col.update_info(self.info)
             col.set_pos(j)
 
