@@ -448,15 +448,13 @@ class TestComparisonOps(BaseOpsUtil):
             b, pd.array([0, 1, None, 0, 1, None], dtype="Int64")
         )
 
-    def test_compare_boolean_array(self):
-        left = pd.array([0, 1, None, None], dtype="Int64")
-        right = pd.array([True, True, False, None], dtype="boolean")
-        expected = pd.array([False, True, None, None], dtype="boolean")
-
-        result = left == right
-        tm.assert_extension_array_equal(result, expected)
-
-        result = right == left
+    def test_compare_with_booleanarray(self, all_compare_operators):
+        op = self.get_op_from_name(all_compare_operators)
+        a = pd.array([True, False, None] * 3, dtype="boolean")
+        b = pd.array([0] * 3 + [1] * 3 + [None] * 3, dtype="Int64")
+        other = pd.array([False] * 3 + [True] * 3 + [None] * 3, dtype="boolean")
+        expected = op(a, other)
+        result = op(a, b)
         tm.assert_extension_array_equal(result, expected)
 
 
