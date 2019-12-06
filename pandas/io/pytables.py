@@ -1092,6 +1092,9 @@ class HDFStore:
         except KeyError:
             # the key is not a valid store, re-raising KeyError
             raise
+        except AssertionError:
+            # surface any assertion errors for e.g. debugging
+            raise
         except Exception:
             # In tests we get here with ClosedFileError, TypeError, and
             #  _table_mod.NoSuchNodeError.  TODO: Catch only these?
@@ -1519,6 +1522,9 @@ class HDFStore:
                         if s is not None:
                             keys.append(pprint_thing(s.pathname or k))
                             values.append(pprint_thing(s or "invalid_HDFStore node"))
+                    except AssertionError:
+                        # surface any assertion errors for e.g. debugging
+                        raise
                     except Exception as detail:
                         keys.append(k)
                         dstr = pprint_thing(detail)
@@ -1680,7 +1686,7 @@ class HDFStore:
             self._handle.remove_node(group, recursive=True)
             group = None
 
-        # we don't want to store a table node at all if are object is 0-len
+        # we don't want to store a table node at all if our object is 0-len
         # as there are not dtypes
         if getattr(value, "empty", None) and (format == "table" or append):
             return
@@ -2381,8 +2387,11 @@ class DataCol(IndexCol):
 
         values = block.values
         codes = values.codes
+
         if values.ndim > 1:
             raise NotImplementedError("only support 1-d categoricals")
+
+        assert codes.dtype.name.startswith("int"), codes.dtype.name
 
         # write the codes; must be in a block shape
         self.ordered = values.ordered
