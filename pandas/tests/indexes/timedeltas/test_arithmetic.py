@@ -100,61 +100,37 @@ class TestTimedeltaIndexArithmetic:
     # -------------------------------------------------------------
     # Binary operations TimedeltaIndex and integer
 
-    def test_tdi_add_int(self, one):
-        # Variants of `one` for #19012
+    def test_tdi_add_sub_int(self, one):
+        # Variants of `one` for #19012, deprecated GH#22535
         rng = timedelta_range("1 days 09:00:00", freq="H", periods=10)
         msg = "Addition/subtraction of integers"
+
         with pytest.raises(TypeError, match=msg):
-            # GH#22535
             rng + one
-
-    def test_tdi_iadd_int(self, one):
-        rng = timedelta_range("1 days 09:00:00", freq="H", periods=10)
-        msg = "Addition/subtraction of integers"
         with pytest.raises(TypeError, match=msg):
-            # GH#22535
             rng += one
-
-    def test_tdi_sub_int(self, one):
-        rng = timedelta_range("1 days 09:00:00", freq="H", periods=10)
-        msg = "Addition/subtraction of integers"
         with pytest.raises(TypeError, match=msg):
-            # GH#22535
             rng - one
-
-    def test_tdi_isub_int(self, one):
-        rng = timedelta_range("1 days 09:00:00", freq="H", periods=10)
-        msg = "Addition/subtraction of integers"
         with pytest.raises(TypeError, match=msg):
-            # GH#22535
             rng -= one
 
     # -------------------------------------------------------------
     # __add__/__sub__ with integer arrays
 
     @pytest.mark.parametrize("box", [np.array, pd.Index])
-    def test_tdi_add_integer_array(self, box):
-        # GH#19959
+    def test_tdi_add_sub_integer_array(self, box):
+        # GH#19959, deprecated GH#22535
         rng = timedelta_range("1 days 09:00:00", freq="H", periods=3)
         other = box([4, 3, 2])
         msg = "Addition/subtraction of integers and integer-arrays"
+
         with pytest.raises(TypeError, match=msg):
-            # GH#22535
             rng + other
 
         with pytest.raises(TypeError, match=msg):
-            # GH#22535
             other + rng
 
-    @pytest.mark.parametrize("box", [np.array, pd.Index])
-    def test_tdi_sub_integer_array(self, box):
-        # GH#19959
-        rng = timedelta_range("9H", freq="H", periods=3)
-        other = box([4, 3, 2])
-        msg = "Addition/subtraction of integers and integer-arrays"
-
         with pytest.raises(TypeError, match=msg):
-            # GH#22535
             rng - other
 
         with pytest.raises(TypeError, match=msg):
@@ -165,13 +141,15 @@ class TestTimedeltaIndexArithmetic:
         # GH#19959
         tdi = TimedeltaIndex(["1 Day", "NaT", "3 Hours"])
         other = box([14, -1, 16])
-        with pytest.raises(NullFrequencyError):
+        msg = "Addition/subtraction of integers"
+
+        with pytest.raises(TypeError, match=msg):
             tdi + other
-        with pytest.raises(NullFrequencyError):
+        with pytest.raises(TypeError, match=msg):
             other + tdi
-        with pytest.raises(NullFrequencyError):
+        with pytest.raises(TypeError, match=msg):
             tdi - other
-        with pytest.raises(NullFrequencyError):
+        with pytest.raises(TypeError, match=msg):
             other - tdi
 
     # -------------------------------------------------------------

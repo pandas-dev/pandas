@@ -56,10 +56,6 @@ def integer_op_not_supported(obj):
     # Note we return rather than raise the exception so we can raise in
     #  the caller; mypy finds this more palatable.
     cls = type(obj).__name__
-    if obj.freq is None:
-        return NullFrequencyError(
-            f"Cannot add integral value to {cls} without freq."
-        )
 
     int_addsub_msg = (
         f"Addition/subtraction of integers and integer-arrays with {cls} is "

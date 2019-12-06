@@ -3,8 +3,6 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 
-from pandas.errors import NullFrequencyError
-
 from pandas import Timedelta, Timestamp
 
 from pandas.tseries import offsets
@@ -175,12 +173,13 @@ class TestTimestampArithmetic:
         ],
     )
     def test_add_int_no_freq_raises(self, ts, other):
-        with pytest.raises(NullFrequencyError, match="without freq"):
+        msg = "Addition/subtraction of integers and integer-arrays"
+        with pytest.raises(TypeError, match=msg):
             ts + other
-        with pytest.raises(NullFrequencyError, match="without freq"):
+        with pytest.raises(TypeError, match=msg):
             other + ts
 
-        with pytest.raises(NullFrequencyError, match="without freq"):
+        with pytest.raises(TypeError, match=msg):
             ts - other
         with pytest.raises(TypeError):
             other - ts
