@@ -2503,7 +2503,7 @@ class DataFrame(NDFrame):
             )
         return result
 
-    def transpose(self, *args, copy=False):
+    def transpose(self, *args, copy: bool = False):
         """
         Transpose index and columns.
 
@@ -2603,8 +2603,10 @@ class DataFrame(NDFrame):
         nv.validate_transpose(args, dict())
         # construct the args
 
-        if self._is_homogeneous_type and is_extension_array_dtype(self.iloc[:, 0]):
-            dtype = self.dtypes.iloc[0]
+        dtypes = list(self.dtypes)
+        if self._is_homogeneous_type and is_extension_array_dtype(dtypes[0]):
+            # is_homogeneous_type implies that we have at least one column.
+            dtype = dtypes[0]
             arr_type = dtype.construct_array_type()
             values = self.values
 

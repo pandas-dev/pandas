@@ -309,5 +309,5 @@ class BaseReshapingTests(BaseExtensionTests):
             index=["A", "B"],
         )
         self.assert_frame_equal(result, expected)
-
-        self.assert_frame_equal(np.transpose(np.transpose(expected)), expected)
+        self.assert_frame_equal(np.transpose(np.transpose(df)), df)
+        self.assert_frame_equal(np.transpose(np.transpose(df[["A"]])), df[["A"]])
