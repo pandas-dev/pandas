@@ -547,7 +547,6 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - Passing ``datetime64`` data to :class:`TimedeltaIndex` or ``timedelta64`` data to ``DatetimeIndex`` now raises ``TypeError`` (:issue:`23539`, :issue:`23937`)
 - A tuple passed to :meth:`DataFrame.groupby` is now exclusively treated as a single key (:issue:`18314`)
 - Removed the previously deprecated :meth:`Index.contains`, use ``key in index`` instead (:issue:`30103`)
-- Removed the previously deprecated :attr:`RangeIndex._start`, :attr:`RangeIndex._stop`, :atttr:`RangeIndex._step` (:issue:`26581`)
 - Removed :meth:`Series.from_array` (:issue:`18258`)
 - Removed :meth:`DataFrame.from_items` (:issue:`18458`)
 - Removed :meth:`DataFrame.as_matrix`, :meth:`Series.as_matrix` (:issue:`18458`)

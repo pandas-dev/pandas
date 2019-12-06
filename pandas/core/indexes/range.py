@@ -2,6 +2,7 @@ from datetime import timedelta
 import operator
 from sys import getsizeof
 from typing import Optional, Union
+import warnings
 
 import numpy as np
 
@@ -214,12 +215,43 @@ class RangeIndex(Int64Index):
         # GH 25710
         return self._range.start
 
+    @property
+    def _start(self):
+        """
+        The value of the `start` parameter (``0`` if this was not supplied).
+
+         .. deprecated:: 0.25.0
+            Use ``start`` instead.
+        """
+        warnings.warn(
+            self._deprecation_message.format("_start", "start"),
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.start
+
     @cache_readonly
     def stop(self):
         """
         The value of the `stop` parameter.
         """
         return self._range.stop
+
+    @property
+    def _stop(self):
+        """
+        The value of the `stop` parameter.
+
+         .. deprecated:: 0.25.0
+            Use ``stop`` instead.
+        """
+        # GH 25710
+        warnings.warn(
+            self._deprecation_message.format("_stop", "stop"),
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.stop
 
     @cache_readonly
     def step(self):
@@ -228,6 +260,22 @@ class RangeIndex(Int64Index):
         """
         # GH 25710
         return self._range.step
+
+    @property
+    def _step(self):
+        """
+        The value of the `step` parameter (``1`` if this was not supplied).
+
+         .. deprecated:: 0.25.0
+            Use ``step`` instead.
+        """
+        # GH 25710
+        warnings.warn(
+            self._deprecation_message.format("_step", "step"),
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.step
 
     @cache_readonly
     def nbytes(self) -> int:
