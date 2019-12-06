@@ -2503,7 +2503,7 @@ class DataFrame(NDFrame):
             )
         return result
 
-    def transpose(self, *args, copy=False, **kwargs):
+    def transpose(self, *args, copy=False):
         """
         Transpose index and columns.
 
@@ -2513,9 +2513,14 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        *args, **kwargs
-            Additional arguments and keywords have no effect but might be
-            accepted for compatibility with numpy.
+        *args : tuple, optional
+            Accepted for compatibility with NumPy.
+        copy : bool, default False
+            Whether to copy the data after transposing, even for DataFrames
+            with a single dtype.
+
+            Note that a copy is always required for mixed dtype DataFrames,
+            or for DataFrames with any extension types.
 
         Returns
         -------
@@ -2596,12 +2601,6 @@ class DataFrame(NDFrame):
         dtype: object
         """
         nv.validate_transpose(args, dict())
-        if args == () or args == (None,):
-            args = (1, 0)
-        else:
-            raise ValueError(
-                "the 'axes' parameter is not supported in pandas.DataFrame.transpose"
-            )
         # construct the args
 
         if self._is_homogeneous_type and is_extension_array_dtype(self.iloc[:, 0]):
@@ -2615,7 +2614,7 @@ class DataFrame(NDFrame):
             )
 
         else:
-            new_values = self.values.transpose(args)
+            new_values = self.values.T
             if copy:
                 new_values = new_values.copy()
             result = self._constructor(
