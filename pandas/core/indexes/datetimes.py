@@ -295,7 +295,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             dayfirst=dayfirst,
             yearfirst=yearfirst,
             ambiguous=ambiguous,
-            int_as_wall_time=True,
         )
 
         subarr = cls._simple_new(dtarr, name=name, freq=dtarr.freq, tz=dtarr.tz)
