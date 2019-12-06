@@ -14,7 +14,6 @@ from pandas._libs.tslibs.parsing import (  # noqa
     parse_time_string,
 )
 from pandas._libs.tslibs.strptime import array_strptime
-from pandas.util._decorators import deprecate_kwarg
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -40,7 +39,6 @@ from pandas.core.dtypes.missing import notna
 from pandas._typing import ArrayLike
 from pandas.core import algorithms
 from pandas.core.algorithms import unique
-
 
 # ---------------------------------------------------------------------
 # types used in annotations
@@ -154,11 +152,11 @@ def _maybe_cache(arg, format, cache, convert_listlike):
     return cache_array
 
 
-def _wrap_as_indexlike(
+def _box_as_indexlike(
     dt_array: ArrayLike, utc: Optional[bool] = None, name: Optional[str] = None
 ) -> Union[ABCIndex, ABCDatetimeIndex]:
     """
-    Properly wraps the ndarray of datetimes to DatetimeIndex
+    Properly boxes the ndarray of datetimes to DatetimeIndex
     if it is possible or to generic Index instead
 
     Parameters
@@ -184,7 +182,7 @@ def _wrap_as_indexlike(
     return Index(dt_array, name=name)
 
 
-def _convert_and_cache(
+def _convert_and_box_cache(
     arg: DatetimeScalarOrArrayConvertible,
     cache_array: ABCSeries,
     name: Optional[str] = None,
@@ -207,7 +205,7 @@ def _convert_and_cache(
     from pandas import Series
 
     result = Series(arg).map(cache_array)
-    return _wrap_as_indexlike(result, utc=None, name=name)
+    return _box_as_indexlike(result, utc=None, name=name)
 
 
 def _return_parsed_timezone_results(result, timezones, tz, name):
@@ -263,8 +261,6 @@ def _convert_listlike_datetimes(
     ----------
     arg : list, tuple, ndarray, Series, Index
         date to be parced
-    box : boolean
-        True boxes result as an Index-like, False returns an ndarray
     name : object
         None or string for the Index name
     tz : object
@@ -321,26 +317,25 @@ def _convert_listlike_datetimes(
             raise ValueError("cannot specify both format and unit")
         arg = getattr(arg, "values", arg)
         result, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit, errors=errors)
-        if True:
-            if errors == "ignore":
-                from pandas import Index
+        if errors == "ignore":
+            from pandas import Index
 
-                result = Index(result, name=name)
+            result = Index(result, name=name)
+        else:
+            result = DatetimeIndex(result, name=name)
+        # GH 23758: We may still need to localize the result with tz
+        # GH 25546: Apply tz_parsed first (from arg), then tz (from caller)
+        # result will be naive but in UTC
+        try:
+            result = result.tz_localize("UTC").tz_convert(tz_parsed)
+        except AttributeError:
+            # Regular Index from 'ignore' path
+            return result
+        if tz is not None:
+            if result.tz is None:
+                result = result.tz_localize(tz)
             else:
-                result = DatetimeIndex(result, name=name)
-            # GH 23758: We may still need to localize the result with tz
-            # GH 25546: Apply tz_parsed first (from arg), then tz (from caller)
-            # result will be naive but in UTC
-            try:
-                result = result.tz_localize("UTC").tz_convert(tz_parsed)
-            except AttributeError:
-                # Regular Index from 'ignore' path
-                return result
-            if tz is not None:
-                if result.tz is None:
-                    result = result.tz_localize(tz)
-                else:
-                    result = result.tz_convert(tz)
+                result = result.tz_convert(tz)
         return result
     elif getattr(arg, "ndim", 1) > 1:
         raise TypeError(
@@ -443,7 +438,7 @@ def _convert_listlike_datetimes(
         return DatetimeIndex._simple_new(result, name=name, tz=tz_parsed)
 
     utc = tz == "utc"
-    return _wrap_as_indexlike(result, utc=utc, name=name)
+    return _box_as_indexlike(result, utc=utc, name=name)
 
 
 def _adjust_to_origin(arg, origin, unit):
@@ -525,14 +520,12 @@ def _adjust_to_origin(arg, origin, unit):
     return arg
 
 
-@deprecate_kwarg(old_arg_name="box", new_arg_name=None)
 def to_datetime(
     arg,
     errors="raise",
     dayfirst=False,
     yearfirst=False,
     utc=None,
-    box=True,
     format=None,
     exact=True,
     unit=None,
@@ -729,14 +722,14 @@ dtype='datetime64[ns]', freq=None)
     elif isinstance(arg, ABCIndexClass):
         cache_array = _maybe_cache(arg, format, cache, convert_listlike)
         if not cache_array.empty:
-            result = _convert_and_cache(arg, cache_array, name=arg.name)
+            result = _convert_and_box_cache(arg, cache_array, name=arg.name)
         else:
             convert_listlike = partial(convert_listlike, name=arg.name)
             result = convert_listlike(arg, format)
     elif is_list_like(arg):
         cache_array = _maybe_cache(arg, format, cache, convert_listlike)
         if not cache_array.empty:
-            result = _convert_and_cache(arg, cache_array)
+            result = _convert_and_box_cache(arg, cache_array)
         else:
             result = convert_listlike(arg, format)
     else:
