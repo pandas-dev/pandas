@@ -2595,6 +2595,7 @@ class DataFrame(NDFrame):
         1    object
         dtype: object
         """
+        nv.validate_transpose(args, dict())
         if args == () or args == (None,):
             args = (1, 0)
         else:
