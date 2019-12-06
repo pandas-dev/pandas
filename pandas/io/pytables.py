@@ -2389,7 +2389,6 @@ class DataCol(IndexCol):
 
     def set_atom_string(self, data_converted: np.ndarray):
         self.kind = "string"
-        self.typ = self._get_atom(data_converted)
         self.set_data(data_converted)
 
     def get_atom_coltype(self, kind: str) -> Type["Col"]:
@@ -2408,12 +2407,10 @@ class DataCol(IndexCol):
 
     def set_atom_complex(self, block):
         self.kind = block.dtype.name
-        self.typ = self._get_atom(block.values)
         self.set_data(block.values)
 
     def set_atom_data(self, block):
         self.kind = block.dtype.name
-        self.typ = self._get_atom(block.values)
         self.set_data(block.values)
 
     def set_atom_categorical(self, block):
@@ -2430,7 +2427,6 @@ class DataCol(IndexCol):
 
         # write the codes; must be in a block shape
         self.ordered = values.ordered
-        self.typ = self._get_atom(block.values)
         self.set_data(block.values)
 
         # write the categories
@@ -2444,7 +2440,6 @@ class DataCol(IndexCol):
 
     def set_atom_datetime64(self, block):
         self.kind = "datetime64"
-        self.typ = self._get_atom(block.values)
         self.set_data(block.values)
 
     def set_atom_datetime64tz(self, block):
@@ -2453,7 +2448,6 @@ class DataCol(IndexCol):
         self.tz = _get_tz(block.values.tz)
 
         self.kind = "datetime64"
-        self.typ = self._get_atom(block.values)
         self.set_data(block.values)
 
     def get_atom_timedelta64(self, shape):
@@ -2461,7 +2455,6 @@ class DataCol(IndexCol):
 
     def set_atom_timedelta64(self, block):
         self.kind = "timedelta64"
-        self.typ = self._get_atom(block.values)
         self.set_data(block.values)
 
     @property
@@ -3953,6 +3946,7 @@ class Table(Fixed):
 
             col = klass.create_for_block(i=i, name=new_name, version=self.version)
             col.values = list(b_items)
+            col.typ = col._get_atom(data_converted)
             col.set_atom(block=b, data_converted=data_converted, use_str=use_str)
             col.update_info(self.info)
             col.set_pos(j)
