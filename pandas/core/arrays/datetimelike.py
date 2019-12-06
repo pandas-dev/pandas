@@ -6,7 +6,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import NaT, NaTType, Timestamp, algos, iNaT, lib
-from pandas._libs.tslibs.c_timestamp import maybe_integer_op_deprecated
+from pandas._libs.tslibs.c_timestamp import integer_op_not_supported
 from pandas._libs.tslibs.period import DIFFERENT_FREQ, IncompatibleFrequency, Period
 from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
 from pandas._libs.tslibs.timestamps import RoundTo, round_nsint64
@@ -1207,7 +1207,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             # This check must come after the check for np.timedelta64
             # as is_integer returns True for these
             if not is_period_dtype(self):
-                maybe_integer_op_deprecated(self)
+                raise integer_op_not_supported(self)
             result = self._time_shift(other)
 
         # array-like others
@@ -1222,7 +1222,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             return self._add_datetime_arraylike(other)
         elif is_integer_dtype(other):
             if not is_period_dtype(self):
-                maybe_integer_op_deprecated(self)
+                raise integer_op_not_supported(self)
             result = self._addsub_int_array(other, operator.add)
         else:
             # Includes Categorical, other ExtensionArrays
@@ -1259,7 +1259,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             # This check must come after the check for np.timedelta64
             # as is_integer returns True for these
             if not is_period_dtype(self):
-                maybe_integer_op_deprecated(self)
+                raise integer_op_not_supported(self)
             result = self._time_shift(-other)
 
         elif isinstance(other, Period):
@@ -1280,7 +1280,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             result = self._sub_period_array(other)
         elif is_integer_dtype(other):
             if not is_period_dtype(self):
-                maybe_integer_op_deprecated(self)
+                raise integer_op_not_supported(self)
             result = self._addsub_int_array(other, operator.sub)
         else:
             # Includes ExtensionArrays, float_dtype
