@@ -4,7 +4,7 @@ accessor.py contains base classes for implementing accessor properties
 that can be mixed into or pinned onto other pandas classes.
 
 """
-from typing import FrozenSet, List, Set, Union
+from typing import FrozenSet, Set
 import warnings
 
 from pandas.util._decorators import Appender
@@ -59,7 +59,7 @@ class PandasDelegate:
 
     @classmethod
     def _add_delegate_accessors(
-        cls, delegate, accessors: List[str], typ: str, overwrite: bool = False
+        cls, delegate, accessors, typ: str, overwrite: bool = False
     ):
         """
         Add accessors to cls from the delegate class.
@@ -109,9 +109,7 @@ class PandasDelegate:
                 setattr(cls, name, f)
 
 
-def delegate_names(
-    delegate, accessors: Union[List[str], Set[str]], typ: str, overwrite: bool = False
-):
+def delegate_names(delegate, accessors, typ: str, overwrite: bool = False):
     """
     Add delegated names to a class using a class decorator.  This provides
     an alternative usage to directly calling `_add_delegate_accessors`
