@@ -189,7 +189,7 @@ def indexer_from_factorized(labels, shape, compress: bool = True):
     return get_group_index_sorter(ids, ngroups)
 
 
-def lexsort_indexer(keys, orders=None, na_position="last"):
+def lexsort_indexer(keys, orders=None, na_position: str = "last"):
     """
     Parameters
     ----------
@@ -215,7 +215,7 @@ def lexsort_indexer(keys, orders=None, na_position="last"):
             cat = Categorical(key, ordered=True)
 
         if na_position not in ["last", "first"]:
-            raise ValueError(f"invalid na_position: {repr(na_position)}")
+            raise ValueError(f"invalid na_position: {na_position}")
 
         n = len(cat.categories)
         codes = cat.codes.copy()
@@ -240,7 +240,9 @@ def lexsort_indexer(keys, orders=None, na_position="last"):
     return indexer_from_factorized(labels, shape)
 
 
-def nargsort(items, kind="quicksort", ascending: bool = True, na_position="last"):
+def nargsort(
+    items, kind: str = "quicksort", ascending: bool = True, na_position: str = "last"
+):
     """
     Intended to be a drop-in replacement for np.argsort which handles NaNs.
 
@@ -278,7 +280,7 @@ def nargsort(items, kind="quicksort", ascending: bool = True, na_position="last"
     elif na_position == "first":
         indexer = np.concatenate([nan_idx, indexer])
     else:
-        raise ValueError(f"invalid na_position: {repr(na_position)}")
+        raise ValueError(f"invalid na_position: {na_position}")
     return indexer
 
 
@@ -287,7 +289,7 @@ class _KeyMapper:
     Map compressed group id -> key tuple.
     """
 
-    def __init__(self, comp_ids, ngroups, levels, labels):
+    def __init__(self, comp_ids, ngroups: int, levels, labels):
         self.levels = levels
         self.labels = labels
         self.comp_ids = comp_ids.astype(np.int64)
