@@ -387,7 +387,7 @@ class NAType(C_NAType):
             return NA
         elif isinstance(other, (numbers.Number, np.bool_)):
             if other == 0:
-                return other
+                return type(other)(1)
             else:
                 return NA
 

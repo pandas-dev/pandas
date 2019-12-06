@@ -822,6 +822,12 @@ For example, ``pd.NA`` propagates in arithmetic operations, similarly to
    pd.NA + 1
    "a" * pd.NA
 
+There are a few special cases when the result is known, even when one of the
+operands is ``NA``.
+
+* ``pd.NA ** 0`` is always 0.
+* ``1 ** pd.NA`` is always 1.
+
 In equality and comparison operations, ``pd.NA`` also propagates. This deviates
 from the behaviour of ``np.nan``, where comparisons with ``np.nan`` always
 return ``False``.
@@ -831,12 +837,6 @@ return ``False``.
    pd.NA == 1
    pd.NA == pd.NA
    pd.NA < 2.5
-
-There are a few special cases when the result is known, even when one of the
-operands is ``NA``.
-
-* ``pd.NA ** 0`` is always 0.
-* ``1 ** pd.NA`` is always 1.
 
 To check if a value is equal to ``pd.NA``, the :func:`isna` function can be
 used:

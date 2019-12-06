@@ -78,7 +78,7 @@ def test_comparison_ops():
 def test_pow_special(value):
     result = pd.NA ** value
     assert isinstance(result, type(value))
-    assert result == 0
+    assert result == 1
 
 
 @pytest.mark.parametrize(
