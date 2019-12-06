@@ -269,77 +269,70 @@ def test_resample_quantile(series):
     tm.assert_series_equal(result, expected)
 
 
-@all_ts
 @pytest.mark.parametrize(
-    "freq, result_name, result_data, result_index, result_freq",
+    "_index_factory,_series_name,_index_start,_index_end", [DATE_RANGE, PERIOD_RANGE]
+)
+@pytest.mark.parametrize(
+    "freq, result_dict",
     [
         (
             "D",
-            "dti",
-            [1.0] * 5 + [np.nan] * 5,
-            ["2005-01-{}".format(i) for i in range(1, 11)],
-            "D",
-        ),
-        (
-            "D",
-            "pi",
-            [1.0] * 5 + [np.nan] * 5,
-            ["2005-01-{}".format(i) for i in range(1, 11)],
-            "D",
-        ),
-        (
-            "D",
-            "tdi",
-            [1.0] * 5 + [np.nan] * 5,
-            ["{} days".format(i) for i in range(1, 11)],
-            "D",
+            {
+                "dti": {
+                    "data": [1.0] * 5 + [np.nan] * 5,
+                    "index": DatetimeIndex(
+                        ["2005-01-{}".format(i) for i in range(1, 11)], freq="D"
+                    ),
+                },
+                "pi": {
+                    "data": [1.0] * 5 + [np.nan] * 5,
+                    "index": PeriodIndex(
+                        ["2005-01-{}".format(i) for i in range(1, 11)], freq="D"
+                    ),
+                },
+            },
         ),
         (
             "W",
-            "dti",
-            [2.0, 3.0, np.nan],
-            ["2005-01-02", "2005-01-09", "2005-01-16"],
-            "W-SUN",
+            {
+                "dti": {
+                    "data": [2.0, 3.0, np.nan],
+                    "index": DatetimeIndex(
+                        ["2005-01-02", "2005-01-09", "2005-01-16"], freq="W-SUN"
+                    ),
+                },
+                "pi": {
+                    "data": [2.0, 3.0, np.nan],
+                    "index": PeriodIndex(
+                        [
+                            "2004-12-27/2005-01-02",
+                            "2005-01-03/2005-01-09",
+                            "2005-01-10/2005-01-16",
+                        ],
+                        freq="W-SUN",
+                    ),
+                },
+            },
         ),
         (
-            "W",
-            "pi",
-            [2.0, 3.0, np.nan],
-            ["2004-12-27/2005-01-02", "2005-01-03/2005-01-09", "2005-01-10/2005-01-16"],
-            "W-SUN",
+            "M",
+            {
+                "dti": {
+                    "data": [5.0],
+                    "index": DatetimeIndex(["2005-01-31"], freq="M"),
+                },
+                "pi": {"data": [5.0], "index": PeriodIndex(["2005-01"], freq="M")},
+            },
         ),
-        ("W", "", "", "", ""),
-        ("M", "dti", [5.0], ["2005-01-31"], "M"),
-        ("M", "pi", [5.0], ["2005-01"], "M"),
-        ("M", "", "", "", ""),
     ],
 )
-def test_resample_sum(
-    series, freq, result_name, result_data, result_index, result_freq
-):
+def test_resample_sum(series, freq, result_dict):
     # GH 19974
     series[:5] = 1
     series[5:] = np.nan
+    result = series.resample(freq).sum(min_count=1)
 
-    if isinstance(series.index, TimedeltaIndex) and freq != "D":
-        msg = ".* is a non-fixed frequency"
-        with pytest.raises(ValueError, match=msg):
-            result = series.resample(freq).sum(min_count=1)
-
-    else:
-        result = series.resample(freq).sum(min_count=1)
-
-        if isinstance(series.index, DatetimeIndex) and result_name == "dti":
-            index = DatetimeIndex(result_index, freq=result_freq)
-            expected = Series(result_data, index, name=result_name)
-            tm.assert_series_equal(result, expected)
-
-        if isinstance(series.index, PeriodIndex) and result_name == "pi":
-            index = PeriodIndex(result_index, freq=result_freq)
-            expected = Series(result_data, index, name=result_name)
-            tm.assert_series_equal(result, expected)
-
-        if isinstance(series.index, TimedeltaIndex) and result_name == "tdi":
-            index = TimedeltaIndex(result_index, freq=result_freq)
-            expected = Series(result_data, index, name=result_name)
-            tm.assert_series_equal(result, expected)
+    key = result.name
+    index = result_dict[key]["index"]
+    expected = Series(result_dict[key]["data"], index, name=key)
+    tm.assert_series_equal(result, expected)
