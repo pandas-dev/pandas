@@ -299,7 +299,5 @@ def test_outer():
     s = pd.Series([1, 2, 3])
     o = np.array([1, 2, 3])
 
-    with tm.assert_produces_warning(FutureWarning):
-        result = np.subtract.outer(s, o)
-    expected = np.array([[0, -1, -2], [1, 0, -1], [2, 1, 0]], dtype=np.dtype("int64"))
-    tm.assert_numpy_array_equal(result, expected)
+    with pytest.raises(NotImplementedError):
+        np.subtract.outer(s, o)

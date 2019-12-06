@@ -604,6 +604,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - Removed the previously deprecated :meth:`Series.to_dense`, :meth:`DataFrame.to_dense` (:issue:`26684`)
 - Removed the previously deprecated :meth:`Index.dtype_str`, use ``str(index.dtype)`` instead (:issue:`27106`)
 - :meth:`Categorical.ravel` returns a :class:`Categorical` instead of a ``ndarray`` (:issue:`27199`)
+- The 'outer' method on Numpy ufuncs, e.g. ``np.subtract.outer`` operating on :class:`Series` objects is no longer supported, and will raise ``NotImplementedError`` (:issue:`27198`)
 - Removed previously deprecated :meth:`Series.get_dtype_counts` and :meth:`DataFrame.get_dtype_counts` (:issue:`27145`)
 - Changed the default ``fill_value`` in :meth:`Categorical.take` from ``True`` to ``False`` (:issue:`20841`)
 - Changed the default value for the `raw` argument in :func:`Series.rolling().apply() <pandas.core.window.Rolling.apply>`, :func:`DataFrame.rolling().apply() <pandas.core.window.Rolling.apply>`,
