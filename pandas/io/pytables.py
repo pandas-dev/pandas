@@ -2222,26 +2222,12 @@ class DataCol(IndexCol):
     _info_fields = ["tz", "ordered"]
 
     @classmethod
-    def create_for_block(
-        cls, i: int, name=None, version=None, pos: Optional[int] = None
-    ):
+    def create_for_block(cls, name: str, version, pos: int):
         """ return a new datacol with the block i """
+        assert isinstance(name, str)
 
-        cname = name or f"values_block_{i}"
-        if name is None:
-            name = cname
-
-        # prior to 0.10.1, we named values blocks like: values_block_0 an the
-        # name values_0
-        try:
-            if version[0] == 0 and version[1] <= 10 and version[2] == 0:
-                m = re.search(r"values_block_(\d+)", name)
-                if m:
-                    grp = m.groups()[0]
-                    name = f"values_{grp}"
-        except IndexError:
-            pass
-
+        cname = name
+        name = _maybe_adjust_name(name, version)
         return cls(name=name, cname=cname, pos=pos)
 
     def __init__(
@@ -3535,7 +3521,7 @@ class Table(Fixed):
             if c in dc:
                 klass = DataIndexableCol
             return klass.create_for_block(
-                i=i, name=c, pos=base_pos + i, version=self.version
+                name=c, pos=base_pos + i, version=self.version
             )
 
         # Note: the definition of `values_cols` ensures that each
@@ -3914,16 +3900,16 @@ class Table(Fixed):
                 encoding=self.encoding,
                 errors=self.errors,
             )
+            adj_name = _maybe_adjust_name(new_name, self.version)
 
             typ = klass._get_atom(data_converted)
 
-            col = klass.create_for_block(i=i, name=new_name, version=self.version)
-            col.values = list(b_items)
-            col.typ = typ
+            col = klass(
+                name=adj_name, cname=new_name, values=list(b_items), typ=typ, pos=j
+            )
             col.set_atom(block=b)
             col.set_data(data_converted)
             col.update_info(self.info)
-            col.set_pos(j)
 
             vaxes.append(col)
 
@@ -4946,6 +4932,31 @@ def _need_convert(kind) -> bool:
     if kind in ("datetime64", "string"):
         return True
     return False
+
+
+def _maybe_adjust_name(name: str, version) -> str:
+    """
+    Prior to 0.10.1, we named values blocks like: values_block_0 an the
+    name values_0, adjust the given name if necessary.
+
+    Parameters
+    ----------
+    name : str
+    version : Tuple[int, int, int]
+
+    Returns
+    -------
+    str
+    """
+    try:
+        if version[0] == 0 and version[1] <= 10 and version[2] == 0:
+            m = re.search(r"values_block_(\d+)", name)
+            if m:
+                grp = m.groups()[0]
+                name = f"values_{grp}"
+    except IndexError:
+        pass
+    return name
 
 
 class Selection:
