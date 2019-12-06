@@ -785,7 +785,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
             # 1 ** np.nan is 1. So we have to unmask those.
             if op_name == "pow":
-                mask = np.where(self._data == 1, False, mask)
+                mask = np.where((self._data == 1) & self._mask, False, mask)
 
             elif op_name == "rpow":
                 mask = np.where(other == 1, False, mask)

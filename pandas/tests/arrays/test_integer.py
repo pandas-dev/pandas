@@ -189,10 +189,6 @@ class TestArithmeticOps(BaseOpsUtil):
             # Series op sets 1//0 to np.inf, which IntegerArray does not do (yet)
             mask2 = np.isinf(expected) & np.isnan(result)
             expected[mask2] = np.nan
-        if op_name == "__pow__":
-            # https://github.com/pandas-dev/pandas/issues/29997
-            # unclear what 1 ** NA is.
-            pytest.skip(msg="GH-29997")
         tm.assert_series_equal(result, expected)
 
     def _check_op_integer(self, result, expected, mask, s, op_name, other):
