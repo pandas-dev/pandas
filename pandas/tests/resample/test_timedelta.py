@@ -4,7 +4,7 @@ import numpy as np
 
 import pandas as pd
 from pandas import DataFrame, Series
-from pandas.core.indexes.timedeltas import timedelta_range
+from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 import pandas.util.testing as tm
 
 
@@ -125,3 +125,15 @@ def test_resample_timedelta_values():
     tm.assert_series_equal(res, exp)
     res = df["time"].resample("2D").first()
     tm.assert_series_equal(res, exp)
+
+
+def test_resample_sum():
+    # GH 19974
+    data = [1.0] * 5 + [np.nan] * 5
+    index = timedelta_range("1 day", "10 day", freq="D")
+    series = Series(data, index=index)
+    result = series.resample("D").sum(min_count=1)
+
+    index = TimedeltaIndex(["{} days".format(i) for i in range(1, 11)], freq="D")
+    expected = Series(data, index=index)
+    tm.assert_series_equal(result, expected)
