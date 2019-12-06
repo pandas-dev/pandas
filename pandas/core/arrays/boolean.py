@@ -131,16 +131,17 @@ def coerce_to_array(values, mask=None, copy: bool = False):
         if copy:
             values = values.copy()
     elif isinstance(values, np.ndarray) and values.dtype in (np.int_, np.float_):
-        values_copy = values.copy()
-
         mask_values = isna(values)
-        values = np.zeros(len(values), dtype=bool)
-        values[~mask_values] = values_copy[~mask_values].astype(bool)
+
+        values_bool = np.zeros(len(values), dtype=bool)
+        values_bool[~mask_values] = values[~mask_values].astype(bool)
 
         if not np.all(
-            values[~mask_values].astype(values.dtype) == values_copy[~mask_values]
+            values_bool[~mask_values].astype(values.dtype) == values[~mask_values]
         ):
             raise TypeError("Need to pass bool-like values")
+
+        values = values_bool
     else:
         values_object = np.asarray(values, dtype=object)
 
