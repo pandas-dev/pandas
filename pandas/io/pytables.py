@@ -2353,13 +2353,43 @@ class DataCol(IndexCol):
             # set as a data block
             self.set_atom_data(block)
 
+    def _get_atom(self, values: Union[np.ndarray, ABCExtensionArray]) -> "Col":
+        """
+        Get an appropriately typed and shaped pytables.Col object for values.
+        """
+
+        dtype = values.dtype
+        itemsize = dtype.itemsize
+
+        shape = values.shape
+        if values.ndim == 1:
+            # EA, use block shape pretending it is 2D
+            shape = (1, values.size)
+
+        if is_categorical_dtype(dtype):
+            codes = values.codes
+            atom = self.get_atom_data(shape, kind=codes.dtype.name)
+        elif dtype.kind == "M":
+            atom = self.get_atom_datetime64(shape)
+        elif dtype.kind == "m":
+            atom = self.get_atom_timedelta64(shape)
+        elif dtype.kind == "c":
+            atom = _tables().ComplexCol(itemsize=itemsize, shape=shape[0])
+
+        elif dtype.kind == "S":
+            atom = self.get_atom_string(shape, itemsize)
+
+        else:
+            atom = self.get_atom_data(shape, kind=dtype.name)
+
+        return atom
+
     def get_atom_string(self, shape, itemsize):
         return _tables().StringCol(itemsize=itemsize, shape=shape[0])
 
     def set_atom_string(self, data_converted: np.ndarray):
-        itemsize = data_converted.dtype.itemsize
         self.kind = "string"
-        self.typ = self.get_atom_string(data_converted.shape, itemsize)
+        self.typ = self._get_atom(data_converted)
         self.set_data(data_converted)
 
     def get_atom_coltype(self, kind: str) -> Type["Col"]:
@@ -2378,13 +2408,12 @@ class DataCol(IndexCol):
 
     def set_atom_complex(self, block):
         self.kind = block.dtype.name
-        itemsize = int(self.kind.split("complex")[-1]) // 8
-        self.typ = _tables().ComplexCol(itemsize=itemsize, shape=block.shape[0])
+        self.typ = self._get_atom(block.values)
         self.set_data(block.values)
 
     def set_atom_data(self, block):
         self.kind = block.dtype.name
-        self.typ = self.get_atom_data(block.shape, kind=block.dtype.name)
+        self.typ = self._get_atom(block.values)
         self.set_data(block.values)
 
     def set_atom_categorical(self, block):
@@ -2401,7 +2430,7 @@ class DataCol(IndexCol):
 
         # write the codes; must be in a block shape
         self.ordered = values.ordered
-        self.typ = self.get_atom_data(block.shape, kind=codes.dtype.name)
+        self.typ = self._get_atom(block.values)
         self.set_data(block.values)
 
         # write the categories
@@ -2410,12 +2439,12 @@ class DataCol(IndexCol):
         assert self.kind == "integer", self.kind
         assert self.dtype == codes.dtype.name, codes.dtype.name
 
-    def get_atom_datetime64(self, block):
-        return _tables().Int64Col(shape=block.shape[0])
+    def get_atom_datetime64(self, shape):
+        return _tables().Int64Col(shape=shape[0])
 
     def set_atom_datetime64(self, block):
         self.kind = "datetime64"
-        self.typ = self.get_atom_datetime64(block)
+        self.typ = self._get_atom(block.values)
         self.set_data(block.values)
 
     def set_atom_datetime64tz(self, block):
@@ -2424,15 +2453,15 @@ class DataCol(IndexCol):
         self.tz = _get_tz(block.values.tz)
 
         self.kind = "datetime64"
-        self.typ = self.get_atom_datetime64(block)
+        self.typ = self._get_atom(block.values)
         self.set_data(block.values)
 
-    def get_atom_timedelta64(self, block):
-        return _tables().Int64Col(shape=block.shape[0])
+    def get_atom_timedelta64(self, shape):
+        return _tables().Int64Col(shape=shape[0])
 
     def set_atom_timedelta64(self, block):
         self.kind = "timedelta64"
-        self.typ = self.get_atom_timedelta64(block)
+        self.typ = self._get_atom(block.values)
         self.set_data(block.values)
 
     @property
@@ -2564,10 +2593,10 @@ class DataIndexableCol(DataCol):
     def get_atom_data(self, shape, kind: str) -> "Col":
         return self.get_atom_coltype(kind=kind)()
 
-    def get_atom_datetime64(self, block):
+    def get_atom_datetime64(self, shape):
         return _tables().Int64Col()
 
-    def get_atom_timedelta64(self, block):
+    def get_atom_timedelta64(self, shape):
         return _tables().Int64Col()
 
 
