@@ -4618,7 +4618,7 @@ class DataFrame(NDFrame):
         Returns
         -------
         DataFrame
-            DataFrame with duplicates removed or None if ``inplace=True``
+            DataFrame with duplicates removed or None if ``inplace=True``.
         """
         if self.empty:
             return self.copy()
