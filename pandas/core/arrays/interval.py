@@ -1179,7 +1179,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if isinstance(other, (IntervalArray, ABCIntervalIndex)):
             raise NotImplementedError
         elif not isinstance(other, Interval):
-            msg = f"`other` must be Interval-like, got {type(other).__name__)}"
+            msg = f"`other` must be Interval-like, got {type(other).__name__}"
             raise TypeError(msg)
 
         # equality is okay if both endpoints are closed (overlap at a point)
