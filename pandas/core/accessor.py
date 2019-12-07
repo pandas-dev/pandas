@@ -49,13 +49,13 @@ class PandasDelegate:
     """
 
     def _delegate_property_get(self, name, *args, **kwargs):
-        raise TypeError("You cannot access the property {name}".format(name=name))
+        raise TypeError(f"You cannot access the property {name}")
 
     def _delegate_property_set(self, name, value, *args, **kwargs):
-        raise TypeError("The property {name} cannot be set".format(name=name))
+        raise TypeError(f"The property {name} cannot be set")
 
     def _delegate_method(self, name, *args, **kwargs):
-        raise TypeError("You cannot call method {name}".format(name=name))
+        raise TypeError(f"You cannot call method {name}")
 
     @classmethod
     def _add_delegate_accessors(
