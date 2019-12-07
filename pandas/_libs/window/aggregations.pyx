@@ -183,14 +183,15 @@ cdef inline void remove_sum(float64_t val, int64_t *nobs, float64_t *sum_x) nogi
 
 
 def roll_sum_variable(ndarray[float64_t] values, ndarray[int64_t] start,
-                      ndarray[int64_t] end, int64_t minp,
-                      bint is_monotonic_bounds=True):
+                      ndarray[int64_t] end, int64_t minp):
     cdef:
         float64_t sum_x = 0
         int64_t s, e
         int64_t nobs = 0, i, j, N = len(values)
         ndarray[float64_t] output
+        bint is_monotonic_bounds
 
+    is_monotonic_bounds = np.any(np.diff(start) < 0) or np.any(np.diff(end) < 0)
     output = np.empty(N, dtype=float)
 
     with nogil:
@@ -331,14 +332,15 @@ def roll_mean_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
 
 
 def roll_mean_variable(ndarray[float64_t] values, ndarray[int64_t] start,
-                       ndarray[int64_t] end, int64_t minp,
-                       bint is_monotonic_bounds=True):
+                       ndarray[int64_t] end, int64_t minp):
     cdef:
         float64_t val, sum_x = 0
         int64_t s, e
         Py_ssize_t nobs = 0, i, j, neg_ct = 0, N = len(values)
         ndarray[float64_t] output
+        bint is_monotonic_bounds
 
+    is_monotonic_bounds = np.any(np.diff(start) < 0) or np.any(np.diff(end) < 0)
     output = np.empty(N, dtype=float)
 
     with nogil:
@@ -493,8 +495,7 @@ def roll_var_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
 
 
 def roll_var_variable(ndarray[float64_t] values, ndarray[int64_t] start,
-                      ndarray[int64_t] end, int64_t minp, int ddof=1,
-                      bint is_monotonic_bounds=True):
+                      ndarray[int64_t] end, int64_t minp, int ddof=1):
     """
     Numerically stable implementation using Welford's method.
     """
@@ -504,7 +505,9 @@ def roll_var_variable(ndarray[float64_t] values, ndarray[int64_t] start,
         int64_t s, e
         Py_ssize_t i, j, N = len(values)
         ndarray[float64_t] output
+        bint is_monotonic_bounds
 
+    is_monotonic_bounds = np.any(np.diff(start) < 0) or np.any(np.diff(end) < 0)
     output = np.empty(N, dtype=float)
 
     with nogil:
@@ -641,15 +644,16 @@ def roll_skew_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
 
 
 def roll_skew_variable(ndarray[float64_t] values, ndarray[int64_t] start,
-                       ndarray[int64_t] end, int64_t minp,
-                       bint is_monotonic_bounds=True):
+                       ndarray[int64_t] end, int64_t minp):
     cdef:
         float64_t val, prev
         float64_t x = 0, xx = 0, xxx = 0
         int64_t nobs = 0, i, j, N = len(values)
         int64_t s, e
         ndarray[float64_t] output
+        bint is_monotonic_bounds
 
+    is_monotonic_bounds = np.any(np.diff(start) < 0) or np.any(np.diff(end) < 0)
     output = np.empty(N, dtype=float)
 
     with nogil:
@@ -794,14 +798,15 @@ def roll_kurt_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
 
 
 def roll_kurt_variable(ndarray[float64_t] values, ndarray[int64_t] start,
-                       ndarray[int64_t] end, int64_t minp,
-                       bint is_monotonic_bounds=True):
+                       ndarray[int64_t] end, int64_t minp):
     cdef:
         float64_t val, prev
         float64_t x = 0, xx = 0, xxx = 0, xxxx = 0
         int64_t nobs = 0, i, j, s, e, N = len(values)
         ndarray[float64_t] output
+        bint is_monotonic_bounds
 
+    is_monotonic_bounds = np.any(np.diff(start) < 0) or np.any(np.diff(end) < 0)
     output = np.empty(N, dtype=float)
 
     with nogil:
@@ -1030,8 +1035,7 @@ def roll_min_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
 
 
 def roll_min_variable(ndarray[float64_t] values, ndarray[int64_t] start,
-                      ndarray[int64_t] end, int64_t minp,
-                      bint is_monotonic_bounds=True):
+                      ndarray[int64_t] end, int64_t minp):
     """
     Moving max of 1d array of any numeric type along axis=0 ignoring NaNs.
 
@@ -1424,10 +1428,7 @@ def roll_generic_variable(object obj,
                           ndarray[int64_t] start, ndarray[int64_t] end,
                           int64_t minp,
                           int offset, object func, bint raw,
-                          object args, object kwargs,
-                          bint is_monotonic_bounds=True):
-    # is_monotonic_bounds unused since variable algorithm doesn't calculate
-    # adds/subtracts across windows, but matches other *_variable functions
+                          object args, object kwargs):
     cdef:
         ndarray[float64_t] output, counts, bufarr
         ndarray[float64_t, cast=True] arr
