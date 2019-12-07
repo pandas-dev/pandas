@@ -3874,7 +3874,12 @@ class Table(Fixed):
             kind = _dtype_to_kind(data_converted.dtype.name)
 
             col = klass(
-                name=adj_name, cname=new_name, values=list(b_items), typ=typ, pos=j, kind=kind
+                name=adj_name,
+                cname=new_name,
+                values=list(b_items),
+                typ=typ,
+                pos=j,
+                kind=kind,
             )
             col.set_atom(block=b)
             col.set_data(data_converted)
