@@ -551,18 +551,10 @@ class BlockManager(PandasObject):
         return self.apply("downcast", **kwargs)
 
     def astype(
-            self,
-            dtype,
-            copy: bool = False,
-            errors: str = "raise",
-            skipna: bool = True
+        self, dtype, copy: bool = False, errors: str = "raise", skipna: bool = True
     ):
         return self.apply(
-            "astype",
-            dtype=dtype,
-            copy=copy,
-            errors=errors,
-            skipna=skipna
+            "astype", dtype=dtype, copy=copy, errors=errors, skipna=skipna
         )
 
     def convert(self, **kwargs):

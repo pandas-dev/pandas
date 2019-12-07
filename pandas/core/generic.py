@@ -5696,7 +5696,7 @@ class NDFrame(PandasObject, SelectionMixin):
                             dtype=dtype[col_name],
                             copy=copy,
                             errors=errors,
-                            skipna=skipna
+                            skipna=skipna,
                         )
                     )
                 else:

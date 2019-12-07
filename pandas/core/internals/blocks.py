@@ -524,11 +524,7 @@ class Block(PandasObject):
         return self.split_and_operate(None, f, False)
 
     def astype(
-            self,
-            dtype, copy: bool = False,
-            errors: str = "raise",
-            skipna=True,
-            **kwargs
+        self, dtype, copy: bool = False, errors: str = "raise", skipna=True, **kwargs
     ):
         return self._astype(dtype, copy=copy, errors=errors, skipna=skipna, **kwargs)
 
@@ -602,9 +598,7 @@ class Block(PandasObject):
             # _astype_nansafe works fine with 1-d only
             vals1d = values.ravel()
             try:
-                values = astype_nansafe(
-                    vals1d, dtype, copy=True, skipna=skipna
-                )
+                values = astype_nansafe(vals1d, dtype, copy=True, skipna=skipna)
             except (ValueError, TypeError):
                 # e.g. astype_nansafe can fail on object-dtype of strings
                 #  trying to convert to float
@@ -2151,10 +2145,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         return values
 
     def astype(
-            self,
-            dtype, copy: bool = False,
-            errors: str = "raise",
-            skipna: bool = True
+        self, dtype, copy: bool = False, errors: str = "raise", skipna: bool = True
     ):
         """
         these automatically copy, so copy=True has no effect
