@@ -324,12 +324,10 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
 
         if len(columns) != K:
             raise ValueError(
-                "Column length mismatch: {columns} vs. {K}".format(
-                    columns=len(columns), K=K
-                )
+                f"Column length mismatch: {len(columns)} vs. {K}"
             )
         if len(index) != N:
             raise ValueError(
-                "Index length mismatch: {index} vs. {N}".format(index=len(index), N=N)
+                f"Index length mismatch: {len(index)} vs. {N}"
             )
         return index, columns
