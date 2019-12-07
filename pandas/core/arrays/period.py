@@ -65,7 +65,7 @@ def _period_array_cmp(cls, op):
     """
     Wrap comparison operations to convert Period-like to PeriodDtype
     """
-    opname = "__{name}__".format(name=op.__name__)
+    opname = f"__{op.__name__}__"
     nat_result = opname == "__ne__"
 
     @unpack_zerodim_and_defer(opname)
@@ -302,9 +302,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
                 self._check_compatible_with(value)
             return value.ordinal
         else:
-            raise ValueError(
-                "'value' should be a Period. Got '{val}' instead.".format(val=value)
-            )
+            raise ValueError(f"'value' should be a Period. Got '{value}' instead.")
 
     def _scalar_from_string(self, value: str) -> Period:
         return Period(value, freq=self.freq)
@@ -491,10 +489,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
             self._check_compatible_with(fill_value)
             fill_value = fill_value.ordinal
         else:
-            raise ValueError(
-                "'fill_value' should be a Period. "
-                "Got '{got}'.".format(got=fill_value)
-            )
+            raise ValueError(f"'fill_value' should be a Period. Got '{fill_value}'.")
         return fill_value
 
     # --------------------------------------------------------------------
@@ -517,7 +512,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         if freq is not None:
             raise TypeError(
                 "`freq` argument is not supported for "
-                "{cls}._time_shift".format(cls=type(self).__name__)
+                f"{type(self).__name__}._time_shift"
             )
         values = self.asi8 + periods * self.freq.n
         if self._hasnans:
@@ -954,7 +949,7 @@ def dt64arr_to_periodarr(data, freq, tz=None):
 
     """
     if data.dtype != np.dtype("M8[ns]"):
-        raise ValueError("Wrong dtype: {dtype}".format(dtype=data.dtype))
+        raise ValueError(f"Wrong dtype: {data.dtype}")
 
     if freq is None:
         if isinstance(data, ABCIndexClass):
