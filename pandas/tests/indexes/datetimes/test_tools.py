@@ -114,8 +114,7 @@ class TestTimeConversionFormats:
         # GH 30011
         # format='%Y%m%d'
         # with None
-        expected = Series([Timestamp("19801222"), Timestamp(None),Timestamp("20010112")])
-
+        expected = Series([Timestamp("19801222"), Timestamp(None), Timestamp("20010112")])
         result = pd.to_datetime(input_s, format="%Y%m%d")
         tm.assert_series_equal(result, expected)
 
