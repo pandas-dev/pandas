@@ -3871,9 +3871,10 @@ class Table(Fixed):
             adj_name = _maybe_adjust_name(new_name, self.version)
 
             typ = klass._get_atom(data_converted)
+            kind = _dtype_to_kind(data_converted.dtype.name)
 
             col = klass(
-                name=adj_name, cname=new_name, values=list(b_items), typ=typ, pos=j
+                name=adj_name, cname=new_name, values=list(b_items), typ=typ, pos=j, kind=kind
             )
             col.set_atom(block=b)
             col.set_data(data_converted)
@@ -4951,6 +4952,8 @@ def _dtype_to_kind(dtype_str: str) -> str:
         kind = "timedelta"
     elif dtype_str.startswith("bool"):
         kind = "bool"
+    elif dtype_str.startswith("category"):
+        kind = "category"
     else:
         raise ValueError(f"cannot interpret dtype of [{dtype_str}]")
 
