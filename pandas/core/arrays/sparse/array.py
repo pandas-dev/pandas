@@ -373,7 +373,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     @classmethod
     def _simple_new(
-        cls, sparse_array: np.ndarray, sparse_index: SparseIndex, dtype: SparseDtype,
+        cls, sparse_array: np.ndarray, sparse_index: SparseIndex, dtype: SparseDtype
     ) -> "SparseArray":
         new = cls([])
         new._sparse_index = sparse_index
@@ -791,9 +791,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     def take(self, indices, allow_fill=False, fill_value=None):
         if is_scalar(indices):
-            raise ValueError(
-                f"'indices' must be an array, not a scalar '{indices}'."
-            )
+            raise ValueError(f"'indices' must be an array, not a scalar '{indices}'.")
         indices = np.asarray(indices, dtype=np.int32)
 
         if indices.size == 0:
@@ -1153,9 +1151,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         method = getattr(self, name, None)
 
         if method is None:
-            raise TypeError(
-                f"cannot perform {name} with type {self.dtype}"
-            )
+            raise TypeError(f"cannot perform {name} with type {self.dtype}")
 
         if skipna:
             arr = self
@@ -1399,9 +1395,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                     # TODO: look into _wrap_result
                     if len(self) != len(other):
                         raise AssertionError(
-                            (
-                                f"length mismatch: {len(self)} vs. {len(other)}"
-                            )
+                            (f"length mismatch: {len(self)} vs. {len(other)}")
                         )
                     if not isinstance(other, SparseArray):
                         dtype = getattr(other, "dtype", None)

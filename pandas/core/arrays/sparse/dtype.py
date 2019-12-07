@@ -79,9 +79,7 @@ class SparseDtype(ExtensionDtype):
             fill_value = na_value_for_dtype(dtype)
 
         if not is_scalar(fill_value):
-            raise ValueError(
-                f"fill_value must be a scalar. Got {fill_value} instead"
-            )
+            raise ValueError(f"fill_value must be a scalar. Got {fill_value} instead")
         self._dtype = dtype
         self._fill_value = fill_value
 
