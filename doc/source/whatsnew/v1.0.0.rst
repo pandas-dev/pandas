@@ -539,6 +539,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - Changed the the default value of `inplace` in :meth:`DataFrame.set_index` and :meth:`Series.set_axis`. It now defaults to ``False`` (:issue:`27600`)
 - Removed the previously deprecated :attr:`Series.cat.categorical`, :attr:`Series.cat.index`, :attr:`Series.cat.name` (:issue:`24751`)
 - :func:`to_datetime` no longer accepts "box" argument, always returns :class:`DatetimeIndex` or :class:`Index`, :class:`Series`, or :class:`DataFrame` (:issue:`24486`)
+- :func:`to_timedelta`, :class:`Timedelta`, and :class:`TimedeltaIndex` no longer allow "M", "y", or "Y" for the "unit" argument (:issue:`23264`)
 - Removed the previously deprecated ``time_rule`` keyword from (non-public) :func:`offsets.generate_range`, which has been moved to :func:`core.arrays._ranges.generate_range` (:issue:`24157`)
 - :meth:`DataFrame.loc` or :meth:`Series.loc` with listlike indexers and missing labels will no longer reindex (:issue:`17295`)
 - :meth:`DataFrame.to_excel` and :meth:`Series.to_excel` with non-existent columns will no longer reindex (:issue:`17295`)

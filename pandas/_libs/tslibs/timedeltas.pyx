@@ -1,6 +1,5 @@
 import collections
 import textwrap
-import warnings
 
 import cython
 
@@ -1204,9 +1203,10 @@ class Timedelta(_Timedelta):
                                  "milliseconds, microseconds, nanoseconds]")
 
         if unit in {'Y', 'y', 'M'}:
-            warnings.warn("M and Y units are deprecated and "
-                          "will be removed in a future version.",
-                          FutureWarning, stacklevel=1)
+            raise ValueError(
+                "Units 'M' and 'Y' are no longer supported, as they do not "
+                "represent unambiguous timedelta values durations."
+            )
 
         if isinstance(value, Timedelta):
             value = value.value
