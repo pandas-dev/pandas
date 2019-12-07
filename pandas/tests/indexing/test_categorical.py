@@ -12,6 +12,7 @@ from pandas import (
     Index,
     Interval,
     Series,
+    Timedelta,
     Timestamp,
 )
 from pandas.api.types import CategoricalDtype as CDT
@@ -763,27 +764,74 @@ class TestCategoricalIndex:
         tm.assert_index_equal(expected, output)
 
     @pytest.mark.parametrize(
-        "idx_values", [[1, 2, 3], [-1, -2, -3], [1.5, 2.5, 3.5], [-1.5, -2.5, -3.5]]
+        "idx_values",
+        [
+            # python types
+            [1, 2, 3],
+            [-1, -2, -3],
+            [1.5, 2.5, 3.5],
+            [-1.5, -2.5, -3.5],
+            # numpy int/uint
+            *[
+                np.array([1, 2, 3], dtype=dtype)
+                for dtype in [
+                    np.int8,
+                    np.int16,
+                    np.int32,
+                    np.int64,
+                    np.uint8,
+                    np.uint16,
+                    np.uint32,
+                    np.uint64,
+                ]
+            ],
+            # numpy floats
+            *[
+                np.array([1.5, 2.5, 3.5], dtype=dtype)
+                for dtype in (np.float16, np.float32, np.float64)
+            ],
+            # pandas scalars
+            [Interval(1, 4), Interval(4, 6), Interval(6, 9)],
+            [Timestamp(2019, 1, 1), Timestamp(2019, 2, 1), Timestamp(2019, 3, 1)],
+            [Timedelta(1, "d"), Timedelta(2, "d"), Timedelta(3, "D")],
+            # pandas Integer arrays
+            *[
+                pd.array([1, 2, 3], dtype=dtype)
+                for dtype in [
+                    "Int8",
+                    "Int16",
+                    "Int32",
+                    "Int64",
+                    "UInt8",
+                    "UInt32",
+                    "UInt64",
+                ]
+            ],
+            # other pandas arrays
+            pd.IntervalIndex.from_breaks([1, 4, 6, 9]).array,
+            pd.date_range("2019-01-01", periods=3).array,
+            pd.timedelta_range(start="1d", periods=3).array,
+        ],
     )
     def test_loc_with_non_string_categories(self, idx_values, ordered_fixture):
         # GH-17569
         cat_idx = CategoricalIndex(idx_values, ordered=ordered_fixture)
-        cat = DataFrame({"A": ["foo", "bar", "baz"]}, index=cat_idx)
-        # scalar
-        result = cat.loc[idx_values[0]]
+        df = DataFrame({"A": ["foo", "bar", "baz"]}, index=cat_idx)
+        # scalar selection
+        result = df.loc[idx_values[0]]
         expected = Series(["foo"], index=["A"], name=idx_values[0])
         tm.assert_series_equal(result, expected)
-        # list
-        result = cat.loc[idx_values[:2]]
+        # list selection
+        result = df.loc[idx_values[:2]]
         expected = DataFrame(["foo", "bar"], index=cat_idx[:2], columns=["A"])
         tm.assert_frame_equal(result, expected)
         # scalar assignment
-        result = cat.copy()
+        result = df.copy()
         result.loc[idx_values[0]] = "qux"
         expected = DataFrame({"A": ["qux", "bar", "baz"]}, index=cat_idx)
         tm.assert_frame_equal(result, expected)
         # list assignment
-        result = cat.copy()
+        result = df.copy()
         result.loc[idx_values[:2], "A"] = ["qux", "qux2"]
         expected = DataFrame({"A": ["qux", "qux2", "baz"]}, index=cat_idx)
         tm.assert_frame_equal(result, expected)
