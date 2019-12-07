@@ -23,7 +23,7 @@ from pandas import (
 )
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 from pandas.core.ops import roperator
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 
 @pytest.mark.parametrize(
@@ -141,7 +141,7 @@ def test_round_nat(klass, method, freq):
 )
 def test_nat_methods_raise(method):
     # see gh-9513, gh-17329
-    msg = "NaTType does not support {method}".format(method=method)
+    msg = f"NaTType does not support {method}"
 
     with pytest.raises(ValueError, match=msg):
         getattr(NaT, method)()
@@ -252,6 +252,7 @@ def _get_overlap_public_nat_methods(klass, as_tuple=False):
                 "day_name",
                 "dst",
                 "floor",
+                "fromisocalendar",
                 "fromisoformat",
                 "fromordinal",
                 "fromtimestamp",
@@ -296,6 +297,8 @@ def test_overlap_public_nat_methods(klass, expected):
     # "fromisoformat" was introduced in 3.7
     if klass is Timestamp and not compat.PY37:
         expected.remove("fromisoformat")
+    if klass is Timestamp and not compat.PY38:
+        expected.remove("fromisocalendar")
 
     assert _get_overlap_public_nat_methods(klass) == expected
 

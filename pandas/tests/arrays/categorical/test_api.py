@@ -1,3 +1,5 @@
+import re
+
 import numpy as np
 import pytest
 
@@ -339,9 +341,13 @@ class TestCategoricalAPI:
         tm.assert_categorical_equal(cat, new)
         assert res is None
 
-        # removal is not in categories
-        with pytest.raises(ValueError):
-            cat.remove_categories(["c"])
+    @pytest.mark.parametrize("removals", [["c"], ["c", np.nan], "c", ["c", "c"]])
+    def test_remove_categories_raises(self, removals):
+        cat = Categorical(["a", "b", "a"])
+        message = re.escape("removals must all be in old categories: {'c'}")
+
+        with pytest.raises(ValueError, match=message):
+            cat.remove_categories(removals)
 
     def test_remove_unused_categories(self):
         c = Categorical(["a", "b", "c", "d", "a"], categories=["a", "b", "c", "d", "e"])
@@ -498,9 +504,3 @@ class TestPrivateCategoricalAPI:
         new = Index(expected)
         result = _recode_for_categories(codes, old, new)
         tm.assert_numpy_array_equal(result, expected)
-
-    def test_deprecated_get_values(self):
-        cat = Categorical(["a", "b", "c", "a"])
-        with tm.assert_produces_warning(FutureWarning):
-            res = cat.get_values()
-        tm.assert_numpy_array_equal(res, np.array(cat))

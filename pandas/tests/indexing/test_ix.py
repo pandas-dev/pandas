@@ -9,7 +9,7 @@ from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
 from pandas import DataFrame, Series, option_context
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 
 def test_ix_deprecation():
@@ -313,9 +313,8 @@ class TestIX:
 
     def test_ix_empty_list_indexer_is_ok(self):
         with catch_warnings(record=True):
-            from pandas.util.testing import makeCustomDataframe as mkdf
 
-            df = mkdf(5, 2)
+            df = tm.makeCustomDataframe(5, 2)
             # vertical empty
             tm.assert_frame_equal(
                 df.ix[:, []],
@@ -343,3 +342,13 @@ class TestIX:
             r = df.ix[0.2, "a"]
         e = df.loc[0.2, "a"]
         tm.assert_series_equal(r, e)
+
+    def test_ix_intervalindex(self):
+        # https://github.com/pandas-dev/pandas/issues/27865
+        df = DataFrame(
+            np.random.randn(5, 2),
+            index=pd.IntervalIndex.from_breaks([-np.inf, 0, 1, 2, 3, np.inf]),
+        )
+        result = df.ix[0:2, 0]
+        expected = df.iloc[0:2, 0]
+        tm.assert_series_equal(result, expected)

@@ -498,7 +498,7 @@ Here is a taste of what to expect.
 
 .. code-block:: ipython
 
-  In [58]: p4d = Panel4D(randn(2, 2, 5, 4),
+  In [58]: p4d = Panel4D(np.random.randn(2, 2, 5, 4),
     ....:       labels=['Label1','Label2'],
     ....:       items=['Item1', 'Item2'],
     ....:       major_axis=date_range('1/1/2000', periods=5),

@@ -14,7 +14,6 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DatetimeIndex, Timestamp, bdate_range, date_range, offsets
-from pandas.tests.series.common import TestData
 import pandas.util.testing as tm
 
 from pandas.tseries.offsets import (
@@ -82,7 +81,7 @@ class TestTimestampEquivDateRange:
         assert timestamp_instance == ts
 
 
-class TestDateRanges(TestData):
+class TestDateRanges:
     def test_date_range_nat(self):
         # GH#11587
         msg = "Neither `start` nor `end` can be NaT"
@@ -799,7 +798,7 @@ class TestBusinessDateRange:
         # GH #456
         rng1 = bdate_range("12/5/2011", "12/5/2011")
         rng2 = bdate_range("12/2/2011", "12/5/2011")
-        rng2.freq = BDay()
+        rng2._data.freq = BDay()  # TODO: shouldnt this already be set?
 
         result = rng1.union(rng2)
         assert isinstance(result, DatetimeIndex)
@@ -856,7 +855,7 @@ class TestCustomDateRange:
         # GH #456
         rng1 = bdate_range("12/5/2011", "12/5/2011", freq="C")
         rng2 = bdate_range("12/2/2011", "12/5/2011", freq="C")
-        rng2.freq = CDay()
+        rng2._data.freq = CDay()  # TODO: shouldnt this already be set?
 
         result = rng1.union(rng2)
         assert isinstance(result, DatetimeIndex)

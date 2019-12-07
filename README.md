@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://github.com/pandas-dev/pandas/blob/master/doc/logo/pandas_logo.png"><br>
+  <img src="https://dev.pandas.io/static/img/pandas.svg"><br>
 </div>
 
 -----------------
@@ -164,12 +164,11 @@ pip install pandas
 ```
 
 ## Dependencies
-- [NumPy](https://www.numpy.org): 1.13.3 or higher
-- [python-dateutil](https://labix.org/python-dateutil): 2.5.0 or higher
-- [pytz](https://pythonhosted.org/pytz): 2015.4 or higher
+- [NumPy](https://www.numpy.org)
+- [python-dateutil](https://labix.org/python-dateutil)
+- [pytz](https://pythonhosted.org/pytz)
 
-See the [full installation instructions](https://pandas.pydata.org/pandas-docs/stable/install.html#dependencies)
-for recommended and optional dependencies.
+See the [full installation instructions](https://pandas.pydata.org/pandas-docs/stable/install.html#dependencies) for minimum supported versions of required, recommended and optional dependencies.
 
 ## Installation from sources
 To install pandas from source you need Cython in addition to the normal
@@ -188,16 +187,17 @@ python setup.py install
 
 or for installing in [development mode](https://pip.pypa.io/en/latest/reference/pip_install.html#editable-installs):
 
+
 ```sh
-python setup.py develop
+python -m pip install -e . --no-build-isolation --no-use-pep517
 ```
 
-Alternatively, you can use `pip` if you want all the dependencies pulled
-in automatically (the `-e` option is for installing it in [development
-mode](https://pip.pypa.io/en/latest/reference/pip_install.html#editable-installs)):
+If you have `make`, you can also use `make develop` to run the same command.
+
+or alternatively
 
 ```sh
-pip install -e .
+python setup.py develop
 ```
 
 See the full instructions for [installing from source](https://pandas.pydata.org/pandas-docs/stable/install.html#installing-from-source).
@@ -224,7 +224,7 @@ Most development discussion is taking place on github in this repo. Further, the
 
 All contributions, bug reports, bug fixes, documentation improvements, enhancements and ideas are welcome.
 
-A detailed overview on how to contribute can be found in the **[contributing guide](https://dev.pandas.io/contributing.html)**. There is also an [overview](.github/CONTRIBUTING.md) on GitHub.
+A detailed overview on how to contribute can be found in the **[contributing guide](https://dev.pandas.io/docs/contributing.html)**. There is also an [overview](.github/CONTRIBUTING.md) on GitHub.
 
 If you are simply looking to start working with the pandas codebase, navigate to the [GitHub "issues" tab](https://github.com/pandas-dev/pandas/issues) and start looking through interesting issues. There are a number of issues listed under [Docs](https://github.com/pandas-dev/pandas/issues?labels=Docs&sort=updated&state=open) and [good first issue](https://github.com/pandas-dev/pandas/issues?labels=good+first+issue&sort=updated&state=open) where you could start out.
 

@@ -10,15 +10,15 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys
-import os
-import inspect
 import importlib
+import inspect
 import logging
-import jinja2
-from sphinx.ext.autosummary import _import_by_name
-from numpydoc.docscrape import NumpyDocString
+import os
+import sys
 
+import jinja2
+from numpydoc.docscrape import NumpyDocString
+from sphinx.ext.autosummary import _import_by_name
 
 logger = logging.getLogger(__name__)
 
@@ -120,6 +120,9 @@ plot_html_show_source_link = False
 plot_pre_code = """import numpy as np
 import pandas as pd"""
 
+# nbsphinx do not use requirejs (breaks bootstrap)
+nbsphinx_requirejs_path = ""
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["../_templates"]
 
@@ -141,7 +144,7 @@ copyright = "2008-2014, the pandas development team"
 # built documents.
 #
 # The short X.Y version.
-import pandas
+import pandas  # noqa: E402 isort:skip
 
 # version = '%s r%s' % (pandas.__version__, svn_version())
 version = str(pandas.__version__)
@@ -191,7 +194,7 @@ pygments_style = "sphinx"
 
 # The theme to use for HTML and HTML Help pages.  Major themes that come with
 # Sphinx are currently 'default' and 'sphinxdoc'.
-html_theme = "nature_with_gtoc"
+html_theme = "pandas_sphinx_theme"
 
 # The style sheet to use for HTML and HTML Help pages. A file of that name
 # must exist either in Sphinx' static/ path, or in one of the custom paths
@@ -204,7 +207,7 @@ html_theme = "nature_with_gtoc"
 # html_theme_options = {}
 
 # Add any paths that contain custom themes here, relative to this directory.
-html_theme_path = ["themes"]
+# html_theme_path = ["themes"]
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
@@ -215,7 +218,7 @@ html_theme_path = ["themes"]
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-# html_logo = None
+html_logo = "../../web/pandas/static/img/pandas.svg"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -293,12 +296,7 @@ for old, new in moved_classes:
 
     for method in methods:
         # ... and each of its public methods
-        moved_api_pages.append(
-            (
-                "{old}.{method}".format(old=old, method=method),
-                "{new}.{method}".format(new=new, method=method),
-            )
-        )
+        moved_api_pages.append((f"{old}.{method}", f"{new}.{method}",))
 
 if pattern is None:
     html_additional_pages = {
@@ -306,7 +304,7 @@ if pattern is None:
     }
 
 
-header = """\
+header = f"""\
 .. currentmodule:: pandas
 
 .. ipython:: python
@@ -315,16 +313,13 @@ header = """\
    import numpy as np
    import pandas as pd
 
-   randn = np.random.randn
    np.random.seed(123456)
    np.set_printoptions(precision=4, suppress=True)
    pd.options.display.max_rows = 15
 
    import os
-   os.chdir(r'{}')
-""".format(
-    os.path.dirname(os.path.dirname(__file__))
-)
+   os.chdir(r'{os.path.dirname(os.path.dirname(__file__))}')
+"""
 
 
 html_context = {
@@ -376,7 +371,7 @@ latex_documents = [
         "index",
         "pandas.tex",
         "pandas: powerful Python data analysis toolkit",
-        r"Wes McKinney\n\& PyData Development Team",
+        "Wes McKinney and the Pandas Development Team",
         "manual",
     )
 ]
@@ -433,10 +428,14 @@ ipython_exec_lines = [
 # Add custom Documenter to handle attributes/methods of an AccessorProperty
 # eg pandas.Series.str and pandas.Series.dt (see GH9322)
 
-import sphinx
-from sphinx.util import rpartition
-from sphinx.ext.autodoc import Documenter, MethodDocumenter, AttributeDocumenter
-from sphinx.ext.autosummary import Autosummary
+import sphinx  # noqa: E402 isort:skip
+from sphinx.util import rpartition  # noqa: E402 isort:skip
+from sphinx.ext.autodoc import (  # noqa: E402 isort:skip
+    AttributeDocumenter,
+    Documenter,
+    MethodDocumenter,
+)
+from sphinx.ext.autosummary import Autosummary  # noqa: E402 isort:skip
 
 
 class AccessorDocumenter(MethodDocumenter):
@@ -569,7 +568,7 @@ class PandasAutosummary(Autosummary):
         for item in items:
             display_name, sig, summary, real_name = item
             if self._is_deprecated(real_name):
-                summary = "(DEPRECATED) %s" % summary
+                summary = f"(DEPRECATED) {summary}"
             yield display_name, sig, summary, real_name
 
     def get_items(self, names):
@@ -602,11 +601,7 @@ def linkcode_resolve(domain, info):
             return None
 
     try:
-        # inspect.unwrap() was added in Python version 3.4
-        if sys.version_info >= (3, 5):
-            fn = inspect.getsourcefile(inspect.unwrap(obj))
-        else:
-            fn = inspect.getsourcefile(obj)
+        fn = inspect.getsourcefile(inspect.unwrap(obj))
     except TypeError:
         fn = None
     if not fn:
@@ -618,19 +613,18 @@ def linkcode_resolve(domain, info):
         lineno = None
 
     if lineno:
-        linespec = "#L{:d}-L{:d}".format(lineno, lineno + len(source) - 1)
+        linespec = f"#L{lineno}-L{lineno + len(source) - 1}"
     else:
         linespec = ""
 
     fn = os.path.relpath(fn, start=os.path.dirname(pandas.__file__))
 
     if "+" in pandas.__version__:
-        return "http://github.com/pandas-dev/pandas/blob/master/pandas/" "{}{}".format(
-            fn, linespec
-        )
+        return f"http://github.com/pandas-dev/pandas/blob/master/pandas/{fn}{linespec}"
     else:
-        return "http://github.com/pandas-dev/pandas/blob/" "v{}/pandas/{}{}".format(
-            pandas.__version__, fn, linespec
+        return (
+            f"http://github.com/pandas-dev/pandas/blob/"
+            f"v{pandas.__version__}/pandas/{fn}{linespec}"
         )
 
 

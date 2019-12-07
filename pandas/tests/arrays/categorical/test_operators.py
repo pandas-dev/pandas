@@ -48,7 +48,7 @@ class TestCategoricalOpsWithFactor(TestCategorical):
         tm.assert_numpy_array_equal(result, expected)
 
         result = self.factor == "d"
-        expected = np.repeat(False, len(self.factor))
+        expected = np.zeros(len(self.factor), dtype=bool)
         tm.assert_numpy_array_equal(result, expected)
 
         # comparisons with categoricals

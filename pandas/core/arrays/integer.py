@@ -21,12 +21,12 @@ from pandas.core.dtypes.common import (
     is_scalar,
 )
 from pandas.core.dtypes.dtypes import register_extension_dtype
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import nanops, ops
 from pandas.core.algorithms import take
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
+from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.tools.numeric import to_numeric
 
 
@@ -40,14 +40,14 @@ class _IntegerDtype(ExtensionDtype):
     The attributes name & type are set when these subclasses are created.
     """
 
-    name = None  # type: str
+    name: str
     base = None
-    type = None  # type: Type
+    type: Type
     na_value = np.nan
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         sign = "U" if self.is_unsigned_integer else ""
-        return "{sign}Int{size}Dtype()".format(sign=sign, size=8 * self.itemsize)
+        return f"{sign}Int{8 * self.itemsize}Dtype()"
 
     @cache_readonly
     def is_signed_integer(self):
@@ -85,6 +85,35 @@ class _IntegerDtype(ExtensionDtype):
         """
         return IntegerArray
 
+    def __from_arrow__(self, array):
+        """Construct IntegerArray from passed pyarrow Array/ChunkedArray"""
+        import pyarrow
+
+        if isinstance(array, pyarrow.Array):
+            chunks = [array]
+        else:
+            # pyarrow.ChunkedArray
+            chunks = array.chunks
+
+        results = []
+        for arr in chunks:
+            buflist = arr.buffers()
+            data = np.frombuffer(buflist[1], dtype=self.type)[
+                arr.offset : arr.offset + len(arr)
+            ]
+            bitmask = buflist[0]
+            if bitmask is not None:
+                mask = pyarrow.BooleanArray.from_buffers(
+                    pyarrow.bool_(), len(arr), [None, bitmask]
+                )
+                mask = np.asarray(mask)
+            else:
+                mask = np.ones(len(arr), dtype=bool)
+            int_arr = IntegerArray(data.copy(), ~mask, copy=False)
+            results.append(int_arr)
+
+        return IntegerArray._concat_same_type(results)
+
 
 def integer_array(values, dtype=None, copy=False):
     """
@@ -95,7 +124,7 @@ def integer_array(values, dtype=None, copy=False):
     values : 1D list-like
     dtype : dtype, optional
         dtype to coerce
-    copy : boolean, default False
+    copy : bool, default False
 
     Returns
     -------
@@ -126,9 +155,7 @@ def safe_cast(values, dtype, copy):
             return casted
 
         raise TypeError(
-            "cannot safely cast non-equivalent {} to {}".format(
-                values.dtype, np.dtype(dtype)
-            )
+            f"cannot safely cast non-equivalent {values.dtype} to {np.dtype(dtype)}"
         )
 
 
@@ -140,8 +167,8 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
     ----------
     values : 1D list-like
     dtype : integer dtype
-    mask : boolean 1D array, optional
-    copy : boolean, default False
+    mask : bool 1D array, optional
+    copy : bool, default False
         if True, copy the input
 
     Returns
@@ -165,7 +192,7 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
             try:
                 dtype = _dtypes[str(np.dtype(dtype))]
             except KeyError:
-                raise ValueError("invalid dtype specified {}".format(dtype))
+                raise ValueError(f"invalid dtype specified {dtype}")
 
     if isinstance(values, IntegerArray):
         values, mask = values._data, values._mask
@@ -190,17 +217,13 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
             "integer-na",
             "mixed-integer-float",
         ]:
-            raise TypeError(
-                "{} cannot be converted to an IntegerDtype".format(values.dtype)
-            )
+            raise TypeError(f"{values.dtype} cannot be converted to an IntegerDtype")
 
     elif is_bool_dtype(values) and is_integer_dtype(dtype):
         values = np.array(values, dtype=int, copy=copy)
 
     elif not (is_integer_dtype(values) or is_float_dtype(values)):
-        raise TypeError(
-            "{} cannot be converted to an IntegerDtype".format(values.dtype)
-        )
+        raise TypeError(f"{values.dtype} cannot be converted to an IntegerDtype")
 
     if mask is None:
         mask = isna(values)
@@ -367,6 +390,14 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         """
         return self._coerce_to_ndarray()
 
+    def __arrow_array__(self, type=None):
+        """
+        Convert myself into a pyarrow Array.
+        """
+        import pyarrow as pa
+
+        return pa.array(self._data, mask=self._mask, type=type)
+
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
@@ -461,7 +492,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         self._data[key] = value
         self._mask[key] = mask
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._data)
 
     @property
@@ -534,7 +565,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         Parameters
         ----------
-        dropna : boolean, default True
+        dropna : bool, default True
             Don't include counts of NaN.
 
         Returns
@@ -594,13 +625,8 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
     def _create_comparison_method(cls, op):
         op_name = op.__name__
 
+        @unpack_zerodim_and_defer(op.__name__)
         def cmp_method(self, other):
-
-            if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
-                # Rely on pandas to unbox and dispatch to us.
-                return NotImplemented
-
-            other = lib.item_from_zerodim(other)
             mask = None
 
             if isinstance(other, IntegerArray):
@@ -631,7 +657,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             result[mask] = op_name == "ne"
             return result
 
-        name = "__{name}__".format(name=op.__name__)
+        name = f"__{op.__name__}__"
         return set_function_name(cmp_method, name, cls)
 
     def _reduce(self, name, skipna=True, **kwargs):
@@ -644,7 +670,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             data[mask] = self._na_value
 
         op = getattr(nanops, "nan" + name)
-        result = op(data, axis=0, skipna=skipna, mask=mask)
+        result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)
 
         # if we have a boolean op, don't coerce
         if name in ["any", "all"]:
@@ -689,14 +715,13 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
     def _create_arithmetic_method(cls, op):
         op_name = op.__name__
 
+        @unpack_zerodim_and_defer(op.__name__)
         def integer_arithmetic_method(self, other):
 
-            if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
-                # Rely on pandas to unbox and dispatch to us.
-                return NotImplemented
-
-            other = lib.item_from_zerodim(other)
             mask = None
+
+            if getattr(other, "ndim", 0) > 1:
+                raise NotImplementedError("can only perform ops with 1-d structures")
 
             if isinstance(other, IntegerArray):
                 other, mask = other._data, other._mask
@@ -742,7 +767,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
             return self._maybe_mask_result(result, mask, other, op_name)
 
-        name = "__{name}__".format(name=op.__name__)
+        name = f"__{op.__name__}__"
         return set_function_name(integer_arithmetic_method, name, cls)
 
 

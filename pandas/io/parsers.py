@@ -257,7 +257,7 @@ date_parser : function, optional
     arguments.
 dayfirst : bool, default False
     DD/MM format dates, international and European format.
-cache_dates : boolean, default True
+cache_dates : bool, default True
     If True, use a cache of unique, converted dates to apply the datetime
     conversion. May produce significant speed-up when parsing duplicate
     date strings, especially ones with timezone offsets.
@@ -395,25 +395,22 @@ def _validate_integer(name, val, min_val=0):
 
 def _validate_names(names):
     """
-    Check if the `names` parameter contains duplicates.
-
-    If duplicates are found, we issue a warning before returning.
+    Raise ValueError if the `names` parameter contains duplicates.
 
     Parameters
     ----------
     names : array-like or None
         An array containing a list of the names used for the output DataFrame.
 
-    Returns
-    -------
-    names : array-like or None
-        The original `names` parameter.
+    Raises
+    ------
+    ValueError
+        If names are not unique.
     """
 
     if names is not None:
         if len(names) != len(set(names)):
             raise ValueError("Duplicate names are not allowed.")
-    return names
 
 
 def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
@@ -491,7 +488,7 @@ _parser_defaults = {
     "cache_dates": True,
     "thousands": None,
     "comment": None,
-    "decimal": b".",
+    "decimal": ".",
     # 'engine': 'c',
     "parse_dates": False,
     "keep_date_col": False,
@@ -525,8 +522,8 @@ _fwf_defaults = {"colspecs": "infer", "infer_nrows": 100, "widths": None}
 _c_unsupported = {"skipfooter"}
 _python_unsupported = {"low_memory", "float_precision"}
 
-_deprecated_defaults = {}  # type: Dict[str, Any]
-_deprecated_args = set()  # type: Set[str]
+_deprecated_defaults: Dict[str, Any] = {}
+_deprecated_args: Set[str] = set()
 
 
 def _make_parser_function(name, default_sep=","):
@@ -571,7 +568,7 @@ def _make_parser_function(name, default_sep=","):
         # Quoting, Compression, and File Format
         compression="infer",
         thousands=None,
-        decimal=b".",
+        decimal: str = ".",
         lineterminator=None,
         quotechar='"',
         quoting=csv.QUOTE_MINIMAL,
@@ -707,7 +704,7 @@ def read_fwf(
     colspecs="infer",
     widths=None,
     infer_nrows=100,
-    **kwds
+    **kwds,
 ):
 
     r"""
@@ -975,10 +972,10 @@ class TextFileReader(BaseIterator):
             elif engine not in ("python", "python-fwf"):
                 # wait until regex engine integrated
                 fallback_reason = (
-                    "the 'c' engine does not support"
-                    " regex separators (separators > 1 char and"
-                    r" different from '\s+' are"
-                    " interpreted as regex)"
+                    "the 'c' engine does not support "
+                    "regex separators (separators > 1 char and "
+                    r"different from '\s+' are "
+                    "interpreted as regex)"
                 )
                 engine = "python"
         elif delim_whitespace:
@@ -993,9 +990,9 @@ class TextFileReader(BaseIterator):
                 encodeable = False
             if not encodeable and engine not in ("python", "python-fwf"):
                 fallback_reason = (
-                    "the separator encoded in {encoding}"
-                    " is > 1 char long, and the 'c' engine"
-                    " does not support such separators".format(encoding=encoding)
+                    "the separator encoded in {encoding} "
+                    "is > 1 char long, and the 'c' engine "
+                    "does not support such separators".format(encoding=encoding)
                 )
                 engine = "python"
 
@@ -1024,21 +1021,19 @@ class TextFileReader(BaseIterator):
         if "python" in engine:
             for arg in _python_unsupported:
                 if fallback_reason and result[arg] != _c_parser_defaults[arg]:
-                    msg = (
-                        "Falling back to the 'python' engine because"
-                        " {reason}, but this causes {option!r} to be"
-                        " ignored as it is not supported by the 'python'"
-                        " engine."
-                    ).format(reason=fallback_reason, option=arg)
-                    raise ValueError(msg)
+                    raise ValueError(
+                        f"Falling back to the 'python' engine because "
+                        f"{fallback_reason}, but this causes {repr(arg)} to be "
+                        f"ignored as it is not supported by the 'python' engine."
+                    )
                 del result[arg]
 
         if fallback_reason:
             warnings.warn(
                 (
-                    "Falling back to the 'python' engine because"
-                    " {0}; you can avoid this warning by specifying"
-                    " engine='python'."
+                    "Falling back to the 'python' engine because "
+                    "{0}; you can avoid this warning by specifying "
+                    "engine='python'."
                 ).format(fallback_reason),
                 ParserWarning,
                 stacklevel=5,
@@ -1059,12 +1054,11 @@ class TextFileReader(BaseIterator):
             depr_default = _deprecated_defaults[arg]
 
             msg = (
-                "The '{arg}' argument has been deprecated "
-                "and will be removed in a future version.".format(arg=arg)
+                f"The {repr(arg)} argument has been deprecated and will be "
+                f"removed in a future version."
             )
 
             if result.get(arg, depr_default) != depr_default:
-                # raise Exception(result.get(arg, depr_default), depr_default)
                 depr_warning += msg + "\n\n"
             else:
                 result[arg] = parser_default
@@ -1085,9 +1079,8 @@ class TextFileReader(BaseIterator):
         if converters is not None:
             if not isinstance(converters, dict):
                 raise TypeError(
-                    "Type converters must be a dict or"
-                    " subclass, input was "
-                    "a {0!r}".format(type(converters).__name__)
+                    f"Type converters must be a dict or subclass, "
+                    f"input was a {repr(type(converters).__name__)}"
                 )
         else:
             converters = {}
@@ -1606,7 +1599,7 @@ class ParserBase:
 
         # remove index items from content and columns, don't pop in
         # loop
-        for i in reversed(sorted(to_remove)):
+        for i in sorted(to_remove, reverse=True):
             data.pop(i)
             if not self._implicit_index:
                 columns.pop(i)
@@ -1638,7 +1631,7 @@ class ParserBase:
 
         # remove index items from content and columns, don't pop in
         # loop
-        for c in reversed(sorted(to_remove)):
+        for c in sorted(to_remove, reverse=True):
             data.pop(c)
             col_names.remove(c)
 
@@ -1783,14 +1776,17 @@ class ParserBase:
                 np.putmask(values, mask, np.nan)
             return values, na_count
 
-        if try_num_bool:
+        if try_num_bool and is_object_dtype(values.dtype):
+            # exclude e.g DatetimeIndex here
             try:
                 result = lib.maybe_convert_numeric(values, na_values, False)
-                na_count = isna(result).sum()
-            except Exception:
+            except (ValueError, TypeError):
+                # e.g. encountering datetime string gets ValueError
+                #  TypeError can be raised in floatify
                 result = values
-                if values.dtype == np.object_:
-                    na_count = parsers.sanitize_objects(result, na_values, False)
+                na_count = parsers.sanitize_objects(result, na_values, False)
+            else:
+                na_count = isna(result).sum()
         else:
             result = values
             if values.dtype == np.object_:
@@ -1916,7 +1912,12 @@ class CParserWrapper(ParserBase):
         else:
             if len(self._reader.header) > 1:
                 # we have a multi index in the columns
-                self.names, self.index_names, self.col_names, passed_names = self._extract_multi_indexer_columns(  # noqa: E501
+                (
+                    self.names,
+                    self.index_names,
+                    self.col_names,
+                    passed_names,
+                ) = self._extract_multi_indexer_columns(
                     self._reader.header, self.index_names, self.col_names, passed_names
                 )
             else:
@@ -2305,7 +2306,12 @@ class PythonParser(ParserBase):
         # The original set is stored in self.original_columns.
         if len(self.columns) > 1:
             # we are processing a multi index column
-            self.columns, self.index_names, self.col_names, _ = self._extract_multi_indexer_columns(  # noqa: E501
+            (
+                self.columns,
+                self.index_names,
+                self.col_names,
+                _,
+            ) = self._extract_multi_indexer_columns(
                 self.columns, self.index_names, self.col_names
             )
             # Update list of original names to include all indices.
@@ -2927,7 +2933,7 @@ class PythonParser(ParserBase):
             if self.warn_bad_lines or self.error_bad_lines:
                 msg = str(e)
 
-                if "NULL byte" in msg:
+                if "NULL byte" in msg or "line contains NUL" in msg:
                     msg = (
                         "NULL byte detected. This byte "
                         "cannot be processed in Python's "
