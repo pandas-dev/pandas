@@ -35,9 +35,9 @@ def get_group_index(labels, shape, sort: bool, xnull: bool):
         Integers identifying levels at each location
     shape : sequence of ints
         Number of unique levels at each location
-    sort : boolean
+    sort : bool
         If the ranks of returned ids should match lexical ranks of labels
-    xnull : boolean
+    xnull : bool
         If true nulls are excluded. i.e. -1 values in the labels are
         passed through.
 
@@ -251,13 +251,9 @@ def nargsort(
     (GH #6399, #5231)
 
     Parameters
-
     ----------
-
     kind : str, default 'quicksort'
-
     ascending : bool, default True
-
     na_position : {'first', 'last'}, default 'last'
     """
     items = extract_array(items)
@@ -326,7 +322,7 @@ def get_indexer_dict(label_list, keys):
     Returns
     -------
     dict
-    labels mapped to indexers.
+        Labels mapped to indexers.
     """
     shape = [len(x) for x in keys]
 
