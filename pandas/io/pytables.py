@@ -3757,7 +3757,6 @@ class Table(Fixed):
 
         # create according to the new data
         new_non_index_axes: List = []
-        new_data_columns: List[Optional[str]] = []
 
         # nan_representation
         if nan_rep is None:
@@ -3872,7 +3871,6 @@ class Table(Fixed):
                 if not (name is None or isinstance(name, str)):
                     # TODO: should the message here be more specifically non-str?
                     raise ValueError("cannot have non-object label DataIndexableCol")
-                new_data_columns.append(name)
 
             # make sure that we match up the existing columns
             # if we have an existing table
@@ -3913,7 +3911,7 @@ class Table(Fixed):
             j += 1
 
         self.nan_rep = nan_rep
-        self.data_columns = new_data_columns
+        self.data_columns = [col.name for col in vaxes if col.is_data_indexable]
         self.values_axes = vaxes
         self.index_axes = new_index_axes
         self.non_index_axes = new_non_index_axes
