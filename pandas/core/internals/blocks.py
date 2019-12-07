@@ -2150,7 +2150,12 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         assert isinstance(values, np.ndarray), type(values)
         return values
 
-    def astype(self, dtype, copy: bool = False, errors: str = "raise"):
+    def astype(
+            self,
+            dtype, copy: bool = False,
+            errors: str = "raise",
+            skipna: bool = True
+    ):
         """
         these automatically copy, so copy=True has no effect
         raise on an except if raise == True
@@ -2166,7 +2171,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
             return self.make_block(values)
 
         # delegate
-        return super().astype(dtype=dtype, copy=copy, errors=errors)
+        return super().astype(dtype=dtype, copy=copy, errors=errors, skipna=skipna)
 
     def _can_hold_element(self, element: Any) -> bool:
         tipo = maybe_infer_dtype_type(element)
