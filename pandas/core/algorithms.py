@@ -1106,7 +1106,7 @@ class SelectNSeries(SelectN):
         n = self.n
         dtype = self.obj.dtype
         if not self.is_valid_dtype_n_method(dtype):
-            raise TypeError(f"Cannot use method '{method}' with " f"dtype {dtype}")
+            raise TypeError(f"Cannot use method '{method}' with dtype {dtype}")
 
         if n <= 0:
             return self.obj[[]]
