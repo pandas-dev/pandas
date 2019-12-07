@@ -1999,15 +1999,16 @@ class IndexCol:
             kwargs["name"] = _ensure_decoded(self.index_name)
         # making an Index instance could throw a number of different errors
         try:
-            self.values = Index(values, **kwargs)
+            values = Index(values, **kwargs)
         except ValueError:
             # if the output freq is different that what we recorded,
             # it should be None (see also 'doc example part 2')
             if "freq" in kwargs:
                 kwargs["freq"] = None
-            self.values = Index(values, **kwargs)
+            values = Index(values, **kwargs)
 
-        self.values = _set_tz(self.values, self.tz)
+        out = _set_tz(values, self.tz)
+        return out, out
 
     def take_data(self):
         """ return the values & release the memory """
@@ -2195,7 +2196,8 @@ class GenericIndexCol(IndexCol):
 
         _start = start if start is not None else 0
         _stop = min(stop, self.table.nrows) if stop is not None else self.table.nrows
-        self.values = Int64Index(np.arange(_stop - _start))
+        out = Int64Index(np.arange(_stop - _start))
+        return out, out
 
     def get_attr(self):
         pass
@@ -2444,6 +2446,7 @@ class DataCol(IndexCol):
 
         # NB: unlike in the other calls to set_data, self.dtype may not be None here
         self.set_data(values)
+        converted = self.data  # TODO: Setting should not be necessary
 
         # use the meta if needed
         meta = _ensure_decoded(self.meta)
@@ -2456,25 +2459,25 @@ class DataCol(IndexCol):
             if dtype == "datetime64":
 
                 # recreate with tz if indicated
-                self.data = _set_tz(self.data, self.tz, coerce=True)
+                converted = _set_tz(converted, self.tz, coerce=True)
 
             elif dtype == "timedelta64":
-                self.data = np.asarray(self.data, dtype="m8[ns]")
+                converted = np.asarray(converted, dtype="m8[ns]")
             elif dtype == "date":
                 try:
-                    self.data = np.asarray(
-                        [date.fromordinal(v) for v in self.data], dtype=object
+                    converted = np.asarray(
+                        [date.fromordinal(v) for v in converted], dtype=object
                     )
                 except ValueError:
-                    self.data = np.asarray(
-                        [date.fromtimestamp(v) for v in self.data], dtype=object
+                    converted = np.asarray(
+                        [date.fromtimestamp(v) for v in converted], dtype=object
                     )
 
             elif meta == "category":
 
                 # we have a categorical
                 categories = self.metadata
-                codes = self.data.ravel()
+                codes = converted.ravel()
 
                 # if we have stored a NaN in the categories
                 # then strip it; in theory we could have BOTH
@@ -2491,22 +2494,24 @@ class DataCol(IndexCol):
                         categories = categories[~mask]
                         codes[codes != -1] -= mask.astype(int).cumsum().values
 
-                self.data = Categorical.from_codes(
+                converted = Categorical.from_codes(
                     codes, categories=categories, ordered=self.ordered
                 )
 
             else:
 
                 try:
-                    self.data = self.data.astype(dtype, copy=False)
+                    converted = converted.astype(dtype, copy=False)
                 except TypeError:
-                    self.data = self.data.astype("O", copy=False)
+                    converted = converted.astype("O", copy=False)
 
         # convert nans / decode
         if _ensure_decoded(self.kind) == "string":
-            self.data = _unconvert_string_array(
-                self.data, nan_rep=nan_rep, encoding=encoding, errors=errors
+            converted = _unconvert_string_array(
+                converted, nan_rep=nan_rep, encoding=encoding, errors=errors
             )
+
+        return self.values, converted
 
     def get_attr(self):
         """ get the data for this column """
@@ -3608,7 +3613,7 @@ class Table(Fixed):
                         )
                     v.create_index(**kw)
 
-    def read_axes(
+    def _read_axes(
         self, where, start: Optional[int] = None, stop: Optional[int] = None
     ) -> bool:
         """
@@ -3622,8 +3627,6 @@ class Table(Fixed):
 
         Returns
         -------
-        bool
-            Indicates success.
         """
 
         # validate the version
@@ -3637,10 +3640,11 @@ class Table(Fixed):
         selection = Selection(self, where=where, start=start, stop=stop)
         values = selection.select()
 
+        results = []
         # convert the data
         for a in self.axes:
             a.set_info(self.info)
-            a.convert(
+            res = a.convert(
                 values,
                 nan_rep=self.nan_rep,
                 encoding=self.encoding,
@@ -3648,8 +3652,9 @@ class Table(Fixed):
                 start=start,
                 stop=stop,
             )
+            results.append(res)
 
-        return True
+        return results
 
     def get_object(self, obj, transposed: bool):
         """ return the data for this obj """
@@ -4082,13 +4087,13 @@ class Table(Fixed):
                 # column must be an indexable or a data column
                 c = getattr(self.table.cols, column)
                 a.set_info(self.info)
-                a.convert(
+                col_values = a.convert(
                     c[start:stop],
                     nan_rep=self.nan_rep,
                     encoding=self.encoding,
                     errors=self.errors,
                 )
-                return Series(_set_tz(a.take_data(), a.tz), name=column)
+                return Series(_set_tz(col_values[1], a.tz), name=column)
 
         raise KeyError(f"column [{column}] not found in the table")
 
@@ -4372,7 +4377,8 @@ class AppendableFrameTable(AppendableTable):
         stop: Optional[int] = None,
     ):
 
-        if not self.read_axes(where=where, start=start, stop=stop):
+        result = self._read_axes(where=where, start=start, stop=stop)
+        if result is False:
             return None
 
         info = (
@@ -4380,26 +4386,37 @@ class AppendableFrameTable(AppendableTable):
             if len(self.non_index_axes)
             else dict()
         )
-        index = self.index_axes[0].values
+
+        axes = list(self.axes)
+        inds = [i for i in range(len(axes)) if axes[i] is self.index_axes[0]]
+        assert len(inds) == 1
+        ind = inds[0]
+
+        index = result[ind][0]#self.index_axes[0].values
+
         frames = []
-        for a in self.values_axes:
+        for i, a in enumerate(self.axes):
+            if a not in self.values_axes:
+                continue
+            values, cvalues = result[i]
 
             # we could have a multi-index constructor here
             # ensure_index doesn't recognized our list-of-tuples here
             if info.get("type") == "MultiIndex":
-                cols = MultiIndex.from_tuples(a.values)
+                cols = MultiIndex.from_tuples(values)
             else:
-                cols = Index(a.values)
+                cols = Index(values)
+
             names = info.get("names")
             if names is not None:
                 cols.set_names(names, inplace=True)
 
             if self.is_transposed:
-                values = a.cvalues
+                values = cvalues
                 index_ = cols
                 cols_ = Index(index, name=getattr(index, "name", None))
             else:
-                values = a.cvalues.T
+                values = cvalues.T
                 index_ = Index(index, name=getattr(index, "name", None))
                 cols_ = cols
 
