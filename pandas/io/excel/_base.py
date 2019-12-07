@@ -36,8 +36,9 @@ _read_excel_doc = (
     """
 Read an Excel file into a pandas DataFrame.
 
-Support both `xls` and `xlsx` file extensions from a local filesystem or URL.
-Support an option to read a single sheet or a list of sheets.
+Supports `xls`, `xlsx`, `xlsm`, `xlsb`, and `odf` file extensions
+read from a local filesystem or URL. Supports an option to read
+a single sheet or a list of sheets.
 
 Parameters
 ----------
