@@ -269,10 +269,6 @@ def is_sparse(arr) -> bool:
     bool
         Whether or not the array-like is a pandas sparse array.
 
-    See Also
-    --------
-    Series.to_dense : Return dense representation of a Series.
-
     Examples
     --------
     Returns `True` if the parameter is a 1-D pandas sparse array.
@@ -1865,8 +1861,10 @@ def _validate_date_like_dtype(dtype) -> None:
     except ValueError as e:
         raise TypeError("{error}".format(error=e))
     if typ != "generic" and typ != "ns":
-        msg = "{name!r} is too specific of a frequency, try passing {type!r}"
-        raise ValueError(msg.format(name=dtype.name, type=dtype.type.__name__))
+        raise ValueError(
+            f"{repr(dtype.name)} is too specific of a frequency, "
+            f"try passing {repr(dtype.type.__name__)}"
+        )
 
 
 def pandas_dtype(dtype):
