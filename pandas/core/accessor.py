@@ -35,7 +35,10 @@ class DirNamesMixin:
 
     def __dir__(self):
         """
-        Provide method name lookup and completion
+        Provide method name lookup and completion.
+
+        Notes
+        -----
         Only provide 'public' methods.
         """
         rv = set(dir(type(self)))
@@ -45,7 +48,7 @@ class DirNamesMixin:
 
 class PandasDelegate:
     """
-    An abstract base class for delegating methods/properties.
+    Abstract base class for delegating methods/properties.
     """
 
     def _delegate_property_get(self, name, *args, **kwargs):
@@ -66,12 +69,15 @@ class PandasDelegate:
 
         Parameters
         ----------
-        cls : the class to add the methods/properties to
-        delegate : the class to get methods/properties & doc-strings
-        accessors : string list of accessors to add
-        typ : 'property' or 'method'
-        overwrite : boolean, default False
-           Overwrite the method/property in the target class if it exists.
+        cls
+            Class to add the methods/properties to.
+        delegate
+            Class to get methods/properties and doc-strings.
+        accessors : list of str
+            List of accessors to add.
+        typ : {'property', 'method'}
+        overwrite : bool, default False
+            Overwrite the method/property in the target class if it exists.
         """
 
         def _create_delegator_property(name):
@@ -122,7 +128,7 @@ def delegate_names(delegate, accessors, typ: str, overwrite: bool = False):
     accessors : Sequence[str]
         List of accessor to add.
     typ : {'property', 'method'}
-    overwrite : boolean, default False
+    overwrite : bool, default False
        Overwrite the method/property in the target class if it exists.
 
     Returns
@@ -152,16 +158,22 @@ def delegate_names(delegate, accessors, typ: str, overwrite: bool = False):
 
 class CachedAccessor:
     """
-    Custom property-like object (descriptor) for caching accessors.
+    Custom property-like object.
+
+    A descriptor for caching accessors.
 
     Parameters
     ----------
     name : str
-        The namespace this will be accessed under, e.g. ``df.foo``.
+        Namespace that will be accessed under, e.g. ``df.foo``.
     accessor : cls
-        The class with the extension methods. The class' __init__ method
-        should expect one of a ``Series``, ``DataFrame`` or ``Index`` as
-        the single argument ``data``.
+        Class with the extension methods.
+
+    Notes
+    -----
+    For accessor, The class's __init__ method assumes that one of
+    ``Series``, ``DataFrame`` or ``Index`` as the
+    single argument ``data``.
     """
 
     def __init__(self, name: str, accessor) -> None:
