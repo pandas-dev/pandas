@@ -2010,9 +2010,8 @@ class IndexCol:
         self.values = _set_tz(self.values, self.tz)
 
     def take_data(self):
-        """ return the values & release the memory """
-        self.values, values = None, self.values
-        return values
+        """ return the values"""
+        return self.values
 
     @property
     def attrs(self):
@@ -2288,9 +2287,8 @@ class DataCol(IndexCol):
             self.set_kind()
 
     def take_data(self):
-        """ return the data & release the memory """
-        self.data, data = None, self.data
-        return data
+        """ return the data """
+        return self.data
 
     def set_kind(self):
         # set my kind if we can
