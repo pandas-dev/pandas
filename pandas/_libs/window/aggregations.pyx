@@ -18,7 +18,6 @@ cdef extern from "src/headers/cmath" namespace "std":
     int signbit(float64_t) nogil
     float64_t sqrt(float64_t x) nogil
 
-cimport pandas._libs.util as util
 from pandas._libs.util cimport numeric
 
 from pandas._libs.skiplist cimport (
@@ -47,39 +46,6 @@ cdef inline int int_min(int a, int b): return a if a <= b else b
 # - In Cython x * x is faster than x ** 2 for C types, this should be
 #   periodically revisited to see if it's still true.
 #
-
-
-def _check_minp(win, minp, N, floor=None) -> int:
-    """
-    Parameters
-    ----------
-    win: int
-    minp: int or None
-    N: len of window
-    floor: int, optional
-        default 1
-
-    Returns
-    -------
-    minimum period
-    """
-
-    if minp is None:
-        minp = 1
-    if not util.is_integer_object(minp):
-        raise ValueError("min_periods must be an integer")
-    if minp > win:
-        raise ValueError(f"min_periods (minp) must be <= "
-                         f"window (win)")
-    elif minp > N:
-        minp = N + 1
-    elif minp < 0:
-        raise ValueError('min_periods must be >= 0')
-    if floor is None:
-        floor = 1
-
-    return max(minp, floor)
-
 
 # original C implementation by N. Devillard.
 # This code in public domain.
