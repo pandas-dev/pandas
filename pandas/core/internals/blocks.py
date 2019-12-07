@@ -524,7 +524,12 @@ class Block(PandasObject):
         return self.split_and_operate(None, f, False)
 
     def astype(
-        self, dtype, copy: bool = False, errors: str = "raise", skipna=True, **kwargs
+        self,
+        dtype,
+        copy: bool = False,
+        errors: str = "raise",
+        skipna: bool = True,
+        **kwargs,
     ):
         return self._astype(dtype, copy=copy, errors=errors, skipna=skipna, **kwargs)
 
@@ -2145,7 +2150,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         return values
 
     def astype(
-        self, dtype, copy: bool = False, errors: str = "raise", skipna: bool = True
+        self, dtype, copy: bool = False, errors: str = "raise", skipna=True, **kwargs
     ):
         """
         these automatically copy, so copy=True has no effect
@@ -2162,7 +2167,9 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
             return self.make_block(values)
 
         # delegate
-        return super().astype(dtype=dtype, copy=copy, errors=errors, skipna=skipna)
+        return super().astype(
+            dtype=dtype, copy=copy, errors=errors, skipna=skipna, **kwargs
+        )
 
     def _can_hold_element(self, element: Any) -> bool:
         tipo = maybe_infer_dtype_type(element)
