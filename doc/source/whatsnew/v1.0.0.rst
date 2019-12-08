@@ -549,6 +549,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - Passing ``datetime64`` data to :class:`TimedeltaIndex` or ``timedelta64`` data to ``DatetimeIndex`` now raises ``TypeError`` (:issue:`23539`, :issue:`23937`)
 - Passing ``int64`` values to :class:`DatetimeIndex` and a timezone now interprets the values as nanosecond timestamps in UTC, not wall times in the given timezone (:issue:`24559`)
 - A tuple passed to :meth:`DataFrame.groupby` is now exclusively treated as a single key (:issue:`18314`)
+- Removed the previously deprecated :meth:`Index.contains`, use ``key in index`` instead (:issue:`30103`)
 - Addition and subtraction of ``int`` or integer-arrays is no longer allowed in :class:`Timestamp`, :class:`DatetimeIndex`, :class:`TimedeltaIndex`, use ``obj + n * obj.freq`` instead of ``obj + n`` (:issue:`22535`)
 - Removed :meth:`Series.from_array` (:issue:`18258`)
 - Removed :meth:`DataFrame.from_items` (:issue:`18458`)
