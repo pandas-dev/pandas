@@ -881,3 +881,75 @@ def index_or_series(request):
     See GH#29725
     """
     return request.param
+
+
+_int_index = tm.makeIntIndex(10, name="a")
+_indexes = [
+    tm.makeBoolIndex(10, name="a"),
+    _int_index,
+    tm.makeFloatIndex(10, name="a"),
+    tm.makeDateIndex(10, name="a"),
+    tm.makeDateIndex(10, name="a", tz="US/Eastern"),
+    tm.makePeriodIndex(10, name="a"),
+    tm.makeStringIndex(10, name="a"),
+    tm.makeUnicodeIndex(10, name="a"),
+]
+_index_ids = [
+    "bool-index",
+    "int-index",
+    "float-index",
+    "date-index",
+    "localized-date-index",
+    "period-index",
+    "string-index",
+    "unicode-index",
+]
+
+
+@pytest.fixture(params=_indexes, ids=_index_ids)
+def index(request):
+    """ Fixture for tests on indexes """
+    return request.param.copy(deep=True)
+
+
+_arr = arr = np.random.randn(10)
+
+
+@pytest.fixture
+def int_series():
+    """ Fixture for Series with random numbers and integer index """
+    index = _int_index.copy(deep=True)
+    return pd.Series(_arr, index=index, name=index.name)
+
+
+_series = [pd.Series(_arr, index=index, name=index.name) for index in _indexes]
+_series_ids = [f"series-with-{index_id}" for index_id in _index_ids]
+
+_arr_int = np.random.choice(10, size=10, replace=False)
+_narrow_series = [
+    pd.Series(_arr.astype(np.float32), index=_int_index, name="a"),
+    pd.Series(_arr_int.astype(np.int8), index=_int_index, name="a"),
+    pd.Series(_arr_int.astype(np.int16), index=_int_index, name="a"),
+    pd.Series(_arr_int.astype(np.int32), index=_int_index, name="a"),
+    pd.Series(_arr_int.astype(np.uint8), index=_int_index, name="a"),
+    pd.Series(_arr_int.astype(np.uint16), index=_int_index, name="a"),
+    pd.Series(_arr_int.astype(np.uint32), index=_int_index, name="a"),
+]
+_narrow_series_ids = [
+    "float32-series",
+    "int8-series",
+    "int16-series",
+    "int32-series",
+    "uint8-series",
+    "uint16-series",
+    "uint32-series",
+]
+
+_all_objs = _indexes + _series + _narrow_series
+_all_obj_ids = _index_ids + _series_ids + _narrow_series_ids
+
+
+@pytest.fixture(params=_all_objs, ids=_all_obj_ids)
+def index_or_series_obj(request):
+    """ Fixture for tests on indexes, series and series with a narrow dtype """
+    return request.param.copy(deep=True)
