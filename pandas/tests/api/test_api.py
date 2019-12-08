@@ -46,7 +46,7 @@ class TestPDApi(Base):
     deprecated_modules: List[str] = []
 
     # misc
-    misc = ["IndexSlice", "NaT"]
+    misc = ["IndexSlice", "NaT", "NA"]
 
     # top-level classes
     classes = [
@@ -219,7 +219,7 @@ class TestPDApi(Base):
 
 class TestApi(Base):
 
-    allowed = ["types", "extensions"]
+    allowed = ["types", "extensions", "indexers"]
 
     def test_api(self):
 

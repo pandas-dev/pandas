@@ -535,16 +535,14 @@ class Block(PandasObject):
 
         return self.split_and_operate(None, f, False)
 
-    def astype(self, dtype, copy=False, errors="raise", **kwargs):
-        return self._astype(dtype, copy=copy, errors=errors, **kwargs)
-
-    def _astype(self, dtype, copy=False, errors="raise", **kwargs):
-        """Coerce to the new type
+    def astype(self, dtype, copy: bool = False, errors: str = "raise"):
+        """
+        Coerce to the new dtype.
 
         Parameters
         ----------
         dtype : str, dtype convertible
-        copy : boolean, default False
+        copy : bool, default False
             copy if indicated
         errors : str, {'raise', 'ignore'}, default 'ignore'
             - ``raise`` : allow exceptions to be raised
@@ -2154,7 +2152,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         assert isinstance(values, np.ndarray), type(values)
         return values
 
-    def _astype(self, dtype, **kwargs):
+    def astype(self, dtype, copy: bool = False, errors: str = "raise"):
         """
         these automatically copy, so copy=True has no effect
         raise on an except if raise == True
@@ -2170,7 +2168,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
             return self.make_block(values)
 
         # delegate
-        return super()._astype(dtype=dtype, **kwargs)
+        return super().astype(dtype=dtype, copy=copy, errors=errors)
 
     def _can_hold_element(self, element: Any) -> bool:
         tipo = maybe_infer_dtype_type(element)
@@ -2456,15 +2454,11 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         # interpreted as nanoseconds
         if is_integer(value):
             # Deprecation GH#24694, GH#19233
-            warnings.warn(
-                "Passing integers to fillna is deprecated, will "
-                "raise a TypeError in a future version.  To retain "
-                "the old behavior, pass pd.Timedelta(seconds=n) "
-                "instead.",
-                FutureWarning,
-                stacklevel=6,
+            raise TypeError(
+                "Passing integers to fillna for timedelta64[ns] dtype is no "
+                "longer supporetd.  To obtain the old behavior, pass "
+                "`pd.Timedelta(seconds=n)` instead."
             )
-            value = Timedelta(value, unit="s")
         return super().fillna(value, **kwargs)
 
     def should_store(self, value):
@@ -2898,37 +2892,6 @@ class CategoricalBlock(ExtensionBlock):
         return make_block(
             values, placement=placement or slice(0, len(values), 1), ndim=self.ndim
         )
-
-    def where(
-        self,
-        other,
-        cond,
-        align=True,
-        errors="raise",
-        try_cast: bool = False,
-        axis: int = 0,
-    ) -> List["Block"]:
-        # TODO(CategoricalBlock.where):
-        # This can all be deleted in favor of ExtensionBlock.where once
-        # we enforce the deprecation.
-        object_msg = (
-            "Implicitly converting categorical to object-dtype ndarray. "
-            "One or more of the values in 'other' are not present in this "
-            "categorical's categories. A future version of pandas will raise "
-            "a ValueError when 'other' contains different categories.\n\n"
-            "To preserve the current behavior, add the new categories to "
-            "the categorical before calling 'where', or convert the "
-            "categorical to a different dtype."
-        )
-        try:
-            # Attempt to do preserve categorical dtype.
-            result = super().where(other, cond, align, errors, try_cast, axis)
-        except (TypeError, ValueError):
-            warnings.warn(object_msg, FutureWarning, stacklevel=6)
-            result = self.astype(object).where(
-                other, cond, align=align, errors=errors, try_cast=try_cast, axis=axis
-            )
-        return result
 
     def replace(
         self,

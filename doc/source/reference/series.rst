@@ -33,18 +33,12 @@ Attributes
    Series.nbytes
    Series.ndim
    Series.size
-   Series.strides
-   Series.itemsize
-   Series.base
    Series.T
    Series.memory_usage
    Series.hasnans
-   Series.flags
    Series.empty
    Series.dtypes
-   Series.data
    Series.name
-   Series.put
 
 Conversion
 ----------
@@ -59,7 +53,6 @@ Conversion
    Series.to_period
    Series.to_timestamp
    Series.to_list
-   Series.get_values
    Series.__array__
 
 Indexing, iteration
@@ -181,7 +174,6 @@ Computations / descriptive stats
    Series.is_monotonic_increasing
    Series.is_monotonic_decreasing
    Series.value_counts
-   Series.compound
 
 Reindexing / selection / label manipulation
 -------------------------------------------
@@ -584,7 +576,6 @@ Serialization / IO / conversion
    Series.to_sql
    Series.to_msgpack
    Series.to_json
-   Series.to_dense
    Series.to_string
    Series.to_clipboard
    Series.to_latex
