@@ -212,7 +212,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         Parameters
         ----------
         key : scalar, slice or list-like
-            key requested.
+            Key requested.
         axis : int
             Dimension on which the indexing is being made.
 
@@ -670,17 +670,13 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         ser : pd.Series
             Values to assign to the locations specified by `indexer`.
         multiindex_indexer : bool, default False, optional
+            `multiindex_indexer` should be set to True if `indexer`, was
+            from a `pd.MultiIndex`, in order to avoid unnecessary broadcasting.
 
         Returns
         -------
         `np.array` of `ser` broadcast to the appropriate shape for assignment
         to the locations selected by `indexer`
-
-        Notes
-        -----
-        `multiindex_indexer` should be set to True if `indexer`,
-        was from a `pd.MultiIndex`,
-        in order to avoid unnecessary broadcasting.
         """
         if isinstance(indexer, (slice, np.ndarray, list, Index)):
             indexer = tuple([indexer])
@@ -860,10 +856,9 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
     def _multi_take(self, tup: Tuple):
         """
-        Create the indexers for the passed tuple of keys, executes the take operation.
-
-        This allows the take operation to be executed all at once,
-        rather than once for each dimension.
+        Create the indexers for the passed tuple of keys, and
+        executes the take operation. This allows the take operation to be
+        executed all at once, rather than once for each dimension.
         Improving efficiency.
 
         Parameters
@@ -1057,7 +1052,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         raise_missing: bool, default False
             Whether to raise a KeyError if some labels were not found.
             Will be removed in the future, and then this method will always behave as
-            if `raise_missing=True`.
+            if ``raise_missing=True``.
 
         Raises
         ------
