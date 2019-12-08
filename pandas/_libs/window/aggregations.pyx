@@ -18,6 +18,8 @@ cdef extern from "src/headers/cmath" namespace "std":
     int signbit(float64_t) nogil
     float64_t sqrt(float64_t x) nogil
 
+from pandas._libs.algos import is_monotonic
+
 from pandas._libs.util cimport numeric
 
 from pandas._libs.skiplist cimport (
@@ -157,7 +159,7 @@ def roll_sum_variable(ndarray[float64_t] values, ndarray[int64_t] start,
         ndarray[float64_t] output
         bint is_monotonic_bounds
 
-    is_monotonic_bounds = np.all(np.diff(start) > 0) and np.all(np.diff(end) > 0)
+    is_monotonic_bounds = is_monotonic(start, False)[0] and is_monotonic(end, False)[0]
     output = np.empty(N, dtype=float)
 
     with nogil:
@@ -306,7 +308,7 @@ def roll_mean_variable(ndarray[float64_t] values, ndarray[int64_t] start,
         ndarray[float64_t] output
         bint is_monotonic_bounds
 
-    is_monotonic_bounds = np.all(np.diff(start) > 0) and np.all(np.diff(end) > 0)
+    is_monotonic_bounds = is_monotonic(start, False)[0] and is_monotonic(end, False)[0]
     output = np.empty(N, dtype=float)
 
     with nogil:
@@ -473,7 +475,7 @@ def roll_var_variable(ndarray[float64_t] values, ndarray[int64_t] start,
         ndarray[float64_t] output
         bint is_monotonic_bounds
 
-    is_monotonic_bounds = np.all(np.diff(start) > 0) and np.all(np.diff(end) > 0)
+    is_monotonic_bounds = is_monotonic(start, False)[0] and is_monotonic(end, False)[0]
     output = np.empty(N, dtype=float)
 
     with nogil:
@@ -619,7 +621,7 @@ def roll_skew_variable(ndarray[float64_t] values, ndarray[int64_t] start,
         ndarray[float64_t] output
         bint is_monotonic_bounds
 
-    is_monotonic_bounds = np.all(np.diff(start) > 0) and np.all(np.diff(end) > 0)
+    is_monotonic_bounds = is_monotonic(start, False)[0] and is_monotonic(end, False)[0]
     output = np.empty(N, dtype=float)
 
     with nogil:
@@ -772,7 +774,7 @@ def roll_kurt_variable(ndarray[float64_t] values, ndarray[int64_t] start,
         ndarray[float64_t] output
         bint is_monotonic_bounds
 
-    is_monotonic_bounds = np.all(np.diff(start) > 0) and np.all(np.diff(end) > 0)
+    is_monotonic_bounds = is_monotonic(start, False)[0] and is_monotonic(end, False)[0]
     output = np.empty(N, dtype=float)
 
     with nogil:
