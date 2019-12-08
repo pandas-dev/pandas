@@ -157,7 +157,7 @@ def roll_sum_variable(ndarray[float64_t] values, ndarray[int64_t] start,
         ndarray[float64_t] output
         bint is_monotonic_bounds
 
-    is_monotonic_bounds = np.any(np.diff(start) < 0) or np.any(np.diff(end) < 0)
+    is_monotonic_bounds = np.all(np.diff(start) > 0) and np.all(np.diff(end) > 0)
     output = np.empty(N, dtype=float)
 
     with nogil:
@@ -306,7 +306,7 @@ def roll_mean_variable(ndarray[float64_t] values, ndarray[int64_t] start,
         ndarray[float64_t] output
         bint is_monotonic_bounds
 
-    is_monotonic_bounds = np.any(np.diff(start) < 0) or np.any(np.diff(end) < 0)
+    is_monotonic_bounds = np.all(np.diff(start) > 0) and np.all(np.diff(end) > 0)
     output = np.empty(N, dtype=float)
 
     with nogil:
@@ -473,7 +473,7 @@ def roll_var_variable(ndarray[float64_t] values, ndarray[int64_t] start,
         ndarray[float64_t] output
         bint is_monotonic_bounds
 
-    is_monotonic_bounds = np.any(np.diff(start) < 0) or np.any(np.diff(end) < 0)
+    is_monotonic_bounds = np.all(np.diff(start) > 0) and np.all(np.diff(end) > 0)
     output = np.empty(N, dtype=float)
 
     with nogil:
@@ -619,7 +619,7 @@ def roll_skew_variable(ndarray[float64_t] values, ndarray[int64_t] start,
         ndarray[float64_t] output
         bint is_monotonic_bounds
 
-    is_monotonic_bounds = np.any(np.diff(start) < 0) or np.any(np.diff(end) < 0)
+    is_monotonic_bounds = np.all(np.diff(start) > 0) and np.all(np.diff(end) > 0)
     output = np.empty(N, dtype=float)
 
     with nogil:
@@ -772,7 +772,7 @@ def roll_kurt_variable(ndarray[float64_t] values, ndarray[int64_t] start,
         ndarray[float64_t] output
         bint is_monotonic_bounds
 
-    is_monotonic_bounds = np.any(np.diff(start) < 0) or np.any(np.diff(end) < 0)
+    is_monotonic_bounds = np.all(np.diff(start) > 0) and np.all(np.diff(end) > 0)
     output = np.empty(N, dtype=float)
 
     with nogil:
