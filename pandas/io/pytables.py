@@ -2309,6 +2309,9 @@ class DataCol(IndexCol):
         if kind.startswith("uint"):
             k4 = kind[4:]
             col_name = f"UInt{k4}Col"
+        elif kind.startswith("period"):
+            # we store as integer
+            col_name = "Int64Col"
         else:
             kcap = kind.capitalize()
             col_name = f"{kcap}Col"
@@ -4605,39 +4608,43 @@ def _convert_index(name: str, index: Index, encoding=None, errors="strict"):
     index_name = index.name
     converted, dtype_name = _get_data_and_dtype_name(index)
     kind = _dtype_to_kind(dtype_name)
+    atom = DataIndexableCol._get_atom(converted)
 
     if isinstance(index, DatetimeIndex):
-        converted = index.asi8
+        assert isinstance(converted, np.ndarray) and converted.dtype == "i8"
         assert kind == "datetime64", kind
+        assert isinstance(atom, _tables().Int64Col), atom.dtype
         return IndexCol(
             name,
-            converted,
-            "datetime64",
-            _tables().Int64Col(),
+            values=converted,
+            kind=kind,
+            typ=atom,
             freq=index.freq,
             tz=index.tz,
             index_name=index_name,
         )
     elif isinstance(index, TimedeltaIndex):
-        converted = index.asi8
+        assert isinstance(converted, np.ndarray) and converted.dtype == "i8"
         assert kind == "timedelta64", kind
+        assert isinstance(atom, _tables().Int64Col), atom.dtype
         return IndexCol(
             name,
-            converted,
-            "timedelta64",
-            _tables().Int64Col(),
+            values=converted,
+            kind=kind,
+            typ=atom,
             freq=index.freq,
             index_name=index_name,
         )
     elif isinstance(index, (Int64Index, PeriodIndex)):
-        atom = _tables().Int64Col()
         # avoid to store ndarray of Period objects
+        assert isinstance(converted, np.ndarray) and converted.dtype == "i8"
         assert kind == "integer", kind
+        assert isinstance(atom, _tables().Int64Col), atom.dtype
         return IndexCol(
             name,
-            index._ndarray_values,
-            "integer",
-            atom,
+            values=converted,
+            kind=kind,
+            typ=atom,
             freq=getattr(index, "freq", None),
             index_name=index_name,
         )
@@ -4657,8 +4664,6 @@ def _convert_index(name: str, index: Index, encoding=None, errors="strict"):
             name, converted, "date", _tables().Time32Col(), index_name=index_name,
         )
     elif inferred_type == "string":
-        # atom = _tables().ObjectAtom()
-        # return np.asarray(values, dtype='O'), 'object', atom
 
         converted = _convert_string_array(values, encoding, errors)
         itemsize = converted.dtype.itemsize
@@ -4672,30 +4677,33 @@ def _convert_index(name: str, index: Index, encoding=None, errors="strict"):
 
     elif inferred_type == "integer":
         # take a guess for now, hope the values fit
+        assert isinstance(converted, np.ndarray) and converted.dtype == "i8"
         assert kind == "integer", kind
-        atom = _tables().Int64Col()
+        assert isinstance(atom, _tables().Int64Col), atom.dtype
         return IndexCol(
             name,
-            np.asarray(values, dtype=np.int64),
-            "integer",
-            atom,
+            values=converted,
+            kind=kind,
+            typ=atom,
             index_name=index_name,
         )
     elif inferred_type == "floating":
+        assert isinstance(converted, np.ndarray) and converted.dtype == "f8"
         assert kind == "float", kind
-        atom = _tables().Float64Col()
+        assert isinstance(atom, _tables().Float64Col), atom.dtype
         return IndexCol(
             name,
-            np.asarray(values, dtype=np.float64),
-            "float",
-            atom,
+            values=converted,
+            kind=kind,
+            typ=atom,
             index_name=index_name,
         )
     else:
+        assert isinstance(converted, np.ndarray) and converted.dtype == object
         assert kind == "object", kind
         atom = _tables().ObjectAtom()
         return IndexCol(
-            name, np.asarray(values, dtype="O"), "object", atom, index_name=index_name,
+            name, converted, kind, atom, index_name=index_name,
         )
 
 
@@ -4957,6 +4965,10 @@ def _get_data_and_dtype_name(data: Union[np.ndarray, ABCExtensionArray]):
         # TODO: we used to reshape for the dt64tz case, but no longer
         #  doing that doesnt seem to break anything.  why?
 
+    elif isinstance(data, PeriodIndex):
+        data = data.asi8
+
+    data = np.asarray(data)
     return data, dtype_name
 
 
