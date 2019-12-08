@@ -595,7 +595,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
 
             return BooleanArray(result, mask)
 
-        name = "__{name}__".format(name=op.__name__)
+        name = f"__{op.__name__}__"
         return set_function_name(logical_method, name, cls)
 
     @classmethod
@@ -642,7 +642,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
 
             return BooleanArray(result, mask, copy=False)
 
-        name = "__{name}__".format(name=op.__name__)
+        name = f"__{op.__name__}__"
         return set_function_name(cmp_method, name, cls)
 
     def _reduce(self, name, skipna=True, **kwargs):
@@ -745,7 +745,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
 
             return self._maybe_mask_result(result, mask, other, op_name)
 
-        name = "__{name}__".format(name=op_name)
+        name = f"__{op_name}__"
         return set_function_name(boolean_arithmetic_method, name, cls)
 
 

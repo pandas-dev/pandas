@@ -193,15 +193,14 @@ def ensure_python_int(value: Union[int, np.integer]) -> int:
     TypeError: if the value isn't an int or can't be converted to one.
     """
     if not is_scalar(value):
-        raise TypeError(
-            "Value needs to be a scalar value, was type {}".format(type(value))
-        )
-    msg = "Wrong type {} for value {}"
+        raise TypeError(f"Value needs to be a scalar value, was type {type(value)}")
+
     try:
         new_value = int(value)
         assert new_value == value
     except (TypeError, ValueError, AssertionError):
-        raise TypeError(msg.format(type(value), value))
+        msg = f"Wrong type {type(value)} for value {value}"
+        raise TypeError(msg)
     return new_value
 
 
@@ -1859,7 +1858,7 @@ def _validate_date_like_dtype(dtype) -> None:
     try:
         typ = np.datetime_data(dtype)[0]
     except ValueError as e:
-        raise TypeError("{error}".format(error=e))
+        raise TypeError(f"{e}")
     if typ != "generic" and typ != "ns":
         raise ValueError(
             f"{repr(dtype.name)} is too specific of a frequency, "
@@ -1900,7 +1899,7 @@ def pandas_dtype(dtype):
         npdtype = np.dtype(dtype)
     except SyntaxError:
         # np.dtype uses `eval` which can raise SyntaxError
-        raise TypeError("data type '{}' not understood".format(dtype))
+        raise TypeError(f"data type '{dtype}' not understood")
 
     # Any invalid dtype (such as pd.Timestamp) should raise an error.
     # np.dtype(invalid_type).kind = 0 for such objects. However, this will
@@ -1912,6 +1911,6 @@ def pandas_dtype(dtype):
         # here and `dtype` is an array
         return npdtype
     elif npdtype.kind == "O":
-        raise TypeError("dtype '{}' not understood".format(dtype))
+        raise TypeError(f"dtype '{dtype}' not understood")
 
     return npdtype

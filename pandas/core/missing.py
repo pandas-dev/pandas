@@ -88,9 +88,7 @@ def clean_fill_method(method, allow_nearest=False):
         valid_methods.append("nearest")
         expecting = "pad (ffill), backfill (bfill) or nearest"
     if method not in valid_methods:
-        msg = "Invalid fill method. Expecting {expecting}. Got {method}".format(
-            expecting=expecting, method=method
-        )
+        msg = f"Invalid fill method. Expecting {expecting}. Got {method}"
         raise ValueError(msg)
     return method
 
@@ -119,10 +117,7 @@ def clean_interp_method(method, **kwargs):
     if method in ("spline", "polynomial") and order is None:
         raise ValueError("You must specify the order of the spline or polynomial.")
     if method not in valid:
-        raise ValueError(
-            "method must be one of {valid}. Got '{method}' "
-            "instead.".format(valid=valid, method=method)
-        )
+        raise ValueError(f"method must be one of {valid}. Got '{method}' instead.")
 
     return method
 
@@ -211,18 +206,16 @@ def interpolate_1d(
     valid_limit_directions = ["forward", "backward", "both"]
     limit_direction = limit_direction.lower()
     if limit_direction not in valid_limit_directions:
-        msg = "Invalid limit_direction: expecting one of {valid!r}, got {invalid!r}."
-        raise ValueError(
-            msg.format(valid=valid_limit_directions, invalid=limit_direction)
-        )
+        msg = f"Invalid limit_direction: expecting one of {valid_limit_directions!r}, got {limit_direction!r}."
+        raise ValueError(msg)
 
     if limit_area is not None:
         valid_limit_areas = ["inside", "outside"]
         limit_area = limit_area.lower()
         if limit_area not in valid_limit_areas:
             raise ValueError(
-                "Invalid limit_area: expecting one of {}, got "
-                "{}.".format(valid_limit_areas, limit_area)
+                f"Invalid limit_area: expecting one of {valid_limit_areas}, got "
+                f"{limit_area}."
             )
 
     # default limit is unlimited GH #16282
@@ -328,7 +321,7 @@ def _interpolate_scipy_wrapper(
     Returns an array interpolated at new_x.  Add any new methods to
     the list in _clean_interp_method.
     """
-    extra = "{method} interpolation requires SciPy.".format(method=method)
+    extra = f"{method} interpolation requires SciPy."
     import_optional_dependency("scipy", extra=extra)
     from scipy import interpolate
 
@@ -375,8 +368,7 @@ def _interpolate_scipy_wrapper(
         # GH #10633, #24014
         if isna(order) or (order <= 0):
             raise ValueError(
-                "order needs to be specified and greater than 0; "
-                "got order: {}".format(order)
+                f"order needs to be specified and greater than 0; got order: {order}"
             )
         terp = interpolate.UnivariateSpline(x, y, k=order, **kwargs)
         new_y = terp(new_x)
