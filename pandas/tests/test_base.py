@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 from io import StringIO
-import re
 import sys
 
 import numpy as np
@@ -38,64 +37,6 @@ from pandas.core.arrays import DatetimeArray, PandasArray, TimedeltaArray
 from pandas.core.base import NoNewAttributesMixin, PandasObject
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 import pandas.util.testing as tm
-
-
-class CheckStringMixin:
-    def test_string_methods_dont_fail(self):
-        repr(self.container)
-        str(self.container)
-        bytes(self.container)
-
-    def test_tricky_container(self):
-        if not hasattr(self, "unicode_container"):
-            pytest.skip("Need unicode_container to test with this")
-        repr(self.unicode_container)
-        str(self.unicode_container)
-
-
-class CheckImmutable:
-    mutable_regex = re.compile("does not support mutable operations")
-
-    def check_mutable_error(self, *args, **kwargs):
-        # Pass whatever function you normally would to pytest.raises
-        # (after the Exception kind).
-        with pytest.raises(TypeError):
-            self.mutable_regex(*args, **kwargs)
-
-    def test_no_mutable_funcs(self):
-        def setitem():
-            self.container[0] = 5
-
-        self.check_mutable_error(setitem)
-
-        def setslice():
-            self.container[1:2] = 3
-
-        self.check_mutable_error(setslice)
-
-        def delitem():
-            del self.container[0]
-
-        self.check_mutable_error(delitem)
-
-        def delslice():
-            del self.container[0:3]
-
-        self.check_mutable_error(delslice)
-        mutable_methods = getattr(self, "mutable_methods", [])
-
-        for meth in mutable_methods:
-            self.check_mutable_error(getattr(self.container, meth))
-
-    def test_slicing_maintains_type(self):
-        result = self.container[1:2]
-        expected = self.lst[1:2]
-        self.check_result(result, expected)
-
-    def check_result(self, result, expected, klass=None):
-        klass = klass or self.klass
-        assert isinstance(result, klass)
-        assert result == expected
 
 
 class TestPandasDelegate:
