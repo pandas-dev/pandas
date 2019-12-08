@@ -213,8 +213,7 @@ def interpolate_1d(
     if limit_direction not in valid_limit_directions:
         raise ValueError(
             f"Invalid limit_direction: expecting one of "
-            f"{repr(valid_limit_directions)}, "
-            f"got {repr(limit_direction)}."
+            f"{valid_limit_directions}, got {limit_direction}."
         )
 
     if limit_area is not None:
