@@ -103,9 +103,7 @@ def _get_skiprows(skiprows):
     elif skiprows is None:
         return 0
     raise TypeError(
-
-        f"{(type(skiprows).__name__)} is not a valid type for skipping rows"
-
+        f"{type(skiprows).__name__} is not a valid type for skipping rows"
     )
 
 
