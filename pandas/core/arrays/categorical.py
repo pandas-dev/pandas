@@ -302,9 +302,7 @@ class Categorical(ExtensionArray, PandasObject):
     __array_priority__ = 1000
     _dtype = CategoricalDtype(ordered=False)
     # tolist is not actually deprecated, just suppressed in the __dir__
-    _deprecations = PandasObject._deprecations | frozenset(
-        ["tolist", "itemsize", "get_values"]
-    )
+    _deprecations = PandasObject._deprecations | frozenset(["tolist", "itemsize"])
     _typ = "categorical"
 
     def __init__(
@@ -1461,29 +1459,18 @@ class Categorical(ExtensionArray, PandasObject):
 
         return Series(count, index=CategoricalIndex(ix), dtype="int64")
 
-    def get_values(self):
+    def _internal_get_values(self):
         """
         Return the values.
-
-        .. deprecated:: 0.25.0
 
         For internal compatibility with pandas formatting.
 
         Returns
         -------
-        numpy.array
+        np.ndarray or Index
             A numpy array of the same dtype as categorical.categories.dtype or
             Index if datetime / periods.
         """
-        warn(
-            "The 'get_values' method is deprecated and will be removed in a "
-            "future version",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._internal_get_values()
-
-    def _internal_get_values(self):
         # if we are a datetime and period index, return Index to keep metadata
         if needs_i8_conversion(self.categories):
             return self.categories.take(self._codes, fill_value=np.nan)

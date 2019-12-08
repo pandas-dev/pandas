@@ -151,7 +151,6 @@ Selecting
 
    Index.asof
    Index.asof_locs
-   Index.contains
    Index.get_indexer
    Index.get_indexer_for
    Index.get_indexer_non_unique
@@ -159,7 +158,6 @@ Selecting
    Index.get_loc
    Index.get_slice_bound
    Index.get_value
-   Index.get_values
    Index.isin
    Index.slice_indexer
    Index.slice_locs

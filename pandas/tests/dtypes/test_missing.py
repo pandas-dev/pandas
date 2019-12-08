@@ -90,7 +90,8 @@ class TestIsNA:
         assert not isna_f(-np.inf)
 
         # type
-        assert not isna_f(type(pd.Series()))
+        assert not isna_f(type(pd.Series(dtype=object)))
+        assert not isna_f(type(pd.Series(dtype=np.float64)))
         assert not isna_f(type(pd.DataFrame()))
 
         # series

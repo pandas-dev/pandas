@@ -4,13 +4,13 @@ similar to how we have a Groupby object.
 """
 from datetime import timedelta
 from functools import partial
+import inspect
 from textwrap import dedent
 from typing import Callable, Dict, List, Optional, Set, Tuple, Union
 
 import numpy as np
 
 import pandas._libs.window.aggregations as window_aggregations
-import pandas._libs.window.indexers as window_indexers
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -48,6 +48,11 @@ from pandas.core.window.common import (
     _use_window,
     _zsqrt,
     calculate_min_periods,
+)
+from pandas.core.window.indexers import (
+    BaseIndexer,
+    FixedWindowIndexer,
+    VariableWindowIndexer,
 )
 
 
@@ -118,6 +123,26 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             raise ValueError("closed must be 'right', 'left', 'both' or 'neither'")
         if not isinstance(self.obj, (ABCSeries, ABCDataFrame)):
             raise TypeError(f"invalid type: {type(self)}")
+        if isinstance(self.window, BaseIndexer):
+            self._validate_get_window_bounds_signature(self.window)
+
+    @staticmethod
+    def _validate_get_window_bounds_signature(window: BaseIndexer) -> None:
+        """
+        Validate that the passed BaseIndexer subclass has
+        a get_window_bounds with the correct signature.
+        """
+        get_window_bounds_signature = inspect.signature(
+            window.get_window_bounds
+        ).parameters.keys()
+        expected_signature = inspect.signature(
+            BaseIndexer().get_window_bounds
+        ).parameters.keys()
+        if get_window_bounds_signature != expected_signature:
+            raise ValueError(
+                f"{type(window).__name__} does not implement the correct signature for "
+                f"get_window_bounds"
+            )
 
     def _create_blocks(self):
         """
@@ -200,6 +225,8 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         -------
         window : int
         """
+        if isinstance(self.window, BaseIndexer):
+            return self.min_periods or 0
         return self.window
 
     @property
@@ -391,17 +418,21 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
         Variable algorithms do not use window while fixed do.
         """
-        if self.is_freq_type:
+        if self.is_freq_type or isinstance(self.window, BaseIndexer):
             return self._get_roll_func(f"{func}_variable")
         return partial(self._get_roll_func(f"{func}_fixed"), win=self._get_window())
 
-    def _get_window_indexer(self):
+    def _get_window_indexer(
+        self, index_as_array: Optional[np.ndarray], window: int
+    ) -> BaseIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
         """
+        if isinstance(self.window, BaseIndexer):
+            return self.window
         if self.is_freq_type:
-            return window_indexers.VariableWindowIndexer
-        return window_indexers.FixedWindowIndexer
+            return VariableWindowIndexer(index_array=index_as_array, window_size=window)
+        return FixedWindowIndexer(index_array=index_as_array, window_size=window)
 
     def _apply(
         self,
@@ -440,7 +471,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         blocks, obj = self._create_blocks()
         block_list = list(blocks)
         index_as_array = self._get_index()
-        window_indexer = self._get_window_indexer()
+        window_indexer = self._get_window_indexer(index_as_array, window)
 
         results = []
         exclude: List[Scalar] = []
@@ -468,12 +499,31 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
                 def calc(x):
                     x = np.concatenate((x, additional_nans))
-                    min_periods = calculate_min_periods(
-                        window, self.min_periods, len(x), require_min_periods, floor
+                    if not isinstance(window, BaseIndexer):
+                        min_periods = calculate_min_periods(
+                            window, self.min_periods, len(x), require_min_periods, floor
+                        )
+                    else:
+                        min_periods = calculate_min_periods(
+                            self.min_periods or 1,
+                            self.min_periods,
+                            len(x),
+                            require_min_periods,
+                            floor,
+                        )
+                    start, end = window_indexer.get_window_bounds(
+                        num_values=len(x),
+                        min_periods=self.min_periods,
+                        center=self.center,
+                        closed=self.closed,
                     )
-                    start, end = window_indexer(
-                        x, window, self.closed, index_as_array
-                    ).get_window_bounds()
+                    if np.any(np.diff(start) < 0) or np.any(np.diff(end) < 0):
+                        # Our "variable" algorithms assume start/end are
+                        # monotonically increasing. A custom window indexer
+                        # can produce a non monotonic start/end.
+                        return func(
+                            x, start, end, min_periods, is_monotonic_bounds=False
+                        )
                     return func(x, start, end, min_periods)
 
             else:
@@ -754,13 +804,18 @@ class Window(_Window):
 
     Parameters
     ----------
-    window : int, or offset
+    window : int, offset, or BaseIndexer subclass
         Size of the moving window. This is the number of observations used for
         calculating the statistic. Each window will be a fixed size.
 
         If its an offset then this will be the time period of each window. Each
         window will be a variable sized based on the observations included in
         the time-period. This is only valid for datetimelike indexes.
+
+        If a BaseIndexer subclass is passed, calculates the window boundaries
+        based on the defined ``get_window_bounds`` method. Additional rolling
+        keyword arguments, namely `min_periods`, `center`, and
+        `closed` will be passed to `get_window_bounds`.
     min_periods : int, default None
         Minimum number of observations in window required to have a value
         (otherwise result is NA). For a window that is specified by an offset,
@@ -901,7 +956,11 @@ class Window(_Window):
         super().validate()
 
         window = self.window
-        if isinstance(window, (list, tuple, np.ndarray)):
+        if isinstance(window, BaseIndexer):
+            raise NotImplementedError(
+                "BaseIndexer subclasses not implemented with win_types."
+            )
+        elif isinstance(window, (list, tuple, np.ndarray)):
             pass
         elif is_integer(window):
             if window <= 0:
@@ -1755,6 +1814,9 @@ class Rolling(_Rolling_and_Expanding):
             if self.min_periods is None:
                 self.min_periods = 1
 
+        elif isinstance(self.window, BaseIndexer):
+            # Passed BaseIndexer subclass should handle all other rolling kwargs
+            return
         elif not is_integer(self.window):
             raise ValueError("window must be an integer")
         elif self.window < 0:

@@ -93,7 +93,7 @@ class Base:
         self.frame_ts_rev = DataFrame(np.random.randn(4, 4), index=dates_rev)
 
         self.frame_empty = DataFrame()
-        self.series_empty = Series()
+        self.series_empty = Series(dtype=object)
 
         # form agglomerates
         for kind in self._kinds:
