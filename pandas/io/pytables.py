@@ -1895,6 +1895,9 @@ class IndexCol:
         freq=None,
         tz=None,
         index_name=None,
+        table=None,
+        meta=None,
+        metadata=None,
     ):
 
         if not isinstance(name, str):
@@ -1910,9 +1913,9 @@ class IndexCol:
         self.freq = freq
         self.tz = tz
         self.index_name = index_name
-        self.table = None
-        self.meta = None
-        self.metadata = None
+        self.table = table
+        self.meta = meta
+        self.metadata = metadata
 
         if pos is not None:
             self.set_pos(pos)
@@ -1974,11 +1977,8 @@ class IndexCol:
 
     def infer(self, handler: "Table"):
         """infer this column from the table: create and return a new object"""
-        table = handler.table
         new_self = self.copy()
-        new_self.table = table
         new_self.get_attr()
-        new_self.read_metadata(handler)
         return new_self
 
     def convert(self, values: np.ndarray, nan_rep, encoding: str, errors: str):
@@ -2136,10 +2136,6 @@ class IndexCol:
         """ set the kind for this column """
         setattr(self.attrs, self.kind_attr, self.kind)
 
-    def read_metadata(self, handler):
-        """ retrieve the metadata for this columns """
-        self.metadata = handler.read_metadata(self.cname)
-
     def validate_metadata(self, handler: "AppendableTable"):
         """ validate that kind=category does not change the categories """
         if self.meta == "category":
@@ -2207,10 +2203,27 @@ class DataCol(IndexCol):
     _info_fields = ["tz", "ordered"]
 
     def __init__(
-        self, name: str, values=None, kind=None, typ=None, cname=None, pos=None,
+        self,
+        name: str,
+        values=None,
+        kind=None,
+        typ=None,
+        cname=None,
+        pos=None,
+        table=None,
+        meta=None,
+        metadata=None,
     ):
         super().__init__(
-            name=name, values=values, kind=kind, typ=typ, pos=pos, cname=cname
+            name=name,
+            values=values,
+            kind=kind,
+            typ=typ,
+            pos=pos,
+            cname=cname,
+            table=table,
+            meta=meta,
+            metadata=metadata,
         )
         self.dtype = None
         self.data = None
@@ -3466,7 +3479,17 @@ class Table(Fixed):
         # index columns
         for i, (axis, name) in enumerate(self.attrs.index_cols):
             atom = getattr(desc, name)
-            index_col = IndexCol(name=name, axis=axis, pos=i, typ=atom)
+            md = self.read_metadata(name)
+            meta = "category" if md is not None else None
+            index_col = IndexCol(
+                name=name,
+                axis=axis,
+                pos=i,
+                typ=atom,
+                table=self.table,
+                meta=meta,
+                metadata=md,
+            )
             _indexables.append(index_col)
 
         # values columns
@@ -3481,7 +3504,17 @@ class Table(Fixed):
 
             atom = getattr(desc, c)
             adj_name = _maybe_adjust_name(c, self.version)
-            return klass(name=adj_name, cname=c, pos=base_pos + i, typ=atom)
+            md = self.read_metadata(c)
+            meta = "category" if md is not None else None
+            return klass(
+                name=adj_name,
+                cname=c,
+                pos=base_pos + i,
+                typ=atom,
+                table=self.table,
+                meta=meta,
+                metadata=md,
+            )
 
         # Note: the definition of `values_cols` ensures that each
         #  `c` below is a str.
@@ -4488,13 +4521,29 @@ class GenericTable(AppendableFrameTable):
         # TODO: can we get a typ for this?  AFAICT it is the only place
         #  where we aren't passing one
         # the index columns is just a simple index
-        _indexables = [GenericIndexCol(name="index", axis=0)]
+        md = self.read_metadata("index")
+        meta = "category" if md is not None else None
+        _indexables = [
+            GenericIndexCol(
+                name="index", axis=0, table=self.table, meta=meta, metadata=md
+            )
+        ]
 
         for i, n in enumerate(d._v_names):
             assert isinstance(n, str)
 
             atom = getattr(d, n)
-            dc = GenericDataIndexableCol(name=n, pos=i, values=[n], typ=atom)
+            md = self.read_metadata(n)
+            meta = "category" if md is not None else None
+            dc = GenericDataIndexableCol(
+                name=n,
+                pos=i,
+                values=[n],
+                typ=atom,
+                table=self.table,
+                meta=meta,
+                metadata=md,
+            )
             _indexables.append(dc)
 
         return _indexables
