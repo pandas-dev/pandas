@@ -947,14 +947,14 @@ def _attempt_YYYYMMDD(arg, errors):
     try:
         carg = arg.astype(np.float64)
         return calc_with_mask(carg, notna(carg))
-    except (ValueError, OverflowError):
+    except (ValueError, OverflowError, TypeError):
         pass
 
     # string with NaN-like
     try:
         mask = ~algorithms.isin(arg, list(tslib.nat_strings))
         return calc_with_mask(arg, mask)
-    except (ValueError, OverflowError):
+    except (ValueError, OverflowError, TypeError):
         pass
 
     return None

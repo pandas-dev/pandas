@@ -105,9 +105,9 @@ class TestTimeConversionFormats:
         "input_s",
         [
             # None with Strings
-            Series(["19801222", None, "20010112"]),
+            Series(["19801222", None, "20010112", np.nan, "NaT", pd.NaT]),
             # None with Integers
-            Series([19801222, None, 20010112]),
+            Series([19801222, None, 20010112, np.nan, "NaT", pd.NaT]),
         ],
     )
     def test_to_datetime_format_YYYYMMDD_with_none(self, input_s):
@@ -115,7 +115,14 @@ class TestTimeConversionFormats:
         # format='%Y%m%d'
         # with None
         expected = Series(
-            [Timestamp("19801222"), Timestamp(None), Timestamp("20010112")]
+            [
+                Timestamp("19801222"),
+                Timestamp(None),
+                Timestamp("20010112"),
+                Timestamp(np.nan),
+                Timestamp("NaT"),
+                Timestamp(pd.NaT),
+            ]
         )
         result = pd.to_datetime(input_s, format="%Y%m%d")
         tm.assert_series_equal(result, expected)
