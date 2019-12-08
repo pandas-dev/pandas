@@ -105,7 +105,12 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
 
     # Imports - Check formatting using isort see setup.cfg for settings
     MSG='Check import format using isort ' ; echo $MSG
-    isort --recursive --check-only pandas asv_bench
+    ISORT_CMD="isort --recursive --check-only pandas asv_bench"
+    if [[ "$GITHUB_ACTIONS" == "true" ]]; then
+        eval $ISORT_CMD | awk '{print "##[error]" $0}'; RET=$(($RET + ${PIPESTATUS[0]}))
+    else
+        eval $ISORT_CMD
+    fi
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
@@ -192,6 +197,10 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
 
     MSG='Check for use of comment-based annotation syntax' ; echo $MSG
     invgrep -R --include="*.py" -P '# type: (?!ignore)' pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Check for use of foo.__class__ instead of type(foo)' ; echo $MSG
+    invgrep -R --include=*.{py,pyx} '\.__class__' pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check that no file in the repo contains trailing whitespaces' ; echo $MSG

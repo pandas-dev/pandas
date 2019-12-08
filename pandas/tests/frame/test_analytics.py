@@ -1071,14 +1071,15 @@ class TestDataFrameAnalytics:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("tz", [None, "UTC"])
-    def test_mean_excludeds_datetimes(self, tz):
+    def test_mean_excludes_datetimes(self, tz):
         # https://github.com/pandas-dev/pandas/issues/24752
         # Our long-term desired behavior is unclear, but the behavior in
         # 0.24.0rc1 was buggy.
         df = pd.DataFrame({"A": [pd.Timestamp("2000", tz=tz)] * 2})
         with tm.assert_produces_warning(FutureWarning):
             result = df.mean()
-        expected = pd.Series()
+
+        expected = pd.Series(dtype=np.float64)
         tm.assert_series_equal(result, expected)
 
     def test_mean_mixed_string_decimal(self):
@@ -1914,7 +1915,7 @@ class TestDataFrameAnalytics:
         expected = DataFrame([df.loc[s].isin(other) for s in df.index])
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("empty", [[], Series(), np.array([])])
+    @pytest.mark.parametrize("empty", [[], Series(dtype=object), np.array([])])
     def test_isin_empty(self, empty):
         # GH 16991
         df = DataFrame({"A": ["a", "b", "c"], "B": ["a", "e", "f"]})

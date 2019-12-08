@@ -19,7 +19,7 @@ class BasePrintingTests(BaseExtensionTests):
 
         result = repr(data)
         assert type(data).__name__ in result
-        assert "Length: {}".format(len(data)) in result
+        assert f"Length: {len(data)}" in result
         assert str(data.dtype) in result
         if size == "big":
             assert "..." in result

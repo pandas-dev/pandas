@@ -69,17 +69,11 @@ class TestDatetimeIndexArithmetic:
     def test_dti_shift_int(self):
         rng = date_range("1/1/2000", periods=20)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            # GH#22535
-            result = rng + 5
-
+        result = rng + 5 * rng.freq
         expected = rng.shift(5)
         tm.assert_index_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            # GH#22535
-            result = rng - 5
-
+        result = rng - 5 * rng.freq
         expected = rng.shift(-5)
         tm.assert_index_equal(result, expected)
 
@@ -100,9 +94,9 @@ class TestDatetimeIndexArithmetic:
     def test_dti_shift_across_dst(self):
         # GH 8616
         idx = date_range("2013-11-03", tz="America/Chicago", periods=7, freq="H")
-        s = Series(index=idx[:-1])
+        s = Series(index=idx[:-1], dtype=object)
         result = s.shift(freq="H")
-        expected = Series(index=idx[1:])
+        expected = Series(index=idx[1:], dtype=object)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(

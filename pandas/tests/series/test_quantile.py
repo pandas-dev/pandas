@@ -67,7 +67,7 @@ class TestSeriesQuantile:
 
         result = datetime_series.quantile([])
         expected = pd.Series(
-            [], name=datetime_series.name, index=Index([], dtype=float)
+            [], name=datetime_series.name, index=Index([], dtype=float), dtype="float64"
         )
         tm.assert_series_equal(result, expected)
 
@@ -104,7 +104,8 @@ class TestSeriesQuantile:
         assert result == expected
 
         # all nan/empty
-        cases = [Series([]), Series([np.nan, np.nan])]
+        s1 = Series([], dtype=object)
+        cases = [s1, Series([np.nan, np.nan])]
 
         for s in cases:
             res = s.quantile(0.5)
