@@ -2097,7 +2097,7 @@ class IndexCol:
         for key in self._info_fields:
 
             value = getattr(self, key, None)
-            idx = _get_info(info, self.name)
+            idx = info.setdefault(self.name, {})
 
             existing_value = idx.get(key)
             if key in idx and value is not None and existing_value != value:
@@ -3725,7 +3725,6 @@ class Table(Fixed):
 
         # create according to the new data
         new_non_index_axes: List = []
-        new_data_columns: List[Optional[str]] = []
 
         # nan_representation
         if nan_rep is None:
@@ -3768,8 +3767,6 @@ class Table(Fixed):
         new_index.update_info(self.info)
         new_index.maybe_set_size(min_itemsize)  # check for column conflicts
 
-        self.non_index_axes = new_non_index_axes
-
         new_index_axes = [new_index]
         j = len(new_index_axes)  # i.e. 1
         assert j == 1
@@ -3788,22 +3785,21 @@ class Table(Fixed):
         block_obj = self.get_object(obj, transposed)._consolidate()
         blocks = block_obj._data.blocks
         blk_items = get_blk_items(block_obj._data, blocks)
-        if len(new_non_index_axes):
-            axis, axis_labels = new_non_index_axes[0]
-            data_columns = self.validate_data_columns(
-                data_columns, min_itemsize, new_non_index_axes
-            )
-            if len(data_columns):
-                mgr = block_obj.reindex(
-                    Index(axis_labels).difference(Index(data_columns)), axis=axis
-                )._data
 
-                blocks = list(mgr.blocks)
-                blk_items = get_blk_items(mgr, blocks)
-                for c in data_columns:
-                    mgr = block_obj.reindex([c], axis=axis)._data
-                    blocks.extend(mgr.blocks)
-                    blk_items.extend(get_blk_items(mgr, mgr.blocks))
+        data_columns = self.validate_data_columns(
+            data_columns, min_itemsize, new_non_index_axes
+        )
+        if len(data_columns):
+            axis, axis_labels = new_non_index_axes[0]
+            new_labels = Index(axis_labels).difference(Index(data_columns))
+            mgr = block_obj.reindex(new_labels, axis=axis)._data
+
+            blocks = list(mgr.blocks)
+            blk_items = get_blk_items(mgr, blocks)
+            for c in data_columns:
+                mgr = block_obj.reindex([c], axis=axis)._data
+                blocks.extend(mgr.blocks)
+                blk_items.extend(get_blk_items(mgr, mgr.blocks))
 
         # reorder the blocks in the same order as the existing_table if we can
         if existing_table is not None:
@@ -3843,7 +3839,6 @@ class Table(Fixed):
                 if not (name is None or isinstance(name, str)):
                     # TODO: should the message here be more specifically non-str?
                     raise ValueError("cannot have non-object label DataIndexableCol")
-                new_data_columns.append(name)
 
             # make sure that we match up the existing columns
             # if we have an existing table
@@ -3890,7 +3885,7 @@ class Table(Fixed):
             j += 1
 
         self.nan_rep = nan_rep
-        self.data_columns = new_data_columns
+        self.data_columns = [col.name for col in vaxes if col.is_data_indexable]
         self.values_axes = vaxes
         self.index_axes = new_index_axes
         self.non_index_axes = new_non_index_axes
@@ -4580,15 +4575,6 @@ def _reindex_axis(obj, axis: int, labels: Index, other=None):
         slicer[axis] = labels
         obj = obj.loc[tuple(slicer)]
     return obj
-
-
-def _get_info(info, name):
-    """ get/create the info for this name """
-    try:
-        idx = info[name]
-    except KeyError:
-        idx = info[name] = dict()
-    return idx
 
 
 # tz to/from coercion
