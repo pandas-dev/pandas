@@ -1116,7 +1116,7 @@ class TestSeriesAnalytics:
         tm.assert_frame_equal(ts.unstack(level=0), right)
 
     def test_value_counts_datetime(self):
-        # most dtypes are tested in test_base.py
+        # most dtypes are tested in tests/base
         values = [
             pd.Timestamp("2011-01-01 09:00"),
             pd.Timestamp("2011-01-01 10:00"),
@@ -1192,7 +1192,7 @@ class TestSeriesAnalytics:
         tm.assert_series_equal(idx.value_counts(normalize=True), exp)
 
     def test_value_counts_categorical_ordered(self):
-        # most dtypes are tested in test_base.py
+        # most dtypes are tested in tests/base
         values = pd.Categorical([1, 2, 3, 1, 1, 3], ordered=True)
 
         exp_idx = pd.CategoricalIndex([1, 3, 2], categories=[1, 2, 3], ordered=True)
@@ -1506,7 +1506,7 @@ class TestCategoricalSeriesAnalytics:
         tm.assert_series_equal(res, exp)
 
         # check object dtype handles the Series.name as the same
-        # (tested in test_base.py)
+        # (tested in tests/base)
         s = Series(["a", "b", "c", "c", "c", "b"], name="xxx")
         res = s.value_counts()
         exp = Series([3, 2, 1], name="xxx", index=["c", "b", "a"])
