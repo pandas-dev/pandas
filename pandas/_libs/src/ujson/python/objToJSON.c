@@ -212,27 +212,11 @@ static TypeContext *createTypeContext(void) {
     return pc;
 }
 
-static int is_sparse_array(PyObject *obj) {
-    // TODO can be removed again once SparseArray.values is removed (GH26421)
-    if (PyObject_HasAttrString(obj, "_subtyp")) {
-        PyObject *_subtype = PyObject_GetAttrString(obj, "_subtyp");
-        PyObject *sparse_array = PyUnicode_FromString("sparse_array");
-        int ret = PyUnicode_Compare(_subtype, sparse_array);
-
-        if (ret == 0) {
-            return 1;
-        }
-    }
-    return 0;
-}
-
 static PyObject *get_values(PyObject *obj) {
     PyObject *values = NULL;
 
-    if (!is_sparse_array(obj)) {
-        values = PyObject_GetAttrString(obj, "values");
-        PRINTMARK();
-    }
+    values = PyObject_GetAttrString(obj, "values");
+    PRINTMARK();
 
     if (values && !PyArray_CheckExact(values)) {
 
@@ -240,8 +224,7 @@ static PyObject *get_values(PyObject *obj) {
             values = PyObject_CallMethod(values, "to_numpy", NULL);
         }
 
-        if (!is_sparse_array(values) &&
-            PyObject_HasAttrString(values, "values")) {
+        if (PyObject_HasAttrString(values, "values")) {
             PyObject *subvals = get_values(values);
             PyErr_Clear();
             PRINTMARK();
@@ -385,42 +368,8 @@ static PyObject *get_item(PyObject *obj, Py_ssize_t i) {
     return ret;
 }
 
-static void *CDouble(JSOBJ obj, JSONTypeContext *tc, void *outValue,
-                     size_t *_outLen) {
-    PRINTMARK();
-    *((double *)outValue) = GET_TC(tc)->doubleValue;
-    return NULL;
-}
-
-static void *CLong(JSOBJ obj, JSONTypeContext *tc, void *outValue,
-                   size_t *_outLen) {
-    PRINTMARK();
-    *((JSINT64 *)outValue) = GET_TC(tc)->longValue;
-    return NULL;
-}
-
-static void *PyLongToINT64(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
-                           size_t *_outLen) {
-    *((JSINT64 *)outValue) = GET_TC(tc)->longValue;
-    return NULL;
-}
-
-static void *NpyFloatToDOUBLE(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
-                              size_t *_outLen) {
-    PyObject *obj = (PyObject *)_obj;
-    PyArray_CastScalarToCtype(obj, outValue, PyArray_DescrFromType(NPY_DOUBLE));
-    return NULL;
-}
-
-static void *PyFloatToDOUBLE(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
-                             size_t *_outLen) {
-    PyObject *obj = (PyObject *)_obj;
-    *((double *)outValue) = PyFloat_AsDouble(obj);
-    return NULL;
-}
-
 static void *PyBytesToUTF8(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
-                            size_t *_outLen) {
+                           size_t *_outLen) {
     PyObject *obj = (PyObject *)_obj;
     *_outLen = PyBytes_GET_SIZE(obj);
     return PyBytes_AS_STRING(obj);
@@ -571,7 +520,6 @@ static int NpyTypeToJSONType(PyObject *obj, JSONTypeContext *tc, int npyType,
             return JT_NULL;
         }
         GET_TC(tc)->doubleValue = (double)doubleVal;
-        GET_TC(tc)->PyTypeToJSON = CDouble;
         return JT_DOUBLE;
     }
 
@@ -588,10 +536,32 @@ static int NpyTypeToJSONType(PyObject *obj, JSONTypeContext *tc, int npyType,
             PRINTMARK();
             return JT_NULL;
         }
-        GET_TC(tc)->longValue = (JSINT64)longVal;
-        GET_TC(tc)->PyTypeToJSON = NpyDatetime64ToJSON;
-        return ((PyObjectEncoder *)tc->encoder)->datetimeIso ? JT_UTF8
-                                                             : JT_LONG;
+
+        if (((PyObjectEncoder *)tc->encoder)->datetimeIso) {
+            GET_TC(tc)->longValue = (JSINT64)longVal;
+            GET_TC(tc)->PyTypeToJSON = NpyDatetime64ToJSON;
+            return JT_UTF8;
+        } else {
+
+            // TODO: consolidate uses of this switch
+            switch (((PyObjectEncoder *)tc->encoder)->datetimeUnit) {
+            case NPY_FR_ns:
+                break;
+            case NPY_FR_us:
+                longVal /= 1000LL;
+                break;
+            case NPY_FR_ms:
+                longVal /= 1000000LL;
+                break;
+            case NPY_FR_s:
+                longVal /= 1000000000LL;
+                break;
+            default:
+                break; // TODO: should raise error
+            }
+            GET_TC(tc)->longValue = longVal;
+            return JT_LONG;
+        }
     }
 
     if (PyTypeNum_ISINTEGER(npyType)) {
@@ -604,7 +574,6 @@ static int NpyTypeToJSONType(PyObject *obj, JSONTypeContext *tc, int npyType,
         }
         castfunc(value, &longVal, 1, NULL, NULL);
         GET_TC(tc)->longValue = (JSINT64)longVal;
-        GET_TC(tc)->PyTypeToJSON = CLong;
         return JT_LONG;
     }
 
@@ -1829,7 +1798,6 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
 
     if (PyLong_Check(obj)) {
         PRINTMARK();
-        pc->PyTypeToJSON = PyLongToINT64;
         tc->type = JT_LONG;
         GET_TC(tc)->longValue = PyLong_AsLongLong(obj);
 
@@ -1847,7 +1815,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         if (npy_isnan(val) || npy_isinf(val)) {
             tc->type = JT_NULL;
         } else {
-            pc->PyTypeToJSON = PyFloatToDOUBLE;
+            GET_TC(tc)->doubleValue = val;
             tc->type = JT_DOUBLE;
         }
         return;
@@ -1863,7 +1831,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         return;
     } else if (PyObject_TypeCheck(obj, type_decimal)) {
         PRINTMARK();
-        pc->PyTypeToJSON = PyFloatToDOUBLE;
+        GET_TC(tc)->doubleValue = PyFloat_AsDouble(obj);
         tc->type = JT_DOUBLE;
         return;
     } else if (PyDateTime_Check(obj) || PyDate_Check(obj)) {
@@ -1874,12 +1842,15 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         }
 
         PRINTMARK();
-        pc->PyTypeToJSON = PyDateTimeToJSON;
         if (enc->datetimeIso) {
             PRINTMARK();
+            pc->PyTypeToJSON = PyDateTimeToJSON;
             tc->type = JT_UTF8;
         } else {
             PRINTMARK();
+            // TODO: last argument here is unused; should decouple string
+            // from long datetimelike conversion routines
+            PyDateTimeToJSON(obj, tc, &(GET_TC(tc)->longValue), 0);
             tc->type = JT_LONG;
         }
         return;
@@ -1940,12 +1911,10 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         GET_TC(tc)->longValue = value;
 
         PRINTMARK();
-        pc->PyTypeToJSON = PyLongToINT64;
         tc->type = JT_LONG;
         return;
     } else if (PyArray_IsScalar(obj, Integer)) {
         PRINTMARK();
-        pc->PyTypeToJSON = PyLongToINT64;
         tc->type = JT_LONG;
         PyArray_CastScalarToCtype(obj, &(GET_TC(tc)->longValue),
                                   PyArray_DescrFromType(NPY_INT64));
@@ -1966,7 +1935,8 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         return;
     } else if (PyArray_IsScalar(obj, Float) || PyArray_IsScalar(obj, Double)) {
         PRINTMARK();
-        pc->PyTypeToJSON = NpyFloatToDOUBLE;
+        PyArray_CastScalarToCtype(obj, &(GET_TC(tc)->doubleValue),
+                                  PyArray_DescrFromType(NPY_DOUBLE));
         tc->type = JT_DOUBLE;
         return;
     } else if (PyArray_Check(obj) && PyArray_CheckScalar(obj)) {
@@ -2315,21 +2285,11 @@ const char *Object_getStringValue(JSOBJ obj, JSONTypeContext *tc,
 }
 
 JSINT64 Object_getLongValue(JSOBJ obj, JSONTypeContext *tc) {
-    JSINT64 ret;
-    GET_TC(tc)->PyTypeToJSON(obj, tc, &ret, NULL);
-    return ret;
-}
-
-JSINT32 Object_getIntValue(JSOBJ obj, JSONTypeContext *tc) {
-    JSINT32 ret;
-    GET_TC(tc)->PyTypeToJSON(obj, tc, &ret, NULL);
-    return ret;
+    return GET_TC(tc)->longValue;
 }
 
 double Object_getDoubleValue(JSOBJ obj, JSONTypeContext *tc) {
-    double ret;
-    GET_TC(tc)->PyTypeToJSON(obj, tc, &ret, NULL);
-    return ret;
+    return GET_TC(tc)->doubleValue;
 }
 
 static void Object_releaseObject(JSOBJ _obj) { Py_DECREF((PyObject *)_obj); }
@@ -2384,7 +2344,7 @@ PyObject *objToJSON(PyObject *self, PyObject *args, PyObject *kwargs) {
         Object_endTypeContext,
         Object_getStringValue,
         Object_getLongValue,
-        Object_getIntValue,
+        NULL, // getIntValue is unused
         Object_getDoubleValue,
         Object_iterBegin,
         Object_iterNext,

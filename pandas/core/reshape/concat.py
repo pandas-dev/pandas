@@ -3,7 +3,6 @@ concat routines
 """
 
 from typing import List
-import warnings
 
 import numpy as np
 
@@ -31,7 +30,6 @@ def concat(
     objs,
     axis=0,
     join: str = "outer",
-    join_axes=None,
     ignore_index: bool = False,
     keys=None,
     levels=None,
@@ -59,12 +57,6 @@ def concat(
         The axis to concatenate along.
     join : {'inner', 'outer'}, default 'outer'
         How to handle indexes on other axis (or axes).
-    join_axes : list of Index objects
-        .. deprecated:: 0.25.0
-
-        Specific indexes to use for the other n - 1 axes instead of performing
-        inner/outer set logic. Use .reindex() before or after concatenation
-        as a replacement.
     ignore_index : bool, default False
         If True, do not use the index values along the concatenation axis. The
         resulting axis will be labeled 0, ..., n - 1. This is useful if you are
@@ -243,7 +235,6 @@ def concat(
         axis=axis,
         ignore_index=ignore_index,
         join=join,
-        join_axes=join_axes,
         keys=keys,
         levels=levels,
         names=names,
@@ -265,7 +256,6 @@ class _Concatenator:
         objs,
         axis=0,
         join: str = "outer",
-        join_axes=None,
         keys=None,
         levels=None,
         names=None,
@@ -412,7 +402,6 @@ class _Concatenator:
 
         # note: this is the BlockManager axis (since DataFrame is transposed)
         self.axis = axis
-        self.join_axes = join_axes
         self.keys = keys
         self.names = names or getattr(keys, "names", None)
         self.levels = levels
@@ -487,34 +476,10 @@ class _Concatenator:
         ndim = self._get_result_dim()
         new_axes = [None] * ndim
 
-        if self.join_axes is None:
-            for i in range(ndim):
-                if i == self.axis:
-                    continue
-                new_axes[i] = self._get_comb_axis(i)
-
-        else:
-            # GH 21951
-            warnings.warn(
-                "The join_axes-keyword is deprecated. Use .reindex or "
-                ".reindex_like on the result to achieve the same "
-                "functionality.",
-                FutureWarning,
-                stacklevel=4,
-            )
-
-            if len(self.join_axes) != ndim - 1:
-                raise AssertionError(
-                    "length of join_axes must be equal "
-                    "to {length}".format(length=ndim - 1)
-                )
-
-            # ufff...
-            indices = list(range(ndim))
-            indices.remove(self.axis)
-
-            for i, ax in zip(indices, self.join_axes):
-                new_axes[i] = ax
+        for i in range(ndim):
+            if i == self.axis:
+                continue
+            new_axes[i] = self._get_comb_axis(i)
 
         new_axes[self.axis] = self._get_concat_axis()
         return new_axes

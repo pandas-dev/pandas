@@ -31,8 +31,7 @@ def _check_ne_builtin_clash(expr):
     if overlap:
         s = ", ".join(repr(x) for x in overlap)
         raise NumExprClobberingError(
-            'Variables in expression "{expr}" '
-            "overlap with builtins: ({s})".format(expr=expr, s=s)
+            f'Variables in expression "{expr}" overlap with builtins: ({s})'
         )
 
 

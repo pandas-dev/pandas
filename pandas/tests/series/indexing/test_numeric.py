@@ -150,7 +150,7 @@ def test_delitem():
     tm.assert_series_equal(s, expected)
 
     # empty
-    s = Series()
+    s = Series(dtype=object)
 
     with pytest.raises(KeyError, match=r"^0$"):
         del s[0]

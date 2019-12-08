@@ -3994,26 +3994,6 @@ class Index(IndexOpsMixin, PandasObject):
         except (OverflowError, TypeError, ValueError):
             return False
 
-    def contains(self, key) -> bool:
-        """
-        Return a boolean indicating whether the provided key is in the index.
-
-        .. deprecated:: 0.25.0
-            Use ``key in index`` instead of ``index.contains(key)``.
-
-        Returns
-        -------
-        bool
-        """
-        warnings.warn(
-            "The 'contains' method is deprecated and will be removed in a "
-            "future version. Use 'key in index' instead of "
-            "'index.contains(key)'",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return key in self
-
     def __hash__(self):
         raise TypeError(f"unhashable type: {repr(type(self).__name__)}")
 
@@ -4171,6 +4151,12 @@ class Index(IndexOpsMixin, PandasObject):
         if is_object_dtype(self) and not is_object_dtype(other):
             # if other is not object, use other's logic for coercion
             return other.equals(self)
+
+        if isinstance(other, ABCMultiIndex):
+            # d-level MultiIndex can equal d-tuple Index
+            if not is_object_dtype(self.dtype):
+                if self.nlevels != other.nlevels:
+                    return False
 
         return array_equivalent(
             com.values_from_object(self), com.values_from_object(other)
