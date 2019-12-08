@@ -2221,15 +2221,6 @@ class DataCol(IndexCol):
     is_data_indexable = False
     _info_fields = ["tz", "ordered"]
 
-    @classmethod
-    def create_for_block(cls, name: str, version, pos: int):
-        """ return a new datacol with the block i """
-        assert isinstance(name, str)
-
-        cname = name
-        name = _maybe_adjust_name(name, version)
-        return cls(name=name, cname=cname, pos=pos)
-
     def __init__(
         self, name: str, values=None, kind=None, typ=None, cname=None, pos=None,
     ):
@@ -2269,6 +2260,7 @@ class DataCol(IndexCol):
 
     def set_data(self, data: Union[np.ndarray, ABCExtensionArray]):
         assert data is not None
+        assert self.dtype is None
 
         if is_categorical_dtype(data.dtype):
             data = data.codes
@@ -2282,43 +2274,13 @@ class DataCol(IndexCol):
             #  doing that doesnt seem to break anything.  why?
 
         self.data = data
-
-        if self.dtype is None:
-            self.dtype = dtype_name
-            self.set_kind()
+        self.dtype = dtype_name
+        self.kind = _dtype_to_kind(dtype_name)
 
     def take_data(self):
         """ return the data & release the memory """
         self.data, data = None, self.data
         return data
-
-    def set_kind(self):
-        # set my kind if we can
-
-        if self.dtype is not None:
-            dtype = _ensure_decoded(self.dtype)
-
-            if dtype.startswith("string") or dtype.startswith("bytes"):
-                self.kind = "string"
-            elif dtype.startswith("float"):
-                self.kind = "float"
-            elif dtype.startswith("complex"):
-                self.kind = "complex"
-            elif dtype.startswith("int") or dtype.startswith("uint"):
-                self.kind = "integer"
-            elif dtype.startswith("date"):
-                # in tests this is always "datetime64"
-                self.kind = "datetime"
-            elif dtype.startswith("timedelta"):
-                self.kind = "timedelta"
-            elif dtype.startswith("bool"):
-                self.kind = "bool"
-            else:
-                raise AssertionError(f"cannot interpret dtype of [{dtype}] in [{self}]")
-
-            # set my typ if we need
-            if self.typ is None:
-                self.typ = getattr(self.description, self.cname, None)
 
     def set_atom(self, block):
         """ create and setup my atom from the block b """
@@ -2442,8 +2404,11 @@ class DataCol(IndexCol):
         if values.dtype.fields is not None:
             values = values[self.cname]
 
-        # NB: unlike in the other calls to set_data, self.dtype may not be None here
-        self.set_data(values)
+        assert self.typ is not None
+        if self.dtype is None:
+            self.set_data(values)
+        else:
+            self.data = values
 
         # use the meta if needed
         meta = _ensure_decoded(self.meta)
@@ -2513,14 +2478,16 @@ class DataCol(IndexCol):
         self.values = getattr(self.attrs, self.kind_attr, None)
         self.dtype = getattr(self.attrs, self.dtype_attr, None)
         self.meta = getattr(self.attrs, self.meta_attr, None)
-        self.set_kind()
+        assert self.typ is not None
+        assert self.dtype is not None
+        self.kind = _dtype_to_kind(self.dtype)
 
     def set_attr(self):
         """ set the data for this column """
         setattr(self.attrs, self.kind_attr, self.values)
         setattr(self.attrs, self.meta_attr, self.meta)
-        if self.dtype is not None:
-            setattr(self.attrs, self.dtype_attr, self.dtype)
+        assert self.dtype is not None
+        setattr(self.attrs, self.dtype_attr, self.dtype)
 
 
 class DataIndexableCol(DataCol):
@@ -3501,15 +3468,15 @@ class Table(Fixed):
         """ create/cache the indexables if they don't exist """
         _indexables = []
 
+        desc = self.description
+
         # Note: each of the `name` kwargs below are str, ensured
         #  by the definition in index_cols.
         # index columns
-        _indexables.extend(
-            [
-                IndexCol(name=name, axis=axis, pos=i)
-                for i, (axis, name) in enumerate(self.attrs.index_cols)
-            ]
-        )
+        for i, (axis, name) in enumerate(self.attrs.index_cols):
+            atom = getattr(desc, name)
+            index_col = IndexCol(name=name, axis=axis, pos=i, typ=atom)
+            _indexables.append(index_col)
 
         # values columns
         dc = set(self.data_columns)
@@ -3520,9 +3487,10 @@ class Table(Fixed):
             klass = DataCol
             if c in dc:
                 klass = DataIndexableCol
-            return klass.create_for_block(
-                name=c, pos=base_pos + i, version=self.version
-            )
+
+            atom = getattr(desc, c)
+            adj_name = _maybe_adjust_name(c, self.version)
+            return klass(name=adj_name, cname=c, pos=base_pos + i, typ=atom)
 
         # Note: the definition of `values_cols` ensures that each
         #  `c` below is a str.
@@ -3903,9 +3871,15 @@ class Table(Fixed):
             adj_name = _maybe_adjust_name(new_name, self.version)
 
             typ = klass._get_atom(data_converted)
+            kind = _dtype_to_kind(data_converted.dtype.name)
 
             col = klass(
-                name=adj_name, cname=new_name, values=list(b_items), typ=typ, pos=j
+                name=adj_name,
+                cname=new_name,
+                values=list(b_items),
+                typ=typ,
+                pos=j,
+                kind=kind,
             )
             col.set_atom(block=b)
             col.set_data(data_converted)
@@ -4527,13 +4501,16 @@ class GenericTable(AppendableFrameTable):
         """ create the indexables from the table description """
         d = self.description
 
+        # TODO: can we get a typ for this?  AFAICT it is the only place
+        #  where we aren't passing one
         # the index columns is just a simple index
         _indexables = [GenericIndexCol(name="index", axis=0)]
 
         for i, n in enumerate(d._v_names):
             assert isinstance(n, str)
 
-            dc = GenericDataIndexableCol(name=n, pos=i, values=[n])
+            atom = getattr(d, n)
+            dc = GenericDataIndexableCol(name=n, pos=i, values=[n], typ=atom)
             _indexables.append(dc)
 
         return _indexables
@@ -4957,6 +4934,35 @@ def _maybe_adjust_name(name: str, version) -> str:
     except IndexError:
         pass
     return name
+
+
+def _dtype_to_kind(dtype_str: str) -> str:
+    """
+    Find the "kind" string describing the given dtype name.
+    """
+    dtype_str = _ensure_decoded(dtype_str)
+
+    if dtype_str.startswith("string") or dtype_str.startswith("bytes"):
+        kind = "string"
+    elif dtype_str.startswith("float"):
+        kind = "float"
+    elif dtype_str.startswith("complex"):
+        kind = "complex"
+    elif dtype_str.startswith("int") or dtype_str.startswith("uint"):
+        kind = "integer"
+    elif dtype_str.startswith("date"):
+        # in tests this is always "datetime64"
+        kind = "datetime"
+    elif dtype_str.startswith("timedelta"):
+        kind = "timedelta"
+    elif dtype_str.startswith("bool"):
+        kind = "bool"
+    elif dtype_str.startswith("category"):
+        kind = "category"
+    else:
+        raise ValueError(f"cannot interpret dtype of [{dtype_str}]")
+
+    return kind
 
 
 class Selection:
