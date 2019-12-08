@@ -61,7 +61,7 @@ class disallow:
             obj_iter = itertools.chain(args, kwargs.values())
             if any(self.check(obj) for obj in obj_iter):
                 msg = (
-                    f"reduction operation {f.__name__.replace('nan', '')!r}"
+                    f"reduction operation {repr(f.__name__.replace('nan', ''))}"
                     " not allowed for this dtype"
                 )
                 raise TypeError(msg)
@@ -1302,7 +1302,7 @@ def _ensure_numeric(x):
                 x = complex(x)
             except ValueError:
                 # e.g. "foo"
-                raise TypeError(f"Could not convert {x!s} to numeric")
+                raise TypeError(f"Could not convert {repr(x)} to numeric")
     return x
 
 
