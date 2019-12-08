@@ -1080,7 +1080,7 @@ class TextFileReader(BaseIterator):
             if not isinstance(converters, dict):
                 raise TypeError(
                     f"Type converters must be a dict or subclass, "
-                    f"input was a {repr(type(converters).__name__)}"
+                    f"input was a {type(converters).__name__}"
                 )
         else:
             converters = {}
@@ -3608,7 +3608,7 @@ class FixedWidthReader(BaseIterator):
         if not isinstance(self.colspecs, (tuple, list)):
             raise TypeError(
                 f"column specifications must be a list or tuple, "
-                f"input was a {repr(type(colspecs).__name__)}"
+                f"input was a {type(colspecs).__name__}"
             )
 
         for colspec in self.colspecs:
