@@ -109,7 +109,7 @@ def _evaluate_numexpr(op, op_str, a, b):
         b_value = getattr(b, "values", b)
 
         result = ne.evaluate(
-            "a_value {op} b_value".format(op=op_str),
+            f"a_value {op_str} b_value",
             local_dict={"a_value": a_value, "b_value": b_value},
             casting="safe",
         )

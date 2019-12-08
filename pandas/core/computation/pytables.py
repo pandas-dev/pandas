@@ -172,7 +172,7 @@ class BinOp(ops.BinOp):
     def generate(self, v) -> str:
         """ create and return the op string for this TermValue """
         val = v.tostring(self.encoding)
-        return "({lhs} {op} {val})".format(lhs=self.lhs, op=self.op, val=val)
+        return f"({self.lhs} {self.op} {val})"
 
     def convert_value(self, v) -> "TermValue":
         """ convert the expression that is in the term to something that is
@@ -233,11 +233,7 @@ class BinOp(ops.BinOp):
             # string quoting
             return TermValue(v, stringify(v), "string")
         else:
-            raise TypeError(
-                "Cannot compare {v} of type {typ} to {kind} column".format(
-                    v=v, typ=type(v), kind=kind
-                )
-            )
+            raise TypeError(f"Cannot compare {v} of type {type(v)} to {kind} column")
 
     def convert_values(self):
         pass
@@ -249,9 +245,7 @@ class FilterBinOp(BinOp):
     def __repr__(self) -> str:
         if self.filter is None:
             return "Filter: Not Initialized"
-        return pprint_thing(
-            "[Filter : [{lhs}] -> [{op}]".format(lhs=self.filter[0], op=self.filter[1])
-        )
+        return pprint_thing(f"[Filter : [{self.filter[0]}] -> [{self.filter[1]}]")
 
     def invert(self):
         """ invert the filter """
@@ -268,7 +262,7 @@ class FilterBinOp(BinOp):
     def evaluate(self):
 
         if not self.is_valid:
-            raise ValueError("query term is not valid [{slf}]".format(slf=self))
+            raise ValueError(f"query term is not valid [{self}]")
 
         rhs = self.conform(self.rhs)
         values = list(rhs)
@@ -292,8 +286,7 @@ class FilterBinOp(BinOp):
 
         else:
             raise TypeError(
-                "passing a filterable condition to a non-table "
-                "indexer [{slf}]".format(slf=self)
+                f"passing a filterable condition to a non-table indexer [{self}]"
             )
 
         return self
@@ -315,7 +308,7 @@ class JointFilterBinOp(FilterBinOp):
 
 class ConditionBinOp(BinOp):
     def __repr__(self) -> str:
-        return pprint_thing("[Condition : [{cond}]]".format(cond=self.condition))
+        return pprint_thing(f"[Condition : [{self.condition}]]")
 
     def invert(self):
         """ invert the condition """
@@ -333,7 +326,7 @@ class ConditionBinOp(BinOp):
     def evaluate(self):
 
         if not self.is_valid:
-            raise ValueError("query term is not valid [{slf}]".format(slf=self))
+            raise ValueError(f"query term is not valid [{self}]")
 
         # convert values if we are in the table
         if not self.is_in_table:
@@ -348,7 +341,7 @@ class ConditionBinOp(BinOp):
             # too many values to create the expression?
             if len(values) <= self._max_selectors:
                 vs = [self.generate(v) for v in values]
-                self.condition = "({cond})".format(cond=" | ".join(vs))
+                self.condition = f"({' | '.join(vs)})"
 
             # use a filter after reading
             else:
@@ -361,9 +354,7 @@ class ConditionBinOp(BinOp):
 
 class JointConditionBinOp(ConditionBinOp):
     def evaluate(self):
-        self.condition = "({lhs} {op} {rhs})".format(
-            lhs=self.lhs.condition, op=self.op, rhs=self.rhs.condition
-        )
+        self.condition = f"({self.lhs.condition} {self.op} {self.rhs.condition})"
         return self
 
 
@@ -397,7 +388,7 @@ class PyTablesExprVisitor(BaseExprVisitor):
             bin_node = self.binary_op_nodes_map[bin_op]
             setattr(
                 self,
-                "visit_{node}".format(node=bin_node),
+                f"visit_{bin_node}",
                 lambda node, bin_op=bin_op: partial(BinOp, bin_op, **kwargs),
             )
 
@@ -456,7 +447,7 @@ class PyTablesExprVisitor(BaseExprVisitor):
                 if isinstance(value, ast.Name) and value.id == attr:
                     return resolved
 
-        raise ValueError("Invalid Attribute context {name}".format(name=ctx.__name__))
+        raise ValueError(f"Invalid Attribute context {ctx.__name__}")
 
     def translate_In(self, op):
         return ast.Eq() if isinstance(op, ast.In) else op
@@ -556,7 +547,7 @@ class PyTablesExpr(expr.Expr):
                 else:
                     w = _validate_where(w)
                     where[idx] = w
-            _where = " & ".join(map("({})".format, com.flatten(where)))
+            _where = " & ".join((f"({w})" for w in com.flatten(where)))
         else:
             _where = where
 
@@ -586,15 +577,15 @@ class PyTablesExpr(expr.Expr):
             self.condition = self.terms.prune(ConditionBinOp)
         except AttributeError:
             raise ValueError(
-                "cannot process expression [{expr}], [{slf}] "
-                "is not a valid condition".format(expr=self.expr, slf=self)
+                f"cannot process expression [{self.expr}], [{self}] "
+                "is not a valid condition"
             )
         try:
             self.filter = self.terms.prune(FilterBinOp)
         except AttributeError:
             raise ValueError(
-                "cannot process expression [{expr}], [{slf}] "
-                "is not a valid filter".format(expr=self.expr, slf=self)
+                f"cannot process expression [{self.expr}], [{self}] "
+                "is not a valid filter"
             )
 
         return self.condition, self.filter
@@ -615,7 +606,7 @@ class TermValue:
         if self.kind == "string":
             if encoding is not None:
                 return str(self.converted)
-            return '"{converted}"'.format(converted=self.converted)
+            return f'"{self.converted}"'
         elif self.kind == "float":
             # python 2 str(float) is not always
             # round-trippable so use repr()
