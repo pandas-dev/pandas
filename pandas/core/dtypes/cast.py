@@ -849,7 +849,7 @@ def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
     if dtype.name in ("datetime64", "timedelta64"):
         msg = (
             f"The '{dtype.name}' dtype has no unit. Please pass in "
-            "'{dtype.name}[ns]' instead."
+            f"'{dtype.name}[ns]' instead."
         )
         raise ValueError(msg)
 
