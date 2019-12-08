@@ -4868,7 +4868,7 @@ ORC
 
 Similar to the :ref:`parquet <io.parquet>` format, the `ORC Format <//https://orc.apache.org/>`__ is a binary columnar serialization
 for data frames. It is designed to make reading data frames efficient. Pandas provides *only* a reader for the
-ORC format, :func:`~pandas.read_orc`. This requires the ``pyarrow <https://arrow.apache.org/docs/python/>`__ library.
+ORC format, :func:`~pandas.read_orc`. This requires the `pyarrow <https://arrow.apache.org/docs/python/>`__ library.
 
 .. _io.sql:
 
