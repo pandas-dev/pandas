@@ -1,7 +1,6 @@
 """
 Data structure for 1-dimensional cross-sectional and time series data
 """
-from collections import abc
 from io import StringIO
 from shutil import get_terminal_size
 from textwrap import dedent
@@ -252,7 +251,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 else:
                     data = data.reindex(index, copy=copy)
                 data = data._data
-            elif isinstance(data, abc.Mapping):
+            elif is_dict_like(data):
                 data, index = self._init_dict(data, index, dtype)
                 dtype = None
                 copy = False

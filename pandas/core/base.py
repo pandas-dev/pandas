@@ -2,7 +2,7 @@
 Base and utility classes for pandas objects.
 """
 import builtins
-from collections import OrderedDict, abc
+from collections import OrderedDict
 import textwrap
 from typing import Dict, FrozenSet, List, Optional
 
@@ -21,6 +21,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_ns_dtype,
     is_datetime64tz_dtype,
     is_extension_array_dtype,
+    is_dict_like,
     is_list_like,
     is_object_dtype,
     is_scalar,
@@ -1108,7 +1109,7 @@ class IndexOpsMixin:
         # we can fastpath dict/Series to an efficient map
         # as we know that we are not going to have to yield
         # python types
-        if isinstance(mapper, abc.Mapping):
+        if is_dict_like(mapper):
             if isinstance(mapper, dict) and hasattr(mapper, "__missing__"):
                 # If a dictionary subclass defines a default value method,
                 # convert mapper to a lookup function (GH #15999).
