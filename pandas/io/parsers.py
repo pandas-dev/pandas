@@ -913,8 +913,8 @@ class TextFileReader(BaseIterator):
                         pass
                     else:
                         raise ValueError(
-                            f"The {argname} option is not supported with the"
-                            f" {engine} engine"
+                            f"The {repr(argname)} option is not supported with the"
+                            f" {repr(engine)} engine"
                         )
             else:
                 value = _deprecated_defaults.get(argname, default)
