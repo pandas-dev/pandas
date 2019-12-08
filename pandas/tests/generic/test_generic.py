@@ -912,7 +912,7 @@ class TestNDFrame:
 
     def test_pipe(self):
         df = DataFrame({"A": [1, 2, 3]})
-        f = lambda x, y: x ** y
+        def f(x, y): return x ** y
         result = df.pipe(f, 2)
         expected = DataFrame({"A": [1, 4, 9]})
         tm.assert_frame_equal(result, expected)
@@ -922,7 +922,7 @@ class TestNDFrame:
 
     def test_pipe_tuple(self):
         df = DataFrame({"A": [1, 2, 3]})
-        f = lambda x, y: y
+        def f(x, y): return y
         result = df.pipe((f, "y"), 0)
         tm.assert_frame_equal(result, df)
 
@@ -931,7 +931,7 @@ class TestNDFrame:
 
     def test_pipe_tuple_error(self):
         df = DataFrame({"A": [1, 2, 3]})
-        f = lambda x, y: y
+        def f(x, y): return y
         with pytest.raises(ValueError):
             df.pipe((f, "y"), x=1, y=0)
 
@@ -970,3 +970,9 @@ class TestNDFrame:
         df = DataFrame([1])
         with tm.assert_produces_warning(FutureWarning):
             df.get_dtype_counts()
+
+    def test_first_index_series_last_day_of_month(self):
+        series = pd.Series(1, index=pd.bdate_range('2010-03-31', periods=100))
+        res = series.first('1M')
+        assert("2010-03-31" in res)
+        assert("2010-04-30" not in res)
