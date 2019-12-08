@@ -38,6 +38,9 @@ cdef:
 cdef inline int int_max(int a, int b): return a if a >= b else b
 cdef inline int int_min(int a, int b): return a if a <= b else b
 
+cdef inline bint is_monotonic_start_end_bounds(ndarray[int64_t, ndim=1] start,
+                                               ndarray[int64_t, ndim=1] end):
+    return is_monotonic(start, False)[0] and is_monotonic(end, False)[0]
 
 # Cython implementations of rolling sum, mean, variance, skewness,
 # other statistical moment functions
@@ -63,7 +66,6 @@ cdef inline int int_min(int a, int b): return a if a <= b else b
 #            Publisher: Englewood Cliffs: Prentice-Hall, 1976
 # Physical description: 366 p.
 #               Series: Prentice-Hall Series in Automatic Computation
-
 
 # ----------------------------------------------------------------------
 # Rolling count
@@ -159,7 +161,7 @@ def roll_sum_variable(ndarray[float64_t] values, ndarray[int64_t] start,
         ndarray[float64_t] output
         bint is_monotonic_bounds
 
-    is_monotonic_bounds = is_monotonic(start, False)[0] and is_monotonic(end, False)[0]
+    is_monotonic_bounds = is_monotonic_start_end_bounds(start, end)
     output = np.empty(N, dtype=float)
 
     with nogil:
@@ -308,7 +310,7 @@ def roll_mean_variable(ndarray[float64_t] values, ndarray[int64_t] start,
         ndarray[float64_t] output
         bint is_monotonic_bounds
 
-    is_monotonic_bounds = is_monotonic(start, False)[0] and is_monotonic(end, False)[0]
+    is_monotonic_bounds = is_monotonic_start_end_bounds(start, end)
     output = np.empty(N, dtype=float)
 
     with nogil:
@@ -475,7 +477,7 @@ def roll_var_variable(ndarray[float64_t] values, ndarray[int64_t] start,
         ndarray[float64_t] output
         bint is_monotonic_bounds
 
-    is_monotonic_bounds = is_monotonic(start, False)[0] and is_monotonic(end, False)[0]
+    is_monotonic_bounds = is_monotonic_start_end_bounds(start, end)
     output = np.empty(N, dtype=float)
 
     with nogil:
@@ -621,7 +623,7 @@ def roll_skew_variable(ndarray[float64_t] values, ndarray[int64_t] start,
         ndarray[float64_t] output
         bint is_monotonic_bounds
 
-    is_monotonic_bounds = is_monotonic(start, False)[0] and is_monotonic(end, False)[0]
+    is_monotonic_bounds = is_monotonic_start_end_bounds(start, end)
     output = np.empty(N, dtype=float)
 
     with nogil:
@@ -774,7 +776,7 @@ def roll_kurt_variable(ndarray[float64_t] values, ndarray[int64_t] start,
         ndarray[float64_t] output
         bint is_monotonic_bounds
 
-    is_monotonic_bounds = is_monotonic(start, False)[0] and is_monotonic(end, False)[0]
+    is_monotonic_bounds = is_monotonic_start_end_bounds(start, end)
     output = np.empty(N, dtype=float)
 
     with nogil:
