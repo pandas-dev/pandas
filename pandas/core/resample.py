@@ -961,7 +961,7 @@ def _maybe_process_deprecations(r, how=None, fill_method=None, limit=None):
 
         # .resample(..., how='sum')
         if isinstance(how, str):
-            method = f"{how}()"
+            method = "{0}()".format(how)
 
             # .resample(..., how=lambda x: ....)
         else:
@@ -972,7 +972,8 @@ def _maybe_process_deprecations(r, how=None, fill_method=None, limit=None):
         if fill_method is None:
             warnings.warn(
                 "how in .resample() is deprecated\n"
-                f"the new syntax is .resample(...).{method}",
+                "the new syntax is "
+                ".resample(...).{method}".format(method=method),
                 FutureWarning,
                 stacklevel=3,
             )
@@ -983,11 +984,13 @@ def _maybe_process_deprecations(r, how=None, fill_method=None, limit=None):
         # show the prior function call
         method = "." + method if how is not None else ""
 
-        args = f"limit={limit}" if limit is not None else ""
+        args = "limit={0}".format(limit) if limit is not None else ""
         warnings.warn(
             "fill_method is deprecated to .resample()\n"
-            f"the new syntax is .resample(...){method}"
-            f".{fill_method}({args})",
+            "the new syntax is .resample(...){method}"
+            ".{fill_method}({args})".format(
+                method=method, fill_method=fill_method, args=args
+            ),
             FutureWarning,
             stacklevel=3,
         )
