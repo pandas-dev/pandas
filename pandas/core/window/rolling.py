@@ -109,7 +109,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
     def is_freq_type(self) -> bool:
         return self.win_type == "freq"
 
-    def validate(self):
+    def validate(self) -> None:
         if self.center is not None and not is_bool(self.center):
             raise ValueError("center must be a boolean")
         if self.min_periods is not None and not is_integer(self.min_periods):
@@ -412,7 +412,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             )
         return window_func
 
-    def _get_cython_func_type(self, func):
+    def _get_cython_func_type(self, func: str) -> Callable:
         """
         Return a variable or fixed cython function type.
 
