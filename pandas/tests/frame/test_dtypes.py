@@ -4,7 +4,7 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.dtypes import CategoricalDtype, DatetimeTZDtype
+from pandas.core.dtypes.dtypes import CategoricalDtype, DatetimeTZDtype, IntervalDtype
 
 import pandas as pd
 from pandas import (
@@ -46,62 +46,32 @@ class TestDataFrameDataTypes:
         assert result["b"].dtype == np.float64
         assert result["c"].dtype == np.float64
 
-    def test_empty_frame_dtypes_ftypes(self):
+    def test_empty_frame_dtypes(self):
         empty_df = pd.DataFrame()
         tm.assert_series_equal(empty_df.dtypes, pd.Series(dtype=np.object))
 
-        # GH 26705 - Assert .ftypes is deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            tm.assert_series_equal(empty_df.ftypes, pd.Series(dtype=np.object))
-
         nocols_df = pd.DataFrame(index=[1, 2, 3])
         tm.assert_series_equal(nocols_df.dtypes, pd.Series(dtype=np.object))
-
-        # GH 26705 - Assert .ftypes is deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            tm.assert_series_equal(nocols_df.ftypes, pd.Series(dtype=np.object))
 
         norows_df = pd.DataFrame(columns=list("abc"))
         tm.assert_series_equal(
             norows_df.dtypes, pd.Series(np.object, index=list("abc"))
         )
 
-        # GH 26705 - Assert .ftypes is deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            tm.assert_series_equal(
-                norows_df.ftypes, pd.Series("object:dense", index=list("abc"))
-            )
-
         norows_int_df = pd.DataFrame(columns=list("abc")).astype(np.int32)
         tm.assert_series_equal(
             norows_int_df.dtypes, pd.Series(np.dtype("int32"), index=list("abc"))
         )
-        # GH 26705 - Assert .ftypes is deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            tm.assert_series_equal(
-                norows_int_df.ftypes, pd.Series("int32:dense", index=list("abc"))
-            )
 
         odict = OrderedDict
         df = pd.DataFrame(odict([("a", 1), ("b", True), ("c", 1.0)]), index=[1, 2, 3])
         ex_dtypes = pd.Series(
             odict([("a", np.int64), ("b", np.bool), ("c", np.float64)])
         )
-        ex_ftypes = pd.Series(
-            odict([("a", "int64:dense"), ("b", "bool:dense"), ("c", "float64:dense")])
-        )
         tm.assert_series_equal(df.dtypes, ex_dtypes)
-
-        # GH 26705 - Assert .ftypes is deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            tm.assert_series_equal(df.ftypes, ex_ftypes)
 
         # same but for empty slice of df
         tm.assert_series_equal(df[:0].dtypes, ex_dtypes)
-
-        # GH 26705 - Assert .ftypes is deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            tm.assert_series_equal(df[:0].ftypes, ex_ftypes)
 
     def test_datetime_with_tz_dtypes(self):
         tzframe = DataFrame(
@@ -474,22 +444,6 @@ class TestDataFrameDataTypes:
             result = df.dtypes
             tm.assert_series_equal(result, Series({0: np.dtype("int64")}))
 
-    def test_ftypes(self, mixed_float_frame):
-        frame = mixed_float_frame
-        expected = Series(
-            dict(
-                A="float32:dense",
-                B="float32:dense",
-                C="float16:dense",
-                D="float64:dense",
-            )
-        ).sort_values()
-
-        # GH 26705 - Assert .ftypes is deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            result = frame.ftypes.sort_values()
-        tm.assert_series_equal(result, expected)
-
     def test_astype_float(self, float_frame):
         casted = float_frame.astype(int)
         expected = DataFrame(
@@ -702,8 +656,8 @@ class TestDataFrameDataTypes:
         # GH 16717
         # if dtypes provided is empty, the resulting DataFrame
         # should be the same as the original DataFrame
-        dt7 = dtype_class({})
-        result = df.astype(dt7)
+        dt7 = dtype_class({}) if dtype_class is dict else dtype_class({}, dtype=object)
+        equiv = df.astype(dt7)
         tm.assert_frame_equal(df, equiv)
         tm.assert_frame_equal(df, original)
 
@@ -745,14 +699,7 @@ class TestDataFrameDataTypes:
         expected = DataFrame({k: Categorical(d[k], dtype=dtype) for k in d})
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "cls",
-        [
-            pd.api.types.CategoricalDtype,
-            pd.api.types.DatetimeTZDtype,
-            pd.api.types.IntervalDtype,
-        ],
-    )
+    @pytest.mark.parametrize("cls", [CategoricalDtype, DatetimeTZDtype, IntervalDtype])
     def test_astype_categoricaldtype_class_raises(self, cls):
         df = DataFrame({"A": ["a", "a", "b", "c"]})
         xpr = "Expected an instance of {}".format(cls.__name__)

@@ -3,7 +3,6 @@ Internal module for formatting output data in csv, html,
 and latex files. This module also applies to display formatting.
 """
 
-import codecs
 from contextlib import contextmanager
 from datetime import tzinfo
 import decimal
@@ -35,6 +34,7 @@ import numpy as np
 from pandas._config.config import get_option, set_option
 
 from pandas._libs import lib
+from pandas._libs.missing import NA
 from pandas._libs.tslib import format_array_from_datetime
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas._libs.tslibs.nattype import NaTType
@@ -352,7 +352,7 @@ class SeriesFormatter:
 
         if len(series) == 0:
             return "{name}([], {footer})".format(
-                name=self.series.__class__.__name__, footer=footer
+                name=type(self.series).__name__, footer=footer
             )
 
         fmt_index, have_header = self._get_formatted_index()
@@ -494,7 +494,11 @@ class TableFormatter:
         if hasattr(buf, "write"):
             yield buf
         elif isinstance(buf, str):
-            with codecs.open(buf, "w", encoding=encoding) as f:
+            with open(buf, "w", encoding=encoding, newline="") as f:
+                # GH#30034 open instead of codecs.open prevents a file leak
+                #  if we have an invalid encoding argument.
+                # newline="" is needed to roundtrip correctly on
+                #  windows test_to_latex_filename
                 yield f
         else:
             raise TypeError("buf is not a file name and it has no write method")
@@ -1223,6 +1227,8 @@ class GenericArrayFormatter:
                     # determine na_rep if x is None or NaT-like
                     if x is None:
                         return "None"
+                    elif x is NA:
+                        return "NA"
                     elif x is NaT or np.isnat(x):
                         return "NaT"
                 except (TypeError, ValueError):

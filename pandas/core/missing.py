@@ -277,7 +277,11 @@ def interpolate_1d(
                 inds = lib.maybe_convert_objects(inds)
         else:
             inds = xvalues
-        result[invalid] = np.interp(inds[invalid], inds[valid], yvalues[valid])
+        # np.interp requires sorted X values, #21037
+        indexer = np.argsort(inds[valid])
+        result[invalid] = np.interp(
+            inds[invalid], inds[valid][indexer], yvalues[valid][indexer]
+        )
         result[preserve_nans] = np.nan
         return result
 
@@ -339,7 +343,7 @@ def _interpolate_scipy_wrapper(
     }
 
     if getattr(x, "is_all_dates", False):
-        # GH 5975, scipy.interp1d can't hande datetime64s
+        # GH 5975, scipy.interp1d can't handle datetime64s
         x, new_x = x._values.astype("i8"), new_x.astype("i8")
 
     if method == "pchip":

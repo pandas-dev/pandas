@@ -319,8 +319,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                 if dtype == "category":
                     dtype = CategoricalDtype(categories, ordered)
                 else:
-                    msg = "Unknown dtype {dtype!r}"
-                    raise ValueError(msg.format(dtype=dtype))
+                    raise ValueError(f"Unknown dtype {repr(dtype)}")
             elif categories is not None or ordered is not None:
                 raise ValueError(
                     "Cannot specify `categories` or `ordered` together with `dtype`."
@@ -420,7 +419,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         if self.categories is None:
             data = "None, "
         else:
-            data = self.categories._format_data(name=self.__class__.__name__)
+            data = self.categories._format_data(name=type(self).__name__)
         return tpl.format(data=data, ordered=self._ordered)
 
     @staticmethod
@@ -512,8 +511,9 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         from pandas.core.indexes.base import Index
 
         if not fastpath and not is_list_like(categories):
-            msg = "Parameter 'categories' must be list-like, was {!r}"
-            raise TypeError(msg.format(categories))
+            raise TypeError(
+                f"Parameter 'categories' must be list-like, was {repr(categories)}"
+            )
         elif not isinstance(categories, ABCIndexClass):
             categories = Index(categories, tupleize_cols=False)
 
@@ -549,11 +549,10 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             # dtype='category' should not change anything
             return self
         elif not self.is_dtype(dtype):
-            msg = (
-                "a CategoricalDtype must be passed to perform an update, "
-                "got {dtype!r}"
-            ).format(dtype=dtype)
-            raise ValueError(msg)
+            raise ValueError(
+                f"a CategoricalDtype must be passed to perform an update, "
+                f"got {repr(dtype)}"
+            )
         else:
             # from here on, dtype is a CategoricalDtype
             dtype = cast(CategoricalDtype, dtype)
@@ -574,8 +573,8 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                     "Constructing a CategoricalDtype without specifying "
                     "`ordered` will default to `ordered=False` in a future "
                     "version, which will cause the resulting categorical's "
-                    "`ordered` attribute to change to False; `ordered=True`"
-                    " must be explicitly passed in order to be retained"
+                    "`ordered` attribute to change to False; `ordered=True` "
+                    "must be explicitly passed in order to be retained"
                 )
                 warnings.warn(msg, FutureWarning, stacklevel=3)
 
@@ -676,7 +675,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
                     "to DatetimeTZDtype is deprecated. Use "
                     "'DatetimeTZDtype.construct_from_string()' instead."
                 )
-                warnings.warn(msg.format(tz=tz), FutureWarning, stacklevel=2)
+                raise ValueError(msg)
             else:
                 raise ValueError("DatetimeTZDtype only supports ns units")
 
@@ -765,7 +764,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         # TODO: update this.
         return hash(str(self))
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         if isinstance(other, str):
             return other == self.name
 
@@ -904,7 +903,7 @@ class PeriodDtype(PandasExtensionDtype):
         # make myself hashable
         return hash(str(self))
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         if isinstance(other, str):
             return other == self.name or other == self.name.title()
 
@@ -1077,7 +1076,7 @@ class IntervalDtype(PandasExtensionDtype):
         # make myself hashable
         return hash(str(self))
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         if isinstance(other, str):
             return other.lower() in (self.name.lower(), str(self).lower())
         elif not isinstance(other, IntervalDtype):

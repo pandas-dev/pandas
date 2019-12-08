@@ -94,7 +94,7 @@ Use efficient datatypes
 
 The default pandas data types are not the most memory efficient. This is
 especially true for text data columns with relatively few unique values (commonly
-referred to as "low-cardinality" data). By using more efficient data types you
+referred to as "low-cardinality" data). By using more efficient data types, you
 can store larger datasets in memory.
 
 .. ipython:: python
@@ -358,6 +358,7 @@ results will fit in memory, so we can safely call ``compute`` without running
 out of memory. At that point it's just a regular pandas object.
 
 .. ipython:: python
+   :okwarning:
 
    @savefig dask_resample.png
    ddf[['x', 'y']].resample("1D").mean().cumsum().compute().plot()

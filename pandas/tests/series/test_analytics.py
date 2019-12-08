@@ -554,6 +554,10 @@ class TestSeriesAnalytics:
         ts.iloc[[0, 3, 5]] = np.nan
         tm.assert_series_equal(ts.count(level=1), right - 1)
 
+        # GH29478
+        with pd.option_context("use_inf_as_na", True):
+            assert pd.Series([pd.Timestamp("1990/1/1")]).count() == 1
+
     def test_dot(self):
         a = Series(np.random.randn(4), index=["p", "q", "r", "s"])
         b = DataFrame(
@@ -839,7 +843,7 @@ class TestSeriesAnalytics:
         result = s.isin(s[0:2])
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("empty", [[], Series(), np.array([])])
+    @pytest.mark.parametrize("empty", [[], Series(dtype=object), np.array([])])
     def test_isin_empty(self, empty):
         # see gh-16991
         s = Series(["a", "b"])
@@ -1112,7 +1116,7 @@ class TestSeriesAnalytics:
         tm.assert_frame_equal(ts.unstack(level=0), right)
 
     def test_value_counts_datetime(self):
-        # most dtypes are tested in test_base.py
+        # most dtypes are tested in tests/base
         values = [
             pd.Timestamp("2011-01-01 09:00"),
             pd.Timestamp("2011-01-01 10:00"),
@@ -1188,7 +1192,7 @@ class TestSeriesAnalytics:
         tm.assert_series_equal(idx.value_counts(normalize=True), exp)
 
     def test_value_counts_categorical_ordered(self):
-        # most dtypes are tested in test_base.py
+        # most dtypes are tested in tests/base
         values = pd.Categorical([1, 2, 3, 1, 1, 3], ordered=True)
 
         exp_idx = pd.CategoricalIndex([1, 3, 2], categories=[1, 2, 3], ordered=True)
@@ -1271,15 +1275,6 @@ class TestSeriesAnalytics:
         )
         with pytest.raises(ValueError, match=msg):
             np.sum(s, keepdims=True)
-
-    def test_compound_deprecated(self):
-        s = Series([0.1, 0.2, 0.3, 0.4])
-        with tm.assert_produces_warning(FutureWarning):
-            s.compound()
-
-        df = pd.DataFrame({"s": s})
-        with tm.assert_produces_warning(FutureWarning):
-            df.compound()
 
 
 main_dtypes = [
@@ -1511,7 +1506,7 @@ class TestCategoricalSeriesAnalytics:
         tm.assert_series_equal(res, exp)
 
         # check object dtype handles the Series.name as the same
-        # (tested in test_base.py)
+        # (tested in tests/base)
         s = Series(["a", "b", "c", "c", "c", "b"], name="xxx")
         res = s.value_counts()
         exp = Series([3, 2, 1], name="xxx", index=["c", "b", "a"])

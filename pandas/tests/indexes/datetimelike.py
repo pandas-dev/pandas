@@ -38,7 +38,7 @@ class DatetimeLike(Base):
         idx.name = "foo"
         assert not "length={}".format(len(idx)) in str(idx)
         assert "'foo'" in str(idx)
-        assert idx.__class__.__name__ in str(idx)
+        assert type(idx).__name__ in str(idx)
 
         if hasattr(idx, "tz"):
             if idx.tz is not None:
@@ -72,7 +72,7 @@ class DatetimeLike(Base):
         "mapper",
         [
             lambda values, index: {i: e for e, i in zip(values, index)},
-            lambda values, index: pd.Series(values, index),
+            lambda values, index: pd.Series(values, index, dtype=object),
         ],
     )
     def test_map_dictlike(self, mapper):

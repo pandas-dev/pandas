@@ -617,8 +617,7 @@ class TestSparseArray:
         res = arr.to_dense()
         tm.assert_numpy_array_equal(res, vals)
 
-        with tm.assert_produces_warning(FutureWarning):
-            res2 = arr.get_values()
+        res2 = arr._internal_get_values()
 
         tm.assert_numpy_array_equal(res2, vals)
 
@@ -1007,7 +1006,7 @@ class TestSparseArrayAnalytics:
                 np.cumsum(SparseArray(data), out=out)
         else:
             axis = 1  # SparseArray currently 1-D, so only axis = 0 is valid.
-            msg = "axis\\(={axis}\\) out of bounds".format(axis=axis)
+            msg = re.escape(f"axis(={axis}) out of bounds")
             with pytest.raises(ValueError, match=msg):
                 SparseArray(data).cumsum(axis=axis)
 
@@ -1244,12 +1243,3 @@ def test_map_missing():
 
     result = arr.map({0: 10, 1: 11})
     tm.assert_sp_array_equal(result, expected)
-
-
-def test_deprecated_values():
-    arr = SparseArray([0, 1, 2])
-
-    with tm.assert_produces_warning(FutureWarning):
-        result = arr.values
-
-    tm.assert_numpy_array_equal(result, arr.to_dense())

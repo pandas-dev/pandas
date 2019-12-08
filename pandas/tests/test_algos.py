@@ -767,7 +767,7 @@ class TestIsin:
         # with similar behavior, then we at least should
         # fall back to usual python's behavior: "a in [a] == True"
         class LikeNan:
-            def __eq__(self, other):
+            def __eq__(self, other) -> bool:
                 return False
 
             def __hash__(self):
@@ -812,7 +812,7 @@ class TestIsin:
         result = algos.isin(comps, values)
         tm.assert_numpy_array_equal(expected, result)
 
-    @pytest.mark.parametrize("empty", [[], Series(), np.array([])])
+    @pytest.mark.parametrize("empty", [[], Series(dtype=object), np.array([])])
     def test_empty(self, empty):
         # see gh-16991
         vals = Index(["a", "b"])
