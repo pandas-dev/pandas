@@ -1246,9 +1246,15 @@ class _Rolling_and_Expanding(_Rolling):
           objects instead.
           If you are just applying a NumPy reduction function this will
           achieve much better performance.
-
-    *args, **kwargs
-        Arguments and keyword arguments to be passed into func.
+    args : tuple, default None
+        Positional arguments to be passed into func
+    kwargs : dict, default None
+        Keyword arguments to be passed into func
+    engine : str, default 'cython'
+        Execution engine for the applied function.
+        * ``'cython'`` : Runs rolling apply through C-extensions from cython.
+        * ``'numba'`` : Runn rolling apply through JIT compiled code from numba.
+          Only available when ``raw`` is set to ``True``.
 
     Returns
     -------
@@ -1262,15 +1268,23 @@ class _Rolling_and_Expanding(_Rolling):
     """
     )
 
-    def apply(self, func, raw=False, args=(), kwargs={}):
+    def apply(self, func, raw=False, args=None, kwargs=None, engine='cython'):
         from pandas import Series
 
         kwargs.pop("_level", None)
         kwargs.pop("floor", None)
         window = self._get_window()
         offset = _offset(window, self.center)
+        if args is None:
+            args = ()
+        if kwargs is None:
+            kwargs = {}
+        if engine not in {'cython', 'numba'}:
+            raise ValueError("engine must be either 'numba' or 'cython'")
         if not is_bool(raw):
             raise ValueError("raw parameter must be `True` or `False`")
+        if raw is False and engine == 'numba':
+            raise ValueError("raw must be `True` when using the numba engine")
 
         window_func = partial(
             self._get_cython_func_type("roll_generic"),
