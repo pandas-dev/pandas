@@ -2262,16 +2262,7 @@ class DataCol(IndexCol):
         assert data is not None
         assert self.dtype is None
 
-        if is_categorical_dtype(data.dtype):
-            data = data.codes
-
-        # For datetime64tz we need to drop the TZ in tests TODO: why?
-        dtype_name = data.dtype.name.split("[")[0]
-
-        if data.dtype.kind in ["m", "M"]:
-            data = np.asarray(data.view("i8"))
-            # TODO: we used to reshape for the dt64tz case, but no longer
-            #  doing that doesnt seem to break anything.  why?
+        data, dtype_name = _get_data_and_dtype_name(data)
 
         self.data = data
         self.dtype = dtype_name
@@ -4623,9 +4614,12 @@ def _convert_index(name: str, index: Index, encoding=None, errors="strict"):
     assert isinstance(name, str)
 
     index_name = index.name
+    converted, dtype_name = _get_data_and_dtype_name(index)
+    kind = _dtype_to_kind(dtype_name)
 
     if isinstance(index, DatetimeIndex):
         converted = index.asi8
+        assert kind == "datetime64", kind
         return IndexCol(
             name,
             converted,
@@ -4637,6 +4631,7 @@ def _convert_index(name: str, index: Index, encoding=None, errors="strict"):
         )
     elif isinstance(index, TimedeltaIndex):
         converted = index.asi8
+        assert kind == "timedelta64", kind
         return IndexCol(
             name,
             converted,
@@ -4648,6 +4643,7 @@ def _convert_index(name: str, index: Index, encoding=None, errors="strict"):
     elif isinstance(index, (Int64Index, PeriodIndex)):
         atom = _tables().Int64Col()
         # avoid to store ndarray of Period objects
+        assert kind == "integer", kind
         return IndexCol(
             name,
             index._ndarray_values,
@@ -4687,6 +4683,7 @@ def _convert_index(name: str, index: Index, encoding=None, errors="strict"):
 
     elif inferred_type == "integer":
         # take a guess for now, hope the values fit
+        assert kind == "integer", kind
         atom = _tables().Int64Col()
         return IndexCol(
             name,
@@ -4696,6 +4693,7 @@ def _convert_index(name: str, index: Index, encoding=None, errors="strict"):
             index_name=index_name,
         )
     elif inferred_type == "floating":
+        assert kind == "float", kind
         atom = _tables().Float64Col()
         return IndexCol(
             name,
@@ -4705,6 +4703,7 @@ def _convert_index(name: str, index: Index, encoding=None, errors="strict"):
             index_name=index_name,
         )
     else:
+        assert kind == "object", kind
         atom = _tables().ObjectAtom()
         return IndexCol(
             name, np.asarray(values, dtype="O"), "object", atom, index_name=index_name,
@@ -4936,19 +4935,41 @@ def _dtype_to_kind(dtype_str: str) -> str:
         kind = "complex"
     elif dtype_str.startswith("int") or dtype_str.startswith("uint"):
         kind = "integer"
-    elif dtype_str.startswith("date"):
-        # in tests this is always "datetime64"
-        kind = "datetime"
+    elif dtype_str.startswith("datetime64"):
+        kind = "datetime64"
     elif dtype_str.startswith("timedelta"):
-        kind = "timedelta"
+        kind = "timedelta64"
     elif dtype_str.startswith("bool"):
         kind = "bool"
     elif dtype_str.startswith("category"):
         kind = "category"
+    elif dtype_str.startswith("period"):
+        # We store the `freq` attr so we can restore from integers
+        kind = "integer"
+    elif dtype_str == "object":
+        kind = "object"
     else:
         raise ValueError(f"cannot interpret dtype of [{dtype_str}]")
 
     return kind
+
+
+def _get_data_and_dtype_name(data: Union[np.ndarray, ABCExtensionArray]):
+    """
+    Convert the passed data into a storable form and a dtype string.
+    """
+    if is_categorical_dtype(data.dtype):
+        data = data.codes
+
+    # For datetime64tz we need to drop the TZ in tests TODO: why?
+    dtype_name = data.dtype.name.split("[")[0]
+
+    if data.dtype.kind in ["m", "M"]:
+        data = np.asarray(data.view("i8"))
+        # TODO: we used to reshape for the dt64tz case, but no longer
+        #  doing that doesnt seem to break anything.  why?
+
+    return data, dtype_name
 
 
 class Selection:
