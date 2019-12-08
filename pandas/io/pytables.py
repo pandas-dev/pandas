@@ -2222,10 +2222,17 @@ class DataCol(IndexCol):
     _info_fields = ["tz", "ordered"]
 
     def __init__(
-        self, name: str, values=None, kind=None, typ=None, cname=None, pos=None,
+        self,
+        name: str,
+        values=None,
+        kind=None,
+        typ=None,
+        cname=None,
+        pos=None,
+        tz=None,
     ):
         super().__init__(
-            name=name, values=values, kind=kind, typ=typ, pos=pos, cname=cname
+            name=name, values=values, kind=kind, typ=typ, pos=pos, cname=cname, tz=tz
         )
         self.dtype = None
         self.data = None
@@ -2288,8 +2295,6 @@ class DataCol(IndexCol):
         # short-cut certain block types
         if block.is_categorical:
             self.set_atom_categorical(block)
-        elif block.is_datetimetz:
-            self.set_atom_datetime64tz(block)
 
     @classmethod
     def _get_atom(cls, values: Union[np.ndarray, ABCExtensionArray]) -> "Col":
@@ -2362,11 +2367,6 @@ class DataCol(IndexCol):
     @classmethod
     def get_atom_datetime64(cls, shape):
         return _tables().Int64Col(shape=shape[0])
-
-    def set_atom_datetime64tz(self, block):
-
-        # store a converted timezone
-        self.tz = _get_tz(block.values.tz)
 
     @classmethod
     def get_atom_timedelta64(cls, shape):
@@ -3872,6 +3872,7 @@ class Table(Fixed):
 
             typ = klass._get_atom(data_converted)
             kind = _dtype_to_kind(data_converted.dtype.name)
+            tz = _get_tz(data_converted.tz) if hasattr(data_converted, "tz") else None
 
             col = klass(
                 name=adj_name,
@@ -3880,6 +3881,7 @@ class Table(Fixed):
                 typ=typ,
                 pos=j,
                 kind=kind,
+                tz=tz,
             )
             col.set_atom(block=b)
             col.set_data(data_converted)
