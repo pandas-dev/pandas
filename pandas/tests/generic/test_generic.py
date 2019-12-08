@@ -971,6 +971,7 @@ class TestNDFrame:
         with tm.assert_produces_warning(FutureWarning):
             df.get_dtype_counts()
 
+    # test case where offset and index[0] overlap
     def test_first_index_series_last_day_of_month(self):
         series = pd.Series(1, index=pd.bdate_range('2010-03-31', periods=100))
         res = series.first('1M')

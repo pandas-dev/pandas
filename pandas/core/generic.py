@@ -8550,6 +8550,8 @@ class NDFrame(PandasObject, SelectionMixin):
             return self
 
         offset = to_offset(offset)
+        
+        # Check if offset and index[0] overlap
         if offset.onOffset(self.index[0]):
             return self.loc[:self.index[0]]
 
