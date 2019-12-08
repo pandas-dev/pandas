@@ -1,4 +1,4 @@
-from typing import Any, Callable, List
+from typing import Any, Callable, List, Type
 
 import numpy as np
 import pytest
@@ -51,7 +51,7 @@ def check_ops_properties_invalid(obj: Any, props: List[str]) -> None:
 
         # an object that is datetimelike will raise a TypeError,
         # otherwise an AttributeError
-        err = AttributeError
+        err: Type[Exception] = AttributeError
         if issubclass(type(obj), DatetimeIndexOpsMixin):
             err = TypeError
 
