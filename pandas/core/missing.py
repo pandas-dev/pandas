@@ -207,8 +207,8 @@ def interpolate_1d(
     limit_direction = limit_direction.lower()
     if limit_direction not in valid_limit_directions:
         msg = (
-            f"Invalid limit_direction: expecting one of {valid_limit_directions!r},"
-            " got {limit_direction!r}."
+            f"Invalid limit_direction: expecting one of {repr(valid_limit_directions)},"
+            f" got {repr(limit_direction)}."
         )
         raise ValueError(msg)
 
