@@ -53,7 +53,6 @@ Conversion
    Series.to_period
    Series.to_timestamp
    Series.to_list
-   Series.get_values
    Series.__array__
 
 Indexing, iteration
@@ -175,7 +174,6 @@ Computations / descriptive stats
    Series.is_monotonic_increasing
    Series.is_monotonic_decreasing
    Series.value_counts
-   Series.compound
 
 Reindexing / selection / label manipulation
 -------------------------------------------

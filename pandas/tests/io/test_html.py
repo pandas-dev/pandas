@@ -396,8 +396,7 @@ class TestReadHtml:
         """
         Make sure that read_html ignores empty tables.
         """
-        result = self.read_html(
-            """
+        html = """
             <table>
                 <thead>
                     <tr>
@@ -417,8 +416,7 @@ class TestReadHtml:
                 </tbody>
             </table>
         """
-        )
-
+        result = self.read_html(html)
         assert len(result) == 1
 
     def test_multiple_tbody(self):

@@ -114,10 +114,7 @@ def _generate_range_overflow_safe(
     assert side in ["start", "end"]
 
     i64max = np.uint64(np.iinfo(np.int64).max)
-    msg = (
-        "Cannot generate range with {side}={endpoint} and "
-        "periods={periods}".format(side=side, endpoint=endpoint, periods=periods)
-    )
+    msg = f"Cannot generate range with {side}={endpoint} and periods={periods}"
 
     with np.errstate(over="raise"):
         # if periods * strides cannot be multiplied within the *uint64* bounds,
@@ -190,7 +187,5 @@ def _generate_range_overflow_safe_signed(
                 return result
 
     raise OutOfBoundsDatetime(
-        "Cannot generate range with "
-        "{side}={endpoint} and "
-        "periods={periods}".format(side=side, endpoint=endpoint, periods=periods)
+        f"Cannot generate range with {side}={endpoint} and periods={periods}"
     )

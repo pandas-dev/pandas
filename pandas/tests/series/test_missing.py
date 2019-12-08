@@ -710,7 +710,7 @@ class TestSeriesMissingData:
         tm.assert_series_equal(result, expected)
         result = s1.fillna({})
         tm.assert_series_equal(result, s1)
-        result = s1.fillna(Series(()))
+        result = s1.fillna(Series((), dtype=object))
         tm.assert_series_equal(result, s1)
         result = s2.fillna(s1)
         tm.assert_series_equal(result, s2)
@@ -834,7 +834,8 @@ class TestSeriesMissingData:
         #     tm.assert_series_equal(selector, expected)
 
     def test_dropna_empty(self):
-        s = Series([])
+        s = Series([], dtype=object)
+
         assert len(s.dropna()) == 0
         s.dropna(inplace=True)
         assert len(s) == 0
@@ -1163,7 +1164,7 @@ class TestSeriesInterpolateData:
         s = Series([np.nan, np.nan])
         tm.assert_series_equal(s.interpolate(**kwargs), s)
 
-        s = Series([]).interpolate()
+        s = Series([], dtype=object).interpolate()
         tm.assert_series_equal(s.interpolate(**kwargs), s)
 
     def test_interpolate_index_values(self):

@@ -129,9 +129,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
             values = values._ndarray
         if not isinstance(values, np.ndarray):
             raise ValueError(
-                "'values' must be a NumPy array, not {typ}".format(
-                    typ=type(values).__name__
-                )
+                f"'values' must be a NumPy array, not {type(values).__name__}"
             )
 
         if values.ndim != 1:
@@ -266,8 +264,8 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         if is_array_like(value):
             if len(value) != len(self):
                 raise ValueError(
-                    "Length of 'value' does not match. Got ({}) "
-                    " expected {}".format(len(value), len(self))
+                    f"Length of 'value' does not match. Got ({len(value)}) "
+                    f" expected {len(self)}"
                 )
             value = value[mask]
 
@@ -313,8 +311,8 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         if meth:
             return meth(skipna=skipna, **kwargs)
         else:
-            msg = "'{}' does not implement reduction '{}'"
-            raise TypeError(msg.format(type(self).__name__, name))
+            msg = f"'{type(self).__name__}' does not implement reduction '{name}'"
+            raise TypeError(msg)
 
     def any(self, axis=None, out=None, keepdims=False, skipna=True):
         nv.validate_any((), dict(out=out, keepdims=keepdims))
@@ -461,9 +459,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
 
             return cls(result)
 
-        return compat.set_function_name(
-            arithmetic_method, "__{}__".format(op.__name__), cls
-        )
+        return compat.set_function_name(arithmetic_method, f"__{op.__name__}__", cls)
 
     _create_comparison_method = _create_arithmetic_method
 
