@@ -103,7 +103,7 @@ def _get_skiprows(skiprows):
     elif skiprows is None:
         return 0
     raise TypeError(
-        "%r is not a valid type for skipping rows" % type(skiprows).__name__
+        f"'{type(skiprows).__name__}' is not a valid type for skipping rows"
     )
 
 
@@ -133,7 +133,7 @@ def _read(obj):
         except (TypeError, ValueError):
             pass
     else:
-        raise TypeError("Cannot read object of type %r" % type(obj).__name__)
+        raise TypeError(f"Cannot read object of type '{type(obj).__name__}'")
     return text
 
 

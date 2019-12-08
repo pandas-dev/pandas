@@ -119,9 +119,9 @@ header : int, list of int, default 'infer'
     ``skip_blank_lines=True``, so ``header=0`` denotes the first line of
     data rather than the first line of the file.
 names : array-like, optional
-    List of column names to use. If file contains no header row, then you
-    should explicitly pass ``header=None``. Duplicates in this list are not
-    allowed.
+    List of column names to use. If the file contains a header row,
+    then you should explicitly pass ``header=0`` to override the column names.
+    Duplicates in this list are not allowed.
 index_col : int, str, sequence of int / str, or False, default ``None``
   Column(s) to use as the row labels of the ``DataFrame``, either given as
   string name or column index. If a sequence of int / str is given, a
