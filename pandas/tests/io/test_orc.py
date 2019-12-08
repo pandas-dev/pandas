@@ -5,15 +5,12 @@ import os
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_windows
-
 import pandas as pd
 from pandas import read_orc
 import pandas.util.testing as tm
 
 pytest.importorskip("pyarrow", minversion="0.13.0")
-
-pytestmark = pytest.mark.skipif(is_platform_windows(), "skipping on windows")
+pytest.importorskip("pyarrow.orc")
 
 pytestmark = pytest.mark.filterwarnings(
     "ignore:RangeIndex.* is deprecated:DeprecationWarning"
