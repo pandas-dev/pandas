@@ -8550,6 +8550,9 @@ class NDFrame(PandasObject, SelectionMixin):
             return self
 
         offset = to_offset(offset)
+        if offset.onOffset(self.index[0]):
+            return self.loc[:self.index[0]]
+
         end_date = end = self.index[0] + offset
 
         # Tick-like, e.g. 3 weeks
