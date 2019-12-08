@@ -205,6 +205,14 @@ $1$,$2$
         assert df.set_index("a").to_csv(na_rep="_") == expected
         assert df.set_index(["a", "b"]).to_csv(na_rep="_") == expected
 
+        # GH 29975
+        # Make sure full na_rep shows up when a dtype is provided
+        csv = pd.Series(["a", pd.NA, "c"]).to_csv(na_rep="ZZZZZ")
+        assert ",0\n0,a\n1,ZZZZZ\n2,c\n" == csv
+
+        csv = pd.Series(["a", pd.NA, "c"], dtype="string").to_csv(na_rep="ZZZZZ")
+        assert ",0\n0,a\n1,ZZZZZ\n2,c\n" == csv
+
     def test_to_csv_date_format(self):
         # GH 10209
         df_sec = DataFrame({"A": pd.date_range("20130101", periods=5, freq="s")})

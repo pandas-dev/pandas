@@ -1773,8 +1773,8 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         mask = isna(values)
 
         try:
-            values = values.astype(str)
             values[mask] = na_rep
+            values = values.astype(str)
         except Exception:
             # eg SparseArray does not support setitem, needs to be converted to ndarray
             return super().to_native_types(slicer, na_rep, quoting, **kwargs)
