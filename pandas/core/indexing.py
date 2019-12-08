@@ -669,9 +669,9 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             Indexer used to get the locations that will be set to `ser`.
         ser : pd.Series
             Values to assign to the locations specified by `indexer`.
-        multiindex_indexer : bool, default False, optional
-            `multiindex_indexer` should be set to True if `indexer`, was
-            from a `pd.MultiIndex`, in order to avoid unnecessary broadcasting.
+        multiindex_indexer : boolean, optional
+            Defaults to False. Should be set to True if `indexer` was from
+            a `pd.MultiIndex`, to avoid unnecessary broadcasting.
 
         Returns
         -------
