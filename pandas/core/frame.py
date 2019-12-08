@@ -2375,7 +2375,7 @@ class DataFrame(NDFrame):
                 _verbose_repr()
 
         counts = self._data.get_dtype_counts()
-        dtypes = [f"{k[0]}({kk[1]:d})" for k in sorted(counts.items())]
+        dtypes = [f"{k[0]}({k[1]:d})" for k in sorted(counts.items())]
         lines.append(f"dtypes: {', '.join(dtypes)}")
 
         if memory_usage is None:

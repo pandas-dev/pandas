@@ -60,7 +60,10 @@ class disallow:
         def _f(*args, **kwargs):
             obj_iter = itertools.chain(args, kwargs.values())
             if any(self.check(obj) for obj in obj_iter):
-                msg = f"reduction operation {f.__name__.replace('nan', '')!r} not allowed for this dtype"
+                msg = (
+                    f"reduction operation {f.__name__.replace('nan', '')!r}"
+                    " not allowed for this dtype"
+                )
                 raise TypeError(msg)
             try:
                 with np.errstate(invalid="ignore"):

@@ -206,7 +206,10 @@ def interpolate_1d(
     valid_limit_directions = ["forward", "backward", "both"]
     limit_direction = limit_direction.lower()
     if limit_direction not in valid_limit_directions:
-        msg = f"Invalid limit_direction: expecting one of {valid_limit_directions!r}, got {limit_direction!r}."
+        msg = (
+            f"Invalid limit_direction: expecting one of {valid_limit_directions!r},"
+            " got {limit_direction!r}."
+        )
         raise ValueError(msg)
 
     if limit_area is not None:
