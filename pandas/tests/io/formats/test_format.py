@@ -1017,7 +1017,7 @@ class TestDataFrameFormatting:
     def test_to_string_buffer_all_unicode(self):
         buf = StringIO()
 
-        empty = DataFrame({"c/\u03c3": Series()})
+        empty = DataFrame({"c/\u03c3": Series(dtype=object)})
         nonempty = DataFrame({"c/\u03c3": Series([1, 2, 3])})
 
         print(empty, file=buf)
@@ -2765,7 +2765,7 @@ class TestSeriesFormatting:
         assert res == exp
 
     def test_to_string_na_rep(self):
-        s = pd.Series(index=range(100))
+        s = pd.Series(index=range(100), dtype=np.float64)
         res = s.to_string(na_rep="foo", max_rows=2)
         exp = "0    foo\n      ..\n99   foo"
         assert res == exp

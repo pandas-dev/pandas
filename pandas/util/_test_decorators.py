@@ -24,6 +24,7 @@ def test_foo():
 For more information, refer to the ``pytest`` documentation on ``skipif``.
 """
 from distutils.version import LooseVersion
+from functools import wraps
 import locale
 from typing import Callable, Optional
 
@@ -230,3 +231,24 @@ def parametrize_fixture_doc(*args):
         return fixture
 
     return documented_fixture
+
+
+def check_file_leaks(func):
+    """
+    Decorate a test function tot check that we are not leaking file descriptors.
+    """
+    psutil = safe_import("psutil")
+    if not psutil:
+        return func
+
+    @wraps(func)
+    def new_func(*args, **kwargs):
+        proc = psutil.Process()
+        flist = proc.open_files()
+
+        func(*args, **kwargs)
+
+        flist2 = proc.open_files()
+        assert flist2 == flist
+
+    return new_func

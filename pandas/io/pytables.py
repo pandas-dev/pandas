@@ -34,10 +34,12 @@ from pandas.util._decorators import cache_readonly
 from pandas.core.dtypes.common import (
     ensure_object,
     is_categorical_dtype,
+    is_complex_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_extension_array_dtype,
     is_list_like,
+    is_string_dtype,
     is_timedelta64_dtype,
 )
 from pandas.core.dtypes.generic import ABCExtensionArray
@@ -65,7 +67,7 @@ from pandas.io.common import _stringify_path
 from pandas.io.formats.printing import adjoin, pprint_thing
 
 if TYPE_CHECKING:
-    from tables import File, Node  # noqa:F401
+    from tables import File, Node, Col  # noqa:F401
 
 
 # versioning attribute
@@ -1092,6 +1094,9 @@ class HDFStore:
         except KeyError:
             # the key is not a valid store, re-raising KeyError
             raise
+        except AssertionError:
+            # surface any assertion errors for e.g. debugging
+            raise
         except Exception:
             # In tests we get here with ClosedFileError, TypeError, and
             #  _table_mod.NoSuchNodeError.  TODO: Catch only these?
@@ -1519,6 +1524,9 @@ class HDFStore:
                         if s is not None:
                             keys.append(pprint_thing(s.pathname or k))
                             values.append(pprint_thing(s or "invalid_HDFStore node"))
+                    except AssertionError:
+                        # surface any assertion errors for e.g. debugging
+                        raise
                     except Exception as detail:
                         keys.append(k)
                         dstr = pprint_thing(detail)
@@ -1680,7 +1688,7 @@ class HDFStore:
             self._handle.remove_node(group, recursive=True)
             group = None
 
-        # we don't want to store a table node at all if are object is 0-len
+        # we don't want to store a table node at all if our object is 0-len
         # as there are not dtypes
         if getattr(value, "empty", None) and (format == "table" or append):
             return
@@ -1882,7 +1890,6 @@ class IndexCol:
         kind=None,
         typ=None,
         cname: Optional[str] = None,
-        itemsize=None,
         axis=None,
         pos=None,
         freq=None,
@@ -1896,7 +1903,6 @@ class IndexCol:
         self.values = values
         self.kind = kind
         self.typ = typ
-        self.itemsize = itemsize
         self.name = name
         self.cname = cname or name
         self.axis = axis
@@ -1915,6 +1921,11 @@ class IndexCol:
         #  constructor annotations.
         assert isinstance(self.name, str)
         assert isinstance(self.cname, str)
+
+    @property
+    def itemsize(self) -> int:
+        # Assumes self.typ has already been initialized
+        return self.typ.itemsize
 
     @property
     def kind_attr(self) -> str:
@@ -2211,26 +2222,12 @@ class DataCol(IndexCol):
     _info_fields = ["tz", "ordered"]
 
     @classmethod
-    def create_for_block(
-        cls, i: int, name=None, version=None, pos: Optional[int] = None
-    ):
+    def create_for_block(cls, name: str, version, pos: int):
         """ return a new datacol with the block i """
+        assert isinstance(name, str)
 
-        cname = name or f"values_block_{i}"
-        if name is None:
-            name = cname
-
-        # prior to 0.10.1, we named values blocks like: values_block_0 an the
-        # name values_0
-        try:
-            if version[0] == 0 and version[1] <= 10 and version[2] == 0:
-                m = re.search(r"values_block_(\d+)", name)
-                if m:
-                    grp = m.groups()[0]
-                    name = f"values_{grp}"
-        except IndexError:
-            pass
-
+        cname = name
+        name = _maybe_adjust_name(name, version)
         return cls(name=name, cname=cname, pos=pos)
 
     def __init__(
@@ -2270,15 +2267,25 @@ class DataCol(IndexCol):
             for a in ["name", "cname", "dtype", "pos"]
         )
 
-    def set_data(self, data, dtype=None):
+    def set_data(self, data: Union[np.ndarray, ABCExtensionArray]):
+        assert data is not None
+
+        if is_categorical_dtype(data.dtype):
+            data = data.codes
+
+        # For datetime64tz we need to drop the TZ in tests TODO: why?
+        dtype_name = data.dtype.name.split("[")[0]
+
+        if data.dtype.kind in ["m", "M"]:
+            data = np.asarray(data.view("i8"))
+            # TODO: we used to reshape for the dt64tz case, but no longer
+            #  doing that doesnt seem to break anything.  why?
+
         self.data = data
-        if data is not None:
-            if dtype is not None:
-                self.dtype = dtype
-                self.set_kind()
-            elif self.dtype is None:
-                self.dtype = data.dtype.name
-                self.set_kind()
+
+        if self.dtype is None:
+            self.dtype = dtype_name
+            self.set_kind()
 
     def take_data(self):
         """ return the data & release the memory """
@@ -2313,7 +2320,7 @@ class DataCol(IndexCol):
             if self.typ is None:
                 self.typ = getattr(self.description, self.cname, None)
 
-    def set_atom(self, block, itemsize: int, data_converted, use_str: bool):
+    def set_atom(self, block):
         """ create and setup my atom from the block b """
 
         # short-cut certain block types
@@ -2321,33 +2328,47 @@ class DataCol(IndexCol):
             self.set_atom_categorical(block)
         elif block.is_datetimetz:
             self.set_atom_datetime64tz(block)
-        elif block.is_datetime:
-            self.set_atom_datetime64(block)
-        elif block.is_timedelta:
-            self.set_atom_timedelta64(block)
-        elif block.is_complex:
-            self.set_atom_complex(block)
 
-        elif use_str:
-            self.set_atom_string(itemsize, data_converted)
+    @classmethod
+    def _get_atom(cls, values: Union[np.ndarray, ABCExtensionArray]) -> "Col":
+        """
+        Get an appropriately typed and shaped pytables.Col object for values.
+        """
+
+        dtype = values.dtype
+        itemsize = dtype.itemsize
+
+        shape = values.shape
+        if values.ndim == 1:
+            # EA, use block shape pretending it is 2D
+            shape = (1, values.size)
+
+        if is_categorical_dtype(dtype):
+            codes = values.codes
+            atom = cls.get_atom_data(shape, kind=codes.dtype.name)
+        elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
+            atom = cls.get_atom_datetime64(shape)
+        elif is_timedelta64_dtype(dtype):
+            atom = cls.get_atom_timedelta64(shape)
+        elif is_complex_dtype(dtype):
+            atom = _tables().ComplexCol(itemsize=itemsize, shape=shape[0])
+
+        elif is_string_dtype(dtype):
+            atom = cls.get_atom_string(shape, itemsize)
+
         else:
-            # set as a data block
-            self.set_atom_data(block)
+            atom = cls.get_atom_data(shape, kind=dtype.name)
 
-    def get_atom_string(self, shape, itemsize):
+        return atom
+
+    @classmethod
+    def get_atom_string(cls, shape, itemsize):
         return _tables().StringCol(itemsize=itemsize, shape=shape[0])
 
-    def set_atom_string(self, itemsize: int, data_converted: np.ndarray):
-        self.itemsize = itemsize
-        self.kind = "string"
-        self.typ = self.get_atom_string(data_converted.shape, itemsize)
-        self.set_data(data_converted.astype(f"|S{itemsize}", copy=False))
-
-    def get_atom_coltype(self, kind=None):
+    @classmethod
+    def get_atom_coltype(cls, kind: str) -> Type["Col"]:
         """ return the PyTables column class for this column """
-        if kind is None:
-            kind = self.kind
-        if self.kind.startswith("uint"):
+        if kind.startswith("uint"):
             k4 = kind[4:]
             col_name = f"UInt{k4}Col"
         else:
@@ -2356,71 +2377,38 @@ class DataCol(IndexCol):
 
         return getattr(_tables(), col_name)
 
-    def get_atom_data(self, block, kind=None):
-        return self.get_atom_coltype(kind=kind)(shape=block.shape[0])
-
-    def set_atom_complex(self, block):
-        self.kind = block.dtype.name
-        itemsize = int(self.kind.split("complex")[-1]) // 8
-        self.typ = _tables().ComplexCol(itemsize=itemsize, shape=block.shape[0])
-        self.set_data(block.values.astype(self.typ.type, copy=False))
-
-    def set_atom_data(self, block):
-        self.kind = block.dtype.name
-        self.typ = self.get_atom_data(block)
-        self.set_data(block.values.astype(self.typ.type, copy=False))
+    @classmethod
+    def get_atom_data(cls, shape, kind: str) -> "Col":
+        return cls.get_atom_coltype(kind=kind)(shape=shape[0])
 
     def set_atom_categorical(self, block):
         # currently only supports a 1-D categorical
         # in a 1-D block
 
         values = block.values
-        codes = values.codes
-        self.kind = "integer"
-        self.dtype = codes.dtype.name
+
         if values.ndim > 1:
             raise NotImplementedError("only support 1-d categoricals")
 
         # write the codes; must be in a block shape
         self.ordered = values.ordered
-        self.typ = self.get_atom_data(block, kind=codes.dtype.name)
-        self.set_data(codes)
 
         # write the categories
         self.meta = "category"
-        self.metadata = np.array(block.values.categories, copy=False).ravel()
+        self.metadata = np.array(values.categories, copy=False).ravel()
 
-    def get_atom_datetime64(self, block):
-        return _tables().Int64Col(shape=block.shape[0])
-
-    def set_atom_datetime64(self, block):
-        self.kind = "datetime64"
-        self.typ = self.get_atom_datetime64(block)
-        values = block.values.view("i8")
-        self.set_data(values, "datetime64")
+    @classmethod
+    def get_atom_datetime64(cls, shape):
+        return _tables().Int64Col(shape=shape[0])
 
     def set_atom_datetime64tz(self, block):
-
-        values = block.values
-
-        # convert this column to i8 in UTC, and save the tz
-        values = values.asi8.reshape(block.shape)
 
         # store a converted timezone
         self.tz = _get_tz(block.values.tz)
 
-        self.kind = "datetime64"
-        self.typ = self.get_atom_datetime64(block)
-        self.set_data(values, "datetime64")
-
-    def get_atom_timedelta64(self, block):
-        return _tables().Int64Col(shape=block.shape[0])
-
-    def set_atom_timedelta64(self, block):
-        self.kind = "timedelta64"
-        self.typ = self.get_atom_timedelta64(block)
-        values = block.values.view("i8")
-        self.set_data(values, "timedelta64")
+    @classmethod
+    def get_atom_timedelta64(cls, shape):
+        return _tables().Int64Col(shape=shape[0])
 
     @property
     def shape(self):
@@ -2454,6 +2442,7 @@ class DataCol(IndexCol):
         if values.dtype.fields is not None:
             values = values[self.cname]
 
+        # NB: unlike in the other calls to set_data, self.dtype may not be None here
         self.set_data(values)
 
         # use the meta if needed
@@ -2544,16 +2533,20 @@ class DataIndexableCol(DataCol):
             # TODO: should the message here be more specifically non-str?
             raise ValueError("cannot have non-object label DataIndexableCol")
 
-    def get_atom_string(self, shape, itemsize):
+    @classmethod
+    def get_atom_string(cls, shape, itemsize):
         return _tables().StringCol(itemsize=itemsize)
 
-    def get_atom_data(self, block, kind=None):
-        return self.get_atom_coltype(kind=kind)()
+    @classmethod
+    def get_atom_data(cls, shape, kind: str) -> "Col":
+        return cls.get_atom_coltype(kind=kind)()
 
-    def get_atom_datetime64(self, block):
+    @classmethod
+    def get_atom_datetime64(cls, shape):
         return _tables().Int64Col()
 
-    def get_atom_timedelta64(self, block):
+    @classmethod
+    def get_atom_timedelta64(cls, shape):
         return _tables().Int64Col()
 
 
@@ -3528,7 +3521,7 @@ class Table(Fixed):
             if c in dc:
                 klass = DataIndexableCol
             return klass.create_for_block(
-                i=i, name=c, pos=base_pos + i, version=self.version
+                name=c, pos=base_pos + i, version=self.version
             )
 
         # Note: the definition of `values_cols` ensures that each
@@ -3662,15 +3655,15 @@ class Table(Fixed):
         """ return the data for this obj """
         return obj
 
-    def validate_data_columns(self, data_columns, min_itemsize):
+    def validate_data_columns(self, data_columns, min_itemsize, non_index_axes):
         """take the input data_columns and min_itemize and create a data
         columns spec
         """
 
-        if not len(self.non_index_axes):
+        if not len(non_index_axes):
             return []
 
-        axis, axis_labels = self.non_index_axes[0]
+        axis, axis_labels = non_index_axes[0]
         info = self.info.get(axis, dict())
         if info.get("type") == "MultiIndex" and data_columns:
             raise ValueError(
@@ -3829,7 +3822,9 @@ class Table(Fixed):
         blk_items = get_blk_items(block_obj._data, blocks)
         if len(new_non_index_axes):
             axis, axis_labels = new_non_index_axes[0]
-            data_columns = self.validate_data_columns(data_columns, min_itemsize)
+            data_columns = self.validate_data_columns(
+                data_columns, min_itemsize, new_non_index_axes
+            )
             if len(data_columns):
                 mgr = block_obj.reindex(
                     Index(axis_labels).difference(Index(data_columns)), axis=axis
@@ -3896,7 +3891,7 @@ class Table(Fixed):
                 existing_col = None
 
             new_name = name or f"values_block_{i}"
-            itemsize, data_converted, use_str = _maybe_convert_for_string_atom(
+            data_converted = _maybe_convert_for_string_atom(
                 new_name,
                 b,
                 existing_col=existing_col,
@@ -3905,17 +3900,16 @@ class Table(Fixed):
                 encoding=self.encoding,
                 errors=self.errors,
             )
+            adj_name = _maybe_adjust_name(new_name, self.version)
 
-            col = klass.create_for_block(i=i, name=new_name, version=self.version)
-            col.values = list(b_items)
-            col.set_atom(
-                block=b,
-                itemsize=itemsize,
-                data_converted=data_converted,
-                use_str=use_str,
+            typ = klass._get_atom(data_converted)
+
+            col = klass(
+                name=adj_name, cname=new_name, values=list(b_items), typ=typ, pos=j
             )
+            col.set_atom(block=b)
+            col.set_data(data_converted)
             col.update_info(self.info)
-            col.set_pos(j)
 
             vaxes.append(col)
 
@@ -3925,6 +3919,7 @@ class Table(Fixed):
         self.data_columns = new_data_columns
         self.values_axes = vaxes
         self.index_axes = new_index_axes
+        self.non_index_axes = new_non_index_axes
 
         # validate our min_itemsize
         self.validate_min_itemsize(min_itemsize)
@@ -4724,7 +4719,6 @@ def _convert_index(name: str, index: Index, encoding=None, errors="strict"):
             converted,
             "string",
             _tables().StringCol(itemsize),
-            itemsize=itemsize,
             index_name=index_name,
         )
 
@@ -4782,10 +4776,9 @@ def _unconvert_index(data, kind: str, encoding=None, errors="strict"):
 def _maybe_convert_for_string_atom(
     name: str, block, existing_col, min_itemsize, nan_rep, encoding, errors
 ):
-    use_str = False
 
     if not block.is_object:
-        return block.dtype.itemsize, block.values, use_str
+        return block.values
 
     dtype_name = block.dtype.name
     inferred_type = lib.infer_dtype(block.values, skipna=False)
@@ -4800,9 +4793,7 @@ def _maybe_convert_for_string_atom(
         )
 
     elif not (inferred_type == "string" or dtype_name == "object"):
-        return block.dtype.itemsize, block.values, use_str
-
-    use_str = True
+        return block.values
 
     block = block.fillna(nan_rep, downcast=False)
     if isinstance(block, list):
@@ -4844,7 +4835,8 @@ def _maybe_convert_for_string_atom(
         if eci > itemsize:
             itemsize = eci
 
-    return itemsize, data_converted, use_str
+    data_converted = data_converted.astype(f"|S{itemsize}", copy=False)
+    return data_converted
 
 
 def _convert_string_array(data, encoding, errors, itemsize=None):
@@ -4940,6 +4932,31 @@ def _need_convert(kind) -> bool:
     if kind in ("datetime64", "string"):
         return True
     return False
+
+
+def _maybe_adjust_name(name: str, version) -> str:
+    """
+    Prior to 0.10.1, we named values blocks like: values_block_0 an the
+    name values_0, adjust the given name if necessary.
+
+    Parameters
+    ----------
+    name : str
+    version : Tuple[int, int, int]
+
+    Returns
+    -------
+    str
+    """
+    try:
+        if version[0] == 0 and version[1] <= 10 and version[2] == 0:
+            m = re.search(r"values_block_(\d+)", name)
+            if m:
+                grp = m.groups()[0]
+                name = f"values_{grp}"
+    except IndexError:
+        pass
+    return name
 
 
 class Selection:
