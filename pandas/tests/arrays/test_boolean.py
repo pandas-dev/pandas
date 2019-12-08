@@ -124,6 +124,8 @@ def test_to_boolean_array_missing_indicators(a, b):
         [1.0, 2.0],
         pd.date_range("20130101", periods=2),
         np.array(["foo"]),
+        np.array([1, 2]),
+        np.array([1.0, 2.0]),
         [np.nan, {"a": 1}],
     ],
 )
