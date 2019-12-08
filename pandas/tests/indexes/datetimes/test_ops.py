@@ -437,18 +437,6 @@ class TestDatetimeIndexOps(Ops):
         with pytest.raises(ValueError, match="Invalid frequency"):
             idx._data.freq = "foo"
 
-    def test_offset_deprecated(self):
-        # GH 20716
-        idx = pd.DatetimeIndex(["20180101", "20180102"])
-
-        # getter deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            idx.offset
-
-        # setter deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            idx.offset = BDay()
-
 
 class TestBusinessDatetimeIndex:
     def setup_method(self, method):

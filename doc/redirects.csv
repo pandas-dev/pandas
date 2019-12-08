@@ -618,7 +618,6 @@ generated/pandas.Index.asi8,../reference/api/pandas.Index.asi8
 generated/pandas.Index.asof,../reference/api/pandas.Index.asof
 generated/pandas.Index.asof_locs,../reference/api/pandas.Index.asof_locs
 generated/pandas.Index.astype,../reference/api/pandas.Index.astype
-generated/pandas.Index.contains,../reference/api/pandas.Index.contains
 generated/pandas.Index.copy,../reference/api/pandas.Index.copy
 generated/pandas.Index.data,../reference/api/pandas.Index.data
 generated/pandas.Index.delete,../reference/api/pandas.Index.delete
