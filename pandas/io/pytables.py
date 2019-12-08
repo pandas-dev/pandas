@@ -4681,30 +4681,20 @@ def _convert_index(name: str, index: Index, encoding=None, errors="strict"):
         assert kind == "integer", kind
         assert isinstance(atom, _tables().Int64Col), atom.dtype
         return IndexCol(
-            name,
-            values=converted,
-            kind=kind,
-            typ=atom,
-            index_name=index_name,
+            name, values=converted, kind=kind, typ=atom, index_name=index_name,
         )
     elif inferred_type == "floating":
         assert isinstance(converted, np.ndarray) and converted.dtype == "f8"
         assert kind == "float", kind
         assert isinstance(atom, _tables().Float64Col), atom.dtype
         return IndexCol(
-            name,
-            values=converted,
-            kind=kind,
-            typ=atom,
-            index_name=index_name,
+            name, values=converted, kind=kind, typ=atom, index_name=index_name,
         )
     else:
         assert isinstance(converted, np.ndarray) and converted.dtype == object
         assert kind == "object", kind
         atom = _tables().ObjectAtom()
-        return IndexCol(
-            name, converted, kind, atom, index_name=index_name,
-        )
+        return IndexCol(name, converted, kind, atom, index_name=index_name,)
 
 
 def _unconvert_index(data, kind: str, encoding=None, errors="strict"):
