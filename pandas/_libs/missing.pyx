@@ -365,8 +365,6 @@ class NAType(C_NAType):
     __rmod__ = _create_binary_propagating_op("__rmod__")
     __divmod__ = _create_binary_propagating_op("__divmod__", divmod=True)
     __rdivmod__ = _create_binary_propagating_op("__rdivmod__", divmod=True)
-    __pow__ = _create_binary_propagating_op("__pow__")
-    __rpow__ = _create_binary_propagating_op("__rpow__")
     # __lshift__ and __rshift__ are not implemented
 
     __eq__ = _create_binary_propagating_op("__eq__")
@@ -382,6 +380,30 @@ class NAType(C_NAType):
     __pos__ = _create_unary_propagating_op("__pos__")
     __abs__ = _create_unary_propagating_op("__abs__")
     __invert__ = _create_unary_propagating_op("__invert__")
+
+    # pow has special
+    def __pow__(self, other):
+        if other is C_NA:
+            return NA
+        elif isinstance(other, (numbers.Number, np.bool_)):
+            if other == 0:
+                # returning positive is correct for +/- 0.
+                return type(other)(1)
+            else:
+                return NA
+
+        return NotImplemented
+
+    def __rpow__(self, other):
+        if other is C_NA:
+            return NA
+        elif isinstance(other, (numbers.Number, np.bool_)):
+            if other == 1 or other == -1:
+                return other
+            else:
+                return NA
+
+        return NotImplemented
 
     # Logical ops using Kleene logic
 
