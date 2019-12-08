@@ -2634,8 +2634,8 @@ class TestNLargestNSmallest:
         df = df_main_dtypes
         col = columns[1]
         error_msg = (
-            f"Column {repr(col)} has dtype {df[col].dtype}, "
-            f"cannot use method {repr(nselect_method)} with this dtype"
+            f"Column '{col}' has dtype {df[col].dtype}, "
+            f"cannot use method '{nselect_method}' with this dtype"
         )
         # escape some characters that may be in the repr
         error_msg = (
