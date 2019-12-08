@@ -4650,42 +4650,17 @@ def _convert_index(name: str, index: Index, encoding=None, errors="strict"):
     kind = _dtype_to_kind(dtype_name)
     atom = DataIndexableCol._get_atom(converted)
 
-    if isinstance(index, DatetimeIndex):
-        assert isinstance(converted, np.ndarray) and converted.dtype == "i8"
-        assert kind == "datetime64", kind
-        assert isinstance(atom, _tables().Int64Col), atom.dtype
-        return IndexCol(
-            name,
-            values=converted,
-            kind=kind,
-            typ=atom,
-            freq=index.freq,
-            tz=index.tz,
-            index_name=index_name,
-        )
-    elif isinstance(index, TimedeltaIndex):
-        assert isinstance(converted, np.ndarray) and converted.dtype == "i8"
-        assert kind == "timedelta64", kind
-        assert isinstance(atom, _tables().Int64Col), atom.dtype
-        return IndexCol(
-            name,
-            values=converted,
-            kind=kind,
-            typ=atom,
-            freq=index.freq,
-            index_name=index_name,
-        )
-    elif isinstance(index, (Int64Index, PeriodIndex)):
-        # avoid to store ndarray of Period objects
-        assert isinstance(converted, np.ndarray) and converted.dtype == "i8"
-        assert kind == "integer", kind
-        assert isinstance(atom, _tables().Int64Col), atom.dtype
+    if isinstance(index, Int64Index):
+        # Includes Int64Index, RangeIndex, DatetimeIndex, TimedeltaIndex, PeriodIndex,
+        #  in which case "kind" is "integer", "integer", "datetime64",
+        #  "timedelta64", and "integer", respectively.
         return IndexCol(
             name,
             values=converted,
             kind=kind,
             typ=atom,
             freq=getattr(index, "freq", None),
+            tz=getattr(index, "tz", None),
             index_name=index_name,
         )
 
@@ -4715,18 +4690,7 @@ def _convert_index(name: str, index: Index, encoding=None, errors="strict"):
             index_name=index_name,
         )
 
-    elif inferred_type == "integer":
-        # take a guess for now, hope the values fit
-        assert isinstance(converted, np.ndarray) and converted.dtype == "i8"
-        assert kind == "integer", kind
-        assert isinstance(atom, _tables().Int64Col), atom.dtype
-        return IndexCol(
-            name, values=converted, kind=kind, typ=atom, index_name=index_name,
-        )
-    elif inferred_type == "floating":
-        assert isinstance(converted, np.ndarray) and converted.dtype == "f8"
-        assert kind == "float", kind
-        assert isinstance(atom, _tables().Float64Col), atom.dtype
+    elif inferred_type in ["integer", "floating"]:
         return IndexCol(
             name, values=converted, kind=kind, typ=atom, index_name=index_name,
         )
