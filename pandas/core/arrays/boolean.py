@@ -184,6 +184,9 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
     represented by 2 numpy arrays: a boolean array with the data and
     a boolean array with the mask (True indicating missing).
 
+    BooleanArray implements Kleene logic (sometimes called three-value
+    logic) for logical operations. See :ref:`boolean.kleene` for more.
+
     To construct an BooleanArray from generic array-like input, use
     :func:`pandas.array` specifying ``dtype="boolean"`` (see examples
     below).
@@ -283,7 +286,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
 
     def _coerce_to_ndarray(self, dtype=None, na_value: "Scalar" = libmissing.NA):
         """
-        Coerce to an ndarary of object dtype or bool dtype (if force_bool=True).
+        Coerce to an ndarray of object dtype or bool dtype (if force_bool=True).
 
         Parameters
         ----------
@@ -565,10 +568,13 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
                 # Rely on pandas to unbox and dispatch to us.
                 return NotImplemented
 
+            assert op.__name__ in {"or_", "ror_", "and_", "rand_", "xor", "rxor"}
             other = lib.item_from_zerodim(other)
+            other_is_booleanarray = isinstance(other, BooleanArray)
+            other_is_scalar = lib.is_scalar(other)
             mask = None
 
-            if isinstance(other, BooleanArray):
+            if other_is_booleanarray:
                 other, mask = other._data, other._mask
             elif is_list_like(other):
                 other = np.asarray(other, dtype="bool")
@@ -576,22 +582,26 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
                     raise NotImplementedError(
                         "can only perform ops with 1-d structures"
                     )
-                if len(self) != len(other):
-                    raise ValueError("Lengths must match to compare")
                 other, mask = coerce_to_array(other, copy=False)
+            elif isinstance(other, np.bool_):
+                other = other.item()
 
-            # numpy will show a DeprecationWarning on invalid elementwise
-            # comparisons, this will raise in the future
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", "elementwise", FutureWarning)
-                with np.errstate(all="ignore"):
-                    result = op(self._data, other)
+            if other_is_scalar and not (other is libmissing.NA or lib.is_bool(other)):
+                raise TypeError(
+                    "'other' should be pandas.NA or a bool. Got {} instead.".format(
+                        type(other).__name__
+                    )
+                )
 
-            # nans propagate
-            if mask is None:
-                mask = self._mask
-            else:
-                mask = self._mask | mask
+            if not other_is_scalar and len(self) != len(other):
+                raise ValueError("Lengths must match to compare")
+
+            if op.__name__ in {"or_", "ror_"}:
+                result, mask = ops.kleene_or(self._data, other, self._mask, mask)
+            elif op.__name__ in {"and_", "rand_"}:
+                result, mask = ops.kleene_and(self._data, other, self._mask, mask)
+            elif op.__name__ in {"xor", "rxor"}:
+                result, mask = ops.kleene_xor(self._data, other, self._mask, mask)
 
             return BooleanArray(result, mask)
 
