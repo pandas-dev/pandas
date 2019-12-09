@@ -519,7 +519,7 @@ with cf.config_prefix("io.excel.xlsb"):
     cf.register_option(
         "reader",
         "auto",
-        reader_engine_doc.format(ext="xlsb", others=", ".join(_ods_options)),
+        reader_engine_doc.format(ext="xlsb", others=", ".join(_xlsb_options)),
         validator=str,
     )
 
