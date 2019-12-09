@@ -261,16 +261,16 @@ class TestArithmeticOps(BaseOpsUtil):
         rhs = pd.Series([1] * len(data), dtype=data.dtype)
         rhs.iloc[-1] = np.nan
 
-        if op in {"__pow__", "__rpow__"}:
-            pytest.skip("TODO")
+        # if op in {"__pow__", "__rpow__"}:
+        #     pytest.skip("TODO")
 
         self._check_op(s, op, rhs)
 
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         # scalar
         op = all_arithmetic_operators
-        if op in {"__pow__", "__rpow__"}:
-            pytest.skip("TODO")
+        # if op in {"__pow__", "__rpow__"}:
+        #     pytest.skip("TODO")
 
         s = pd.Series(data)
         self._check_op(s, op, 1, exc=TypeError)
@@ -278,8 +278,8 @@ class TestArithmeticOps(BaseOpsUtil):
     def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
         # frame & scalar
         op = all_arithmetic_operators
-        if op in {"__pow__", "__rpow__"}:
-            pytest.skip("TODO")
+        # if op in {"__pow__", "__rpow__"}:
+        #     pytest.skip("TODO")
 
         df = pd.DataFrame({"A": data})
         self._check_op(df, op, 1, exc=TypeError)
@@ -287,8 +287,8 @@ class TestArithmeticOps(BaseOpsUtil):
     def test_arith_series_with_array(self, data, all_arithmetic_operators):
         # ndarray & other series
         op = all_arithmetic_operators
-        if op in {"__pow__", "__rpow__"}:
-            pytest.skip("TODO")
+        # if op in {"__pow__", "__rpow__"}:
+        #     pytest.skip("TODO")
 
         s = pd.Series(data)
         other = np.ones(len(s), dtype=s.dtype.type)
@@ -297,8 +297,8 @@ class TestArithmeticOps(BaseOpsUtil):
     def test_arith_coerce_scalar(self, data, all_arithmetic_operators):
 
         op = all_arithmetic_operators
-        if op in {"__pow__", "__rpow__"}:
-            pytest.skip("TODO")
+        # if op in {"__pow__", "__rpow__"}:
+        #     pytest.skip("TODO")
 
         s = pd.Series(data)
 
@@ -528,8 +528,7 @@ class TestCasting:
 
         # coerce to same numpy_dtype - mixed
         s = pd.Series(mixed)
-        with pytest.raises(TypeError):
-            # XXX: Should this be TypeError or ValueError?
+        with pytest.raises(ValueError):
             s.astype(all_data.dtype.numpy_dtype)
 
         # coerce to object
@@ -815,11 +814,9 @@ def test_reduce_to_float(op):
 def test_astype_nansafe():
     # see gh-22343
     arr = integer_array([np.nan, 1, 2], dtype="Int8")
-    # XXX: determine the proper exception here, from int(NA).
-    # msg = "cannot convert float NaN to integer"
-    msg = ""
+    msg = "cannot convert to integer NumPy array with missing values"
 
-    with pytest.raises(TypeError, match=msg):
+    with pytest.raises(ValueError, match=msg):
         arr.astype("uint32")
 
 
