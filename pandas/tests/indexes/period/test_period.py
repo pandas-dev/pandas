@@ -180,8 +180,7 @@ class TestPeriodIndex(DatetimeLike):
         exp = np.array([], dtype=np.object)
         tm.assert_numpy_array_equal(idx.values, exp)
         tm.assert_numpy_array_equal(idx.to_numpy(), exp)
-        with tm.assert_produces_warning(FutureWarning):
-            tm.assert_numpy_array_equal(idx.get_values(), exp)
+
         exp = np.array([], dtype=np.int64)
         tm.assert_numpy_array_equal(idx._ndarray_values, exp)
 
@@ -529,15 +528,10 @@ class TestPeriodIndex(DatetimeLike):
         assert s["05Q4"] == s[2]
 
     def test_pindex_multiples(self):
-        with tm.assert_produces_warning(FutureWarning):
-            pi = PeriodIndex(start="1/1/11", end="12/31/11", freq="2M")
         expected = PeriodIndex(
             ["2011-01", "2011-03", "2011-05", "2011-07", "2011-09", "2011-11"],
             freq="2M",
         )
-        tm.assert_index_equal(pi, expected)
-        assert pi.freq == offsets.MonthEnd(2)
-        assert pi.freqstr == "2M"
 
         pi = period_range(start="1/1/11", end="12/31/11", freq="2M")
         tm.assert_index_equal(pi, expected)

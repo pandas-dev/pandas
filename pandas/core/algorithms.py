@@ -395,16 +395,12 @@ def isin(comps, values) -> np.ndarray:
     if not is_list_like(comps):
         raise TypeError(
             "only list-like objects are allowed to be passed"
-            " to isin(), you passed a [{comps_type}]".format(
-                comps_type=type(comps).__name__
-            )
+            f" to isin(), you passed a [{type(comps).__name__}]"
         )
     if not is_list_like(values):
         raise TypeError(
             "only list-like objects are allowed to be passed"
-            " to isin(), you passed a [{values_type}]".format(
-                values_type=type(values).__name__
-            )
+            f" to isin(), you passed a [{type(values).__name__}]"
         )
 
     if not isinstance(values, (ABCIndex, ABCSeries, np.ndarray)):
@@ -601,7 +597,7 @@ _shared_docs[
 )
 @Appender(_shared_docs["factorize"])
 def factorize(
-    values, sort: bool = False, na_sentinel: int = -1, size_hint: Optional[int] = None,
+    values, sort: bool = False, na_sentinel: int = -1, size_hint: Optional[int] = None
 ) -> Tuple[np.ndarray, Union[np.ndarray, ABCIndex]]:
     # Implementation notes: This method is responsible for 3 things
     # 1.) coercing data to array-like (ndarray, Index, extension array)
@@ -758,7 +754,7 @@ def _value_counts_arraylike(values, dropna: bool):
         # ndarray like
 
         # TODO: handle uint8
-        f = getattr(htable, "value_count_{dtype}".format(dtype=ndtype))
+        f = getattr(htable, f"value_count_{ndtype}")
         keys, counts = f(values, dropna)
 
         mask = isna(values)
@@ -794,7 +790,7 @@ def duplicated(values, keep="first") -> np.ndarray:
 
     values, _ = _ensure_data(values)
     ndtype = values.dtype.name
-    f = getattr(htable, "duplicated_{dtype}".format(dtype=ndtype))
+    f = getattr(htable, f"duplicated_{ndtype}")
     return f(values, keep=keep)
 
 
@@ -833,12 +829,12 @@ def mode(values, dropna: bool = True) -> ABCSeries:
     values, _ = _ensure_data(values)
     ndtype = values.dtype.name
 
-    f = getattr(htable, "mode_{dtype}".format(dtype=ndtype))
+    f = getattr(htable, f"mode_{ndtype}")
     result = f(values, dropna=dropna)
     try:
         result = np.sort(result)
     except TypeError as e:
-        warn("Unable to sort modes: {error}".format(error=e))
+        warn(f"Unable to sort modes: {e}")
 
     result = _reconstruct_data(result, original.dtype, original)
     return Series(result)
@@ -1110,10 +1106,7 @@ class SelectNSeries(SelectN):
         n = self.n
         dtype = self.obj.dtype
         if not self.is_valid_dtype_n_method(dtype):
-            raise TypeError(
-                "Cannot use method '{method}' with "
-                "dtype {dtype}".format(method=method, dtype=dtype)
-            )
+            raise TypeError(f"Cannot use method '{method}' with dtype {dtype}")
 
         if n <= 0:
             return self.obj[[]]

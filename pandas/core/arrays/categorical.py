@@ -302,9 +302,7 @@ class Categorical(ExtensionArray, PandasObject):
     __array_priority__ = 1000
     _dtype = CategoricalDtype(ordered=False)
     # tolist is not actually deprecated, just suppressed in the __dir__
-    _deprecations = PandasObject._deprecations | frozenset(
-        ["tolist", "itemsize", "get_values"]
-    )
+    _deprecations = PandasObject._deprecations | frozenset(["tolist", "itemsize"])
     _typ = "categorical"
 
     def __init__(
@@ -1461,29 +1459,18 @@ class Categorical(ExtensionArray, PandasObject):
 
         return Series(count, index=CategoricalIndex(ix), dtype="int64")
 
-    def get_values(self):
+    def _internal_get_values(self):
         """
         Return the values.
-
-        .. deprecated:: 0.25.0
 
         For internal compatibility with pandas formatting.
 
         Returns
         -------
-        numpy.array
+        np.ndarray or Index
             A numpy array of the same dtype as categorical.categories.dtype or
             Index if datetime / periods.
         """
-        warn(
-            "The 'get_values' method is deprecated and will be removed in a "
-            "future version",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._internal_get_values()
-
-    def _internal_get_values(self):
         # if we are a datetime and period index, return Index to keep metadata
         if needs_i8_conversion(self.categories):
             return self.categories.take(self._codes, fill_value=np.nan)
@@ -2123,7 +2110,8 @@ class Categorical(ExtensionArray, PandasObject):
             raise TypeError(f"Categorical cannot perform the operation {name}")
         return func(**kwargs)
 
-    def min(self, numeric_only=None, **kwargs):
+    @deprecate_kwarg(old_arg_name="numeric_only", new_arg_name="skipna")
+    def min(self, skipna=True):
         """
         The minimum value of the object.
 
@@ -2139,17 +2127,18 @@ class Categorical(ExtensionArray, PandasObject):
         min : the minimum of this `Categorical`
         """
         self.check_for_ordered("min")
-        if numeric_only:
-            good = self._codes != -1
-            pointer = self._codes[good].min(**kwargs)
+        good = self._codes != -1
+        if not good.all():
+            if skipna:
+                pointer = self._codes[good].min()
+            else:
+                return np.nan
         else:
-            pointer = self._codes.min(**kwargs)
-        if pointer == -1:
-            return np.nan
-        else:
-            return self.categories[pointer]
+            pointer = self._codes.min()
+        return self.categories[pointer]
 
-    def max(self, numeric_only=None, **kwargs):
+    @deprecate_kwarg(old_arg_name="numeric_only", new_arg_name="skipna")
+    def max(self, skipna=True):
         """
         The maximum value of the object.
 
@@ -2165,15 +2154,15 @@ class Categorical(ExtensionArray, PandasObject):
         max : the maximum of this `Categorical`
         """
         self.check_for_ordered("max")
-        if numeric_only:
-            good = self._codes != -1
-            pointer = self._codes[good].max(**kwargs)
+        good = self._codes != -1
+        if not good.all():
+            if skipna:
+                pointer = self._codes[good].max()
+            else:
+                return np.nan
         else:
-            pointer = self._codes.max(**kwargs)
-        if pointer == -1:
-            return np.nan
-        else:
-            return self.categories[pointer]
+            pointer = self._codes.max()
+        return self.categories[pointer]
 
     def mode(self, dropna=True):
         """
