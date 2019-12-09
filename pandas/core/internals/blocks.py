@@ -529,11 +529,10 @@ class Block(PandasObject):
         copy: bool = False,
         errors: str = "raise",
         skipna: bool = True,
-        **kwargs,
     ):
-        return self._astype(dtype, copy=copy, errors=errors, skipna=skipna, **kwargs)
+        return self._astype(dtype, copy=copy, errors=errors, skipna=skipna)
 
-    def _astype(self, dtype, copy=False, errors="raise", skipna=True, **kwargs):
+    def _astype(self, dtype, copy=False, errors="raise", skipna=True):
         """Coerce to the new type
 
         Parameters
@@ -544,6 +543,8 @@ class Block(PandasObject):
         errors : str, {'raise', 'ignore'}, default 'ignore'
             - ``raise`` : allow exceptions to be raised
             - ``ignore`` : suppress exceptions. On error return original object
+        skipna : bool, default True
+            Exclude NA/null values in type conversion.
 
         Returns
         -------
@@ -2150,7 +2151,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         return values
 
     def astype(
-        self, dtype, copy: bool = False, errors: str = "raise", skipna=True, **kwargs
+        self, dtype, copy: bool = False, errors: str = "raise", skipna=True
     ):
         """
         these automatically copy, so copy=True has no effect
@@ -2168,7 +2169,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
         # delegate
         return super().astype(
-            dtype=dtype, copy=copy, errors=errors, skipna=skipna, **kwargs
+            dtype=dtype, copy=copy, errors=errors, skipna=skipna
         )
 
     def _can_hold_element(self, element: Any) -> bool:
