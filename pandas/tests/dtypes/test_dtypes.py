@@ -1,3 +1,4 @@
+import datetime as dt
 import re
 
 import numpy as np
@@ -29,7 +30,6 @@ import pandas as pd
 from pandas import Categorical, CategoricalIndex, IntervalIndex, Series, date_range
 from pandas.core.arrays.sparse import SparseDtype
 import pandas.util.testing as tm
-import datetime as dt
 
 
 class Base:
