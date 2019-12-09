@@ -120,10 +120,8 @@ class JoinUnit:
         self.indexers = indexers
         self.shape = shape
 
-    def __repr__(self):
-        return "{name}({block!r}, {indexers})".format(
-            name=self.__class__.__name__, block=self.block, indexers=self.indexers
-        )
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({repr(self.block)}, {self.indexers})"
 
     @cache_readonly
     def needs_filling(self):

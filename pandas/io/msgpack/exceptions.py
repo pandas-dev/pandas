@@ -19,7 +19,7 @@ class ExtraData(ValueError):
         self.unpacked = unpacked
         self.extra = extra
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "unpack(b) received extra data."
 
 

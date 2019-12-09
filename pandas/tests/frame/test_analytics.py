@@ -1067,13 +1067,13 @@ class TestDataFrameAnalytics:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("tz", [None, "UTC"])
-    def test_mean_excludeds_datetimes(self, tz):
+    def test_mean_excludes_datetimes(self, tz):
         # https://github.com/pandas-dev/pandas/issues/24752
         # Our long-term desired behavior is unclear, but the behavior in
         # 0.24.0rc1 was buggy.
         df = pd.DataFrame({"A": [pd.Timestamp("2000", tz=tz)] * 2})
         result = df.mean()
-        expected = pd.Series()
+        expected = pd.Series(dtype=np.float64)
         tm.assert_series_equal(result, expected)
 
     def test_mean_mixed_string_decimal(self):
@@ -1244,7 +1244,7 @@ class TestDataFrameAnalytics:
             }
         )
 
-        result = df[sorted(list(expected.keys()))].mode(dropna=dropna)
+        result = df[sorted(expected.keys())].mode(dropna=dropna)
         expected = DataFrame(expected)
         tm.assert_frame_equal(result, expected)
 
@@ -1907,7 +1907,7 @@ class TestDataFrameAnalytics:
         expected = DataFrame([df.loc[s].isin(other) for s in df.index])
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("empty", [[], Series(), np.array([])])
+    @pytest.mark.parametrize("empty", [[], Series(dtype=object), np.array([])])
     def test_isin_empty(self, empty):
         # GH 16991
         df = DataFrame({"A": ["a", "b", "c"], "B": ["a", "e", "f"]})
@@ -2279,14 +2279,6 @@ class TestDataFrameAnalytics:
         median = float_frame.median().median()
         original = float_frame.copy()
 
-        with tm.assert_produces_warning(FutureWarning):
-            capped = float_frame.clip_upper(median)
-        assert not (capped.values > median).any()
-
-        with tm.assert_produces_warning(FutureWarning):
-            floored = float_frame.clip_lower(median)
-        assert not (floored.values < median).any()
-
         double = float_frame.clip(upper=median, lower=median)
         assert not (double.values != median).any()
 
@@ -2296,16 +2288,6 @@ class TestDataFrameAnalytics:
     def test_inplace_clip(self, float_frame):
         # GH 15388
         median = float_frame.median().median()
-        frame_copy = float_frame.copy()
-
-        with tm.assert_produces_warning(FutureWarning):
-            frame_copy.clip_upper(median, inplace=True)
-        assert not (frame_copy.values > median).any()
-        frame_copy = float_frame.copy()
-
-        with tm.assert_produces_warning(FutureWarning):
-            frame_copy.clip_lower(median, inplace=True)
-        assert not (frame_copy.values < median).any()
         frame_copy = float_frame.copy()
 
         frame_copy.clip(upper=median, lower=median, inplace=True)
@@ -2759,8 +2741,7 @@ class TestNLargestNSmallest:
         s_nan = Series([np.nan, np.nan, 1])
 
         with tm.assert_produces_warning(None):
-            with tm.assert_produces_warning(FutureWarning):
-                df_nan.clip_lower(s, axis=0)
+            df_nan.clip(lower=s, axis=0)
             for op in ["lt", "le", "gt", "ge", "eq", "ne"]:
                 getattr(df, op)(s_nan, axis=0)
 

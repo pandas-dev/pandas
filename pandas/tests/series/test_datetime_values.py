@@ -208,20 +208,18 @@ class TestSeriesDatetimeValues:
         # test limited display api
         def get_dir(s):
             results = [r for r in s.dt.__dir__() if not r.startswith("_")]
-            return list(sorted(set(results)))
+            return sorted(set(results))
 
         s = Series(date_range("20130101", periods=5, freq="D"), name="xxx")
         results = get_dir(s)
-        tm.assert_almost_equal(
-            results, list(sorted(set(ok_for_dt + ok_for_dt_methods)))
-        )
+        tm.assert_almost_equal(results, sorted(set(ok_for_dt + ok_for_dt_methods)))
 
         s = Series(
             period_range("20130101", periods=5, freq="D", name="xxx").astype(object)
         )
         results = get_dir(s)
         tm.assert_almost_equal(
-            results, list(sorted(set(ok_for_period + ok_for_period_methods)))
+            results, sorted(set(ok_for_period + ok_for_period_methods))
         )
 
         # 11295
@@ -229,9 +227,7 @@ class TestSeriesDatetimeValues:
         s = Series(pd.date_range("2015-01-01", "2016-01-01", freq="T"), name="xxx")
         s = s.dt.tz_localize("UTC").dt.tz_convert("America/Chicago")
         results = get_dir(s)
-        tm.assert_almost_equal(
-            results, list(sorted(set(ok_for_dt + ok_for_dt_methods)))
-        )
+        tm.assert_almost_equal(results, sorted(set(ok_for_dt + ok_for_dt_methods)))
         exp_values = pd.date_range(
             "2015-01-01", "2016-01-01", freq="T", tz="UTC"
         ).tz_convert("America/Chicago")
@@ -431,7 +427,6 @@ class TestSeriesDatetimeValues:
         ]
         for day, name, eng_name in zip(range(4, 11), expected_days, english_days):
             name = name.capitalize()
-            assert s.dt.weekday_name[day] == eng_name
             assert s.dt.day_name(locale=time_locale)[day] == name
         s = s.append(Series([pd.NaT]))
         assert np.isnan(s.dt.day_name(locale=time_locale).iloc[-1])
@@ -504,7 +499,7 @@ class TestSeriesDatetimeValues:
         s.iloc[0] = pd.NaT
         result = s.dt.strftime("%Y/%m/%d")
         expected = Series(
-            ["NaT", "2013/01/02", "2013/01/03", "2013/01/04", "2013/01/05"]
+            [np.nan, "2013/01/02", "2013/01/03", "2013/01/04", "2013/01/05"]
         )
         tm.assert_series_equal(result, expected)
 
@@ -552,6 +547,20 @@ class TestSeriesDatetimeValues:
                 "2013/01/01 00:00:00.003",
             ]
         )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "data",
+        [
+            DatetimeIndex(["2019-01-01", pd.NaT]),
+            PeriodIndex(["2019-01-01", pd.NaT], dtype="period[D]"),
+        ],
+    )
+    def test_strftime_nat(self, data):
+        # GH 29578
+        s = Series(data)
+        result = s.dt.strftime("%Y-%m-%d")
+        expected = Series(["2019-01-01", np.nan])
         tm.assert_series_equal(result, expected)
 
     def test_valid_dt_with_missing_values(self):

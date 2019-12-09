@@ -660,7 +660,7 @@ def _get_counts_nanvar(
             count = np.nan
             d = np.nan
     else:
-        mask2 = count <= ddof  # type: np.ndarray
+        mask2: np.ndarray = count <= ddof
         if mask2.any():
             np.putmask(d, mask2, np.nan)
             np.putmask(count, mask2, np.nan)
@@ -1248,10 +1248,9 @@ def get_corr_func(method):
         return np.corrcoef(a, b)[0, 1]
 
     def _kendall(a, b):
+        # kendallttau returns a tuple of the tau statistic and pvalue
         rs = kendalltau(a, b)
-        if isinstance(rs, tuple):
-            return rs[0]
-        return rs
+        return rs[0]
 
     def _spearman(a, b):
         return spearmanr(a, b)[0]

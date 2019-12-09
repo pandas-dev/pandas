@@ -99,7 +99,7 @@ class FromLists:
     def setup(self):
         N = 1000
         M = 100
-        self.data = [[j for j in range(M)] for i in range(N)]
+        self.data = [list(range(M)) for i in range(N)]
 
     def time_frame_from_lists(self):
         self.df = DataFrame(self.data)

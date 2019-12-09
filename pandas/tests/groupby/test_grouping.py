@@ -559,12 +559,12 @@ class TestGrouping:
         # GH 17537
         grouped = mframe.groupby(level=0, sort=sort)
         exp_labels = np.array(labels, np.intp)
-        tm.assert_almost_equal(grouped.grouper.labels[0], exp_labels)
+        tm.assert_almost_equal(grouped.grouper.codes[0], exp_labels)
 
     def test_grouping_labels(self, mframe):
         grouped = mframe.groupby(mframe.index.get_level_values(0))
         exp_labels = np.array([2, 2, 2, 0, 0, 1, 1, 3, 3, 3], dtype=np.intp)
-        tm.assert_almost_equal(grouped.grouper.labels[0], exp_labels)
+        tm.assert_almost_equal(grouped.grouper.codes[0], exp_labels)
 
     def test_list_grouper_with_nat(self):
         # GH 14715
@@ -585,9 +585,18 @@ class TestGrouping:
     @pytest.mark.parametrize(
         "func,expected",
         [
-            ("transform", pd.Series(name=2, index=pd.RangeIndex(0, 0, 1))),
-            ("agg", pd.Series(name=2, index=pd.Float64Index([], name=1))),
-            ("apply", pd.Series(name=2, index=pd.Float64Index([], name=1))),
+            (
+                "transform",
+                pd.Series(name=2, dtype=np.float64, index=pd.RangeIndex(0, 0, 1)),
+            ),
+            (
+                "agg",
+                pd.Series(name=2, dtype=np.float64, index=pd.Float64Index([], name=1)),
+            ),
+            (
+                "apply",
+                pd.Series(name=2, dtype=np.float64, index=pd.Float64Index([], name=1)),
+            ),
         ],
     )
     def test_evaluate_with_empty_groups(self, func, expected):
@@ -602,7 +611,7 @@ class TestGrouping:
 
     def test_groupby_empty(self):
         # https://github.com/pandas-dev/pandas/issues/27190
-        s = pd.Series([], name="name")
+        s = pd.Series([], name="name", dtype="float64")
         gr = s.groupby([])
 
         result = gr.mean()
@@ -731,7 +740,7 @@ class TestGetGroup:
     def test_groupby_with_empty(self):
         index = pd.DatetimeIndex(())
         data = ()
-        series = pd.Series(data, index)
+        series = pd.Series(data, index, dtype=object)
         grouper = pd.Grouper(freq="D")
         grouped = series.groupby(grouper)
         assert next(iter(grouped), None) is None

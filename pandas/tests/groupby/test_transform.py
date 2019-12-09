@@ -911,6 +911,41 @@ def test_pct_change(test_series, freq, periods, fill_method, limit):
         tm.assert_frame_equal(result, expected.to_frame("vals"))
 
 
+@pytest.mark.parametrize(
+    "func, expected_status",
+    [
+        ("ffill", ["shrt", "shrt", "lng", np.nan, "shrt", "ntrl", "ntrl"]),
+        ("bfill", ["shrt", "lng", "lng", "shrt", "shrt", "ntrl", np.nan]),
+    ],
+)
+def test_ffill_bfill_non_unique_multilevel(func, expected_status):
+    # GH 19437
+    date = pd.to_datetime(
+        [
+            "2018-01-01",
+            "2018-01-01",
+            "2018-01-01",
+            "2018-01-01",
+            "2018-01-02",
+            "2018-01-01",
+            "2018-01-02",
+        ]
+    )
+    symbol = ["MSFT", "MSFT", "MSFT", "AAPL", "AAPL", "TSLA", "TSLA"]
+    status = ["shrt", np.nan, "lng", np.nan, "shrt", "ntrl", np.nan]
+
+    df = DataFrame({"date": date, "symbol": symbol, "status": status})
+    df = df.set_index(["date", "symbol"])
+    result = getattr(df.groupby("symbol")["status"], func)()
+
+    index = MultiIndex.from_tuples(
+        tuples=list(zip(*[date, symbol])), names=["date", "symbol"]
+    )
+    expected = Series(expected_status, index=index, name="status")
+
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("func", [np.any, np.all])
 def test_any_all_np_func(func):
     # GH 20653
@@ -1073,3 +1108,33 @@ def test_transform_lambda_with_datetimetz():
         name="time",
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_transform_fastpath_raises():
+    # GH#29631 case where fastpath defined in groupby.generic _choose_path
+    #  raises, but slow_path does not
+
+    df = pd.DataFrame({"A": [1, 1, 2, 2], "B": [1, -1, 1, 2]})
+    gb = df.groupby("A")
+
+    def func(grp):
+        # we want a function such that func(frame) fails but func.apply(frame)
+        #  works
+        if grp.ndim == 2:
+            # Ensure that fast_path fails
+            raise NotImplementedError("Don't cross the streams")
+        return grp * 2
+
+    # Check that the fastpath raises, see _transform_general
+    obj = gb._obj_with_exclusions
+    gen = gb.grouper.get_iterator(obj, axis=gb.axis)
+    fast_path, slow_path = gb._define_paths(func)
+    _, group = next(gen)
+
+    with pytest.raises(NotImplementedError, match="Don't cross the streams"):
+        fast_path(group)
+
+    result = gb.transform(func)
+
+    expected = pd.DataFrame([2, -2, 2, 4], columns=["B"])
+    tm.assert_frame_equal(result, expected)

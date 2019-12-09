@@ -32,14 +32,9 @@ def test_get_accessor_args():
     with pytest.raises(TypeError, match=msg):
         func(backend_name="", data=[], args=[], kwargs={})
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        x, y, kind, kwargs = func(
-            backend_name="", data=Series(), args=["line", None], kwargs={}
-        )
-    assert x is None
-    assert y is None
-    assert kind == "line"
-    assert kwargs == {"ax": None}
+    msg = "should not be called with positional arguments"
+    with pytest.raises(TypeError, match=msg):
+        func(backend_name="", data=Series(dtype=object), args=["line", None], kwargs={})
 
     x, y, kind, kwargs = func(
         backend_name="",
@@ -53,7 +48,10 @@ def test_get_accessor_args():
     assert kwargs == {"grid": False}
 
     x, y, kind, kwargs = func(
-        backend_name="pandas.plotting._matplotlib", data=Series(), args=[], kwargs={}
+        backend_name="pandas.plotting._matplotlib",
+        data=Series(dtype=object),
+        args=[],
+        kwargs={},
     )
     assert x is None
     assert y is None
@@ -266,7 +264,7 @@ class TestDataFramePlots(TestPlotBase):
 
         df = DataFrame(
             {
-                "feat": [i for i in range(30)],
+                "feat": list(range(30)),
                 "class": [2 for _ in range(10)]
                 + [3 for _ in range(10)]
                 + [1 for _ in range(10)],
@@ -279,8 +277,7 @@ class TestDataFramePlots(TestPlotBase):
         )
         ordered_color_label_tuples = sorted(color_label_tuples, key=lambda x: x[1])
         prev_next_tupels = zip(
-            [i for i in ordered_color_label_tuples[0:-1]],
-            [i for i in ordered_color_label_tuples[1:]],
+            list(ordered_color_label_tuples[0:-1]), list(ordered_color_label_tuples[1:])
         )
         for prev, nxt in prev_next_tupels:
             # labels and colors are ordered strictly increasing

@@ -245,7 +245,10 @@ class TestSeriesReplace:
         # GH 15289
         s = pd.Series(list("abcd"))
         tm.assert_series_equal(s, s.replace(dict()))
-        tm.assert_series_equal(s, s.replace(pd.Series([])))
+
+        with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+            empty_series = pd.Series([])
+        tm.assert_series_equal(s, s.replace(empty_series))
 
     def test_replace_string_with_number(self):
         # GH 15743
@@ -292,6 +295,29 @@ class TestSeriesReplace:
         result = s.replace({"A": 1, "B": 2})
         expected = pd.Series(numeric)
         tm.assert_series_equal(expected, result, check_dtype=False)
+
+    def test_replace_categorical_single(self):
+        # GH 26988
+        dti = pd.date_range("2016-01-01", periods=3, tz="US/Pacific")
+        s = pd.Series(dti)
+        c = s.astype("category")
+
+        expected = c.copy()
+        expected = expected.cat.add_categories("foo")
+        expected[2] = "foo"
+        expected = expected.cat.remove_unused_categories()
+        assert c[2] != "foo"
+
+        result = c.replace(c[2], "foo")
+        tm.assert_series_equal(expected, result)
+        assert c[2] != "foo"  # ensure non-inplace call does not alter original
+
+        c.replace(c[2], "foo", inplace=True)
+        tm.assert_series_equal(expected, c)
+
+        first_value = c[0]
+        c.replace(c[1], c[0], inplace=True)
+        assert c[0] == c[1] == first_value  # test replacing with existing value
 
     def test_replace_with_no_overflowerror(self):
         # GH 25616
