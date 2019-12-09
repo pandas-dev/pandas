@@ -124,6 +124,8 @@ def test_to_boolean_array_missing_indicators(a, b):
         [1.0, 2.0],
         pd.date_range("20130101", periods=2),
         np.array(["foo"]),
+        np.array([1, 2]),
+        np.array([1.0, 2.0]),
         [np.nan, {"a": 1}],
     ],
 )
@@ -133,24 +135,37 @@ def test_to_boolean_array_error(values):
         pd.array(values, dtype="boolean")
 
 
+def test_to_boolean_array_from_integer_array():
+    result = pd.array(np.array([1, 0, 1, 0]), dtype="boolean")
+    expected = pd.array([True, False, True, False], dtype="boolean")
+    tm.assert_extension_array_equal(result, expected)
+
+    # with missing values
+    result = pd.array(np.array([1, 0, 1, None]), dtype="boolean")
+    expected = pd.array([True, False, True, None], dtype="boolean")
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_to_boolean_array_from_float_array():
+    result = pd.array(np.array([1.0, 0.0, 1.0, 0.0]), dtype="boolean")
+    expected = pd.array([True, False, True, False], dtype="boolean")
+    tm.assert_extension_array_equal(result, expected)
+
+    # with missing values
+    result = pd.array(np.array([1.0, 0.0, 1.0, np.nan]), dtype="boolean")
+    expected = pd.array([True, False, True, None], dtype="boolean")
+    tm.assert_extension_array_equal(result, expected)
+
+
 def test_to_boolean_array_integer_like():
     # integers of 0's and 1's
     result = pd.array([1, 0, 1, 0], dtype="boolean")
     expected = pd.array([True, False, True, False], dtype="boolean")
     tm.assert_extension_array_equal(result, expected)
 
-    result = pd.array(np.array([1, 0, 1, 0]), dtype="boolean")
-    tm.assert_extension_array_equal(result, expected)
-
-    result = pd.array(np.array([1.0, 0.0, 1.0, 0.0]), dtype="boolean")
-    tm.assert_extension_array_equal(result, expected)
-
     # with missing values
     result = pd.array([1, 0, 1, None], dtype="boolean")
     expected = pd.array([True, False, True, None], dtype="boolean")
-    tm.assert_extension_array_equal(result, expected)
-
-    result = pd.array(np.array([1.0, 0.0, 1.0, np.nan]), dtype="boolean")
     tm.assert_extension_array_equal(result, expected)
 
 
