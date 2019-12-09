@@ -905,7 +905,7 @@ def index(request):
     return _indexes[request.param].copy()
 
 
-_arr = arr = np.random.randn(10)
+_arr = np.random.randn(10)
 
 
 @pytest.fixture
@@ -923,19 +923,20 @@ _series = {
 _arr_int = np.random.choice(10, size=10, replace=False)
 
 
-def _create_narrow_series(data_dtype):
+def _create_narrow_series(data, data_dtype):
+    """ Helper for the _narrow_series dict """
     index = _indexes["int-index"].copy()
-    return pd.Series(_arr.astype(data_dtype), index=index, name="a")
+    return pd.Series(data.astype(data_dtype), index=index, name="a")
 
 
 _narrow_series = {
-    "float32-series": _create_narrow_series(np.float32),
-    "int8-series": _create_narrow_series(np.int8),
-    "int16-series": _create_narrow_series(np.int16),
-    "int32-series": _create_narrow_series(np.int32),
-    "uint8-series": _create_narrow_series(np.uint8),
-    "uint16-series": _create_narrow_series(np.uint16),
-    "uint32-series": _create_narrow_series(np.uint32),
+    "float32-series": _create_narrow_series(_arr, np.float32),
+    "int8-series": _create_narrow_series(_arr_int, np.int8),
+    "int16-series": _create_narrow_series(_arr_int, np.int16),
+    "int32-series": _create_narrow_series(_arr_int, np.int32),
+    "uint8-series": _create_narrow_series(_arr_int, np.uint8),
+    "uint16-series": _create_narrow_series(_arr_int, np.uint16),
+    "uint32-series": _create_narrow_series(_arr_int, np.uint32),
 }
 
 _all_objs = {**_indexes, **_series, **_narrow_series}
