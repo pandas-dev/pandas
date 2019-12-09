@@ -974,6 +974,7 @@ On a ``Series``, multiple functions return a ``Series``, indexed by the function
 Passing a ``lambda`` function will yield a ``<lambda>`` named row:
 
 .. ipython:: python
+   :okwarning:
 
    tsdf['A'].agg(['sum', lambda x: x.mean()])
 
@@ -1035,6 +1036,7 @@ With ``.agg()`` is it possible to easily create a custom describe function, simi
 to the built in :ref:`describe function <basics.describe>`.
 
 .. ipython:: python
+   :okwarning:
 
    from functools import partial
 
@@ -1067,7 +1069,6 @@ Transform the entire frame. ``.transform()`` allows input functions as: a NumPy 
 function name or a user defined function.
 
 .. ipython:: python
-   :okwarning:
 
    tsdf.transform(np.abs)
    tsdf.transform('abs')
@@ -1094,6 +1095,7 @@ The first level will be the original frame column names; the second level
 will be the names of the transforming functions.
 
 .. ipython:: python
+   :okwarning:
 
    tsdf.transform([np.abs, lambda x: x + 1])
 
@@ -1101,6 +1103,7 @@ Passing multiple functions to a Series will yield a DataFrame. The
 resulting column names will be the transforming functions.
 
 .. ipython:: python
+   :okwarning:
 
    tsdf['A'].transform([np.abs, lambda x: x + 1])
 

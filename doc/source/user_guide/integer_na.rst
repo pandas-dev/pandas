@@ -113,6 +113,7 @@ These dtypes can operate as part of of ``DataFrame``.
 These dtypes can be merged & reshaped & casted.
 
 .. ipython:: python
+   :okwarning:
 
    pd.concat([df[['A']], df[['B', 'C']]], axis=1).dtypes
    df['A'].astype(float)
