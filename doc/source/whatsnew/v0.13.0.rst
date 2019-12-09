@@ -822,7 +822,7 @@ Experimental
   For more details see the :ref:`the docs<indexing.query>`.
 
 - ``pd.read_msgpack()`` and ``pd.to_msgpack()`` are now a supported method of serialization
-  of arbitrary pandas (and python objects) in a lightweight portable binary format. See :ref:`the docs<io.msgpack>`
+  of arbitrary pandas (and python objects) in a lightweight portable binary format.
 
   .. warning::
 
