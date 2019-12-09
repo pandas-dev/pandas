@@ -1895,6 +1895,10 @@ class IndexCol:
         freq=None,
         tz=None,
         index_name=None,
+        ordered=None,
+        table=None,
+        meta=None,
+        metadata=None,
     ):
 
         if not isinstance(name, str):
@@ -1910,9 +1914,10 @@ class IndexCol:
         self.freq = freq
         self.tz = tz
         self.index_name = index_name
-        self.table = None
-        self.meta = None
-        self.metadata = None
+        self.ordered = ordered
+        self.table = table
+        self.meta = meta
+        self.metadata = metadata
 
         if pos is not None:
             self.set_pos(pos)
@@ -1968,23 +1973,9 @@ class IndexCol:
         #  'error: "None" has no attribute "cols"'
         return getattr(self.table.cols, self.cname).is_indexed  # type: ignore
 
-    def copy(self):
-        new_self = copy.copy(self)
-        return new_self
-
-    def infer(self, handler: "Table"):
-        """infer this column from the table: create and return a new object"""
-        table = handler.table
-        new_self = self.copy()
-        new_self.table = table
-        new_self.get_attr()
-        new_self.read_metadata(handler)
-        return new_self
-
-    def convert(
-        self, values: np.ndarray, nan_rep, encoding, errors, start=None, stop=None
-    ):
+    def convert(self, values: np.ndarray, nan_rep, encoding: str, errors: str):
         """ set the values from this selection: take = take ownership """
+        assert isinstance(values, np.ndarray), type(values)
 
         # values is a recarray
         if values.dtype.fields is not None:
@@ -1993,21 +1984,23 @@ class IndexCol:
         values = _maybe_convert(values, self.kind, encoding, errors)
 
         kwargs = dict()
+        kwargs["name"] = _ensure_decoded(self.index_name)
+
         if self.freq is not None:
             kwargs["freq"] = _ensure_decoded(self.freq)
-        if self.index_name is not None:
-            kwargs["name"] = _ensure_decoded(self.index_name)
+
         # making an Index instance could throw a number of different errors
         try:
-            self.values = Index(values, **kwargs)
+            new_pd_index = Index(values, **kwargs)
         except ValueError:
             # if the output freq is different that what we recorded,
             # it should be None (see also 'doc example part 2')
             if "freq" in kwargs:
                 kwargs["freq"] = None
-            self.values = Index(values, **kwargs)
+            new_pd_index = Index(values, **kwargs)
 
-        self.values = _set_tz(self.values, self.tz)
+        new_pd_index = _set_tz(new_pd_index, self.tz)
+        self.values = new_pd_index
 
     def take_data(self):
         """ return the values & release the memory """
@@ -2097,7 +2090,7 @@ class IndexCol:
         for key in self._info_fields:
 
             value = getattr(self, key, None)
-            idx = _get_info(info, self.name)
+            idx = info.setdefault(self.name, {})
 
             existing_value = idx.get(key)
             if key in idx and value is not None and existing_value != value:
@@ -2135,10 +2128,6 @@ class IndexCol:
         """ set the kind for this column """
         setattr(self.attrs, self.kind_attr, self.kind)
 
-    def read_metadata(self, handler):
-        """ retrieve the metadata for this columns """
-        self.metadata = handler.read_metadata(self.cname)
-
     def validate_metadata(self, handler: "AppendableTable"):
         """ validate that kind=category does not change the categories """
         if self.meta == "category":
@@ -2167,35 +2156,19 @@ class GenericIndexCol(IndexCol):
     def is_indexed(self) -> bool:
         return False
 
-    def convert(
-        self,
-        values,
-        nan_rep,
-        encoding,
-        errors,
-        start: Optional[int] = None,
-        stop: Optional[int] = None,
-    ):
-        """ set the values from this selection: take = take ownership
+    def convert(self, values: np.ndarray, nan_rep, encoding: str, errors: str):
+        """
+        Set the values from this selection.
 
         Parameters
         ----------
-
         values : np.ndarray
         nan_rep : str
         encoding : str
         errors : str
-        start : int, optional
-            Table row number: the start of the sub-selection.
-        stop : int, optional
-            Table row number: the end of the sub-selection. Values larger than
-            the underlying table's row count are normalized to that.
         """
-        assert self.table is not None  # for mypy
-
-        _start = start if start is not None else 0
-        _stop = min(stop, self.table.nrows) if stop is not None else self.table.nrows
-        self.values = Int64Index(np.arange(_stop - _start))
+        assert isinstance(values, np.ndarray), type(values)
+        self.values = Int64Index(np.arange(len(values)))
 
     def get_attr(self):
         pass
@@ -2221,20 +2194,32 @@ class DataCol(IndexCol):
     is_data_indexable = False
     _info_fields = ["tz", "ordered"]
 
-    @classmethod
-    def create_for_block(cls, name: str, version, pos: int):
-        """ return a new datacol with the block i """
-        assert isinstance(name, str)
-
-        cname = name
-        name = _maybe_adjust_name(name, version)
-        return cls(name=name, cname=cname, pos=pos)
-
     def __init__(
-        self, name: str, values=None, kind=None, typ=None, cname=None, pos=None,
+        self,
+        name: str,
+        values=None,
+        kind=None,
+        typ=None,
+        cname=None,
+        pos=None,
+        tz=None,
+        ordered=None,
+        table=None,
+        meta=None,
+        metadata=None,
     ):
         super().__init__(
-            name=name, values=values, kind=kind, typ=typ, pos=pos, cname=cname
+            name=name,
+            values=values,
+            kind=kind,
+            typ=typ,
+            pos=pos,
+            cname=cname,
+            tz=tz,
+            ordered=ordered,
+            table=table,
+            meta=meta,
+            metadata=metadata,
         )
         self.dtype = None
         self.data = None
@@ -2269,6 +2254,7 @@ class DataCol(IndexCol):
 
     def set_data(self, data: Union[np.ndarray, ABCExtensionArray]):
         assert data is not None
+        assert self.dtype is None
 
         if is_categorical_dtype(data.dtype):
             data = data.codes
@@ -2282,52 +2268,13 @@ class DataCol(IndexCol):
             #  doing that doesnt seem to break anything.  why?
 
         self.data = data
-
-        if self.dtype is None:
-            self.dtype = dtype_name
-            self.set_kind()
+        self.dtype = dtype_name
+        self.kind = _dtype_to_kind(dtype_name)
 
     def take_data(self):
         """ return the data & release the memory """
         self.data, data = None, self.data
         return data
-
-    def set_kind(self):
-        # set my kind if we can
-
-        if self.dtype is not None:
-            dtype = _ensure_decoded(self.dtype)
-
-            if dtype.startswith("string") or dtype.startswith("bytes"):
-                self.kind = "string"
-            elif dtype.startswith("float"):
-                self.kind = "float"
-            elif dtype.startswith("complex"):
-                self.kind = "complex"
-            elif dtype.startswith("int") or dtype.startswith("uint"):
-                self.kind = "integer"
-            elif dtype.startswith("date"):
-                # in tests this is always "datetime64"
-                self.kind = "datetime"
-            elif dtype.startswith("timedelta"):
-                self.kind = "timedelta"
-            elif dtype.startswith("bool"):
-                self.kind = "bool"
-            else:
-                raise AssertionError(f"cannot interpret dtype of [{dtype}] in [{self}]")
-
-            # set my typ if we need
-            if self.typ is None:
-                self.typ = getattr(self.description, self.cname, None)
-
-    def set_atom(self, block):
-        """ create and setup my atom from the block b """
-
-        # short-cut certain block types
-        if block.is_categorical:
-            self.set_atom_categorical(block)
-        elif block.is_datetimetz:
-            self.set_atom_datetime64tz(block)
 
     @classmethod
     def _get_atom(cls, values: Union[np.ndarray, ABCExtensionArray]) -> "Col":
@@ -2381,30 +2328,9 @@ class DataCol(IndexCol):
     def get_atom_data(cls, shape, kind: str) -> "Col":
         return cls.get_atom_coltype(kind=kind)(shape=shape[0])
 
-    def set_atom_categorical(self, block):
-        # currently only supports a 1-D categorical
-        # in a 1-D block
-
-        values = block.values
-
-        if values.ndim > 1:
-            raise NotImplementedError("only support 1-d categoricals")
-
-        # write the codes; must be in a block shape
-        self.ordered = values.ordered
-
-        # write the categories
-        self.meta = "category"
-        self.metadata = np.array(values.categories, copy=False).ravel()
-
     @classmethod
     def get_atom_datetime64(cls, shape):
         return _tables().Int64Col(shape=shape[0])
-
-    def set_atom_datetime64tz(self, block):
-
-        # store a converted timezone
-        self.tz = _get_tz(block.values.tz)
 
     @classmethod
     def get_atom_timedelta64(cls, shape):
@@ -2433,94 +2359,105 @@ class DataCol(IndexCol):
                     "items dtype in table!"
                 )
 
-    def convert(self, values, nan_rep, encoding, errors, start=None, stop=None):
+    def convert(self, values: np.ndarray, nan_rep, encoding: str, errors: str):
         """set the data from this selection (and convert to the correct dtype
         if we can)
         """
+        assert isinstance(values, np.ndarray), type(values)
 
         # values is a recarray
         if values.dtype.fields is not None:
             values = values[self.cname]
 
-        # NB: unlike in the other calls to set_data, self.dtype may not be None here
-        self.set_data(values)
+        assert self.typ is not None
+        if self.dtype is None:
+            self.set_data(values)
+        else:
+            self.data = values
+
+        own_data = self.data
 
         # use the meta if needed
         meta = _ensure_decoded(self.meta)
 
+        assert self.dtype is not None
+
         # convert to the correct dtype
-        if self.dtype is not None:
-            dtype = _ensure_decoded(self.dtype)
+        dtype = _ensure_decoded(self.dtype)
 
-            # reverse converts
-            if dtype == "datetime64":
+        # reverse converts
+        if dtype == "datetime64":
 
-                # recreate with tz if indicated
-                self.data = _set_tz(self.data, self.tz, coerce=True)
+            # recreate with tz if indicated
+            own_data = _set_tz(own_data, self.tz, coerce=True)
 
-            elif dtype == "timedelta64":
-                self.data = np.asarray(self.data, dtype="m8[ns]")
-            elif dtype == "date":
-                try:
-                    self.data = np.asarray(
-                        [date.fromordinal(v) for v in self.data], dtype=object
-                    )
-                except ValueError:
-                    self.data = np.asarray(
-                        [date.fromtimestamp(v) for v in self.data], dtype=object
-                    )
-
-            elif meta == "category":
-
-                # we have a categorical
-                categories = self.metadata
-                codes = self.data.ravel()
-
-                # if we have stored a NaN in the categories
-                # then strip it; in theory we could have BOTH
-                # -1s in the codes and nulls :<
-                if categories is None:
-                    # Handle case of NaN-only categorical columns in which case
-                    # the categories are an empty array; when this is stored,
-                    # pytables cannot write a zero-len array, so on readback
-                    # the categories would be None and `read_hdf()` would fail.
-                    categories = Index([], dtype=np.float64)
-                else:
-                    mask = isna(categories)
-                    if mask.any():
-                        categories = categories[~mask]
-                        codes[codes != -1] -= mask.astype(int).cumsum().values
-
-                self.data = Categorical.from_codes(
-                    codes, categories=categories, ordered=self.ordered
+        elif dtype == "timedelta64":
+            own_data = np.asarray(own_data, dtype="m8[ns]")
+        elif dtype == "date":
+            try:
+                own_data = np.asarray(
+                    [date.fromordinal(v) for v in own_data], dtype=object
+                )
+            except ValueError:
+                own_data = np.asarray(
+                    [date.fromtimestamp(v) for v in own_data], dtype=object
                 )
 
-            else:
+        elif meta == "category":
 
-                try:
-                    self.data = self.data.astype(dtype, copy=False)
-                except TypeError:
-                    self.data = self.data.astype("O", copy=False)
+            # we have a categorical
+            categories = self.metadata
+            codes = own_data.ravel()
+
+            # if we have stored a NaN in the categories
+            # then strip it; in theory we could have BOTH
+            # -1s in the codes and nulls :<
+            if categories is None:
+                # Handle case of NaN-only categorical columns in which case
+                # the categories are an empty array; when this is stored,
+                # pytables cannot write a zero-len array, so on readback
+                # the categories would be None and `read_hdf()` would fail.
+                categories = Index([], dtype=np.float64)
+            else:
+                mask = isna(categories)
+                if mask.any():
+                    categories = categories[~mask]
+                    codes[codes != -1] -= mask.astype(int).cumsum().values
+
+            own_data = Categorical.from_codes(
+                codes, categories=categories, ordered=self.ordered
+            )
+
+        else:
+
+            try:
+                own_data = own_data.astype(dtype, copy=False)
+            except TypeError:
+                own_data = own_data.astype("O", copy=False)
 
         # convert nans / decode
         if _ensure_decoded(self.kind) == "string":
-            self.data = _unconvert_string_array(
-                self.data, nan_rep=nan_rep, encoding=encoding, errors=errors
+            own_data = _unconvert_string_array(
+                own_data, nan_rep=nan_rep, encoding=encoding, errors=errors
             )
+
+        self.data = own_data
 
     def get_attr(self):
         """ get the data for this column """
         self.values = getattr(self.attrs, self.kind_attr, None)
         self.dtype = getattr(self.attrs, self.dtype_attr, None)
         self.meta = getattr(self.attrs, self.meta_attr, None)
-        self.set_kind()
+        assert self.typ is not None
+        assert self.dtype is not None
+        self.kind = _dtype_to_kind(self.dtype)
 
     def set_attr(self):
         """ set the data for this column """
         setattr(self.attrs, self.kind_attr, self.values)
         setattr(self.attrs, self.meta_attr, self.meta)
-        if self.dtype is not None:
-            setattr(self.attrs, self.dtype_attr, self.dtype)
+        assert self.dtype is not None
+        setattr(self.attrs, self.dtype_attr, self.dtype)
 
 
 class DataIndexableCol(DataCol):
@@ -3462,10 +3399,8 @@ class Table(Fixed):
         self.encoding = _ensure_encoding(getattr(self.attrs, "encoding", None))
         self.errors = _ensure_decoded(getattr(self.attrs, "errors", "strict"))
         self.levels = getattr(self.attrs, "levels", None) or []
-        self.index_axes = [a.infer(self) for a in self.indexables if a.is_an_indexable]
-        self.values_axes = [
-            a.infer(self) for a in self.indexables if not a.is_an_indexable
-        ]
+        self.index_axes = [a for a in self.indexables if a.is_an_indexable]
+        self.values_axes = [a for a in self.indexables if not a.is_an_indexable]
         self.metadata = getattr(self.attrs, "metadata", None) or []
 
     def validate_version(self, where=None):
@@ -3501,15 +3436,26 @@ class Table(Fixed):
         """ create/cache the indexables if they don't exist """
         _indexables = []
 
+        desc = self.description
+
         # Note: each of the `name` kwargs below are str, ensured
         #  by the definition in index_cols.
         # index columns
-        _indexables.extend(
-            [
-                IndexCol(name=name, axis=axis, pos=i)
-                for i, (axis, name) in enumerate(self.attrs.index_cols)
-            ]
-        )
+        for i, (axis, name) in enumerate(self.attrs.index_cols):
+            atom = getattr(desc, name)
+            md = self.read_metadata(name)
+            meta = "category" if md is not None else None
+            index_col = IndexCol(
+                name=name,
+                axis=axis,
+                pos=i,
+                typ=atom,
+                table=self.table,
+                meta=meta,
+                metadata=md,
+            )
+            index_col.get_attr()
+            _indexables.append(index_col)
 
         # values columns
         dc = set(self.data_columns)
@@ -3520,9 +3466,22 @@ class Table(Fixed):
             klass = DataCol
             if c in dc:
                 klass = DataIndexableCol
-            return klass.create_for_block(
-                name=c, pos=base_pos + i, version=self.version
+
+            atom = getattr(desc, c)
+            adj_name = _maybe_adjust_name(c, self.version)
+            md = self.read_metadata(c)
+            meta = "category" if md is not None else None
+            obj = klass(
+                name=adj_name,
+                cname=c,
+                pos=base_pos + i,
+                typ=atom,
+                table=self.table,
+                meta=meta,
+                metadata=md,
             )
+            obj.get_attr()
+            return obj
 
         # Note: the definition of `values_cols` ensures that each
         #  `c` below is a str.
@@ -3645,8 +3604,6 @@ class Table(Fixed):
                 nan_rep=self.nan_rep,
                 encoding=self.encoding,
                 errors=self.errors,
-                start=start,
-                stop=stop,
             )
 
         return True
@@ -3757,7 +3714,6 @@ class Table(Fixed):
 
         # create according to the new data
         new_non_index_axes: List = []
-        new_data_columns: List[Optional[str]] = []
 
         # nan_representation
         if nan_rep is None:
@@ -3800,8 +3756,6 @@ class Table(Fixed):
         new_index.update_info(self.info)
         new_index.maybe_set_size(min_itemsize)  # check for column conflicts
 
-        self.non_index_axes = new_non_index_axes
-
         new_index_axes = [new_index]
         j = len(new_index_axes)  # i.e. 1
         assert j == 1
@@ -3820,22 +3774,21 @@ class Table(Fixed):
         block_obj = self.get_object(obj, transposed)._consolidate()
         blocks = block_obj._data.blocks
         blk_items = get_blk_items(block_obj._data, blocks)
-        if len(new_non_index_axes):
-            axis, axis_labels = new_non_index_axes[0]
-            data_columns = self.validate_data_columns(
-                data_columns, min_itemsize, new_non_index_axes
-            )
-            if len(data_columns):
-                mgr = block_obj.reindex(
-                    Index(axis_labels).difference(Index(data_columns)), axis=axis
-                )._data
 
-                blocks = list(mgr.blocks)
-                blk_items = get_blk_items(mgr, blocks)
-                for c in data_columns:
-                    mgr = block_obj.reindex([c], axis=axis)._data
-                    blocks.extend(mgr.blocks)
-                    blk_items.extend(get_blk_items(mgr, mgr.blocks))
+        data_columns = self.validate_data_columns(
+            data_columns, min_itemsize, new_non_index_axes
+        )
+        if len(data_columns):
+            axis, axis_labels = new_non_index_axes[0]
+            new_labels = Index(axis_labels).difference(Index(data_columns))
+            mgr = block_obj.reindex(new_labels, axis=axis)._data
+
+            blocks = list(mgr.blocks)
+            blk_items = get_blk_items(mgr, blocks)
+            for c in data_columns:
+                mgr = block_obj.reindex([c], axis=axis)._data
+                blocks.extend(mgr.blocks)
+                blk_items.extend(get_blk_items(mgr, mgr.blocks))
 
         # reorder the blocks in the same order as the existing_table if we can
         if existing_table is not None:
@@ -3875,7 +3828,6 @@ class Table(Fixed):
                 if not (name is None or isinstance(name, str)):
                     # TODO: should the message here be more specifically non-str?
                     raise ValueError("cannot have non-object label DataIndexableCol")
-                new_data_columns.append(name)
 
             # make sure that we match up the existing columns
             # if we have an existing table
@@ -3903,11 +3855,27 @@ class Table(Fixed):
             adj_name = _maybe_adjust_name(new_name, self.version)
 
             typ = klass._get_atom(data_converted)
+            kind = _dtype_to_kind(data_converted.dtype.name)
+            tz = _get_tz(data_converted.tz) if hasattr(data_converted, "tz") else None
+
+            meta = metadata = ordered = None
+            if is_categorical_dtype(data_converted):
+                ordered = data_converted.ordered
+                meta = "category"
+                metadata = np.array(data_converted.categories, copy=False).ravel()
 
             col = klass(
-                name=adj_name, cname=new_name, values=list(b_items), typ=typ, pos=j
+                name=adj_name,
+                cname=new_name,
+                values=list(b_items),
+                typ=typ,
+                pos=j,
+                kind=kind,
+                tz=tz,
+                ordered=ordered,
+                meta=meta,
+                metadata=metadata,
             )
-            col.set_atom(block=b)
             col.set_data(data_converted)
             col.update_info(self.info)
 
@@ -3916,7 +3884,7 @@ class Table(Fixed):
             j += 1
 
         self.nan_rep = nan_rep
-        self.data_columns = new_data_columns
+        self.data_columns = [col.name for col in vaxes if col.is_data_indexable]
         self.values_axes = vaxes
         self.index_axes = new_index_axes
         self.non_index_axes = new_non_index_axes
@@ -4516,10 +4484,8 @@ class GenericTable(AppendableFrameTable):
         self.nan_rep = None
         self.levels = []
 
-        self.index_axes = [a.infer(self) for a in self.indexables if a.is_an_indexable]
-        self.values_axes = [
-            a.infer(self) for a in self.indexables if not a.is_an_indexable
-        ]
+        self.index_axes = [a for a in self.indexables if a.is_an_indexable]
+        self.values_axes = [a for a in self.indexables if not a.is_an_indexable]
         self.data_columns = [a.name for a in self.values_axes]
 
     @cache_readonly
@@ -4527,13 +4493,34 @@ class GenericTable(AppendableFrameTable):
         """ create the indexables from the table description """
         d = self.description
 
+        # TODO: can we get a typ for this?  AFAICT it is the only place
+        #  where we aren't passing one
         # the index columns is just a simple index
-        _indexables = [GenericIndexCol(name="index", axis=0)]
+        md = self.read_metadata("index")
+        meta = "category" if md is not None else None
+        index_col = GenericIndexCol(
+            name="index", axis=0, table=self.table, meta=meta, metadata=md
+        )
+        index_col.get_attr()
+
+        _indexables = [index_col]
 
         for i, n in enumerate(d._v_names):
             assert isinstance(n, str)
 
-            dc = GenericDataIndexableCol(name=n, pos=i, values=[n])
+            atom = getattr(d, n)
+            md = self.read_metadata(n)
+            meta = "category" if md is not None else None
+            dc = GenericDataIndexableCol(
+                name=n,
+                pos=i,
+                values=[n],
+                typ=atom,
+                table=self.table,
+                meta=meta,
+                metadata=md,
+            )
+            dc.get_attr()
             _indexables.append(dc)
 
         return _indexables
@@ -4603,15 +4590,6 @@ def _reindex_axis(obj, axis: int, labels: Index, other=None):
         slicer[axis] = labels
         obj = obj.loc[tuple(slicer)]
     return obj
-
-
-def _get_info(info, name):
-    """ get/create the info for this name """
-    try:
-        idx = info[name]
-    except KeyError:
-        idx = info[name] = dict()
-    return idx
 
 
 # tz to/from coercion
@@ -4910,16 +4888,15 @@ def _unconvert_string_array(data, nan_rep=None, encoding=None, errors="strict"):
     return data.reshape(shape)
 
 
-def _maybe_convert(values: np.ndarray, val_kind, encoding, errors):
+def _maybe_convert(values: np.ndarray, val_kind, encoding: str, errors: str):
     val_kind = _ensure_decoded(val_kind)
     if _need_convert(val_kind):
         conv = _get_converter(val_kind, encoding, errors)
-        # conv = np.frompyfunc(conv, 1, 1)
         values = conv(values)
     return values
 
 
-def _get_converter(kind: str, encoding, errors):
+def _get_converter(kind: str, encoding: str, errors: str):
     if kind == "datetime64":
         return lambda x: np.asarray(x, dtype="M8[ns]")
     elif kind == "string":
@@ -4957,6 +4934,35 @@ def _maybe_adjust_name(name: str, version) -> str:
     except IndexError:
         pass
     return name
+
+
+def _dtype_to_kind(dtype_str: str) -> str:
+    """
+    Find the "kind" string describing the given dtype name.
+    """
+    dtype_str = _ensure_decoded(dtype_str)
+
+    if dtype_str.startswith("string") or dtype_str.startswith("bytes"):
+        kind = "string"
+    elif dtype_str.startswith("float"):
+        kind = "float"
+    elif dtype_str.startswith("complex"):
+        kind = "complex"
+    elif dtype_str.startswith("int") or dtype_str.startswith("uint"):
+        kind = "integer"
+    elif dtype_str.startswith("date"):
+        # in tests this is always "datetime64"
+        kind = "datetime"
+    elif dtype_str.startswith("timedelta"):
+        kind = "timedelta"
+    elif dtype_str.startswith("bool"):
+        kind = "bool"
+    elif dtype_str.startswith("category"):
+        kind = "category"
+    else:
+        raise ValueError(f"cannot interpret dtype of [{dtype_str}]")
+
+    return kind
 
 
 class Selection:
