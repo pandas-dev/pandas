@@ -1253,8 +1253,14 @@ class _Rolling_and_Expanding(_Rolling):
     engine : str, default 'cython'
         Execution engine for the applied function.
         * ``'cython'`` : Runs rolling apply through C-extensions from cython.
-        * ``'numba'`` : Runn rolling apply through JIT compiled code from numba.
+        * ``'numba'`` : Runs rolling apply through JIT compiled code from numba.
           Only available when ``raw`` is set to ``True``.
+    engine_kwargs : dict, default None
+        Arguments to specify for the execution engine.
+        * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+        * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+          and ``parallel``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+          ``{'nopython': True, 'nogil': False, 'parallel': False}``
 
     Returns
     -------
@@ -1268,8 +1274,15 @@ class _Rolling_and_Expanding(_Rolling):
     """
     )
 
-    def apply(self, func, raw=False, args=None, kwargs=None, engine='cython'):
-        from pandas import Series
+    def apply(
+        self,
+        func,
+        raw=False,
+        args=None,
+        kwargs=None,
+        engine="cython",
+        engine_kwargs=None,
+    ):
 
         kwargs.pop("_level", None)
         kwargs.pop("floor", None)
@@ -1279,12 +1292,30 @@ class _Rolling_and_Expanding(_Rolling):
             args = ()
         if kwargs is None:
             kwargs = {}
-        if engine not in {'cython', 'numba'}:
-            raise ValueError("engine must be either 'numba' or 'cython'")
         if not is_bool(raw):
             raise ValueError("raw parameter must be `True` or `False`")
-        if raw is False and engine == 'numba':
-            raise ValueError("raw must be `True` when using the numba engine")
+
+        if engine == "cython":
+            if engine_kwargs is not None:
+                raise ValueError("cython engine does not accept engine_kwargs")
+            apply_func = self._generate_cython_apply_func(
+                args, kwargs, raw, offset, func
+            )
+        elif engine == "numba":
+            if raw is False:
+                raise ValueError("raw must be `True` when using the numba engine")
+            apply_func = self._generate_numba_apply_func(
+                args, kwargs, func, engine_kwargs
+            )
+        else:
+            raise ValueError("engine must be either 'numba' or 'cython'")
+
+        # TODO: Why do we always pass center=False?
+        # name=func for WindowGroupByMixin._apply
+        return self._apply(apply_func, center=False, floor=0, name=func)
+
+    def _generate_cython_apply_func(self, args, kwargs, raw, offset, func):
+        from pandas import Series
 
         window_func = partial(
             self._get_cython_func_type("roll_generic"),
@@ -1300,9 +1331,77 @@ class _Rolling_and_Expanding(_Rolling):
                 values = Series(values, index=self.obj.index)
             return window_func(values, begin, end, min_periods)
 
-        # TODO: Why do we always pass center=False?
-        # name=func for WindowGroupByMixin._apply
-        return self._apply(apply_func, center=False, floor=0, name=func)
+        return apply_func
+
+    def _generate_numba_apply_func(self, args, kwargs, func, engine_kwargs):
+        numba = import_optional_dependency("numba")
+
+        if engine_kwargs is None:
+            engine_kwargs = {"nopython": True, "nogil": False, "parallel": False}
+
+        nopython = engine_kwargs.get("nopython", True)
+        nogil = engine_kwargs.get("nogil", False)
+        # Maybe raise something here about 32 bit compat, if not compat.is_platform_32bit()
+        parallel = engine_kwargs.get("parallel", False)
+
+        if kwargs and nopython:
+            raise ValueError(
+                "numba does not support kwargs with nopython=True: "
+                "https://github.com/numba/numba/issues/2916"
+            )
+
+        if parallel:
+            loop_range = numba.prange
+        else:
+            loop_range = range
+
+        def make_rolling_apply(func):
+            """
+            1. jit the user's function
+            2. Return a rolling apply function with the jitted function inline
+
+            Configurations specified in engine_kwargs apply to both the user's
+            function _AND_ the rolling apply function.
+            """
+
+            @numba.generated_jit(nopython=nopython)
+            def numba_func(window, *_args):
+                if getattr(np, func.__name__, False) is func:
+
+                    def impl(window, *_args):
+                        return func(window, *_args)
+
+                    return impl
+                else:
+                    jf = numba.jit(func, nopython=nopython)
+
+                    def impl(window, *_args):
+                        return jf(window, *_args)
+
+                    return impl
+
+            @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+            def roll_apply(
+                values: np.ndarray,
+                begin: np.ndarray,
+                end: np.ndarray,
+                minimum_periods: int,
+            ):
+                result = np.empty(len(begin))
+                for i in loop_range(len(result)):
+                    start = begin[i]
+                    stop = end[i]
+                    window = values[start:stop]
+                    count_nan = np.sum(np.isnan(window))
+                    if len(window) - count_nan >= minimum_periods:
+                        result[i] = numba_func(window, *args)
+                    else:
+                        result[i] = np.nan
+                return result
+
+            return roll_apply
+
+        return make_rolling_apply(func)
 
     def sum(self, *args, **kwargs):
         nv.validate_window_func("sum", args, kwargs)
