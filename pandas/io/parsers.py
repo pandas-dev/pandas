@@ -1079,7 +1079,7 @@ class TextFileReader(BaseIterator):
         if converters is not None:
             if not isinstance(converters, dict):
                 raise TypeError(
-                    f"Type converters must be a dict or subclass, "
+                    "Type converters must be a dict or subclass, "
                     f"input was a {type(converters).__name__}"
                 )
         else:
