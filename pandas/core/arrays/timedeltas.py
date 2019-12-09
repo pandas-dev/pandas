@@ -157,7 +157,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
     _typ = "timedeltaarray"
     _scalar_type = Timedelta
-    __array_priority__ = 1000
+    __array_priority__ = 1_000
     # define my properties & methods for delegation
     _other_ops: List[str] = []
     _bool_ops: List[str] = []

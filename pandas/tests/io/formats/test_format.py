@@ -233,7 +233,7 @@ class TestDataFrameFormatting:
                 else:
                     assert "..." not in line
 
-        with option_context("display.max_colwidth", 999999):
+        with option_context("display.max_colwidth", 999_999):
             assert "..." not in repr(df)
 
         with option_context("display.max_colwidth", max_len + 2):
@@ -286,11 +286,11 @@ class TestDataFrameFormatting:
             )
 
     def test_repr_obeys_max_seq_limit(self):
-        with option_context("display.max_seq_items", 2000):
-            assert len(printing.pprint_thing(list(range(1000)))) > 1000
+        with option_context("display.max_seq_items", 2_000):
+            assert len(printing.pprint_thing(list(range(1_000)))) > 1_000
 
         with option_context("display.max_seq_items", 5):
-            assert len(printing.pprint_thing(list(range(1000)))) < 100
+            assert len(printing.pprint_thing(list(range(1_000)))) < 100
 
     def test_repr_set(self):
         assert printing.pprint_thing({1}) == "{1}"
@@ -354,10 +354,10 @@ class TestDataFrameFormatting:
     def test_repr_non_interactive(self):
         # in non interactive mode, there can be no dependency on the
         # result of terminal auto size detection
-        df = DataFrame("hello", index=range(1000), columns=range(5))
+        df = DataFrame("hello", index=range(1_000), columns=range(5))
 
         with option_context(
-            "mode.sim_interactive", False, "display.width", 0, "display.max_rows", 5000
+            "mode.sim_interactive", False, "display.width", 0, "display.max_rows", 5_000
         ):
             assert not has_truncated_repr(df)
             assert not has_expanded_repr(df)
@@ -408,10 +408,10 @@ class TestDataFrameFormatting:
         # determine size of truncation (...) column
         df = pd.DataFrame(
             {
-                "a": [108480, 30830],
-                "b": [12345, 12345],
-                "c": [12345, 12345],
-                "d": [12345, 12345],
+                "a": [108_480, 30_830],
+                "b": [12_345, 12_345],
+                "c": [12_345, 12_345],
+                "d": [12_345, 12_345],
                 "e": ["a" * 50] * 2,
             }
         )
@@ -719,7 +719,7 @@ class TestDataFrameFormatting:
 
         # mid col
         df = DataFrame(
-            {"a": ["あ", "いいい", "う", "ええええええ"], "b": [1, 222, 33333, 4]},
+            {"a": ["あ", "いいい", "う", "ええええええ"], "b": [1, 222, 33_333, 4]},
             index=["a", "bb", "c", "ddd"],
         )
         expected = (
@@ -755,7 +755,7 @@ class TestDataFrameFormatting:
 
         # column name
         df = DataFrame(
-            {"b": ["あ", "いいい", "う", "ええええええ"], "あああああ": [1, 222, 33333, 4]},
+            {"b": ["あ", "いいい", "う", "ええええええ"], "あああああ": [1, 222, 33_333, 4]},
             index=["a", "bb", "c", "ddd"],
         )
         expected = (
@@ -857,7 +857,7 @@ class TestDataFrameFormatting:
 
             # mid col
             df = DataFrame(
-                {"a": ["あ", "いいい", "う", "ええええええ"], "b": [1, 222, 33333, 4]},
+                {"a": ["あ", "いいい", "う", "ええええええ"], "b": [1, 222, 33_333, 4]},
                 index=["a", "bb", "c", "ddd"],
             )
             expected = (
@@ -869,7 +869,7 @@ class TestDataFrameFormatting:
 
             # last col
             df = DataFrame(
-                {"a": [1, 222, 33333, 4], "b": ["あ", "いいい", "う", "ええええええ"]},
+                {"a": [1, 222, 33_333, 4], "b": ["あ", "いいい", "う", "ええええええ"]},
                 index=["a", "bb", "c", "ddd"],
             )
             expected = (
@@ -895,7 +895,7 @@ class TestDataFrameFormatting:
 
             # column name
             df = DataFrame(
-                {"b": ["あ", "いいい", "う", "ええええええ"], "あああああ": [1, 222, 33333, 4]},
+                {"b": ["あ", "いいい", "う", "ええええええ"], "あああああ": [1, 222, 33_333, 4]},
                 index=["a", "bb", "c", "ddd"],
             )
             expected = (
@@ -1002,7 +1002,7 @@ class TestDataFrameFormatting:
 
             # ambiguous unicode
             df = DataFrame(
-                {"b": ["あ", "いいい", "¡¡", "ええええええ"], "あああああ": [1, 222, 33333, 4]},
+                {"b": ["あ", "いいい", "¡¡", "ええええええ"], "あああああ": [1, 222, 33_333, 4]},
                 index=["a", "bb", "c", "¡¡¡"],
             )
             expected = (
@@ -1339,7 +1339,7 @@ class TestDataFrameFormatting:
             assert "ddddd" in result
 
     def test_long_series(self):
-        n = 1000
+        n = 1_000
         s = Series(
             np.random.randint(-50, 50, n),
             index=["s{x:04d}".format(x=x) for x in range(n)],
@@ -1545,7 +1545,7 @@ class TestDataFrameFormatting:
         )
 
         df = DataFrame(
-            {"x": [0, 0.25, 3456.000, 12e45, 1.64e6, 1.7e8, 1.253456, np.pi, -1e6]}
+            {"x": [0, 0.25, 3_456.000, 12e45, 1.64e6, 1.7e8, 1.253_456, np.pi, -1e6]}
         )
 
         df_s = df.to_string()
@@ -1566,7 +1566,7 @@ class TestDataFrameFormatting:
             )
         assert df_s == expected
 
-        df = DataFrame({"x": [3234, 0.253]})
+        df = DataFrame({"x": [3_234, 0.253]})
         df_s = df.to_string()
 
         expected = "          x\n0  3234.000\n1     0.253"
@@ -1587,7 +1587,7 @@ class TestDataFrameFormatting:
     def test_to_string_float_format_no_fixed_width(self):
 
         # GH 21625
-        df = DataFrame({"x": [0.19999]})
+        df = DataFrame({"x": [0.19_999]})
         expected = "      x\n0 0.200"
         assert df.to_string(float_format="%.3f") == expected
 
@@ -1636,9 +1636,9 @@ class TestDataFrameFormatting:
             df = DataFrame(
                 {
                     "x": [
-                        (0.4467846931321966 + 0.0715185102060818j),
-                        (0.2739442392974528 + 0.23515228785438969j),
-                        (0.26974928742135185 + 0.3250604054898979j),
+                        (0.4_467_846_931_321_966 + 0.0_715_185_102_060_818j),
+                        (0.2_739_442_392_974_528 + 0.23_515_228_785_438_969j),
+                        (0.26_974_928_742_135_185 + 0.3_250_604_054_898_979j),
                         (-1j),
                     ]
                 }
@@ -1690,7 +1690,7 @@ c  10  11  12  13  14\
 
     def test_to_string_left_justify_cols(self):
         tm.reset_display_options()
-        df = DataFrame({"x": [3234, 0.253]})
+        df = DataFrame({"x": [3_234, 0.253]})
         df_s = df.to_string(justify="left")
         expected = "   x       \n0  3234.000\n1     0.253"
         assert df_s == expected
@@ -1699,7 +1699,7 @@ c  10  11  12  13  14\
         tm.reset_display_options()
         df = DataFrame(
             {
-                "A": [np.nan, -1, -2.1234, 3, 4],
+                "A": [np.nan, -1, -2.1_234, 3, 4],
                 "B": [np.nan, "foo", "foooo", "fooooo", "bar"],
             }
         )
@@ -1738,7 +1738,7 @@ c  10  11  12  13  14\
         tm.reset_display_options()
         df = DataFrame(
             {
-                "A": [-np.inf, np.inf, -1, -2.1234, 3, 4],
+                "A": [-np.inf, np.inf, -1, -2.1_234, 3, 4],
                 "B": [-np.inf, np.inf, "foo", "foooo", "fooooo", "bar"],
             }
         )
@@ -2076,11 +2076,11 @@ c  10  11  12  13  14\
 
     def test_float_trim_zeros(self):
         vals = [
-            2.08430917305e10,
-            3.52205017305e10,
-            2.30674817305e10,
-            2.03954217305e10,
-            5.59897817305e10,
+            2.08_430_917_305e10,
+            3.52_205_017_305e10,
+            2.30_674_817_305e10,
+            2.03_954_217_305e10,
+            5.59_897_817_305e10,
         ]
         skip = True
         for line in repr(DataFrame({"A": vals})).split("\n")[:-2]:
@@ -2140,7 +2140,7 @@ class TestSeriesFormatting:
         s = Series(["\u03c3"] * 10)
         repr(s)
 
-        a = Series(["\u05d0"] * 1000)
+        a = Series(["\u05d0"] * 1_000)
         a.name = "title1"
         repr(a)
 
@@ -2202,7 +2202,7 @@ class TestSeriesFormatting:
         assert result == expected
 
     def test_to_string_float_na_spacing(self):
-        s = Series([0.0, 1.5678, 2.0, -3.0, 4.0])
+        s = Series([0.0, 1.5_678, 2.0, -3.0, 4.0])
         s[::2] = np.nan
 
         result = s.to_string()
@@ -2261,7 +2261,7 @@ class TestSeriesFormatting:
         idx = pd.MultiIndex.from_tuples(
             [("あ", "いい"), ("う", "え"), ("おおお", "かかかか"), ("き", "くく")]
         )
-        s = Series([1, 22, 3333, 44444], index=idx)
+        s = Series([1, 22, 3_333, 44_444], index=idx)
         expected = (
             "あ    いい          1\n"
             "う    え          22\n"
@@ -2271,7 +2271,7 @@ class TestSeriesFormatting:
         assert repr(s) == expected
 
         # object dtype, shorter than unicode repr
-        s = Series([1, 22, 3333, 44444], index=[1, "AB", np.nan, "あああ"])
+        s = Series([1, 22, 3_333, 44_444], index=[1, "AB", np.nan, "あああ"])
         expected = (
             "1          1\nAB        22\nNaN     3333\nあああ    44444\ndtype: int64"
         )
@@ -2279,7 +2279,7 @@ class TestSeriesFormatting:
 
         # object dtype, longer than unicode repr
         s = Series(
-            [1, 22, 3333, 44444], index=[1, "AB", pd.Timestamp("2011-01-01"), "あああ"]
+            [1, 22, 3_333, 44_444], index=[1, "AB", pd.Timestamp("2011-01-01"), "あああ"]
         )
         expected = (
             "1                          1\n"
@@ -2356,7 +2356,7 @@ class TestSeriesFormatting:
             idx = pd.MultiIndex.from_tuples(
                 [("あ", "いい"), ("う", "え"), ("おおお", "かかかか"), ("き", "くく")]
             )
-            s = Series([1, 22, 3333, 44444], index=idx)
+            s = Series([1, 22, 3_333, 44_444], index=idx)
             expected = (
                 "あ      いい            1\n"
                 "う      え             22\n"
@@ -2367,7 +2367,7 @@ class TestSeriesFormatting:
             assert repr(s) == expected
 
             # object dtype, shorter than unicode repr
-            s = Series([1, 22, 3333, 44444], index=[1, "AB", np.nan, "あああ"])
+            s = Series([1, 22, 3_333, 44_444], index=[1, "AB", np.nan, "あああ"])
             expected = (
                 "1             1\nAB           22\nNaN        3333\n"
                 "あああ    44444\ndtype: int64"
@@ -2376,7 +2376,8 @@ class TestSeriesFormatting:
 
             # object dtype, longer than unicode repr
             s = Series(
-                [1, 22, 3333, 44444], index=[1, "AB", pd.Timestamp("2011-01-01"), "あああ"]
+                [1, 22, 3_333, 44_444],
+                index=[1, "AB", pd.Timestamp("2011-01-01"), "あああ"],
             )
             expected = (
                 "1                          1\n"
@@ -2419,11 +2420,11 @@ class TestSeriesFormatting:
 
     def test_float_trim_zeros(self):
         vals = [
-            2.08430917305e10,
-            3.52205017305e10,
-            2.30674817305e10,
-            2.03954217305e10,
-            5.59897817305e10,
+            2.08_430_917_305e10,
+            3.52_205_017_305e10,
+            2.30_674_817_305e10,
+            2.03_954_217_305e10,
+            5.59_897_817_305e10,
         ]
         for line in repr(Series(vals)).split("\n"):
             if line.startswith("dtype:"):
@@ -2478,7 +2479,7 @@ class TestSeriesFormatting:
 
         from datetime import datetime, timedelta
 
-        Series(np.array([1100, 20], dtype="timedelta64[ns]")).to_string()
+        Series(np.array([11_00, 20], dtype="timedelta64[ns]")).to_string()
 
         s = Series(date_range("2012-1-1", periods=3, freq="D"))
 
@@ -2623,7 +2624,7 @@ class TestSeriesFormatting:
 
     # Make sure #8532 is fixed
     def test_consistent_format(self):
-        s = pd.Series([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0.9999, 1, 1] * 10)
+        s = pd.Series([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0.9_999, 1, 1] * 10)
         with option_context("display.max_rows", 10, "display.show_dimensions", False):
             res = repr(s)
         exp = (
@@ -2823,19 +2824,19 @@ class TestFloatArrayFormatter:
                     "col1": [
                         9.999e-8,
                         1e-7,
-                        1.0001e-7,
+                        1.0_001e-7,
                         2e-7,
                         4.999e-7,
                         5e-7,
-                        5.0001e-7,
+                        5.0_001e-7,
                         6e-7,
                         9.999e-7,
                         1e-6,
-                        1.0001e-6,
+                        1.0_001e-6,
                         2e-6,
                         4.999e-6,
                         5e-6,
-                        5.0001e-6,
+                        5.0_001e-6,
                         6e-6,
                     ]
                 }
@@ -2890,7 +2891,7 @@ class TestFloatArrayFormatter:
         with pd.option_context("display.precision", 4):
             # need both a number > 1e6 and something that normally formats to
             # having length > display.precision + 6
-            df = pd.DataFrame(dict(x=[12345.6789]))
+            df = pd.DataFrame(dict(x=[12_345.6_789]))
             assert str(df) == "            x\n0  12345.6789"
             df = pd.DataFrame(dict(x=[2e6]))
             assert str(df) == "           x\n0  2000000.0"

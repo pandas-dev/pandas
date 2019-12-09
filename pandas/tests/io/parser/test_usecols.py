@@ -197,9 +197,12 @@ def test_usecols_with_whitespace(all_parsers):
     "usecols,expected",
     [
         # Column selection by index.
-        ([0, 1], DataFrame(data=[[1000, 2000], [4000, 5000]], columns=["2", "0"])),
+        ([0, 1], DataFrame(data=[[1_000, 2_000], [4_000, 5_000]], columns=["2", "0"])),
         # Column selection by name.
-        (["0", "1"], DataFrame(data=[[2000, 3000], [5000, 6000]], columns=["0", "1"])),
+        (
+            ["0", "1"],
+            DataFrame(data=[[2_000, 3_000], [5_000, 6_000]], columns=["0", "1"]),
+        ),
     ],
 )
 def test_usecols_with_integer_like_header(all_parsers, usecols, expected):
@@ -249,7 +252,7 @@ def test_usecols_with_parse_dates2(all_parsers):
         ],
         name="date",
     )
-    cols = {"values": [1032.43, 1042.54, 1051.65]}
+    cols = {"values": [1_032.43, 1_042.54, 1_051.65]}
     expected = DataFrame(cols, index=index)
 
     result = parser.read_csv(
@@ -349,7 +352,11 @@ def test_usecols_with_unicode_strings(all_parsers):
     parser = all_parsers
 
     exp_data = {
-        "AAA": {0: 0.056674972999999997, 1: 2.6132309819999997, 2: 3.5689350380000002},
+        "AAA": {
+            0: 0.056_674_972_999_999_997,
+            1: 2.6_132_309_819_999_997,
+            2: 3.5_689_350_380_000_002,
+        },
         "BBB": {0: 8, 1: 2, 2: 7},
     }
     expected = DataFrame(exp_data)
@@ -367,7 +374,11 @@ def test_usecols_with_single_byte_unicode_strings(all_parsers):
     parser = all_parsers
 
     exp_data = {
-        "A": {0: 0.056674972999999997, 1: 2.6132309819999997, 2: 3.5689350380000002},
+        "A": {
+            0: 0.056_674_972_999_999_997,
+            1: 2.6_132_309_819_999_997,
+            2: 3.5_689_350_380_000_002,
+        },
         "B": {0: 8, 1: 2, 2: 7},
     }
     expected = DataFrame(exp_data)
@@ -397,7 +408,11 @@ def test_usecols_with_multi_byte_characters(all_parsers, usecols):
     parser = all_parsers
 
     exp_data = {
-        "あああ": {0: 0.056674972999999997, 1: 2.6132309819999997, 2: 3.5689350380000002},
+        "あああ": {
+            0: 0.056_674_972_999_999_997,
+            1: 2.6_132_309_819_999_997,
+            2: 3.5_689_350_380_000_002,
+        },
         "いい": {0: 8, 1: 2, 2: 7},
     }
     expected = DataFrame(exp_data)
@@ -434,9 +449,9 @@ def test_np_array_usecols(all_parsers):
             DataFrame(
                 {
                     "AaA": {
-                        0: 0.056674972999999997,
-                        1: 2.6132309819999997,
-                        2: 3.5689350380000002,
+                        0: 0.056_674_972_999_999_997,
+                        1: 2.6_132_309_819_999_997,
+                        2: 3.5_689_350_380_000_002,
                     },
                     "bBb": {0: 8, 1: 2, 2: 7},
                     "ddd": {0: "a", 1: "b", 2: "a"},

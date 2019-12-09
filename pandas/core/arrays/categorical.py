@@ -299,7 +299,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     # For comparisons, so that numpy uses our implementation if the compare
     # ops, which raise
-    __array_priority__ = 1000
+    __array_priority__ = 1_000
     _dtype = CategoricalDtype(ordered=False)
     # tolist is not actually deprecated, just suppressed in the __dir__
     _deprecations = PandasObject._deprecations | frozenset(["tolist", "itemsize"])
@@ -494,14 +494,13 @@ class Categorical(ExtensionArray, PandasObject):
         if is_extension_array_dtype(dtype):
             return array(self, dtype=dtype, copy=copy)  # type: ignore # GH 28770
         if is_integer_dtype(dtype) and self.isna().any():
-            msg = "Cannot convert float NaN to integer"
-            raise ValueError(msg)
+            raise ValueError("Cannot convert float NaN to integer")
         return np.array(self, dtype=dtype, copy=copy)
 
     @cache_readonly
     def size(self) -> int:
         """
-        return the len of myself
+        Return the len of myself.
         """
         return self._codes.size
 
