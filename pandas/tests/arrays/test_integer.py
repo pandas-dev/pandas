@@ -912,7 +912,9 @@ def test_arrow_array(data):
     import pyarrow as pa
 
     arr = pa.array(data)
-    expected = pa.array(list(data), type=data.dtype.name.lower(), from_pandas=True)
+    expected = np.array(data, dtype=object)
+    expected[data.isna()] = None
+    expected = pa.array(expected, type=data.dtype.name.lower(), from_pandas=True)
     assert arr.equals(expected)
 
 
