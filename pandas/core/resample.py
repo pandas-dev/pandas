@@ -2,7 +2,6 @@ import copy
 from datetime import timedelta
 from textwrap import dedent
 from typing import Dict, no_type_check
-import warnings
 
 import numpy as np
 
@@ -953,58 +952,6 @@ for method in ["nunique"]:
     setattr(Resampler, method, h)
 
 
-def _maybe_process_deprecations(r, how=None, fill_method=None, limit=None):
-    """
-    Potentially we might have a deprecation warning, show it
-    but call the appropriate methods anyhow.
-    """
-
-    if how is not None:
-
-        # .resample(..., how='sum')
-        if isinstance(how, str):
-            method = "{0}()".format(how)
-
-            # .resample(..., how=lambda x: ....)
-        else:
-            method = ".apply(<func>)"
-
-        # if we have both a how and fill_method, then show
-        # the following warning
-        if fill_method is None:
-            warnings.warn(
-                "how in .resample() is deprecated\n"
-                "the new syntax is "
-                ".resample(...).{method}".format(method=method),
-                FutureWarning,
-                stacklevel=3,
-            )
-        r = r.aggregate(how)
-
-    if fill_method is not None:
-
-        # show the prior function call
-        method = "." + method if how is not None else ""
-
-        args = "limit={0}".format(limit) if limit is not None else ""
-        warnings.warn(
-            "fill_method is deprecated to .resample()\n"
-            "the new syntax is .resample(...){method}"
-            ".{fill_method}({args})".format(
-                method=method, fill_method=fill_method, args=args
-            ),
-            FutureWarning,
-            stacklevel=3,
-        )
-
-        if how is not None:
-            r = getattr(r, fill_method)(limit=limit)
-        else:
-            r = r.aggregate(fill_method, limit=limit)
-
-    return r
-
-
 class _GroupByMixin(GroupByMixin):
     """
     Provide the groupby facilities.
@@ -1342,8 +1289,7 @@ def get_resampler_for_grouping(
 
     tg = TimeGrouper(freq=rule, **kwargs)
     resampler = tg._get_resampler(groupby.obj, kind=kind)
-    r = resampler._get_resampler_for_grouping(groupby=groupby)
-    return _maybe_process_deprecations(r, how=how, fill_method=fill_method, limit=limit)
+    return resampler._get_resampler_for_grouping(groupby=groupby)
 
 
 class TimeGrouper(Grouper):
