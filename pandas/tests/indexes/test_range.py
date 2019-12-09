@@ -306,14 +306,6 @@ class TestRangeIndex(Numeric):
         91 in idx
         assert idx._cached_data is None
 
-        with tm.assert_produces_warning(FutureWarning):
-            idx.contains(90)
-        assert idx._cached_data is None
-
-        with tm.assert_produces_warning(FutureWarning):
-            idx.contains(91)
-        assert idx._cached_data is None
-
         idx.all()
         assert idx._cached_data is None
 
