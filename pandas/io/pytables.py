@@ -2370,6 +2370,7 @@ class DataCol(IndexCol):
             self.data = values
 
         own_data = self.data
+        assert isinstance(own_data, np.ndarray)  # for mypy
 
         # use the meta if needed
         meta = _ensure_decoded(self.meta)
