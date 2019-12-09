@@ -305,6 +305,7 @@ Furthermore ``datetime64[ns]`` columns are created by default, when passed datet
 Astype conversion on ``datetime64[ns]`` to ``object``, implicitly converts ``NaT`` to ``np.nan``
 
 .. ipython:: python
+   :okwarning:
 
    s = pd.Series([datetime.datetime(2001, 1, 2, 0, 0) for i in range(3)])
    s.dtype

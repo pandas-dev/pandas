@@ -57,6 +57,7 @@ marker of ``np.nan`` will infer to integer dtype. The display of the ``Series`` 
 Operations on these dtypes will propagate ``NaN`` as other pandas operations.
 
 .. ipython:: python
+   :okwarning:
 
    # arithmetic
    s + 1
@@ -85,6 +86,7 @@ These dtypes can operate as part of a ``DataFrame``.
 These dtypes can be merged, reshaped, and casted.
 
 .. ipython:: python
+   :okwarning:
 
    pd.concat([df[['A']], df[['B', 'C']]], axis=1).dtypes
    df['A'].astype(float)
