@@ -2,6 +2,8 @@ import os
 
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas.util.testing as tm
 
 from pandas.io.parsers import read_csv
@@ -81,3 +83,24 @@ def s3_resource(tips_file, jsonl_file):
             yield conn
         finally:
             s3.stop()
+
+
+@pytest.fixture(autouse=True)
+def check_for_file_leaks():
+    """
+    Fixture to run around every test to ensure that we are not leaking files.
+
+    See also
+    --------
+    _test_decorators.check_file_leaks
+    """
+    # GH#30162
+    psutil = td.safe_import("psutil")
+    if not psutil:
+        return
+
+    proc = psutil.Process()
+    flist = proc.open_files()
+    yield
+    flist2 = proc.open_files()
+    assert flist == flist2
