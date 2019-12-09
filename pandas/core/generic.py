@@ -72,6 +72,7 @@ from pandas.core import missing, nanops
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
 import pandas.core.common as com
+from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.index import (
     Index,
     InvalidIndexError,
@@ -177,6 +178,7 @@ class NDFrame(PandasObject, SelectionMixin):
     _is_copy = None
     _data: BlockManager
     _attrs: Dict[Optional[Hashable], Any]
+    _typ: str
 
     # ----------------------------------------------------------------------
     # Constructors
@@ -283,71 +285,52 @@ class NDFrame(PandasObject, SelectionMixin):
 
     # ----------------------------------------------------------------------
     # Axis
+    _AXIS_ALIASES = {"rows": 0}
+    _AXIS_IALIASES = {0: "rows"}
+    _stat_axis_number = 0
+    _stat_axis_name = "index"
+    _ix = None
+    _AXIS_ORDERS: List[str]
+    _AXIS_NUMBERS: Dict[str, int]
+    _AXIS_NAMES: Dict[int, str]
+    _AXIS_REVERSED: bool
+    _info_axis_number: int
+    _info_axis_name: str
+    _AXIS_LEN: int
 
     @classmethod
-    def _setup_axes(
-        cls,
-        axes,
-        info_axis=None,
-        stat_axis=None,
-        aliases=None,
-        axes_are_reversed=False,
-        build_axes=True,
-        ns=None,
-        docs=None,
-    ):
+    def _setup_axes(cls, axes: List[str], docs: Dict[str, str]):
         """
         Provide axes setup for the major PandasObjects.
 
         Parameters
         ----------
         axes : the names of the axes in order (lowest to highest)
-        info_axis_num : the axis of the selector dimension (int)
-        stat_axis_num : the number of axis for the default stats (int)
-        aliases : other names for a single axis (dict)
-        axes_are_reversed : bool
-            Whether to treat passed axes as reversed (DataFrame).
-        build_axes : setup the axis properties (default True)
+        docs : docstrings for the axis properties
         """
+        info_axis = len(axes) - 1
+        axes_are_reversed = len(axes) > 1
 
         cls._AXIS_ORDERS = axes
         cls._AXIS_NUMBERS = {a: i for i, a in enumerate(axes)}
         cls._AXIS_LEN = len(axes)
-        cls._AXIS_ALIASES = aliases or dict()
-        cls._AXIS_IALIASES = {v: k for k, v in cls._AXIS_ALIASES.items()}
         cls._AXIS_NAMES = dict(enumerate(axes))
         cls._AXIS_REVERSED = axes_are_reversed
 
-        # typ
-        setattr(cls, "_typ", cls.__name__.lower())
-
-        # indexing support
-        cls._ix = None
-
-        if info_axis is not None:
-            cls._info_axis_number = info_axis
-            cls._info_axis_name = axes[info_axis]
-
-        if stat_axis is not None:
-            cls._stat_axis_number = stat_axis
-            cls._stat_axis_name = axes[stat_axis]
+        cls._info_axis_number = info_axis
+        cls._info_axis_name = axes[info_axis]
 
         # setup the actual axis
-        if build_axes:
+        def set_axis(a, i):
+            setattr(cls, a, properties.AxisProperty(i, docs.get(a, a)))
+            cls._internal_names_set.add(a)
 
-            def set_axis(a, i):
-                setattr(cls, a, properties.AxisProperty(i, docs.get(a, a)))
-                cls._internal_names_set.add(a)
-
-            if axes_are_reversed:
-                m = cls._AXIS_LEN - 1
-                for i, a in cls._AXIS_NAMES.items():
-                    set_axis(a, m - i)
-            else:
-                for i, a in cls._AXIS_NAMES.items():
-                    set_axis(a, i)
-
-        assert not isinstance(ns, dict)
+        if axes_are_reversed:
+            for i, a in cls._AXIS_NAMES.items():
+                set_axis(a, 1 - i)
+        else:
+            for i, a in cls._AXIS_NAMES.items():
+                set_axis(a, i)
 
     def _construct_axes_dict(self, axes=None, **kwargs):
         """Return an axes dictionary for myself."""
@@ -378,19 +361,6 @@ class NDFrame(PandasObject, SelectionMixin):
         # construct the args
         args = list(args)
         for a in self._AXIS_ORDERS:
-
-            # if we have an alias for this axis
-            alias = self._AXIS_IALIASES.get(a)
-            if alias is not None:
-                if a in kwargs:
-                    if alias in kwargs:
-                        raise TypeError(
-                            f"arguments are mutually exclusive for [{a},{alias}]"
-                        )
-                    continue
-                if alias in kwargs:
-                    kwargs[a] = kwargs.pop(alias)
-                    continue
 
             # look for a argument by position
             if a not in kwargs:
@@ -663,17 +633,6 @@ class NDFrame(PandasObject, SelectionMixin):
         1  2   5
         2  3   6
         """
-        if is_scalar(labels):
-            warnings.warn(
-                'set_axis now takes "labels" as first argument, and '
-                '"axis" as named parameter. The old form, with "axis" as '
-                'first parameter and "labels" as second, is still supported '
-                "but will be deprecated in a future version of pandas.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            labels, axis = axis, labels
-
         if inplace:
             setattr(self, self._get_axis_name(axis), labels)
         else:
@@ -6093,9 +6052,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
             if self.ndim == 1:
                 if isinstance(value, (dict, ABCSeries)):
-                    from pandas import Series
-
-                    value = Series(value)
+                    value = create_series_with_explicit_dtype(
+                        value, dtype_if_empty=object
+                    )
                 elif not is_list_like(value):
                     pass
                 else:
@@ -7047,7 +7006,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 if not is_series:
                     from pandas import Series
 
-                    return Series(index=self.columns, name=where)
+                    return Series(index=self.columns, name=where, dtype=np.float64)
                 return np.nan
 
             # It's always much faster to use a *while* loop here for
@@ -10166,29 +10125,6 @@ class NDFrame(PandasObject, SelectionMixin):
             "ddof argument",
             nanops.nanstd,
         )
-
-        @Substitution(
-            desc="Return the compound percentage of the values for "
-            "the requested axis.\n\n.. deprecated:: 0.25.0",
-            name1=name,
-            name2=name2,
-            axis_descr=axis_descr,
-            min_count="",
-            see_also="",
-            examples="",
-        )
-        @Appender(_num_doc)
-        def compound(self, axis=None, skipna=None, level=None):
-            msg = (
-                "The 'compound' method is deprecated and will be"
-                "removed in a future version."
-            )
-            warnings.warn(msg, FutureWarning, stacklevel=2)
-            if skipna is None:
-                skipna = True
-            return (1 + self).prod(axis=axis, skipna=skipna, level=level) - 1
-
-        cls.compound = compound
 
         cls.cummin = _make_cum_function(
             cls,
