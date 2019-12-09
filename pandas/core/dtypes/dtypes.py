@@ -174,7 +174,11 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     ----------
     categories : sequence, optional
         Must be unique, and must not contain any nulls.
-    ordered : bool, default False
+    ordered : bool or None, default False
+        Whether or not this categorical is treated as a ordered categorical.
+        None can be used to maintain the ordered value of existing categoricals when
+        used in operations that combine categoricals, e.g. astype, and will resolve to
+        False if there is no existing ordered to maintain.
 
     Attributes
     ----------
