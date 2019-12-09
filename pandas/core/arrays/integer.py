@@ -829,7 +829,6 @@ An ExtensionDtype for {dtype} integer data.
    Now uses :attr:`pandas.NA` as its missing value,
    rather than :attr:`numpy.nan`.
 
-
 Attributes
 ----------
 None
