@@ -162,6 +162,12 @@ class TestSeriesDtypes:
         result = ser.astype(str, skipna=skipna)
         tm.assert_series_equal(result, expected)
 
+    def test_deprecate_astype_str(self):
+        # GH 25353
+        ser = Series([1, "a", np.nan])
+        with tm.assert_produces_warning(expected_warning=FutureWarning):
+            ser.astype(str)
+
     def test_astype_unicode(self):
         # see gh-7758: A bit of magic is required to set
         # default encoding to utf-8

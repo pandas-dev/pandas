@@ -5672,6 +5672,15 @@ class NDFrame(PandasObject, SelectionMixin):
         1     2
         dtype: int64
         """
+        if isna(self.values).any():
+            msg = (
+                "The 'skipna' parameter is added and set True by default "
+                "which preserves the missing value indicator in type conversion. "
+                "The type conversion in which the missing value indicator loses "
+                "its meaning will be deprecated in the future version."
+            )
+            warnings.warn(msg, FutureWarning, stacklevel=2)
+
         if is_dict_like(dtype):
             if self.ndim == 1:  # i.e. Series
                 if len(dtype) > 1 or self.name not in dtype:
