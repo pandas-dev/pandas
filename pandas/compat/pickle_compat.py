@@ -4,7 +4,7 @@ Support pre-0.12 series pickle compatibility.
 
 import copy
 import pickle as pkl
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 import warnings
 
 from pandas import Index
