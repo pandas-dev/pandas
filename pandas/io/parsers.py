@@ -3607,7 +3607,7 @@ class FixedWidthReader(BaseIterator):
 
         if not isinstance(self.colspecs, (tuple, list)):
             raise TypeError(
-                f"column specifications must be a list or tuple, "
+                "column specifications must be a list or tuple, "
                 f"input was a {type(colspecs).__name__}"
             )
 
