@@ -2373,24 +2373,28 @@ class DataCol(IndexCol):
 
         assert self.typ is not None
         if self.dtype is None:
-            self.set_data(values)
+            converted, dtype_name = _get_data_and_dtype_name(values)
+            kind = _dtype_to_kind(dtype_name)
         else:
-            self.data = values
-        converted = self.data  # TODO: Setting should not be necessary
+            converted = values
+            dtype_name = self.dtype
+            kind = self.kind
 
         # use the meta if needed
         meta = _ensure_decoded(self.meta)
+        metadata = self.metadata
+        ordered = self.ordered
+        tz = self.tz
 
-        assert self.dtype is not None
+        assert dtype_name is not None
         # convert to the correct dtype
-        dtype = _ensure_decoded(self.dtype)
-
+        dtype = _ensure_decoded(dtype_name)
 
         # reverse converts
         if dtype == "datetime64":
 
             # recreate with tz if indicated
-            converted = _set_tz(converted, self.tz, coerce=True)
+            converted = _set_tz(converted, tz, coerce=True)
 
         elif dtype == "timedelta64":
             converted = np.asarray(converted, dtype="m8[ns]")
@@ -2407,7 +2411,7 @@ class DataCol(IndexCol):
         elif meta == "category":
 
             # we have a categorical
-            categories = self.metadata
+            categories = metadata
             codes = converted.ravel()
 
             # if we have stored a NaN in the categories
@@ -2426,7 +2430,7 @@ class DataCol(IndexCol):
                     codes[codes != -1] -= mask.astype(int).cumsum().values
 
             converted = Categorical.from_codes(
-                codes, categories=categories, ordered=self.ordered
+                codes, categories=categories, ordered=ordered
             )
 
         else:
@@ -2436,9 +2440,8 @@ class DataCol(IndexCol):
             except TypeError:
                 converted = converted.astype("O", copy=False)
 
-
         # convert nans / decode
-        if _ensure_decoded(self.kind) == "string":
+        if _ensure_decoded(kind) == "string":
             converted = _unconvert_string_array(
                 converted, nan_rep=nan_rep, encoding=encoding, errors=errors
             )
@@ -4357,7 +4360,7 @@ class AppendableFrameTable(AppendableTable):
         assert len(inds) == 1
         ind = inds[0]
 
-        index = result[ind][0]#self.index_axes[0].values
+        index = result[ind][0]
 
         frames = []
         for i, a in enumerate(self.axes):
@@ -4977,6 +4980,28 @@ def _dtype_to_kind(dtype_str: str) -> str:
         raise ValueError(f"cannot interpret dtype of [{dtype_str}]")
 
     return kind
+
+
+def _get_data_and_dtype_name(data: Union[np.ndarray, ABCExtensionArray]):
+    """
+    Convert the passed data into a storable form and a dtype string.
+    """
+    if is_categorical_dtype(data.dtype):
+        data = data.codes
+
+    # For datetime64tz we need to drop the TZ in tests TODO: why?
+    dtype_name = data.dtype.name.split("[")[0]
+
+    if data.dtype.kind in ["m", "M"]:
+        data = np.asarray(data.view("i8"))
+        # TODO: we used to reshape for the dt64tz case, but no longer
+        #  doing that doesnt seem to break anything.  why?
+
+    elif isinstance(data, PeriodIndex):
+        data = data.asi8
+
+    data = np.asarray(data)
+    return data, dtype_name
 
 
 class Selection:
