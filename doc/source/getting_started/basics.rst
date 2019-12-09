@@ -1143,6 +1143,7 @@ a single value and returning a single value. For example:
    df4 = df_orig.copy()
 
 .. ipython:: python
+   :okwarning:
 
    df4
 
