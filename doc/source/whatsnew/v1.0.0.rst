@@ -156,7 +156,7 @@ type dedicated to boolean data that can hold missing values. With the default
 ``'bool`` data type based on a numpy bool array, the column can only hold
 True or False values and not missing values. This new :class:`BooleanDtype`
 can store missing values as well by keeping track of this in a separate mask.
-(:issue:`29555`)
+(:issue:`29555`, :issue:`30095`)
 
 .. ipython:: python
 
@@ -467,6 +467,7 @@ Other API changes
 - :meth:`Series.dropna` has dropped its ``**kwargs`` argument in favor of a single ``how`` parameter.
   Supplying anything else than ``how`` to ``**kwargs`` raised a ``TypeError`` previously (:issue:`29388`)
 - When testing pandas, the new minimum required version of pytest is 5.0.1 (:issue:`29664`)
+- :meth:`Series.str.__iter__` was deprecated and will be removed in future releases (:issue:`28277`).
 
 
 .. _whatsnew_1000.api.documentation:
@@ -549,6 +550,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - Passing ``datetime64`` data to :class:`TimedeltaIndex` or ``timedelta64`` data to ``DatetimeIndex`` now raises ``TypeError`` (:issue:`23539`, :issue:`23937`)
 - Passing ``int64`` values to :class:`DatetimeIndex` and a timezone now interprets the values as nanosecond timestamps in UTC, not wall times in the given timezone (:issue:`24559`)
 - A tuple passed to :meth:`DataFrame.groupby` is now exclusively treated as a single key (:issue:`18314`)
+- Removed the previously deprecated :meth:`Index.contains`, use ``key in index`` instead (:issue:`30103`)
 - Addition and subtraction of ``int`` or integer-arrays is no longer allowed in :class:`Timestamp`, :class:`DatetimeIndex`, :class:`TimedeltaIndex`, use ``obj + n * obj.freq`` instead of ``obj + n`` (:issue:`22535`)
 - Removed :meth:`Series.from_array` (:issue:`18258`)
 - Removed :meth:`DataFrame.from_items` (:issue:`18458`)
@@ -598,6 +600,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - In :func:`concat` the default value for ``sort`` has been changed from ``None`` to ``False`` (:issue:`20613`)
 - Removed previously deprecated "raise_conflict" argument from :meth:`DataFrame.update`, use "errors" instead (:issue:`23585`)
 - Removed previously deprecated keyword "n" from :meth:`DatetimeIndex.shift`, :meth:`TimedeltaIndex.shift`, :meth:`PeriodIndex.shift`, use "periods" instead (:issue:`22458`)
+- Removed previously deprecated keywords ``how``, ``fill_method``, and ``limit`` from :meth:`DataFrame.resample` (:issue:`30139`)
 - Passing an integer to :meth:`Series.fillna` or :meth:`DataFrame.fillna` with ``timedelta64[ns]`` dtype now raises ``TypeError`` (:issue:`24694`)
 - Passing multiple axes to :meth:`DataFrame.dropna` is no longer supported (:issue:`20995`)
 - Removed previously deprecated :meth:`Series.nonzero`, use `to_numpy().nonzero()` instead (:issue:`24048`)
@@ -619,6 +622,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - Changed :meth:`Timedelta.resolution` to match the behavior of the standard library ``datetime.timedelta.resolution``, for the old behavior, use :meth:`Timedelta.resolution_string` (:issue:`26839`)
 - Removed previously deprecated :attr:`Timestamp.weekday_name`, :attr:`DatetimeIndex.weekday_name`, and :attr:`Series.dt.weekday_name` (:issue:`18164`)
 - Removed previously deprecated ``errors`` argument in :meth:`Timestamp.tz_localize`, :meth:`DatetimeIndex.tz_localize`, and :meth:`Series.tz_localize` (:issue:`22644`)
+- Changed the default value for ``ordered`` in :class:`CategoricalDtype` from ``None`` to ``False`` (:issue:`26336`)
 - :meth:`Series.set_axis` and :meth:`DataFrame.set_axis` now require "labels" as the first argument and "axis" as an optional named parameter (:issue:`30089`)
 -
 
@@ -771,6 +775,7 @@ I/O
 - Bug in :meth:`DataFrame.to_clipboard` which did not work reliably in ipython (:issue:`22707`)
 - Bug in :func:`read_json` where default encoding was not set to ``utf-8`` (:issue:`29565`)
 - Bug in :class:`PythonParser` where str and bytes were being mixed when dealing with the decimal field (:issue:`29650`)
+- :meth:`read_gbq` now accepts ``progress_bar_type`` to display progress bar while the data downloads. (:issue:`29857`)
 -
 
 Plotting
@@ -800,6 +805,8 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.groupby` not offering selection by column name when ``axis=1`` (:issue:`27614`)
 - Bug in :meth:`DataFrameGroupby.agg` not able to use lambda function with named aggregation (:issue:`27519`)
 - Bug in :meth:`DataFrame.groupby` losing column name information when grouping by a categorical column (:issue:`28787`)
+- Remove error raised due to duplicated input functions in named aggregation in :meth:`DataFrame.groupby` and :meth:`Series.groupby`. Previously error will be raised if the same function is applied on the same column and now it is allowed if new assigned names are different. (:issue:`28426`)
+- :meth:`SeriesGroupBy.value_counts` will be able to handle the case even when the :class:`Grouper` makes empty groups (:issue: 28479)
 - Bug in :meth:`DataFrameGroupBy.rolling().quantile()` ignoring ``interpolation`` keyword argument (:issue:`28779`)
 - Bug in :meth:`DataFrame.groupby` where ``any``, ``all``, ``nunique`` and transform functions would incorrectly handle duplicate column labels (:issue:`21668`)
 - Bug in :meth:`DataFrameGroupBy.agg` with timezone-aware datetime64 column incorrectly casting results to the original dtype (:issue:`29641`)
@@ -843,7 +850,6 @@ Other
 - :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` now support dicts as ``compression`` argument with key ``'method'`` being the compression method and others as additional compression options when the compression method is ``'zip'``. (:issue:`26023`)
 - Bug in :meth:`Series.diff` where a boolean series would incorrectly raise a ``TypeError`` (:issue:`17294`)
 - :meth:`Series.append` will no longer raise a ``TypeError`` when passed a tuple of ``Series`` (:issue:`28410`)
-- :meth:`SeriesGroupBy.value_counts` will be able to handle the case even when the :class:`Grouper` makes empty groups (:issue:`28479`)
 - Fix corrupted error message when calling ``pandas.libs._json.encode()`` on a 0d array (:issue:`18878`)
 - Bug in :meth:`DataFrame.append` that raised ``IndexError`` when appending with empty list (:issue:`28769`)
 - Fix :class:`AbstractHolidayCalendar` to return correct results for

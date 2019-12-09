@@ -151,7 +151,6 @@ Selecting
 
    Index.asof
    Index.asof_locs
-   Index.contains
    Index.get_indexer
    Index.get_indexer_for
    Index.get_indexer_non_unique
