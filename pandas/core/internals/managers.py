@@ -753,7 +753,6 @@ class BlockManager(PandasObject):
         copy : BlockManager
         """
         # this preserves the notion of view copying of axes
-        new_axes = self.axes
         if deep:
             # hit in e.g. tests.io.json.test_pandas
 
@@ -764,6 +763,8 @@ class BlockManager(PandasObject):
                     return ax.view()
 
             new_axes = [copy_func(ax) for ax in self.axes]
+        else:
+            new_axes = list(self.axes)
 
         res = self.apply("copy", deep=deep)
         res.axes = new_axes
