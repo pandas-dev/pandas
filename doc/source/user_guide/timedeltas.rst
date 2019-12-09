@@ -237,6 +237,7 @@ or by astyping to a specific timedelta type. These operations yield Series and p
 Note that division by the NumPy scalar is true division, while astyping is equivalent of floor division.
 
 .. ipython:: python
+   :okwarning:
 
    december = pd.Series(pd.date_range('20121201', periods=4))
    january = pd.Series(pd.date_range('20130101', periods=4))

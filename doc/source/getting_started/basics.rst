@@ -980,6 +980,7 @@ Passing a ``lambda`` function will yield a ``<lambda>`` named row:
 Passing a named function will yield that name for the row:
 
 .. ipython:: python
+   :okwarning:
 
    def mymean(x):
        return x.mean()
@@ -1111,6 +1112,7 @@ Transforming with a dict
 Passing a dict of functions will allow selective transforming per column.
 
 .. ipython:: python
+   :okwarning:
 
    tsdf.transform({'A': np.abs, 'B': lambda x: x + 1})
 

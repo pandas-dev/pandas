@@ -26,6 +26,7 @@ The sparse objects exist for memory efficiency reasons. Suppose you had a
 large, mostly NA ``DataFrame``:
 
 .. ipython:: python
+   :okwarning:
 
    df = pd.DataFrame(np.random.randn(10000, 4))
    df.iloc[:9998] = np.nan
@@ -300,6 +301,7 @@ meth:`Series.sparse.to_coo` is implemented for transforming a ``Series`` with sp
 The method requires a ``MultiIndex`` with two or more levels.
 
 .. ipython:: python
+   :okwarning:
 
    s = pd.Series([3.0, np.nan, 1.0, 3.0, np.nan, np.nan])
    s.index = pd.MultiIndex.from_tuples([(1, 2, 'a', 0),

@@ -85,6 +85,7 @@ l. For ``StringDtype``, :ref:`string accessor methods<api.series.str>`
    Both outputs are ``Int64`` dtype. Compare that with object-dtype
 
    .. ipython:: python
+      :okwarning:
 
       s.astype(object).str.count("a")
       s.astype(object).dropna().str.count("a")
