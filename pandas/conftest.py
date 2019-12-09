@@ -886,7 +886,11 @@ def index_or_series(request):
 @pytest.fixture(autouse=True)
 def check_for_file_leaks():
     """
-    Fixture to run around every test to ensure that we are not leaing files.
+    Fixture to run around every test to ensure that we are not leaking files.
+
+    See also
+    --------
+    _test_decorators.check_file_leaks
     """
     psutil = td.safe_import("psutil")
     if psutil is None:
