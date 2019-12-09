@@ -549,6 +549,17 @@ class TestCasting:
         expected = pd.Series(np.asarray(mixed))
         tm.assert_series_equal(result, expected)
 
+    def test_astype_to_larger_numpy(self):
+        a = pd.array([1, 2], dtype="Int32")
+        result = a.astype("int64")
+        expected = np.array([1, 2], dtype="int64")
+        tm.assert_numpy_array_equal(result, expected)
+
+        a = pd.array([1, 2], dtype="UInt32")
+        result = a.astype("uint64")
+        expected = np.array([1, 2], dtype="uint64")
+        tm.assert_numpy_array_equal(result, expected)
+
     @pytest.mark.parametrize("dtype", [Int8Dtype(), "Int8", UInt32Dtype(), "UInt32"])
     def test_astype_specific_casting(self, dtype):
         s = pd.Series([1, 2, 3], dtype="Int64")

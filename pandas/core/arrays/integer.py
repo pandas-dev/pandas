@@ -390,7 +390,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         if is_integer_dtype(dtype):
             if not self.isna().any():
-                return self._data
+                return self._data.astype(dtype)
             else:
                 raise ValueError(
                     "cannot convert to integer NumPy array with missing values"
