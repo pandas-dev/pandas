@@ -295,7 +295,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             dayfirst=dayfirst,
             yearfirst=yearfirst,
             ambiguous=ambiguous,
-            int_as_wall_time=True,
         )
 
         subarr = cls._simple_new(dtarr, name=name, freq=dtarr.freq, tz=dtarr.tz)
@@ -1146,34 +1145,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     _resolution = cache_readonly(DatetimeArray._resolution.fget)  # type: ignore
 
     _has_same_tz = ea_passthrough(DatetimeArray._has_same_tz)
-
-    @property
-    def offset(self):
-        """
-        get/set the frequency of the instance
-        """
-        msg = (
-            "{cls}.offset has been deprecated and will be removed "
-            "in a future version; use {cls}.freq instead.".format(
-                cls=type(self).__name__
-            )
-        )
-        warnings.warn(msg, FutureWarning, stacklevel=2)
-        return self.freq
-
-    @offset.setter
-    def offset(self, value):
-        """
-        get/set the frequency of the instance
-        """
-        msg = (
-            "{cls}.offset has been deprecated and will be removed "
-            "in a future version; use {cls}.freq instead.".format(
-                cls=type(self).__name__
-            )
-        )
-        warnings.warn(msg, FutureWarning, stacklevel=2)
-        self._data.freq = value
 
     def __getitem__(self, key):
         result = self._data.__getitem__(key)
