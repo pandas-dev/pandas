@@ -49,19 +49,6 @@ class TestSeriesDtypes:
         assert datetime_series.dtype == np.dtype("float64")
         assert datetime_series.dtypes == np.dtype("float64")
 
-        # GH 26705 - Assert .ftype is deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            assert datetime_series.ftype == "float64:dense"
-
-        # GH 26705 - Assert .ftypes is deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            assert datetime_series.ftypes == "float64:dense"
-        # GH18243 - Assert .get_ftype_counts is deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            tm.assert_series_equal(
-                datetime_series.get_ftype_counts(), Series(1, ["float64:dense"])
-            )
-
     @pytest.mark.parametrize("value", [np.nan, np.inf])
     @pytest.mark.parametrize("dtype", [np.int32, np.int64])
     def test_astype_cast_nan_inf_int(self, dtype, value):
@@ -218,7 +205,11 @@ class TestSeriesDtypes:
 
         # GH16717
         # if dtypes provided is empty, it should error
-        dt5 = dtype_class({})
+        if dtype_class is Series:
+            dt5 = dtype_class({}, dtype=object)
+        else:
+            dt5 = dtype_class({})
+
         with pytest.raises(KeyError, match=msg):
             s.astype(dt5)
 
@@ -421,28 +412,9 @@ class TestSeriesDtypes:
             "m",  # Generic timestamps raise a ValueError. Already tested.
         ):
             init_empty = Series([], dtype=dtype)
-            as_type_empty = Series([]).astype(dtype)
+            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+                as_type_empty = Series([]).astype(dtype)
             tm.assert_series_equal(init_empty, as_type_empty)
-
-    @pytest.mark.filterwarnings("ignore::FutureWarning")
-    def test_complex(self):
-        # see gh-4819: complex access for ndarray compat
-        a = np.arange(5, dtype=np.float64)
-        b = Series(a + 4j * a)
-
-        tm.assert_numpy_array_equal(a, np.real(b))
-        tm.assert_numpy_array_equal(4 * a, np.imag(b))
-
-        b.real = np.arange(5) + 5
-        tm.assert_numpy_array_equal(a + 5, np.real(b))
-        tm.assert_numpy_array_equal(4 * a, np.imag(b))
-
-    def test_real_imag_deprecated(self):
-        # GH 18262
-        s = pd.Series([1])
-        with tm.assert_produces_warning(FutureWarning):
-            s.imag
-            s.real
 
     def test_arg_for_errors_in_astype(self):
         # see gh-14878
@@ -505,7 +477,9 @@ class TestSeriesDtypes:
         tm.assert_series_equal(actual, expected)
 
     def test_is_homogeneous_type(self):
-        assert Series()._is_homogeneous_type
+        with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+            empty = Series()
+        assert empty._is_homogeneous_type
         assert Series([1, 2])._is_homogeneous_type
         assert Series(pd.Categorical([1, 2]))._is_homogeneous_type
 

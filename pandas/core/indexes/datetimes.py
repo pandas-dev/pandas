@@ -54,11 +54,10 @@ def _new_DatetimeIndex(cls, d):
         result = cls._simple_new(data, **d)
     else:
         with warnings.catch_warnings():
-            # we ignore warnings from passing verify_integrity=False
             # TODO: If we knew what was going in to **d, we might be able to
             #  go through _simple_new instead
             warnings.simplefilter("ignore")
-            result = cls.__new__(cls, verify_integrity=False, **d)
+            result = cls.__new__(cls, **d)
 
     return result
 
@@ -263,9 +262,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         cls,
         data=None,
         freq=None,
-        start=None,
-        end=None,
-        periods=None,
         tz=None,
         normalize=False,
         closed=None,
@@ -275,38 +271,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         dtype=None,
         copy=False,
         name=None,
-        verify_integrity=None,
     ):
-
-        if verify_integrity is not None:
-            warnings.warn(
-                "The 'verify_integrity' argument is deprecated, "
-                "will be removed in a future version.",
-                FutureWarning,
-                stacklevel=2,
-            )
-        else:
-            verify_integrity = True
-
-        if data is None:
-            dtarr = DatetimeArray._generate_range(
-                start,
-                end,
-                periods,
-                freq=freq,
-                tz=tz,
-                normalize=normalize,
-                closed=closed,
-                ambiguous=ambiguous,
-            )
-            warnings.warn(
-                "Creating a DatetimeIndex by passing range "
-                "endpoints is deprecated.  Use "
-                "`pandas.date_range` instead.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            return cls._simple_new(dtarr._data, freq=dtarr.freq, tz=dtarr.tz, name=name)
 
         if is_scalar(data):
             raise TypeError(
@@ -330,7 +295,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             dayfirst=dayfirst,
             yearfirst=yearfirst,
             ambiguous=ambiguous,
-            int_as_wall_time=True,
         )
 
         subarr = cls._simple_new(dtarr, name=name, freq=dtarr.freq, tz=dtarr.tz)
@@ -423,7 +387,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
         d = dict(data=self._data)
         d.update(self._get_attributes_dict())
-        return _new_DatetimeIndex, (self.__class__, d), None
+        return _new_DatetimeIndex, (type(self), d), None
 
     def __setstate__(self, state):
         """Necessary for making this object picklable"""
@@ -467,7 +431,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     @Appender(Index.difference.__doc__)
     def difference(self, other, sort=None):
         new_idx = super().difference(other, sort=sort)
-        new_idx.freq = None
+        new_idx._data._freq = None
         return new_idx
 
     # --------------------------------------------------------------------
@@ -522,7 +486,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
                 if result.freq is None and (
                     this.freq is not None or other.freq is not None
                 ):
-                    result.freq = to_offset(result.inferred_freq)
+                    result._data._freq = to_offset(result.inferred_freq)
             return result
 
     def union_many(self, others):
@@ -1181,34 +1145,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     _resolution = cache_readonly(DatetimeArray._resolution.fget)  # type: ignore
 
     _has_same_tz = ea_passthrough(DatetimeArray._has_same_tz)
-
-    @property
-    def offset(self):
-        """
-        get/set the frequency of the instance
-        """
-        msg = (
-            "{cls}.offset has been deprecated and will be removed "
-            "in a future version; use {cls}.freq instead.".format(
-                cls=type(self).__name__
-            )
-        )
-        warnings.warn(msg, FutureWarning, stacklevel=2)
-        return self.freq
-
-    @offset.setter
-    def offset(self, value):
-        """
-        get/set the frequency of the instance
-        """
-        msg = (
-            "{cls}.offset has been deprecated and will be removed "
-            "in a future version; use {cls}.freq instead.".format(
-                cls=type(self).__name__
-            )
-        )
-        warnings.warn(msg, FutureWarning, stacklevel=2)
-        self.freq = value
 
     def __getitem__(self, key):
         result = self._data.__getitem__(key)
