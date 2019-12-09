@@ -83,6 +83,7 @@ Missing values will be propagated, and the data will be coerced to another
 dtype if needed.
 
 .. ipython:: python
+   :okwarning:
 
    s = pd.Series([1, 2, None], dtype="Int64")
 
