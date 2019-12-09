@@ -219,8 +219,9 @@ except (AttributeError, KeyError):
     pass
 
 
-def load(fh, encoding=None, is_verbose=False):
-    """load a pickle, with a provided encoding
+def load(fh, encoding=None, is_verbose: bool = False):
+    """
+    Load a pickle, with a provided encoding,
 
     Parameters
     ----------
