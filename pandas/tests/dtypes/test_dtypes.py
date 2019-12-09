@@ -29,6 +29,7 @@ import pandas as pd
 from pandas import Categorical, CategoricalIndex, IntervalIndex, Series, date_range
 from pandas.core.arrays.sparse import SparseDtype
 import pandas.util.testing as tm
+import datetime as dt
 
 
 class Base:
@@ -322,6 +323,13 @@ class TestDatetimeTZDtype(Base):
         assert dtype.tz == tz
         dtype = DatetimeTZDtype("ns", dr[0].tz)
         assert dtype.tz == tz
+
+    def test_dfgroupby_shift_tz(self):
+        # GH 30134
+        df = pd.DataFrame({'a': [1, 1], 'date': dt.datetime.now(tz=pytz.utc)})
+        expected = df.dtypes['date']
+        result = df.groupby('a').shift(0).dtypes['date']
+        assert expected == result
 
 
 class TestPeriodDtype(Base):
