@@ -122,15 +122,11 @@ class TestDatetimeIndex:
         i = pd.date_range("20130101", periods=5, freq="H", tz=tz)
         kwargs = {key: attrgetter(val)(i) for key, val in kwargs.items()}
 
-        if str(tz) in ("UTC", "tzutc()", "UTC+00:00"):
-            warn = None
-        else:
-            warn = FutureWarning
+        if "tz" in kwargs:
+            result = DatetimeIndex(i.asi8, tz="UTC").tz_convert(kwargs["tz"])
 
-        with tm.assert_produces_warning(warn, check_stacklevel=False):
-            result = DatetimeIndex(i.tz_localize(None).asi8, **kwargs)
-        expected = DatetimeIndex(i, **kwargs)
-        tm.assert_index_equal(result, expected)
+            expected = DatetimeIndex(i, **kwargs)
+            tm.assert_index_equal(result, expected)
 
         # localize into the provided tz
         i2 = DatetimeIndex(i.tz_localize(None).asi8, tz="UTC")
@@ -485,11 +481,13 @@ class TestDatetimeIndex:
         expected = DatetimeIndex(["2013-10-07", "2013-10-08", "2013-10-09"], freq="B")
         tm.assert_index_equal(result, expected)
 
-    def test_integer_values_and_tz_deprecated(self):
+    def test_integer_values_and_tz_interpreted_as_utc(self):
         # GH-24559
-        values = np.array([946684800000000000])
-        with tm.assert_produces_warning(FutureWarning):
-            result = DatetimeIndex(values, tz="US/Central")
+        val = np.datetime64("2000-01-01 00:00:00", "ns")
+        values = np.array([val.view("i8")])
+
+        result = DatetimeIndex(values).tz_localize("US/Central")
+
         expected = pd.DatetimeIndex(["2000-01-01T00:00:00"], tz="US/Central")
         tm.assert_index_equal(result, expected)
 
@@ -718,17 +716,7 @@ class TestDatetimeIndex:
     @pytest.mark.parametrize("box", [np.array, partial(np.array, dtype=object), list])
     @pytest.mark.parametrize(
         "tz, dtype",
-        [
-            pytest.param(
-                "US/Pacific",
-                "datetime64[ns, US/Pacific]",
-                marks=[
-                    pytest.mark.xfail(),
-                    pytest.mark.filterwarnings("ignore:\\n    Passing:FutureWarning"),
-                ],
-            ),
-            [None, "datetime64[ns]"],
-        ],
+        [("US/Pacific", "datetime64[ns, US/Pacific]"), (None, "datetime64[ns]")],
     )
     def test_constructor_with_int_tz(self, klass, box, tz, dtype):
         # GH 20997, 20964
