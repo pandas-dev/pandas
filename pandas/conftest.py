@@ -881,3 +881,19 @@ def index_or_series(request):
     See GH#29725
     """
     return request.param
+
+
+@pytest.fixture(autouse=True)
+def check_for_file_leaks():
+    """
+    Fixture to run around every test to ensure that we are not leaing files.
+    """
+    psutil = td.safe_import("psutil")
+    if psutil is None:
+        return
+
+    proc = psutil.Process()
+    flist = proc.open_files()
+    yield
+    flist2 = proc.open_files()
+    assert flist == flist2
