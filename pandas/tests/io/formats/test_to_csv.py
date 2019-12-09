@@ -208,10 +208,10 @@ $1$,$2$
         # GH 29975
         # Make sure full na_rep shows up when a dtype is provided
         csv = pd.Series(["a", pd.NA, "c"]).to_csv(na_rep="ZZZZZ")
-        assert ",0\n0,a\n1,ZZZZZ\n2,c\n" == csv
-
+        expected = tm.convert_rows_list_to_csv_str([",0", "0,a", "1,ZZZZZ", "2,c"])
+        assert expected == csv
         csv = pd.Series(["a", pd.NA, "c"], dtype="string").to_csv(na_rep="ZZZZZ")
-        assert ",0\n0,a\n1,ZZZZZ\n2,c\n" == csv
+        assert expected == csv
 
     def test_to_csv_date_format(self):
         # GH 10209
