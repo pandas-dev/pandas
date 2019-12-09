@@ -749,13 +749,13 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         def integer_arithmetic_method(self, other):
             # nans propagate
 
-            mask = None
+            omask = None
 
             if getattr(other, "ndim", 0) > 1:
                 raise NotImplementedError("can only perform ops with 1-d structures")
 
             if isinstance(other, IntegerArray):
-                other, mask = other._data, other._mask
+                other, omask = other._data, other._mask
 
             elif is_list_like(other):
                 other = np.asarray(other)
@@ -769,23 +769,39 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
                     raise TypeError("can only perform ops with numeric values")
 
             else:
-                if not (is_float(other) or is_integer(other)):
+                if not (is_float(other) or is_integer(other) or other is libmissing.NA):
                     raise TypeError("can only perform ops with numeric values")
 
-            if mask is None:
+            if omask is None:
                 mask = self._mask.copy()
+                if other is libmissing.NA:
+                    mask |= True
             else:
-                mask = self._mask | mask
+                mask = self._mask | omask
 
-            # 1 ** np.nan is 1. So we have to unmask those.
             if op_name == "pow":
-                mask = np.where((self._data == 1) & self._mask, False, mask)
+                # 1 ** x is 1.
+                mask = np.where((self._data == 1) & ~self._mask, False, mask)
+                # x ** 0 is 1.
+                if omask is not None:
+                    mask = np.where((other == 0) & ~omask, False, mask)
+                elif other is not libmissing.NA:
+                    mask = np.where(other == 0, False, mask)
 
             elif op_name == "rpow":
-                mask = np.where(other == 1, False, mask)
+                # 1 ** x is 1.
+                if omask is not None:
+                    mask = np.where((other == 1) & ~omask, False, mask)
+                elif other is not libmissing.NA:
+                    mask = np.where(other == 1, False, mask)
+                # x ** 0 is 1.
+                mask = np.where((self._data == 0) & ~self._mask, False, mask)
 
-            with np.errstate(all="ignore"):
-                result = op(self._data, other)
+            if other is libmissing.NA:
+                result = np.ones_like(self._data)
+            else:
+                with np.errstate(all="ignore"):
+                    result = op(self._data, other)
 
             # divmod returns a tuple
             if op_name == "divmod":
