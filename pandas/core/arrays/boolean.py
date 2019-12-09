@@ -17,6 +17,7 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_integer_dtype,
     is_list_like,
+    is_numeric_dtype,
     is_scalar,
     pandas_dtype,
 )
@@ -130,9 +131,19 @@ def coerce_to_array(values, mask=None, copy: bool = False):
     if isinstance(values, np.ndarray) and values.dtype == np.bool_:
         if copy:
             values = values.copy()
+    elif isinstance(values, np.ndarray) and is_numeric_dtype(values.dtype):
+        mask_values = isna(values)
+
+        values_bool = np.zeros(len(values), dtype=bool)
+        values_bool[~mask_values] = values[~mask_values].astype(bool)
+
+        if not np.all(
+            values_bool[~mask_values].astype(values.dtype) == values[~mask_values]
+        ):
+            raise TypeError("Need to pass bool-like values")
+
+        values = values_bool
     else:
-        # TODO conversion from integer/float ndarray can be done more efficiently
-        #  (avoid roundtrip through object)
         values_object = np.asarray(values, dtype=object)
 
         inferred_dtype = lib.infer_dtype(values_object, skipna=True)
