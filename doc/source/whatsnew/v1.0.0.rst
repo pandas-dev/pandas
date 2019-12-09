@@ -86,7 +86,7 @@ You can use the alias ``"string"`` as well.
    s
 
 The usual string accessor methods work. Where appropriate, the return type
-of the Series or columns of a DataFrame will also have string dtype.
+of the Series or columns of a DataFrame will also have string dtype. (:issue:`29975`)
 
 .. ipython:: python
 
