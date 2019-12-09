@@ -300,7 +300,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
     #  Timestamp.__richcmp__(DateTimeArray) operates pointwise
 
     # ensure that operations with numpy arrays defer to our implementation
-    __array_priority__ = 1000
+    __array_priority__ = 1_000
 
     # -----------------------------------------------------------------
     # Constructors
@@ -663,7 +663,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         # convert in chunks of 10k for efficiency
         data = self.asi8
         length = len(self)
-        chunksize = 10000
+        chunksize = 10_000
         chunks = int(length / chunksize) + 1
         for i in range(chunks):
             start_i = i * chunksize
@@ -1076,9 +1076,9 @@ default 'raise'
             nonexistent, timedelta
         ):
             raise ValueError(
-                "The nonexistent argument must be one of 'raise',"
-                " 'NaT', 'shift_forward', 'shift_backward' or"
-                " a timedelta object"
+                "The nonexistent argument must be one of 'raise', "
+                "'NaT', 'shift_forward', 'shift_backward' or "
+                "a timedelta object"
             )
 
         if self.tz is not None:
@@ -1151,7 +1151,7 @@ default 'raise'
         """
         if self.tz is None or timezones.is_utc(self.tz):
             not_null = ~self.isna()
-            DAY_NS = ccalendar.DAY_SECONDS * 1000000000
+            DAY_NS = ccalendar.DAY_SECONDS * 1_000_000_000
             new_values = self.asi8.copy()
             adjustment = new_values[not_null] % DAY_NS
             new_values[not_null] = new_values[not_null] - adjustment
@@ -1767,13 +1767,13 @@ default 'raise'
             + np.floor(year / 4)
             - np.floor(year / 100)
             + np.floor(year / 400)
-            + 1721118.5
+            + 1_721_118.5
             + (
                 self.hour
                 + self.minute / 60.0
-                + self.second / 3600.0
-                + self.microsecond / 3600.0 / 1e6
-                + self.nanosecond / 3600.0 / 1e9
+                + self.second / 3_600.0
+                + self.microsecond / 3_600.0 / 1e6
+                + self.nanosecond / 3_600.0 / 1e9
             )
             / 24.0
         )
@@ -2031,7 +2031,7 @@ def maybe_convert_dtype(data, copy):
         # Note: without explicitly raising here, PeriodIndex
         #  test_setops.test_join_does_not_recur fails
         raise TypeError(
-            "Passing PeriodDtype data is invalid.  Use `data.to_timestamp()` instead"
+            "Passing PeriodDtype data is invalid. Use `data.to_timestamp()` instead"
         )
 
     elif is_categorical_dtype(data):

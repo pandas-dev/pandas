@@ -593,7 +593,6 @@ class DataFrame(NDFrame):
         users expect. display.max_columns remains in effect.
         GH3541, GH3573
         """
-
         width, height = console.get_console_size()
         max_columns = get_option("display.max_columns")
         nb_columns = len(self.columns)
@@ -2359,11 +2358,11 @@ class DataFrame(NDFrame):
         def _sizeof_fmt(num, size_qualifier):
             # returns size in human readable format
             for x in ["bytes", "KB", "MB", "GB", "TB"]:
-                if num < 1024.0:
+                if num < 1_024.0:
                     return "{num:3.1f}{size_q} {x}".format(
                         num=num, size_q=size_qualifier, x=x
                     )
-                num /= 1024.0
+                num /= 1_024.0
             return "{num:3.1f}{size_q} {pb}".format(
                 num=num, size_q=size_qualifier, pb="PB"
             )
@@ -3542,7 +3541,7 @@ class DataFrame(NDFrame):
         if n != len(col_labels):
             raise ValueError("Row labels must have same size as column labels")
 
-        thresh = 1000
+        thresh = 1_000
         if not self._is_mixed_type or n > thresh:
             values = self.values
             ridx = self.index.get_indexer(row_labels)

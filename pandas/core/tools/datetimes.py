@@ -98,7 +98,7 @@ def should_cache(
         if len(arg) <= 50:
             return False
 
-        if len(arg) <= 5000:
+        if len(arg) <= 5_000:
             check_count = int(len(arg) * 0.1)
         else:
             check_count = 500
@@ -832,25 +832,22 @@ def _assemble_from_unit_mappings(arg, errors, tz):
         return values
 
     values = (
-        coerce(arg[unit_rev["year"]]) * 10000
+        coerce(arg[unit_rev["year"]]) * 10_000
         + coerce(arg[unit_rev["month"]]) * 100
         + coerce(arg[unit_rev["day"]])
     )
     try:
         values = to_datetime(values, format="%Y%m%d", errors=errors, utc=tz)
-    except (TypeError, ValueError) as e:
-        raise ValueError("cannot assemble the datetimes: {error}".format(error=e))
+    except (TypeError, ValueError) as err:
+        raise ValueError(f"cannot assemble the datetimes: {err}")
 
     for u in ["h", "m", "s", "ms", "us", "ns"]:
         value = unit_rev.get(u)
         if value is not None and value in arg:
             try:
                 values += to_timedelta(coerce(arg[value]), unit=u, errors=errors)
-            except (TypeError, ValueError) as e:
-                raise ValueError(
-                    "cannot assemble the datetimes [{value}]: "
-                    "{error}".format(value=value, error=e)
-                )
+            except (TypeError, ValueError) as err:
+                raise ValueError(f"cannot assemble the datetimes [{value}]: {err}")
     return values
 
 
@@ -870,7 +867,7 @@ def _attempt_YYYYMMDD(arg, errors):
         # calculate the actual result
         carg = carg.astype(object)
         parsed = parsing.try_parse_year_month_day(
-            carg / 10000, carg / 100 % 100, carg % 100
+            carg / 10_000, carg / 100 % 100, carg % 100
         )
         return tslib.array_to_datetime(parsed, errors=errors)[0]
 

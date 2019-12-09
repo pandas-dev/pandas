@@ -1931,7 +1931,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     # This is also set in IndexOpsMixin
     # GH#23114 Ensure ndarray.__op__(DataFrame) returns NotImplemented
-    __array_priority__ = 1000
+    __array_priority__ = 1_000
 
     def __array__(self, dtype=None):
         return com.values_from_object(self)
@@ -9165,7 +9165,6 @@ class NDFrame(PandasObject, SelectionMixin):
         2016-01-10 23:59:58  1
         2016-01-10 23:59:59  1
         """
-
         if axis is None:
             axis = self._stat_axis_number
         axis = self._get_axis_number(axis)
@@ -9391,9 +9390,9 @@ class NDFrame(PandasObject, SelectionMixin):
             nonexistent, timedelta
         ):
             raise ValueError(
-                "The nonexistent argument must be one of 'raise',"
-                " 'NaT', 'shift_forward', 'shift_backward' or"
-                " a timedelta object"
+                "The nonexistent argument must be one of 'raise', "
+                "'NaT', 'shift_forward', 'shift_backward' or "
+                "a timedelta object"
             )
 
         axis = self._get_axis_number(axis)
