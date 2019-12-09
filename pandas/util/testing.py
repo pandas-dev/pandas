@@ -1521,7 +1521,7 @@ def assert_sp_array_equal(
 
 def assert_contains_all(iterable, dic):
     for k in iterable:
-        assert k in dic, f"Did not contain item: '{k!r}'"
+        assert k in dic, f"Did not contain item: {repr(k)}"
 
 
 def assert_copy(iter1, iter2, **eql_kwargs):
