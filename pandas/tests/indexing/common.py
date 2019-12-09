@@ -136,24 +136,18 @@ class Base:
 
         return xp
 
-    def get_value(self, f, i, values=False):
+    def get_value(self, name, f, i, values=False):
         """ return the value for the location i """
 
         # check against values
         if values:
             return f.values[i]
 
-        # this is equiv of f[col][row].....
-        # v = f
-        # for a in reversed(i):
-        #    v = v.__getitem__(a)
-        # return v
-
-        # TODO: this used to be f.ix[i]; is loc-then-iloc correct here?
-        try:
-            return f.loc[i]
-        except KeyError:
+        elif name == "iat":
             return f.iloc[i]
+        else:
+            assert name == "at"
+            return f.loc[i]
 
     def check_values(self, f, func, values=False):
 
