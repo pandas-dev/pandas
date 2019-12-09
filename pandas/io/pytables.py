@@ -1895,6 +1895,10 @@ class IndexCol:
         freq=None,
         tz=None,
         index_name=None,
+        ordered=None,
+        table=None,
+        meta=None,
+        metadata=None,
     ):
 
         if not isinstance(name, str):
@@ -1910,9 +1914,10 @@ class IndexCol:
         self.freq = freq
         self.tz = tz
         self.index_name = index_name
-        self.table = None
-        self.meta = None
-        self.metadata = None
+        self.ordered = ordered
+        self.table = table
+        self.meta = meta
+        self.metadata = metadata
 
         if pos is not None:
             self.set_pos(pos)
@@ -1967,19 +1972,6 @@ class IndexCol:
         # GH#29692 mypy doesn't recognize self.table as having a "cols" attribute
         #  'error: "None" has no attribute "cols"'
         return getattr(self.table.cols, self.cname).is_indexed  # type: ignore
-
-    def copy(self):
-        new_self = copy.copy(self)
-        return new_self
-
-    def infer(self, handler: "Table"):
-        """infer this column from the table: create and return a new object"""
-        table = handler.table
-        new_self = self.copy()
-        new_self.table = table
-        new_self.get_attr()
-        new_self.read_metadata(handler)
-        return new_self
 
     def convert(self, values: np.ndarray, nan_rep, encoding: str, errors: str):
         """ set the values from this selection: take = take ownership """
@@ -2136,10 +2128,6 @@ class IndexCol:
         """ set the kind for this column """
         setattr(self.attrs, self.kind_attr, self.kind)
 
-    def read_metadata(self, handler):
-        """ retrieve the metadata for this columns """
-        self.metadata = handler.read_metadata(self.cname)
-
     def validate_metadata(self, handler: "AppendableTable"):
         """ validate that kind=category does not change the categories """
         if self.meta == "category":
@@ -2207,10 +2195,31 @@ class DataCol(IndexCol):
     _info_fields = ["tz", "ordered"]
 
     def __init__(
-        self, name: str, values=None, kind=None, typ=None, cname=None, pos=None,
+        self,
+        name: str,
+        values=None,
+        kind=None,
+        typ=None,
+        cname=None,
+        pos=None,
+        tz=None,
+        ordered=None,
+        table=None,
+        meta=None,
+        metadata=None,
     ):
         super().__init__(
-            name=name, values=values, kind=kind, typ=typ, pos=pos, cname=cname
+            name=name,
+            values=values,
+            kind=kind,
+            typ=typ,
+            pos=pos,
+            cname=cname,
+            tz=tz,
+            ordered=ordered,
+            table=table,
+            meta=meta,
+            metadata=metadata,
         )
         self.dtype = None
         self.data = None
@@ -2267,15 +2276,6 @@ class DataCol(IndexCol):
         self.data, data = None, self.data
         return data
 
-    def set_atom(self, block):
-        """ create and setup my atom from the block b """
-
-        # short-cut certain block types
-        if block.is_categorical:
-            self.set_atom_categorical(block)
-        elif block.is_datetimetz:
-            self.set_atom_datetime64tz(block)
-
     @classmethod
     def _get_atom(cls, values: Union[np.ndarray, ABCExtensionArray]) -> "Col":
         """
@@ -2328,30 +2328,9 @@ class DataCol(IndexCol):
     def get_atom_data(cls, shape, kind: str) -> "Col":
         return cls.get_atom_coltype(kind=kind)(shape=shape[0])
 
-    def set_atom_categorical(self, block):
-        # currently only supports a 1-D categorical
-        # in a 1-D block
-
-        values = block.values
-
-        if values.ndim > 1:
-            raise NotImplementedError("only support 1-d categoricals")
-
-        # write the codes; must be in a block shape
-        self.ordered = values.ordered
-
-        # write the categories
-        self.meta = "category"
-        self.metadata = np.array(values.categories, copy=False).ravel()
-
     @classmethod
     def get_atom_datetime64(cls, shape):
         return _tables().Int64Col(shape=shape[0])
-
-    def set_atom_datetime64tz(self, block):
-
-        # store a converted timezone
-        self.tz = _get_tz(block.values.tz)
 
     @classmethod
     def get_atom_timedelta64(cls, shape):
@@ -3420,10 +3399,8 @@ class Table(Fixed):
         self.encoding = _ensure_encoding(getattr(self.attrs, "encoding", None))
         self.errors = _ensure_decoded(getattr(self.attrs, "errors", "strict"))
         self.levels = getattr(self.attrs, "levels", None) or []
-        self.index_axes = [a.infer(self) for a in self.indexables if a.is_an_indexable]
-        self.values_axes = [
-            a.infer(self) for a in self.indexables if not a.is_an_indexable
-        ]
+        self.index_axes = [a for a in self.indexables if a.is_an_indexable]
+        self.values_axes = [a for a in self.indexables if not a.is_an_indexable]
         self.metadata = getattr(self.attrs, "metadata", None) or []
 
     def validate_version(self, where=None):
@@ -3466,7 +3443,18 @@ class Table(Fixed):
         # index columns
         for i, (axis, name) in enumerate(self.attrs.index_cols):
             atom = getattr(desc, name)
-            index_col = IndexCol(name=name, axis=axis, pos=i, typ=atom)
+            md = self.read_metadata(name)
+            meta = "category" if md is not None else None
+            index_col = IndexCol(
+                name=name,
+                axis=axis,
+                pos=i,
+                typ=atom,
+                table=self.table,
+                meta=meta,
+                metadata=md,
+            )
+            index_col.get_attr()
             _indexables.append(index_col)
 
         # values columns
@@ -3481,7 +3469,19 @@ class Table(Fixed):
 
             atom = getattr(desc, c)
             adj_name = _maybe_adjust_name(c, self.version)
-            return klass(name=adj_name, cname=c, pos=base_pos + i, typ=atom)
+            md = self.read_metadata(c)
+            meta = "category" if md is not None else None
+            obj = klass(
+                name=adj_name,
+                cname=c,
+                pos=base_pos + i,
+                typ=atom,
+                table=self.table,
+                meta=meta,
+                metadata=md,
+            )
+            obj.get_attr()
+            return obj
 
         # Note: the definition of `values_cols` ensures that each
         #  `c` below is a str.
@@ -3856,6 +3856,13 @@ class Table(Fixed):
 
             typ = klass._get_atom(data_converted)
             kind = _dtype_to_kind(data_converted.dtype.name)
+            tz = _get_tz(data_converted.tz) if hasattr(data_converted, "tz") else None
+
+            meta = metadata = ordered = None
+            if is_categorical_dtype(data_converted):
+                ordered = data_converted.ordered
+                meta = "category"
+                metadata = np.array(data_converted.categories, copy=False).ravel()
 
             col = klass(
                 name=adj_name,
@@ -3864,8 +3871,11 @@ class Table(Fixed):
                 typ=typ,
                 pos=j,
                 kind=kind,
+                tz=tz,
+                ordered=ordered,
+                meta=meta,
+                metadata=metadata,
             )
-            col.set_atom(block=b)
             col.set_data(data_converted)
             col.update_info(self.info)
 
@@ -4474,10 +4484,8 @@ class GenericTable(AppendableFrameTable):
         self.nan_rep = None
         self.levels = []
 
-        self.index_axes = [a.infer(self) for a in self.indexables if a.is_an_indexable]
-        self.values_axes = [
-            a.infer(self) for a in self.indexables if not a.is_an_indexable
-        ]
+        self.index_axes = [a for a in self.indexables if a.is_an_indexable]
+        self.values_axes = [a for a in self.indexables if not a.is_an_indexable]
         self.data_columns = [a.name for a in self.values_axes]
 
     @cache_readonly
@@ -4488,13 +4496,31 @@ class GenericTable(AppendableFrameTable):
         # TODO: can we get a typ for this?  AFAICT it is the only place
         #  where we aren't passing one
         # the index columns is just a simple index
-        _indexables = [GenericIndexCol(name="index", axis=0)]
+        md = self.read_metadata("index")
+        meta = "category" if md is not None else None
+        index_col = GenericIndexCol(
+            name="index", axis=0, table=self.table, meta=meta, metadata=md
+        )
+        index_col.get_attr()
+
+        _indexables = [index_col]
 
         for i, n in enumerate(d._v_names):
             assert isinstance(n, str)
 
             atom = getattr(d, n)
-            dc = GenericDataIndexableCol(name=n, pos=i, values=[n], typ=atom)
+            md = self.read_metadata(n)
+            meta = "category" if md is not None else None
+            dc = GenericDataIndexableCol(
+                name=n,
+                pos=i,
+                values=[n],
+                typ=atom,
+                table=self.table,
+                meta=meta,
+                metadata=md,
+            )
+            dc.get_attr()
             _indexables.append(dc)
 
         return _indexables

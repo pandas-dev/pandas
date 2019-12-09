@@ -189,6 +189,9 @@ def maybe_dispatch_ufunc_to_dunder_op(
         "ge",
         "remainder",
         "matmul",
+        "or",
+        "xor",
+        "and",
     }
     aliases = {
         "subtract": "sub",
@@ -204,6 +207,9 @@ def maybe_dispatch_ufunc_to_dunder_op(
         "less_equal": "le",
         "greater": "gt",
         "greater_equal": "ge",
+        "bitwise_or": "or",
+        "bitwise_and": "and",
+        "bitwise_xor": "xor",
     }
 
     # For op(., Array) -> Array.__r{op}__
