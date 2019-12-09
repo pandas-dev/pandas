@@ -197,7 +197,7 @@ def datetime_to_datetime64(object[:] values):
                 iresult[i] = pydatetime_to_dt64(val, &dts)
                 check_dts_bounds(&dts)
         else:
-            raise TypeError('Unrecognized value type: %s' % type(val))
+            raise TypeError(f'Unrecognized value type: {type(val)}')
 
     return result, inferred_tz
 
@@ -326,8 +326,8 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
         raise ValueError("Cannot convert Period to Timestamp "
                          "unambiguously. Use to_timestamp")
     else:
-        raise TypeError('Cannot convert input [{}] of type {} to '
-                        'Timestamp'.format(ts, type(ts)))
+        raise TypeError(f'Cannot convert input [{ts}] of type {type(ts)} to '
+                        f'Timestamp')
 
     if tz is not None:
         localize_tso(obj, tz)
@@ -519,7 +519,7 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
             try:
                 ts = parse_datetime_string(ts, dayfirst=dayfirst,
                                            yearfirst=yearfirst)
-            except Exception:
+            except (ValueError, OverflowError):
                 raise ValueError("could not convert string to Timestamp")
 
     return convert_to_tsobject(ts, tz, unit, dayfirst, yearfirst)
@@ -686,7 +686,7 @@ def normalize_date(dt: object) -> datetime:
     elif PyDate_Check(dt):
         return datetime(dt.year, dt.month, dt.day)
     else:
-        raise TypeError('Unrecognized type: %s' % type(dt))
+        raise TypeError(f'Unrecognized type: {type(dt)}')
 
 
 @cython.wraparound(False)

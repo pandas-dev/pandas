@@ -1,10 +1,7 @@
-try:
-    import json
-except ImportError:
-    import simplejson as json
 import calendar
 import datetime
 import decimal
+import json
 import locale
 import math
 import re
@@ -624,7 +621,7 @@ class TestUltraJSONTests:
             def recursive_attr(self):
                 return _TestObject("recursive_attr")
 
-            def __str__(self):
+            def __str__(self) -> str:
                 return str(self.val)
 
         msg = "Maximum recursion level reached"
@@ -780,7 +777,9 @@ class TestNumpyJSONTests:
         tm.assert_almost_equal(arr, arr_out)
 
     def test_0d_array(self):
-        with pytest.raises(TypeError):
+        # gh-18878
+        msg = re.escape("array(1) (0d array) is not JSON serializable at the moment")
+        with pytest.raises(TypeError, match=msg):
             ujson.encode(np.array(1))
 
     @pytest.mark.parametrize(

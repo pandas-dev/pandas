@@ -1,4 +1,5 @@
 import numpy as np
+
 from pandas import DataFrame, Series, date_range
 from pandas.core.algorithms import checked_add_with_arr
 
@@ -155,4 +156,4 @@ class AddOverflowArray:
         )
 
 
-from .pandas_vb_common import setup  # noqa: F401
+from .pandas_vb_common import setup  # noqa: F401 isort:skip

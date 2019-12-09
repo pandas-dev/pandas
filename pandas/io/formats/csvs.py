@@ -5,6 +5,7 @@ Module for formatting output data into CSV files.
 import csv as csvlib
 from io import StringIO
 import os
+from typing import Any, Dict, List
 import warnings
 from zipfile import ZipFile
 
@@ -22,6 +23,7 @@ from pandas.core.dtypes.missing import notna
 
 from pandas.io.common import (
     UnicodeWriter,
+    _get_compression_method,
     _get_handle,
     _infer_compression,
     get_filepath_or_buffer,
@@ -57,6 +59,9 @@ class CSVFormatter:
 
         if path_or_buf is None:
             path_or_buf = StringIO()
+
+        # Extract compression mode as given, if dict
+        compression, self.compression_args = _get_compression_method(compression)
 
         self.path_or_buf, _, _, _ = get_filepath_or_buffer(
             path_or_buf, encoding=encoding, compression=compression, mode=mode
@@ -96,9 +101,7 @@ class CSVFormatter:
         # validate mi options
         if self.has_mi_columns:
             if cols is not None:
-                raise TypeError(
-                    "cannot specify cols with a MultiIndex on the " "columns"
-                )
+                raise TypeError("cannot specify cols with a MultiIndex on the columns")
 
         if cols is not None:
             if isinstance(cols, ABCIndexClass):
@@ -158,7 +161,7 @@ class CSVFormatter:
         """
         # GH21227 internal compression is not used when file-like passed.
         if self.compression and hasattr(self.path_or_buf, "write"):
-            msg = "compression has no effect when passing file-like " "object as input."
+            msg = "compression has no effect when passing file-like object as input."
             warnings.warn(msg, RuntimeWarning, stacklevel=2)
 
         # when zip compression is called.
@@ -180,12 +183,12 @@ class CSVFormatter:
                 self.path_or_buf,
                 self.mode,
                 encoding=self.encoding,
-                compression=self.compression,
+                compression=dict(self.compression_args, method=self.compression),
             )
             close = True
 
         try:
-            writer_kwargs = dict(
+            writer_kwargs: Dict[str, Any] = dict(
                 lineterminator=self.line_terminator,
                 delimiter=self.sep,
                 quoting=self.quoting,
@@ -196,8 +199,7 @@ class CSVFormatter:
             if self.encoding == "ascii":
                 self.writer = csvlib.writer(f, **writer_kwargs)
             else:
-                writer_kwargs["encoding"] = self.encoding
-                self.writer = UnicodeWriter(f, **writer_kwargs)
+                self.writer = UnicodeWriter(f, encoding=self.encoding, **writer_kwargs)
 
             self._save()
 
@@ -208,11 +210,13 @@ class CSVFormatter:
                 if hasattr(self.path_or_buf, "write"):
                     self.path_or_buf.write(buf)
                 else:
+                    compression = dict(self.compression_args, method=self.compression)
+
                     f, handles = _get_handle(
                         self.path_or_buf,
                         self.mode,
                         encoding=self.encoding,
-                        compression=self.compression,
+                        compression=compression,
                     )
                     f.write(buf)
                     close = True
@@ -229,7 +233,7 @@ class CSVFormatter:
         cols = self.cols
         has_mi_columns = self.has_mi_columns
         header = self.header
-        encoded_labels = []
+        encoded_labels: List[str] = []
 
         has_aliases = isinstance(header, (tuple, list, np.ndarray, ABCIndexClass))
         if not (has_aliases or self.header):
@@ -323,7 +327,7 @@ class CSVFormatter:
 
             self._save_chunk(start_i, end_i)
 
-    def _save_chunk(self, start_i, end_i):
+    def _save_chunk(self, start_i: int, end_i: int):
 
         data_index = self.data_index
 

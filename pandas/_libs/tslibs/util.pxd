@@ -1,14 +1,10 @@
 
-from cpython cimport PyTypeObject
+from cpython.object cimport PyTypeObject
 
 cdef extern from *:
     """
     PyObject* char_to_string(const char* data) {
-    #if PY_VERSION_HEX >= 0x03000000
         return PyUnicode_FromString(data);
-    #else
-        return PyString_FromString(data);
-    #endif
     }
     """
     object char_to_string(const char* data)
@@ -18,7 +14,6 @@ cdef extern from "Python.h":
     # Note: importing extern-style allows us to declare these as nogil
     # functions, whereas `from cpython cimport` does not.
     bint PyUnicode_Check(object obj) nogil
-    bint PyString_Check(object obj) nogil
     bint PyBool_Check(object obj) nogil
     bint PyFloat_Check(object obj) nogil
     bint PyComplex_Check(object obj) nogil

@@ -2,7 +2,6 @@ import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas.util.testing import ensure_clean
 
 from pandas.io.excel import ExcelFile
 
@@ -22,7 +21,7 @@ def test_read_xlrd_book(read_ext, frame):
     engine = "xlrd"
     sheet_name = "SheetA"
 
-    with ensure_clean(read_ext) as pth:
+    with tm.ensure_clean(read_ext) as pth:
         df.to_excel(pth, sheet_name)
         book = xlrd.open_workbook(pth)
 
@@ -36,7 +35,7 @@ def test_read_xlrd_book(read_ext, frame):
 
 # TODO: test for openpyxl as well
 def test_excel_table_sheet_by_index(datapath, read_ext):
-    path = datapath("io", "data", "test1{}".format(read_ext))
+    path = datapath("io", "data", "excel", "test1{}".format(read_ext))
     with pd.ExcelFile(path) as excel:
         with pytest.raises(xlrd.XLRDError):
             pd.read_excel(excel, "asdf")

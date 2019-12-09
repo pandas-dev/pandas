@@ -26,7 +26,7 @@ _correct_line1 = (
     "000000000000000000000000000000  "
 )
 _correct_header1 = (
-    "HEADER RECORD*******MEMBER  HEADER RECORD!!!!!!!" "000000000000000001600000000"
+    "HEADER RECORD*******MEMBER  HEADER RECORD!!!!!!!000000000000000001600000000"
 )
 _correct_header2 = (
     "HEADER RECORD*******DSCRPTR HEADER RECORD!!!!!!!"
@@ -143,7 +143,7 @@ A DataFrame.
 """
 
 
-def _parse_date(datestr):
+def _parse_date(datestr: str) -> datetime:
     """ Given a date in xport format, return Python date. """
     try:
         # e.g. "16FEB11:10:07:55"
@@ -152,11 +152,11 @@ def _parse_date(datestr):
         return pd.NaT
 
 
-def _split_line(s, parts):
+def _split_line(s: str, parts):
     """
     Parameters
     ----------
-    s: string
+    s: str
         Fixed-length string to split
     parts: list of (name, length) pairs
         Used to break up string, name '_' will be filtered from output.
@@ -402,7 +402,7 @@ class XportReader(BaseIterator):
     def __next__(self):
         return self.read(nrows=self._chunksize or 1)
 
-    def _record_count(self):
+    def _record_count(self) -> int:
         """
         Get number of records in file.
 
@@ -482,7 +482,7 @@ class XportReader(BaseIterator):
 
         df = pd.DataFrame(index=range(read_lines))
         for j, x in enumerate(self.columns):
-            vec = data["s%d" % j]
+            vec = data["s" + str(j)]
             ntype = self.fields[j]["ntype"]
             if ntype == "numeric":
                 vec = _handle_truncated_float_vec(vec, self.fields[j]["field_length"])

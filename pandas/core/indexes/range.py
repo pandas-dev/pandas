@@ -1,7 +1,7 @@
 from datetime import timedelta
 import operator
 from sys import getsizeof
-from typing import Union
+from typing import Optional, Union
 import warnings
 
 import numpy as np
@@ -11,24 +11,24 @@ import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, cache_readonly
 
-from pandas.core.dtypes import concat as _concat
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     ensure_python_int,
-    is_int64_dtype,
     is_integer,
     is_integer_dtype,
     is_list_like,
     is_scalar,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries, ABCTimedeltaIndex
+from pandas.core.dtypes.generic import ABCTimedeltaIndex
 
 from pandas.core import ops
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.numeric import Int64Index
+from pandas.core.ops.common import unpack_zerodim_and_defer
 
 from pandas.io.formats.printing import pprint_thing
 
@@ -51,7 +51,7 @@ class RangeIndex(Int64Index):
     stop : int (default: 0)
     step : int (default: 1)
     name : object, optional
-        Name to be stored in the index
+        Name to be stored in the index.
     copy : bool, default False
         Unused, accepted for homogeneity with other index types.
 
@@ -73,33 +73,16 @@ class RangeIndex(Int64Index):
 
     _typ = "rangeindex"
     _engine_type = libindex.Int64Engine
-    _range = None  # type: range
+    _range: range
 
-    # check whether self._data has benn called
-    _cached_data = None  # type: np.ndarray
+    # check whether self._data has been called
+    _cached_data: Optional[np.ndarray] = None
     # --------------------------------------------------------------------
     # Constructors
 
     def __new__(
-        cls,
-        start=None,
-        stop=None,
-        step=None,
-        dtype=None,
-        copy=False,
-        name=None,
-        fastpath=None,
+        cls, start=None, stop=None, step=None, dtype=None, copy=False, name=None,
     ):
-
-        if fastpath is not None:
-            warnings.warn(
-                "The 'fastpath' keyword is deprecated, and will be "
-                "removed in a future version.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            if fastpath:
-                return cls._simple_new(range(start, stop, step), name=name)
 
         cls._validate_dtype(dtype)
 
@@ -110,7 +93,7 @@ class RangeIndex(Int64Index):
             return cls._simple_new(start, dtype=dtype, name=name)
 
         # validate the arguments
-        if com._all_none(start, stop, step):
+        if com.all_none(start, stop, step):
             raise TypeError("RangeIndex(...) must be called with integers")
 
         start = ensure_python_int(start) if start is not None else 0
@@ -146,7 +129,7 @@ class RangeIndex(Int64Index):
         return cls._simple_new(data, dtype=dtype, name=name)
 
     @classmethod
-    def _simple_new(cls, values, name=None, dtype=None, **kwargs):
+    def _simple_new(cls, values, name=None, dtype=None):
         result = object.__new__(cls)
 
         # handle passed None, non-integers
@@ -154,24 +137,15 @@ class RangeIndex(Int64Index):
             # empty
             values = range(0, 0, 1)
         elif not isinstance(values, range):
-            return Index(values, dtype=dtype, name=name, **kwargs)
+            return Index(values, dtype=dtype, name=name)
 
         result._range = values
-
         result.name = name
-        for k, v in kwargs.items():
-            setattr(result, k, v)
 
         result._reset_identity()
         return result
 
     # --------------------------------------------------------------------
-
-    @staticmethod
-    def _validate_dtype(dtype):
-        """ require dtype to be None or int64 """
-        if not (dtype is None or is_int64_dtype(dtype)):
-            raise TypeError("Invalid to pass a non-int64 dtype to RangeIndex")
 
     @cache_readonly
     def _constructor(self):
@@ -205,7 +179,7 @@ class RangeIndex(Int64Index):
     def __reduce__(self):
         d = self._get_attributes_dict()
         d.update(dict(self._get_data_as_items()))
-        return ibase._new_Index, (self.__class__, d), None
+        return ibase._new_Index, (type(self), d), None
 
     # --------------------------------------------------------------------
     # Rendering Methods
@@ -236,7 +210,7 @@ class RangeIndex(Int64Index):
     @cache_readonly
     def start(self):
         """
-        The value of the `start` parameter (``0`` if this was not supplied)
+        The value of the `start` parameter (``0`` if this was not supplied).
         """
         # GH 25710
         return self._range.start
@@ -244,7 +218,7 @@ class RangeIndex(Int64Index):
     @property
     def _start(self):
         """
-        The value of the `start` parameter (``0`` if this was not supplied)
+        The value of the `start` parameter (``0`` if this was not supplied).
 
          .. deprecated:: 0.25.0
             Use ``start`` instead.
@@ -259,14 +233,14 @@ class RangeIndex(Int64Index):
     @cache_readonly
     def stop(self):
         """
-        The value of the `stop` parameter
+        The value of the `stop` parameter.
         """
         return self._range.stop
 
     @property
     def _stop(self):
         """
-        The value of the `stop` parameter
+        The value of the `stop` parameter.
 
          .. deprecated:: 0.25.0
             Use ``stop`` instead.
@@ -282,7 +256,7 @@ class RangeIndex(Int64Index):
     @cache_readonly
     def step(self):
         """
-        The value of the `step` parameter (``1`` if this was not supplied)
+        The value of the `step` parameter (``1`` if this was not supplied).
         """
         # GH 25710
         return self._range.step
@@ -290,7 +264,7 @@ class RangeIndex(Int64Index):
     @property
     def _step(self):
         """
-        The value of the `step` parameter (``1`` if this was not supplied)
+        The value of the `step` parameter (``1`` if this was not supplied).
 
          .. deprecated:: 0.25.0
             Use ``step`` instead.
@@ -304,7 +278,7 @@ class RangeIndex(Int64Index):
         return self.step
 
     @cache_readonly
-    def nbytes(self):
+    def nbytes(self) -> int:
         """
         Return the number of bytes in the underlying data.
         """
@@ -314,7 +288,7 @@ class RangeIndex(Int64Index):
             for attr_name in ["start", "stop", "step"]
         )
 
-    def memory_usage(self, deep=False):
+    def memory_usage(self, deep: bool = False) -> int:
         """
         Memory usage of my values
 
@@ -340,24 +314,24 @@ class RangeIndex(Int64Index):
         return self.nbytes
 
     @property
-    def dtype(self):
+    def dtype(self) -> np.dtype:
         return np.dtype(np.int64)
 
     @property
-    def is_unique(self):
+    def is_unique(self) -> bool:
         """ return if the index has unique values """
         return True
 
     @cache_readonly
-    def is_monotonic_increasing(self):
+    def is_monotonic_increasing(self) -> bool:
         return self._range.step > 0 or len(self) <= 1
 
     @cache_readonly
-    def is_monotonic_decreasing(self):
+    def is_monotonic_decreasing(self) -> bool:
         return self._range.step < 0 or len(self) <= 1
 
     @property
-    def has_duplicates(self):
+    def has_duplicates(self) -> bool:
         return False
 
     def __contains__(self, key: Union[int, np.integer]) -> bool:
@@ -380,14 +354,17 @@ class RangeIndex(Int64Index):
 
     @Appender(_index_shared_docs["get_indexer"])
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
-        if not (method is None and tolerance is None and is_list_like(target)):
-            return super().get_indexer(target, method=method, tolerance=tolerance)
+        if com.any_not_none(method, tolerance, limit) or not is_list_like(target):
+            return super().get_indexer(
+                target, method=method, tolerance=tolerance, limit=limit
+            )
 
         if self.step > 0:
             start, stop, step = self.start, self.stop, self.step
         else:
-            # Work on reversed range for simplicity:
-            start, stop, step = (self.stop - self.step, self.start + 1, -self.step)
+            # GH 28678: work on reversed range for simplicity
+            reverse = self._range[::-1]
+            start, stop, step = reverse.start, reverse.stop, reverse.step
 
         target_array = np.asarray(target)
         if not (is_integer_dtype(target_array) and target_array.ndim == 1):
@@ -615,27 +592,27 @@ class RangeIndex(Int64Index):
                     and (start_s - end_o) <= step_s
                     and (start_o - end_s) <= step_s
                 ):
-                    return self.__class__(start_r, end_r + step_s, step_s)
+                    return type(self)(start_r, end_r + step_s, step_s)
                 if (
                     (step_s % 2 == 0)
                     and (abs(start_s - start_o) <= step_s / 2)
                     and (abs(end_s - end_o) <= step_s / 2)
                 ):
-                    return self.__class__(start_r, end_r + step_s / 2, step_s / 2)
+                    return type(self)(start_r, end_r + step_s / 2, step_s / 2)
             elif step_o % step_s == 0:
                 if (
                     (start_o - start_s) % step_s == 0
                     and (start_o + step_s >= start_s)
                     and (end_o - step_s <= end_s)
                 ):
-                    return self.__class__(start_r, end_r + step_s, step_s)
+                    return type(self)(start_r, end_r + step_s, step_s)
             elif step_s % step_o == 0:
                 if (
                     (start_s - start_o) % step_o == 0
                     and (start_s + step_o >= start_o)
                     and (end_s - step_o <= end_o)
                 ):
-                    return self.__class__(start_r, end_r + step_o, step_o)
+                    return type(self)(start_r, end_r + step_o, step_o)
         return self._int64index._union(other, sort=sort)
 
     @Appender(_index_shared_docs["join"])
@@ -647,16 +624,62 @@ class RangeIndex(Int64Index):
         return super().join(other, how, level, return_indexers, sort)
 
     def _concat_same_dtype(self, indexes, name):
-        return _concat._concat_rangeindex_same_dtype(indexes).rename(name)
+        """
+        Concatenates multiple RangeIndex instances. All members of "indexes" must
+        be of type RangeIndex; result will be RangeIndex if possible, Int64Index
+        otherwise. E.g.:
+        indexes = [RangeIndex(3), RangeIndex(3, 6)] -> RangeIndex(6)
+        indexes = [RangeIndex(3), RangeIndex(4, 6)] -> Int64Index([0,1,2,4,5])
+        """
+        start = step = next_ = None
 
-    def __len__(self):
+        # Filter the empty indexes
+        non_empty_indexes = [obj for obj in indexes if len(obj)]
+
+        for obj in non_empty_indexes:
+            rng: range = obj._range
+
+            if start is None:
+                # This is set by the first non-empty index
+                start = rng.start
+                if step is None and len(rng) > 1:
+                    step = rng.step
+            elif step is None:
+                # First non-empty index had only one element
+                if rng.start == start:
+                    result = Int64Index(np.concatenate([x._values for x in indexes]))
+                    return result.rename(name)
+
+                step = rng.start - start
+
+            non_consecutive = (step != rng.step and len(rng) > 1) or (
+                next_ is not None and rng.start != next_
+            )
+            if non_consecutive:
+                result = Int64Index(np.concatenate([x._values for x in indexes]))
+                return result.rename(name)
+
+            if step is not None:
+                next_ = rng[-1] + step
+
+        if non_empty_indexes:
+            # Get the stop value from "next" or alternatively
+            # from the last non-empty index
+            stop = non_empty_indexes[-1].stop if next_ is None else next_
+            return RangeIndex(start, stop, step).rename(name)
+
+        # Here all "indexes" had 0 length, i.e. were empty.
+        # In this case return an empty range index.
+        return RangeIndex(0, 0).rename(name)
+
+    def __len__(self) -> int:
         """
         return the length of the RangeIndex
         """
         return len(self._range)
 
     @property
-    def size(self):
+    def size(self) -> int:
         return len(self)
 
     def __getitem__(self, key):
@@ -685,9 +708,8 @@ class RangeIndex(Int64Index):
         # fall back to Int64Index
         return super().__getitem__(key)
 
+    @unpack_zerodim_and_defer("__floordiv__")
     def __floordiv__(self, other):
-        if isinstance(other, (ABCSeries, ABCDataFrame)):
-            return NotImplemented
 
         if is_integer(other) and other != 0:
             if len(self) == 0 or self.start % other == 0 and self.step % other == 0:
@@ -723,10 +745,9 @@ class RangeIndex(Int64Index):
                 if False, use the existing step
             """
 
+            @unpack_zerodim_and_defer(op.__name__)
             def _evaluate_numeric_binop(self, other):
-                if isinstance(other, (ABCSeries, ABCDataFrame)):
-                    return NotImplemented
-                elif isinstance(other, ABCTimedeltaIndex):
+                if isinstance(other, ABCTimedeltaIndex):
                     # Defer to TimedeltaIndex implementation
                     return NotImplemented
                 elif isinstance(other, (timedelta, np.timedelta64)):
@@ -737,9 +758,8 @@ class RangeIndex(Int64Index):
                     # Must be an np.ndarray; GH#22390
                     return op(self._int64index, other)
 
-                other = self._validate_for_numeric_binop(other, op)
+                other = extract_array(other, extract_numpy=True)
                 attrs = self._get_attributes_dict()
-                attrs = self._maybe_update_attributes(attrs)
 
                 left, right = self, other
 
@@ -761,7 +781,7 @@ class RangeIndex(Int64Index):
                         rstart = op(left.start, right)
                         rstop = op(left.stop, right)
 
-                    result = self.__class__(rstart, rstop, rstep, **attrs)
+                    result = type(self)(rstart, rstop, rstep, **attrs)
 
                     # for compat with numpy / Int64Index
                     # even if we can represent as a RangeIndex, return

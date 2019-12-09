@@ -1,7 +1,7 @@
 """ test partial slicing on Series/Frame """
 
 from datetime import datetime
-import operator as op
+import operator
 
 import numpy as np
 import pytest
@@ -17,7 +17,7 @@ from pandas import (
     date_range,
 )
 from pandas.core.indexing import IndexingError
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 
 class TestSlicing:
@@ -408,10 +408,10 @@ class TestSlicing:
     @pytest.mark.parametrize(
         "op,expected",
         [
-            (op.lt, [True, False, False, False]),
-            (op.le, [True, True, False, False]),
-            (op.eq, [False, True, False, False]),
-            (op.gt, [False, False, False, True]),
+            (operator.lt, [True, False, False, False]),
+            (operator.le, [True, True, False, False]),
+            (operator.eq, [False, True, False, False]),
+            (operator.gt, [False, False, False, True]),
         ],
     )
     def test_selection_by_datetimelike(self, datetimelike, op, expected):
@@ -468,3 +468,14 @@ class TestSlicing:
         with pytest.raises(ValueError, match="The index must be timezone"):
             df = df.tz_localize(None)
             df[start:end]
+
+    def test_slice_reduce_to_series(self):
+        # GH 27516
+        df = pd.DataFrame(
+            {"A": range(24)}, index=pd.date_range("2000", periods=24, freq="M")
+        )
+        expected = pd.Series(
+            range(12), index=pd.date_range("2000", periods=12, freq="M"), name="A"
+        )
+        result = df.loc["2000", "A"]
+        tm.assert_series_equal(result, expected)

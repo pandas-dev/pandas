@@ -24,10 +24,11 @@ def test_foo():
 For more information, refer to the ``pytest`` documentation on ``skipif``.
 """
 from distutils.version import LooseVersion
+from functools import wraps
 import locale
-from typing import Optional
+from typing import Callable, Optional
 
-from _pytest.mark.structures import MarkDecorator
+import numpy as np
 import pytest
 
 from pandas.compat import is_platform_32bit, is_platform_windows
@@ -74,6 +75,21 @@ def safe_import(mod_name, min_version=None):
     return False
 
 
+# TODO:
+# remove when gh-24839 is fixed; this affects numpy 1.16
+# and pytables 3.4.4
+tables = safe_import("tables")
+xfail_non_writeable = pytest.mark.xfail(
+    tables
+    and LooseVersion(np.__version__) >= LooseVersion("1.16")
+    and LooseVersion(tables.__version__) < LooseVersion("3.5.1"),
+    reason=(
+        "gh-25511, gh-24839. pytables needs a "
+        "release beyong 3.4.4 to support numpy 1.16x"
+    ),
+)
+
+
 def _skip_if_no_mpl():
     mod = safe_import("matplotlib")
     if mod:
@@ -103,7 +119,7 @@ def _skip_if_no_scipy():
     )
 
 
-def skip_if_installed(package: str,) -> MarkDecorator:
+def skip_if_installed(package: str) -> Callable:
     """
     Skip a test if a package is installed.
 
@@ -117,7 +133,7 @@ def skip_if_installed(package: str,) -> MarkDecorator:
     )
 
 
-def skip_if_no(package: str, min_version: Optional[str] = None) -> MarkDecorator:
+def skip_if_no(package: str, min_version: Optional[str] = None) -> Callable:
     """
     Generic function to help skip tests when required packages are not
     present on the testing system.
@@ -170,7 +186,7 @@ skip_if_has_locale = pytest.mark.skipif(
 )
 skip_if_not_us_locale = pytest.mark.skipif(
     _skip_if_not_us_locale(),
-    reason="Specific locale is set " "{lang}".format(lang=locale.getlocale()[0]),
+    reason="Specific locale is set {lang}".format(lang=locale.getlocale()[0]),
 )
 skip_if_no_scipy = pytest.mark.skipif(
     _skip_if_no_scipy(), reason="Missing SciPy requirement"
@@ -184,7 +200,7 @@ skip_if_no_ne = pytest.mark.skipif(
 
 def skip_if_np_lt(ver_str, reason=None, *args, **kwds):
     if reason is None:
-        reason = "NumPy %s or greater required" % ver_str
+        reason = f"NumPy {ver_str} or greater required"
     return pytest.mark.skipif(
         _np_version < LooseVersion(ver_str), reason=reason, *args, **kwds
     )
@@ -215,3 +231,24 @@ def parametrize_fixture_doc(*args):
         return fixture
 
     return documented_fixture
+
+
+def check_file_leaks(func):
+    """
+    Decorate a test function tot check that we are not leaking file descriptors.
+    """
+    psutil = safe_import("psutil")
+    if not psutil:
+        return func
+
+    @wraps(func)
+    def new_func(*args, **kwargs):
+        proc = psutil.Process()
+        flist = proc.open_files()
+
+        func(*args, **kwargs)
+
+        flist2 = proc.open_files()
+        assert flist2 == flist
+
+    return new_func

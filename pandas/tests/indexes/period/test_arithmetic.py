@@ -117,5 +117,3 @@ class TestPeriodIndexArithmetic:
         idx = period_range(freq="A", start="1/1/2001", end="12/1/2009")
         tm.assert_index_equal(idx.shift(periods=0), idx)
         tm.assert_index_equal(idx.shift(0), idx)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=True):
-            tm.assert_index_equal(idx.shift(n=0), idx)

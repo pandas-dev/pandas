@@ -108,9 +108,7 @@ class TestTimestampProperties:
     )
     def test_names(self, data, time_locale):
         # GH 17354
-        # Test .weekday_name, .day_name(), .month_name
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            assert data.weekday_name == "Monday"
+        # Test .day_name(), .month_name
         if time_locale is None:
             expected_day = "Monday"
             expected_month = "August"
@@ -194,6 +192,10 @@ class TestTimestampProperties:
         dt = Timestamp("2100-01-01 00:00:00")
         assert dt.resolution == Timedelta(nanoseconds=1)
 
+        # Check that the attribute is available on the class, mirroring
+        #  the stdlib datetime behavior
+        assert Timestamp.resolution == Timedelta(nanoseconds=1)
+
 
 class TestTimestampConstructors:
     def test_constructor(self):
@@ -202,8 +204,6 @@ class TestTimestampConstructors:
         base_expected = 1404205200000000000
 
         # confirm base representation is correct
-        import calendar
-
         assert calendar.timegm(base_dt.timetuple()) * 1000000000 == base_expected
 
         tests = [
@@ -275,8 +275,6 @@ class TestTimestampConstructors:
         base_expected = 1404205200000000000
 
         # confirm base representation is correct
-        import calendar
-
         assert calendar.timegm(base_dt.timetuple()) * 1000000000 == base_expected
 
         tests = [
@@ -677,11 +675,13 @@ class TestTimestampConstructors:
             Timestamp("2012-01-01", freq=[])
 
     @pytest.mark.parametrize("box", [datetime, Timestamp])
-    def test_depreciate_tz_and_tzinfo_in_datetime_input(self, box):
+    def test_raise_tz_and_tzinfo_in_datetime_input(self, box):
         # GH 23579
         kwargs = {"year": 2018, "month": 1, "day": 1, "tzinfo": utc}
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(ValueError, match="Cannot pass a datetime or Timestamp"):
             Timestamp(box(**kwargs), tz="US/Pacific")
+        with pytest.raises(ValueError, match="Cannot pass a datetime or Timestamp"):
+            Timestamp(box(**kwargs), tzinfo=pytz.timezone("US/Pacific"))
 
     def test_dont_convert_dateutil_utc_to_pytz_utc(self):
         result = Timestamp(datetime(2018, 1, 1), tz=tzutc())
@@ -1047,3 +1047,23 @@ class TestTimestampConversion:
         # GH 24653: alias .to_numpy() for scalars
         ts = Timestamp(datetime.now())
         assert ts.to_datetime64() == ts.to_numpy()
+
+
+class SubDatetime(datetime):
+    pass
+
+
+@pytest.mark.parametrize(
+    "lh,rh",
+    [
+        (SubDatetime(2000, 1, 1), Timedelta(hours=1)),
+        (Timedelta(hours=1), SubDatetime(2000, 1, 1)),
+    ],
+)
+def test_dt_subclass_add_timedelta(lh, rh):
+    # GH#25851
+    # ensure that subclassed datetime works for
+    # Timedelta operations
+    result = lh + rh
+    expected = SubDatetime(2000, 1, 1, 1)
+    assert result == expected
