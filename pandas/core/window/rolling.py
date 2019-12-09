@@ -1283,15 +1283,14 @@ class _Rolling_and_Expanding(_Rolling):
         engine="cython",
         engine_kwargs=None,
     ):
-
-        kwargs.pop("_level", None)
-        kwargs.pop("floor", None)
-        window = self._get_window()
-        offset = _offset(window, self.center)
         if args is None:
             args = ()
         if kwargs is None:
             kwargs = {}
+        kwargs.pop("_level", None)
+        kwargs.pop("floor", None)
+        window = self._get_window()
+        offset = _offset(window, self.center)
         if not is_bool(raw):
             raise ValueError("raw parameter must be `True` or `False`")
 
@@ -1341,7 +1340,6 @@ class _Rolling_and_Expanding(_Rolling):
 
         nopython = engine_kwargs.get("nopython", True)
         nogil = engine_kwargs.get("nogil", False)
-        # Maybe raise something here about 32 bit compat, if not compat.is_platform_32bit()
         parallel = engine_kwargs.get("parallel", False)
 
         if kwargs and nopython:
@@ -2047,8 +2045,23 @@ class Rolling(_Rolling_and_Expanding):
 
     @Substitution(name="rolling")
     @Appender(_shared_docs["apply"])
-    def apply(self, func, raw=False, args=(), kwargs={}):
-        return super().apply(func, raw=raw, args=args, kwargs=kwargs)
+    def apply(
+        self,
+        func,
+        raw=False,
+        args=None,
+        kwargs=None,
+        engine="cython",
+        engine_kwargs=None,
+    ):
+        return super().apply(
+            func,
+            raw=raw,
+            args=args,
+            kwargs=kwargs,
+            engine=engine,
+            engine_kwargs=engine_kwargs,
+        )
 
     @Substitution(name="rolling")
     @Appender(_shared_docs["sum"])

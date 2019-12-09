@@ -342,3 +342,31 @@ class TestApi(Base):
         )
 
         tm.assert_frame_equal(result, expected)
+
+
+class TestEngine:
+    def test_invalid_engine(self):
+        with pytest.raises(
+            ValueError, match="engine must be either 'numba' or 'cython'"
+        ):
+            Series(range(1)).rolling(1).apply(lambda x: x, engine="foo")
+
+    def test_invalid_engine_kwargs_cython(self):
+        with pytest.raises(
+            ValueError, match="cython engine does not accept engine_kwargs"
+        ):
+            Series(range(1)).rolling(1).apply(
+                lambda x: x, engine="cython", engine_kwargs={"nopython": False}
+            )
+
+    def test_invalid_raw_numba(self):
+        with pytest.raises(
+            ValueError, match="raw must be `True` when using the numba engine"
+        ):
+            Series(range(1)).rolling(1).apply(lambda x: x, raw=False, engine="numba")
+
+    def test_invalid_kwargs_nopython(self):
+        with pytest.raises(ValueError, match="numba does not support kwargs with"):
+            Series(range(1)).rolling(1).apply(
+                lambda x: x, kwargs={"a": 1}, engine="numba", raw=True
+            )
