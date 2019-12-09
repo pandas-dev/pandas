@@ -583,6 +583,17 @@ Thur,Lunch,Yes,51.51,17"""
             with pytest.raises(KeyError, match="does not match index name"):
                 getattr(s, method)("mistake")
 
+    def test_unused_level_raises(self):
+        # GH 20410
+        mi = MultiIndex(
+            levels=[["a_lot", "onlyone", "notevenone"], [1970, ""]],
+            codes=[[1, 0], [1, 0]],
+        )
+        df = DataFrame(-1, index=range(3), columns=mi)
+
+        with pytest.raises(KeyError, match="notevenone"):
+            df["notevenone"]
+
     def test_unstack_level_name(self):
         result = self.frame.unstack("second")
         expected = self.frame.unstack(level=1)
@@ -1527,7 +1538,7 @@ Thur,Lunch,Yes,51.51,17"""
         s2 = Series(
             [1, 2, 3, 4], index=MultiIndex.from_tuples([(1, 2), (1, 3), (3, 2), (3, 4)])
         )
-        s3 = Series()
+        s3 = Series(dtype=object)
 
         # it works!
         DataFrame({"foo": s1, "bar": s2, "baz": s3})

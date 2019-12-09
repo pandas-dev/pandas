@@ -505,6 +505,7 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame()
         check_round_trip(df, pa)
 
+    @pytest.mark.skip(reason="broken test")
     @td.skip_if_no("pyarrow", min_version="0.15.0")
     def test_additional_extension_arrays(self, pa):
         # test additional ExtensionArrays that are supported through the
@@ -552,7 +553,7 @@ class TestParquetPyArrow(Base):
 
 
 class TestParquetFastParquet(Base):
-    @td.skip_if_no("fastparquet", min_version="0.2.1")
+    @td.skip_if_no("fastparquet", min_version="0.3.2")
     def test_basic(self, fp, df_full):
         df = df_full
 

@@ -1,8 +1,6 @@
-import warnings
-
 import numpy as np
 
-from pandas._libs import index as libindex
+from pandas._libs import index as libindex, lib
 from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.cast import astype_nansafe
@@ -47,17 +45,8 @@ class NumericIndex(Index):
 
     _is_numeric_dtype = True
 
-    def __new__(cls, data=None, dtype=None, copy=False, name=None, fastpath=None):
+    def __new__(cls, data=None, dtype=None, copy=False, name=None):
         cls._validate_dtype(dtype)
-        if fastpath is not None:
-            warnings.warn(
-                "The 'fastpath' keyword is deprecated, and will be "
-                "removed in a future version.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            if fastpath:
-                return cls._simple_new(data, name=name)
 
         # Coerce to ndarray if not already ndarray or Index
         if not isinstance(data, (np.ndarray, Index)):
@@ -331,13 +320,15 @@ class UInt64Index(IntegerIndex):
 
     @Appender(_index_shared_docs["_convert_arr_indexer"])
     def _convert_arr_indexer(self, keyarr):
-        # Cast the indexer to uint64 if possible so
-        # that the values returned from indexing are
-        # also uint64.
-        keyarr = com.asarray_tuplesafe(keyarr)
-        if is_integer_dtype(keyarr):
-            return com.asarray_tuplesafe(keyarr, dtype=np.uint64)
-        return keyarr
+        # Cast the indexer to uint64 if possible so that the values returned
+        # from indexing are also uint64.
+        dtype = None
+        if is_integer_dtype(keyarr) or (
+            lib.infer_dtype(keyarr, skipna=False) == "integer"
+        ):
+            dtype = np.uint64
+
+        return com.asarray_tuplesafe(keyarr, dtype=dtype)
 
     @Appender(_index_shared_docs["_convert_index_indexer"])
     def _convert_index_indexer(self, keyarr):

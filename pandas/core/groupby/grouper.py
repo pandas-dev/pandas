@@ -4,7 +4,6 @@ split-apply-combine paradigm.
 """
 
 from typing import Hashable, List, Optional, Tuple
-import warnings
 
 import numpy as np
 
@@ -14,7 +13,6 @@ from pandas.core.dtypes.common import (
     ensure_categorical,
     is_categorical_dtype,
     is_datetime64_dtype,
-    is_hashable,
     is_list_like,
     is_scalar,
     is_timedelta64_dtype,
@@ -93,7 +91,7 @@ class Grouper:
     >>> df.groupby(Grouper(level='date', freq='60s', axis=1))
     """
 
-    _attributes = ("key", "level", "freq", "axis", "sort")  # type: Tuple[str, ...]
+    _attributes: Tuple[str, ...] = ("key", "level", "freq", "axis", "sort")
 
     def __new__(cls, *args, **kwargs):
         if kwargs.get("freq") is not None:
@@ -208,12 +206,12 @@ class Grouper:
 
     def __repr__(self) -> str:
         attrs_list = (
-            f"{attr_name}={getattr(self, attr_name)!r}"
+            f"{attr_name}={repr(getattr(self, attr_name))}"
             for attr_name in self._attributes
             if getattr(self, attr_name) is not None
         )
         attrs = ", ".join(attrs_list)
-        cls_name = self.__class__.__name__
+        cls_name = type(self).__name__
         return f"{cls_name}({attrs})"
 
 
@@ -373,8 +371,8 @@ class Grouping:
     def __iter__(self):
         return iter(self.indices)
 
-    _codes = None  # type: np.ndarray
-    _group_index = None  # type: Index
+    _codes: Optional[np.ndarray] = None
+    _group_index: Optional[Index] = None
 
     @property
     def ngroups(self) -> int:
@@ -405,6 +403,7 @@ class Grouping:
     def group_index(self) -> Index:
         if self._group_index is None:
             self._make_codes()
+        assert self._group_index is not None
         return self._group_index
 
     def _make_codes(self) -> None:
@@ -514,28 +513,6 @@ def get_grouper(
     elif isinstance(key, ops.BaseGrouper):
         return key, [], obj
 
-    # In the future, a tuple key will always mean an actual key,
-    # not an iterable of keys. In the meantime, we attempt to provide
-    # a warning. We can assume that the user wanted a list of keys when
-    # the key is not in the index. We just have to be careful with
-    # unhashable elements of `key`. Any unhashable elements implies that
-    # they wanted a list of keys.
-    # https://github.com/pandas-dev/pandas/issues/18314
-    if isinstance(key, tuple):
-        all_hashable = is_hashable(key)
-        if (
-            all_hashable and key not in obj and set(key).issubset(obj)
-        ) or not all_hashable:
-            # column names ('a', 'b') -> ['a', 'b']
-            # arrays like (a, b) -> [a, b]
-            msg = (
-                "Interpreting tuple 'by' as a list of keys, rather than "
-                "a single key. Use 'by=[...]' instead of 'by=(...)'. In "
-                "the future, a tuple will always mean a single key."
-            )
-            warnings.warn(msg, FutureWarning, stacklevel=5)
-            key = list(key)
-
     if not isinstance(key, list):
         keys = [key]
         match_axis_length = False
@@ -576,8 +553,8 @@ def get_grouper(
     else:
         levels = [level] * len(keys)
 
-    groupings = []  # type: List[Grouping]
-    exclusions = []  # type: List[Hashable]
+    groupings: List[Grouping] = []
+    exclusions: List[Hashable] = []
 
     # if the actual grouper should be obj[key]
     def is_in_axis(key) -> bool:

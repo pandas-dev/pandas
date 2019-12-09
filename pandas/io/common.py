@@ -47,9 +47,6 @@ from pandas._typing import FilePathOrBuffer
 
 lzma = _import_lzma()
 
-# gh-12665: Alias for now and remove later.
-CParserError = ParserError
-
 # common NA values
 # no longer excluding inf representations
 # '1.#INF','-1.#INF', '1.#INF000000',
@@ -418,7 +415,7 @@ def _get_handle(
     except ImportError:
         need_text_wrapping = BufferedIOBase  # type: ignore
 
-    handles = list()  # type: List[IO]
+    handles: List[IO] = list()
     f = path_or_buf
 
     # Convert pathlib.Path/py.path.local or string
