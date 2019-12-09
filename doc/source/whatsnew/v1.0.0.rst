@@ -622,6 +622,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - Changed :meth:`Timedelta.resolution` to match the behavior of the standard library ``datetime.timedelta.resolution``, for the old behavior, use :meth:`Timedelta.resolution_string` (:issue:`26839`)
 - Removed previously deprecated :attr:`Timestamp.weekday_name`, :attr:`DatetimeIndex.weekday_name`, and :attr:`Series.dt.weekday_name` (:issue:`18164`)
 - Removed previously deprecated ``errors`` argument in :meth:`Timestamp.tz_localize`, :meth:`DatetimeIndex.tz_localize`, and :meth:`Series.tz_localize` (:issue:`22644`)
+- Changed the default value for ``ordered`` in :class:`CategoricalDtype` from ``None`` to ``False`` (:issue:`26336`)
 - :meth:`Series.set_axis` and :meth:`DataFrame.set_axis` now require "labels" as the first argument and "axis" as an optional named parameter (:issue:`30089`)
 -
 
