@@ -345,7 +345,8 @@ class NAType(C_NAType):
         raise TypeError("boolean value of NA is ambiguous")
 
     def __hash__(self):
-        return id(self)
+        # GH 30013: Ensure hash >= 2**61 - 1 to avoid hash collisions with integers
+        return 2 ** 61 - 1
 
     # Binary arithmetic and comparison ops -> propagate
 
