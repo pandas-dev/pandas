@@ -119,7 +119,7 @@ def round_trip_pickle(obj, path=None):
     """
 
     if path is None:
-        path = "__{random_bytes}__.pickle".format(random_bytes=rands(10))
+        path = f"__{rands(10)}__.pickle"
     with ensure_clean(path) as path:
         pd.to_pickle(obj, path)
         return pd.read_pickle(path)
@@ -218,8 +218,7 @@ def decompress_file(path, compression):
         else:
             raise ValueError(f"ZIP file {path} error. Only one file per ZIP.")
     else:
-        msg = f"Unrecognized compression type: {compression}"
-        raise ValueError(msg)
+        raise ValueError(f"Unrecognized compression type: {compression}")
 
     try:
         yield f
@@ -264,8 +263,7 @@ def write_to_compressed(compression, path, data, dest="test"):
     elif compression == "xz":
         compress_method = _get_lzma_file(lzma)
     else:
-        msg = f"Unrecognized compression type: {compression}"
-        raise ValueError(msg)
+        raise ValueError(f"Unrecognized compression type: {compression}")
 
     if compression == "zip":
         mode = "w"
@@ -379,17 +377,15 @@ def _check_isinstance(left, right, cls):
     ------
     AssertionError : Either `left` or `right` is not an instance of `cls`.
     """
-
-    err_msg = "{name} Expected type {exp_type}, found {act_type} instead"
     cls_name = cls.__name__
 
     if not isinstance(left, cls):
         raise AssertionError(
-            err_msg.format(name=cls_name, exp_type=cls, act_type=type(left))
+            f"{cls_name} Expected type {cls}, found {type(left)} instead"
         )
     if not isinstance(right, cls):
         raise AssertionError(
-            err_msg.format(name=cls_name, exp_type=cls, act_type=type(right))
+            f"{cls_name} Expected type {cls}, found {type(right)} instead"
         )
 
 
@@ -638,8 +634,8 @@ def assert_index_equal(
     # length comparison
     if len(left) != len(right):
         msg1 = f"{obj} length are different"
-        msg2 = "{length}, {left}".format(length=len(left), left=left)
-        msg3 = "{length}, {right}".format(length=len(right), right=right)
+        msg2 = f"{len(left)}, {left}"
+        msg3 = f"{len(right)}, {right}"
         raise_assert_detail(obj, msg1, msg2, msg3)
 
     # MultiIndex special comparison for little-friendly error messages
@@ -669,9 +665,7 @@ def assert_index_equal(
     if check_exact and check_categorical:
         if not left.equals(right):
             diff = np.sum((left.values != right.values).astype(int)) * 100.0 / len(left)
-            msg = "{obj} values are different ({pct} %)".format(
-                obj=obj, pct=np.round(diff, 5)
-            )
+            msg = f"{obj} values are different ({np.round(diff, 5)} %)"
             raise_assert_detail(obj, msg, left, right)
     else:
         _testing.assert_almost_equal(
@@ -707,7 +701,7 @@ def assert_class_equal(left, right, exact=True, obj="Input"):
             return x
 
         try:
-            return x.__class__.__name__
+            return type(x).__name__
         except AttributeError:
             return repr(type(x))
 
@@ -764,7 +758,7 @@ def assert_attr_equal(attr, left, right, obj="Attributes"):
     if result:
         return True
     else:
-        msg = 'Attribute "{attr}" are different'.format(attr=attr)
+        msg = f'Attribute "{attr}" are different'
         raise_assert_detail(obj, msg, left_attr, right_attr)
 
 
@@ -774,17 +768,17 @@ def assert_is_valid_plot_return_object(objs):
     if isinstance(objs, (pd.Series, np.ndarray)):
         for el in objs.ravel():
             msg = (
-                "one of 'objs' is not a matplotlib Axes instance, type "
-                "encountered {name!r}"
-            ).format(name=el.__class__.__name__)
+                "one of 'objs' is not a matplotlib Axes instance, "
+                f"type encountered {repr(type(el).__name__)}"
+            )
             assert isinstance(el, (plt.Axes, dict)), msg
     else:
-        assert isinstance(objs, (plt.Artist, tuple, dict)), (
-            "objs is neither an ndarray of Artist instances nor a "
-            'single Artist instance, tuple, or dict, "objs" is a {name!r}'.format(
-                name=objs.__class__.__name__
-            )
+        msg = (
+            "objs is neither an ndarray of Artist instances nor a single "
+            "ArtistArtist instance, tuple, or dict, 'objs' is a "
+            f"{repr(type(objs).__name__)}"
         )
+        assert isinstance(objs, (plt.Artist, tuple, dict)), msg
 
 
 def isiterable(obj):
@@ -954,12 +948,10 @@ def assert_numpy_array_equal(
 
     if check_same == "same":
         if left_base is not right_base:
-            msg = f"{left_base!r} is not {right_base!r}"
-            raise AssertionError(msg)
+            raise AssertionError(f"{repr(left_base)} is not {repr(right_base)}")
     elif check_same == "copy":
         if left_base is right_base:
-            msg = f"{left_base!r} is {right_base!r}"
-            raise AssertionError(msg)
+            raise AssertionError(f"{repr(left_base)} is {repr(right_base)}")
 
     def _raise(left, right, err_msg):
         if err_msg is None:
@@ -975,9 +967,7 @@ def assert_numpy_array_equal(
                     diff += 1
 
             diff = diff * 100.0 / left.size
-            msg = "{obj} values are different ({pct} %)".format(
-                obj=obj, pct=np.round(diff, 5)
-            )
+            msg = f"{obj} values are different ({np.round(diff, 5)} %)"
             raise_assert_detail(obj, msg, left, right)
 
         raise AssertionError(err_msg)
@@ -1106,8 +1096,8 @@ def assert_series_equal(
 
     # length comparison
     if len(left) != len(right):
-        msg1 = "{len}, {left}".format(len=len(left), left=left.index)
-        msg2 = "{len}, {right}".format(len=len(right), right=right.index)
+        msg1 = f"{len(left)}, {left.index}"
+        msg2 = f"{len(right)}, {right.index}"
         raise_assert_detail(obj, "Series length are different", msg1, msg2)
 
     # index comparison
@@ -1140,7 +1130,7 @@ def assert_series_equal(
             left._internal_get_values(),
             right._internal_get_values(),
             check_dtype=check_dtype,
-            obj=f"{obj}",
+            obj=str(obj),
         )
     elif check_datetimelike_compat:
         # we want to check only if we have compat dtypes
@@ -1152,7 +1142,6 @@ def assert_series_equal(
             # vs Timestamp) but will compare equal
             if not Index(left.values).equals(Index(right.values)):
                 msg = f"[datetimelike_compat=True] {left.values} is not equal to {right.values}."
-
                 raise AssertionError(msg)
         else:
             assert_numpy_array_equal(
@@ -1180,7 +1169,7 @@ def assert_series_equal(
             right._internal_get_values(),
             check_less_precise=check_less_precise,
             check_dtype=check_dtype,
-            obj=f"{obj}",
+            obj=str(obj),
         )
 
     # metadata comparison
@@ -1309,7 +1298,7 @@ def assert_frame_equal(
     # shape comparison
     if left.shape != right.shape:
         raise_assert_detail(
-            obj, f"{obj} shape mismatch", f"{left.shape!r}", f"{right.shape!r}"
+            obj, f"{obj} shape mismatch", f"{repr(left.shape)}", f"{repr(right.shape)}"
         )
 
     if check_like:
@@ -1547,9 +1536,9 @@ def assert_copy(iter1, iter2, **eql_kwargs):
     for elem1, elem2 in zip(iter1, iter2):
         assert_almost_equal(elem1, elem2, **eql_kwargs)
         msg = (
-            "Expected object {obj1!r} and object {obj2!r} to be "
+            f"Expected object {repr(type(elem1))} and object {repr(type(elem2))} to be "
             "different objects, but they were the same object."
-        ).format(obj1=type(elem1), obj2=type(elem2))
+        )
         assert elem1 is not elem2, msg
 
 
@@ -1896,8 +1885,8 @@ def makeCustomIndex(
         return idx
     elif idx_type is not None:
         raise ValueError(
-            f'"{idx_type}" is not a legal value for `idx_type`, '
-            'use  "i"/"f"/"s"/"u"/"dt/"p"/"td".'
+            f"{repr(idx_type)} is not a legal value for `idx_type`, "
+            "use  'i'/'f'/'s'/'u'/'dt'/'p'/'td'."
         )
 
     if len(ndupe_l) < nlevels:
@@ -2340,14 +2329,13 @@ def network(
                 errno = getattr(err.reason, "errno", None)
 
             if errno in skip_errnos:
-                skip("Skipping test due to known errno" f" and error {err}")
+                skip(f"Skipping test due to known errno and error {err}")
 
             e_str = str(err)
 
             if any(m.lower() in e_str.lower() for m in _skip_on_messages):
                 skip(
-                    "Skipping test because exception "
-                    f"message is known and error {err}"
+                    f"Skipping test because exception message is known and error {err}"
                 )
 
             if not isinstance(err, error_classes):
@@ -2356,7 +2344,7 @@ def network(
             if raise_on_error or can_connect(url, error_classes):
                 raise
             else:
-                skip("Skipping test due to lack of connectivity" f" and error {err}")
+                skip(f"Skipping test due to lack of connectivity and error {err}")
 
     return wrapper
 
@@ -2617,12 +2605,12 @@ def assert_produces_warning(
                     )
                 )
         if expected_warning:
-            msg = (
-                f"Did not see expected warning of class {expected_warning.__name__!r}."
-            )
+            msg = f"Did not see expected warning of class {repr(expected_warning.__name__)}"
             assert saw_warning, msg
         if raise_on_extra_warnings and extra_warnings:
-            raise AssertionError(f"Caused unexpected warning(s): {extra_warnings!r}.")
+            raise AssertionError(
+                f"Caused unexpected warning(s): {repr(extra_warnings)}"
+            )
 
 
 class RNGContext:

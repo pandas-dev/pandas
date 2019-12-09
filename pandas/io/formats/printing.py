@@ -321,7 +321,7 @@ def format_object_summary(
     if display_width is None:
         display_width = get_option("display.width") or 80
     if name is None:
-        name = obj.__class__.__name__
+        name = type(obj).__name__
 
     if indent_for_name:
         name_len = len(name)

@@ -453,9 +453,9 @@ class TestIndex(Base):
             index = Index(vals)
             assert isinstance(index, TimedeltaIndex)
 
-    @pytest.mark.parametrize("attr, utc", [["values", False], ["asi8", True]])
+    @pytest.mark.parametrize("attr", ["values", "asi8"])
     @pytest.mark.parametrize("klass", [pd.Index, pd.DatetimeIndex])
-    def test_constructor_dtypes_datetime(self, tz_naive_fixture, attr, utc, klass):
+    def test_constructor_dtypes_datetime(self, tz_naive_fixture, attr, klass):
         # Test constructing with a datetimetz dtype
         # .values produces numpy datetimes, so these are considered naive
         # .asi8 produces integers, so these are considered epoch timestamps
@@ -466,30 +466,27 @@ class TestIndex(Base):
         index = index.tz_localize(tz_naive_fixture)
         dtype = index.dtype
 
-        if (
-            tz_naive_fixture
-            and attr == "asi8"
-            and str(tz_naive_fixture) not in ("UTC", "tzutc()", "UTC+00:00")
-        ):
-            ex_warn = FutureWarning
+        if attr == "asi8":
+            result = pd.DatetimeIndex(arg).tz_localize(tz_naive_fixture)
         else:
-            ex_warn = None
-
-        # stacklevel is checked elsewhere. We don't do it here since
-        # Index will have an frame, throwing off the expected.
-        with tm.assert_produces_warning(ex_warn, check_stacklevel=False):
             result = klass(arg, tz=tz_naive_fixture)
         tm.assert_index_equal(result, index)
 
-        with tm.assert_produces_warning(ex_warn, check_stacklevel=False):
+        if attr == "asi8":
+            result = pd.DatetimeIndex(arg).astype(dtype)
+        else:
             result = klass(arg, dtype=dtype)
         tm.assert_index_equal(result, index)
 
-        with tm.assert_produces_warning(ex_warn, check_stacklevel=False):
+        if attr == "asi8":
+            result = pd.DatetimeIndex(list(arg)).tz_localize(tz_naive_fixture)
+        else:
             result = klass(list(arg), tz=tz_naive_fixture)
         tm.assert_index_equal(result, index)
 
-        with tm.assert_produces_warning(ex_warn, check_stacklevel=False):
+        if attr == "asi8":
+            result = pd.DatetimeIndex(list(arg)).astype(dtype)
+        else:
             result = klass(list(arg), dtype=dtype)
         tm.assert_index_equal(result, index)
 
@@ -752,7 +749,7 @@ class TestIndex(Base):
     @pytest.mark.parametrize("dtype", [np.int_, np.bool_])
     def test_empty_fancy(self, index, dtype):
         empty_arr = np.array([], dtype=dtype)
-        empty_index = index.__class__([])
+        empty_index = type(index)([])
 
         assert index[[]].identical(empty_index)
         assert index[empty_arr].identical(empty_index)
@@ -762,7 +759,7 @@ class TestIndex(Base):
         # pd.DatetimeIndex is excluded, because it overrides getitem and should
         # be tested separately.
         empty_farr = np.array([], dtype=np.float_)
-        empty_index = index.__class__([])
+        empty_index = type(index)([])
 
         assert index[[]].identical(empty_index)
         # np.ndarray only accepts ndarray of int & bool dtypes, so should Index
@@ -2001,7 +1998,7 @@ class TestIndex(Base):
         with pytest.raises(KeyError, match=msg):
             index.isin([], level=label)
 
-    @pytest.mark.parametrize("empty", [[], Series(), np.array([])])
+    @pytest.mark.parametrize("empty", [[], Series(dtype=object), np.array([])])
     def test_isin_empty(self, empty):
         # see gh-16991
         index = Index(["a", "b"])
@@ -2394,11 +2391,6 @@ Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
         with pytest.raises(AttributeError, match="Can't set attribute"):
             index.is_unique = False
 
-    def test_get_duplicates_deprecated(self):
-        index = pd.Index([1, 2, 3])
-        with tm.assert_produces_warning(FutureWarning):
-            index.get_duplicates()
-
     def test_tab_complete_warning(self, ip):
         # https://github.com/pandas-dev/pandas/issues/16409
         pytest.importorskip("IPython", minversion="6.0.0")
@@ -2410,11 +2402,13 @@ Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
             with provisionalcompleter("ignore"):
                 list(ip.Completer.completions("idx.", 4))
 
-    def test_deprecated_contains(self, indices):
-        # deprecated for all types except IntervalIndex
-        warning = FutureWarning if not isinstance(indices, pd.IntervalIndex) else None
-        with tm.assert_produces_warning(warning):
+    def test_contains_method_removed(self, indices):
+        # GH#30103 method removed for all types except IntervalIndex
+        if isinstance(indices, pd.IntervalIndex):
             indices.contains(1)
+        else:
+            with pytest.raises(AttributeError):
+                indices.contains(1)
 
 
 class TestMixedIntIndex(Base):
@@ -2446,8 +2440,8 @@ class TestMixedIntIndex(Base):
         # GH12309
         index = self.create_index()
 
-        first = index.__class__(index, copy=True, name="mario")
-        second = first.__class__(first, copy=False)
+        first = type(index)(index, copy=True, name="mario")
+        second = type(first)(first, copy=False)
 
         # Even though "copy=False", we want a new object.
         assert first is not second

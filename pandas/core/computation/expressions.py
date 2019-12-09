@@ -109,7 +109,7 @@ def _evaluate_numexpr(op, op_str, a, b):
         b_value = getattr(b, "values", b)
 
         result = ne.evaluate(
-            "a_value {op} b_value".format(op=op_str),
+            f"a_value {op_str} b_value",
             local_dict={"a_value": a_value, "b_value": b_value},
             casting="safe",
         )
@@ -175,17 +175,15 @@ def _bool_arith_check(
     if _has_bool_dtype(a) and _has_bool_dtype(b):
         if op_str in unsupported:
             warnings.warn(
-                "evaluating in Python space because the {op!r} "
-                "operator is not supported by numexpr for "
-                "the bool dtype, use {alt_op!r} instead".format(
-                    op=op_str, alt_op=unsupported[op_str]
-                )
+                f"evaluating in Python space because the {repr(op_str)} "
+                f"operator is not supported by numexpr for "
+                f"the bool dtype, use {repr(unsupported[op_str])} instead"
             )
             return False
 
         if op_str in not_allowed:
             raise NotImplementedError(
-                "operator {op!r} not implemented for bool dtypes".format(op=op_str)
+                f"operator {repr(op_str)} not implemented for bool dtypes"
             )
     return True
 

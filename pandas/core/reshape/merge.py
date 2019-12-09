@@ -126,7 +126,10 @@ def _groupby_and_merge(
                 on = [on]
 
             if right.duplicated(by + on).any():
-                right = right.drop_duplicates(by + on, keep="last")
+                _right = right.drop_duplicates(by + on, keep="last")
+                # TODO: use overload to refine return type of drop_duplicates
+                assert _right is not None  # needed for mypy
+                right = _right
         rby = right.groupby(by, sort=False)
     except KeyError:
         rby = None
@@ -1027,7 +1030,7 @@ class _MergeOperation:
                     )
                 ]
             else:
-                left_keys = [self.left.index.values]
+                left_keys = [self.left.index._values]
 
         if left_drop:
             self.left = self.left._drop_labels_or_levels(left_drop)

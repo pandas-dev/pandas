@@ -15,11 +15,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
+    - name: Setting conda path
+      run: echo "::add-path::${HOME}/miniconda3/bin"
+
     - name: Checkout
       uses: actions/checkout@v1
-
-    - name: Setting conda path
-      run: echo "::set-env name=PATH::${HOME}/miniconda3/bin:${PATH}"
 
     - name: Looking for unwanted patterns
       run: ci/code_checks.sh patterns
@@ -80,15 +80,18 @@ jobs:
         git fetch upstream
         if git diff upstream/master --name-only | grep -q "^asv_bench/"; then
             asv machine --yes
-            ASV_OUTPUT="$(asv dev)"
-            if [[ $(echo "$ASV_OUTPUT" | grep "failed") ]]; then
-                echo "##vso[task.logissue type=error]Benchmarks run with errors"
-                echo "$ASV_OUTPUT"
+            asv dev | sed "/failed$/ s/^/##[error]/" | tee benchmarks.log
+            if grep "failed" benchmarks.log > /dev/null ; then
                 exit 1
-            else
-                echo "Benchmarks run without errors"
             fi
         else
             echo "Benchmarks did not run, no changes detected"
         fi
       if: true
+
+    - name: Publish benchmarks artifact
+      uses: actions/upload-artifact@master
+      with:
+        name: Benchmarks log
+        path: asv_bench/benchmarks.log
+      if: failure()
