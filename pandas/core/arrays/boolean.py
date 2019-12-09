@@ -564,11 +564,13 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
     def any(self, skipna=True, **kwargs):
         kwargs.pop("axis", None)
         nv.validate_any((), kwargs)
-        valid_values = self._data[~self._mask]
+
+        values = self._data.copy()
+        np.putmask(values, self._mask, False)
+        result = values.any()
         if skipna:
-            return valid_values.any()
+            return result
         else:
-            result = valid_values.any()
             if result or len(self) == 0:
                 return result
             else:
@@ -577,11 +579,14 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
     def all(self, skipna=True, **kwargs):
         kwargs.pop("axis", None)
         nv.validate_all((), kwargs)
-        valid_values = self._data[~self._mask]
+
+        values = self._data.copy()
+        np.putmask(values, self._mask, True)
+        result = values.all()
+
         if skipna:
-            return valid_values.all()
+            return result
         else:
-            result = valid_values.all()
             if not result or len(self) == 0:
                 return result
             else:
