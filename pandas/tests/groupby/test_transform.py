@@ -1140,7 +1140,7 @@ def test_transform_fastpath_raises():
     tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_shift_lose_timezone(self):
+def test_groupby_shift_lose_timezone():
     # GH 30134
     df = DataFrame({"a": [1, 1], "date": pd.Timestamp.utcnow()})
     expected = Series({"date": pd.Timestamp.utcnow()})
