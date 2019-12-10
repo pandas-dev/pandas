@@ -1895,6 +1895,7 @@ class IndexCol:
         freq=None,
         tz=None,
         index_name=None,
+        ordered=None,
         table=None,
         meta=None,
         metadata=None,
@@ -1913,6 +1914,7 @@ class IndexCol:
         self.freq = freq
         self.tz = tz
         self.index_name = index_name
+        self.ordered = ordered
         self.table = table
         self.meta = meta
         self.metadata = metadata
@@ -2200,6 +2202,8 @@ class DataCol(IndexCol):
         typ=None,
         cname=None,
         pos=None,
+        tz=None,
+        ordered=None,
         table=None,
         meta=None,
         metadata=None,
@@ -2211,6 +2215,8 @@ class DataCol(IndexCol):
             typ=typ,
             pos=pos,
             cname=cname,
+            tz=tz,
+            ordered=ordered,
             table=table,
             meta=meta,
             metadata=metadata,
@@ -2270,15 +2276,6 @@ class DataCol(IndexCol):
         self.data, data = None, self.data
         return data
 
-    def set_atom(self, block):
-        """ create and setup my atom from the block b """
-
-        # short-cut certain block types
-        if block.is_categorical:
-            self.set_atom_categorical(block)
-        elif block.is_datetimetz:
-            self.set_atom_datetime64tz(block)
-
     @classmethod
     def _get_atom(cls, values: Union[np.ndarray, ABCExtensionArray]) -> "Col":
         """
@@ -2331,30 +2328,9 @@ class DataCol(IndexCol):
     def get_atom_data(cls, shape, kind: str) -> "Col":
         return cls.get_atom_coltype(kind=kind)(shape=shape[0])
 
-    def set_atom_categorical(self, block):
-        # currently only supports a 1-D categorical
-        # in a 1-D block
-
-        values = block.values
-
-        if values.ndim > 1:
-            raise NotImplementedError("only support 1-d categoricals")
-
-        # write the codes; must be in a block shape
-        self.ordered = values.ordered
-
-        # write the categories
-        self.meta = "category"
-        self.metadata = np.array(values.categories, copy=False).ravel()
-
     @classmethod
     def get_atom_datetime64(cls, shape):
         return _tables().Int64Col(shape=shape[0])
-
-    def set_atom_datetime64tz(self, block):
-
-        # store a converted timezone
-        self.tz = _get_tz(block.values.tz)
 
     @classmethod
     def get_atom_timedelta64(cls, shape):
@@ -3880,6 +3856,13 @@ class Table(Fixed):
 
             typ = klass._get_atom(data_converted)
             kind = _dtype_to_kind(data_converted.dtype.name)
+            tz = _get_tz(data_converted.tz) if hasattr(data_converted, "tz") else None
+
+            meta = metadata = ordered = None
+            if is_categorical_dtype(data_converted):
+                ordered = data_converted.ordered
+                meta = "category"
+                metadata = np.array(data_converted.categories, copy=False).ravel()
 
             col = klass(
                 name=adj_name,
@@ -3888,8 +3871,11 @@ class Table(Fixed):
                 typ=typ,
                 pos=j,
                 kind=kind,
+                tz=tz,
+                ordered=ordered,
+                meta=meta,
+                metadata=metadata,
             )
-            col.set_atom(block=b)
             col.set_data(data_converted)
             col.update_info(self.info)
 
