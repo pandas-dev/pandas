@@ -233,7 +233,7 @@ class TestDataFrameFormatting:
                 else:
                     assert "..." not in line
 
-        with option_context("display.max_colwidth", 999_999):
+        with option_context("display.max_colwidth", 999999):
             assert "..." not in repr(df)
 
         with option_context("display.max_colwidth", max_len + 2):
@@ -408,10 +408,10 @@ class TestDataFrameFormatting:
         # determine size of truncation (...) column
         df = pd.DataFrame(
             {
-                "a": [108_480, 30_830],
-                "b": [12_345, 12_345],
-                "c": [12_345, 12_345],
-                "d": [12_345, 12_345],
+                "a": [108480, 30830],
+                "b": [12345, 12345],
+                "c": [12345, 12345],
+                "d": [12345, 12345],
                 "e": ["a" * 50] * 2,
             }
         )
@@ -719,7 +719,7 @@ class TestDataFrameFormatting:
 
         # mid col
         df = DataFrame(
-            {"a": ["あ", "いいい", "う", "ええええええ"], "b": [1, 222, 33_333, 4]},
+            {"a": ["あ", "いいい", "う", "ええええええ"], "b": [1, 222, 33333, 4]},
             index=["a", "bb", "c", "ddd"],
         )
         expected = (
@@ -755,7 +755,7 @@ class TestDataFrameFormatting:
 
         # column name
         df = DataFrame(
-            {"b": ["あ", "いいい", "う", "ええええええ"], "あああああ": [1, 222, 33_333, 4]},
+            {"b": ["あ", "いいい", "う", "ええええええ"], "あああああ": [1, 222, 33333, 4]},
             index=["a", "bb", "c", "ddd"],
         )
         expected = (
@@ -857,7 +857,7 @@ class TestDataFrameFormatting:
 
             # mid col
             df = DataFrame(
-                {"a": ["あ", "いいい", "う", "ええええええ"], "b": [1, 222, 33_333, 4]},
+                {"a": ["あ", "いいい", "う", "ええええええ"], "b": [1, 222, 33333, 4]},
                 index=["a", "bb", "c", "ddd"],
             )
             expected = (
@@ -869,7 +869,7 @@ class TestDataFrameFormatting:
 
             # last col
             df = DataFrame(
-                {"a": [1, 222, 33_333, 4], "b": ["あ", "いいい", "う", "ええええええ"]},
+                {"a": [1, 222, 33333, 4], "b": ["あ", "いいい", "う", "ええええええ"]},
                 index=["a", "bb", "c", "ddd"],
             )
             expected = (
@@ -895,7 +895,7 @@ class TestDataFrameFormatting:
 
             # column name
             df = DataFrame(
-                {"b": ["あ", "いいい", "う", "ええええええ"], "あああああ": [1, 222, 33_333, 4]},
+                {"b": ["あ", "いいい", "う", "ええええええ"], "あああああ": [1, 222, 33333, 4]},
                 index=["a", "bb", "c", "ddd"],
             )
             expected = (
@@ -1002,7 +1002,7 @@ class TestDataFrameFormatting:
 
             # ambiguous unicode
             df = DataFrame(
-                {"b": ["あ", "いいい", "¡¡", "ええええええ"], "あああああ": [1, 222, 33_333, 4]},
+                {"b": ["あ", "いいい", "¡¡", "ええええええ"], "あああああ": [1, 222, 33333, 4]},
                 index=["a", "bb", "c", "¡¡¡"],
             )
             expected = (
@@ -1545,7 +1545,7 @@ class TestDataFrameFormatting:
         )
 
         df = DataFrame(
-            {"x": [0, 0.25, 3456.000, 12e45, 1.64e6, 1.7e8, 1.253_456, np.pi, -1e6]}
+            {"x": [0, 0.25, 3456.000, 12e45, 1.64e6, 1.7e8, 1.253456, np.pi, -1e6]}
         )
 
         df_s = df.to_string()
@@ -1587,7 +1587,7 @@ class TestDataFrameFormatting:
     def test_to_string_float_format_no_fixed_width(self):
 
         # GH 21625
-        df = DataFrame({"x": [0.19_999]})
+        df = DataFrame({"x": [0.19999]})
         expected = "      x\n0 0.200"
         assert df.to_string(float_format="%.3f") == expected
 
@@ -2261,7 +2261,7 @@ class TestSeriesFormatting:
         idx = pd.MultiIndex.from_tuples(
             [("あ", "いい"), ("う", "え"), ("おおお", "かかかか"), ("き", "くく")]
         )
-        s = Series([1, 22, 3333, 44_444], index=idx)
+        s = Series([1, 22, 3333, 44444], index=idx)
         expected = (
             "あ    いい          1\n"
             "う    え          22\n"
@@ -2271,7 +2271,7 @@ class TestSeriesFormatting:
         assert repr(s) == expected
 
         # object dtype, shorter than unicode repr
-        s = Series([1, 22, 3333, 44_444], index=[1, "AB", np.nan, "あああ"])
+        s = Series([1, 22, 3333, 44444], index=[1, "AB", np.nan, "あああ"])
         expected = (
             "1          1\nAB        22\nNaN     3333\nあああ    44444\ndtype: int64"
         )
@@ -2279,7 +2279,7 @@ class TestSeriesFormatting:
 
         # object dtype, longer than unicode repr
         s = Series(
-            [1, 22, 3333, 44_444], index=[1, "AB", pd.Timestamp("2011-01-01"), "あああ"]
+            [1, 22, 3333, 44444], index=[1, "AB", pd.Timestamp("2011-01-01"), "あああ"]
         )
         expected = (
             "1                          1\n"
@@ -2356,7 +2356,7 @@ class TestSeriesFormatting:
             idx = pd.MultiIndex.from_tuples(
                 [("あ", "いい"), ("う", "え"), ("おおお", "かかかか"), ("き", "くく")]
             )
-            s = Series([1, 22, 3333, 44_444], index=idx)
+            s = Series([1, 22, 3333, 44444], index=idx)
             expected = (
                 "あ      いい            1\n"
                 "う      え             22\n"
@@ -2367,7 +2367,7 @@ class TestSeriesFormatting:
             assert repr(s) == expected
 
             # object dtype, shorter than unicode repr
-            s = Series([1, 22, 3333, 44_444], index=[1, "AB", np.nan, "あああ"])
+            s = Series([1, 22, 3333, 44444], index=[1, "AB", np.nan, "あああ"])
             expected = (
                 "1             1\nAB           22\nNaN        3333\n"
                 "あああ    44444\ndtype: int64"
@@ -2376,7 +2376,7 @@ class TestSeriesFormatting:
 
             # object dtype, longer than unicode repr
             s = Series(
-                [1, 22, 3333, 44_444],
+                [1, 22, 3333, 44444],
                 index=[1, "AB", pd.Timestamp("2011-01-01"), "あああ"],
             )
             expected = (
@@ -2479,7 +2479,7 @@ class TestSeriesFormatting:
 
         from datetime import datetime, timedelta
 
-        Series(np.array([11_00, 20], dtype="timedelta64[ns]")).to_string()
+        Series(np.array([1100, 20], dtype="timedelta64[ns]")).to_string()
 
         s = Series(date_range("2012-1-1", periods=3, freq="D"))
 
@@ -2891,7 +2891,7 @@ class TestFloatArrayFormatter:
         with pd.option_context("display.precision", 4):
             # need both a number > 1e6 and something that normally formats to
             # having length > display.precision + 6
-            df = pd.DataFrame(dict(x=[12_345.6789]))
+            df = pd.DataFrame(dict(x=[12345.6789]))
             assert str(df) == "            x\n0  12345.6789"
             df = pd.DataFrame(dict(x=[2e6]))
             assert str(df) == "           x\n0  2000000.0"

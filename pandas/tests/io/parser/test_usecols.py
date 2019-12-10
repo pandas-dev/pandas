@@ -349,7 +349,7 @@ def test_usecols_with_unicode_strings(all_parsers):
     parser = all_parsers
 
     exp_data = {
-        "AAA": {0: 0.056674972999999997, 1: 2.6132309819999997, 2: 3.5689350380000002,},
+        "AAA": {0: 0.056674972999999997, 1: 2.6132309819999997, 2: 3.5689350380000002},
         "BBB": {0: 8, 1: 2, 2: 7},
     }
     expected = DataFrame(exp_data)
@@ -367,7 +367,7 @@ def test_usecols_with_single_byte_unicode_strings(all_parsers):
     parser = all_parsers
 
     exp_data = {
-        "A": {0: 0.056674972999999997, 1: 2.6132309819999997, 2: 3.5689350380000002,},
+        "A": {0: 0.056674972999999997, 1: 2.6132309819999997, 2: 3.5689350380000002},
         "B": {0: 8, 1: 2, 2: 7},
     }
     expected = DataFrame(exp_data)
@@ -397,7 +397,7 @@ def test_usecols_with_multi_byte_characters(all_parsers, usecols):
     parser = all_parsers
 
     exp_data = {
-        "あああ": {0: 0.056674972999999997, 1: 2.6132309819999997, 2: 3.5689350380000002,},
+        "あああ": {0: 0.056674972999999997, 1: 2.6132309819999997, 2: 3.5689350380000002},
         "いい": {0: 8, 1: 2, 2: 7},
     }
     expected = DataFrame(exp_data)

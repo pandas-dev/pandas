@@ -100,7 +100,7 @@ def _align_core(terms):
                 reindexer_size = len(reindexer)
 
                 ordm = np.log10(max(1, abs(reindexer_size - term_axis_size)))
-                if ordm >= 1 and reindexer_size >= 10_000:
+                if ordm >= 1 and reindexer_size >= 10000:
                     w = (
                         f"Alignment difference on axis {axis} is larger "
                         f"than an order of magnitude on term {repr(terms[i].name)}, "
