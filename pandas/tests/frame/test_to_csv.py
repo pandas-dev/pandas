@@ -1,4 +1,5 @@
 import csv
+import datetime
 from io import StringIO
 import os
 
@@ -1356,3 +1357,83 @@ class TestDataFrameToCSV:
                 result = f.read().decode("utf-8")
 
         assert result == expected
+
+    def test_to_csv_dropna_format(self):
+        # see gh-29711
+        date_example_string = "1911180945"
+        ts = datetime.datetime.strptime(
+            date_example_string, "%y%m%d%H%M%S"
+        )
+        test_json = [
+            {
+                "created_at": "2019-11-18 16:28:42.932887",
+                "foo": "bar",
+            }
+        ]
+
+        df = pd.DataFrame(test_json)
+        df["baz"] = ts
+
+        e = ",created_at,foo,baz\n0,2019-11-18 16:28:42.932887,bar,2019-11-18 09:04:05\n"
+        result = df.to_csv()
+        assert result == e
+
+        df["created_at"] = pd.to_datetime(
+            df["created_at"], infer_datetime_format=True, errors="coerce"
+        )
+        result2 = df.to_csv()
+        assert result2 == e
+
+        df = df.dropna(subset=["created_at"])
+        result3 = df.to_csv()
+        assert result3 == e
+
+    def test_to_csv_round_milliseconds(self):
+        # see gh-29711
+        date_example_string = "1911180945"
+        ts = datetime.datetime.strptime(
+            date_example_string, "%y%m%d%H%M%S"
+        )
+        test_json = [
+            {
+                "created_at": "2019-11-18 16:28:42.932887",
+                "foo": "bar",
+            }
+        ]
+
+        df = pd.DataFrame(test_json)
+        df["baz"] = ts
+
+        df["created_at"] = pd.to_datetime(
+            df["created_at"], infer_datetime_format=True, errors="coerce"
+        )
+
+        df = df.dropna(subset=["created_at"])
+
+        e = ",created_at,foo,baz\n0,2019-11-18 16:28:42.932887,bar,2019-11-18 09:04:05\n"
+        result = df.to_csv(date_format="%Y-%m-%d %H:%M:%S.%f", round_milliseconds=True)
+        assert result == e
+
+        date_example_string = "1911180945"
+        ts = datetime.datetime.strptime(
+            date_example_string, "%y%m%d%H%M%S"
+        )
+        test_json = [
+            {
+                "created_at": "2019-11-18 16:28:42.000001",
+                "foo": "bar",
+            }
+        ]
+
+        df = pd.DataFrame(test_json)
+        df["baz"] = ts
+
+        df["created_at"] = pd.to_datetime(
+            df["created_at"], infer_datetime_format=True, errors="coerce"
+        )
+
+        df = df.dropna(subset=["created_at"])
+
+        e = ",created_at,foo,baz\n0,2019-11-18 16:28:42.000001,bar,2019-11-18 09:04:05\n"
+        result = df.to_csv(date_format="%Y-%m-%d %H:%M:%S.%f", round_milliseconds=True)
+        assert result == e

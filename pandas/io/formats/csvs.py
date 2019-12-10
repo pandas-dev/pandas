@@ -49,6 +49,7 @@ class CSVFormatter:
         chunksize=None,
         quotechar='"',
         date_format=None,
+        round_milliseconds=None,
         doublequote=True,
         escapechar=None,
         decimal=".",
@@ -94,6 +95,7 @@ class CSVFormatter:
         self.line_terminator = line_terminator or os.linesep
 
         self.date_format = date_format
+        self.round_milliseconds = round_milliseconds
 
         self.has_mi_columns = isinstance(obj.columns, ABCMultiIndex)
 
@@ -109,6 +111,7 @@ class CSVFormatter:
                     float_format=float_format,
                     date_format=date_format,
                     quoting=self.quoting,
+                    round_milliseconds=round_milliseconds
                 )
             else:
                 cols = list(cols)
@@ -123,6 +126,7 @@ class CSVFormatter:
                 float_format=float_format,
                 date_format=date_format,
                 quoting=self.quoting,
+                round_milliseconds=round_milliseconds
             )
         else:
             cols = list(cols)
@@ -342,6 +346,7 @@ class CSVFormatter:
                 decimal=self.decimal,
                 date_format=self.date_format,
                 quoting=self.quoting,
+                round_milliseconds=self.round_milliseconds
             )
 
             for col_loc, col in zip(b.mgr_locs, d):
