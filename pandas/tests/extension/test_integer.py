@@ -168,27 +168,6 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
     def _compare_other(self, s, data, op_name, other):
         self.check_opname(s, op_name, other)
 
-    def test_compare_to_string(self, any_nullable_int_dtype):
-        # GH 28930
-        s = pd.Series([1, None], dtype=any_nullable_int_dtype)
-        result = s == "a"
-        expected = pd.Series([False, False])
-
-        self.assert_series_equal(result, expected)
-
-    def test_compare_to_int(self, any_nullable_int_dtype, all_compare_operators):
-        # GH 28930
-        s1 = pd.Series([1, 2, 3], dtype=any_nullable_int_dtype)
-        s2 = pd.Series([1, 2, 3], dtype="int")
-
-        method = getattr(s1, all_compare_operators)
-        result = method(2)
-
-        method = getattr(s2, all_compare_operators)
-        expected = method(2)
-
-        self.assert_series_equal(result, expected)
-
 
 class TestInterface(base.BaseInterfaceTests):
     pass
