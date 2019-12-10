@@ -26,6 +26,7 @@ from pandas.core.dtypes.missing import isna, notna
 from pandas.core import nanops, ops
 from pandas.core.algorithms import take
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
+from pandas.core.ops import invalid_comparison
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.tools.numeric import to_numeric
 
@@ -652,6 +653,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             from pandas.arrays import BooleanArray
 
             mask = None
+            op_name = op.__name__
 
             if isinstance(other, (BooleanArray, IntegerArray)):
                 other, mask = other._data, other._mask
@@ -671,12 +673,14 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
                 result = np.zeros(self._data.shape, dtype="bool")
                 mask = np.ones(self._data.shape, dtype="bool")
             else:
-                # numpy will show a DeprecationWarning on invalid elementwise
-                # comparisons, this will raise in the future
                 with warnings.catch_warnings():
                     warnings.filterwarnings("ignore", "elementwise", FutureWarning)
                     with np.errstate(all="ignore"):
-                        result = op(self._data, other)
+                        method = getattr(self._data, f"__{op_name}__")
+                        result = method(other)
+
+                    if result is NotImplemented:
+                        result = invalid_comparison(self._data, other, op)
 
             # nans propagate
             if mask is None:
