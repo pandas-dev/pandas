@@ -38,7 +38,7 @@ class TestDatetimeIndexOps:
         if isinstance(obj, (DatetimeIndex, PeriodIndex)):
             return
         if op == "freq" and isinstance(obj, TimedeltaIndex):
-            return
+            pytest.skip(f"{op} is available on {type(obj)}")
 
         with pytest.raises((AttributeError, TypeError)):
             getattr(obj, op)

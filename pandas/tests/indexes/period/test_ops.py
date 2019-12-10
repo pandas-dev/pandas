@@ -21,7 +21,7 @@ class TestPeriodIndexOps:
         if isinstance(obj, (PeriodIndex, DatetimeIndex)):
             return
         if op == "freq" and isinstance(obj, TimedeltaIndex):
-            return
+            pytest.skip(f"{op} is available on {type(obj)}")
 
         with pytest.raises((AttributeError, TypeError)):
             getattr(obj, op)
