@@ -56,7 +56,7 @@ Dedicated string data type
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 We've added :class:`StringDtype`, an extension type dedicated to string data.
-Previously, strings were typically stored in object-dtype NumPy arrays.
+Previously, strings were typically stored in object-dtype NumPy arrays. (:issue:`29975`)
 
 .. warning::
 
@@ -86,7 +86,7 @@ You can use the alias ``"string"`` as well.
    s
 
 The usual string accessor methods work. Where appropriate, the return type
-of the Series or columns of a DataFrame will also have string dtype. (:issue:`29975`)
+of the Series or columns of a DataFrame will also have string dtype.
 
 .. ipython:: python
 
