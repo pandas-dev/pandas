@@ -321,7 +321,7 @@ class CSSToExcelConverter:
         try:
             return self.NAMED_COLORS[val]
         except KeyError:
-            warnings.warn("Unhandled color format: {val!r}".format(val=val), CSSWarning)
+            warnings.warn(f"Unhandled color format: {repr(val)}", CSSWarning)
 
     def build_number_format(self, props):
         return {"format_code": props.get("number-format")}

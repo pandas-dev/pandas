@@ -1197,9 +1197,7 @@ class _MergeOperation:
                         )
                     )
                 if not common_cols.is_unique:
-                    raise MergeError(
-                        "Data columns not unique: {common!r}".format(common=common_cols)
-                    )
+                    raise MergeError(f"Data columns not unique: {repr(common_cols)}")
                 self.left_on = self.right_on = common_cols
         elif self.on is not None:
             if self.left_on is not None or self.right_on is not None:
