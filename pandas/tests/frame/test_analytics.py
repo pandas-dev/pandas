@@ -2589,11 +2589,6 @@ def df_main_dtypes():
 
 class TestNLargestNSmallest:
 
-    dtype_error_msg_template = (
-        "Column {column!r} has dtype {dtype}, cannot "
-        "use method {method!r} with this dtype"
-    )
-
     # ----------------------------------------------------------------------
     # Top / bottom
     @pytest.mark.parametrize(
@@ -2620,8 +2615,9 @@ class TestNLargestNSmallest:
         df = df_strings
         if "b" in order:
 
-            error_msg = self.dtype_error_msg_template.format(
-                column="b", method=nselect_method, dtype="object"
+            error_msg = (
+                f"Column 'b' has dtype object, "
+                f"cannot use method '{nselect_method}' with this dtype"
             )
             with pytest.raises(TypeError, match=error_msg):
                 getattr(df, nselect_method)(n, order)
@@ -2637,8 +2633,9 @@ class TestNLargestNSmallest:
     def test_n_error(self, df_main_dtypes, nselect_method, columns):
         df = df_main_dtypes
         col = columns[1]
-        error_msg = self.dtype_error_msg_template.format(
-            column=col, method=nselect_method, dtype=df[col].dtype
+        error_msg = (
+            f"Column '{col}' has dtype {df[col].dtype}, "
+            f"cannot use method '{nselect_method}' with this dtype"
         )
         # escape some characters that may be in the repr
         error_msg = (
