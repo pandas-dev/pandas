@@ -889,7 +889,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
     def item(self):
         """
-        Return the first element of the underlying data as a python scalar.
+        Return the sole element of the underlying data as a python scalar.
         """
         if len(self) == 1:
             return self[0]
