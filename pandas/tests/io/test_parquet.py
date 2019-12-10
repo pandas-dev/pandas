@@ -531,7 +531,7 @@ class TestParquetPyArrow(Base):
             expected = df.assign(a=df.a.astype("float64"))
         check_round_trip(df, pa, expected=expected)
 
-    @td.skip_if_no("pyarrow", min_version="0.15.0")
+    @td.skip_if_no("pyarrow", min_version="0.15.1.dev")
     def test_additional_extension_types(self, pa):
         # test additional ExtensionArrays that are supported through the
         # __arrow_array__ protocol + by defining a custom ExtensionType
@@ -542,14 +542,7 @@ class TestParquetPyArrow(Base):
                 "d": pd.period_range("2012-01-01", periods=3, freq="D"),
             }
         )
-        if LooseVersion(pyarrow.__version__) >= LooseVersion("0.15.1.dev"):
-            check_round_trip(df, pa)
-        else:
-            # writing works, reading not yet (on pyarrow 0.15)
-            with tm.ensure_clean() as path:
-                df.to_parquet(path, engine=pa)
-                with pytest.raises(Exception):
-                    pd.read_parquet(path, engine=pa)
+        check_round_trip(df, pa)
 
 
 class TestParquetFastParquet(Base):
