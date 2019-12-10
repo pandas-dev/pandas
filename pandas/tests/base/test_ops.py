@@ -29,18 +29,11 @@ from pandas import (
     TimedeltaIndex,
     Timestamp,
 )
-from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
+from pandas.tests.base.utils import allow_na_ops
 import pandas.util.testing as tm
 
 
 class Ops:
-    def _allow_na_ops(self, obj):
-        """Whether to skip test cases including NaN"""
-        if (isinstance(obj, Index) and obj.is_boolean()) or not obj._can_hold_na:
-            # don't test boolean / integer dtypes
-            return False
-        return True
-
     def setup_method(self, method):
         self.bool_index = tm.makeBoolIndex(10, name="a")
         self.int_index = tm.makeIntIndex(10, name="a")
@@ -82,53 +75,6 @@ class Ops:
         self.narrow_series = [getattr(self, "{}_series".format(t)) for t in nrw_types]
 
         self.objs = self.indexes + self.series + self.narrow_series
-
-    def check_ops_properties(self, props, filter=None, ignore_failures=False):
-        for op in props:
-            for o in self.is_valid_objs:
-
-                # if a filter, skip if it doesn't match
-                if filter is not None:
-                    filt = o.index if isinstance(o, Series) else o
-                    if not filter(filt):
-                        continue
-
-                try:
-                    if isinstance(o, Series):
-                        expected = Series(getattr(o.index, op), index=o.index, name="a")
-                    else:
-                        expected = getattr(o, op)
-                except (AttributeError):
-                    if ignore_failures:
-                        continue
-
-                result = getattr(o, op)
-
-                # these could be series, arrays or scalars
-                if isinstance(result, Series) and isinstance(expected, Series):
-                    tm.assert_series_equal(result, expected)
-                elif isinstance(result, Index) and isinstance(expected, Index):
-                    tm.assert_index_equal(result, expected)
-                elif isinstance(result, np.ndarray) and isinstance(
-                    expected, np.ndarray
-                ):
-                    tm.assert_numpy_array_equal(result, expected)
-                else:
-                    assert result == expected
-
-            # freq raises AttributeError on an Int64Index because its not
-            # defined we mostly care about Series here anyhow
-            if not ignore_failures:
-                for o in self.not_valid_objs:
-
-                    # an object that is datetimelike will raise a TypeError,
-                    # otherwise an AttributeError
-                    err = AttributeError
-                    if issubclass(type(o), DatetimeIndexOpsMixin):
-                        err = TypeError
-
-                    with pytest.raises(err):
-                        getattr(o, op)
 
 
 @pytest.mark.parametrize("klass", [Series, DataFrame])
@@ -314,7 +260,7 @@ class TestIndexOps(Ops):
             klass = type(o)
             values = o._ndarray_values
 
-            if not self._allow_na_ops(o):
+            if not allow_na_ops(o):
                 continue
 
             # special assign to the numpy array
@@ -796,7 +742,7 @@ class TestIndexOps(Ops):
                 o = orig.copy()
                 klass = type(o)
 
-                if not self._allow_na_ops(o):
+                if not allow_na_ops(o):
                     continue
 
                 if needs_i8_conversion(o):

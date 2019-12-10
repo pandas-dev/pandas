@@ -2,28 +2,29 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DatetimeIndex, Index, NaT, PeriodIndex, Series
+from pandas import DatetimeIndex, Index, NaT, PeriodIndex, Series, TimedeltaIndex
 from pandas.core.arrays import PeriodArray
-from pandas.tests.base.utils import (
-    check_ops_properties_invalid,
-    check_ops_properties_valid,
-)
+from pandas.tests.base.utils import check_ops_properties_valid
 import pandas.util.testing as tm
 
 
 class TestPeriodIndexOps:
-    def test_ops_properties(self, index_or_series_obj):
+    @pytest.mark.parametrize("op", PeriodArray._datetimelike_ops)
+    def test_valid_ops_properties(self, op, index_or_series_obj):
         obj = index_or_series_obj
-        is_valid = isinstance(obj, (DatetimeIndex, PeriodIndex))
-        if is_valid:
-            filter_ = lambda x: isinstance(x, PeriodIndex)
-            check_ops_properties_valid(obj, PeriodArray._field_ops, filter_)
-            check_ops_properties_valid(obj, PeriodArray._object_ops, filter_)
-            check_ops_properties_valid(obj, PeriodArray._bool_ops, filter_)
-        else:
-            check_ops_properties_invalid(obj, PeriodArray._field_ops)
-            check_ops_properties_invalid(obj, PeriodArray._object_ops)
-            check_ops_properties_invalid(obj, PeriodArray._bool_ops)
+        if isinstance(obj, PeriodIndex):
+            check_ops_properties_valid(obj, op)
+
+    @pytest.mark.parametrize("op", PeriodArray._datetimelike_ops)
+    def test_invalid_ops_properties(self, op, index_or_series_obj):
+        obj = index_or_series_obj
+        if isinstance(obj, (PeriodIndex, DatetimeIndex)):
+            return
+        if op == "freq" and isinstance(obj, TimedeltaIndex):
+            return
+
+        with pytest.raises((AttributeError, TypeError)):
+            getattr(obj, op)
 
     def test_resolution(self):
         for freq, expected in zip(

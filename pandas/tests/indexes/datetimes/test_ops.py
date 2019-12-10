@@ -12,14 +12,12 @@ from pandas import (
     Index,
     PeriodIndex,
     Series,
+    TimedeltaIndex,
     Timestamp,
     bdate_range,
     date_range,
 )
-from pandas.tests.base.utils import (
-    check_ops_properties_invalid,
-    check_ops_properties_valid,
-)
+from pandas.tests.base.utils import check_ops_properties_valid
 import pandas.util.testing as tm
 
 from pandas.tseries.offsets import BDay, BMonthEnd, CDay, Day, Hour
@@ -28,18 +26,22 @@ START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
 
 class TestDatetimeIndexOps:
-    def test_ops_properties(self, index_or_series_obj):
+    @pytest.mark.parametrize("op", DatetimeIndex._datetimelike_ops)
+    def test_valid_ops_properties(self, op, index_or_series_obj):
         obj = index_or_series_obj
-        is_valid = isinstance(obj, (DatetimeIndex, PeriodIndex))
-        if is_valid:
-            filter_ = lambda x: isinstance(x, DatetimeIndex)
-            check_ops_properties_valid(obj, DatetimeIndex._field_ops, filter_)
-            check_ops_properties_valid(obj, DatetimeIndex._object_ops, filter_)
-            check_ops_properties_valid(obj, DatetimeIndex._bool_ops, filter_)
-        else:
-            check_ops_properties_invalid(obj, DatetimeIndex._field_ops)
-            check_ops_properties_invalid(obj, DatetimeIndex._object_ops)
-            check_ops_properties_invalid(obj, DatetimeIndex._bool_ops)
+        if isinstance(obj, DatetimeIndex):
+            check_ops_properties_valid(obj, op)
+
+    @pytest.mark.parametrize("op", DatetimeIndex._datetimelike_ops)
+    def test_invalid_ops_properties(self, op, index_or_series_obj):
+        obj = index_or_series_obj
+        if isinstance(obj, (DatetimeIndex, PeriodIndex)):
+            return
+        if op == "freq" and isinstance(obj, TimedeltaIndex):
+            return
+
+        with pytest.raises((AttributeError, TypeError)):
+            getattr(obj, op)
 
     def test_ops_properties_basic(self, datetime_series):
 

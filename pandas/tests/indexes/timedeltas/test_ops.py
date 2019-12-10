@@ -6,7 +6,7 @@ import pytest
 from pandas.core.dtypes.generic import ABCDateOffset
 
 import pandas as pd
-from pandas import Series, TimedeltaIndex, timedelta_range
+from pandas import DatetimeIndex, PeriodIndex, Series, TimedeltaIndex, timedelta_range
 from pandas.tests.base.utils import check_ops_properties_valid
 import pandas.util.testing as tm
 
@@ -14,13 +14,22 @@ from pandas.tseries.offsets import Day, Hour
 
 
 class TestTimedeltaIndexOps:
-    def test_ops_properties(self, index_or_series_obj):
+    @pytest.mark.parametrize("op", TimedeltaIndex._datetimelike_ops)
+    def test_valid_ops_properties(self, op, index_or_series_obj):
         obj = index_or_series_obj
-        is_valid = isinstance(obj, TimedeltaIndex)
-        if is_valid:
-            filter_ = lambda x: isinstance(x, TimedeltaIndex)
-            check_ops_properties_valid(obj, TimedeltaIndex._field_ops, filter_)
-            check_ops_properties_valid(obj, TimedeltaIndex._object_ops, filter_)
+        if isinstance(obj, TimedeltaIndex):
+            check_ops_properties_valid(obj, op)
+
+    @pytest.mark.parametrize("op", TimedeltaIndex._datetimelike_ops)
+    def test_invalid_ops_properties(self, op, index_or_series_obj):
+        obj = index_or_series_obj
+        if isinstance(obj, TimedeltaIndex):
+            return
+        if op == "freq" and isinstance(obj, (DatetimeIndex, PeriodIndex)):
+            return
+
+        with pytest.raises((AttributeError, TypeError)):
+            getattr(obj, op)
 
     def test_value_counts_unique(self):
         # GH 7735
