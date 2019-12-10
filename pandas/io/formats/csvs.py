@@ -111,7 +111,7 @@ class CSVFormatter:
                     float_format=float_format,
                     date_format=date_format,
                     quoting=self.quoting,
-                    round_milliseconds=round_milliseconds
+                    round_milliseconds=round_milliseconds,
                 )
             else:
                 cols = list(cols)
@@ -126,7 +126,7 @@ class CSVFormatter:
                 float_format=float_format,
                 date_format=date_format,
                 quoting=self.quoting,
-                round_milliseconds=round_milliseconds
+                round_milliseconds=round_milliseconds,
             )
         else:
             cols = list(cols)
@@ -346,7 +346,7 @@ class CSVFormatter:
                 decimal=self.decimal,
                 date_format=self.date_format,
                 quoting=self.quoting,
-                round_milliseconds=self.round_milliseconds
+                round_milliseconds=self.round_milliseconds,
             )
 
             for col_loc, col in zip(b.mgr_locs, d):

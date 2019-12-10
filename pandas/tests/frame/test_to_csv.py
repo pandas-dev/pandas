@@ -1361,15 +1361,8 @@ class TestDataFrameToCSV:
     def test_to_csv_dropna_format(self):
         # see gh-29711
         date_example_string = "1911180945"
-        ts = datetime.datetime.strptime(
-            date_example_string, "%y%m%d%H%M%S"
-        )
-        test_json = [
-            {
-                "created_at": "2019-11-18 16:28:42.932887",
-                "foo": "bar",
-            }
-        ]
+        ts = datetime.datetime.strptime(date_example_string, "%y%m%d%H%M%S")
+        test_json = [{"created_at": "2019-11-18 16:28:42.932887", "foo": "bar",}]
 
         df = pd.DataFrame(test_json)
         df["baz"] = ts
@@ -1391,15 +1384,8 @@ class TestDataFrameToCSV:
     def test_to_csv_round_milliseconds(self):
         # see gh-29711
         date_example_string = "1911180945"
-        ts = datetime.datetime.strptime(
-            date_example_string, "%y%m%d%H%M%S"
-        )
-        test_json = [
-            {
-                "created_at": "2019-11-18 16:28:42.932887",
-                "foo": "bar",
-            }
-        ]
+        ts = datetime.datetime.strptime(date_example_string, "%y%m%d%H%M%S")
+        test_json = [{"created_at": "2019-11-18 16:28:42.932887", "foo": "bar",}]
 
         df = pd.DataFrame(test_json)
         df["baz"] = ts
@@ -1415,15 +1401,8 @@ class TestDataFrameToCSV:
         assert result == e
 
         date_example_string = "1911180945"
-        ts = datetime.datetime.strptime(
-            date_example_string, "%y%m%d%H%M%S"
-        )
-        test_json = [
-            {
-                "created_at": "2019-11-18 16:28:42.000001",
-                "foo": "bar",
-            }
-        ]
+        ts = datetime.datetime.strptime(date_example_string, "%y%m%d%H%M%S")
+        test_json = [{"created_at": "2019-11-18 16:28:42.000001", "foo": "bar",}]
 
         df = pd.DataFrame(test_json)
         df["baz"] = ts

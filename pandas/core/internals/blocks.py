@@ -2189,8 +2189,13 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         return is_valid_nat_for_dtype(element, self.dtype)
 
     def to_native_types(
-        self, slicer=None, na_rep=None, date_format=None, quoting=None,
-        round_milliseconds=None, **kwargs
+        self,
+        slicer=None,
+        na_rep=None,
+        date_format=None,
+        quoting=None,
+        round_milliseconds=None,
+        **kwargs,
     ):
         """ convert to our native types format, slicing if desired """
 
@@ -2215,7 +2220,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         if round_milliseconds:
             for i in range(len(result)):
                 milliseconds = result[i][0].split(".")[1]
-                can_round = milliseconds == len(milliseconds) * '0'
+                can_round = milliseconds == len(milliseconds) * "0"
                 if can_round:
                     result[i] = result[i][0].split(".")[0]
 
