@@ -339,6 +339,13 @@ class TestArithmeticOps(BaseOpsUtil):
         with pytest.raises(NotImplementedError):
             opa(np.arange(len(s)).reshape(-1, len(s)))
 
+    def test_divide_by_zero(self):
+        # https://github.com/pandas-dev/pandas/issues/27398
+        a = pd.array([0, 1, -1, None], dtype="Int64")
+        result = a / 0
+        expected = np.array([np.nan, np.inf, -np.inf, np.nan])
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_pow(self):
         # https://github.com/pandas-dev/pandas/issues/22022
         a = integer_array([1, np.nan, np.nan, 1])
@@ -388,6 +395,10 @@ class TestComparisonOps(BaseOpsUtil):
         op_name = all_compare_operators
         other = pd.Series([0] * len(data))
         self._compare_other(data, op_name, other)
+
+    def test_no_shared_mask(self, data):
+        result = data + 1
+        assert np.shares_memory(result._mask, data._mask) is False
 
 
 class TestCasting:
