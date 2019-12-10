@@ -252,9 +252,7 @@ def test_rangeindex_fallback_coercion_bug():
 
 def test_hash_error(indices):
     index = indices
-    with pytest.raises(
-        TypeError, match=("unhashable type: {0.__name__!r}".format(type(index)))
-    ):
+    with pytest.raises(TypeError, match=f"unhashable type: '{type(index).__name__}'"):
         hash(indices)
 
 

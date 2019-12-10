@@ -236,16 +236,23 @@ def test_groupby_blacklist(df_letters):
 
     blacklist.extend(to_methods)
 
-    # e.g., to_csv
-    defined_but_not_allowed = "(?:^Cannot.+{0!r}.+{1!r}.+try using the 'apply' method$)"
-
-    # e.g., query, eval
-    not_defined = "(?:^{1!r} object has no attribute {0!r}$)"
-    fmt = defined_but_not_allowed + "|" + not_defined
     for bl in blacklist:
         for obj in (df, s):
             gb = obj.groupby(df.letters)
-            msg = fmt.format(bl, type(gb).__name__)
+
+            # e.g., to_csv
+            defined_but_not_allowed = (
+                f"(?:^Cannot.+{repr(bl)}.+'{type(gb).__name__}'.+try "
+                f"using the 'apply' method$)"
+            )
+
+            # e.g., query, eval
+            not_defined = (
+                f"(?:^'{type(gb).__name__}' object has no attribute {repr(bl)}$)"
+            )
+
+            msg = f"{defined_but_not_allowed}|{not_defined}"
+
             with pytest.raises(AttributeError, match=msg):
                 getattr(gb, bl)
 
