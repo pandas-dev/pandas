@@ -43,7 +43,10 @@ from pandas.tseries.offsets import (
     CBMonthEnd,
     CDay,
     CustomBusinessHour,
-    FY5253Quarter
+    FY5253Quarter,
+    DateOffset,
+    Nano,
+    Tick
 )
 
 from .common import assert_offset_equal, assert_onOffset
@@ -58,17 +61,6 @@ class WeekDay:
     FRI = 4
     SAT = 5
     SUN = 6
-
-
-####
-# Misc function tests
-####
-
-
-def test_to_M8():
-    valb = datetime(2007, 10, 1)
-    valu = _to_M8(valb)
-    assert isinstance(valu, np.datetime64)
 
 
 #####
@@ -109,12 +101,6 @@ class Base:
                 variation="last",
                 normalize=normalize,
             )
-        elif klass is LastWeekOfMonth:
-            klass = klass(n=value, weekday=5, normalize=normalize)
-        elif klass is WeekOfMonth:
-            klass = klass(n=value, week=1, weekday=5, normalize=normalize)
-        elif klass is Week:
-            klass = klass(n=value, weekday=5, normalize=normalize)
         elif klass is DateOffset:
             klass = klass(days=value, normalize=normalize)
         else:
@@ -223,40 +209,20 @@ class TestCommon(Base):
     # are applied to 2011/01/01 09:00 (Saturday)
     # used for .apply and .rollforward
     expecteds = {
-        "Day": Timestamp("2011-01-02 09:00:00"),
-        "DateOffset": Timestamp("2011-01-02 09:00:00"),
         "BusinessDay": Timestamp("2011-01-03 09:00:00"),
         "CustomBusinessDay": Timestamp("2011-01-03 09:00:00"),
         "CustomBusinessMonthEnd": Timestamp("2011-01-31 09:00:00"),
         "CustomBusinessMonthBegin": Timestamp("2011-01-03 09:00:00"),
-        "MonthBegin": Timestamp("2011-02-01 09:00:00"),
         "BusinessMonthBegin": Timestamp("2011-01-03 09:00:00"),
-        "MonthEnd": Timestamp("2011-01-31 09:00:00"),
-        "SemiMonthEnd": Timestamp("2011-01-15 09:00:00"),
-        "SemiMonthBegin": Timestamp("2011-01-15 09:00:00"),
         "BusinessMonthEnd": Timestamp("2011-01-31 09:00:00"),
-        "YearBegin": Timestamp("2012-01-01 09:00:00"),
         "BYearBegin": Timestamp("2011-01-03 09:00:00"),
-        "YearEnd": Timestamp("2011-12-31 09:00:00"),
         "BYearEnd": Timestamp("2011-12-30 09:00:00"),
-        "QuarterBegin": Timestamp("2011-03-01 09:00:00"),
         "BQuarterBegin": Timestamp("2011-03-01 09:00:00"),
-        "QuarterEnd": Timestamp("2011-03-31 09:00:00"),
         "BQuarterEnd": Timestamp("2011-03-31 09:00:00"),
         "BusinessHour": Timestamp("2011-01-03 10:00:00"),
         "CustomBusinessHour": Timestamp("2011-01-03 10:00:00"),
-        "WeekOfMonth": Timestamp("2011-01-08 09:00:00"),
-        "LastWeekOfMonth": Timestamp("2011-01-29 09:00:00"),
         "FY5253Quarter": Timestamp("2011-01-25 09:00:00"),
         "FY5253": Timestamp("2011-01-25 09:00:00"),
-        "Week": Timestamp("2011-01-08 09:00:00"),
-        "Easter": Timestamp("2011-04-24 09:00:00"),
-        "Hour": Timestamp("2011-01-01 10:00:00"),
-        "Minute": Timestamp("2011-01-01 09:01:00"),
-        "Second": Timestamp("2011-01-01 09:00:01"),
-        "Milli": Timestamp("2011-01-01 09:00:00.001000"),
-        "Micro": Timestamp("2011-01-01 09:00:00.000001"),
-        "Nano": Timestamp(np_datetime64_compat("2011-01-01T09:00:00.000000001Z")),
     }
 
     def test_immutable(self, business_offset_types):
@@ -409,24 +375,6 @@ class TestCommon(Base):
     def test_rollforward(self, business_offset_types):
         expecteds = self.expecteds.copy()
 
-        # result will not be changed if the target is on the offset
-        no_changes = [
-            "Day",
-            "MonthBegin",
-            "SemiMonthBegin",
-            "YearBegin",
-            "Week",
-            "Hour",
-            "Minute",
-            "Second",
-            "Milli",
-            "Micro",
-            "Nano",
-            "DateOffset",
-        ]
-        for n in no_changes:
-            expecteds[n] = Timestamp("2011/01/01 09:00")
-
         expecteds["BusinessHour"] = Timestamp("2011-01-03 09:00:00")
         expecteds["CustomBusinessHour"] = Timestamp("2011-01-03 09:00:00")
 
@@ -434,21 +382,6 @@ class TestCommon(Base):
         norm_expected = expecteds.copy()
         for k in norm_expected:
             norm_expected[k] = Timestamp(norm_expected[k].date())
-
-        normalized = {
-            "Day": Timestamp("2011-01-02 00:00:00"),
-            "DateOffset": Timestamp("2011-01-02 00:00:00"),
-            "MonthBegin": Timestamp("2011-02-01 00:00:00"),
-            "SemiMonthBegin": Timestamp("2011-01-15 00:00:00"),
-            "YearBegin": Timestamp("2012-01-01 00:00:00"),
-            "Week": Timestamp("2011-01-08 00:00:00"),
-            "Hour": Timestamp("2011-01-01 00:00:00"),
-            "Minute": Timestamp("2011-01-01 00:00:00"),
-            "Second": Timestamp("2011-01-01 00:00:00"),
-            "Milli": Timestamp("2011-01-01 00:00:00"),
-            "Micro": Timestamp("2011-01-01 00:00:00"),
-        }
-        norm_expected.update(normalized)
 
         sdt = datetime(2011, 1, 1, 9, 0)
         ndt = np_datetime64_compat("2011-01-01 09:00Z")
@@ -468,61 +401,21 @@ class TestCommon(Base):
             "CustomBusinessMonthEnd": Timestamp("2010-12-31 09:00:00"),
             "CustomBusinessMonthBegin": Timestamp("2010-12-01 09:00:00"),
             "BusinessMonthBegin": Timestamp("2010-12-01 09:00:00"),
-            "MonthEnd": Timestamp("2010-12-31 09:00:00"),
-            "SemiMonthEnd": Timestamp("2010-12-31 09:00:00"),
             "BusinessMonthEnd": Timestamp("2010-12-31 09:00:00"),
             "BYearBegin": Timestamp("2010-01-01 09:00:00"),
-            "YearEnd": Timestamp("2010-12-31 09:00:00"),
             "BYearEnd": Timestamp("2010-12-31 09:00:00"),
-            "QuarterBegin": Timestamp("2010-12-01 09:00:00"),
             "BQuarterBegin": Timestamp("2010-12-01 09:00:00"),
-            "QuarterEnd": Timestamp("2010-12-31 09:00:00"),
             "BQuarterEnd": Timestamp("2010-12-31 09:00:00"),
             "BusinessHour": Timestamp("2010-12-31 17:00:00"),
             "CustomBusinessHour": Timestamp("2010-12-31 17:00:00"),
-            "WeekOfMonth": Timestamp("2010-12-11 09:00:00"),
-            "LastWeekOfMonth": Timestamp("2010-12-25 09:00:00"),
             "FY5253Quarter": Timestamp("2010-10-26 09:00:00"),
             "FY5253": Timestamp("2010-01-26 09:00:00"),
-            "Easter": Timestamp("2010-04-04 09:00:00"),
         }
-
-        # result will not be changed if the target is on the offset
-        for n in [
-            "Day",
-            "MonthBegin",
-            "SemiMonthBegin",
-            "YearBegin",
-            "Week",
-            "Hour",
-            "Minute",
-            "Second",
-            "Milli",
-            "Micro",
-            "Nano",
-            "DateOffset",
-        ]:
-            expecteds[n] = Timestamp("2011/01/01 09:00")
 
         # but be changed when normalize=True
         norm_expected = expecteds.copy()
         for k in norm_expected:
             norm_expected[k] = Timestamp(norm_expected[k].date())
-
-        normalized = {
-            "Day": Timestamp("2010-12-31 00:00:00"),
-            "DateOffset": Timestamp("2010-12-31 00:00:00"),
-            "MonthBegin": Timestamp("2010-12-01 00:00:00"),
-            "SemiMonthBegin": Timestamp("2010-12-15 00:00:00"),
-            "YearBegin": Timestamp("2010-01-01 00:00:00"),
-            "Week": Timestamp("2010-12-25 00:00:00"),
-            "Hour": Timestamp("2011-01-01 00:00:00"),
-            "Minute": Timestamp("2011-01-01 00:00:00"),
-            "Second": Timestamp("2011-01-01 00:00:00"),
-            "Milli": Timestamp("2011-01-01 00:00:00"),
-            "Micro": Timestamp("2011-01-01 00:00:00"),
-        }
-        norm_expected.update(normalized)
 
         sdt = datetime(2011, 1, 1, 9, 0)
         ndt = np_datetime64_compat("2011-01-01 09:00Z")
@@ -589,21 +482,6 @@ class TestCommon(Base):
         result = Timestamp(dt, tz=tz) + offset_s
         assert isinstance(result, Timestamp)
         assert result == expected_localize
-
-    def test_pickle_v0_15_2(self, datapath):
-        offsets = {
-            "DateOffset": DateOffset(years=1),
-            "MonthBegin": MonthBegin(1),
-            "Day": Day(1),
-            "YearBegin": YearBegin(1),
-            "Week": Week(1),
-        }
-
-        pickle_path = datapath("tseries", "offsets", "data", "dateoffset_0_15_2.pickle")
-        # This code was executed once on v0.15.2 to generate the pickle:
-        # with open(pickle_path, 'wb') as f: pickle.dump(offsets, f)
-        #
-        tm.assert_dict_equal(offsets, read_pickle(pickle_path))
 
 
 class TestBusinessDay(Base):
@@ -3096,13 +2974,6 @@ def test_get_offset():
         )
 
 
-def test_get_offset_legacy():
-    pairs = [("w@Sat", Week(weekday=5))]
-    for name, expected in pairs:
-        with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
-            get_offset(name)
-
-
 class TestOffsetAliases:
     def setup_method(self, method):
         _offset_map.clear()
@@ -3114,7 +2985,7 @@ class TestOffsetAliases:
             assert k == v.copy()
 
     def test_rule_code(self):
-        lst = ["M", "MS", "BM", "BMS", "D", "B", "H", "T", "S", "L", "U"]
+        lst = ["BM", "BMS", "B"]
         for k in lst:
             assert k == get_offset(k).rule_code
             # should be cached - this is kind of an internals test...
@@ -3142,27 +3013,19 @@ class TestOffsetAliases:
             "NOV",
             "DEC",
         ]
-        base_lst = ["A", "AS", "BA", "BAS", "Q", "QS", "BQ", "BQS"]
+        base_lst = ["BA", "BAS", "BQ", "BQS"]
         for base in base_lst:
             for v in suffix_lst:
                 alias = "-".join([base, v])
                 assert alias == get_offset(alias).rule_code
                 assert alias == (get_offset(alias) * 5).rule_code
 
-        lst = ["M", "D", "B", "H", "T", "S", "L", "U"]
+        lst = ["B",]
         for k in lst:
             code, stride = get_freq_code("3" + k)
             assert isinstance(code, int)
             assert stride == 3
             assert k == get_freq_str(code)
-
-
-def test_dateoffset_misc():
-    oset = offsets.DateOffset(months=2, days=4)
-    # it works
-    oset.freqstr
-
-    assert not offsets.DateOffset(months=2) == 2
 
 
 def test_freq_offsets():
@@ -3176,7 +3039,7 @@ def test_freq_offsets():
 class TestReprNames:
     def test_str_for_named_is_name(self):
         # look at all the amazing combinations!
-        month_prefixes = ["A", "AS", "BA", "BAS", "Q", "BQ", "BQS", "QS"]
+        month_prefixes = ["BA", "BAS", "BQ", "BQS"]
         names = [
             prefix + "-" + month
             for prefix in month_prefixes
@@ -3215,137 +3078,15 @@ class TestDST:
     test DateOffset additions over Daylight Savings Time
     """
 
-    # one microsecond before the DST transition
-    ts_pre_fallback = "2013-11-03 01:59:59.999999"
-    ts_pre_springfwd = "2013-03-10 01:59:59.999999"
-
-    # test both basic names and dateutil timezones
-    timezone_utc_offsets = {
-        "US/Eastern": dict(utc_offset_daylight=-4, utc_offset_standard=-5),
-        "dateutil/US/Pacific": dict(utc_offset_daylight=-7, utc_offset_standard=-8),
-    }
-    valid_date_offsets_singular = [
-        "weekday",
-        "day",
-        "hour",
-        "minute",
-        "second",
-        "microsecond",
-    ]
-    valid_date_offsets_plural = [
-        "weeks",
-        "days",
-        "hours",
-        "minutes",
-        "seconds",
-        "milliseconds",
-        "microseconds",
-    ]
-
-    def _test_all_offsets(self, n, **kwds):
-        valid_offsets = (
-            self.valid_date_offsets_plural
-            if n > 1
-            else self.valid_date_offsets_singular
-        )
-
-        for name in valid_offsets:
-            self._test_offset(offset_name=name, offset_n=n, **kwds)
-
-    def _test_offset(self, offset_name, offset_n, tstart, expected_utc_offset):
-        offset = DateOffset(**{offset_name: offset_n})
-
-        t = tstart + offset
-        if expected_utc_offset is not None:
-            assert get_utc_offset_hours(t) == expected_utc_offset
-
-        if offset_name == "weeks":
-            # dates should match
-            assert t.date() == timedelta(days=7 * offset.kwds["weeks"]) + tstart.date()
-            # expect the same day of week, hour of day, minute, second, ...
-            assert (
-                t.dayofweek == tstart.dayofweek
-                and t.hour == tstart.hour
-                and t.minute == tstart.minute
-                and t.second == tstart.second
-            )
-        elif offset_name == "days":
-            # dates should match
-            assert timedelta(offset.kwds["days"]) + tstart.date() == t.date()
-            # expect the same hour of day, minute, second, ...
-            assert (
-                t.hour == tstart.hour
-                and t.minute == tstart.minute
-                and t.second == tstart.second
-            )
-        elif offset_name in self.valid_date_offsets_singular:
-            # expect the singular offset value to match between tstart and t
-            datepart_offset = getattr(
-                t, offset_name if offset_name != "weekday" else "dayofweek"
-            )
-            assert datepart_offset == offset.kwds[offset_name]
-        else:
-            # the offset should be the same as if it was done in UTC
-            assert t == (tstart.tz_convert("UTC") + offset).tz_convert("US/Pacific")
-
-    def _make_timestamp(self, string, hrs_offset, tz):
-        if hrs_offset >= 0:
-            offset_string = "{hrs:02d}00".format(hrs=hrs_offset)
-        else:
-            offset_string = "-{hrs:02d}00".format(hrs=-1 * hrs_offset)
-        return Timestamp(string + offset_string).tz_convert(tz)
-
-    def test_springforward_plural(self):
-        # test moving from standard to daylight savings
-        for tz, utc_offsets in self.timezone_utc_offsets.items():
-            hrs_pre = utc_offsets["utc_offset_standard"]
-            hrs_post = utc_offsets["utc_offset_daylight"]
-            self._test_all_offsets(
-                n=3,
-                tstart=self._make_timestamp(self.ts_pre_springfwd, hrs_pre, tz),
-                expected_utc_offset=hrs_post,
-            )
-
-    def test_fallback_singular(self):
-        # in the case of singular offsets, we don't necessarily know which utc
-        # offset the new Timestamp will wind up in (the tz for 1 month may be
-        # different from 1 second) so we don't specify an expected_utc_offset
-        for tz, utc_offsets in self.timezone_utc_offsets.items():
-            hrs_pre = utc_offsets["utc_offset_standard"]
-            self._test_all_offsets(
-                n=1,
-                tstart=self._make_timestamp(self.ts_pre_fallback, hrs_pre, tz),
-                expected_utc_offset=None,
-            )
-
-    def test_springforward_singular(self):
-        for tz, utc_offsets in self.timezone_utc_offsets.items():
-            hrs_pre = utc_offsets["utc_offset_standard"]
-            self._test_all_offsets(
-                n=1,
-                tstart=self._make_timestamp(self.ts_pre_springfwd, hrs_pre, tz),
-                expected_utc_offset=None,
-            )
-
     offset_classes = {
-        MonthBegin: ["11/2/2012", "12/1/2012"],
-        MonthEnd: ["11/2/2012", "11/30/2012"],
         BMonthBegin: ["11/2/2012", "12/3/2012"],
         BMonthEnd: ["11/2/2012", "11/30/2012"],
         CBMonthBegin: ["11/2/2012", "12/3/2012"],
         CBMonthEnd: ["11/2/2012", "11/30/2012"],
-        SemiMonthBegin: ["11/2/2012", "11/15/2012"],
-        SemiMonthEnd: ["11/2/2012", "11/15/2012"],
-        Week: ["11/2/2012", "11/9/2012"],
-        YearBegin: ["11/2/2012", "1/1/2013"],
-        YearEnd: ["11/2/2012", "12/31/2012"],
         BYearBegin: ["11/2/2012", "1/1/2013"],
         BYearEnd: ["11/2/2012", "12/31/2012"],
-        QuarterBegin: ["11/2/2012", "12/1/2012"],
-        QuarterEnd: ["11/2/2012", "12/31/2012"],
         BQuarterBegin: ["11/2/2012", "12/3/2012"],
         BQuarterEnd: ["11/2/2012", "12/31/2012"],
-        Day: ["11/4/2012", "11/4/2012 23:00"],
     }.items()
 
     @pytest.mark.parametrize("tup", offset_classes)
@@ -3358,14 +3099,6 @@ class TestDST:
 
 
 # ---------------------------------------------------------------------
-def test_get_offset_day_error():
-    # subclass of _BaseOffset must override _day_opt attribute, or we should
-    # get a NotImplementedError
-
-    with pytest.raises(NotImplementedError):
-        DateOffset()._get_offset_day(datetime.now())
-
-
 def test_valid_default_arguments(business_offset_types):
     # GH#19142 check that the calling the constructors without passing
     # any keyword arguments produce valid offsets
@@ -3374,37 +3107,15 @@ def test_valid_default_arguments(business_offset_types):
 
 
 @pytest.mark.parametrize("kwd", sorted(list(liboffsets.relativedelta_kwds)))
-def test_valid_month_attributes(kwd, month_classes):
+def test_valid_month_attributes(kwd, business_month_classes):
     # GH#18226
-    cls = month_classes
+    cls = business_month_classes
     # check that we cannot create e.g. MonthEnd(weeks=3)
     with pytest.raises(TypeError):
         cls(**{kwd: 3})
 
 
-@pytest.mark.parametrize("kwd", sorted(list(liboffsets.relativedelta_kwds)))
-def test_valid_relativedelta_kwargs(kwd):
-    # Check that all the arguments specified in liboffsets.relativedelta_kwds
-    # are in fact valid relativedelta keyword args
-    DateOffset(**{kwd: 1})
-
-
-@pytest.mark.parametrize("kwd", sorted(list(liboffsets.relativedelta_kwds)))
-def test_valid_tick_attributes(kwd, tick_classes):
-    # GH#18226
-    cls = tick_classes
-    # check that we cannot create e.g. Hour(weeks=3)
-    with pytest.raises(TypeError):
-        cls(**{kwd: 3})
-
-
 def test_validate_n_error():
-    with pytest.raises(TypeError):
-        DateOffset(n="Doh!")
-
-    with pytest.raises(TypeError):
-        MonthBegin(n=timedelta(1))
-
     with pytest.raises(TypeError):
         BDay(n=np.array([1, 2], dtype=np.int64))
 
@@ -3413,70 +3124,3 @@ def test_require_integers(business_offset_types):
     cls = business_offset_types
     with pytest.raises(ValueError):
         cls(n=1.5)
-
-
-def test_tick_normalize_raises(tick_classes):
-    # check that trying to create a Tick object with normalize=True raises
-    # GH#21427
-    cls = tick_classes
-    with pytest.raises(ValueError):
-        cls(n=3, normalize=True)
-
-
-def test_weeks_onoffset():
-    # GH#18510 Week with weekday = None, normalize = False should always
-    # be onOffset
-    offset = Week(n=2, weekday=None)
-    ts = Timestamp("1862-01-13 09:03:34.873477378+0210", tz="Africa/Lusaka")
-    fast = offset.onOffset(ts)
-    slow = (ts + offset) - offset == ts
-    assert fast == slow
-
-    # negative n
-    offset = Week(n=2, weekday=None)
-    ts = Timestamp("1856-10-24 16:18:36.556360110-0717", tz="Pacific/Easter")
-    fast = offset.onOffset(ts)
-    slow = (ts + offset) - offset == ts
-    assert fast == slow
-
-
-def test_weekofmonth_onoffset():
-    # GH#18864
-    # Make sure that nanoseconds don't trip up onOffset (and with it apply)
-    offset = WeekOfMonth(n=2, week=2, weekday=0)
-    ts = Timestamp("1916-05-15 01:14:49.583410462+0422", tz="Asia/Qyzylorda")
-    fast = offset.onOffset(ts)
-    slow = (ts + offset) - offset == ts
-    assert fast == slow
-
-    # negative n
-    offset = WeekOfMonth(n=-3, week=1, weekday=0)
-    ts = Timestamp("1980-12-08 03:38:52.878321185+0500", tz="Asia/Oral")
-    fast = offset.onOffset(ts)
-    slow = (ts + offset) - offset == ts
-    assert fast == slow
-
-
-def test_last_week_of_month_on_offset():
-    # GH#19036, GH#18977 _adjust_dst was incorrect for LastWeekOfMonth
-    offset = LastWeekOfMonth(n=4, weekday=6)
-    ts = Timestamp("1917-05-27 20:55:27.084284178+0200", tz="Europe/Warsaw")
-    slow = (ts + offset) - offset == ts
-    fast = offset.onOffset(ts)
-    assert fast == slow
-
-    # negative n
-    offset = LastWeekOfMonth(n=-4, weekday=5)
-    ts = Timestamp("2005-08-27 05:01:42.799392561-0500", tz="America/Rainy_River")
-    slow = (ts + offset) - offset == ts
-    fast = offset.onOffset(ts)
-    assert fast == slow
-
-
-def test_week_add_invalid():
-    # Week with weekday should raise TypeError and _not_ AttributeError
-    #  when adding invalid offset
-    offset = Week(weekday=1)
-    other = Day()
-    with pytest.raises(TypeError, match="Cannot add"):
-        offset + other
