@@ -173,7 +173,7 @@ class CSSResolver:
 
     def size_to_pt(self, in_val, em_pt=None, conversions=UNIT_RATIOS):
         def _error():
-            warnings.warn("Unhandled size: {val!r}".format(val=in_val), CSSWarning)
+            warnings.warn(f"Unhandled size: {repr(in_val)}", CSSWarning)
             return self.size_to_pt("1!!default", conversions=conversions)
 
         try:
@@ -252,7 +252,6 @@ class CSSResolver:
                 yield prop, val
             else:
                 warnings.warn(
-                    "Ill-formatted attribute: expected a colon "
-                    "in {decl!r}".format(decl=decl),
+                    f"Ill-formatted attribute: expected a colon in {repr(decl)}",
                     CSSWarning,
                 )
