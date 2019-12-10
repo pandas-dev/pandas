@@ -231,8 +231,7 @@ class EWM(_Rolling):
                 cfunc = getattr(window_aggregations, func, None)
                 if cfunc is None:
                     raise ValueError(
-                        "we do not support this function "
-                        f"in window_aggregations.{func}"
+                        f"we do not support this function in window_aggregations.{func}"
                     )
 
                 def func(arg):

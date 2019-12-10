@@ -838,19 +838,16 @@ def _assemble_from_unit_mappings(arg, errors, tz):
     )
     try:
         values = to_datetime(values, format="%Y%m%d", errors=errors, utc=tz)
-    except (TypeError, ValueError) as e:
-        raise ValueError("cannot assemble the datetimes: {error}".format(error=e))
+    except (TypeError, ValueError) as err:
+        raise ValueError(f"cannot assemble the datetimes: {err}")
 
     for u in ["h", "m", "s", "ms", "us", "ns"]:
         value = unit_rev.get(u)
         if value is not None and value in arg:
             try:
                 values += to_timedelta(coerce(arg[value]), unit=u, errors=errors)
-            except (TypeError, ValueError) as e:
-                raise ValueError(
-                    "cannot assemble the datetimes [{value}]: "
-                    "{error}".format(value=value, error=e)
-                )
+            except (TypeError, ValueError) as err:
+                raise ValueError(f"cannot assemble the datetimes [{value}]: {err}")
     return values
 
 
