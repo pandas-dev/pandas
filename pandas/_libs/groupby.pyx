@@ -175,7 +175,6 @@ def group_cumprod_float64(float64_t[:, :] out,
     -----
     This method modifies the `out` parameter, rather than returning an object.
     """
-
     cdef:
         Py_ssize_t i, j, N, K, size
         float64_t val
@@ -233,7 +232,6 @@ def group_cumsum(numeric[:, :] out,
     -----
     This method modifies the `out` parameter, rather than returning an object.
     """
-
     cdef:
         Py_ssize_t i, j, N, K, size
         numeric val
@@ -1404,7 +1402,6 @@ def group_cummin(groupby_t[:, :] out,
     -----
     This method modifies the `out` parameter, rather than returning an object.
     """
-
     cdef:
         Py_ssize_t i, j, N, K, size
         groupby_t val, mval
@@ -1465,7 +1462,6 @@ def group_cummax(groupby_t[:, :] out,
     -----
     This method modifies the `out` parameter, rather than returning an object.
     """
-
     cdef:
         Py_ssize_t i, j, N, K, size
         groupby_t val, mval

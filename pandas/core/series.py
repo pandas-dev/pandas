@@ -20,7 +20,6 @@ from pandas.core.dtypes.common import (
     _is_unorderable_exception,
     ensure_platform_int,
     is_bool,
-    is_categorical,
     is_categorical_dtype,
     is_datetime64_dtype,
     is_dict_like,
@@ -213,15 +212,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if data is None:
                 data = {}
             if dtype is not None:
-                # GH 26336: explicitly handle 'category' to avoid warning
-                # TODO: Remove after CategoricalDtype defaults to ordered=False
-                if (
-                    isinstance(dtype, str)
-                    and dtype == "category"
-                    and is_categorical(data)
-                ):
-                    dtype = data.dtype
-
                 dtype = self._validate_dtype(dtype)
 
             if isinstance(data, MultiIndex):
