@@ -618,7 +618,7 @@ class IndexOpsMixin:
     """
 
     # ndarray compatibility
-    __array_priority__ = 1_000
+    __array_priority__ = 1000
     _deprecations: FrozenSet[str] = frozenset(
         ["tolist", "item"]  # tolist is not deprecated, just suppressed in the __dir__
     )

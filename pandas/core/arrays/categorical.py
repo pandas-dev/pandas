@@ -299,7 +299,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     # For comparisons, so that numpy uses our implementation if the compare
     # ops, which raise
-    __array_priority__ = 1_000
+    __array_priority__ = 1000
     _dtype = CategoricalDtype(ordered=False)
     # tolist is not actually deprecated, just suppressed in the __dir__
     _deprecations = PandasObject._deprecations | frozenset(["tolist", "itemsize"])
