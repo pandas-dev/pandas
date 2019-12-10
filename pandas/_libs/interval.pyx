@@ -41,8 +41,7 @@ cdef class IntervalMixin:
         Returns
         -------
         bool
-            ``True`` if the Interval is closed on the left-side, else
-            ``False``.
+            True if the Interval is closed on the left-side.
         """
         return self.closed in ('left', 'both')
 
@@ -56,8 +55,7 @@ cdef class IntervalMixin:
         Returns
         -------
         bool
-            ``True`` if the Interval is closed on the left-side, else
-            ``False``.
+            True if the Interval is closed on the left-side.
         """
         return self.closed in ('right', 'both')
 
@@ -71,8 +69,7 @@ cdef class IntervalMixin:
         Returns
         -------
         bool
-            ``True`` if the Interval is closed on the left-side, else
-            ``False``.
+            True if the Interval is closed on the left-side.
         """
         return not self.closed_left
 
@@ -86,8 +83,7 @@ cdef class IntervalMixin:
         Returns
         -------
         bool
-            ``True`` if the Interval is closed on the left-side, else
-            ``False``.
+            True if the Interval is closed on the left-side.
         """
         return not self.closed_right
 
@@ -308,16 +304,14 @@ cdef class Interval(IntervalMixin):
         self._validate_endpoint(right)
 
         if closed not in _VALID_CLOSED:
-            msg = f"invalid option for 'closed': {closed}"
-            raise ValueError(msg)
+            raise ValueError(f"invalid option for 'closed': {closed}")
         if not left <= right:
-            raise ValueError('left side of interval must be <= right side')
+            raise ValueError("left side of interval must be <= right side")
         if (isinstance(left, Timestamp) and
                 not tz_compare(left.tzinfo, right.tzinfo)):
             # GH 18538
-            msg = (f"left and right must have the same time zone, got "
-                   f"{repr(left.tzinfo)}' and {repr(right.tzinfo)}")
-            raise ValueError(msg)
+            raise ValueError("left and right must have the same time zone, got "
+                             f"{repr(left.tzinfo)}' and {repr(right.tzinfo)}")
         self.left = left
         self.right = right
         self.closed = closed
@@ -326,16 +320,15 @@ cdef class Interval(IntervalMixin):
         # GH 23013
         if not (is_integer_object(endpoint) or is_float_object(endpoint) or
                 isinstance(endpoint, (Timestamp, Timedelta))):
-            msg = ("Only numeric, Timestamp and Timedelta endpoints "
-                   "are allowed when constructing an Interval.")
-            raise ValueError(msg)
+            raise ValueError("Only numeric, Timestamp and Timedelta endpoints "
+                             "are allowed when constructing an Interval.")
 
     def __hash__(self):
         return hash((self.left, self.right, self.closed))
 
     def __contains__(self, key):
         if _interval_like(key):
-            raise TypeError('__contains__ not defined for two intervals')
+            raise TypeError("__contains__ not defined for two intervals")
         return ((self.left < key if self.open_left else self.left <= key) and
                 (key < self.right if self.open_right else key <= self.right))
 
@@ -358,7 +351,7 @@ cdef class Interval(IntervalMixin):
             name = type(self).__name__
             other = type(other).__name__
             op_str = {Py_LT: '<', Py_LE: '<=', Py_GT: '>', Py_GE: '>='}[op]
-            raise TypeError(f'unorderable types: {name}() {op_str} {other}()')
+            raise TypeError(f"unorderable types: {name}() {op_str} {other}()")
 
     def __reduce__(self):
         args = (self.left, self.right, self.closed)
@@ -437,12 +430,12 @@ cdef class Interval(IntervalMixin):
         Parameters
         ----------
         other : Interval
-            The interval to check against for an overlap.
+            Interval to check against for an overlap.
 
         Returns
         -------
         bool
-            ``True`` if the two intervals overlap, else ``False``.
+            True if the two intervals overlap.
 
         See Also
         --------
@@ -473,8 +466,8 @@ cdef class Interval(IntervalMixin):
         False
         """
         if not isinstance(other, Interval):
-            msg = f'`other` must be an Interval, got {type(other).__name__}'
-            raise TypeError(msg)
+            raise TypeError("`other` must be an Interval, "
+                            f"got {type(other).__name__}")
 
         # equality is okay if both endpoints are closed (overlap at a point)
         op1 = le if (self.closed_left and other.closed_right) else lt
@@ -494,20 +487,19 @@ def intervals_to_interval_bounds(ndarray intervals,
     Parameters
     ----------
     intervals : ndarray
-        object array of Intervals / nulls
+        Object array of Intervals / nulls.
 
-    validate_closed: boolean, default True
-        boolean indicating if all intervals must be closed on the same side.
+    validate_closed: bool, default True
+        Boolean indicating if all intervals must be closed on the same side.
         Mismatching closed will raise if True, else return None for closed.
 
     Returns
     -------
-    tuples (left: ndarray object array,
-            right: ndarray object array,
-            closed: str)
-
+    tuple of tuples
+        left : (ndarray, object, array)
+        right : (ndarray, object, array)
+        closed: str
     """
-
     cdef:
         object closed = None, interval
         int64_t n = len(intervals)
@@ -536,8 +528,7 @@ def intervals_to_interval_bounds(ndarray intervals,
         elif closed != interval.closed:
             closed = None
             if validate_closed:
-                msg = 'intervals must all be closed on the same side'
-                raise ValueError(msg)
+                raise ValueError("intervals must all be closed on the same side")
 
     return left, right, closed
 
