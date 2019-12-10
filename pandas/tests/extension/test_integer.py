@@ -229,6 +229,10 @@ class TestBooleanReduce(base.BaseBooleanReduceTests):
     pass
 
 
+class TestNumeriAccumulation(base.BaseNumericAccumulateTests):
+    pass
+
+
 class TestPrinting(base.BasePrintingTests):
     pass
 
