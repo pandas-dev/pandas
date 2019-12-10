@@ -531,7 +531,6 @@ static void *PyTimeToJSON(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
 static int NpyTypeToJSONType(PyObject *obj, JSONTypeContext *tc, int npyType,
                              void *value) {
     PyArray_VectorUnaryFunc *castfunc;
-    npy_double doubleVal;
     npy_int64 longVal;
 
     if (PyTypeNum_ISDATETIME(npyType)) {
