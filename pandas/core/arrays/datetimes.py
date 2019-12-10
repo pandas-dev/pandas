@@ -300,7 +300,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
     #  Timestamp.__richcmp__(DateTimeArray) operates pointwise
 
     # ensure that operations with numpy arrays defer to our implementation
-    __array_priority__ = 1_000
+    __array_priority__ = 1000
 
     # -----------------------------------------------------------------
     # Constructors
@@ -663,7 +663,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         # convert in chunks of 10k for efficiency
         data = self.asi8
         length = len(self)
-        chunksize = 10_000
+        chunksize = 10000
         chunks = int(length / chunksize) + 1
         for i in range(chunks):
             start_i = i * chunksize
@@ -1771,9 +1771,9 @@ default 'raise'
             + (
                 self.hour
                 + self.minute / 60.0
-                + self.second / 3_600.0
-                + self.microsecond / 3_600.0 / 1e6
-                + self.nanosecond / 3_600.0 / 1e9
+                + self.second / 3600.0
+                + self.microsecond / 3600.0 / 1e6
+                + self.nanosecond / 3600.0 / 1e9
             )
             / 24.0
         )
