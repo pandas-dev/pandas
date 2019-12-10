@@ -2256,16 +2256,7 @@ class DataCol(IndexCol):
         assert data is not None
         assert self.dtype is None
 
-        if is_categorical_dtype(data.dtype):
-            data = data.codes
-
-        # For datetime64tz we need to drop the TZ in tests TODO: why?
-        dtype_name = data.dtype.name.split("[")[0]
-
-        if data.dtype.kind in ["m", "M"]:
-            data = np.asarray(data.view("i8"))
-            # TODO: we used to reshape for the dt64tz case, but no longer
-            #  doing that doesnt seem to break anything.  why?
+        data, dtype_name = _get_data_and_dtype_name(data)
 
         self.data = data
         self.dtype = dtype_name
@@ -2318,6 +2309,9 @@ class DataCol(IndexCol):
         if kind.startswith("uint"):
             k4 = kind[4:]
             col_name = f"UInt{k4}Col"
+        elif kind.startswith("period"):
+            # we store as integer
+            col_name = "Int64Col"
         else:
             kcap = kind.capitalize()
             col_name = f"{kcap}Col"
@@ -4638,37 +4632,21 @@ def _convert_index(name: str, index: Index, encoding=None, errors="strict"):
     assert isinstance(name, str)
 
     index_name = index.name
+    converted, dtype_name = _get_data_and_dtype_name(index)
+    kind = _dtype_to_kind(dtype_name)
+    atom = DataIndexableCol._get_atom(converted)
 
-    if isinstance(index, DatetimeIndex):
-        converted = index.asi8
+    if isinstance(index, Int64Index):
+        # Includes Int64Index, RangeIndex, DatetimeIndex, TimedeltaIndex, PeriodIndex,
+        #  in which case "kind" is "integer", "integer", "datetime64",
+        #  "timedelta64", and "integer", respectively.
         return IndexCol(
             name,
-            converted,
-            "datetime64",
-            _tables().Int64Col(),
-            freq=index.freq,
-            tz=index.tz,
-            index_name=index_name,
-        )
-    elif isinstance(index, TimedeltaIndex):
-        converted = index.asi8
-        return IndexCol(
-            name,
-            converted,
-            "timedelta64",
-            _tables().Int64Col(),
-            freq=index.freq,
-            index_name=index_name,
-        )
-    elif isinstance(index, (Int64Index, PeriodIndex)):
-        atom = _tables().Int64Col()
-        # avoid to store ndarray of Period objects
-        return IndexCol(
-            name,
-            index._ndarray_values,
-            "integer",
-            atom,
+            values=converted,
+            kind=kind,
+            typ=atom,
             freq=getattr(index, "freq", None),
+            tz=getattr(index, "tz", None),
             index_name=index_name,
         )
 
@@ -4687,8 +4665,6 @@ def _convert_index(name: str, index: Index, encoding=None, errors="strict"):
             name, converted, "date", _tables().Time32Col(), index_name=index_name,
         )
     elif inferred_type == "string":
-        # atom = _tables().ObjectAtom()
-        # return np.asarray(values, dtype='O'), 'object', atom
 
         converted = _convert_string_array(values, encoding, errors)
         itemsize = converted.dtype.itemsize
@@ -4700,30 +4676,15 @@ def _convert_index(name: str, index: Index, encoding=None, errors="strict"):
             index_name=index_name,
         )
 
-    elif inferred_type == "integer":
-        # take a guess for now, hope the values fit
-        atom = _tables().Int64Col()
+    elif inferred_type in ["integer", "floating"]:
         return IndexCol(
-            name,
-            np.asarray(values, dtype=np.int64),
-            "integer",
-            atom,
-            index_name=index_name,
-        )
-    elif inferred_type == "floating":
-        atom = _tables().Float64Col()
-        return IndexCol(
-            name,
-            np.asarray(values, dtype=np.float64),
-            "float",
-            atom,
-            index_name=index_name,
+            name, values=converted, kind=kind, typ=atom, index_name=index_name,
         )
     else:
+        assert isinstance(converted, np.ndarray) and converted.dtype == object
+        assert kind == "object", kind
         atom = _tables().ObjectAtom()
-        return IndexCol(
-            name, np.asarray(values, dtype="O"), "object", atom, index_name=index_name,
-        )
+        return IndexCol(name, converted, kind, atom, index_name=index_name,)
 
 
 def _unconvert_index(data, kind: str, encoding=None, errors="strict"):
@@ -4950,19 +4911,45 @@ def _dtype_to_kind(dtype_str: str) -> str:
         kind = "complex"
     elif dtype_str.startswith("int") or dtype_str.startswith("uint"):
         kind = "integer"
-    elif dtype_str.startswith("date"):
-        # in tests this is always "datetime64"
-        kind = "datetime"
+    elif dtype_str.startswith("datetime64"):
+        kind = "datetime64"
     elif dtype_str.startswith("timedelta"):
-        kind = "timedelta"
+        kind = "timedelta64"
     elif dtype_str.startswith("bool"):
         kind = "bool"
     elif dtype_str.startswith("category"):
         kind = "category"
+    elif dtype_str.startswith("period"):
+        # We store the `freq` attr so we can restore from integers
+        kind = "integer"
+    elif dtype_str == "object":
+        kind = "object"
     else:
         raise ValueError(f"cannot interpret dtype of [{dtype_str}]")
 
     return kind
+
+
+def _get_data_and_dtype_name(data: Union[np.ndarray, ABCExtensionArray]):
+    """
+    Convert the passed data into a storable form and a dtype string.
+    """
+    if is_categorical_dtype(data.dtype):
+        data = data.codes
+
+    # For datetime64tz we need to drop the TZ in tests TODO: why?
+    dtype_name = data.dtype.name.split("[")[0]
+
+    if data.dtype.kind in ["m", "M"]:
+        data = np.asarray(data.view("i8"))
+        # TODO: we used to reshape for the dt64tz case, but no longer
+        #  doing that doesnt seem to break anything.  why?
+
+    elif isinstance(data, PeriodIndex):
+        data = data.asi8
+
+    data = np.asarray(data)
+    return data, dtype_name
 
 
 class Selection:
