@@ -887,15 +887,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
     _unpickle_compat = __setstate__
 
-    def item(self):
-        """
-        Return the sole element of the underlying data as a python scalar.
-        """
-        if len(self) == 1:
-            return self[0]
-        else:
-            raise ValueError("can only convert an array of size 1 to a Python scalar")
-
     def memory_usage(self, deep=False):
         result = super().memory_usage(deep=deep)
         if hasattr(self, "_cache") and "_int64index" in self._cache:
