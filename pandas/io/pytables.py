@@ -2373,6 +2373,8 @@ class DataCol(IndexCol):
 
         assert self.typ is not None
         if self.dtype is None:
+            # Note: in tests we never have timedelta64 or datetime64,
+            #  so the _get_data_and_dtype_name may be unnecessary
             converted, dtype_name = _get_data_and_dtype_name(values)
             kind = _dtype_to_kind(dtype_name)
         else:
