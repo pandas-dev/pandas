@@ -21,7 +21,7 @@ from pandas._libs.tslibs.offsets import ApplyTypeError
 import pandas.compat as compat
 from pandas.compat.numpy import np_datetime64_compat
 
-from pandas.core.indexes.datetimes import DatetimeIndex, _to_M8, date_range
+from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 import pandas.util.testing as tm
 
 from pandas.io.pickle import read_pickle
@@ -344,7 +344,7 @@ class TestCommon(Base):
             ts = Timestamp(dt, tz=tz) + Nano(5)
 
             if (
-                    type(offset_s).__name__ == "DateOffset"
+                type(offset_s).__name__ == "DateOffset"
                 and (funcname == "apply" or normalize)
                 and ts.nanosecond > 0
             ):
@@ -388,7 +388,8 @@ class TestCommon(Base):
 
         for dt in [sdt, ndt]:
             expected = expecteds[business_offset_types.__name__]
-            self._check_offsetfunc_works(business_offset_types, "rollforward", dt, expected)
+            self._check_offsetfunc_works(business_offset_types,
+                                         "rollforward", dt, expected)
             expected = norm_expected[business_offset_types.__name__]
             self._check_offsetfunc_works(
                 business_offset_types, "rollforward", dt, expected, normalize=True
@@ -422,7 +423,8 @@ class TestCommon(Base):
 
         for dt in [sdt, ndt]:
             expected = expecteds[business_offset_types.__name__]
-            self._check_offsetfunc_works(business_offset_types, "rollback", dt, expected)
+            self._check_offsetfunc_works(business_offset_types,
+                                         "rollback", dt, expected)
 
             expected = norm_expected[business_offset_types.__name__]
             self._check_offsetfunc_works(
@@ -3019,7 +3021,7 @@ class TestOffsetAliases:
                 assert alias == get_offset(alias).rule_code
                 assert alias == (get_offset(alias) * 5).rule_code
 
-        lst = ["B",]
+        lst = ["B", ]
         for k in lst:
             code, stride = get_freq_code("3" + k)
             assert isinstance(code, int)
