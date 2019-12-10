@@ -49,7 +49,7 @@ import pandas.core.common as com
 
 if TYPE_CHECKING:
     from pandas.core.series import Series  # noqa: F401
-    from pandas.core.index import Index  # noqa: F401
+    from pandas.core.indexes.api import Index  # noqa: F401
 
 
 def array(
