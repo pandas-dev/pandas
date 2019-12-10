@@ -5,8 +5,6 @@ from libc.stdlib cimport malloc, free
 from libc.string cimport memmove
 from libc.math cimport fabs, sqrt
 
-from typing import Tuple
-
 import numpy as np
 cimport numpy as cnp
 from numpy cimport (ndarray,
@@ -677,8 +675,7 @@ def backfill_2d_inplace(algos_t[:, :] values,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def is_monotonic(ndarray[algos_t, ndim=1] arr,
-                 bint timelike) -> Tuple[bool, bool, bool]:
+def is_monotonic(ndarray[algos_t, ndim=1] arr, bint timelike):
     """
     Returns
     -------
