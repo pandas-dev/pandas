@@ -339,11 +339,17 @@ class TestArithmeticOps(BaseOpsUtil):
         with pytest.raises(NotImplementedError):
             opa(np.arange(len(s)).reshape(-1, len(s)))
 
-    def test_divide_by_zero(self):
+    @pytest.mark.parametrize("zero, negative", [(0, False), (0.0, False), (-0.0, True)])
+    def test_divide_by_zero(self, zero, negative):
         # https://github.com/pandas-dev/pandas/issues/27398
         a = pd.array([0, 1, -1, None], dtype="Int64")
-        result = a / 0
+        result = a / zero
         expected = np.array([np.nan, np.inf, -np.inf, np.nan])
+        if negative:
+            values = [np.nan, -np.inf, np.inf, np.nan]
+        else:
+            values = [np.nan, np.inf, -np.inf, np.nan]
+        expected = np.array(values)
         tm.assert_numpy_array_equal(result, expected)
 
     def test_pow(self):
