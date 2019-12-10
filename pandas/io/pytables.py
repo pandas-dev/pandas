@@ -3874,7 +3874,7 @@ class Table(Fixed):
                 meta=meta,
                 metadata=metadata,
                 dtype=dtype_name,
-                data=data
+                data=data,
             )
             col.update_info(self.info)
 
