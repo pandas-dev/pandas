@@ -300,7 +300,7 @@ def left_join_indexer_unique(join_t[:] left, join_t[:] right):
 @cython.boundscheck(False)
 def left_join_indexer(ndarray[join_t] left, ndarray[join_t] right):
     """
-    Two-pass algorithm for monotonic indexes. Handles many-to-one merges
+    Two-pass algorithm for monotonic indexes. Handles many-to-one merges.
     """
     cdef:
         Py_ssize_t i, j, k, nright, nleft, count
@@ -403,7 +403,7 @@ def left_join_indexer(ndarray[join_t] left, ndarray[join_t] right):
 @cython.boundscheck(False)
 def inner_join_indexer(ndarray[join_t] left, ndarray[join_t] right):
     """
-    Two-pass algorithm for monotonic indexes. Handles many-to-one merges
+    Two-pass algorithm for monotonic indexes. Handles many-to-one merges.
     """
     cdef:
         Py_ssize_t i, j, k, nright, nleft, count
