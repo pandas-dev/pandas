@@ -7,9 +7,7 @@ def check(length, obj):
     v = packb(obj)
     assert (
         len(v) == length
-    ), "{obj!r} length should be {length!r} but get {got:!r}".format(
-        obj=obj, length=length, got=len(v)
-    )
+    ), f"{repr(obj)} length should be {length} but got {repr(len(v))}"
     assert unpackb(v, use_list=0) == obj
 
 
