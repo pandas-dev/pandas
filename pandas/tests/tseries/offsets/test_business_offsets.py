@@ -1,5 +1,5 @@
 from datetime import date, datetime, time as dt_time, timedelta
-from typing import Dict, List, Tuple, Type
+from typing import Dict, List, Optional, Tuple, Type
 
 import numpy as np
 import pytest
@@ -70,7 +70,7 @@ _ApplyCases = List[Tuple[BaseOffset, Dict[datetime, datetime]]]
 
 
 class Base:
-    _offset = None  # type: Type[DateOffset]
+    _offset: Optional[Type[DateOffset]] = None
     d = Timestamp(datetime(2008, 1, 2))
 
     timezones = [
@@ -307,7 +307,7 @@ class TestCommon(Base):
         ts = Timestamp(dt) + Nano(5)
 
         if (
-            offset_s.__class__.__name__ == "DateOffset"
+            type(offset_s).__name__ == "DateOffset"
             and (funcname == "apply" or normalize)
             and ts.nanosecond > 0
         ):
@@ -344,7 +344,7 @@ class TestCommon(Base):
             ts = Timestamp(dt, tz=tz) + Nano(5)
 
             if (
-                offset_s.__class__.__name__ == "DateOffset"
+                    type(offset_s).__name__ == "DateOffset"
                 and (funcname == "apply" or normalize)
                 and ts.nanosecond > 0
             ):
@@ -566,7 +566,7 @@ class TestBusinessDay(Base):
         for offset, d, expected in tests:
             assert_onOffset(offset, d, expected)
 
-    apply_cases = []  # type: _ApplyCases
+    apply_cases: _ApplyCases = []
     apply_cases.append(
         (
             BDay(),
@@ -1523,7 +1523,7 @@ class TestBusinessHour(Base):
                 assert offset._next_opening_time(dt) == exp_next
                 assert offset._prev_opening_time(dt) == exp_prev
 
-    apply_cases = []
+    apply_cases: _ApplyCases = []
     apply_cases.append(
         (
             BusinessHour(),
@@ -2272,7 +2272,7 @@ class TestCustomBusinessHour(Base):
             for dt, expected in cases.items():
                 assert offset.onOffset(dt) == expected
 
-    apply_cases = []
+    apply_cases: _ApplyCases = []
     apply_cases.append(
         (
             CustomBusinessHour(holidays=holidays),
@@ -2454,7 +2454,7 @@ class TestCustomBusinessDay(Base):
         offset, d, expected = case
         assert_onOffset(offset, d, expected)
 
-    apply_cases = []  # type: _ApplyCases
+    apply_cases: _ApplyCases = []
     apply_cases.append(
         (
             CDay(),
@@ -2701,7 +2701,7 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
         offset, d, expected = case
         assert_onOffset(offset, d, expected)
 
-    apply_cases = []  # type: _ApplyCases
+    apply_cases: _ApplyCases = []
     apply_cases.append(
         (
             CBMonthEnd(),
@@ -2850,7 +2850,7 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
         offset, dt, expected = case
         assert_onOffset(offset, dt, expected)
 
-    apply_cases = []  # type: _ApplyCases
+    apply_cases: _ApplyCases = []
     apply_cases.append(
         (
             CBMonthBegin(),
@@ -2967,10 +2967,9 @@ def test_get_offset():
 
     for name, expected in pairs:
         offset = get_offset(name)
-        assert (
-            offset == expected
-        ), "Expected {name!r} to yield {expected!r} (actual: {offset!r})".format(
-            name=name, expected=expected, offset=offset
+        assert offset == expected, (
+            f"Expected {repr(name)} to yield {repr(expected)} "
+            f"(actual: {repr(offset)})"
         )
 
 
@@ -3106,7 +3105,7 @@ def test_valid_default_arguments(business_offset_types):
     cls()
 
 
-@pytest.mark.parametrize("kwd", sorted(list(liboffsets.relativedelta_kwds)))
+@pytest.mark.parametrize("kwd", sorted(liboffsets.relativedelta_kwds))
 def test_valid_month_attributes(kwd, business_month_classes):
     # GH#18226
     cls = business_month_classes
