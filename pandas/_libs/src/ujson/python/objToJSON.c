@@ -405,22 +405,7 @@ static void *PyBytesToUTF8(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
 
 static void *PyUnicodeToUTF8(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
                              size_t *_outLen) {
-    PyObject *obj, *newObj;
-    obj = (PyObject *)_obj;
-
-    if (PyUnicode_IS_COMPACT_ASCII(obj)) {
-        Py_ssize_t len;
-        char *data = (char *)PyUnicode_AsUTF8AndSize(obj, &len);
-        *_outLen = len;
-        return data;
-    }
-
-    newObj = PyUnicode_AsUTF8String(obj);
-
-    GET_TC(tc)->newObj = newObj;
-
-    *_outLen = PyBytes_GET_SIZE(newObj);
-    return PyBytes_AS_STRING(newObj);
+  return PyUnicode_AsUTF8AndSize(_obj, _outLen);
 }
 
 static void *PandasDateTimeStructToJSON(npy_datetimestruct *dts,
