@@ -384,9 +384,9 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         if dtype is None:
             dtype = object
 
-        if is_float_dtype(dtype) and na_value is lib._no_default:
+        if na_value is lib._no_default and is_float_dtype(dtype):
             na_value = np.nan
-        else:
+        elif na_value is lib._no_default:
             na_value = libmissing.NA
 
         if is_integer_dtype(dtype):
