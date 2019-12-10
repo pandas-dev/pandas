@@ -403,7 +403,13 @@ class TestSeriesMisc:
         s = Series([1])
         result = s.item()
         assert result == 1
-        assert s.item() == s.iloc[0]
+        assert result == s.iloc[0]
+        assert isinstance(result, int)  # i.e. not np.int64
+
+        ser = Series([0.5], index=[3])
+        result = ser.item()
+        assert isinstance(result, float)
+        assert result == 0.5
 
         ser = Series([1, 2])
         msg = "can only convert an array of size 1"
@@ -431,6 +437,11 @@ class TestSeriesMisc:
         assert isinstance(val, Timedelta)
         val = Series(tdi)[:1].item()
         assert isinstance(val, Timedelta)
+
+        # Case where ser[0] would not work
+        ser = Series(dti, index=[5, 6])
+        val = ser[:1].item()
+        assert val == dti[0]
 
     def test_ndarray_compat(self):
 

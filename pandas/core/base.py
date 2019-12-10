@@ -25,6 +25,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_timedelta64_ns_dtype,
+    needs_i8_conversion,
 )
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
@@ -686,8 +687,13 @@ class IndexOpsMixin:
         ValueError
             If the data is not length-1.
         """
+        if not needs_i8_conversion(self.dtype):
+            # numpy returns ints instead of datetime64/timedelta64 objects,
+            #  which we need to wrap in Timestamp/Timedelta/Period regardless.
+            return self.values.item()
+
         if len(self) == 1:
-            return self[0]
+            return next(iter(self))
         else:
             raise ValueError("can only convert an array of size 1 to a Python scalar")
 
