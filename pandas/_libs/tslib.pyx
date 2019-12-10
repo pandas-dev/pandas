@@ -266,20 +266,16 @@ def format_array_from_datetime(ndarray[int64_t] values, object tz=None,
         elif basic_format:
 
             dt64_to_dtstruct(val, &dts)
-            res = '%d-%.2d-%.2d %.2d:%.2d:%.2d' % (dts.year,
-                                                   dts.month,
-                                                   dts.day,
-                                                   dts.hour,
-                                                   dts.min,
-                                                   dts.sec)
+            res = (f'{dts.year}-{dts.month:02d}-{dts.day:02d} '
+                   f'{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}')
 
             if show_ns:
                 ns = dts.ps // 1000
-                res += '.%.9d' % (ns + 1000 * dts.us)
+                res += f'.{ns + dts.us * 1000:09d}'
             elif show_us:
-                res += '.%.6d' % dts.us
+                res += f'.{dts.us:06d}'
             elif show_ms:
-                res += '.%.3d' % (dts.us /1000)
+                res += f'.{dts.us // 1000:03d}'
 
             result[i] = res
 
@@ -357,8 +353,8 @@ def array_with_unit_to_datetime(ndarray values, object unit,
 
             if ((fvalues < Timestamp.min.value).any()
                     or (fvalues > Timestamp.max.value).any()):
-                raise OutOfBoundsDatetime("cannot convert input with unit "
-                                          "'{unit}'".format(unit=unit))
+                raise OutOfBoundsDatetime(f"cannot convert input with unit "
+                                          f"'{unit}'")
             result = (iresult * m).astype('M8[ns]')
             iresult = result.view('i8')
             iresult[mask] = NPY_NAT
@@ -384,8 +380,8 @@ def array_with_unit_to_datetime(ndarray values, object unit,
                     except OverflowError:
                         if is_raise:
                             raise OutOfBoundsDatetime(
-                                "cannot convert input {val} with the unit "
-                                "'{unit}'".format(val=val, unit=unit))
+                                f"cannot convert input {val} with the unit "
+                                f"'{unit}'")
                         elif is_ignore:
                             raise AssertionError
                         iresult[i] = NPY_NAT
@@ -400,16 +396,16 @@ def array_with_unit_to_datetime(ndarray values, object unit,
                     except ValueError:
                         if is_raise:
                             raise ValueError(
-                                "non convertible value {val} with the unit "
-                                "'{unit}'".format(val=val, unit=unit))
+                                f"non convertible value {val} with the unit "
+                                f"'{unit}'")
                         elif is_ignore:
                             raise AssertionError
                         iresult[i] = NPY_NAT
                     except OverflowError:
                         if is_raise:
                             raise OutOfBoundsDatetime(
-                                "cannot convert input {val} with the unit "
-                                "'{unit}'".format(val=val, unit=unit))
+                                f"cannot convert input {val} with the unit "
+                                f"'{unit}'")
                         elif is_ignore:
                             raise AssertionError
                         iresult[i] = NPY_NAT
@@ -417,8 +413,8 @@ def array_with_unit_to_datetime(ndarray values, object unit,
             else:
 
                 if is_raise:
-                    raise ValueError("unit='{0}' not valid with non-numerical "
-                                     "val='{1}'".format(unit, val))
+                    raise ValueError(f"unit='{unit}' not valid with non-numerical "
+                                     f"val='{val}'")
                 if is_ignore:
                     raise AssertionError
 
@@ -600,9 +596,8 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
                                 iresult[i] = NPY_NAT
                                 continue
                             elif is_raise:
-                                raise ValueError("time data {val} doesn't "
-                                                 "match format specified"
-                                                 .format(val=val))
+                                raise ValueError(f"time data {val} doesn't "
+                                                 f"match format specified")
                             return values, tz_out
 
                         try:
@@ -657,8 +652,7 @@ cpdef array_to_datetime(ndarray[object] values, str errors='raise',
                     if is_coerce:
                         iresult[i] = NPY_NAT
                     else:
-                        raise TypeError("{typ} is not convertible to datetime"
-                                        .format(typ=type(val)))
+                        raise TypeError(f"{type(val)} is not convertible to datetime")
 
             except OutOfBoundsDatetime:
                 if is_coerce:

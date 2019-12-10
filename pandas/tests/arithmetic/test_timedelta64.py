@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 
-from pandas.errors import NullFrequencyError, OutOfBoundsDatetime, PerformanceWarning
+from pandas.errors import OutOfBoundsDatetime, PerformanceWarning
 
 import pandas as pd
 from pandas import (
@@ -409,7 +409,7 @@ class TestTimedelta64ArithmeticUnsorted:
             tdi[0:1] + dti
 
         # random indexes
-        with pytest.raises(NullFrequencyError):
+        with pytest.raises(TypeError):
             tdi + pd.Int64Index([1, 2, 3])
 
         # this is a union!
@@ -577,15 +577,23 @@ class TestTimedeltaArraylikeAddSubOps:
         # setup
         s1 = pd.to_timedelta(Series(["00:00:01"]))
         s2 = pd.to_timedelta(Series(["00:00:02"]))
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            # Passing datetime64-dtype data to TimedeltaIndex is deprecated
-            sn = pd.to_timedelta(Series([pd.NaT]))
+
+        msg = r"dtype datetime64\[ns\] cannot be converted to timedelta64\[ns\]"
+        with pytest.raises(TypeError, match=msg):
+            # Passing datetime64-dtype data to TimedeltaIndex is no longer
+            #  supported GH#29794
+            pd.to_timedelta(Series([pd.NaT]))
+
+        sn = pd.to_timedelta(Series([pd.NaT], dtype="m8[ns]"))
 
         df1 = pd.DataFrame(["00:00:01"]).apply(pd.to_timedelta)
         df2 = pd.DataFrame(["00:00:02"]).apply(pd.to_timedelta)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            # Passing datetime64-dtype data to TimedeltaIndex is deprecated
-            dfn = pd.DataFrame([pd.NaT]).apply(pd.to_timedelta)
+        with pytest.raises(TypeError, match=msg):
+            # Passing datetime64-dtype data to TimedeltaIndex is no longer
+            #  supported GH#29794
+            pd.DataFrame([pd.NaT]).apply(pd.to_timedelta)
+
+        dfn = pd.DataFrame([pd.NaT.value]).apply(pd.to_timedelta)
 
         scalar1 = pd.to_timedelta("00:00:01")
         scalar2 = pd.to_timedelta("00:00:02")
@@ -896,11 +904,16 @@ class TestTimedeltaArraylikeAddSubOps:
         result = other + idx
         tm.assert_equal(result, expected)
 
-    def test_td64arr_add_sub_timestamp(self, box_with_array):
-        # GH#11925
-        ts = Timestamp("2012-01-01")
-        # TODO: parametrize over types of datetime scalar?
-
+    @pytest.mark.parametrize(
+        "ts",
+        [
+            Timestamp("2012-01-01"),
+            Timestamp("2012-01-01").to_pydatetime(),
+            Timestamp("2012-01-01").to_datetime64(),
+        ],
+    )
+    def test_td64arr_add_sub_datetimelike_scalar(self, ts, box_with_array):
+        # GH#11925, GH#29558
         tdi = timedelta_range("1 day", periods=3)
         expected = pd.date_range("2012-01-02", periods=3)
 
@@ -984,17 +997,13 @@ class TestTimedeltaArraylikeAddSubOps:
         tdser = pd.Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
         tdser = tm.box_expected(tdser, box)
 
-        err = TypeError
-        if box in [pd.Index, tm.to_array] and not isinstance(other, float):
-            err = NullFrequencyError
-
-        with pytest.raises(err):
+        with pytest.raises(TypeError):
             tdser + other
-        with pytest.raises(err):
+        with pytest.raises(TypeError):
             other + tdser
-        with pytest.raises(err):
+        with pytest.raises(TypeError):
             tdser - other
-        with pytest.raises(err):
+        with pytest.raises(TypeError):
             other - tdser
 
     @pytest.mark.parametrize(
@@ -1026,18 +1035,15 @@ class TestTimedeltaArraylikeAddSubOps:
         box = box_with_array
         tdser = pd.Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
         tdser = tm.box_expected(tdser, box)
-        err = TypeError
-        if box in [pd.Index, tm.to_array] and not dtype.startswith("float"):
-            err = NullFrequencyError
 
         vector = vec.astype(dtype)
-        with pytest.raises(err):
+        with pytest.raises(TypeError):
             tdser + vector
-        with pytest.raises(err):
+        with pytest.raises(TypeError):
             vector + tdser
-        with pytest.raises(err):
+        with pytest.raises(TypeError):
             tdser - vector
-        with pytest.raises(err):
+        with pytest.raises(TypeError):
             vector - tdser
 
     # ------------------------------------------------------------------

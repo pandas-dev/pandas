@@ -148,7 +148,7 @@ class Expanding(_Rolling_and_Expanding):
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["apply"])
-    def apply(self, func, raw=None, args=(), kwargs={}):
+    def apply(self, func, raw=False, args=(), kwargs={}):
         return super().apply(func, raw=raw, args=args, kwargs=kwargs)
 
     @Substitution(name="expanding")
@@ -209,10 +209,9 @@ class Expanding(_Rolling_and_Expanding):
 
     >>> arr = [1, 2, 3, 4, 999]
     >>> import scipy.stats
-    >>> fmt = "{0:.6f}"  # limit the printed precision to 6 digits
-    >>> print(fmt.format(scipy.stats.kurtosis(arr[:-1], bias=False)))
+    >>> print(f"{scipy.stats.kurtosis(arr[:-1], bias=False):.6f}")
     -1.200000
-    >>> print(fmt.format(scipy.stats.kurtosis(arr, bias=False)))
+    >>> print(f"{scipy.stats.kurtosis(arr, bias=False):.6f}")
     4.999874
     >>> s = pd.Series(arr)
     >>> s.expanding(4).kurt()

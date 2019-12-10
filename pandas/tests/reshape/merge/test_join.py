@@ -624,7 +624,7 @@ class TestJoin:
     def test_join_non_unique_period_index(self):
         # GH #16871
         index = pd.period_range("2016-01-01", periods=16, freq="M")
-        df = DataFrame([i for i in range(len(index))], index=index, columns=["pnum"])
+        df = DataFrame(list(range(len(index))), index=index, columns=["pnum"])
         df2 = concat([df, df])
         result = df.join(df2, how="inner", rsuffix="_df2")
         expected = DataFrame(

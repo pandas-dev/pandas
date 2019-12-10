@@ -3,7 +3,7 @@ import warnings
 import pandas as pd
 
 try:
-    import pandas.tseries.holiday  # noqa
+    import pandas.tseries.holiday
 except ImportError:
     pass
 

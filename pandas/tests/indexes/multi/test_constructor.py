@@ -1,5 +1,3 @@
-from collections import OrderedDict
-
 import numpy as np
 import pytest
 
@@ -126,18 +124,6 @@ def test_na_levels():
         levels=[[np.nan, "s", pd.NaT, 128, None]], codes=[[1, 2, 2, 2, 2, 2]]
     ).set_codes([[0, -1, 1, 2, 3, 4]])
     tm.assert_index_equal(result, expected)
-
-
-def test_labels_deprecated(idx):
-    # GH23752
-    with tm.assert_produces_warning(FutureWarning):
-        MultiIndex(
-            levels=[["foo", "bar", "baz", "qux"]],
-            labels=[[0, 1, 2, 3]],
-            names=["first"],
-        )
-    with tm.assert_produces_warning(FutureWarning):
-        idx.labels
 
 
 def test_copy_in_constructor():
@@ -609,12 +595,11 @@ def test_create_index_existing_name(idx):
                 ("qux", "two"),
             ],
             dtype="object",
-        ),
-        names=["foo", "bar"],
+        )
     )
     tm.assert_index_equal(result, expected)
 
-    result = pd.Index(index, names=["A", "B"])
+    result = pd.Index(index, name="A")
     expected = Index(
         Index(
             [
@@ -627,7 +612,7 @@ def test_create_index_existing_name(idx):
             ],
             dtype="object",
         ),
-        names=["A", "B"],
+        name="A",
     )
     tm.assert_index_equal(result, expected)
 
@@ -667,14 +652,12 @@ def test_from_frame_error(non_frame):
 def test_from_frame_dtype_fidelity():
     # GH 22420
     df = pd.DataFrame(
-        OrderedDict(
-            [
-                ("dates", pd.date_range("19910905", periods=6, tz="US/Eastern")),
-                ("a", [1, 1, 1, 2, 2, 2]),
-                ("b", pd.Categorical(["a", "a", "b", "b", "c", "c"], ordered=True)),
-                ("c", ["x", "x", "y", "z", "x", "y"]),
-            ]
-        )
+        {
+            "dates": pd.date_range("19910905", periods=6, tz="US/Eastern"),
+            "a": [1, 1, 1, 2, 2, 2],
+            "b": pd.Categorical(["a", "a", "b", "b", "c", "c"], ordered=True),
+            "c": ["x", "x", "y", "z", "x", "y"],
+        }
     )
     original_dtypes = df.dtypes.to_dict()
 

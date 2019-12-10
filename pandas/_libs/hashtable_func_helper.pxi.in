@@ -144,13 +144,13 @@ def duplicated_{{dtype}}({{c_type}}[:] values, object keep='first'):
     if keep == 'last':
         {{if dtype == 'object'}}
         for i in range(n - 1, -1, -1):
-            # equivalent: range(n)[::-1], which cython doesnt like in nogil
+            # equivalent: range(n)[::-1], which cython doesn't like in nogil
             kh_put_{{ttype}}(table, <PyObject*>values[i], &ret)
             out[i] = ret == 0
         {{else}}
         with nogil:
             for i in range(n - 1, -1, -1):
-                # equivalent: range(n)[::-1], which cython doesnt like in nogil
+                # equivalent: range(n)[::-1], which cython doesn't like in nogil
                 kh_put_{{ttype}}(table, values[i], &ret)
                 out[i] = ret == 0
         {{endif}}

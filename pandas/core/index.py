@@ -13,13 +13,9 @@ from pandas.core.indexes.api import (  # noqa:F401
     RangeIndex,
     TimedeltaIndex,
     UInt64Index,
-    _all_indexes_same,
-    _get_combined_index,
-    _get_consensus_names,
-    _get_objs_combined_axis,
     _new_Index,
-    _union_indexes,
     ensure_index,
     ensure_index_from_sequences,
+    get_objs_combined_axis,
 )
 from pandas.core.indexes.multi import _sparsify  # noqa:F401

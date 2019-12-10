@@ -5,7 +5,7 @@ import pandas._config.config as cf
 
 from pandas._libs import index as libindex
 
-from pandas.core.dtypes.dtypes import CategoricalDtype, ordered_sentinel
+from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
 from pandas import Categorical, IntervalIndex
@@ -188,8 +188,8 @@ class TestCategoricalIndex(Base):
         # GH 10039
         # set ops (+/-) raise TypeError
         idx = pd.Index(pd.Categorical(["a", "b"]))
-        msg = "cannot perform {} with this index type: CategoricalIndex"
-        with pytest.raises(TypeError, match=msg.format(op_name)):
+        msg = f"cannot perform {op_name} with this index type: CategoricalIndex"
+        with pytest.raises(TypeError, match=msg):
             func(idx)
 
     def test_method_delegation(self):
@@ -525,17 +525,6 @@ class TestCategoricalIndex(Base):
             expected = index
             tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "none, warning", [(None, None), (ordered_sentinel, FutureWarning)]
-    )
-    def test_astype_category_ordered_none_deprecated(self, none, warning):
-        # GH 26336: only warn if None is not explicitly passed
-        cdt1 = CategoricalDtype(categories=list("cdab"), ordered=True)
-        cdt2 = CategoricalDtype(categories=list("cedafb"), ordered=none)
-        idx = CategoricalIndex(list("abcdaba"), dtype=cdt1)
-        with tm.assert_produces_warning(warning):
-            idx.astype(cdt2)
-
     def test_reindex_base(self):
         # Determined by cat ordering.
         idx = CategoricalIndex(list("cab"), categories=list("cab"))
@@ -788,8 +777,10 @@ class TestCategoricalIndex(Base):
         # Index.__new__ is honored.
         #
         # Must be tested separately from other indexes because
-        # self.value is not an ndarray.
-        _base = lambda ar: ar if ar.base is None else ar.base
+        # self.values is not an ndarray.
+        # GH#29918 Index.base has been removed
+        # FIXME: is this test still meaningful?
+        _base = lambda ar: ar if getattr(ar, "base", None) is None else ar.base
 
         result = CategoricalIndex(indices.values, copy=True)
         tm.assert_index_equal(indices, result)
