@@ -12,13 +12,14 @@ from pandas import (
     DatetimeIndex,
     Index,
     Series,
+    Timedelta,
     TimedeltaIndex,
+    Timestamp,
     date_range,
     period_range,
     timedelta_range,
 )
 from pandas.core.arrays import PeriodArray
-from pandas.core.indexes.datetimes import Timestamp
 import pandas.util.testing as tm
 
 import pandas.io.formats.printing as printing
@@ -398,6 +399,39 @@ class TestSeriesMisc:
         # it works!
         np.unique(datetime_series)
 
+    def test_item(self):
+        s = Series([1])
+        result = s.item()
+        assert result == 1
+        assert s.item() == s.iloc[0]
+
+        ser = Series([1, 2])
+        msg = "can only convert an array of size 1"
+        with pytest.raises(ValueError, match=msg):
+            ser.item()
+
+        dti = pd.date_range("2016-01-01", periods=2)
+        with pytest.raises(ValueError, match=msg):
+            dti.item()
+        with pytest.raises(ValueError, match=msg):
+            Series(dti).item()
+
+        val = dti[:1].item()
+        assert isinstance(val, Timestamp)
+        val = Series(dti)[:1].item()
+        assert isinstance(val, Timestamp)
+
+        tdi = dti - dti
+        with pytest.raises(ValueError, match=msg):
+            tdi.item()
+        with pytest.raises(ValueError, match=msg):
+            Series(tdi).item()
+
+        val = tdi[:1].item()
+        assert isinstance(val, Timedelta)
+        val = Series(tdi)[:1].item()
+        assert isinstance(val, Timedelta)
+
     def test_ndarray_compat(self):
 
         # test numpy compat with Series as sub-class of NDFrame
@@ -413,13 +447,6 @@ class TestSeriesMisc:
         result = tsdf.apply(f)
         expected = tsdf.max()
         tm.assert_series_equal(result, expected)
-
-        # .item()
-        with tm.assert_produces_warning(FutureWarning):
-            s = Series([1])
-            result = s.item()
-            assert result == 1
-            assert s.item() == s.iloc[0]
 
         # using an ndarray like function
         s = Series(np.random.randn(10))
