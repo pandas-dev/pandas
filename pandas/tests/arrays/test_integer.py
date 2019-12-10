@@ -589,6 +589,11 @@ class TestCasting:
         with pytest.raises(TypeError, match=msg):
             pd.Series(arr).astype(dtype)
 
+    def test_coerce_to_ndarray_float_NA_rasies(self):
+        a = pd.array([0, 1, 2], dtype="Int64")
+        with pytest.raises(TypeError, match="NAType"):
+            a._coerce_to_ndarray(dtype="float", na_value=pd.NA)
+
 
 def test_frame_repr(data_missing):
 

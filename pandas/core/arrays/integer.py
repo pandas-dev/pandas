@@ -377,19 +377,21 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             return self._data[item]
         return type(self)(self._data[item], self._mask[item])
 
-    def _coerce_to_ndarray(self, dtype=None, na_value=libmissing.NA):
+    def _coerce_to_ndarray(self, dtype=None, na_value=lib._no_default):
         """
         coerce to an ndarary of object dtype
         """
-        # TODO(jreback) make this better
         if dtype is None:
             dtype = object
-        elif is_float_dtype(dtype) and na_value is libmissing.NA:
-            # XXX: Do we want to implicitly treat NA as NaN here?
-            # We should be deliberate in this decision.
+
+        if is_float_dtype(dtype) and na_value is lib._no_default:
             na_value = np.nan
+        else:
+            na_value = libmissing.NA
 
         if is_integer_dtype(dtype):
+            # Specifically, a NumPy integer dtype, not a pandas integer dtype,
+            # since we're coercing to a numpy dtype by definition in this function.
             if not self.isna().any():
                 return self._data.astype(dtype)
             else:
@@ -627,6 +629,8 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         return Series(array, index=index)
 
     def _values_for_factorize(self) -> Tuple[np.ndarray, Any]:
+        # TODO: https://github.com/pandas-dev/pandas/issues/30037
+        # use masked algorithms, rather than object-dtype / np.nan.
         return self._coerce_to_ndarray(na_value=np.nan), np.nan
 
     def _values_for_argsort(self) -> np.ndarray:
@@ -670,6 +674,8 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             if other is libmissing.NA:
                 # numpy does not handle pd.NA well as "other" scalar (it returns
                 # a scalar False instead of an array)
+                # This may be fixed by NA.__array_ufunc__. Revisit this check
+                # once that's implemented.
                 result = np.zeros(self._data.shape, dtype="bool")
                 mask = np.ones(self._data.shape, dtype="bool")
             else:
