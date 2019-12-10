@@ -16,7 +16,10 @@ from pandas import (
     bdate_range,
     date_range,
 )
-from pandas.tests.base.test_ops import Ops
+from pandas.tests.base.utils import (
+    check_ops_properties_invalid,
+    check_ops_properties_valid,
+)
 import pandas.util.testing as tm
 
 from pandas.tseries.offsets import BDay, BMonthEnd, CDay, Day, Hour
@@ -24,27 +27,28 @@ from pandas.tseries.offsets import BDay, BMonthEnd, CDay, Day, Hour
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
 
-class TestDatetimeIndexOps(Ops):
-    def setup_method(self, method):
-        super().setup_method(method)
-        mask = lambda x: (isinstance(x, DatetimeIndex) or isinstance(x, PeriodIndex))
-        self.is_valid_objs = [o for o in self.objs if mask(o)]
-        self.not_valid_objs = [o for o in self.objs if not mask(o)]
+class TestDatetimeIndexOps:
+    def test_ops_properties(self, index_or_series_obj):
+        obj = index_or_series_obj
+        is_valid = isinstance(obj, (DatetimeIndex, PeriodIndex))
+        if is_valid:
+            filter_ = lambda x: isinstance(x, DatetimeIndex)
+            check_ops_properties_valid(obj, DatetimeIndex._field_ops, filter_)
+            check_ops_properties_valid(obj, DatetimeIndex._object_ops, filter_)
+            check_ops_properties_valid(obj, DatetimeIndex._bool_ops, filter_)
+        else:
+            check_ops_properties_invalid(obj, DatetimeIndex._field_ops)
+            check_ops_properties_invalid(obj, DatetimeIndex._object_ops)
+            check_ops_properties_invalid(obj, DatetimeIndex._bool_ops)
 
-    def test_ops_properties(self):
-        f = lambda x: isinstance(x, DatetimeIndex)
-        self.check_ops_properties(DatetimeIndex._field_ops, f)
-        self.check_ops_properties(DatetimeIndex._object_ops, f)
-        self.check_ops_properties(DatetimeIndex._bool_ops, f)
-
-    def test_ops_properties_basic(self):
+    def test_ops_properties_basic(self, datetime_series):
 
         # sanity check that the behavior didn't change
         # GH#7206
         msg = "'Series' object has no attribute '{}'"
         for op in ["year", "day", "second", "weekday"]:
             with pytest.raises(AttributeError, match=msg.format(op)):
-                getattr(self.dt_series, op)
+                getattr(datetime_series, op)
 
         # attribute access should still work!
         s = Series(dict(year=2000, month=1, day=10))

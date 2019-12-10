@@ -4,22 +4,26 @@ import pytest
 import pandas as pd
 from pandas import DatetimeIndex, Index, NaT, PeriodIndex, Series
 from pandas.core.arrays import PeriodArray
-from pandas.tests.base.test_ops import Ops
+from pandas.tests.base.utils import (
+    check_ops_properties_invalid,
+    check_ops_properties_valid,
+)
 import pandas.util.testing as tm
 
 
-class TestPeriodIndexOps(Ops):
-    def setup_method(self, method):
-        super().setup_method(method)
-        mask = lambda x: (isinstance(x, DatetimeIndex) or isinstance(x, PeriodIndex))
-        self.is_valid_objs = [o for o in self.objs if mask(o)]
-        self.not_valid_objs = [o for o in self.objs if not mask(o)]
-
-    def test_ops_properties(self):
-        f = lambda x: isinstance(x, PeriodIndex)
-        self.check_ops_properties(PeriodArray._field_ops, f)
-        self.check_ops_properties(PeriodArray._object_ops, f)
-        self.check_ops_properties(PeriodArray._bool_ops, f)
+class TestPeriodIndexOps:
+    def test_ops_properties(self, index_or_series_obj):
+        obj = index_or_series_obj
+        is_valid = isinstance(obj, (DatetimeIndex, PeriodIndex))
+        if is_valid:
+            filter_ = lambda x: isinstance(x, PeriodIndex)
+            check_ops_properties_valid(obj, PeriodArray._field_ops, filter_)
+            check_ops_properties_valid(obj, PeriodArray._object_ops, filter_)
+            check_ops_properties_valid(obj, PeriodArray._bool_ops, filter_)
+        else:
+            check_ops_properties_invalid(obj, PeriodArray._field_ops)
+            check_ops_properties_invalid(obj, PeriodArray._object_ops)
+            check_ops_properties_invalid(obj, PeriodArray._bool_ops)
 
     def test_resolution(self):
         for freq, expected in zip(
