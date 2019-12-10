@@ -1142,7 +1142,8 @@ def test_transform_fastpath_raises():
 
 def test_groupby_shift_lose_timezone():
     # GH 30134
-    df = DataFrame({"a": [1, 1], "date": pd.Timestamp.utcnow()})
-    expected = Series({"date": pd.Timestamp.utcnow()})
+    now_dt = pd.Timestamp.utcnow()
+    df = DataFrame({"a": [1, 1], "date": now_dt})
     result = df.groupby("a").shift(0).iloc[0]
+    expected = Series({"date": now_dt}, name=result.name)
     tm.assert_series_equal(result, expected)
