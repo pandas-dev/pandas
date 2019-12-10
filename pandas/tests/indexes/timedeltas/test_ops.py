@@ -24,9 +24,9 @@ class TestTimedeltaIndexOps:
     def test_invalid_ops_properties(self, op, index_or_series_obj):
         obj = index_or_series_obj
         if isinstance(obj, TimedeltaIndex):
-            return
+            pytest.skip()
         if op == "freq" and isinstance(obj, (DatetimeIndex, PeriodIndex)):
-            pytest.skip(f"{op} is available on {type(obj)}")
+            pytest.skip()
 
         with pytest.raises((AttributeError, TypeError)):
             getattr(obj, op)
