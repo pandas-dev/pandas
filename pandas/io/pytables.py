@@ -1974,7 +1974,9 @@ class IndexCol:
         return getattr(self.table.cols, self.cname).is_indexed  # type: ignore
 
     def convert(self, values: np.ndarray, nan_rep, encoding: str, errors: str):
-        """ set the values from this selection: take = take ownership """
+        """
+        Convert the data from this selection to the appropriate pandas type.
+        """
         assert isinstance(values, np.ndarray), type(values)
 
         # values is a recarray
@@ -2158,7 +2160,7 @@ class GenericIndexCol(IndexCol):
 
     def convert(self, values: np.ndarray, nan_rep, encoding: str, errors: str):
         """
-        Set the values from this selection.
+        Convert the data from this selection to the appropriate pandas type.
 
         Parameters
         ----------
@@ -2356,8 +2358,20 @@ class DataCol(IndexCol):
                 )
 
     def convert(self, values: np.ndarray, nan_rep, encoding: str, errors: str):
-        """set the data from this selection (and convert to the correct dtype
-        if we can)
+        """
+        Convert the data from this selection to the appropriate pandas type.
+
+        Parameters
+        ----------
+        values : np.ndarray
+        nan_rep :
+        encoding : str
+        errors : str
+
+        Returns
+        -------
+        index : listlike to become an Index
+        data : ndarraylike to become a column
         """
         assert isinstance(values, np.ndarray), type(values)
 
@@ -3570,7 +3584,7 @@ class Table(Fixed):
 
     def _read_axes(
         self, where, start: Optional[int] = None, stop: Optional[int] = None
-    ) -> bool:
+    ) -> List[Tuple[ArrayLike, ArrayLike]]:
         """
         Create the axes sniffed from the table.
 
@@ -3582,14 +3596,8 @@ class Table(Fixed):
 
         Returns
         -------
+        List[Tuple[index_values, column_values]]
         """
-
-        # validate the version
-        self.validate_version(where)
-
-        # infer the data kind
-        if not self.infer_axes():
-            return False
 
         # create the selection
         selection = Selection(self, where=where, start=start, stop=stop)
@@ -4341,9 +4349,14 @@ class AppendableFrameTable(AppendableTable):
         stop: Optional[int] = None,
     ):
 
-        result = self._read_axes(where=where, start=start, stop=stop)
-        if result is False:
+        # validate the version
+        self.validate_version(where)
+
+        # infer the data kind
+        if not self.infer_axes():
             return None
+
+        result = self._read_axes(where=where, start=start, stop=stop)
 
         info = (
             self.info.get(self.non_index_axes[0][0], dict())
@@ -4362,14 +4375,14 @@ class AppendableFrameTable(AppendableTable):
         for i, a in enumerate(self.axes):
             if a not in self.values_axes:
                 continue
-            values, cvalues = result[i]
+            index_vals, cvalues = result[i]
 
             # we could have a multi-index constructor here
             # ensure_index doesn't recognized our list-of-tuples here
             if info.get("type") == "MultiIndex":
-                cols = MultiIndex.from_tuples(values)
+                cols = MultiIndex.from_tuples(index_vals)
             else:
-                cols = Index(values)
+                cols = Index(index_vals)
 
             names = info.get("names")
             if names is not None:
