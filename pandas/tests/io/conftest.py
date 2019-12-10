@@ -97,10 +97,11 @@ def check_for_file_leaks():
     # GH#30162
     psutil = td.safe_import("psutil")
     if not psutil:
-        return
+        yield
 
-    proc = psutil.Process()
-    flist = proc.open_files()
-    yield
-    flist2 = proc.open_files()
-    assert flist == flist2
+    else:
+        proc = psutil.Process()
+        flist = proc.open_files()
+        yield
+        flist2 = proc.open_files()
+        assert flist == flist2
