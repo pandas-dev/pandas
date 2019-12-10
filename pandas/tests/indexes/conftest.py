@@ -53,11 +53,14 @@ def zero(request):
     return request.param
 
 
+def _create_series(index):
+    """ Helper for the _series dict """
+    data = np.random.randn(len(index))
+    return pd.Series(data, index=index, name=index.name)
+
+
 _series = {
-    f"series-with-{i_id}-index": pd.Series(
-        np.random.randn(len(i)), index=i, name=i.name
-    )
-    for i_id, i in indices_dict.items()
+    f"series-with-{i_id}-index": _create_series(i) for i_id, i in indices_dict.items()
 }
 
 
