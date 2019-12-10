@@ -3,8 +3,6 @@ from datetime import time, timedelta
 import numpy as np
 import pytest
 
-from pandas._libs.tslib import iNaT
-
 import pandas as pd
 from pandas import Series, TimedeltaIndex, isna, to_timedelta
 import pandas.util.testing as tm
@@ -12,26 +10,6 @@ import pandas.util.testing as tm
 
 class TestTimedeltas:
     def test_to_timedelta(self):
-        def conv(v):
-            return v.astype("m8[ns]")
-
-        d1 = np.timedelta64(1, "D")
-
-        with tm.assert_produces_warning(FutureWarning):
-            assert to_timedelta("1 days 06:05:01.00003", box=False) == conv(
-                d1
-                + np.timedelta64(6 * 3600 + 5 * 60 + 1, "s")
-                + np.timedelta64(30, "us")
-            )
-
-        with tm.assert_produces_warning(FutureWarning):
-            assert to_timedelta("15.5us", box=False) == conv(
-                np.timedelta64(15500, "ns")
-            )
-
-            # empty string
-            result = to_timedelta("", box=False)
-            assert result.astype("int64") == iNaT
 
         result = to_timedelta(["", ""])
         assert isna(result).all()
@@ -40,12 +18,6 @@ class TestTimedeltas:
         result = to_timedelta(np.array([np.timedelta64(1, "s")]))
         expected = pd.Index(np.array([np.timedelta64(1, "s")]))
         tm.assert_index_equal(result, expected)
-
-        with tm.assert_produces_warning(FutureWarning):
-            # ints
-            result = np.timedelta64(0, "ns")
-            expected = to_timedelta(0, box=False)
-            assert result == expected
 
         # Series
         expected = Series([timedelta(days=1), timedelta(days=1, seconds=1)])
@@ -58,19 +30,6 @@ class TestTimedeltas:
         )
         expected = to_timedelta([0, 10], unit="s")
         tm.assert_index_equal(result, expected)
-
-        with tm.assert_produces_warning(FutureWarning):
-            # single element conversion
-            v = timedelta(seconds=1)
-            result = to_timedelta(v, box=False)
-            expected = np.timedelta64(timedelta(seconds=1))
-            assert result == expected
-
-        with tm.assert_produces_warning(FutureWarning):
-            v = np.timedelta64(timedelta(seconds=1))
-            result = to_timedelta(v, box=False)
-            expected = np.timedelta64(timedelta(seconds=1))
-            assert result == expected
 
         # arrays of various dtypes
         arr = np.array([1] * 5, dtype="int64")
