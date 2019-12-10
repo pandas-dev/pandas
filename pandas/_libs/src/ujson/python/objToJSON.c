@@ -531,25 +531,7 @@ static void *PyTimeToJSON(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
 static int NpyTypeToJSONType(PyObject *obj, JSONTypeContext *tc, int npyType,
                              void *value) {
     PyArray_VectorUnaryFunc *castfunc;
-    npy_double doubleVal;
     npy_int64 longVal;
-
-    if (PyTypeNum_ISFLOAT(npyType)) {
-        PRINTMARK();
-        castfunc =
-            PyArray_GetCastFunc(PyArray_DescrFromType(npyType), NPY_DOUBLE);
-        if (!castfunc) {
-            PyErr_Format(PyExc_ValueError,
-                         "Cannot cast numpy dtype %d to double", npyType);
-        }
-        castfunc(value, &doubleVal, 1, NULL, NULL);
-        if (npy_isnan(doubleVal) || npy_isinf(doubleVal)) {
-            PRINTMARK();
-            return JT_NULL;
-        }
-        GET_TC(tc)->doubleValue = (double)doubleVal;
-        return JT_DOUBLE;
-    }
 
     if (PyTypeNum_ISDATETIME(npyType)) {
         PRINTMARK();
@@ -579,24 +561,6 @@ static int NpyTypeToJSONType(PyObject *obj, JSONTypeContext *tc, int npyType,
                 // TODO: some kind of error handling
             }
         }
-    }
-
-    if (PyTypeNum_ISINTEGER(npyType)) {
-        PRINTMARK();
-        castfunc =
-            PyArray_GetCastFunc(PyArray_DescrFromType(npyType), NPY_INT64);
-        if (!castfunc) {
-            PyErr_Format(PyExc_ValueError, "Cannot cast numpy dtype %d to long",
-                         npyType);
-        }
-        castfunc(value, &longVal, 1, NULL, NULL);
-        GET_TC(tc)->longValue = (JSINT64)longVal;
-        return JT_LONG;
-    }
-
-    if (PyTypeNum_ISBOOL(npyType)) {
-        PRINTMARK();
-        return *((npy_bool *)value) == NPY_TRUE ? JT_TRUE : JT_FALSE;
     }
 
     PRINTMARK();
