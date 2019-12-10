@@ -28,6 +28,7 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     binary;`HDF5 Format <https://support.hdfgroup.org/HDF5/whatishdf5.html>`__;:ref:`read_hdf<io.hdf5>`;:ref:`to_hdf<io.hdf5>`
     binary;`Feather Format <https://github.com/wesm/feather>`__;:ref:`read_feather<io.feather>`;:ref:`to_feather<io.feather>`
     binary;`Parquet Format <https://parquet.apache.org/>`__;:ref:`read_parquet<io.parquet>`;:ref:`to_parquet<io.parquet>`
+    binary;`Msgpack <https://msgpack.org/index.html>`__;:ref:`read_msgpack<io.msgpack>`;:ref:`to_msgpack<io.msgpack>`
     binary;`Stata <https://en.wikipedia.org/wiki/Stata>`__;:ref:`read_stata<io.stata_reader>`;:ref:`to_stata<io.stata_writer>`
     binary;`SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__;:ref:`read_sas<io.sas_reader>`;
     binary;`SPSS <https://en.wikipedia.org/wiki/SPSS>`__;:ref:`read_spss<io.spss_reader>`;
@@ -3374,6 +3375,93 @@ The default is to 'infer':
    os.remove("data.pkl.xz")
    os.remove("data.pkl.gz")
    os.remove("s1.pkl.bz2")
+
+.. _io.msgpack:
+
+msgpack
+-------
+
+pandas supports the ``msgpack`` format for
+object serialization. This is a lightweight portable binary format, similar
+to binary JSON, that is highly space efficient, and provides good performance
+both on the writing (serialization), and reading (deserialization).
+
+.. warning::
+
+   The msgpack format is deprecated as of 0.25 and will be removed in a future version.
+   It is recommended to use pyarrow for on-the-wire transmission of pandas objects.
+
+.. warning::
+
+   :func:`read_msgpack` is only guaranteed backwards compatible back to pandas version 0.20.3
+
+.. ipython:: python
+   :okwarning:
+
+   df = pd.DataFrame(np.random.rand(5, 2), columns=list('AB'))
+   df.to_msgpack('foo.msg')
+   pd.read_msgpack('foo.msg')
+   s = pd.Series(np.random.rand(5), index=pd.date_range('20130101', periods=5))
+
+You can pass a list of objects and you will receive them back on deserialization.
+
+.. ipython:: python
+   :okwarning:
+
+   pd.to_msgpack('foo.msg', df, 'foo', np.array([1, 2, 3]), s)
+   pd.read_msgpack('foo.msg')
+
+You can pass ``iterator=True`` to iterate over the unpacked results:
+
+.. ipython:: python
+   :okwarning:
+
+   for o in pd.read_msgpack('foo.msg', iterator=True):
+       print(o)
+
+You can pass ``append=True`` to the writer to append to an existing pack:
+
+.. ipython:: python
+   :okwarning:
+
+   df.to_msgpack('foo.msg', append=True)
+   pd.read_msgpack('foo.msg')
+
+Unlike other io methods, ``to_msgpack`` is available on both a per-object basis,
+``df.to_msgpack()`` and using the top-level ``pd.to_msgpack(...)`` where you
+can pack arbitrary collections of Python lists, dicts, scalars, while intermixing
+pandas objects.
+
+.. ipython:: python
+   :okwarning:
+
+   pd.to_msgpack('foo2.msg', {'dict': [{'df': df}, {'string': 'foo'},
+                                       {'scalar': 1.}, {'s': s}]})
+   pd.read_msgpack('foo2.msg')
+
+.. ipython:: python
+   :suppress:
+   :okexcept:
+
+   os.remove('foo.msg')
+   os.remove('foo2.msg')
+
+Read/write API
+''''''''''''''
+
+Msgpacks can also be read from and written to strings.
+
+.. ipython:: python
+   :okwarning:
+
+   df.to_msgpack()
+
+Furthermore you can concatenate the strings to produce a list of the original objects.
+
+.. ipython:: python
+   :okwarning:
+
+   pd.read_msgpack(df.to_msgpack() + s.to_msgpack())
 
 .. _io.hdf5:
 
