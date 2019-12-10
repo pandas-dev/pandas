@@ -208,13 +208,3 @@ class TestTimedeltas:
         result = pd.to_timedelta(arr, unit="s")
         expected_asi8 = np.arange(999990000, int(1e9), 1000, dtype="int64")
         tm.assert_numpy_array_equal(result.asi8, expected_asi8)
-
-    def test_to_timedelta_box_deprecated(self):
-        result = np.timedelta64(0, "ns")
-
-        # Deprecated - see GH24416
-        with tm.assert_produces_warning(FutureWarning):
-            to_timedelta(0, box=False)
-
-        expected = to_timedelta(0).to_timedelta64()
-        assert result == expected
