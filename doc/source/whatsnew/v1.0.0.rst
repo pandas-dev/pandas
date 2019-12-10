@@ -527,6 +527,8 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 
 **Other removals**
 
+- Removed the previously deprecated "index" keyword from :func:`read_stata`, :class:`StataReader`, and :meth:`StataReader.read`, use "index_col" instead (:issue:`17328`)
+- Removed the previously deprecated :meth:`StataReader.data` method, use :meth:`StataReader.read` instead (:issue:`9493`)
 - Removed the previously deprecated :func:`pandas.plotting._matplotlib.tsplot`, use :meth:`Series.plot` instead (:issue:`19980`)
 - :func:`pandas.tseries.converter.register` has been moved to :func:`pandas.plotting.register_matplotlib_converters` (:issue:`18307`)
 - :meth:`Series.plot` no longer accepts positional arguments, pass keyword arguments instead (:issue:`30003`)
