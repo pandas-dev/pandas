@@ -120,16 +120,6 @@ class TestStata:
             empty_ds2 = read_stata(path)
             tm.assert_frame_equal(empty_ds, empty_ds2)
 
-    def test_data_method(self):
-        # Minimal testing of legacy data method
-        with StataReader(self.dta1_114) as rdr:
-            with tm.assert_produces_warning(UserWarning):
-                parsed_114_data = rdr.data()
-
-        with StataReader(self.dta1_114) as rdr:
-            parsed_114_read = rdr.read()
-        tm.assert_frame_equal(parsed_114_data, parsed_114_read)
-
     @pytest.mark.parametrize("file", ["dta1_114", "dta1_117"])
     def test_read_dta1(self, file):
 

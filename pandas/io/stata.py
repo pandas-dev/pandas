@@ -23,7 +23,7 @@ import numpy as np
 
 from pandas._libs.lib import infer_dtype
 from pandas._libs.writers import max_len_string_array
-from pandas.util._decorators import Appender, deprecate_kwarg
+from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -132,25 +132,6 @@ Read a Stata dta file in 10,000 line chunks:
     _iterator_params,
 )
 
-_data_method_doc = """
-Read observations from Stata file, converting them into a dataframe.
-
-.. deprecated::
-    This is a legacy method.  Use `read` in new code.
-
-Parameters
-----------
-%s
-%s
-
-Returns
--------
-DataFrame
-""" % (
-    _statafile_processing_params1,
-    _statafile_processing_params2,
-)
-
 _read_method_doc = """\
 Reads observations from Stata file, converting them into a dataframe
 
@@ -191,7 +172,6 @@ path_or_buf : path (string), buffer or path object
 
 
 @Appender(_read_stata_doc)
-@deprecate_kwarg(old_arg_name="index", new_arg_name="index_col")
 def read_stata(
     filepath_or_buffer,
     convert_dates=True,
@@ -1033,7 +1013,6 @@ class StataParser:
 class StataReader(StataParser, BaseIterator):
     __doc__ = _stata_reader_doc
 
-    @deprecate_kwarg(old_arg_name="index", new_arg_name="index_col")
     def __init__(
         self,
         path_or_buf,
@@ -1525,18 +1504,6 @@ the string values returned are correct."""
             # Wrap v_o in a string to allow uint64 values as keys on 32bit OS
             self.GSO[str(v_o)] = va
 
-    # legacy
-    @Appender(_data_method_doc)
-    def data(self, **kwargs):
-
-        warnings.warn("'data' is deprecated, use 'read' instead")
-
-        if self._data_read:
-            raise Exception("Data has already been read.")
-        self._data_read = True
-
-        return self.read(None, **kwargs)
-
     def __next__(self):
         return self.read(nrows=self._chunksize or 1)
 
@@ -1558,7 +1525,6 @@ the string values returned are correct."""
         return self.read(nrows=size)
 
     @Appender(_read_method_doc)
-    @deprecate_kwarg(old_arg_name="index", new_arg_name="index_col")
     def read(
         self,
         nrows=None,
