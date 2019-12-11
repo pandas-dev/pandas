@@ -1972,18 +1972,18 @@ class Rolling(_Rolling_and_Expanding):
         self,
         func,
         raw=False,
-        args=None,
-        kwargs=None,
         engine="cython",
         engine_kwargs=None,
+        args=None,
+        kwargs=None,
     ):
         return super().apply(
             func,
             raw=raw,
-            args=args,
-            kwargs=kwargs,
             engine=engine,
             engine_kwargs=engine_kwargs,
+            args=args,
+            kwargs=kwargs,
         )
 
     @Substitution(name="rolling")
