@@ -538,11 +538,9 @@ def srcpath(name=None, suffix=".pyx", subdir="src"):
     return pjoin("pandas", subdir, name + suffix)
 
 
-common_include = ["pandas/_libs/src/klib", "pandas/_libs/src"]
-ts_include = ["pandas/_libs/tslibs/src", "pandas/_libs/tslibs"]
-
-
 lib_depends = ["pandas/_libs/src/parse_helper.h"]
+
+klib_include = ["pandas/_libs/src/klib"]
 
 np_datetime_headers = [
     "pandas/_libs/tslibs/src/datetime/np_datetime.h",
@@ -557,36 +555,41 @@ tseries_depends = np_datetime_headers
 
 
 ext_data = {
-    "_libs.algos": {"pyxfile": "_libs/algos", "depends": _pxi_dep["algos"]},
+    "_libs.algos": {"pyxfile": "_libs/algos",
+                    "include": klib_include,
+                    "depends": _pxi_dep["algos"]},
     "_libs.groupby": {"pyxfile": "_libs/groupby"},
-    "_libs.hashing": {"pyxfile": "_libs/hashing", "include": [], "depends": []},
-    "_libs.hashtable": {
-        "pyxfile": "_libs/hashtable",
-        "depends": (["pandas/_libs/src/klib/khash_python.h"] + _pxi_dep["hashtable"]),
-    },
+    "_libs.hashing": {"pyxfile": "_libs/hashing", "depends": []},
     "_libs.index": {
         "pyxfile": "_libs/index",
-        "include": common_include + ts_include,
+        "include": klib_include,  # due to Hashtable import
         "depends": _pxi_dep["index"],
         "sources": np_datetime_sources,
     },
     "_libs.indexing": {"pyxfile": "_libs/indexing"},
     "_libs.internals": {"pyxfile": "_libs/internals"},
-    "_libs.interval": {"pyxfile": "_libs/interval", "depends": _pxi_dep["interval"]},
-    "_libs.join": {"pyxfile": "_libs/join"},
+    "_libs.interval": {
+        "pyxfile": "_libs/interval",
+        "include": klib_include,  # due to Hashtable import
+        "depends": _pxi_dep["interval"]
+    },
+    "_libs.join": {
+        "pyxfile": "_libs/join",
+        "include": klib_include  # due to Hashtable import
+    },
     "_libs.lib": {
         "pyxfile": "_libs/lib",
-        "include": common_include + ts_include,
         "depends": lib_depends + tseries_depends,
+        "include": klib_include,  # due to tokenizer import
         "sources": ["pandas/_libs/src/parser/tokenizer.c"],
     },
     "_libs.missing": {
         "pyxfile": "_libs/missing",
-        "include": common_include + ts_include,
         "depends": tseries_depends,
     },
     "_libs.parsers": {
         "pyxfile": "_libs/parsers",
+        "include": klib_include + ["pandas/_libs/src/headers"],  # portable.h
         "depends": [
             "pandas/_libs/src/parser/tokenizer.h",
             "pandas/_libs/src/parser/io.h",
@@ -598,45 +601,39 @@ ext_data = {
     },
     "_libs.reduction": {"pyxfile": "_libs/reduction"},
     "_libs.ops": {"pyxfile": "_libs/ops"},
-    "_libs.properties": {"pyxfile": "_libs/properties", "include": []},
+    "_libs.properties": {"pyxfile": "_libs/properties"},
     "_libs.reshape": {"pyxfile": "_libs/reshape", "depends": []},
     "_libs.sparse": {"pyxfile": "_libs/sparse", "depends": _pxi_dep["sparse"]},
     "_libs.tslib": {
         "pyxfile": "_libs/tslib",
-        "include": ts_include,
         "depends": tseries_depends,
         "sources": np_datetime_sources,
     },
     "_libs.tslibs.c_timestamp": {
         "pyxfile": "_libs/tslibs/c_timestamp",
-        "include": ts_include,
         "depends": tseries_depends,
         "sources": np_datetime_sources,
     },
-    "_libs.tslibs.ccalendar": {"pyxfile": "_libs/tslibs/ccalendar", "include": []},
+    "_libs.tslibs.ccalendar": {"pyxfile": "_libs/tslibs/ccalendar"},
     "_libs.tslibs.conversion": {
         "pyxfile": "_libs/tslibs/conversion",
-        "include": ts_include,
         "depends": tseries_depends,
         "sources": np_datetime_sources,
     },
     "_libs.tslibs.fields": {
         "pyxfile": "_libs/tslibs/fields",
-        "include": ts_include,
         "depends": tseries_depends,
         "sources": np_datetime_sources,
     },
-    "_libs.tslibs.frequencies": {"pyxfile": "_libs/tslibs/frequencies", "include": []},
-    "_libs.tslibs.nattype": {"pyxfile": "_libs/tslibs/nattype", "include": []},
+    "_libs.tslibs.frequencies": {"pyxfile": "_libs/tslibs/frequencies"},
+    "_libs.tslibs.nattype": {"pyxfile": "_libs/tslibs/nattype"},
     "_libs.tslibs.np_datetime": {
         "pyxfile": "_libs/tslibs/np_datetime",
-        "include": ts_include,
         "depends": np_datetime_headers,
         "sources": np_datetime_sources,
     },
     "_libs.tslibs.offsets": {
         "pyxfile": "_libs/tslibs/offsets",
-        "include": ts_include,
         "depends": tseries_depends,
         "sources": np_datetime_sources,
     },
@@ -647,38 +644,32 @@ ext_data = {
     },
     "_libs.tslibs.period": {
         "pyxfile": "_libs/tslibs/period",
-        "include": ts_include,
         "depends": tseries_depends,
         "sources": np_datetime_sources,
     },
     "_libs.tslibs.resolution": {
         "pyxfile": "_libs/tslibs/resolution",
-        "include": ts_include,
         "depends": tseries_depends,
         "sources": np_datetime_sources,
     },
     "_libs.tslibs.strptime": {
         "pyxfile": "_libs/tslibs/strptime",
-        "include": ts_include,
         "depends": tseries_depends,
         "sources": np_datetime_sources,
     },
     "_libs.tslibs.timedeltas": {
         "pyxfile": "_libs/tslibs/timedeltas",
-        "include": ts_include,
         "depends": np_datetime_headers,
         "sources": np_datetime_sources,
     },
     "_libs.tslibs.timestamps": {
         "pyxfile": "_libs/tslibs/timestamps",
-        "include": ts_include,
         "depends": tseries_depends,
         "sources": np_datetime_sources,
     },
-    "_libs.tslibs.timezones": {"pyxfile": "_libs/tslibs/timezones", "include": []},
+    "_libs.tslibs.timezones": {"pyxfile": "_libs/tslibs/timezones"},
     "_libs.tslibs.tzconversion": {
         "pyxfile": "_libs/tslibs/tzconversion",
-        "include": ts_include,
         "depends": tseries_depends,
         "sources": np_datetime_sources,
     },
@@ -697,7 +688,6 @@ ext_data = {
             "pandas/_libs/src/msgpack/pack.h",
             "pandas/_libs/src/msgpack/pack_template.h",
         ],
-        "include": ["pandas/_libs/src/msgpack"] + common_include,
         "language": "c++",
         "suffix": ".cpp",
         "pyxfile": "io/msgpack/_packer",
@@ -710,7 +700,6 @@ ext_data = {
             "pandas/_libs/src/msgpack/unpack_template.h",
         ],
         "macros": endian_macro + macros,
-        "include": ["pandas/_libs/src/msgpack"] + common_include,
         "language": "c++",
         "suffix": ".cpp",
         "pyxfile": "io/msgpack/_unpacker",
@@ -727,7 +716,7 @@ for name, data in ext_data.items():
 
     sources.extend(data.get("sources", []))
 
-    include = data.get("include", common_include)
+    include = data.get("include")
 
     obj = Extension(
         "pandas.{name}".format(name=name),
