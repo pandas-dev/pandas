@@ -555,9 +555,11 @@ tseries_depends = np_datetime_headers
 
 
 ext_data = {
-    "_libs.algos": {"pyxfile": "_libs/algos",
-                    "include": klib_include,
-                    "depends": _pxi_dep["algos"]},
+    "_libs.algos": {
+        "pyxfile": "_libs/algos",
+        "include": klib_include,
+        "depends": _pxi_dep["algos"],
+    },
     "_libs.groupby": {"pyxfile": "_libs/groupby"},
     "_libs.hashing": {"pyxfile": "_libs/hashing", "depends": []},
     "_libs.hashtable": {
@@ -576,22 +578,16 @@ ext_data = {
     "_libs.interval": {
         "pyxfile": "_libs/interval",
         "include": klib_include,
-        "depends": _pxi_dep["interval"]
+        "depends": _pxi_dep["interval"],
     },
-    "_libs.join": {
-        "pyxfile": "_libs/join",
-        "include": klib_include
-    },
+    "_libs.join": {"pyxfile": "_libs/join", "include": klib_include},
     "_libs.lib": {
         "pyxfile": "_libs/lib",
         "depends": lib_depends + tseries_depends,
         "include": klib_include,  # due to tokenizer import
         "sources": ["pandas/_libs/src/parser/tokenizer.c"],
     },
-    "_libs.missing": {
-        "pyxfile": "_libs/missing",
-        "depends": tseries_depends,
-    },
+    "_libs.missing": {"pyxfile": "_libs/missing", "depends": tseries_depends,},
     "_libs.parsers": {
         "pyxfile": "_libs/parsers",
         "include": klib_include + ["pandas/_libs/src"],
@@ -683,7 +679,7 @@ ext_data = {
     "_libs.window.aggregations": {
         "pyxfile": "_libs/window/aggregations",
         "language": "c++",
-        "suffix": ".cpp"
+        "suffix": ".cpp",
     },
     "_libs.window.indexers": {"pyxfile": "_libs/window/indexers"},
     "_libs.writers": {"pyxfile": "_libs/writers"},
@@ -705,7 +701,7 @@ ext_data = {
             "pandas/_libs/src/msgpack/unpack_define.h",
             "pandas/_libs/src/msgpack/unpack_template.h",
         ],
-        "include":  ["pandas/_libs/src"],
+        "include": ["pandas/_libs/src"],
         "macros": endian_macro + macros,
         "language": "c++",
         "suffix": ".cpp",
