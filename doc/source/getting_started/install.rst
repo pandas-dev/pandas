@@ -262,6 +262,7 @@ pyarrow                   0.12.0             Parquet and feather reading / writi
 pymysql                   0.7.11             MySQL engine for sqlalchemy
 pyreadstat                                   SPSS files (.sav) reading
 pytables                  3.4.2              HDF5 reading / writing
+pyxlsb                    1.0.5              Reading for xlsb files
 qtpy                                         Clipboard I/O
 s3fs                      0.3.0              Amazon S3 access
 xarray                    0.8.2              pandas-like API for N-dimensional data
