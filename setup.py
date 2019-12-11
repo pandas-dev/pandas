@@ -587,7 +587,7 @@ ext_data = {
         "include": klib_include,  # due to tokenizer import
         "sources": ["pandas/_libs/src/parser/tokenizer.c"],
     },
-    "_libs.missing": {"pyxfile": "_libs/missing", "depends": tseries_depends,},
+    "_libs.missing": {"pyxfile": "_libs/missing", "depends": tseries_depends},
     "_libs.parsers": {
         "pyxfile": "_libs/parsers",
         "include": klib_include + ["pandas/_libs/src"],
