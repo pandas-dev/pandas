@@ -4360,8 +4360,7 @@ class AppendableFrameTable(AppendableTable):
             else dict()
         )
 
-        axes = list(self.axes)
-        inds = [i for i in range(len(axes)) if axes[i] is self.index_axes[0]]
+        inds = [i for i, ax in enumerate(self.axes) if ax is self.index_axes[0]]
         assert len(inds) == 1
         ind = inds[0]
 
