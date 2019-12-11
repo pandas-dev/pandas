@@ -3,7 +3,14 @@ import re
 import numpy as np
 import pytest
 
-from pandas import Interval, IntervalIndex, Timedelta, date_range, timedelta_range
+from pandas import (
+    CategoricalIndex,
+    Interval,
+    IntervalIndex,
+    Timedelta,
+    date_range,
+    timedelta_range,
+)
 from pandas.core.indexes.base import InvalidIndexError
 import pandas.util.testing as tm
 
@@ -229,6 +236,25 @@ class TestGetIndexer:
         index = IntervalIndex.from_tuples([(0, 5)], closed=closed)
         result = index.get_indexer([Interval(0, 5, closed)] * size)
         expected = np.array([0] * size, dtype="intp")
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "target",
+        [
+            IntervalIndex.from_tuples([(7, 8), (1, 2), (3, 4), (0, 1)]),
+            IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4), np.nan]),
+            IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4)], closed="both"),
+            [-1, 0, 0.5, 1, 2, 2.5, np.nan],
+            ["foo", "foo", "bar", "baz"],
+        ],
+    )
+    def test_get_indexer_categorical(self, target, ordered_fixture):
+        # GH 30063: categorical and non-categorical results should be consistent
+        index = IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4)])
+        categorical_target = CategoricalIndex(target, ordered=ordered_fixture)
+
+        result = index.get_indexer(categorical_target)
+        expected = index.get_indexer(target)
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize(
