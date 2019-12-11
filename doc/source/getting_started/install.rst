@@ -255,7 +255,7 @@ gcsfs                     0.2.2              Google Cloud Storage access
 html5lib                                     HTML parser for read_html (see :ref:`note <optional_html>`)
 lxml                      3.8.0              HTML parser for read_html (see :ref:`note <optional_html>`)
 matplotlib                2.2.2              Visualization
-openpyxl                  2.4.8              Reading / writing for xlsx files
+openpyxl                  2.5.7              Reading / writing for xlsx files
 pandas-gbq                0.8.0              Google Big Query access
 psycopg2                                     PostgreSQL engine for sqlalchemy
 pyarrow                   0.12.0             Parquet, ORC (requires 0.13.0), and feather reading / writing
