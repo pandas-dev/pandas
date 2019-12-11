@@ -261,6 +261,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         # TODO: raising on floats is tested, but maybe not useful.
         # Should the callers know not to pass floats?
         # At the very least, I think we can ensure that lists aren't passed.
+        assert not isinstance(values, list)
         if isinstance(values, list):
             values = np.asarray(values)
         if is_float_dtype(values):
