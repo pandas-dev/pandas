@@ -1302,7 +1302,7 @@ def _ensure_numeric(x):
             except ValueError:
                 # e.g. "foo"
                 raise TypeError(
-                    "Could not convert {value!s} to numeric".format(value=x)
+                    f"Could not convert {repr(x)} to numeric"
                 )
     return x
 
