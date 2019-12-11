@@ -137,7 +137,7 @@ attributes like DataFrame columns.
 
 ### [Jupyter Notebook / Jupyter Lab](https://jupyter.org)
 
-Jupyter Notebook is a web application for creating Jupyter notebooks. A
+Jupyter Lab is a web application for creating Jupyter notebooks. A
 Jupyter notebook is a JSON document containing an ordered list of
 input/output cells which can contain code, text, mathematics, plots and
 rich media. Jupyter notebooks can be converted to a number of open
