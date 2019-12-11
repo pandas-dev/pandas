@@ -47,6 +47,7 @@ jinja2
 matplotlib>=2.2.2
 numexpr>=2.6.8
 scipy>=1.1
+numba>=0.46.0
 beautifulsoup4>=4.6.0
 fastparquet>=0.3.2
 html5lib
@@ -65,4 +66,3 @@ xlwt
 odfpy
 pyreadstat
 git+https://github.com/pandas-dev/pandas-sphinx-theme.git@master
-numba>=0.46.0
