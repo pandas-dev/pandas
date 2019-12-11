@@ -1,5 +1,4 @@
 from datetime import datetime, time, timedelta
-import textwrap
 from typing import Union
 import warnings
 
@@ -2109,15 +2108,13 @@ def _validate_dt64_dtype(dtype):
     if dtype is not None:
         dtype = pandas_dtype(dtype)
         if is_dtype_equal(dtype, np.dtype("M8")):
-            # no precision, warn
+            # no precision, disallowed GH#24806
             dtype = _NS_DTYPE
-            msg = textwrap.dedent(
-                """\
-                Passing in 'datetime64' dtype with no precision is deprecated
-                and will raise in a future version. Please pass in
-                'datetime64[ns]' instead."""
+            msg = (
+                "Passing in 'datetime64' dtype with no precision is not allowed. "
+                "Please pass in 'datetime64[ns]' instead."
             )
-            warnings.warn(msg, FutureWarning, stacklevel=5)
+            raise ValueError(msg)
 
         if (isinstance(dtype, np.dtype) and dtype != _NS_DTYPE) or not isinstance(
             dtype, (np.dtype, DatetimeTZDtype)

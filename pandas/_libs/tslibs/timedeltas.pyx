@@ -1460,7 +1460,7 @@ class Timedelta(_Timedelta):
                 # also timedelta-like
                 return _broadcast_floordiv_td64(self.value, other, _rfloordiv)
 
-            # Includes integer array // Timedelta, deprecated in GH#19761
+            # Includes integer array // Timedelta, disallowed in GH#19761
             raise TypeError(f'Invalid dtype {other.dtype} for __floordiv__')
 
         elif is_float_object(other) and util.is_nan(other):

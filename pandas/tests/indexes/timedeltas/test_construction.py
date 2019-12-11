@@ -197,18 +197,15 @@ class TestTimedeltaIndex:
         idx2 = TimedeltaIndex(idx, name="something else")
         assert idx2.name == "something else"
 
-    def test_constructor_no_precision_warns(self):
+    def test_constructor_no_precision_raises(self):
         # GH-24753, GH-24739
-        expected = pd.TimedeltaIndex(["2000"], dtype="timedelta64[ns]")
 
-        # we set the stacklevel for DatetimeIndex
-        with tm.assert_produces_warning(FutureWarning):
-            result = pd.TimedeltaIndex(["2000"], dtype="timedelta64")
-        tm.assert_index_equal(result, expected)
+        msg = "with no precision is not allowed"
+        with pytest.raises(ValueError, match=msg):
+            pd.TimedeltaIndex(["2000"], dtype="timedelta64")
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = pd.Index(["2000"], dtype="timedelta64")
-        tm.assert_index_equal(result, expected)
+        with pytest.raises(ValueError, match=msg):
+            pd.Index(["2000"], dtype="timedelta64")
 
     def test_constructor_wrong_precision_raises(self):
         with pytest.raises(ValueError):

@@ -176,15 +176,6 @@ map directly to c-types [inferred_type->%s,key->%s] [items->%s]
 # formats
 _FORMAT_MAP = {"f": "fixed", "fixed": "fixed", "t": "table", "table": "table"}
 
-format_deprecate_doc = """
-the table keyword has been deprecated
-use the format='fixed(f)|table(t)' keyword instead
-  fixed(f) : specifies the Fixed format
-             and is the default for put operations
-  table(t) : specifies the Table format
-             and is the default for append operations
-"""
-
 # storer class map
 _STORER_MAP = {
     "series": "SeriesFixed",
