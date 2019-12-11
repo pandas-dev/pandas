@@ -700,11 +700,6 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         op_name : str
         """
 
-        # may need to fill infs
-        # and mask wraparound
-        if is_float_dtype(result):
-            mask |= (result == np.inf) | (result == -np.inf)
-
         # if we have a float operand we are by-definition
         # a float result
         # or our op is a divide
@@ -748,7 +743,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
             # nans propagate
             if mask is None:
-                mask = self._mask
+                mask = self._mask.copy()
             else:
                 mask = self._mask | mask
 
