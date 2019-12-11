@@ -533,9 +533,9 @@ def maybe_cythonize(extensions, *args, **kwargs):
     parsed, _ = parser.parse_known_args()
 
     nthreads = 0
-    if "parallel" in parsed:
+    if "parallel" in parsed and parsed.parallel is not None:
         nthreads = parsed.parallel
-    elif "j" is parsed:
+    elif "j" in parsed and parsed.j is not None:
         nthreads = parsed.j
 
     kwargs["nthreads"] = nthreads
