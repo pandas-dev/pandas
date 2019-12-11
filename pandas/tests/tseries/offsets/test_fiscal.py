@@ -14,7 +14,7 @@ from pandas.tseries.frequencies import get_offset
 from pandas.tseries.offsets import FY5253, FY5253Quarter
 
 from .common import assert_offset_equal, assert_onOffset
-from .test_offsets import Base, WeekDay
+from .test_date_offsets import Base, WeekDay
 
 
 def makeFY5253LastOfMonthQuarter(*args, **kwds):
