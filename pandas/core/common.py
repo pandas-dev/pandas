@@ -388,7 +388,7 @@ def standardize_mapping(into):
             return partial(collections.defaultdict, into.default_factory)
         into = type(into)
     if not issubclass(into, abc.Mapping):
-        raise TypeError("unsupported type: {into}".format(into=into))
+        raise TypeError(f"unsupported type: {into}")
     elif into == collections.defaultdict:
         raise TypeError("to_dict() only accepts initialized defaultdicts")
     return into

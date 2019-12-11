@@ -49,9 +49,8 @@ def test_values_multiindex_datetimeindex():
     # Test to ensure we hit the boxing / nobox part of MI.values
     ints = np.arange(10 ** 18, 10 ** 18 + 5)
     naive = pd.DatetimeIndex(ints)
-    # TODO(GH-24559): Remove the FutureWarning
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        aware = pd.DatetimeIndex(ints, tz="US/Central")
+
+    aware = pd.DatetimeIndex(ints, tz="US/Central")
 
     idx = pd.MultiIndex.from_arrays([naive, aware])
     result = idx.values
@@ -253,9 +252,7 @@ def test_rangeindex_fallback_coercion_bug():
 
 def test_hash_error(indices):
     index = indices
-    with pytest.raises(
-        TypeError, match=("unhashable type: {0.__name__!r}".format(type(index)))
-    ):
+    with pytest.raises(TypeError, match=f"unhashable type: '{type(index).__name__}'"):
         hash(indices)
 
 

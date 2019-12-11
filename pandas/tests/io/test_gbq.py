@@ -144,6 +144,24 @@ def test_read_gbq_without_new_kwargs(monkeypatch):
     assert "use_bqstorage_api" not in captured_kwargs
 
 
+@pytest.mark.parametrize("progress_bar", [None, "foo"])
+def test_read_gbq_progress_bar_type_kwarg(monkeypatch, progress_bar):
+    # GH 29857
+    captured_kwargs = {}
+
+    def mock_read_gbq(sql, **kwargs):
+        captured_kwargs.update(kwargs)
+        return DataFrame([[1.0]])
+
+    monkeypatch.setattr("pandas_gbq.read_gbq", mock_read_gbq)
+    pd.read_gbq("SELECT 1", progress_bar_type=progress_bar)
+
+    if progress_bar:
+        assert "progress_bar_type" in captured_kwargs
+    else:
+        assert "progress_bar_type" not in captured_kwargs
+
+
 @pytest.mark.single
 class TestToGBQIntegrationWithServiceAccountKeyPath:
     @classmethod

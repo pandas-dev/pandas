@@ -212,8 +212,8 @@ class Op:
         Print a generic n-ary operator and its operands using infix notation.
         """
         # recurse over the operands
-        parened = ("({0})".format(pprint_thing(opr)) for opr in self.operands)
-        return pprint_thing(" {0} ".format(self.op).join(parened))
+        parened = (f"({pprint_thing(opr)})" for opr in self.operands)
+        return pprint_thing(f" {self.op} ".join(parened))
 
     @property
     def return_type(self):
@@ -506,8 +506,8 @@ class Div(BinOp):
 
         if not isnumeric(lhs.return_type) or not isnumeric(rhs.return_type):
             raise TypeError(
-                "unsupported operand type(s) for {0}:"
-                " '{1}' and '{2}'".format(self.op, lhs.return_type, rhs.return_type)
+                f"unsupported operand type(s) for {self.op}:"
+                f" '{lhs.return_type}' and '{rhs.return_type}'"
             )
 
         # do not upcast float32s to float64 un-necessarily
@@ -554,7 +554,7 @@ class UnaryOp(Op):
         return self.func(operand)
 
     def __repr__(self) -> str:
-        return pprint_thing("{0}({1})".format(self.op, self.operand))
+        return pprint_thing(f"{self.op}({self.operand})")
 
     @property
     def return_type(self) -> np.dtype:
@@ -580,7 +580,7 @@ class MathCall(Op):
 
     def __repr__(self) -> str:
         operands = map(str, self.operands)
-        return pprint_thing("{0}({1})".format(self.op, ",".join(operands)))
+        return pprint_thing(f"{self.op}({','.join(operands)})")
 
 
 class FuncNode:
@@ -592,7 +592,7 @@ class FuncNode:
             and _NUMEXPR_VERSION < LooseVersion("2.6.9")
             and name in ("floor", "ceil")
         ):
-            raise ValueError('"{0}" is not a supported function'.format(name))
+            raise ValueError(f'"{name}" is not a supported function')
 
         self.name = name
         self.func = getattr(np, name)
