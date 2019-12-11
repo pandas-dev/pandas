@@ -6,6 +6,7 @@ Parts of this file were taken from the pyzmq project
 BSD license. Parts are from lxml (https://github.com/lxml/lxml)
 """
 
+import argparse
 from distutils.sysconfig import get_config_vars
 from distutils.version import LooseVersion
 import os
@@ -525,6 +526,19 @@ def maybe_cythonize(extensions, *args, **kwargs):
         if hasattr(ext, "include_dirs") and numpy_incl not in ext.include_dirs:
             ext.include_dirs.append(numpy_incl)
 
+    # reuse any parallel arguments provided for compliation to cythonize
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-j", type=int)
+    parser.add_argument("--parallel", type=int)
+    parsed, _ = parser.parse_known_args()
+
+    nthreads = 0
+    if "parallel" in parsed:
+        nthreads = parsed.parallel
+    elif "j" is parsed:
+        nthreads = parsed.j
+
+    kwargs["nthreads"] = nthreads
     build_ext.render_templates(_pxifiles)
     return cythonize(extensions, *args, **kwargs)
 
@@ -681,7 +695,7 @@ ext_data = {
     "_libs.window.aggregations": {
         "pyxfile": "_libs/window/aggregations",
         "language": "c++",
-        "suffix": ".cpp"
+        "suffix": ".cpp",
     },
     "_libs.window.indexers": {"pyxfile": "_libs/window/indexers"},
     "_libs.writers": {"pyxfile": "_libs/writers"},
