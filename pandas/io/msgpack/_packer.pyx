@@ -19,7 +19,7 @@ from pandas.io.msgpack import ExtType
 import numpy as np
 
 
-cdef extern from "../../_libs/src/msgpack/pack.h":
+cdef extern from "pandas/_libs/src/msgpack/pack.h":
     struct msgpack_packer:
         char* buf
         size_t length

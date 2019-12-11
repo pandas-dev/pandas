@@ -21,7 +21,7 @@ from pandas.io.msgpack.exceptions import (BufferFull, OutOfData,
 from pandas.io.msgpack import ExtType
 
 
-cdef extern from "../../_libs/src/msgpack/unpack.h":
+cdef extern from "pandas/_libs/src/msgpack/unpack.h":
     ctypedef struct msgpack_user:
         bint use_list
         PyObject* object_hook

@@ -560,9 +560,14 @@ ext_data = {
                     "depends": _pxi_dep["algos"]},
     "_libs.groupby": {"pyxfile": "_libs/groupby"},
     "_libs.hashing": {"pyxfile": "_libs/hashing", "depends": []},
+    "_libs.hashtable": {
+        "pyxfile": "_libs/hashtable",
+        "include": klib_include,
+        "depends": (["pandas/_libs/src/klib/khash_python.h"] + _pxi_dep["hashtable"]),
+    },
     "_libs.index": {
         "pyxfile": "_libs/index",
-        "include": klib_include,  # due to Hashtable import
+        "include": klib_include,
         "depends": _pxi_dep["index"],
         "sources": np_datetime_sources,
     },
@@ -570,12 +575,12 @@ ext_data = {
     "_libs.internals": {"pyxfile": "_libs/internals"},
     "_libs.interval": {
         "pyxfile": "_libs/interval",
-        "include": klib_include,  # due to Hashtable import
+        "include": klib_include,
         "depends": _pxi_dep["interval"]
     },
     "_libs.join": {
         "pyxfile": "_libs/join",
-        "include": klib_include  # due to Hashtable import
+        "include": klib_include
     },
     "_libs.lib": {
         "pyxfile": "_libs/lib",
@@ -589,7 +594,7 @@ ext_data = {
     },
     "_libs.parsers": {
         "pyxfile": "_libs/parsers",
-        "include": klib_include + ["pandas/_libs/src/headers"],  # portable.h
+        "include": klib_include + ["pandas/_libs/src"],
         "depends": [
             "pandas/_libs/src/parser/tokenizer.h",
             "pandas/_libs/src/parser/io.h",
@@ -639,6 +644,7 @@ ext_data = {
     },
     "_libs.tslibs.parsing": {
         "pyxfile": "_libs/tslibs/parsing",
+        "include": klib_include,
         "depends": ["pandas/_libs/src/parser/tokenizer.h"],
         "sources": ["pandas/_libs/src/parser/tokenizer.c"],
     },
@@ -699,6 +705,7 @@ ext_data = {
             "pandas/_libs/src/msgpack/unpack_define.h",
             "pandas/_libs/src/msgpack/unpack_template.h",
         ],
+        "include":  ["pandas/_libs/src"],
         "macros": endian_macro + macros,
         "language": "c++",
         "suffix": ".cpp",
