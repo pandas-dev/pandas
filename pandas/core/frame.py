@@ -7792,7 +7792,7 @@ class DataFrame(NDFrame):
         elif axis_num == 1:
             return self.index
         else:
-            raise ValueError("Axis must be 0 or 1 (got %r)" % axis_num)
+            raise ValueError(f"Axis must be 0 or 1 (got {repr(axis_num)})")
 
     def mode(self, axis=0, numeric_only=False, dropna=True):
         """

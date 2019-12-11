@@ -176,15 +176,6 @@ map directly to c-types [inferred_type->%s,key->%s] [items->%s]
 # formats
 _FORMAT_MAP = {"f": "fixed", "fixed": "fixed", "t": "table", "table": "table"}
 
-format_deprecate_doc = """
-the table keyword has been deprecated
-use the format='fixed(f)|table(t)' keyword instead
-  fixed(f) : specifies the Fixed format
-             and is the default for put operations
-  table(t) : specifies the Table format
-             and is the default for append operations
-"""
-
 # storer class map
 _STORER_MAP = {
     "series": "SeriesFixed",
@@ -2207,6 +2198,8 @@ class DataCol(IndexCol):
         table=None,
         meta=None,
         metadata=None,
+        dtype=None,
+        data=None,
     ):
         super().__init__(
             name=name,
@@ -2221,8 +2214,8 @@ class DataCol(IndexCol):
             meta=meta,
             metadata=metadata,
         )
-        self.dtype = None
-        self.data = None
+        self.dtype = dtype
+        self.data = data
 
     @property
     def dtype_attr(self) -> str:
@@ -3858,6 +3851,8 @@ class Table(Fixed):
                 meta = "category"
                 metadata = np.array(data_converted.categories, copy=False).ravel()
 
+            data, dtype_name = _get_data_and_dtype_name(data_converted)
+
             col = klass(
                 name=adj_name,
                 cname=new_name,
@@ -3869,8 +3864,9 @@ class Table(Fixed):
                 ordered=ordered,
                 meta=meta,
                 metadata=metadata,
+                dtype=dtype_name,
+                data=data,
             )
-            col.set_data(data_converted)
             col.update_info(self.info)
 
             vaxes.append(col)
