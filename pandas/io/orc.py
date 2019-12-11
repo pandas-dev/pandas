@@ -33,7 +33,7 @@ def read_orc(
         By file-like object, we refer to objects with a ``read()`` method,
         such as a file handler (e.g. via builtin ``open`` function)
         or ``StringIO``.
-    columns : list, default=None
+    columns : list, default None
         If not None, only these columns will be read from the file.
     **kwargs
         Any additional kwargs are passed to pyarrow.
@@ -43,7 +43,7 @@ def read_orc(
     DataFrame
     """
 
-    # we require a newer version of pyarrow thaN we support for parquet
+    # we require a newer version of pyarrow than we support for parquet
     import pyarrow
 
     if distutils.version.LooseVersion(pyarrow.__version__) < "0.13.0":
