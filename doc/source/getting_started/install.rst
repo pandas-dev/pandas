@@ -258,7 +258,7 @@ matplotlib                2.2.2              Visualization
 openpyxl                  2.4.8              Reading / writing for xlsx files
 pandas-gbq                0.8.0              Google Big Query access
 psycopg2                                     PostgreSQL engine for sqlalchemy
-pyarrow                   0.12.0             Parquet and feather reading / writing
+pyarrow                   0.12.0             Parquet, ORC (requires 0.13.0), and feather reading / writing
 pymysql                   0.7.11             MySQL engine for sqlalchemy
 pyreadstat                                   SPSS files (.sav) reading
 pytables                  3.4.2              HDF5 reading / writing

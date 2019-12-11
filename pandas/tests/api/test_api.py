@@ -167,6 +167,7 @@ class TestPDApi(Base):
         "read_table",
         "read_feather",
         "read_parquet",
+        "read_orc",
         "read_spss",
     ]
 
