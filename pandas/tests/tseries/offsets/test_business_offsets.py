@@ -29,8 +29,8 @@ from pandas.tseries.frequencies import _offset_map, get_offset
 from pandas.tseries.holiday import USFederalHolidayCalendar
 import pandas.tseries.offsets as offsets
 from pandas.tseries.offsets import (
-    BaseOffset,
     FY5253,
+    BaseOffset,
     BDay,
     BMonthBegin,
     BMonthEnd,
@@ -43,8 +43,8 @@ from pandas.tseries.offsets import (
     CBMonthEnd,
     CDay,
     CustomBusinessHour,
-    FY5253Quarter,
     DateOffset,
+    FY5253Quarter,
     Nano,
     Tick,
 )
