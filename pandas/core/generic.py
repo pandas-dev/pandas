@@ -72,6 +72,7 @@ from pandas.core import missing, nanops
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
 import pandas.core.common as com
+from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.index import (
     Index,
     InvalidIndexError,
@@ -177,6 +178,7 @@ class NDFrame(PandasObject, SelectionMixin):
     _is_copy = None
     _data: BlockManager
     _attrs: Dict[Optional[Hashable], Any]
+    _typ: str
 
     # ----------------------------------------------------------------------
     # Constructors
@@ -283,71 +285,52 @@ class NDFrame(PandasObject, SelectionMixin):
 
     # ----------------------------------------------------------------------
     # Axis
+    _AXIS_ALIASES = {"rows": 0}
+    _AXIS_IALIASES = {0: "rows"}
+    _stat_axis_number = 0
+    _stat_axis_name = "index"
+    _ix = None
+    _AXIS_ORDERS: List[str]
+    _AXIS_NUMBERS: Dict[str, int]
+    _AXIS_NAMES: Dict[int, str]
+    _AXIS_REVERSED: bool
+    _info_axis_number: int
+    _info_axis_name: str
+    _AXIS_LEN: int
 
     @classmethod
-    def _setup_axes(
-        cls,
-        axes,
-        info_axis=None,
-        stat_axis=None,
-        aliases=None,
-        axes_are_reversed=False,
-        build_axes=True,
-        ns=None,
-        docs=None,
-    ):
+    def _setup_axes(cls, axes: List[str], docs: Dict[str, str]):
         """
         Provide axes setup for the major PandasObjects.
 
         Parameters
         ----------
         axes : the names of the axes in order (lowest to highest)
-        info_axis_num : the axis of the selector dimension (int)
-        stat_axis_num : the number of axis for the default stats (int)
-        aliases : other names for a single axis (dict)
-        axes_are_reversed : bool
-            Whether to treat passed axes as reversed (DataFrame).
-        build_axes : setup the axis properties (default True)
+        docs : docstrings for the axis properties
         """
+        info_axis = len(axes) - 1
+        axes_are_reversed = len(axes) > 1
 
         cls._AXIS_ORDERS = axes
         cls._AXIS_NUMBERS = {a: i for i, a in enumerate(axes)}
         cls._AXIS_LEN = len(axes)
-        cls._AXIS_ALIASES = aliases or dict()
-        cls._AXIS_IALIASES = {v: k for k, v in cls._AXIS_ALIASES.items()}
         cls._AXIS_NAMES = dict(enumerate(axes))
         cls._AXIS_REVERSED = axes_are_reversed
 
-        # typ
-        setattr(cls, "_typ", cls.__name__.lower())
-
-        # indexing support
-        cls._ix = None
-
-        if info_axis is not None:
-            cls._info_axis_number = info_axis
-            cls._info_axis_name = axes[info_axis]
-
-        if stat_axis is not None:
-            cls._stat_axis_number = stat_axis
-            cls._stat_axis_name = axes[stat_axis]
+        cls._info_axis_number = info_axis
+        cls._info_axis_name = axes[info_axis]
 
         # setup the actual axis
-        if build_axes:
+        def set_axis(a, i):
+            setattr(cls, a, properties.AxisProperty(i, docs.get(a, a)))
+            cls._internal_names_set.add(a)
 
-            def set_axis(a, i):
-                setattr(cls, a, properties.AxisProperty(i, docs.get(a, a)))
-                cls._internal_names_set.add(a)
-
-            if axes_are_reversed:
-                m = cls._AXIS_LEN - 1
-                for i, a in cls._AXIS_NAMES.items():
-                    set_axis(a, m - i)
-            else:
-                for i, a in cls._AXIS_NAMES.items():
-                    set_axis(a, i)
-
-        assert not isinstance(ns, dict)
+        if axes_are_reversed:
+            for i, a in cls._AXIS_NAMES.items():
+                set_axis(a, 1 - i)
+        else:
+            for i, a in cls._AXIS_NAMES.items():
+                set_axis(a, i)
 
     def _construct_axes_dict(self, axes=None, **kwargs):
         """Return an axes dictionary for myself."""
@@ -378,19 +361,6 @@ class NDFrame(PandasObject, SelectionMixin):
         # construct the args
         args = list(args)
         for a in self._AXIS_ORDERS:
-
-            # if we have an alias for this axis
-            alias = self._AXIS_IALIASES.get(a)
-            if alias is not None:
-                if a in kwargs:
-                    if alias in kwargs:
-                        raise TypeError(
-                            f"arguments are mutually exclusive for [{a},{alias}]"
-                        )
-                    continue
-                if alias in kwargs:
-                    kwargs[a] = kwargs.pop(alias)
-                    continue
 
             # look for a argument by position
             if a not in kwargs:
@@ -663,17 +633,6 @@ class NDFrame(PandasObject, SelectionMixin):
         1  2   5
         2  3   6
         """
-        if is_scalar(labels):
-            warnings.warn(
-                'set_axis now takes "labels" as first argument, and '
-                '"axis" as named parameter. The old form, with "axis" as '
-                'first parameter and "labels" as second, is still supported '
-                "but will be deprecated in a future version of pandas.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            labels, axis = axis, labels
-
         if inplace:
             setattr(self, self._get_axis_name(axis), labels)
         else:
@@ -5506,12 +5465,9 @@ class NDFrame(PandasObject, SelectionMixin):
         # compat
         return self.values
 
-    def get_values(self):
+    def _internal_get_values(self):
         """
         Return an ndarray after converting sparse values to dense.
-
-        .. deprecated:: 0.25.0
-            Use ``np.asarray(..)`` or :meth:`DataFrame.values` instead.
 
         This is the same as ``.values`` for non-sparse data. For sparse
         data contained in a `SparseArray`, the data are first
@@ -5526,41 +5482,7 @@ class NDFrame(PandasObject, SelectionMixin):
         --------
         values : Numpy representation of DataFrame.
         SparseArray : Container for sparse data.
-
-        Examples
-        --------
-        >>> df = pd.DataFrame({'a': [1, 2], 'b': [True, False],
-        ...                    'c': [1.0, 2.0]})
-        >>> df
-           a      b    c
-        0  1   True  1.0
-        1  2  False  2.0
-
-        >>> df.get_values()
-        array([[1, True, 1.0], [2, False, 2.0]], dtype=object)
-
-        >>> df = pd.DataFrame({"a": pd.SparseArray([1, None, None]),
-        ...                    "c": [1.0, 2.0, 3.0]})
-        >>> df
-             a    c
-        0  1.0  1.0
-        1  NaN  2.0
-        2  NaN  3.0
-
-        >>> df.get_values()
-        array([[ 1.,  1.],
-               [nan,  2.],
-               [nan,  3.]])
         """
-        warnings.warn(
-            "The 'get_values' method is deprecated and will be removed in a "
-            "future version. Use '.values' or 'np.asarray(..)' instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._internal_get_values()
-
-    def _internal_get_values(self):
         return self.values
 
     @property
@@ -6110,9 +6032,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
             if self.ndim == 1:
                 if isinstance(value, (dict, ABCSeries)):
-                    from pandas import Series
-
-                    value = Series(value)
+                    value = create_series_with_explicit_dtype(
+                        value, dtype_if_empty=object
+                    )
                 elif not is_list_like(value):
                     pass
                 else:
@@ -7064,7 +6986,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 if not is_series:
                     from pandas import Series
 
-                    return Series(index=self.columns, name=where)
+                    return Series(index=self.columns, name=where, dtype=np.float64)
                 return np.nan
 
             # It's always much faster to use a *while* loop here for
@@ -7806,15 +7728,12 @@ class NDFrame(PandasObject, SelectionMixin):
     def resample(
         self,
         rule,
-        how: Optional[str] = None,
         axis=0,
-        fill_method: Optional[str] = None,
         closed: Optional[str] = None,
         label: Optional[str] = None,
         convention: str = "start",
         kind: Optional[str] = None,
         loffset=None,
-        limit: Optional[int] = None,
         base: int = 0,
         on=None,
         level=None,
@@ -7831,22 +7750,10 @@ class NDFrame(PandasObject, SelectionMixin):
         ----------
         rule : DateOffset, Timedelta or str
             The offset string or object representing target conversion.
-        how : str
-            Method for down/re-sampling, default to 'mean' for downsampling.
-
-            .. deprecated:: 0.18.0
-               The new syntax is ``.resample(...).mean()``, or
-               ``.resample(...).apply(<func>)``
         axis : {0 or 'index', 1 or 'columns'}, default 0
             Which axis to use for up- or down-sampling. For `Series` this
             will default to 0, i.e. along the rows. Must be
             `DatetimeIndex`, `TimedeltaIndex` or `PeriodIndex`.
-        fill_method : str, default None
-            Filling method for upsampling.
-
-            .. deprecated:: 0.18.0
-               The new syntax is ``.resample(...).<func>()``,
-               e.g. ``.resample(...).pad()``
         closed : {'right', 'left'}, default None
             Which side of bin interval is closed. The default is 'left'
             for all frequency offsets except for 'M', 'A', 'Q', 'BM',
@@ -7864,10 +7771,6 @@ class NDFrame(PandasObject, SelectionMixin):
             By default the input representation is retained.
         loffset : timedelta, default None
             Adjust the resampled time labels.
-        limit : int, default None
-            Maximum size gap when reindexing with `fill_method`.
-
-            .. deprecated:: 0.18.0
         base : int, default 0
             For frequencies that evenly subdivide 1 day, the "origin" of the
             aggregated intervals. For example, for '5min' frequency, base could
@@ -8099,10 +8002,10 @@ class NDFrame(PandasObject, SelectionMixin):
         2000-01-04     36      90
         """
 
-        from pandas.core.resample import resample, _maybe_process_deprecations
+        from pandas.core.resample import resample
 
         axis = self._get_axis_number(axis)
-        r = resample(
+        return resample(
             self,
             freq=rule,
             label=label,
@@ -8114,9 +8017,6 @@ class NDFrame(PandasObject, SelectionMixin):
             base=base,
             key=on,
             level=level,
-        )
-        return _maybe_process_deprecations(
-            r, how=how, fill_method=fill_method, limit=limit
         )
 
     def first(self, offset):
@@ -9265,7 +9165,6 @@ class NDFrame(PandasObject, SelectionMixin):
         2016-01-10 23:59:58  1
         2016-01-10 23:59:59  1
         """
-
         if axis is None:
             axis = self._stat_axis_number
         axis = self._get_axis_number(axis)
@@ -9491,9 +9390,9 @@ class NDFrame(PandasObject, SelectionMixin):
             nonexistent, timedelta
         ):
             raise ValueError(
-                "The nonexistent argument must be one of 'raise',"
-                " 'NaT', 'shift_forward', 'shift_backward' or"
-                " a timedelta object"
+                "The nonexistent argument must be one of 'raise', "
+                "'NaT', 'shift_forward', 'shift_backward' or "
+                "a timedelta object"
             )
 
         axis = self._get_axis_number(axis)
@@ -10183,29 +10082,6 @@ class NDFrame(PandasObject, SelectionMixin):
             "ddof argument",
             nanops.nanstd,
         )
-
-        @Substitution(
-            desc="Return the compound percentage of the values for "
-            "the requested axis.\n\n.. deprecated:: 0.25.0",
-            name1=name,
-            name2=name2,
-            axis_descr=axis_descr,
-            min_count="",
-            see_also="",
-            examples="",
-        )
-        @Appender(_num_doc)
-        def compound(self, axis=None, skipna=None, level=None):
-            msg = (
-                "The 'compound' method is deprecated and will be"
-                "removed in a future version."
-            )
-            warnings.warn(msg, FutureWarning, stacklevel=2)
-            if skipna is None:
-                skipna = True
-            return (1 + self).prod(axis=axis, skipna=skipna, level=level) - 1
-
-        cls.compound = compound
 
         cls.cummin = _make_cum_function(
             cls,

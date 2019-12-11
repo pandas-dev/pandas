@@ -246,10 +246,13 @@ def init_dict(data, index, columns, dtype=None):
 # ---------------------------------------------------------------------
 
 
-def prep_ndarray(values, copy=True):
+def prep_ndarray(values, copy=True) -> np.ndarray:
     if not isinstance(values, (np.ndarray, ABCSeries, Index)):
         if len(values) == 0:
             return np.empty((0, 0), dtype=object)
+        elif isinstance(values, range):
+            arr = np.arange(values.start, values.stop, values.step, dtype="int64")
+            return arr[..., np.newaxis]
 
         def convert(v):
             return maybe_convert_platform(v)

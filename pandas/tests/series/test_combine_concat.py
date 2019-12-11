@@ -107,7 +107,8 @@ class TestSeriesCombine:
 
         # corner case
         s = Series([1.0, 2, 3], index=[0, 1, 2])
-        result = s.combine_first(Series([], index=[]))
+        empty = Series([], index=[], dtype=object)
+        result = s.combine_first(empty)
         s.index = s.index.astype("O")
         tm.assert_series_equal(s, result)
 

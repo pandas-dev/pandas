@@ -38,11 +38,14 @@ def test_arithmetic_ops(all_arithmetic_functions):
     op = all_arithmetic_functions
 
     for other in [NA, 1, 1.0, "a", np.int64(1), np.nan]:
-        if op.__name__ == "rmod" and isinstance(other, str):
+        if op.__name__ in ("pow", "rpow", "rmod") and isinstance(other, str):
             continue
         if op.__name__ in ("divmod", "rdivmod"):
             assert op(NA, other) is (NA, NA)
         else:
+            if op.__name__ == "rpow":
+                # avoid special case
+                other += 1
             assert op(NA, other) is NA
 
 
@@ -67,6 +70,49 @@ def test_comparison_ops():
         assert (other >= NA) is NA
         assert (other < NA) is NA
         assert (other <= NA) is NA
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        0,
+        0.0,
+        -0,
+        -0.0,
+        False,
+        np.bool_(False),
+        np.int_(0),
+        np.float_(0),
+        np.int_(-0),
+        np.float_(-0),
+    ],
+)
+def test_pow_special(value):
+    result = pd.NA ** value
+    assert isinstance(result, type(value))
+    assert result == 1
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        1,
+        1.0,
+        -1,
+        -1.0,
+        True,
+        np.bool_(True),
+        np.int_(1),
+        np.float_(1),
+        np.int_(-1),
+        np.float_(-1),
+    ],
+)
+def test_rpow_special(value):
+    result = value ** pd.NA
+    assert result == value
+    if not isinstance(value, (np.float_, np.bool_, np.int_)):
+        assert isinstance(result, type(value))
 
 
 def test_unary_ops():

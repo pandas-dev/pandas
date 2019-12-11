@@ -18,7 +18,8 @@ cdef extern from "src/headers/cmath" namespace "std":
     int signbit(float64_t) nogil
     float64_t sqrt(float64_t x) nogil
 
-cimport pandas._libs.util as util
+from pandas._libs.algos import is_monotonic
+
 from pandas._libs.util cimport numeric
 
 from pandas._libs.skiplist cimport (
@@ -37,6 +38,9 @@ cdef:
 cdef inline int int_max(int a, int b): return a if a >= b else b
 cdef inline int int_min(int a, int b): return a if a <= b else b
 
+cdef inline bint is_monotonic_start_end_bounds(ndarray[int64_t, ndim=1] start,
+                                               ndarray[int64_t, ndim=1] end):
+    return is_monotonic(start, False)[0] and is_monotonic(end, False)[0]
 
 # Cython implementations of rolling sum, mean, variance, skewness,
 # other statistical moment functions
@@ -47,39 +51,6 @@ cdef inline int int_min(int a, int b): return a if a <= b else b
 # - In Cython x * x is faster than x ** 2 for C types, this should be
 #   periodically revisited to see if it's still true.
 #
-
-
-def _check_minp(win, minp, N, floor=None) -> int:
-    """
-    Parameters
-    ----------
-    win: int
-    minp: int or None
-    N: len of window
-    floor: int, optional
-        default 1
-
-    Returns
-    -------
-    minimum period
-    """
-
-    if minp is None:
-        minp = 1
-    if not util.is_integer_object(minp):
-        raise ValueError("min_periods must be an integer")
-    if minp > win:
-        raise ValueError(f"min_periods (minp) must be <= "
-                         f"window (win)")
-    elif minp > N:
-        minp = N + 1
-    elif minp < 0:
-        raise ValueError('min_periods must be >= 0')
-    if floor is None:
-        floor = 1
-
-    return max(minp, floor)
-
 
 # original C implementation by N. Devillard.
 # This code in public domain.
@@ -95,7 +66,6 @@ def _check_minp(win, minp, N, floor=None) -> int:
 #            Publisher: Englewood Cliffs: Prentice-Hall, 1976
 # Physical description: 366 p.
 #               Series: Prentice-Hall Series in Automatic Computation
-
 
 # ----------------------------------------------------------------------
 # Rolling count
@@ -189,7 +159,9 @@ def roll_sum_variable(ndarray[float64_t] values, ndarray[int64_t] start,
         int64_t s, e
         int64_t nobs = 0, i, j, N = len(values)
         ndarray[float64_t] output
+        bint is_monotonic_bounds
 
+    is_monotonic_bounds = is_monotonic_start_end_bounds(start, end)
     output = np.empty(N, dtype=float)
 
     with nogil:
@@ -198,11 +170,10 @@ def roll_sum_variable(ndarray[float64_t] values, ndarray[int64_t] start,
             s = start[i]
             e = end[i]
 
-            if i == 0:
+            if i == 0 or not is_monotonic_bounds:
 
                 # setup
-                sum_x = 0.0
-                nobs = 0
+
                 for j in range(s, e):
                     add_sum(values[j], &nobs, &sum_x)
 
@@ -217,6 +188,10 @@ def roll_sum_variable(ndarray[float64_t] values, ndarray[int64_t] start,
                     add_sum(values[j], &nobs, &sum_x)
 
             output[i] = calc_sum(minp, nobs, sum_x)
+
+            if not is_monotonic_bounds:
+                for j in range(s, e):
+                    remove_sum(values[j], &nobs, &sum_x)
 
     return output
 
@@ -333,7 +308,9 @@ def roll_mean_variable(ndarray[float64_t] values, ndarray[int64_t] start,
         int64_t s, e
         Py_ssize_t nobs = 0, i, j, neg_ct = 0, N = len(values)
         ndarray[float64_t] output
+        bint is_monotonic_bounds
 
+    is_monotonic_bounds = is_monotonic_start_end_bounds(start, end)
     output = np.empty(N, dtype=float)
 
     with nogil:
@@ -342,11 +319,9 @@ def roll_mean_variable(ndarray[float64_t] values, ndarray[int64_t] start,
             s = start[i]
             e = end[i]
 
-            if i == 0:
+            if i == 0 or not is_monotonic_bounds:
 
                 # setup
-                sum_x = 0.0
-                nobs = 0
                 for j in range(s, e):
                     val = values[j]
                     add_mean(val, &nobs, &sum_x, &neg_ct)
@@ -365,6 +340,10 @@ def roll_mean_variable(ndarray[float64_t] values, ndarray[int64_t] start,
 
             output[i] = calc_mean(minp, nobs, neg_ct, sum_x)
 
+            if not is_monotonic_bounds:
+                for j in range(s, e):
+                    val = values[j]
+                    remove_mean(val, &nobs, &sum_x, &neg_ct)
     return output
 
 # ----------------------------------------------------------------------
@@ -496,7 +475,9 @@ def roll_var_variable(ndarray[float64_t] values, ndarray[int64_t] start,
         int64_t s, e
         Py_ssize_t i, j, N = len(values)
         ndarray[float64_t] output
+        bint is_monotonic_bounds
 
+    is_monotonic_bounds = is_monotonic_start_end_bounds(start, end)
     output = np.empty(N, dtype=float)
 
     with nogil:
@@ -508,7 +489,7 @@ def roll_var_variable(ndarray[float64_t] values, ndarray[int64_t] start,
 
             # Over the first window, observations can only be added
             # never removed
-            if i == 0:
+            if i == 0 or not is_monotonic_bounds:
 
                 for j in range(s, e):
                     add_var(values[j], &nobs, &mean_x, &ssqdm_x)
@@ -527,6 +508,10 @@ def roll_var_variable(ndarray[float64_t] values, ndarray[int64_t] start,
                     remove_var(values[j], &nobs, &mean_x, &ssqdm_x)
 
             output[i] = calc_var(minp, ddof, nobs, ssqdm_x)
+
+            if not is_monotonic_bounds:
+                for j in range(s, e):
+                    remove_var(values[j], &nobs, &mean_x, &ssqdm_x)
 
     return output
 
@@ -636,7 +621,9 @@ def roll_skew_variable(ndarray[float64_t] values, ndarray[int64_t] start,
         int64_t nobs = 0, i, j, N = len(values)
         int64_t s, e
         ndarray[float64_t] output
+        bint is_monotonic_bounds
 
+    is_monotonic_bounds = is_monotonic_start_end_bounds(start, end)
     output = np.empty(N, dtype=float)
 
     with nogil:
@@ -648,7 +635,7 @@ def roll_skew_variable(ndarray[float64_t] values, ndarray[int64_t] start,
 
             # Over the first window, observations can only be added
             # never removed
-            if i == 0:
+            if i == 0 or not is_monotonic_bounds:
 
                 for j in range(s, e):
                     val = values[j]
@@ -670,6 +657,11 @@ def roll_skew_variable(ndarray[float64_t] values, ndarray[int64_t] start,
                     remove_skew(val, &nobs, &x, &xx, &xxx)
 
             output[i] = calc_skew(minp, nobs, x, xx, xxx)
+
+            if not is_monotonic_bounds:
+                for j in range(s, e):
+                    val = values[j]
+                    remove_skew(val, &nobs, &x, &xx, &xxx)
 
     return output
 
@@ -782,7 +774,9 @@ def roll_kurt_variable(ndarray[float64_t] values, ndarray[int64_t] start,
         float64_t x = 0, xx = 0, xxx = 0, xxxx = 0
         int64_t nobs = 0, i, j, s, e, N = len(values)
         ndarray[float64_t] output
+        bint is_monotonic_bounds
 
+    is_monotonic_bounds = is_monotonic_start_end_bounds(start, end)
     output = np.empty(N, dtype=float)
 
     with nogil:
@@ -794,7 +788,7 @@ def roll_kurt_variable(ndarray[float64_t] values, ndarray[int64_t] start,
 
             # Over the first window, observations can only be added
             # never removed
-            if i == 0:
+            if i == 0 or not is_monotonic_bounds:
 
                 for j in range(s, e):
                     add_kurt(values[j], &nobs, &x, &xx, &xxx, &xxxx)
@@ -813,6 +807,10 @@ def roll_kurt_variable(ndarray[float64_t] values, ndarray[int64_t] start,
                     remove_kurt(values[j], &nobs, &x, &xx, &xxx, &xxxx)
 
             output[i] = calc_kurt(minp, nobs, x, xx, xxx, xxxx)
+
+            if not is_monotonic_bounds:
+                for j in range(s, e):
+                    remove_kurt(values[j], &nobs, &x, &xx, &xxx, &xxxx)
 
     return output
 
@@ -1474,7 +1472,15 @@ cdef ndarray[float64_t] _roll_weighted_sum_mean(float64_t[:] values,
     if avg:
         tot_wgt = np.zeros(in_n, dtype=np.float64)
 
-    minp = _check_minp(len(weights), minp, in_n)
+    if minp > win_n:
+        raise ValueError(f"min_periods (minp) must be <= "
+                         f"window (win)")
+    elif minp > in_n:
+        minp = in_n + 1
+    elif minp < 0:
+        raise ValueError('min_periods must be >= 0')
+
+    minp = max(minp, 1)
 
     with nogil:
         if avg:

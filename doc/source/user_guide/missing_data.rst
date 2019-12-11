@@ -190,7 +190,7 @@ The sum of an empty or all-NA Series or column of a DataFrame is 0.
 
    pd.Series([np.nan]).sum()
 
-   pd.Series([]).sum()
+   pd.Series([], dtype="float64").sum()
 
 The product of an empty or all-NA Series or column of a DataFrame is 1.
 
@@ -198,7 +198,7 @@ The product of an empty or all-NA Series or column of a DataFrame is 1.
 
    pd.Series([np.nan]).prod()
 
-   pd.Series([]).prod()
+   pd.Series([], dtype="float64").prod()
 
 
 NA values in GroupBy
@@ -821,6 +821,18 @@ For example, ``pd.NA`` propagates in arithmetic operations, similarly to
 
    pd.NA + 1
    "a" * pd.NA
+
+There are a few special cases when the result is known, even when one of the
+operands is ``NA``.
+
+
+================ ======
+Operation        Result
+================ ======
+``pd.NA ** 0``   0
+``1 ** pd.NA``   1
+``-1 ** pd.NA``  -1
+================ ======
 
 In equality and comparison operations, ``pd.NA`` also propagates. This deviates
 from the behaviour of ``np.nan``, where comparisons with ``np.nan`` always
