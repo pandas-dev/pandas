@@ -5,7 +5,6 @@ from pandas.core.dtypes.common import is_categorical_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
-from pandas import conftest
 from pandas import (
     Categorical,
     CategoricalIndex,
@@ -15,6 +14,7 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
+    conftest,
 )
 from pandas.api.types import CategoricalDtype as CDT
 import pandas.util.testing as tm
