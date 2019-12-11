@@ -7711,15 +7711,12 @@ class NDFrame(PandasObject, SelectionMixin):
     def resample(
         self,
         rule,
-        how: Optional[str] = None,
         axis=0,
-        fill_method: Optional[str] = None,
         closed: Optional[str] = None,
         label: Optional[str] = None,
         convention: str = "start",
         kind: Optional[str] = None,
         loffset=None,
-        limit: Optional[int] = None,
         base: int = 0,
         on=None,
         level=None,
@@ -7736,22 +7733,10 @@ class NDFrame(PandasObject, SelectionMixin):
         ----------
         rule : DateOffset, Timedelta or str
             The offset string or object representing target conversion.
-        how : str
-            Method for down/re-sampling, default to 'mean' for downsampling.
-
-            .. deprecated:: 0.18.0
-               The new syntax is ``.resample(...).mean()``, or
-               ``.resample(...).apply(<func>)``
         axis : {0 or 'index', 1 or 'columns'}, default 0
             Which axis to use for up- or down-sampling. For `Series` this
             will default to 0, i.e. along the rows. Must be
             `DatetimeIndex`, `TimedeltaIndex` or `PeriodIndex`.
-        fill_method : str, default None
-            Filling method for upsampling.
-
-            .. deprecated:: 0.18.0
-               The new syntax is ``.resample(...).<func>()``,
-               e.g. ``.resample(...).pad()``
         closed : {'right', 'left'}, default None
             Which side of bin interval is closed. The default is 'left'
             for all frequency offsets except for 'M', 'A', 'Q', 'BM',
@@ -7769,10 +7754,6 @@ class NDFrame(PandasObject, SelectionMixin):
             By default the input representation is retained.
         loffset : timedelta, default None
             Adjust the resampled time labels.
-        limit : int, default None
-            Maximum size gap when reindexing with `fill_method`.
-
-            .. deprecated:: 0.18.0
         base : int, default 0
             For frequencies that evenly subdivide 1 day, the "origin" of the
             aggregated intervals. For example, for '5min' frequency, base could
@@ -8004,10 +7985,10 @@ class NDFrame(PandasObject, SelectionMixin):
         2000-01-04     36      90
         """
 
-        from pandas.core.resample import resample, _maybe_process_deprecations
+        from pandas.core.resample import resample
 
         axis = self._get_axis_number(axis)
-        r = resample(
+        return resample(
             self,
             freq=rule,
             label=label,
@@ -8019,9 +8000,6 @@ class NDFrame(PandasObject, SelectionMixin):
             base=base,
             key=on,
             level=level,
-        )
-        return _maybe_process_deprecations(
-            r, how=how, fill_method=fill_method, limit=limit
         )
 
     def first(self, offset):
@@ -9170,7 +9148,6 @@ class NDFrame(PandasObject, SelectionMixin):
         2016-01-10 23:59:58  1
         2016-01-10 23:59:59  1
         """
-
         if axis is None:
             axis = self._stat_axis_number
         axis = self._get_axis_number(axis)
@@ -9396,9 +9373,9 @@ class NDFrame(PandasObject, SelectionMixin):
             nonexistent, timedelta
         ):
             raise ValueError(
-                "The nonexistent argument must be one of 'raise',"
-                " 'NaT', 'shift_forward', 'shift_backward' or"
-                " a timedelta object"
+                "The nonexistent argument must be one of 'raise', "
+                "'NaT', 'shift_forward', 'shift_backward' or "
+                "a timedelta object"
             )
 
         axis = self._get_axis_number(axis)

@@ -48,7 +48,7 @@ def test_extension_type():
             typecode = 123  # application specific typecode
             data = tobytes(obj)
             return ExtType(typecode, data)
-        raise TypeError("Unknown type object {obj!r}".format(obj=obj))
+        raise TypeError(f"Unknown type object {repr(obj)}")
 
     def ext_hook(code, data):
         print("ext_hook called", code, data)
