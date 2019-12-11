@@ -7142,8 +7142,7 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         method : {'pearson', 'kendall', 'spearman'} or callable
-            Method of correlation:
-
+            Method of correlation.
             * pearson : standard correlation coefficient
             * kendall : Kendall Tau correlation coefficient
             * spearman : Spearman rank correlation

@@ -2429,7 +2429,7 @@ class NDFrame(PandasObject, SelectionMixin):
               which may perform worse but allow more flexible operations
               like searching / selecting subsets of the data.
             - If None, pd.get_option('io.hdf.default_format') is checked,
-              followed by fallback to "fixed"
+              followed by fallback to "fixed".
         errors : str, default 'strict'
             Specifies how encoding and decoding errors are to be handled.
             See the errors argument for :func:`open` for a full list
@@ -2573,7 +2573,7 @@ class NDFrame(PandasObject, SelectionMixin):
             library. Legacy support is provided for sqlite3.Connection objects. The user
             is responsible for engine disposal and connection closure for the SQLAlchemy
             connectable See `here \
-                <https://docs.sqlalchemy.org/en/13/core/connections.html>`_
+                <https://docs.sqlalchemy.org/en/13/core/connections.html>`_.
 
         schema : str, optional
             Specify the schema (if database flavor supports this). If None, use
