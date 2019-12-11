@@ -454,13 +454,11 @@ def _get_handle(
                 if len(zip_names) == 1:
                     f = zf.open(zip_names.pop())
                 elif len(zip_names) == 0:
-                    raise ValueError(
-                        f"Zero files found in ZIP file {path_or_buf}"
-                    )
+                    raise ValueError(f"Zero files found in ZIP file {path_or_buf}")
                 else:
                     raise ValueError(
-                        f"Multiple files found in ZIP file."
-                        " Only one file per ZIP: {zip_names}"
+                        "Multiple files found in ZIP file."
+                        f" Only one file per ZIP: {zip_names}"
                     )
 
         # XZ Compression
