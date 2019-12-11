@@ -97,6 +97,13 @@ Parquet
 
    read_parquet
 
+ORC
+~~~
+.. autosummary::
+   :toctree: api/
+
+   read_orc
+
 SAS
 ~~~
 .. autosummary::
