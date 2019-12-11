@@ -5,6 +5,7 @@ from pandas.core.dtypes.common import is_categorical_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
+from pandas import conftest
 from pandas import (
     Categorical,
     CategoricalIndex,
@@ -772,41 +773,17 @@ class TestCategoricalIndex:
             [1.5, 2.5, 3.5],
             [-1.5, -2.5, -3.5],
             # numpy int/uint
-            *[
-                np.array([1, 2, 3], dtype=dtype)
-                for dtype in [
-                    np.int8,
-                    np.int16,
-                    np.int32,
-                    np.int64,
-                    np.uint8,
-                    np.uint16,
-                    np.uint32,
-                    np.uint64,
-                ]
-            ],
+            *[np.array([1, 2, 3], dtype=dtype) for dtype in conftest.ALL_INT_DTYPES],
             # numpy floats
-            *[
-                np.array([1.5, 2.5, 3.5], dtype=dtype)
-                for dtype in (np.float16, np.float32, np.float64)
-            ],
+            *[np.array([1.5, 2.5, 3.5], dtype=dtyp) for dtyp in conftest.FLOAT_DTYPES],
+            # numpy object
+            np.array([1, "b", 3.5], dtype=object),
             # pandas scalars
             [Interval(1, 4), Interval(4, 6), Interval(6, 9)],
             [Timestamp(2019, 1, 1), Timestamp(2019, 2, 1), Timestamp(2019, 3, 1)],
             [Timedelta(1, "d"), Timedelta(2, "d"), Timedelta(3, "D")],
             # pandas Integer arrays
-            *[
-                pd.array([1, 2, 3], dtype=dtype)
-                for dtype in [
-                    "Int8",
-                    "Int16",
-                    "Int32",
-                    "Int64",
-                    "UInt8",
-                    "UInt32",
-                    "UInt64",
-                ]
-            ],
+            *[pd.array([1, 2, 3], dtype=dtype) for dtype in conftest.ALL_EA_INT_DTYPES],
             # other pandas arrays
             pd.IntervalIndex.from_breaks([1, 4, 6, 9]).array,
             pd.date_range("2019-01-01", periods=3).array,
@@ -817,19 +794,23 @@ class TestCategoricalIndex:
         # GH-17569
         cat_idx = CategoricalIndex(idx_values, ordered=ordered_fixture)
         df = DataFrame({"A": ["foo", "bar", "baz"]}, index=cat_idx)
+
         # scalar selection
         result = df.loc[idx_values[0]]
         expected = Series(["foo"], index=["A"], name=idx_values[0])
         tm.assert_series_equal(result, expected)
+
         # list selection
         result = df.loc[idx_values[:2]]
         expected = DataFrame(["foo", "bar"], index=cat_idx[:2], columns=["A"])
         tm.assert_frame_equal(result, expected)
+
         # scalar assignment
         result = df.copy()
         result.loc[idx_values[0]] = "qux"
         expected = DataFrame({"A": ["qux", "bar", "baz"]}, index=cat_idx)
         tm.assert_frame_equal(result, expected)
+
         # list assignment
         result = df.copy()
         result.loc[idx_values[:2], "A"] = ["qux", "qux2"]
