@@ -66,7 +66,8 @@ cpdef assert_almost_equal(a, b,
                           check_less_precise=False,
                           bint check_dtype=True,
                           obj=None, lobj=None, robj=None):
-    """Check that left and right objects are almost equal.
+    """
+    Check that left and right objects are almost equal.
 
     Parameters
     ----------
@@ -89,7 +90,6 @@ cpdef assert_almost_equal(a, b,
         Specify right object name being compared, internally used to show
         appropriate assertion message
     """
-
     cdef:
         int decimal
         double diff = 0.0
@@ -127,9 +127,9 @@ cpdef assert_almost_equal(a, b,
             # classes can't be the same, to raise error
             assert_class_equal(a, b, obj=obj)
 
-        assert has_length(a) and has_length(b), (
-            f"Can't compare objects without length, one or both is invalid: "
-            f"({a}, {b})")
+        assert has_length(a) and has_length(b), ("Can't compare objects without "
+                                                 "length, one or both is invalid: "
+                                                 f"({a}, {b})")
 
         if a_is_ndarray and b_is_ndarray:
             na, nb = a.size, b.size
@@ -157,7 +157,7 @@ cpdef assert_almost_equal(a, b,
             else:
                 r = None
 
-            raise_assert_detail(obj, f'{obj} length are different', na, nb, r)
+            raise_assert_detail(obj, f"{obj} length are different", na, nb, r)
 
         for i in xrange(len(a)):
             try:
@@ -169,8 +169,8 @@ cpdef assert_almost_equal(a, b,
 
         if is_unequal:
             from pandas.util.testing import raise_assert_detail
-            msg = (f'{obj} values are different '
-                   f'({np.round(diff * 100.0 / na, 5)} %)')
+            msg = (f"{obj} values are different "
+                   f"({np.round(diff * 100.0 / na, 5)} %)")
             raise_assert_detail(obj, msg, lobj, robj)
 
         return True
