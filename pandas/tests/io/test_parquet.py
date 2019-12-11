@@ -619,7 +619,7 @@ class TestParquetFastParquet(Base):
             )
             assert os.path.exists(path)
             import fastparquet
-        
+
             actual_partition_cols = fastparquet.ParquetFile(path, False).cats
             assert len(actual_partition_cols) == 1
 
