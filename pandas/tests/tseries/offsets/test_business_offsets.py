@@ -46,7 +46,7 @@ from pandas.tseries.offsets import (
     FY5253Quarter,
     DateOffset,
     Nano,
-    Tick
+    Tick,
 )
 
 from .common import assert_offset_equal, assert_onOffset
@@ -388,8 +388,9 @@ class TestCommon(Base):
 
         for dt in [sdt, ndt]:
             expected = expecteds[business_offset_types.__name__]
-            self._check_offsetfunc_works(business_offset_types,
-                                         "rollforward", dt, expected)
+            self._check_offsetfunc_works(
+                business_offset_types, "rollforward", dt, expected
+            )
             expected = norm_expected[business_offset_types.__name__]
             self._check_offsetfunc_works(
                 business_offset_types, "rollforward", dt, expected, normalize=True
@@ -423,8 +424,9 @@ class TestCommon(Base):
 
         for dt in [sdt, ndt]:
             expected = expecteds[business_offset_types.__name__]
-            self._check_offsetfunc_works(business_offset_types,
-                                         "rollback", dt, expected)
+            self._check_offsetfunc_works(
+                business_offset_types, "rollback", dt, expected
+            )
 
             expected = norm_expected[business_offset_types.__name__]
             self._check_offsetfunc_works(
@@ -3021,7 +3023,9 @@ class TestOffsetAliases:
                 assert alias == get_offset(alias).rule_code
                 assert alias == (get_offset(alias) * 5).rule_code
 
-        lst = ["B", ]
+        lst = [
+            "B",
+        ]
         for k in lst:
             code, stride = get_freq_code("3" + k)
             assert isinstance(code, int)
