@@ -122,18 +122,16 @@ class NumericIndex(Index):
             if tolerance.ndim > 0:
                 raise ValueError(
                     (
-                        "tolerance argument for %s must contain "
+                        f"tolerance argument for {type(self).__name__} must contain "
                         "numeric elements if it is list type"
                     )
-                    % (type(self).__name__,)
                 )
             else:
                 raise ValueError(
                     (
-                        "tolerance argument for %s must be numeric "
-                        "if it is a scalar: %r"
+                        f"tolerance argument for {type(self).__name__} must be numeric "
+                        f"if it is a scalar: {repr(tolerance)}"
                     )
-                    % (type(self).__name__, tolerance)
                 )
         return tolerance
 
