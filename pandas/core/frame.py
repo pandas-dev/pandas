@@ -1433,8 +1433,6 @@ class DataFrame(NDFrame):
         location=None,
         progress_bar=True,
         credentials=None,
-        verbose=None,
-        private_key=None,
     ):
         """
         Write a DataFrame to a Google BigQuery table.
@@ -1509,21 +1507,6 @@ class DataFrame(NDFrame):
             *New in version 0.8.0 of pandas-gbq*.
 
             .. versionadded:: 0.24.0
-        verbose : bool, deprecated
-            Deprecated in pandas-gbq version 0.4.0. Use the `logging module
-            to adjust verbosity instead
-            <https://pandas-gbq.readthedocs.io/en/latest/intro.html#logging>`__.
-        private_key : str, deprecated
-            Deprecated in pandas-gbq version 0.8.0. Use the ``credentials``
-            parameter and
-            :func:`google.oauth2.service_account.Credentials.from_service_account_info`
-            or
-            :func:`google.oauth2.service_account.Credentials.from_service_account_file`
-            instead.
-
-            Service account private key in JSON format. Can be file path
-            or string contents. This is useful for remote server
-            authentication (eg. Jupyter/IPython notebook on remote host).
 
         See Also
         --------
@@ -1544,8 +1527,6 @@ class DataFrame(NDFrame):
             location=location,
             progress_bar=progress_bar,
             credentials=credentials,
-            verbose=verbose,
-            private_key=private_key,
         )
 
     @classmethod
