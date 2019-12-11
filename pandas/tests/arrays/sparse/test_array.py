@@ -12,7 +12,6 @@ import pandas as pd
 from pandas import isna
 from pandas.core.arrays.sparse import SparseArray, SparseDtype
 import pandas.util.testing as tm
-from pandas.util.testing import assert_almost_equal
 
 
 @pytest.fixture(params=["integer", "block"])
@@ -386,7 +385,7 @@ class TestSparseArray:
     def test_constructor_from_sparse(self):
         res = SparseArray(self.zarr)
         assert res.fill_value == 0
-        assert_almost_equal(res.sp_values, self.zarr.sp_values)
+        tm.assert_almost_equal(res.sp_values, self.zarr.sp_values)
 
     def test_constructor_copy(self):
         cp = SparseArray(self.arr, copy=True)
@@ -586,7 +585,7 @@ class TestSparseArray:
         assert arr2.sp_index is self.arr.sp_index
 
     def test_values_asarray(self):
-        assert_almost_equal(self.arr.to_dense(), self.arr_data)
+        tm.assert_almost_equal(self.arr.to_dense(), self.arr_data)
 
     @pytest.mark.parametrize(
         "data,shape,dtype",
@@ -618,14 +617,13 @@ class TestSparseArray:
         res = arr.to_dense()
         tm.assert_numpy_array_equal(res, vals)
 
-        with tm.assert_produces_warning(FutureWarning):
-            res2 = arr.get_values()
+        res2 = arr._internal_get_values()
 
         tm.assert_numpy_array_equal(res2, vals)
 
     def test_getitem(self):
         def _checkit(i):
-            assert_almost_equal(self.arr[i], self.arr.to_dense()[i])
+            tm.assert_almost_equal(self.arr[i], self.arr.to_dense()[i])
 
         for i in range(len(self.arr)):
             _checkit(i)
@@ -659,12 +657,16 @@ class TestSparseArray:
         dense = np.array([np.nan, 0, 3, 4, 0, 5, np.nan, np.nan, 0])
 
         sparse = SparseArray(dense)
-        res = sparse[4:,]  # noqa: E231
+        res = sparse[
+            4:,
+        ]  # noqa: E231
         exp = SparseArray(dense[4:,])  # noqa: E231
         tm.assert_sp_array_equal(res, exp)
 
         sparse = SparseArray(dense, fill_value=0)
-        res = sparse[4:,]  # noqa: E231
+        res = sparse[
+            4:,
+        ]  # noqa: E231
         exp = SparseArray(dense[4:,], fill_value=0)  # noqa: E231
         tm.assert_sp_array_equal(res, exp)
 
@@ -703,7 +705,7 @@ class TestSparseArray:
                 op(first.to_dense(), second.to_dense()), fill_value=first.fill_value
             )
             assert isinstance(res, SparseArray)
-            assert_almost_equal(res.to_dense(), exp.to_dense())
+            tm.assert_almost_equal(res.to_dense(), exp.to_dense())
 
             res2 = op(first, second.to_dense())
             assert isinstance(res2, SparseArray)
@@ -723,8 +725,8 @@ class TestSparseArray:
             except ValueError:
                 pass
             else:
-                assert_almost_equal(res4.fill_value, exp_fv)
-                assert_almost_equal(res4.to_dense(), exp)
+                tm.assert_almost_equal(res4.fill_value, exp_fv)
+                tm.assert_almost_equal(res4.to_dense(), exp)
 
         with np.errstate(all="ignore"):
             for first_arr, second_arr in [(arr1, arr2), (farr1, farr2)]:
@@ -824,11 +826,11 @@ class TestSparseArray:
         # Tests regression #21172.
         sa = pd.SparseArray([float("nan"), float("nan"), 1, 0, 0, 2, 0, 0, 0, 3, 0, 0])
         expected = np.array([2, 5, 9], dtype=np.int32)
-        result, = sa.nonzero()
+        (result,) = sa.nonzero()
         tm.assert_numpy_array_equal(expected, result)
 
         sa = pd.SparseArray([0, 0, 1, 0, 0, 2, 0, 0, 0, 3, 0, 0])
-        result, = sa.nonzero()
+        (result,) = sa.nonzero()
         tm.assert_numpy_array_equal(expected, result)
 
 
@@ -1004,7 +1006,7 @@ class TestSparseArrayAnalytics:
                 np.cumsum(SparseArray(data), out=out)
         else:
             axis = 1  # SparseArray currently 1-D, so only axis = 0 is valid.
-            msg = "axis\\(={axis}\\) out of bounds".format(axis=axis)
+            msg = re.escape(f"axis(={axis}) out of bounds")
             with pytest.raises(ValueError, match=msg):
                 SparseArray(data).cumsum(axis=axis)
 
@@ -1241,12 +1243,3 @@ def test_map_missing():
 
     result = arr.map({0: 10, 1: 11})
     tm.assert_sp_array_equal(result, expected)
-
-
-def test_deprecated_values():
-    arr = SparseArray([0, 1, 2])
-
-    with tm.assert_produces_warning(FutureWarning):
-        result = arr.values
-
-    tm.assert_numpy_array_equal(result, arr.to_dense())

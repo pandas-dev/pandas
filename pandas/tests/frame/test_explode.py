@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 
 def test_error():

@@ -29,7 +29,30 @@ from pandas.core.sorting import nargsort
 
 _not_implemented_message = "{} does not implement {}."
 
-_extension_array_shared_docs = dict()  # type: Dict[str, str]
+_extension_array_shared_docs: Dict[str, str] = dict()
+
+
+def try_cast_to_ea(cls_or_instance, obj, dtype=None):
+    """
+    Call to `_from_sequence` that returns the object unchanged on Exception.
+
+    Parameters
+    ----------
+    cls_or_instance : ExtensionArray subclass or instance
+    obj : arraylike
+        Values to pass to cls._from_sequence
+    dtype : ExtensionDtype, optional
+
+    Returns
+    -------
+    ExtensionArray or obj
+    """
+    try:
+        result = cls_or_instance._from_sequence(obj, dtype=dtype)
+    except Exception:
+        # We can't predict what downstream EA constructors may raise
+        result = obj
+    return result
 
 
 class ExtensionArray:
@@ -428,7 +451,9 @@ class ExtensionArray:
         # Note: this is used in `ExtensionArray.argsort`.
         return np.array(self)
 
-    def argsort(self, ascending=True, kind="quicksort", *args, **kwargs):
+    def argsort(
+        self, ascending: bool = True, kind: str = "quicksort", *args, **kwargs
+    ) -> np.ndarray:
         """
         Return the indices that would sort this array.
 
@@ -444,7 +469,7 @@ class ExtensionArray:
 
         Returns
         -------
-        index_array : ndarray
+        ndarray
             Array of indices that sort ``self``. If NaN values are contained,
             NaN values are placed at the end.
 
@@ -495,8 +520,8 @@ class ExtensionArray:
         if is_array_like(value):
             if len(value) != len(self):
                 raise ValueError(
-                    "Length of 'value' does not match. Got ({}) "
-                    " expected {}".format(len(value), len(self))
+                    f"Length of 'value' does not match. Got ({len(value)}) "
+                    f"expected {len(self)}"
                 )
             value = value[mask]
 
@@ -667,11 +692,11 @@ class ExtensionArray:
         Parameters
         ----------
         na_sentinel : int, default -1
-            Value to use in the `labels` array to indicate missing values.
+            Value to use in the `codes` array to indicate missing values.
 
         Returns
         -------
-        labels : ndarray
+        codes : ndarray
             An integer NumPy array that's an indexer into the original
             ExtensionArray.
         uniques : ExtensionArray
@@ -701,12 +726,12 @@ class ExtensionArray:
         #    Complete control over factorization.
         arr, na_value = self._values_for_factorize()
 
-        labels, uniques = _factorize_array(
+        codes, uniques = _factorize_array(
             arr, na_sentinel=na_sentinel, na_value=na_value
         )
 
         uniques = self._from_factorized(uniques, self)
-        return labels, uniques
+        return codes, uniques
 
     _extension_array_shared_docs[
         "repeat"
@@ -890,20 +915,17 @@ class ExtensionArray:
     # Printing
     # ------------------------------------------------------------------------
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         from pandas.io.formats.printing import format_object_summary
 
-        template = "{class_name}{data}\nLength: {length}, dtype: {dtype}"
         # the short repr has no trailing newline, while the truncated
         # repr does. So we include a newline in our template, and strip
         # any trailing newlines from format_object_summary
         data = format_object_summary(
             self, self._formatter(), indent_for_name=False
         ).rstrip(", \n")
-        class_name = "<{}>\n".format(self.__class__.__name__)
-        return template.format(
-            class_name=class_name, data=data, length=len(self), dtype=self.dtype
-        )
+        class_name = f"<{type(self).__name__}>\n"
+        return f"{class_name}{data}\nLength: {len(self)}, dtype: {self.dtype}"
 
     def _formatter(self, boxed: bool = False) -> Callable[[Any], Optional[str]]:
         """Formatting function for scalar values.
@@ -1019,11 +1041,7 @@ class ExtensionArray:
         ------
         TypeError : subclass does not define reductions
         """
-        raise TypeError(
-            "cannot perform {name} with type {dtype}".format(
-                name=name, dtype=self.dtype
-            )
-        )
+        raise TypeError(f"cannot perform {name} with type {self.dtype}")
 
 
 class ExtensionOpsMixin:
@@ -1064,6 +1082,15 @@ class ExtensionOpsMixin:
         cls.__gt__ = cls._create_comparison_method(operator.gt)
         cls.__le__ = cls._create_comparison_method(operator.le)
         cls.__ge__ = cls._create_comparison_method(operator.ge)
+
+    @classmethod
+    def _add_logical_ops(cls):
+        cls.__and__ = cls._create_logical_method(operator.and_)
+        cls.__rand__ = cls._create_logical_method(ops.rand_)
+        cls.__or__ = cls._create_logical_method(operator.or_)
+        cls.__ror__ = cls._create_logical_method(ops.ror_)
+        cls.__xor__ = cls._create_logical_method(operator.xor)
+        cls.__rxor__ = cls._create_logical_method(ops.rxor)
 
 
 class ExtensionScalarOpsMixin(ExtensionOpsMixin):
@@ -1156,9 +1183,9 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
                     # https://github.com/pandas-dev/pandas/issues/22850
                     # We catch all regular exceptions here, and fall back
                     # to an ndarray.
-                    try:
-                        res = self._from_sequence(arr)
-                    except Exception:
+                    res = try_cast_to_ea(self, arr)
+                    if not isinstance(res, type(self)):
+                        # exception raised in _from_sequence; ensure we have ndarray
                         res = np.asarray(arr)
                 else:
                     res = np.asarray(arr)
@@ -1166,10 +1193,9 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
 
             if op.__name__ in {"divmod", "rdivmod"}:
                 a, b = zip(*res)
-                res = _maybe_convert(a), _maybe_convert(b)
-            else:
-                res = _maybe_convert(res)
-            return res
+                return _maybe_convert(a), _maybe_convert(b)
+
+            return _maybe_convert(res)
 
         op_name = ops._get_op_name(op, True)
         return set_function_name(_binop, op_name, cls)

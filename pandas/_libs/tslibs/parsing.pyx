@@ -92,7 +92,7 @@ cdef inline object _parse_delimited_date(object date_string, bint dayfirst):
     At the beginning function tries to parse date in MM/DD/YYYY format, but
     if month > 12 - in DD/MM/YYYY (`dayfirst == False`).
     With `dayfirst == True` function makes an attempt to parse date in
-    DD/MM/YYYY, if an attemp is wrong - in DD/MM/YYYY
+    DD/MM/YYYY, if an attempt is wrong - in DD/MM/YYYY
 
     Note
     ----
@@ -153,7 +153,7 @@ cdef inline object _parse_delimited_date(object date_string, bint dayfirst):
             return datetime_new(year, month, day, 0, 0, 0, 0, None), reso
         return datetime(year, month, day, 0, 0, 0, 0, None), reso
 
-    raise DateParseError("Invalid date specified ({}/{})".format(month, day))
+    raise DateParseError(f"Invalid date specified ({month}/{day})")
 
 
 cdef inline bint does_string_look_like_time(object parse_string):
@@ -311,7 +311,7 @@ cdef parse_datetime_string_with_reso(date_string, freq=None, dayfirst=False,
         # TODO: allow raise of errors within instead
         raise DateParseError(err)
     if parsed is None:
-        raise DateParseError("Could not parse {dstr}".format(dstr=date_string))
+        raise DateParseError(f"Could not parse {date_string}")
     return parsed, parsed, reso
 
 
@@ -420,18 +420,18 @@ cdef inline object _parse_dateabbr_string(object date_string, object default,
                     raise ValueError
 
             if not (1 <= quarter <= 4):
-                msg = ('Incorrect quarterly string is given, quarter must be '
-                       'between 1 and 4: {dstr}')
-                raise DateParseError(msg.format(dstr=date_string))
+                raise DateParseError(f'Incorrect quarterly string is given, '
+                                     f'quarter must be '
+                                     f'between 1 and 4: {date_string}')
 
             if freq is not None:
                 # hack attack, #1228
                 try:
                     mnum = MONTH_NUMBERS[_get_rule_month(freq)] + 1
                 except (KeyError, ValueError):
-                    msg = ('Unable to retrieve month information from given '
-                           'freq: {freq}'.format(freq=freq))
-                    raise DateParseError(msg)
+                    raise DateParseError(f'Unable to retrieve month '
+                                         f'information from given '
+                                         f'freq: {freq}')
 
                 month = (mnum + (quarter - 1) * 3) % 12 + 1
                 if month > mnum:
@@ -464,7 +464,7 @@ cdef inline object _parse_dateabbr_string(object date_string, object default,
         except ValueError:
             pass
 
-    raise ValueError('Unable to parse {0}'.format(date_string))
+    raise ValueError(f'Unable to parse {date_string}')
 
 
 cdef dateutil_parse(object timestr, object default, ignoretz=False,
@@ -484,8 +484,7 @@ cdef dateutil_parse(object timestr, object default, ignoretz=False,
         res, _ = res
 
     if res is None:
-        msg = "Unknown datetime string format, unable to parse: {timestr}"
-        raise ValueError(msg.format(timestr=timestr))
+        raise ValueError(f"Unknown datetime string format, unable to parse: {timestr}")
 
     for attr in ["year", "month", "day", "hour",
                  "minute", "second", "microsecond"]:
@@ -495,8 +494,7 @@ cdef dateutil_parse(object timestr, object default, ignoretz=False,
             reso = attr
 
     if reso is None:
-        msg = "Unable to parse datetime string: {timestr}"
-        raise ValueError(msg.format(timestr=timestr))
+        raise ValueError(f"Unable to parse datetime string: {timestr}")
 
     if reso == 'microsecond':
         if repl['microsecond'] == 0:
@@ -581,7 +579,7 @@ def try_parse_dates(object[:] values, parser=None,
                 else:
                     result[i] = parse_date(values[i])
         except Exception:
-            # Since parser is user-defined, we can't guess what it migh raise
+            # Since parser is user-defined, we can't guess what it might raise
             return values
     else:
         parse_date = parser
@@ -710,7 +708,7 @@ class _timelex:
         elif getattr(instream, 'read', None) is None:
             raise TypeError(
                 'Parser must be a string or character stream, not '
-                '{itype}'.format(itype=instream.__class__.__name__))
+                f'{type(instream).__name__}')
         else:
             self.stream = instream.read()
 
@@ -730,7 +728,7 @@ class _timelex:
         stream = self.stream.replace('\x00', '')
 
         # TODO: Change \s --> \s+ (this doesn't match existing behavior)
-        # TODO: change the punctuation block to punc+ (doesnt match existing)
+        # TODO: change the punctuation block to punc+ (does not match existing)
         # TODO: can we merge the two digit patterns?
         tokens = re.findall('\s|'
                             '(?<![\.\d])\d+\.\d+(?![\.\d])'
@@ -987,12 +985,12 @@ def _concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True):
                                                       keep_trivial_numbers)
             PyArray_ITER_NEXT(it)
     else:
-        # create fixed size list - more effecient memory allocation
+        # create fixed size list - more efficient memory allocation
         list_to_join = [None] * col_count
         iters = np.zeros(col_count, dtype=object)
 
         # create memoryview of iters ndarray, that will contain some
-        # flatiter's for each array in `date_cols` - more effecient indexing
+        # flatiter's for each array in `date_cols` - more efficient indexing
         iters_view = iters
         for col_idx, array in enumerate(date_cols):
             iters_view[col_idx] = PyArray_IterNew(array)

@@ -52,7 +52,7 @@ cpdef get_value_at(ndarray arr, object loc, object tz=None):
 
 
 # Don't populate hash tables in monotonic indexes larger than this
-_SIZE_CUTOFF = 1000000
+_SIZE_CUTOFF = 1_000_000
 
 
 cdef class IndexEngine:
@@ -79,6 +79,8 @@ cdef class IndexEngine:
 
     cpdef get_value(self, ndarray arr, object key, object tz=None):
         """
+        Parameters
+        ----------
         arr : 1-dimensional ndarray
         """
         cdef:
@@ -93,6 +95,8 @@ cdef class IndexEngine:
 
     cpdef set_value(self, ndarray arr, object key, object value):
         """
+        Parameters
+        ----------
         arr : 1-dimensional ndarray
         """
         cdef:
@@ -109,7 +113,7 @@ cdef class IndexEngine:
             Py_ssize_t loc
 
         if is_definitely_invalid_key(val):
-            raise TypeError("'{val}' is an invalid key".format(val=val))
+            raise TypeError(f"'{val}' is an invalid key")
 
         if self.over_size_threshold and self.is_monotonic_increasing:
             if not self.is_unique:
@@ -141,8 +145,12 @@ cdef class IndexEngine:
 
         if self.is_monotonic_increasing:
             values = self._get_index_values()
-            left = values.searchsorted(val, side='left')
-            right = values.searchsorted(val, side='right')
+            try:
+                left = values.searchsorted(val, side='left')
+                right = values.searchsorted(val, side='right')
+            except TypeError:
+                # e.g. GH#29189 get_loc(None) with a Float64Index
+                raise KeyError(val)
 
             diff = right - left
             if diff == 0:
@@ -171,17 +179,17 @@ cdef class IndexEngine:
 
         raise KeyError(val)
 
-    def sizeof(self, deep=False):
+    def sizeof(self, deep: bool = False) -> int:
         """ return the sizeof our mapping """
         if not self.is_mapping_populated:
             return 0
         return self.mapping.sizeof(deep=deep)
 
-    def __sizeof__(self):
+    def __sizeof__(self) -> int:
         return self.sizeof()
 
     @property
-    def is_unique(self):
+    def is_unique(self) -> bool:
         if self.need_unique_check:
             self._do_unique_check()
 
@@ -193,14 +201,14 @@ cdef class IndexEngine:
         self._ensure_mapping_populated()
 
     @property
-    def is_monotonic_increasing(self):
+    def is_monotonic_increasing(self) -> bool:
         if self.need_monotonic_check:
             self._do_monotonic_check()
 
         return self.monotonic_inc == 1
 
     @property
-    def is_monotonic_decreasing(self):
+    def is_monotonic_decreasing(self) -> bool:
         if self.need_monotonic_check:
             self._do_monotonic_check()
 
@@ -227,7 +235,7 @@ cdef class IndexEngine:
     cdef _get_index_values(self):
         return self.vgetter()
 
-    def _call_monotonic(self, values):
+    cdef _call_monotonic(self, values):
         return algos.is_monotonic(values, timelike=False)
 
     def get_backfill_indexer(self, other, limit=None):
@@ -236,14 +244,14 @@ cdef class IndexEngine:
     def get_pad_indexer(self, other, limit=None):
         return algos.pad(self._get_index_values(), other, limit=limit)
 
-    cdef _make_hash_table(self, n):
+    cdef _make_hash_table(self, Py_ssize_t n):
         raise NotImplementedError
 
     cdef _check_type(self, object val):
         hash(val)
 
     @property
-    def is_mapping_populated(self):
+    def is_mapping_populated(self) -> bool:
         return self.mapping is not None
 
     cdef inline _ensure_mapping_populated(self):
@@ -262,7 +270,7 @@ cdef class IndexEngine:
 
         self.need_unique_check = 0
 
-    cpdef _call_map_locations(self, values):
+    cdef void _call_map_locations(self, values):
         self.mapping.map_locations(values)
 
     def clear_mapping(self):
@@ -279,11 +287,12 @@ cdef class IndexEngine:
         return self.mapping.lookup(values)
 
     def get_indexer_non_unique(self, targets):
-        """ return an indexer suitable for takng from a non unique index
-            return the labels in the same order ast the target
-            and a missing indexer into the targets (which correspond
-            to the -1 indices in the results """
-
+        """
+        Return an indexer suitable for takng from a non unique index
+        return the labels in the same order ast the target
+        and a missing indexer into the targets (which correspond
+        to the -1 indices in the results
+        """
         cdef:
             ndarray values, x
             ndarray[int64_t] result, missing
@@ -298,8 +307,8 @@ cdef class IndexEngine:
         stargets = set(targets)
         n = len(values)
         n_t = len(targets)
-        if n > 10000:
-            n_alloc = 10000
+        if n > 10_000:
+            n_alloc = 10_000
         else:
             n_alloc = n
 
@@ -341,7 +350,7 @@ cdef class IndexEngine:
 
                     # realloc if needed
                     if count >= n_alloc:
-                        n_alloc += 10000
+                        n_alloc += 10_000
                         result = np.resize(result, n_alloc)
 
                     result[count] = j
@@ -351,7 +360,7 @@ cdef class IndexEngine:
             else:
 
                 if count >= n_alloc:
-                    n_alloc += 10000
+                    n_alloc += 10_000
                     result = np.resize(result, n_alloc)
                 result[count] = -1
                 count += 1
@@ -389,9 +398,9 @@ cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
 
 cdef class ObjectEngine(IndexEngine):
     """
-    Index Engine for use with object-dtype Index, namely the base class Index
+    Index Engine for use with object-dtype Index, namely the base class Index.
     """
-    cdef _make_hash_table(self, n):
+    cdef _make_hash_table(self, Py_ssize_t n):
         return _hash.PyObjectHashTable(n)
 
 
@@ -418,7 +427,7 @@ cdef class DatetimeEngine(Int64Engine):
     cdef _get_index_values(self):
         return self.vgetter().view('i8')
 
-    def _call_monotonic(self, values):
+    cdef _call_monotonic(self, values):
         return algos.is_monotonic(values, timelike=True)
 
     cpdef get_loc(self, object val):
@@ -500,11 +509,13 @@ cdef class PeriodEngine(Int64Engine):
     cdef _get_index_values(self):
         return super(PeriodEngine, self).vgetter()
 
-    cpdef _call_map_locations(self, values):
-        super(PeriodEngine, self)._call_map_locations(values.view('i8'))
+    cdef void _call_map_locations(self, values):
+        # super(...) pattern doesn't seem to work with `cdef`
+        Int64Engine._call_map_locations(self, values.view('i8'))
 
-    def _call_monotonic(self, values):
-        return super(PeriodEngine, self)._call_monotonic(values.view('i8'))
+    cdef _call_monotonic(self, values):
+        # super(...) pattern doesn't seem to work with `cdef`
+        return Int64Engine._call_monotonic(self, values.view('i8'))
 
     def get_indexer(self, values):
         cdef ndarray[int64_t, ndim=1] ordinals
@@ -554,8 +565,8 @@ cpdef convert_scalar(ndarray arr, object value):
             pass
         elif value is None or value != value:
             return np.datetime64("NaT", "ns")
-        raise ValueError("cannot set a Timestamp with a non-timestamp {typ}"
-                         .format(typ=type(value).__name__))
+        raise ValueError("cannot set a Timestamp with a non-timestamp "
+                         f"{type(value).__name__}")
 
     elif arr.descr.type_num == NPY_TIMEDELTA:
         if util.is_array(value):
@@ -571,17 +582,17 @@ cpdef convert_scalar(ndarray arr, object value):
             pass
         elif value is None or value != value:
             return np.timedelta64("NaT", "ns")
-        raise ValueError("cannot set a Timedelta with a non-timedelta {typ}"
-                         .format(typ=type(value).__name__))
+        raise ValueError("cannot set a Timedelta with a non-timedelta "
+                         f"{type(value).__name__}")
 
     if (issubclass(arr.dtype.type, (np.integer, np.floating, np.complex)) and
             not issubclass(arr.dtype.type, np.bool_)):
         if util.is_bool_object(value):
-            raise ValueError('Cannot assign bool to float/integer series')
+            raise ValueError("Cannot assign bool to float/integer series")
 
     if issubclass(arr.dtype.type, (np.integer, np.bool_)):
         if util.is_float_object(value) and value != value:
-            raise ValueError('Cannot assign nan to integer series')
+            raise ValueError("Cannot assign nan to integer series")
 
     return value
 
@@ -619,13 +630,12 @@ cdef class BaseMultiIndexCodesEngine:
         Parameters
         ----------
         levels : list-like of numpy arrays
-            Levels of the MultiIndex
+            Levels of the MultiIndex.
         labels : list-like of numpy arrays of integer dtype
-            Labels of the MultiIndex
+            Labels of the MultiIndex.
         offsets : numpy array of uint64 dtype
-            Pre-calculated offsets, one for each level of the index
+            Pre-calculated offsets, one for each level of the index.
         """
-
         self.levels = levels
         self.offsets = offsets
 
@@ -658,7 +668,6 @@ cdef class BaseMultiIndexCodesEngine:
         int_keys : 1-dimensional array of dtype uint64 or object
             Integers representing one combination each
         """
-
         level_codes = [lev.get_indexer(codes) + 1 for lev, codes
                        in zip(self.levels, zip(*target))]
         return self._codes_to_ints(np.array(level_codes, dtype='uint64').T)
@@ -675,7 +684,7 @@ cdef class BaseMultiIndexCodesEngine:
             # Index._get_fill_indexer), sort (integer representations of) keys:
             order = np.argsort(lab_ints)
             lab_ints = lab_ints[order]
-            indexer = (getattr(self._base, 'get_{}_indexer'.format(method))
+            indexer = (getattr(self._base, f'get_{method}_indexer')
                        (self, lab_ints, limit=limit))
             indexer = indexer[order]
         else:
@@ -685,7 +694,7 @@ cdef class BaseMultiIndexCodesEngine:
 
     def get_loc(self, object key):
         if is_definitely_invalid_key(key):
-            raise TypeError("'{key}' is an invalid key".format(key=key))
+            raise TypeError(f"'{key}' is an invalid key")
         if not isinstance(key, tuple):
             raise KeyError(key)
         try:

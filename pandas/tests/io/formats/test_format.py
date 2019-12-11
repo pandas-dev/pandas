@@ -18,7 +18,7 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas.compat import PY36, is_platform_32bit, is_platform_windows
+from pandas.compat import is_platform_32bit, is_platform_windows
 
 import pandas as pd
 from pandas import (
@@ -54,7 +54,7 @@ def filepath_or_buffer_id(request):
 @pytest.fixture
 def filepath_or_buffer(filepath_or_buffer_id, tmp_path):
     """
-    A fixture yeilding a string representing a filepath, a path-like object
+    A fixture yielding a string representing a filepath, a path-like object
     and a StringIO buffer. Also checks that buffer is not closed.
     """
     if filepath_or_buffer_id == "buffer":
@@ -62,10 +62,7 @@ def filepath_or_buffer(filepath_or_buffer_id, tmp_path):
         yield buf
         assert not buf.closed
     else:
-        if PY36:
-            assert isinstance(tmp_path, Path)
-        else:
-            assert hasattr(tmp_path, "__fspath__")
+        assert isinstance(tmp_path, Path)
         if filepath_or_buffer_id == "pathlike":
             yield tmp_path / "foo"
         else:
@@ -1020,7 +1017,7 @@ class TestDataFrameFormatting:
     def test_to_string_buffer_all_unicode(self):
         buf = StringIO()
 
-        empty = DataFrame({"c/\u03c3": Series()})
+        empty = DataFrame({"c/\u03c3": Series(dtype=object)})
         nonempty = DataFrame({"c/\u03c3": Series([1, 2, 3])})
 
         print(empty, file=buf)
@@ -2379,7 +2376,8 @@ class TestSeriesFormatting:
 
             # object dtype, longer than unicode repr
             s = Series(
-                [1, 22, 3333, 44444], index=[1, "AB", pd.Timestamp("2011-01-01"), "あああ"]
+                [1, 22, 3333, 44444],
+                index=[1, "AB", pd.Timestamp("2011-01-01"), "あああ"],
             )
             expected = (
                 "1                          1\n"
@@ -2768,7 +2766,7 @@ class TestSeriesFormatting:
         assert res == exp
 
     def test_to_string_na_rep(self):
-        s = pd.Series(index=range(100))
+        s = pd.Series(index=range(100), dtype=np.float64)
         res = s.to_string(na_rep="foo", max_rows=2)
         exp = "0    foo\n      ..\n99   foo"
         assert res == exp
@@ -3262,8 +3260,9 @@ def test_filepath_or_buffer_arg(
         ):
             getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
     elif encoding == "foo":
-        with pytest.raises(LookupError, match="unknown encoding"):
-            getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
+        with tm.assert_produces_warning(None):
+            with pytest.raises(LookupError, match="unknown encoding"):
+                getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
     else:
         expected = getattr(df, method)()
         getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)

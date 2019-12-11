@@ -311,7 +311,7 @@ class TestCategoricalConstructors:
         c = Categorical(s)
 
         expected = type(dtl)(s)
-        expected.freq = None
+        expected._data.freq = None
 
         tm.assert_index_equal(c.categories, expected)
         tm.assert_numpy_array_equal(c.codes, np.arange(5, dtype="int8"))
@@ -322,7 +322,7 @@ class TestCategoricalConstructors:
         c = Categorical(s2)
 
         expected = type(dtl)(s2.dropna())
-        expected.freq = None
+        expected._data.freq = None
 
         tm.assert_index_equal(c.categories, expected)
 
@@ -526,13 +526,14 @@ class TestCategoricalConstructors:
         codes = [1.0, 2.0, 0]  # integer, but in float dtype
         dtype = CategoricalDtype(categories=["a", "b", "c"])
 
-        with tm.assert_produces_warning(FutureWarning):
-            cat = Categorical.from_codes(codes, dtype.categories)
-        tm.assert_numpy_array_equal(cat.codes, np.array([1, 2, 0], dtype="i1"))
+        # empty codes should not raise for floats
+        Categorical.from_codes([], dtype.categories)
 
-        with tm.assert_produces_warning(FutureWarning):
-            cat = Categorical.from_codes(codes, dtype=dtype)
-        tm.assert_numpy_array_equal(cat.codes, np.array([1, 2, 0], dtype="i1"))
+        with pytest.raises(ValueError, match="codes need to be array-like integers"):
+            Categorical.from_codes(codes, dtype.categories)
+
+        with pytest.raises(ValueError, match="codes need to be array-like integers"):
+            Categorical.from_codes(codes, dtype=dtype)
 
         codes = [1.1, 2.0, 0]  # non-integer
         with pytest.raises(ValueError, match="codes need to be array-like integers"):

@@ -3,8 +3,7 @@ import pytest
 
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 
-import pandas as pd
-from pandas import Timedelta
+from pandas import Timedelta, offsets
 
 
 @pytest.mark.parametrize(
@@ -13,7 +12,7 @@ from pandas import Timedelta
         (np.timedelta64(14, "D"), 14 * 24 * 3600 * 1e9),
         (Timedelta(minutes=-7), -7 * 60 * 1e9),
         (Timedelta(minutes=-7).to_pytimedelta(), -7 * 60 * 1e9),
-        (pd.offsets.Nano(125), 125),
+        (offsets.Nano(125), 125),
         (1, 1),
         (np.int64(2), 2),
         (np.int32(3), 3),

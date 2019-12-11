@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 
 def test_basic():
@@ -29,7 +29,7 @@ def test_mixed_type():
 
 
 def test_empty():
-    s = pd.Series()
+    s = pd.Series(dtype=object)
     result = s.explode()
     expected = s.copy()
     tm.assert_series_equal(result, expected)

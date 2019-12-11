@@ -26,8 +26,6 @@ from pandas.io.common import BaseIterator, get_filepath_or_buffer
 from pandas.io.sas._sas import Parser
 import pandas.io.sas.sas_constants as const
 
-from warnings import warn
-
 
 class _subheader_pointer:
     pass

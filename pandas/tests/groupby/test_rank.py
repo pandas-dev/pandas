@@ -4,7 +4,7 @@ import pytest
 import pandas as pd
 from pandas import DataFrame, Series, concat
 from pandas.core.base import DataError
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 
 def test_rank_apply():

@@ -100,86 +100,56 @@ class TestTimedeltaIndexArithmetic:
     # -------------------------------------------------------------
     # Binary operations TimedeltaIndex and integer
 
-    def test_tdi_add_int(self, one):
-        # Variants of `one` for #19012
+    def test_tdi_add_sub_int(self, one):
+        # Variants of `one` for #19012, deprecated GH#22535
         rng = timedelta_range("1 days 09:00:00", freq="H", periods=10)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            # GH#22535
-            result = rng + one
-        expected = timedelta_range("1 days 10:00:00", freq="H", periods=10)
-        tm.assert_index_equal(result, expected)
+        msg = "Addition/subtraction of integers"
 
-    def test_tdi_iadd_int(self, one):
-        rng = timedelta_range("1 days 09:00:00", freq="H", periods=10)
-        expected = timedelta_range("1 days 10:00:00", freq="H", periods=10)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            # GH#22535
+        with pytest.raises(TypeError, match=msg):
+            rng + one
+        with pytest.raises(TypeError, match=msg):
             rng += one
-        tm.assert_index_equal(rng, expected)
-
-    def test_tdi_sub_int(self, one):
-        rng = timedelta_range("1 days 09:00:00", freq="H", periods=10)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            # GH#22535
-            result = rng - one
-        expected = timedelta_range("1 days 08:00:00", freq="H", periods=10)
-        tm.assert_index_equal(result, expected)
-
-    def test_tdi_isub_int(self, one):
-        rng = timedelta_range("1 days 09:00:00", freq="H", periods=10)
-        expected = timedelta_range("1 days 08:00:00", freq="H", periods=10)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            # GH#22535
+        with pytest.raises(TypeError, match=msg):
+            rng - one
+        with pytest.raises(TypeError, match=msg):
             rng -= one
-        tm.assert_index_equal(rng, expected)
 
     # -------------------------------------------------------------
     # __add__/__sub__ with integer arrays
 
     @pytest.mark.parametrize("box", [np.array, pd.Index])
-    def test_tdi_add_integer_array(self, box):
-        # GH#19959
+    def test_tdi_add_sub_integer_array(self, box):
+        # GH#19959, deprecated GH#22535
         rng = timedelta_range("1 days 09:00:00", freq="H", periods=3)
         other = box([4, 3, 2])
-        expected = TimedeltaIndex(["1 day 13:00:00"] * 3)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            # GH#22535
-            result = rng + other
-            tm.assert_index_equal(result, expected)
+        msg = "Addition/subtraction of integers and integer-arrays"
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            # GH#22535
-            result = other + rng
-            tm.assert_index_equal(result, expected)
+        with pytest.raises(TypeError, match=msg):
+            rng + other
 
-    @pytest.mark.parametrize("box", [np.array, pd.Index])
-    def test_tdi_sub_integer_array(self, box):
-        # GH#19959
-        rng = timedelta_range("9H", freq="H", periods=3)
-        other = box([4, 3, 2])
-        expected = TimedeltaIndex(["5H", "7H", "9H"])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            # GH#22535
-            result = rng - other
-            tm.assert_index_equal(result, expected)
+        with pytest.raises(TypeError, match=msg):
+            other + rng
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            # GH#22535
-            result = other - rng
-            tm.assert_index_equal(result, -expected)
+        with pytest.raises(TypeError, match=msg):
+            rng - other
+
+        with pytest.raises(TypeError, match=msg):
+            other - rng
 
     @pytest.mark.parametrize("box", [np.array, pd.Index])
     def test_tdi_addsub_integer_array_no_freq(self, box):
         # GH#19959
         tdi = TimedeltaIndex(["1 Day", "NaT", "3 Hours"])
         other = box([14, -1, 16])
-        with pytest.raises(NullFrequencyError):
+        msg = "Addition/subtraction of integers"
+
+        with pytest.raises(TypeError, match=msg):
             tdi + other
-        with pytest.raises(NullFrequencyError):
+        with pytest.raises(TypeError, match=msg):
             other + tdi
-        with pytest.raises(NullFrequencyError):
+        with pytest.raises(TypeError, match=msg):
             tdi - other
-        with pytest.raises(NullFrequencyError):
+        with pytest.raises(TypeError, match=msg):
             other - tdi
 
     # -------------------------------------------------------------

@@ -9,7 +9,7 @@ from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
 from pandas import DataFrame, Series, option_context
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 
 def test_ix_deprecation():
@@ -313,9 +313,8 @@ class TestIX:
 
     def test_ix_empty_list_indexer_is_ok(self):
         with catch_warnings(record=True):
-            from pandas.util.testing import makeCustomDataframe as mkdf
 
-            df = mkdf(5, 2)
+            df = tm.makeCustomDataframe(5, 2)
             # vertical empty
             tm.assert_frame_equal(
                 df.ix[:, []],
