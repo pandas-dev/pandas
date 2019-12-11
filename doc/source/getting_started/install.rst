@@ -256,10 +256,10 @@ html5lib                                     HTML parser for read_html (see :ref
 lxml                      3.8.0              HTML parser for read_html (see :ref:`note <optional_html>`)
 matplotlib                2.2.2              Visualization
 numba                     0.46.0             Alternative execution engine for rolling operations
-openpyxl                  2.4.8              Reading / writing for xlsx files
+openpyxl                  2.5.7              Reading / writing for xlsx files
 pandas-gbq                0.8.0              Google Big Query access
 psycopg2                                     PostgreSQL engine for sqlalchemy
-pyarrow                   0.12.0             Parquet and feather reading / writing
+pyarrow                   0.12.0             Parquet, ORC (requires 0.13.0), and feather reading / writing
 pymysql                   0.7.11             MySQL engine for sqlalchemy
 pyreadstat                                   SPSS files (.sav) reading
 pytables                  3.4.2              HDF5 reading / writing
