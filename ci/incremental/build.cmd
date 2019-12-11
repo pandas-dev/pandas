@@ -1,7 +1,7 @@
 @rem https://github.com/numba/numba/blob/master/buildscripts/incremental/build.cmd
 
 @rem Build extensions
-python setup.py build_ext -q -i
+python setup.py build_ext -q -i -j4
 
 @rem Install pandas
 python -m pip install --no-build-isolation -e .
