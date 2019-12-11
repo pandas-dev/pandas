@@ -183,7 +183,8 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
         if not set(fields).issubset(valid_field_set):
             raise TypeError(
-                f"__new__() got an unexpected keyword argument {list(set(fields) - valid_field_set)[0]}"
+                "__new__() got an unexpected keyword "
+                f"argument {list(set(fields) - valid_field_set)[0]}"
             )
 
         if name is None and hasattr(data, "name"):
@@ -445,7 +446,10 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
                 if "M->M" not in func.types:
                     # This should be TypeError, but TypeError cannot be raised
                     # from here because numpy catches.
-                    raise ValueError(f"ufunc {repr(func.__name__)} not supported for the PeriodIndex")
+                    raise ValueError(
+                        f"ufunc {repr(func.__name__)}"
+                        " not supported for the PeriodIndex"
+                    )
 
         if is_bool_dtype(result):
             return result
