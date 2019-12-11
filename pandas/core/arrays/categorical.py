@@ -328,7 +328,7 @@ class Categorical(ExtensionArray, PandasObject):
         # sanitize input
         if is_categorical_dtype(values):
             if dtype.categories is None:
-                dtype = CategoricalDtype(values.categories, dtype._ordered)
+                dtype = CategoricalDtype(values.categories, dtype.ordered)
         elif not isinstance(values, (ABCIndexClass, ABCSeries)):
             # sanitize_array coerces np.nan to a string under certain versions
             # of numpy
@@ -351,7 +351,7 @@ class Categorical(ExtensionArray, PandasObject):
                 codes, categories = factorize(values, sort=True)
             except TypeError:
                 codes, categories = factorize(values, sort=False)
-                if dtype._ordered:
+                if dtype.ordered:
                     # raise, as we don't have a sortable data structure and so
                     # the user should give us one by specifying categories
                     raise TypeError(
@@ -367,7 +367,7 @@ class Categorical(ExtensionArray, PandasObject):
                 )
 
             # we're inferring from values
-            dtype = CategoricalDtype(categories, dtype._ordered)
+            dtype = CategoricalDtype(categories, dtype.ordered)
 
         elif is_categorical_dtype(values):
             old_codes = (
@@ -437,7 +437,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
         Whether the categories have an ordered relationship.
         """
-        return self.dtype._ordered
+        return self.dtype.ordered
 
     @property
     def dtype(self) -> CategoricalDtype:
@@ -833,7 +833,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if ordered is None:
-            ordered = self.dtype._ordered
+            ordered = self.dtype.ordered
         new_dtype = CategoricalDtype(new_categories, ordered=ordered)
 
         cat = self if inplace else self.copy()
