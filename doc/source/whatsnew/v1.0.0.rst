@@ -424,7 +424,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 | matplotlib      | 2.2.2           |         |
 +-----------------+-----------------+---------+
-| openpyxl        | 2.4.8           |         |
+| openpyxl        | 2.5.7           |    X    |
 +-----------------+-----------------+---------+
 | pyarrow         | 0.12.0          |    X    |
 +-----------------+-----------------+---------+
@@ -541,7 +541,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - Removed the previously deprecated :meth:`Series.compound` and :meth:`DataFrame.compound` (:issue:`26405`)
 - Changed the the default value of `inplace` in :meth:`DataFrame.set_index` and :meth:`Series.set_axis`. It now defaults to ``False`` (:issue:`27600`)
 - Removed the previously deprecated :attr:`Series.cat.categorical`, :attr:`Series.cat.index`, :attr:`Series.cat.name` (:issue:`24751`)
-- :func:`to_datetime` no longer accepts "box" argument, always returns :class:`DatetimeIndex` or :class:`Index`, :class:`Series`, or :class:`DataFrame` (:issue:`24486`)
+- :func:`to_datetime` and :func:`to_timedelta` no longer accept "box" argument, always returns :class:`DatetimeIndex`, :class:`TimedeltaIndex`, :class:`Index`, :class:`Series`, or :class:`DataFrame` (:issue:`24486`)
 - :func:`to_timedelta`, :class:`Timedelta`, and :class:`TimedeltaIndex` no longer allow "M", "y", or "Y" for the "unit" argument (:issue:`23264`)
 - Removed the previously deprecated ``time_rule`` keyword from (non-public) :func:`offsets.generate_range`, which has been moved to :func:`core.arrays._ranges.generate_range` (:issue:`24157`)
 - :meth:`DataFrame.loc` or :meth:`Series.loc` with listlike indexers and missing labels will no longer reindex (:issue:`17295`)
@@ -713,6 +713,7 @@ Numeric
 - Bug in :class:`NumericIndex` construction that caused indexing to fail when integers in the ``np.uint64`` range were used (:issue:`28023`)
 - Bug in :class:`NumericIndex` construction that caused :class:`UInt64Index` to be casted to :class:`Float64Index` when integers in the ``np.uint64`` range were used to index a :class:`DataFrame` (:issue:`28279`)
 - Bug in :meth:`Series.interpolate` when using method=`index` with an unsorted index, would previously return incorrect results. (:issue:`21037`)
+- Bug in :meth:`DataFrame.round` where a :class:`DataFrame` with a :class:`CategoricalIndex` of :class:`IntervalIndex` columns would incorrectly raise a ``TypeError`` (:issue:`30063`)
 
 Conversion
 ^^^^^^^^^^
@@ -730,7 +731,7 @@ Strings
 Interval
 ^^^^^^^^
 
--
+- Bug in :meth:`IntervalIndex.get_indexer` where a :class:`Categorical` or :class:`CategoricalIndex` ``target`` would incorrectly raise a ``TypeError`` (:issue:`30063`)
 -
 
 Indexing
@@ -742,6 +743,7 @@ Indexing
 - Fix assignment of column via `.loc` with numpy non-ns datetime type (:issue:`27395`)
 - Bug in :meth:`Float64Index.astype` where ``np.inf`` was not handled properly when casting to an integer dtype (:issue:`28475`)
 - :meth:`Index.union` could fail when the left contained duplicates (:issue:`28257`)
+- Bug when indexing with ``.loc`` where the index was a :class:`CategoricalIndex` with integer and float categories, a ValueError was raised (:issue:`17569`)
 - :meth:`Index.get_indexer_non_unique` could fail with `TypeError` in some cases, such as when searching for ints in a string index (:issue:`28257`)
 - Bug in :meth:`Float64Index.get_loc` incorrectly raising ``TypeError`` instead of ``KeyError`` (:issue:`29189`)
 
@@ -858,7 +860,7 @@ Other
 - Bug in :meth:`DataFrame.append` that raised ``IndexError`` when appending with empty list (:issue:`28769`)
 - Fix :class:`AbstractHolidayCalendar` to return correct results for
   years after 2030 (now goes up to 2200) (:issue:`27790`)
-- Fixed :class:`IntegerArray` returning ``NA`` rather than ``inf`` for operations dividing by 0 (:issue:`27398`)
+- Fixed :class:`IntegerArray` returning ``inf`` rather than ``NA`` for operations dividing by 0 (:issue:`27398`)
 - Fixed ``pow`` operations for :class:`IntegerArray` when the other value is ``0`` or ``1`` (:issue:`29997`)
 - Bug in :meth:`Series.count` raises if use_inf_as_na is enabled (:issue:`29478`)
 
