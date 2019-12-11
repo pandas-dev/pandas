@@ -690,37 +690,24 @@ class SAS7BDATReader(BaseIterator):
         return False
 
     @staticmethod
-    def _convert_dates(sas_dates):
+    def _convert_datetimes(sas_datetimes, unit):
+        """Converts to np.datetime64 if possible, otherwise to dateime.datetime
+        (n.b. generally better support in pandas for datetime than date).
+        SAS float64 lacks precision for more than ms resolution so the fit 
+        to datetime.datetime is ok
+        """
         try:
-            return pd.to_datetime(sas_dates, unit="d", origin="1960-01-01")
+            return pd.to_datetime(sas_datetimes, unit=unit, origin="1960-01-01")
         except OutOfBoundsDatetime:
-            # convert to datetime.datetime rather than np.datetime64
-            # NB generally better support in pandas for datetime than date
-            warn(
-                "SAS date > pandas.Timestamp.max, returning "
-                "datetime.datetime objects instead"
-            )
-            return sas_dates.apply(
-                lambda sas_date_float: datetime(1960, 1, 1)
-                + timedelta(days=sas_date_float)
-            )
-
-    @staticmethod
-    def _convert_datetimes(sas_datetimes):
-        try:
-            return pd.to_datetime(sas_datetimes, unit="s", origin="1960-01-01")
-        except OutOfBoundsDatetime:
-            # convert to datetime.datetime rather than np.datetime64
-            # SAS float64 lacks precision for more than ms resolution so the
-            # fit to datetime.datetime is ok
-            warn(
-                "SAS datetime > pandas.Timestamp.max, returning "
-                "datetime.datetime objects instead"
-            )
-            return sas_datetimes.apply(
-                lambda sas_dt_float: datetime(1960, 1, 1)
-                + timedelta(seconds=sas_dt_float)
-            )
+            if unit == "s":
+                return sas_datetimes.apply(
+                    lambda sas_float: datetime(1960, 1, 1)
+                    + timedelta(seconds=sas_float)
+                )
+            elif unit == "d":
+                return sas_datetimes.apply(
+                    lambda sas_float: datetime(1960, 1, 1) + timedelta(days=sas_float)
+                )
 
     def _chunk_to_dataframe(self):
 
@@ -739,9 +726,9 @@ class SAS7BDATReader(BaseIterator):
                 rslt[name] = np.asarray(rslt[name], dtype=np.float64)
                 if self.convert_dates:
                     if self.column_formats[j] in const.sas_date_formats:
-                        rslt[name] = self._convert_dates(rslt[name])
+                        rslt[name] = self._convert_datetimes(rslt[name], "d")
                     elif self.column_formats[j] in const.sas_datetime_formats:
-                        rslt[name] = self._convert_datetimes(rslt[name])
+                        rslt[name] = self._convert_datetimes(rslt[name], "s")
                 jb += 1
             elif self._column_types[j] == b"s":
                 rslt[name] = self._string_chunk[js, :]

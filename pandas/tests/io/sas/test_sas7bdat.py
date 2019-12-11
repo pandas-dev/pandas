@@ -233,8 +233,7 @@ def test_max_sas_date(datapath):
     #    but this is read as 29DEC9999:23:59:59.998993 by a buggy
     #    sas7bdat module
     fname = datapath("io", "sas", "data", "max_sas_date.sas7bdat")
-    with pytest.warns(UserWarning):
-        df = pd.read_sas(fname, encoding="iso-8859-1")
+    df = pd.read_sas(fname, encoding="iso-8859-1")
     # SAS likes to left pad strings with spaces - lstrip before comparing
     df = df.applymap(lambda x: x.lstrip() if isinstance(x, str) else x)
     # GH 19732: Timestamps imported from sas will incur floating point errors
@@ -265,17 +264,16 @@ def test_max_sas_date_iterator(datapath):
     col_order = ["text", "dt_as_float", "dt_as_dt", "date_as_float", "date_as_date"]
     fname = datapath("io", "sas", "data", "max_sas_date.sas7bdat")
     results = []
-    with pytest.warns(UserWarning):
-        for df in pd.read_sas(fname, encoding="iso-8859-1", chunksize=1):
-            # SAS likes to left pad strings with spaces - lstrip before comparing
-            df = df.applymap(lambda x: x.lstrip() if isinstance(x, str) else x)
-            # GH 19732: Timestamps imported from sas will incur floating point errors
-            try:
-                df["dt_as_dt"] = df["dt_as_dt"].dt.round("us")
-            except pd._libs.tslibs.np_datetime.OutOfBoundsDatetime:
-                df = df.applymap(round_datetime_to_ms)
-            df.reset_index(inplace=True, drop=True)
-            results.append(df)
+    for df in pd.read_sas(fname, encoding="iso-8859-1", chunksize=1):
+        # SAS likes to left pad strings with spaces - lstrip before comparing
+        df = df.applymap(lambda x: x.lstrip() if isinstance(x, str) else x)
+        # GH 19732: Timestamps imported from sas will incur floating point errors
+        try:
+            df["dt_as_dt"] = df["dt_as_dt"].dt.round("us")
+        except pd._libs.tslibs.np_datetime.OutOfBoundsDatetime:
+            df = df.applymap(round_datetime_to_ms)
+        df.reset_index(inplace=True, drop=True)
+        results.append(df)
     expected = [
         pd.DataFrame(
             {
