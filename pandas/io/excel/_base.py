@@ -896,7 +896,7 @@ class ExcelFile:
             # https://stackoverflow.com/questions/31416842/
             #  openpyxl-does-not-close-excel-workbook-in-read-only-mode
             wb = self.book
-            wb.close()
+            wb._archive.close()
 
         if hasattr(self.io, "close"):
             self.io.close()
@@ -910,13 +910,3 @@ class ExcelFile:
     def __del__(self):
         # Ensure we don't leak file descriptors
         self.close()
-        if self.engine == "openpyxl":
-            # openpyxl 2.5.5 and earlier could leave open files behind
-            #  https://bitbucket.org/openpyxl/openpyxl/issues/832
-            import openpyxl
-            from distutils.version import LooseVersion
-
-            if LooseVersion(openpyxl.__version__) <= LooseVersion("2.5.5"):
-                import gc
-
-                gc.collect()
