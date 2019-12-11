@@ -129,12 +129,7 @@ class build_ext(_build_ext):
         if cython:
             self.render_templates(_pxifiles)
 
-        numpy_incl = pkg_resources.resource_filename("numpy", "core/include")
-
-        for ext in self.extensions:
-            if hasattr(ext, "include_dirs") and numpy_incl not in ext.include_dirs:
-                ext.include_dirs.append(numpy_incl)
-        _build_ext.build_extensions(self)
+        super().build_extensions()
 
 
 DESCRIPTION = "Powerful data structures for data analysis, time series, and statistics"
