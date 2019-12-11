@@ -321,7 +321,7 @@ class CSSToExcelConverter:
         try:
             return self.NAMED_COLORS[val]
         except KeyError:
-            warnings.warn("Unhandled color format: {val!r}".format(val=val), CSSWarning)
+            warnings.warn(f"Unhandled color format: {repr(val)}", CSSWarning)
 
     def build_number_format(self, props):
         return {"format_code": props.get("number-format")}
@@ -393,16 +393,12 @@ class ExcelFormatter:
             if not len(Index(cols) & df.columns):
                 raise KeyError("passes columns are not ALL present dataframe")
 
-            # deprecatedin gh-17295
-            # 1 missing is ok (for now)
             if len(Index(cols) & df.columns) != len(cols):
-                warnings.warn(
-                    "Not all names specified in 'columns' are found; "
-                    "this will raise a KeyError in the future",
-                    FutureWarning,
-                )
+                # Deprecated in GH#17295, enforced in 1.0.0
+                raise KeyError("Not all names specified in 'columns' are found")
 
-            self.df = df.reindex(columns=cols)
+            self.df = df
+
         self.columns = self.df.columns
         self.float_format = float_format
         self.index = index

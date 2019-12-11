@@ -100,7 +100,12 @@ class TestFloatIndexers:
                         idxr(s)[3.0]
 
                 # label based can be a TypeError or KeyError
-                if s.index.inferred_type in ["string", "unicode", "mixed"]:
+                if s.index.inferred_type in {
+                    "categorical",
+                    "string",
+                    "unicode",
+                    "mixed",
+                }:
                     error = KeyError
                     msg = r"^3$"
                 else:
@@ -726,25 +731,15 @@ class TestFloatIndexers:
         tm.assert_series_equal(result1, result3)
         tm.assert_series_equal(result1, result4)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result1 = s[[1.6, 5, 10]]
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result2 = s.loc[[1.6, 5, 10]]
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result3 = s.loc[[1.6, 5, 10]]
-        tm.assert_series_equal(result1, result2)
-        tm.assert_series_equal(result1, result3)
-        tm.assert_series_equal(result1, Series([np.nan, 2, 4], index=[1.6, 5, 10]))
+        with pytest.raises(KeyError, match="with any missing labels"):
+            s[[1.6, 5, 10]]
+        with pytest.raises(KeyError, match="with any missing labels"):
+            s.loc[[1.6, 5, 10]]
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result1 = s[[0, 1, 2]]
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result2 = s.loc[[0, 1, 2]]
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result3 = s.loc[[0, 1, 2]]
-        tm.assert_series_equal(result1, result2)
-        tm.assert_series_equal(result1, result3)
-        tm.assert_series_equal(result1, Series([0.0, np.nan, np.nan], index=[0, 1, 2]))
+        with pytest.raises(KeyError, match="with any missing labels"):
+            s[[0, 1, 2]]
+        with pytest.raises(KeyError, match="with any missing labels"):
+            s.loc[[0, 1, 2]]
 
         result1 = s.loc[[2.5, 5]]
         result2 = s.loc[[2.5, 5]]

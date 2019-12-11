@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from datetime import datetime
 from decimal import Decimal
 from io import StringIO
@@ -598,7 +597,7 @@ def test_groupby_as_index_agg(df):
     expected = grouped.mean()
     tm.assert_frame_equal(result, expected)
 
-    result2 = grouped.agg(OrderedDict([["C", np.mean], ["D", np.sum]]))
+    result2 = grouped.agg({"C": np.mean, "D": np.sum})
     expected2 = grouped.mean()
     expected2["D"] = grouped.sum()["D"]
     tm.assert_frame_equal(result2, expected2)
@@ -617,7 +616,7 @@ def test_groupby_as_index_agg(df):
     expected = grouped.mean()
     tm.assert_frame_equal(result, expected)
 
-    result2 = grouped.agg(OrderedDict([["C", np.mean], ["D", np.sum]]))
+    result2 = grouped.agg({"C": np.mean, "D": np.sum})
     expected2 = grouped.mean()
     expected2["D"] = grouped.sum()["D"]
     tm.assert_frame_equal(result2, expected2)
@@ -1701,6 +1700,15 @@ def test_group_shift_with_fill_value():
     result = g.shift(-1, fill_value=0)[["Z"]]
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_group_shift_lose_timezone():
+    # GH 30134
+    now_dt = pd.Timestamp.utcnow()
+    df = DataFrame({"a": [1, 1], "date": now_dt})
+    result = df.groupby("a").shift(0).iloc[0]
+    expected = Series({"date": now_dt}, name=result.name)
+    tm.assert_series_equal(result, expected)
 
 
 def test_pivot_table_values_key_error():

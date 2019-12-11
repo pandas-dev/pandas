@@ -2,7 +2,6 @@
 from operator import le, lt
 import textwrap
 from typing import Any, Optional, Tuple, Union
-import warnings
 
 import numpy as np
 
@@ -20,6 +19,7 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
+    is_categorical,
     is_datetime64tz_dtype,
     is_datetime_or_timedelta_dtype,
     is_dtype_equal,
@@ -37,6 +37,7 @@ from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas._typing import AnyArrayLike
+from pandas.core.algorithms import take_1d
 from pandas.core.arrays.interval import IntervalArray, _interval_shared_docs
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
@@ -84,9 +85,7 @@ def _get_next_label(label):
     elif is_float_dtype(dtype):
         return np.nextafter(label, np.infty)
     else:
-        raise TypeError(
-            "cannot determine next label for type {typ!r}".format(typ=type(label))
-        )
+        raise TypeError(f"cannot determine next label for type {repr(type(label))}")
 
 
 def _get_prev_label(label):
@@ -100,9 +99,7 @@ def _get_prev_label(label):
     elif is_float_dtype(dtype):
         return np.nextafter(label, -np.infty)
     else:
-        raise TypeError(
-            "cannot determine next label for type {typ!r}".format(typ=type(label))
-        )
+        raise TypeError(f"cannot determine next label for type {repr(type(label))}")
 
 
 def _get_interval_closed_bounds(interval):
@@ -455,19 +452,6 @@ class IntervalIndex(IntervalMixin, Index):
         # Avoid materializing ndarray[Interval]
         return self._data.size
 
-    @property
-    def itemsize(self):
-        msg = (
-            "IntervalIndex.itemsize is deprecated and will be removed in "
-            "a future version"
-        )
-        warnings.warn(msg, FutureWarning, stacklevel=2)
-
-        # suppress the warning from the underlying left/right itemsize
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            return self.left.itemsize + self.right.itemsize
-
     def __len__(self) -> int:
         return len(self.left)
 
@@ -497,7 +481,7 @@ class IntervalIndex(IntervalMixin, Index):
     def __reduce__(self):
         d = dict(left=self.left, right=self.right)
         d.update(self._get_attributes_dict())
-        return _new_IntervalIndex, (self.__class__, d), None
+        return _new_IntervalIndex, (type(self), d), None
 
     @Appender(_index_shared_docs["copy"])
     def copy(self, deep=False, name=None):
@@ -512,7 +496,7 @@ class IntervalIndex(IntervalMixin, Index):
 
     @Appender(_index_shared_docs["astype"])
     def astype(self, dtype, copy=True):
-        with rewrite_exception("IntervalArray", self.__class__.__name__):
+        with rewrite_exception("IntervalArray", type(self).__name__):
             new_values = self.values.astype(dtype, copy=copy)
         if is_interval_dtype(new_values):
             return self._shallow_copy(new_values.left, new_values.right)
@@ -976,6 +960,10 @@ class IntervalIndex(IntervalMixin, Index):
             left_indexer = self.left.get_indexer(target_as_index.left)
             right_indexer = self.right.get_indexer(target_as_index.right)
             indexer = np.where(left_indexer == right_indexer, left_indexer, -1)
+        elif is_categorical(target_as_index):
+            # get an indexer for unique categories then propogate to codes via take_1d
+            categories_indexer = self.get_indexer(target_as_index.categories)
+            indexer = take_1d(categories_indexer, target_as_index.codes, fill_value=-1)
         elif not is_object_dtype(target_as_index):
             # homogeneous scalar index: use IntervalTree
             target_as_index = self._maybe_convert_i8(target_as_index)
@@ -1205,7 +1193,7 @@ class IntervalIndex(IntervalMixin, Index):
         return attrs
 
     def _format_space(self):
-        space = " " * (len(self.__class__.__name__) + 1)
+        space = " " * (len(type(self).__name__) + 1)
         return "\n{space}".format(space=space)
 
     # --------------------------------------------------------------------

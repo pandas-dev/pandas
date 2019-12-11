@@ -35,7 +35,9 @@ def _zip_axes_from_type(typ, new_axes):
 
 
 def _any_pandas_objects(terms) -> bool:
-    """Check a sequence of terms for instances of PandasObject."""
+    """
+    Check a sequence of terms for instances of PandasObject.
+    """
     return any(isinstance(term.value, PandasObject) for term in terms)
 
 
@@ -100,10 +102,10 @@ def _align_core(terms):
                 ordm = np.log10(max(1, abs(reindexer_size - term_axis_size)))
                 if ordm >= 1 and reindexer_size >= 10000:
                     w = (
-                        "Alignment difference on axis {axis} is larger "
-                        "than an order of magnitude on term {term!r}, by "
-                        "more than {ordm:.4g}; performance may suffer"
-                    ).format(axis=axis, term=terms[i].name, ordm=ordm)
+                        f"Alignment difference on axis {axis} is larger "
+                        f"than an order of magnitude on term {repr(terms[i].name)}, "
+                        f"by more than {ordm:.4g}; performance may suffer"
+                    )
                     warnings.warn(w, category=PerformanceWarning, stacklevel=6)
 
                 f = partial(ti.reindex, reindexer, axis=axis, copy=False)
@@ -116,7 +118,9 @@ def _align_core(terms):
 
 
 def align_terms(terms):
-    """Align a set of terms"""
+    """
+    Align a set of terms.
+    """
     try:
         # flatten the parse tree (a nested list, really)
         terms = list(com.flatten(terms))

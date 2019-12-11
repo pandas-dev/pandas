@@ -1,6 +1,6 @@
 import numpy as np
 
-from pandas._libs import index as libindex
+from pandas._libs import index as libindex, lib
 from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.cast import astype_nansafe
@@ -122,18 +122,16 @@ class NumericIndex(Index):
             if tolerance.ndim > 0:
                 raise ValueError(
                     (
-                        "tolerance argument for %s must contain "
+                        f"tolerance argument for {type(self).__name__} must contain "
                         "numeric elements if it is list type"
                     )
-                    % (type(self).__name__,)
                 )
             else:
                 raise ValueError(
                     (
-                        "tolerance argument for %s must be numeric "
-                        "if it is a scalar: %r"
+                        f"tolerance argument for {type(self).__name__} must be numeric "
+                        f"if it is a scalar: {repr(tolerance)}"
                     )
-                    % (type(self).__name__, tolerance)
                 )
         return tolerance
 
@@ -320,13 +318,15 @@ class UInt64Index(IntegerIndex):
 
     @Appender(_index_shared_docs["_convert_arr_indexer"])
     def _convert_arr_indexer(self, keyarr):
-        # Cast the indexer to uint64 if possible so
-        # that the values returned from indexing are
-        # also uint64.
-        keyarr = com.asarray_tuplesafe(keyarr)
-        if is_integer_dtype(keyarr):
-            return com.asarray_tuplesafe(keyarr, dtype=np.uint64)
-        return keyarr
+        # Cast the indexer to uint64 if possible so that the values returned
+        # from indexing are also uint64.
+        dtype = None
+        if is_integer_dtype(keyarr) or (
+            lib.infer_dtype(keyarr, skipna=False) == "integer"
+        ):
+            dtype = np.uint64
+
+        return com.asarray_tuplesafe(keyarr, dtype=dtype)
 
     @Appender(_index_shared_docs["_convert_index_indexer"])
     def _convert_index_indexer(self, keyarr):

@@ -1,9 +1,9 @@
 import operator
-from typing import TYPE_CHECKING, Type
+from typing import Type
 
 import numpy as np
 
-from pandas._libs import lib
+from pandas._libs import lib, missing as libmissing
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import pandas_dtype
@@ -16,9 +16,6 @@ from pandas.core import ops
 from pandas.core.arrays import PandasArray
 from pandas.core.construction import extract_array
 from pandas.core.missing import isna
-
-if TYPE_CHECKING:
-    from pandas._typing import Scalar
 
 
 @register_extension_dtype
@@ -50,16 +47,8 @@ class StringDtype(ExtensionDtype):
     StringDtype
     """
 
-    @property
-    def na_value(self) -> "Scalar":
-        """
-        StringDtype uses :attr:`numpy.nan` as the missing NA value.
-
-        .. warning::
-
-           `na_value` may change in a future release.
-        """
-        return np.nan
+    #: StringDtype.na_value uses pandas.NA
+    na_value = libmissing.NA
 
     @property
     def type(self) -> Type:
@@ -149,7 +138,7 @@ class StringArray(PandasArray):
     --------
     >>> pd.array(['This is', 'some text', None, 'data.'], dtype="string")
     <StringArray>
-    ['This is', 'some text', nan, 'data.']
+    ['This is', 'some text', NA, 'data.']
     Length: 4, dtype: string
 
     Unlike ``object`` dtype arrays, ``StringArray`` doesn't allow non-string
@@ -182,7 +171,7 @@ class StringArray(PandasArray):
         if self._ndarray.dtype != "object":
             raise ValueError(
                 "StringArray requires a sequence of strings. Got "
-                "'{}' dtype instead.".format(self._ndarray.dtype)
+                f"'{self._ndarray.dtype}' dtype instead."
             )
 
     @classmethod
@@ -190,10 +179,10 @@ class StringArray(PandasArray):
         if dtype:
             assert dtype == "string"
         result = super()._from_sequence(scalars, dtype=object, copy=copy)
-        # convert None to np.nan
+        # Standardize all missing-like values to NA
         # TODO: it would be nice to do this in _validate / lib.is_string_array
         # We are already doing a scan over the values there.
-        result[result.isna()] = np.nan
+        result[result.isna()] = StringDtype.na_value
         return result
 
     @classmethod
@@ -210,6 +199,12 @@ class StringArray(PandasArray):
             type = pa.string()
         return pa.array(self._ndarray, type=type, from_pandas=True)
 
+    def _values_for_factorize(self):
+        arr = self._ndarray.copy()
+        mask = self.isna()
+        arr[mask] = -1
+        return arr, -1
+
     def __setitem__(self, key, value):
         value = extract_array(value, extract_numpy=True)
         if isinstance(value, type(self)):
@@ -223,11 +218,11 @@ class StringArray(PandasArray):
 
         # validate new items
         if scalar_value:
-            if scalar_value is None:
-                value = np.nan
-            elif not (isinstance(value, str) or np.isnan(value)):
+            if isna(value):
+                value = StringDtype.na_value
+            elif not isinstance(value, str):
                 raise ValueError(
-                    "Cannot set non-string value '{}' into a StringArray.".format(value)
+                    f"Cannot set non-string value '{value}' into a StringArray."
                 )
         else:
             if not is_array_like(value):
@@ -250,7 +245,7 @@ class StringArray(PandasArray):
         return super().astype(dtype, copy)
 
     def _reduce(self, name, skipna=True, **kwargs):
-        raise TypeError("Cannot perform reduction '{}' with string dtype".format(name))
+        raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
 
     def value_counts(self, dropna=False):
         from pandas import value_counts
@@ -274,16 +269,14 @@ class StringArray(PandasArray):
                 if len(other) != len(self):
                     # prevent improper broadcasting when other is 2D
                     raise ValueError(
-                        "Lengths of operands do not match: {} != {}".format(
-                            len(self), len(other)
-                        )
+                        f"Lengths of operands do not match: {len(self)} != {len(other)}"
                     )
 
                 other = np.asarray(other)
                 other = other[valid]
 
             result = np.empty_like(self._ndarray, dtype="object")
-            result[mask] = np.nan
+            result[mask] = StringDtype.na_value
             result[valid] = op(self._ndarray[valid], other)
 
             if op.__name__ in {"add", "radd", "mul", "rmul"}:
@@ -292,7 +285,7 @@ class StringArray(PandasArray):
                 dtype = "object" if mask.any() else "bool"
                 return np.asarray(result, dtype=dtype)
 
-        return compat.set_function_name(method, "__{}__".format(op.__name__), cls)
+        return compat.set_function_name(method, f"__{op.__name__}__", cls)
 
     @classmethod
     def _add_arithmetic_ops(cls):

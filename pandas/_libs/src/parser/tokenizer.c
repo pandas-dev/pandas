@@ -647,8 +647,6 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
 
 #define END_LINE() END_LINE_STATE(START_RECORD)
 
-#define IS_WHITESPACE(c) ((c == ' ' || c == '\t'))
-
 #define IS_TERMINATOR(c)                            \
     (c == line_terminator)
 
@@ -667,7 +665,7 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
 // applied when in a field
 #define IS_DELIMITER(c)                                   \
     ((!self->delim_whitespace && c == self->delimiter) || \
-     (self->delim_whitespace && IS_WHITESPACE(c)))
+     (self->delim_whitespace && isblank(c)))
 
 #define _TOKEN_CLEANUP()                                                \
     self->stream_len = slen;                                            \
@@ -818,7 +816,7 @@ int tokenize_bytes(parser_t *self,
                     self->state = EAT_CRNL_NOP;
                     break;
                 } else if (!self->delim_whitespace) {
-                    if (IS_WHITESPACE(c) && c != self->delimiter) {
+                    if (isblank(c) && c != self->delimiter) {
                     } else {  // backtrack
                         // use i + 1 because buf has been incremented but not i
                         do {
@@ -848,7 +846,7 @@ int tokenize_bytes(parser_t *self,
                 } else if (IS_COMMENT_CHAR(c)) {
                     self->state = EAT_COMMENT;
                     break;
-                } else if (!IS_WHITESPACE(c)) {
+                } else if (!isblank(c)) {
                     self->state = START_FIELD;
                     // fall through to subsequent state
                 } else {
@@ -892,7 +890,7 @@ int tokenize_bytes(parser_t *self,
                 } else if (IS_COMMENT_CHAR(c)) {
                     self->state = EAT_LINE_COMMENT;
                     break;
-                } else if (IS_WHITESPACE(c)) {
+                } else if (isblank(c)) {
                     if (self->delim_whitespace) {
                         if (self->skip_empty_lines) {
                             self->state = WHITESPACE_LINE;

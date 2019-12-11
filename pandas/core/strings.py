@@ -9,7 +9,7 @@ import numpy as np
 
 import pandas._libs.lib as lib
 import pandas._libs.ops as libops
-from pandas.util._decorators import Appender, deprecate_kwarg
+from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -1933,10 +1933,8 @@ def forbid_nonstring_types(forbidden, name=None):
         def wrapper(self, *args, **kwargs):
             if self._inferred_dtype not in allowed_types:
                 msg = (
-                    "Cannot use .str.{name} with values of inferred dtype "
-                    "{inf_type!r}.".format(
-                        name=func_name, inf_type=self._inferred_dtype
-                    )
+                    f"Cannot use .str.{func_name} with values of "
+                    f"inferred dtype '{self._inferred_dtype}'."
                 )
                 raise TypeError(msg)
             return func(self, *args, **kwargs)
@@ -2093,6 +2091,11 @@ class StringMethods(NoNewAttributesMixin):
             return self.get(key)
 
     def __iter__(self):
+        warnings.warn(
+            "Columnar iteration over characters will be deprecated in future releases.",
+            FutureWarning,
+            stacklevel=2,
+        )
         i = 0
         g = self.get(i)
         while g.notna().any():
@@ -2630,9 +2633,6 @@ class StringMethods(NoNewAttributesMixin):
     ----------
     sep : str, default whitespace
         String to split on.
-    pat : str, default whitespace
-        .. deprecated:: 0.24.0
-           Use ``sep`` instead.
     expand : bool, default True
         If True, return DataFrame/MultiIndex expanding dimensionality.
         If False, return Series/Index.
@@ -2710,7 +2710,6 @@ class StringMethods(NoNewAttributesMixin):
             "also": "rpartition : Split the string at the last occurrence of `sep`.",
         }
     )
-    @deprecate_kwarg(old_arg_name="pat", new_arg_name="sep")
     @forbid_nonstring_types(["bytes"])
     def partition(self, sep=" ", expand=True):
         f = lambda x: x.partition(sep)
@@ -2726,7 +2725,6 @@ class StringMethods(NoNewAttributesMixin):
             "also": "partition : Split the string at the first occurrence of `sep`.",
         }
     )
-    @deprecate_kwarg(old_arg_name="pat", new_arg_name="sep")
     @forbid_nonstring_types(["bytes"])
     def rpartition(self, sep=" ", expand=True):
         f = lambda x: x.rpartition(sep)
