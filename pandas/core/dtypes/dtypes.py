@@ -669,7 +669,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
                 tz = result.tz
                 msg = (
                     "Passing a dtype alias like 'datetime64[ns, {tz}]' "
-                    "to DatetimeTZDtype is deprecated. Use "
+                    "to DatetimeTZDtype is no longer supported. Use "
                     "'DatetimeTZDtype.construct_from_string()' instead."
                 )
                 raise ValueError(msg)

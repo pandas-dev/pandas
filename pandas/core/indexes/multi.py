@@ -157,11 +157,6 @@ class MultiIndex(Index):
         Integers for each level designating which label at each location.
 
         .. versionadded:: 0.24.0
-    labels : sequence of arrays
-        Integers for each level designating which label at each location.
-
-        .. deprecated:: 0.24.0
-            Use ``codes`` instead
     sortorder : optional int
         Level of sortedness (must be lexicographically sorted by that
         level).
