@@ -116,10 +116,7 @@ def clean_interp_method(method, **kwargs):
     if method in ("spline", "polynomial") and order is None:
         raise ValueError("You must specify the order of the spline or polynomial.")
     if method not in valid:
-        raise ValueError(
-            f"method must be one of {valid}. Got '{method}' "
-            "instead."
-        )
+        raise ValueError(f"method must be one of {valid}. Got '{method}' " "instead.")
 
     return method
 
@@ -218,8 +215,8 @@ def interpolate_1d(
         limit_area = limit_area.lower()
         if limit_area not in valid_limit_areas:
             raise ValueError(
-                "Invalid limit_area: expecting one of {valid_limit_areas}, got "
-                "{limit_area}."
+                f"Invalid limit_area: expecting one of {valid_limit_areas}, got "
+                f"{limit_area}."
             )
 
     # default limit is unlimited GH #16282
@@ -372,8 +369,7 @@ def _interpolate_scipy_wrapper(
         # GH #10633, #24014
         if isna(order) or (order <= 0):
             raise ValueError(
-                "order needs to be specified and greater than 0; "
-                f"got order: {order}"
+                "order needs to be specified and greater than 0; " f"got order: {order}"
             )
         terp = interpolate.UnivariateSpline(x, y, k=order, **kwargs)
         new_y = terp(new_x)

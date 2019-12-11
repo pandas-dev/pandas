@@ -447,7 +447,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
                     # This should be TypeError, but TypeError cannot be raised
                     # from here because numpy catches.
                     raise ValueError(
-                        f"ufunc {repr(func.__name__)}"
+                        f"ufunc {func.__name__}"
                         " not supported for the PeriodIndex"
                     )
 
@@ -657,7 +657,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
                 pass
             except DateParseError:
                 # A string with invalid format
-                raise KeyError(f"Cannot interpret '{repr(key)}' as period")
+                raise KeyError(f"Cannot interpret '{key}' as period")
 
             try:
                 key = Period(key, freq=self.freq)
