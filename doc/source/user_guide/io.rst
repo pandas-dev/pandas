@@ -4750,6 +4750,7 @@ See the documentation for `pyarrow <https://arrow.apache.org/docs/python/>`__ an
 Write to a parquet file.
 
 .. ipython:: python
+   :okwarning:
 
    df.to_parquet('example_pa.parquet', engine='pyarrow')
    df.to_parquet('example_fp.parquet', engine='fastparquet')
