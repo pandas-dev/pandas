@@ -3394,7 +3394,7 @@ Example pyarrow usage:
     >>> context = pa.default_serialization_context()
     >>> df_bytestring = context.serialize(df).to_buffer().to_pybytes()
 
-For documentation on pyarrow, see `here<https://arrow.apache.org/docs/python/index.html>`__.
+For documentation on pyarrow, see `here <https://arrow.apache.org/docs/python/index.html>`__.
 
 .. _io.hdf5:
 
