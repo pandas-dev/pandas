@@ -45,7 +45,6 @@ from pandas.core.dtypes.common import (
     is_signed_integer_dtype,
     is_timedelta64_dtype,
     is_unsigned_integer_dtype,
-    pandas_dtype,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
@@ -732,24 +731,11 @@ class Index(IndexOpsMixin, PandasObject):
             from .category import CategoricalIndex
 
             return CategoricalIndex(self.values, name=self.name, dtype=dtype, copy=copy)
-        elif is_datetime64tz_dtype(dtype):
-            # TODO(GH-24559): Remove this block, use the following elif.
-            # avoid FutureWarning from DatetimeIndex constructor.
-            from pandas import DatetimeIndex
-
-            tz = pandas_dtype(dtype).tz
-            return DatetimeIndex(np.asarray(self)).tz_localize("UTC").tz_convert(tz)
 
         elif is_extension_array_dtype(dtype):
             return Index(np.asarray(self), dtype=dtype, copy=copy)
 
         try:
-            if is_datetime64tz_dtype(dtype):
-                from pandas import DatetimeIndex
-
-                return DatetimeIndex(
-                    self.values, name=self.name, dtype=dtype, copy=copy
-                )
             return Index(
                 self.values.astype(dtype, copy=copy), name=self.name, dtype=dtype
             )
