@@ -1702,6 +1702,15 @@ def test_group_shift_with_fill_value():
     tm.assert_frame_equal(result, expected)
 
 
+def test_group_shift_lose_timezone():
+    # GH 30134
+    now_dt = pd.Timestamp.utcnow()
+    df = DataFrame({"a": [1, 1], "date": now_dt})
+    result = df.groupby("a").shift(0).iloc[0]
+    expected = Series({"date": now_dt}, name=result.name)
+    tm.assert_series_equal(result, expected)
+
+
 def test_pivot_table_values_key_error():
     # This test is designed to replicate the error in issue #14938
     df = pd.DataFrame(
