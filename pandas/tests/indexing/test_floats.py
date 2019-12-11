@@ -100,7 +100,12 @@ class TestFloatIndexers:
                         idxr(s)[3.0]
 
                 # label based can be a TypeError or KeyError
-                if s.index.inferred_type in ["string", "unicode", "mixed"]:
+                if s.index.inferred_type in {
+                    "categorical",
+                    "string",
+                    "unicode",
+                    "mixed",
+                }:
                     error = KeyError
                     msg = r"^3$"
                 else:
