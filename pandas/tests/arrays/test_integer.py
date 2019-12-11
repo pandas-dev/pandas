@@ -346,10 +346,7 @@ class TestArithmeticOps(BaseOpsUtil):
         result = a / zero
         expected = np.array([np.nan, np.inf, -np.inf, np.nan])
         if negative:
-            values = [np.nan, -np.inf, np.inf, np.nan]
-        else:
-            values = [np.nan, np.inf, -np.inf, np.nan]
-        expected = np.array(values)
+            expected *= -1
         tm.assert_numpy_array_equal(result, expected)
 
     def test_pow_scalar(self):
