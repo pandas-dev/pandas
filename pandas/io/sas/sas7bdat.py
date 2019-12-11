@@ -691,7 +691,7 @@ class SAS7BDATReader(BaseIterator):
     def _convert_datetimes(sas_datetimes, unit):
         """Converts to np.datetime64 if possible, otherwise to dateime.datetime
         (n.b. generally better support in pandas for datetime than date).
-        SAS float64 lacks precision for more than ms resolution so the fit 
+        SAS float64 lacks precision for more than ms resolution so the fit
         to datetime.datetime is ok
         """
         try:
