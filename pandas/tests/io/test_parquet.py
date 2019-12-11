@@ -618,7 +618,7 @@ class TestParquetFastParquet(Base):
                 compression=None,
             )
             assert os.path.exists(path)
-            import fastparquet
+            import fastparquet # noqa: F811
 
             actual_partition_cols = fastparquet.ParquetFile(path, False).cats
             assert len(actual_partition_cols) == 1
