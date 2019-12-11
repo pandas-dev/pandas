@@ -243,7 +243,6 @@ cpdef Py_ssize_t slice_len(
     - if ``s.step < 0``, ``s.start`` is not ``None``
 
     Otherwise, the result is unreliable.
-
     """
     cdef:
         Py_ssize_t start, stop, step, length
@@ -263,7 +262,6 @@ cdef slice_get_indices_ex(slice slc, Py_ssize_t objlen=PY_SSIZE_T_MAX):
 
     If `objlen` is not specified, slice must be bounded, otherwise the result
     will be wrong.
-
     """
     cdef:
         Py_ssize_t start, stop, step, length
@@ -365,7 +363,6 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
     Returns
     -------
     iter : iterator of (int, slice or array)
-
     """
     # There's blkno in this function's name because it's used in block &
     # blockno handling.
@@ -436,18 +433,16 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
 
 def get_blkno_placements(blknos, group: bool = True):
     """
-
     Parameters
     ----------
     blknos : array of int64
-    group : bool
+    group : bool, default True
 
     Returns
     -------
     iterator
         yield (BlockPlacement, blkno)
     """
-
     blknos = ensure_int64(blknos)
 
     for blkno, indexer in get_blkno_indexers(blknos, group):

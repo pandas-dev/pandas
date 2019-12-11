@@ -52,7 +52,7 @@ cpdef get_value_at(ndarray arr, object loc, object tz=None):
 
 
 # Don't populate hash tables in monotonic indexes larger than this
-_SIZE_CUTOFF = 1000000
+_SIZE_CUTOFF = 1_000_000
 
 
 cdef class IndexEngine:
@@ -79,6 +79,8 @@ cdef class IndexEngine:
 
     cpdef get_value(self, ndarray arr, object key, object tz=None):
         """
+        Parameters
+        ----------
         arr : 1-dimensional ndarray
         """
         cdef:
@@ -93,6 +95,8 @@ cdef class IndexEngine:
 
     cpdef set_value(self, ndarray arr, object key, object value):
         """
+        Parameters
+        ----------
         arr : 1-dimensional ndarray
         """
         cdef:
@@ -283,11 +287,12 @@ cdef class IndexEngine:
         return self.mapping.lookup(values)
 
     def get_indexer_non_unique(self, targets):
-        """ return an indexer suitable for takng from a non unique index
-            return the labels in the same order ast the target
-            and a missing indexer into the targets (which correspond
-            to the -1 indices in the results """
-
+        """
+        Return an indexer suitable for takng from a non unique index
+        return the labels in the same order ast the target
+        and a missing indexer into the targets (which correspond
+        to the -1 indices in the results
+        """
         cdef:
             ndarray values, x
             ndarray[int64_t] result, missing
@@ -302,8 +307,8 @@ cdef class IndexEngine:
         stargets = set(targets)
         n = len(values)
         n_t = len(targets)
-        if n > 10000:
-            n_alloc = 10000
+        if n > 10_000:
+            n_alloc = 10_000
         else:
             n_alloc = n
 
@@ -345,7 +350,7 @@ cdef class IndexEngine:
 
                     # realloc if needed
                     if count >= n_alloc:
-                        n_alloc += 10000
+                        n_alloc += 10_000
                         result = np.resize(result, n_alloc)
 
                     result[count] = j
@@ -355,7 +360,7 @@ cdef class IndexEngine:
             else:
 
                 if count >= n_alloc:
-                    n_alloc += 10000
+                    n_alloc += 10_000
                     result = np.resize(result, n_alloc)
                 result[count] = -1
                 count += 1
@@ -393,7 +398,7 @@ cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
 
 cdef class ObjectEngine(IndexEngine):
     """
-    Index Engine for use with object-dtype Index, namely the base class Index
+    Index Engine for use with object-dtype Index, namely the base class Index.
     """
     cdef _make_hash_table(self, Py_ssize_t n):
         return _hash.PyObjectHashTable(n)
@@ -560,7 +565,7 @@ cpdef convert_scalar(ndarray arr, object value):
             pass
         elif value is None or value != value:
             return np.datetime64("NaT", "ns")
-        raise ValueError(f"cannot set a Timestamp with a non-timestamp "
+        raise ValueError("cannot set a Timestamp with a non-timestamp "
                          f"{type(value).__name__}")
 
     elif arr.descr.type_num == NPY_TIMEDELTA:
@@ -577,17 +582,17 @@ cpdef convert_scalar(ndarray arr, object value):
             pass
         elif value is None or value != value:
             return np.timedelta64("NaT", "ns")
-        raise ValueError(f"cannot set a Timedelta with a non-timedelta "
+        raise ValueError("cannot set a Timedelta with a non-timedelta "
                          f"{type(value).__name__}")
 
     if (issubclass(arr.dtype.type, (np.integer, np.floating, np.complex)) and
             not issubclass(arr.dtype.type, np.bool_)):
         if util.is_bool_object(value):
-            raise ValueError('Cannot assign bool to float/integer series')
+            raise ValueError("Cannot assign bool to float/integer series")
 
     if issubclass(arr.dtype.type, (np.integer, np.bool_)):
         if util.is_float_object(value) and value != value:
-            raise ValueError('Cannot assign nan to integer series')
+            raise ValueError("Cannot assign nan to integer series")
 
     return value
 
@@ -625,13 +630,12 @@ cdef class BaseMultiIndexCodesEngine:
         Parameters
         ----------
         levels : list-like of numpy arrays
-            Levels of the MultiIndex
+            Levels of the MultiIndex.
         labels : list-like of numpy arrays of integer dtype
-            Labels of the MultiIndex
+            Labels of the MultiIndex.
         offsets : numpy array of uint64 dtype
-            Pre-calculated offsets, one for each level of the index
+            Pre-calculated offsets, one for each level of the index.
         """
-
         self.levels = levels
         self.offsets = offsets
 
@@ -664,7 +668,6 @@ cdef class BaseMultiIndexCodesEngine:
         int_keys : 1-dimensional array of dtype uint64 or object
             Integers representing one combination each
         """
-
         level_codes = [lev.get_indexer(codes) + 1 for lev, codes
                        in zip(self.levels, zip(*target))]
         return self._codes_to_ints(np.array(level_codes, dtype='uint64').T)
