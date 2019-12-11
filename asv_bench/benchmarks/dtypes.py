@@ -40,6 +40,7 @@ class DtypesInvalid:
         except TypeError:
             pass
 
+
 class InferDtypes:
     params = _dtypes
     param_names = ['dtype']
