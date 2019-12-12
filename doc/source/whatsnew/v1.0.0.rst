@@ -535,6 +535,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - :meth:`DataFrame.hist` and :meth:`Series.hist` no longer allows ``figsize="default"``, specify figure size by passinig a tuple instead (:issue:`30003`)
 - Floordiv of integer-dtyped array by :class:`Timedelta` now raises ``TypeError`` (:issue:`21036`)
 - :func:`pandas.api.types.infer_dtype` argument ``skipna`` defaults to ``True`` instead of ``False`` (:issue:`24050`)
+- Removed the previously deprecated :attr:`Series.ix` and :attr:`DataFrame.ix` (:issue:`26438`)
 - Removed the previously deprecated :meth:`Index.summary` (:issue:`18217`)
 - Removed the previously deprecated "fastpath" keyword from the :class:`Index` constructor (:issue:`23110`)
 - Removed the previously deprecated :meth:`Series.get_value`, :meth:`Series.set_value`, :meth:`DataFrame.get_value`, :meth:`DataFrame.set_value` (:issue:`17739`)
