@@ -161,7 +161,6 @@ def test_comparison_methods_scalar(all_compare_operators):
     other = "a"
     result = getattr(a, op_name)(other)
     expected = np.array([getattr(item, op_name)(other) for item in a], dtype=object)
-    expected[1] = None
     expected = pd.array(expected, dtype="boolean")
     tm.assert_extension_array_equal(result, expected)
 
@@ -177,7 +176,6 @@ def test_comparison_methods_array(all_compare_operators):
     other = [None, None, "c"]
     result = getattr(a, op_name)(other)
     expected = np.empty_like(a, dtype="object")
-    expected[:2] = None
     expected[-1] = getattr(other[-1], op_name)(a[-1])
     expected = pd.array(expected, dtype="boolean")
     tm.assert_extension_array_equal(result, expected)
