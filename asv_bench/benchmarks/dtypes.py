@@ -7,7 +7,7 @@ from .pandas_vb_common import (
     extension_dtypes,
     numeric_dtypes,
     string_dtypes,
-    lib
+    lib,
 )
 
 _numpy_dtypes = [
@@ -43,16 +43,16 @@ class DtypesInvalid:
 
 class InferDtypes:
     params = _dtypes
-    param_names = ['dtype']
+    param_names = ["dtype"]
     data_dict = {
-        "np-object": np.array([1] * 1000, dtype='O'),
+        "np-object": np.array([1] * 1000, dtype="O"),
         "py-object": [1] * 1000,
         "np-null": np.array([1] * 500 + [np.nan] * 500),
         "py-null": [1] * 500 + [None] * 500,
         "np-int": np.array([1] * 1000, dtype=int),
         "np-floating": np.array([1.0] * 1000, dtype=float),
         "empty": [],
-        "bytes": [b'a'] * 1000,
+        "bytes": [b"a"] * 1000,
     }
     params = list(data_dict.keys())
 
