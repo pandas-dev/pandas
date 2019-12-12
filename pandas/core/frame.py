@@ -2595,6 +2595,7 @@ class DataFrame(NDFrame):
 
         dtypes = list(self.dtypes)
         if self._is_homogeneous_type and dtypes and is_extension_array_dtype(dtypes[0]):
+            # We have EAs with the same dtype. We can preserve that dtype in transpose.
             dtype = dtypes[0]
             arr_type = dtype.construct_array_type()
             values = self.values

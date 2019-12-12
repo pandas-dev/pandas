@@ -491,10 +491,6 @@ def _unstack_extension_series(series, level, fill_value):
     return concat(out, axis="columns", copy=False, keys=result.columns)
 
 
-def _transpose_extension_arrays(df):
-    pass
-
-
 def stack(frame, level=-1, dropna=True):
     """
     Convert DataFrame to Series with multi-level Index. Columns become the
