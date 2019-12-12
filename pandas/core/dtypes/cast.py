@@ -802,8 +802,7 @@ def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
             return arr.astype(dtype)
 
         raise TypeError(
-            f"cannot astype a datetimelike from [{arr.dtype}] "
-            f"to [{dtype}]"
+            f"cannot astype a datetimelike from [{arr.dtype}] " f"to [{dtype}]"
         )
 
     elif is_timedelta64_dtype(arr):
@@ -825,8 +824,7 @@ def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
             return arr.astype(_TD_DTYPE, copy=copy)
 
         raise TypeError(
-            f"cannot astype a timedelta from [{arr.dtype}] "
-            f"to [{dtype}]"
+            f"cannot astype a timedelta from [{arr.dtype}] " f"to [{dtype}]"
         )
 
     elif np.issubdtype(arr.dtype, np.floating) and np.issubdtype(dtype, np.integer):
@@ -1140,9 +1138,7 @@ def maybe_cast_to_datetime(value, dtype, errors: str = "raise"):
                         raise ValueError(msg)
                     dtype = _NS_DTYPE
                 else:
-                    raise TypeError(
-                        f"cannot convert datetimelike to dtype [{dtype}]"
-                    )
+                    raise TypeError(f"cannot convert datetimelike to dtype [{dtype}]")
             elif is_datetime64tz:
 
                 # our NaT doesn't support tz's
@@ -1160,9 +1156,7 @@ def maybe_cast_to_datetime(value, dtype, errors: str = "raise"):
                         raise ValueError(msg)
                     dtype = _TD_DTYPE
                 else:
-                    raise TypeError(
-                        f"cannot convert timedeltalike to dtype [{dtype}]"
-                    )
+                    raise TypeError(f"cannot convert timedeltalike to dtype [{dtype}]")
 
             if is_scalar(value):
                 if value == iNaT or isna(value):
