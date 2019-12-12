@@ -17,10 +17,7 @@ def _side_expander(prop_fmt: str):
         try:
             mapping = self.SIDE_SHORTHANDS[len(tokens)]
         except KeyError:
-            warnings.warn(
-                'Could not expand "{prop}: {val}"'.format(prop=prop, val=value),
-                CSSWarning,
-            )
+            warnings.warn(f"Could not expand '{prop}: {value}'", CSSWarning)
             return
         for key, idx in zip(self.SIDES, mapping):
             yield prop_fmt.format(key), tokens[idx]
@@ -110,14 +107,14 @@ class CSSResolver:
 
         # 3. TODO: resolve other font-relative units
         for side in self.SIDES:
-            prop = "border-{side}-width".format(side=side)
+            prop = f"border-{side}-width"
             if prop in props:
                 props[prop] = self.size_to_pt(
                     props[prop], em_pt=font_size, conversions=self.BORDER_WIDTH_RATIOS
                 )
             for prop in [
-                "margin-{side}".format(side=side),
-                "padding-{side}".format(side=side),
+                f"margin-{side}",
+                f"padding-{side}",
             ]:
                 if prop in props:
                     # TODO: support %
@@ -173,7 +170,7 @@ class CSSResolver:
 
     def size_to_pt(self, in_val, em_pt=None, conversions=UNIT_RATIOS):
         def _error():
-            warnings.warn("Unhandled size: {val!r}".format(val=in_val), CSSWarning)
+            warnings.warn(f"Unhandled size: {repr(in_val)}", CSSWarning)
             return self.size_to_pt("1!!default", conversions=conversions)
 
         try:
@@ -206,9 +203,9 @@ class CSSResolver:
 
         val = round(val, 5)
         if int(val) == val:
-            size_fmt = "{fmt:d}pt".format(fmt=int(val))
+            size_fmt = f"{int(val):d}pt"
         else:
-            size_fmt = "{fmt:f}pt".format(fmt=val)
+            size_fmt = f"{val:f}pt"
         return size_fmt
 
     def atomize(self, declarations):
@@ -252,7 +249,6 @@ class CSSResolver:
                 yield prop, val
             else:
                 warnings.warn(
-                    "Ill-formatted attribute: expected a colon "
-                    "in {decl!r}".format(decl=decl),
+                    "Ill-formatted attribute: expected a colon " f"in {repr(decl)}",
                     CSSWarning,
                 )

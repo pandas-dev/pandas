@@ -132,12 +132,10 @@ class CSSToExcelConverter:
         return {
             side: {
                 "style": self._border_style(
-                    props.get("border-{side}-style".format(side=side)),
-                    props.get("border-{side}-width".format(side=side)),
+                    props.get(f"border-{side}-style"),
+                    props.get(f"border-{side}-width"),
                 ),
-                "color": self.color_to_excel(
-                    props.get("border-{side}-color".format(side=side))
-                ),
+                "color": self.color_to_excel(props.get(f"border-{side}-color")),
             }
             for side in ["top", "right", "bottom", "left"]
         }
@@ -321,7 +319,7 @@ class CSSToExcelConverter:
         try:
             return self.NAMED_COLORS[val]
         except KeyError:
-            warnings.warn("Unhandled color format: {val!r}".format(val=val), CSSWarning)
+            warnings.warn(f"Unhandled color format: {repr(val)}", CSSWarning)
 
     def build_number_format(self, props):
         return {"format_code": props.get("number-format")}
@@ -427,7 +425,7 @@ class ExcelFormatter:
             if missing.isposinf_scalar(val):
                 val = self.inf_rep
             elif missing.isneginf_scalar(val):
-                val = "-{inf}".format(inf=self.inf_rep)
+                val = f"-{self.inf_rep}"
             elif self.float_format is not None:
                 val = float(self.float_format % val)
         if getattr(val, "tzinfo", None) is not None:
@@ -509,8 +507,8 @@ class ExcelFormatter:
             if has_aliases:
                 if len(self.header) != len(self.columns):
                     raise ValueError(
-                        "Writing {cols} cols but got {alias} "
-                        "aliases".format(cols=len(self.columns), alias=len(self.header))
+                        f"Writing {len(self.columns)} cols but got {len(self.header)} "
+                        "aliases"
                     )
                 else:
                     colnames = self.header
@@ -718,8 +716,8 @@ class ExcelFormatter:
         if num_rows > self.max_rows or num_cols > self.max_cols:
             raise ValueError(
                 "This sheet is too large! Your sheet size is: "
-                + "{}, {} ".format(num_rows, num_cols)
-                + "Max sheet size is: {}, {}".format(self.max_rows, self.max_cols)
+                + f"{num_rows}, {num_cols} "
+                + f"Max sheet size is: {self.max_rows}, {self.max_cols}"
             )
 
         if isinstance(writer, ExcelWriter):
