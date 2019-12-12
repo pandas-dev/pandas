@@ -3356,7 +3356,7 @@ class StringMethods(NoNewAttributesMixin):
     Series.str.isalpha : Check whether all characters are alphabetic.
     Series.str.isnumeric : Check whether all characters are numeric.
     Series.str.isalnum : Check whether all characters are alphanumeric.
-    Series.str.isdigit : Check whether all characters are digits.h
+    Series.str.isdigit : Check whether all characters are digits.
     Series.str.isdecimal : Check whether all characters are decimal.
     Series.str.isspace : Check whether all characters are whitespace.
     Series.str.islower : Check whether all characters are lowercase.
