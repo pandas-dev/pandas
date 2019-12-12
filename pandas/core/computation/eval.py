@@ -167,7 +167,7 @@ def _check_for_locals(expr: str, stack_level: int, parser: str):
 
 def eval(
     expr,
-    parser: str = "pandas",
+    parser="pandas",
     engine=None,
     truediv=_no_default,
     local_dict=None,
