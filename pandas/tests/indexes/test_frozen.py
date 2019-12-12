@@ -9,6 +9,10 @@ class TestFrozenList:
 
     unicode_container = FrozenList(["\u05d0", "\u05d1", "c"])
 
+    def setup_method(self, _):
+        self.lst = [1, 2, 3, 4, 5]
+        self.container = FrozenList(self.lst)
+
     def check_mutable_error(self, *args, **kwargs):
         # Pass whatever function you normally would to pytest.raises
         # (after the Exception kind).
@@ -47,9 +51,8 @@ class TestFrozenList:
         expected = self.lst[1:2]
         self.check_result(result, expected)
 
-    def check_result(self, result, expected, klass=None):
-        klass = klass or self.klass
-        assert isinstance(result, klass)
+    def check_result(self, result, expected):
+        assert isinstance(result, FrozenList)
         assert result == expected
 
     def test_string_methods_dont_fail(self):
@@ -60,11 +63,6 @@ class TestFrozenList:
     def test_tricky_container(self):
         repr(self.unicode_container)
         str(self.unicode_container)
-
-    def setup_method(self, _):
-        self.lst = [1, 2, 3, 4, 5]
-        self.container = FrozenList(self.lst)
-        self.klass = FrozenList
 
     def test_add(self):
         result = self.container + (1, 2, 3)
