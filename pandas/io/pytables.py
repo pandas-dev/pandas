@@ -1314,7 +1314,7 @@ class HDFStore:
         optlevel : int or None, default None
             Optimization level, if None, pytables defaults to 6.
         kind : str or None, default None
-            Kind of index, if None, pytables defaults to "medium"
+            Kind of index, if None, pytables defaults to "medium".
 
         Raises
         ------
@@ -1741,24 +1741,24 @@ class HDFStore:
 
 
 class TableIterator:
-    """ define the iteration interface on a table
+    """
+    Define the iteration interface on a table
 
-        Parameters
-        ----------
-
-        store : the reference store
-        s     : the referred storer
-        func  : the function to execute the query
-        where : the where of the query
-        nrows : the rows to iterate on
-        start : the passed start value (default is None)
-        stop  : the passed stop value (default is None)
-        iterator : bool, default False
-            Whether to use the default iterator.
-        chunksize : the passed chunking value (default is 100000)
-        auto_close : boolean, automatically close the store at the end of
-            iteration, default is False
-        """
+    Parameters
+    ----------
+    store : HDFStore
+    s     : the referred storer
+    func  : the function to execute the query
+    where : the where of the query
+    nrows : the rows to iterate on
+    start : the passed start value (default is None)
+    stop  : the passed stop value (default is None)
+    iterator : bool, default False
+        Whether to use the default iterator.
+    chunksize : the passed chunking value (default is 100000)
+    auto_close : bool, default False
+        Whether to automatically close the store at the end of iteration.
+    """
 
     chunksize: Optional[int]
     store: HDFStore
@@ -2541,10 +2541,6 @@ class Fixed:
         return new_self
 
     @property
-    def storage_obj_type(self):
-        return self.obj_type
-
-    @property
     def shape(self):
         return self.nrows
 
@@ -2567,10 +2563,6 @@ class Fixed:
     @property
     def _fletcher32(self) -> bool:
         return self.parent._fletcher32
-
-    @property
-    def _complib(self):
-        return self.parent._complib
 
     @property
     def attrs(self):
@@ -3298,12 +3290,12 @@ class Table(Fixed):
     def queryables(self) -> Dict[str, Any]:
         """ return a dict of the kinds allowable columns for this object """
 
+        # mypy doesnt recognize DataFrame._AXIS_NAMES, so we re-write it here
+        axis_names = {0: "index", 1: "columns"}
+
         # compute the values_axes queryables
         d1 = [(a.cname, a) for a in self.index_axes]
-        d2 = [
-            (self.storage_obj_type._AXIS_NAMES[axis], None)
-            for axis, values in self.non_index_axes
-        ]
+        d2 = [(axis_names[axis], None) for axis, values in self.non_index_axes]
         d3 = [
             (v.cname, v) for v in self.values_axes if v.name in set(self.data_columns)
         ]
@@ -3482,9 +3474,7 @@ class Table(Fixed):
 
     def create_index(self, columns=None, optlevel=None, kind: Optional[str] = None):
         """
-        Create a pytables index on the specified columns
-          note: cannot index Time64Col() or ComplexCol currently;
-          PyTables must be >= 3.0
+        Create a pytables index on the specified columns.
 
         Parameters
         ----------
@@ -3499,12 +3489,16 @@ class Table(Fixed):
         optlevel : int or None, default None
             Optimization level, if None, pytables defaults to 6.
         kind : str or None, default None
-            Kind of index, if None, pytables defaults to "medium"
+            Kind of index, if None, pytables defaults to "medium".
 
         Raises
         ------
-        raises if the node is not a table
+        TypeError if trying to create an index on a complex-type column.
 
+        Notes
+        -----
+        Cannot index Time64Col or ComplexCol.
+        Pytables must be >= 3.0.
         """
 
         if not self.infer_axes():
@@ -4404,7 +4398,6 @@ class AppendableSeriesTable(AppendableFrameTable):
     table_type = "appendable_series"
     ndim = 2
     obj_type = Series
-    storage_obj_type = DataFrame
 
     @property
     def is_transposed(self) -> bool:
@@ -4792,7 +4785,8 @@ def _convert_string_array(data: np.ndarray, encoding: str, errors: str) -> np.nd
     ----------
     data : np.ndarray[object]
     encoding : str
-    errors : handler for encoding errors
+    errors : str
+        Handler for encoding errors.
 
     Returns
     -------
@@ -4813,13 +4807,15 @@ def _convert_string_array(data: np.ndarray, encoding: str, errors: str) -> np.nd
     return data
 
 
-def _unconvert_string_array(data, nan_rep, encoding: str, errors: str) -> np.ndarray:
+def _unconvert_string_array(
+    data: np.ndarray, nan_rep, encoding: str, errors: str
+) -> np.ndarray:
     """
-    inverse of _convert_string_array
+    Inverse of _convert_string_array.
 
     Parameters
     ----------
-    data : fixed length string dtyped array
+    data : np.ndarray[fixed-length-string]
     nan_rep : the storage repr of NaN
     encoding : str
     errors : str
