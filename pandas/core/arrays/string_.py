@@ -120,10 +120,6 @@ class StringArray(PandasArray):
     copy : bool, default False
         Whether to copy the array of data.
 
-    Notes
-    -----
-    StringArray returns a BooleanArray for comparison methods.
-
     Attributes
     ----------
     None
@@ -137,6 +133,10 @@ class StringArray(PandasArray):
     Series.str
         The string methods are available on Series backed by
         a StringArray.
+
+    Notes
+    -----
+    StringArray returns a BooleanArray for comparison methods.
 
     Examples
     --------
