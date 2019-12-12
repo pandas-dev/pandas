@@ -1726,10 +1726,16 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(df, expected)
 
     def test_constructor_datetimes_with_nulls(self):
-        # gh-15869
+        # gh-15869, GH#11220
         for arr in [
             np.array([None, None, None, None, datetime.now(), None]),
             np.array([None, None, datetime.now(), None]),
+            [[np.datetime64("NaT")], [None]],
+            [[np.datetime64("NaT")], [pd.NaT]],
+            [[None], [np.datetime64("NaT")]],
+            [[None], [pd.NaT]],
+            [[pd.NaT], [np.datetime64("NaT")]],
+            [[pd.NaT], [None]],
         ]:
             result = DataFrame(arr).dtypes
             expected = Series([np.dtype("datetime64[ns]")])
