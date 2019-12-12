@@ -1046,7 +1046,7 @@ class TestTimedeltaArraylikeAddSubOps:
         with pytest.raises(TypeError):
             vector - tdser
 
-    # TODO: box and de-duplicate
+    # TODO: parameterize over box and de-duplicate
     def test_tdi_add_sub_int(self, one):
         # Variants of `one` for #19012, deprecated GH#22535
         rng = timedelta_range("1 days 09:00:00", freq="H", periods=10)
@@ -1061,7 +1061,7 @@ class TestTimedeltaArraylikeAddSubOps:
         with pytest.raises(TypeError, match=msg):
             rng -= one
 
-    # TODO: box and de-duplicate
+    # TODO: parameterize over box and de-duplicate
     @pytest.mark.parametrize("box", [np.array, pd.Index])
     def test_tdi_add_sub_integer_array(self, box):
         # GH#19959, deprecated GH#22535
@@ -1081,7 +1081,7 @@ class TestTimedeltaArraylikeAddSubOps:
         with pytest.raises(TypeError, match=msg):
             other - rng
 
-    # TODO: box and de-duplicate
+    # TODO: parameterize over box and de-duplicate
     @pytest.mark.parametrize("box", [np.array, pd.Index])
     def test_tdi_addsub_integer_array_no_freq(self, box):
         # GH#19959
