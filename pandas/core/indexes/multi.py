@@ -2879,37 +2879,37 @@ class MultiIndex(Index):
 
     def get_locs(self, seq):
         """
-        Get location for a given label/slice/list/mask or a sequence of such as
-        an array of integers.
+        Get location for a sequence of labels.
 
         Parameters
         ----------
-        seq : label/slice/list/mask or a sequence of such
+        seq : label, slice, list, mask or a sequence of such
            You should use one of the above for each level.
            If a level should not be used, set it to ``slice(None)``.
 
         Returns
         -------
-        locs : array of integers suitable for passing to iloc
-
-        Examples
-        --------
-        >>> mi = pd.MultiIndex.from_arrays([list('abb'), list('def')])
-
-        >>> mi.get_locs('b')
-        array([1, 2], dtype=int64)
-
-        >>> mi.get_locs([slice(None), ['e', 'f']])
-        array([1, 2], dtype=int64)
-
-        >>> mi.get_locs([[True, False, True], slice('e', 'f')])
-        array([2], dtype=int64)
+        numpy.ndarray
+            NumPy array of integers suitable for passing to iloc.
 
         See Also
         --------
         MultiIndex.get_loc : Get location for a label or a tuple of labels.
         MultiIndex.slice_locs : Get slice location given start label(s) and
                                 end label(s).
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_arrays([list('abb'), list('def')])
+
+        >>> mi.get_locs('b')  # doctest: +SKIP
+        array([1, 2], dtype=int64)
+
+        >>> mi.get_locs([slice(None), ['e', 'f']])  # doctest: +SKIP
+        array([1, 2], dtype=int64)
+
+        >>> mi.get_locs([[True, False, True], slice('e', 'f')])  # doctest: +SKIP
+        array([2], dtype=int64)
         """
         from .numeric import Int64Index
 
