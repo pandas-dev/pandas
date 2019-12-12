@@ -1965,7 +1965,9 @@ class IndexCol:
         return getattr(self.table.cols, self.cname).is_indexed  # type: ignore
 
     def convert(self, values: np.ndarray, nan_rep, encoding: str, errors: str):
-        """ set the values from this selection: take = take ownership """
+        """
+        Convert the data from this selection to the appropriate pandas type.
+        """
         assert isinstance(values, np.ndarray), type(values)
 
         # values is a recarray
@@ -1991,7 +1993,7 @@ class IndexCol:
             new_pd_index = Index(values, **kwargs)
 
         new_pd_index = _set_tz(new_pd_index, self.tz)
-        self.values = new_pd_index
+        return new_pd_index, new_pd_index
 
     def take_data(self):
         """ return the values"""
@@ -2144,7 +2146,7 @@ class GenericIndexCol(IndexCol):
 
     def convert(self, values: np.ndarray, nan_rep, encoding: str, errors: str):
         """
-        Set the values from this selection.
+        Convert the data from this selection to the appropriate pandas type.
 
         Parameters
         ----------
@@ -2154,7 +2156,9 @@ class GenericIndexCol(IndexCol):
         errors : str
         """
         assert isinstance(values, np.ndarray), type(values)
-        self.values = Int64Index(np.arange(len(values)))
+
+        values = Int64Index(np.arange(len(values)))
+        return values, values
 
     def set_attr(self):
         pass
@@ -2338,8 +2342,20 @@ class DataCol(IndexCol):
                 )
 
     def convert(self, values: np.ndarray, nan_rep, encoding: str, errors: str):
-        """set the data from this selection (and convert to the correct dtype
-        if we can)
+        """
+        Convert the data from this selection to the appropriate pandas type.
+
+        Parameters
+        ----------
+        values : np.ndarray
+        nan_rep :
+        encoding : str
+        errors : str
+
+        Returns
+        -------
+        index : listlike to become an Index
+        data : ndarraylike to become a column
         """
         assert isinstance(values, np.ndarray), type(values)
 
@@ -2349,44 +2365,50 @@ class DataCol(IndexCol):
 
         assert self.typ is not None
         if self.dtype is None:
-            self.set_data(values)
+            # Note: in tests we never have timedelta64 or datetime64,
+            #  so the _get_data_and_dtype_name may be unnecessary
+            converted, dtype_name = _get_data_and_dtype_name(values)
+            kind = _dtype_to_kind(dtype_name)
         else:
-            self.data = values
+            converted = values
+            dtype_name = self.dtype
+            kind = self.kind
 
-        own_data = self.data
-        assert isinstance(own_data, np.ndarray)  # for mypy
+        assert isinstance(converted, np.ndarray)  # for mypy
 
         # use the meta if needed
         meta = _ensure_decoded(self.meta)
+        metadata = self.metadata
+        ordered = self.ordered
+        tz = self.tz
 
-        assert self.dtype is not None
-
+        assert dtype_name is not None
         # convert to the correct dtype
-        dtype = _ensure_decoded(self.dtype)
+        dtype = _ensure_decoded(dtype_name)
 
         # reverse converts
         if dtype == "datetime64":
 
             # recreate with tz if indicated
-            own_data = _set_tz(own_data, self.tz, coerce=True)
+            converted = _set_tz(converted, tz, coerce=True)
 
         elif dtype == "timedelta64":
-            own_data = np.asarray(own_data, dtype="m8[ns]")
+            converted = np.asarray(converted, dtype="m8[ns]")
         elif dtype == "date":
             try:
-                own_data = np.asarray(
-                    [date.fromordinal(v) for v in own_data], dtype=object
+                converted = np.asarray(
+                    [date.fromordinal(v) for v in converted], dtype=object
                 )
             except ValueError:
-                own_data = np.asarray(
-                    [date.fromtimestamp(v) for v in own_data], dtype=object
+                converted = np.asarray(
+                    [date.fromtimestamp(v) for v in converted], dtype=object
                 )
 
         elif meta == "category":
 
             # we have a categorical
-            categories = self.metadata
-            codes = own_data.ravel()
+            categories = metadata
+            codes = converted.ravel()
 
             # if we have stored a NaN in the categories
             # then strip it; in theory we could have BOTH
@@ -2403,24 +2425,24 @@ class DataCol(IndexCol):
                     categories = categories[~mask]
                     codes[codes != -1] -= mask.astype(int).cumsum().values
 
-            own_data = Categorical.from_codes(
-                codes, categories=categories, ordered=self.ordered
+            converted = Categorical.from_codes(
+                codes, categories=categories, ordered=ordered
             )
 
         else:
 
             try:
-                own_data = own_data.astype(dtype, copy=False)
+                converted = converted.astype(dtype, copy=False)
             except TypeError:
-                own_data = own_data.astype("O", copy=False)
+                converted = converted.astype("O", copy=False)
 
         # convert nans / decode
-        if _ensure_decoded(self.kind) == "string":
-            own_data = _unconvert_string_array(
-                own_data, nan_rep=nan_rep, encoding=encoding, errors=errors
+        if _ensure_decoded(kind) == "string":
+            converted = _unconvert_string_array(
+                converted, nan_rep=nan_rep, encoding=encoding, errors=errors
             )
 
-        self.data = own_data
+        return self.values, converted
 
     def set_attr(self):
         """ set the data for this column """
@@ -3552,9 +3574,9 @@ class Table(Fixed):
                         )
                     v.create_index(**kw)
 
-    def read_axes(
+    def _read_axes(
         self, where, start: Optional[int] = None, stop: Optional[int] = None
-    ) -> bool:
+    ) -> List[Tuple[ArrayLike, ArrayLike]]:
         """
         Create the axes sniffed from the table.
 
@@ -3566,32 +3588,26 @@ class Table(Fixed):
 
         Returns
         -------
-        bool
-            Indicates success.
+        List[Tuple[index_values, column_values]]
         """
-
-        # validate the version
-        self.validate_version(where)
-
-        # infer the data kind
-        if not self.infer_axes():
-            return False
 
         # create the selection
         selection = Selection(self, where=where, start=start, stop=stop)
         values = selection.select()
 
+        results = []
         # convert the data
         for a in self.axes:
             a.set_info(self.info)
-            a.convert(
+            res = a.convert(
                 values,
                 nan_rep=self.nan_rep,
                 encoding=self.encoding,
                 errors=self.errors,
             )
+            results.append(res)
 
-        return True
+        return results
 
     def get_object(self, obj, transposed: bool):
         """ return the data for this obj """
@@ -4038,13 +4054,13 @@ class Table(Fixed):
                 # column must be an indexable or a data column
                 c = getattr(self.table.cols, column)
                 a.set_info(self.info)
-                a.convert(
+                col_values = a.convert(
                     c[start:stop],
                     nan_rep=self.nan_rep,
                     encoding=self.encoding,
                     errors=self.errors,
                 )
-                return Series(_set_tz(a.take_data(), a.tz), name=column)
+                return Series(_set_tz(col_values[1], a.tz), name=column)
 
         raise KeyError(f"column [{column}] not found in the table")
 
@@ -4328,34 +4344,50 @@ class AppendableFrameTable(AppendableTable):
         stop: Optional[int] = None,
     ):
 
-        if not self.read_axes(where=where, start=start, stop=stop):
+        # validate the version
+        self.validate_version(where)
+
+        # infer the data kind
+        if not self.infer_axes():
             return None
+
+        result = self._read_axes(where=where, start=start, stop=stop)
 
         info = (
             self.info.get(self.non_index_axes[0][0], dict())
             if len(self.non_index_axes)
             else dict()
         )
-        index = self.index_axes[0].values
+
+        inds = [i for i, ax in enumerate(self.axes) if ax is self.index_axes[0]]
+        assert len(inds) == 1
+        ind = inds[0]
+
+        index = result[ind][0]
+
         frames = []
-        for a in self.values_axes:
+        for i, a in enumerate(self.axes):
+            if a not in self.values_axes:
+                continue
+            index_vals, cvalues = result[i]
 
             # we could have a multi-index constructor here
             # ensure_index doesn't recognized our list-of-tuples here
             if info.get("type") == "MultiIndex":
-                cols = MultiIndex.from_tuples(a.values)
+                cols = MultiIndex.from_tuples(index_vals)
             else:
-                cols = Index(a.values)
+                cols = Index(index_vals)
+
             names = info.get("names")
             if names is not None:
                 cols.set_names(names, inplace=True)
 
             if self.is_transposed:
-                values = a.cvalues
+                values = cvalues
                 index_ = cols
                 cols_ = Index(index, name=getattr(index, "name", None))
             else:
-                values = a.cvalues.T
+                values = cvalues.T
                 index_ = Index(index, name=getattr(index, "name", None))
                 cols_ = cols
 
