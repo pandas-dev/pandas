@@ -249,6 +249,6 @@ class CSSResolver:
                 yield prop, val
             else:
                 warnings.warn(
-                    "Ill-formatted attribute: expected a colon " f"in {repr(decl)}",
+                    f"Ill-formatted attribute: expected a colon in {repr(decl)}",
                     CSSWarning,
                 )

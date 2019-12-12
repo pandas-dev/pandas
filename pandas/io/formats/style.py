@@ -622,26 +622,24 @@ class Styler:
             if not isinstance(result, pd.DataFrame):
                 raise TypeError(
                     f"Function {repr(func)} must return a DataFrame when "
-                    "passed to `Styler.apply` with axis=None"
+                    f"passed to `Styler.apply` with axis=None"
                 )
             if not (
                 result.index.equals(data.index) and result.columns.equals(data.columns)
             ):
-                msg = (
-                    f"Result of {repr(func)} must have identical index and "
-                    "columns as the input"
+                raise ValueError(
+                    f"Result of {repr(func)} must have identical "
+                    f"index and columns as the input"
                 )
-                raise ValueError(msg)
 
         result_shape = result.shape
         expected_shape = self.data.loc[subset].shape
         if result_shape != expected_shape:
-            msg = (
+            raise ValueError(
                 f"Function {repr(func)} returned the wrong shape.\n"
-                "Result has shape: {result.shape}\n"
-                "Expected shape:   {expected_shape}"
+                f"Result has shape: {result.shape}\n"
+                f"Expected shape:   {expected_shape}"
             )
-            raise ValueError(msg)
         self._update_ctx(result)
         return self
 
