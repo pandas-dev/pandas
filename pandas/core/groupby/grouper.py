@@ -491,10 +491,7 @@ def get_grouper(
                     raise ValueError("multiple levels only valid with MultiIndex")
 
             if isinstance(level, str):
-                if axis == 0:
-                    axis_name = "index"
-                else:
-                    axis_name = "columns"
+                axis_name = obj._get_axis_name(axis)
                 if getattr(obj, axis_name).name != level:
                     raise ValueError(
                         f"level name {level} is not the name of the {axis_name}"
