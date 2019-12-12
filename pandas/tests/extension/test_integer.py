@@ -229,7 +229,7 @@ class TestBooleanReduce(base.BaseBooleanReduceTests):
     pass
 
 
-class TestNumeriAccumulation(base.BaseNumericAccumulateTests):
+class TestNumericAccumulation(base.BaseNumericAccumulateTests):
     pass
 
 
