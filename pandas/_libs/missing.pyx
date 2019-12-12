@@ -290,7 +290,8 @@ def _create_binary_propagating_op(name, divmod=False):
 
     def method(self, other):
         if (other is C_NA or isinstance(other, str)
-                or isinstance(other, (numbers.Number, np.bool_))):
+                or isinstance(other, (numbers.Number, np.bool_, np.int64, np.int_))
+                or isinstance(other, np.ndarray) and not other.shape):
             if divmod:
                 return NA, NA
             else:
@@ -308,6 +309,98 @@ def _create_unary_propagating_op(name):
 
     method.__name__ = name
     return method
+
+
+def maybe_dispatch_ufunc_to_dunder_op(
+    object self, object ufunc, str method, *inputs, **kwargs
+):
+    """
+    Dispatch a ufunc to the equivalent dunder method.
+
+    Parameters
+    ----------
+    self : ArrayLike
+        The array whose dunder method we dispatch to
+    ufunc : Callable
+        A NumPy ufunc
+    method : {'reduce', 'accumulate', 'reduceat', 'outer', 'at', '__call__'}
+    inputs : ArrayLike
+        The input arrays.
+    kwargs : Any
+        The additional keyword arguments, e.g. ``out``.
+
+    Returns
+    -------
+    result : Any
+        The result of applying the ufunc
+    """
+    # special has the ufuncs we dispatch to the dunder op on
+    special = {
+        "add",
+        "sub",
+        "mul",
+        "pow",
+        "mod",
+        "floordiv",
+        "truediv",
+        "divmod",
+        "eq",
+        "ne",
+        "lt",
+        "gt",
+        "le",
+        "ge",
+        "remainder",
+        "matmul",
+        "or",
+        "xor",
+        "and",
+    }
+    aliases = {
+        "subtract": "sub",
+        "multiply": "mul",
+        "floor_divide": "floordiv",
+        "true_divide": "truediv",
+        "power": "pow",
+        "remainder": "mod",
+        "divide": "div",
+        "equal": "eq",
+        "not_equal": "ne",
+        "less": "lt",
+        "less_equal": "le",
+        "greater": "gt",
+        "greater_equal": "ge",
+        "bitwise_or": "or",
+        "bitwise_and": "and",
+        "bitwise_xor": "xor",
+    }
+
+    # For op(., Array) -> Array.__r{op}__
+    flipped = {
+        "lt": "__gt__",
+        "le": "__ge__",
+        "gt": "__lt__",
+        "ge": "__le__",
+        "eq": "__eq__",
+        "ne": "__ne__",
+    }
+
+    op_name = ufunc.__name__
+    op_name = aliases.get(op_name, op_name)
+
+    def not_implemented(*args, **kwargs):
+        return NotImplemented
+
+    if method == "__call__" and op_name in special and kwargs.get("out") is None:
+        if isinstance(inputs[0], type(self)):
+            name = "__{}__".format(op_name)
+            return getattr(self, name, not_implemented)(inputs[1])
+        else:
+            name = flipped.get(op_name, "__r{}__".format(op_name))
+            result =  getattr(self, name, not_implemented)(inputs[0])
+            return result
+    else:
+        return NotImplemented
 
 
 cdef class C_NAType:
@@ -433,6 +526,27 @@ class NAType(C_NAType):
         return NotImplemented
 
     __rxor__ = __xor__
+
+    # What else to add here? datetime / Timestamp? Period? Interval?
+    # Note: we only handle 0-d ndarrays.
+    __array_priority__ = 1000
+    _HANDLED_TYPES = (np.ndarray, numbers.Number, str, np.bool_, np.int64)
+
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        types = self._HANDLED_TYPES + (NAType,)
+        for x in inputs:
+            if not isinstance(x, types):
+                return NotImplemented
+
+        if method != "__call__":
+            raise ValueError(f"ufunc method '{method}' not supported for NA")
+        result = maybe_dispatch_ufunc_to_dunder_op(self, ufunc, method, *inputs, **kwargs)
+        if result is NotImplemented:
+            if ufunc.nout == 1:
+                result = NA
+            else:
+                result = (NA,) * ufunc.nout
+        return result
 
 
 C_NA = NAType()   # C-visible

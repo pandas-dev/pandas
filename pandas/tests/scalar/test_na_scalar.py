@@ -58,12 +58,6 @@ def test_comparison_ops():
         assert (NA >= other) is NA
         assert (NA < other) is NA
         assert (NA <= other) is NA
-
-        if isinstance(other, (np.int64, np.bool_)):
-            # for numpy scalars we get a deprecation warning and False as result
-            # for equality or error for larger/lesser than
-            continue
-
         assert (other == NA) is NA
         assert (other != NA) is NA
         assert (other > NA) is NA
@@ -175,3 +169,18 @@ def test_series_isna():
     s = pd.Series([1, NA], dtype=object)
     expected = pd.Series([False, True])
     tm.assert_series_equal(s.isna(), expected)
+
+
+def test_ufunc():
+    assert np.log(pd.NA) is pd.NA
+    assert np.add(pd.NA, 1) is pd.NA
+    result = np.divmod(pd.NA, 1)
+    assert result[0] is pd.NA and result[1] is pd.NA
+
+    result = np.frexp(pd.NA)
+    assert result[0] is pd.NA and result[1] is pd.NA
+
+
+def test_ufunc_raises():
+    with pytest.raises(ValueError, match="ufunc method 'at'"):
+        np.log.at(pd.NA, 0)
