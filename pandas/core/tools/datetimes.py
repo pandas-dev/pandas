@@ -838,19 +838,16 @@ def _assemble_from_unit_mappings(arg, errors, tz):
     )
     try:
         values = to_datetime(values, format="%Y%m%d", errors=errors, utc=tz)
-    except (TypeError, ValueError) as e:
-        raise ValueError("cannot assemble the datetimes: {error}".format(error=e))
+    except (TypeError, ValueError) as err:
+        raise ValueError(f"cannot assemble the datetimes: {err}")
 
     for u in ["h", "m", "s", "ms", "us", "ns"]:
         value = unit_rev.get(u)
         if value is not None and value in arg:
             try:
                 values += to_timedelta(coerce(arg[value]), unit=u, errors=errors)
-            except (TypeError, ValueError) as e:
-                raise ValueError(
-                    "cannot assemble the datetimes [{value}]: "
-                    "{error}".format(value=value, error=e)
-                )
+            except (TypeError, ValueError) as err:
+                raise ValueError(f"cannot assemble the datetimes [{value}]: {err}")
     return values
 
 
@@ -886,21 +883,21 @@ def _attempt_YYYYMMDD(arg, errors):
     # try intlike / strings that are ints
     try:
         return calc(arg.astype(np.int64))
-    except (ValueError, OverflowError):
+    except (ValueError, OverflowError, TypeError):
         pass
 
     # a float with actual np.nan
     try:
         carg = arg.astype(np.float64)
         return calc_with_mask(carg, notna(carg))
-    except (ValueError, OverflowError):
+    except (ValueError, OverflowError, TypeError):
         pass
 
     # string with NaN-like
     try:
         mask = ~algorithms.isin(arg, list(tslib.nat_strings))
         return calc_with_mask(arg, mask)
-    except (ValueError, OverflowError):
+    except (ValueError, OverflowError, TypeError):
         pass
 
     return None
