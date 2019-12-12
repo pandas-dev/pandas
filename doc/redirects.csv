@@ -491,7 +491,6 @@ generated/pandas.DataFrame.to_hdf,../reference/api/pandas.DataFrame.to_hdf
 generated/pandas.DataFrame.to,../reference/api/pandas.DataFrame.to
 generated/pandas.DataFrame.to_json,../reference/api/pandas.DataFrame.to_json
 generated/pandas.DataFrame.to_latex,../reference/api/pandas.DataFrame.to_latex
-generated/pandas.DataFrame.to_msgpack,../reference/api/pandas.DataFrame.to_msgpack
 generated/pandas.DataFrame.to_numpy,../reference/api/pandas.DataFrame.to_numpy
 generated/pandas.DataFrame.to_panel,../reference/api/pandas.DataFrame.to_panel
 generated/pandas.DataFrame.to_parquet,../reference/api/pandas.DataFrame.to_parquet
@@ -889,7 +888,6 @@ generated/pandas.read_gbq,../reference/api/pandas.read_gbq
 generated/pandas.read_hdf,../reference/api/pandas.read_hdf
 generated/pandas.read,../reference/api/pandas.read
 generated/pandas.read_json,../reference/api/pandas.read_json
-generated/pandas.read_msgpack,../reference/api/pandas.read_msgpack
 generated/pandas.read_parquet,../reference/api/pandas.read_parquet
 generated/pandas.read_pickle,../reference/api/pandas.read_pickle
 generated/pandas.read_sas,../reference/api/pandas.read_sas
@@ -1230,7 +1228,6 @@ generated/pandas.Series.to_json,../reference/api/pandas.Series.to_json
 generated/pandas.Series.to_latex,../reference/api/pandas.Series.to_latex
 generated/pandas.Series.to_list,../reference/api/pandas.Series.to_list
 generated/pandas.Series.tolist,../reference/api/pandas.Series.tolist
-generated/pandas.Series.to_msgpack,../reference/api/pandas.Series.to_msgpack
 generated/pandas.Series.to_numpy,../reference/api/pandas.Series.to_numpy
 generated/pandas.Series.to_period,../reference/api/pandas.Series.to_period
 generated/pandas.Series.to_pickle,../reference/api/pandas.Series.to_pickle
