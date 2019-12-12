@@ -94,6 +94,10 @@ l. For ``StringDtype``, :ref:`string accessor methods<api.series.str>`
 2. Some string methods, like :meth:`Series.str.decode` are not available
    on ``StringArray`` because ``StringArray`` only holds strings, not
    bytes.
+3. In comparision operations, :class:`StringArray` and ``Series`` backed
+   by a ``StringArray`` will return a :class:`BooleanArray`, rather than
+   a ``bool`` or ``object`` dtype array, depending on whether there are
+   missing values.
 
 
 Everything else that follows in the rest of this document applies equally to
