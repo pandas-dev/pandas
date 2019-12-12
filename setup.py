@@ -6,6 +6,7 @@ Parts of this file were taken from the pyzmq project
 BSD license. Parts are from lxml (https://github.com/lxml/lxml)
 """
 
+import argparse
 from distutils.sysconfig import get_config_vars
 from distutils.version import LooseVersion
 import os
@@ -129,12 +130,7 @@ class build_ext(_build_ext):
         if cython:
             self.render_templates(_pxifiles)
 
-        numpy_incl = pkg_resources.resource_filename("numpy", "core/include")
-
-        for ext in self.extensions:
-            if hasattr(ext, "include_dirs") and numpy_incl not in ext.include_dirs:
-                ext.include_dirs.append(numpy_incl)
-        _build_ext.build_extensions(self)
+        super().build_extensions()
 
 
 DESCRIPTION = "Powerful data structures for data analysis, time series, and statistics"
@@ -351,8 +347,6 @@ class CheckSDist(sdist_class):
 
     _cpp_pyxfiles = [
         "pandas/_libs/window/aggregations.pyx",
-        "pandas/io/msgpack/_packer.pyx",
-        "pandas/io/msgpack/_unpacker.pyx",
     ]
 
     def initialize_options(self):
@@ -530,6 +524,19 @@ def maybe_cythonize(extensions, *args, **kwargs):
         if hasattr(ext, "include_dirs") and numpy_incl not in ext.include_dirs:
             ext.include_dirs.append(numpy_incl)
 
+    # reuse any parallel arguments provided for compliation to cythonize
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-j", type=int)
+    parser.add_argument("--parallel", type=int)
+    parsed, _ = parser.parse_known_args()
+
+    nthreads = 0
+    if parsed.parallel:
+        nthreads = parsed.parallel
+    elif parsed.j:
+        nthreads = parsed.j
+
+    kwargs["nthreads"] = nthreads
     build_ext.render_templates(_pxifiles)
     return cythonize(extensions, *args, **kwargs)
 
@@ -684,30 +691,6 @@ ext_data = {
     "_libs.window.indexers": {"pyxfile": "_libs/window/indexers"},
     "_libs.writers": {"pyxfile": "_libs/writers"},
     "io.sas._sas": {"pyxfile": "io/sas/sas"},
-    "io.msgpack._packer": {
-        "macros": endian_macro + macros,
-        "depends": [
-            "pandas/_libs/src/msgpack/pack.h",
-            "pandas/_libs/src/msgpack/pack_template.h",
-        ],
-        "language": "c++",
-        "suffix": ".cpp",
-        "pyxfile": "io/msgpack/_packer",
-        "subdir": "io/msgpack",
-    },
-    "io.msgpack._unpacker": {
-        "depends": [
-            "pandas/_libs/src/msgpack/unpack.h",
-            "pandas/_libs/src/msgpack/unpack_define.h",
-            "pandas/_libs/src/msgpack/unpack_template.h",
-        ],
-        "include": ["pandas/_libs/src"],
-        "macros": endian_macro + macros,
-        "language": "c++",
-        "suffix": ".cpp",
-        "pyxfile": "io/msgpack/_unpacker",
-        "subdir": "io/msgpack",
-    },
 }
 
 extensions = []
@@ -769,19 +752,6 @@ ujson_ext = Extension(
 
 
 extensions.append(ujson_ext)
-
-# ----------------------------------------------------------------------
-# util
-# extension for pseudo-safely moving bytes into mutable buffers
-_move_ext = Extension(
-    "pandas.util._move",
-    depends=[],
-    sources=["pandas/util/move.c"],
-    define_macros=macros,
-    extra_compile_args=extra_compile_args,
-    extra_link_args=extra_link_args,
-)
-extensions.append(_move_ext)
 
 # ----------------------------------------------------------------------
 
