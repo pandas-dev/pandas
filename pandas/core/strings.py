@@ -301,7 +301,7 @@ def str_count(arr, pat, flags=0):
     """
     regex = re.compile(pat, flags=flags)
     f = lambda x: len(regex.findall(x))
-    return _na_map(f, arr, dtype=int)
+    return _na_map(f, arr, dtype="int64")
 
 
 def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
@@ -1367,7 +1367,7 @@ def str_find(arr, sub, start=0, end=None, side="left"):
     else:
         f = lambda x: getattr(x, method)(sub, start, end)
 
-    return _na_map(f, arr, dtype=int)
+    return _na_map(f, arr, dtype="int64")
 
 
 def str_index(arr, sub, start=0, end=None, side="left"):
@@ -1387,7 +1387,7 @@ def str_index(arr, sub, start=0, end=None, side="left"):
     else:
         f = lambda x: getattr(x, method)(sub, start, end)
 
-    return _na_map(f, arr, dtype=int)
+    return _na_map(f, arr, dtype="int64")
 
 
 def str_pad(arr, width, side="left", fillchar=" "):
@@ -3212,7 +3212,7 @@ class StringMethods(NoNewAttributesMixin):
         len,
         docstring=_shared_docs["len"],
         forbidden_types=None,
-        dtype=int,
+        dtype="int64",
         returns_string=False,
     )
 
