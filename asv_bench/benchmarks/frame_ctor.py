@@ -105,4 +105,16 @@ class FromLists:
         self.df = DataFrame(self.data)
 
 
+class FromRange:
+
+    goal_time = 0.2
+
+    def setup(self):
+        N = 1_000_000
+        self.data = range(N)
+
+    def time_frame_from_range(self):
+        self.df = DataFrame(self.data)
+
+
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

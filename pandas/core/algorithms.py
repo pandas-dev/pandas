@@ -391,16 +391,15 @@ def isin(comps, values) -> np.ndarray:
     ndarray[bool]
         Same length as `comps`.
     """
-
     if not is_list_like(comps):
         raise TypeError(
-            "only list-like objects are allowed to be passed"
-            f" to isin(), you passed a [{type(comps).__name__}]"
+            "only list-like objects are allowed to be passed "
+            f"to isin(), you passed a [{type(comps).__name__}]"
         )
     if not is_list_like(values):
         raise TypeError(
-            "only list-like objects are allowed to be passed"
-            f" to isin(), you passed a [{type(values).__name__}]"
+            "only list-like objects are allowed to be passed "
+            f"to isin(), you passed a [{type(values).__name__}]"
         )
 
     if not isinstance(values, (ABCIndex, ABCSeries, np.ndarray)):
@@ -421,7 +420,7 @@ def isin(comps, values) -> np.ndarray:
 
     # GH16012
     # Ensure np.in1d doesn't get object types or it *may* throw an exception
-    if len(comps) > 1000000 and not is_object_dtype(comps):
+    if len(comps) > 1_000_000 and not is_object_dtype(comps):
         f = np.in1d
     elif is_integer_dtype(comps):
         try:
@@ -833,8 +832,8 @@ def mode(values, dropna: bool = True) -> ABCSeries:
     result = f(values, dropna=dropna)
     try:
         result = np.sort(result)
-    except TypeError as e:
-        warn(f"Unable to sort modes: {e}")
+    except TypeError as err:
+        warn(f"Unable to sort modes: {err}")
 
     result = _reconstruct_data(result, original.dtype, original)
     return Series(result)
@@ -1019,7 +1018,8 @@ def quantile(x, q, interpolation_method="fraction"):
     values = np.sort(x)
 
     def _interpolate(a, b, fraction):
-        """Returns the point at the given fraction between a and b, where
+        """
+        Returns the point at the given fraction between a and b, where
         'fraction' must be between 0 and 1.
         """
         return a + (b - a) * fraction
@@ -1192,7 +1192,8 @@ class SelectNFrame(SelectN):
                 )
 
         def get_indexer(current_indexer, other_indexer):
-            """Helper function to concat `current_indexer` and `other_indexer`
+            """
+            Helper function to concat `current_indexer` and `other_indexer`
             depending on `method`
             """
             if method == "nsmallest":
@@ -1660,7 +1661,7 @@ take_1d = take_nd
 
 def take_2d_multi(arr, indexer, fill_value=np.nan):
     """
-    Specialized Cython take which sets NaN values in one pass
+    Specialized Cython take which sets NaN values in one pass.
     """
     # This is only called from one place in DataFrame._reindex_multi,
     #  so we know indexer is well-behaved.
@@ -1988,8 +1989,8 @@ def safe_sort(
 
     if not is_list_like(codes):
         raise TypeError(
-            "Only list-like objects or None are allowed to be"
-            "passed to safe_sort as codes"
+            "Only list-like objects or None are allowed to "
+            "be passed to safe_sort as codes"
         )
     codes = ensure_platform_int(np.asarray(codes))
 

@@ -265,8 +265,8 @@ def array(
     )
 
     if lib.is_scalar(data):
-        msg = "Cannot pass scalar '{}' to 'pandas.array'."
-        raise ValueError(msg.format(data))
+        msg = f"Cannot pass scalar '{data}' to 'pandas.array'."
+        raise ValueError(msg)
 
     if dtype is None and isinstance(
         data, (ABCSeries, ABCIndexClass, ABCExtensionArray)
@@ -558,7 +558,7 @@ def _try_cast(
             # that Categorical is the only array type for 'category'.
             dtype = cast(CategoricalDtype, dtype)
             subarr = dtype.construct_array_type()(
-                arr, dtype.categories, ordered=dtype._ordered
+                arr, dtype.categories, ordered=dtype.ordered
             )
         elif is_extension_array_dtype(dtype):
             # create an extension array from its dtype
