@@ -2982,7 +2982,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         is_null_slicer = start is None and stop is None
         is_index_slice = is_int(start) and is_int(stop)
-        is_positional = is_index_slice and not self.is_integer()
+        is_positional = is_index_slice and not (
+            self.is_integer() or self.is_categorical()
+        )
 
         if kind == "getitem":
             """
