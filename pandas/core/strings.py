@@ -2,7 +2,7 @@ import codecs
 from functools import wraps
 import re
 import textwrap
-from typing import TYPE_CHECKING, Any, Callable, Dict, List
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Type, Union
 import warnings
 
 import numpy as np
@@ -158,6 +158,7 @@ def _map_stringarray(
     arr = np.asarray(arr)
 
     if is_integer_dtype(dtype) or is_bool_dtype(dtype):
+        constructor: Union[Type[IntegerArray], Type[BooleanArray]]
         if is_integer_dtype(dtype):
             constructor = IntegerArray
         else:
