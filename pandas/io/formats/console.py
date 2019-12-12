@@ -13,7 +13,6 @@ def get_console_size():
     from pandas import get_option
 
     display_width = get_option("display.width")
-    # deprecated.
     display_height = get_option("display.max_rows")
 
     # Consider

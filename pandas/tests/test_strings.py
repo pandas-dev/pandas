@@ -2974,14 +2974,10 @@ class TestStringMethods:
         # GH 22676; depr kwarg "pat" in favor of "sep"
         values = Series(["a_b_c", "c_d_e", np.nan, "f_g_h"])
 
-        # str.partition
-        # using sep -> no warning
         expected = values.str.partition(sep="_")
         result = values.str.partition("_")
         tm.assert_frame_equal(result, expected)
 
-        # str.rpartition
-        # using sep -> no warning
         expected = values.str.rpartition(sep="_")
         result = values.str.rpartition("_")
         tm.assert_frame_equal(result, expected)
