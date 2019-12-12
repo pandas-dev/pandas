@@ -1844,6 +1844,7 @@ class TestTimestampSeriesArithmetic:
         with pytest.raises(TypeError, match=msg):
             one / dt64_series
 
+    # TODO: parametrize over box
     @pytest.mark.parametrize("op", ["__add__", "__radd__", "__sub__", "__rsub__"])
     @pytest.mark.parametrize("tz", [None, "Asia/Tokyo"])
     def test_dt64_series_add_intlike(self, tz, op):
