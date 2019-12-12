@@ -2113,10 +2113,6 @@ class IndexCol:
         if idx is not None:
             self.__dict__.update(idx)
 
-    def get_attr(self):
-        """ set the kind for this column """
-        self.kind = getattr(self.attrs, self.kind_attr, None)
-
     def set_attr(self):
         """ set the kind for this column """
         setattr(self.attrs, self.kind_attr, self.kind)
@@ -2164,9 +2160,6 @@ class GenericIndexCol(IndexCol):
 
         values = Int64Index(np.arange(len(values)))
         return values, values
-
-    def get_attr(self):
-        pass
 
     def set_attr(self):
         pass
@@ -2383,6 +2376,8 @@ class DataCol(IndexCol):
             dtype_name = self.dtype
             kind = self.kind
 
+        assert isinstance(converted, np.ndarray)  # for mypy
+
         # use the meta if needed
         meta = _ensure_decoded(self.meta)
         metadata = self.metadata
@@ -2451,15 +2446,6 @@ class DataCol(IndexCol):
 
         return self.values, converted
 
-    def get_attr(self):
-        """ get the data for this column """
-        self.values = getattr(self.attrs, self.kind_attr, None)
-        self.dtype = getattr(self.attrs, self.dtype_attr, None)
-        self.meta = getattr(self.attrs, self.meta_attr, None)
-        assert self.typ is not None
-        assert self.dtype is not None
-        self.kind = _dtype_to_kind(self.dtype)
-
     def set_attr(self):
         """ set the data for this column """
         setattr(self.attrs, self.kind_attr, self.values)
@@ -2498,8 +2484,7 @@ class DataIndexableCol(DataCol):
 class GenericDataIndexableCol(DataIndexableCol):
     """ represent a generic pytables data column """
 
-    def get_attr(self):
-        pass
+    pass
 
 
 class Fixed:
@@ -3445,6 +3430,7 @@ class Table(Fixed):
         _indexables = []
 
         desc = self.description
+        table_attrs = self.table.attrs
 
         # Note: each of the `name` kwargs below are str, ensured
         #  by the definition in index_cols.
@@ -3453,16 +3439,20 @@ class Table(Fixed):
             atom = getattr(desc, name)
             md = self.read_metadata(name)
             meta = "category" if md is not None else None
+
+            kind_attr = f"{name}_kind"
+            kind = getattr(table_attrs, kind_attr, None)
+
             index_col = IndexCol(
                 name=name,
                 axis=axis,
                 pos=i,
+                kind=kind,
                 typ=atom,
                 table=self.table,
                 meta=meta,
                 metadata=md,
             )
-            index_col.get_attr()
             _indexables.append(index_col)
 
         # values columns
@@ -3477,18 +3467,29 @@ class Table(Fixed):
 
             atom = getattr(desc, c)
             adj_name = _maybe_adjust_name(c, self.version)
+
+            # TODO: why kind_attr here?
+            values = getattr(table_attrs, f"{adj_name}_kind", None)
+            dtype = getattr(table_attrs, f"{adj_name}_dtype", None)
+            kind = _dtype_to_kind(dtype)
+
             md = self.read_metadata(c)
-            meta = "category" if md is not None else None
+            # TODO: figure out why these two versions of `meta` dont always match.
+            #  meta = "category" if md is not None else None
+            meta = getattr(table_attrs, f"{adj_name}_meta", None)
+
             obj = klass(
                 name=adj_name,
                 cname=c,
+                values=values,
+                kind=kind,
                 pos=base_pos + i,
                 typ=atom,
                 table=self.table,
                 meta=meta,
                 metadata=md,
+                dtype=dtype,
             )
-            obj.get_attr()
             return obj
 
         # Note: the definition of `values_cols` ensures that each
@@ -4522,7 +4523,6 @@ class GenericTable(AppendableFrameTable):
         index_col = GenericIndexCol(
             name="index", axis=0, table=self.table, meta=meta, metadata=md
         )
-        index_col.get_attr()
 
         _indexables = [index_col]
 
@@ -4541,7 +4541,6 @@ class GenericTable(AppendableFrameTable):
                 meta=meta,
                 metadata=md,
             )
-            dc.get_attr()
             _indexables.append(dc)
 
         return _indexables
