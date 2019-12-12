@@ -669,19 +669,6 @@ def test_as_index_series_return_frame(df):
     tm.assert_frame_equal(result2, expected2)
 
 
-def test_as_index_selects_column():
-    # GH#5764 check that getitem actually selects the column
-    df = pd.DataFrame([[1, 2], [1, 4], [5, 6]], columns=["A", "B"])
-    gb = df.groupby("A", as_index=False)["B"]
-    result = gb.get_group(1)
-
-    expected = pd.Series([2, 4], index=[0, 1], name="B")
-    tm.assert_series_equal(result, expected)
-
-    result = gb.apply(lambda x: x.cumsum())
-    raise NotImplementedError
-
-
 def test_as_index_series_column_slice_raises(df):
     # GH15072
     grouped = df.groupby("A", as_index=False)
