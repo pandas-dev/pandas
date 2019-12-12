@@ -11,8 +11,7 @@ import pandas.util.testing as tm
 
 
 class TestCategoricalAnalytics:
-    def test_min_max(self):
-
+    def test_min_max_not_ordered(self):
         # unordered cats have no min/max
         cat = Categorical(["a", "b", "c", "d"], ordered=False)
         msg = "Categorical is not ordered for operation {}"
@@ -21,6 +20,7 @@ class TestCategoricalAnalytics:
         with pytest.raises(TypeError, match=msg.format("max")):
             cat.max()
 
+    def test_min_max_ordered(self):
         cat = Categorical(["a", "b", "c", "d"], ordered=True)
         _min = cat.min()
         _max = cat.max()
@@ -43,7 +43,7 @@ class TestCategoricalAnalytics:
             (Series(date_range("2020-01-01", periods=3), dtype="category"), NaT),
         ],
     )
-    def test_min_max_empty(self, categories, expected):
+    def test_min_max_ordered_empty(self, categories, expected):
         # GH 30227
         cat = Categorical([], categories=list("ABC"), ordered=True)
 
