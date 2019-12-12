@@ -628,6 +628,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - Removed previously deprecated ``errors`` argument in :meth:`Timestamp.tz_localize`, :meth:`DatetimeIndex.tz_localize`, and :meth:`Series.tz_localize` (:issue:`22644`)
 - Changed the default value for ``ordered`` in :class:`CategoricalDtype` from ``None`` to ``False`` (:issue:`26336`)
 - :meth:`Series.set_axis` and :meth:`DataFrame.set_axis` now require "labels" as the first argument and "axis" as an optional named parameter (:issue:`30089`)
+- Removed the previously deprecated :func:`to_msgpack`, :func:`read_msgpack`, :meth:`DataFrame.to_msgpack`, :meth:`Series.to_msgpack` (:issue:`27103`)
 -
 - Removed the previously deprecated keyword "fill_value" from :meth:`Categorical.fillna`, use "value" instead (:issue:`19269`)
 - Removed the previously deprecated keyword "data" from :func:`andrews_curves`, use "frame" instead (:issue:`6956`)
