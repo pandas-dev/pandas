@@ -2291,3 +2291,21 @@ def test_should_cache_errors(unique_share, check_count, err_message):
 
     with pytest.raises(AssertionError, match=err_message):
         tools.should_cache(arg, unique_share, check_count)
+
+def test_intarray_to_datetime():
+    # Test for #30050
+    ser = pd.Series([1, 2, None, 2 ** 61, None])
+    ser = ser.astype("Int64")
+
+    res = pd.to_datetime(ser, unit="ns")
+
+    expected = pd.Series(
+        [
+            np.datetime64("1970-01-01 00:00:00.000000001"),
+            np.datetime64("1970-01-01 00:00:00.000000002"),
+            np.datetime64("NaT"),
+            np.datetime64("2043-01-25 23:56:49.213693952"),
+            np.datetime64("NaT"),
+        ]
+    )
+    tm.assert_series_equal(res, expected)

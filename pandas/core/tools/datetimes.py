@@ -38,6 +38,8 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import notna
 
+from pandas._typing import ArrayLike
+from pandas.arrays import IntegerArray
 from pandas.core import algorithms
 from pandas.core.algorithms import unique
 
@@ -317,7 +319,20 @@ def _convert_listlike_datetimes(
         if format is not None:
             raise ValueError("cannot specify both format and unit")
         arg = getattr(arg, "values", arg)
-        result, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit, errors=errors)
+        # GH 30050 pass an ndarray to tslib.array_with_unit_to_datetime
+        # because it expects an ndarray argument
+        if isinstance(arg, IntegerArray):
+            arg_np = np.array(arg[np.logical_not(arg._mask)], dtype=type(arg[0]))
+            result_np, tz_parsed = tslib.array_with_unit_to_datetime(
+                arg_np, unit, errors=errors
+            )
+            result = np.empty(arg.shape[0], dtype="datetime64[" + unit + "]")
+            result[arg._mask] = np.datetime64("nat")
+            result[np.logical_not(arg._mask)] = result_np
+        else:
+            result, tz_parsed = tslib.array_with_unit_to_datetime(
+                arg, unit, errors=errors
+            )
         if errors == "ignore":
             from pandas import Index
 
