@@ -1676,7 +1676,6 @@ class Categorical(ExtensionArray, PandasObject):
         """
         return np.asarray(self)
 
-    @deprecate_kwarg(old_arg_name="fill_value", new_arg_name="value")
     def fillna(self, value=None, method=None, limit=None):
         """
         Fill NA/NaN values using the specified method.
