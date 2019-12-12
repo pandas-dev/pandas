@@ -2126,6 +2126,10 @@ class Categorical(ExtensionArray, PandasObject):
         min : the minimum of this `Categorical`
         """
         self.check_for_ordered("min")
+
+        if len(self._codes) == 0:
+            return np.nan
+
         good = self._codes != -1
         if not good.all():
             if skipna:
@@ -2153,6 +2157,10 @@ class Categorical(ExtensionArray, PandasObject):
         max : the maximum of this `Categorical`
         """
         self.check_for_ordered("max")
+
+        if len(self._codes) == 0:
+            return np.nan
+
         good = self._codes != -1
         if not good.all():
             if skipna:
