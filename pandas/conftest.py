@@ -163,7 +163,7 @@ _all_arithmetic_operators = [
 @pytest.fixture(params=_all_arithmetic_operators)
 def all_arithmetic_operators(request):
     """
-    Fixture for dunder names for common arithmetic operations
+    Fixture for dunder names for common arithmetic operations.
     """
     return request.param
 
@@ -190,7 +190,9 @@ def all_arithmetic_functions(request):
     """
     Fixture for operator and roperator arithmetic functions.
 
-    Note: This includes divmod and rdivmod, whereas all_arithmetic_operators
+    Notes
+    -----
+    This includes divmod and rdivmod, whereas all_arithmetic_operators
     does not.
     """
     return request.param
@@ -213,7 +215,7 @@ _all_numeric_reductions = [
 @pytest.fixture(params=_all_numeric_reductions)
 def all_numeric_reductions(request):
     """
-    Fixture for numeric reduction names
+    Fixture for numeric reduction names.
     """
     return request.param
 
@@ -224,7 +226,7 @@ _all_boolean_reductions = ["all", "any"]
 @pytest.fixture(params=_all_boolean_reductions)
 def all_boolean_reductions(request):
     """
-    Fixture for boolean reduction names
+    Fixture for boolean reduction names.
     """
     return request.param
 
@@ -251,7 +253,7 @@ def _get_cython_table_params(ndframe, func_names_and_expected):
 
     Returns
     -------
-    results : list
+    list
         List of three items (DataFrame, function, expected result)
     """
     results = []
@@ -310,7 +312,7 @@ def all_logical_operators(request):
 @pytest.fixture(params=[None, "gzip", "bz2", "zip", "xz"])
 def compression(request):
     """
-    Fixture for trying common compression types in compression tests
+    Fixture for trying common compression types in compression tests.
     """
     return request.param
 
@@ -319,7 +321,7 @@ def compression(request):
 def compression_only(request):
     """
     Fixture for trying common compression types in compression tests excluding
-    uncompressed case
+    uncompressed case.
     """
     return request.param
 
@@ -327,7 +329,7 @@ def compression_only(request):
 @pytest.fixture(params=[True, False])
 def writable(request):
     """
-    Fixture that an array is writable
+    Fixture that an array is writable.
     """
     return request.param
 
@@ -340,7 +342,7 @@ def datetime_tz_utc():
 @pytest.fixture(params=["utc", "dateutil/UTC", utc, tzutc(), timezone.utc])
 def utc_fixture(request):
     """
-    Fixture to provide variants of UTC timezone strings and tzinfo objects
+    Fixture to provide variants of UTC timezone strings and tzinfo objects.
     """
     return request.param
 
@@ -348,7 +350,7 @@ def utc_fixture(request):
 @pytest.fixture(params=["inner", "outer", "left", "right"])
 def join_type(request):
     """
-    Fixture for trying all types of join operations
+    Fixture for trying all types of join operations.
     """
     return request.param
 
@@ -370,7 +372,7 @@ def datapath(strict_data_files):
 
     Returns
     -------
-    path : path including ``pandas/tests``.
+    path including ``pandas/tests``.
 
     Raises
     ------
@@ -383,11 +385,11 @@ def datapath(strict_data_files):
         path = os.path.join(BASE_PATH, *args)
         if not os.path.exists(path):
             if strict_data_files:
-                msg = "Could not find file {} and --strict-data-files is set."
-                raise ValueError(msg.format(path))
+                raise ValueError(
+                    f"Could not find file {path} and --strict-data-files is set."
+                )
             else:
-                msg = "Could not find {}."
-                pytest.skip(msg.format(path))
+                pytest.skip(f"Could not find {path}.")
         return path
 
     return deco
@@ -404,7 +406,7 @@ def iris(datapath):
 @pytest.fixture(params=["nlargest", "nsmallest"])
 def nselect_method(request):
     """
-    Fixture for trying all nselect methods
+    Fixture for trying all nselect methods.
     """
     return request.param
 
@@ -412,7 +414,7 @@ def nselect_method(request):
 @pytest.fixture(params=["left", "right", "both", "neither"])
 def closed(request):
     """
-    Fixture for trying all interval closed parameters
+    Fixture for trying all interval closed parameters.
     """
     return request.param
 
@@ -420,7 +422,7 @@ def closed(request):
 @pytest.fixture(params=["left", "right", "both", "neither"])
 def other_closed(request):
     """
-    Secondary closed fixture to allow parametrizing over all pairs of closed
+    Secondary closed fixture to allow parametrizing over all pairs of closed.
     """
     return request.param
 
@@ -428,7 +430,7 @@ def other_closed(request):
 @pytest.fixture(params=[None, np.nan, pd.NaT, float("nan"), np.float("NaN")])
 def nulls_fixture(request):
     """
-    Fixture for each null type in pandas
+    Fixture for each null type in pandas.
     """
     return request.param
 
@@ -439,7 +441,7 @@ nulls_fixture2 = nulls_fixture  # Generate cartesian product of nulls_fixture
 @pytest.fixture(params=[None, np.nan, pd.NaT])
 def unique_nulls_fixture(request):
     """
-    Fixture for each null type in pandas, each null type exactly once
+    Fixture for each null type in pandas, each null type exactly once.
     """
     return request.param
 
@@ -589,7 +591,6 @@ def float_dtype(request):
     * 'float32'
     * 'float64'
     """
-
     return request.param
 
 
@@ -602,7 +603,6 @@ def complex_dtype(request):
     * 'complex64'
     * 'complex128'
     """
-
     return request.param
 
 
@@ -617,7 +617,6 @@ def sint_dtype(request):
     * 'int32'
     * 'int64'
     """
-
     return request.param
 
 
@@ -631,7 +630,6 @@ def uint_dtype(request):
     * 'uint32'
     * 'uint64'
     """
-
     return request.param
 
 
@@ -650,7 +648,6 @@ def any_int_dtype(request):
     * 'int64'
     * 'uint64'
     """
-
     return request.param
 
 
@@ -690,7 +687,6 @@ def any_real_dtype(request):
     * 'float32'
     * 'float64'
     """
-
     return request.param
 
 
@@ -728,7 +724,6 @@ def any_numpy_dtype(request):
     * object
     * 'object'
     """
-
     return request.param
 
 
