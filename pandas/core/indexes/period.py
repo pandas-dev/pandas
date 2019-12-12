@@ -91,24 +91,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         Make a copy of input ndarray
     freq : str or period object, optional
         One of pandas period strings or corresponding objects
-    start : starting value, period-like, optional
-        If data is None, used as the start point in generating regular
-        period data.
-
-        .. deprecated:: 0.24.0
-
-    periods : int, optional, > 0
-        Number of periods to generate, if generating index. Takes precedence
-        over end argument
-
-        .. deprecated:: 0.24.0
-
-    end : end value, period-like, optional
-        If periods is none, generated index will extend to first conforming
-        period on or just past end argument
-
-        .. deprecated:: 0.24.0
-
     year : int, array, or Series, default None
     month : int, array, or Series, default None
     quarter : int, array, or Series, default None
@@ -156,11 +138,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     DatetimeIndex : Index with datetime64 data.
     TimedeltaIndex : Index of timedelta64 data.
     period_range : Create a fixed-frequency PeriodIndex.
-
-    Notes
-    -----
-    Creating a PeriodIndex based on `start`, `periods`, and `end` has
-    been deprecated in favor of :func:`period_range`.
 
     Examples
     --------
