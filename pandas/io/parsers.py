@@ -119,9 +119,9 @@ header : int, list of int, default 'infer'
     ``skip_blank_lines=True``, so ``header=0`` denotes the first line of
     data rather than the first line of the file.
 names : array-like, optional
-    List of column names to use. If file contains no header row, then you
-    should explicitly pass ``header=None``. Duplicates in this list are not
-    allowed.
+    List of column names to use. If the file contains a header row,
+    then you should explicitly pass ``header=0`` to override the column names.
+    Duplicates in this list are not allowed.
 index_col : int, str, sequence of int / str, or False, default ``None``
   Column(s) to use as the row labels of the ``DataFrame``, either given as
   string name or column index. If a sequence of int / str is given, a
@@ -913,8 +913,8 @@ class TextFileReader(BaseIterator):
                         pass
                     else:
                         raise ValueError(
-                            "The %r option is not supported with the"
-                            " %r engine" % (argname, engine)
+                            f"The {repr(argname)} option is not supported with the"
+                            f" {repr(engine)} engine"
                         )
             else:
                 value = _deprecated_defaults.get(argname, default)
@@ -1079,8 +1079,8 @@ class TextFileReader(BaseIterator):
         if converters is not None:
             if not isinstance(converters, dict):
                 raise TypeError(
-                    f"Type converters must be a dict or subclass, "
-                    f"input was a {repr(type(converters).__name__)}"
+                    "Type converters must be a dict or subclass, "
+                    f"input was a {type(converters).__name__}"
                 )
         else:
             converters = {}
@@ -3608,7 +3608,7 @@ class FixedWidthReader(BaseIterator):
         if not isinstance(self.colspecs, (tuple, list)):
             raise TypeError(
                 "column specifications must be a list or tuple, "
-                "input was a %r" % type(colspecs).__name__
+                f"input was a {type(colspecs).__name__}"
             )
 
         for colspec in self.colspecs:

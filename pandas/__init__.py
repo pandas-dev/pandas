@@ -148,9 +148,6 @@ from pandas.io.api import (
     ExcelFile,
     ExcelWriter,
     read_excel,
-    # packers
-    read_msgpack,
-    to_msgpack,
     # parsers
     read_csv,
     read_fwf,
@@ -168,6 +165,7 @@ from pandas.io.api import (
     # misc
     read_clipboard,
     read_parquet,
+    read_orc,
     read_feather,
     read_gbq,
     read_html,
