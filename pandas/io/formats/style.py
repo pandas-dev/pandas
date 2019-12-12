@@ -1515,7 +1515,7 @@ def _maybe_wrap_formatter(formatter, na_rep: Optional[str]):
     elif callable(formatter):
         formatter_func = formatter
     else:
-        msg = f"Expected a template string or callable, got {formatter} " "instead"
+        msg = f"Expected a template string or callable, got {formatter} instead"
         raise TypeError(msg)
 
     if na_rep is None:

@@ -716,8 +716,8 @@ class ExcelFormatter:
         if num_rows > self.max_rows or num_cols > self.max_cols:
             raise ValueError(
                 "This sheet is too large! Your sheet size is: "
-                + f"{num_rows}, {num_cols} "
-                + f"Max sheet size is: {self.max_rows}, {self.max_cols}"
+                f"{num_rows}, {num_cols} "
+                f"Max sheet size is: {self.max_rows}, {self.max_cols}"
             )
 
         if isinstance(writer, ExcelWriter):
