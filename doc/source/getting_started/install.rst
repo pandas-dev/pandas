@@ -249,7 +249,7 @@ PyTables                  3.4.2              HDF5-based reading / writing
 SQLAlchemy                1.1.4              SQL support for databases other than sqlite
 SciPy                     0.19.0             Miscellaneous statistical functions
 XLsxWriter                0.9.8              Excel writing
-blosc                                        Compression for msgpack
+blosc                                        Compression for HDF5
 fastparquet               0.3.2              Parquet reading / writing
 gcsfs                     0.2.2              Google Cloud Storage access
 html5lib                                     HTML parser for read_html (see :ref:`note <optional_html>`)
@@ -269,7 +269,7 @@ xclip                                        Clipboard I/O on linux
 xlrd                      1.1.0              Excel reading
 xlwt                      1.2.0              Excel writing
 xsel                                         Clipboard I/O on linux
-zlib                                         Compression for msgpack
+zlib                                         Compression for HDF5
 ========================= ================== =============================================================
 
 .. _optional_html:

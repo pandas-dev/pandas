@@ -48,7 +48,6 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 
 # https://github.com/cython/cython/issues/1720
 @pytest.mark.filterwarnings("ignore:can't resolve package:ImportWarning")
-@pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
 class TestCommonIOCapabilities:
     data1 = """index,A,B,C,D
 foo,2,3,4,5
@@ -142,7 +141,6 @@ bar2,12,13,14,15
             (pd.read_stata, "os", FileNotFoundError, "dta"),
             (pd.read_sas, "os", FileNotFoundError, "sas7bdat"),
             (pd.read_json, "os", ValueError, "json"),
-            (pd.read_msgpack, "os", FileNotFoundError, "mp"),
             (pd.read_pickle, "os", FileNotFoundError, "pickle"),
         ],
     )
@@ -177,7 +175,6 @@ bar2,12,13,14,15
             (pd.read_stata, "os", FileNotFoundError, "dta"),
             (pd.read_sas, "os", FileNotFoundError, "sas7bdat"),
             (pd.read_json, "os", ValueError, "json"),
-            (pd.read_msgpack, "os", FileNotFoundError, "mp"),
             (pd.read_pickle, "os", FileNotFoundError, "pickle"),
         ],
     )
@@ -229,7 +226,6 @@ bar2,12,13,14,15
             (pd.read_stata, "os", ("io", "data", "stata", "stata10_115.dta")),
             (pd.read_sas, "os", ("io", "sas", "data", "test1.sas7bdat")),
             (pd.read_json, "os", ("io", "json", "data", "tsframe_v012.json")),
-            (pd.read_msgpack, "os", ("io", "msgpack", "data", "frame.mp")),
             (
                 pd.read_pickle,
                 "os",
@@ -260,7 +256,6 @@ bar2,12,13,14,15
             ("to_html", {}, "os"),
             ("to_json", {}, "os"),
             ("to_latex", {}, "os"),
-            ("to_msgpack", {}, "os"),
             ("to_pickle", {}, "os"),
             ("to_stata", {"time_stamp": pd.to_datetime("2019-01-01 00:00")}, "os"),
         ],

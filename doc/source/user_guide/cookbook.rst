@@ -1229,7 +1229,7 @@ in the frame:
    The offsets of the structure elements may be different depending on the
    architecture of the machine on which the file was created. Using a raw
    binary file format like this for general data storage is not recommended, as
-   it is not cross platform. We recommended either HDF5 or msgpack, both of
+   it is not cross platform. We recommended either HDF5 or parquet, both of
    which are supported by pandas' IO facilities.
 
 Computation

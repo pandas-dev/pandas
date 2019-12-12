@@ -3382,87 +3382,19 @@ The default is to 'infer':
 msgpack
 -------
 
-pandas supports the ``msgpack`` format for
-object serialization. This is a lightweight portable binary format, similar
-to binary JSON, that is highly space efficient, and provides good performance
-both on the writing (serialization), and reading (deserialization).
+pandas support for ``msgpack`` has been removed in version 1.0.0.  It is recommended to use pyarrow for on-the-wire transmission of pandas objects.
 
-.. warning::
+Example pyarrow usage:
 
-   The msgpack format is deprecated as of 0.25 and will be removed in a future version.
-   It is recommended to use pyarrow for on-the-wire transmission of pandas objects.
+.. code-block:: python
 
-.. warning::
+    >>> import pandas as pd
+    >>> import pyarrow as pa
+    >>> df = pd.DataFrame({'A': [1, 2, 3]})
+    >>> context = pa.default_serialization_context()
+    >>> df_bytestring = context.serialize(df).to_buffer().to_pybytes()
 
-   :func:`read_msgpack` is only guaranteed backwards compatible back to pandas version 0.20.3
-
-.. ipython:: python
-   :okwarning:
-
-   df = pd.DataFrame(np.random.rand(5, 2), columns=list('AB'))
-   df.to_msgpack('foo.msg')
-   pd.read_msgpack('foo.msg')
-   s = pd.Series(np.random.rand(5), index=pd.date_range('20130101', periods=5))
-
-You can pass a list of objects and you will receive them back on deserialization.
-
-.. ipython:: python
-   :okwarning:
-
-   pd.to_msgpack('foo.msg', df, 'foo', np.array([1, 2, 3]), s)
-   pd.read_msgpack('foo.msg')
-
-You can pass ``iterator=True`` to iterate over the unpacked results:
-
-.. ipython:: python
-   :okwarning:
-
-   for o in pd.read_msgpack('foo.msg', iterator=True):
-       print(o)
-
-You can pass ``append=True`` to the writer to append to an existing pack:
-
-.. ipython:: python
-   :okwarning:
-
-   df.to_msgpack('foo.msg', append=True)
-   pd.read_msgpack('foo.msg')
-
-Unlike other io methods, ``to_msgpack`` is available on both a per-object basis,
-``df.to_msgpack()`` and using the top-level ``pd.to_msgpack(...)`` where you
-can pack arbitrary collections of Python lists, dicts, scalars, while intermixing
-pandas objects.
-
-.. ipython:: python
-   :okwarning:
-
-   pd.to_msgpack('foo2.msg', {'dict': [{'df': df}, {'string': 'foo'},
-                                       {'scalar': 1.}, {'s': s}]})
-   pd.read_msgpack('foo2.msg')
-
-.. ipython:: python
-   :suppress:
-   :okexcept:
-
-   os.remove('foo.msg')
-   os.remove('foo2.msg')
-
-Read/write API
-''''''''''''''
-
-Msgpacks can also be read from and written to strings.
-
-.. ipython:: python
-   :okwarning:
-
-   df.to_msgpack()
-
-Furthermore you can concatenate the strings to produce a list of the original objects.
-
-.. ipython:: python
-   :okwarning:
-
-   pd.read_msgpack(df.to_msgpack() + s.to_msgpack())
+For documentation on pyarrow, see `here <https://arrow.apache.org/docs/python/index.html>`__.
 
 .. _io.hdf5:
 
