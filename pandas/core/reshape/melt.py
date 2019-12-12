@@ -3,7 +3,7 @@ from typing import List
 
 import numpy as np
 
-from pandas.util._decorators import Appender
+from pandas.util._decorators import Appender, deprecate_kwarg
 
 from pandas.core.dtypes.common import is_extension_array_dtype, is_list_like
 from pandas.core.dtypes.concat import concat_compat
@@ -122,6 +122,7 @@ def melt(
     return frame._constructor(mdata, columns=mcolumns)
 
 
+@deprecate_kwarg(old_arg_name="label", new_arg_name=None)
 def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> DataFrame:
     """
     Reshape long-format data to wide. Generalized inverse of DataFrame.pivot
@@ -132,8 +133,6 @@ def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> DataFr
     groups : dict
         {new_name : list_of_columns}
     dropna : boolean, default True
-    label : object, default None
-        Dummy kwarg, not used.
 
     Examples
     --------
