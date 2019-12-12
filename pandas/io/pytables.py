@@ -1994,9 +1994,8 @@ class IndexCol:
         self.values = new_pd_index
 
     def take_data(self):
-        """ return the values & release the memory """
-        self.values, values = None, self.values
-        return values
+        """ return the values"""
+        return self.values
 
     @property
     def attrs(self):
@@ -2249,9 +2248,8 @@ class DataCol(IndexCol):
         self.kind = _dtype_to_kind(dtype_name)
 
     def take_data(self):
-        """ return the data & release the memory """
-        self.data, data = None, self.data
-        return data
+        """ return the data """
+        return self.data
 
     @classmethod
     def _get_atom(cls, values: Union[np.ndarray, ABCExtensionArray]) -> "Col":
