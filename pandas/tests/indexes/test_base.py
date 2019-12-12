@@ -2402,11 +2402,13 @@ Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
             with provisionalcompleter("ignore"):
                 list(ip.Completer.completions("idx.", 4))
 
-    def test_deprecated_contains(self, indices):
-        # deprecated for all types except IntervalIndex
-        warning = FutureWarning if not isinstance(indices, pd.IntervalIndex) else None
-        with tm.assert_produces_warning(warning):
+    def test_contains_method_removed(self, indices):
+        # GH#30103 method removed for all types except IntervalIndex
+        if isinstance(indices, pd.IntervalIndex):
             indices.contains(1)
+        else:
+            with pytest.raises(AttributeError):
+                indices.contains(1)
 
 
 class TestMixedIntIndex(Base):
