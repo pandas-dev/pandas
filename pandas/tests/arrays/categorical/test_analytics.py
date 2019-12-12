@@ -5,7 +5,7 @@ import pytest
 
 from pandas.compat import PYPY
 
-from pandas import Categorical, Index, Series
+from pandas import Categorical, Index, Series, date_range, NaT
 from pandas.api.types import is_scalar
 import pandas.util.testing as tm
 
@@ -35,15 +35,23 @@ class TestCategoricalAnalytics:
         assert _min == "d"
         assert _max == "a"
 
-    def test_min_max_empty(self):
+    @pytest.mark.parametrize(
+        "categories,expected",
+        [
+            (list("ABC"), np.NaN),
+            ([1, 2, 3], np.NaN),
+            (Series(date_range("2020-01-01", periods=3), dtype="category"), NaT),
+        ],
+    )
+    def test_min_max_empty(self, categories, expected):
         # GH 30227
         cat = Categorical([], categories=list("ABC"), ordered=True)
 
         result = cat.min()
-        assert isinstance(result, float) and np.isnan(result)
+        assert result is expected
 
         result = cat.max()
-        assert isinstance(result, float) and np.isnan(result)
+        assert result is expected
 
     @pytest.mark.parametrize("skipna", [True, False])
     def test_min_max_with_nan(self, skipna):
