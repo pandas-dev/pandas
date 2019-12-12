@@ -635,6 +635,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - Removed the previously deprecated keyword "data" from :func:`andrews_curves`, use "frame" instead (:issue:`6956`)
 - Removed the previously deprecated keyword "data" from :func:`parallel_coordinates`, use "frame" instead (:issue:`6956`)
 - Removed the previously deprecated keyword "colors" from :func:`parallel_coordinates`, use "color" instead (:issue:`6956`)
+- Removed the previously deprecated keywords "verbose" and "private_key" from :func:`read_gbq` (:issue:`30200`)
 -
 
 .. _whatsnew_1000.performance:
