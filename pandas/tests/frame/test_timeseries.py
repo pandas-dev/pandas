@@ -609,6 +609,17 @@ class TestDataFrameTimeSeriesMethods:
         assert expected_first == df.first_valid_index()
         assert expected_last == df.last_valid_index()
 
+    def test_first_valid_index_all_nan(self):
+        # GH#9752 Series/DataFrame should both return None, not raise
+        ser = pd.Series([np.nan])
+        df = pd.DataFrame([np.nan])
+
+        assert ser.first_valid_index() is None
+        assert df.first_valid_index() is None
+
+        assert ser.iloc[:0].first_valid_index() is None
+        assert df.iloc[:0].first_valid_index() is None
+
     def test_first_subset(self):
         ts = tm.makeTimeDataFrame(freq="12h")
         result = ts.first("10d")
