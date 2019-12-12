@@ -1108,7 +1108,7 @@ class TestDataFrameFormatting:
 
     def test_truncate_with_different_dtypes_multiindex(self):
         # GH#13000
-        df = pd.DataFrame({"Vals": range(100)})
+        df = DataFrame({"Vals": range(100)})
         frame = pd.concat([df], keys=["Sweep"], names=["Sweep", "Index"])
         result = repr(frame)
 
