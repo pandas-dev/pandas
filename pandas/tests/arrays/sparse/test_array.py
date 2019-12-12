@@ -307,11 +307,12 @@ class TestSparseArray:
         with pytest.raises(ValueError, match=msg):
             sparse.take(np.array([1, 0, -5]), allow_fill=True)
 
-        with pytest.raises(IndexError):
+        msg = "out of bounds value in 'indices'"
+        with pytest.raises(IndexError, match=msg):
             sparse.take(np.array([1, -6]))
-        with pytest.raises(IndexError):
+        with pytest.raises(IndexError, match=msg):
             sparse.take(np.array([1, 5]))
-        with pytest.raises(IndexError):
+        with pytest.raises(IndexError, match=msg):
             sparse.take(np.array([1, 5]), allow_fill=True)
 
     def test_take_filling_fill_value(self):
@@ -340,11 +341,12 @@ class TestSparseArray:
         with pytest.raises(ValueError, match=msg):
             sparse.take(np.array([1, 0, -5]), allow_fill=True)
 
-        with pytest.raises(IndexError):
+        msg = "out of bounds value in 'indices'"
+        with pytest.raises(IndexError, match=msg):
             sparse.take(np.array([1, -6]))
-        with pytest.raises(IndexError):
+        with pytest.raises(IndexError, match=msg):
             sparse.take(np.array([1, 5]))
-        with pytest.raises(IndexError):
+        with pytest.raises(IndexError, match=msg):
             sparse.take(np.array([1, 5]), fill_value=True)
 
     def test_take_filling_all_nan(self):
@@ -358,11 +360,12 @@ class TestSparseArray:
         expected = SparseArray([np.nan, np.nan, np.nan], kind="block")
         tm.assert_sp_array_equal(result, expected)
 
-        with pytest.raises(IndexError):
+        msg = "out of bounds value in 'indices'"
+        with pytest.raises(IndexError, match=msg):
             sparse.take(np.array([1, -6]))
-        with pytest.raises(IndexError):
+        with pytest.raises(IndexError, match=msg):
             sparse.take(np.array([1, 5]))
-        with pytest.raises(IndexError):
+        with pytest.raises(IndexError, match=msg):
             sparse.take(np.array([1, 5]), fill_value=True)
 
     def test_set_item(self):
@@ -670,10 +673,11 @@ class TestSparseArray:
         exp = SparseArray(dense[4:,], fill_value=0)  # noqa: E231
         tm.assert_sp_array_equal(res, exp)
 
-        with pytest.raises(IndexError):
+        msg = "too many indices for array"
+        with pytest.raises(IndexError, match=msg):
             sparse[4:, :]
 
-        with pytest.raises(IndexError):
+        with pytest.raises(IndexError, match=msg):
             # check numpy compat
             dense[4:, :]
 
