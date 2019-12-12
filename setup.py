@@ -347,8 +347,6 @@ class CheckSDist(sdist_class):
 
     _cpp_pyxfiles = [
         "pandas/_libs/window/aggregations.pyx",
-        "pandas/io/msgpack/_packer.pyx",
-        "pandas/io/msgpack/_unpacker.pyx",
     ]
 
     def initialize_options(self):
@@ -700,31 +698,6 @@ ext_data = {
     "_libs.window.indexers": {"pyxfile": "_libs/window/indexers"},
     "_libs.writers": {"pyxfile": "_libs/writers"},
     "io.sas._sas": {"pyxfile": "io/sas/sas"},
-    "io.msgpack._packer": {
-        "macros": endian_macro + macros,
-        "depends": [
-            "pandas/_libs/src/msgpack/pack.h",
-            "pandas/_libs/src/msgpack/pack_template.h",
-        ],
-        "include": ["pandas/_libs/src/msgpack"] + common_include,
-        "language": "c++",
-        "suffix": ".cpp",
-        "pyxfile": "io/msgpack/_packer",
-        "subdir": "io/msgpack",
-    },
-    "io.msgpack._unpacker": {
-        "depends": [
-            "pandas/_libs/src/msgpack/unpack.h",
-            "pandas/_libs/src/msgpack/unpack_define.h",
-            "pandas/_libs/src/msgpack/unpack_template.h",
-        ],
-        "macros": endian_macro + macros,
-        "include": ["pandas/_libs/src/msgpack"] + common_include,
-        "language": "c++",
-        "suffix": ".cpp",
-        "pyxfile": "io/msgpack/_unpacker",
-        "subdir": "io/msgpack",
-    },
 }
 
 extensions = []
@@ -786,19 +759,6 @@ ujson_ext = Extension(
 
 
 extensions.append(ujson_ext)
-
-# ----------------------------------------------------------------------
-# util
-# extension for pseudo-safely moving bytes into mutable buffers
-_move_ext = Extension(
-    "pandas.util._move",
-    depends=[],
-    sources=["pandas/util/move.c"],
-    define_macros=macros,
-    extra_compile_args=extra_compile_args,
-    extra_link_args=extra_link_args,
-)
-extensions.append(_move_ext)
 
 # ----------------------------------------------------------------------
 
