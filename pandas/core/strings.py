@@ -140,7 +140,7 @@ def _map_stringarray(
         The value to use for missing values. By default, this is
         the original value (NA).
     dtype : Dtype
-        The result dtype to use. Specifying this aviods an intermediate
+        The result dtype to use. Specifying this avoids an intermediate
         object-dtype allocation.
 
     Returns
@@ -150,14 +150,19 @@ def _map_stringarray(
         an ndarray.
 
     """
-    from pandas.arrays import IntegerArray, StringArray
+    from pandas.arrays import IntegerArray, StringArray, BooleanArray
 
     mask = isna(arr)
 
     assert isinstance(arr, StringArray)
     arr = np.asarray(arr)
 
-    if is_integer_dtype(dtype):
+    if is_integer_dtype(dtype) or is_bool_dtype(dtype):
+        if is_integer_dtype(dtype):
+            constructor = IntegerArray
+        else:
+            constructor = BooleanArray
+
         na_value_is_na = isna(na_value)
         if na_value_is_na:
             na_value = 1
@@ -167,13 +172,13 @@ def _map_stringarray(
             mask.view("uint8"),
             convert=False,
             na_value=na_value,
-            dtype=np.dtype("int64"),
+            dtype=np.dtype(dtype),
         )
 
         if not na_value_is_na:
             mask[:] = False
 
-        return IntegerArray(result, mask)
+        return constructor(result, mask)
 
     elif is_string_dtype(dtype) and not is_object_dtype(dtype):
         # i.e. StringDtype
@@ -181,7 +186,6 @@ def _map_stringarray(
             arr, func, mask.view("uint8"), convert=False, na_value=na_value
         )
         return StringArray(result)
-    # TODO: BooleanArray
     else:
         # This is when the result type is object. We reach this when
         # -> We know the result type is truly object (e.g. .encode returns bytes
@@ -3352,7 +3356,7 @@ class StringMethods(NoNewAttributesMixin):
     Series.str.isalpha : Check whether all characters are alphabetic.
     Series.str.isnumeric : Check whether all characters are numeric.
     Series.str.isalnum : Check whether all characters are alphanumeric.
-    Series.str.isdigit : Check whether all characters are digits.
+    Series.str.isdigit : Check whether all characters are digits.h
     Series.str.isdecimal : Check whether all characters are decimal.
     Series.str.isspace : Check whether all characters are whitespace.
     Series.str.islower : Check whether all characters are lowercase.
