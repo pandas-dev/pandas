@@ -16,7 +16,7 @@ class TestScalar(Base):
                 indicies = self.generate_indices(f, values)
                 for i in indicies:
                     result = getattr(f, func)[i]
-                    expected = self.get_value(f, i, values)
+                    expected = self.get_value(func, f, i, values)
                     tm.assert_almost_equal(result, expected)
 
         for kind in self._kinds:
@@ -44,7 +44,7 @@ class TestScalar(Base):
                 indicies = self.generate_indices(f, values)
                 for i in indicies:
                     getattr(f, func)[i] = 1
-                    expected = self.get_value(f, i, values)
+                    expected = self.get_value(func, f, i, values)
                     tm.assert_almost_equal(expected, 1)
 
         for kind in self._kinds:

@@ -1,6 +1,6 @@
 """ common utilities """
 import itertools
-from warnings import catch_warnings, filterwarnings
+from warnings import catch_warnings
 
 import numpy as np
 
@@ -136,21 +136,18 @@ class Base:
 
         return xp
 
-    def get_value(self, f, i, values=False):
+    def get_value(self, name, f, i, values=False):
         """ return the value for the location i """
 
         # check against values
         if values:
             return f.values[i]
 
-        # this is equiv of f[col][row].....
-        # v = f
-        # for a in reversed(i):
-        #    v = v.__getitem__(a)
-        # return v
-        with catch_warnings(record=True):
-            filterwarnings("ignore", "\\n.ix", FutureWarning)
-            return f.ix[i]
+        elif name == "iat":
+            return f.iloc[i]
+        else:
+            assert name == "at"
+            return f.loc[i]
 
     def check_values(self, f, func, values=False):
 
@@ -183,16 +180,11 @@ class Base:
             try:
                 rs = getattr(obj, method1).__getitem__(_axify(obj, key1, axis))
 
-                with catch_warnings(record=True):
-                    filterwarnings("ignore", "\\n.ix", FutureWarning)
-                    try:
-                        xp = self.get_result(
-                            obj=obj, method=method2, key=key2, axis=axis
-                        )
-                    except (KeyError, IndexError):
-                        # TODO: why is this allowed?
-                        result = "no comp"
-                        return
+                try:
+                    xp = self.get_result(obj=obj, method=method2, key=key2, axis=axis)
+                except (KeyError, IndexError):
+                    # TODO: why is this allowed?
+                    return
 
                 if is_scalar(rs) and is_scalar(xp):
                     assert rs == xp
