@@ -853,7 +853,10 @@ def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
             return astype_nansafe(to_timedelta(arr).values, dtype, copy=copy)
 
     if dtype.name in ("datetime64", "timedelta64"):
-        msg = f"The '{dtype.name}' dtype has no unit. Please pass in '{dtype.name}[ns]' instead."
+        msg = (
+            f"The '{dtype.name}' dtype has no unit. Please pass in "
+            f"'{dtype.name}[ns]' instead."
+        )
         raise ValueError(msg)
 
     if copy or is_object_dtype(arr) or is_object_dtype(dtype):
