@@ -2131,7 +2131,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
         self.check_for_ordered("min")
 
-        if len(self._codes) == 0:
+        if not len(self._codes):
             return na_value_for_dtype(self.dtype)
 
         good = self._codes != -1
@@ -2166,7 +2166,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
         self.check_for_ordered("max")
 
-        if len(self._codes) == 0:
+        if not len(self._codes):
             return na_value_for_dtype(self.dtype)
 
         good = self._codes != -1
