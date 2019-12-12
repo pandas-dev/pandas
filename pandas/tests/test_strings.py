@@ -1825,7 +1825,7 @@ class TestStringMethods:
 
     def test_empty_str_methods(self):
         empty_str = empty = Series(dtype=object)
-        empty_int = Series(dtype=int)
+        empty_int = Series(dtype="int64")
         empty_bool = Series(dtype=bool)
         empty_bytes = Series(dtype=object)
 
