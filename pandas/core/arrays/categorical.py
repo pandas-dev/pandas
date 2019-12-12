@@ -39,7 +39,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import is_hashable
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 from pandas._typing import ArrayLike, Dtype, Ordered
 from pandas.core import ops
@@ -2116,6 +2116,10 @@ class Categorical(ExtensionArray, PandasObject):
 
         Only ordered `Categoricals` have a minimum!
 
+        .. versionchanged:: 1.0.0
+
+           Returns an NA value on empty arrays
+
         Raises
         ------
         TypeError
@@ -2128,7 +2132,7 @@ class Categorical(ExtensionArray, PandasObject):
         self.check_for_ordered("min")
 
         if len(self._codes) == 0:
-            return np.nan
+            return na_value_for_dtype(self.dtype)
 
         good = self._codes != -1
         if not good.all():
@@ -2147,6 +2151,10 @@ class Categorical(ExtensionArray, PandasObject):
 
         Only ordered `Categoricals` have a maximum!
 
+        .. versionchanged:: 1.0.0
+
+           Returns an NA value on empty arrays
+
         Raises
         ------
         TypeError
@@ -2159,7 +2167,7 @@ class Categorical(ExtensionArray, PandasObject):
         self.check_for_ordered("max")
 
         if len(self._codes) == 0:
-            return np.nan
+            return na_value_for_dtype(self.dtype)
 
         good = self._codes != -1
         if not good.all():
