@@ -22,8 +22,9 @@ from pandas.core.indexes.api import (  # noqa:F401
 )
 from pandas.core.indexes.multi import _sparsify  # noqa:F401
 
+# GH#30193
 warnings.warn(
     "pandas.core.index is deprecated and will be removed in a future version.  "
-    "Use pandas.core.indexes.api instead.",
+    "The public classes are available in the top-level namespace.",
     FutureWarning,
 )
