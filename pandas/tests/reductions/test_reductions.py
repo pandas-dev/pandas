@@ -1060,6 +1060,14 @@ class TestCategoricalSeriesReductions:
             assert np.isnan(_min)
             assert np.isnan(_max)
 
+    def test_min_max_empty(self):
+        cat = Series(
+            Categorical([], categories=list("ABC"), ordered=True)
+        )
+
+        assert isna(cat.min())
+        assert isna(cat.max())
+
 
 class TestSeriesMode:
     # Note: the name TestSeriesMode indicates these tests
