@@ -6,7 +6,7 @@ from pandas import PeriodIndex, period_range
 import pandas.util.testing as tm
 
 
-class TestPeriodIndexArithmetic:
+class TestPeriodIndexShift:
     # ---------------------------------------------------------------
     # PeriodIndex.shift is used by __add__ and __sub__
 

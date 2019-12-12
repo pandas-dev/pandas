@@ -1,3 +1,5 @@
+import re
+
 import numpy as np
 import pytest
 
@@ -80,7 +82,9 @@ def test_not_equal(a, b):
 
 
 def test_construct_from_string_raises():
-    with pytest.raises(TypeError):
+    with pytest.raises(
+        TypeError, match="Could not construct SparseDtype from 'not a dtype'"
+    ):
         SparseDtype.construct_from_string("not a dtype")
 
 
@@ -175,9 +179,20 @@ def test_update_dtype(original, dtype, expected):
 
 
 @pytest.mark.parametrize(
-    "original, dtype",
-    [(SparseDtype(float, np.nan), int), (SparseDtype(str, "abc"), int)],
+    "original, dtype, expected_error_msg",
+    [
+        (
+            SparseDtype(float, np.nan),
+            int,
+            re.escape("Cannot convert non-finite values (NA or inf) to integer"),
+        ),
+        (
+            SparseDtype(str, "abc"),
+            int,
+            re.escape("invalid literal for int() with base 10: 'abc'"),
+        ),
+    ],
 )
-def test_update_dtype_raises(original, dtype):
-    with pytest.raises(ValueError):
+def test_update_dtype_raises(original, dtype, expected_error_msg):
+    with pytest.raises(ValueError, match=expected_error_msg):
         original.update_dtype(dtype)
