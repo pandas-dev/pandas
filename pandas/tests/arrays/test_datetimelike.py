@@ -40,8 +40,8 @@ def datetime_index(request):
     """
     freqstr = request.param
     # TODO: non-monotone indexes; NaTs, different start dates, timezones
-    pi = pd.date_range(start=pd.Timestamp("2000-01-01"), periods=100, freq=freqstr)
-    return pi
+    dti = pd.date_range(start=pd.Timestamp("2000-01-01"), periods=100, freq=freqstr)
+    return dti
 
 
 @pytest.fixture
