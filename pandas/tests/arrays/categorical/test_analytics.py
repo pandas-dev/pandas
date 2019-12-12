@@ -35,6 +35,15 @@ class TestCategoricalAnalytics:
         assert _min == "d"
         assert _max == "a"
 
+    def test_min_max_empty(self):
+        cat = Categorical([], categories=list("ABC"), ordered=True)
+
+        result = cat.min()
+        assert isinstance(result, float) and np.isnan(result)
+
+        result = cat.max()
+        assert isinstance(result, float) and np.isnan(result)
+
     @pytest.mark.parametrize("skipna", [True, False])
     def test_min_max_with_nan(self, skipna):
         # GH 25303
