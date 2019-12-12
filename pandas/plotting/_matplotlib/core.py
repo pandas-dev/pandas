@@ -195,16 +195,6 @@ class MPLPlot:
     def _validate_color_args(self):
         import matplotlib.colors
 
-        if "color" not in self.kwds and "colors" in self.kwds:
-            warnings.warn(
-                (
-                    "'colors' is being deprecated. Please use 'color'"
-                    "instead of 'colors'"
-                )
-            )
-            colors = self.kwds.pop("colors")
-            self.kwds["color"] = colors
-
         if (
             "color" in self.kwds
             and self.nseries == 1
