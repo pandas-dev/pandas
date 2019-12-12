@@ -36,6 +36,7 @@ class TestCategoricalAnalytics:
         assert _max == "a"
 
     def test_min_max_empty(self):
+        # GH 30227
         cat = Categorical([], categories=list("ABC"), ordered=True)
 
         result = cat.min()
