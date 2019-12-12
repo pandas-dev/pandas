@@ -511,6 +511,18 @@ class TestGrouping:
         with pytest.raises(ValueError, match=msg):
             df.groupby(level="foo")
 
+    def test_groupby_level_columns_names(self):
+        # This used to raise with 'level name exp is not the name of the index'
+        df = (
+            DataFrame({"exp": ["A"] * 3 + ["B"] * 3, "var1": range(6)})
+            .set_index("exp")
+            .T
+        )
+        df.groupby(level="exp", axis=1)
+        msg = "level name foo is not the name of the columns"
+        with pytest.raises(ValueError, match=msg):
+            df.groupby(level="foo", axis=1)
+
     @pytest.mark.parametrize("sort", [True, False])
     def test_groupby_level_with_nas(self, sort):
         # GH 17537
