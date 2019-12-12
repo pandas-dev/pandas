@@ -500,6 +500,7 @@ class TestParquetPyArrow(Base):
             assert dataset.partitions.partition_names == set(partition_cols)
 
     def test_partition_cols_string(self, pa, df_full):
+        # GH #27117
         partition_cols = "bool"
         partition_cols_list = [partition_cols]
         df = df_full
@@ -607,7 +608,8 @@ class TestParquetFastParquet(Base):
             actual_partition_cols = fastparquet.ParquetFile(path, False).cats
             assert len(actual_partition_cols) == 2
 
-    def test_to_parquet_partition_cols_string(self, fp, df_full):
+    def test_partition_cols_string(self, fp, df_full):
+        # GH #27117
         partition_cols = "bool"
         df = df_full
         with tm.ensure_clean_dir() as path:
