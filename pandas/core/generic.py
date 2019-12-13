@@ -7707,8 +7707,9 @@ class NDFrame(PandasObject, SelectionMixin):
         Parameters
         ----------
         rule : DateOffset, Timedelta or str
-            The offset string or object representing target conversion. 
-            The str value refers to frequency string. The list of valid values can be found in the timeseries user guide.
+            The offset string or object representing target conversion.
+            The str value refers to frequency string.
+            The list of valid values can be found in the timeseries user guide.
         axis : {0 or 'index', 1 or 'columns'}, default 0
             Which axis to use for up- or down-sampling. For `Series` this
             will default to 0, i.e. along the rows. Must be
