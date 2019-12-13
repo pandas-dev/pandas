@@ -2606,7 +2606,6 @@ class DataFrame(NDFrame):
         """
         # irow
         if axis == 0:
-            label = self.index[i]
             new_values = self._data.fast_xs(i)
 
             # if we are a copy, mark as such
