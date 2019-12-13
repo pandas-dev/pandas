@@ -354,8 +354,8 @@ def validate_fillna_kwargs(value, method, validate_scalar_dict_value=True):
     elif value is not None and method is None:
         if validate_scalar_dict_value and isinstance(value, (list, tuple)):
             raise TypeError(
-                f'"value" parameter must be a scalar or dict, but '
-                'you passed a "{type(value).__name__}"'
+                '"value" parameter must be a scalar or dict, but '
+                f'you passed a "{type(value).__name__}"'
             )
 
     elif value is not None and method is not None:
