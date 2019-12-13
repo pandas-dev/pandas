@@ -268,7 +268,7 @@ class TestDateTimeConverter:
             val1 = self.dtc.convert(ts1, None, None)
             val2 = self.dtc.convert(ts2, None, None)
             if not val1 < val2:
-                raise AssertionError("{0} is not less than {1}.".format(val1, val2))
+                raise AssertionError(f"{val1} is not less than {val2}.")
 
         # Matplotlib's time representation using floats cannot distinguish
         # intervals smaller than ~10 microsecond in the common range of years.
