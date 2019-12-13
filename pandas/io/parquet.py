@@ -96,9 +96,9 @@ class PyArrowImpl(BaseImpl):
             from_pandas_kwargs = {}
         else:
             from_pandas_kwargs = {"preserve_index": index}
-    
-        if 'schema' in kwargs:
-            from_pandas_kwargs['schema'] = kwargs.pop('schema')
+
+        if "schema" in kwargs:
+            from_pandas_kwargs["schema"] = kwargs.pop("schema")
 
         table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
         if partition_cols is not None:
