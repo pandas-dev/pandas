@@ -40,6 +40,7 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 from pandas._typing import DatetimeLikeScalar
 from pandas.core import missing, nanops
 from pandas.core.algorithms import checked_add_with_arr, take, unique1d, value_counts
+from pandas.core.arrays import BooleanArray
 import pandas.core.common as com
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.ops.invalid import make_invalid_op
@@ -415,8 +416,15 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             val = getitem(key)
             return self._box_func(val)
 
+        mask = None
         if com.is_bool_indexer(key):
-            key = np.asarray(key, dtype=bool)
+            if isinstance(key, BooleanArray):
+                # TODO: Handle all boolean indexers.
+                mask = key._mask
+                key = key._data | mask
+                mask = mask[key]
+            else:
+                key = np.asarray(key, dtype=bool)
             if key.all():
                 key = slice(0, None, None)
             else:
@@ -438,6 +446,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
                 freq = self.freq
 
         result = getitem(key)
+        if mask is not None:
+            # TODO: Check that we've copied!
+            result[mask] = iNaT
+
         if result.ndim > 1:
             # To support MPL which performs slicing with 2 dim
             # even though it only has 1 dim by definition

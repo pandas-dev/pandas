@@ -65,7 +65,7 @@ from pandas.core.dtypes.missing import array_equivalent, isna
 from pandas.core import ops
 from pandas.core.accessor import CachedAccessor
 import pandas.core.algorithms as algos
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import BooleanArray, ExtensionArray
 from pandas.core.base import IndexOpsMixin, PandasObject
 import pandas.core.common as com
 from pandas.core.construction import extract_array
@@ -4014,7 +4014,11 @@ class Index(IndexOpsMixin, PandasObject):
             return promote(getitem(key))
 
         if com.is_bool_indexer(key):
-            key = np.asarray(key, dtype=bool)
+            if isinstance(key, BooleanArray):
+                # TODO: Handle all boolean indexers.
+                key = key._data | key._mask
+            else:
+                key = np.asarray(key, dtype=bool)
 
         key = com.values_from_object(key)
         result = getitem(key)

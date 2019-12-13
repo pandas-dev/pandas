@@ -132,9 +132,9 @@ def is_bool_indexer(key: Any) -> bool:
         elif is_bool_dtype(key.dtype):
             # an ndarray with bool-dtype by definition has no missing values.
             # So we only need to check for NAs in ExtensionArrays
-            if is_extension_array_dtype(key.dtype):
-                if np.any(key.isna()):
-                    raise ValueError(na_msg)
+            # if is_extension_array_dtype(key.dtype):
+            #     if np.any(key.isna()):
+            #         raise ValueError(na_msg)
             return True
     elif isinstance(key, list):
         try:

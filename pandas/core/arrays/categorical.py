@@ -46,6 +46,7 @@ from pandas.core import ops
 from pandas.core.accessor import PandasDelegate, delegate_names
 import pandas.core.algorithms as algorithms
 from pandas.core.algorithms import _get_data_algo, factorize, take, take_1d, unique1d
+from pandas.core.arrays import BooleanArray
 from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array, sanitize_array
@@ -1996,10 +1997,14 @@ class Categorical(ExtensionArray, PandasObject):
                 return np.nan
             else:
                 return self.categories[i]
+        elif com.is_bool_indexer(key) and isinstance(key, BooleanArray):
+            take = key._data | key._mask
+            values = self._codes[take]
+            values[key._mask[take]] = -1
         else:
-            return self._constructor(
-                values=self._codes[key], dtype=self.dtype, fastpath=True
-            )
+            values = self._codes[key]
+
+        return self._constructor(values=values, dtype=self.dtype, fastpath=True)
 
     def __setitem__(self, key, value):
         """

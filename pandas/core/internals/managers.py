@@ -709,7 +709,7 @@ class BlockManager(PandasObject):
 
         return type(self)(new_blocks, axes, do_integrity_check=False)
 
-    def get_slice(self, slobj, axis=0):
+    def get_slice(self, slobj, axis=0, mask=None):
         if axis >= self.ndim:
             raise IndexError("Requested axis not found in manager")
 
@@ -1505,11 +1505,13 @@ class SingleBlockManager(BlockManager):
         """ compat with BlockManager """
         return None
 
-    def get_slice(self, slobj, axis=0):
+    def get_slice(self, slobj, axis=0, mask=None):
         if axis >= self.ndim:
             raise IndexError("Requested axis not found in manager")
 
-        return type(self)(self._block._slice(slobj), self.index[slobj], fastpath=True)
+        return type(self)(
+            self._block._slice(slobj, mask=mask), self.index[slobj], fastpath=True
+        )
 
     @property
     def index(self):

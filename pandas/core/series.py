@@ -892,11 +892,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             key = list(key)
 
         if com.is_bool_indexer(key):
-            key = check_bool_indexer(self.index, key)
+            key, mask = check_bool_indexer(self.index, key)
+        else:
+            mask = None
 
-        return self._get_with(key)
+        return self._get_with(key, mask)
 
-    def _get_with(self, key):
+    def _get_with(self, key, mask=None):
         # other: fancy integer or otherwise
         if isinstance(key, slice):
             return self._slice(key)
@@ -917,12 +919,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                         return self._get_values(key)
                 raise
 
-        if not isinstance(key, (list, np.ndarray, Series, Index)):
+        if not is_list_like(key):
             key = list(key)
 
         if isinstance(key, Index):
             key_type = key.inferred_type
         else:
+            # TODO: why not use key.dtype?
             key_type = lib.infer_dtype(key, skipna=False)
 
         if key_type == "integer":
@@ -931,7 +934,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             else:
                 return self._get_values(key)
         elif key_type == "boolean":
-            return self._get_values(key)
+            return self._get_values(key, mask)
 
         if isinstance(key, (list, tuple)):
             # TODO: de-dup with tuple case handled above?
@@ -960,10 +963,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             self
         )
 
-    def _get_values(self, indexer):
+    def _get_values(self, indexer, mask=None):
         try:
             return self._constructor(
-                self._data.get_slice(indexer), fastpath=True
+                self._data.get_slice(indexer, mask=mask), fastpath=True
             ).__finalize__(self)
         except ValueError:
             # mpl compat if we look up e.g. ser[:, np.newaxis];

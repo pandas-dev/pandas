@@ -291,7 +291,7 @@ class Block(PandasObject):
         self.values = state[1]
         self.ndim = self.values.ndim
 
-    def _slice(self, slicer):
+    def _slice(self, slicer, mask=None):
         """ return a slice of my values """
         return self.values[slicer]
 
@@ -1810,7 +1810,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         # We're doing the same as CategoricalBlock here.
         return True
 
-    def _slice(self, slicer):
+    def _slice(self, slicer, mask=None):
         """ return a slice of my values """
 
         # slice the category
@@ -2307,7 +2307,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         # expects that behavior.
         return np.asarray(self.values, dtype=_NS_DTYPE)
 
-    def _slice(self, slicer):
+    def _slice(self, slicer, mask=None):
         """ return a slice of my values """
         if isinstance(slicer, tuple):
             col, loc = slicer

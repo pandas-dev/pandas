@@ -2013,6 +2013,7 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(result, expected)
 
     def test_boolean_indexing(self):
+        # TODO: parametrize
         idx = list(range(3))
         cols = ["A", "B", "C"]
         df1 = DataFrame(
@@ -2036,6 +2037,7 @@ class TestDataFrameIndexing:
             df1[df1.index[:-1] > 2] = -1
 
     def test_boolean_indexing_mixed(self):
+        # TODO: parametrize?
         df = DataFrame(
             {
                 0: {35: np.nan, 40: np.nan, 43: np.nan, 49: np.nan, 50: np.nan},

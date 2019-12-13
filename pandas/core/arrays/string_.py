@@ -13,7 +13,8 @@ from pandas.core.dtypes.inference import is_array_like
 
 from pandas import compat
 from pandas.core import ops
-from pandas.core.arrays import PandasArray
+from pandas.core.arrays import BooleanArray, PandasArray
+import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.missing import isna
 
@@ -231,6 +232,19 @@ class StringArray(PandasArray):
                 raise ValueError("Must provide strings.")
 
         super().__setitem__(key, value)
+
+    def __getitem__(self, item):
+        # Doing this here, as PandasArray.__getitem__ can't guarantee dtype stability
+        # when getting with a boolean mask.
+        if com.is_bool_indexer(item):
+            if isinstance(item, BooleanArray):
+                # items, mask = item._data, item._mask
+                take = item._data | item._mask
+                result = self[take]
+                # That copies, right?
+                result[item._mask[take]] = self.dtype.na_value
+                return result
+        return super().__getitem__(item)
 
     def fillna(self, value=None, method=None, limit=None):
         # TODO: validate dtype

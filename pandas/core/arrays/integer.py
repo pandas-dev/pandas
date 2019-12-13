@@ -21,6 +21,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
 )
 from pandas.core.dtypes.dtypes import register_extension_dtype
+from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import nanops, ops
@@ -366,10 +367,20 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         return fmt
 
     def __getitem__(self, item):
+        from pandas.core.arrays import BooleanArray
+
         if is_integer(item):
             if self._mask[item]:
                 return self.dtype.na_value
             return self._data[item]
+        elif is_array_like(item) and is_bool_dtype(item.dtype):
+            if isinstance(item, BooleanArray):
+                # items, mask = item._data, item._mask
+                take = item._data | item._mask
+                result = self._data[take]
+                # output masked anywhere where self is masked, or the input was masked
+                omask = (self._mask | item._mask)[take]
+                return type(self)(result, omask)
         return type(self)(self._data[item], self._mask[item])
 
     def _coerce_to_ndarray(self):

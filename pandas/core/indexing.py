@@ -8,6 +8,7 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
+    is_extension_array_dtype,
     is_float,
     is_integer,
     is_iterator,
@@ -19,6 +20,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCDataFrame, ABCMultiIndex, ABCSeries
+from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import _infer_fill_value, isna
 
 import pandas.core.common as com
@@ -2309,6 +2311,7 @@ def check_bool_indexer(index: Index, key) -> np.ndarray:
         If the index of the key is unalignable to index.
     """
     result = key
+    mask = None
     if isinstance(key, ABCSeries) and not key.index.equals(index):
         result = result.reindex(index)
         mask = isna(result._values)
@@ -2319,6 +2322,9 @@ def check_bool_indexer(index: Index, key) -> np.ndarray:
                 "the indexed object do not match)."
             )
         result = result.astype(bool)._values
+    elif is_array_like(result) and is_extension_array_dtype(result.dtype):
+        assert result.dtype.kind == "b"
+        mask = isna(result)
     else:
         if is_sparse(result):
             result = result.to_dense()
@@ -2330,7 +2336,7 @@ def check_bool_indexer(index: Index, key) -> np.ndarray:
                 "Item wrong length {} instead of {}.".format(len(result), len(index))
             )
 
-    return result
+    return result, mask
 
 
 def convert_missing_indexer(indexer):
