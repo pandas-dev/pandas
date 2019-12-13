@@ -342,7 +342,7 @@ def maybe_promote(dtype, fill_value=np.nan):
 
     Parameters
     ----------
-    dtype : np.dtype or ExceptionDtype
+    dtype : np.dtype or ExtensionDtype
     fill_value : scalar, default np.nan
 
     Returns
