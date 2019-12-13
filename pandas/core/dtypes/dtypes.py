@@ -732,7 +732,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         datetime64[ns, UTC]
         """
         if isinstance(string, str):
-            msg = "Could not construct DatetimeTZDtype from '{string}'"
+            msg = f"Cannot construct a 'DatetimeTZDtype' from '{string}'"
             match = cls._match.match(string)
             if match:
                 d = match.groupdict()
@@ -743,10 +743,10 @@ class DatetimeTZDtype(PandasExtensionDtype):
                     #  pytz timezone (actually pytz.UnknownTimeZoneError).
                     # TypeError if we pass a nonsense tz;
                     # ValueError if we pass a unit other than "ns"
-                    raise TypeError(msg.format(string=string)) from err
-            raise TypeError(msg.format(string=string))
+                    raise TypeError(msg) from err
+            raise TypeError(msg)
 
-        raise TypeError("Could not construct DatetimeTZDtype")
+        raise TypeError("Cannot construct a 'DatetimeTZDtype'")
 
     def __str__(self) -> str_type:
         return "datetime64[{unit}, {tz}]".format(unit=self.unit, tz=self.tz)
@@ -883,7 +883,7 @@ class PeriodDtype(PandasExtensionDtype):
                 return cls(freq=string)
             except ValueError:
                 pass
-        raise TypeError("could not construct PeriodDtype")
+        raise TypeError(f"Cannot construct a 'PeriodDtype' from '{string}'")
 
     def __str__(self) -> str_type:
         return self.name
@@ -1054,6 +1054,7 @@ class IntervalDtype(PandasExtensionDtype):
             return cls(string)
 
         msg = (
+            f"Cannot construct a 'IntervalDtype' from '{string}'.\n\n"
             "Incorrectly formatted string passed to constructor. "
             "Valid formats include Interval or Interval[dtype] "
             "where dtype is numeric, datetime, or timedelta"
