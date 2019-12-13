@@ -318,17 +318,19 @@ def _convert_listlike_datetimes(
     elif unit is not None:
         if format is not None:
             raise ValueError("cannot specify both format and unit")
-        arg = getattr(arg, "values", arg)
+        arg = getattr(arg, "_values", arg)
         # GH 30050 pass an ndarray to tslib.array_with_unit_to_datetime
         # because it expects an ndarray argument
         if isinstance(arg, IntegerArray):
-            arg_np = np.array(arg[np.logical_not(arg._mask)], dtype=type(arg[0]))
+            # Send only non-na values to array_with_unit_to_datetime
+            mask_na = arg.isna()
             result_np, tz_parsed = tslib.array_with_unit_to_datetime(
-                arg_np, unit, errors=errors
+                np.compress(np.logical_not(mask_na), arg), unit, errors=errors
             )
-            result = np.empty(arg.shape[0], dtype="datetime64[" + unit + "]")
-            result[arg._mask] = np.datetime64("nat")
-            result[np.logical_not(arg._mask)] = result_np
+            # Insert na values back in proper positions
+            ins_index = np.ravel(np.argwhere(mask_na))
+            ins_index -= range(ins_index.shape[0])
+            result = np.insert(result_np, ins_index, None)
         else:
             result, tz_parsed = tslib.array_with_unit_to_datetime(
                 arg, unit, errors=errors
