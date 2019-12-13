@@ -746,7 +746,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
                     raise TypeError(msg) from err
             raise TypeError(msg)
 
-        raise TypeError("Could not construct DatetimeTZDtype")
+        raise TypeError("Cannot construct a 'DatetimeTZDtype'")
 
     def __str__(self) -> str_type:
         return "datetime64[{unit}, {tz}]".format(unit=self.unit, tz=self.tz)
