@@ -38,21 +38,27 @@ def _generate_numba_apply_func(
         loop_range = range
 
     def make_rolling_apply(func):
-        @numba.generated_jit(nopython=nopython)
-        def numba_func(window, *_args):
-            if getattr(np, func.__name__, False) is func:
 
-                def impl(window, *_args):
-                    return func(window, *_args)
+        if isinstance(func, numba.targets.registry.CPUDispatcher):
+            # Don't jit a user passed jitted function
+            numba_func = func
+        else:
 
-                return impl
-            else:
-                jf = numba.jit(func, nopython=nopython)
+            @numba.generated_jit(nopython=nopython)
+            def numba_func(window, *_args):
+                if getattr(np, func.__name__, False) is func:
 
-                def impl(window, *_args):
-                    return jf(window, *_args)
+                    def impl(window, *_args):
+                        return func(window, *_args)
 
-                return impl
+                    return impl
+                else:
+                    jf = numba.jit(func, nopython=nopython)
+
+                    def impl(window, *_args):
+                        return jf(window, *_args)
+
+                    return impl
 
         @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
         def roll_apply(
