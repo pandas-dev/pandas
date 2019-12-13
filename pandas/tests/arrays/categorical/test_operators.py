@@ -145,12 +145,9 @@ class TestCategoricalOps:
         expected = DataFrame([[False, True, True, False]])
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "op",
-        [operator.eq, operator.ne, operator.ge, operator.gt, operator.le, operator.lt],
-    )
-    def test_compare_frame_raises(self, op):
+    def test_compare_frame_raises(self, all_compare_operators):
         # alignment raises unless we transpose
+        op = getattr(operator, all_compare_operators)
         cat = Categorical(["a", "b", 2, "a"])
         df = DataFrame(cat)
         msg = "Unable to coerce to Series, length must be 1: given 4"
