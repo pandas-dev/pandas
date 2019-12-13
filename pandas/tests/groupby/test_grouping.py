@@ -501,15 +501,17 @@ class TestGrouping:
         with pytest.raises(ValueError, match=msg):
             df.groupby(level=1)
 
-    def test_groupby_level_index_names(self):
+    def test_groupby_level_index_names(self, axis):
         # GH4014 this used to raise ValueError since 'exp'>1 (in py2)
         df = DataFrame({"exp": ["A"] * 3 + ["B"] * 3, "var1": range(6)}).set_index(
             "exp"
         )
-        df.groupby(level="exp")
-        msg = "level name foo is not the name of the index"
+        if axis in (1, "columns"):
+            df = df.T
+        df.groupby(level="exp", axis=axis)
+        msg = f"level name foo is not the name of the {df._get_axis_name(axis)}"
         with pytest.raises(ValueError, match=msg):
-            df.groupby(level="foo")
+            df.groupby(level="foo", axis=axis)
 
     @pytest.mark.parametrize("sort", [True, False])
     def test_groupby_level_with_nas(self, sort):
