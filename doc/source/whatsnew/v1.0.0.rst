@@ -535,6 +535,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - :meth:`Series.plot` no longer accepts positional arguments, pass keyword arguments instead (:issue:`30003`)
 - :meth:`DataFrame.hist` and :meth:`Series.hist` no longer allows ``figsize="default"``, specify figure size by passinig a tuple instead (:issue:`30003`)
 - Floordiv of integer-dtyped array by :class:`Timedelta` now raises ``TypeError`` (:issue:`21036`)
+- :class:`TimedeltaIndex` and :class:`DatetimeIndex` no longer accept non-nanosecond dtype strings like "timedelta64" or "datetime64", use "timedelta64[ns]" and "datetime64[ns]" instead (:issue:`24806`)
 - :func:`pandas.api.types.infer_dtype` argument ``skipna`` defaults to ``True`` instead of ``False`` (:issue:`24050`)
 - Removed the previously deprecated :attr:`Series.ix` and :attr:`DataFrame.ix` (:issue:`26438`)
 - Removed the previously deprecated :meth:`Index.summary` (:issue:`18217`)
@@ -634,6 +635,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - Removed the previously deprecated keyword "data" from :func:`andrews_curves`, use "frame" instead (:issue:`6956`)
 - Removed the previously deprecated keyword "data" from :func:`parallel_coordinates`, use "frame" instead (:issue:`6956`)
 - Removed the previously deprecated keyword "colors" from :func:`parallel_coordinates`, use "color" instead (:issue:`6956`)
+- Removed the previously deprecated keywords "verbose" and "private_key" from :func:`read_gbq` (:issue:`30200`)
 -
 
 .. _whatsnew_1000.performance:
@@ -824,7 +826,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupBy.rolling().quantile()` ignoring ``interpolation`` keyword argument (:issue:`28779`)
 - Bug in :meth:`DataFrame.groupby` where ``any``, ``all``, ``nunique`` and transform functions would incorrectly handle duplicate column labels (:issue:`21668`)
 - Bug in :meth:`DataFrameGroupBy.agg` with timezone-aware datetime64 column incorrectly casting results to the original dtype (:issue:`29641`)
--
+- Bug in :meth:`DataFrame.groupby` when using axis=1 and having a single level columns index (:issue:`30208`)
 
 Reshaping
 ^^^^^^^^^
