@@ -89,21 +89,6 @@ def make_mixed_dataframe_v2(test_size):
     )
 
 
-def test_read_gbq_with_deprecated_kwargs(monkeypatch):
-    captured_kwargs = {}
-
-    def mock_read_gbq(sql, **kwargs):
-        captured_kwargs.update(kwargs)
-        return DataFrame([[1.0]])
-
-    monkeypatch.setattr("pandas_gbq.read_gbq", mock_read_gbq)
-    private_key = object()
-    pd.read_gbq("SELECT 1", verbose=True, private_key=private_key)
-
-    assert captured_kwargs["verbose"]
-    assert captured_kwargs["private_key"] is private_key
-
-
 def test_read_gbq_without_deprecated_kwargs(monkeypatch):
     captured_kwargs = {}
 
