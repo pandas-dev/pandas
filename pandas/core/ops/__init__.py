@@ -462,7 +462,8 @@ def _arith_method_SERIES(cls, op, special):
         res_name = get_op_result_name(left, right)
 
         lvalues = extract_array(left, extract_numpy=True)
-        result = arithmetic_op(lvalues, right, op, str_rep)
+        rvalues = extract_array(right, extract_numpy=True)
+        result = arithmetic_op(lvalues, rvalues, op, str_rep)
 
         return _construct_result(left, result, index=left.index, name=res_name)
 

@@ -2,7 +2,6 @@
 Tests that work on both the Python and C engines but do not have a
 specific classification into the other test modules.
 """
-
 import codecs
 from collections import OrderedDict
 import csv
@@ -978,15 +977,15 @@ def test_path_local_path(all_parsers):
 def test_nonexistent_path(all_parsers):
     # gh-2428: pls no segfault
     # gh-14086: raise more helpful FileNotFoundError
+    # GH#29233 "File foo" instead of "File b'foo'"
     parser = all_parsers
     path = "{}.csv".format(tm.rands(10))
 
-    msg = "does not exist" if parser.engine == "c" else r"\[Errno 2\]"
+    msg = f"File {path} does not exist" if parser.engine == "c" else r"\[Errno 2\]"
     with pytest.raises(FileNotFoundError, match=msg) as e:
         parser.read_csv(path)
 
         filename = e.value.filename
-        filename = filename.decode() if isinstance(filename, bytes) else filename
 
         assert path == filename
 

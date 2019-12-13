@@ -199,7 +199,7 @@ class SparseDtype(ExtensionDtype):
         -------
         SparseDtype
         """
-        msg = f"Could not construct SparseDtype from '{string}'"
+        msg = f"Cannot construct a 'SparseDtype' from '{string}'"
         if string.startswith("Sparse"):
             try:
                 sub_type, has_fill_value = cls._parse_subtype(string)
@@ -208,7 +208,7 @@ class SparseDtype(ExtensionDtype):
             else:
                 result = SparseDtype(sub_type)
                 msg = (
-                    f"Could not construct SparseDtype from '{string}'.\n\nIt "
+                    f"Cannot construct a 'SparseDtype' from '{string}'.\n\nIt "
                     "looks like the fill_value in the string is not "
                     "the default for the dtype. Non-default fill_values "
                     "are not supported. Use the 'SparseDtype()' "
