@@ -794,8 +794,7 @@ def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
             return arr.astype(dtype)
 
         raise TypeError(
-            "cannot astype a datetimelike from [{from_dtype}] "
-            "to [{to_dtype}]".format(from_dtype=arr.dtype, to_dtype=dtype)
+            f"cannot astype a datetimelike from [{arr.dtype}] " f"to [{dtype}]"
         )
 
     elif is_timedelta64_dtype(arr):
@@ -817,8 +816,7 @@ def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
             return arr.astype(_TD_DTYPE, copy=copy)
 
         raise TypeError(
-            "cannot astype a timedelta from [{from_dtype}] "
-            "to [{to_dtype}]".format(from_dtype=arr.dtype, to_dtype=dtype)
+            f"cannot astype a timedelta from [{arr.dtype}] " f"to [{dtype}]"
         )
 
     elif np.issubdtype(arr.dtype, np.floating) and np.issubdtype(dtype, np.integer):
@@ -845,8 +843,11 @@ def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
             return astype_nansafe(to_timedelta(arr).values, dtype, copy=copy)
 
     if dtype.name in ("datetime64", "timedelta64"):
-        msg = "The '{dtype}' dtype has no unit. Please pass in '{dtype}[ns]' instead."
-        raise ValueError(msg.format(dtype=dtype.name))
+        msg = (
+            f"The '{dtype.name}' dtype has no unit. Please pass in "
+            f"'{dtype.name}[ns]' instead."
+        )
+        raise ValueError(msg)
 
     if copy or is_object_dtype(arr) or is_object_dtype(dtype):
         # Explicit copy, or required since NumPy can't view from / to object.
@@ -1116,8 +1117,8 @@ def maybe_cast_to_datetime(value, dtype, errors: str = "raise"):
 
             # Force the dtype if needed.
             msg = (
-                "The '{dtype}' dtype has no unit. "
-                "Please pass in '{dtype}[ns]' instead."
+                f"The '{dtype.name}' dtype has no unit. "
+                f"Please pass in '{dtype.name}[ns]' instead."
             )
 
             if is_datetime64 and not is_dtype_equal(dtype, _NS_DTYPE):
@@ -1126,13 +1127,10 @@ def maybe_cast_to_datetime(value, dtype, errors: str = "raise"):
                 # e.g., [ps], [fs], [as]
                 if dtype <= np.dtype("M8[ns]"):
                     if dtype.name == "datetime64":
-                        raise ValueError(msg.format(dtype=dtype.name))
+                        raise ValueError(msg)
                     dtype = _NS_DTYPE
                 else:
-                    raise TypeError(
-                        "cannot convert datetimelike to "
-                        "dtype [{dtype}]".format(dtype=dtype)
-                    )
+                    raise TypeError(f"cannot convert datetimelike to dtype [{dtype}]")
             elif is_datetime64tz:
 
                 # our NaT doesn't support tz's
@@ -1147,13 +1145,10 @@ def maybe_cast_to_datetime(value, dtype, errors: str = "raise"):
                 # e.g., [ps], [fs], [as]
                 if dtype <= np.dtype("m8[ns]"):
                     if dtype.name == "timedelta64":
-                        raise ValueError(msg.format(dtype=dtype.name))
+                        raise ValueError(msg)
                     dtype = _TD_DTYPE
                 else:
-                    raise TypeError(
-                        "cannot convert timedeltalike to "
-                        "dtype [{dtype}]".format(dtype=dtype)
-                    )
+                    raise TypeError(f"cannot convert timedeltalike to dtype [{dtype}]")
 
             if is_scalar(value):
                 if value == iNaT or isna(value):
@@ -1205,7 +1200,7 @@ def maybe_cast_to_datetime(value, dtype, errors: str = "raise"):
                 return tslib.ints_to_pydatetime(ints)
 
             # we have a non-castable dtype that was passed
-            raise TypeError("Cannot cast datetime64 to {dtype}".format(dtype=dtype))
+            raise TypeError(f"Cannot cast datetime64 to {dtype}")
 
     else:
 
@@ -1469,7 +1464,7 @@ def maybe_cast_to_integer_array(arr, dtype, copy: bool = False):
     except OverflowError:
         raise OverflowError(
             "The elements provided in the data cannot all be "
-            "casted to the dtype {dtype}".format(dtype=dtype)
+            f"casted to the dtype {dtype}"
         )
 
     if np.array_equal(arr, casted):

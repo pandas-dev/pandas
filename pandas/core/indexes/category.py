@@ -753,6 +753,13 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     take_nd = take
 
+    @Appender(_index_shared_docs["_maybe_cast_slice_bound"])
+    def _maybe_cast_slice_bound(self, label, side, kind):
+        if kind == "loc":
+            return label
+
+        return super()._maybe_cast_slice_bound(label, side, kind)
+
     def map(self, mapper):
         """
         Map values using input correspondence (a dict, Series, or function).
