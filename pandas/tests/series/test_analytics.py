@@ -554,6 +554,10 @@ class TestSeriesAnalytics:
         ts.iloc[[0, 3, 5]] = np.nan
         tm.assert_series_equal(ts.count(level=1), right - 1)
 
+        # GH29478
+        with pd.option_context("use_inf_as_na", True):
+            assert pd.Series([pd.Timestamp("1990/1/1")]).count() == 1
+
     def test_dot(self):
         a = Series(np.random.randn(4), index=["p", "q", "r", "s"])
         b = DataFrame(
@@ -655,11 +659,6 @@ class TestSeriesAnalytics:
     def test_clip(self, datetime_series):
         val = datetime_series.median()
 
-        with tm.assert_produces_warning(FutureWarning):
-            assert datetime_series.clip_lower(val).min() == val
-        with tm.assert_produces_warning(FutureWarning):
-            assert datetime_series.clip_upper(val).max() == val
-
         assert datetime_series.clip(lower=val).min() == val
         assert datetime_series.clip(upper=val).max() == val
 
@@ -678,10 +677,8 @@ class TestSeriesAnalytics:
 
         for s in sers:
             thresh = s[2]
-            with tm.assert_produces_warning(FutureWarning):
-                lower = s.clip_lower(thresh)
-            with tm.assert_produces_warning(FutureWarning):
-                upper = s.clip_upper(thresh)
+            lower = s.clip(lower=thresh)
+            upper = s.clip(upper=thresh)
             assert lower[notna(lower)].min() == thresh
             assert upper[notna(upper)].max() == thresh
             assert list(isna(s)) == list(isna(lower))
@@ -703,12 +700,6 @@ class TestSeriesAnalytics:
         # GH #6966
 
         s = Series([1.0, 1.0, 4.0])
-        threshold = Series([1.0, 2.0, 3.0])
-
-        with tm.assert_produces_warning(FutureWarning):
-            tm.assert_series_equal(s.clip_lower(threshold), Series([1.0, 2.0, 4.0]))
-        with tm.assert_produces_warning(FutureWarning):
-            tm.assert_series_equal(s.clip_upper(threshold), Series([1.0, 1.0, 3.0]))
 
         lower = Series([1.0, 2.0, 3.0])
         upper = Series([1.5, 2.5, 3.5])
@@ -852,7 +843,7 @@ class TestSeriesAnalytics:
         result = s.isin(s[0:2])
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("empty", [[], Series(), np.array([])])
+    @pytest.mark.parametrize("empty", [[], Series(dtype=object), np.array([])])
     def test_isin_empty(self, empty):
         # see gh-16991
         s = Series(["a", "b"])
@@ -1028,6 +1019,24 @@ class TestSeriesAnalytics:
         expected = ts.astype(float).shift(1)
         tm.assert_series_equal(shifted, expected)
 
+    def test_shift_object_non_scalar_fill(self):
+        # shift requires scalar fill_value except for object dtype
+        ser = Series(range(3))
+        with pytest.raises(ValueError, match="fill_value must be a scalar"):
+            ser.shift(1, fill_value=[])
+
+        df = ser.to_frame()
+        with pytest.raises(ValueError, match="fill_value must be a scalar"):
+            df.shift(1, fill_value=np.arange(3))
+
+        obj_ser = ser.astype(object)
+        result = obj_ser.shift(1, fill_value={})
+        assert result[0] == {}
+
+        obj_df = obj_ser.to_frame()
+        result = obj_df.shift(1, fill_value={})
+        assert result.iloc[0, 0] == {}
+
     def test_shift_categorical(self):
         # GH 9416
         s = pd.Series(["a", "b", "c", "d"], dtype="category")
@@ -1107,7 +1116,7 @@ class TestSeriesAnalytics:
         tm.assert_frame_equal(ts.unstack(level=0), right)
 
     def test_value_counts_datetime(self):
-        # most dtypes are tested in test_base.py
+        # most dtypes are tested in tests/base
         values = [
             pd.Timestamp("2011-01-01 09:00"),
             pd.Timestamp("2011-01-01 10:00"),
@@ -1183,7 +1192,7 @@ class TestSeriesAnalytics:
         tm.assert_series_equal(idx.value_counts(normalize=True), exp)
 
     def test_value_counts_categorical_ordered(self):
-        # most dtypes are tested in test_base.py
+        # most dtypes are tested in tests/base
         values = pd.Categorical([1, 2, 3, 1, 1, 3], ordered=True)
 
         exp_idx = pd.CategoricalIndex([1, 3, 2], categories=[1, 2, 3], ordered=True)
@@ -1266,15 +1275,6 @@ class TestSeriesAnalytics:
         )
         with pytest.raises(ValueError, match=msg):
             np.sum(s, keepdims=True)
-
-    def test_compound_deprecated(self):
-        s = Series([0.1, 0.2, 0.3, 0.4])
-        with tm.assert_produces_warning(FutureWarning):
-            s.compound()
-
-        df = pd.DataFrame({"s": s})
-        with tm.assert_produces_warning(FutureWarning):
-            df.compound()
 
 
 main_dtypes = [
@@ -1506,7 +1506,7 @@ class TestCategoricalSeriesAnalytics:
         tm.assert_series_equal(res, exp)
 
         # check object dtype handles the Series.name as the same
-        # (tested in test_base.py)
+        # (tested in tests/base)
         s = Series(["a", "b", "c", "c", "c", "b"], name="xxx")
         res = s.value_counts()
         exp = Series([3, 2, 1], name="xxx", index=["c", "b", "a"])

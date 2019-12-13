@@ -3,7 +3,7 @@ Functions for arithmetic and comparison operations on NumPy arrays and
 ExtensionArrays.
 """
 import operator
-from typing import Any, Mapping, Union
+from typing import Any, Union
 
 import numpy as np
 
@@ -24,17 +24,14 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import (
     ABCDatetimeArray,
-    ABCDatetimeIndex,
     ABCExtensionArray,
     ABCIndex,
     ABCIndexClass,
     ABCSeries,
     ABCTimedeltaArray,
-    ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas.core.construction import extract_array
 from pandas.core.ops import missing
 from pandas.core.ops.dispatch import dispatch_to_extension_op, should_extension_dispatch
 from pandas.core.ops.invalid import invalid_comparison
@@ -118,14 +115,14 @@ def masked_arith_op(x, y, op):
     return result
 
 
-def define_na_arithmetic_op(op, str_rep: str, eval_kwargs):
+def define_na_arithmetic_op(op, str_rep: str):
     def na_op(x, y):
-        return na_arithmetic_op(x, y, op, str_rep, eval_kwargs)
+        return na_arithmetic_op(x, y, op, str_rep)
 
     return na_op
 
 
-def na_arithmetic_op(left, right, op, str_rep: str, eval_kwargs):
+def na_arithmetic_op(left, right, op, str_rep: str):
     """
     Return the result of evaluating op on the passed in values.
 
@@ -136,7 +133,6 @@ def na_arithmetic_op(left, right, op, str_rep: str, eval_kwargs):
     left : np.ndarray
     right : np.ndarray or scalar
     str_rep : str or None
-    eval_kwargs : kwargs to pass to expressions
 
     Returns
     -------
@@ -149,7 +145,7 @@ def na_arithmetic_op(left, right, op, str_rep: str, eval_kwargs):
     import pandas.core.computation.expressions as expressions
 
     try:
-        result = expressions.evaluate(op, str_rep, left, right, **eval_kwargs)
+        result = expressions.evaluate(op, str_rep, left, right)
     except TypeError:
         result = masked_arith_op(left, right, op)
 
@@ -157,11 +153,7 @@ def na_arithmetic_op(left, right, op, str_rep: str, eval_kwargs):
 
 
 def arithmetic_op(
-    left: Union[np.ndarray, ABCExtensionArray],
-    right: Any,
-    op,
-    str_rep: str,
-    eval_kwargs: Mapping[str, bool],
+    left: Union[np.ndarray, ABCExtensionArray], right: Any, op, str_rep: str
 ):
     """
     Evaluate an arithmetic operation `+`, `-`, `*`, `/`, `//`, `%`, `**`, ...
@@ -183,22 +175,10 @@ def arithmetic_op(
 
     from pandas.core.ops import maybe_upcast_for_op
 
-    keep_null_freq = isinstance(
-        right,
-        (
-            ABCDatetimeIndex,
-            ABCDatetimeArray,
-            ABCTimedeltaIndex,
-            ABCTimedeltaArray,
-            Timestamp,
-        ),
-    )
-
-    # NB: We assume that extract_array has already been called on `left`, but
-    #  cannot make the same assumption about `right`.  This is because we need
-    #  to define `keep_null_freq` before calling extract_array on it.
+    # NB: We assume that extract_array has already been called
+    #  on `left` and `right`.
     lvalues = left
-    rvalues = extract_array(right, extract_numpy=True)
+    rvalues = right
 
     rvalues = maybe_upcast_for_op(rvalues, lvalues.shape)
 
@@ -208,11 +188,11 @@ def arithmetic_op(
         # TimedeltaArray, DatetimeArray, and Timestamp are included here
         #  because they have `freq` attribute which is handled correctly
         #  by dispatch_to_extension_op.
-        res_values = dispatch_to_extension_op(op, lvalues, rvalues, keep_null_freq)
+        res_values = dispatch_to_extension_op(op, lvalues, rvalues)
 
     else:
         with np.errstate(all="ignore"):
-            res_values = na_arithmetic_op(lvalues, rvalues, op, str_rep, eval_kwargs)
+            res_values = na_arithmetic_op(lvalues, rvalues, op, str_rep)
 
     return res_values
 

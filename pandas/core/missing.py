@@ -1,6 +1,7 @@
 """
 Routines for filling missing data.
 """
+
 import numpy as np
 
 from pandas._libs import algos, lib
@@ -39,9 +40,8 @@ def mask_missing(arr, values_to_mask):
     mask = None
     for x in nonna:
         if mask is None:
-
-            # numpy elementwise comparison warning
             if is_numeric_v_string_like(arr, x):
+                # GH#29553 prevent numpy deprecation warnings
                 mask = False
             else:
                 mask = arr == x
@@ -51,9 +51,8 @@ def mask_missing(arr, values_to_mask):
             if is_scalar(mask):
                 mask = np.zeros(arr.shape, dtype=bool)
         else:
-
-            # numpy elementwise comparison warning
             if is_numeric_v_string_like(arr, x):
+                # GH#29553 prevent numpy deprecation warnings
                 mask |= False
             else:
                 mask |= arr == x
@@ -128,6 +127,43 @@ def clean_interp_method(method, **kwargs):
     return method
 
 
+def find_valid_index(values, how: str):
+    """
+    Retrieves the index of the first valid value.
+
+    Parameters
+    ----------
+    values : ndarray or ExtensionArray
+    how : {'first', 'last'}
+        Use this parameter to change between the first or last valid index.
+
+    Returns
+    -------
+    int or None
+    """
+    assert how in ["first", "last"]
+
+    if len(values) == 0:  # early stop
+        return None
+
+    is_valid = ~isna(values)
+
+    if values.ndim == 2:
+        is_valid = is_valid.any(1)  # reduce axis 1
+
+    if how == "first":
+        idxpos = is_valid[::].argmax()
+
+    if how == "last":
+        idxpos = len(values) - 1 - is_valid[::-1].argmax()
+
+    chk_notna = is_valid[idxpos]
+
+    if not chk_notna:
+        return None
+    return idxpos
+
+
 def interpolate_1d(
     xvalues,
     yvalues,
@@ -138,7 +174,7 @@ def interpolate_1d(
     fill_value=None,
     bounds_error=False,
     order=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Logic for the 1-d interpolation.  The result should be 1-d, inputs
@@ -175,9 +211,9 @@ def interpolate_1d(
     valid_limit_directions = ["forward", "backward", "both"]
     limit_direction = limit_direction.lower()
     if limit_direction not in valid_limit_directions:
-        msg = "Invalid limit_direction: expecting one of {valid!r}, got {invalid!r}."
         raise ValueError(
-            msg.format(valid=valid_limit_directions, invalid=limit_direction)
+            f"Invalid limit_direction: expecting one of "
+            f"{valid_limit_directions}, got '{limit_direction}'."
         )
 
     if limit_area is not None:
@@ -192,14 +228,10 @@ def interpolate_1d(
     # default limit is unlimited GH #16282
     limit = algos._validate_limit(nobs=None, limit=limit)
 
-    from pandas import Series
-
-    ys = Series(yvalues)
-
     # These are sets of index pointers to invalid values... i.e. {0, 1, etc...
     all_nans = set(np.flatnonzero(invalid))
-    start_nans = set(range(ys.first_valid_index()))
-    end_nans = set(range(1 + ys.last_valid_index(), len(valid)))
+    start_nans = set(range(find_valid_index(yvalues, "first")))
+    end_nans = set(range(1 + find_valid_index(yvalues, "last"), len(valid)))
     mid_nans = all_nans - start_nans - end_nans
 
     # Like the sets above, preserve_nans contains indices of invalid values,
@@ -245,7 +277,11 @@ def interpolate_1d(
                 inds = lib.maybe_convert_objects(inds)
         else:
             inds = xvalues
-        result[invalid] = np.interp(inds[invalid], inds[valid], yvalues[valid])
+        # np.interp requires sorted X values, #21037
+        indexer = np.argsort(inds[valid])
+        result[invalid] = np.interp(
+            inds[invalid], inds[valid][indexer], yvalues[valid][indexer]
+        )
         result[preserve_nans] = np.nan
         return result
 
@@ -278,7 +314,7 @@ def interpolate_1d(
             fill_value=fill_value,
             bounds_error=bounds_error,
             order=order,
-            **kwargs
+            **kwargs,
         )
         result[preserve_nans] = np.nan
         return result
@@ -307,7 +343,7 @@ def _interpolate_scipy_wrapper(
     }
 
     if getattr(x, "is_all_dates", False):
-        # GH 5975, scipy.interp1d can't hande datetime64s
+        # GH 5975, scipy.interp1d can't handle datetime64s
         x, new_x = x._values.astype("i8"), new_x.astype("i8")
 
     if method == "pchip":

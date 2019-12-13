@@ -25,13 +25,17 @@ def hash_object_array(object[:] arr, object key, object encoding='utf8'):
 
     Returns
     -------
-    1-d uint64 ndarray of hashes
+    1-d uint64 ndarray of hashes.
+
+    Raises
+    ------
+    TypeError
+        If the array contains mixed types.
 
     Notes
     -----
-    allowed values must be strings, or nulls
-    mixed array types will raise TypeError
-
+    Allowed values must be strings, or nulls
+    mixed array types will raise TypeError.
     """
     cdef:
         Py_ssize_t i, l, n
@@ -48,7 +52,7 @@ def hash_object_array(object[:] arr, object key, object encoding='utf8'):
     kb = <uint8_t *>k
     if len(k) != 16:
         raise ValueError("key should be a 16-byte string encoded, "
-                         "got {key} (len {klen})".format(key=k, klen=len(k)))
+                         f"got {k} (len {len(k)})")
 
     n = len(arr)
 
@@ -67,15 +71,14 @@ def hash_object_array(object[:] arr, object key, object encoding='utf8'):
             data = <bytes>str(val).encode(encoding)
 
         else:
-            raise TypeError("{val} of type {typ} is not a valid type "
-                            "for hashing, must be string or null"
-                            .format(val=val, typ=type(val)))
+            raise TypeError(f"{val} of type {type(val)} is not a valid type "
+                            "for hashing, must be string or null")
 
         l = len(data)
         lens[i] = l
         cdata = data
 
-        # keep the references alive thru the end of the
+        # keep the references alive through the end of the
         # function
         datas.append(data)
         vecs[i] = cdata

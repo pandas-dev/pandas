@@ -339,6 +339,19 @@ class TestArithmeticOps(BaseOpsUtil):
         with pytest.raises(NotImplementedError):
             opa(np.arange(len(s)).reshape(-1, len(s)))
 
+    @pytest.mark.parametrize("zero, negative", [(0, False), (0.0, False), (-0.0, True)])
+    def test_divide_by_zero(self, zero, negative):
+        # https://github.com/pandas-dev/pandas/issues/27398
+        a = pd.array([0, 1, -1, None], dtype="Int64")
+        result = a / zero
+        expected = np.array([np.nan, np.inf, -np.inf, np.nan])
+        if negative:
+            values = [np.nan, -np.inf, np.inf, np.nan]
+        else:
+            values = [np.nan, np.inf, -np.inf, np.nan]
+        expected = np.array(values)
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_pow(self):
         # https://github.com/pandas-dev/pandas/issues/22022
         a = integer_array([1, np.nan, np.nan, 1])
@@ -388,6 +401,31 @@ class TestComparisonOps(BaseOpsUtil):
         op_name = all_compare_operators
         other = pd.Series([0] * len(data))
         self._compare_other(data, op_name, other)
+
+    def test_no_shared_mask(self, data):
+        result = data + 1
+        assert np.shares_memory(result._mask, data._mask) is False
+
+    def test_compare_to_string(self, any_nullable_int_dtype):
+        # GH 28930
+        s = pd.Series([1, None], dtype=any_nullable_int_dtype)
+        result = s == "a"
+        expected = pd.Series([False, False])
+
+        self.assert_series_equal(result, expected)
+
+    def test_compare_to_int(self, any_nullable_int_dtype, all_compare_operators):
+        # GH 28930
+        s1 = pd.Series([1, 2, 3], dtype=any_nullable_int_dtype)
+        s2 = pd.Series([1, 2, 3], dtype="int")
+
+        method = getattr(s1, all_compare_operators)
+        result = method(2)
+
+        method = getattr(s2, all_compare_operators)
+        expected = method(2)
+
+        self.assert_series_equal(result, expected)
 
 
 class TestCasting:
@@ -827,6 +865,38 @@ def test_arrow_array(data):
     arr = pa.array(data)
     expected = pa.array(list(data), type=data.dtype.name.lower(), from_pandas=True)
     assert arr.equals(expected)
+
+
+@td.skip_if_no("pyarrow", min_version="0.15.1.dev")
+def test_arrow_roundtrip(data):
+    # roundtrip possible from arrow 1.0.0
+    import pyarrow as pa
+
+    df = pd.DataFrame({"a": data})
+    table = pa.table(df)
+    assert table.field("a").type == str(data.dtype.numpy_dtype)
+    result = table.to_pandas()
+    tm.assert_frame_equal(result, df)
+
+
+@pytest.mark.parametrize(
+    "pandasmethname, kwargs",
+    [
+        ("var", {"ddof": 0}),
+        ("var", {"ddof": 1}),
+        ("kurtosis", {}),
+        ("skew", {}),
+        ("sem", {}),
+    ],
+)
+def test_stat_method(pandasmethname, kwargs):
+    s = pd.Series(data=[1, 2, 3, 4, 5, 6, np.nan, np.nan], dtype="Int64")
+    pandasmeth = getattr(s, pandasmethname)
+    result = pandasmeth(**kwargs)
+    s2 = pd.Series(data=[1, 2, 3, 4, 5, 6], dtype="Int64")
+    pandasmeth = getattr(s2, pandasmethname)
+    expected = pandasmeth(**kwargs)
+    assert expected == result
 
 
 # TODO(jreback) - these need testing / are broken

@@ -39,22 +39,6 @@ def test_catch_oob():
         pass
 
 
-def test_error_rename():
-    # see gh-12665
-    from pandas.errors import ParserError
-    from pandas.io.common import CParserError
-
-    try:
-        raise CParserError()
-    except ParserError:
-        pass
-
-    try:
-        raise ParserError()
-    except CParserError:
-        pass
-
-
 class Foo:
     @classmethod
     def classmethod(cls):

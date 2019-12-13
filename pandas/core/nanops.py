@@ -16,7 +16,6 @@ from pandas.core.dtypes.common import (
     is_any_int_dtype,
     is_bool_dtype,
     is_complex,
-    is_complex_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_datetime_or_timedelta_dtype,
@@ -61,8 +60,10 @@ class disallow:
         def _f(*args, **kwargs):
             obj_iter = itertools.chain(args, kwargs.values())
             if any(self.check(obj) for obj in obj_iter):
-                msg = "reduction operation {name!r} not allowed for this dtype"
-                raise TypeError(msg.format(name=f.__name__.replace("nan", "")))
+                f_name = f.__name__.replace("nan", "")
+                raise TypeError(
+                    f"reduction operation '{f_name}' not allowed for this dtype"
+                )
             try:
                 with np.errstate(invalid="ignore"):
                     return f(*args, **kwargs)
@@ -323,19 +324,6 @@ def _get_values(
         dtype_max = np.float64
 
     return values, mask, dtype, dtype_max, fill_value
-
-
-def _isfinite(values):
-    if is_datetime_or_timedelta_dtype(values):
-        return isna(values)
-    if (
-        is_complex_dtype(values)
-        or is_float_dtype(values)
-        or is_integer_dtype(values)
-        or is_bool_dtype(values)
-    ):
-        return ~np.isfinite(values)
-    return ~np.isfinite(values.astype("float64"))
 
 
 def _na_ok_dtype(dtype):
@@ -674,7 +662,7 @@ def _get_counts_nanvar(
             count = np.nan
             d = np.nan
     else:
-        mask2 = count <= ddof  # type: np.ndarray
+        mask2: np.ndarray = count <= ddof
         if mask2.any():
             np.putmask(d, mask2, np.nan)
             np.putmask(count, mask2, np.nan)
@@ -1262,10 +1250,9 @@ def get_corr_func(method):
         return np.corrcoef(a, b)[0, 1]
 
     def _kendall(a, b):
+        # kendallttau returns a tuple of the tau statistic and pvalue
         rs = kendalltau(a, b)
-        if isinstance(rs, tuple):
-            return rs[0]
-        return rs
+        return rs[0]
 
     def _spearman(a, b):
         return spearmanr(a, b)[0]

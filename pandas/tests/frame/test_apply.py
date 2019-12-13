@@ -13,6 +13,7 @@ import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range, notna
 from pandas.conftest import _get_cython_table_params
 from pandas.core.apply import frame_apply
+from pandas.core.base import SpecificationError
 import pandas.util.testing as tm
 
 
@@ -104,13 +105,15 @@ class TestDataFrameApply:
         result = empty_frame.apply(x.append, axis=1, result_type="expand")
         tm.assert_frame_equal(result, empty_frame)
         result = empty_frame.apply(x.append, axis=1, result_type="reduce")
-        tm.assert_series_equal(result, Series([], index=pd.Index([], dtype=object)))
+        expected = Series([], index=pd.Index([], dtype=object), dtype=np.float64)
+        tm.assert_series_equal(result, expected)
 
         empty_with_cols = DataFrame(columns=["a", "b", "c"])
         result = empty_with_cols.apply(x.append, axis=1, result_type="expand")
         tm.assert_frame_equal(result, empty_with_cols)
         result = empty_with_cols.apply(x.append, axis=1, result_type="reduce")
-        tm.assert_series_equal(result, Series([], index=pd.Index([], dtype=object)))
+        expected = Series([], index=pd.Index([], dtype=object), dtype=np.float64)
+        tm.assert_series_equal(result, expected)
 
         # Ensure that x.append hasn't been called
         assert x == []
@@ -133,7 +136,7 @@ class TestDataFrameApply:
         tm.assert_series_equal(result, expected)
 
         result = df.T.nunique()
-        expected = Series([], index=pd.Index([]))
+        expected = Series([], index=pd.Index([]), dtype=np.float64)
         tm.assert_series_equal(result, expected)
 
     def test_apply_standard_nonunique(self):
@@ -423,12 +426,9 @@ class TestDataFrameApply:
                 row["D"] = 7
             return row
 
-        try:
+        msg = "'float' object has no attribute 'startswith'"
+        with pytest.raises(AttributeError, match=msg):
             data.apply(transform, axis=1)
-        except AttributeError as e:
-            assert len(e.args) == 2
-            assert e.args[1] == "occurred at index 4"
-            assert e.args[0] == "'float' object has no attribute 'startswith'"
 
     def test_apply_bug(self):
 
@@ -644,7 +644,7 @@ class TestDataFrameApply:
             }
         )
 
-        result = df.applymap(lambda x: "{0}".format(x.__class__.__name__))
+        result = df.applymap(lambda x: type(x).__name__)
         expected = pd.DataFrame(
             {
                 "a": ["Timestamp", "Timestamp"],
@@ -1097,7 +1097,8 @@ class TestDataFrameAggregate:
         df = pd.DataFrame({"A": range(5), "B": 5})
 
         # nested renaming
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        msg = r"nested renamer is not supported"
+        with pytest.raises(SpecificationError, match=msg):
             df.agg({"A": {"foo": "min"}, "B": {"bar": "max"}})
 
     def test_agg_reduce(self, axis, float_frame):
@@ -1262,22 +1263,39 @@ class TestDataFrameAggregate:
 
         assert result == expected
 
+    def test_agg_listlike_result(self):
+        # GH-29587 user defined function returning list-likes
+        df = DataFrame(
+            {"A": [2, 2, 3], "B": [1.5, np.nan, 1.5], "C": ["foo", None, "bar"]}
+        )
+
+        def func(group_col):
+            return list(group_col.dropna().unique())
+
+        result = df.agg(func)
+        expected = pd.Series([[2, 3], [1.5], ["foo", "bar"]], index=["A", "B", "C"])
+        tm.assert_series_equal(result, expected)
+
+        result = df.agg([func])
+        expected = expected.to_frame("func").T
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize(
         "df, func, expected",
         chain(
             _get_cython_table_params(
                 DataFrame(),
                 [
-                    ("sum", Series()),
-                    ("max", Series()),
-                    ("min", Series()),
+                    ("sum", Series(dtype="float64")),
+                    ("max", Series(dtype="float64")),
+                    ("min", Series(dtype="float64")),
                     ("all", Series(dtype=bool)),
                     ("any", Series(dtype=bool)),
-                    ("mean", Series()),
-                    ("prod", Series()),
-                    ("std", Series()),
-                    ("var", Series()),
-                    ("median", Series()),
+                    ("mean", Series(dtype="float64")),
+                    ("prod", Series(dtype="float64")),
+                    ("std", Series(dtype="float64")),
+                    ("var", Series(dtype="float64")),
+                    ("median", Series(dtype="float64")),
                 ],
             ),
             _get_cython_table_params(
