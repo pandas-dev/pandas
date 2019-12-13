@@ -1053,7 +1053,9 @@ class StataReader(StataParser, BaseIterator):
         self._native_byteorder = _set_endianness(sys.byteorder)
         path_or_buf = _stringify_path(path_or_buf)
         if isinstance(path_or_buf, str):
-            path_or_buf, encoding, _, should_close = get_filepath_or_buffer(path_or_buf)
+            path_or_buf, encoding, _, should_close = get_filepath_or_buffer(
+                path_or_buf, mode="r"
+            )
 
         if isinstance(path_or_buf, (str, bytes)):
             self.path_or_buf = open(path_or_buf, "rb")

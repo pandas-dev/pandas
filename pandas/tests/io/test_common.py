@@ -1,6 +1,7 @@
 """
 Tests for the pandas.io.common functionalities
 """
+import errno
 from io import StringIO
 import mmap
 import os
@@ -360,3 +361,64 @@ class TestMMapWrapper:
             df.to_csv(path)
             with pytest.raises(ValueError, match="Unknown engine"):
                 pd.read_csv(path, engine="pyt")
+
+
+@pytest.mark.parametrize(
+    "reader",
+    [
+        pd.read_csv,
+        pd.read_table,
+        pd.read_fwf,
+        pd.read_excel,
+        pytest.param(
+            pd.read_json,
+            marks=[
+                pytest.mark.xfail(
+                    reason=(
+                        "Needs to distinguish between a path to read "
+                        "vs a string to parse"
+                    )
+                )
+            ],
+        ),
+        pd.read_pickle,
+        pd.read_stata,
+        pd.read_sas,
+    ],
+)
+def test_errno_set_nonexistent(reader):
+    # GH#13872 ensure that errno is set on file not found error
+    # This also serves as a check that we raise the correct type of error
+    try:
+        reader("nonexistent_name")
+    except FileNotFoundError as err:
+        assert err.errno == errno.ENOENT
+
+        # GH#29125 consistent error messages across read_* functions
+        assert "File nonexistent_name does not exist: 'nonexistent_name'" in str(err)
+
+
+@pytest.mark.parametrize(
+    "reader",
+    [
+        pd.read_csv,
+        pd.read_table,
+        pd.read_fwf,
+        pd.read_excel,
+        pd.read_json,
+        pd.read_pickle,
+        pd.read_stata,
+        pd.read_sas,
+    ],
+)
+def test_errno_set_permissions(reader):
+    # GH#23784
+    # make sure we get permiissions error when we try to read without permission
+    with tm.ensure_clean() as path:
+        os.chmod(path, 0o000)
+        try:
+            reader(path)
+        except OSError as err:
+            assert err.errno == errno.EACCES
+        finally:
+            os.chmod(path, 0o777)

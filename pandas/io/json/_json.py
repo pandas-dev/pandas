@@ -24,6 +24,7 @@ from pandas.io.common import (
     _infer_compression,
     _stringify_path,
     get_filepath_or_buffer,
+    validate_local_path,
 )
 from pandas.io.formats.printing import pprint_thing
 from pandas.io.parsers import _validate_integer
@@ -59,6 +60,8 @@ def to_json(
         )
 
     path_or_buf = _stringify_path(path_or_buf)
+    validate_local_path(path_or_buf, "w")
+
     if lines and orient != "records":
         raise ValueError("'lines' keyword only valid when 'orient' is records")
 

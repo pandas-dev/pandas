@@ -64,6 +64,7 @@ from pandas.io.common import (
     _validate_header_arg,
     get_filepath_or_buffer,
     is_file_like,
+    validate_local_path,
 )
 from pandas.io.date_converters import generic_parser
 
@@ -1902,6 +1903,8 @@ class CParserWrapper(ParserBase):
         self.usecols, self.usecols_dtype = _validate_usecols_arg(kwds["usecols"])
         kwds["usecols"] = self.usecols
 
+        if isinstance(src, str):
+            validate_local_path(src, "r")
         self._reader = parsers.TextReader(src, **kwds)
         self.unnamed_cols = self._reader.unnamed_cols
 

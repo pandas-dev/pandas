@@ -3,6 +3,7 @@
 import bz2
 import codecs
 import csv
+import errno
 import gzip
 from io import BufferedIOBase, BytesIO
 import mmap
@@ -219,6 +220,9 @@ def get_filepath_or_buffer(
     filepath_or_buffer = _stringify_path(filepath_or_buffer)
 
     if isinstance(filepath_or_buffer, str) and _is_url(filepath_or_buffer):
+        if " " in filepath_or_buffer:
+            # GH#17918
+            raise ValueError("URL must be quotes before passing to read_* function")
         req = urlopen(filepath_or_buffer)
         content_encoding = req.headers.get("Content-Encoding", None)
         if content_encoding == "gzip":
@@ -243,6 +247,7 @@ def get_filepath_or_buffer(
         )
 
     if isinstance(filepath_or_buffer, (str, bytes, mmap.mmap)):
+        validate_local_path(filepath_or_buffer, mode)
         return _expand_user(filepath_or_buffer), None, compression, False
 
     if not is_file_like(filepath_or_buffer):
@@ -250,6 +255,31 @@ def get_filepath_or_buffer(
         raise ValueError(msg)
 
     return filepath_or_buffer, None, compression, False
+
+
+def validate_local_path(path: str, mode: Optional[str]):
+    """
+    Ensure we have consistent error messages for non-existent files.
+
+    Parameters
+    ----------
+    path : str
+    mode : str or None
+    """
+    if mode is None:
+        # Nothing we can do
+        return
+
+    if mode.startswith("r"):
+        # We only need read permissions, but the file must exist
+        if not os.path.exists(path):
+            raise FileNotFoundError(errno.ENOENT, f"File {path} does not exist", path)
+        if not os.access(path, os.R_OK):
+            raise OSError(errno.EACCES, f"Insufficient permissions to read {path}")
+
+    elif mode.startswith(("a", "w")):
+        pass
+        # Figure this out later
 
 
 def file_path_to_url(path: str) -> str:
@@ -420,10 +450,13 @@ def _get_handle(
 
     # Convert pathlib.Path/py.path.local or string
     path_or_buf = _stringify_path(path_or_buf)
+
     is_path = isinstance(path_or_buf, str)
 
     compression, compression_args = _get_compression_method(compression)
     if is_path:
+        # TODO: Do we need to rule out non-local path?
+        validate_local_path(path_or_buf, mode=mode)
         compression = _infer_compression(path_or_buf, compression)
 
     if compression:

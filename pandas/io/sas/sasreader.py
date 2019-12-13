@@ -1,7 +1,7 @@
 """
 Read SAS sas7bdat or xport files.
 """
-from pandas.io.common import _stringify_path
+from pandas.io.common import _stringify_path, validate_local_path
 
 
 def read_sas(
@@ -55,6 +55,7 @@ def read_sas(
         filepath_or_buffer = _stringify_path(filepath_or_buffer)
         if not isinstance(filepath_or_buffer, str):
             raise ValueError(buffer_error_msg)
+        validate_local_path(filepath_or_buffer, "r")
         fname = filepath_or_buffer.lower()
         if fname.endswith(".xpt"):
             format = "xport"
