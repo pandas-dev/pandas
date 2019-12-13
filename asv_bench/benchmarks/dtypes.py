@@ -5,9 +5,9 @@ from pandas.api.types import pandas_dtype
 from .pandas_vb_common import (
     datetime_dtypes,
     extension_dtypes,
+    lib,
     numeric_dtypes,
     string_dtypes,
-    lib,
 )
 
 _numpy_dtypes = [
