@@ -61,17 +61,15 @@ class _DeprecatedModule:
 
         if self.removals is not None and name in self.removals:
             warnings.warn(
-                "{deprmod}.{name} is deprecated and will be removed in "
-                "a future version.".format(deprmod=self.deprmod, name=name),
+                f"{self.deprmod}.{name} is deprecated and will be removed in "
+                "a future version.",
                 FutureWarning,
                 stacklevel=2,
             )
         elif self.moved is not None and name in self.moved:
             warnings.warn(
-                "{deprmod} is deprecated and will be removed in "
-                "a future version.\nYou can access {name} as {moved}".format(
-                    deprmod=self.deprmod, name=name, moved=self.moved[name]
-                ),
+                f"{self.deprmod} is deprecated and will be removed in "
+                f"a future version.\nYou can access {name} as {self.moved[name]}",
                 FutureWarning,
                 stacklevel=2,
             )
@@ -79,8 +77,8 @@ class _DeprecatedModule:
             deprmodto = self.deprmodto
             if deprmodto is False:
                 warnings.warn(
-                    "{deprmod}.{name} is deprecated and will be removed in "
-                    "a future version.".format(deprmod=self.deprmod, name=name),
+                    f"{self.deprmod}.{name} is deprecated and will be removed in "
+                    "a future version.",
                     FutureWarning,
                     stacklevel=2,
                 )
@@ -89,10 +87,8 @@ class _DeprecatedModule:
                     deprmodto = obj.__module__
                 # The object is actually located in another module.
                 warnings.warn(
-                    "{deprmod}.{name} is deprecated. Please use "
-                    "{deprmodto}.{name} instead.".format(
-                        deprmod=self.deprmod, name=name, deprmodto=deprmodto
-                    ),
+                    f"{self.deprmod}.{name} is deprecated. Please use "
+                    f"{deprmodto}.{name} instead.",
                     FutureWarning,
                     stacklevel=2,
                 )

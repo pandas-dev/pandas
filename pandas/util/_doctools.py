@@ -113,7 +113,7 @@ class TablePlotter:
             data.insert(0, "Index", data.index)
         else:
             for i in range(idx_nlevels):
-                data.insert(i, "Index{0}".format(i), data.index._get_level_values(i))
+                data.insert(i, f"Index{i}", data.index._get_level_values(i))
 
         col_nlevels = data.columns.nlevels
         if col_nlevels > 1:

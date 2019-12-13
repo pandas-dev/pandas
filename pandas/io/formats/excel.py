@@ -91,6 +91,7 @@ class CSSToExcelConverter:
             "font": self.build_font(props),
             "number_format": self.build_number_format(props),
         }
+
         # TODO: handle cell width and height: needs support in pandas.io.excel
 
         def remove_none(d):
@@ -132,12 +133,10 @@ class CSSToExcelConverter:
         return {
             side: {
                 "style": self._border_style(
-                    props.get("border-{side}-style".format(side=side)),
-                    props.get("border-{side}-width".format(side=side)),
+                    props.get(f"border-{side}-style"),
+                    props.get(f"border-{side}-width"),
                 ),
-                "color": self.color_to_excel(
-                    props.get("border-{side}-color".format(side=side))
-                ),
+                "color": self.color_to_excel(props.get(f"border-{side}-color")),
             }
             for side in ["top", "right", "bottom", "left"]
         }
@@ -427,7 +426,7 @@ class ExcelFormatter:
             if missing.isposinf_scalar(val):
                 val = self.inf_rep
             elif missing.isneginf_scalar(val):
-                val = "-{inf}".format(inf=self.inf_rep)
+                val = f"-{self.inf_rep}"
             elif self.float_format is not None:
                 val = float(self.float_format % val)
         if getattr(val, "tzinfo", None) is not None:
@@ -509,8 +508,8 @@ class ExcelFormatter:
             if has_aliases:
                 if len(self.header) != len(self.columns):
                     raise ValueError(
-                        "Writing {cols} cols but got {alias} "
-                        "aliases".format(cols=len(self.columns), alias=len(self.header))
+                        f"Writing {len(self.columns)} cols but got {len(self.header)} "
+                        "aliases"
                     )
                 else:
                     colnames = self.header
@@ -718,8 +717,8 @@ class ExcelFormatter:
         if num_rows > self.max_rows or num_cols > self.max_cols:
             raise ValueError(
                 "This sheet is too large! Your sheet size is: "
-                + "{}, {} ".format(num_rows, num_cols)
-                + "Max sheet size is: {}, {}".format(self.max_rows, self.max_cols)
+                f"{num_rows}, {num_cols} "
+                f"Max sheet size is: {self.max_rows}, {self.max_cols}"
             )
 
         if isinstance(writer, ExcelWriter):

@@ -22,7 +22,7 @@ def test(extra_args=None):
             extra_args = [extra_args]
         cmd = extra_args
     cmd += [PKG]
-    print("running: pytest {}".format(" ".join(cmd)))
+    print(f"running: pytest {' '.join(cmd)}")
     sys.exit(pytest.main(cmd))
 
 
