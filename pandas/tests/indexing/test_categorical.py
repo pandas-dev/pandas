@@ -654,22 +654,13 @@ class TestCategoricalIndex:
             df.reindex(["a"], limit=2)
 
     def test_loc_slice(self):
-        # slicing
-        # not implemented ATM
         # GH9748
-
-        msg = (
-            "cannot do slice indexing on {klass} with these "
-            r"indexers \[1\] of {kind}".format(
-                klass=str(CategoricalIndex), kind=str(int)
-            )
-        )
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(KeyError, match="1"):
             self.df.loc[1:5]
 
-        # result = df.loc[1:5]
-        # expected = df.iloc[[1,2,3,4]]
-        # tm.assert_frame_equal(result, expected)
+        result = self.df.loc["b":"c"]
+        expected = self.df.iloc[[2, 3, 4]]
+        tm.assert_frame_equal(result, expected)
 
     def test_loc_and_at_with_categorical_index(self):
         # GH 20629
@@ -794,6 +785,7 @@ class TestCategoricalIndex:
         # GH-17569
         cat_idx = CategoricalIndex(idx_values, ordered=ordered_fixture)
         df = DataFrame({"A": ["foo", "bar", "baz"]}, index=cat_idx)
+        sl = slice(idx_values[0], idx_values[1])
 
         # scalar selection
         result = df.loc[idx_values[0]]
@@ -802,6 +794,11 @@ class TestCategoricalIndex:
 
         # list selection
         result = df.loc[idx_values[:2]]
+        expected = DataFrame(["foo", "bar"], index=cat_idx[:2], columns=["A"])
+        tm.assert_frame_equal(result, expected)
+
+        # slice selection
+        result = df.loc[sl]
         expected = DataFrame(["foo", "bar"], index=cat_idx[:2], columns=["A"])
         tm.assert_frame_equal(result, expected)
 
@@ -814,5 +811,11 @@ class TestCategoricalIndex:
         # list assignment
         result = df.copy()
         result.loc[idx_values[:2], "A"] = ["qux", "qux2"]
+        expected = DataFrame({"A": ["qux", "qux2", "baz"]}, index=cat_idx)
+        tm.assert_frame_equal(result, expected)
+
+        # slice assignment
+        result = df.copy()
+        result.loc[sl, "A"] = ["qux", "qux2"]
         expected = DataFrame({"A": ["qux", "qux2", "baz"]}, index=cat_idx)
         tm.assert_frame_equal(result, expected)
