@@ -6684,7 +6684,7 @@ class DataFrame(NDFrame):
             .. versionadded:: 0.23.0
             .. versionchanged:: 1.0.0
 
-           Changed to not sort by default.
+                Changed to not sort by default.
 
         Returns
         -------
