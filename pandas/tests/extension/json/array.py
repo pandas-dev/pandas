@@ -44,7 +44,7 @@ class JSONDtype(ExtensionDtype):
         if string == cls.name:
             return cls()
         else:
-            raise TypeError("Cannot construct a '{}' from '{}'".format(cls, string))
+            raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
 
 
 class JSONArray(ExtensionArray):

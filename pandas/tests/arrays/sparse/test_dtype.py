@@ -83,7 +83,7 @@ def test_not_equal(a, b):
 
 def test_construct_from_string_raises():
     with pytest.raises(
-        TypeError, match="Could not construct SparseDtype from 'not a dtype'"
+        TypeError, match="Cannot construct a 'SparseDtype' from 'not a dtype'"
     ):
         SparseDtype.construct_from_string("not a dtype")
 

@@ -236,7 +236,7 @@ class TestDatetimeTZDtype(Base):
     def test_construction_from_string(self):
         result = DatetimeTZDtype.construct_from_string("datetime64[ns, US/Eastern]")
         assert is_dtype_equal(self.dtype, result)
-        msg = "Could not construct DatetimeTZDtype from 'foo'"
+        msg = "Cannot construct a 'DatetimeTZDtype' from 'foo'"
         with pytest.raises(TypeError, match=msg):
             DatetimeTZDtype.construct_from_string("foo")
 
@@ -244,7 +244,7 @@ class TestDatetimeTZDtype(Base):
         with pytest.raises(TypeError, match="notatz"):
             DatetimeTZDtype.construct_from_string("datetime64[ns, notatz]")
 
-        msg = "^Could not construct DatetimeTZDtype"
+        msg = "^Cannot construct a 'DatetimeTZDtype'"
         with pytest.raises(TypeError, match=msg):
             # list instead of string
             DatetimeTZDtype.construct_from_string(["datetime64[ns, notatz]"])
