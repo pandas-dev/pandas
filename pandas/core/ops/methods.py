@@ -162,7 +162,6 @@ def _create_methods(cls, arith_method, comp_method, bool_method, special):
     have_divmod = issubclass(cls, ABCSeries)
     # divmod is available for Series
 
-    # yapf: disable
     new_methods = dict(
         add=arith_method(cls, operator.add, special),
         radd=arith_method(cls, radd, special),
@@ -181,8 +180,8 @@ def _create_methods(cls, arith_method, comp_method, bool_method, special):
         rtruediv=arith_method(cls, rtruediv, special),
         rfloordiv=arith_method(cls, rfloordiv, special),
         rpow=arith_method(cls, rpow, special),
-        rmod=arith_method(cls, rmod, special))
-    # yapf: enable
+        rmod=arith_method(cls, rmod, special),
+    )
     new_methods["div"] = new_methods["truediv"]
     new_methods["rdiv"] = new_methods["rtruediv"]
     if have_divmod:
