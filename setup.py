@@ -604,7 +604,7 @@ ext_data = {
     "_libs.properties": {"pyxfile": "_libs/properties"},
     "_libs.reshape": {"pyxfile": "_libs/reshape", "depends": []},
     "_libs.sparse": {"pyxfile": "_libs/sparse", "depends": _pxi_dep["sparse"]},
-    "_libs.tslib": {"pyxfile": "_libs/tslib", "depends": tseries_depends,},
+    "_libs.tslib": {"pyxfile": "_libs/tslib", "depends": tseries_depends},
     "_libs.tslibs.c_timestamp": {
         "pyxfile": "_libs/tslibs/c_timestamp",
         "depends": tseries_depends,
