@@ -344,7 +344,7 @@ class TestApi(Base):
         tm.assert_frame_equal(result, expected)
 
 
-@td.skip_if_no('numba', '0.46.0')
+@td.skip_if_no("numba", "0.46.0")
 class TestEngine:
     def test_invalid_engine(self):
         with pytest.raises(

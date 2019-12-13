@@ -8,6 +8,15 @@ from pandas.compat._optional import import_optional_dependency
 def _generate_numba_apply_func(
     args: Tuple, kwargs: Dict, func: Callable, engine_kwargs: Optional[Dict]
 ):
+    """
+    Generate a numba jitted apply function specified by values from engine_kwargs.
+
+    1. jit the user's function
+    2. Return a rolling apply function with the jitted function inline
+
+    Configurations specified in engine_kwargs apply to both the user's
+    function _AND_ the rolling apply function.
+    """
     numba = import_optional_dependency("numba")
 
     if engine_kwargs is None:
@@ -29,14 +38,6 @@ def _generate_numba_apply_func(
         loop_range = range
 
     def make_rolling_apply(func):
-        """
-        1. jit the user's function
-        2. Return a rolling apply function with the jitted function inline
-
-        Configurations specified in engine_kwargs apply to both the user's
-        function _AND_ the rolling apply function.
-        """
-
         @numba.generated_jit(nopython=nopython)
         def numba_func(window, *_args):
             if getattr(np, func.__name__, False) is func:
