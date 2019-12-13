@@ -156,6 +156,28 @@ def test_logical_not():
     assert ~NA is NA
 
 
+@pytest.mark.parametrize(
+    "shape",
+    [
+        # (),  #  TODO: this fails, since we return a scalar. What to do?
+        (3,),
+        (3, 3),
+        (1, 2, 3),
+    ],
+)
+def test_arithmetic_ndarray(shape, all_arithmetic_functions):
+    op = all_arithmetic_functions
+    a = np.zeros(shape)
+    if op.__name__ == "pow":
+        a += 5
+    result = op(pd.NA, a)
+    expected = np.full(a.shape, pd.NA, dtype=object)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+# TODO: test pow special with ndarray
+
+
 def test_is_scalar():
     assert is_scalar(NA) is True
 

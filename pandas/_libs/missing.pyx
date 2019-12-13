@@ -289,6 +289,7 @@ cdef inline bint is_null_period(v):
 def _create_binary_propagating_op(name, divmod=False):
 
     def method(self, other):
+        print("binop", other, type(other))
         if (other is C_NA or isinstance(other, str)
                 or isinstance(other, (numbers.Number, np.bool_, np.int64, np.int_))
                 or isinstance(other, np.ndarray) and not other.shape):
@@ -296,6 +297,15 @@ def _create_binary_propagating_op(name, divmod=False):
                 return NA, NA
             else:
                 return NA
+
+        elif isinstance(other, np.ndarray):
+            out = np.empty(other.shape, dtype=object)
+            out[:] = NA
+
+            if divmod:
+                return out, out.copy()
+            else:
+                return out
 
         return NotImplemented
 
@@ -484,6 +494,8 @@ class NAType(C_NAType):
                 return type(other)(1)
             else:
                 return NA
+        elif isinstance(other, np.ndarray):
+            return np.where(other == 0, other.dtype.type(1), NA)
 
         return NotImplemented
 
@@ -495,6 +507,8 @@ class NAType(C_NAType):
                 return other
             else:
                 return NA
+        elif isinstance(other, np.ndarray):
+            return np.where((other == 1) | (other == -1), other, NA)
 
         return NotImplemented
 
@@ -534,18 +548,23 @@ class NAType(C_NAType):
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         types = self._HANDLED_TYPES + (NAType,)
+        print('array_ufunc', 'inputs', inputs)
         for x in inputs:
             if not isinstance(x, types):
+                print('defer', x)
                 return NotImplemented
 
         if method != "__call__":
             raise ValueError(f"ufunc method '{method}' not supported for NA")
         result = maybe_dispatch_ufunc_to_dunder_op(self, ufunc, method, *inputs, **kwargs)
+        print("dispatch result", result)
         if result is NotImplemented:
+            # TODO: this is wrong for binary, ternary ufuncs. Should handle shape stuff.
             if ufunc.nout == 1:
                 result = NA
             else:
                 result = (NA,) * ufunc.nout
+
         return result
 
 
