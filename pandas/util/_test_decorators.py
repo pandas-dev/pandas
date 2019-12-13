@@ -129,7 +129,7 @@ def skip_if_installed(package: str) -> Callable:
         The name of the package.
     """
     return pytest.mark.skipif(
-        safe_import(package), reason="Skipping because {} is installed.".format(package)
+        safe_import(package), reason=f"Skipping because {package} is installed."
     )
 
 
@@ -163,9 +163,9 @@ def skip_if_no(package: str, min_version: Optional[str] = None) -> Callable:
         a pytest.mark.skipif to use as either a test decorator or a
         parametrization mark.
     """
-    msg = "Could not import '{}'".format(package)
+    msg = f"Could not import '{package}'"
     if min_version:
-        msg += " satisfying a min_version of {}".format(min_version)
+        msg += f" satisfying a min_version of {min_version}"
     return pytest.mark.skipif(
         not safe_import(package, min_version=min_version), reason=msg
     )
@@ -181,20 +181,17 @@ skip_if_windows_python_3 = pytest.mark.skipif(
     is_platform_windows(), reason="not used on win32"
 )
 skip_if_has_locale = pytest.mark.skipif(
-    _skip_if_has_locale(),
-    reason="Specific locale is set {lang}".format(lang=locale.getlocale()[0]),
+    _skip_if_has_locale(), reason=f"Specific locale is set {locale.getlocale()[0]}",
 )
 skip_if_not_us_locale = pytest.mark.skipif(
-    _skip_if_not_us_locale(),
-    reason="Specific locale is set {lang}".format(lang=locale.getlocale()[0]),
+    _skip_if_not_us_locale(), reason=f"Specific locale is set {locale.getlocale()[0]}",
 )
 skip_if_no_scipy = pytest.mark.skipif(
     _skip_if_no_scipy(), reason="Missing SciPy requirement"
 )
 skip_if_no_ne = pytest.mark.skipif(
     not _USE_NUMEXPR,
-    reason="numexpr enabled->{enabled}, "
-    "installed->{installed}".format(enabled=_USE_NUMEXPR, installed=_NUMEXPR_INSTALLED),
+    reason=f"numexpr enabled->{_USE_NUMEXPR}, " f"installed->{_NUMEXPR_INSTALLED}",
 )
 
 
