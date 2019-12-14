@@ -433,6 +433,8 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 | pytables        | 3.4.2           |         |
 +-----------------+-----------------+---------+
+| s3fs            | 0.3.0           |    X    |
++-----------------+-----------------+---------+
 | scipy           | 0.19.0          |         |
 +-----------------+-----------------+---------+
 | sqlalchemy      | 1.1.4           |         |
@@ -454,7 +456,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 Other API changes
 ^^^^^^^^^^^^^^^^^
 
-- Bumpded the minimum supported version of ``s3fs`` from 0.0.8 to 0.3.0 (:issue:`28616`)
+- Bumped the minimum supported version of ``s3fs`` from 0.0.8 to 0.3.0 (:issue:`28616`)
 - :class:`pandas.core.groupby.GroupBy.transform` now raises on invalid operation names (:issue:`27489`)
 - :meth:`pandas.api.types.infer_dtype` will now return "integer-na" for integer and ``np.nan`` mix (:issue:`27283`)
 - :meth:`MultiIndex.from_arrays` will no longer infer names from arrays if ``names=None`` is explicitly provided (:issue:`27292`)
@@ -492,6 +494,7 @@ Deprecations
 - :meth:`Categorical.take_nd` is deprecated, use :meth:`Categorical.take` instead (:issue:`27745`)
 - The parameter ``numeric_only`` of :meth:`Categorical.min` and :meth:`Categorical.max` is deprecated and replaced with ``skipna`` (:issue:`25303`)
 - The parameter ``label`` in :func:`lreshape` has been deprecated and will be removed in a future version (:issue:`29742`)
+- ``pandas.core.index`` has been deprecated and will be removed in a future version, the public classes are available in the top-level namespace (:issue:`19711`)
 -
 
 .. _whatsnew_1000.prior_deprecations:
