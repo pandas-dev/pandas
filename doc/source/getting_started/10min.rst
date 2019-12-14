@@ -15,6 +15,7 @@ Customarily, we import as follows:
 
    import numpy as np
    import pandas as pd
+   import matplotlib.pyplot as plt
 
 Object creation
 ---------------
