@@ -37,9 +37,13 @@ from pandas.core.dtypes.generic import (
 from pandas.core import algorithms, common as com
 from pandas.core.arrays import Categorical
 from pandas.core.construction import sanitize_array
-from pandas.core.index import Index, ensure_index, get_objs_combined_axis
 from pandas.core.indexes import base as ibase
-from pandas.core.indexes.api import union_indexes
+from pandas.core.indexes.api import (
+    Index,
+    ensure_index,
+    get_objs_combined_axis,
+    union_indexes,
+)
 from pandas.core.internals import (
     create_block_manager_from_arrays,
     create_block_manager_from_blocks,

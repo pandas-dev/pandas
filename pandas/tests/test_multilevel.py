@@ -11,8 +11,7 @@ import pytz
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp, isna
-from pandas.core.index import Index, MultiIndex
+from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, isna
 import pandas.util.testing as tm
 
 AGG_FUNCTIONS = [

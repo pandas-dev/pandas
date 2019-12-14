@@ -598,7 +598,7 @@ def astype_str(arr: ndarray, skipna: bool=False) -> ndarray[object]:
 @cython.boundscheck(False)
 def clean_index_list(obj: list):
     """
-    Utility used in ``pandas.core.index.ensure_index``.
+    Utility used in ``pandas.core.indexes.api.ensure_index``.
     """
     cdef:
         Py_ssize_t i, n = len(obj)

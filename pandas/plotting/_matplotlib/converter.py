@@ -24,9 +24,8 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import ABCSeries
 
-from pandas import get_option
+from pandas import Index, get_option
 import pandas.core.common as com
-from pandas.core.index import Index
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import Period, PeriodIndex, period_range
 import pandas.core.tools.datetimes as tools

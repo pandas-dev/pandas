@@ -16,6 +16,7 @@ from pandas import (
     Index,
     Interval,
     IntervalIndex,
+    MultiIndex,
     NaT,
     Series,
     Timestamp,
@@ -285,8 +286,6 @@ class TestCategoricalConstructors:
         tm.assert_categorical_equal(cat, exp)
 
         # This uses xrange internally
-        from pandas.core.index import MultiIndex
-
         MultiIndex.from_product([range(5), ["a", "b", "c"]])
 
         # check that categories accept generators and sequences

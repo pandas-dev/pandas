@@ -38,7 +38,7 @@ from pandas.core.dtypes.generic import (
 from pandas._typing import Axis, FrameOrSeries, Scalar
 from pandas.core.base import DataError, PandasObject, SelectionMixin, ShallowMixin
 import pandas.core.common as com
-from pandas.core.index import Index, ensure_index
+from pandas.core.indexes.api import Index, ensure_index
 from pandas.core.window.common import (
     WindowGroupByMixin,
     _doc_template,
