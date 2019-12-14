@@ -687,6 +687,7 @@ ext_data = {
         "pyxfile": "_libs/window/aggregations",
         "language": "c++",
         "suffix": ".cpp",
+        "depends": ["pandas/_libs/src/skiplist.h"],
     },
     "_libs.window.indexers": {"pyxfile": "_libs/window/indexers"},
     "_libs.writers": {"pyxfile": "_libs/writers"},
