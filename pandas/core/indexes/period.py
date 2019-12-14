@@ -183,9 +183,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
         if not set(fields).issubset(valid_field_set):
             argument = list(set(fields) - valid_field_set)[0]
-            raise TypeError(
-                f"__new__() got an unexpected keyword argument {argument}"
-            )
+            raise TypeError(f"__new__() got an unexpected keyword argument {argument}")
 
         if name is None and hasattr(data, "name"):
             name = data.name
