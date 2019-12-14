@@ -434,6 +434,7 @@ class IntervalIndex(IntervalMixin, Index):
         if closed not in _VALID_CLOSED:
             raise ValueError(f"invalid option for 'closed': {closed}")
 
+        # return self._shallow_copy(closed=closed)
         array = self._data.set_closed(closed)
         return self._simple_new(array, self.name)
 
