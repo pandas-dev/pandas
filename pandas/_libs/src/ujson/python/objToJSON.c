@@ -59,8 +59,7 @@ PyObject *cls_timedelta;
 
 npy_int64 get_nat(void) { return NPY_MIN_INT64; }
 
-typedef void *(*PFN_PyTypeToJSON)(JSOBJ obj, JSONTypeContext *ti,
-                                  void *outValue, size_t *_outLen);
+typedef void *(*PFN_PyTypeToJSON)(JSOBJ obj, JSONTypeContext *ti, size_t *_outLen);
 
 typedef struct __NpyArrContext {
     PyObject *array;
@@ -396,20 +395,18 @@ static PyObject *get_item(PyObject *obj, Py_ssize_t i) {
     return ret;
 }
 
-static void *PyBytesToUTF8(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
-                           size_t *_outLen) {
+static void *PyBytesToUTF8(JSOBJ _obj, JSONTypeContext *tc, size_t *_outLen) {
     PyObject *obj = (PyObject *)_obj;
     *_outLen = PyBytes_GET_SIZE(obj);
     return PyBytes_AS_STRING(obj);
 }
 
-static void *PyUnicodeToUTF8(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
-                             size_t *_outLen) {
+static void *PyUnicodeToUTF8(JSOBJ _obj, JSONTypeContext *tc, size_t *_outLen) {
   return PyUnicode_AsUTF8AndSize(_obj, _outLen);
 }
 
 static void *PandasDateTimeStructToJSON(npy_datetimestruct *dts,
-                                        JSONTypeContext *tc, void *outValue,
+                                        JSONTypeContext *tc,
                                         size_t *_outLen) {
     NPY_DATETIMEUNIT base = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
 
@@ -437,13 +434,11 @@ static void *PandasDateTimeStructToJSON(npy_datetimestruct *dts,
         }
     } else {
         PRINTMARK();
-        *((JSINT64 *)outValue) = npy_datetimestruct_to_datetime(base, dts);
-        return NULL;
+        return npy_datetimestruct_to_datetime(base, dts);
     }
 }
 
-static void *NpyDateTimeScalarToJSON(JSOBJ _obj, JSONTypeContext *tc,
-                                     void *outValue, size_t *_outLen) {
+static void *NpyDateTimeScalarToJSON(JSOBJ _obj, JSONTypeContext *tc, size_t *_outLen) {
     npy_datetimestruct dts;
     PyDatetimeScalarObject *obj = (PyDatetimeScalarObject *)_obj;
     PRINTMARK();
@@ -451,11 +446,10 @@ static void *NpyDateTimeScalarToJSON(JSOBJ _obj, JSONTypeContext *tc,
 
     pandas_datetime_to_datetimestruct(obj->obval,
                                       (NPY_DATETIMEUNIT)obj->obmeta.base, &dts);
-    return PandasDateTimeStructToJSON(&dts, tc, outValue, _outLen);
+    return PandasDateTimeStructToJSON(&dts, tc, _outLen);
 }
 
-static void *PyDateTimeToJSON(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
-                              size_t *_outLen) {
+static void *PyDateTimeToJSON(JSOBJ _obj, JSONTypeContext *tc, size_t *_outLen) {
     npy_datetimestruct dts;
     PyDateTime_Date *obj = (PyDateTime_Date *)_obj;
 
@@ -463,7 +457,7 @@ static void *PyDateTimeToJSON(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
 
     if (!convert_pydatetime_to_datetimestruct(obj, &dts)) {
         PRINTMARK();
-        return PandasDateTimeStructToJSON(&dts, tc, outValue, _outLen);
+        return PandasDateTimeStructToJSON(&dts, tc, _outLen);
     } else {
         if (!PyErr_Occurred()) {
             PyErr_SetString(PyExc_ValueError,
@@ -474,18 +468,16 @@ static void *PyDateTimeToJSON(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
     }
 }
 
-static void *NpyDatetime64ToJSON(JSOBJ _obj, JSONTypeContext *tc,
-                                 void *outValue, size_t *_outLen) {
+static void *NpyDatetime64ToJSON(JSOBJ _obj, JSONTypeContext *tc, size_t *_outLen) {
     npy_datetimestruct dts;
     PRINTMARK();
 
     pandas_datetime_to_datetimestruct((npy_datetime)GET_TC(tc)->longValue,
                                       NPY_FR_ns, &dts);
-    return PandasDateTimeStructToJSON(&dts, tc, outValue, _outLen);
+    return PandasDateTimeStructToJSON(&dts, tc, _outLen);
 }
 
-static void *PyTimeToJSON(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
-                          size_t *outLen) {
+static void *PyTimeToJSON(JSOBJ _obj, JSONTypeContext *tc, size_t *outLen) {
     PyObject *obj = (PyObject *)_obj;
     PyObject *str;
     PyObject *tmp;
@@ -509,7 +501,7 @@ static void *PyTimeToJSON(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
     GET_TC(tc)->newObj = str;
 
     *outLen = PyBytes_GET_SIZE(str);
-    outValue = (void *)PyBytes_AS_STRING(str);
+    char *outValue = PyBytes_AS_STRING(str);
     return outValue;
 }
 
@@ -1805,7 +1797,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
             PRINTMARK();
             // TODO: last argument here is unused; should decouple string
             // from long datetimelike conversion routines
-            PyDateTimeToJSON(obj, tc, &(GET_TC(tc)->longValue), 0);
+            GET_TC(tc)->longValue = PyDateTimeToJSON(obj, tc, 0);
             tc->type = JT_LONG;
         }
         return;
@@ -2226,7 +2218,7 @@ void Object_endTypeContext(JSOBJ obj, JSONTypeContext *tc) {
 
 const char *Object_getStringValue(JSOBJ obj, JSONTypeContext *tc,
                                   size_t *_outLen) {
-    return GET_TC(tc)->PyTypeToJSON(obj, tc, NULL, _outLen);
+    return GET_TC(tc)->PyTypeToJSON(obj, tc, _outLen);
 }
 
 JSINT64 Object_getLongValue(JSOBJ obj, JSONTypeContext *tc) {
