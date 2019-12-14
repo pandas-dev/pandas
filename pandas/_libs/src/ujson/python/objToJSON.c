@@ -1797,7 +1797,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
             PRINTMARK();
             // TODO: last argument here is unused; should decouple string
             // from long datetimelike conversion routines
-            GET_TC(tc)->longValue = PyDateTimeToJSON(obj, tc, 0);
+            GET_TC(tc)->longValue = (JSINT64)PyDateTimeToJSON(obj, tc, 0);
             tc->type = JT_LONG;
         }
         return;
