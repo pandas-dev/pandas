@@ -2,6 +2,7 @@ from datetime import datetime
 
 import numpy as np
 import pytest
+import pytz
 
 import pandas as pd
 from pandas import DataFrame, Index, Series, Timestamp, date_range
@@ -287,6 +288,20 @@ class TestDataFrameConcatCommon:
         result = df1.append(df2)
         expected = DataFrame({"bar": Series([Timestamp("20130101"), 1])})
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "timestamp, timezone",
+        [
+            ("2019-07-19 07:04:57+0100", pytz.FixedOffset(60)),
+            ("2019-07-19 07:04:57", None),
+        ],
+    )
+    def test_append_timestamps_aware_or_naive(self, timestamp, timezone):
+        # GH 30238
+        df = pd.DataFrame([pd.Timestamp(timestamp, tz=timezone)])
+        result = df.append(df.iloc[0]).iloc[-1]
+        expected = pd.Series(pd.Timestamp(timestamp, tz=timezone), name=0)
+        pd.testing.assert_series_equal(result, expected)
 
     def test_update(self):
         df = DataFrame(
