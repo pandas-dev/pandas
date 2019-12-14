@@ -369,7 +369,7 @@ class TestMMapWrapper:
         pd.read_csv,
         pd.read_table,
         pd.read_fwf,
-        pd.read_excel,
+        pytest.param(pd.read_excel, marks=[td.skip_if_no("xlrd")]),
         pytest.param(
             pd.read_json,
             marks=[
@@ -404,7 +404,7 @@ def test_errno_set_nonexistent(reader):
         pd.read_csv,
         pd.read_table,
         pd.read_fwf,
-        pd.read_excel,
+        pytest.param(pd.read_excel, marks=[td.skip_if_no("xlrd")]),
         pd.read_json,
         pd.read_pickle,
         pd.read_stata,
