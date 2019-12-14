@@ -24,6 +24,7 @@ dependencies:
   - numexpr
   - numpy=1.14.*
   - openpyxl
+  - pyxlsb
   - pytables
   - python-dateutil
   - pytz

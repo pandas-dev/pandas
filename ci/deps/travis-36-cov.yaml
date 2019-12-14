@@ -38,6 +38,7 @@ dependencies:
   - pytables
   - python-snappy
   - pytz
+  - pyxlsb
   - s3fs
   - scikit-learn
   - scipy
