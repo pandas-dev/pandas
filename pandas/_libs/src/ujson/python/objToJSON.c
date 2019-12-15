@@ -1777,6 +1777,10 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
 	      tc->type = JT_LONG;
 	    }
         }
+
+	// TODO: this prevents infinite loop with mixed-type DataFrames; refactor
+	enc->npyCtxtPassthru = NULL;
+	enc->npyType = -1;
         return;
     } else if (PyDateTime_Check(obj) || PyDate_Check(obj)) {
         if (PyObject_TypeCheck(obj, cls_nat)) {
@@ -1802,7 +1806,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         pc->PyTypeToJSON = PyTimeToJSON;
         tc->type = JT_UTF8;
         return;
-    } /* else if (PyArray_IsScalar(obj, Datetime)) {
+    } else if (PyArray_IsScalar(obj, Datetime)) {
         PRINTMARK();
         if (((PyDatetimeScalarObject *)obj)->obval == get_nat()) {
             PRINTMARK();
@@ -1811,10 +1815,18 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         }
 
         PRINTMARK();
-        pc->PyTypeToJSON = NpyDateTimeScalarToJSON;
-        tc->type = enc->datetimeIso ? JT_UTF8 : JT_LONG;
+        if (enc->datetimeIso) {
+            PRINTMARK();
+            pc->PyTypeToJSON = PyDateTimeToIso;
+            tc->type = JT_UTF8;
+        } else {
+            PRINTMARK();
+	    NPY_DATETIMEUNIT base = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
+	    GET_TC(tc)->longValue = PyDateTimeToEpoch(obj, base);
+            tc->type = JT_LONG;
+        }
         return;
-	} */ else if (PyDelta_Check(obj)) {
+	} else if (PyDelta_Check(obj)) {
         if (PyObject_HasAttrString(obj, "value")) {
             PRINTMARK();
             value = get_long_attr(obj, "value");
