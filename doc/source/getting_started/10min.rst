@@ -698,7 +698,6 @@ Plotting
 See the :ref:`Plotting <visualization>` docs.
 
 .. ipython:: python
-   :suppress:
 
    import matplotlib.pyplot as plt
    plt.close('all')
