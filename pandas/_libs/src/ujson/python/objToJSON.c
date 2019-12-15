@@ -505,7 +505,7 @@ static npy_datetime PyDateTimeToEpoch(PyObject *obj, NPY_DATETIMEUNIT base) {
     // return NULL;
   }
 
-  npy_datetime npy_dt = npy_datetimestruct_to_datetime(base, &dts);
+  npy_datetime npy_dt = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts);
   return NpyDateTimeToEpoch(npy_dt, base);
 }
 
