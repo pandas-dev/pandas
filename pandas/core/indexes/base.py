@@ -911,8 +911,6 @@ class Index(IndexOpsMixin, PandasObject):
         memo, default None
             Standard signature. Unused
         """
-        if memo is None:
-            memo = {}
         return self.copy(deep=True)
 
     # --------------------------------------------------------------------
