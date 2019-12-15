@@ -494,7 +494,7 @@ static npy_datetime PyDateTimeToEpoch(PyObject *obj, NPY_DATETIMEUNIT base) {
     }
     // TODO: is setting errMsg required?
     //((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
-    return NULL;
+    // return NULL;
   }
 
   npy_datetime npy_dt = npy_datetimestruct_to_datetime(base, &dts);
@@ -1746,15 +1746,30 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         return;
     } else if (PyTypeNum_ISDATETIME(enc->npyType)) {
         PRINTMARK();
+	
         if (enc->datetimeIso) {
             PRINTMARK();
             pc->PyTypeToJSON = NpyDateTimeToIso;
             tc->type = JT_UTF8;
         } else {
             PRINTMARK();
-	    NPY_DATETIMEUNIT base = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
-	    GET_TC(tc)->longValue = NpyDateTimeToEpoch(obj, base);
-            tc->type = JT_LONG;
+	    int64_t longVal;
+	    PyArray_VectorUnaryFunc *castfunc =
+	      PyArray_GetCastFunc(PyArray_DescrFromType(enc->npyType), NPY_INT64);
+	    if (!castfunc) {
+	      PyErr_Format(PyExc_ValueError, "Cannot cast numpy dtype %d to long",
+			   enc->npyType);
+	    }
+	    castfunc(enc->npyValue, &longVal, 1, NULL, NULL);
+	    
+	    if (longVal == get_nat()) {
+	      PRINTMARK();
+	      tc->type = JT_NULL;
+	    } else {
+	      NPY_DATETIMEUNIT base = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
+	      GET_TC(tc)->longValue = NpyDateTimeToEpoch(longVal, base);
+	      tc->type = JT_LONG;
+	    }
         }
         return;
     } else if (PyDateTime_Check(obj) || PyDate_Check(obj)) {
