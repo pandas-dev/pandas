@@ -543,3 +543,19 @@ def test_multiindex_loc_order():
     res = df.loc[(["b", "a"], [2, 1]), :]
     exp_index = pd.MultiIndex.from_arrays([["b", "b", "a", "a"], [2, 1, 2, 1]])
     tm.assert_index_equal(res.index, exp_index)
+
+    res = df.loc[:, ["Colorado", "Ohio"]]
+    exp_columns = pd.MultiIndex.from_arrays(
+        [["Colorado", "Ohio", "Ohio"], ["Green", "Green", "Red"]]
+    )
+    tm.assert_index_equal(res.columns, exp_columns)
+
+    res = df.loc[:, (["Colorado", "Ohio"], ["Red", "Green"])]
+    exp_columns = pd.MultiIndex.from_arrays(
+        [["Colorado", "Ohio", "Ohio"], ["Green", "Red", "Green"]]
+    )
+    tm.assert_index_equal(res.columns, exp_columns)
+
+    res = df.loc[(slice(None), [2, 1]), :]
+    exp_index = pd.MultiIndex.from_arrays([["a", "b", "a", "b"], [2, 2, 1, 1]])
+    tm.assert_index_equal(res.index, exp_index)
