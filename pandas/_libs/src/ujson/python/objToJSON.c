@@ -396,16 +396,16 @@ static PyObject *get_item(PyObject *obj, Py_ssize_t i) {
     return ret;
 }
 
-static void *PyBytesToUTF8(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
+static char *PyBytesToUTF8(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
                            size_t *_outLen) {
     PyObject *obj = (PyObject *)_obj;
     *_outLen = PyBytes_GET_SIZE(obj);
     return PyBytes_AS_STRING(obj);
 }
 
-static void *PyUnicodeToUTF8(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
+static char *PyUnicodeToUTF8(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
                              size_t *_outLen) {
-    return PyUnicode_AsUTF8AndSize(_obj, _outLen);
+  return (char *)PyUnicode_AsUTF8AndSize(_obj, _outLen);
 }
 
 /* returns a char* and mutates the pointer to *len */
@@ -446,7 +446,7 @@ static npy_datetime NpyDateTimeToEpoch(npy_datetime dt, NPY_DATETIMEUNIT base) {
     return dt;
 }
 
-static char *PyDateTimeToIso(PyObject *obj, JSONTypeContext *tc, void *unused,
+static char *PyDateTimeToIso(JSOBJ obj, JSONTypeContext *tc, void *unused,
                              size_t *len) {
     npy_datetimestruct dts;
     int ret;
@@ -508,7 +508,7 @@ static npy_datetime PyDateTimeToEpoch(PyObject *obj, NPY_DATETIMEUNIT base) {
     return NpyDateTimeToEpoch(npy_dt, base);
 }
 
-static void *PyTimeToJSON(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
+static char *PyTimeToJSON(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
                           size_t *outLen) {
     PyObject *obj = (PyObject *)_obj;
     PyObject *str;
@@ -533,7 +533,7 @@ static void *PyTimeToJSON(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
     GET_TC(tc)->newObj = str;
 
     *outLen = PyBytes_GET_SIZE(str);
-    outValue = (void *)PyBytes_AS_STRING(str);
+    outValue = PyBytes_AS_STRING(str);
     return outValue;
 }
 
