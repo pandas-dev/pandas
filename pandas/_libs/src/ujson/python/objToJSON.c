@@ -434,7 +434,7 @@ static void *PandasDateTimeStructToJSON(npy_datetimestruct *dts,
         }
     } else {
         PRINTMARK();
-        return npy_datetimestruct_to_datetime(base, dts);
+        return (JSINT64)npy_datetimestruct_to_datetime(base, dts);
     }
 }
 
