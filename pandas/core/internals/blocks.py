@@ -3024,7 +3024,6 @@ def _merge_blocks(blocks, dtype=None, _can_consolidate=True):
         if dtype is None:
             if len({b.dtype for b in blocks}) != 1:
                 raise AssertionError("_merge_blocks are invalid!")
-            dtype = blocks[0].dtype
 
         # FIXME: optimization potential in case all mgrs contain slices and
         # combination of those slices is a slice, too.

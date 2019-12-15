@@ -131,7 +131,7 @@ class Grouper:
         """
 
         self._set_grouper(obj)
-        self.grouper, exclusions, self.obj = get_grouper(
+        self.grouper, _, self.obj = get_grouper(
             self.obj,
             [self.key],
             axis=self.axis,

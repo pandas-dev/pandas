@@ -1122,7 +1122,6 @@ def _validate_td64_dtype(dtype):
     dtype = pandas_dtype(dtype)
     if is_dtype_equal(dtype, np.dtype("timedelta64")):
         # no precision disallowed GH#24806
-        dtype = _TD_DTYPE
         msg = (
             "Passing in 'timedelta' dtype with no precision is not allowed. "
             "Please pass in 'timedelta64[ns]' instead."

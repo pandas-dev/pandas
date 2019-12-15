@@ -486,7 +486,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     @classmethod
     def construct_array_type(cls):
         """
-        Return the array type associated with this dtype
+        Return the array type associated with this dtype.
 
         Returns
         -------
@@ -668,7 +668,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
                 unit = result.unit
                 tz = result.tz
                 msg = (
-                    "Passing a dtype alias like 'datetime64[ns, {tz}]' "
+                    f"Passing a dtype alias like 'datetime64[ns, {tz}]' "
                     "to DatetimeTZDtype is no longer supported. Use "
                     "'DatetimeTZDtype.construct_from_string()' instead."
                 )
@@ -704,7 +704,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
     @classmethod
     def construct_array_type(cls):
         """
-        Return the array type associated with this dtype
+        Return the array type associated with this dtype.
 
         Returns
         -------
@@ -936,6 +936,13 @@ class PeriodDtype(PandasExtensionDtype):
 
     @classmethod
     def construct_array_type(cls):
+        """
+        Return the array type associated with this dtype.
+
+        Returns
+        -------
+        type
+        """
         from pandas.core.arrays import PeriodArray
 
         return PeriodArray
@@ -1030,7 +1037,7 @@ class IntervalDtype(PandasExtensionDtype):
     @classmethod
     def construct_array_type(cls):
         """
-        Return the array type associated with this dtype
+        Return the array type associated with this dtype.
 
         Returns
         -------

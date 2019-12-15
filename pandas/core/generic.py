@@ -5746,8 +5746,6 @@ class NDFrame(PandasObject, SelectionMixin):
         memo, default None
             Standard signature. Unused
         """
-        if memo is None:
-            memo = {}
         return self.copy(deep=True)
 
     def _convert(

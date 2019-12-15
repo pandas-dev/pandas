@@ -79,7 +79,15 @@ class PandasDtype(ExtensionDtype):
                 f"Cannot construct a 'PandasDtype' from '{string}'"
             ) from err
 
+    @classmethod
     def construct_array_type(cls):
+        """
+        Return the array type associated with this dtype.
+
+        Returns
+        -------
+        type
+        """
         return PandasArray
 
     @property

@@ -230,11 +230,9 @@ class _Unstacker:
         if needs_i8_conversion(values):
             sorted_values = sorted_values.view("i8")
             new_values = new_values.view("i8")
-            name = "int64"
         elif is_bool_dtype(values):
             sorted_values = sorted_values.astype("object")
             new_values = new_values.astype("object")
-            name = "object"
         else:
             sorted_values = sorted_values.astype(name, copy=False)
 

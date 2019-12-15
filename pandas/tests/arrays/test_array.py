@@ -287,6 +287,13 @@ class DecimalDtype2(DecimalDtype):
 
     @classmethod
     def construct_array_type(cls):
+        """
+        Return the array type associated with this dtype.
+
+        Returns
+        -------
+        type
+        """
         return DecimalArray2
 
 
