@@ -119,7 +119,8 @@ class TestMultiLevel(Base):
                     (1.2, tz.localize(datetime.datetime(2011, 1, 2)), "B"),
                     (1.3, tz.localize(datetime.datetime(2011, 1, 3)), "C"),
                 ]
-                + expected_tuples
+                + expected_tuples,
+                dtype=object,
             ),
             None,
         )

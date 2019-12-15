@@ -110,7 +110,7 @@ def masked_arith_op(x, y, op):
             with np.errstate(all="ignore"):
                 result[mask] = op(xrav[mask], y)
 
-    result, changed = maybe_upcast_putmask(result, ~mask, np.nan)
+    result, _ = maybe_upcast_putmask(result, ~mask, np.nan)
     result = result.reshape(x.shape)  # 2D compat
     return result
 

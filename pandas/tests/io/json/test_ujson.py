@@ -761,8 +761,9 @@ class TestNumpyJSONTests:
             ["a", "b"],
             {"key": "val"},
         ]
-        arr = np.array(arr_list)
-        tm.assert_numpy_array_equal(np.array(ujson.decode(ujson.encode(arr))), arr)
+        arr = np.array(arr_list, dtype=object)
+        result = np.array(ujson.decode(ujson.encode(arr)), dtype=object)
+        tm.assert_numpy_array_equal(result, arr)
 
     def test_array_float(self):
         dtype = np.float32
