@@ -5,7 +5,7 @@ Currently only includes to_coo helpers.
 """
 from collections import OrderedDict
 
-from pandas.core.index import Index, MultiIndex
+from pandas.core.indexes.api import Index, MultiIndex
 from pandas.core.series import Series
 
 
