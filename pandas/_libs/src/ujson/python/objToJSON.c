@@ -1566,7 +1566,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
             cLabel = (char *)PyUnicode_AsUTF8(iso);
             Py_DECREF(iso);
             len = strlen(cLabel);
-        } else if (PyTypeNum_ISDATETIME(enc->npyType) || PyDateTime_Check(item) ||
+        } else if (PyTypeNum_ISDATETIME(type_num) || PyDateTime_Check(item) ||
                    PyDate_Check(item)) {
             PyObject *ts = PyObject_CallFunction(cls_timestamp, "(O)", item);
             if (ts == NULL) {
