@@ -121,8 +121,8 @@ class RangeIndex(Int64Index):
         """
         if not isinstance(data, range):
             raise TypeError(
-                "{0}(...) must be called with object coercible to a "
-                "range, {1} was passed".format(cls.__name__, repr(data))
+                f"{cls.__name__}(...) must be called with object coercible to a "
+                f"range, {repr(data)} was passed"
             )
 
         cls._validate_dtype(dtype)
@@ -695,8 +695,7 @@ class RangeIndex(Int64Index):
                 return self._range[new_key]
             except IndexError:
                 raise IndexError(
-                    "index {key} is out of bounds for axis 0 "
-                    "with size {size}".format(key=key, size=len(self))
+                    f"index {key} is out of bounds for axis 0 with size {len(self)}"
                 )
         elif is_scalar(key):
             raise IndexError(
@@ -796,7 +795,7 @@ class RangeIndex(Int64Index):
                     return op(self._int64index, other)
                     # TODO: Do attrs get handled reliably?
 
-            name = "__{name}__".format(name=op.__name__)
+            name = f"__{op.__name__}__"
             return compat.set_function_name(_evaluate_numeric_binop, name, cls)
 
         cls.__add__ = _make_evaluate_binop(operator.add)

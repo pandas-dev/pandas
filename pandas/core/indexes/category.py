@@ -893,7 +893,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         """ add in comparison methods """
 
         def _make_compare(op):
-            opname = "__{op}__".format(op=op.__name__)
+            opname = f"__{op.__name__}__"
 
             def _evaluate_compare(self, other):
                 with np.errstate(all="ignore"):

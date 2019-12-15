@@ -26,8 +26,8 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
     def __init__(self, data, orig):
         if not isinstance(data, ABCSeries):
             raise TypeError(
-                "cannot convert an object of type {0} to a "
-                "datetimelike index".format(type(data))
+                f"cannot convert an object of type {type(data)} to a "
+                "datetimelike index"
             )
 
         self._parent = data
@@ -54,8 +54,7 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
                 return DatetimeIndex(data, copy=False, name=self.name)
 
         raise TypeError(
-            "cannot convert an object of type {0} to a "
-            "datetimelike index".format(type(data))
+            f"cannot convert an object of type {type(data)} to a datetimelike index"
         )
 
     def _delegate_property_get(self, name):
@@ -315,8 +314,8 @@ class CombinedDatetimelikeProperties(
 
         if not isinstance(data, ABCSeries):
             raise TypeError(
-                "cannot convert an object of type {0} to a "
-                "datetimelike index".format(type(data))
+                f"cannot convert an object of type {type(data)} to a "
+                "datetimelike index"
             )
 
         orig = data if is_categorical_dtype(data) else None

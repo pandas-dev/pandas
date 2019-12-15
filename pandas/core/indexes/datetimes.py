@@ -247,10 +247,8 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
         if is_scalar(data):
             raise TypeError(
-                "{cls}() must be called with a "
-                "collection of some kind, {data} was passed".format(
-                    cls=cls.__name__, data=repr(data)
-                )
+                f"{cls.__name__}() must be called with a "
+                f"collection of some kind, {repr(data)} was passed"
             )
 
         # - Cases checked above all return/raise before reaching here - #
@@ -973,9 +971,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         elif isinstance(key, timedelta):
             # GH#20464
             raise TypeError(
-                "Cannot index {cls} with {other}".format(
-                    cls=type(self).__name__, other=type(key).__name__
-                )
+                f"Cannot index {type(self).__name__} with {type(key).__name__}"
             )
 
         if isinstance(key, time):
@@ -1577,13 +1573,13 @@ def bdate_range(
             weekmask = weekmask or "Mon Tue Wed Thu Fri"
             freq = prefix_mapping[freq](holidays=holidays, weekmask=weekmask)
         except (KeyError, TypeError):
-            msg = "invalid custom frequency string: {freq}".format(freq=freq)
+            msg = f"invalid custom frequency string: {freq}"
             raise ValueError(msg)
     elif holidays or weekmask:
         msg = (
             "a custom frequency string is required when holidays or "
-            "weekmask are passed, got frequency {freq}"
-        ).format(freq=freq)
+            f"weekmask are passed, got frequency {freq}"
+        )
         raise ValueError(msg)
 
     return date_range(

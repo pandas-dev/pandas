@@ -154,10 +154,10 @@ class SetopCheck:
             common_subtype = find_common_type(subtypes)
             if is_object_dtype(common_subtype):
                 msg = (
-                    "can only do {op} between two IntervalIndex "
+                    f"can only do {self.op_name} between two IntervalIndex "
                     "objects that have compatible dtypes"
                 )
-                raise TypeError(msg.format(op=self.op_name))
+                raise TypeError(msg)
 
             return setop(intvidx_self, other, sort)
 
@@ -432,8 +432,7 @@ class IntervalIndex(IntervalMixin, Index):
     )
     def set_closed(self, closed):
         if closed not in _VALID_CLOSED:
-            msg = "invalid option for 'closed': {closed}"
-            raise ValueError(msg.format(closed=closed))
+            raise ValueError(f"invalid option for 'closed': {closed}")
 
         # return self._shallow_copy(closed=closed)
         array = self._data.set_closed(closed)
@@ -762,12 +761,12 @@ class IntervalIndex(IntervalMixin, Index):
 
         # ensure consistency with IntervalIndex subtype
         subtype = self.dtype.subtype
-        msg = (
-            "Cannot index an IntervalIndex of subtype {subtype} with "
-            "values of dtype {other}"
-        )
+
         if not is_dtype_equal(subtype, key_dtype):
-            raise ValueError(msg.format(subtype=subtype, other=key_dtype))
+            raise ValueError(
+                f"Cannot index an IntervalIndex of subtype {subtype} with "
+                f"values of dtype {key_dtype}"
+            )
 
         return key_i8
 
@@ -776,8 +775,8 @@ class IntervalIndex(IntervalMixin, Index):
             return
 
         if method in ["bfill", "backfill", "pad", "ffill", "nearest"]:
-            msg = "method {method} not yet implemented for IntervalIndex"
-            raise NotImplementedError(msg.format(method=method))
+            msg = f"method {method} not yet implemented for IntervalIndex"
+            raise NotImplementedError(msg)
 
         raise ValueError("Invalid fill method")
 
@@ -1165,23 +1164,21 @@ class IntervalIndex(IntervalMixin, Index):
             summary = "[]"
         elif n == 1:
             first = formatter(self[0])
-            summary = "[{first}]".format(first=first)
+            summary = f"[{first}]"
         elif n == 2:
             first = formatter(self[0])
             last = formatter(self[-1])
-            summary = "[{first}, {last}]".format(first=first, last=last)
+            summary = f"[{first}, {last}]"
         else:
 
             if n > max_seq_items:
                 n = min(max_seq_items // 2, 10)
                 head = [formatter(x) for x in self[:n]]
                 tail = [formatter(x) for x in self[-n:]]
-                summary = "[{head} ... {tail}]".format(
-                    head=", ".join(head), tail=", ".join(tail)
-                )
+                summary = f"[{', '.join(head)} ... {', '.join(tail)}]"
             else:
                 tail = [formatter(x) for x in self]
-                summary = "[{tail}]".format(tail=", ".join(tail))
+                summary = f"[{', '.join(tail)}]"
 
         return summary + "," + self._format_space()
 
@@ -1189,12 +1186,12 @@ class IntervalIndex(IntervalMixin, Index):
         attrs = [("closed", repr(self.closed))]
         if self.name is not None:
             attrs.append(("name", default_pprint(self.name)))
-        attrs.append(("dtype", "'{dtype}'".format(dtype=self.dtype)))
+        attrs.append(("dtype", f"'{self.dtype}'"))
         return attrs
 
     def _format_space(self):
         space = " " * (len(type(self).__name__) + 1)
-        return "\n{space}".format(space=space)
+        return f"\n{space}"
 
     # --------------------------------------------------------------------
 
@@ -1490,25 +1487,21 @@ def interval_range(
         )
 
     if not _is_valid_endpoint(start):
-        msg = "start must be numeric or datetime-like, got {start}"
-        raise ValueError(msg.format(start=start))
+        raise ValueError(f"start must be numeric or datetime-like, got {start}")
     elif not _is_valid_endpoint(end):
-        msg = "end must be numeric or datetime-like, got {end}"
-        raise ValueError(msg.format(end=end))
+        raise ValueError(f"end must be numeric or datetime-like, got {end}")
 
     if is_float(periods):
         periods = int(periods)
     elif not is_integer(periods) and periods is not None:
-        msg = "periods must be a number, got {periods}"
-        raise TypeError(msg.format(periods=periods))
+        raise TypeError(f"periods must be a number, got {periods}")
 
     if freq is not None and not is_number(freq):
         try:
             freq = to_offset(freq)
         except ValueError:
             raise ValueError(
-                "freq must be numeric or convertible to "
-                "DateOffset, got {freq}".format(freq=freq)
+                f"freq must be numeric or convertible to DateOffset, got {freq}"
             )
 
     # verify type compatibility

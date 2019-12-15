@@ -93,11 +93,7 @@ class FrozenList(PandasObject, list):
 
     def _disabled(self, *args, **kwargs):
         """This method will not function because object is immutable."""
-        raise TypeError(
-            "'{cls}' does not support mutable operations.".format(
-                cls=type(self).__name__
-            )
-        )
+        raise TypeError(f"'{type(self).__name__}' does not support mutable operations.")
 
     def __str__(self) -> str:
         return pprint_thing(self, quote_strings=True, escape_chars=("\t", "\r", "\n"))
