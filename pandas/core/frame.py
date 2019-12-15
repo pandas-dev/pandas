@@ -6644,7 +6644,7 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Merging / joining methods
 
-    def append(self, other, ignore_index=False, verify_integrity=False, sort=None):
+    def append(self, other, ignore_index=False, verify_integrity=False, sort=False):
         """
         Append rows of `other` to the end of caller, returning a new object.
 
@@ -6658,14 +6658,13 @@ class DataFrame(NDFrame):
             If True, do not use the index labels.
         verify_integrity : bool, default False
             If True, raise ValueError on creating index with duplicates.
-        sort : bool, default None
+        sort : bool, default False
             Sort columns if the columns of `self` and `other` are not aligned.
-            The default sorting is deprecated and will change to not-sorting
-            in a future version of pandas. Explicitly pass ``sort=True`` to
-            silence the warning and sort. Explicitly pass ``sort=False`` to
-            silence the warning and not sort.
 
             .. versionadded:: 0.23.0
+            .. versionchanged:: 1.0.0
+
+                Changed to not sort by default.
 
         Returns
         -------
