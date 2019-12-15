@@ -2,7 +2,6 @@ import datetime
 from io import StringIO
 import itertools
 from itertools import product
-from warnings import catch_warnings, simplefilter
 
 import numpy as np
 from numpy.random import randn
@@ -12,8 +11,7 @@ import pytz
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp, isna
-from pandas.core.index import Index, MultiIndex
+from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, isna
 import pandas.util.testing as tm
 
 AGG_FUNCTIONS = [
@@ -209,22 +207,12 @@ class TestMultiLevel(Base):
         reindexed = self.frame.loc[[("foo", "one"), ("bar", "one")]]
         tm.assert_frame_equal(reindexed, expected)
 
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            reindexed = self.frame.ix[[("foo", "one"), ("bar", "one")]]
-        tm.assert_frame_equal(reindexed, expected)
-
     def test_reindex_preserve_levels(self):
         new_index = self.ymd.index[::10]
         chunk = self.ymd.reindex(new_index)
         assert chunk.index is new_index
 
         chunk = self.ymd.loc[new_index]
-        assert chunk.index is new_index
-
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            chunk = self.ymd.ix[new_index]
         assert chunk.index is new_index
 
         ymdT = self.ymd.T
@@ -582,6 +570,17 @@ Thur,Lunch,Yes,51.51,17"""
             s = df.iloc[:, 0]
             with pytest.raises(KeyError, match="does not match index name"):
                 getattr(s, method)("mistake")
+
+    def test_unused_level_raises(self):
+        # GH 20410
+        mi = MultiIndex(
+            levels=[["a_lot", "onlyone", "notevenone"], [1970, ""]],
+            codes=[[1, 0], [1, 0]],
+        )
+        df = DataFrame(-1, index=range(3), columns=mi)
+
+        with pytest.raises(KeyError, match="notevenone"):
+            df["notevenone"]
 
     def test_unstack_level_name(self):
         result = self.frame.unstack("second")
@@ -1527,7 +1526,7 @@ Thur,Lunch,Yes,51.51,17"""
         s2 = Series(
             [1, 2, 3, 4], index=MultiIndex.from_tuples([(1, 2), (1, 3), (3, 2), (3, 4)])
         )
-        s3 = Series()
+        s3 = Series(dtype=object)
 
         # it works!
         DataFrame({"foo": s1, "bar": s2, "baz": s3})
@@ -1988,6 +1987,15 @@ Thur,Lunch,Yes,51.51,17"""
         data = ["a", "b", "c", "d"]
         m_df = Series(data, index=m_idx)
         assert m_df.repeat(3).shape == (3 * len(data),)
+
+    def test_subsets_multiindex_dtype(self):
+        # GH 20757
+        data = [["x", 1]]
+        columns = [("a", "b", np.nan), ("a", "c", 0.0)]
+        df = DataFrame(data, columns=pd.MultiIndex.from_tuples(columns))
+        expected = df.dtypes.a.b
+        result = df.a.b.dtypes
+        tm.assert_series_equal(result, expected)
 
 
 class TestSorted(Base):

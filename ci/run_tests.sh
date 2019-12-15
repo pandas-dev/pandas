@@ -15,37 +15,29 @@ if [ -n "$LOCALE_OVERRIDE" ]; then
         # exit 1
     fi
 fi
+
 if [[ "not network" == *"$PATTERN"* ]]; then
     export http_proxy=http://1.2.3.4 https_proxy=http://1.2.3.4;
 fi
 
-
-if [ -n "$PATTERN" ]; then
-    PATTERN=" and $PATTERN"
+if [ "$COVERAGE" ]; then
+    COVERAGE_FNAME="/tmp/test_coverage.xml"
+    COVERAGE="-s --cov=pandas --cov-report=xml:$COVERAGE_FNAME"
 fi
 
-for TYPE in single multiple
-do
-    if [ "$COVERAGE" ]; then
-        COVERAGE_FNAME="/tmp/coc-$TYPE.xml"
-        COVERAGE="-s --cov=pandas --cov-report=xml:$COVERAGE_FNAME"
-    fi
+PYTEST_CMD="pytest -m \"$PATTERN\" -n auto --dist=loadfile -s --strict --durations=10 --junitxml=test-data.xml $TEST_ARGS $COVERAGE pandas"
 
-    TYPE_PATTERN=$TYPE
-    NUM_JOBS=1
-    if [[ "$TYPE_PATTERN" == "multiple" ]]; then
-        TYPE_PATTERN="not single"
-        NUM_JOBS=2
-    fi
+# Travis does not have have an X server
+if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+    DISPLAY=DISPLAY=:99.0
+    PYTEST_CMD="xvfb-run -e /dev/stdout $PYTEST_CMD"
+fi
 
-    PYTEST_CMD="pytest -m \"$TYPE_PATTERN$PATTERN\" -n $NUM_JOBS -s --strict --durations=10 --junitxml=test-data-$TYPE.xml $TEST_ARGS $COVERAGE pandas"
-    echo $PYTEST_CMD
-    # if no tests are found (the case of "single and slow"), pytest exits with code 5, and would make the script fail, if not for the below code
-    sh -c "$PYTEST_CMD; ret=\$?; [ \$ret = 5 ] && exit 0 || exit \$ret"
+echo $PYTEST_CMD
+sh -c "$PYTEST_CMD"
 
-    if [[ "$COVERAGE" && $? == 0 && "$TRAVIS_BRANCH" == "master" ]]; then
-        echo "uploading coverage for $TYPE tests"
-        echo "bash <(curl -s https://codecov.io/bash) -Z -c -F $TYPE -f $COVERAGE_FNAME"
-              bash <(curl -s https://codecov.io/bash) -Z -c -F $TYPE -f $COVERAGE_FNAME
-    fi
-done
+if [[ "$COVERAGE" && $? == 0 && "$TRAVIS_BRANCH" == "master" ]]; then
+    echo "uploading coverage"
+    echo "bash <(curl -s https://codecov.io/bash) -Z -c -F $TYPE -f $COVERAGE_FNAME"
+          bash <(curl -s https://codecov.io/bash) -Z -c -F $TYPE -f $COVERAGE_FNAME
+fi

@@ -482,7 +482,7 @@ class XportReader(BaseIterator):
 
         df = pd.DataFrame(index=range(read_lines))
         for j, x in enumerate(self.columns):
-            vec = data["s%d" % j]
+            vec = data["s" + str(j)]
             ntype = self.fields[j]["ntype"]
             if ntype == "numeric":
                 vec = _handle_truncated_float_vec(vec, self.fields[j]["field_length"])

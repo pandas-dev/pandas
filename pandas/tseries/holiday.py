@@ -344,7 +344,7 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
     Abstract interface to create holidays following certain rules.
     """
 
-    rules = []  # type: List[Holiday]
+    rules: List[Holiday] = []
     start_date = Timestamp(datetime(1970, 1, 1))
     end_date = Timestamp(datetime(2200, 12, 31))
     _cache = None
@@ -363,7 +363,7 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
         """
         super().__init__()
         if name is None:
-            name = self.__class__.__name__
+            name = type(self).__name__
         self.name = name
 
         if rules is not None:

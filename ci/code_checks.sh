@@ -34,17 +34,13 @@ function invgrep {
     #
     # This is useful for the CI, as we want to fail if one of the patterns
     # that we want to avoid is found by grep.
-    if [[ "$AZURE" == "true" ]]; then
-        set -o pipefail
-        grep -n "$@" | awk -F ":" '{print "##vso[task.logissue type=error;sourcepath=" $1 ";linenumber=" $2 ";] Found unwanted pattern: " $3}'
-    else
-        grep "$@"
-    fi
-    return $((! $?))
+    grep -n "$@" | sed "s/^/$INVGREP_PREPEND/" | sed "s/$/$INVGREP_APPEND/" ; EXIT_STATUS=${PIPESTATUS[0]}
+    return $((! $EXIT_STATUS))
 }
 
-if [[ "$AZURE" == "true" ]]; then
-    FLAKE8_FORMAT="##vso[task.logissue type=error;sourcepath=%(path)s;linenumber=%(row)s;columnnumber=%(col)s;code=%(code)s;]%(text)s"
+if [[ "$GITHUB_ACTIONS" == "true" ]]; then
+    FLAKE8_FORMAT="##[error]%(path)s:%(row)s:%(col)s:%(code):%(text)s"
+    INVGREP_PREPEND="##[error]"
 else
     FLAKE8_FORMAT="default"
 fi
@@ -98,10 +94,10 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
 
     # We don't lint all C files because we don't want to lint any that are built
     # from Cython files nor do we want to lint C files that we didn't modify for
-    # this particular codebase (e.g. src/headers, src/klib, src/msgpack). However,
+    # this particular codebase (e.g. src/headers, src/klib). However,
     # we can lint all header files since they aren't "generated" like C files are.
     MSG='Linting .c and .h' ; echo $MSG
-    cpplint --quiet --extensions=c,h --headers=h --recursive --filter=-readability/casting,-runtime/int,-build/include_subdir pandas/_libs/src/*.h pandas/_libs/src/parser pandas/_libs/ujson pandas/_libs/tslibs/src/datetime pandas/io/msgpack pandas/_libs/*.cpp pandas/util
+    cpplint --quiet --extensions=c,h --headers=h --recursive --filter=-readability/casting,-runtime/int,-build/include_subdir pandas/_libs/src/*.h pandas/_libs/src/parser pandas/_libs/ujson pandas/_libs/tslibs/src/datetime pandas/_libs/*.cpp
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     echo "isort --version-number"
@@ -109,7 +105,12 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
 
     # Imports - Check formatting using isort see setup.cfg for settings
     MSG='Check import format using isort ' ; echo $MSG
-    isort --recursive --check-only pandas asv_bench
+    ISORT_CMD="isort --recursive --check-only pandas asv_bench"
+    if [[ "$GITHUB_ACTIONS" == "true" ]]; then
+        eval $ISORT_CMD | awk '{print "##[error]" $0}'; RET=$(($RET + ${PIPESTATUS[0]}))
+    else
+        eval $ISORT_CMD
+    fi
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
@@ -190,19 +191,23 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --include="*.rst" ".. ipython ::" doc/source
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Check for extra blank lines after the class definition' ; echo $MSG
-    invgrep -R --include="*.py" --include="*.pyx" -E 'class.*:\n\n( )+"""' .
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
+    MSG='Check for extra blank lines after the class definition' ; echo $MSG
+    invgrep -R --include="*.py" --include="*.pyx" -E 'class.*:\n\n( )+"""' .
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Check for use of comment-based annotation syntax' ; echo $MSG
+    invgrep -R --include="*.py" -P '# type: (?!ignore)' pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Check for use of foo.__class__ instead of type(foo)' ; echo $MSG
+    invgrep -R --include=*.{py,pyx} '\.__class__' pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check that no file in the repo contains trailing whitespaces' ; echo $MSG
-    set -o pipefail
-    if [[ "$AZURE" == "true" ]]; then
-        # we exclude all c/cpp files as the c/cpp files of pandas code base are tested when Linting .c and .h files
-        ! grep -n '--exclude=*.'{svg,c,cpp,html,js} --exclude-dir=env -RI "\s$" * | awk -F ":" '{print "##vso[task.logissue type=error;sourcepath=" $1 ";linenumber=" $2 ";] Tailing whitespaces found: " $3}'
-    else
-        ! grep -n '--exclude=*.'{svg,c,cpp,html,js} --exclude-dir=env -RI "\s$" * | awk -F ":" '{print $1 ":" $2 ":Tailing whitespaces found: " $3}'
-    fi
+    INVGREP_APPEND=" <- trailing whitespaces found"
+    invgrep -RI --exclude=\*.{svg,c,cpp,html,js} --exclude-dir=env "\s$" *
     RET=$(($RET + $?)) ; echo $MSG "DONE"
+    unset INVGREP_APPEND
 fi
 
 ### CODE ###
@@ -274,6 +279,10 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Doctests arrays/string_.py' ; echo $MSG
     pytest -q --doctest-modules pandas/core/arrays/string_.py
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests arrays/boolean.py' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/arrays/boolean.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi

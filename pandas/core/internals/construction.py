@@ -37,9 +37,13 @@ from pandas.core.dtypes.generic import (
 from pandas.core import algorithms, common as com
 from pandas.core.arrays import Categorical
 from pandas.core.construction import sanitize_array
-from pandas.core.index import Index, ensure_index, get_objs_combined_axis
 from pandas.core.indexes import base as ibase
-from pandas.core.indexes.api import union_indexes
+from pandas.core.indexes.api import (
+    Index,
+    ensure_index,
+    get_objs_combined_axis,
+    union_indexes,
+)
 from pandas.core.internals import (
     create_block_manager_from_arrays,
     create_block_manager_from_blocks,
@@ -246,10 +250,13 @@ def init_dict(data, index, columns, dtype=None):
 # ---------------------------------------------------------------------
 
 
-def prep_ndarray(values, copy=True):
+def prep_ndarray(values, copy=True) -> np.ndarray:
     if not isinstance(values, (np.ndarray, ABCSeries, Index)):
         if len(values) == 0:
             return np.empty((0, 0), dtype=object)
+        elif isinstance(values, range):
+            arr = np.arange(values.start, values.stop, values.step, dtype="int64")
+            return arr[..., np.newaxis]
 
         def convert(v):
             return maybe_convert_platform(v)
@@ -489,7 +496,9 @@ def _list_to_arrays(data, columns, coerce_float=False, dtype=None):
 
 def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
     if columns is None:
-        columns = get_objs_combined_axis(data, sort=False)
+        # We know pass_data is non-empty because data[0] is a Series
+        pass_data = [x for x in data if isinstance(x, (ABCSeries, ABCDataFrame))]
+        columns = get_objs_combined_axis(pass_data, sort=False)
 
     indexer_cache = {}
 

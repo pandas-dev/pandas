@@ -1,5 +1,4 @@
 import abc
-from collections import OrderedDict
 from datetime import date, datetime, timedelta
 from io import BytesIO
 import os
@@ -8,7 +7,7 @@ from textwrap import fill
 from pandas._config import config
 
 from pandas.errors import EmptyDataError
-from pandas.util._decorators import Appender, deprecate_kwarg
+from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import is_bool, is_float, is_integer, is_list_like
 
@@ -80,11 +79,6 @@ index_col : int, list of int, default None
     is based on the subset.
 usecols : int, str, list-like, or callable default None
     * If None, then parse all columns.
-    * If int, then indicates last column to be parsed.
-
-      .. deprecated:: 0.24.0
-         Pass in a list of int instead from 0 to `usecols` inclusive.
-
     * If str, then indicates comma separated list of Excel column letters
       and column ranges (e.g. "A:E" or "A,C,E:F"). Ranges are inclusive of
       both sides.
@@ -165,8 +159,9 @@ parse_dates : bool, list-like, or dict, default False
       result 'foo'
 
     If a column or index contains an unparseable date, the entire column or
-    index will be returned unaltered as an object data type. For non-standard
-    datetime parsing, use ``pd.to_datetime`` after ``pd.read_excel``.
+    index will be returned unaltered as an object data type. If you don`t want to
+    parse some cells as date just change their type in Excel to "Text".
+    For non-standard datetime parsing, use ``pd.to_datetime`` after ``pd.read_excel``.
 
     Note: A fast-path exists for iso8601-formatted dates.
 date_parser : function, optional
@@ -188,11 +183,6 @@ comment : str, default None
     Comments out remainder of line. Pass a character or characters to this
     argument to indicate comments in the input file. Any data between the
     comment string and the end of the current line is ignored.
-skip_footer : int, default 0
-    Alias of `skipfooter`.
-
-    .. deprecated:: 0.23.0
-       Use `skipfooter` instead.
 skipfooter : int, default 0
     Rows at the end to skip (0-indexed).
 convert_float : bool, default True
@@ -277,7 +267,6 @@ Comment lines in the excel input file can be skipped using the `comment` kwarg
 
 
 @Appender(_read_excel_doc)
-@deprecate_kwarg("skip_footer", "skipfooter")
 def read_excel(
     io,
     sheet_name=0,
@@ -300,7 +289,6 @@ def read_excel(
     date_parser=None,
     thousands=None,
     comment=None,
-    skip_footer=0,
     skipfooter=0,
     convert_float=True,
     mangle_dupe_cols=True,
@@ -435,9 +423,9 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
             sheets = [sheet_name]
 
         # handle same-type duplicates.
-        sheets = list(OrderedDict.fromkeys(sheets).keys())
+        sheets = list(dict.fromkeys(sheets).keys())
 
-        output = OrderedDict()
+        output = {}
 
         for asheetname in sheets:
             if verbose:
@@ -899,6 +887,12 @@ class ExcelFile:
 
     def close(self):
         """close io if necessary"""
+        if self.engine == "openpyxl":
+            # https://stackoverflow.com/questions/31416842/
+            #  openpyxl-does-not-close-excel-workbook-in-read-only-mode
+            wb = self.book
+            wb._archive.close()
+
         if hasattr(self.io, "close"):
             self.io.close()
 
@@ -907,3 +901,11 @@ class ExcelFile:
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
+
+    def __del__(self):
+        # Ensure we don't leak file descriptors, but put in try/except in case
+        # attributes are already deleted
+        try:
+            self.close()
+        except AttributeError:
+            pass
