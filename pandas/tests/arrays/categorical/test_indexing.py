@@ -63,7 +63,8 @@ class TestCategoricalIndexingWithFactor(TestCategorical):
         # GH-24142
         target = pd.Categorical(["a", "b"], categories=["a", "b"])
         mask = np.array([True, False])
-        with pytest.raises(ValueError):
+        msg = "Cannot set a Categorical with another, without identical categories"
+        with pytest.raises(ValueError, match=msg):
             target[mask] = other[mask]
 
     @pytest.mark.parametrize(
@@ -78,8 +79,8 @@ class TestCategoricalIndexingWithFactor(TestCategorical):
         # Gh-24142
         target = pd.Categorical(["a", "b"], categories=["a", "b"], ordered=True)
         mask = np.array([True, False])
-
-        with pytest.raises(ValueError):
+        msg = "Cannot set a Categorical with another, without identical categories"
+        with pytest.raises(ValueError, match=msg):
             target[mask] = other[mask]
 
 
@@ -152,13 +153,15 @@ class TestCategoricalIndexing:
         tm.assert_numpy_array_equal(s.__array__(), exp)
         tm.assert_index_equal(s.categories, Index([1, 2, 3]))
 
-        # lengthen
-        with pytest.raises(ValueError):
-            s.categories = [1, 2, 3, 4]
-
-        # shorten
-        with pytest.raises(ValueError):
-            s.categories = [1, 2]
+    @pytest.mark.parametrize("new_categories", [[1, 2, 3, 4], [1, 2]])
+    def test_categories_assigments_wrong_length_raises(self, new_categories):
+        cat = Categorical(["a", "b", "c", "a"])
+        msg = (
+            "new categories need to have the same number of items"
+            " as the old categories!"
+        )
+        with pytest.raises(ValueError, match=msg):
+            cat.categories = new_categories
 
     # Combinations of sorted/unique:
     @pytest.mark.parametrize(
