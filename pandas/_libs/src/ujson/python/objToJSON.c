@@ -410,13 +410,15 @@ static void *PyUnicodeToUTF8(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
 
 
 /* returns a char* and mutates the pointer to *len */
-static char *NpyDateTimeToIso(npy_datetime dt, JSONTypeContext *tc, void *unused,
+static char *NpyDateTimeToIso(JSOBJ unused, JSONTypeContext *tc, void *_unused,
 			      size_t *len) {
   npy_datetimestruct dts;
-  NPY_DATETIMEUNIT base = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
   int ret_code;
+  int64_t longVal = GET_TC(tc)->longValue;
   
-  pandas_datetime_to_datetimestruct(dt, base, &dts);
+  pandas_datetime_to_datetimestruct(longVal, NPY_FR_ns, &dts);
+
+  NPY_DATETIMEUNIT base = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;  
   *len = (size_t)get_datetime_iso_8601_strlen(0, base);
   char *result = PyObject_Malloc(*len);
 
@@ -1706,6 +1708,41 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
     }
     tc->prv = pc;
 
+    if (PyTypeNum_ISDATETIME(enc->npyType)) {
+        PRINTMARK();
+	int64_t longVal;
+	PyArray_VectorUnaryFunc *castfunc =
+	  PyArray_GetCastFunc(PyArray_DescrFromType(enc->npyType), NPY_INT64);
+	if (!castfunc) {
+	  PyErr_Format(PyExc_ValueError, "Cannot cast numpy dtype %d to long",
+		       enc->npyType);
+	}
+	castfunc(enc->npyValue, &longVal, 1, NULL, NULL);
+	if (longVal == get_nat()) {
+	  PRINTMARK();
+	  tc->type = JT_NULL;
+	} else {
+	
+	  if (enc->datetimeIso) {
+            PRINTMARK();
+            pc->PyTypeToJSON = NpyDateTimeToIso;
+	    // Currently no way to pass longVal to iso function, so use state management
+	    GET_TC(tc)->longValue = longVal;
+            tc->type = JT_UTF8;
+	  } else {
+            PRINTMARK();
+	    NPY_DATETIMEUNIT base = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
+	    GET_TC(tc)->longValue = NpyDateTimeToEpoch(longVal, base);
+	    tc->type = JT_LONG;
+	  }
+        }
+
+	// TODO: this prevents infinite loop with mixed-type DataFrames; refactor
+	enc->npyCtxtPassthru = NULL;
+	enc->npyType = -1;
+        return;
+    }    
+
     if (PyIter_Check(obj) ||
         (PyArray_Check(obj) && !PyArray_CheckScalar(obj))) {
         PRINTMARK();
@@ -1749,38 +1786,6 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         PRINTMARK();
         GET_TC(tc)->doubleValue = PyFloat_AsDouble(obj);
         tc->type = JT_DOUBLE;
-        return;
-    } else if (PyTypeNum_ISDATETIME(enc->npyType)) {
-        PRINTMARK();
-	
-        if (enc->datetimeIso) {
-            PRINTMARK();
-            pc->PyTypeToJSON = NpyDateTimeToIso;
-            tc->type = JT_UTF8;
-        } else {
-            PRINTMARK();
-	    int64_t longVal;
-	    PyArray_VectorUnaryFunc *castfunc =
-	      PyArray_GetCastFunc(PyArray_DescrFromType(enc->npyType), NPY_INT64);
-	    if (!castfunc) {
-	      PyErr_Format(PyExc_ValueError, "Cannot cast numpy dtype %d to long",
-			   enc->npyType);
-	    }
-	    castfunc(enc->npyValue, &longVal, 1, NULL, NULL);
-	    
-	    if (longVal == get_nat()) {
-	      PRINTMARK();
-	      tc->type = JT_NULL;
-	    } else {
-	      NPY_DATETIMEUNIT base = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
-	      GET_TC(tc)->longValue = NpyDateTimeToEpoch(longVal, base);
-	      tc->type = JT_LONG;
-	    }
-        }
-
-	// TODO: this prevents infinite loop with mixed-type DataFrames; refactor
-	enc->npyCtxtPassthru = NULL;
-	enc->npyType = -1;
         return;
     } else if (PyDateTime_Check(obj) || PyDate_Check(obj)) {
         if (PyObject_TypeCheck(obj, cls_nat)) {
