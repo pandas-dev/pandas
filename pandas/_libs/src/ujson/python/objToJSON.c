@@ -59,7 +59,7 @@ PyObject *cls_timedelta;
 
 npy_int64 get_nat(void) { return NPY_MIN_INT64; }
 
-typedef void *(*PFN_PyTypeToJSON)(JSOBJ obj, JSONTypeContext *ti,
+typedef char *(*PFN_PyTypeToUTF8)(JSOBJ obj, JSONTypeContext *ti,
                                   void *outValue, size_t *_outLen);
 
 typedef struct __NpyArrContext {
@@ -94,7 +94,7 @@ typedef struct __TypeContext {
     JSPFN_ITERNEXT iterNext;
     JSPFN_ITERGETNAME iterGetName;
     JSPFN_ITERGETVALUE iterGetValue;
-    PFN_PyTypeToJSON PyTypeToJSON;
+    PFN_PyTypeToUTF8 PyTypeToUTF8;
     PyObject *newObj;
     PyObject *dictObj;
     Py_ssize_t index;
@@ -1724,7 +1724,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
 
             if (enc->datetimeIso) {
                 PRINTMARK();
-                pc->PyTypeToJSON = NpyDateTimeToIso;
+                pc->PyTypeToUTF8 = NpyDateTimeToIso;
                 // Currently no way to pass longVal to iso function, so use
                 // state management
                 GET_TC(tc)->longValue = longVal;
@@ -1776,12 +1776,12 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         return;
     } else if (PyBytes_Check(obj)) {
         PRINTMARK();
-        pc->PyTypeToJSON = PyBytesToUTF8;
+        pc->PyTypeToUTF8 = PyBytesToUTF8;
         tc->type = JT_UTF8;
         return;
     } else if (PyUnicode_Check(obj)) {
         PRINTMARK();
-        pc->PyTypeToJSON = PyUnicodeToUTF8;
+        pc->PyTypeToUTF8 = PyUnicodeToUTF8;
         tc->type = JT_UTF8;
         return;
     } else if (PyObject_TypeCheck(obj, type_decimal)) {
@@ -1799,7 +1799,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         PRINTMARK();
         if (enc->datetimeIso) {
             PRINTMARK();
-            pc->PyTypeToJSON = PyDateTimeToIso;
+            pc->PyTypeToUTF8 = PyDateTimeToIso;
             tc->type = JT_UTF8;
         } else {
             PRINTMARK();
@@ -1811,7 +1811,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         return;
     } else if (PyTime_Check(obj)) {
         PRINTMARK();
-        pc->PyTypeToJSON = PyTimeToJSON;
+        pc->PyTypeToUTF8 = PyTimeToJSON;
         tc->type = JT_UTF8;
         return;
     } else if (PyArray_IsScalar(obj, Datetime)) {
@@ -1825,7 +1825,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         PRINTMARK();
         if (enc->datetimeIso) {
             PRINTMARK();
-            pc->PyTypeToJSON = PyDateTimeToIso;
+            pc->PyTypeToUTF8 = PyDateTimeToIso;
             tc->type = JT_UTF8;
         } else {
             PRINTMARK();
@@ -2235,7 +2235,7 @@ void Object_endTypeContext(JSOBJ obj, JSONTypeContext *tc) {
 
 const char *Object_getStringValue(JSOBJ obj, JSONTypeContext *tc,
                                   size_t *_outLen) {
-    return GET_TC(tc)->PyTypeToJSON(obj, tc, NULL, _outLen);
+    return GET_TC(tc)->PyTypeToUTF8(obj, tc, NULL, _outLen);
 }
 
 JSINT64 Object_getLongValue(JSOBJ obj, JSONTypeContext *tc) {
