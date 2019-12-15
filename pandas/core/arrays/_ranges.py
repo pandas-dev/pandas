@@ -179,7 +179,6 @@ def _generate_range_overflow_safe_signed(
             # watch out for very special case in which we just slightly
             #  exceed implementation bounds, but when passing the result to
             #  np.arange will get a result slightly within the bounds
-            assert endpoint >= 0
             result = np.uint64(endpoint) + np.uint64(addend)
             i64max = np.uint64(np.iinfo(np.int64).max)
             assert result > i64max

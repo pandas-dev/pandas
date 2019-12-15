@@ -2195,9 +2195,6 @@ class MultiIndex(Index):
             levels=new_levels, codes=new_codes, names=new_names, verify_integrity=False
         )
 
-    def __getslice__(self, i, j):
-        return self.__getitem__(slice(i, j))
-
     def _get_codes_for_sorting(self):
         """
         we categorizing our codes by using the

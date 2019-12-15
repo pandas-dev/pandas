@@ -195,7 +195,6 @@ class JoinUnit:
                         return array(
                             np.full(self.shape[1], fill_value.value), dtype=empty_dtype
                         )
-                    pass
                 elif getattr(self.block, "is_categorical", False):
                     pass
                 elif getattr(self.block, "is_extension", False):

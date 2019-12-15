@@ -1131,7 +1131,6 @@ class DataFrameGroupBy(GroupBy):
         obj = self._obj_with_exclusions
         result: OrderedDict = OrderedDict()
         cannot_agg = []
-        errors = None
         for item in obj:
             data = obj[item]
             colg = SeriesGroupBy(data, selection=item, grouper=self.grouper)
@@ -1156,10 +1155,6 @@ class DataFrameGroupBy(GroupBy):
         result_columns = obj.columns
         if cannot_agg:
             result_columns = result_columns.drop(cannot_agg)
-
-            # GH6337
-            if not len(result_columns) and errors is not None:
-                raise errors
 
         return DataFrame(result, columns=result_columns)
 
