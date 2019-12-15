@@ -386,12 +386,12 @@ class MilliSecondLocator(dates.DateLocator):
         except ValueError:
             return []
 
-        if dmin > dmax:
-            dmax, dmin = dmin, dmax
         # We need to cap at the endpoints of valid datetime
 
         # FIXME: dont leave commented-out
         # TODO(wesm) unused?
+        # if dmin > dmax:
+        #     dmax, dmin = dmin, dmax
         # delta = relativedelta(dmax, dmin)
         # try:
         #     start = dmin - delta
