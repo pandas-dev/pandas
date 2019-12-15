@@ -3008,11 +3008,12 @@ class MultiIndex(Index):
                 # a collection of labels to include from this level (these
                 # are or'd)
                 indexers = None
-                # Find out if the list_like label are sorted as the levels or not
-                k_codes = np.array(
-                    [self.levels[i].get_loc(e) for e in k if e in self.levels[i]]
-                )
-                need_sort = not (k_codes[:-1] < k_codes[1:]).all()
+                if not need_sort:
+                    # Find out if the list_like label are sorted as the levels or not
+                    k_codes = np.array(
+                        [self.levels[i].get_loc(e) for e in k if e in self.levels[i]]
+                    )
+                    need_sort = not (k_codes[:-1] < k_codes[1:]).all()
                 for x in k:
                     try:
                         idxrs = _convert_to_indexer(
@@ -3044,7 +3045,7 @@ class MultiIndex(Index):
             elif com.is_null_slice(k):
                 # empty slice
                 # index is given to conserve the order of this level
-                indexer = _update_indexer(Int64Index(np.arange(n)), indexer=indexer)
+                indexer = _update_indexer(None, indexer=indexer)
 
             elif isinstance(k, slice):
 
