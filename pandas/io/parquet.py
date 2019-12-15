@@ -234,7 +234,7 @@ def to_parquet(
 
         .. versionadded:: 0.24.0
 
-    partition_cols : list, optional, default None
+    partition_cols : str or list, optional, default None
         Column names by which to partition the dataset
         Columns are partitioned in the order they are given
 
@@ -243,6 +243,8 @@ def to_parquet(
     kwargs
         Additional keyword arguments passed to the engine
     """
+    if isinstance(partition_cols, str):
+        partition_cols = [partition_cols]
     impl = get_engine(engine)
     return impl.write(
         df,
@@ -267,6 +269,10 @@ def read_parquet(path, engine="auto", columns=None, **kwargs):
         URL schemes include http, ftp, s3, and file. For file URLs, a host is
         expected. A local file could be:
         ``file://localhost/path/to/table.parquet``.
+        A file URL can also be a path to a directory that contains multiple
+        partitioned parquet files. Both pyarrow and fastparquet support
+        paths to directories as well as file URLs. A directory path could be:
+        ``file://localhost/path/to/tables``
 
         If you want to pass in a path object, pandas accepts any
         ``os.PathLike``.

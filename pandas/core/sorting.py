@@ -31,19 +31,24 @@ def get_group_index(labels, shape, sort: bool, xnull: bool):
 
     Parameters
     ----------
-    labels: sequence of arrays
+    labels : sequence of arrays
         Integers identifying levels at each location
-    shape: sequence of ints same length as labels
+    shape : sequence of ints
         Number of unique levels at each location
-    sort: boolean
+    sort : bool
         If the ranks of returned ids should match lexical ranks of labels
-    xnull: boolean
+    xnull : bool
         If true nulls are excluded. i.e. -1 values in the labels are
-        passed through
+        passed through.
+
     Returns
     -------
     An array of type int64 where two elements are equal if their corresponding
     labels are equal at all location.
+
+    Notes
+    -----
+    The length of `labels` and `shape` must be identical.
     """
 
     def _int64_cut_off(shape) -> int:
@@ -104,7 +109,6 @@ def get_group_index(labels, shape, sort: bool, xnull: bool):
 
 def get_compressed_ids(labels, sizes):
     """
-
     Group_index is offsets into cartesian product of all possible labels. This
     space can be huge, so this function compresses it, by computing offsets
     (comp_ids) into the list of unique labels (obs_group_ids).
@@ -117,7 +121,6 @@ def get_compressed_ids(labels, sizes):
     Returns
     -------
     tuple of (comp_ids, obs_group_ids)
-
     """
     ids = get_group_index(labels, sizes, sort=True, xnull=False)
     return compress_group_index(ids, sort=True)
@@ -153,14 +156,13 @@ def decons_group_index(comp_labels, shape):
 
 def decons_obs_group_ids(comp_ids, obs_ids, shape, labels, xnull: bool):
     """
-    reconstruct labels from observed group ids
+    Reconstruct labels from observed group ids.
 
     Parameters
     ----------
-    xnull: boolean,
-        if nulls are excluded; i.e. -1 labels are passed through
+    xnull : bool
+        If nulls are excluded; i.e. -1 labels are passed through.
     """
-
     if not xnull:
         lift = np.fromiter(((a == -1).any() for a in labels), dtype="i8")
         shape = np.asarray(shape, dtype="i8") + lift
@@ -188,6 +190,11 @@ def indexer_from_factorized(labels, shape, compress: bool = True):
 
 
 def lexsort_indexer(keys, orders=None, na_position: str = "last"):
+    """
+    Parameters
+    ----------
+    na_position : {'first', 'last'}, default 'last'
+    """
     from pandas.core.arrays import Categorical
 
     labels = []
@@ -237,9 +244,17 @@ def nargsort(
     items, kind: str = "quicksort", ascending: bool = True, na_position: str = "last"
 ):
     """
-    This is intended to be a drop-in replacement for np.argsort which
-    handles NaNs. It adds ascending and na_position parameters.
-    GH #6399, #5231
+    Intended to be a drop-in replacement for np.argsort which handles NaNs.
+
+    Adds ascending and na_position parameters.
+
+    (GH #6399, #5231)
+
+    Parameters
+    ----------
+    kind : str, default 'quicksort'
+    ascending : bool, default True
+    na_position : {'first', 'last'}, default 'last'
     """
     items = extract_array(items)
     mask = np.asarray(isna(items))
@@ -272,7 +287,7 @@ def nargsort(
 
 class _KeyMapper:
     """
-    Ease my suffering. Map compressed group id -> key tuple
+    Map compressed group id -> key tuple.
     """
 
     def __init__(self, comp_ids, ngroups: int, levels, labels):
@@ -303,7 +318,12 @@ def get_flattened_iterator(comp_ids, ngroups, levels, labels):
 
 
 def get_indexer_dict(label_list, keys):
-    """ return a dict of {labels} -> {indexers} """
+    """
+    Returns
+    -------
+    dict
+        Labels mapped to indexers.
+    """
     shape = [len(x) for x in keys]
 
     group_index = get_group_index(label_list, shape, sort=True, xnull=True)
