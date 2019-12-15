@@ -59,7 +59,8 @@ PyObject *cls_timedelta;
 
 npy_int64 get_nat(void) { return NPY_MIN_INT64; }
 
-typedef char *(*PFN_PyTypeToUTF8)(JSOBJ obj, JSONTypeContext *ti, size_t *_outLen);
+typedef char *(*PFN_PyTypeToUTF8)(JSOBJ obj, JSONTypeContext *ti,
+                                  size_t *_outLen);
 
 typedef struct __NpyArrContext {
     PyObject *array;
@@ -402,7 +403,7 @@ static char *PyBytesToUTF8(JSOBJ _obj, JSONTypeContext *tc, size_t *_outLen) {
 }
 
 static char *PyUnicodeToUTF8(JSOBJ _obj, JSONTypeContext *tc, size_t *_outLen) {
-  return (char *)PyUnicode_AsUTF8AndSize(_obj, _outLen);
+    return (char *)PyUnicode_AsUTF8AndSize(_obj, _outLen);
 }
 
 /* returns a char* and mutates the pointer to *len */
