@@ -3045,7 +3045,7 @@ class MultiIndex(Index):
             elif com.is_null_slice(k):
                 # empty slice
                 # index is given to conserve the order of this level
-                indexer = _update_indexer(None, indexer=indexer)
+                indexer = _update_indexer(Int64Index(np.arange(n)), indexer=indexer)
 
             elif isinstance(k, slice):
 
