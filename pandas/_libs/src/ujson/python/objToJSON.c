@@ -434,6 +434,9 @@ static char *NpyDateTimeToIso(npy_datetime dt, JSONTypeContext *tc, void *unused
     PyObject_Free(result);
   }
 
+  // Note that get_datetime_iso_8601_strlen just gives a generic size
+  // for ISO string conversion, not the actual size used
+  *len = strlen(result);
   return result;
 }
 
@@ -475,6 +478,9 @@ static char *PyDateTimeToIso(PyObject *obj, JSONTypeContext *tc, void *unused,
     return NULL;
   }
 
+  // Note that get_datetime_iso_8601_strlen just gives a generic size
+  // for ISO string conversion, not the actual size used
+  *len = strlen(result);  
   return result;
 }
 
