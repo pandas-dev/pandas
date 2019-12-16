@@ -6758,7 +6758,6 @@ class DataFrame(NDFrame):
                 )
 
             index = Index([other.name], name=self.index.name)
-
             idx_diff = other.index.difference(self.columns)
             try:
                 combined_columns = self.columns.append(idx_diff)
@@ -6767,8 +6766,8 @@ class DataFrame(NDFrame):
             other = (
                 other.reindex(combined_columns, copy=False)
                 .to_frame()
-                .T.rename_axis(index.names)
-                ._convert(datetime=True, timedelta=True)
+                .T.infer_objects()
+                .rename_axis(index.names)
             )
             if not self.columns.equals(combined_columns):
                 self = self.reindex(columns=combined_columns)
