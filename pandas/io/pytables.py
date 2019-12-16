@@ -61,7 +61,7 @@ from pandas._typing import ArrayLike, FrameOrSeries
 from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
 from pandas.core.computation.pytables import PyTablesExpr, maybe_expression
-from pandas.core.index import ensure_index
+from pandas.core.indexes.api import ensure_index
 
 from pandas.io.common import _stringify_path
 from pandas.io.formats.printing import adjoin, pprint_thing
@@ -175,15 +175,6 @@ map directly to c-types [inferred_type->%s,key->%s] [items->%s]
 
 # formats
 _FORMAT_MAP = {"f": "fixed", "fixed": "fixed", "t": "table", "table": "table"}
-
-format_deprecate_doc = """
-the table keyword has been deprecated
-use the format='fixed(f)|table(t)' keyword instead
-  fixed(f) : specifies the Fixed format
-             and is the default for put operations
-  table(t) : specifies the Table format
-             and is the default for append operations
-"""
 
 # storer class map
 _STORER_MAP = {
@@ -1323,7 +1314,7 @@ class HDFStore:
         optlevel : int or None, default None
             Optimization level, if None, pytables defaults to 6.
         kind : str or None, default None
-            Kind of index, if None, pytables defaults to "medium"
+            Kind of index, if None, pytables defaults to "medium".
 
         Raises
         ------
@@ -1750,24 +1741,24 @@ class HDFStore:
 
 
 class TableIterator:
-    """ define the iteration interface on a table
+    """
+    Define the iteration interface on a table
 
-        Parameters
-        ----------
-
-        store : the reference store
-        s     : the referred storer
-        func  : the function to execute the query
-        where : the where of the query
-        nrows : the rows to iterate on
-        start : the passed start value (default is None)
-        stop  : the passed stop value (default is None)
-        iterator : bool, default False
-            Whether to use the default iterator.
-        chunksize : the passed chunking value (default is 100000)
-        auto_close : boolean, automatically close the store at the end of
-            iteration, default is False
-        """
+    Parameters
+    ----------
+    store : HDFStore
+    s     : the referred storer
+    func  : the function to execute the query
+    where : the where of the query
+    nrows : the rows to iterate on
+    start : the passed start value (default is None)
+    stop  : the passed stop value (default is None)
+    iterator : bool, default False
+        Whether to use the default iterator.
+    chunksize : the passed chunking value (default is 100000)
+    auto_close : bool, default False
+        Whether to automatically close the store at the end of iteration.
+    """
 
     chunksize: Optional[int]
     store: HDFStore
@@ -1974,14 +1965,17 @@ class IndexCol:
         return getattr(self.table.cols, self.cname).is_indexed  # type: ignore
 
     def convert(self, values: np.ndarray, nan_rep, encoding: str, errors: str):
-        """ set the values from this selection: take = take ownership """
+        """
+        Convert the data from this selection to the appropriate pandas type.
+        """
         assert isinstance(values, np.ndarray), type(values)
 
         # values is a recarray
         if values.dtype.fields is not None:
             values = values[self.cname]
 
-        values = _maybe_convert(values, self.kind, encoding, errors)
+        val_kind = _ensure_decoded(self.kind)
+        values = _maybe_convert(values, val_kind, encoding, errors)
 
         kwargs = dict()
         kwargs["name"] = _ensure_decoded(self.index_name)
@@ -2000,12 +1994,11 @@ class IndexCol:
             new_pd_index = Index(values, **kwargs)
 
         new_pd_index = _set_tz(new_pd_index, self.tz)
-        self.values = new_pd_index
+        return new_pd_index, new_pd_index
 
     def take_data(self):
-        """ return the values & release the memory """
-        self.values, values = None, self.values
-        return values
+        """ return the values"""
+        return self.values
 
     @property
     def attrs(self):
@@ -2120,10 +2113,6 @@ class IndexCol:
         if idx is not None:
             self.__dict__.update(idx)
 
-    def get_attr(self):
-        """ set the kind for this column """
-        self.kind = getattr(self.attrs, self.kind_attr, None)
-
     def set_attr(self):
         """ set the kind for this column """
         setattr(self.attrs, self.kind_attr, self.kind)
@@ -2158,7 +2147,7 @@ class GenericIndexCol(IndexCol):
 
     def convert(self, values: np.ndarray, nan_rep, encoding: str, errors: str):
         """
-        Set the values from this selection.
+        Convert the data from this selection to the appropriate pandas type.
 
         Parameters
         ----------
@@ -2168,10 +2157,9 @@ class GenericIndexCol(IndexCol):
         errors : str
         """
         assert isinstance(values, np.ndarray), type(values)
-        self.values = Int64Index(np.arange(len(values)))
 
-    def get_attr(self):
-        pass
+        values = Int64Index(np.arange(len(values)))
+        return values, values
 
     def set_attr(self):
         pass
@@ -2207,6 +2195,8 @@ class DataCol(IndexCol):
         table=None,
         meta=None,
         metadata=None,
+        dtype=None,
+        data=None,
     ):
         super().__init__(
             name=name,
@@ -2221,8 +2211,8 @@ class DataCol(IndexCol):
             meta=meta,
             metadata=metadata,
         )
-        self.dtype = None
-        self.data = None
+        self.dtype = dtype
+        self.data = data
 
     @property
     def dtype_attr(self) -> str:
@@ -2263,9 +2253,8 @@ class DataCol(IndexCol):
         self.kind = _dtype_to_kind(dtype_name)
 
     def take_data(self):
-        """ return the data & release the memory """
-        self.data, data = None, self.data
-        return data
+        """ return the data """
+        return self.data
 
     @classmethod
     def _get_atom(cls, values: Union[np.ndarray, ABCExtensionArray]) -> "Col":
@@ -2354,8 +2343,20 @@ class DataCol(IndexCol):
                 )
 
     def convert(self, values: np.ndarray, nan_rep, encoding: str, errors: str):
-        """set the data from this selection (and convert to the correct dtype
-        if we can)
+        """
+        Convert the data from this selection to the appropriate pandas type.
+
+        Parameters
+        ----------
+        values : np.ndarray
+        nan_rep :
+        encoding : str
+        errors : str
+
+        Returns
+        -------
+        index : listlike to become an Index
+        data : ndarraylike to become a column
         """
         assert isinstance(values, np.ndarray), type(values)
 
@@ -2365,43 +2366,50 @@ class DataCol(IndexCol):
 
         assert self.typ is not None
         if self.dtype is None:
-            self.set_data(values)
+            # Note: in tests we never have timedelta64 or datetime64,
+            #  so the _get_data_and_dtype_name may be unnecessary
+            converted, dtype_name = _get_data_and_dtype_name(values)
+            kind = _dtype_to_kind(dtype_name)
         else:
-            self.data = values
+            converted = values
+            dtype_name = self.dtype
+            kind = self.kind
 
-        own_data = self.data
+        assert isinstance(converted, np.ndarray)  # for mypy
 
         # use the meta if needed
         meta = _ensure_decoded(self.meta)
+        metadata = self.metadata
+        ordered = self.ordered
+        tz = self.tz
 
-        assert self.dtype is not None
-
+        assert dtype_name is not None
         # convert to the correct dtype
-        dtype = _ensure_decoded(self.dtype)
+        dtype = _ensure_decoded(dtype_name)
 
         # reverse converts
         if dtype == "datetime64":
 
             # recreate with tz if indicated
-            own_data = _set_tz(own_data, self.tz, coerce=True)
+            converted = _set_tz(converted, tz, coerce=True)
 
         elif dtype == "timedelta64":
-            own_data = np.asarray(own_data, dtype="m8[ns]")
+            converted = np.asarray(converted, dtype="m8[ns]")
         elif dtype == "date":
             try:
-                own_data = np.asarray(
-                    [date.fromordinal(v) for v in own_data], dtype=object
+                converted = np.asarray(
+                    [date.fromordinal(v) for v in converted], dtype=object
                 )
             except ValueError:
-                own_data = np.asarray(
-                    [date.fromtimestamp(v) for v in own_data], dtype=object
+                converted = np.asarray(
+                    [date.fromtimestamp(v) for v in converted], dtype=object
                 )
 
         elif meta == "category":
 
             # we have a categorical
-            categories = self.metadata
-            codes = own_data.ravel()
+            categories = metadata
+            codes = converted.ravel()
 
             # if we have stored a NaN in the categories
             # then strip it; in theory we could have BOTH
@@ -2418,33 +2426,24 @@ class DataCol(IndexCol):
                     categories = categories[~mask]
                     codes[codes != -1] -= mask.astype(int).cumsum().values
 
-            own_data = Categorical.from_codes(
-                codes, categories=categories, ordered=self.ordered
+            converted = Categorical.from_codes(
+                codes, categories=categories, ordered=ordered
             )
 
         else:
 
             try:
-                own_data = own_data.astype(dtype, copy=False)
+                converted = converted.astype(dtype, copy=False)
             except TypeError:
-                own_data = own_data.astype("O", copy=False)
+                converted = converted.astype("O", copy=False)
 
         # convert nans / decode
-        if _ensure_decoded(self.kind) == "string":
-            own_data = _unconvert_string_array(
-                own_data, nan_rep=nan_rep, encoding=encoding, errors=errors
+        if _ensure_decoded(kind) == "string":
+            converted = _unconvert_string_array(
+                converted, nan_rep=nan_rep, encoding=encoding, errors=errors
             )
 
-        self.data = own_data
-
-    def get_attr(self):
-        """ get the data for this column """
-        self.values = getattr(self.attrs, self.kind_attr, None)
-        self.dtype = getattr(self.attrs, self.dtype_attr, None)
-        self.meta = getattr(self.attrs, self.meta_attr, None)
-        assert self.typ is not None
-        assert self.dtype is not None
-        self.kind = _dtype_to_kind(self.dtype)
+        return self.values, converted
 
     def set_attr(self):
         """ set the data for this column """
@@ -2484,8 +2483,7 @@ class DataIndexableCol(DataCol):
 class GenericDataIndexableCol(DataIndexableCol):
     """ represent a generic pytables data column """
 
-    def get_attr(self):
-        pass
+    pass
 
 
 class Fixed:
@@ -2503,13 +2501,18 @@ class Fixed:
     pandas_kind: str
     obj_type: Type[Union[DataFrame, Series]]
     ndim: int
+    encoding: str
     parent: HDFStore
     group: "Node"
     errors: str
     is_table = False
 
     def __init__(
-        self, parent: HDFStore, group: "Node", encoding=None, errors: str = "strict"
+        self,
+        parent: HDFStore,
+        group: "Node",
+        encoding: str = "UTF-8",
+        errors: str = "strict",
     ):
         assert isinstance(parent, HDFStore), type(parent)
         assert _table_mod is not None  # needed for mypy
@@ -2560,10 +2563,6 @@ class Fixed:
         return new_self
 
     @property
-    def storage_obj_type(self):
-        return self.obj_type
-
-    @property
     def shape(self):
         return self.nrows
 
@@ -2586,10 +2585,6 @@ class Fixed:
     @property
     def _fletcher32(self) -> bool:
         return self.parent._fletcher32
-
-    @property
-    def _complib(self):
-        return self.parent._complib
 
     @property
     def attrs(self):
@@ -3317,12 +3312,12 @@ class Table(Fixed):
     def queryables(self) -> Dict[str, Any]:
         """ return a dict of the kinds allowable columns for this object """
 
+        # mypy doesnt recognize DataFrame._AXIS_NAMES, so we re-write it here
+        axis_names = {0: "index", 1: "columns"}
+
         # compute the values_axes queryables
         d1 = [(a.cname, a) for a in self.index_axes]
-        d2 = [
-            (self.storage_obj_type._AXIS_NAMES[axis], None)
-            for axis, values in self.non_index_axes
-        ]
+        d2 = [(axis_names[axis], None) for axis, values in self.non_index_axes]
         d3 = [
             (v.cname, v) for v in self.values_axes if v.name in set(self.data_columns)
         ]
@@ -3345,9 +3340,9 @@ class Table(Fixed):
         group = self.group._v_pathname
         return f"{group}/meta/{key}/meta"
 
-    def write_metadata(self, key: str, values):
+    def write_metadata(self, key: str, values: np.ndarray):
         """
-        write out a meta data array to the key as a fixed-format Series
+        Write out a metadata array to the key as a fixed-format Series.
 
         Parameters
         ----------
@@ -3431,6 +3426,7 @@ class Table(Fixed):
         _indexables = []
 
         desc = self.description
+        table_attrs = self.table.attrs
 
         # Note: each of the `name` kwargs below are str, ensured
         #  by the definition in index_cols.
@@ -3439,16 +3435,20 @@ class Table(Fixed):
             atom = getattr(desc, name)
             md = self.read_metadata(name)
             meta = "category" if md is not None else None
+
+            kind_attr = f"{name}_kind"
+            kind = getattr(table_attrs, kind_attr, None)
+
             index_col = IndexCol(
                 name=name,
                 axis=axis,
                 pos=i,
+                kind=kind,
                 typ=atom,
                 table=self.table,
                 meta=meta,
                 metadata=md,
             )
-            index_col.get_attr()
             _indexables.append(index_col)
 
         # values columns
@@ -3463,18 +3463,29 @@ class Table(Fixed):
 
             atom = getattr(desc, c)
             adj_name = _maybe_adjust_name(c, self.version)
+
+            # TODO: why kind_attr here?
+            values = getattr(table_attrs, f"{adj_name}_kind", None)
+            dtype = getattr(table_attrs, f"{adj_name}_dtype", None)
+            kind = _dtype_to_kind(dtype)
+
             md = self.read_metadata(c)
-            meta = "category" if md is not None else None
+            # TODO: figure out why these two versions of `meta` dont always match.
+            #  meta = "category" if md is not None else None
+            meta = getattr(table_attrs, f"{adj_name}_meta", None)
+
             obj = klass(
                 name=adj_name,
                 cname=c,
+                values=values,
+                kind=kind,
                 pos=base_pos + i,
                 typ=atom,
                 table=self.table,
                 meta=meta,
                 metadata=md,
+                dtype=dtype,
             )
-            obj.get_attr()
             return obj
 
         # Note: the definition of `values_cols` ensures that each
@@ -3485,9 +3496,7 @@ class Table(Fixed):
 
     def create_index(self, columns=None, optlevel=None, kind: Optional[str] = None):
         """
-        Create a pytables index on the specified columns
-          note: cannot index Time64Col() or ComplexCol currently;
-          PyTables must be >= 3.0
+        Create a pytables index on the specified columns.
 
         Parameters
         ----------
@@ -3502,12 +3511,16 @@ class Table(Fixed):
         optlevel : int or None, default None
             Optimization level, if None, pytables defaults to 6.
         kind : str or None, default None
-            Kind of index, if None, pytables defaults to "medium"
+            Kind of index, if None, pytables defaults to "medium".
 
         Raises
         ------
-        raises if the node is not a table
+        TypeError if trying to create an index on a complex-type column.
 
+        Notes
+        -----
+        Cannot index Time64Col or ComplexCol.
+        Pytables must be >= 3.0.
         """
 
         if not self.infer_axes():
@@ -3561,9 +3574,9 @@ class Table(Fixed):
                         )
                     v.create_index(**kw)
 
-    def read_axes(
+    def _read_axes(
         self, where, start: Optional[int] = None, stop: Optional[int] = None
-    ) -> bool:
+    ) -> List[Tuple[ArrayLike, ArrayLike]]:
         """
         Create the axes sniffed from the table.
 
@@ -3575,32 +3588,26 @@ class Table(Fixed):
 
         Returns
         -------
-        bool
-            Indicates success.
+        List[Tuple[index_values, column_values]]
         """
-
-        # validate the version
-        self.validate_version(where)
-
-        # infer the data kind
-        if not self.infer_axes():
-            return False
 
         # create the selection
         selection = Selection(self, where=where, start=start, stop=stop)
         values = selection.select()
 
+        results = []
         # convert the data
         for a in self.axes:
             a.set_info(self.info)
-            a.convert(
+            res = a.convert(
                 values,
                 nan_rep=self.nan_rep,
                 encoding=self.encoding,
                 errors=self.errors,
             )
+            results.append(res)
 
-        return True
+        return results
 
     def get_object(self, obj, transposed: bool):
         """ return the data for this obj """
@@ -3858,6 +3865,8 @@ class Table(Fixed):
                 meta = "category"
                 metadata = np.array(data_converted.categories, copy=False).ravel()
 
+            data, dtype_name = _get_data_and_dtype_name(data_converted)
+
             col = klass(
                 name=adj_name,
                 cname=new_name,
@@ -3869,8 +3878,9 @@ class Table(Fixed):
                 ordered=ordered,
                 meta=meta,
                 metadata=metadata,
+                dtype=dtype_name,
+                data=data,
             )
-            col.set_data(data_converted)
             col.update_info(self.info)
 
             vaxes.append(col)
@@ -3954,10 +3964,10 @@ class Table(Fixed):
 
     def create_description(
         self,
-        complib=None,
-        complevel: Optional[int] = None,
-        fletcher32: bool = False,
-        expectedrows: Optional[int] = None,
+        complib,
+        complevel: Optional[int],
+        fletcher32: bool,
+        expectedrows: Optional[int],
     ) -> Dict[str, Any]:
         """ create the description of the table from the axes & values """
 
@@ -4044,13 +4054,13 @@ class Table(Fixed):
                 # column must be an indexable or a data column
                 c = getattr(self.table.cols, column)
                 a.set_info(self.info)
-                a.convert(
+                col_values = a.convert(
                     c[start:stop],
                     nan_rep=self.nan_rep,
                     encoding=self.encoding,
                     errors=self.errors,
                 )
-                return Series(_set_tz(a.take_data(), a.tz), name=column)
+                return Series(_set_tz(col_values[1], a.tz), name=column)
 
         raise KeyError(f"column [{column}] not found in the table")
 
@@ -4206,7 +4216,13 @@ class AppendableTable(Table):
                 values=[v[start_i:end_i] for v in bvalues],
             )
 
-    def write_data_chunk(self, rows, indexes, mask, values):
+    def write_data_chunk(
+        self,
+        rows: np.ndarray,
+        indexes: List[np.ndarray],
+        mask: Optional[np.ndarray],
+        values: List[np.ndarray],
+    ):
         """
         Parameters
         ----------
@@ -4334,34 +4350,50 @@ class AppendableFrameTable(AppendableTable):
         stop: Optional[int] = None,
     ):
 
-        if not self.read_axes(where=where, start=start, stop=stop):
+        # validate the version
+        self.validate_version(where)
+
+        # infer the data kind
+        if not self.infer_axes():
             return None
+
+        result = self._read_axes(where=where, start=start, stop=stop)
 
         info = (
             self.info.get(self.non_index_axes[0][0], dict())
             if len(self.non_index_axes)
             else dict()
         )
-        index = self.index_axes[0].values
+
+        inds = [i for i, ax in enumerate(self.axes) if ax is self.index_axes[0]]
+        assert len(inds) == 1
+        ind = inds[0]
+
+        index = result[ind][0]
+
         frames = []
-        for a in self.values_axes:
+        for i, a in enumerate(self.axes):
+            if a not in self.values_axes:
+                continue
+            index_vals, cvalues = result[i]
 
             # we could have a multi-index constructor here
             # ensure_index doesn't recognized our list-of-tuples here
             if info.get("type") == "MultiIndex":
-                cols = MultiIndex.from_tuples(a.values)
+                cols = MultiIndex.from_tuples(index_vals)
             else:
-                cols = Index(a.values)
+                cols = Index(index_vals)
+
             names = info.get("names")
             if names is not None:
                 cols.set_names(names, inplace=True)
 
             if self.is_transposed:
-                values = a.cvalues
+                values = cvalues
                 index_ = cols
                 cols_ = Index(index, name=getattr(index, "name", None))
             else:
-                values = a.cvalues.T
+                values = cvalues.T
                 index_ = Index(index, name=getattr(index, "name", None))
                 cols_ = cols
 
@@ -4398,7 +4430,6 @@ class AppendableSeriesTable(AppendableFrameTable):
     table_type = "appendable_series"
     ndim = 2
     obj_type = Series
-    storage_obj_type = DataFrame
 
     @property
     def is_transposed(self) -> bool:
@@ -4420,7 +4451,7 @@ class AppendableSeriesTable(AppendableFrameTable):
         columns=None,
         start: Optional[int] = None,
         stop: Optional[int] = None,
-    ):
+    ) -> Series:
 
         is_multi_index = self.is_multi_index
         if columns is not None and is_multi_index:
@@ -4495,7 +4526,6 @@ class GenericTable(AppendableFrameTable):
         index_col = GenericIndexCol(
             name="index", axis=0, table=self.table, meta=meta, metadata=md
         )
-        index_col.get_attr()
 
         _indexables = [index_col]
 
@@ -4514,7 +4544,6 @@ class GenericTable(AppendableFrameTable):
                 meta=meta,
                 metadata=md,
             )
-            dc.get_attr()
             _indexables.append(dc)
 
         return _indexables
@@ -4565,7 +4594,7 @@ class AppendableMultiFrameTable(AppendableFrameTable):
         return df
 
 
-def _reindex_axis(obj, axis: int, labels: Index, other=None):
+def _reindex_axis(obj: DataFrame, axis: int, labels: Index, other=None) -> DataFrame:
     ax = obj._get_axis(axis)
     labels = ensure_index(labels)
 
@@ -4628,7 +4657,7 @@ def _set_tz(
     return values
 
 
-def _convert_index(name: str, index: Index, encoding=None, errors="strict"):
+def _convert_index(name: str, index: Index, encoding: str, errors: str) -> IndexCol:
     assert isinstance(name, str)
 
     index_name = index.name
@@ -4687,7 +4716,9 @@ def _convert_index(name: str, index: Index, encoding=None, errors="strict"):
         return IndexCol(name, converted, kind, atom, index_name=index_name,)
 
 
-def _unconvert_index(data, kind: str, encoding=None, errors="strict"):
+def _unconvert_index(
+    data, kind: str, encoding: str, errors: str
+) -> Union[np.ndarray, Index]:
     index: Union[Index, np.ndarray]
 
     if kind == "datetime64":
@@ -4778,61 +4809,59 @@ def _maybe_convert_for_string_atom(
     return data_converted
 
 
-def _convert_string_array(data, encoding, errors, itemsize=None):
+def _convert_string_array(data: np.ndarray, encoding: str, errors: str) -> np.ndarray:
     """
-    we take a string-like that is object dtype and coerce to a fixed size
-    string type
+    Take a string-like that is object dtype and coerce to a fixed size string type.
 
     Parameters
     ----------
-    data : a numpy array of object dtype
-    encoding : None or string-encoding
-    errors : handler for encoding errors
-    itemsize : integer, optional, defaults to the max length of the strings
+    data : np.ndarray[object]
+    encoding : str
+    errors : str
+        Handler for encoding errors.
 
     Returns
     -------
-    data in a fixed-length string dtype, encoded to bytes if needed
+    np.ndarray[fixed-length-string]
     """
 
     # encode if needed
-    if encoding is not None and len(data):
+    if len(data):
         data = (
             Series(data.ravel()).str.encode(encoding, errors).values.reshape(data.shape)
         )
 
     # create the sized dtype
-    if itemsize is None:
-        ensured = ensure_object(data.ravel())
-        itemsize = max(1, libwriters.max_len_string_array(ensured))
+    ensured = ensure_object(data.ravel())
+    itemsize = max(1, libwriters.max_len_string_array(ensured))
 
     data = np.asarray(data, dtype=f"S{itemsize}")
     return data
 
 
-def _unconvert_string_array(data, nan_rep=None, encoding=None, errors="strict"):
+def _unconvert_string_array(
+    data: np.ndarray, nan_rep, encoding: str, errors: str
+) -> np.ndarray:
     """
-    inverse of _convert_string_array
+    Inverse of _convert_string_array.
 
     Parameters
     ----------
-    data : fixed length string dtyped array
-    nan_rep : the storage repr of NaN, optional
-    encoding : the encoding of the data, optional
-    errors : handler for encoding errors, default 'strict'
+    data : np.ndarray[fixed-length-string]
+    nan_rep : the storage repr of NaN
+    encoding : str
+    errors : str
+        Handler for encoding errors.
 
     Returns
     -------
-    an object array of the decoded data
-
+    np.ndarray[object]
+        Decoded data.
     """
     shape = data.shape
     data = np.asarray(data.ravel(), dtype=object)
 
-    # guard against a None encoding (because of a legacy
-    # where the passed encoding is actually None)
-    encoding = _ensure_encoding(encoding)
-    if encoding is not None and len(data):
+    if len(data):
 
         itemsize = libwriters.max_len_string_array(ensure_object(data))
         dtype = f"U{itemsize}"
@@ -4849,8 +4878,8 @@ def _unconvert_string_array(data, nan_rep=None, encoding=None, errors="strict"):
     return data.reshape(shape)
 
 
-def _maybe_convert(values: np.ndarray, val_kind, encoding: str, errors: str):
-    val_kind = _ensure_decoded(val_kind)
+def _maybe_convert(values: np.ndarray, val_kind: str, encoding: str, errors: str):
+    assert isinstance(val_kind, str), type(val_kind)
     if _need_convert(val_kind):
         conv = _get_converter(val_kind, encoding, errors)
         values = conv(values)
@@ -4861,12 +4890,14 @@ def _get_converter(kind: str, encoding: str, errors: str):
     if kind == "datetime64":
         return lambda x: np.asarray(x, dtype="M8[ns]")
     elif kind == "string":
-        return lambda x: _unconvert_string_array(x, encoding=encoding, errors=errors)
+        return lambda x: _unconvert_string_array(
+            x, nan_rep=None, encoding=encoding, errors=errors
+        )
     else:  # pragma: no cover
         raise ValueError(f"invalid kind {kind}")
 
 
-def _need_convert(kind) -> bool:
+def _need_convert(kind: str) -> bool:
     if kind in ("datetime64", "string"):
         return True
     return False

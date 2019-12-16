@@ -91,24 +91,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         Make a copy of input ndarray
     freq : str or period object, optional
         One of pandas period strings or corresponding objects
-    start : starting value, period-like, optional
-        If data is None, used as the start point in generating regular
-        period data.
-
-        .. deprecated:: 0.24.0
-
-    periods : int, optional, > 0
-        Number of periods to generate, if generating index. Takes precedence
-        over end argument
-
-        .. deprecated:: 0.24.0
-
-    end : end value, period-like, optional
-        If periods is none, generated index will extend to first conforming
-        period on or just past end argument
-
-        .. deprecated:: 0.24.0
-
     year : int, array, or Series, default None
     month : int, array, or Series, default None
     quarter : int, array, or Series, default None
@@ -157,11 +139,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     TimedeltaIndex : Index of timedelta64 data.
     period_range : Create a fixed-frequency PeriodIndex.
 
-    Notes
-    -----
-    Creating a PeriodIndex based on `start`, `periods`, and `end` has
-    been deprecated in favor of :func:`period_range`.
-
     Examples
     --------
     >>> idx = pd.PeriodIndex(year=year_arr, quarter=q_arr)
@@ -205,11 +182,8 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         }
 
         if not set(fields).issubset(valid_field_set):
-            raise TypeError(
-                "__new__() got an unexpected keyword argument {}".format(
-                    list(set(fields) - valid_field_set)[0]
-                )
-            )
+            argument = list(set(fields) - valid_field_set)[0]
+            raise TypeError(f"__new__() got an unexpected keyword argument {argument}")
 
         if name is None and hasattr(data, "name"):
             name = data.name
@@ -468,10 +442,10 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
                     return Index(result, name=name)
             elif isinstance(func, np.ufunc):
                 if "M->M" not in func.types:
-                    msg = "ufunc '{0}' not supported for the PeriodIndex"
+                    msg = f"ufunc '{func.__name__}' not supported for the PeriodIndex"
                     # This should be TypeError, but TypeError cannot be raised
                     # from here because numpy catches.
-                    raise ValueError(msg.format(func.__name__))
+                    raise ValueError(msg)
 
         if is_bool_dtype(result):
             return result
@@ -531,7 +505,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             try:
                 value = Period(value, freq=self.freq).ordinal
             except DateParseError:
-                raise KeyError("Cannot interpret '{}' as period".format(value))
+                raise KeyError(f"Cannot interpret '{value}' as period")
 
         return self._ndarray_values.searchsorted(value, side=side, sorter=sorter)
 
@@ -679,7 +653,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
                 pass
             except DateParseError:
                 # A string with invalid format
-                raise KeyError("Cannot interpret '{}' as period".format(key))
+                raise KeyError(f"Cannot interpret '{key}' as period")
 
             try:
                 key = Period(key, freq=self.freq)

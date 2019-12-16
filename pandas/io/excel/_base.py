@@ -79,11 +79,6 @@ index_col : int, list of int, default None
     is based on the subset.
 usecols : int, str, list-like, or callable default None
     * If None, then parse all columns.
-    * If int, then indicates last column to be parsed.
-
-      .. deprecated:: 0.24.0
-         Pass in a list of int instead from 0 to `usecols` inclusive.
-
     * If str, then indicates comma separated list of Excel column letters
       and column ranges (e.g. "A:E" or "A,C,E:F"). Ranges are inclusive of
       both sides.
@@ -908,5 +903,9 @@ class ExcelFile:
         self.close()
 
     def __del__(self):
-        # Ensure we don't leak file descriptors
-        self.close()
+        # Ensure we don't leak file descriptors, but put in try/except in case
+        # attributes are already deleted
+        try:
+            self.close()
+        except AttributeError:
+            pass

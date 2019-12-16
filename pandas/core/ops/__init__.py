@@ -10,7 +10,6 @@ from typing import Tuple, Union
 import numpy as np
 
 from pandas._libs import Timedelta, Timestamp, lib
-from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import is_list_like, is_timedelta64_dtype
 from pandas.core.dtypes.generic import (
@@ -21,6 +20,8 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
+# -----------------------------------------------------------------------------
+# Ops Wrapping Utilities
 from pandas.core.construction import extract_array
 from pandas.core.ops.array_ops import (
     arithmetic_op,
@@ -58,9 +59,7 @@ from pandas.core.ops.roperator import (  # noqa:F401
     rtruediv,
     rxor,
 )
-
-# -----------------------------------------------------------------------------
-# Ops Wrapping Utilities
+from pandas.util import Appender
 
 
 def get_op_result_name(left, right):
@@ -462,7 +461,8 @@ def _arith_method_SERIES(cls, op, special):
         res_name = get_op_result_name(left, right)
 
         lvalues = extract_array(left, extract_numpy=True)
-        result = arithmetic_op(lvalues, right, op, str_rep)
+        rvalues = extract_array(right, extract_numpy=True)
+        result = arithmetic_op(lvalues, rvalues, op, str_rep)
 
         return _construct_result(left, result, index=left.index, name=res_name)
 

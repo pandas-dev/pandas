@@ -657,7 +657,7 @@ cdef class TextReader:
 
         if isinstance(source, str):
             encoding = sys.getfilesystemencoding() or "utf-8"
-
+            usource = source
             source = source.encode(encoding)
 
             if self.memory_map:
@@ -677,10 +677,11 @@ cdef class TextReader:
 
             if ptr == NULL:
                 if not os.path.exists(source):
+
                     raise FileNotFoundError(
                         ENOENT,
-                        f'File {source} does not exist',
-                        source)
+                        f'File {usource} does not exist',
+                        usource)
                 raise IOError('Initializing from file failed')
 
             self.parser.source = ptr
