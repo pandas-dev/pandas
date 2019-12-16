@@ -3046,7 +3046,6 @@ class MultiIndex(Index):
             elif com.is_null_slice(k):
                 # empty slice
                 # index is given to conserve the order of this level
-                # See test TestMultiIndexSlicers.test_per_axis_per_level_doc_examples in tests/indexings
                 indexer = Int64Index(np.arange(n)) & indexer
 
             elif isinstance(k, slice):
