@@ -60,8 +60,10 @@ class disallow:
         def _f(*args, **kwargs):
             obj_iter = itertools.chain(args, kwargs.values())
             if any(self.check(obj) for obj in obj_iter):
-                msg = "reduction operation {name!r} not allowed for this dtype"
-                raise TypeError(msg.format(name=f.__name__.replace("nan", "")))
+                f_name = f.__name__.replace("nan", "")
+                raise TypeError(
+                    f"reduction operation '{f_name}' not allowed for this dtype"
+                )
             try:
                 with np.errstate(invalid="ignore"):
                     return f(*args, **kwargs)
@@ -312,7 +314,7 @@ def _get_values(
 
         # promote if needed
         else:
-            values, changed = maybe_upcast_putmask(values, mask, fill_value)
+            values, _ = maybe_upcast_putmask(values, mask, fill_value)
 
     # return a platform independent precision dtype
     dtype_max = dtype
