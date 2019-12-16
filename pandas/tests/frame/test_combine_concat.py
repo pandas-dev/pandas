@@ -2,7 +2,6 @@ from datetime import datetime
 
 import numpy as np
 import pytest
-import pytz
 
 import pandas as pd
 from pandas import DataFrame, Index, Series, Timestamp, date_range
