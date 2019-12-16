@@ -90,7 +90,7 @@ def test_repr_dtype(dtype, expected):
 
 def test_repr_array():
     result = repr(integer_array([1, None, 3]))
-    expected = "<IntegerArray>\n[1, NaN, 3]\nLength: 3, dtype: Int64"
+    expected = "<IntegerArray>\n[1, NA, 3]\nLength: 3, dtype: Int64"
     assert result == expected
 
 
@@ -98,9 +98,9 @@ def test_repr_array_long():
     data = integer_array([1, 2, None] * 1000)
     expected = (
         "<IntegerArray>\n"
-        "[  1,   2, NaN,   1,   2, NaN,   1,   2, NaN,   1,\n"
+        "[ 1,  2, NA,  1,  2, NA,  1,  2, NA,  1,\n"
         " ...\n"
-        " NaN,   1,   2, NaN,   1,   2, NaN,   1,   2, NaN]\n"
+        " NA,  1,  2, NA,  1,  2, NA,  1,  2, NA]\n"
         "Length: 3000, dtype: Int64"
     )
     result = repr(data)
@@ -142,9 +142,6 @@ class TestArithmeticOps(BaseOpsUtil):
         # XXX: On master, this was mutating `s` inplace for rtrudiv.
         # The 0 was being turned into a NaN, most likely via the mask.
         result = op(s, other)
-
-        if op_name == "__rtruediv__":
-            pytest.skip(msg="TODO: what's expected?")
 
         # compute expected
         mask = s.isna()
