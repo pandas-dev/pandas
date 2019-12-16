@@ -289,6 +289,13 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
     def _formatter(self, boxed=False):
         return str
 
+    @property
+    def _hasnans(self):
+        # Note: this is expensive right now! The hope is that we can
+        # make this faster by having an optional mask, but not have to change
+        # source code using it..
+        return self._mask.any()
+
     def __getitem__(self, item):
         if is_integer(item):
             if self._mask[item]:
@@ -311,7 +318,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
         if dtype is None:
             dtype = object
         if is_bool_dtype(dtype):
-            if not self.isna().any():
+            if not self._hasnans:
                 return self._data
             else:
                 raise ValueError(
@@ -485,7 +492,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
 
         if is_bool_dtype(dtype):
             # astype_nansafe converts np.nan to True
-            if self.isna().any():
+            if self._hasnans:
                 raise ValueError("cannot convert float NaN to bool")
             else:
                 return self._data.astype(dtype, copy=copy)
@@ -497,7 +504,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
             )
         # for integer, error if there are missing values
         if is_integer_dtype(dtype):
-            if self.isna().any():
+            if self._hasnans:
                 raise ValueError("cannot convert NA to integer")
         # for float dtype, ensure we use np.nan before casting (numpy cannot
         # deal with pd.NA)
