@@ -95,11 +95,10 @@ l. For ``StringDtype``, :ref:`string accessor methods<api.series.str>`
    on ``StringArray`` because ``StringArray`` only holds strings, not
    bytes.
 3. In comparision operations, :class:`arrays.StringArray` and ``Series`` backed
-   by a ``StringArray`` will return an object with :class:`arrays.BooleanDtype`,
-   rather than a ``bool`` dtype object, depending on whether
-   there are missing values. Missing values in a ``StringArray`` will propagate
-   in comparision operations, rather than always comparing unequal like
-   :attr:`numpy.nan`.
+   by a ``StringArray`` will return an object with :class:`BooleanDtype`,
+   rather than a ``bool`` dtype object. Missing values in a ``StringArray``
+   will propagate in comparision operations, rather than always comparing
+   unequal like :attr:`numpy.nan`.
 
 Everything else that follows in the rest of this document applies equally to
 ``string`` and ``object`` dtype.
