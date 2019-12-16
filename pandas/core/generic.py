@@ -73,7 +73,7 @@ import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
 import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
-from pandas.core.index import (
+from pandas.core.indexes.api import (
     Index,
     InvalidIndexError,
     MultiIndex,
@@ -5746,8 +5746,6 @@ class NDFrame(PandasObject, SelectionMixin):
         memo, default None
             Standard signature. Unused
         """
-        if memo is None:
-            memo = {}
         return self.copy(deep=True)
 
     def _convert(

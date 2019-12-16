@@ -1725,9 +1725,9 @@ class TestDataFrameConstructors:
         expected = DataFrame({"a": i.to_series().reset_index(drop=True), "b": i_no_tz})
         tm.assert_frame_equal(df, expected)
 
-    def test_constructor_datetimes_with_nulls(self):
-        # gh-15869, GH#11220
-        for arr in [
+    @pytest.mark.parametrize(
+        "arr",
+        [
             np.array([None, None, None, None, datetime.now(), None]),
             np.array([None, None, datetime.now(), None]),
             [[np.datetime64("NaT")], [None]],
@@ -1736,10 +1736,13 @@ class TestDataFrameConstructors:
             [[None], [pd.NaT]],
             [[pd.NaT], [np.datetime64("NaT")]],
             [[pd.NaT], [None]],
-        ]:
-            result = DataFrame(arr).dtypes
-            expected = Series([np.dtype("datetime64[ns]")])
-            tm.assert_series_equal(result, expected)
+        ],
+    )
+    def test_constructor_datetimes_with_nulls(self, arr):
+        # gh-15869, GH#11220
+        result = DataFrame(arr).dtypes
+        expected = Series([np.dtype("datetime64[ns]")])
+        tm.assert_series_equal(result, expected)
 
     def test_constructor_for_list_with_dtypes(self):
         # test list of lists/ndarrays

@@ -11,8 +11,7 @@ import pytz
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp, isna
-from pandas.core.index import Index, MultiIndex
+from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, isna
 import pandas.util.testing as tm
 
 AGG_FUNCTIONS = [
@@ -120,7 +119,8 @@ class TestMultiLevel(Base):
                     (1.2, tz.localize(datetime.datetime(2011, 1, 2)), "B"),
                     (1.3, tz.localize(datetime.datetime(2011, 1, 3)), "C"),
                 ]
-                + expected_tuples
+                + expected_tuples,
+                dtype=object,
             ),
             None,
         )
