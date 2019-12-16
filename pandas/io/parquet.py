@@ -91,7 +91,7 @@ class PyArrowImpl(BaseImpl):
         self.validate_dataframe(df)
         path, _, _, _ = get_filepath_or_buffer(path, mode="wb")
 
-        from_pandas_kwargs: Dict[str, Any] = {schema: kwargs.pop("schema", None)}
+        from_pandas_kwargs: Dict[str, Any] = {"schema": kwargs.pop("schema", None)}
         if index is None:
             from_pandas_kwargs = {}
         else:
