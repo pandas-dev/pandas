@@ -40,7 +40,7 @@ class TestCategoricalAnalytics:
         [
             (list("ABC"), np.NaN),
             ([1, 2, 3], np.NaN),
-            (Series(date_range("2020-01-01", periods=3), dtype="category"), NaT),
+            (Series(date_range("2020-01-01", periods=3), dtype="category"), np.NaN),
         ],
     )
     def test_min_max_ordered_empty(self, categories, expected):
