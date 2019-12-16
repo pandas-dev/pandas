@@ -168,6 +168,16 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
+    def _check_op(self, s, op, other, op_name, exc=NotImplementedError):
+        if exc is None:
+            result = op(s, other)
+            # Override to do the astype to boolean
+            expected = s.combine(other, op).astype("boolean")
+            self.assert_series_equal(result, expected)
+        else:
+            with pytest.raises(exc):
+                op(s, other)
+
     def check_opname(self, s, op_name, other, exc=None):
         super().check_opname(s, op_name, other, exc=None)
 
