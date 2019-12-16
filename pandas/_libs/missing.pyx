@@ -15,6 +15,8 @@ from pandas._libs.tslibs.np_datetime cimport (
 from pandas._libs.tslibs.nattype cimport (
     checknull_with_nat, c_NaT as NaT, is_null_datetimelike)
 
+from pandas.compat import is_platform_32bit
+
 
 cdef:
     float64_t INF = <float64_t>np.inf
@@ -345,8 +347,9 @@ class NAType(C_NAType):
         raise TypeError("boolean value of NA is ambiguous")
 
     def __hash__(self):
-        # GH 30013: Ensure hash >= 2**61 - 1 to avoid hash collisions with integers
-        return 2 ** 61 - 1
+        # GH 30013: Ensure hash is large enough to avoid hash collisions with integers
+        exponent = 31 if is_platform_32bit() else 61
+        return 2 ** exponent - 1
 
     # Binary arithmetic and comparison ops -> propagate
 
