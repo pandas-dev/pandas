@@ -403,7 +403,7 @@ static char *PyBytesToUTF8(JSOBJ _obj, JSONTypeContext *tc, size_t *_outLen) {
 }
 
 static char *PyUnicodeToUTF8(JSOBJ _obj, JSONTypeContext *tc, size_t *_outLen) {
-    return (char *)PyUnicode_AsUTF8AndSize(_obj, _outLen);
+    return (char *)PyUnicode_AsUTF8AndSize(_obj, (Py_ssize_t *)_outLen);
 }
 
 /* returns a char* and mutates the pointer to *len */
@@ -488,8 +488,9 @@ static npy_datetime PyDateTimeToEpoch(PyObject *obj, NPY_DATETIMEUNIT base) {
     if (!PyDateTime_Check(obj)) {
         // TODO: raise TypeError
     }
+    PyDateTime_Date *dt = (PyDateTime_Date *)obj;
 
-    ret = convert_pydatetime_to_datetimestruct(obj, &dts);
+    ret = convert_pydatetime_to_datetimestruct(dt, &dts);
     if (ret != 0) {
         if (!PyErr_Occurred()) {
             PyErr_SetString(PyExc_ValueError,
