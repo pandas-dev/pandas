@@ -165,7 +165,7 @@ class Styler:
             if self.na_rep is not None and pd.isna(x):
                 return self.na_rep
             elif is_float(x):
-                display_format = "{0:.{precision}f}".format(x, precision=self.precision)
+                display_format = f"{x:.{self.precision}f}"
                 return display_format
             else:
                 return x
@@ -293,7 +293,7 @@ class Styler:
             name = self.data.columns.names[r]
             cs = [
                 BLANK_CLASS if name is None else INDEX_NAME_CLASS,
-                "level{lvl}".format(lvl=r),
+                f"level{r}",
             ]
             name = BLANK_VALUE if name is None else name
             row_es.append(
@@ -310,8 +310,8 @@ class Styler:
                 for c, value in enumerate(clabels[r]):
                     cs = [
                         COL_HEADING_CLASS,
-                        "level{lvl}".format(lvl=r),
-                        "col{col}".format(col=c),
+                        f"level{r}",
+                        f"col{c}",
                     ]
                     cs.extend(
                         cell_context.get("col_headings", {}).get(r, {}).get(c, [])
@@ -339,7 +339,7 @@ class Styler:
             index_header_row = []
 
             for c, name in enumerate(self.data.index.names):
-                cs = [INDEX_NAME_CLASS, "level{lvl}".format(lvl=c)]
+                cs = [INDEX_NAME_CLASS, f"level{c}"]
                 name = "" if name is None else name
                 index_header_row.append(
                     {"type": "th", "value": name, "class": " ".join(cs)}
@@ -358,8 +358,8 @@ class Styler:
             for c, value in enumerate(rlabels[r]):
                 rid = [
                     ROW_HEADING_CLASS,
-                    "level{lvl}".format(lvl=c),
-                    "row{row}".format(row=r),
+                    f"level{c}",
+                    f"row{r}",
                 ]
                 es = {
                     "type": "th",
@@ -377,7 +377,7 @@ class Styler:
                 row_es.append(es)
 
             for c, col in enumerate(self.data.columns):
-                cs = [DATA_CLASS, "row{row}".format(row=r), "col{col}".format(col=c)]
+                cs = [DATA_CLASS, f"row{r}", f"col{c}"]
                 cs.extend(cell_context.get("data", {}).get(r, {}).get(c, []))
                 formatter = self._display_funcs[(r, c)]
                 value = self.data.iloc[r, c]
@@ -399,12 +399,7 @@ class Styler:
                         props.append(x.split(":"))
                     else:
                         props.append(["", ""])
-                cellstyle.append(
-                    {
-                        "props": props,
-                        "selector": "row{row}_col{col}".format(row=r, col=c),
-                    }
-                )
+                cellstyle.append({"props": props, "selector": f"row{r}_col{c}"})
             body.append(row_es)
 
         table_attr = self.table_attributes
@@ -971,9 +966,7 @@ class Styler:
 
     @staticmethod
     def _highlight_null(v, null_color):
-        return (
-            "background-color: {color}".format(color=null_color) if pd.isna(v) else ""
-        )
+        return f"background-color: {null_color}" if pd.isna(v) else ""
 
     def highlight_null(self, null_color="red"):
         """
@@ -1126,9 +1119,7 @@ class Styler:
             def css(rgba):
                 dark = relative_luminance(rgba) < text_color_threshold
                 text_color = "#f1f1f1" if dark else "#000000"
-                return "background-color: {b};color: {c};".format(
-                    b=colors.rgb2hex(rgba), c=text_color
-                )
+                return f"background-color: {colors.rgb2hex(rgba)};color: {text_color};"
 
             if s.ndim == 1:
                 return [css(rgba) for rgba in rgbas]
@@ -1160,7 +1151,7 @@ class Styler:
         >>> df.style.set_properties(color="white", align="right")
         >>> df.style.set_properties(**{'background-color': 'yellow'})
         """
-        values = ";".join("{p}: {v}".format(p=p, v=v) for p, v in kwargs.items())
+        values = ";".join(f"{p}: {v}" for p, v in kwargs.items())
         f = lambda x: values
         return self.applymap(f, subset=subset)
 
@@ -1191,12 +1182,9 @@ class Styler:
             if end > start:
                 css += "background: linear-gradient(90deg,"
                 if start > 0:
-                    css += " transparent {s:.1f}%, {c} {s:.1f}%, ".format(
-                        s=start, c=color
-                    )
-                css += "{c} {e:.1f}%, transparent {e:.1f}%)".format(
-                    e=min(end, width), c=color
-                )
+                    css += f" transparent {start:.1f}%, {color} {start:.1f}%, "
+                e = min(end, width)
+                css += f"{color} {e:.1f}%, transparent {e:.1f}%)"
             return css
 
         def css(x):
@@ -1358,7 +1346,7 @@ class Styler:
         """
         Highlight the min or max in a Series or DataFrame.
         """
-        attr = "background-color: {0}".format(color)
+        attr = f"background-color: {color}"
 
         if max_:
             extrema = data == np.nanmax(data.to_numpy())
@@ -1528,10 +1516,7 @@ def _maybe_wrap_formatter(formatter, na_rep: Optional[str]):
     elif callable(formatter):
         formatter_func = formatter
     else:
-        msg = (
-            "Expected a template string or callable, got {formatter} "
-            "instead".format(formatter=formatter)
-        )
+        msg = f"Expected a template string or callable, got {formatter} instead"
         raise TypeError(msg)
 
     if na_rep is None:
@@ -1539,5 +1524,5 @@ def _maybe_wrap_formatter(formatter, na_rep: Optional[str]):
     elif isinstance(na_rep, str):
         return lambda x: na_rep if pd.isna(x) else formatter_func(x)
     else:
-        msg = "Expected a string, got {na_rep} instead".format(na_rep=na_rep)
+        msg = f"Expected a string, got {na_rep} instead"
         raise TypeError(msg)

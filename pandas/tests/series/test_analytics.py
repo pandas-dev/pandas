@@ -12,13 +12,13 @@ from pandas import (
     Categorical,
     CategoricalIndex,
     DataFrame,
+    MultiIndex,
     Series,
     date_range,
     isna,
     notna,
 )
 from pandas.api.types import is_scalar
-from pandas.core.index import MultiIndex
 from pandas.core.indexes.datetimes import Timestamp
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 import pandas.util.testing as tm
