@@ -411,6 +411,7 @@ def test_errno_set_nonexistent(reader):
         pd.read_sas,
     ],
 )
+@pytest.skip(is_platform_windows(), "permissions work differently")
 def test_errno_set_permissions(reader):
     # GH#23784
     # make sure we get permiissions error when we try to read without permission
