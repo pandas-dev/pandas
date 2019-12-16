@@ -2,7 +2,6 @@
 Functions for defining unary operations.
 """
 from typing import Any, Callable, Union
-import warnings
 
 import numpy as np
 
