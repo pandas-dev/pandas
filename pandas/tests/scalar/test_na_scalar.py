@@ -206,3 +206,13 @@ def test_ufunc():
 def test_ufunc_raises():
     with pytest.raises(ValueError, match="ufunc method 'at'"):
         np.log.at(pd.NA, 0)
+
+
+def test_binary_input_not_dunder():
+    a = np.array([1, 2, 3])
+    expected = np.array([pd.NA, pd.NA, pd.NA], dtype=object)
+    result = np.logaddexp(a, pd.NA)
+    tm.assert_numpy_array_equal(result, expected)
+
+    result = np.logaddexp(pd.NA, a)
+    tm.assert_numpy_array_equal(result, expected)

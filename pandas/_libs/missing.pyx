@@ -465,9 +465,12 @@ class NAType(C_NAType):
         result = maybe_dispatch_ufunc_to_dunder_op(self, ufunc, method, *inputs, **kwargs)
         if result is NotImplemented:
             # TODO: this is wrong for binary, ternary ufuncs. Should handle shape stuff.
-            if ufunc.nout == 1:
-                result = NA
-            else:
+            index, = [i for i, x in enumerate(inputs) if x is NA]
+            result = np.broadcast_arrays(*inputs)[index]
+            if result.ndim == 0:
+                result = result.item()
+            if ufunc.nout > 1:
+                result = (result,) * ufunc.nout
                 result = (NA,) * ufunc.nout
 
         return result
