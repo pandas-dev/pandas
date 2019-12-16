@@ -461,16 +461,17 @@ def register_option(key: str, defval: object, doc="", validator=None, cb=None):
             raise ValueError(f"{k} is a python keyword")
 
     cursor = _global_config
-    msg = "Path prefix to option '{option}' is already an option"
     for i, p in enumerate(path[:-1]):
         if not isinstance(cursor, dict):
-            raise OptionError(msg.format(option=".".join(path[:i])))
+            option = ".".join(path[:i])
+            raise OptionError(f"Path prefix to option '{option}' is already an option")
         if p not in cursor:
             cursor[p] = {}
         cursor = cursor[p]
 
     if not isinstance(cursor, dict):
-        raise OptionError(msg.format(option=".".join(path[:-1])))
+        option = ".".join(path[:-1])
+        raise OptionError(f"Path prefix to option '{option}' is already an option")
 
     cursor[path[-1]] = defval  # initialize
 
@@ -650,8 +651,9 @@ def _build_option_description(k):
         s += f"\n    [default: {o.defval}] [currently: {_get_option(k, True)}]"
 
     if d:
+        rkey = d.rkey if d.rkey else ""
         s += "\n    (Deprecated"
-        s += ", use `{rkey}` instead.".format(rkey=d.rkey if d.rkey else "")
+        s += f", use `{rkey}` instead."
         s += ")"
 
     return s
