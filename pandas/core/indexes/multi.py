@@ -2996,18 +2996,19 @@ class MultiIndex(Index):
             return idxr & indexer
 
         need_sort = False
+        indexer = Index(np.arange(n))
         for i, k in enumerate(reversed(seq)):
             i = len(seq) - 1 - i  # Counting in reverse
 
             if com.is_bool_indexer(k):
                 # a boolean indexer, must be the same length!
                 k = np.asarray(k)
-                indexer = _update_indexer(_convert_to_indexer(k), indexer=indexer)
+                indexer = _convert_to_indexer(k) & indexer
 
             elif is_list_like(k):
                 # a collection of labels to include from this level (these
                 # are or'd)
-                indexers = None
+                indexers_union = None
                 if not need_sort:
                     # Find out if the list_like label are sorted as the levels or not
                     k_codes = np.array(
@@ -3024,20 +3025,20 @@ class MultiIndex(Index):
                             # ordered as previously seen indexes
                             idxrs = indexer.intersection(idxrs)
 
-                        indexers = (
+                        indexers_union = (
                             idxrs
-                            if indexers is None
-                            else indexers.union(idxrs, sort=False)
+                            if indexers_union is None
+                            else indexers_union.union(idxrs, sort=False)
                         )
                     except KeyError:
                         # ignore not founds
                         continue
 
-                if indexers is not None:
+                if indexers_union is not None:
                     if need_sort:
-                        indexer = indexers
+                        indexer = indexers_union
                     else:
-                        indexer = _update_indexer(indexers, indexer=indexer)
+                        indexer = indexers_union & indexer
                 else:
                     # no matches we are done
                     return Int64Index([])._ndarray_values
@@ -3045,24 +3046,24 @@ class MultiIndex(Index):
             elif com.is_null_slice(k):
                 # empty slice
                 # index is given to conserve the order of this level
-                indexer = _update_indexer(Int64Index(np.arange(n)), indexer=indexer)
+                # See test TestMultiIndexSlicers.test_per_axis_per_level_doc_examples in tests/indexings
+                indexer = Int64Index(np.arange(n)) & indexer
 
             elif isinstance(k, slice):
-
                 # a slice, include BOTH of the labels
-                indexer = _update_indexer(
+                indexer = (
                     _convert_to_indexer(
                         self._get_level_indexer(k, level=i, indexer=indexer)
-                    ),
-                    indexer=indexer,
+                    )
+                    & indexer
                 )
             else:
                 # a single label
-                indexer = _update_indexer(
+                indexer = (
                     _convert_to_indexer(
                         self.get_loc_level(k, level=i, drop_level=False)[0]
-                    ),
-                    indexer=indexer,
+                    )
+                    & indexer
                 )
 
         # empty indexer
