@@ -45,14 +45,14 @@ class InferDtypes:
     params = _dtypes
     param_names = ["dtype"]
     data_dict = {
-        "np-object": np.array([1] * 1000, dtype="O"),
-        "py-object": [1] * 1000,
-        "np-null": np.array([1] * 500 + [np.nan] * 500),
-        "py-null": [1] * 500 + [None] * 500,
-        "np-int": np.array([1] * 1000, dtype=int),
-        "np-floating": np.array([1.0] * 1000, dtype=float),
+        "np-object": np.array([1] * 100000, dtype="O"),
+        "py-object": [1] * 100000,
+        "np-null": np.array([1] * 50000 + [np.nan] * 50000),
+        "py-null": [1] * 50000 + [None] * 50000,
+        "np-int": np.array([1] * 100000, dtype=int),
+        "np-floating": np.array([1.0] * 100000, dtype=float),
         "empty": [],
-        "bytes": [b"a"] * 1000,
+        "bytes": [b"a"] * 100000,
     }
     params = list(data_dict.keys())
 
