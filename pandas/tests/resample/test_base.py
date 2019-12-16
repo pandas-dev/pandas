@@ -273,42 +273,52 @@ def test_resample_quantile(series):
     "_index_factory,_series_name,_index_start,_index_end", [DATE_RANGE, PERIOD_RANGE]
 )
 @pytest.mark.parametrize(
-    "freq, result_data, result_index, result_freq",
+    "freq, result_name, result_data, result_index, result_freq",
     [
         (
             "D",
+            "dti",
             [1.0] * 5 + [np.nan] * 5,
             ["2005-01-{}".format(i) for i in range(1, 11)],
             "D",
         ),
         (
             "D",
+            "pi",
             [1.0] * 5 + [np.nan] * 5,
             ["2005-01-{}".format(i) for i in range(1, 11)],
             "D",
         ),
-        ("W", [2.0, 3.0, np.nan], ["2005-01-02", "2005-01-09", "2005-01-16"], "W-SUN"),
         (
             "W",
+            "dti",
+            [2.0, 3.0, np.nan],
+            ["2005-01-02", "2005-01-09", "2005-01-16"],
+            "W-SUN",
+        ),
+        (
+            "W",
+            "pi",
             [2.0, 3.0, np.nan],
             ["2004-12-27/2005-01-02", "2005-01-03/2005-01-09", "2005-01-10/2005-01-16"],
             "W-SUN",
         ),
-        ("M", [5.0], ["2005-01-31"], "M"),
-        ("M", [5.0], ["2005-01"], "M"),
+        ("M", "dti", [5.0], ["2005-01-31"], "M"),
+        ("M", "pi", [5.0], ["2005-01"], "M"),
     ],
 )
-def test_resample_sum(series, freq, result_data, result_index, result_freq):
+def test_resample_sum(
+    series, freq, result_name, result_data, result_index, result_freq
+):
     # GH 19974
     series[:5] = 1
     series[5:] = np.nan
     result = series.resample(freq).sum(min_count=1)
 
-    result_name = result.name
-    if isinstance(series.index, DatetimeIndex) and result_name == "dti":
-        index = DatetimeIndex(result_index, freq=result_freq)
-    elif isinstance(series.index, PeriodIndex) and result_name == "pi":
+    if isinstance(series.index, PeriodIndex) and result_name == "pi":
         index = PeriodIndex(result_index, freq=result_freq)
+    elif isinstance(series.index, DatetimeIndex) and result_name == "dti":
+        index = DatetimeIndex(result_index, freq=result_freq)
     else:
         pytest.skip("unsupported configuration")
 
