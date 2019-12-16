@@ -122,18 +122,16 @@ class NumericIndex(Index):
             if tolerance.ndim > 0:
                 raise ValueError(
                     (
-                        "tolerance argument for %s must contain "
+                        f"tolerance argument for {type(self).__name__} must contain "
                         "numeric elements if it is list type"
                     )
-                    % (type(self).__name__,)
                 )
             else:
                 raise ValueError(
                     (
-                        "tolerance argument for %s must be numeric "
-                        "if it is a scalar: %r"
+                        f"tolerance argument for {type(self).__name__} must be numeric "
+                        f"if it is a scalar: {repr(tolerance)}"
                     )
-                    % (type(self).__name__, tolerance)
                 )
         return tolerance
 
@@ -383,11 +381,10 @@ class Float64Index(NumericIndex):
     def astype(self, dtype, copy=True):
         dtype = pandas_dtype(dtype)
         if needs_i8_conversion(dtype):
-            msg = (
-                "Cannot convert Float64Index to dtype {dtype}; integer "
+            raise TypeError(
+                f"Cannot convert Float64Index to dtype {dtype}; integer "
                 "values are required for conversion"
-            ).format(dtype=dtype)
-            raise TypeError(msg)
+            )
         elif is_integer_dtype(dtype) and not is_extension_array_dtype(dtype):
             # TODO(jreback); this can change once we have an EA Index type
             # GH 13149

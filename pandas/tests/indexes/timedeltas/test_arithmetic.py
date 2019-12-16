@@ -98,61 +98,6 @@ class TestTimedeltaIndexArithmetic:
             tdi.shift(2)
 
     # -------------------------------------------------------------
-    # Binary operations TimedeltaIndex and integer
-
-    def test_tdi_add_sub_int(self, one):
-        # Variants of `one` for #19012, deprecated GH#22535
-        rng = timedelta_range("1 days 09:00:00", freq="H", periods=10)
-        msg = "Addition/subtraction of integers"
-
-        with pytest.raises(TypeError, match=msg):
-            rng + one
-        with pytest.raises(TypeError, match=msg):
-            rng += one
-        with pytest.raises(TypeError, match=msg):
-            rng - one
-        with pytest.raises(TypeError, match=msg):
-            rng -= one
-
-    # -------------------------------------------------------------
-    # __add__/__sub__ with integer arrays
-
-    @pytest.mark.parametrize("box", [np.array, pd.Index])
-    def test_tdi_add_sub_integer_array(self, box):
-        # GH#19959, deprecated GH#22535
-        rng = timedelta_range("1 days 09:00:00", freq="H", periods=3)
-        other = box([4, 3, 2])
-        msg = "Addition/subtraction of integers and integer-arrays"
-
-        with pytest.raises(TypeError, match=msg):
-            rng + other
-
-        with pytest.raises(TypeError, match=msg):
-            other + rng
-
-        with pytest.raises(TypeError, match=msg):
-            rng - other
-
-        with pytest.raises(TypeError, match=msg):
-            other - rng
-
-    @pytest.mark.parametrize("box", [np.array, pd.Index])
-    def test_tdi_addsub_integer_array_no_freq(self, box):
-        # GH#19959
-        tdi = TimedeltaIndex(["1 Day", "NaT", "3 Hours"])
-        other = box([14, -1, 16])
-        msg = "Addition/subtraction of integers"
-
-        with pytest.raises(TypeError, match=msg):
-            tdi + other
-        with pytest.raises(TypeError, match=msg):
-            other + tdi
-        with pytest.raises(TypeError, match=msg):
-            tdi - other
-        with pytest.raises(TypeError, match=msg):
-            other - tdi
-
-    # -------------------------------------------------------------
     # Binary operations TimedeltaIndex and timedelta-like
     # Note: add and sub are tested in tests.test_arithmetic, in-place
     #  tests are kept here because their behavior is Index-specific
@@ -172,57 +117,6 @@ class TestTimedeltaIndexArithmetic:
         tm.assert_index_equal(rng, expected)
 
     # -------------------------------------------------------------
-
-    # TODO: after #24365 this probably belongs in scalar tests
-    def test_ops_ndarray(self):
-        td = Timedelta("1 day")
-
-        # timedelta, timedelta
-        other = pd.to_timedelta(["1 day"]).values
-        expected = pd.to_timedelta(["2 days"]).values
-        tm.assert_numpy_array_equal(td + other, expected)
-        tm.assert_numpy_array_equal(other + td, expected)
-        msg = r"unsupported operand type\(s\) for \+: 'Timedelta' and 'int'"
-        with pytest.raises(TypeError, match=msg):
-            td + np.array([1])
-        msg = r"unsupported operand type\(s\) for \+: 'numpy.ndarray' and 'Timedelta'"
-        with pytest.raises(TypeError, match=msg):
-            np.array([1]) + td
-
-        expected = pd.to_timedelta(["0 days"]).values
-        tm.assert_numpy_array_equal(td - other, expected)
-        tm.assert_numpy_array_equal(-other + td, expected)
-        msg = r"unsupported operand type\(s\) for -: 'Timedelta' and 'int'"
-        with pytest.raises(TypeError, match=msg):
-            td - np.array([1])
-        msg = r"unsupported operand type\(s\) for -: 'numpy.ndarray' and 'Timedelta'"
-        with pytest.raises(TypeError, match=msg):
-            np.array([1]) - td
-
-        expected = pd.to_timedelta(["2 days"]).values
-        tm.assert_numpy_array_equal(td * np.array([2]), expected)
-        tm.assert_numpy_array_equal(np.array([2]) * td, expected)
-        msg = (
-            "ufunc '?multiply'? cannot use operands with types"
-            r" dtype\('<m8\[ns\]'\) and dtype\('<m8\[ns\]'\)"
-        )
-        with pytest.raises(TypeError, match=msg):
-            td * other
-        with pytest.raises(TypeError, match=msg):
-            other * td
-
-        tm.assert_numpy_array_equal(td / other, np.array([1], dtype=np.float64))
-        tm.assert_numpy_array_equal(other / td, np.array([1], dtype=np.float64))
-
-        # timedelta, datetime
-        other = pd.to_datetime(["2000-01-01"]).values
-        expected = pd.to_datetime(["2000-01-02"]).values
-        tm.assert_numpy_array_equal(td + other, expected)
-        tm.assert_numpy_array_equal(other + td, expected)
-
-        expected = pd.to_datetime(["1999-12-31"]).values
-        tm.assert_numpy_array_equal(-td + other, expected)
-        tm.assert_numpy_array_equal(other - td, expected)
 
     def test_tdi_ops_attributes(self):
         rng = timedelta_range("2 days", periods=5, freq="2D", name="x")

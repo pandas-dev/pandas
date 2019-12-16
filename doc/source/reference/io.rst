@@ -22,7 +22,6 @@ Flat file
    read_table
    read_csv
    read_fwf
-   read_msgpack
 
 Clipboard
 ~~~~~~~~~
@@ -97,6 +96,13 @@ Parquet
    :toctree: api/
 
    read_parquet
+
+ORC
+~~~
+.. autosummary::
+   :toctree: api/
+
+   read_orc
 
 SAS
 ~~~
