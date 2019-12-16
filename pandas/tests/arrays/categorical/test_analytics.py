@@ -11,14 +11,15 @@ import pandas.util.testing as tm
 
 
 class TestCategoricalAnalytics:
-    def test_min_max_not_ordered(self):
+    @pytest.mark.parametrize("aggregation", ["min", "max"])
+    def test_min_max_not_ordered_raises(self, aggregation):
         # unordered cats have no min/max
         cat = Categorical(["a", "b", "c", "d"], ordered=False)
         msg = "Categorical is not ordered for operation {}"
-        with pytest.raises(TypeError, match=msg.format("min")):
-            cat.min()
-        with pytest.raises(TypeError, match=msg.format("max")):
-            cat.max()
+        agg_func = getattr(cat, aggregation)
+
+        with pytest.raises(TypeError, match=msg.format(aggregation)):
+            agg_func()
 
     def test_min_max_ordered(self):
         cat = Categorical(["a", "b", "c", "d"], ordered=True)
@@ -43,14 +44,13 @@ class TestCategoricalAnalytics:
             (Series(date_range("2020-01-01", periods=3), dtype="category"), np.NaN),
         ],
     )
-    def test_min_max_ordered_empty(self, categories, expected):
+    @pytest.mark.parametrize("aggregation", ["min", "max"])
+    def test_min_max_ordered_empty(self, categories, expected, aggregation):
         # GH 30227
         cat = Categorical([], categories=list("ABC"), ordered=True)
 
-        result = cat.min()
-        assert result is expected
-
-        result = cat.max()
+        agg_func = getattr(cat, aggregation)
+        result = agg_func()
         assert result is expected
 
     @pytest.mark.parametrize("skipna", [True, False])
