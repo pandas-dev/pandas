@@ -10,7 +10,7 @@ from typing import Tuple, Union
 import numpy as np
 
 from pandas._libs import Timedelta, Timestamp, lib
-from pandas._libs.missing import maybe_dispatch_ufunc_to_dunder_op  # noqa:F401
+from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op  # noqa:F401
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import is_list_like, is_timedelta64_dtype

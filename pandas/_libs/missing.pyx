@@ -14,6 +14,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     get_timedelta64_value, get_datetime64_value)
 from pandas._libs.tslibs.nattype cimport (
     checknull_with_nat, c_NaT as NaT, is_null_datetimelike)
+from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
 
 
 cdef:
@@ -319,98 +320,6 @@ def _create_unary_propagating_op(name):
 
     method.__name__ = name
     return method
-
-
-def maybe_dispatch_ufunc_to_dunder_op(
-    object self, object ufunc, str method, *inputs, **kwargs
-):
-    """
-    Dispatch a ufunc to the equivalent dunder method.
-
-    Parameters
-    ----------
-    self : ArrayLike
-        The array whose dunder method we dispatch to
-    ufunc : Callable
-        A NumPy ufunc
-    method : {'reduce', 'accumulate', 'reduceat', 'outer', 'at', '__call__'}
-    inputs : ArrayLike
-        The input arrays.
-    kwargs : Any
-        The additional keyword arguments, e.g. ``out``.
-
-    Returns
-    -------
-    result : Any
-        The result of applying the ufunc
-    """
-    # special has the ufuncs we dispatch to the dunder op on
-    special = {
-        "add",
-        "sub",
-        "mul",
-        "pow",
-        "mod",
-        "floordiv",
-        "truediv",
-        "divmod",
-        "eq",
-        "ne",
-        "lt",
-        "gt",
-        "le",
-        "ge",
-        "remainder",
-        "matmul",
-        "or",
-        "xor",
-        "and",
-    }
-    aliases = {
-        "subtract": "sub",
-        "multiply": "mul",
-        "floor_divide": "floordiv",
-        "true_divide": "truediv",
-        "power": "pow",
-        "remainder": "mod",
-        "divide": "div",
-        "equal": "eq",
-        "not_equal": "ne",
-        "less": "lt",
-        "less_equal": "le",
-        "greater": "gt",
-        "greater_equal": "ge",
-        "bitwise_or": "or",
-        "bitwise_and": "and",
-        "bitwise_xor": "xor",
-    }
-
-    # For op(., Array) -> Array.__r{op}__
-    flipped = {
-        "lt": "__gt__",
-        "le": "__ge__",
-        "gt": "__lt__",
-        "ge": "__le__",
-        "eq": "__eq__",
-        "ne": "__ne__",
-    }
-
-    op_name = ufunc.__name__
-    op_name = aliases.get(op_name, op_name)
-
-    def not_implemented(*args, **kwargs):
-        return NotImplemented
-
-    if method == "__call__" and op_name in special and kwargs.get("out") is None:
-        if isinstance(inputs[0], type(self)):
-            name = "__{}__".format(op_name)
-            return getattr(self, name, not_implemented)(inputs[1])
-        else:
-            name = flipped.get(op_name, "__r{}__".format(op_name))
-            result =  getattr(self, name, not_implemented)(inputs[0])
-            return result
-    else:
-        return NotImplemented
 
 
 cdef class C_NAType:
