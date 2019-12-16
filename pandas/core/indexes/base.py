@@ -338,9 +338,6 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 data = np.asarray(data, dtype=object)
 
-            else:
-                data = np.asarray(data, dtype=object)
-
             # coerce to the object dtype
             data = data.astype(object)
             return Index(data, dtype=object, copy=copy, name=name, **kwargs)
