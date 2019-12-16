@@ -50,7 +50,12 @@ from pandas._typing import FilePathOrBuffer
 from pandas.core import algorithms
 from pandas.core.arrays import Categorical
 from pandas.core.frame import DataFrame
-from pandas.core.index import Index, MultiIndex, RangeIndex, ensure_index_from_sequences
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+    RangeIndex,
+    ensure_index_from_sequences,
+)
 from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
 
@@ -913,8 +918,8 @@ class TextFileReader(BaseIterator):
                         pass
                     else:
                         raise ValueError(
-                            "The %r option is not supported with the"
-                            " %r engine" % (argname, engine)
+                            f"The {repr(argname)} option is not supported with the"
+                            f" {repr(engine)} engine"
                         )
             else:
                 value = _deprecated_defaults.get(argname, default)
@@ -1079,8 +1084,8 @@ class TextFileReader(BaseIterator):
         if converters is not None:
             if not isinstance(converters, dict):
                 raise TypeError(
-                    f"Type converters must be a dict or subclass, "
-                    f"input was a {repr(type(converters).__name__)}"
+                    "Type converters must be a dict or subclass, "
+                    f"input was a {type(converters).__name__}"
                 )
         else:
             converters = {}
@@ -3608,7 +3613,7 @@ class FixedWidthReader(BaseIterator):
         if not isinstance(self.colspecs, (tuple, list)):
             raise TypeError(
                 "column specifications must be a list or tuple, "
-                "input was a %r" % type(colspecs).__name__
+                f"input was a {type(colspecs).__name__}"
             )
 
         for colspec in self.colspecs:

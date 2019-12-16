@@ -38,7 +38,7 @@ from pandas.core.dtypes.generic import (
 from pandas._typing import Axis, FrameOrSeries, Scalar
 from pandas.core.base import DataError, PandasObject, SelectionMixin, ShallowMixin
 import pandas.core.common as com
-from pandas.core.index import Index, ensure_index
+from pandas.core.indexes.api import Index, ensure_index
 from pandas.core.window.common import (
     WindowGroupByMixin,
     _doc_template,
@@ -109,7 +109,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
     def is_freq_type(self) -> bool:
         return self.win_type == "freq"
 
-    def validate(self):
+    def validate(self) -> None:
         if self.center is not None and not is_bool(self.center):
             raise ValueError("center must be a boolean")
         if self.min_periods is not None and not is_integer(self.min_periods):
@@ -412,7 +412,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             )
         return window_func
 
-    def _get_cython_func_type(self, func):
+    def _get_cython_func_type(self, func: str) -> Callable:
         """
         Return a variable or fixed cython function type.
 
@@ -517,13 +517,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                         center=self.center,
                         closed=self.closed,
                     )
-                    if np.any(np.diff(start) < 0) or np.any(np.diff(end) < 0):
-                        # Our "variable" algorithms assume start/end are
-                        # monotonically increasing. A custom window indexer
-                        # can produce a non monotonic start/end.
-                        return func(
-                            x, start, end, min_periods, is_monotonic_bounds=False
-                        )
                     return func(x, start, end, min_periods)
 
             else:

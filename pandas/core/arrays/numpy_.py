@@ -73,9 +73,22 @@ class PandasDtype(ExtensionDtype):
 
     @classmethod
     def construct_from_string(cls, string):
-        return cls(np.dtype(string))
+        try:
+            return cls(np.dtype(string))
+        except TypeError as err:
+            raise TypeError(
+                f"Cannot construct a 'PandasDtype' from '{string}'"
+            ) from err
 
+    @classmethod
     def construct_array_type(cls):
+        """
+        Return the array type associated with this dtype.
+
+        Returns
+        -------
+        type
+        """
         return PandasArray
 
     @property

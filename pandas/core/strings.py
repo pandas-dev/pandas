@@ -74,20 +74,12 @@ def cat_core(list_of_columns: List, sep: str):
     """
     if sep == "":
         # no need to interleave sep if it is empty
-        with warnings.catch_warnings():
-            # See https://github.com/numpy/numpy/issues/15041
-            warnings.filterwarnings("ignore", ".*with automatic object dtype.*")
-            out = np.sum(list_of_columns, axis=0)
-        return out
-
+        arr_of_cols = np.asarray(list_of_columns, dtype=object)
+        return np.sum(arr_of_cols, axis=0)
     list_with_sep = [sep] * (2 * len(list_of_columns) - 1)
     list_with_sep[::2] = list_of_columns
-
-    with warnings.catch_warnings():
-        # See https://github.com/numpy/numpy/issues/15041
-        warnings.filterwarnings("ignore", ".*with automatic object dtype.*")
-        out = np.sum(list_with_sep, axis=0)
-    return out
+    arr_with_sep = np.asarray(list_with_sep)
+    return np.sum(arr_with_sep, axis=0)
 
 
 def cat_safe(list_of_columns: List, sep: str):
@@ -1943,8 +1935,8 @@ def forbid_nonstring_types(forbidden, name=None):
         def wrapper(self, *args, **kwargs):
             if self._inferred_dtype not in allowed_types:
                 msg = (
-                    f"Cannot use .str.{func_name} with values of inferred dtype "
-                    f"{repr(self._inferred_dtype)}."
+                    f"Cannot use .str.{func_name} with values of "
+                    f"inferred dtype '{self._inferred_dtype}'."
                 )
                 raise TypeError(msg)
             return func(self, *args, **kwargs)

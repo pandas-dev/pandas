@@ -68,7 +68,7 @@ from pandas.core.arrays.datetimes import DatetimeArray
 from pandas.core.arrays.timedeltas import TimedeltaArray
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.index import Index, ensure_index
+from pandas.core.indexes.api import Index, ensure_index
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
@@ -984,7 +984,7 @@ class DataFrameFormatter(TableFormatter):
         )
 
     def _get_formatted_column_labels(self, frame: "DataFrame") -> List[List[str]]:
-        from pandas.core.index import _sparsify
+        from pandas.core.indexes.multi import _sparsify
 
         columns = frame.columns
 
