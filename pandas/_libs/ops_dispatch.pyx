@@ -1,5 +1,4 @@
-
-DISPATCHED_UFUNCS =  {
+DISPATCHED_UFUNCS = {
     "add",
     "sub",
     "mul",
@@ -81,13 +80,15 @@ def maybe_dispatch_ufunc_to_dunder_op(
     def not_implemented(*args, **kwargs):
         return NotImplemented
 
-    if method == "__call__" and op_name in DISPATCHED_UFUNCS and kwargs.get("out") is None:
+    if (method == "__call__"
+            and op_name in DISPATCHED_UFUNCS
+            and kwargs.get("out") is None):
         if isinstance(inputs[0], type(self)):
             name = "__{}__".format(op_name)
             return getattr(self, name, not_implemented)(inputs[1])
         else:
             name = REVERSED_NAMES.get(op_name, "__r{}__".format(op_name))
-            result =  getattr(self, name, not_implemented)(inputs[0])
+            result = getattr(self, name, not_implemented)(inputs[0])
             return result
     else:
         return NotImplemented

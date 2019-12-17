@@ -462,7 +462,9 @@ class NAType(C_NAType):
 
         if method != "__call__":
             raise ValueError(f"ufunc method '{method}' not supported for NA")
-        result = maybe_dispatch_ufunc_to_dunder_op(self, ufunc, method, *inputs, **kwargs)
+        result = maybe_dispatch_ufunc_to_dunder_op(
+            self, ufunc, method, *inputs, **kwargs
+        )
         if result is NotImplemented:
             # TODO: this is wrong for binary, ternary ufuncs. Should handle shape stuff.
             index, = [i for i, x in enumerate(inputs) if x is NA]
