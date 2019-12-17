@@ -1,7 +1,6 @@
 """
 SparseArray data structure
 """
-import unittest
 from collections import abc
 import numbers
 import operator
