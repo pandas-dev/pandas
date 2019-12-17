@@ -645,12 +645,13 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
     @classmethod
     def _create_comparison_method(cls, op):
+        op_name = op.__name__
+
         @unpack_zerodim_and_defer(op.__name__)
         def cmp_method(self, other):
             from pandas.arrays import BooleanArray
 
             mask = None
-            op_name = op.__name__
 
             if isinstance(other, (BooleanArray, IntegerArray)):
                 other, mask = other._data, other._mask
@@ -745,7 +746,6 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         @unpack_zerodim_and_defer(op.__name__)
         def integer_arithmetic_method(self, other):
-            # nans propagate
 
             omask = None
 
