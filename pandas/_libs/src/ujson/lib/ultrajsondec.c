@@ -323,10 +323,10 @@ DECODE_INF:
 SET_INF_ERROR:
     if (intNeg == 1) {
       const char *msg = "Unexpected character found when decoding 'Infinity'";
-    return SetError(ds, -1, msg);
+      return SetError(ds, -1, msg);
     } else {
       const char *msg = "Unexpected character found when decoding '-Infinity'";
-    return SetError(ds, -1, msg);
+      return SetError(ds, -1, msg);
     }
 
 
