@@ -5,9 +5,6 @@
 # https://github.com/pytest-dev/pytest/issues/1075
 export PYTHONHASHSEED=$(python -c 'import random; print(random.randint(1, 4294967295))')
 
-ls "${CONDA_PREFIX}/lib/"
-export LD_PRELOAD=${CONDA_PREFIX}/lib/libgomp.so
-
 if [ -n "$LOCALE_OVERRIDE" ]; then
     export LC_ALL="$LOCALE_OVERRIDE"
     export LANG="$LOCALE_OVERRIDE"
