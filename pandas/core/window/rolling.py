@@ -1266,6 +1266,10 @@ class _Rolling_and_Expanding(_Rolling):
     --------
     Series.%(name)s : Series %(name)s.
     DataFrame.%(name)s : DataFrame %(name)s.
+    
+    Notes
+    -----
+    See :ref:`stats.rolling_window` for extended documentation on the Numba engine.
     """
     )
 

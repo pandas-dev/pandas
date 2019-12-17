@@ -321,6 +321,11 @@ We provide a number of common statistical functions:
     :meth:`~Rolling.cov`, Unbiased covariance (binary)
     :meth:`~Rolling.corr`, Correlation (binary)
 
+.. _stats.rolling_apply:
+
+Rolling Apply
+~~~~~~~~~~~~~
+
 The :meth:`~Rolling.apply` function takes an extra ``func`` argument and performs
 generic rolling computations. The ``func`` argument should be a single function
 that produces a single value from an ndarray input. Suppose we wanted to
@@ -333,6 +338,20 @@ compute the mean absolute deviation on a rolling basis:
 
    @savefig rolling_apply_ex.png
    s.rolling(window=60).apply(mad, raw=True).plot(style='k')
+
+Additionally, :meth:`~Rolling.apply` can leverage `Numba <https://numba.pydata.org/>`__
+if installed as an optional dependency as the execution engine of the apply aggregation using the
+``engine='numba'`` and ``engine_kwargs`` arguments (``raw`` must also be set to ``True``).
+Numba will be applied in potentially two routines:
+
+1. If ``func`` is a standard Python function, the engine will JIT the passed function. ``func``
+can also be a pre-JIT function in which case the engine will not JIT the function again.
+2. The engine will JIT the for loop where the apply function is applied to each window.
+
+The ``engine_kwargs`` argument is a dictionary of keyword arguments that will be passed into the
+`numba.jit decorator <https://numba.pydata.org/numba-doc/latest/reference/jit-compilation.html#numba.jit>`__.
+These keyword arguments will be applied to *both* the passed function (if a standard Python function)
+and the apply for loop. Currently only ``nogil``, ``nopython``, and ``parallel`` are supported.
 
 .. _stats.rolling_window:
 
