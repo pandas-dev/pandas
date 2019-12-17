@@ -1270,7 +1270,7 @@ class _Rolling_and_Expanding(_Rolling):
 
     def apply(
         self,
-        func: Callable,
+        func,
         raw: bool = False,
         engine: str = "cython",
         engine_kwargs: Optional[Dict] = None,
