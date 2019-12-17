@@ -1,7 +1,6 @@
 """
 Utility functions related to concat
 """
-import warnings
 
 import numpy as np
 
@@ -135,7 +134,6 @@ def concat_compat(to_concat, axis: int = 0):
                 # coerce to object
                 to_concat = [x.astype("object") for x in to_concat]
 
-    to_concat = [_safe_array(x) for x in to_concat]
     return np.concatenate(to_concat, axis=axis)
 
 
@@ -174,7 +172,7 @@ def concat_categorical(to_concat, axis: int = 0):
     to_concat = [
         x._internal_get_values()
         if is_categorical_dtype(x.dtype)
-        else _safe_array(x).ravel()
+        else np.asarray(x).ravel()
         if not is_datetime64tz_dtype(x)
         else np.asarray(x.astype(object))
         for x in to_concat
@@ -183,15 +181,6 @@ def concat_categorical(to_concat, axis: int = 0):
     if axis == 1:
         result = result.reshape(1, len(result))
     return result
-
-
-def _safe_array(x):
-    # FIXME: kludge
-    with warnings.catch_warnings():
-        # See https://github.com/numpy/numpy/issues/15041
-        warnings.filterwarnings("ignore", ".*with automatic object dtype.*")
-        arr = np.asarray(x)
-    return arr
 
 
 def union_categoricals(

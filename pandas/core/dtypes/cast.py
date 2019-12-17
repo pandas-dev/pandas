@@ -1,7 +1,6 @@
 """ routings for casting """
 
 from datetime import datetime, timedelta
-import warnings
 
 import numpy as np
 
@@ -1047,11 +1046,7 @@ def maybe_infer_to_datetimelike(value, convert_dates: bool = False):
 
     if not is_list_like(v):
         v = [v]
-
-    with warnings.catch_warnings():
-        # See https://github.com/numpy/numpy/issues/15041
-        warnings.filterwarnings("ignore", ".*with automatic object dtype.*")
-        v = np.array(v, copy=False)
+    v = np.array(v, copy=False)
 
     # we only care about object dtypes
     if not is_object_dtype(v):

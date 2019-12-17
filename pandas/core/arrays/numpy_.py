@@ -1,6 +1,5 @@
 import numbers
 from typing import Union
-import warnings
 
 import numpy as np
 from numpy.lib.mixins import NDArrayOperatorsMixin
@@ -159,11 +158,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         if isinstance(dtype, PandasDtype):
             dtype = dtype._dtype
 
-        with warnings.catch_warnings():
-            # See https://github.com/numpy/numpy/issues/15041
-            warnings.filterwarnings("ignore", ".*with automatic object dtype.*")
-            result = np.asarray(scalars, dtype=dtype)
-
+        result = np.asarray(scalars, dtype=dtype)
         if copy and result is scalars:
             result = result.copy()
         return cls(result)
