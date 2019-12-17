@@ -39,9 +39,9 @@ setuptools_kwargs = {
     "install_requires": [
         "python-dateutil >= 2.6.1",
         "pytz >= 2017.2",
-        "numpy >= {numpy_ver}".format(numpy_ver=min_numpy_ver),
+        f"numpy >= {min_numpy_ver}",
     ],
-    "setup_requires": ["numpy >= {numpy_ver}".format(numpy_ver=min_numpy_ver)],
+    "setup_requires": [f"numpy >= {min_numpy_ver}"],
     "zip_safe": False,
 }
 
@@ -364,10 +364,8 @@ class CheckSDist(sdist_class):
                 for pyxfile in pyxfiles:
                     sourcefile = pyxfile[:-3] + extension
                     msg = (
-                        "{extension}-source file '{source}' not found.\n"
-                        "Run 'setup.py cython' before sdist.".format(
-                            source=sourcefile, extension=extension
-                        )
+                        f"{extension}-source file '{sourcefile}' not found.\n"
+                        f"Run 'setup.py cython' before sdist."
                     )
                     assert os.path.isfile(sourcefile), msg
         sdist_class.run(self)
@@ -382,14 +380,12 @@ class CheckingBuildExt(build_ext):
         for ext in extensions:
             for src in ext.sources:
                 if not os.path.exists(src):
-                    print("{}: -> [{}]".format(ext.name, ext.sources))
+                    print(f"{ext.name}: -> [{ext.sources}]")
                     raise Exception(
-                        """Cython-generated file '{src}' not found.
+                        f"""Cython-generated file '{src}' not found.
                 Cython is required to compile pandas from a development branch.
                 Please install Cython or download a release package of pandas.
-                """.format(
-                            src=src
-                        )
+                """
                     )
 
     def build_extensions(self):
@@ -706,7 +702,7 @@ for name, data in ext_data.items():
     include = data.get("include")
 
     obj = Extension(
-        "pandas.{name}".format(name=name),
+        f"pandas.{name}",
         sources=sources,
         depends=data.get("depends", []),
         include_dirs=include,

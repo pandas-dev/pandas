@@ -161,6 +161,6 @@ def get_locales(prefix=None, normalize=True, locale_getter=_default_locale_gette
     if prefix is None:
         return _valid_locales(out_locales, normalize)
 
-    pattern = re.compile("{prefix}.*".format(prefix=prefix))
+    pattern = re.compile(f"{prefix}.*")
     found = pattern.findall("\n".join(out_locales))
     return _valid_locales(found, normalize)
