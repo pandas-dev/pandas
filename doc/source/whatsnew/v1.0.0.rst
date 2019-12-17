@@ -862,7 +862,7 @@ ExtensionArray
 
 - Bug in :class:`arrays.PandasArray` when setting a scalar string (:issue:`28118`, :issue:`28150`).
 - Bug where nullable integers could not be compared to strings (:issue:`28930`)
--
+- Bug where :class:`DataFrame` constructor raised ValueError with list-like data and ``dtype`` specified (:issue:`30280`)
 
 
 Other
