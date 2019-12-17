@@ -42,7 +42,6 @@ class DtypesInvalid:
 
 
 class InferDtypes:
-    params = _dtypes
     param_names = ["dtype"]
     data_dict = {
         "np-object": np.array([1] * 100000, dtype="O"),
@@ -57,10 +56,10 @@ class InferDtypes:
     params = list(data_dict.keys())
 
     def time_infer_skipna(self, dtype):
-        lib.infer_dtype(dtype, skipna=True)
+        lib.infer_dtype(self.data_dict[dtype], skipna=True)
 
     def time_infer(self, dtype):
-        lib.infer_dtype(dtype, skipna=False)
+        lib.infer_dtype(self.data_dict[dtype], skipna=False)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
