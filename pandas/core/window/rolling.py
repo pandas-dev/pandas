@@ -1232,7 +1232,8 @@ class _Rolling_and_Expanding(_Rolling):
     ----------
     func : function
         Must produce a single value from an ndarray input if ``raw=True``
-        or a single value from a Series if ``raw=False``.
+        or a single value from a Series if ``raw=False``. Can also accept a
+        Numba JIT function with ``engine='numba'`` specified.
     raw : bool, default None
         * ``False`` : passes each row or column as a Series to the
           function.
