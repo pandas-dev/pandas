@@ -1818,9 +1818,16 @@ class DataFrameGroupBy(GroupBy):
             # Try to consolidate with normal wrapping functions
             from pandas.core.reshape.concat import concat
 
+            axis_number = obj._get_axis_number(self.axis)
+            if axis_number:
+                obj = obj.T
+
             results = [groupby_series(content, label) for label, content in obj.items()]
             results = concat(results, axis=1)
             results.columns.names = obj.columns.names
+
+            if axis_number:
+                results = results.T
 
         if not self.as_index:
             results.index = ibase.default_index(len(results))
