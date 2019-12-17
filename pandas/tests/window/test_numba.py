@@ -14,7 +14,10 @@ class TestApply:
     @pytest.mark.parametrize("nopython", [True, False])
     def test_numba_vs_cython(self, nogil, parallel, nopython):
         def f(x, *args):
-            return np.sqrt(x) + np.sum(args) + 1
+            arg_sum = 0
+            for arg in args:
+                arg_sum += arg
+            return np.mean(x) + arg_sum
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
         args = (2,)
