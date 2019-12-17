@@ -142,11 +142,6 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
                 # combine method result in 'biggest' (int64) dtype
                 expected = expected.astype(s.dtype)
                 pass
-            if op_name in {"__pow__", "__rpow__"}:
-                # TODO: https://github.com/pandas-dev/pandas/issues/29997
-                # pow(1, NA) is NA or 1?
-                # pytest.skip("TODO-29997")
-                pass
 
             if (op_name == "__rpow__") and isinstance(other, pd.Series):
                 # TODO pow on Int arrays gives different result with NA
