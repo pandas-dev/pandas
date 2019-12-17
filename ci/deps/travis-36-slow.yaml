@@ -1,7 +1,7 @@
 name: pandas-dev
 channels:
   - defaults
-  # - conda-forge
+  - conda-forge
 dependencies:
   - python=3.6.*
 
