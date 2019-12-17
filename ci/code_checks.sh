@@ -39,7 +39,7 @@ function invgrep {
 }
 
 if [[ "$GITHUB_ACTIONS" == "true" ]]; then
-    FLAKE8_FORMAT="##[error]%(path)s:%(row)s:%(col)s:%(code):%(text)s"
+    FLAKE8_FORMAT="##[error]%(path)s:%(row)s:%(col)s:%(code)s:%(text)s"
     INVGREP_PREPEND="##[error]"
 else
     FLAKE8_FORMAT="default"
