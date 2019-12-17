@@ -44,7 +44,7 @@ def _generate_numba_apply_func(
             numba_func = func
         else:
 
-            @numba.generated_jit(nopython=nopython)
+            @numba.generated_jit(nopython=nopython, nogil=nogil, parallel=parallel)
             def numba_func(window, *_args):
                 if getattr(np, func.__name__, False) is func:
 
