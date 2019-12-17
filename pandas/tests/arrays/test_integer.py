@@ -139,8 +139,6 @@ class TestArithmeticOps(BaseOpsUtil):
 
     def _check_op(self, s, op_name, other, exc=None):
         op = self.get_op_from_name(op_name)
-        # XXX: On master, this was mutating `s` inplace for rtrudiv.
-        # The 0 was being turned into a NaN, most likely via the mask.
         result = op(s, other)
 
         # compute expected
@@ -160,8 +158,15 @@ class TestArithmeticOps(BaseOpsUtil):
             if omask is not None:
                 mask |= omask
 
-        if op_name in {"__pow__", "__rpow__"}:
-            pytest.skip("tested elsewhere")
+        # 1 ** na is na, so need to unmask those
+        if op_name == "__pow__":
+            mask = np.where(~s.isna() & (s == 1), False, mask)
+
+        elif op_name == "__rpow__":
+            other_is_one = other == 1
+            if isinstance(other_is_one, pd.Series):
+                other_is_one = other_is_one.fillna(False)
+            mask = np.where(other_is_one, False, mask)
 
         # float result type or float op
         if (
