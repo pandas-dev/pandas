@@ -388,7 +388,7 @@ class option_context:
     Examples
     --------
 
-    with option_context('display.max_rows', 10, 'display.max_columns', 5):
+    >>> with option_context('display.max_rows', 10, 'display.max_columns', 5):
     ...     ...
     """
 
