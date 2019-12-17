@@ -388,7 +388,7 @@ class option_context:
     Examples
     --------
 
-    >>> with option_context('display.max_rows', 10, 'display.max_columns', 5):
+    with option_context('display.max_rows', 10, 'display.max_columns', 5):
     ...     ...
     """
 
@@ -461,17 +461,17 @@ def register_option(key: str, defval: object, doc="", validator=None, cb=None):
             raise ValueError(f"{k} is a python keyword")
 
     cursor = _global_config
+    msg = "Path prefix to option '{option}' is already an option"
+
     for i, p in enumerate(path[:-1]):
         if not isinstance(cursor, dict):
-            option = ".".join(path[:i])
-            raise OptionError(f"Path prefix to option '{option}' is already an option")
+            raise OptionError(msg.format(option=".".join(path[:i])))
         if p not in cursor:
             cursor[p] = {}
         cursor = cursor[p]
 
     if not isinstance(cursor, dict):
-        option = ".".join(path[:-1])
-        raise OptionError(f"Path prefix to option '{option}' is already an option")
+        raise OptionError(msg.format(option=".".join(path[:-1])))
 
     cursor[path[-1]] = defval  # initialize
 
