@@ -27,8 +27,6 @@ from pandas.core.algorithms import _factorize_array, unique
 from pandas.core.missing import backfill_1d, pad_1d
 from pandas.core.sorting import nargsort
 
-_not_implemented_message = "{} does not implement {}."
-
 _extension_array_shared_docs: Dict[str, str] = dict()
 
 
@@ -331,7 +329,7 @@ class ExtensionArray:
         # Note, also, that Series/DataFrame.where internally use __setitem__
         # on a copy of the data.
         raise NotImplementedError(
-            _not_implemented_message.format(type(self), "__setitem__")
+            f"{type(self)} does not implement __setitem__."
         )
 
     def __len__(self) -> int:
