@@ -630,7 +630,7 @@ class StataValueLabel:
             if not isinstance(category, str):
                 category = str(category)
                 value_label_mismatch_msg = (
-                    "Stata value labels (pandas categories) must be strings. "
+                    "\nStata value labels (pandas categories) must be strings. "
                     f"Column {catarray.name} contains non-string labels which "
                     "will be converted to strings. Please check that the "
                     "Stata data file created has not lost information due to "
@@ -1393,11 +1393,11 @@ class StataReader(StataParser, BaseIterator):
             # GH 25960, fallback to handle incorrect format produced when 117
             # files are converted to 118 files in Stata
             msg = (
-                "One or more strings in the data file could not be decoded "
-                f"using {self._encoding}, and so the fallback encoding of "
-                "latin-1 is being used. This can happen when a file has been "
+                "\nOne or more strings in the dta file could not be decoded "
+                f"using {self._encoding}, and\nso the fallback encoding of "
+                "latin-1 is being used.  This can happen when a file\nhas been "
                 "incorrectly encoded by Stata or some other software. You "
-                "should verify the string values returned are correct."
+                "should verify\nthe string values returned are correct."
             )
             warnings.warn(msg, UnicodeWarning)
             return s.decode("latin-1")
@@ -1774,13 +1774,13 @@ class StataReader(StataParser, BaseIterator):
                     repeats = "-" * 80 + "\n" + "\n".join(repeats)
                     # GH 25772
                     msg = (
-                        f"Value labels for column {col} are not unique. These "
-                        "cannot be converted to pandas categoricals.\n\n"
+                        f"\nValue labels for column {col} are not unique. These "
+                        "cannot be converted to\npandas categoricals.\n\n"
                         "Either read the file with `convert_categoricals` set "
-                        "to False or use the low level interface in "
-                        "`StataReader` to separately read the values and the "
-                        "value_labels.\n\nThe repeated labels are:\n"
-                        f"{repeats}"
+                        "to False or use the\nlow level interface in "
+                        "`StataReader` to separately read the values and the"
+                        "\nvalue_labels.\n\nThe repeated labels are:\n"
+                        f"{repeats}\n"
                     )
                     raise ValueError(msg)
                 # TODO: is the next line needed above in the data(...) method?
