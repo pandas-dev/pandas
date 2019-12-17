@@ -2115,6 +2115,10 @@ class Categorical(ExtensionArray, PandasObject):
 
         Only ordered `Categoricals` have a minimum!
 
+        .. versionchanged:: 1.0.0
+
+           Returns an NA value on empty arrays
+
         Raises
         ------
         TypeError
@@ -2125,6 +2129,10 @@ class Categorical(ExtensionArray, PandasObject):
         min : the minimum of this `Categorical`
         """
         self.check_for_ordered("min")
+
+        if not len(self._codes):
+            return self.dtype.na_value
+
         good = self._codes != -1
         if not good.all():
             if skipna:
@@ -2142,6 +2150,10 @@ class Categorical(ExtensionArray, PandasObject):
 
         Only ordered `Categoricals` have a maximum!
 
+        .. versionchanged:: 1.0.0
+
+           Returns an NA value on empty arrays
+
         Raises
         ------
         TypeError
@@ -2152,6 +2164,10 @@ class Categorical(ExtensionArray, PandasObject):
         max : the maximum of this `Categorical`
         """
         self.check_for_ordered("max")
+
+        if not len(self._codes):
+            return self.dtype.na_value
+
         good = self._codes != -1
         if not good.all():
             if skipna:

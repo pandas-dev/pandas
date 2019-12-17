@@ -5,22 +5,23 @@ import pytest
 
 from pandas.compat import PYPY
 
-from pandas import Categorical, Index, Series
+from pandas import Categorical, Index, NaT, Series, date_range
 from pandas.api.types import is_scalar
 import pandas.util.testing as tm
 
 
 class TestCategoricalAnalytics:
-    def test_min_max(self):
-
+    @pytest.mark.parametrize("aggregation", ["min", "max"])
+    def test_min_max_not_ordered_raises(self, aggregation):
         # unordered cats have no min/max
         cat = Categorical(["a", "b", "c", "d"], ordered=False)
         msg = "Categorical is not ordered for operation {}"
-        with pytest.raises(TypeError, match=msg.format("min")):
-            cat.min()
-        with pytest.raises(TypeError, match=msg.format("max")):
-            cat.max()
+        agg_func = getattr(cat, aggregation)
 
+        with pytest.raises(TypeError, match=msg.format(aggregation)):
+            agg_func()
+
+    def test_min_max_ordered(self):
         cat = Categorical(["a", "b", "c", "d"], ordered=True)
         _min = cat.min()
         _max = cat.max()
@@ -34,6 +35,29 @@ class TestCategoricalAnalytics:
         _max = cat.max()
         assert _min == "d"
         assert _max == "a"
+
+    @pytest.mark.parametrize(
+        "categories,expected",
+        [
+            (list("ABC"), np.NaN),
+            ([1, 2, 3], np.NaN),
+            pytest.param(
+                Series(date_range("2020-01-01", periods=3), dtype="category"),
+                NaT,
+                marks=pytest.mark.xfail(
+                    reason="https://github.com/pandas-dev/pandas/issues/29962"
+                ),
+            ),
+        ],
+    )
+    @pytest.mark.parametrize("aggregation", ["min", "max"])
+    def test_min_max_ordered_empty(self, categories, expected, aggregation):
+        # GH 30227
+        cat = Categorical([], categories=list("ABC"), ordered=True)
+
+        agg_func = getattr(cat, aggregation)
+        result = agg_func()
+        assert result is expected
 
     @pytest.mark.parametrize("skipna", [True, False])
     def test_min_max_with_nan(self, skipna):
