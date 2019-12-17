@@ -5,7 +5,7 @@ import pytest
 
 from pandas.compat import PYPY
 
-from pandas import Categorical, Index, Series, date_range
+from pandas import Categorical, Index, NaT, Series, date_range
 from pandas.api.types import is_scalar
 import pandas.util.testing as tm
 
@@ -41,7 +41,13 @@ class TestCategoricalAnalytics:
         [
             (list("ABC"), np.NaN),
             ([1, 2, 3], np.NaN),
-            (Series(date_range("2020-01-01", periods=3), dtype="category"), np.NaN),
+            pytest.param(
+                Series(date_range("2020-01-01", periods=3), dtype="category"),
+                NaT,
+                marks=pytest.mark.xfail(
+                    reason="https://github.com/pandas-dev/pandas/issues/29962"
+                ),
+            ),
         ],
     )
     @pytest.mark.parametrize("aggregation", ["min", "max"])
