@@ -1247,7 +1247,8 @@ class _Rolling_and_Expanding(_Rolling):
     engine_kwargs : dict, default None
         * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
         * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
-          and ``parallel``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+          and ``parallel`` dictionary keys. The values must either be ``True`` or ``False``.
+          The default ``engine_kwargs`` for the ``'numba'`` engine is
           ``{'nopython': True, 'nogil': False, 'parallel': False}``.
     args : tuple, default None
         Positional arguments to be passed into func.

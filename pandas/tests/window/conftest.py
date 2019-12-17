@@ -47,3 +47,18 @@ def center(request):
 @pytest.fixture(params=[None, 1])
 def min_periods(request):
     return request.param
+
+
+@pytest.fixture(params=[True, False])
+def parallel(request):
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def nogil(request):
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def nopython(request):
+    return request.param

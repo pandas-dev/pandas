@@ -9,15 +9,18 @@ import pandas.util.testing as tm
 
 @td.skip_if_no("numba", "0.46.0")
 class TestApply:
-    @pytest.mark.parametrize("nogil", [True, False])
-    @pytest.mark.parametrize("parallel", [True, False])
-    @pytest.mark.parametrize("nopython", [True, False])
-    def test_numba_vs_cython(self, nogil, parallel, nopython):
+    @pytest.mark.parametrize("jit", [True, False])
+    def test_numba_vs_cython(self, jit, nogil, parallel, nopython):
         def f(x, *args):
             arg_sum = 0
             for arg in args:
                 arg_sum += arg
             return np.mean(x) + arg_sum
+
+        if jit:
+            import numba
+
+            f = numba.jit(f)
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
         args = (2,)
