@@ -24,6 +24,7 @@ from pandas.compat.numpy import (
     _np_version_under1p15,
     _np_version_under1p16,
     _np_version_under1p17,
+    _np_version_under1p18,
 )
 
 try:
@@ -67,7 +68,9 @@ from pandas.core.api import (
     IntervalDtype,
     DatetimeTZDtype,
     StringDtype,
+    BooleanDtype,
     # missing
+    NA,
     isna,
     isnull,
     notna,
@@ -145,9 +148,6 @@ from pandas.io.api import (
     ExcelFile,
     ExcelWriter,
     read_excel,
-    # packers
-    read_msgpack,
-    to_msgpack,
     # parsers
     read_csv,
     read_fwf,
@@ -165,6 +165,7 @@ from pandas.io.api import (
     # misc
     read_clipboard,
     read_parquet,
+    read_orc,
     read_feather,
     read_gbq,
     read_html,

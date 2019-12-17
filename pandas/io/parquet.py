@@ -1,5 +1,6 @@
 """ parquet compat """
 
+from typing import Any, Dict, Optional
 from warnings import catch_warnings
 
 from pandas.compat._optional import import_optional_dependency
@@ -10,7 +11,7 @@ from pandas import DataFrame, get_option
 from pandas.io.common import get_filepath_or_buffer, is_gcs_url, is_s3_url
 
 
-def get_engine(engine):
+def get_engine(engine: str) -> "BaseImpl":
     """ return our implementation """
 
     if engine == "auto":
@@ -35,19 +36,15 @@ def get_engine(engine):
             "support"
         )
 
-    if engine not in ["pyarrow", "fastparquet"]:
-        raise ValueError("engine must be one of 'pyarrow', 'fastparquet'")
-
     if engine == "pyarrow":
         return PyArrowImpl()
     elif engine == "fastparquet":
         return FastParquetImpl()
 
+    raise ValueError("engine must be one of 'pyarrow', 'fastparquet'")
+
 
 class BaseImpl:
-
-    api = None  # module
-
     @staticmethod
     def validate_dataframe(df):
 
@@ -74,7 +71,7 @@ class BaseImpl:
 
 class PyArrowImpl(BaseImpl):
     def __init__(self):
-        pyarrow = import_optional_dependency(
+        import_optional_dependency(
             "pyarrow", extra="pyarrow is required for parquet support."
         )
         import pyarrow.parquet
@@ -87,13 +84,14 @@ class PyArrowImpl(BaseImpl):
         path,
         compression="snappy",
         coerce_timestamps="ms",
-        index=None,
+        index: Optional[bool] = None,
         partition_cols=None,
-        **kwargs
+        **kwargs,
     ):
         self.validate_dataframe(df)
         path, _, _, _ = get_filepath_or_buffer(path, mode="wb")
 
+        from_pandas_kwargs: Dict[str, Any]
         if index is None:
             from_pandas_kwargs = {}
         else:
@@ -106,7 +104,7 @@ class PyArrowImpl(BaseImpl):
                 compression=compression,
                 coerce_timestamps=coerce_timestamps,
                 partition_cols=partition_cols,
-                **kwargs
+                **kwargs,
             )
         else:
             self.api.parquet.write_table(
@@ -114,7 +112,7 @@ class PyArrowImpl(BaseImpl):
                 path,
                 compression=compression,
                 coerce_timestamps=coerce_timestamps,
-                **kwargs
+                **kwargs,
             )
 
     def read(self, path, columns=None, **kwargs):
@@ -176,7 +174,7 @@ class FastParquetImpl(BaseImpl):
                 compression=compression,
                 write_index=index,
                 partition_on=partition_cols,
-                **kwargs
+                **kwargs,
             )
 
     def read(self, path, columns=None, **kwargs):
@@ -203,9 +201,9 @@ def to_parquet(
     path,
     engine="auto",
     compression="snappy",
-    index=None,
+    index: Optional[bool] = None,
     partition_cols=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Write a DataFrame to the parquet format.
@@ -236,7 +234,7 @@ def to_parquet(
 
         .. versionadded:: 0.24.0
 
-    partition_cols : list, optional, default None
+    partition_cols : str or list, optional, default None
         Column names by which to partition the dataset
         Columns are partitioned in the order they are given
 
@@ -245,6 +243,8 @@ def to_parquet(
     kwargs
         Additional keyword arguments passed to the engine
     """
+    if isinstance(partition_cols, str):
+        partition_cols = [partition_cols]
     impl = get_engine(engine)
     return impl.write(
         df,
@@ -252,7 +252,7 @@ def to_parquet(
         compression=compression,
         index=index,
         partition_cols=partition_cols,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -269,6 +269,10 @@ def read_parquet(path, engine="auto", columns=None, **kwargs):
         URL schemes include http, ftp, s3, and file. For file URLs, a host is
         expected. A local file could be:
         ``file://localhost/path/to/table.parquet``.
+        A file URL can also be a path to a directory that contains multiple
+        partitioned parquet files. Both pyarrow and fastparquet support
+        paths to directories as well as file URLs. A directory path could be:
+        ``file://localhost/path/to/tables``
 
         If you want to pass in a path object, pandas accepts any
         ``os.PathLike``.

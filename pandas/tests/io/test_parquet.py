@@ -405,7 +405,7 @@ class TestBasic(Base):
             ["one", "two", "one", "two", "one", "two", "one", "two"],
         ]
         df = pd.DataFrame(
-            {"one": [i for i in range(8)], "two": [-i for i in range(8)]}, index=arrays
+            {"one": list(range(8)), "two": [-i for i in range(8)]}, index=arrays
         )
 
         expected = df.reset_index(drop=True)
@@ -499,11 +499,25 @@ class TestParquetPyArrow(Base):
             assert len(dataset.partitions.partition_names) == 2
             assert dataset.partitions.partition_names == set(partition_cols)
 
+    def test_partition_cols_string(self, pa, df_full):
+        # GH #27117
+        partition_cols = "bool"
+        partition_cols_list = [partition_cols]
+        df = df_full
+        with tm.ensure_clean_dir() as path:
+            df.to_parquet(path, partition_cols=partition_cols, compression=None)
+            import pyarrow.parquet as pq
+
+            dataset = pq.ParquetDataset(path, validate_schema=False)
+            assert len(dataset.partitions.partition_names) == 1
+            assert dataset.partitions.partition_names == set(partition_cols_list)
+
     def test_empty_dataframe(self, pa):
         # GH #27339
         df = pd.DataFrame()
         check_round_trip(df, pa)
 
+    @pytest.mark.skip(reason="broken test")
     @td.skip_if_no("pyarrow", min_version="0.15.0")
     def test_additional_extension_arrays(self, pa):
         # test additional ExtensionArrays that are supported through the
@@ -514,18 +528,24 @@ class TestParquetPyArrow(Base):
                 "b": pd.Series(["a", None, "c"], dtype="string"),
             }
         )
-        # currently de-serialized as plain int / object
-        expected = df.assign(a=df.a.astype("int64"), b=df.b.astype("object"))
+        if LooseVersion(pyarrow.__version__) >= LooseVersion("0.15.1.dev"):
+            expected = df
+        else:
+            # de-serialized as plain int / object
+            expected = df.assign(a=df.a.astype("int64"), b=df.b.astype("object"))
         check_round_trip(df, pa, expected=expected)
 
         df = pd.DataFrame({"a": pd.Series([1, 2, 3, None], dtype="Int64")})
-        # if missing values in integer, currently de-serialized as float
-        expected = df.assign(a=df.a.astype("float64"))
+        if LooseVersion(pyarrow.__version__) >= LooseVersion("0.15.1.dev"):
+            expected = df
+        else:
+            # if missing values in integer, currently de-serialized as float
+            expected = df.assign(a=df.a.astype("float64"))
         check_round_trip(df, pa, expected=expected)
 
 
 class TestParquetFastParquet(Base):
-    @td.skip_if_no("fastparquet", min_version="0.2.1")
+    @td.skip_if_no("fastparquet", min_version="0.3.2")
     def test_basic(self, fp, df_full):
         df = df_full
 
@@ -587,6 +607,23 @@ class TestParquetFastParquet(Base):
 
             actual_partition_cols = fastparquet.ParquetFile(path, False).cats
             assert len(actual_partition_cols) == 2
+
+    def test_partition_cols_string(self, fp, df_full):
+        # GH #27117
+        partition_cols = "bool"
+        df = df_full
+        with tm.ensure_clean_dir() as path:
+            df.to_parquet(
+                path,
+                engine="fastparquet",
+                partition_cols=partition_cols,
+                compression=None,
+            )
+            assert os.path.exists(path)
+            import fastparquet  # noqa: F811
+
+            actual_partition_cols = fastparquet.ParquetFile(path, False).cats
+            assert len(actual_partition_cols) == 1
 
     def test_partition_on_supported(self, fp, df_full):
         # GH #23283

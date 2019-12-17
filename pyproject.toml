@@ -10,3 +10,23 @@ requires = [
     "numpy==1.16.0; python_version=='3.6' and platform_system=='AIX'",
     "numpy==1.16.0; python_version>='3.7' and platform_system=='AIX'",
 ]
+
+[tool.black]
+target-version = ['py36', 'py37', 'py38']
+exclude = '''
+(
+    asv_bench/env
+  | \.egg
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.nox
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | setup.py
+)
+'''

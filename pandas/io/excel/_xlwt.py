@@ -77,7 +77,9 @@ class _XlwtWriter(ExcelWriter):
                 wks.write(startrow + cell.row, startcol + cell.col, val, style)
 
     @classmethod
-    def _style_to_xlwt(cls, item, firstlevel=True, field_sep=",", line_sep=";"):
+    def _style_to_xlwt(
+        cls, item, firstlevel: bool = True, field_sep=",", line_sep=";"
+    ) -> str:
         """helper which recursively generate an xlwt easy style string
         for example:
 
@@ -117,6 +119,7 @@ class _XlwtWriter(ExcelWriter):
     def _convert_to_style(cls, style_dict, num_format_str=None):
         """
         converts a style_dict to an xlwt style object
+
         Parameters
         ----------
         style_dict : style dictionary to convert

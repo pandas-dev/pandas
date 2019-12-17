@@ -13,7 +13,7 @@ class Base:
 
         result = sorted(f for f in dir(namespace) if not f.startswith("__"))
         if ignored is not None:
-            result = sorted(list(set(result) - set(ignored)))
+            result = sorted(set(result) - set(ignored))
 
         expected = sorted(expected)
         tm.assert_almost_equal(result, expected)
@@ -43,10 +43,10 @@ class TestPDApi(Base):
     ]
 
     # these are already deprecated; awaiting removal
-    deprecated_modules = []  # type: List[str]
+    deprecated_modules: List[str] = []
 
     # misc
-    misc = ["IndexSlice", "NaT"]
+    misc = ["IndexSlice", "NaT", "NA"]
 
     # top-level classes
     classes = [
@@ -80,6 +80,7 @@ class TestPDApi(Base):
         "PeriodDtype",
         "IntervalDtype",
         "DatetimeTZDtype",
+        "BooleanDtype",
         "Int8Dtype",
         "Int16Dtype",
         "Int32Dtype",
@@ -94,10 +95,10 @@ class TestPDApi(Base):
         classes.extend(["Panel", "SparseSeries", "SparseDataFrame"])
 
     # these are already deprecated; awaiting removal
-    deprecated_classes = []  # type: List[str]
+    deprecated_classes: List[str] = []
 
     # these should be deprecated in the future
-    deprecated_classes_in_future = []  # type: List[str]
+    deprecated_classes_in_future: List[str] = []
 
     # external modules exposed in pandas namespace
     modules = ["np", "datetime"]
@@ -156,7 +157,6 @@ class TestPDApi(Base):
         "read_hdf",
         "read_html",
         "read_json",
-        "read_msgpack",
         "read_pickle",
         "read_sas",
         "read_sql",
@@ -166,6 +166,7 @@ class TestPDApi(Base):
         "read_table",
         "read_feather",
         "read_parquet",
+        "read_orc",
         "read_spss",
     ]
 
@@ -173,13 +174,13 @@ class TestPDApi(Base):
     funcs_json = ["json_normalize"]
 
     # top-level to_* funcs
-    funcs_to = ["to_datetime", "to_msgpack", "to_numeric", "to_pickle", "to_timedelta"]
+    funcs_to = ["to_datetime", "to_numeric", "to_pickle", "to_timedelta"]
 
     # top-level to deprecate in the future
-    deprecated_funcs_in_future = []  # type: List[str]
+    deprecated_funcs_in_future: List[str] = []
 
     # these are already deprecated; awaiting removal
-    deprecated_funcs = []  # type: List[str]
+    deprecated_funcs: List[str] = []
 
     # private modules in pandas namespace
     private_modules = [
@@ -191,6 +192,7 @@ class TestPDApi(Base):
         "_np_version_under1p15",
         "_np_version_under1p16",
         "_np_version_under1p17",
+        "_np_version_under1p18",
         "_tslib",
         "_typing",
         "_version",
@@ -221,7 +223,7 @@ class TestPDApi(Base):
 
 class TestApi(Base):
 
-    allowed = ["types", "extensions"]
+    allowed = ["types", "extensions", "indexers"]
 
     def test_api(self):
 
