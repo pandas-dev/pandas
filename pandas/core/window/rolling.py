@@ -1250,7 +1250,8 @@ class _Rolling_and_Expanding(_Rolling):
         * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
           and ``parallel`` dictionary keys. The values must either be ``True`` or ``False``.
           The default ``engine_kwargs`` for the ``'numba'`` engine is
-          ``{'nopython': True, 'nogil': False, 'parallel': False}``.
+          ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be applied
+          to both the ``func`` and the ``apply`` rolling aggregation.
     args : tuple, default None
         Positional arguments to be passed into func.
     kwargs : dict, default None
