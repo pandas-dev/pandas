@@ -797,7 +797,7 @@ I/O
 - Bug in :func:`read_json` where default encoding was not set to ``utf-8`` (:issue:`29565`)
 - Bug in :class:`PythonParser` where str and bytes were being mixed when dealing with the decimal field (:issue:`29650`)
 - :meth:`read_gbq` now accepts ``progress_bar_type`` to display progress bar while the data downloads. (:issue:`29857`)
--
+- Bug in :func: 'to_pickle' and :func: 'read_pickle' where not accepting URL (:issue:'30299')
 
 Plotting
 ^^^^^^^^
