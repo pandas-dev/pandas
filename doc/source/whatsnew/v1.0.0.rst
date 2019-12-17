@@ -204,6 +204,7 @@ Other enhancements
 - Roundtripping DataFrames with nullable integer or string data types to parquet
   (:meth:`~DataFrame.to_parquet` / :func:`read_parquet`) using the `'pyarrow'` engine
   now preserve those data types with pyarrow >= 1.0.0 (:issue:`20612`).
+- The ``partition_cols`` argument in :meth:`DataFrame.to_parquet` now accepts a string (:issue:`27117`)
 
 Build Changes
 ^^^^^^^^^^^^^
@@ -432,6 +433,8 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 | pytables        | 3.4.2           |         |
 +-----------------+-----------------+---------+
+| s3fs            | 0.3.0           |    X    |
++-----------------+-----------------+---------+
 | scipy           | 0.19.0          |         |
 +-----------------+-----------------+---------+
 | sqlalchemy      | 1.1.4           |         |
@@ -453,7 +456,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 Other API changes
 ^^^^^^^^^^^^^^^^^
 
-- Bumpded the minimum supported version of ``s3fs`` from 0.0.8 to 0.3.0 (:issue:`28616`)
+- Bumped the minimum supported version of ``s3fs`` from 0.0.8 to 0.3.0 (:issue:`28616`)
 - :class:`pandas.core.groupby.GroupBy.transform` now raises on invalid operation names (:issue:`27489`)
 - :meth:`pandas.api.types.infer_dtype` will now return "integer-na" for integer and ``np.nan`` mix (:issue:`27283`)
 - :meth:`MultiIndex.from_arrays` will no longer infer names from arrays if ``names=None`` is explicitly provided (:issue:`27292`)
@@ -491,6 +494,7 @@ Deprecations
 - :meth:`Categorical.take_nd` is deprecated, use :meth:`Categorical.take` instead (:issue:`27745`)
 - The parameter ``numeric_only`` of :meth:`Categorical.min` and :meth:`Categorical.max` is deprecated and replaced with ``skipna`` (:issue:`25303`)
 - The parameter ``label`` in :func:`lreshape` has been deprecated and will be removed in a future version (:issue:`29742`)
+- ``pandas.core.index`` has been deprecated and will be removed in a future version, the public classes are available in the top-level namespace (:issue:`19711`)
 -
 
 .. _whatsnew_1000.prior_deprecations:
@@ -677,6 +681,7 @@ Categorical
   same type as if one used the :meth:`.str.` / :meth:`.dt.` on a :class:`Series` of that type. E.g. when accessing :meth:`Series.dt.tz_localize` on a
   :class:`Categorical` with duplicate entries, the accessor was skipping duplicates (:issue:`27952`)
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` that would give incorrect results on categorical data (:issue:`26988`)
+- Bug where calling :meth:`Categorical.min` or :meth:`Categorical.max` on an empty Categorical would raise a numpy exception (:issue:`30227`)
 
 
 Datetimelike
@@ -697,6 +702,7 @@ Datetimelike
 - Bug in :meth:`DatetimeIndex.strftime` and :meth:`Series.dt.strftime` where ``NaT`` was converted to the string ``'NaT'`` instead of ``np.nan`` (:issue:`29578`)
 - Bug in :attr:`Timestamp.resolution` being a property instead of a class attribute (:issue:`29910`)
 - Bug in :func:`pandas.to_datetime` when called with ``None`` raising ``TypeError`` instead of returning ``NaT`` (:issue:`30011`)
+- Bug in :func:`pandas.to_datetime` failing for `deques` when using ``cache=True`` (the default) (:issue:`29403`)
 
 Timedelta
 ^^^^^^^^^
@@ -856,7 +862,7 @@ ExtensionArray
 
 - Bug in :class:`arrays.PandasArray` when setting a scalar string (:issue:`28118`, :issue:`28150`).
 - Bug where nullable integers could not be compared to strings (:issue:`28930`)
--
+- Bug where :class:`DataFrame` constructor raised ValueError with list-like data and ``dtype`` specified (:issue:`30280`)
 
 
 Other
@@ -870,7 +876,8 @@ Other
 - Bug in :meth:`DataFrame.append` that raised ``IndexError`` when appending with empty list (:issue:`28769`)
 - Fix :class:`AbstractHolidayCalendar` to return correct results for
   years after 2030 (now goes up to 2200) (:issue:`27790`)
-- Fixed :class:`IntegerArray` returning ``NA`` rather than ``inf`` for operations dividing by 0 (:issue:`27398`)
+- Fixed :class:`IntegerArray` returning ``inf`` rather than ``NaN`` for operations dividing by 0 (:issue:`27398`)
+- Fixed ``pow`` operations for :class:`IntegerArray` when the other value is ``0`` or ``1`` (:issue:`29997`)
 - Bug in :meth:`Series.count` raises if use_inf_as_na is enabled (:issue:`29478`)
 - :meth: `to_parquet` now appropriately handles the ``schema`` argument for user defined schemas in the pyarrow engine. (:issue: `30270`)
 

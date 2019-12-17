@@ -37,6 +37,13 @@ class ArrowBoolDtype(ExtensionDtype):
 
     @classmethod
     def construct_array_type(cls):
+        """
+        Return the array type associated with this dtype.
+
+        Returns
+        -------
+        type
+        """
         return ArrowBoolArray
 
     def _is_boolean(self):
@@ -60,6 +67,13 @@ class ArrowStringDtype(ExtensionDtype):
 
     @classmethod
     def construct_array_type(cls):
+        """
+        Return the array type associated with this dtype.
+
+        Returns
+        -------
+        type
+        """
         return ArrowStringArray
 
 
