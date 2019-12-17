@@ -1241,20 +1241,18 @@ class _Rolling_and_Expanding(_Rolling):
           If you are just applying a NumPy reduction function this will
           achieve much better performance.
     engine : str, default 'cython'
-        Execution engine for the applied function.
         * ``'cython'`` : Runs rolling apply through C-extensions from cython.
         * ``'numba'`` : Runs rolling apply through JIT compiled code from numba.
           Only available when ``raw`` is set to ``True``.
     engine_kwargs : dict, default None
-        Arguments to specify for the execution engine.
         * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
         * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
           and ``parallel``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-          ``{'nopython': True, 'nogil': False, 'parallel': False}``
+          ``{'nopython': True, 'nogil': False, 'parallel': False}``.
     args : tuple, default None
-        Positional arguments to be passed into func
+        Positional arguments to be passed into func.
     kwargs : dict, default None
-        Keyword arguments to be passed into func
+        Keyword arguments to be passed into func.
 
     Returns
     -------
