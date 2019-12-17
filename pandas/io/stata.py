@@ -370,7 +370,7 @@ def _stata_elapsed_date_to_datetime_vec(dates, fmt):
         month = np.ones_like(dates)
         conv_dates = convert_year_month_safe(year, month)
     else:
-        raise ValueError("Date fmt {fmt} not understood".format(fmt=fmt))
+        raise ValueError(f"Date fmt {fmt} not understood")
 
     if has_bad_values:  # Restore NaT for bad values
         conv_dates[bad_locs] = NaT
@@ -465,9 +465,7 @@ def _datetime_to_stata_elapsed_vec(dates, fmt):
         d = parse_dates_safe(dates, year=True)
         conv_dates = d.year
     else:
-        raise ValueError(
-            "Format {fmt} is not a known Stata date format".format(fmt=fmt)
-        )
+        raise ValueError(f"Format {fmt} is not a known Stata date format")
 
     conv_dates = Series(conv_dates, dtype=np.float64)
     missing_value = struct.unpack("<d", b"\x00\x00\x00\x00\x00\x00\xe0\x7f")[0]
@@ -497,27 +495,8 @@ class ValueLabelTypeMismatch(Warning):
     pass
 
 
-value_label_mismatch_doc = """
-Stata value labels (pandas categories) must be strings. Column {0} contains
-non-string labels which will be converted to strings.  Please check that the
-Stata data file created has not lost information due to duplicate labels.
-"""
-
-
 class InvalidColumnName(Warning):
     pass
-
-
-invalid_name_doc = """
-Not all pandas column names were valid Stata variable names.
-The following replacements have been made:
-
-    {0}
-
-If this is not what you expect, please make sure you have Stata-compliant
-column names in your DataFrame (strings only, max 32 characters, only
-alphanumerics and underscores, no Stata reserved words)
-"""
 
 
 def _cast_to_stata_types(data):
@@ -590,20 +569,18 @@ def _cast_to_stata_types(data):
             value = data[col].max()
             if np.isinf(value):
                 raise ValueError(
-                    "Column {col} has a maximum value of "
+                    f"Column {col} has a maximum value of "
                     "infinity which is outside the range "
-                    "supported by Stata.".format(col=col)
+                    "supported by Stata."
                 )
             if dtype == np.float32 and value > float32_max:
                 data[col] = data[col].astype(np.float64)
             elif dtype == np.float64:
                 if value > float64_max:
                     raise ValueError(
-                        "Column {col} has a maximum value "
-                        "({val}) outside the range supported by "
-                        "Stata ({float64_max})".format(
-                            col=col, val=value, float64_max=float64_max
-                        )
+                        f"Column {col} has a maximum value "
+                        f"({value}) outside the range supported by "
+                        f"Stata ({float64_max})"
                     )
 
     if ws:
@@ -652,9 +629,15 @@ class StataValueLabel:
             category = vl[1]
             if not isinstance(category, str):
                 category = str(category)
+                value_label_mismatch_msg = (
+                    "Stata value labels (pandas categories) must be strings. "
+                    f"Column {catarray.name} contains non-string labels which "
+                    "will be converted to strings. Please check that the "
+                    "Stata data file created has not lost information due to "
+                    "duplicate labels."
+                )
                 warnings.warn(
-                    value_label_mismatch_doc.format(catarray.name),
-                    ValueLabelTypeMismatch,
+                    value_label_mismatch_msg, ValueLabelTypeMismatch,
                 )
 
             self.off.append(self.text_len)
@@ -1192,7 +1175,7 @@ class StataReader(StataParser, BaseIterator):
             try:
                 return self.TYPE_MAP_XML[typ]
             except KeyError:
-                raise ValueError("cannot convert stata types [{0}]".format(typ))
+                raise ValueError(f"cannot convert stata types [{typ}]")
 
         typlist = [f(x) for x in raw_typlist]
 
@@ -1202,7 +1185,7 @@ class StataReader(StataParser, BaseIterator):
             try:
                 return self.DTYPE_MAP_XML[typ]
             except KeyError:
-                raise ValueError("cannot convert stata dtype [{0}]".format(typ))
+                raise ValueError(f"cannot convert stata dtype [{typ}]")
 
         dtyplist = [f(x) for x in raw_typlist]
 
@@ -1331,17 +1314,13 @@ class StataReader(StataParser, BaseIterator):
             self.typlist = [self.TYPE_MAP[typ] for typ in typlist]
         except ValueError:
             raise ValueError(
-                "cannot convert stata types [{0}]".format(
-                    ",".join(str(x) for x in typlist)
-                )
+                "cannot convert stata types " f"[{", ".join(str(x) for x in typlist)}]"
             )
         try:
             self.dtyplist = [self.DTYPE_MAP[typ] for typ in typlist]
         except ValueError:
             raise ValueError(
-                "cannot convert stata dtypes [{0}]".format(
-                    ",".join(str(x) for x in typlist)
-                )
+                "cannot convert stata dtypes " f"[{", ".join(str(x) for x in typlist)}]"
             )
 
         if self.format_version > 108:
@@ -1415,12 +1394,14 @@ class StataReader(StataParser, BaseIterator):
         except UnicodeDecodeError:
             # GH 25960, fallback to handle incorrect format produced when 117
             # files are converted to 118 files in Stata
-            msg = """
-One or more strings in the dta file could not be decoded using {encoding}, and
-so the fallback encoding of latin-1 is being used.  This can happen when a file
-has been incorrectly encoded by Stata or some other software. You should verify
-the string values returned are correct."""
-            warnings.warn(msg.format(encoding=self._encoding), UnicodeWarning)
+            msg = (
+                "One or more strings in the data file could not be decoded "
+                f"using {self._encoding}, and so the fallback encoding of "
+                "latin-1 is being used. This can happen when a file has been "
+                "incorrectly encoded by Stata or some other software. You "
+                "should verify the string values returned are correct."
+            )
+            warnings.warn(msg, UnicodeWarning)
             return s.decode("latin-1")
 
     def _read_value_labels(self):
@@ -1794,18 +1775,16 @@ the string values returned are correct."""
                     repeats = list(vc.index[vc > 1])
                     repeats = "-" * 80 + "\n" + "\n".join(repeats)
                     # GH 25772
-                    msg = """
-Value labels for column {col} are not unique. These cannot be converted to
-pandas categoricals.
-
-Either read the file with `convert_categoricals` set to False or use the
-low level interface in `StataReader` to separately read the values and the
-value_labels.
-
-The repeated labels are:
-{repeats}
-"""
-                    raise ValueError(msg.format(col=col, repeats=repeats))
+                    msg = (
+                        f"Value labels for column {col} are not unique. These "
+                        "cannot be converted to pandas categoricals.\n\n"
+                        "Either read the file with `convert_categoricals` set "
+                        "to False or use the low level interface in "
+                        "`StataReader` to separately read the values and the "
+                        "value_labels.\n\nThe repeated labels are:\n"
+                        f"{repeats}"
+                    )
+                    raise ValueError(msg)
                 # TODO: is the next line needed above in the data(...) method?
                 cat_data = Series(cat_data, index=data.index)
                 cat_converted_data.append((col, cat_data))
@@ -1874,7 +1853,7 @@ def _set_endianness(endianness):
     elif endianness.lower() in [">", "big"]:
         return ">"
     else:  # pragma : no cover
-        raise ValueError("Endianness {endian} not understood".format(endian=endianness))
+        raise ValueError(f"Endianness {endianness} not understood")
 
 
 def _pad_bytes(name, length):
@@ -1906,7 +1885,7 @@ def _convert_datetime_to_stata_type(fmt):
     ]:
         return np.float64  # Stata expects doubles for SIFs
     else:
-        raise NotImplementedError("Format {fmt} not implemented".format(fmt=fmt))
+        raise NotImplementedError(f"Format {fmt} not implemented")
 
 
 def _maybe_convert_to_int_keys(convert_dates, varlist):
@@ -1956,9 +1935,7 @@ def _dtype_to_stata_type(dtype, column):
     elif dtype == np.int8:
         return 251
     else:  # pragma : no cover
-        raise NotImplementedError(
-            "Data type {dtype} not supported.".format(dtype=dtype)
-        )
+        raise NotImplementedError(f"Data type {dtype} not supported.")
 
 
 def _dtype_to_default_stata_fmt(dtype, column, dta_version=114, force_strl=False):
@@ -1988,14 +1965,14 @@ def _dtype_to_default_stata_fmt(dtype, column, dta_version=114, force_strl=False
         inferred_dtype = infer_dtype(column, skipna=True)
         if not (inferred_dtype in ("string", "unicode") or len(column) == 0):
             raise ValueError(
-                "Column `{col}` cannot be exported.\n\nOnly "
+                f"Column `{column.name}` cannot be exported.\n\nOnly "
                 "string-like object arrays containing all "
                 "strings or a mix of strings and None can be "
                 "exported. Object arrays containing only null "
                 "values are prohibited. Other object types"
                 "cannot be exported and must first be converted "
                 "to one of the supported "
-                "types.".format(col=column.name)
+                "types."
             )
         itemsize = max_len_string_array(ensure_object(column.values))
         if itemsize > max_str_len:
@@ -2013,9 +1990,7 @@ def _dtype_to_default_stata_fmt(dtype, column, dta_version=114, force_strl=False
     elif dtype == np.int8 or dtype == np.int16:
         return "%8.0g"
     else:  # pragma : no cover
-        raise NotImplementedError(
-            "Data type {dtype} not supported.".format(dtype=dtype)
-        )
+        raise NotImplementedError(f"Data type {dtype} not supported.")
 
 
 class StataWriter(StataParser):
@@ -2251,11 +2226,19 @@ class StataWriter(StataParser):
                     orig_name = orig_name.encode("utf-8")
                 except (UnicodeDecodeError, AttributeError):
                     pass
-                msg = "{0}   ->   {1}".format(orig_name, name)
+                msg = f"{orig_name}   ->   {name}"
                 conversion_warning.append(msg)
 
-            ws = invalid_name_doc.format("\n    ".join(conversion_warning))
-            warnings.warn(ws, InvalidColumnName)
+            invalid_name_msg = (
+                "Not all pandas column names were valid Stata variable names."
+                "The following replacements have been made:\n\n"
+                f"{'\n    '.join(conversion_warning)}\n\n"
+                "If this is not what you expect, please make sure you have "
+                "Stata-compliant column names in your DataFrame (strings only, "
+                "max 32 characters, only alphanumerics and underscores, no "
+                "Stata reserved words)"
+            )
+            warnings.warn(invalid_name_msg, InvalidColumnName)
 
         self._converted_names = converted_names
         self._update_strl_names()
@@ -2344,9 +2327,8 @@ class StataWriter(StataParser):
                     os.unlink(self._fname)
                 except OSError:
                     warnings.warn(
-                        "This save was not successful but {0} could not "
-                        "be deleted.  This file is not "
-                        "valid.".format(self._fname),
+                        f"This save was not successful but {self._fname} could "
+                        "not be deleted.  This file is not valid.",
                         ResourceWarning,
                     )
             raise exc
@@ -2527,7 +2509,7 @@ class StataWriter(StataParser):
             typ = typlist[i]
             if typ <= self._max_string_length:
                 data[col] = data[col].fillna("").apply(_pad_bytes, args=(typ,))
-                stype = "S{type}".format(type=typ)
+                stype = f"S{typ}"
                 dtypes[col] = stype
                 data[col] = data[col].str.encode(self._encoding).astype(stype)
             else:
