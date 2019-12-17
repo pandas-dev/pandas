@@ -5,6 +5,8 @@ import warnings
 
 from pandas.compat import pickle_compat as pc
 
+from pandas._typing import FilePathOrBuffer
+
 from pandas.io.common import (
     _get_handle,
     get_filepath_or_buffer as _get_filepath_or_buffer,
@@ -13,7 +15,7 @@ from pandas.io.common import (
 
 def to_pickle(
     obj: Any,
-    path_or_url: str,
+    filepath_or_buffer: FilePathOrBuffer,
     compression: Optional[str] = "infer",
     protocol: int = pickle.HIGHEST_PROTOCOL,
 ):
@@ -74,12 +76,12 @@ def to_pickle(
     >>> import os
     >>> os.remove("./dummy.pkl")
     """
-    path_or_buf, _, compression, should_close = _get_filepath_or_buffer(
-        path_or_url, compression=compression, mode="wb"
+    fp_or_buf, _, compression, should_close = _get_filepath_or_buffer(
+        filepath_or_buffer, compression=compression, mode="wb"
     )
-    if not isinstance(path_or_buf, str) and compression == "infer":
+    if not isinstance(fp_or_buf, str) and compression == "infer":
         compression = None
-    f, fh = _get_handle(path_or_buf, "wb", compression=compression, is_text=False)
+    f, fh = _get_handle(fp_or_buf, "wb", compression=compression, is_text=False)
     if protocol < 0:
         protocol = pickle.HIGHEST_PROTOCOL
     try:
@@ -89,10 +91,15 @@ def to_pickle(
         for _f in fh:
             _f.close()
         if should_close:
-            path_or_buf.close()
+            try:
+                fp_or_buf.close()
+            except ValueError:
+                pass
 
 
-def read_pickle(path_or_url: str, compression: Optional[str] = "infer"):
+def read_pickle(
+    filepath_or_buffer: FilePathOrBuffer, compression: Optional[str] = "infer"
+):
     """
     Load pickled pandas object (or any object) from file.
 
@@ -103,7 +110,7 @@ def read_pickle(path_or_url: str, compression: Optional[str] = "infer"):
 
     Parameters
     ----------
-    path_or_url : str
+    filepath_or_buffer : str
         File path, URL, or buffer where the pickled object will be loaded from.
     compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
         If 'infer' and 'path_or_url' is path-like, then detect compression from
@@ -151,12 +158,12 @@ def read_pickle(path_or_url: str, compression: Optional[str] = "infer"):
     >>> import os
     >>> os.remove("./dummy.pkl")
     """
-    path_or_buf, _, compression, should_close = _get_filepath_or_buffer(
-        path_or_url, compression=compression
+    fp_or_buf, _, compression, should_close = _get_filepath_or_buffer(
+        filepath_or_buffer, compression=compression
     )
-    if not isinstance(path_or_buf, str) and compression == "infer":
+    if not isinstance(fp_or_buf, str) and compression == "infer":
         compression = None
-    f, fh = _get_handle(path_or_buf, "rb", compression=compression, is_text=False)
+    f, fh = _get_handle(fp_or_buf, "rb", compression=compression, is_text=False)
 
     # 1) try standard library Pickle
     # 2) try pickle_compat (older pandas version) to handle subclass changes
@@ -181,4 +188,7 @@ def read_pickle(path_or_url: str, compression: Optional[str] = "infer"):
         for _f in fh:
             _f.close()
         if should_close:
-            path_or_buf.close()
+            try:
+                fp_or_buf.close()
+            except ValueError:
+                pass
