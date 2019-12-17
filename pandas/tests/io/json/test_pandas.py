@@ -1601,3 +1601,10 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
     def test_json_negative_indent_raises(self):
         with pytest.raises(ValueError, match="must be a nonnegative integer"):
             pd.DataFrame().to_json(indent=-1)
+
+    def test_emca_262_nan_inf_support(self):
+        # GH 12213
+        data = "[NaN, Infinity, -Infinity]"
+        result = pd.read_json(data)
+        expected = pd.DataFrame([np.nan, np.inf, -np.inf])
+        tm.assert_frame_equal(result, expected)
