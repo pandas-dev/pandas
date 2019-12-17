@@ -14,8 +14,10 @@ import inspect
 import re
 import types
 from typing import (
+    Callable,
     Dict,
     FrozenSet,
+    Hashable,
     Iterable,
     List,
     Mapping,
@@ -57,7 +59,7 @@ import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.groupby import base, ops
-from pandas.core.index import CategoricalIndex, Index, MultiIndex
+from pandas.core.indexes.api import CategoricalIndex, Index, MultiIndex
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
 
@@ -343,6 +345,15 @@ def _group_selection_context(groupby):
     groupby._reset_group_selection()
 
 
+_KeysArgType = Union[
+    Hashable,
+    List[Hashable],
+    Callable[[Hashable], Hashable],
+    List[Callable[[Hashable], Hashable]],
+    Mapping[Hashable, Hashable],
+]
+
+
 class _GroupBy(PandasObject, SelectionMixin):
     _group_selection = None
     _apply_whitelist: FrozenSet[str] = frozenset()
@@ -350,7 +361,7 @@ class _GroupBy(PandasObject, SelectionMixin):
     def __init__(
         self,
         obj: NDFrame,
-        keys=None,
+        keys: Optional[_KeysArgType] = None,
         axis: int = 0,
         level=None,
         grouper: "Optional[ops.BaseGrouper]" = None,
@@ -2504,7 +2515,7 @@ GroupBy._add_numeric_operations()
 @Appender(GroupBy.__doc__)
 def get_groupby(
     obj: NDFrame,
-    by=None,
+    by: Optional[_KeysArgType] = None,
     axis: int = 0,
     level=None,
     grouper: "Optional[ops.BaseGrouper]" = None,

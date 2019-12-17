@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 
-from pandas.errors import NullFrequencyError, OutOfBoundsDatetime, PerformanceWarning
+from pandas.errors import OutOfBoundsDatetime, PerformanceWarning
 
 import pandas as pd
 from pandas import (
@@ -409,7 +409,7 @@ class TestTimedelta64ArithmeticUnsorted:
             tdi[0:1] + dti
 
         # random indexes
-        with pytest.raises(NullFrequencyError):
+        with pytest.raises(TypeError):
             tdi + pd.Int64Index([1, 2, 3])
 
         # this is a union!
@@ -577,15 +577,23 @@ class TestTimedeltaArraylikeAddSubOps:
         # setup
         s1 = pd.to_timedelta(Series(["00:00:01"]))
         s2 = pd.to_timedelta(Series(["00:00:02"]))
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            # Passing datetime64-dtype data to TimedeltaIndex is deprecated
-            sn = pd.to_timedelta(Series([pd.NaT]))
+
+        msg = r"dtype datetime64\[ns\] cannot be converted to timedelta64\[ns\]"
+        with pytest.raises(TypeError, match=msg):
+            # Passing datetime64-dtype data to TimedeltaIndex is no longer
+            #  supported GH#29794
+            pd.to_timedelta(Series([pd.NaT]))
+
+        sn = pd.to_timedelta(Series([pd.NaT], dtype="m8[ns]"))
 
         df1 = pd.DataFrame(["00:00:01"]).apply(pd.to_timedelta)
         df2 = pd.DataFrame(["00:00:02"]).apply(pd.to_timedelta)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            # Passing datetime64-dtype data to TimedeltaIndex is deprecated
-            dfn = pd.DataFrame([pd.NaT]).apply(pd.to_timedelta)
+        with pytest.raises(TypeError, match=msg):
+            # Passing datetime64-dtype data to TimedeltaIndex is no longer
+            #  supported GH#29794
+            pd.DataFrame([pd.NaT]).apply(pd.to_timedelta)
+
+        dfn = pd.DataFrame([pd.NaT.value]).apply(pd.to_timedelta)
 
         scalar1 = pd.to_timedelta("00:00:01")
         scalar2 = pd.to_timedelta("00:00:02")
@@ -989,17 +997,13 @@ class TestTimedeltaArraylikeAddSubOps:
         tdser = pd.Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
         tdser = tm.box_expected(tdser, box)
 
-        err = TypeError
-        if box in [pd.Index, tm.to_array] and not isinstance(other, float):
-            err = NullFrequencyError
-
-        with pytest.raises(err):
+        with pytest.raises(TypeError):
             tdser + other
-        with pytest.raises(err):
+        with pytest.raises(TypeError):
             other + tdser
-        with pytest.raises(err):
+        with pytest.raises(TypeError):
             tdser - other
-        with pytest.raises(err):
+        with pytest.raises(TypeError):
             other - tdser
 
     @pytest.mark.parametrize(
@@ -1031,19 +1035,68 @@ class TestTimedeltaArraylikeAddSubOps:
         box = box_with_array
         tdser = pd.Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
         tdser = tm.box_expected(tdser, box)
-        err = TypeError
-        if box in [pd.Index, tm.to_array] and not dtype.startswith("float"):
-            err = NullFrequencyError
 
         vector = vec.astype(dtype)
-        with pytest.raises(err):
+        with pytest.raises(TypeError):
             tdser + vector
-        with pytest.raises(err):
+        with pytest.raises(TypeError):
             vector + tdser
-        with pytest.raises(err):
+        with pytest.raises(TypeError):
             tdser - vector
-        with pytest.raises(err):
+        with pytest.raises(TypeError):
             vector - tdser
+
+    # TODO: parameterize over box and de-duplicate
+    def test_tdi_add_sub_int(self, one):
+        # Variants of `one` for #19012, deprecated GH#22535
+        rng = timedelta_range("1 days 09:00:00", freq="H", periods=10)
+        msg = "Addition/subtraction of integers"
+
+        with pytest.raises(TypeError, match=msg):
+            rng + one
+        with pytest.raises(TypeError, match=msg):
+            rng += one
+        with pytest.raises(TypeError, match=msg):
+            rng - one
+        with pytest.raises(TypeError, match=msg):
+            rng -= one
+
+    # TODO: parameterize over box and de-duplicate
+    @pytest.mark.parametrize("box", [np.array, pd.Index])
+    def test_tdi_add_sub_integer_array(self, box):
+        # GH#19959, deprecated GH#22535
+        rng = timedelta_range("1 days 09:00:00", freq="H", periods=3)
+        other = box([4, 3, 2])
+        msg = "Addition/subtraction of integers and integer-arrays"
+
+        with pytest.raises(TypeError, match=msg):
+            rng + other
+
+        with pytest.raises(TypeError, match=msg):
+            other + rng
+
+        with pytest.raises(TypeError, match=msg):
+            rng - other
+
+        with pytest.raises(TypeError, match=msg):
+            other - rng
+
+    # TODO: parameterize over box and de-duplicate
+    @pytest.mark.parametrize("box", [np.array, pd.Index])
+    def test_tdi_addsub_integer_array_no_freq(self, box):
+        # GH#19959
+        tdi = TimedeltaIndex(["1 Day", "NaT", "3 Hours"])
+        other = box([14, -1, 16])
+        msg = "Addition/subtraction of integers"
+
+        with pytest.raises(TypeError, match=msg):
+            tdi + other
+        with pytest.raises(TypeError, match=msg):
+            other + tdi
+        with pytest.raises(TypeError, match=msg):
+            tdi - other
+        with pytest.raises(TypeError, match=msg):
+            other - tdi
 
     # ------------------------------------------------------------------
     # Operations with timedelta-like others

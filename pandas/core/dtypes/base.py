@@ -1,5 +1,5 @@
 """Extend pandas with custom array types"""
-from typing import List, Optional, Tuple, Type
+from typing import Any, List, Optional, Tuple, Type
 
 import numpy as np
 
@@ -86,7 +86,7 @@ class ExtensionDtype:
     def __str__(self) -> str:
         return self.name
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: Any) -> bool:
         """
         Check whether 'other' is equal to self.
 
@@ -183,7 +183,7 @@ class ExtensionDtype:
     @classmethod
     def construct_array_type(cls):
         """
-        Return the array type associated with this dtype
+        Return the array type associated with this dtype.
 
         Returns
         -------
@@ -231,17 +231,13 @@ class ExtensionDtype:
         ...     if match:
         ...         return cls(**match.groupdict())
         ...     else:
-        ...         raise TypeError("Cannot construct a '{}' from "
-        ...                         "'{}'".format(cls.__name__, string))
+        ...         raise TypeError(f"Cannot construct a '{cls.__name__}' from
+        ...             " "'{string}'")
         """
         if not isinstance(string, str):
-            raise TypeError("Expects a string, got {typ}".format(typ=type(string)))
+            raise TypeError(f"Expects a string, got {type(string).__name__}")
         if string != cls.name:
-            raise TypeError(
-                "Cannot construct a '{cls}' from '{string}'".format(
-                    cls=cls.__name__, string=string
-                )
-            )
+            raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
         return cls()
 
     @classmethod

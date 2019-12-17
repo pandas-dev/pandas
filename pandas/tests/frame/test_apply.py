@@ -105,13 +105,15 @@ class TestDataFrameApply:
         result = empty_frame.apply(x.append, axis=1, result_type="expand")
         tm.assert_frame_equal(result, empty_frame)
         result = empty_frame.apply(x.append, axis=1, result_type="reduce")
-        tm.assert_series_equal(result, Series([], index=pd.Index([], dtype=object)))
+        expected = Series([], index=pd.Index([], dtype=object), dtype=np.float64)
+        tm.assert_series_equal(result, expected)
 
         empty_with_cols = DataFrame(columns=["a", "b", "c"])
         result = empty_with_cols.apply(x.append, axis=1, result_type="expand")
         tm.assert_frame_equal(result, empty_with_cols)
         result = empty_with_cols.apply(x.append, axis=1, result_type="reduce")
-        tm.assert_series_equal(result, Series([], index=pd.Index([], dtype=object)))
+        expected = Series([], index=pd.Index([], dtype=object), dtype=np.float64)
+        tm.assert_series_equal(result, expected)
 
         # Ensure that x.append hasn't been called
         assert x == []
@@ -134,7 +136,7 @@ class TestDataFrameApply:
         tm.assert_series_equal(result, expected)
 
         result = df.T.nunique()
-        expected = Series([], index=pd.Index([]))
+        expected = Series([], index=pd.Index([]), dtype=np.float64)
         tm.assert_series_equal(result, expected)
 
     def test_apply_standard_nonunique(self):
@@ -642,7 +644,7 @@ class TestDataFrameApply:
             }
         )
 
-        result = df.applymap(lambda x: "{0}".format(x.__class__.__name__))
+        result = df.applymap(lambda x: type(x).__name__)
         expected = pd.DataFrame(
             {
                 "a": ["Timestamp", "Timestamp"],
@@ -1293,16 +1295,16 @@ class TestDataFrameAggregate:
             _get_cython_table_params(
                 DataFrame(),
                 [
-                    ("sum", Series()),
-                    ("max", Series()),
-                    ("min", Series()),
+                    ("sum", Series(dtype="float64")),
+                    ("max", Series(dtype="float64")),
+                    ("min", Series(dtype="float64")),
                     ("all", Series(dtype=bool)),
                     ("any", Series(dtype=bool)),
-                    ("mean", Series()),
-                    ("prod", Series()),
-                    ("std", Series()),
-                    ("var", Series()),
-                    ("median", Series()),
+                    ("mean", Series(dtype="float64")),
+                    ("prod", Series(dtype="float64")),
+                    ("std", Series(dtype="float64")),
+                    ("var", Series(dtype="float64")),
+                    ("median", Series(dtype="float64")),
                 ],
             ),
             _get_cython_table_params(

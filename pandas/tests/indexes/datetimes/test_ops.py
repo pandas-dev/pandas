@@ -16,7 +16,7 @@ from pandas import (
     bdate_range,
     date_range,
 )
-from pandas.tests.test_base import Ops
+from pandas.tests.base.test_ops import Ops
 import pandas.util.testing as tm
 
 from pandas.tseries.offsets import BDay, BMonthEnd, CDay, Day, Hour
@@ -413,12 +413,12 @@ class TestDatetimeIndexOps(Ops):
         idx = DatetimeIndex(values, tz=tz)
 
         # can set to an offset, converting from string if necessary
-        idx.freq = freq
+        idx._data.freq = freq
         assert idx.freq == freq
         assert isinstance(idx.freq, ABCDateOffset)
 
         # can reset to None
-        idx.freq = None
+        idx._data.freq = None
         assert idx.freq is None
 
     def test_freq_setter_errors(self):
@@ -431,23 +431,11 @@ class TestDatetimeIndexOps(Ops):
             "passed frequency 5D"
         )
         with pytest.raises(ValueError, match=msg):
-            idx.freq = "5D"
+            idx._data.freq = "5D"
 
         # setting with non-freq string
         with pytest.raises(ValueError, match="Invalid frequency"):
-            idx.freq = "foo"
-
-    def test_offset_deprecated(self):
-        # GH 20716
-        idx = pd.DatetimeIndex(["20180101", "20180102"])
-
-        # getter deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            idx.offset
-
-        # setter deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            idx.offset = BDay()
+            idx._data.freq = "foo"
 
 
 class TestBusinessDatetimeIndex:

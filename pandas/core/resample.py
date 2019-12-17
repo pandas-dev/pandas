@@ -2,7 +2,6 @@ import copy
 from datetime import timedelta
 from textwrap import dedent
 from typing import Dict, no_type_check
-import warnings
 
 import numpy as np
 
@@ -96,7 +95,7 @@ class Resampler(_GroupBy, ShallowMixin):
             if getattr(self.groupby, k, None) is not None
         )
         return "{klass} [{attrs}]".format(
-            klass=self.__class__.__name__, attrs=", ".join(attrs)
+            klass=type(self).__name__, attrs=", ".join(attrs)
         )
 
     def __getattr__(self, attr):
@@ -885,7 +884,7 @@ class Resampler(_GroupBy, ShallowMixin):
         result = self._downsample("count")
         if not len(self.ax):
             if self._selected_obj.ndim == 1:
-                result = self._selected_obj.__class__(
+                result = type(self._selected_obj)(
                     [], index=result.index, dtype="int64", name=self._selected_obj.name
                 )
             else:
@@ -951,58 +950,6 @@ for method in ["nunique"]:
 
     h.__doc__ = getattr(SeriesGroupBy, method).__doc__
     setattr(Resampler, method, h)
-
-
-def _maybe_process_deprecations(r, how=None, fill_method=None, limit=None):
-    """
-    Potentially we might have a deprecation warning, show it
-    but call the appropriate methods anyhow.
-    """
-
-    if how is not None:
-
-        # .resample(..., how='sum')
-        if isinstance(how, str):
-            method = "{0}()".format(how)
-
-            # .resample(..., how=lambda x: ....)
-        else:
-            method = ".apply(<func>)"
-
-        # if we have both a how and fill_method, then show
-        # the following warning
-        if fill_method is None:
-            warnings.warn(
-                "how in .resample() is deprecated\n"
-                "the new syntax is "
-                ".resample(...).{method}".format(method=method),
-                FutureWarning,
-                stacklevel=3,
-            )
-        r = r.aggregate(how)
-
-    if fill_method is not None:
-
-        # show the prior function call
-        method = "." + method if how is not None else ""
-
-        args = "limit={0}".format(limit) if limit is not None else ""
-        warnings.warn(
-            "fill_method is deprecated to .resample()\n"
-            "the new syntax is .resample(...){method}"
-            ".{fill_method}({args})".format(
-                method=method, fill_method=fill_method, args=args
-            ),
-            FutureWarning,
-            stacklevel=3,
-        )
-
-        if how is not None:
-            r = getattr(r, fill_method)(limit=limit)
-        else:
-            r = r.aggregate(fill_method, limit=limit)
-
-    return r
 
 
 class _GroupByMixin(GroupByMixin):
@@ -1080,7 +1027,8 @@ class DatetimeIndexResampler(Resampler):
         if not len(ax):
             # reset to the new freq
             obj = obj.copy()
-            obj.index.freq = self.freq
+            # TODO: find a less code-smelly way to set this
+            obj.index._data._freq = self.freq
             return obj
 
         # do we have a regular frequency
@@ -1341,8 +1289,7 @@ def get_resampler_for_grouping(
 
     tg = TimeGrouper(freq=rule, **kwargs)
     resampler = tg._get_resampler(groupby.obj, kind=kind)
-    r = resampler._get_resampler_for_grouping(groupby=groupby)
-    return _maybe_process_deprecations(r, how=how, fill_method=fill_method, limit=limit)
+    return resampler._get_resampler_for_grouping(groupby=groupby)
 
 
 class TimeGrouper(Grouper):

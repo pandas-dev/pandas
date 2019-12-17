@@ -18,8 +18,10 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     _NS_DTYPE,
+    is_datetimelike_v_numeric,
     is_extension_array_dtype,
     is_list_like,
+    is_numeric_v_string_like,
     is_scalar,
     is_sparse,
 )
@@ -30,8 +32,8 @@ from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject
-from pandas.core.index import Index, MultiIndex, ensure_index
 from pandas.core.indexers import maybe_convert_indices
+from pandas.core.indexes.api import Index, MultiIndex, ensure_index
 
 from pandas.io.formats.printing import pprint_thing
 
@@ -80,7 +82,6 @@ class BlockManager(PandasObject):
 
     get_dtype_counts
     get_dtypes
-    get_ftypes
 
     apply(func, axes, block_filter_fn)
 
@@ -152,7 +153,7 @@ class BlockManager(PandasObject):
             blocks = np.array([], dtype=self.array_dtype)
         else:
             blocks = []
-        return self.__class__(blocks, axes)
+        return type(self)(blocks, axes)
 
     def __nonzero__(self):
         return True
@@ -249,10 +250,6 @@ class BlockManager(PandasObject):
         dtypes = np.array([blk.dtype for blk in self.blocks])
         return algos.take_1d(dtypes, self._blknos, allow_fill=False)
 
-    def get_ftypes(self):
-        ftypes = np.array([blk.ftype for blk in self.blocks])
-        return algos.take_1d(ftypes, self._blknos, allow_fill=False)
-
     def __getstate__(self):
         block_values = [b.values for b in self.blocks]
         block_items = [self.items[b.mgr_locs.indexer] for b in self.blocks]
@@ -319,7 +316,7 @@ class BlockManager(PandasObject):
         return len(self.items)
 
     def __repr__(self) -> str:
-        output = pprint_thing(self.__class__.__name__)
+        output = type(self).__name__
         for i, ax in enumerate(self.axes):
             if i == 0:
                 output += "\nItems: {ax}".format(ax=ax)
@@ -343,33 +340,20 @@ class BlockManager(PandasObject):
                 "tot_items: {1}".format(len(self.items), tot_items)
             )
 
-    def apply(
-        self,
-        f,
-        axes=None,
-        filter=None,
-        do_integrity_check=False,
-        consolidate=True,
-        **kwargs,
-    ):
+    def apply(self, f: str, filter=None, **kwargs):
         """
-        iterate over the blocks, collect and create a new block manager
+        Iterate over the blocks, collect and create a new BlockManager.
 
         Parameters
         ----------
-        f : the callable or function name to operate on at the block level
-        axes : optional (if not supplied, use self.axes)
+        f : str
+            Name of the Block method to apply.
         filter : list, if supplied, only call the block if the filter is in
                  the block
-        do_integrity_check : boolean, default False. Do the block manager
-            integrity check
-        consolidate: boolean, default True. Join together blocks having same
-            dtype
 
         Returns
         -------
-        Block Manager (new object)
-
+        BlockManager
         """
 
         result_blocks = []
@@ -383,8 +367,7 @@ class BlockManager(PandasObject):
             else:
                 kwargs["filter"] = filter_locs
 
-        if consolidate:
-            self._consolidate_inplace()
+        self._consolidate_inplace()
 
         if f == "where":
             align_copy = True
@@ -432,11 +415,8 @@ class BlockManager(PandasObject):
             result_blocks = _extend_blocks(applied, result_blocks)
 
         if len(result_blocks) == 0:
-            return self.make_empty(axes or self.axes)
-        bm = self.__class__(
-            result_blocks, axes or self.axes, do_integrity_check=do_integrity_check
-        )
-        bm._consolidate_inplace()
+            return self.make_empty(self.axes)
+        bm = type(self)(result_blocks, self.axes, do_integrity_check=False)
         return bm
 
     def quantile(
@@ -522,7 +502,7 @@ class BlockManager(PandasObject):
                     for b in blocks
                 ]
 
-            return self.__class__(blocks, new_axes)
+            return type(self)(blocks, new_axes)
 
         # single block, i.e. ndim == {1}
         values = concat_compat([b.values for b in blocks])
@@ -543,8 +523,8 @@ class BlockManager(PandasObject):
             [make_block(values, ndim=1, placement=np.arange(len(values)))], axes[0]
         )
 
-    def isna(self, func, **kwargs):
-        return self.apply("apply", func=func, **kwargs)
+    def isna(self, func):
+        return self.apply("apply", func=func)
 
     def where(self, **kwargs):
         return self.apply("where", **kwargs)
@@ -570,8 +550,8 @@ class BlockManager(PandasObject):
     def downcast(self, **kwargs):
         return self.apply("downcast", **kwargs)
 
-    def astype(self, dtype, **kwargs):
-        return self.apply("astype", dtype=dtype, **kwargs)
+    def astype(self, dtype, copy: bool = False, errors: str = "raise"):
+        return self.apply("astype", dtype=dtype, copy=copy, errors=errors)
 
     def convert(self, **kwargs):
         return self.apply("convert", **kwargs)
@@ -632,7 +612,7 @@ class BlockManager(PandasObject):
                 rb = new_rb
             result_blocks.extend(rb)
 
-        bm = self.__class__(result_blocks, self.axes)
+        bm = type(self)(result_blocks, self.axes)
         bm._consolidate_inplace()
         return bm
 
@@ -727,7 +707,7 @@ class BlockManager(PandasObject):
         axes = list(self.axes)
         axes[0] = self.items.take(indexer)
 
-        return self.__class__(new_blocks, axes, do_integrity_check=False)
+        return type(self)(new_blocks, axes, do_integrity_check=False)
 
     def get_slice(self, slobj, axis=0):
         if axis >= self.ndim:
@@ -744,7 +724,7 @@ class BlockManager(PandasObject):
         new_axes = list(self.axes)
         new_axes[axis] = new_axes[axis][slobj]
 
-        bm = self.__class__(new_blocks, new_axes, do_integrity_check=False)
+        bm = type(self)(new_blocks, new_axes, do_integrity_check=False)
         bm._consolidate_inplace()
         return bm
 
@@ -771,14 +751,19 @@ class BlockManager(PandasObject):
         """
         # this preserves the notion of view copying of axes
         if deep:
-            if deep == "all":
-                copy = lambda ax: ax.copy(deep=True)
-            else:
-                copy = lambda ax: ax.view()
-            new_axes = [copy(ax) for ax in self.axes]
+
+            def copy_func(ax):
+                if deep == "all":
+                    return ax.copy(deep=True)
+                else:
+                    return ax.view()
+
+            new_axes = [copy_func(ax) for ax in self.axes]
         else:
             new_axes = list(self.axes)
-        return self.apply("copy", axes=new_axes, deep=deep, do_integrity_check=False)
+        res = self.apply("copy", deep=deep)
+        res.axes = new_axes
+        return res
 
     def as_array(self, transpose=False, items=None):
         """Convert the blockmanager data into an numpy array.
@@ -920,7 +905,7 @@ class BlockManager(PandasObject):
         if self.is_consolidated():
             return self
 
-        bm = self.__class__(self.blocks, self.axes)
+        bm = type(self)(self.blocks, self.axes)
         bm._is_consolidated = False
         bm._consolidate_inplace()
         return bm
@@ -1254,7 +1239,7 @@ class BlockManager(PandasObject):
 
         new_axes = list(self.axes)
         new_axes[axis] = new_axis
-        return self.__class__(new_blocks, new_axes)
+        return type(self)(new_blocks, new_axes)
 
     def _slice_take_blocks_ax0(self, slice_or_indexer, fill_tuple=None):
         """
@@ -1524,17 +1509,11 @@ class SingleBlockManager(BlockManager):
         if axis >= self.ndim:
             raise IndexError("Requested axis not found in manager")
 
-        return self.__class__(
-            self._block._slice(slobj), self.index[slobj], fastpath=True
-        )
+        return type(self)(self._block._slice(slobj), self.index[slobj], fastpath=True)
 
     @property
     def index(self):
         return self.axes[0]
-
-    def convert(self, **kwargs):
-        """ convert the whole block as one """
-        return self.apply("convert", **kwargs)
 
     @property
     def dtype(self):
@@ -1544,18 +1523,11 @@ class SingleBlockManager(BlockManager):
     def array_dtype(self):
         return self._block.array_dtype
 
-    @property
-    def ftype(self):
-        return self._block.ftype
-
     def get_dtype_counts(self):
         return {self.dtype.name: 1}
 
     def get_dtypes(self):
         return np.array([self._block.dtype])
-
-    def get_ftypes(self):
-        return np.array([self._block.ftype])
 
     def external_values(self):
         return self._block.external_values()
@@ -1917,7 +1889,11 @@ def _compare_or_regex_search(a, b, regex=False):
     is_a_array = isinstance(a, np.ndarray)
     is_b_array = isinstance(b, np.ndarray)
 
-    result = op(a)
+    if is_datetimelike_v_numeric(a, b) or is_numeric_v_string_like(a, b):
+        # GH#29553 avoid deprecation warnings from numpy
+        result = False
+    else:
+        result = op(a)
 
     if is_scalar(result) and (is_a_array or is_b_array):
         type_names = [type(a).__name__, type(b).__name__]
@@ -1929,9 +1905,7 @@ def _compare_or_regex_search(a, b, regex=False):
             type_names[1] = "ndarray(dtype={dtype})".format(dtype=b.dtype)
 
         raise TypeError(
-            "Cannot compare types {a!r} and {b!r}".format(
-                a=type_names[0], b=type_names[1]
-            )
+            f"Cannot compare types {repr(type_names[0])} and {repr(type_names[1])}"
         )
     return result
 

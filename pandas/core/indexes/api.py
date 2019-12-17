@@ -1,6 +1,5 @@
 import textwrap
 from typing import List, Set
-import warnings
 
 from pandas._libs import NaT, lib
 
@@ -38,8 +37,6 @@ To retain the current behavior and silence the warning, pass 'sort=True'.
 )
 
 
-# TODO: there are many places that rely on these private methods existing in
-# pandas.core.index
 __all__ = [
     "Index",
     "MultiIndex",
@@ -211,12 +208,6 @@ def union_indexes(indexes, sort=True) -> Index:
         index = indexes[0]
         for other in indexes[1:]:
             if not index.equals(other):
-
-                if sort is None:
-                    # TODO: remove once pd.concat sort default changes
-                    warnings.warn(_sort_msg, FutureWarning, stacklevel=8)
-                    sort = True
-
                 return _unique_indices(indexes)
 
         name = get_consensus_names(indexes)[0]

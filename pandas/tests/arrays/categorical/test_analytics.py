@@ -35,31 +35,43 @@ class TestCategoricalAnalytics:
         assert _min == "d"
         assert _max == "a"
 
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_min_max_with_nan(self, skipna):
+        # GH 25303
         cat = Categorical(
             [np.nan, "b", "c", np.nan], categories=["d", "c", "b", "a"], ordered=True
         )
-        _min = cat.min()
-        _max = cat.max()
-        assert np.isnan(_min)
-        assert _max == "b"
+        _min = cat.min(skipna=skipna)
+        _max = cat.max(skipna=skipna)
 
-        _min = cat.min(numeric_only=True)
-        assert _min == "c"
-        _max = cat.max(numeric_only=True)
-        assert _max == "b"
+        if skipna is False:
+            assert np.isnan(_min)
+            assert np.isnan(_max)
+        else:
+            assert _min == "c"
+            assert _max == "b"
 
         cat = Categorical(
             [np.nan, 1, 2, np.nan], categories=[5, 4, 3, 2, 1], ordered=True
         )
-        _min = cat.min()
-        _max = cat.max()
-        assert np.isnan(_min)
-        assert _max == 1
+        _min = cat.min(skipna=skipna)
+        _max = cat.max(skipna=skipna)
 
-        _min = cat.min(numeric_only=True)
-        assert _min == 2
-        _max = cat.max(numeric_only=True)
-        assert _max == 1
+        if skipna is False:
+            assert np.isnan(_min)
+            assert np.isnan(_max)
+        else:
+            assert _min == 2
+            assert _max == 1
+
+    @pytest.mark.parametrize("method", ["min", "max"])
+    def test_deprecate_numeric_only_min_max(self, method):
+        # GH 25303
+        cat = Categorical(
+            [np.nan, 1, 2, np.nan], categories=[5, 4, 3, 2, 1], ordered=True
+        )
+        with tm.assert_produces_warning(expected_warning=FutureWarning):
+            getattr(cat, method)(numeric_only=True)
 
     @pytest.mark.parametrize(
         "values,categories,exp_mode",
@@ -259,40 +271,42 @@ class TestCategoricalAnalytics:
         # GH 12766: Return an index not an array
         tm.assert_index_equal(result, Index(np.array([1] * 5, dtype=np.int64)))
 
-    def test_validate_inplace(self):
+    @pytest.mark.parametrize("value", [1, "True", [1, 2, 3], 5.0])
+    def test_validate_inplace_raises(self, value):
         cat = Categorical(["A", "B", "B", "C", "A"])
-        invalid_values = [1, "True", [1, 2, 3], 5.0]
+        msg = (
+            'For argument "inplace" expected type bool, '
+            f"received type {type(value).__name__}"
+        )
+        with pytest.raises(ValueError, match=msg):
+            cat.set_ordered(value=True, inplace=value)
 
-        for value in invalid_values:
-            with pytest.raises(ValueError):
-                cat.set_ordered(value=True, inplace=value)
+        with pytest.raises(ValueError, match=msg):
+            cat.as_ordered(inplace=value)
 
-            with pytest.raises(ValueError):
-                cat.as_ordered(inplace=value)
+        with pytest.raises(ValueError, match=msg):
+            cat.as_unordered(inplace=value)
 
-            with pytest.raises(ValueError):
-                cat.as_unordered(inplace=value)
+        with pytest.raises(ValueError, match=msg):
+            cat.set_categories(["X", "Y", "Z"], rename=True, inplace=value)
 
-            with pytest.raises(ValueError):
-                cat.set_categories(["X", "Y", "Z"], rename=True, inplace=value)
+        with pytest.raises(ValueError, match=msg):
+            cat.rename_categories(["X", "Y", "Z"], inplace=value)
 
-            with pytest.raises(ValueError):
-                cat.rename_categories(["X", "Y", "Z"], inplace=value)
+        with pytest.raises(ValueError, match=msg):
+            cat.reorder_categories(["X", "Y", "Z"], ordered=True, inplace=value)
 
-            with pytest.raises(ValueError):
-                cat.reorder_categories(["X", "Y", "Z"], ordered=True, inplace=value)
+        with pytest.raises(ValueError, match=msg):
+            cat.add_categories(new_categories=["D", "E", "F"], inplace=value)
 
-            with pytest.raises(ValueError):
-                cat.add_categories(new_categories=["D", "E", "F"], inplace=value)
+        with pytest.raises(ValueError, match=msg):
+            cat.remove_categories(removals=["D", "E", "F"], inplace=value)
 
-            with pytest.raises(ValueError):
-                cat.remove_categories(removals=["D", "E", "F"], inplace=value)
+        with pytest.raises(ValueError, match=msg):
+            cat.remove_unused_categories(inplace=value)
 
-            with pytest.raises(ValueError):
-                cat.remove_unused_categories(inplace=value)
-
-            with pytest.raises(ValueError):
-                cat.sort_values(inplace=value)
+        with pytest.raises(ValueError, match=msg):
+            cat.sort_values(inplace=value)
 
     def test_isna(self):
         exp = np.array([False, False, True])
