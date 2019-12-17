@@ -1313,15 +1313,13 @@ class StataReader(StataParser, BaseIterator):
         try:
             self.typlist = [self.TYPE_MAP[typ] for typ in typlist]
         except ValueError:
-            raise ValueError(
-                "cannot convert stata types " f"[{", ".join(str(x) for x in typlist)}]"
-            )
+            errjoin = ", ".join(str(x) for x in typlist)
+            raise ValueError("cannot convert stata types " f"[{errjoin}]")
         try:
             self.dtyplist = [self.DTYPE_MAP[typ] for typ in typlist]
         except ValueError:
-            raise ValueError(
-                "cannot convert stata dtypes " f"[{", ".join(str(x) for x in typlist)}]"
-            )
+            errjoin = ", ".join(str(x) for x in typlist)
+            raise ValueError("cannot convert stata dtypes " f"[{errjoin}]")
 
         if self.format_version > 108:
             self.varlist = [
@@ -2229,10 +2227,11 @@ class StataWriter(StataParser):
                 msg = f"{orig_name}   ->   {name}"
                 conversion_warning.append(msg)
 
+            invalid_name_warning = "\n    ".join(conversion_warning)
             invalid_name_msg = (
                 "Not all pandas column names were valid Stata variable names."
                 "The following replacements have been made:\n\n"
-                f"{'\n    '.join(conversion_warning)}\n\n"
+                f"{invalid_name_warning}\n\n"
                 "If this is not what you expect, please make sure you have "
                 "Stata-compliant column names in your DataFrame (strings only, "
                 "max 32 characters, only alphanumerics and underscores, no "
