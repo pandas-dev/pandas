@@ -903,5 +903,9 @@ class ExcelFile:
         self.close()
 
     def __del__(self):
-        # Ensure we don't leak file descriptors
-        self.close()
+        # Ensure we don't leak file descriptors, but put in try/except in case
+        # attributes are already deleted
+        try:
+            self.close()
+        except AttributeError:
+            pass
