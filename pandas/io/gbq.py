@@ -120,21 +120,6 @@ def read_gbq(
         ``fastavro`` packages.
 
         .. versionadded:: 0.25.0
-    private_key : str, deprecated
-        Deprecated in pandas-gbq version 0.8.0. Use the ``credentials``
-        parameter and
-        :func:`google.oauth2.service_account.Credentials.from_service_account_info`
-        or
-        :func:`google.oauth2.service_account.Credentials.from_service_account_file`
-        instead.
-
-        Service account private key in JSON format. Can be file path
-        or string contents. This is useful for remote server
-        authentication (eg. Jupyter/IPython notebook on remote host).
-    verbose : None, deprecated
-        Deprecated in pandas-gbq version 0.4.0. Use the `logging module to
-        adjust verbosity instead
-        <https://pandas-gbq.readthedocs.io/en/latest/intro.html#logging>`__.
     progress_bar_type : Optional, str
         If set, use the `tqdm <https://tqdm.github.io/>`__ library to
         display a progress bar while the data downloads. Install the
@@ -181,14 +166,6 @@ def read_gbq(
     if progress_bar_type is not None:
         kwargs["progress_bar_type"] = progress_bar_type
     # END: new kwargs
-
-    # START: deprecated kwargs.  Don't populate unless explicitly set.
-    if verbose is not None:
-        kwargs["verbose"] = verbose
-
-    if private_key is not None:
-        kwargs["private_key"] = private_key
-    # END: deprecated kwargs
 
     return pandas_gbq.read_gbq(
         query,

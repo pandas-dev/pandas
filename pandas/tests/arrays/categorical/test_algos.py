@@ -60,17 +60,21 @@ def test_isin_cats():
 
 
 @pytest.mark.parametrize(
-    "to_replace, value, result",
-    [("b", "c", ["a", "c"]), ("c", "d", ["a", "b"]), ("b", None, ["a", None])],
+    "to_replace, value, result, expected_error_msg",
+    [
+        ("b", "c", ["a", "c"], "Categorical.categories are different"),
+        ("c", "d", ["a", "b"], None),
+        ("b", None, ["a", None], "Categorical.categories length are different"),
+    ],
 )
-def test_replace(to_replace, value, result):
+def test_replace(to_replace, value, result, expected_error_msg):
     # GH 26988
     cat = pd.Categorical(["a", "b"])
     expected = pd.Categorical(result)
     result = cat.replace(to_replace, value)
     tm.assert_categorical_equal(result, expected)
     if to_replace == "b":  # the "c" test is supposed to be unchanged
-        with pytest.raises(AssertionError):
+        with pytest.raises(AssertionError, match=expected_error_msg):
             # ensure non-inplace call does not affect original
             tm.assert_categorical_equal(cat, expected)
     cat.replace(to_replace, value, inplace=True)
@@ -104,13 +108,21 @@ class TestTake:
     def test_take_bounds(self, allow_fill):
         # https://github.com/pandas-dev/pandas/issues/20664
         cat = pd.Categorical(["a", "b", "a"])
-        with pytest.raises(IndexError):
+        if allow_fill:
+            msg = "indices are out-of-bounds"
+        else:
+            msg = "index 4 is out of bounds for size 3"
+        with pytest.raises(IndexError, match=msg):
             cat.take([4, 5], allow_fill=allow_fill)
 
     def test_take_empty(self, allow_fill):
         # https://github.com/pandas-dev/pandas/issues/20664
         cat = pd.Categorical([], categories=["a", "b"])
-        with pytest.raises(IndexError):
+        if allow_fill:
+            msg = "indices are out-of-bounds"
+        else:
+            msg = "cannot do a non-empty take from an empty axes"
+        with pytest.raises(IndexError, match=msg):
             cat.take([0], allow_fill=allow_fill)
 
     def test_positional_take(self, ordered_fixture):

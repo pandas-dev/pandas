@@ -182,11 +182,8 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         }
 
         if not set(fields).issubset(valid_field_set):
-            raise TypeError(
-                "__new__() got an unexpected keyword argument {}".format(
-                    list(set(fields) - valid_field_set)[0]
-                )
-            )
+            argument = list(set(fields) - valid_field_set)[0]
+            raise TypeError(f"__new__() got an unexpected keyword argument {argument}")
 
         if name is None and hasattr(data, "name"):
             name = data.name
@@ -445,10 +442,10 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
                     return Index(result, name=name)
             elif isinstance(func, np.ufunc):
                 if "M->M" not in func.types:
-                    msg = "ufunc '{0}' not supported for the PeriodIndex"
+                    msg = f"ufunc '{func.__name__}' not supported for the PeriodIndex"
                     # This should be TypeError, but TypeError cannot be raised
                     # from here because numpy catches.
-                    raise ValueError(msg.format(func.__name__))
+                    raise ValueError(msg)
 
         if is_bool_dtype(result):
             return result
@@ -508,7 +505,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             try:
                 value = Period(value, freq=self.freq).ordinal
             except DateParseError:
-                raise KeyError("Cannot interpret '{}' as period".format(value))
+                raise KeyError(f"Cannot interpret '{value}' as period")
 
         return self._ndarray_values.searchsorted(value, side=side, sorter=sorter)
 
@@ -656,7 +653,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
                 pass
             except DateParseError:
                 # A string with invalid format
-                raise KeyError("Cannot interpret '{}' as period".format(key))
+                raise KeyError(f"Cannot interpret '{key}' as period")
 
             try:
                 key = Period(key, freq=self.freq)

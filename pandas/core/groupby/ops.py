@@ -43,7 +43,7 @@ import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.groupby import base, grouper
-from pandas.core.index import Index, MultiIndex, ensure_index
+from pandas.core.indexes.api import Index, MultiIndex, ensure_index
 from pandas.core.series import Series
 from pandas.core.sorting import (
     compress_group_index,
