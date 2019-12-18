@@ -266,3 +266,9 @@ class BaseGetitemTests(BaseExtensionTests):
         df = pd.DataFrame({"A": data})
         res = df.loc[[0], "A"]
         assert res._data._block.ndim == 1
+
+    def test_item(self, data):
+        # https://github.com/pandas-dev/pandas/pull/30175
+        s = pd.Series(data)
+        result = s[:1].item()
+        assert result == data[0]
