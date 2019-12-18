@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from io import StringIO
+import random
 import re
 import sys
 import textwrap
@@ -27,6 +28,17 @@ import pandas.io.formats.format as fmt
 
 
 class TestDataFrameReprInfoEtc:
+
+    def test_repr_bytes_61_lines(self):
+        # GH#12857
+        lets = 'ACDEFGHIJKLMNOP'
+        slen = 50
+        nseqs = 1000
+        words = [[random.choice(lets) for x in range(slen)] for _ in range(nseqs)]
+        df = pd.DataFrame(words).astype('S1')
+        assert (df.dtypes == 'S1').all()
+        repr(df)  # smoke test
+
     def test_repr_empty(self):
         # empty
         foo = repr(DataFrame())  # noqa
