@@ -91,11 +91,10 @@ class PyArrowImpl(BaseImpl):
         self.validate_dataframe(df)
         path, _, _, _ = get_filepath_or_buffer(path, mode="wb")
 
-        from_pandas_kwargs: Dict[str, Any]
-        if index is None:
-            from_pandas_kwargs = {}
-        else:
-            from_pandas_kwargs = {"preserve_index": index}
+        from_pandas_kwargs: Dict[str, Any] = {"schema": kwargs.pop("schema", None)}
+        if index is not None:
+            from_pandas_kwargs["preserve_index"] = index
+
         table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
         if partition_cols is not None:
             self.api.parquet.write_to_dataset(
@@ -234,7 +233,7 @@ def to_parquet(
 
         .. versionadded:: 0.24.0
 
-    partition_cols : list, optional, default None
+    partition_cols : str or list, optional, default None
         Column names by which to partition the dataset
         Columns are partitioned in the order they are given
 
@@ -243,6 +242,8 @@ def to_parquet(
     kwargs
         Additional keyword arguments passed to the engine
     """
+    if isinstance(partition_cols, str):
+        partition_cols = [partition_cols]
     impl = get_engine(engine)
     return impl.write(
         df,

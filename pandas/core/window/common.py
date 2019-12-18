@@ -11,7 +11,7 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 import pandas.core.common as com
 from pandas.core.generic import _shared_docs
 from pandas.core.groupby.base import GroupByMixin
-from pandas.core.index import MultiIndex
+from pandas.core.indexes.api import MultiIndex
 
 _shared_docs = dict(**_shared_docs)
 _doc_template = """
