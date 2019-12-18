@@ -1187,7 +1187,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
         raise IncompatibleFrequency(
             f"Frequency {ax.freq} cannot be resampled to {self.freq}, "
-            f"as they are not sub or super periods"
+            "as they are not sub or super periods"
         )
 
     def _upsample(self, method, limit=None, fill_value=None):

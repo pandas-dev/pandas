@@ -167,7 +167,7 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
             except Exception as orig:
                 # e.g. ValueError when trying to cast object dtype to float64
                 raise ValueError(
-                    f"failed to cast to '{dtype}' (Exception " f"was: {orig})"
+                    f"failed to cast to '{dtype}' (Exception was: {orig})"
                 ) from orig
 
     index, columns = _get_axes(*values.shape, index=index, columns=columns)

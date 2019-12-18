@@ -1163,9 +1163,8 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
         if missing:
             if missing == len(indexer):
-                raise KeyError(
-                    f"None of [{key}] are in the [{self.obj._get_axis_name(axis)}]"
-                )
+                axis_name = self.obj._get_axis_name(axis)
+                raise KeyError(f"None of [{key}] are in the [{axis_name}]")
 
             # We (temporarily) allow for some missing keys with .loc, except in
             # some cases (e.g. setting) in which "raise_missing" will be False
@@ -1906,9 +1905,7 @@ class _iLocIndexer(_LocationIndexer):
             if len(arr) and (arr.max() >= len_axis or arr.min() < -len_axis):
                 raise IndexError("positional indexers are out-of-bounds")
         else:
-            raise ValueError(
-                "Can only index by location with " f"a [{self._valid_types}]"
-            )
+            raise ValueError(f"Can only index by location with a [{self._valid_types}]")
 
     def _has_valid_setitem_indexer(self, indexer):
         self._has_valid_positional_setitem_indexer(indexer)
@@ -2055,9 +2052,7 @@ class _iLocIndexer(_LocationIndexer):
             self._validate_key(obj, axis)
             return obj
         except ValueError:
-            raise ValueError(
-                "Can only index by location with " f"a [{self._valid_types}]"
-            )
+            raise ValueError(f"Can only index by location with a [{self._valid_types}]")
 
 
 class _ScalarAccessIndexer(_NDFrameIndexerBase):

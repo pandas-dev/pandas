@@ -541,7 +541,7 @@ class Block(PandasObject):
 
         if errors not in errors_legal_values:
             invalid_arg = (
-                f"Expected value of kwarg 'errors' to be one of "
+                "Expected value of kwarg 'errors' to be one of "
                 f"{list(errors_legal_values)}. Supplied value is '{errors}'"
             )
             raise ValueError(invalid_arg)
@@ -549,7 +549,7 @@ class Block(PandasObject):
         if inspect.isclass(dtype) and issubclass(dtype, ExtensionDtype):
             msg = (
                 f"Expected an instance of {dtype.__name__}, "
-                f"but got the class instead. Try instantiating 'dtype'."
+                "but got the class instead. Try instantiating 'dtype'."
             )
             raise TypeError(msg)
 
