@@ -126,7 +126,10 @@ def _groupby_and_merge(
                 on = [on]
 
             if right.duplicated(by + on).any():
-                right = right.drop_duplicates(by + on, keep="last")
+                _right = right.drop_duplicates(by + on, keep="last")
+                # TODO: use overload to refine return type of drop_duplicates
+                assert _right is not None  # needed for mypy
+                right = _right
         rby = right.groupby(by, sort=False)
     except KeyError:
         rby = None
@@ -1194,9 +1197,7 @@ class _MergeOperation:
                         )
                     )
                 if not common_cols.is_unique:
-                    raise MergeError(
-                        "Data columns not unique: {common!r}".format(common=common_cols)
-                    )
+                    raise MergeError(f"Data columns not unique: {repr(common_cols)}")
                 self.left_on = self.right_on = common_cols
         elif self.on is not None:
             if self.left_on is not None or self.right_on is not None:

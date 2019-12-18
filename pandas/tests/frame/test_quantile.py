@@ -7,6 +7,16 @@ import pandas.util.testing as tm
 
 
 class TestDataFrameQuantile:
+    def test_quantile_sparse(self):
+        # GH#17198
+        s = pd.Series(pd.SparseArray([1, 2]))
+        s1 = pd.Series(pd.SparseArray([3, 4]))
+        df = pd.DataFrame({0: s, 1: s1})
+        result = df.quantile()
+
+        expected = pd.Series([1.5, 3.5], name=0.5)
+        tm.assert_series_equal(result, expected)
+
     def test_quantile(self, datetime_frame):
         from numpy import percentile
 
@@ -472,7 +482,7 @@ class TestDataFrameQuantile:
         df = pd.DataFrame(pd.date_range("1/1/18", periods=5))
         df.columns.name = "captain tightpants"
         result = df.quantile(0.5)
-        expected = pd.Series([], index=[], name=0.5)
+        expected = pd.Series([], index=[], name=0.5, dtype=np.float64)
         expected.index.name = "captain tightpants"
         tm.assert_series_equal(result, expected)
 

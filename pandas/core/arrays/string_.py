@@ -134,6 +134,10 @@ class StringArray(PandasArray):
         The string methods are available on Series backed by
         a StringArray.
 
+    Notes
+    -----
+    StringArray returns a BooleanArray for comparison methods.
+
     Examples
     --------
     >>> pd.array(['This is', 'some text', None, 'data.'], dtype="string")
@@ -148,6 +152,13 @@ class StringArray(PandasArray):
     Traceback (most recent call last):
     ...
     ValueError: StringArray requires an object-dtype ndarray of strings.
+
+    For comparision methods, this returns a :class:`pandas.BooleanArray`
+
+    >>> pd.array(["a", None, "c"], dtype="string") == "a"
+    <BooleanArray>
+    [True, NA, False]
+    Length: 3, dtype: boolean
     """
 
     # undo the PandasArray hack
@@ -171,7 +182,7 @@ class StringArray(PandasArray):
         if self._ndarray.dtype != "object":
             raise ValueError(
                 "StringArray requires a sequence of strings. Got "
-                "'{}' dtype instead.".format(self._ndarray.dtype)
+                f"'{self._ndarray.dtype}' dtype instead."
             )
 
     @classmethod
@@ -225,7 +236,7 @@ class StringArray(PandasArray):
                 value = StringDtype.na_value
             elif not isinstance(value, str):
                 raise ValueError(
-                    "Cannot set non-string value '{}' into a StringArray.".format(value)
+                    f"Cannot set non-string value '{value}' into a StringArray."
                 )
         else:
             if not is_array_like(value):
@@ -248,7 +259,7 @@ class StringArray(PandasArray):
         return super().astype(dtype, copy)
 
     def _reduce(self, name, skipna=True, **kwargs):
-        raise TypeError("Cannot perform reduction '{}' with string dtype".format(name))
+        raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
 
     def value_counts(self, dropna=False):
         from pandas import value_counts
@@ -258,7 +269,12 @@ class StringArray(PandasArray):
     # Overrride parent because we have different return types.
     @classmethod
     def _create_arithmetic_method(cls, op):
+        # Note: this handles both arithmetic and comparison methods.
         def method(self, other):
+            from pandas.arrays import BooleanArray
+
+            assert op.__name__ in ops.ARITHMETIC_BINOPS | ops.COMPARISON_BINOPS
+
             if isinstance(other, (ABCIndexClass, ABCSeries, ABCDataFrame)):
                 return NotImplemented
 
@@ -272,25 +288,24 @@ class StringArray(PandasArray):
                 if len(other) != len(self):
                     # prevent improper broadcasting when other is 2D
                     raise ValueError(
-                        "Lengths of operands do not match: {} != {}".format(
-                            len(self), len(other)
-                        )
+                        f"Lengths of operands do not match: {len(self)} != {len(other)}"
                     )
 
                 other = np.asarray(other)
                 other = other[valid]
 
-            result = np.empty_like(self._ndarray, dtype="object")
-            result[mask] = StringDtype.na_value
-            result[valid] = op(self._ndarray[valid], other)
-
-            if op.__name__ in {"add", "radd", "mul", "rmul"}:
+            if op.__name__ in ops.ARITHMETIC_BINOPS:
+                result = np.empty_like(self._ndarray, dtype="object")
+                result[mask] = StringDtype.na_value
+                result[valid] = op(self._ndarray[valid], other)
                 return StringArray(result)
             else:
-                dtype = "object" if mask.any() else "bool"
-                return np.asarray(result, dtype=dtype)
+                # logical
+                result = np.zeros(len(self._ndarray), dtype="bool")
+                result[valid] = op(self._ndarray[valid], other)
+                return BooleanArray(result, mask)
 
-        return compat.set_function_name(method, "__{}__".format(op.__name__), cls)
+        return compat.set_function_name(method, f"__{op.__name__}__", cls)
 
     @classmethod
     def _add_arithmetic_ops(cls):

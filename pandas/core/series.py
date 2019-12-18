@@ -13,14 +13,13 @@ from pandas._config import get_option
 
 from pandas._libs import index as libindex, lib, reshape, tslibs
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender, Substitution, deprecate
+from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_bool_kwarg, validate_percentile
 
 from pandas.core.dtypes.common import (
     _is_unorderable_exception,
     ensure_platform_int,
     is_bool,
-    is_categorical,
     is_categorical_dtype,
     is_datetime64_dtype,
     is_dict_like,
@@ -54,16 +53,21 @@ from pandas.core.arrays import ExtensionArray, try_cast_to_ea
 from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 import pandas.core.common as com
-from pandas.core.construction import extract_array, sanitize_array
-from pandas.core.index import (
+from pandas.core.construction import (
+    create_series_with_explicit_dtype,
+    extract_array,
+    is_empty_data,
+    sanitize_array,
+)
+from pandas.core.indexers import maybe_convert_indices
+from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
+from pandas.core.indexes.api import (
     Float64Index,
     Index,
     InvalidIndexError,
     MultiIndex,
     ensure_index,
 )
-from pandas.core.indexers import maybe_convert_indices
-from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex
@@ -153,6 +157,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Copy input data.
     """
 
+    _typ = "series"
+
     _metadata: List[str] = []
     _accessors = {"dt", "cat", "str", "sparse"}
     _deprecations = (
@@ -175,7 +181,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def __init__(
         self, data=None, index=None, dtype=None, name=None, copy=False, fastpath=False
     ):
-
         # we are called internally, so short-circuit
         if fastpath:
 
@@ -189,21 +194,24 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         else:
 
+            if is_empty_data(data) and dtype is None:
+                # gh-17261
+                warnings.warn(
+                    "The default dtype for empty Series will be 'object' instead "
+                    "of 'float64' in a future version. Specify a dtype explicitly "
+                    "to silence this warning.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+                # uncomment the line below when removing the DeprecationWarning
+                # dtype = np.dtype(object)
+
             if index is not None:
                 index = ensure_index(index)
 
             if data is None:
                 data = {}
             if dtype is not None:
-                # GH 26336: explicitly handle 'category' to avoid warning
-                # TODO: Remove after CategoricalDtype defaults to ordered=False
-                if (
-                    isinstance(dtype, str)
-                    and dtype == "category"
-                    and is_categorical(data)
-                ):
-                    dtype = data.dtype
-
                 dtype = self._validate_dtype(dtype)
 
             if isinstance(data, MultiIndex):
@@ -249,14 +257,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     raise AssertionError(
                         "Cannot pass both SingleBlockManager "
                         "`data` argument and a different "
-                        "`index` argument.  `copy` must "
-                        "be False."
+                        "`index` argument. `copy` must be False."
                     )
 
             elif is_extension_array_dtype(data):
                 pass
             elif isinstance(data, (set, frozenset)):
-                raise TypeError(f"{repr(type(data).__name__)} type is unordered")
+                raise TypeError(f"'{type(data).__name__}' type is unordered")
             elif isinstance(data, ABCSparseArray):
                 # handle sparse passed here (and force conversion)
                 data = data.to_dense()
@@ -328,7 +335,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             keys, values = [], []
 
         # Input is now list-like, so rely on "standard" construction:
-        s = Series(values, index=keys, dtype=dtype)
+
+        # TODO: passing np.float64 to not break anything yet. See GH-17261
+        s = create_series_with_explicit_dtype(
+            values, index=keys, dtype=dtype, dtype_if_empty=np.float64
+        )
 
         # Now we just make sure the order is respected, if any
         if data and index is not None:
@@ -662,14 +673,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             elif result.ndim > 1:
                 # e.g. np.subtract.outer
                 if method == "outer":
-                    msg = (
-                        "outer method for ufunc {} is not implemented on "
-                        "pandas objects. Returning an ndarray, but in the "
-                        "future this will raise a 'NotImplementedError'. "
-                        "Consider explicitly converting the Series "
-                        "to an array with '.array' first."
-                    )
-                    warnings.warn(msg.format(ufunc), FutureWarning, stacklevel=3)
+                    # GH#27198
+                    raise NotImplementedError
                 return result
             return self._constructor(result, index=index, name=name, copy=False)
 
@@ -1984,36 +1989,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if i == -1:
             return np.nan
         return self.index[i]
-
-    # ndarray compat
-    argmin = deprecate(
-        "argmin",
-        idxmin,
-        "0.21.0",
-        msg=dedent(
-            """
-        The current behaviour of 'Series.argmin' is deprecated, use 'idxmin'
-        instead.
-        The behavior of 'argmin' will be corrected to return the positional
-        minimum in the future. For now, use 'series.values.argmin' or
-        'np.argmin(np.array(values))' to get the position of the minimum
-        row."""
-        ),
-    )
-    argmax = deprecate(
-        "argmax",
-        idxmax,
-        "0.21.0",
-        msg=dedent(
-            """
-        The current behaviour of 'Series.argmax' is deprecated, use 'idxmax'
-        instead.
-        The behavior of 'argmax' will be corrected to return the positional
-        maximum in the future. For now, use 'series.values.argmax' or
-        'np.argmax(np.array(values))' to get the position of the maximum
-        row."""
-        ),
-    )
 
     def round(self, decimals=0, *args, **kwargs):
         """
@@ -3745,7 +3720,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         If we have an ndarray as a value, then simply perform the operation,
         otherwise delegate to the object.
         """
-
         delegate = self._values
 
         if axis is not None:
@@ -4413,11 +4387,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
 
 Series._setup_axes(
-    ["index"],
-    info_axis=0,
-    stat_axis=0,
-    aliases={"rows": 0},
-    docs={"index": "The index (axis labels) of the Series."},
+    ["index"], docs={"index": "The index (axis labels) of the Series."},
 )
 Series._add_numeric_operations()
 Series._add_series_only_operations()

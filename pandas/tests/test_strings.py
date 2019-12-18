@@ -327,17 +327,18 @@ class TestStringMethods:
         strs = "google", "wikimedia", "wikipedia", "wikitravel"
         ds = Series(strs)
 
-        for s in ds.str:
-            # iter must yield a Series
-            assert isinstance(s, Series)
+        with tm.assert_produces_warning(FutureWarning):
+            for s in ds.str:
+                # iter must yield a Series
+                assert isinstance(s, Series)
 
-            # indices of each yielded Series should be equal to the index of
-            # the original Series
-            tm.assert_index_equal(s.index, ds.index)
+                # indices of each yielded Series should be equal to the index of
+                # the original Series
+                tm.assert_index_equal(s.index, ds.index)
 
-            for el in s:
-                # each element of the series is either a basestring/str or nan
-                assert isinstance(el, str) or isna(el)
+                for el in s:
+                    # each element of the series is either a basestring/str or nan
+                    assert isinstance(el, str) or isna(el)
 
         # desired behavior is to iterate until everything would be nan on the
         # next iter so make sure the last element of the iterator was 'l' in
@@ -349,8 +350,9 @@ class TestStringMethods:
 
         i, s = 100, 1
 
-        for i, s in enumerate(ds.str):
-            pass
+        with tm.assert_produces_warning(FutureWarning):
+            for i, s in enumerate(ds.str):
+                pass
 
         # nothing to iterate over so nothing defined values should remain
         # unchanged
@@ -360,8 +362,9 @@ class TestStringMethods:
     def test_iter_single_element(self):
         ds = Series(["a"])
 
-        for i, s in enumerate(ds.str):
-            pass
+        with tm.assert_produces_warning(FutureWarning):
+            for i, s in enumerate(ds.str):
+                pass
 
         assert not i
         tm.assert_series_equal(ds, s)
@@ -371,8 +374,9 @@ class TestStringMethods:
 
         i, s = 100, "h"
 
-        for i, s in enumerate(ds.str):
-            pass
+        with tm.assert_produces_warning(FutureWarning):
+            for i, s in enumerate(ds.str):
+                pass
 
         assert i == 100
         assert s == "h"
@@ -2853,7 +2857,8 @@ class TestStringMethods:
         result = values.str.partition("_", expand=False)
         exp = Index(
             np.array(
-                [("a", "_", "b_c"), ("c", "_", "d_e"), ("f", "_", "g_h"), np.nan, None]
+                [("a", "_", "b_c"), ("c", "_", "d_e"), ("f", "_", "g_h"), np.nan, None],
+                dtype=object,
             )
         )
         tm.assert_index_equal(result, exp)
@@ -2862,7 +2867,8 @@ class TestStringMethods:
         result = values.str.rpartition("_", expand=False)
         exp = Index(
             np.array(
-                [("a_b", "_", "c"), ("c_d", "_", "e"), ("f_g", "_", "h"), np.nan, None]
+                [("a_b", "_", "c"), ("c_d", "_", "e"), ("f_g", "_", "h"), np.nan, None],
+                dtype=object,
             )
         )
         tm.assert_index_equal(result, exp)
@@ -2970,14 +2976,10 @@ class TestStringMethods:
         # GH 22676; depr kwarg "pat" in favor of "sep"
         values = Series(["a_b_c", "c_d_e", np.nan, "f_g_h"])
 
-        # str.partition
-        # using sep -> no warning
         expected = values.str.partition(sep="_")
         result = values.str.partition("_")
         tm.assert_frame_equal(result, expected)
 
-        # str.rpartition
-        # using sep -> no warning
         expected = values.str.rpartition(sep="_")
         result = values.str.rpartition("_")
         tm.assert_frame_equal(result, expected)

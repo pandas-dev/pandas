@@ -5,7 +5,6 @@ import builtins
 from collections import OrderedDict
 import textwrap
 from typing import Dict, FrozenSet, List, Optional
-import warnings
 
 import numpy as np
 
@@ -26,6 +25,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_timedelta64_ns_dtype,
+    needs_i8_conversion,
 )
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
@@ -34,6 +34,7 @@ from pandas.core import algorithms, common as com
 from pandas.core.accessor import DirNamesMixin
 from pandas.core.algorithms import duplicated, unique1d, value_counts
 from pandas.core.arrays import ExtensionArray
+from pandas.core.construction import create_series_with_explicit_dtype
 import pandas.core.nanops as nanops
 
 _shared_docs: Dict[str, str] = dict()
@@ -92,7 +93,7 @@ class NoNewAttributesMixin:
 
     Prevents additional attributes via xxx.attribute = "something" after a
     call to `self.__freeze()`. Mainly used to prevent the user from using
-    wrong attributes on a accessor (`Series.cat/.str/.dt`).
+    wrong attributes on an accessor (`Series.cat/.str/.dt`).
 
     If you really want to add a new attribute at a later time, you need to use
     `object.__setattr__(self, key, value)`.
@@ -308,7 +309,6 @@ class SelectionMixin:
         None if not required
         """
         is_aggregator = lambda x: isinstance(x, (list, tuple, dict))
-        is_nested_renamer = False
 
         _axis = kwargs.pop("_axis", None)
         if _axis is None:
@@ -397,24 +397,7 @@ class SelectionMixin:
             keys = list(arg.keys())
             result = OrderedDict()
 
-            # nested renamer
-            if is_nested_renamer:
-                result = list(_agg(arg, _agg_1dim).values())
-
-                if all(isinstance(r, dict) for r in result):
-
-                    result, results = OrderedDict(), result
-                    for r in results:
-                        result.update(r)
-                    keys = list(result.keys())
-
-                else:
-
-                    if self._selection is not None:
-                        keys = None
-
-            # some selection on the object
-            elif self._selection is not None:
+            if self._selection is not None:
 
                 sl = set(self._selection_list)
 
@@ -676,19 +659,27 @@ class IndexOpsMixin:
         """
         Return the first element of the underlying data as a python scalar.
 
-        .. deprecated:: 0.25.0
-
         Returns
         -------
         scalar
             The first element of %(klass)s.
+
+        Raises
+        ------
+        ValueError
+            If the data is not length-1.
         """
-        warnings.warn(
-            "`item` has been deprecated and will be removed in a future version",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.values.item()
+        if not (
+            is_extension_array_dtype(self.dtype) or needs_i8_conversion(self.dtype)
+        ):
+            # numpy returns ints instead of datetime64/timedelta64 objects,
+            #  which we need to wrap in Timestamp/Timedelta/Period regardless.
+            return self.values.item()
+
+        if len(self) == 1:
+            return next(iter(self))
+        else:
+            raise ValueError("can only convert an array of size 1 to a Python scalar")
 
     @property
     def nbytes(self):
@@ -1132,9 +1123,14 @@ class IndexOpsMixin:
                 # convert to an Series for efficiency.
                 # we specify the keys here to handle the
                 # possibility that they are tuples
-                from pandas import Series
 
-                mapper = Series(mapper)
+                # The return value of mapping with an empty mapper is
+                # expected to be pd.Series(np.nan, ...). As np.nan is
+                # of dtype float64 the return value of this method should
+                # be float64 as well
+                mapper = create_series_with_explicit_dtype(
+                    mapper, dtype_if_empty=np.float64
+                )
 
         if isinstance(mapper, ABCSeries):
             # Since values were input this means we came from either

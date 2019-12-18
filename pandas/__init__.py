@@ -148,9 +148,6 @@ from pandas.io.api import (
     ExcelFile,
     ExcelWriter,
     read_excel,
-    # packers
-    read_msgpack,
-    to_msgpack,
     # parsers
     read_csv,
     read_fwf,
@@ -168,6 +165,7 @@ from pandas.io.api import (
     # misc
     read_clipboard,
     read_parquet,
+    read_orc,
     read_feather,
     read_gbq,
     read_html,
@@ -275,6 +273,5 @@ Here are just a few of the things that pandas does well:
     Excel files, databases, and saving/loading data from the ultrafast HDF5
     format.
   - Time series-specific functionality: date range generation and frequency
-    conversion, moving window statistics, moving window linear regressions,
-    date shifting and lagging, etc.
+    conversion, moving window statistics, date shifting and lagging.
 """
