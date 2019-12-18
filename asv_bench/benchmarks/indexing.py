@@ -146,7 +146,7 @@ class DataFrameStringIndexing:
         self.df[self.bool_obj_indexer]
 
     def time_boolean_rows_boolean(self):
-        self.df[self.bool_obj_indexer]
+        self.df[self.boolean_indexer]
 
 
 class DataFrameNumericIndexing:
