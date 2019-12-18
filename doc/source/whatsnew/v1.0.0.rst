@@ -498,6 +498,9 @@ Deprecations
 - The parameter ``numeric_only`` of :meth:`Categorical.min` and :meth:`Categorical.max` is deprecated and replaced with ``skipna`` (:issue:`25303`)
 - The parameter ``label`` in :func:`lreshape` has been deprecated and will be removed in a future version (:issue:`29742`)
 - ``pandas.core.index`` has been deprecated and will be removed in a future version, the public classes are available in the top-level namespace (:issue:`19711`)
+- :func:`pandas.json_normalize` is now exposed in the top-level namespace.
+  Usage of ``json_normalize`` as ``pandas.io.json.json_normalize`` is now deprecated and
+  it is recommended to use ``json_normalize`` as :func:`pandas.json_normalize` instead (:issue:`27586`).
 -
 
 .. _whatsnew_1000.prior_deprecations:

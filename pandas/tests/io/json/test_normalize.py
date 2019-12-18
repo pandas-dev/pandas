@@ -3,10 +3,9 @@ import json
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index
+from pandas import DataFrame, Index, json_normalize
 import pandas.util.testing as tm
 
-from pandas.io.json import json_normalize
 from pandas.io.json._normalize import nested_to_record
 
 
@@ -698,3 +697,10 @@ class TestNestedToRecord:
         ]
         output = nested_to_record(input_data, max_level=max_level)
         assert output == expected
+
+    def test_deprecated_import(self):
+        with tm.assert_produces_warning(FutureWarning):
+            from pandas.io.json import json_normalize
+
+            recs = [{"a": 1, "b": 2, "c": 3}, {"a": 4, "b": 5, "c": 6}]
+            json_normalize(recs)
