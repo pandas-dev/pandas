@@ -5474,6 +5474,6 @@ def maybe_extract_name(name, obj):
 
     # GH#29069
     if not is_hashable(name):
-        raise TypeError(f"Index.name must be a hashable type")
+        raise TypeError("Index.name must be a hashable type")
 
     return name
