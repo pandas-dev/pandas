@@ -205,6 +205,8 @@ Other enhancements
   (:meth:`~DataFrame.to_parquet` / :func:`read_parquet`) using the `'pyarrow'` engine
   now preserve those data types with pyarrow >= 1.0.0 (:issue:`20612`).
 - The ``partition_cols`` argument in :meth:`DataFrame.to_parquet` now accepts a string (:issue:`27117`)
+- :func:`to_parquet` now appropriately handles the ``schema`` argument for user defined schemas in the pyarrow engine. (:issue: `30270`)
+
 
 Build Changes
 ^^^^^^^^^^^^^
@@ -801,7 +803,6 @@ I/O
 - Bug in :func:`read_json` where default encoding was not set to ``utf-8`` (:issue:`29565`)
 - Bug in :class:`PythonParser` where str and bytes were being mixed when dealing with the decimal field (:issue:`29650`)
 - :meth:`read_gbq` now accepts ``progress_bar_type`` to display progress bar while the data downloads. (:issue:`29857`)
--
 
 Plotting
 ^^^^^^^^
