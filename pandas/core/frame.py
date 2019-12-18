@@ -6564,7 +6564,7 @@ class DataFrame(NDFrame):
         """
         from pandas.core.apply import frame_apply
 
-        #Old apply function, which will be used for each part of DataFrame
+        # Old apply function, which will be used for each part of DataFrame
         def partial_apply(dataframe):
             op = frame_apply(
                 dataframe,
@@ -6580,7 +6580,7 @@ class DataFrame(NDFrame):
         def get_dtype(dataframe, column):
             return dataframe.dtypes.values[column]
 
-        if axis == 0 or axis == 'index':
+        if axis == 0 or axis == "index":
             if self.shape[1] == 0:
                 return partial_apply(self)
 
@@ -6596,10 +6596,13 @@ class DataFrame(NDFrame):
                 type = get_dtype(self, i)
                 j = i + 1
 
-                #While the dtype of column is the same as previous ones, they are handled together
-                while j < self.shape[1] and pandas.core.dtypes.common.is_dtype_equal(type, get_dtype(self, j)):
+                # While the dtype of column is the same as previous ones,
+                # they are handled together
+                while j < self.shape[1] and pandas.core.dtypes.common.is_dtype_equal(
+                    type, get_dtype(self, j)
+                ):
                     j += 1
-                frame = self.iloc[:, i: j]
+                frame = self.iloc[:, i:j]
                 i = j
                 result = partial_apply(frame)
 
@@ -6618,7 +6621,6 @@ class DataFrame(NDFrame):
                 return results
         else:
             return partial_apply(self)
-
 
     def applymap(self, func):
         """

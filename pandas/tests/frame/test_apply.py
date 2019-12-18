@@ -693,11 +693,8 @@ class TestDataFrameApply:
 
     def test_apply_get_dtype(self):
         # GH 28773
-        df = DataFrame({
-            "col_1": [1, 2, 3],
-            "col_2": ["hi", "there", "friend"]
-        })
-        expected = Series(data=['int64', 'object'] ,index=['col_1', 'col_2'])
+        df = DataFrame({"col_1": [1, 2, 3], "col_2": ["hi", "there", "friend"]})
+        expected = Series(data=["int64", "object"], index=["col_1", "col_2"])
         tm.assert_series_equal(df.apply(lambda x: x.dtype), expected)
 
 
