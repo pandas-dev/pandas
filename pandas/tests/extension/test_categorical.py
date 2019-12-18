@@ -93,10 +93,7 @@ class TestConstructors(base.BaseConstructorsTests):
 
 
 class TestReshaping(base.BaseReshapingTests):
-    def test_ravel(self, data):
-        # GH#27199 Categorical.ravel returns self until after deprecation cycle
-        with tm.assert_produces_warning(FutureWarning):
-            data.ravel()
+    pass
 
 
 class TestGetitem(base.BaseGetitemTests):

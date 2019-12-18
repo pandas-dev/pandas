@@ -7,6 +7,8 @@ These are used for:
 
 """
 
+from typing import Any
+
 from pandas.core.base import PandasObject
 
 from pandas.io.formats.printing import pprint_thing
@@ -71,7 +73,7 @@ class FrozenList(PandasObject, list):
             other = list(other)
         return type(self)(other + list(self))
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: Any) -> bool:
         if isinstance(other, (tuple, FrozenList)):
             other = list(other)
         return super().__eq__(other)
@@ -91,11 +93,7 @@ class FrozenList(PandasObject, list):
 
     def _disabled(self, *args, **kwargs):
         """This method will not function because object is immutable."""
-        raise TypeError(
-            "'{cls}' does not support mutable operations.".format(
-                cls=type(self).__name__
-            )
-        )
+        raise TypeError(f"'{type(self).__name__}' does not support mutable operations.")
 
     def __str__(self) -> str:
         return pprint_thing(self, quote_strings=True, escape_chars=("\t", "\r", "\n"))

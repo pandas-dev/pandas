@@ -277,14 +277,14 @@ def read_sql_query(
 
     Parameters
     ----------
-    sql : string SQL query or SQLAlchemy Selectable (select or text object)
+    sql : str SQL query or SQLAlchemy Selectable (select or text object)
         SQL query to be executed.
-    con : SQLAlchemy connectable(engine/connection), database string URI,
+    con : SQLAlchemy connectable(engine/connection), database str URI,
         or sqlite3 DBAPI2 connection
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
         If a DBAPI2 object, only sqlite3 is supported.
-    index_col : string or list of strings, optional, default: None
+    index_col : str or list of strings, optional, default: None
         Column(s) to set as index(MultiIndex).
     coerce_float : bool, default True
         Attempts to convert values of non-string, non-numeric objects (like
@@ -355,18 +355,18 @@ def read_sql(
 
     Parameters
     ----------
-    sql : string or SQLAlchemy Selectable (select or text object)
+    sql : str or SQLAlchemy Selectable (select or text object)
         SQL query to be executed or a table name.
-    con : SQLAlchemy connectable (engine/connection) or database string URI
-        or DBAPI2 connection (fallback mode)
+    con : SQLAlchemy connectable (engine/connection) or database str URI
+        or DBAPI2 connection (fallback mode)'
 
         Using SQLAlchemy makes it possible to use any DB supported by that
         library. If a DBAPI2 object, only sqlite3 is supported. The user is responsible
         for engine disposal and connection closure for the SQLAlchemy connectable. See
         `here <https://docs.sqlalchemy.org/en/13/core/connections.html>`_
-    index_col : string or list of strings, optional, default: None
+    index_col : str or list of strings, optional, default: None
         Column(s) to set as index(MultiIndex).
-    coerce_float : boolean, default True
+    coerce_float : bool, default True
         Attempts to convert values of non-string, non-numeric objects (like
         decimal.Decimal) to floating point, useful for SQL result sets.
     params : list, tuple or dict, optional, default: None

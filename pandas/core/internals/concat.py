@@ -121,9 +121,7 @@ class JoinUnit:
         self.shape = shape
 
     def __repr__(self) -> str:
-        return "{name}({block!r}, {indexers})".format(
-            name=type(self).__name__, block=self.block, indexers=self.indexers
-        )
+        return f"{type(self).__name__}({repr(self.block)}, {self.indexers})"
 
     @cache_readonly
     def needs_filling(self):
@@ -197,7 +195,6 @@ class JoinUnit:
                         return array(
                             np.full(self.shape[1], fill_value.value), dtype=empty_dtype
                         )
-                    pass
                 elif getattr(self.block, "is_categorical", False):
                     pass
                 elif getattr(self.block, "is_extension", False):

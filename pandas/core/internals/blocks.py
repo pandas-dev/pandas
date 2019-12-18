@@ -523,16 +523,14 @@ class Block(PandasObject):
 
         return self.split_and_operate(None, f, False)
 
-    def astype(self, dtype, copy=False, errors="raise", **kwargs):
-        return self._astype(dtype, copy=copy, errors=errors, **kwargs)
-
-    def _astype(self, dtype, copy=False, errors="raise", **kwargs):
-        """Coerce to the new type
+    def astype(self, dtype, copy: bool = False, errors: str = "raise"):
+        """
+        Coerce to the new dtype.
 
         Parameters
         ----------
         dtype : str, dtype convertible
-        copy : boolean, default False
+        copy : bool, default False
             copy if indicated
         errors : str, {'raise', 'ignore'}, default 'ignore'
             - ``raise`` : allow exceptions to be raised
@@ -2142,7 +2140,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         assert isinstance(values, np.ndarray), type(values)
         return values
 
-    def _astype(self, dtype, **kwargs):
+    def astype(self, dtype, copy: bool = False, errors: str = "raise"):
         """
         these automatically copy, so copy=True has no effect
         raise on an except if raise == True
@@ -2158,7 +2156,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
             return self.make_block(values)
 
         # delegate
-        return super()._astype(dtype=dtype, **kwargs)
+        return super().astype(dtype=dtype, copy=copy, errors=errors)
 
     def _can_hold_element(self, element: Any) -> bool:
         tipo = maybe_infer_dtype_type(element)
@@ -2444,15 +2442,11 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         # interpreted as nanoseconds
         if is_integer(value):
             # Deprecation GH#24694, GH#19233
-            warnings.warn(
-                "Passing integers to fillna is deprecated, will "
-                "raise a TypeError in a future version.  To retain "
-                "the old behavior, pass pd.Timedelta(seconds=n) "
-                "instead.",
-                FutureWarning,
-                stacklevel=6,
+            raise TypeError(
+                "Passing integers to fillna for timedelta64[ns] dtype is no "
+                "longer supporetd.  To obtain the old behavior, pass "
+                "`pd.Timedelta(seconds=n)` instead."
             )
-            value = Timedelta(value, unit="s")
         return super().fillna(value, **kwargs)
 
     def should_store(self, value):
@@ -3030,7 +3024,6 @@ def _merge_blocks(blocks, dtype=None, _can_consolidate=True):
         if dtype is None:
             if len({b.dtype for b in blocks}) != 1:
                 raise AssertionError("_merge_blocks are invalid!")
-            dtype = blocks[0].dtype
 
         # FIXME: optimization potential in case all mgrs contain slices and
         # combination of those slices is a slice, too.

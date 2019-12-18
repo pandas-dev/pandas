@@ -78,7 +78,7 @@ ll_params = [
     ((x for x in [1, 2]), True, "generator"),
     ((_ for _ in []), True, "generator-empty"),
     (Series([1]), True, "Series"),
-    (Series([]), True, "Series-empty"),
+    (Series([], dtype=object), True, "Series-empty"),
     (Series(["a"]).str, True, "StringMethods"),
     (Series([], dtype="O").str, True, "StringMethods-empty"),
     (Index([1]), True, "Index"),
@@ -139,7 +139,7 @@ def test_is_sequence():
 
 
 def test_is_array_like():
-    assert inference.is_array_like(Series([]))
+    assert inference.is_array_like(Series([], dtype=object))
     assert inference.is_array_like(Series([1, 2]))
     assert inference.is_array_like(np.array(["a", "b"]))
     assert inference.is_array_like(Index(["2016-01-01"]))
@@ -165,7 +165,7 @@ def test_is_array_like():
         {"a": 1},
         {1, "a"},
         Series([1]),
-        Series([]),
+        Series([], dtype=object),
         Series(["a"]).str,
         (x for x in range(5)),
     ],
@@ -449,7 +449,7 @@ class TestInference:
     def test_convert_non_hashable(self):
         # GH13324
         # make sure that we are handing non-hashables
-        arr = np.array([[10.0, 2], 1.0, "apple"])
+        arr = np.array([[10.0, 2], 1.0, "apple"], dtype=object)
         result = lib.maybe_convert_numeric(arr, set(), False, True)
         tm.assert_numpy_array_equal(result, np.array([np.nan, 1.0, np.nan]))
 
@@ -732,12 +732,17 @@ class TestTypeInference:
     def test_unicode(self):
         arr = ["a", np.nan, "c"]
         result = lib.infer_dtype(arr, skipna=False)
+        # This currently returns "mixed", but it's not clear that's optimal.
+        # This could also return "string" or "mixed-string"
         assert result == "mixed"
 
         arr = ["a", np.nan, "c"]
         result = lib.infer_dtype(arr, skipna=True)
-        expected = "string"
-        assert result == expected
+        assert result == "string"
+
+        arr = ["a", "c"]
+        result = lib.infer_dtype(arr, skipna=False)
+        assert result == "string"
 
     @pytest.mark.parametrize(
         "dtype, missing, skipna, expected",
@@ -1399,7 +1404,7 @@ class TestIsScalar:
         assert is_scalar(DateOffset(days=1))
 
     def test_is_scalar_pandas_containers(self):
-        assert not is_scalar(Series())
+        assert not is_scalar(Series(dtype=object))
         assert not is_scalar(Series([1]))
         assert not is_scalar(DataFrame())
         assert not is_scalar(DataFrame([[1]]))

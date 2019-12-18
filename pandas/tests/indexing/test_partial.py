@@ -1,10 +1,8 @@
 """
 test setting *parts* of objects both positionally and label based
 
-TOD: these should be split among the indexer tests
+TODO: these should be split among the indexer tests
 """
-
-from warnings import catch_warnings
 
 import numpy as np
 import pytest
@@ -15,7 +13,6 @@ import pandas.util.testing as tm
 
 
 class TestPartialSetting:
-    @pytest.mark.filterwarnings("ignore:\\n.ix:FutureWarning")
     def test_partial_setting(self):
 
         # GH2578, allow ix and friends to partially set
@@ -87,32 +84,28 @@ class TestPartialSetting:
         # single dtype frame, overwrite
         expected = DataFrame(dict({"A": [0, 2, 4], "B": [0, 2, 4]}))
         df = df_orig.copy()
-        with catch_warnings(record=True):
-            df.ix[:, "B"] = df.ix[:, "A"]
+        df.loc[:, "B"] = df.loc[:, "A"]
         tm.assert_frame_equal(df, expected)
 
         # mixed dtype frame, overwrite
         expected = DataFrame(dict({"A": [0, 2, 4], "B": Series([0, 2, 4])}))
         df = df_orig.copy()
         df["B"] = df["B"].astype(np.float64)
-        with catch_warnings(record=True):
-            df.ix[:, "B"] = df.ix[:, "A"]
+        df.loc[:, "B"] = df.loc[:, "A"]
         tm.assert_frame_equal(df, expected)
 
         # single dtype frame, partial setting
         expected = df_orig.copy()
         expected["C"] = df["A"]
         df = df_orig.copy()
-        with catch_warnings(record=True):
-            df.ix[:, "C"] = df.ix[:, "A"]
+        df.loc[:, "C"] = df.loc[:, "A"]
         tm.assert_frame_equal(df, expected)
 
         # mixed frame, partial setting
         expected = df_orig.copy()
         expected["C"] = df["A"]
         df = df_orig.copy()
-        with catch_warnings(record=True):
-            df.ix[:, "C"] = df.ix[:, "A"]
+        df.loc[:, "C"] = df.loc[:, "A"]
         tm.assert_frame_equal(df, expected)
 
         # GH 8473
@@ -328,7 +321,6 @@ class TestPartialSetting:
         result = ser.iloc[[1, 1, 0, 0]]
         tm.assert_series_equal(result, expected, check_index_type=True)
 
-    @pytest.mark.filterwarnings("ignore:\\n.ix")
     def test_partial_set_invalid(self):
 
         # GH 4940
@@ -339,26 +331,15 @@ class TestPartialSetting:
 
         # don't allow not string inserts
         with pytest.raises(TypeError):
-            with catch_warnings(record=True):
-                df.loc[100.0, :] = df.ix[0]
+            df.loc[100.0, :] = df.iloc[0]
 
         with pytest.raises(TypeError):
-            with catch_warnings(record=True):
-                df.loc[100, :] = df.ix[0]
-
-        with pytest.raises(TypeError):
-            with catch_warnings(record=True):
-                df.ix[100.0, :] = df.ix[0]
-
-        with pytest.raises(ValueError):
-            with catch_warnings(record=True):
-                df.ix[100, :] = df.ix[0]
+            df.loc[100, :] = df.iloc[0]
 
         # allow object conversion here
         df = orig.copy()
-        with catch_warnings(record=True):
-            df.loc["a", :] = df.ix[0]
-            exp = orig.append(Series(df.ix[0], name="a"))
+        df.loc["a", :] = df.iloc[0]
+        exp = orig.append(Series(df.iloc[0], name="a"))
         tm.assert_frame_equal(df, exp)
         tm.assert_index_equal(df.index, Index(orig.index.tolist() + ["a"]))
         assert df.index.dtype == "object"
@@ -368,19 +349,19 @@ class TestPartialSetting:
         # GH5226
 
         # partially set with an empty object series
-        s = Series()
+        s = Series(dtype=object)
         s.loc[1] = 1
         tm.assert_series_equal(s, Series([1], index=[1]))
         s.loc[3] = 3
         tm.assert_series_equal(s, Series([1, 3], index=[1, 3]))
 
-        s = Series()
+        s = Series(dtype=object)
         s.loc[1] = 1.0
         tm.assert_series_equal(s, Series([1.0], index=[1]))
         s.loc[3] = 3.0
         tm.assert_series_equal(s, Series([1.0, 3.0], index=[1, 3]))
 
-        s = Series()
+        s = Series(dtype=object)
         s.loc["foo"] = 1
         tm.assert_series_equal(s, Series([1], index=["foo"]))
         s.loc["bar"] = 3
@@ -512,11 +493,11 @@ class TestPartialSetting:
     def test_partial_set_empty_frame_set_series(self):
         # GH 5756
         # setting with empty Series
-        df = DataFrame(Series())
-        tm.assert_frame_equal(df, DataFrame({0: Series()}))
+        df = DataFrame(Series(dtype=object))
+        tm.assert_frame_equal(df, DataFrame({0: Series(dtype=object)}))
 
-        df = DataFrame(Series(name="foo"))
-        tm.assert_frame_equal(df, DataFrame({"foo": Series()}))
+        df = DataFrame(Series(name="foo", dtype=object))
+        tm.assert_frame_equal(df, DataFrame({"foo": Series(dtype=object)}))
 
     def test_partial_set_empty_frame_empty_copy_assignment(self):
         # GH 5932
