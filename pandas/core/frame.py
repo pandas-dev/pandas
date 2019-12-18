@@ -95,12 +95,13 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas._typing import Axes, Dtype, FilePathOrBuffer
-from pandas.core import algorithms, common as com, groupby, nanops, ops
+from pandas.core import algorithms, common as com, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin as DatetimeLikeArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.generic import NDFrame, _shared_docs
+from pandas.core.groupby import generic as grp_generic
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import Index, ensure_index, ensure_index_from_sequences
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -5658,13 +5659,13 @@ Wild         185.0
         group_keys: bool = True,
         squeeze: bool = False,
         observed: bool = False,
-    ) -> "groupby.DataFrameGroupBy":
+    ) -> "grp_generic.DataFrameGroupBy":
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
         axis = self._get_axis_number(axis)
 
-        return groupby.DataFrameGroupBy(
+        return grp_generic.DataFrameGroupBy(
             obj=self,
             keys=by,
             axis=axis,

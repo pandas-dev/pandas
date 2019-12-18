@@ -47,7 +47,7 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas as pd
-from pandas.core import algorithms, base, generic, groupby, nanops, ops
+from pandas.core import algorithms, base, generic, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import ExtensionArray, try_cast_to_ea
 from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
@@ -60,6 +60,7 @@ from pandas.core.construction import (
     sanitize_array,
 )
 from pandas.core.generic import _shared_docs
+from pandas.core.groupby import generic as grp_generic
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.api import (
@@ -1633,13 +1634,13 @@ Name: Max Speed, dtype: float64
         group_keys: bool = True,
         squeeze: bool = False,
         observed: bool = False,
-    ) -> "groupby.SeriesGroupBy":
+    ) -> "grp_generic.SeriesGroupBy":
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
         axis = self._get_axis_number(axis)
 
-        return groupby.SeriesGroupBy(
+        return grp_generic.SeriesGroupBy(
             obj=self,
             keys=by,
             axis=axis,
