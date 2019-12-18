@@ -67,9 +67,6 @@ def test_statsmodels():
 
 # Cython import warning
 @pytest.mark.filterwarnings("ignore:can't:ImportWarning")
-@pytest.mark.xfail(
-    reason="https://github.com/pandas-dev/pandas/issues/30309", strict=False
-)
 def test_scikit_learn(df):
 
     sklearn = import_module("sklearn")  # noqa

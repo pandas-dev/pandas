@@ -140,7 +140,8 @@ echo "conda list"
 conda list
 
 # Install DB for Linux
-if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
+
+if [[ -n ${SQL:0} ]]; then
   echo "installing dbs"
   mysql -e 'create database pandas_nosetest;'
   psql -c 'create database pandas_nosetest;' -U postgres
