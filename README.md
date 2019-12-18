@@ -124,7 +124,7 @@ Here are just a few of the things that pandas does well:
     and saving/loading data from the ultrafast [**HDF5 format**][hdfstore]
   - [**Time series**][timeseries]-specific functionality: date range
     generation and frequency conversion, moving window statistics,
-    moving window linear regressions, date shifting and lagging, etc.
+    date shifting and lagging.
 
 
    [missing-data]: https://pandas.pydata.org/pandas-docs/stable/missing_data.html#working-with-missing-data
