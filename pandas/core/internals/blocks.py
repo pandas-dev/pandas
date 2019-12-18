@@ -548,8 +548,8 @@ class Block(PandasObject):
 
         if inspect.isclass(dtype) and issubclass(dtype, ExtensionDtype):
             msg = (
-                f"Expected an instance of {dtype.__name__}, but got the class instead. "
-                "Try instantiating 'dtype'."
+                f"Expected an instance of {dtype.__name__}, "
+                f"but got the class instead. Try instantiating 'dtype'."
             )
             raise TypeError(msg)
 
@@ -1036,7 +1036,7 @@ class Block(PandasObject):
                 return self.astype(object)
 
             raise AssertionError(
-                "possible recursion in " f"coerce_to_target_dtype: {self} {other}"
+                f"possible recursion in coerce_to_target_dtype: {self} {other}"
             )
 
         elif self.is_timedelta or is_timedelta64_dtype(dtype):
@@ -1046,7 +1046,7 @@ class Block(PandasObject):
                 return self.astype(object)
 
             raise AssertionError(
-                "possible recursion in " f"coerce_to_target_dtype: {self} {other}"
+                f"possible recursion in coerce_to_target_dtype: {self} {other}"
             )
 
         try:
@@ -1191,7 +1191,7 @@ class Block(PandasObject):
         if method in ("krogh", "piecewise_polynomial", "pchip"):
             if not index.is_monotonic:
                 raise ValueError(
-                    f"{method} interpolation requires that the " "index be monotonic."
+                    f"{method} interpolation requires that the index be monotonic."
                 )
         # process 1-d slices in the axis direction
 
