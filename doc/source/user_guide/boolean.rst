@@ -27,7 +27,7 @@ will raise a ``ValueError``.
    :okexcept:
 
    s = pd.Series([1, 2, 3])
-   mask = pd.array([True, False, None])
+   mask = pd.array([True, False, pd.NA], dtyep="boolean")
    s[mask]
 
 The missing values will need to be explicitly filled with True or False prior
