@@ -42,6 +42,7 @@ from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.construction import sanitize_array
+from pandas.core.indexing import check_bool_indexer
 from pandas.core.missing import interpolate_2d
 import pandas.core.ops as ops
 from pandas.core.ops.common import unpack_zerodim_and_defer
@@ -766,7 +767,9 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                 else:
                     key = np.asarray(key)
 
-            if com.is_bool_indexer(key) and len(self) == len(key):
+            if com.is_bool_indexer(key):
+                key = check_bool_indexer(self, key)
+
                 return self.take(np.arange(len(key), dtype=np.int32)[key])
             elif hasattr(key, "__len__"):
                 return self.take(key)

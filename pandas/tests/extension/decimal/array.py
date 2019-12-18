@@ -8,7 +8,11 @@ import numpy as np
 from pandas.core.dtypes.base import ExtensionDtype
 
 import pandas as pd
-from pandas.api.extensions import register_extension_dtype
+from pandas.api.extensions import (
+    check_bool_array_indexer,
+    is_bool_indexer,
+    register_extension_dtype,
+)
 from pandas.core.arrays import ExtensionArray, ExtensionScalarOpsMixin
 
 
@@ -109,6 +113,8 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
         if isinstance(item, numbers.Integral):
             return self._data[item]
         else:
+            if is_bool_indexer(item):
+                item = check_bool_array_indexer(self, item)
             return type(self)(self._data[item])
 
     def take(self, indexer, allow_fill=False, fill_value=None):

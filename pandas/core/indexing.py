@@ -21,6 +21,7 @@ from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCDataFrame, ABCMultiIndex, ABCSeries
 from pandas.core.dtypes.missing import _infer_fill_value, isna
 
+from pandas._typing import AnyArrayLike
 import pandas.core.common as com
 from pandas.core.indexers import is_list_like_indexer, length_of_indexer
 from pandas.core.indexes.api import Index, InvalidIndexError
@@ -2282,6 +2283,32 @@ def convert_to_index_sliceable(obj, key):
     return None
 
 
+def check_bool_array_indexer(array: AnyArrayLike, mask: AnyArrayLike) -> np.ndarray:
+    """
+    Check wither `mask` is a valid boolean indexer for `array`.
+
+    `array` and `mask` are checked to have the same length.
+
+    Parameters
+    ----------
+    array : array
+        The array that's being masked.
+    mask : array
+        The boolean array that's masking.
+
+    Returns
+    -------
+    numpy.ndarray
+        The validated boolean mask.
+
+    """
+    result = np.asarray(mask, dtype=bool)
+    # GH26658
+    if len(result) != len(array):
+        raise IndexError(f"Item wrong length {len(result)} instead of {len(array)}.")
+    return result
+
+
 def check_bool_indexer(index: Index, key) -> np.ndarray:
     """
     Check if key is a valid boolean indexer for an object with such index and
@@ -2322,13 +2349,7 @@ def check_bool_indexer(index: Index, key) -> np.ndarray:
     else:
         if is_sparse(result):
             result = result.to_dense()
-        result = np.asarray(result, dtype=bool)
-
-        # GH26658
-        if len(result) != len(index):
-            raise IndexError(
-                "Item wrong length {} instead of {}.".format(len(result), len(index))
-            )
+        result = check_bool_array_indexer(index, result)
 
     return result
 

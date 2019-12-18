@@ -11,3 +11,5 @@ from pandas.core.accessor import (  # noqa: F401
 )
 from pandas.core.algorithms import take  # noqa: F401
 from pandas.core.arrays import ExtensionArray, ExtensionScalarOpsMixin  # noqa: F401
+from pandas.core.common import is_bool_indexer  # noqa: F401
+from pandas.core.indexing import check_bool_array_indexer  # noqa: F401

@@ -19,9 +19,12 @@ import sys
 
 import numpy as np
 
-from pandas.core.dtypes.base import ExtensionDtype
-
-from pandas.core.arrays import ExtensionArray
+from pandas.api.extensions import (
+    ExtensionArray,
+    ExtensionDtype,
+    check_bool_array_indexer,
+    is_bool_indexer,
+)
 
 
 class JSONDtype(ExtensionDtype):
@@ -76,7 +79,8 @@ class JSONArray(ExtensionArray):
     def __getitem__(self, item):
         if isinstance(item, numbers.Integral):
             return self.data[item]
-        elif isinstance(item, np.ndarray) and item.dtype == "bool":
+        elif is_bool_indexer(item):
+            item = check_bool_array_indexer(self, item)
             return self._from_sequence([x for x, m in zip(self, item) if m])
         elif isinstance(item, abc.Iterable):
             # fancy indexing

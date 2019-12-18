@@ -1990,16 +1990,21 @@ class Categorical(ExtensionArray, PandasObject):
         """
         Return an item.
         """
+        from pandas.core.indexing import check_bool_array_indexer
+
         if isinstance(key, (int, np.integer)):
             i = self._codes[key]
             if i == -1:
                 return np.nan
             else:
                 return self.categories[i]
-        else:
-            return self._constructor(
-                values=self._codes[key], dtype=self.dtype, fastpath=True
-            )
+
+        elif com.is_bool_indexer(key):
+            key = check_bool_array_indexer(self, key)
+
+        return self._constructor(
+            values=self._codes[key], dtype=self.dtype, fastpath=True
+        )
 
     def __setitem__(self, key, value):
         """
