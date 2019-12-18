@@ -134,7 +134,7 @@ FASTCALL_ATTR JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
     } else if (*(offset) == '-') {
         offset++;
         intNeg = -1;
-        if ((*offset) == 'I') {
+        if (*(offset) == 'I') {
           goto DECODE_INF;
         }
         overflowLimit = LLONG_MIN;
