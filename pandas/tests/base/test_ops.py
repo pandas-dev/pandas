@@ -236,15 +236,13 @@ class TestIndexOps(Ops):
                 assert not hasattr(o, p)
 
             with pytest.raises(ValueError):
-                with tm.assert_produces_warning(FutureWarning):
-                    o.item()  # len > 1
+                o.item()  # len > 1
 
             assert o.ndim == 1
             assert o.size == len(o)
 
-        with tm.assert_produces_warning(FutureWarning):
-            assert Index([1]).item() == 1
-            assert Series([1]).item() == 1
+        assert Index([1]).item() == 1
+        assert Series([1]).item() == 1
 
     def test_value_counts_unique_nunique(self):
         for orig in self.objs:

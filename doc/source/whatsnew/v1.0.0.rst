@@ -486,6 +486,7 @@ Documentation Improvements
 Deprecations
 ~~~~~~~~~~~~
 
+- :meth:`Series.item` and :meth:`Index.item` have been _undeprecated_ (:issue:`29250`)
 - ``Index.set_value`` has been deprecated. For a given index ``idx``, array ``arr``,
   value in ``idx`` of ``idx_val`` and a new value of ``val``, ``idx.set_value(arr, idx_val, val)``
   is equivalent to ``arr[idx.get_loc(idx_val)] = val``, which should be used instead (:issue:`28621`).
@@ -703,6 +704,8 @@ Datetimelike
 - Bug in :attr:`Timestamp.resolution` being a property instead of a class attribute (:issue:`29910`)
 - Bug in :func:`pandas.to_datetime` when called with ``None`` raising ``TypeError`` instead of returning ``NaT`` (:issue:`30011`)
 - Bug in :func:`pandas.to_datetime` failing for `deques` when using ``cache=True`` (the default) (:issue:`29403`)
+- Bug in :meth:`Series.item` with ``datetime64`` or ``timedelta64`` dtype, :meth:`DatetimeIndex.item`, and :meth:`TimedeltaIndex.item` returning an integer instead of a :class:`Timestamp` or :class:`Timedelta` (:issue:`30175`)
+-
 
 Timedelta
 ^^^^^^^^^

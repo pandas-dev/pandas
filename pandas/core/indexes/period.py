@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-import warnings
 import weakref
 
 import numpy as np
@@ -861,27 +860,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             raise Exception("invalid pickle state")
 
     _unpickle_compat = __setstate__
-
-    def item(self):
-        """
-        Return the first element of the underlying data as a python
-        scalar
-
-        .. deprecated:: 0.25.0
-
-        """
-        warnings.warn(
-            "`item` has been deprecated and will be removed in a future version",
-            FutureWarning,
-            stacklevel=2,
-        )
-        # TODO(DatetimeArray): remove
-        if len(self) == 1:
-            return self[0]
-        else:
-            # TODO: is this still necessary?
-            # copy numpy's message here because Py26 raises an IndexError
-            raise ValueError("can only convert an array of size 1 to a Python scalar")
 
     def memory_usage(self, deep=False):
         result = super().memory_usage(deep=deep)
