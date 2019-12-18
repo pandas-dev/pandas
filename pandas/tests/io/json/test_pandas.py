@@ -1,6 +1,7 @@
 from collections import OrderedDict
 from datetime import timedelta
 from io import StringIO
+from warnings import catch_warnings, filterwarnings
 import json
 import os
 
@@ -1601,3 +1602,13 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
     def test_json_negative_indent_raises(self):
         with pytest.raises(ValueError, match="must be a nonnegative integer"):
             pd.DataFrame().to_json(indent=-1)
+
+    @pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
+    def test_deprecate_numpy_argument_read_json(self):
+        # https://github.com/pandas-dev/pandas/issues/28512
+        df = DataFrame([1, 2, 3])
+        with tm.assert_produces_warning(None):
+            with catch_warnings():
+                filterwarnings("ignore", category=FutureWarning)
+                result = read_json(df.to_json(), numpy=True)
+                assert_frame_equal(result, df)

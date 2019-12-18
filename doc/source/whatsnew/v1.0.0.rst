@@ -503,7 +503,8 @@ Deprecations
   Usage of ``json_normalize`` as ``pandas.io.json.json_normalize`` is now deprecated and
   it is recommended to use ``json_normalize`` as :func:`pandas.json_normalize` instead (:issue:`27586`).
 - :meth:`DataFrame.to_stata`, :meth:`DataFrame.to_feather`, and :meth:`DataFrame.to_parquet` argument "fname" is deprecated, use "path" instead (:issue:`23574`)
-
+- The ``numpy`` argument of :meth:`pandas.read_json` is deprecated (:issue:`28512`).
+-
 
 .. _whatsnew_1000.prior_deprecations:
 
