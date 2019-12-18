@@ -1814,15 +1814,19 @@ class DataFrameGroupBy(GroupBy):
             from pandas.core.reshape.concat import concat
 
             axis_number = obj._get_axis_number(self.axis)
-            if axis_number:
-                obj = obj.T
+            other_axis = int(not axis_number)
+            if axis_number == 0:
+                iter_func = obj.items
+            else:
+                iter_func = obj.iterrows
 
-            results = [groupby_series(content, label) for label, content in obj.items()]
+            results = [groupby_series(content, label) for label, content in iter_func()]
             results = concat(results, axis=1)
-            results.columns.names = obj.columns.names
 
-            if axis_number:
+            if axis_number == 1:
                 results = results.T
+
+            results._get_axis(other_axis).names = obj._get_axis(other_axis).names
 
         if not self.as_index:
             results.index = ibase.default_index(len(results))

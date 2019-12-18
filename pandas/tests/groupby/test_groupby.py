@@ -1998,18 +1998,16 @@ def test_dup_labels_output_shape(groupby_func, idx):
 
 def test_groupby_crash_on_nunique(axis):
     # Fix following 30253
-    df = pd.DataFrame(
-        {("A", "B"): [1, 2], ("A", "C"): [1, 3], ("D", "B"): [0, 0]},
-        index=pd.bdate_range("20191212", "20191213"),
-    )
-    df.columns.names = ["COL1", "COL2"]
+    df = pd.DataFrame({("A", "B"): [1, 2], ("A", "C"): [1, 3], ("D", "B"): [0, 0]})
 
     axis_number = df._get_axis_number(axis)
     if not axis_number:
         df = df.T
 
-    nunique_t = df.T.groupby(level=0, axis=axis).nunique().T
+    result = df.groupby(axis=axis_number, level=0).nunique()
 
-    nunique = df.groupby(axis=int(not axis_number), level=0).nunique()
+    expected = pd.DataFrame({"A": [1, 2], "D": [1, 1]})
+    if not axis_number:
+        expected = expected.T
 
-    pd.testing.assert_frame_equal(nunique_t, nunique)
+    tm.assert_frame_equal(result, expected)
