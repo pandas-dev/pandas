@@ -59,8 +59,7 @@ from pandas.core.construction import (
     is_empty_data,
     sanitize_array,
 )
-from pandas.core.generic import _shared_docs
-from pandas.core.groupby import generic as grp_generic
+from pandas.core.groupby import generic as groupby_generic
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.api import (
@@ -1432,7 +1431,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
     )
     @Substitution(klass="Series")
-    @Appender(_shared_docs["to_markdown"])
+    @Appender(generic._shared_docs["to_markdown"])
     def to_markdown(
         self, buf: Optional[IO[str]] = None, mode: Optional[str] = None, **kwargs,
     ) -> Optional[str]:
@@ -1634,13 +1633,13 @@ Name: Max Speed, dtype: float64
         group_keys: bool = True,
         squeeze: bool = False,
         observed: bool = False,
-    ) -> "grp_generic.SeriesGroupBy":
+    ) -> "groupby_generic.SeriesGroupBy":
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
         axis = self._get_axis_number(axis)
 
-        return grp_generic.SeriesGroupBy(
+        return groupby_generic.SeriesGroupBy(
             obj=self,
             keys=by,
             axis=axis,

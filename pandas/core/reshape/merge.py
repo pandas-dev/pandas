@@ -41,7 +41,6 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
 from pandas import Categorical, Index, MultiIndex
-from pandas._typing import FrameOrSeries
 from pandas.core import groupby
 import pandas.core.algorithms as algos
 from pandas.core.arrays.categorical import _recode_for_categories
