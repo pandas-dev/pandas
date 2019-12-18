@@ -49,8 +49,8 @@ This will help ensure the success of development of _pandas_ as a world-class op
   high-dimensional data in a lower-dimensional data structure;
 
 - **Time series**-functionality: date range generation and frequency
-  conversion, moving window statistics, moving window linear regressions, date
-  shifting and lagging. Even create domain-specific time offsets and join time
+  conversion, moving window statistics, date shifting and lagging.
+  Even create domain-specific time offsets and join time
   series without losing data;
 
 - Highly **optimized for performance**, with critical code paths written in

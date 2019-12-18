@@ -274,7 +274,7 @@ class TestSlicing:
                 result = df["a"][ts_string]
                 assert isinstance(result, np.int64)
                 assert result == expected
-                msg = r"^'{}'$".format(ts_string)
+                msg = fr"^'{ts_string}'$"
                 with pytest.raises(KeyError, match=msg):
                     df[ts_string]
 
@@ -302,7 +302,7 @@ class TestSlicing:
                 result = df["a"][ts_string]
                 assert isinstance(result, np.int64)
                 assert result == 2
-                msg = r"^'{}'$".format(ts_string)
+                msg = fr"^'{ts_string}'$"
                 with pytest.raises(KeyError, match=msg):
                     df[ts_string]
 
@@ -311,7 +311,7 @@ class TestSlicing:
             for fmt, res in list(zip(formats, resolutions))[rnum + 1 :]:
                 ts = index[1] + Timedelta("1 " + res)
                 ts_string = ts.strftime(fmt)
-                msg = r"^'{}'$".format(ts_string)
+                msg = fr"^'{ts_string}'$"
                 with pytest.raises(KeyError, match=msg):
                     df["a"][ts_string]
                 with pytest.raises(KeyError, match=msg):

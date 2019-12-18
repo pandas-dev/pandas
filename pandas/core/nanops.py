@@ -1301,9 +1301,7 @@ def _ensure_numeric(x):
                 x = complex(x)
             except ValueError:
                 # e.g. "foo"
-                raise TypeError(
-                    "Could not convert {value!s} to numeric".format(value=x)
-                )
+                raise TypeError(f"Could not convert {x} to numeric")
     return x
 
 
