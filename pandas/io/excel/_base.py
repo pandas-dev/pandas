@@ -19,6 +19,7 @@ from pandas.io.common import (
     _stringify_path,
     _validate_header_arg,
     get_filepath_or_buffer,
+    validate_local_path,
     urlopen,
 )
 from pandas.io.excel._util import (
@@ -343,7 +344,7 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
             filepath_or_buffer = BytesIO(urlopen(filepath_or_buffer).read())
         elif not isinstance(filepath_or_buffer, (ExcelFile, self._workbook_class)):
             filepath_or_buffer, _, _, _ = get_filepath_or_buffer(
-                filepath_or_buffer, mode="r"
+                filepath_or_buffer
             )
 
         if isinstance(filepath_or_buffer, self._workbook_class):
@@ -353,6 +354,7 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
             filepath_or_buffer.seek(0)
             self.book = self.load_workbook(filepath_or_buffer)
         elif isinstance(filepath_or_buffer, str):
+            validate_local_path(filepath_or_buffer, "r")
             self.book = self.load_workbook(filepath_or_buffer)
         else:
             raise ValueError(

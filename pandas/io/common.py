@@ -455,8 +455,9 @@ def _get_handle(
 
     compression, compression_args = _get_compression_method(compression)
     if is_path:
-        # TODO: Do we need to rule out non-local path?
-        validate_local_path(path_or_buf, mode=mode)
+        if not is_s3_url(path_or_buf) and not is_gcs_url(path_or_buf):
+            # TODO: better way of checking for local path
+            validate_local_path(path_or_buf, mode=mode)
         compression = _infer_compression(path_or_buf, compression)
 
     if compression:
