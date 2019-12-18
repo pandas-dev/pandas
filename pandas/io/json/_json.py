@@ -27,6 +27,7 @@ from pandas.io.common import (
 )
 from pandas.io.formats.printing import pprint_thing
 from pandas.io.parsers import _validate_integer
+from pandas.util._decorators import deprecate_kwarg
 
 from ._normalize import convert_to_line_delimits
 from ._table_schema import build_table_schema, parse_table_schema
@@ -353,6 +354,7 @@ class JSONTableWriter(FrameWriter):
         return serialized
 
 
+@deprecate_kwarg(old_arg_name="numpy", new_arg_name=None)
 def read_json(
     path_or_buf=None,
     orient=None,
@@ -465,6 +467,8 @@ def read_json(
         Direct decoding to numpy arrays. Supports numeric data only, but
         non-numeric column and index labels are supported. Note also that the
         JSON ordering MUST be the same for each term if numpy=True.
+
+        .. deprecated:: 1.0.0
 
     precise_float : bool, default False
         Set to enable usage of higher precision (strtod) function when
