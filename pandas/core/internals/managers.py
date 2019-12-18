@@ -1661,9 +1661,7 @@ def construction_error(tot_items, block_shape, axes, e=None):
         raise e
     if block_shape[0] == 0:
         raise ValueError("Empty data passed with indices specified.")
-    raise ValueError(
-        f"Shape of passed values is {passed}, indices imply {implied}"
-    )
+    raise ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
 
 
 # -----------------------------------------------------------------------

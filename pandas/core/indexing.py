@@ -303,9 +303,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                             f"{self.name} cannot enlarge its target object"
                         )
                 elif isinstance(i, dict):
-                    raise IndexError(
-                        f"{self.name} cannot enlarge its target object"
-                    )
+                    raise IndexError(f"{self.name} cannot enlarge its target object")
 
         return True
 
@@ -1167,7 +1165,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             if missing == len(indexer):
                 raise KeyError(
                     f"None of [{key}] are in the [{self.obj._get_axis_name(axis)}]"
-                    )
+                )
 
             # We (temporarily) allow for some missing keys with .loc, except in
             # some cases (e.g. setting) in which "raise_missing" will be False
@@ -1902,17 +1900,14 @@ class _iLocIndexer(_LocationIndexer):
 
             # check that the key has a numeric dtype
             if not is_numeric_dtype(arr.dtype):
-                raise IndexError(
-                    f".iloc requires numeric indexers, got {arr}"
-                )
+                raise IndexError(f".iloc requires numeric indexers, got {arr}")
 
             # check that the key does not exceed the maximum size of the index
             if len(arr) and (arr.max() >= len_axis or arr.min() < -len_axis):
                 raise IndexError("positional indexers are out-of-bounds")
         else:
             raise ValueError(
-                "Can only index by location with "
-                f"a [{self._valid_types}]"
+                "Can only index by location with " f"a [{self._valid_types}]"
             )
 
     def _has_valid_setitem_indexer(self, indexer):
@@ -2061,8 +2056,7 @@ class _iLocIndexer(_LocationIndexer):
             return obj
         except ValueError:
             raise ValueError(
-                "Can only index by location with "
-                f"a [{self._valid_types}]"
+                "Can only index by location with " f"a [{self._valid_types}]"
             )
 
 

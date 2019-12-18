@@ -144,8 +144,10 @@ class Block(PandasObject):
             ndim = values.ndim
 
         if self._validate_ndim and values.ndim != ndim:
-            raise ValueError("Wrong number of dimensions. "
-                             f"values.ndim != ndim [{values.ndim} != {ndim}]")
+            raise ValueError(
+                "Wrong number of dimensions. "
+                f"values.ndim != ndim [{values.ndim} != {ndim}]"
+            )
         return ndim
 
     @property
@@ -268,8 +270,10 @@ class Block(PandasObject):
         else:
 
             shape = " x ".join(pprint_thing(s) for s in self.shape)
-            result = f"{name}: {pprint_thing(self.mgr_locs.indexer)}, " \
-                     f"{shape}, dtype: {self.dtype}"
+            result = (
+                f"{name}: {pprint_thing(self.mgr_locs.indexer)}, "
+                f"{shape}, dtype: {self.dtype}"
+            )
 
         return result
 
@@ -1032,8 +1036,7 @@ class Block(PandasObject):
                 return self.astype(object)
 
             raise AssertionError(
-                "possible recursion in "
-                f"coerce_to_target_dtype: {self} {other}"
+                "possible recursion in " f"coerce_to_target_dtype: {self} {other}"
             )
 
         elif self.is_timedelta or is_timedelta64_dtype(dtype):
@@ -1043,8 +1046,7 @@ class Block(PandasObject):
                 return self.astype(object)
 
             raise AssertionError(
-                "possible recursion in "
-                f"coerce_to_target_dtype: {self} {other}"
+                "possible recursion in " f"coerce_to_target_dtype: {self} {other}"
             )
 
         try:
@@ -1189,8 +1191,7 @@ class Block(PandasObject):
         if method in ("krogh", "piecewise_polynomial", "pchip"):
             if not index.is_monotonic:
                 raise ValueError(
-                    f"{method} interpolation requires that the "
-                    "index be monotonic."
+                    f"{method} interpolation requires that the " "index be monotonic."
                 )
         # process 1-d slices in the axis direction
 
