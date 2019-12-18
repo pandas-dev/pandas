@@ -5,7 +5,7 @@ This is not a public API.
 """
 import datetime
 import operator
-from typing import Tuple, Union
+from typing import Set, Tuple, Union
 
 import numpy as np
 
@@ -58,6 +58,37 @@ from pandas.core.ops.roperator import (  # noqa:F401
     rtruediv,
     rxor,
 )
+
+# -----------------------------------------------------------------------------
+# constants
+ARITHMETIC_BINOPS: Set[str] = {
+    "add",
+    "sub",
+    "mul",
+    "pow",
+    "mod",
+    "floordiv",
+    "truediv",
+    "divmod",
+    "radd",
+    "rsub",
+    "rmul",
+    "rpow",
+    "rmod",
+    "rfloordiv",
+    "rtruediv",
+    "rdivmod",
+}
+
+
+COMPARISON_BINOPS: Set[str] = {
+    "eq",
+    "ne",
+    "lt",
+    "gt",
+    "le",
+    "ge",
+}
 
 # -----------------------------------------------------------------------------
 # Ops Wrapping Utilities
