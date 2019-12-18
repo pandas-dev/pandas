@@ -110,12 +110,18 @@ def is_bool_indexer(key: Any) -> bool:
     Returns
     -------
     bool
+        Whether `key` is a valid boolean indexer.
 
     Raises
     ------
     ValueError
         When the array is an object-dtype ndarray or ExtensionArray
         and contains missing values.
+
+    See Also
+    --------
+    api.extensions.check_bool_array_indexer : Check that `key`
+        is a valid mask for an array, and convert to an ndarary.
     """
     na_msg = "cannot index with vector containing NA / NaN values"
     if isinstance(key, (ABCSeries, np.ndarray, ABCIndex)) or (

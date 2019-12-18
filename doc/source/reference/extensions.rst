@@ -18,6 +18,8 @@ objects.
    api.extensions.register_series_accessor
    api.extensions.register_index_accessor
    api.extensions.ExtensionDtype
+   api.extensions.is_bool_indexer
+   api.extensions.check_bool_array_indexer
 
 .. autosummary::
    :toctree: api/
@@ -25,6 +27,7 @@ objects.
 
    api.extensions.ExtensionArray
    arrays.PandasArray
+
 
 .. We need this autosummary so that methods and attributes are generated.
 .. Separate block, since they aren't classes.

@@ -2301,6 +2301,9 @@ def check_bool_array_indexer(array: AnyArrayLike, mask: AnyArrayLike) -> np.ndar
     numpy.ndarray
         The validated boolean mask.
 
+    See Also
+    --------
+    api.extensions.is_bool_indexer : Check if `key` is a boolean indexer.
     """
     result = np.asarray(mask, dtype=bool)
     # GH26658
