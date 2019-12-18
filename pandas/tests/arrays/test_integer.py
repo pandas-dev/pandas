@@ -436,7 +436,7 @@ class TestComparisonOps(BaseOpsUtil):
 
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("other", [True, False, pd.NA])
+    @pytest.mark.parametrize("other", [True, False, pd.NA, -1, 0, 1])
     def test_scalar(self, other, all_compare_operators):
         op = self.get_op_from_name(all_compare_operators)
         a = pd.array([1, 0, None], dtype="Int64")
