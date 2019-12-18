@@ -541,8 +541,8 @@ class Block(PandasObject):
 
         if errors not in errors_legal_values:
             invalid_arg = (
-                f"Expected value of kwarg 'errors' to be one of {list(errors_legal_values)}. "
-                f"Supplied value is '{errors}'"
+                f"Expected value of kwarg 'errors' to be one of "
+                f"{list(errors_legal_values)}. Supplied value is '{errors}'"
             )
             raise ValueError(invalid_arg)
 
