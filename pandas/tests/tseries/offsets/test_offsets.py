@@ -612,7 +612,7 @@ class TestCommon(Base):
         assert result == expected_localize
 
     def test_add_empty_datetimeindex(self, offset_types, tz_naive_fixture):
-        # GH#12724
+        # GH#12724, GH#30336
         offset_s = self._get_offset(offset_types)
 
         dti = DatetimeIndex([], tz=tz_naive_fixture)
