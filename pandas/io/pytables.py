@@ -1314,7 +1314,7 @@ class HDFStore:
         optlevel : int or None, default None
             Optimization level, if None, pytables defaults to 6.
         kind : str or None, default None
-            Kind of index, if None, pytables defaults to "medium"
+            Kind of index, if None, pytables defaults to "medium".
 
         Raises
         ------
@@ -1741,24 +1741,24 @@ class HDFStore:
 
 
 class TableIterator:
-    """ define the iteration interface on a table
+    """
+    Define the iteration interface on a table
 
-        Parameters
-        ----------
-
-        store : the reference store
-        s     : the referred storer
-        func  : the function to execute the query
-        where : the where of the query
-        nrows : the rows to iterate on
-        start : the passed start value (default is None)
-        stop  : the passed stop value (default is None)
-        iterator : bool, default False
-            Whether to use the default iterator.
-        chunksize : the passed chunking value (default is 100000)
-        auto_close : boolean, automatically close the store at the end of
-            iteration, default is False
-        """
+    Parameters
+    ----------
+    store : HDFStore
+    s     : the referred storer
+    func  : the function to execute the query
+    where : the where of the query
+    nrows : the rows to iterate on
+    start : the passed start value (default is None)
+    stop  : the passed stop value (default is None)
+    iterator : bool, default False
+        Whether to use the default iterator.
+    chunksize : the passed chunking value (default is 100000)
+    auto_close : bool, default False
+        Whether to automatically close the store at the end of iteration.
+    """
 
     chunksize: Optional[int]
     store: HDFStore
@@ -1974,7 +1974,8 @@ class IndexCol:
         if values.dtype.fields is not None:
             values = values[self.cname]
 
-        values = _maybe_convert(values, self.kind, encoding, errors)
+        val_kind = _ensure_decoded(self.kind)
+        values = _maybe_convert(values, val_kind, encoding, errors)
 
         kwargs = dict()
         kwargs["name"] = _ensure_decoded(self.index_name)
@@ -2500,13 +2501,18 @@ class Fixed:
     pandas_kind: str
     obj_type: Type[Union[DataFrame, Series]]
     ndim: int
+    encoding: str
     parent: HDFStore
     group: "Node"
     errors: str
     is_table = False
 
     def __init__(
-        self, parent: HDFStore, group: "Node", encoding=None, errors: str = "strict"
+        self,
+        parent: HDFStore,
+        group: "Node",
+        encoding: str = "UTF-8",
+        errors: str = "strict",
     ):
         assert isinstance(parent, HDFStore), type(parent)
         assert _table_mod is not None  # needed for mypy
@@ -2557,10 +2563,6 @@ class Fixed:
         return new_self
 
     @property
-    def storage_obj_type(self):
-        return self.obj_type
-
-    @property
     def shape(self):
         return self.nrows
 
@@ -2583,10 +2585,6 @@ class Fixed:
     @property
     def _fletcher32(self) -> bool:
         return self.parent._fletcher32
-
-    @property
-    def _complib(self):
-        return self.parent._complib
 
     @property
     def attrs(self):
@@ -3314,12 +3312,12 @@ class Table(Fixed):
     def queryables(self) -> Dict[str, Any]:
         """ return a dict of the kinds allowable columns for this object """
 
+        # mypy doesnt recognize DataFrame._AXIS_NAMES, so we re-write it here
+        axis_names = {0: "index", 1: "columns"}
+
         # compute the values_axes queryables
         d1 = [(a.cname, a) for a in self.index_axes]
-        d2 = [
-            (self.storage_obj_type._AXIS_NAMES[axis], None)
-            for axis, values in self.non_index_axes
-        ]
+        d2 = [(axis_names[axis], None) for axis, values in self.non_index_axes]
         d3 = [
             (v.cname, v) for v in self.values_axes if v.name in set(self.data_columns)
         ]
@@ -3342,9 +3340,9 @@ class Table(Fixed):
         group = self.group._v_pathname
         return f"{group}/meta/{key}/meta"
 
-    def write_metadata(self, key: str, values):
+    def write_metadata(self, key: str, values: np.ndarray):
         """
-        write out a meta data array to the key as a fixed-format Series
+        Write out a metadata array to the key as a fixed-format Series.
 
         Parameters
         ----------
@@ -3498,9 +3496,7 @@ class Table(Fixed):
 
     def create_index(self, columns=None, optlevel=None, kind: Optional[str] = None):
         """
-        Create a pytables index on the specified columns
-          note: cannot index Time64Col() or ComplexCol currently;
-          PyTables must be >= 3.0
+        Create a pytables index on the specified columns.
 
         Parameters
         ----------
@@ -3515,12 +3511,16 @@ class Table(Fixed):
         optlevel : int or None, default None
             Optimization level, if None, pytables defaults to 6.
         kind : str or None, default None
-            Kind of index, if None, pytables defaults to "medium"
+            Kind of index, if None, pytables defaults to "medium".
 
         Raises
         ------
-        raises if the node is not a table
+        TypeError if trying to create an index on a complex-type column.
 
+        Notes
+        -----
+        Cannot index Time64Col or ComplexCol.
+        Pytables must be >= 3.0.
         """
 
         if not self.infer_axes():
@@ -3964,10 +3964,10 @@ class Table(Fixed):
 
     def create_description(
         self,
-        complib=None,
-        complevel: Optional[int] = None,
-        fletcher32: bool = False,
-        expectedrows: Optional[int] = None,
+        complib,
+        complevel: Optional[int],
+        fletcher32: bool,
+        expectedrows: Optional[int],
     ) -> Dict[str, Any]:
         """ create the description of the table from the axes & values """
 
@@ -4216,7 +4216,13 @@ class AppendableTable(Table):
                 values=[v[start_i:end_i] for v in bvalues],
             )
 
-    def write_data_chunk(self, rows, indexes, mask, values):
+    def write_data_chunk(
+        self,
+        rows: np.ndarray,
+        indexes: List[np.ndarray],
+        mask: Optional[np.ndarray],
+        values: List[np.ndarray],
+    ):
         """
         Parameters
         ----------
@@ -4424,7 +4430,6 @@ class AppendableSeriesTable(AppendableFrameTable):
     table_type = "appendable_series"
     ndim = 2
     obj_type = Series
-    storage_obj_type = DataFrame
 
     @property
     def is_transposed(self) -> bool:
@@ -4446,7 +4451,7 @@ class AppendableSeriesTable(AppendableFrameTable):
         columns=None,
         start: Optional[int] = None,
         stop: Optional[int] = None,
-    ):
+    ) -> Series:
 
         is_multi_index = self.is_multi_index
         if columns is not None and is_multi_index:
@@ -4589,7 +4594,7 @@ class AppendableMultiFrameTable(AppendableFrameTable):
         return df
 
 
-def _reindex_axis(obj, axis: int, labels: Index, other=None):
+def _reindex_axis(obj: DataFrame, axis: int, labels: Index, other=None) -> DataFrame:
     ax = obj._get_axis(axis)
     labels = ensure_index(labels)
 
@@ -4652,7 +4657,7 @@ def _set_tz(
     return values
 
 
-def _convert_index(name: str, index: Index, encoding=None, errors="strict"):
+def _convert_index(name: str, index: Index, encoding: str, errors: str) -> IndexCol:
     assert isinstance(name, str)
 
     index_name = index.name
@@ -4711,7 +4716,9 @@ def _convert_index(name: str, index: Index, encoding=None, errors="strict"):
         return IndexCol(name, converted, kind, atom, index_name=index_name,)
 
 
-def _unconvert_index(data, kind: str, encoding=None, errors="strict"):
+def _unconvert_index(
+    data, kind: str, encoding: str, errors: str
+) -> Union[np.ndarray, Index]:
     index: Union[Index, np.ndarray]
 
     if kind == "datetime64":
@@ -4802,61 +4809,59 @@ def _maybe_convert_for_string_atom(
     return data_converted
 
 
-def _convert_string_array(data, encoding, errors, itemsize=None):
+def _convert_string_array(data: np.ndarray, encoding: str, errors: str) -> np.ndarray:
     """
-    we take a string-like that is object dtype and coerce to a fixed size
-    string type
+    Take a string-like that is object dtype and coerce to a fixed size string type.
 
     Parameters
     ----------
-    data : a numpy array of object dtype
-    encoding : None or string-encoding
-    errors : handler for encoding errors
-    itemsize : integer, optional, defaults to the max length of the strings
+    data : np.ndarray[object]
+    encoding : str
+    errors : str
+        Handler for encoding errors.
 
     Returns
     -------
-    data in a fixed-length string dtype, encoded to bytes if needed
+    np.ndarray[fixed-length-string]
     """
 
     # encode if needed
-    if encoding is not None and len(data):
+    if len(data):
         data = (
             Series(data.ravel()).str.encode(encoding, errors).values.reshape(data.shape)
         )
 
     # create the sized dtype
-    if itemsize is None:
-        ensured = ensure_object(data.ravel())
-        itemsize = max(1, libwriters.max_len_string_array(ensured))
+    ensured = ensure_object(data.ravel())
+    itemsize = max(1, libwriters.max_len_string_array(ensured))
 
     data = np.asarray(data, dtype=f"S{itemsize}")
     return data
 
 
-def _unconvert_string_array(data, nan_rep=None, encoding=None, errors="strict"):
+def _unconvert_string_array(
+    data: np.ndarray, nan_rep, encoding: str, errors: str
+) -> np.ndarray:
     """
-    inverse of _convert_string_array
+    Inverse of _convert_string_array.
 
     Parameters
     ----------
-    data : fixed length string dtyped array
-    nan_rep : the storage repr of NaN, optional
-    encoding : the encoding of the data, optional
-    errors : handler for encoding errors, default 'strict'
+    data : np.ndarray[fixed-length-string]
+    nan_rep : the storage repr of NaN
+    encoding : str
+    errors : str
+        Handler for encoding errors.
 
     Returns
     -------
-    an object array of the decoded data
-
+    np.ndarray[object]
+        Decoded data.
     """
     shape = data.shape
     data = np.asarray(data.ravel(), dtype=object)
 
-    # guard against a None encoding (because of a legacy
-    # where the passed encoding is actually None)
-    encoding = _ensure_encoding(encoding)
-    if encoding is not None and len(data):
+    if len(data):
 
         itemsize = libwriters.max_len_string_array(ensure_object(data))
         dtype = f"U{itemsize}"
@@ -4873,8 +4878,8 @@ def _unconvert_string_array(data, nan_rep=None, encoding=None, errors="strict"):
     return data.reshape(shape)
 
 
-def _maybe_convert(values: np.ndarray, val_kind, encoding: str, errors: str):
-    val_kind = _ensure_decoded(val_kind)
+def _maybe_convert(values: np.ndarray, val_kind: str, encoding: str, errors: str):
+    assert isinstance(val_kind, str), type(val_kind)
     if _need_convert(val_kind):
         conv = _get_converter(val_kind, encoding, errors)
         values = conv(values)
@@ -4885,12 +4890,14 @@ def _get_converter(kind: str, encoding: str, errors: str):
     if kind == "datetime64":
         return lambda x: np.asarray(x, dtype="M8[ns]")
     elif kind == "string":
-        return lambda x: _unconvert_string_array(x, encoding=encoding, errors=errors)
+        return lambda x: _unconvert_string_array(
+            x, nan_rep=None, encoding=encoding, errors=errors
+        )
     else:  # pragma: no cover
         raise ValueError(f"invalid kind {kind}")
 
 
-def _need_convert(kind) -> bool:
+def _need_convert(kind: str) -> bool:
     if kind in ("datetime64", "string"):
         return True
     return False
