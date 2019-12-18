@@ -1994,3 +1994,20 @@ def test_dup_labels_output_shape(groupby_func, idx):
 
     assert result.shape == (1, 2)
     tm.assert_index_equal(result.columns, idx)
+
+
+def test_groupby_crash_on_nunique(axis):
+    # Fix following 30253
+    df = pd.DataFrame({("A", "B"): [1, 2], ("A", "C"): [1, 3], ("D", "B"): [0, 0]})
+
+    axis_number = df._get_axis_number(axis)
+    if not axis_number:
+        df = df.T
+
+    result = df.groupby(axis=axis_number, level=0).nunique()
+
+    expected = pd.DataFrame({"A": [1, 2], "D": [1, 1]})
+    if not axis_number:
+        expected = expected.T
+
+    tm.assert_frame_equal(result, expected)
