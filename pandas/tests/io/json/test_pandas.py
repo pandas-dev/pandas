@@ -1601,3 +1601,16 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
     def test_json_negative_indent_raises(self):
         with pytest.raises(ValueError, match="must be a nonnegative integer"):
             pd.DataFrame().to_json(indent=-1)
+
+    @pytest.mark.parametrize(
+        "json,expected",
+        [
+            (
+                json.dumps([{"col": "31900441201190696999"}, {"col": "3190044"}]),
+                DataFrame({"col": [31900441201190696999.0, 3190044.0]}),
+            ),
+        ],
+    )
+    def test_frame_int_overflow(self, json, expected):
+        result = read_json(json)
+        tm.assert_frame_equal(result, expected)
