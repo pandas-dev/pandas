@@ -296,29 +296,47 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
             return self._data[item]
         return type(self)(self._data[item], self._mask[item])
 
-    def _coerce_to_ndarray(self, dtype=None, na_value: "Scalar" = libmissing.NA):
+    def to_numpy(self, dtype=None, copy=False, na_value: "Scalar" = libmissing.NA):
         """
-        Coerce to an ndarray of object dtype or bool dtype (if force_bool=True).
+        Convert to a numpy array.
+
+        By default converts to a numpy object array. Specify the `dtype` and
+        `na_value` keywords to customize the conversion.
 
         Parameters
         ----------
         dtype : dtype, default object
-            The numpy dtype to convert to
+            The numpy dtype to convert to.
+        copy : bool, default False
+            Whether to ensure that the returned value is a not a view on
+            the array. Note that ``copy=False`` does not *ensure* that
+            ``to_numpy()`` is no-copy. Rather, ``copy=True`` ensure that
+            a copy is made, even if not strictly necessary.
         na_value : scalar, optional
              Scalar missing value indicator to use in numpy array. Defaults
              to the native missing value indicator of this array (pd.NA).
+
+        Returns
+        -------
+        np.ndarray
         """
         if dtype is None:
             dtype = object
-        if is_bool_dtype(dtype):
+        if is_bool_dtype(dtype) and na_value is libmissing.NA:
             if not self.isna().any():
-                return self._data
+                data = self._data
+                if copy:
+                    data = data.copy()
             else:
                 raise ValueError(
                     "cannot convert to bool numpy array in presence of missing values"
                 )
-        data = self._data.astype(dtype)
-        data[self._mask] = na_value
+        if self.isna().any():
+            # don't pass copy to astype -> always need a copy since we are mutating
+            data = self._data.astype(dtype)
+            data[self._mask] = na_value
+        else:
+            data = self._data.astype(dtype, copy=copy)
         return data
 
     __array_priority__ = 1000  # higher than ndarray so ops dispatch to us
@@ -329,7 +347,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
         We return an object array here to preserve our scalar values
         """
         # by default (no dtype specified), return an object array
-        return self._coerce_to_ndarray(dtype=dtype)
+        return self.to_numpy(dtype=dtype)
 
     def __arrow_array__(self, type=None):
         """
@@ -505,7 +523,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
         if is_float_dtype(dtype):
             na_value = np.nan
         # coerce
-        data = self._coerce_to_ndarray(na_value=na_value)
+        data = self.to_numpy(na_value=na_value)
         return astype_nansafe(data, dtype, copy=None)
 
     def value_counts(self, dropna=True):
