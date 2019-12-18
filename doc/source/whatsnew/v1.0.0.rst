@@ -205,6 +205,8 @@ Other enhancements
   (:meth:`~DataFrame.to_parquet` / :func:`read_parquet`) using the `'pyarrow'` engine
   now preserve those data types with pyarrow >= 1.0.0 (:issue:`20612`).
 - The ``partition_cols`` argument in :meth:`DataFrame.to_parquet` now accepts a string (:issue:`27117`)
+- :func:`to_parquet` now appropriately handles the ``schema`` argument for user defined schemas in the pyarrow engine. (:issue: `30270`)
+
 
 Build Changes
 ^^^^^^^^^^^^^
@@ -879,7 +881,7 @@ Other
 - Fixed :class:`IntegerArray` returning ``inf`` rather than ``NaN`` for operations dividing by 0 (:issue:`27398`)
 - Fixed ``pow`` operations for :class:`IntegerArray` when the other value is ``0`` or ``1`` (:issue:`29997`)
 - Bug in :meth:`Series.count` raises if use_inf_as_na is enabled (:issue:`29478`)
-- :meth: `to_parquet` now appropriately handles the ``schema`` argument for user defined schemas in the pyarrow engine. (:issue: `30270`)
+
 
 .. _whatsnew_1000.contributors:
 
