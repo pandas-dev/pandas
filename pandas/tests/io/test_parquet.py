@@ -525,7 +525,6 @@ class TestParquetPyArrow(Base):
         out_df = df.astype(bool)
         check_round_trip(df, pa, write_kwargs={"schema": schema}, expected=out_df)
 
-    @pytest.mark.skip(reason="broken test")
     @td.skip_if_no("pyarrow", min_version="0.15.0")
     def test_additional_extension_arrays(self, pa):
         # test additional ExtensionArrays that are supported through the

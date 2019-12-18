@@ -86,7 +86,7 @@ class StringDtype(ExtensionDtype):
 
         results = []
         for arr in chunks:
-            # using _from_sequence to ensure None is convered to np.nan
+            # using _from_sequence to ensure None is convered to NA
             str_arr = StringArray._from_sequence(np.array(arr))
             results.append(str_arr)
 
@@ -208,7 +208,10 @@ class StringArray(PandasArray):
 
         if type is None:
             type = pa.string()
-        return pa.array(self._ndarray, type=type, from_pandas=True)
+
+        values = self._ndarray.copy()
+        values[self.isna()] = None
+        return pa.array(values, type=type, from_pandas=True)
 
     def _values_for_factorize(self):
         arr = self._ndarray.copy()
