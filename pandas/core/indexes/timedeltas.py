@@ -25,7 +25,7 @@ from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.timedeltas import TimedeltaArray, _is_convertible_to_td
 from pandas.core.base import _shared_docs
 import pandas.core.common as com
-from pandas.core.indexes.base import Index, _index_shared_docs
+from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
 from pandas.core.indexes.datetimelike import (
     DatetimeIndexOpsMixin,
     DatetimelikeDelegateMixin,
@@ -163,6 +163,7 @@ class TimedeltaIndex(
         copy=False,
         name=None,
     ):
+        name = maybe_extract_name(name, data)
 
         if is_scalar(data):
             raise TypeError(

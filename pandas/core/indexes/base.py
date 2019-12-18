@@ -274,8 +274,7 @@ class Index(IndexOpsMixin, PandasObject):
         from .interval import IntervalIndex
         from .category import CategoricalIndex
 
-        if name is None and hasattr(data, "name"):
-            name = data.name
+        name = maybe_extract_name(name, data)
 
         if isinstance(data, ABCPandasArray):
             # ensure users don't accidentally put a PandasArray in an index.
@@ -5464,3 +5463,17 @@ def default_index(n):
     from pandas.core.indexes.range import RangeIndex
 
     return RangeIndex(0, n, name=None)
+
+
+def maybe_extract_name(name, obj):
+    """
+    If no name is passed, then extract it from data, validating hashability.
+    """
+    if name is None and hasattr(obj, "name"):
+        name = obj.name
+
+    # GH#29069
+    if not is_hashable(name):
+        raise TypeError(f"Index.name must be a hashable type")
+
+    return name
