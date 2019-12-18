@@ -42,7 +42,6 @@ from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.construction import sanitize_array
-from pandas.core.indexing import check_bool_indexer
 from pandas.core.missing import interpolate_2d
 import pandas.core.ops as ops
 from pandas.core.ops.common import unpack_zerodim_and_defer
@@ -739,6 +738,9 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     # --------
 
     def __getitem__(self, key):
+        # avoid mypy issues when importing at the top-level
+        from pandas.core.indexing import check_bool_indexer
+
         if isinstance(key, tuple):
             if len(key) > 1:
                 raise IndexError("too many indices for array.")
