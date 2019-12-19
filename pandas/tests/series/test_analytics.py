@@ -24,7 +24,7 @@ from pandas.core.indexes.timedeltas import TimedeltaIndex
 import pandas.util.testing as tm
 
 
-class TestDescribe:
+class TestSeriesDescribe:
     def test_describe(self):
         s = Series([0, 1, 2, 3, 4], name="int_data")
         result = s.describe()

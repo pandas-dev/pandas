@@ -258,7 +258,7 @@ def assert_bool_op_api(
         getattr(bool_frame_with_na, opname)(axis=1, bool_only=False)
 
 
-class TestDescribe:
+class TestDataFrameDescribe:
     def test_describe_bool_in_mixed_frame(self):
         df = DataFrame(
             {
