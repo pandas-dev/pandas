@@ -6,7 +6,11 @@ from pandas.compat._optional import import_optional_dependency
 
 
 def _generate_numba_apply_func(
-    args: Tuple, kwargs: Dict, func: Callable, engine_kwargs: Optional[Dict]
+    args: Tuple,
+    kwargs: Dict,
+    func: Callable,
+    engine_kwargs: Optional[Dict],
+    function_cache: Dict,
 ):
     """
     Generate a numba jitted apply function specified by values from engine_kwargs.
@@ -36,6 +40,10 @@ def _generate_numba_apply_func(
         loop_range = numba.prange
     else:
         loop_range = range
+
+    # Return an already compiled version of roll_apply if available
+    if func in function_cache:
+        return function_cache[func]
 
     def make_rolling_apply(func):
 

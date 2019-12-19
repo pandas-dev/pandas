@@ -93,6 +93,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         self.win_freq = None
         self.axis = obj._get_axis_number(axis) if axis is not None else None
         self.validate()
+        self._numba_func_cache = dict()
 
     @property
     def _constructor(self):
@@ -443,6 +444,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         floor: int = 1,
         is_weighted: bool = False,
         name: Optional[str] = None,
+        use_numba_cache: Optional[bool] = False,
         **kwargs,
     ):
         """
@@ -455,10 +457,11 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         func : callable function to apply
         center : bool
         require_min_periods : int
-        floor: int
-        is_weighted
-        name: str,
+        floor : int
+        is_weighted : bool
+        name : str,
             compatibility with groupby.rolling
+        use_numba_cache : bool
         **kwargs
             additional arguments for rolling function and window function
 
@@ -532,6 +535,9 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                 else:
                     result = calc(values)
                     result = np.asarray(result)
+
+            if use_numba_cache:
+                self._numba_func_cache[name] = func
 
             if center:
                 result = self._center_window(result, window)
@@ -1303,13 +1309,21 @@ class _Rolling_and_Expanding(_Rolling):
         elif engine == "numba":
             if raw is False:
                 raise ValueError("raw must be `True` when using the numba engine")
-            apply_func = _generate_numba_apply_func(args, kwargs, func, engine_kwargs)
+            apply_func = _generate_numba_apply_func(
+                args, kwargs, func, engine_kwargs, self._numba_func_cache
+            )
         else:
             raise ValueError("engine must be either 'numba' or 'cython'")
 
         # TODO: Why do we always pass center=False?
         # name=func for WindowGroupByMixin._apply
-        return self._apply(apply_func, center=False, floor=0, name=func)
+        return self._apply(
+            apply_func,
+            center=False,
+            floor=0,
+            name=func,
+            use_numba_cache=engine == "numba",
+        )
 
     def _generate_cython_apply_func(self, args, kwargs, raw, offset, func):
         from pandas import Series
