@@ -176,22 +176,6 @@ map directly to c-types [inferred_type->%s,key->%s] [items->%s]
 # formats
 _FORMAT_MAP = {"f": "fixed", "fixed": "fixed", "t": "table", "table": "table"}
 
-# storer class map
-_STORER_MAP = {
-    "series": "SeriesFixed",
-    "frame": "FrameFixed",
-}
-
-# table class map
-_TABLE_MAP = {
-    "generic_table": "GenericTable",
-    "appendable_series": "AppendableSeriesTable",
-    "appendable_multiseries": "AppendableMultiSeriesTable",
-    "appendable_frame": "AppendableFrameTable",
-    "appendable_multiframe": "AppendableMultiFrameTable",
-    "worm": "WORMTable",
-}
-
 # axes map
 _AXES_MAP = {DataFrame: [0]}
 
@@ -1553,11 +1537,16 @@ class HDFStore:
         self,
         group,
         format=None,
-        value=None,
+        value: Optional[FrameOrSeries] = None,
         encoding: str = "UTF-8",
         errors: str = "strict",
     ) -> Union["GenericFixed", "Table"]:
         """ return a suitable class to operate """
+
+        cls: Union[Type["GenericFixed"], Type["Table"]]
+
+        if value is not None and not isinstance(value, (Series, DataFrame)):
+            raise TypeError("value must be None, Series, or DataFrame")
 
         def error(t):
             # return instead of raising so mypy can tell where we are raising
@@ -1587,10 +1576,7 @@ class HDFStore:
                     )
             else:
                 _TYPE_MAP = {Series: "series", DataFrame: "frame"}
-                try:
-                    pt = _TYPE_MAP[type(value)]
-                except KeyError:
-                    raise error("_TYPE_MAP")
+                pt = _TYPE_MAP[type(value)]
 
                 # we are actually a table
                 if format == "table":
@@ -1598,12 +1584,12 @@ class HDFStore:
 
         # a storer node
         if "table" not in pt:
+            _STORER_MAP = {"series": SeriesFixed, "frame": FrameFixed}
             try:
-                return globals()[_STORER_MAP[pt]](
-                    self, group, encoding=encoding, errors=errors
-                )
+                cls = _STORER_MAP[pt]
             except KeyError:
                 raise error("_STORER_MAP")
+            return cls(self, group, encoding=encoding, errors=errors)
 
         # existing node (and must be a table)
         if tt is None:
@@ -1625,28 +1611,21 @@ class HDFStore:
                             tt = "appendable_frame"
                         elif index.nlevels > 1:
                             tt = "appendable_multiframe"
-                elif pt == "wide_table":
-                    tt = "appendable_panel"
-                elif pt == "ndim_table":
-                    tt = "appendable_ndim"
 
-            else:
-
-                # distinguish between a frame/table
-                tt = "legacy_panel"
-                try:
-                    fields = group.table._v_attrs.fields
-                    if len(fields) == 1 and fields[0] == "value":
-                        tt = "legacy_frame"
-                except IndexError:
-                    pass
-
+        _TABLE_MAP = {
+            "generic_table": GenericTable,
+            "appendable_series": AppendableSeriesTable,
+            "appendable_multiseries": AppendableMultiSeriesTable,
+            "appendable_frame": AppendableFrameTable,
+            "appendable_multiframe": AppendableMultiFrameTable,
+            "worm": WORMTable,
+        }
         try:
-            return globals()[_TABLE_MAP[tt]](
-                self, group, encoding=encoding, errors=errors
-            )
+            cls = _TABLE_MAP[tt]
         except KeyError:
             raise error("_TABLE_MAP")
+
+        return cls(self, group, encoding=encoding, errors=errors)
 
     def _write_to_group(
         self,
