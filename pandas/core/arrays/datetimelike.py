@@ -416,7 +416,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             return self._box_func(val)
 
         if com.is_bool_indexer(key):
-            key = np.asarray(key, dtype=bool)
+            from pandas.core.indexing import check_bool_indexer
+
+            key = check_bool_indexer(self, key)
             if key.all():
                 key = slice(0, None, None)
             else:

@@ -220,6 +220,11 @@ class Base:
         assert isinstance(indexer, np.ndarray)
         assert indexer.dtype == np.intp
 
+    def test_getitem_mask_wrong_length(self, indices):
+        mask = np.array([True])
+        with pytest.raises(IndexError, match="Item wrong length 1"):
+            indices[mask]
+
     def test_ndarray_compat_properties(self):
         idx = self.create_index()
         assert idx.T.equals(idx)

@@ -42,6 +42,7 @@ from pandas.core.indexes.base import (
     ensure_index,
 )
 from pandas.core.indexes.frozen import FrozenList
+from pandas.core.indexing import check_bool_indexer
 import pandas.core.missing as missing
 from pandas.core.sorting import (
     get_group_index,
@@ -1934,7 +1935,7 @@ class MultiIndex(Index):
             return tuple(retval)
         else:
             if com.is_bool_indexer(key):
-                key = np.asarray(key, dtype=bool)
+                key = check_bool_indexer(self, key)
                 sortorder = self.sortorder
             else:
                 # cannot be sure whether the result will be sorted
