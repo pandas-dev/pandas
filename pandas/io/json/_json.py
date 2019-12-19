@@ -314,7 +314,7 @@ class JSONTableWriter(FrameWriter):
         timedeltas = obj.select_dtypes(include=["timedelta"]).columns
         if len(timedeltas):
             obj[timedeltas] = obj[timedeltas].applymap(lambda x: x.isoformat())
-        # Convert PeriodIndex to datetimes before serialzing
+        # Convert PeriodIndex to datetimes before serializing
         if is_period_dtype(obj.index):
             obj.index = obj.index.to_timestamp()
 
