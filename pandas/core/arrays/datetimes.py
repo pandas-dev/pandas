@@ -794,7 +794,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
                 values = self.tz_localize(None)
             else:
                 values = self
-            result = offset.apply_index(values)
+            result = offset.apply_index(values).tz_localize(self.tz)
 
         except NotImplementedError:
             warnings.warn(
@@ -802,8 +802,11 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
                 PerformanceWarning,
             )
             result = self.astype("O") + offset
+            if len(self) == 0:
+                # _from_sequence won't be able to infer self.tz
+                return type(self)._from_sequence(result).tz_localize(self.tz)
 
-        return type(self)._from_sequence(result, freq="infer").tz_localize(self.tz)
+        return type(self)._from_sequence(result, freq="infer")
 
     def _sub_datetimelike_scalar(self, other):
         # subtract a datetime from myself, yielding a ndarray[timedelta64[ns]]
