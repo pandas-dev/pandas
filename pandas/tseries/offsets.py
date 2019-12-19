@@ -252,6 +252,7 @@ class DateOffset(BaseOffset):
     _use_relativedelta = False
     _adjust_dst = False
     _attributes = frozenset(["n", "normalize"] + list(liboffsets.relativedelta_kwds))
+    _deprecations = frozenset(["isAnchored", "onOffset"])
 
     # default for prior pickles
     normalize = False

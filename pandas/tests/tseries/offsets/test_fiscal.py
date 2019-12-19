@@ -9,6 +9,7 @@ import pytest
 from pandas._libs.tslibs.frequencies import INVALID_FREQ_ERR_MSG
 
 from pandas import Timestamp
+import pandas.util.testing as tm
 
 from pandas.tseries.frequencies import get_offset
 from pandas.tseries.offsets import FY5253, FY5253Quarter
@@ -50,9 +51,11 @@ def test_get_offset_name():
 
 def test_get_offset():
     with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
-        get_offset("gibberish")
+        with tm.assert_produces_warning(FutureWarning):
+            get_offset("gibberish")
     with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
-        get_offset("QS-JAN-B")
+        with tm.assert_produces_warning(FutureWarning):
+            get_offset("QS-JAN-B")
 
     pairs = [
         ("RE-N-DEC-MON", makeFY5253NearestEndMonth(weekday=0, startingMonth=12)),
@@ -78,7 +81,8 @@ def test_get_offset():
     ]
 
     for name, expected in pairs:
-        offset = get_offset(name)
+        with tm.assert_produces_warning(FutureWarning):
+            offset = get_offset(name)
         assert offset == expected, (
             f"Expected {repr(name)} to yield {repr(expected)} "
             f"(actual: {repr(offset)})"
