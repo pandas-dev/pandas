@@ -137,7 +137,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             return result
 
         wrapper.__doc__ = op.__doc__
-        wrapper.__name__ = "__{}__".format(op.__name__)
+        wrapper.__name__ = f"__{op.__name__}__"
         return wrapper
 
     @property
@@ -677,7 +677,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             name = type(self).__name__
         result = f"{name}: {len(self)} entries{index_summary}"
         if self.freq:
-            result += "\nFreq: %s" % self.freqstr
+            result += f"\nFreq: {self.freqstr}"
 
         # display as values, not quoted
         result = result.replace("'", "")

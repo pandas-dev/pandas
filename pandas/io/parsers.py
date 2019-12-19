@@ -50,7 +50,12 @@ from pandas._typing import FilePathOrBuffer
 from pandas.core import algorithms
 from pandas.core.arrays import Categorical
 from pandas.core.frame import DataFrame
-from pandas.core.index import Index, MultiIndex, RangeIndex, ensure_index_from_sequences
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+    RangeIndex,
+    ensure_index_from_sequences,
+)
 from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
 
@@ -3487,7 +3492,7 @@ def _get_empty_meta(columns, index_col, index_names, dtype=None):
     # 2) index_names (column names)
     #
     # Both must be non-null to ensure a successful construction. Otherwise,
-    # we have to create a generic emtpy Index.
+    # we have to create a generic empty Index.
     if (index_col is None or index_col is False) or index_names is None:
         index = Index([])
     else:

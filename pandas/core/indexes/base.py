@@ -331,11 +331,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         # extension dtype
         elif is_extension_array_dtype(data) or is_extension_array_dtype(dtype):
-            data = np.asarray(data)
             if not (dtype is None or is_object_dtype(dtype)):
                 # coerce to the provided dtype
                 ea_cls = dtype.construct_array_type()
                 data = ea_cls._from_sequence(data, dtype=dtype, copy=False)
+            else:
+                data = np.asarray(data, dtype=object)
 
             # coerce to the object dtype
             data = data.astype(object)
@@ -910,8 +911,6 @@ class Index(IndexOpsMixin, PandasObject):
         memo, default None
             Standard signature. Unused
         """
-        if memo is None:
-            memo = {}
         return self.copy(deep=True)
 
     # --------------------------------------------------------------------
@@ -2982,7 +2981,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         is_null_slicer = start is None and stop is None
         is_index_slice = is_int(start) and is_int(stop)
-        is_positional = is_index_slice and not self.is_integer()
+        is_positional = is_index_slice and not (
+            self.is_integer() or self.is_categorical()
+        )
 
         if kind == "getitem":
             """
@@ -5460,6 +5461,6 @@ def _validate_join_method(method):
 
 
 def default_index(n):
-    from pandas.core.index import RangeIndex
+    from pandas.core.indexes.range import RangeIndex
 
     return RangeIndex(0, n, name=None)

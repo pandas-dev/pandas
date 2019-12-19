@@ -929,6 +929,14 @@ class TestDataFrameSelectReindex:
         result = empty.filter(like="foo")
         tm.assert_frame_equal(result, empty)
 
+    def test_filter_regex_non_string(self):
+        # GH#5798 trying to filter on non-string columns should drop,
+        #  not raise
+        df = pd.DataFrame(np.random.random((3, 2)), columns=["STRING", 123])
+        result = df.filter(regex="STRING")
+        expected = df[["STRING"]]
+        tm.assert_frame_equal(result, expected)
+
     def test_take(self, float_frame):
         # homogeneous
         order = [3, 1, 2, 0]
