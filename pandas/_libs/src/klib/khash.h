@@ -498,7 +498,7 @@ PANDAS_INLINE khint_t __ac_Wang_hash(khint_t key)
  */
 #define kh_n_buckets(h) ((h)->n_buckets)
 
-/* More conenient interfaces */
+/* More convenient interfaces */
 
 /*! @function
   @abstract     Instantiate a hash set containing integer keys

@@ -290,7 +290,7 @@ class SparseDtype(ExtensionDtype):
         Returns
         -------
         SparseDtype
-            A new SparseDtype with the corret `dtype` and fill value
+            A new SparseDtype with the correct `dtype` and fill value
             for that `dtype`.
 
         Raises

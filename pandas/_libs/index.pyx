@@ -288,7 +288,7 @@ cdef class IndexEngine:
 
     def get_indexer_non_unique(self, targets):
         """
-        Return an indexer suitable for takng from a non unique index
+        Return an indexer suitable for taking from a non unique index
         return the labels in the same order ast the target
         and a missing indexer into the targets (which correspond
         to the -1 indices in the results

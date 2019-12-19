@@ -510,7 +510,7 @@ def maybe_booleans_to_slice(ndarray[uint8_t] mask):
 @cython.boundscheck(False)
 def array_equivalent_object(left: object[:], right: object[:]) -> bool:
     """
-    Perform an element by element comparion on 1-d object arrays
+    Perform an element by element comparison on 1-d object arrays
     taking into account nan positions.
     """
     cdef:

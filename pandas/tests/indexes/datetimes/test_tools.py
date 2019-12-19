@@ -1061,7 +1061,7 @@ class TestToDatetimeUnit:
     @pytest.mark.parametrize("cache", [True, False])
     def test_unit(self, cache):
         # GH 11758
-        # test proper behavior with erros
+        # test proper behavior with errors
 
         with pytest.raises(ValueError):
             to_datetime([1], unit="D", format="%Y%m%d", cache=cache)

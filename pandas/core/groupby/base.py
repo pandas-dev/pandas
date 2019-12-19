@@ -1,5 +1,5 @@
 """
-Provide basic components for groupby. These defintiions
+Provide basic components for groupby. These definitions
 hold the whitelist of methods that are exposed on the
 SeriesGroupBy and the DataFrameGroupBy objects.
 """

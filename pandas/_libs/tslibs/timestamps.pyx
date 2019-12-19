@@ -324,7 +324,7 @@ class Timestamp(_Timestamp):
 
         Function is not implemented. Use pd.to_datetime().
         """
-        raise NotImplementedError("Timestamp.strptime() is not implmented."
+        raise NotImplementedError("Timestamp.strptime() is not implemented."
                                   "Use to_datetime() to parse date strings.")
 
     @classmethod

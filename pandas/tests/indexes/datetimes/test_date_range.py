@@ -798,7 +798,7 @@ class TestBusinessDateRange:
         # GH #456
         rng1 = bdate_range("12/5/2011", "12/5/2011")
         rng2 = bdate_range("12/2/2011", "12/5/2011")
-        rng2._data.freq = BDay()  # TODO: shouldnt this already be set?
+        rng2._data.freq = BDay()  # TODO: shouldn't this already be set?
 
         result = rng1.union(rng2)
         assert isinstance(result, DatetimeIndex)
@@ -855,7 +855,7 @@ class TestCustomDateRange:
         # GH #456
         rng1 = bdate_range("12/5/2011", "12/5/2011", freq="C")
         rng2 = bdate_range("12/2/2011", "12/5/2011", freq="C")
-        rng2._data.freq = CDay()  # TODO: shouldnt this already be set?
+        rng2._data.freq = CDay()  # TODO: shouldn't this already be set?
 
         result = rng1.union(rng2)
         assert isinstance(result, DatetimeIndex)
