@@ -144,7 +144,7 @@ def validate_indices(indices: np.ndarray, n: int) -> None:
     if len(indices):
         min_idx = indices.min()
         if min_idx < -1:
-            msg = f"'indices' contains values less than allowed ({min_idx} < {-1})"
+            msg = f"'indices' contains values less than allowed ({min_idx} < -1)"
             raise ValueError(msg)
 
         max_idx = indices.max()
