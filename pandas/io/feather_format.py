@@ -34,10 +34,11 @@ def to_feather(df: DataFrame, path):
     # raise on anything else as we don't serialize the index
 
     if not isinstance(df.index, Int64Index):
+        typ = type(df.index)
         raise ValueError(
-            "feather does not support serializing {} "
+            f"feather does not support serializing {typ} "
             "for the index; you can .reset_index() "
-            "to make the index into column(s)".format(type(df.index))
+            "to make the index into column(s)"
         )
 
     if not df.index.equals(RangeIndex.from_range(range(len(df)))):
@@ -63,7 +64,7 @@ def to_feather(df: DataFrame, path):
     feather.write_feather(df, path)
 
 
-def read_feather(path, columns=None, use_threads=True):
+def read_feather(path, columns=None, use_threads: bool = True):
     """
     Load a feather-format object from the file path.
 
