@@ -77,7 +77,7 @@ class TestReaders:
             pytest.skip()
         if engine == "odf" and read_ext != ".ods":
             pytest.skip()
-        if read_ext == ".ods" and engine != "odf":
+        if engine != "odf" and read_ext == ".ods":
             pytest.skip()
 
         func = partial(pd.read_excel, engine=engine)
@@ -810,11 +810,11 @@ class TestExcelFileRead:
         """
         Change directory and set engine for ExcelFile objects.
         """
+        if engine == "openpyxl" and read_ext == ".xls":
+            pytest.skip()
         if engine == "odf" and read_ext != ".ods":
             pytest.skip()
-        if read_ext == ".ods" and engine != "odf":
-            pytest.skip()
-        if engine == "openpyxl" and read_ext == ".xls":
+        if engine != "odf" and read_ext == ".ods":
             pytest.skip()
 
         func = partial(pd.ExcelFile, engine=engine)
