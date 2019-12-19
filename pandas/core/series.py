@@ -879,7 +879,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             elif key is Ellipsis:
                 return self
             elif com.is_bool_indexer(key):
-                # We check later on.
                 pass
             else:
 

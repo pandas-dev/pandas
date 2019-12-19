@@ -2799,6 +2799,10 @@ class DataFrame(NDFrame):
     def _setitem_array(self, key, value):
         # also raises Exception if object array with NA values
         if com.is_bool_indexer(key):
+            if len(key) != len(self.index):
+                raise ValueError(
+                    f"Item wrong length {len(key)} instead of {len(self.index)}!"
+                )
             key = check_bool_indexer(self.index, key)
             indexer = key.nonzero()[0]
             self._check_setitem_copy()

@@ -1595,7 +1595,6 @@ class _LocIndexer(_LocationIndexer):
             return
 
         if com.is_bool_indexer(key):
-            # XXX: do we need to verify no NA here?
             return
 
         if not is_list_like_indexer(key):
@@ -1682,7 +1681,6 @@ class _LocIndexer(_LocationIndexer):
             self._validate_key(key, axis)
             return self._get_slice_axis(key, axis=axis)
         elif com.is_bool_indexer(key):
-            # check_bool_indexer is called in getbool_axis
             return self._getbool_axis(key, axis=axis)
         elif is_list_like_indexer(key):
 
@@ -2032,7 +2030,6 @@ class _iLocIndexer(_LocationIndexer):
             key = np.asarray(key)
 
         if com.is_bool_indexer(key):
-            # check_bool_indexer is called in _getbool_axis
             self._validate_key(key, axis)
             return self._getbool_axis(key, axis=axis)
 

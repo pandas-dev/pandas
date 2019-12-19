@@ -1115,8 +1115,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     _has_same_tz = ea_passthrough(DatetimeArray._has_same_tz)
 
     def __getitem__(self, key):
-        # if com.is_bool_indexer(key):
-        #     breakpoint()
         result = self._data.__getitem__(key)
         if is_scalar(result):
             return result

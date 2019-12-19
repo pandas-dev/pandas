@@ -3998,8 +3998,6 @@ class Index(IndexOpsMixin, PandasObject):
         corresponding `Index` subclass.
 
         """
-        from pandas.core.indexing import check_bool_indexer
-
         # There's no custom logic to be implemented in __getslice__, so it's
         # not overloaded intentionally.
         getitem = self._data.__getitem__
@@ -4015,7 +4013,7 @@ class Index(IndexOpsMixin, PandasObject):
             return promote(getitem(key))
 
         if com.is_bool_indexer(key):
-            key = check_bool_indexer(self, key)
+            key = np.asarray(key, dtype=bool)
 
         key = com.values_from_object(key)
         result = getitem(key)
