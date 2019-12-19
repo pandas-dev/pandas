@@ -206,6 +206,7 @@ Other enhancements
   now preserve those data types with pyarrow >= 1.0.0 (:issue:`20612`).
 - The ``partition_cols`` argument in :meth:`DataFrame.to_parquet` now accepts a string (:issue:`27117`)
 - :func:`to_parquet` now appropriately handles the ``schema`` argument for user defined schemas in the pyarrow engine. (:issue: `30270`)
+- DataFrame constructor preserve `ExtensionArray` dtype with `ExtensionArray` (:issue:`11363`)
 
 
 Build Changes
@@ -254,10 +255,10 @@ To update, use ``MultiIndex.set_names``, which returns a new ``MultiIndex``.
    mi2 = mi.set_names("new name", level=0)
    mi2.names
 
-New repr for :class:`pandas.core.arrays.IntervalArray`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+New repr for :class:`~pandas.arrays.IntervalArray`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- :class:`pandas.core.arrays.IntervalArray` adopts a new ``__repr__`` in accordance with other array classes (:issue:`25022`)
+- :class:`pandas.arrays.IntervalArray` adopts a new ``__repr__`` in accordance with other array classes (:issue:`25022`)
 
 *pandas 0.25.x*
 
@@ -577,7 +578,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - :meth:`Series.where` with ``Categorical`` dtype (or :meth:`DataFrame.where` with ``Categorical`` column) no longer allows setting new categories (:issue:`24114`)
 - :class:`DatetimeIndex`, :class:`TimedeltaIndex`, and :class:`PeriodIndex` constructors no longer allow ``start``, ``end``, and ``periods`` keywords, use :func:`date_range`, :func:`timedelta_range`, and :func:`period_range` instead (:issue:`23919`)
 - :class:`DatetimeIndex` and :class:`TimedeltaIndex` constructors no longer have a ``verify_integrity`` keyword argument (:issue:`23919`)
-- :func:`core.internals.blocks.make_block` no longer accepts the "fastpath" keyword(:issue:`19265`)
+- ``pandas.core.internals.blocks.make_block`` no longer accepts the "fastpath" keyword(:issue:`19265`)
 - :meth:`Block.make_block_same_class` no longer accepts the "dtype" keyword(:issue:`19434`)
 - Removed the previously deprecated :meth:`ExtensionArray._formatting_values`. Use :attr:`ExtensionArray._formatter` instead. (:issue:`23601`)
 - Removed the previously deprecated :meth:`MultiIndex.to_hierarchical` (:issue:`21613`)
@@ -654,7 +655,7 @@ Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Performance improvement in indexing with a non-unique :class:`IntervalIndex` (:issue:`27489`)
-- Performance improvement in `MultiIndex.is_monotonic` (:issue:`27495`)
+- Performance improvement in :attr:`MultiIndex.is_monotonic` (:issue:`27495`)
 - Performance improvement in :func:`cut` when ``bins`` is an :class:`IntervalIndex` (:issue:`27668`)
 - Performance improvement when initializing a :class:`DataFrame` using a ``range`` (:issue:`30171`)
 - Performance improvement in :meth:`DataFrame.corr` when ``method`` is ``"spearman"`` (:issue:`28139`)
@@ -757,7 +758,7 @@ Interval
 ^^^^^^^^
 
 - Bug in :meth:`IntervalIndex.get_indexer` where a :class:`Categorical` or :class:`CategoricalIndex` ``target`` would incorrectly raise a ``TypeError`` (:issue:`30063`)
--
+- Bug in ``pandas.core.dtypes.cast.infer_dtype_from_scalar`` where passing ``pandas_dtype=True`` did not infer :class:`IntervalDtype` (:issue:`30337`)
 
 Indexing
 ^^^^^^^^
