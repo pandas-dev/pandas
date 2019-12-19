@@ -24,7 +24,7 @@ from pandas.core.indexes.timedeltas import TimedeltaIndex
 import pandas.util.testing as tm
 
 
-class TestSeriesAnalytics:
+class TestDescribe:
     def test_describe(self):
         s = Series([0, 1, 2, 3, 4], name="int_data")
         result = s.describe()
@@ -88,6 +88,8 @@ class TestSeriesAnalytics:
         )
         tm.assert_series_equal(result, expected)
 
+
+class TestSeriesAnalytics:
     def test_argsort(self, datetime_series):
         self._check_accum_op("argsort", datetime_series, check_dtype=False)
         argsorted = datetime_series.argsort()
