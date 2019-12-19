@@ -33,8 +33,8 @@ Methods
 
     DateOffset.apply
     DateOffset.copy
-    DateOffset.isAnchored
-    DateOffset.onOffset
+    DateOffset.is_anchored
+    DateOffset.is_on_offset
 
 BusinessDay
 -----------
@@ -63,8 +63,8 @@ Methods
     BusinessDay.apply
     BusinessDay.apply_index
     BusinessDay.copy
-    BusinessDay.isAnchored
-    BusinessDay.onOffset
+    BusinessDay.is_anchored
+    BusinessDay.is_on_offset
 
 BusinessHour
 ------------
@@ -92,8 +92,8 @@ Methods
 
     BusinessHour.apply
     BusinessHour.copy
-    BusinessHour.isAnchored
-    BusinessHour.onOffset
+    BusinessHour.is_anchored
+    BusinessHour.is_on_offset
 
 CustomBusinessDay
 -----------------
@@ -121,8 +121,8 @@ Methods
 
     CustomBusinessDay.apply
     CustomBusinessDay.copy
-    CustomBusinessDay.isAnchored
-    CustomBusinessDay.onOffset
+    CustomBusinessDay.is_anchored
+    CustomBusinessDay.is_on_offset
 
 CustomBusinessHour
 ------------------
@@ -150,8 +150,8 @@ Methods
 
     CustomBusinessHour.apply
     CustomBusinessHour.copy
-    CustomBusinessHour.isAnchored
-    CustomBusinessHour.onOffset
+    CustomBusinessHour.is_anchored
+    CustomBusinessHour.is_on_offset
 
 MonthOffset
 -----------
@@ -180,8 +180,8 @@ Methods
     MonthOffset.apply
     MonthOffset.apply_index
     MonthOffset.copy
-    MonthOffset.isAnchored
-    MonthOffset.onOffset
+    MonthOffset.is_anchored
+    MonthOffset.is_on_offset
 
 MonthEnd
 --------
@@ -210,8 +210,8 @@ Methods
     MonthEnd.apply
     MonthEnd.apply_index
     MonthEnd.copy
-    MonthEnd.isAnchored
-    MonthEnd.onOffset
+    MonthEnd.is_anchored
+    MonthEnd.is_on_offset
 
 MonthBegin
 ----------
@@ -240,8 +240,8 @@ Methods
     MonthBegin.apply
     MonthBegin.apply_index
     MonthBegin.copy
-    MonthBegin.isAnchored
-    MonthBegin.onOffset
+    MonthBegin.is_anchored
+    MonthBegin.is_on_offset
 
 BusinessMonthEnd
 ----------------
@@ -270,8 +270,8 @@ Methods
     BusinessMonthEnd.apply
     BusinessMonthEnd.apply_index
     BusinessMonthEnd.copy
-    BusinessMonthEnd.isAnchored
-    BusinessMonthEnd.onOffset
+    BusinessMonthEnd.is_anchored
+    BusinessMonthEnd.is_on_offset
 
 BusinessMonthBegin
 ------------------
@@ -300,8 +300,8 @@ Methods
     BusinessMonthBegin.apply
     BusinessMonthBegin.apply_index
     BusinessMonthBegin.copy
-    BusinessMonthBegin.isAnchored
-    BusinessMonthBegin.onOffset
+    BusinessMonthBegin.is_anchored
+    BusinessMonthBegin.is_on_offset
 
 CustomBusinessMonthEnd
 ----------------------
@@ -330,8 +330,8 @@ Methods
 
     CustomBusinessMonthEnd.apply
     CustomBusinessMonthEnd.copy
-    CustomBusinessMonthEnd.isAnchored
-    CustomBusinessMonthEnd.onOffset
+    CustomBusinessMonthEnd.is_anchored
+    CustomBusinessMonthEnd.is_on_offset
 
 CustomBusinessMonthBegin
 ------------------------
@@ -360,8 +360,8 @@ Methods
 
     CustomBusinessMonthBegin.apply
     CustomBusinessMonthBegin.copy
-    CustomBusinessMonthBegin.isAnchored
-    CustomBusinessMonthBegin.onOffset
+    CustomBusinessMonthBegin.is_anchored
+    CustomBusinessMonthBegin.is_on_offset
 
 SemiMonthOffset
 ---------------
@@ -390,8 +390,8 @@ Methods
     SemiMonthOffset.apply
     SemiMonthOffset.apply_index
     SemiMonthOffset.copy
-    SemiMonthOffset.isAnchored
-    SemiMonthOffset.onOffset
+    SemiMonthOffset.is_anchored
+    SemiMonthOffset.is_on_offset
 
 SemiMonthEnd
 ------------
@@ -420,8 +420,8 @@ Methods
     SemiMonthEnd.apply
     SemiMonthEnd.apply_index
     SemiMonthEnd.copy
-    SemiMonthEnd.isAnchored
-    SemiMonthEnd.onOffset
+    SemiMonthEnd.is_anchored
+    SemiMonthEnd.is_on_offset
 
 SemiMonthBegin
 --------------
@@ -450,8 +450,8 @@ Methods
     SemiMonthBegin.apply
     SemiMonthBegin.apply_index
     SemiMonthBegin.copy
-    SemiMonthBegin.isAnchored
-    SemiMonthBegin.onOffset
+    SemiMonthBegin.is_anchored
+    SemiMonthBegin.is_on_offset
 
 Week
 ----
@@ -480,8 +480,8 @@ Methods
     Week.apply
     Week.apply_index
     Week.copy
-    Week.isAnchored
-    Week.onOffset
+    Week.is_anchored
+    Week.is_on_offset
 
 WeekOfMonth
 -----------
@@ -509,8 +509,8 @@ Methods
 
     WeekOfMonth.apply
     WeekOfMonth.copy
-    WeekOfMonth.isAnchored
-    WeekOfMonth.onOffset
+    WeekOfMonth.is_anchored
+    WeekOfMonth.is_on_offset
 
 LastWeekOfMonth
 ---------------
@@ -538,8 +538,8 @@ Methods
 
     LastWeekOfMonth.apply
     LastWeekOfMonth.copy
-    LastWeekOfMonth.isAnchored
-    LastWeekOfMonth.onOffset
+    LastWeekOfMonth.is_anchored
+    LastWeekOfMonth.is_on_offset
 
 QuarterOffset
 -------------
@@ -568,8 +568,8 @@ Methods
     QuarterOffset.apply
     QuarterOffset.apply_index
     QuarterOffset.copy
-    QuarterOffset.isAnchored
-    QuarterOffset.onOffset
+    QuarterOffset.is_anchored
+    QuarterOffset.is_on_offset
 
 BQuarterEnd
 -----------
@@ -598,8 +598,8 @@ Methods
     BQuarterEnd.apply
     BQuarterEnd.apply_index
     BQuarterEnd.copy
-    BQuarterEnd.isAnchored
-    BQuarterEnd.onOffset
+    BQuarterEnd.is_anchored
+    BQuarterEnd.is_on_offset
 
 BQuarterBegin
 -------------
@@ -628,8 +628,8 @@ Methods
     BQuarterBegin.apply
     BQuarterBegin.apply_index
     BQuarterBegin.copy
-    BQuarterBegin.isAnchored
-    BQuarterBegin.onOffset
+    BQuarterBegin.is_anchored
+    BQuarterBegin.is_on_offset
 
 QuarterEnd
 ----------
@@ -658,8 +658,8 @@ Methods
     QuarterEnd.apply
     QuarterEnd.apply_index
     QuarterEnd.copy
-    QuarterEnd.isAnchored
-    QuarterEnd.onOffset
+    QuarterEnd.is_anchored
+    QuarterEnd.is_on_offset
 
 QuarterBegin
 ------------
@@ -688,8 +688,8 @@ Methods
     QuarterBegin.apply
     QuarterBegin.apply_index
     QuarterBegin.copy
-    QuarterBegin.isAnchored
-    QuarterBegin.onOffset
+    QuarterBegin.is_anchored
+    QuarterBegin.is_on_offset
 
 YearOffset
 ----------
@@ -718,8 +718,8 @@ Methods
     YearOffset.apply
     YearOffset.apply_index
     YearOffset.copy
-    YearOffset.isAnchored
-    YearOffset.onOffset
+    YearOffset.is_anchored
+    YearOffset.is_on_offset
 
 BYearEnd
 --------
@@ -748,8 +748,8 @@ Methods
     BYearEnd.apply
     BYearEnd.apply_index
     BYearEnd.copy
-    BYearEnd.isAnchored
-    BYearEnd.onOffset
+    BYearEnd.is_anchored
+    BYearEnd.is_on_offset
 
 BYearBegin
 ----------
@@ -778,8 +778,8 @@ Methods
     BYearBegin.apply
     BYearBegin.apply_index
     BYearBegin.copy
-    BYearBegin.isAnchored
-    BYearBegin.onOffset
+    BYearBegin.is_anchored
+    BYearBegin.is_on_offset
 
 YearEnd
 -------
@@ -808,8 +808,8 @@ Methods
     YearEnd.apply
     YearEnd.apply_index
     YearEnd.copy
-    YearEnd.isAnchored
-    YearEnd.onOffset
+    YearEnd.is_anchored
+    YearEnd.is_on_offset
 
 YearBegin
 ---------
@@ -838,8 +838,8 @@ Methods
     YearBegin.apply
     YearBegin.apply_index
     YearBegin.copy
-    YearBegin.isAnchored
-    YearBegin.onOffset
+    YearBegin.is_anchored
+    YearBegin.is_on_offset
 
 FY5253
 ------
@@ -869,8 +869,8 @@ Methods
     FY5253.copy
     FY5253.get_rule_code_suffix
     FY5253.get_year_end
-    FY5253.isAnchored
-    FY5253.onOffset
+    FY5253.is_anchored
+    FY5253.is_on_offset
 
 FY5253Quarter
 -------------
@@ -899,8 +899,8 @@ Methods
     FY5253Quarter.apply
     FY5253Quarter.copy
     FY5253Quarter.get_weeks
-    FY5253Quarter.isAnchored
-    FY5253Quarter.onOffset
+    FY5253Quarter.is_anchored
+    FY5253Quarter.is_on_offset
     FY5253Quarter.year_has_extra_week
 
 Easter
@@ -929,8 +929,8 @@ Methods
 
     Easter.apply
     Easter.copy
-    Easter.isAnchored
-    Easter.onOffset
+    Easter.is_anchored
+    Easter.is_on_offset
 
 Tick
 ----
@@ -958,8 +958,8 @@ Methods
    :toctree: api/
 
     Tick.copy
-    Tick.isAnchored
-    Tick.onOffset
+    Tick.is_anchored
+    Tick.is_on_offset
 
 Day
 ---
@@ -987,8 +987,8 @@ Methods
    :toctree: api/
 
     Day.copy
-    Day.isAnchored
-    Day.onOffset
+    Day.is_anchored
+    Day.is_on_offset
 
 Hour
 ----
@@ -1016,8 +1016,8 @@ Methods
    :toctree: api/
 
     Hour.copy
-    Hour.isAnchored
-    Hour.onOffset
+    Hour.is_anchored
+    Hour.is_on_offset
 
 Minute
 ------
@@ -1045,8 +1045,8 @@ Methods
    :toctree: api/
 
     Minute.copy
-    Minute.isAnchored
-    Minute.onOffset
+    Minute.is_anchored
+    Minute.is_on_offset
 
 Second
 ------
@@ -1074,8 +1074,8 @@ Methods
    :toctree: api/
 
     Second.copy
-    Second.isAnchored
-    Second.onOffset
+    Second.is_anchored
+    Second.is_on_offset
 
 Milli
 -----
@@ -1103,8 +1103,8 @@ Methods
    :toctree: api/
 
     Milli.copy
-    Milli.isAnchored
-    Milli.onOffset
+    Milli.is_anchored
+    Milli.is_on_offset
 
 Micro
 -----
@@ -1132,8 +1132,8 @@ Methods
    :toctree: api/
 
     Micro.copy
-    Micro.isAnchored
-    Micro.onOffset
+    Micro.is_anchored
+    Micro.is_on_offset
 
 Nano
 ----
@@ -1161,8 +1161,8 @@ Methods
    :toctree: api/
 
     Nano.copy
-    Nano.isAnchored
-    Nano.onOffset
+    Nano.is_anchored
+    Nano.is_on_offset
 
 BDay
 ----
@@ -1193,8 +1193,8 @@ Methods
     BDay.apply
     BDay.apply_index
     BDay.copy
-    BDay.isAnchored
-    BDay.onOffset
+    BDay.is_anchored
+    BDay.is_on_offset
     BDay.rollback
     BDay.rollforward
 
@@ -1226,8 +1226,8 @@ Methods
     BMonthEnd.apply
     BMonthEnd.apply_index
     BMonthEnd.copy
-    BMonthEnd.isAnchored
-    BMonthEnd.onOffset
+    BMonthEnd.is_anchored
+    BMonthEnd.is_on_offset
     BMonthEnd.rollback
     BMonthEnd.rollforward
 
@@ -1259,8 +1259,8 @@ Methods
     BMonthBegin.apply
     BMonthBegin.apply_index
     BMonthBegin.copy
-    BMonthBegin.isAnchored
-    BMonthBegin.onOffset
+    BMonthBegin.is_anchored
+    BMonthBegin.is_on_offset
     BMonthBegin.rollback
     BMonthBegin.rollforward
 
@@ -1296,8 +1296,8 @@ Methods
     CBMonthEnd.apply
     CBMonthEnd.apply_index
     CBMonthEnd.copy
-    CBMonthEnd.isAnchored
-    CBMonthEnd.onOffset
+    CBMonthEnd.is_anchored
+    CBMonthEnd.is_on_offset
     CBMonthEnd.rollback
     CBMonthEnd.rollforward
 
@@ -1333,8 +1333,8 @@ Methods
     CBMonthBegin.apply
     CBMonthBegin.apply_index
     CBMonthBegin.copy
-    CBMonthBegin.isAnchored
-    CBMonthBegin.onOffset
+    CBMonthBegin.is_anchored
+    CBMonthBegin.is_on_offset
     CBMonthBegin.rollback
     CBMonthBegin.rollforward
 
@@ -1367,8 +1367,8 @@ Methods
     CDay.apply
     CDay.apply_index
     CDay.copy
-    CDay.isAnchored
-    CDay.onOffset
+    CDay.is_anchored
+    CDay.is_on_offset
     CDay.rollback
     CDay.rollforward
 
