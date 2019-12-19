@@ -86,7 +86,7 @@ class StringDtype(ExtensionDtype):
 
         results = []
         for arr in chunks:
-            # using _from_sequence to ensure None is convered to NA
+            # using _from_sequence to ensure None is converted to NA
             str_arr = StringArray._from_sequence(np.array(arr))
             results.append(str_arr)
 
@@ -153,7 +153,7 @@ class StringArray(PandasArray):
     ...
     ValueError: StringArray requires an object-dtype ndarray of strings.
 
-    For comparision methods, this returns a :class:`pandas.BooleanArray`
+    For comparison methods, this returns a :class:`pandas.BooleanArray`
 
     >>> pd.array(["a", None, "c"], dtype="string") == "a"
     <BooleanArray>

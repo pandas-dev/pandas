@@ -65,7 +65,7 @@ def read_gbq(
 
         *New in version 0.2.0 of pandas-gbq*.
     dialect : str, default 'legacy'
-        Note: The default value is changing to 'standard' in a future verion.
+        Note: The default value is changing to 'standard' in a future version.
 
         SQL syntax dialect to use. Value can be one of:
 
