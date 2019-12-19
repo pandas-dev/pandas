@@ -1966,8 +1966,10 @@ class TestTimedeltaArraylikeMulDivOps:
         # GH#4521
         # divide/multiply by integers
         xbox = get_upcast_box(box_with_array, vector)
+
         tdser = pd.Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
         vector = vector.astype(any_real_dtype)
+
         expected = Series(["2.95D", "1D 23H 12m", "NaT"], dtype="timedelta64[ns]")
 
         tdser = tm.box_expected(tdser, box_with_array)

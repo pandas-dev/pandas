@@ -31,7 +31,7 @@ from pandas.core.indexes.datetimes import _to_M8
 from pandas.core.ops import roperator
 import pandas.util.testing as tm
 
-from .common import assert_invalid_comparison, get_upcast_box
+from .common import assert_invalid_comparison, get_upcast_box, assert_invalid_addsub_type
 
 # ------------------------------------------------------------------
 # Comparisons
@@ -1901,13 +1901,10 @@ class TestDatetimeIndexArithmetic:
 
         with pytest.raises(TypeError, match=msg):
             rng + one
-
         with pytest.raises(TypeError, match=msg):
             rng += one
-
         with pytest.raises(TypeError, match=msg):
             rng - one
-
         with pytest.raises(TypeError, match=msg):
             rng -= one
 
@@ -1921,13 +1918,8 @@ class TestDatetimeIndexArithmetic:
         dti = pd.date_range("2016-01-01", periods=2, freq=freq)
         other = int_holder([4, -1])
 
-        msg = "Addition/subtraction of integers"
-
-        with pytest.raises(TypeError, match=msg):
-            dti + other
-
-        with pytest.raises(TypeError, match=msg):
-            other + dti
+        msg = "Addition/subtraction of integers|cannot subtract DatetimeArray from"
+        assert_invalid_addsub_type(dti, other, msg)
 
     @pytest.mark.parametrize("freq", ["W", "M", "MS", "Q"])
     @pytest.mark.parametrize("int_holder", [np.array, pd.Index])
@@ -1936,13 +1928,8 @@ class TestDatetimeIndexArithmetic:
         dti = pd.date_range("2016-01-01", periods=2, freq=freq)
         other = int_holder([4, -1])
 
-        msg = "Addition/subtraction of integers"
-
-        with pytest.raises(TypeError, match=msg):
-            dti + other
-
-        with pytest.raises(TypeError, match=msg):
-            other + dti
+        msg = "Addition/subtraction of integers|cannot subtract DatetimeArray from"
+        assert_invalid_addsub_type(dti, other, msg)
 
     @pytest.mark.parametrize("int_holder", [np.array, pd.Index])
     def test_dti_add_intarray_no_freq(self, int_holder):
@@ -1951,14 +1938,7 @@ class TestDatetimeIndexArithmetic:
         other = int_holder([9, 4, -1])
         tmsg = "cannot subtract DatetimeArray from"
         msg = "Addition/subtraction of integers"
-        with pytest.raises(TypeError, match=msg):
-            dti + other
-        with pytest.raises(TypeError, match=msg):
-            other + dti
-        with pytest.raises(TypeError, match=msg):
-            dti - other
-        with pytest.raises(TypeError, match=tmsg):
-            other - dti
+        assert_invalid_addsub_type(dti, other, msg+"|"+tmsg)
 
     # -------------------------------------------------------------
     # Binary operations DatetimeIndex and TimedeltaIndex/array
