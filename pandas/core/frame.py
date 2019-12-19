@@ -37,6 +37,7 @@ from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, lib
 from pandas._typing import Axes, Dtype, FilePathOrBuffer
+from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender,
@@ -1963,6 +1964,29 @@ class DataFrame(NDFrame):
         from pandas.io.feather_format import to_feather
 
         to_feather(self, path)
+
+    def to_markdown(self):
+        """
+        Print a DataFrame in markdown-friendly format.
+
+        .. versionadded:: 1.0
+
+        Returns
+        -------
+        str
+            DataFrame in markdown-friendly format.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(data={'col1': [1, 2], 'col2': [3, 4]})
+        >>> print(df.to_markdown())
+        |    |   col1 |   col2 |
+        |---:|-------:|-------:|
+        |  0 |      1 |      3 |
+        |  1 |      2 |      4 |
+        """
+        tabulate = import_optional_dependency("tabulate")
+        return self.pipe(tabulate.tabulate, headers="keys", tablefmt="pipe")
 
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
     def to_parquet(

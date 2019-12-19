@@ -50,6 +50,7 @@ jinja2
 matplotlib>=2.2.2
 numexpr>=2.6.8
 scipy>=1.1
+tabulate
 beautifulsoup4>=4.6.0
 html5lib
 lxml
