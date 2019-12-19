@@ -186,7 +186,7 @@ def get_offset(name: str) -> DateOffset:
     """
     Return DateOffset object associated with rule name.
 
-    .. deprecated: 1.0.0
+    .. deprecated:: 1.0.0
 
     Examples
     --------

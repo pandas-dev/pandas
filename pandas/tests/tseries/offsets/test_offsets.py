@@ -623,7 +623,7 @@ class TestCommon(Base):
         tm.assert_dict_equal(offsets, read_pickle(pickle_path))
 
     def test_onOffset_deprecated(self, offset_types):
-        # use idiomatic naming
+        # GH#30340 use idiomatic naming
         off = self._get_offset(offset_types)
 
         ts = Timestamp.now()
@@ -634,7 +634,7 @@ class TestCommon(Base):
         assert result == expected
 
     def test_isAnchored_deprecated(self, offset_types):
-        # use idiomatic naming
+        # GH#30340 use idiomatic naming
         off = self._get_offset(offset_types)
 
         with tm.assert_produces_warning(FutureWarning):
