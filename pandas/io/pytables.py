@@ -2012,9 +2012,6 @@ class IndexCol:
             if min_itemsize is not None and self.typ.itemsize < min_itemsize:
                 self.typ = _tables().StringCol(itemsize=min_itemsize, pos=self.pos)
 
-    def validate(self, handler, append):
-        self.validate_names()
-
     def validate_names(self):
         pass
 
@@ -3155,7 +3152,6 @@ class Table(Fixed):
         self.non_index_axes = []
         self.values_axes = []
         self.data_columns = []
-        self.metadata = []
         self.info = dict()
         self.nan_rep = None
 
@@ -3355,7 +3351,6 @@ class Table(Fixed):
         self.attrs.encoding = self.encoding
         self.attrs.errors = self.errors
         self.attrs.levels = self.levels
-        self.attrs.metadata = self.metadata
         self.attrs.info = self.info
 
     def get_attrs(self):
@@ -3369,7 +3364,6 @@ class Table(Fixed):
         self.levels = getattr(self.attrs, "levels", None) or []
         self.index_axes = [a for a in self.indexables if a.is_an_indexable]
         self.values_axes = [a for a in self.indexables if not a.is_an_indexable]
-        self.metadata = getattr(self.attrs, "metadata", None) or []
 
     def validate_version(self, where=None):
         """ are we trying to operate on an old version? """
@@ -3875,9 +3869,6 @@ class Table(Fixed):
         # validate our min_itemsize
         self.validate_min_itemsize(min_itemsize)
 
-        # validate our metadata
-        self.metadata = [c.name for c in self.values_axes if c.metadata is not None]
-
         # validate the axes if we have an existing table
         if validate:
             self.validate(existing_table)
@@ -4106,7 +4097,7 @@ class AppendableTable(Table):
         )
 
         for a in self.axes:
-            a.validate(self, append)
+            a.validate_names()
 
         if not self.is_exists:
 
