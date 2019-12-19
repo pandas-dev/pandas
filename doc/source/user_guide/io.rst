@@ -4763,10 +4763,10 @@ Parquet supports partitioning of data based on the values of one or more columns
 .. ipython:: python
 
     df = pd.DataFrame({'a': [0, 0, 1, 1], 'b': [0, 1, 0, 1]})
-    df.to_parquet(fname='test', engine='pyarrow',
+    df.to_parquet(path='test', engine='pyarrow',
                   partition_cols=['a'], compression=None)
 
-The `fname` specifies the parent directory to which data will be saved.
+The `path` specifies the parent directory to which data will be saved.
 The `partition_cols` are the column names by which the dataset will be partitioned.
 Columns are partitioned in the order they are given. The partition splits are
 determined by the unique values in the partition columns.
