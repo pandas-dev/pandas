@@ -1825,7 +1825,7 @@ class TestStringMethods:
 
     def test_empty_str_methods(self):
         empty_str = empty = Series(dtype=object)
-        empty_int = Series(dtype=int)
+        empty_int = Series(dtype="int64")
         empty_bool = Series(dtype=bool)
         empty_bytes = Series(dtype=object)
 
@@ -3526,6 +3526,12 @@ def test_string_array(any_string_method):
             assert result.dtype == "string"
             result = result.astype(object)
 
+        elif expected.dtype == "object" and lib.is_bool_array(
+            expected.values, skipna=True
+        ):
+            assert result.dtype == "boolean"
+            result = result.astype(object)
+
         elif expected.dtype == "float" and expected.isna().any():
             assert result.dtype == "Int64"
             result = result.astype("float")
@@ -3550,4 +3556,20 @@ def test_string_array_numeric_integer_array(method, expected):
     s = Series(["aba", None], dtype="string")
     result = getattr(s.str, method)("a")
     expected = Series(expected, dtype="Int64")
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method,expected",
+    [
+        ("isdigit", [False, None, True]),
+        ("isalpha", [True, None, False]),
+        ("isalnum", [True, None, True]),
+        ("isdigit", [False, None, True]),
+    ],
+)
+def test_string_array_boolean_array(method, expected):
+    s = Series(["a", None, "1"], dtype="string")
+    result = getattr(s.str, method)()
+    expected = Series(expected, dtype="boolean")
     tm.assert_series_equal(result, expected)

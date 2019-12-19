@@ -74,6 +74,7 @@ These are places where the behavior of ``StringDtype`` objects differ from
 l. For ``StringDtype``, :ref:`string accessor methods<api.series.str>`
    that return **numeric** output will always return a nullable integer dtype,
    rather than either int or float dtype, depending on the presence of NA values.
+   Methods returning **boolean** output will return a nullable boolean dtype.
 
    .. ipython:: python
 
@@ -89,7 +90,13 @@ l. For ``StringDtype``, :ref:`string accessor methods<api.series.str>`
       s.astype(object).str.count("a")
       s.astype(object).dropna().str.count("a")
 
-   When NA values are present, the output dtype is float64.
+   When NA values are present, the output dtype is float64. Similarly for
+   methods returning boolean values.
+
+   .. ipython:: python
+
+      s.str.isdigit()
+      s.str.match("a")
 
 2. Some string methods, like :meth:`Series.str.decode` are not available
    on ``StringArray`` because ``StringArray`` only holds strings, not
