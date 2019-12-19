@@ -353,6 +353,30 @@ The ``engine_kwargs`` argument is a dictionary of keyword arguments that will be
 These keyword arguments will be applied to *both* the passed function (if a standard Python function)
 and the apply for loop. Currently only ``nogil``, ``nopython``, and ``parallel`` are supported.
 
+.. note::
+
+   In terms of performance, **the first time a function is run using the Numba engine will be slow**
+   as Numba will have some function compilation overhead. However, `rolling` objects will cache
+   the function and subsequent calls will be fast. In general, the Numba engine is performant with
+   a larger amount of data points (e.g. 1+ million).
+
+.. code-block:: ipython
+
+   In [1]: data = pd.Series(range(1000000))
+   
+   In [2]: roll = data.rolling(10)
+
+   In [3]: f = lambda x: np.sum(x) + 5
+   # Ran the first time, compilation time will affect performance
+   In [4]: %timeit -r 1 -n 1 roll.apply(f, engine='numba', raw=True)
+   1.23 s ± 0 ns per loop (mean ± std. dev. of 1 run, 1 loop each)
+   # Function is cached and performance will improve
+   In [5]: %timeit roll.apply(f, engine='numba', raw=True)
+   188 ms ± 1.93 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
+
+   In [6]: %timeit roll.apply(f, engine='cython', raw=True)
+   3.92 s ± 59 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+
 .. _stats.rolling_window:
 
 Rolling windows
