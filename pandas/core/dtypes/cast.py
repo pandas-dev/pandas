@@ -41,7 +41,7 @@ from .common import (
     is_unsigned_integer_dtype,
     pandas_dtype,
 )
-from .dtypes import DatetimeTZDtype, ExtensionDtype, PeriodDtype
+from .dtypes import DatetimeTZDtype, ExtensionDtype, IntervalDtype, PeriodDtype
 from .generic import (
     ABCDataFrame,
     ABCDatetimeArray,
@@ -601,6 +601,9 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False):
         if lib.is_period(val):
             dtype = PeriodDtype(freq=val.freq)
             val = val.ordinal
+        elif lib.is_interval(val):
+            subtype = infer_dtype_from_scalar(val.left, pandas_dtype=True)[0]
+            dtype = IntervalDtype(subtype=subtype)
 
     return dtype, val
 
