@@ -343,9 +343,7 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
         if _is_url(filepath_or_buffer):
             filepath_or_buffer = BytesIO(urlopen(filepath_or_buffer).read())
         elif not isinstance(filepath_or_buffer, (ExcelFile, self._workbook_class)):
-            filepath_or_buffer, _, _, _ = get_filepath_or_buffer(
-                filepath_or_buffer
-            )
+            filepath_or_buffer, _, _, _ = get_filepath_or_buffer(filepath_or_buffer)
 
         if isinstance(filepath_or_buffer, self._workbook_class):
             self.book = filepath_or_buffer
