@@ -44,7 +44,10 @@ class TestTSPlot(TestPlotBase):
         tm.close()
 
     @pytest.mark.slow
-    @pytest.mark.filterwarnings("ignore:Converting to PeriodArray/Index representation will drop timezone information.")
+    @pytest.mark.filterwarnings(
+        "ignore:Converting to PeriodArray/Index representation "
+        "will drop timezone information."
+    )
     def test_ts_plot_with_tz(self, tz_aware_fixture):
         # GH2877, GH17173
         tz = tz_aware_fixture
