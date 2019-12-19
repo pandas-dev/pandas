@@ -48,7 +48,6 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 
 # https://github.com/cython/cython/issues/1720
 @pytest.mark.filterwarnings("ignore:can't resolve package:ImportWarning")
-@pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
 class TestCommonIOCapabilities:
     data1 = """index,A,B,C,D
 foo,2,3,4,5
@@ -142,7 +141,6 @@ bar2,12,13,14,15
             (pd.read_stata, "os", FileNotFoundError, "dta"),
             (pd.read_sas, "os", FileNotFoundError, "sas7bdat"),
             (pd.read_json, "os", ValueError, "json"),
-            (pd.read_msgpack, "os", FileNotFoundError, "mp"),
             (pd.read_pickle, "os", FileNotFoundError, "pickle"),
         ],
     )
@@ -177,7 +175,6 @@ bar2,12,13,14,15
             (pd.read_stata, "os", FileNotFoundError, "dta"),
             (pd.read_sas, "os", FileNotFoundError, "sas7bdat"),
             (pd.read_json, "os", ValueError, "json"),
-            (pd.read_msgpack, "os", FileNotFoundError, "mp"),
             (pd.read_pickle, "os", FileNotFoundError, "pickle"),
         ],
     )
@@ -208,21 +205,32 @@ bar2,12,13,14,15
     @pytest.mark.parametrize(
         "reader, module, path",
         [
-            (pd.read_csv, "os", ("io", "data", "iris.csv")),
-            (pd.read_table, "os", ("io", "data", "iris.csv")),
-            (pd.read_fwf, "os", ("io", "data", "fixed_width_format.txt")),
-            (pd.read_excel, "xlrd", ("io", "data", "test1.xlsx")),
-            (pd.read_feather, "feather", ("io", "data", "feather-0_3_1.feather")),
+            (pd.read_csv, "os", ("data", "iris.csv")),
+            (pd.read_table, "os", ("data", "iris.csv")),
+            (
+                pd.read_fwf,
+                "os",
+                ("io", "data", "fixed_width", "fixed_width_format.txt"),
+            ),
+            (pd.read_excel, "xlrd", ("io", "data", "excel", "test1.xlsx")),
+            (
+                pd.read_feather,
+                "feather",
+                ("io", "data", "feather", "feather-0_3_1.feather"),
+            ),
             (
                 pd.read_hdf,
                 "tables",
                 ("io", "data", "legacy_hdf", "datetimetz_object.h5"),
             ),
-            (pd.read_stata, "os", ("io", "data", "stata10_115.dta")),
+            (pd.read_stata, "os", ("io", "data", "stata", "stata10_115.dta")),
             (pd.read_sas, "os", ("io", "sas", "data", "test1.sas7bdat")),
             (pd.read_json, "os", ("io", "json", "data", "tsframe_v012.json")),
-            (pd.read_msgpack, "os", ("io", "msgpack", "data", "frame.mp")),
-            (pd.read_pickle, "os", ("io", "data", "categorical.0.25.0.pickle")),
+            (
+                pd.read_pickle,
+                "os",
+                ("io", "data", "pickle", "categorical.0.25.0.pickle"),
+            ),
         ],
     )
     def test_read_fspath_all(self, reader, module, path, datapath):
@@ -248,7 +256,6 @@ bar2,12,13,14,15
             ("to_html", {}, "os"),
             ("to_json", {}, "os"),
             ("to_latex", {}, "os"),
-            ("to_msgpack", {}, "os"),
             ("to_pickle", {}, "os"),
             ("to_stata", {"time_stamp": pd.to_datetime("2019-01-01 00:00")}, "os"),
         ],
@@ -296,7 +303,7 @@ bar2,12,13,14,15
 
 @pytest.fixture
 def mmap_file(datapath):
-    return datapath("io", "data", "test_mmap.csv")
+    return datapath("io", "data", "csv", "test_mmap.csv")
 
 
 class TestMMapWrapper:

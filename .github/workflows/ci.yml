@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+    branches: master
+  pull_request:
+    branches: master
+
+env:
+  ENV_FILE: environment.yml
+
+jobs:
+  checks:
+    name: Checks
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Setting conda path
+      run: echo "::add-path::${HOME}/miniconda3/bin"
+
+    - name: Checkout
+      uses: actions/checkout@v1
+
+    - name: Looking for unwanted patterns
+      run: ci/code_checks.sh patterns
+      if: true
+
+    - name: Setup environment and build pandas
+      run: ci/setup_env.sh
+      if: true
+
+    - name: Linting
+      run: |
+        source activate pandas-dev
+        ci/code_checks.sh lint
+      if: true
+
+    - name: Dependencies consistency
+      run: |
+        source activate pandas-dev
+        ci/code_checks.sh dependencies
+      if: true
+
+    - name: Checks on imported code
+      run: |
+        source activate pandas-dev
+        ci/code_checks.sh code
+      if: true
+
+    - name: Running doctests
+      run: |
+        source activate pandas-dev
+        ci/code_checks.sh doctests
+      if: true
+
+    - name: Docstring validation
+      run: |
+        source activate pandas-dev
+        ci/code_checks.sh docstrings
+      if: true
+
+    - name: Typing validation
+      run: |
+        source activate pandas-dev
+        ci/code_checks.sh typing
+      if: true
+
+    - name: Testing docstring validation script
+      run: |
+        source activate pandas-dev
+        pytest --capture=no --strict scripts
+      if: true
+
+    - name: Running benchmarks
+      run: |
+        source activate pandas-dev
+        cd asv_bench
+        asv check -E existing
+        git remote add upstream https://github.com/pandas-dev/pandas.git
+        git fetch upstream
+        if git diff upstream/master --name-only | grep -q "^asv_bench/"; then
+            asv machine --yes
+            asv dev | sed "/failed$/ s/^/##[error]/" | tee benchmarks.log
+            if grep "failed" benchmarks.log > /dev/null ; then
+                exit 1
+            fi
+        else
+            echo "Benchmarks did not run, no changes detected"
+        fi
+      if: true
+
+    - name: Publish benchmarks artifact
+      uses: actions/upload-artifact@master
+      with:
+        name: Benchmarks log
+        path: asv_bench/benchmarks.log
+      if: failure()

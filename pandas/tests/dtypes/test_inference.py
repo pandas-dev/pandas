@@ -51,6 +51,7 @@ from pandas import (
     Timestamp,
     isna,
 )
+from pandas.core.arrays import IntegerArray
 import pandas.util.testing as tm
 
 
@@ -77,7 +78,7 @@ ll_params = [
     ((x for x in [1, 2]), True, "generator"),
     ((_ for _ in []), True, "generator-empty"),
     (Series([1]), True, "Series"),
-    (Series([]), True, "Series-empty"),
+    (Series([], dtype=object), True, "Series-empty"),
     (Series(["a"]).str, True, "StringMethods"),
     (Series([], dtype="O").str, True, "StringMethods-empty"),
     (Index([1]), True, "Index"),
@@ -138,7 +139,7 @@ def test_is_sequence():
 
 
 def test_is_array_like():
-    assert inference.is_array_like(Series([]))
+    assert inference.is_array_like(Series([], dtype=object))
     assert inference.is_array_like(Series([1, 2]))
     assert inference.is_array_like(np.array(["a", "b"]))
     assert inference.is_array_like(Index(["2016-01-01"]))
@@ -164,7 +165,7 @@ def test_is_array_like():
         {"a": 1},
         {1, "a"},
         Series([1]),
-        Series([]),
+        Series([], dtype=object),
         Series(["a"]).str,
         (x for x in range(5)),
     ],
@@ -448,7 +449,7 @@ class TestInference:
     def test_convert_non_hashable(self):
         # GH13324
         # make sure that we are handing non-hashables
-        arr = np.array([[10.0, 2], 1.0, "apple"])
+        arr = np.array([[10.0, 2], 1.0, "apple"], dtype=object)
         result = lib.maybe_convert_numeric(arr, set(), False, True)
         tm.assert_numpy_array_equal(result, np.array([np.nan, 1.0, np.nan]))
 
@@ -505,7 +506,7 @@ class TestInference:
         result = lib.maybe_convert_numeric(case, set(), coerce_numeric=coerce)
         tm.assert_almost_equal(result, expected)
 
-    @pytest.mark.parametrize("value", [-2 ** 63 - 1, 2 ** 64])
+    @pytest.mark.parametrize("value", [-(2 ** 63) - 1, 2 ** 64])
     def test_convert_int_overflow(self, value):
         # see gh-18584
         arr = np.array([value], dtype=object)
@@ -551,6 +552,20 @@ class TestInference:
         exp = arr.copy()
         out = lib.maybe_convert_objects(arr, convert_datetime=1, convert_timedelta=1)
         tm.assert_numpy_array_equal(out, exp)
+
+    @pytest.mark.parametrize(
+        "exp",
+        [
+            IntegerArray(np.array([2, 0], dtype="i8"), np.array([False, True])),
+            IntegerArray(np.array([2, 0], dtype="int64"), np.array([False, True])),
+        ],
+    )
+    def test_maybe_convert_objects_nullable_integer(self, exp):
+        # GH27335
+        arr = np.array([2, np.NaN], dtype=object)
+        result = lib.maybe_convert_objects(arr, convert_to_nullable_integer=1)
+
+        tm.assert_extension_array_equal(result, exp)
 
     def test_mixed_dtypes_remain_object_array(self):
         # GH14956
@@ -613,13 +628,13 @@ class TestTypeInference:
         expected = "integer" if skipna else "integer-na"
         assert result == expected
 
-    def test_deprecation(self):
-        # GH 24050
-        arr = np.array([1, 2, 3], dtype=object)
+    def test_infer_dtype_skipna_default(self):
+        # infer_dtype `skipna` default deprecated in GH#24050,
+        #  changed to True in GH#29876
+        arr = np.array([1, 2, 3, np.nan], dtype=object)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = lib.infer_dtype(arr)  # default: skipna=None -> warn
-            assert result == "integer"
+        result = lib.infer_dtype(arr)
+        assert result == "integer"
 
     def test_bools(self):
         arr = np.array([True, False, True, True, True], dtype="O")
@@ -717,12 +732,17 @@ class TestTypeInference:
     def test_unicode(self):
         arr = ["a", np.nan, "c"]
         result = lib.infer_dtype(arr, skipna=False)
+        # This currently returns "mixed", but it's not clear that's optimal.
+        # This could also return "string" or "mixed-string"
         assert result == "mixed"
 
         arr = ["a", np.nan, "c"]
         result = lib.infer_dtype(arr, skipna=True)
-        expected = "string"
-        assert result == expected
+        assert result == "string"
+
+        arr = ["a", "c"]
+        result = lib.infer_dtype(arr, skipna=False)
+        assert result == "string"
 
     @pytest.mark.parametrize(
         "dtype, missing, skipna, expected",
@@ -1384,7 +1404,7 @@ class TestIsScalar:
         assert is_scalar(DateOffset(days=1))
 
     def test_is_scalar_pandas_containers(self):
-        assert not is_scalar(Series())
+        assert not is_scalar(Series(dtype=object))
         assert not is_scalar(Series([1]))
         assert not is_scalar(DataFrame())
         assert not is_scalar(DataFrame([[1]]))

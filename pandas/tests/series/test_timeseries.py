@@ -346,10 +346,9 @@ class TestTimeSeries:
 
     def test_asfreq_datetimeindex_empty_series(self):
         # GH 14320
-        expected = Series(index=pd.DatetimeIndex(["2016-09-29 11:00"])).asfreq("H")
-        result = Series(index=pd.DatetimeIndex(["2016-09-29 11:00"]), data=[3]).asfreq(
-            "H"
-        )
+        index = pd.DatetimeIndex(["2016-09-29 11:00"])
+        expected = Series(index=index, dtype=object).asfreq("H")
+        result = Series([3], index=index.copy()).asfreq("H")
         tm.assert_index_equal(expected.index, result.index)
 
     def test_pct_change(self, datetime_series):
@@ -369,6 +368,16 @@ class TestTimeSeries:
         tm.assert_series_equal(
             rs, (filled / filled.shift(freq="5D") - 1).reindex_like(filled)
         )
+
+    def test_pct_change_with_duplicate_axis(self):
+        # GH 28664
+        common_idx = date_range("2019-11-14", periods=5, freq="D")
+        result = Series(range(5), common_idx).pct_change(freq="B")
+
+        # the reason that the expected should be like this is documented at PR 28681
+        expected = Series([np.NaN, np.inf, np.NaN, np.NaN, 3.0], common_idx)
+
+        tm.assert_series_equal(result, expected)
 
     def test_pct_change_shift_over_nas(self):
         s = Series([1.0, 1.5, np.nan, 2.5, 3.0])
@@ -400,7 +409,7 @@ class TestTimeSeries:
         )
         tm.assert_series_equal(rs_freq, rs_periods)
 
-        empty_ts = Series(index=datetime_series.index)
+        empty_ts = Series(index=datetime_series.index, dtype=object)
         rs_freq = empty_ts.pct_change(freq=freq, fill_method=fill_method, limit=limit)
         rs_periods = empty_ts.pct_change(periods, fill_method=fill_method, limit=limit)
         tm.assert_series_equal(rs_freq, rs_periods)
@@ -447,12 +456,12 @@ class TestTimeSeries:
         assert ts.last_valid_index() is None
         assert ts.first_valid_index() is None
 
-        ser = Series([], index=[])
+        ser = Series([], index=[], dtype=object)
         assert ser.last_valid_index() is None
         assert ser.first_valid_index() is None
 
         # GH12800
-        empty = Series()
+        empty = Series(dtype=object)
         assert empty.last_valid_index() is None
         assert empty.first_valid_index() is None
 
@@ -594,7 +603,7 @@ class TestTimeSeries:
         # GH #9854
         index_name = "bar"
         index = pd.date_range("20130101", periods=20, name=index_name)
-        df = pd.DataFrame([x for x in range(20)], columns=["foo"], index=index)
+        df = pd.DataFrame(list(range(20)), columns=["foo"], index=index)
 
         assert index_name == df.index.name
         assert index_name == df.asfreq("10D").index.name
@@ -1029,10 +1038,6 @@ class TestTimeSeries:
         s = Series(arr["Date"])
         assert isinstance(s[0], Timestamp)
         assert s[0] == dates[0][0]
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            s = Series.from_array(arr["Date"], Index([0]))
-            assert s[0] == dates[0][0]
 
     def test_get_level_values_box(self):
         from pandas import MultiIndex

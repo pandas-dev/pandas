@@ -54,11 +54,10 @@ def _new_DatetimeIndex(cls, d):
         result = cls._simple_new(data, **d)
     else:
         with warnings.catch_warnings():
-            # we ignore warnings from passing verify_integrity=False
             # TODO: If we knew what was going in to **d, we might be able to
             #  go through _simple_new instead
             warnings.simplefilter("ignore")
-            result = cls.__new__(cls, verify_integrity=False, **d)
+            result = cls.__new__(cls, **d)
 
     return result
 
@@ -109,31 +108,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         One of pandas date offset strings or corresponding objects. The string
         'infer' can be passed in order to set the frequency of the index as the
         inferred frequency upon creation.
-
-    start : starting value, datetime-like, optional
-        If data is None, start is used as the start point in generating regular
-        timestamp data.
-
-        .. deprecated:: 0.24.0
-
-    periods  : int, optional, > 0
-        Number of periods to generate, if generating index. Takes precedence
-        over end argument.
-
-        .. deprecated:: 0.24.0
-
-    end : end time, datetime-like, optional
-        If periods is none, generated index will extend to first conforming
-        time on or just past end argument.
-
-        .. deprecated:: 0.24.0
-
-    closed : str or None, default None
-        Make the interval closed with respect to the given frequency to
-        the 'left', 'right', or both sides (None).
-
-        .. deprecated:: 0.24. 0
-
     tz : pytz.timezone or dateutil.tz.tzfile
     ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
         When clocks moved backward due to DST, ambiguous times may arise.
@@ -218,9 +192,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     -----
     To learn more about the frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
-
-    Creating a DatetimeIndex based on `start`, `periods`, and `end` has
-    been deprecated in favor of :func:`date_range`.
     """
 
     _typ = "datetimeindex"
@@ -263,9 +234,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         cls,
         data=None,
         freq=None,
-        start=None,
-        end=None,
-        periods=None,
         tz=None,
         normalize=False,
         closed=None,
@@ -275,45 +243,12 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         dtype=None,
         copy=False,
         name=None,
-        verify_integrity=None,
     ):
-
-        if verify_integrity is not None:
-            warnings.warn(
-                "The 'verify_integrity' argument is deprecated, "
-                "will be removed in a future version.",
-                FutureWarning,
-                stacklevel=2,
-            )
-        else:
-            verify_integrity = True
-
-        if data is None:
-            dtarr = DatetimeArray._generate_range(
-                start,
-                end,
-                periods,
-                freq=freq,
-                tz=tz,
-                normalize=normalize,
-                closed=closed,
-                ambiguous=ambiguous,
-            )
-            warnings.warn(
-                "Creating a DatetimeIndex by passing range "
-                "endpoints is deprecated.  Use "
-                "`pandas.date_range` instead.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            return cls._simple_new(dtarr._data, freq=dtarr.freq, tz=dtarr.tz, name=name)
 
         if is_scalar(data):
             raise TypeError(
-                "{cls}() must be called with a "
-                "collection of some kind, {data} was passed".format(
-                    cls=cls.__name__, data=repr(data)
-                )
+                f"{cls.__name__}() must be called with a "
+                f"collection of some kind, {repr(data)} was passed"
             )
 
         # - Cases checked above all return/raise before reaching here - #
@@ -330,7 +265,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             dayfirst=dayfirst,
             yearfirst=yearfirst,
             ambiguous=ambiguous,
-            int_as_wall_time=True,
         )
 
         subarr = cls._simple_new(dtarr, name=name, freq=dtarr.freq, tz=dtarr.tz)
@@ -410,7 +344,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     tzinfo = tz
 
     @cache_readonly
-    def _is_dates_only(self):
+    def _is_dates_only(self) -> bool:
         """Return a boolean if we are only dates (and don't have a timezone)"""
         from pandas.io.formats.format import _is_dates_only
 
@@ -423,7 +357,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
         d = dict(data=self._data)
         d.update(self._get_attributes_dict())
-        return _new_DatetimeIndex, (self.__class__, d), None
+        return _new_DatetimeIndex, (type(self), d), None
 
     def __setstate__(self, state):
         """Necessary for making this object picklable"""
@@ -464,6 +398,12 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             return _to_M8(value)
         raise ValueError("Passed item and index have different timezone")
 
+    @Appender(Index.difference.__doc__)
+    def difference(self, other, sort=None):
+        new_idx = super().difference(other, sort=sort)
+        new_idx._data._freq = None
+        return new_idx
+
     # --------------------------------------------------------------------
     # Rendering Methods
 
@@ -485,7 +425,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         from pandas.io.formats.format import _get_format_datetime64
 
         formatter = _get_format_datetime64(is_dates_only=self._is_dates_only)
-        return lambda x: "'%s'" % formatter(x, tz=self.tz)
+        return lambda x: f"'{formatter(x, tz=self.tz)}'"
 
     # --------------------------------------------------------------------
     # Set Operation Methods
@@ -516,7 +456,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
                 if result.freq is None and (
                     this.freq is not None or other.freq is not None
                 ):
-                    result.freq = to_offset(result.inferred_freq)
+                    result._data._freq = to_offset(result.inferred_freq)
             return result
 
     def union_many(self, others):
@@ -657,14 +597,14 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             values = self._data._local_timestamps()
         return fields.get_time_micros(values)
 
-    def to_series(self, keep_tz=None, index=None, name=None):
+    def to_series(self, keep_tz=lib._no_default, index=None, name=None):
         """
         Create a Series with both index and values equal to the index keys
         useful with map for returning an indexer based on an index.
 
         Parameters
         ----------
-        keep_tz : optional, defaults False
+        keep_tz : optional, defaults True
             Return the data keeping the timezone.
 
             If keep_tz is True:
@@ -680,10 +620,10 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
               Series will have a datetime64[ns] dtype. TZ aware
               objects will have the tz removed.
 
-            .. versionchanged:: 0.24
-                The default value will change to True in a future release.
-                You can set ``keep_tz=True`` to already obtain the future
-                behaviour and silence the warning.
+            .. versionchanged:: 1.0.0
+                The default value is now True.  In a future version,
+                this keyword will be removed entirely.  Stop passing the
+                argument to obtain the future behavior and silence the warning.
 
         index : Index, optional
             Index of resulting Series. If None, defaults to original index.
@@ -702,27 +642,27 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         if name is None:
             name = self.name
 
-        if keep_tz is None and self.tz is not None:
-            warnings.warn(
-                "The default of the 'keep_tz' keyword in "
-                "DatetimeIndex.to_series will change "
-                "to True in a future release. You can set "
-                "'keep_tz=True' to obtain the future behaviour and "
-                "silence this warning.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            keep_tz = False
-        elif keep_tz is False:
-            warnings.warn(
-                "Specifying 'keep_tz=False' is deprecated and this "
-                "option will be removed in a future release. If "
-                "you want to remove the timezone information, you "
-                "can do 'idx.tz_convert(None)' before calling "
-                "'to_series'.",
-                FutureWarning,
-                stacklevel=2,
-            )
+        if keep_tz is not lib._no_default:
+            if keep_tz:
+                warnings.warn(
+                    "The 'keep_tz' keyword in DatetimeIndex.to_series "
+                    "is deprecated and will be removed in a future version.  "
+                    "You can stop passing 'keep_tz' to silence this warning.",
+                    FutureWarning,
+                    stacklevel=2,
+                )
+            else:
+                warnings.warn(
+                    "Specifying 'keep_tz=False' is deprecated and this "
+                    "option will be removed in a future release. If "
+                    "you want to remove the timezone information, you "
+                    "can do 'idx.tz_convert(None)' before calling "
+                    "'to_series'.",
+                    FutureWarning,
+                    stacklevel=2,
+                )
+        else:
+            keep_tz = True
 
         if keep_tz and self.tz is not None:
             # preserve the tz & copy
@@ -1031,9 +971,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         elif isinstance(key, timedelta):
             # GH#20464
             raise TypeError(
-                "Cannot index {cls} with {other}".format(
-                    cls=type(self).__name__, other=type(key).__name__
-                )
+                f"Cannot index {type(self).__name__} with {type(key).__name__}"
             )
 
         if isinstance(key, time):
@@ -1176,34 +1114,6 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
     _has_same_tz = ea_passthrough(DatetimeArray._has_same_tz)
 
-    @property
-    def offset(self):
-        """
-        get/set the frequency of the instance
-        """
-        msg = (
-            "{cls}.offset has been deprecated and will be removed "
-            "in a future version; use {cls}.freq instead.".format(
-                cls=type(self).__name__
-            )
-        )
-        warnings.warn(msg, FutureWarning, stacklevel=2)
-        return self.freq
-
-    @offset.setter
-    def offset(self, value):
-        """
-        get/set the frequency of the instance
-        """
-        msg = (
-            "{cls}.offset has been deprecated and will be removed "
-            "in a future version; use {cls}.freq instead.".format(
-                cls=type(self).__name__
-            )
-        )
-        warnings.warn(msg, FutureWarning, stacklevel=2)
-        self.freq = value
-
     def __getitem__(self, key):
         result = self._data.__getitem__(key)
         if is_scalar(result):
@@ -1231,17 +1141,17 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
         return self.values.searchsorted(value, side=side)
 
-    def is_type_compatible(self, typ):
+    def is_type_compatible(self, typ) -> bool:
         return typ == self.inferred_type or typ == "datetime"
 
     @property
-    def inferred_type(self):
+    def inferred_type(self) -> str:
         # b/c datetime is represented as microseconds since the epoch, make
         # sure we can't have ambiguous indexing
         return "datetime64"
 
     @property
-    def is_all_dates(self):
+    def is_all_dates(self) -> bool:
         return True
 
     def insert(self, loc, item):
@@ -1422,7 +1332,7 @@ def date_range(
     normalize=False,
     name=None,
     closed=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Return a fixed frequency DatetimeIndex.
@@ -1572,7 +1482,7 @@ def date_range(
         tz=tz,
         normalize=normalize,
         closed=closed,
-        **kwargs
+        **kwargs,
     )
     return DatetimeIndex._simple_new(dtarr, tz=dtarr.tz, freq=dtarr.freq, name=name)
 
@@ -1588,7 +1498,7 @@ def bdate_range(
     weekmask=None,
     holidays=None,
     closed=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Return a fixed frequency DatetimeIndex, with business day as the default
@@ -1663,13 +1573,13 @@ def bdate_range(
             weekmask = weekmask or "Mon Tue Wed Thu Fri"
             freq = prefix_mapping[freq](holidays=holidays, weekmask=weekmask)
         except (KeyError, TypeError):
-            msg = "invalid custom frequency string: {freq}".format(freq=freq)
+            msg = f"invalid custom frequency string: {freq}"
             raise ValueError(msg)
     elif holidays or weekmask:
         msg = (
             "a custom frequency string is required when holidays or "
-            "weekmask are passed, got frequency {freq}"
-        ).format(freq=freq)
+            f"weekmask are passed, got frequency {freq}"
+        )
         raise ValueError(msg)
 
     return date_range(
@@ -1681,7 +1591,7 @@ def bdate_range(
         normalize=normalize,
         name=name,
         closed=closed,
-        **kwargs
+        **kwargs,
     )
 
 

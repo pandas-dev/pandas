@@ -128,6 +128,20 @@ class TestDataFrameConcatCommon:
         )
         tm.assert_frame_equal(results, expected)
 
+    def test_append_empty_list(self):
+        # GH 28769
+        df = DataFrame()
+        result = df.append([])
+        expected = df
+        tm.assert_frame_equal(result, expected)
+        assert result is not df
+
+        df = DataFrame(np.random.randn(5, 4), columns=["foo", "bar", "baz", "qux"])
+        result = df.append([])
+        expected = df
+        tm.assert_frame_equal(result, expected)
+        assert result is not df  # .append() should return a new object
+
     def test_append_series_dict(self):
         df = DataFrame(np.random.randn(5, 4), columns=["foo", "bar", "baz", "qux"])
 
@@ -354,13 +368,6 @@ class TestDataFrameConcatCommon:
         other = DataFrame([[2.0, np.nan], [np.nan, 7]], index=[1, 3], columns=[1, 2])
         with pytest.raises(ValueError, match="Data overlaps"):
             df.update(other, errors="raise")
-
-    @pytest.mark.parametrize("raise_conflict", [True, False])
-    def test_update_deprecation(self, raise_conflict):
-        df = DataFrame([[1.5, 1, 3.0]])
-        other = DataFrame()
-        with tm.assert_produces_warning(FutureWarning):
-            df.update(other, raise_conflict=raise_conflict)
 
     def test_update_from_non_df(self):
         d = {"a": Series([1, 2, 3, 4]), "b": Series([5, 6, 7, 8])}

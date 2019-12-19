@@ -53,7 +53,7 @@ class TestPandasContainer:
         self.objSeries = tm.makeObjectSeries()
         self.objSeries.name = "objects"
 
-        self.empty_series = Series([], index=[])
+        self.empty_series = Series([], index=[], dtype=np.float64)
         self.empty_frame = DataFrame()
 
         self.frame = _frame.copy()

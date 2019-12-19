@@ -1,7 +1,7 @@
 """Sparse Dtype"""
 
 import re
-from typing import Any
+from typing import Any, Tuple
 
 import numpy as np
 
@@ -79,9 +79,7 @@ class SparseDtype(ExtensionDtype):
             fill_value = na_value_for_dtype(dtype)
 
         if not is_scalar(fill_value):
-            raise ValueError(
-                "fill_value must be a scalar. Got {} instead".format(fill_value)
-            )
+            raise ValueError(f"fill_value must be a scalar. Got {fill_value} instead")
         self._dtype = dtype
         self._fill_value = fill_value
 
@@ -90,7 +88,7 @@ class SparseDtype(ExtensionDtype):
         # __eq__, so we explicitly do it here.
         return super().__hash__()
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         # We have to override __eq__ to handle NA values in _metadata.
         # The base class does simple == checks, which fail for NA.
         if isinstance(other, str):
@@ -163,13 +161,20 @@ class SparseDtype(ExtensionDtype):
 
     @property
     def name(self):
-        return "Sparse[{}, {}]".format(self.subtype.name, self.fill_value)
+        return f"Sparse[{self.subtype.name}, {self.fill_value}]"
 
     def __repr__(self) -> str:
         return self.name
 
     @classmethod
     def construct_array_type(cls):
+        """
+        Return the array type associated with this dtype.
+
+        Returns
+        -------
+        type
+        """
         from .array import SparseArray
 
         return SparseArray
@@ -201,7 +206,7 @@ class SparseDtype(ExtensionDtype):
         -------
         SparseDtype
         """
-        msg = "Could not construct SparseDtype from '{}'".format(string)
+        msg = f"Cannot construct a 'SparseDtype' from '{string}'"
         if string.startswith("Sparse"):
             try:
                 sub_type, has_fill_value = cls._parse_subtype(string)
@@ -210,20 +215,20 @@ class SparseDtype(ExtensionDtype):
             else:
                 result = SparseDtype(sub_type)
                 msg = (
-                    "Could not construct SparseDtype from '{}'.\n\nIt "
+                    f"Cannot construct a 'SparseDtype' from '{string}'.\n\nIt "
                     "looks like the fill_value in the string is not "
                     "the default for the dtype. Non-default fill_values "
                     "are not supported. Use the 'SparseDtype()' "
                     "constructor instead."
                 )
                 if has_fill_value and str(result) != string:
-                    raise TypeError(msg.format(string))
+                    raise TypeError(msg)
                 return result
         else:
             raise TypeError(msg)
 
     @staticmethod
-    def _parse_subtype(dtype):
+    def _parse_subtype(dtype: str) -> Tuple[str, bool]:
         """
         Parse a string to get the subtype
 
@@ -249,11 +254,11 @@ class SparseDtype(ExtensionDtype):
         has_fill_value = False
         if m:
             subtype = m.groupdict()["subtype"]
-            has_fill_value = m.groupdict()["fill_value"] or has_fill_value
+            has_fill_value = bool(m.groupdict()["fill_value"])
         elif dtype == "Sparse":
             subtype = "float64"
         else:
-            raise ValueError("Cannot parse {}".format(dtype))
+            raise ValueError(f"Cannot parse {dtype}")
         return subtype, has_fill_value
 
     @classmethod
@@ -285,7 +290,7 @@ class SparseDtype(ExtensionDtype):
         Returns
         -------
         SparseDtype
-            A new SparseDtype with the corret `dtype` and fill value
+            A new SparseDtype with the correct `dtype` and fill value
             for that `dtype`.
 
         Raises
