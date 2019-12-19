@@ -538,7 +538,8 @@ class TestDataFramePlots(TestPlotBase):
             ax_datetime_no_tz.get_lines()[0].get_data()[1]
             == testdata["datetime_no_tz"].values
         ).all()
-        ax_datetime_all_tz = testdata.plot(y="datetime_all_tz")
+        with pytest.warns(FutureWarning):
+            ax_datetime_all_tz = testdata.plot(y="datetime_all_tz")
         assert (
             ax_datetime_all_tz.get_lines()[0].get_data()[1]
             == testdata["datetime_all_tz"].values
