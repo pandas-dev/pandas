@@ -74,10 +74,12 @@ def cat_core(list_of_columns: List, sep: str):
     """
     if sep == "":
         # no need to interleave sep if it is empty
-        return np.sum(list_of_columns, axis=0)
+        arr_of_cols = np.asarray(list_of_columns, dtype=object)
+        return np.sum(arr_of_cols, axis=0)
     list_with_sep = [sep] * (2 * len(list_of_columns) - 1)
     list_with_sep[::2] = list_of_columns
-    return np.sum(list_with_sep, axis=0)
+    arr_with_sep = np.asarray(list_with_sep)
+    return np.sum(arr_with_sep, axis=0)
 
 
 def cat_safe(list_of_columns: List, sep: str):
@@ -1933,8 +1935,8 @@ def forbid_nonstring_types(forbidden, name=None):
         def wrapper(self, *args, **kwargs):
             if self._inferred_dtype not in allowed_types:
                 msg = (
-                    f"Cannot use .str.{func_name} with values of inferred dtype "
-                    f"{repr(self._inferred_dtype)}."
+                    f"Cannot use .str.{func_name} with values of "
+                    f"inferred dtype '{self._inferred_dtype}'."
                 )
                 raise TypeError(msg)
             return func(self, *args, **kwargs)
@@ -2091,6 +2093,11 @@ class StringMethods(NoNewAttributesMixin):
             return self.get(key)
 
     def __iter__(self):
+        warnings.warn(
+            "Columnar iteration over characters will be deprecated in future releases.",
+            FutureWarning,
+            stacklevel=2,
+        )
         i = 0
         g = self.get(i)
         while g.notna().any():

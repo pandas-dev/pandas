@@ -3,7 +3,6 @@ Internal module for formatting output data in csv, html,
 and latex files. This module also applies to display formatting.
 """
 
-import codecs
 from contextlib import contextmanager
 from datetime import tzinfo
 import decimal
@@ -69,7 +68,7 @@ from pandas.core.arrays.datetimes import DatetimeArray
 from pandas.core.arrays.timedeltas import TimedeltaArray
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.index import Index, ensure_index
+from pandas.core.indexes.api import Index, ensure_index
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
@@ -495,7 +494,11 @@ class TableFormatter:
         if hasattr(buf, "write"):
             yield buf
         elif isinstance(buf, str):
-            with codecs.open(buf, "w", encoding=encoding) as f:
+            with open(buf, "w", encoding=encoding, newline="") as f:
+                # GH#30034 open instead of codecs.open prevents a file leak
+                #  if we have an invalid encoding argument.
+                # newline="" is needed to roundtrip correctly on
+                #  windows test_to_latex_filename
                 yield f
         else:
             raise TypeError("buf is not a file name and it has no write method")
@@ -981,7 +984,7 @@ class DataFrameFormatter(TableFormatter):
         )
 
     def _get_formatted_column_labels(self, frame: "DataFrame") -> List[List[str]]:
-        from pandas.core.index import _sparsify
+        from pandas.core.indexes.multi import _sparsify
 
         columns = frame.columns
 
@@ -1637,7 +1640,7 @@ def _get_format_datetime64_from_values(
     """ given values and a date_format, return a string format """
 
     if isinstance(values, np.ndarray) and values.ndim > 1:
-        # We don't actaully care about the order of values, and DatetimeIndex
+        # We don't actually care about the order of values, and DatetimeIndex
         #  only accepts 1D values
         values = values.ravel()
 

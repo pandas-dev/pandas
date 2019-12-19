@@ -319,7 +319,6 @@ generated/pandas.DataFrame.clip_upper,../reference/api/pandas.DataFrame.clip_upp
 generated/pandas.DataFrame.columns,../reference/api/pandas.DataFrame.columns
 generated/pandas.DataFrame.combine_first,../reference/api/pandas.DataFrame.combine_first
 generated/pandas.DataFrame.combine,../reference/api/pandas.DataFrame.combine
-generated/pandas.DataFrame.compound,../reference/api/pandas.DataFrame.compound
 generated/pandas.DataFrame.convert_objects,../reference/api/pandas.DataFrame.convert_objects
 generated/pandas.DataFrame.copy,../reference/api/pandas.DataFrame.copy
 generated/pandas.DataFrame.corr,../reference/api/pandas.DataFrame.corr
@@ -492,7 +491,6 @@ generated/pandas.DataFrame.to_hdf,../reference/api/pandas.DataFrame.to_hdf
 generated/pandas.DataFrame.to,../reference/api/pandas.DataFrame.to
 generated/pandas.DataFrame.to_json,../reference/api/pandas.DataFrame.to_json
 generated/pandas.DataFrame.to_latex,../reference/api/pandas.DataFrame.to_latex
-generated/pandas.DataFrame.to_msgpack,../reference/api/pandas.DataFrame.to_msgpack
 generated/pandas.DataFrame.to_numpy,../reference/api/pandas.DataFrame.to_numpy
 generated/pandas.DataFrame.to_panel,../reference/api/pandas.DataFrame.to_panel
 generated/pandas.DataFrame.to_parquet,../reference/api/pandas.DataFrame.to_parquet
@@ -619,7 +617,6 @@ generated/pandas.Index.asi8,../reference/api/pandas.Index.asi8
 generated/pandas.Index.asof,../reference/api/pandas.Index.asof
 generated/pandas.Index.asof_locs,../reference/api/pandas.Index.asof_locs
 generated/pandas.Index.astype,../reference/api/pandas.Index.astype
-generated/pandas.Index.contains,../reference/api/pandas.Index.contains
 generated/pandas.Index.copy,../reference/api/pandas.Index.copy
 generated/pandas.Index.data,../reference/api/pandas.Index.data
 generated/pandas.Index.delete,../reference/api/pandas.Index.delete
@@ -780,8 +777,7 @@ generated/pandas.io.formats.style.Styler.to_excel,../reference/api/pandas.io.for
 generated/pandas.io.formats.style.Styler.use,../reference/api/pandas.io.formats.style.Styler.use
 generated/pandas.io.formats.style.Styler.where,../reference/api/pandas.io.formats.style.Styler.where
 generated/pandas.io.json.build_table_schema,../reference/api/pandas.io.json.build_table_schema
-generated/pandas.io.json.json_normalize,../reference/api/pandas.io.json.json_normalize
-generated/pandas.io.stata.StataReader.data,../reference/api/pandas.io.stata.StataReader.data
+generated/pandas.io.json.json_normalize,../reference/api/pandas.json_normalize
 generated/pandas.io.stata.StataReader.data_label,../reference/api/pandas.io.stata.StataReader.data_label
 generated/pandas.io.stata.StataReader.value_labels,../reference/api/pandas.io.stata.StataReader.value_labels
 generated/pandas.io.stata.StataReader.variable_labels,../reference/api/pandas.io.stata.StataReader.variable_labels
@@ -892,7 +888,6 @@ generated/pandas.read_gbq,../reference/api/pandas.read_gbq
 generated/pandas.read_hdf,../reference/api/pandas.read_hdf
 generated/pandas.read,../reference/api/pandas.read
 generated/pandas.read_json,../reference/api/pandas.read_json
-generated/pandas.read_msgpack,../reference/api/pandas.read_msgpack
 generated/pandas.read_parquet,../reference/api/pandas.read_parquet
 generated/pandas.read_pickle,../reference/api/pandas.read_pickle
 generated/pandas.read_sas,../reference/api/pandas.read_sas
@@ -950,7 +945,6 @@ generated/pandas.Series.clip_lower,../reference/api/pandas.Series.clip_lower
 generated/pandas.Series.clip_upper,../reference/api/pandas.Series.clip_upper
 generated/pandas.Series.combine_first,../reference/api/pandas.Series.combine_first
 generated/pandas.Series.combine,../reference/api/pandas.Series.combine
-generated/pandas.Series.compound,../reference/api/pandas.Series.compound
 generated/pandas.Series.compress,../reference/api/pandas.Series.compress
 generated/pandas.Series.convert_objects,../reference/api/pandas.Series.convert_objects
 generated/pandas.Series.copy,../reference/api/pandas.Series.copy
@@ -1234,7 +1228,6 @@ generated/pandas.Series.to_json,../reference/api/pandas.Series.to_json
 generated/pandas.Series.to_latex,../reference/api/pandas.Series.to_latex
 generated/pandas.Series.to_list,../reference/api/pandas.Series.to_list
 generated/pandas.Series.tolist,../reference/api/pandas.Series.tolist
-generated/pandas.Series.to_msgpack,../reference/api/pandas.Series.to_msgpack
 generated/pandas.Series.to_numpy,../reference/api/pandas.Series.to_numpy
 generated/pandas.Series.to_period,../reference/api/pandas.Series.to_period
 generated/pandas.Series.to_pickle,../reference/api/pandas.Series.to_pickle

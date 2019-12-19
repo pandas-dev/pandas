@@ -174,7 +174,6 @@ Computations / descriptive stats
    Series.is_monotonic_increasing
    Series.is_monotonic_decreasing
    Series.value_counts
-   Series.compound
 
 Reindexing / selection / label manipulation
 -------------------------------------------
@@ -575,7 +574,6 @@ Serialization / IO / conversion
    Series.to_xarray
    Series.to_hdf
    Series.to_sql
-   Series.to_msgpack
    Series.to_json
    Series.to_string
    Series.to_clipboard

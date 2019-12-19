@@ -15,6 +15,7 @@ import itertools
 import sys
 from textwrap import dedent
 from typing import (
+    Any,
     FrozenSet,
     Hashable,
     Iterable,
@@ -25,6 +26,7 @@ from typing import (
     Tuple,
     Type,
     Union,
+    cast,
 )
 import warnings
 
@@ -91,8 +93,8 @@ from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin as DatetimeLikeArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.generic import NDFrame, _shared_docs
-from pandas.core.index import Index, ensure_index, ensure_index_from_sequences
 from pandas.core.indexes import base as ibase
+from pandas.core.indexes.api import Index, ensure_index, ensure_index_from_sequences
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.multi import maybe_droplevels
 from pandas.core.indexes.period import PeriodIndex
@@ -377,6 +379,8 @@ class DataFrame(NDFrame):
     2  7  8  9
     """
 
+    _typ = "dataframe"
+
     @property
     def _constructor(self) -> Type["DataFrame"]:
         return DataFrame
@@ -446,7 +450,7 @@ class DataFrame(NDFrame):
 
         # For data is list-like, or Iterable (will consume into list)
         elif isinstance(data, abc.Iterable) and not isinstance(data, (str, bytes)):
-            if not isinstance(data, abc.Sequence):
+            if not isinstance(data, (abc.Sequence, ExtensionArray)):
                 data = list(data)
             if len(data) > 0:
                 if is_list_like(data[0]) and getattr(data[0], "ndim", 1) == 1:
@@ -475,7 +479,7 @@ class DataFrame(NDFrame):
             except (ValueError, TypeError) as e:
                 exc = TypeError(
                     "DataFrame constructor called with "
-                    "incompatible data and dtype: {e}".format(e=e)
+                    f"incompatible data and dtype: {e}"
                 )
                 raise exc from e
 
@@ -589,7 +593,6 @@ class DataFrame(NDFrame):
         users expect. display.max_columns remains in effect.
         GH3541, GH3573
         """
-
         width, height = console.get_console_size()
         max_columns = get_option("display.max_columns")
         nb_columns = len(self.columns)
@@ -1112,8 +1115,7 @@ class DataFrame(NDFrame):
             rvals = np.asarray(other)
             if lvals.shape[1] != rvals.shape[0]:
                 raise ValueError(
-                    "Dot product shape mismatch, "
-                    "{s} vs {r}".format(s=lvals.shape, r=rvals.shape)
+                    f"Dot product shape mismatch, {lvals.shape} vs {rvals.shape}"
                 )
 
         if isinstance(other, DataFrame):
@@ -1129,7 +1131,7 @@ class DataFrame(NDFrame):
             else:
                 return Series(result, index=left.index)
         else:  # pragma: no cover
-            raise TypeError("unsupported type: {oth}".format(oth=type(other)))
+            raise TypeError(f"unsupported type: {type(other)}")
 
     def __matmul__(self, other):
         """
@@ -1417,7 +1419,7 @@ class DataFrame(NDFrame):
                 for t in self.itertuples(name=None)
             )
         else:
-            raise ValueError("orient '{o}' not understood".format(o=orient))
+            raise ValueError(f"orient '{orient}' not understood")
 
     def to_gbq(
         self,
@@ -1431,8 +1433,6 @@ class DataFrame(NDFrame):
         location=None,
         progress_bar=True,
         credentials=None,
-        verbose=None,
-        private_key=None,
     ):
         """
         Write a DataFrame to a Google BigQuery table.
@@ -1507,21 +1507,6 @@ class DataFrame(NDFrame):
             *New in version 0.8.0 of pandas-gbq*.
 
             .. versionadded:: 0.24.0
-        verbose : bool, deprecated
-            Deprecated in pandas-gbq version 0.4.0. Use the `logging module
-            to adjust verbosity instead
-            <https://pandas-gbq.readthedocs.io/en/latest/intro.html#logging>`__.
-        private_key : str, deprecated
-            Deprecated in pandas-gbq version 0.8.0. Use the ``credentials``
-            parameter and
-            :func:`google.oauth2.service_account.Credentials.from_service_account_info`
-            or
-            :func:`google.oauth2.service_account.Credentials.from_service_account_file`
-            instead.
-
-            Service account private key in JSON format. Can be file path
-            or string contents. This is useful for remote server
-            authentication (eg. Jupyter/IPython notebook on remote host).
 
         See Also
         --------
@@ -1542,8 +1527,6 @@ class DataFrame(NDFrame):
             location=location,
             progress_bar=progress_bar,
             credentials=credentials,
-            verbose=verbose,
-            private_key=private_key,
         )
 
     @classmethod
@@ -1836,9 +1819,7 @@ class DataFrame(NDFrame):
                 formats.append(dtype_mapping)
             else:
                 element = "row" if i < index_len else "column"
-                msg = ("Invalid dtype {dtype} specified for {element} {name}").format(
-                    dtype=dtype_mapping, element=element, name=name
-                )
+                msg = f"Invalid dtype {dtype_mapping} specified for {element} {name}"
                 raise ValueError(msg)
 
         return np.rec.fromarrays(arrays, dtype={"names": names, "formats": formats})
@@ -2307,7 +2288,7 @@ class DataFrame(NDFrame):
         lines.append(self.index._summary())
 
         if len(self.columns) == 0:
-            lines.append("Empty {name}".format(name=type(self).__name__))
+            lines.append(f"Empty {type(self).__name__}")
             fmt.buffer_put_lines(buf, lines)
             return
 
@@ -2335,10 +2316,7 @@ class DataFrame(NDFrame):
                 counts = self.count()
                 if len(cols) != len(counts):  # pragma: no cover
                     raise AssertionError(
-                        "Columns must equal counts "
-                        "({cols:d} != {counts:d})".format(
-                            cols=len(cols), counts=len(counts)
-                        )
+                        f"Columns must equal counts ({len(cols)} != {len(counts)})"
                     )
                 tmpl = "{count} non-null {dtype}"
 
@@ -2382,7 +2360,7 @@ class DataFrame(NDFrame):
 
         counts = self._data.get_dtype_counts()
         dtypes = ["{k}({kk:d})".format(k=k[0], kk=k[1]) for k in sorted(counts.items())]
-        lines.append("dtypes: {types}".format(types=", ".join(dtypes)))
+        lines.append(f"dtypes: {', '.join(dtypes)}")
 
         if memory_usage is None:
             memory_usage = get_option("display.memory_usage")
@@ -2399,12 +2377,7 @@ class DataFrame(NDFrame):
                 if "object" in counts or self.index._is_memory_usage_qualified():
                     size_qualifier = "+"
             mem_usage = self.memory_usage(index=True, deep=deep).sum()
-            lines.append(
-                "memory usage: {mem}\n".format(
-                    mem=_sizeof_fmt(mem_usage, size_qualifier)
-                )
-            )
-
+            lines.append(f"memory usage: {_sizeof_fmt(mem_usage, size_qualifier)}\n")
         fmt.buffer_put_lines(buf, lines)
 
     def memory_usage(self, index=True, deep=False):
@@ -2614,7 +2587,6 @@ class DataFrame(NDFrame):
         """
         # irow
         if axis == 0:
-            label = self.index[i]
             new_values = self._data.fast_xs(i)
 
             # if we are a copy, mark as such
@@ -3069,8 +3041,8 @@ class DataFrame(NDFrame):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if not isinstance(expr, str):
-            msg = "expr must be a string to be evaluated, {0} given"
-            raise ValueError(msg.format(type(expr)))
+            msg = f"expr must be a string to be evaluated, {type(expr)} given"
+            raise ValueError(msg)
         kwargs["level"] = kwargs.pop("level", 0) + 1
         kwargs["target"] = None
         res = self.eval(expr, **kwargs)
@@ -3287,11 +3259,7 @@ class DataFrame(NDFrame):
 
         # can't both include AND exclude!
         if not include.isdisjoint(exclude):
-            raise ValueError(
-                "include and exclude overlap on {inc_ex}".format(
-                    inc_ex=(include & exclude)
-                )
-            )
+            raise ValueError(f"include and exclude overlap on {(include & exclude)}")
 
         # We raise when both include and exclude are empty
         # Hence, we can just shrink the columns we want to keep
@@ -4128,15 +4096,13 @@ class DataFrame(NDFrame):
                 try:
                     found = col in self.columns
                 except TypeError:
-                    raise TypeError(
-                        err_msg + " Received column of type {}".format(type(col))
-                    )
+                    raise TypeError(f"{err_msg}. Received column of type {type(col)}")
                 else:
                     if not found:
                         missing.append(col)
 
         if missing:
-            raise KeyError("None of {} are in the columns".format(missing))
+            raise KeyError(f"None of {missing} are in the columns")
 
         if inplace:
             frame = self
@@ -4180,17 +4146,15 @@ class DataFrame(NDFrame):
                 # check newest element against length of calling frame, since
                 # ensure_index_from_sequences would not raise for append=False.
                 raise ValueError(
-                    "Length mismatch: Expected {len_self} rows, "
-                    "received array of length {len_col}".format(
-                        len_self=len(self), len_col=len(arrays[-1])
-                    )
+                    f"Length mismatch: Expected {len(self)} rows, "
+                    f"received array of length {len(arrays[-1])}"
                 )
 
         index = ensure_index_from_sequences(arrays, names)
 
         if verify_integrity and not index.is_unique:
             duplicates = index[index.duplicated()].unique()
-            raise ValueError("Index has duplicate keys: {dup}".format(dup=duplicates))
+            raise ValueError(f"Index has duplicate keys: {duplicates}")
 
         # use set to handle duplicate column names gracefully in case of drop
         for c in set(to_remove):
@@ -4205,8 +4169,13 @@ class DataFrame(NDFrame):
             return frame
 
     def reset_index(
-        self, level=None, drop=False, inplace=False, col_level=0, col_fill=""
-    ):
+        self,
+        level: Optional[Union[Hashable, Sequence[Hashable]]] = None,
+        drop: bool = False,
+        inplace: bool = False,
+        col_level: Hashable = 0,
+        col_fill: Optional[Hashable] = "",
+    ) -> Optional["DataFrame"]:
         """
         Reset the index, or a level of it.
 
@@ -4234,8 +4203,8 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        DataFrame
-            DataFrame with the new index.
+        DataFrame or None
+            DataFrame with the new index or None if ``inplace=True``.
 
         See Also
         --------
@@ -4384,7 +4353,7 @@ class DataFrame(NDFrame):
                         values = values._data
 
                     if mask.any():
-                        values, changed = maybe_upcast_putmask(values, mask, np.nan)
+                        values, _ = maybe_upcast_putmask(values, mask, np.nan)
 
                     if issubclass(values_type, DatetimeLikeArray):
                         values = values_type(values, dtype=values_dtype)
@@ -4400,6 +4369,7 @@ class DataFrame(NDFrame):
                 new_index = self.index.droplevel(level)
 
         if not drop:
+            to_insert: Iterable[Tuple[Any, Optional[Any]]]
             if isinstance(self.index, ABCMultiIndex):
                 names = [
                     (n if n is not None else f"level_{i}")
@@ -4422,8 +4392,7 @@ class DataFrame(NDFrame):
                         if len(col_name) not in (1, self.columns.nlevels):
                             raise ValueError(
                                 "col_fill=None is incompatible "
-                                "with incomplete column name "
-                                "{}".format(name)
+                                f"with incomplete column name {name}"
                             )
                         col_fill = col_name[0]
 
@@ -4439,6 +4408,8 @@ class DataFrame(NDFrame):
         new_obj.index = new_index
         if not inplace:
             return new_obj
+
+        return None
 
     # ----------------------------------------------------------------------
     # Reindex-based selection methods
@@ -4589,7 +4560,7 @@ class DataFrame(NDFrame):
             mask = count > 0
         else:
             if how is not None:
-                raise ValueError("invalid how option: {h}".format(h=how))
+                raise ValueError(f"invalid how option: {how}")
             else:
                 raise TypeError("must specify how or thresh")
 
@@ -4600,7 +4571,12 @@ class DataFrame(NDFrame):
         else:
             return result
 
-    def drop_duplicates(self, subset=None, keep="first", inplace=False):
+    def drop_duplicates(
+        self,
+        subset: Optional[Union[Hashable, Sequence[Hashable]]] = None,
+        keep: Union[str, bool] = "first",
+        inplace: bool = False,
+    ) -> Optional["DataFrame"]:
         """
         Return DataFrame with duplicate rows removed.
 
@@ -4623,6 +4599,7 @@ class DataFrame(NDFrame):
         Returns
         -------
         DataFrame
+            DataFrame with duplicates removed or None if ``inplace=True``.
         """
         if self.empty:
             return self.copy()
@@ -4637,7 +4614,13 @@ class DataFrame(NDFrame):
         else:
             return self[-duplicated]
 
-    def duplicated(self, subset=None, keep="first"):
+        return None
+
+    def duplicated(
+        self,
+        subset: Optional[Union[Hashable, Sequence[Hashable]]] = None,
+        keep: Union[str, bool] = "first",
+    ) -> "Series":
         """
         Return boolean Series denoting duplicate rows.
 
@@ -4680,6 +4663,9 @@ class DataFrame(NDFrame):
             and subset in self.columns
         ):
             subset = (subset,)
+
+        #  needed for mypy since can't narrow types using np.iterable
+        subset = cast(Iterable, subset)
 
         # Verify all columns in subset exist in the queried dataframe
         # Otherwise, raise a KeyError, same as if you try to __getitem__ with a
@@ -6030,6 +6016,8 @@ class DataFrame(NDFrame):
             raise ValueError("columns must be unique")
 
         df = self.reset_index(drop=True)
+        # TODO: use overload to refine return type of reset_index
+        assert df is not None  # needed for mypy
         result = df[column].explode()
         result = df.drop([column], axis=1).join(result)
         result.index = self.index.take(result.index)
@@ -6656,7 +6644,7 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Merging / joining methods
 
-    def append(self, other, ignore_index=False, verify_integrity=False, sort=None):
+    def append(self, other, ignore_index=False, verify_integrity=False, sort=False):
         """
         Append rows of `other` to the end of caller, returning a new object.
 
@@ -6670,14 +6658,13 @@ class DataFrame(NDFrame):
             If True, do not use the index labels.
         verify_integrity : bool, default False
             If True, raise ValueError on creating index with duplicates.
-        sort : bool, default None
+        sort : bool, default False
             Sort columns if the columns of `self` and `other` are not aligned.
-            The default sorting is deprecated and will change to not-sorting
-            in a future version of pandas. Explicitly pass ``sort=True`` to
-            silence the warning and sort. Explicitly pass ``sort=False`` to
-            silence the warning and not sort.
 
             .. versionadded:: 0.23.0
+            .. versionchanged:: 1.0.0
+
+                Changed to not sort by default.
 
         Returns
         -------
@@ -7208,7 +7195,7 @@ class DataFrame(NDFrame):
             raise ValueError(
                 "method must be either 'pearson', "
                 "'spearman', 'kendall', or a callable, "
-                "'{method}' was supplied".format(method=method)
+                f"'{method}' was supplied"
             )
 
         return self._constructor(correl, index=idx, columns=cols)
@@ -7399,9 +7386,9 @@ class DataFrame(NDFrame):
 
         else:
             raise ValueError(
-                "Invalid method {method} was passed, "
+                f"Invalid method {method} was passed, "
                 "valid methods are: 'pearson', 'kendall', "
-                "'spearman', or callable".format(method=method)
+                "'spearman', or callable"
             )
 
         if not drop:
@@ -7531,8 +7518,7 @@ class DataFrame(NDFrame):
 
         if not isinstance(count_axis, ABCMultiIndex):
             raise TypeError(
-                "Can only count levels on hierarchical "
-                "{ax}.".format(ax=self._get_axis_name(axis))
+                f"Can only count levels on hierarchical {self._get_axis_name(axis)}."
             )
 
         if frame._is_mixed_type:
@@ -7590,8 +7576,8 @@ class DataFrame(NDFrame):
                     data = self._get_bool_data()
             else:  # pragma: no cover
                 msg = (
-                    "Generating numeric_only data with filter_type {f}"
-                    "not supported.".format(f=filter_type)
+                    f"Generating numeric_only data with filter_type {filter_type} "
+                    "not supported."
                 )
                 raise NotImplementedError(msg)
             return data
@@ -7785,7 +7771,7 @@ class DataFrame(NDFrame):
         elif axis_num == 1:
             return self.index
         else:
-            raise ValueError("Axis must be 0 or 1 (got %r)" % axis_num)
+            raise ValueError(f"Axis must be 0 or 1 (got {repr(axis_num)})")
 
     def mode(self, axis=0, numeric_only=False, dropna=True):
         """
@@ -7954,7 +7940,7 @@ class DataFrame(NDFrame):
             cols = Index([], name=self.columns.name)
             if is_list_like(q):
                 return self._constructor([], index=q, columns=cols)
-            return self._constructor_sliced([], index=cols, name=q)
+            return self._constructor_sliced([], index=cols, name=q, dtype=np.float64)
 
         result = data._data.quantile(
             qs=q, axis=1, interpolation=interpolation, transposed=is_transposed
@@ -8000,7 +7986,7 @@ class DataFrame(NDFrame):
         elif axis == 1:
             new_data.set_axis(0, self.columns.to_timestamp(freq=freq, how=how))
         else:  # pragma: no cover
-            raise AssertionError("Axis must be 0 or 1. Got {ax!s}".format(ax=axis))
+            raise AssertionError(f"Axis must be 0 or 1. Got {axis}")
 
         return self._constructor(new_data)
 
@@ -8034,7 +8020,7 @@ class DataFrame(NDFrame):
         elif axis == 1:
             new_data.set_axis(0, self.columns.to_period(freq=freq))
         else:  # pragma: no cover
-            raise AssertionError("Axis must be 0 or 1. Got {ax!s}".format(ax=axis))
+            raise AssertionError(f"Axis must be 0 or 1. Got {axis}")
 
         return self._constructor(new_data)
 
@@ -8123,8 +8109,8 @@ class DataFrame(NDFrame):
         else:
             if not is_list_like(values):
                 raise TypeError(
-                    f"only list-like or dict-like objects are allowed "
-                    f"to be passed to DataFrame.isin(), "
+                    "only list-like or dict-like objects are allowed "
+                    "to be passed to DataFrame.isin(), "
                     f"you passed a {repr(type(values).__name__)}"
                 )
             return DataFrame(
@@ -8143,10 +8129,6 @@ class DataFrame(NDFrame):
 
 DataFrame._setup_axes(
     ["index", "columns"],
-    info_axis=1,
-    stat_axis=0,
-    axes_are_reversed=True,
-    aliases={"rows": 0},
     docs={
         "index": "The index (row labels) of the DataFrame.",
         "columns": "The column labels of the DataFrame.",
@@ -8170,4 +8152,4 @@ def _from_nested_dict(data):
 
 
 def _put_str(s, space):
-    return "{s}".format(s=s)[:space].ljust(space)
+    return str(s)[:space].ljust(space)

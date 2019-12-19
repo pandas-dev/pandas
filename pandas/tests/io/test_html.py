@@ -87,7 +87,7 @@ def test_same_ordering(datapath):
 @pytest.mark.parametrize(
     "flavor",
     [
-        pytest.param("bs4", marks=td.skip_if_no("lxml")),
+        pytest.param("bs4", marks=td.skip_if_no("bs4")),
         pytest.param("lxml", marks=td.skip_if_no("lxml")),
     ],
     scope="class",
@@ -395,8 +395,7 @@ class TestReadHtml:
         """
         Make sure that read_html ignores empty tables.
         """
-        result = self.read_html(
-            """
+        html = """
             <table>
                 <thead>
                     <tr>
@@ -416,8 +415,7 @@ class TestReadHtml:
                 </tbody>
             </table>
         """
-        )
-
+        result = self.read_html(html)
         assert len(result) == 1
 
     def test_multiple_tbody(self):

@@ -4,7 +4,7 @@ Support pre-0.12 series pickle compatibility.
 
 import copy
 import pickle as pkl
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 import warnings
 
 from pandas import Index
@@ -64,7 +64,7 @@ class _LoadSparseSeries:
             stacklevel=6,
         )
 
-        return Series()
+        return Series(dtype=object)
 
 
 class _LoadSparseFrame:
@@ -219,8 +219,9 @@ except (AttributeError, KeyError):
     pass
 
 
-def load(fh, encoding=None, is_verbose=False):
-    """load a pickle, with a provided encoding
+def load(fh, encoding: Optional[str] = None, is_verbose: bool = False):
+    """
+    Load a pickle, with a provided encoding,
 
     Parameters
     ----------

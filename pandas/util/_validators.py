@@ -26,13 +26,8 @@ def _check_arg_length(fname, args, max_fname_arg_count, compat_args):
         argument = "argument" if max_arg_count == 1 else "arguments"
 
         raise TypeError(
-            "{fname}() takes at most {max_arg} {argument} "
-            "({given_arg} given)".format(
-                fname=fname,
-                max_arg=max_arg_count,
-                argument=argument,
-                given_arg=actual_arg_count,
-            )
+            f"{fname}() takes at most {max_arg_count} {argument} "
+            f"({actual_arg_count} given)"
         )
 
 
@@ -71,9 +66,9 @@ def _check_for_default_values(fname, arg_val_dict, compat_args):
         if not match:
             raise ValueError(
                 (
-                    "the '{arg}' parameter is not "
+                    f"the '{key}' parameter is not "
                     "supported in the pandas "
-                    "implementation of {fname}()".format(fname=fname, arg=key)
+                    f"implementation of {fname}()"
                 )
             )
 
@@ -132,10 +127,7 @@ def _check_for_invalid_keys(fname, kwargs, compat_args):
     if diff:
         bad_arg = list(diff)[0]
         raise TypeError(
-            (
-                "{fname}() got an unexpected "
-                "keyword argument '{arg}'".format(fname=fname, arg=bad_arg)
-            )
+            (f"{fname}() got an unexpected " f"keyword argument '{bad_arg}'")
         )
 
 
@@ -223,8 +215,7 @@ def validate_args_and_kwargs(fname, args, kwargs, max_fname_arg_count, compat_ar
     for key in args_dict:
         if key in kwargs:
             raise TypeError(
-                "{fname}() got multiple values for keyword "
-                "argument '{arg}'".format(fname=fname, arg=key)
+                f"{fname}() got multiple values for keyword " f"argument '{key}'"
             )
 
     kwargs.update(args_dict)
@@ -235,8 +226,8 @@ def validate_bool_kwarg(value, arg_name):
     """ Ensures that argument passed in arg_name is of type bool. """
     if not (is_bool(value) or value is None):
         raise ValueError(
-            'For argument "{arg}" expected type bool, received '
-            "type {typ}.".format(arg=arg_name, typ=type(value).__name__)
+            f'For argument "{arg_name}" expected type bool, received '
+            f"type {type(value).__name__}."
         )
     return value
 
@@ -289,9 +280,7 @@ def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
     # First fill with explicit values provided by the user...
     if arg_name in kwargs:
         if args:
-            msg = "{} got multiple values for argument '{}'".format(
-                method_name, arg_name
-            )
+            msg = f"{method_name} got multiple values for argument '{arg_name}'"
             raise TypeError(msg)
 
         axis = data._get_axis_name(kwargs.get("axis", 0))
@@ -332,8 +321,8 @@ def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
         out[data._AXIS_NAMES[0]] = args[0]
         out[data._AXIS_NAMES[1]] = args[1]
     else:
-        msg = "Cannot specify all of '{}', 'index', 'columns'."
-        raise TypeError(msg.format(arg_name))
+        msg = f"Cannot specify all of '{arg_name}', 'index', 'columns'."
+        raise TypeError(msg)
     return out
 
 
@@ -366,7 +355,7 @@ def validate_fillna_kwargs(value, method, validate_scalar_dict_value=True):
         if validate_scalar_dict_value and isinstance(value, (list, tuple)):
             raise TypeError(
                 '"value" parameter must be a scalar or dict, but '
-                'you passed a "{0}"'.format(type(value).__name__)
+                f'you passed a "{type(value).__name__}"'
             )
 
     elif value is not None and method is not None:
