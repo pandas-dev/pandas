@@ -1603,7 +1603,8 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
             pd.DataFrame().to_json(indent=-1)
 
     def test_frame_int_overflow(self):
-        encoded_json = json.dumps([{"col": "31900441201190696999"}, {"col": "3190044"}])
-        expected = DataFrame({"col": [31900441201190696999.0, 3190044.0]})
+        # GH 30320
+        encoded_json = json.dumps([{"col": "31900441201190696999"}, {"col": "Text"}])
+        expected = DataFrame({"col": ["31900441201190696999", "Text"]})
         result = read_json(encoded_json)
         tm.assert_frame_equal(result, expected)
