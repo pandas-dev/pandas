@@ -1,6 +1,7 @@
 """ test to_datetime """
 
 import calendar
+from collections import deque
 from datetime import datetime, time
 import locale
 
@@ -861,7 +862,7 @@ class TestToDatetime:
 
     @pytest.mark.parametrize("utc", [True, None])
     @pytest.mark.parametrize("format", ["%Y%m%d %H:%M:%S", None])
-    @pytest.mark.parametrize("constructor", [list, tuple, np.array, pd.Index])
+    @pytest.mark.parametrize("constructor", [list, tuple, np.array, pd.Index, deque])
     def test_to_datetime_cache(self, utc, format, constructor):
         date = "20130101 00:00:00"
         test_dates = [date] * 10 ** 5
@@ -870,6 +871,24 @@ class TestToDatetime:
         result = pd.to_datetime(data, utc=utc, format=format, cache=True)
         expected = pd.to_datetime(data, utc=utc, format=format, cache=False)
 
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "listlike",
+        [
+            (deque([pd.Timestamp("2010-06-02 09:30:00")] * 51)),
+            ([pd.Timestamp("2010-06-02 09:30:00")] * 51),
+            (tuple([pd.Timestamp("2010-06-02 09:30:00")] * 51)),
+        ],
+    )
+    def test_no_slicing_errors_in_should_cache(self, listlike):
+        # GH 29403
+        assert tools.should_cache(listlike) is True
+
+    def test_to_datetime_from_deque(self):
+        # GH 29403
+        result = pd.to_datetime(deque([pd.Timestamp("2010-06-02 09:30:00")] * 51))
+        expected = pd.to_datetime([pd.Timestamp("2010-06-02 09:30:00")] * 51)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("utc", [True, None])
@@ -1042,7 +1061,7 @@ class TestToDatetimeUnit:
     @pytest.mark.parametrize("cache", [True, False])
     def test_unit(self, cache):
         # GH 11758
-        # test proper behavior with erros
+        # test proper behavior with errors
 
         with pytest.raises(ValueError):
             to_datetime([1], unit="D", format="%Y%m%d", cache=cache)

@@ -17,6 +17,7 @@ import numpy as np
 import pandas._libs.lib as lib
 import pandas._libs.ops as libops
 import pandas._libs.parsers as parsers
+from pandas._libs.parsers import STR_NA_VALUES
 from pandas._libs.tslibs import parsing
 from pandas.errors import (
     AbstractMethodError,
@@ -50,12 +51,16 @@ from pandas._typing import FilePathOrBuffer
 from pandas.core import algorithms
 from pandas.core.arrays import Categorical
 from pandas.core.frame import DataFrame
-from pandas.core.index import Index, MultiIndex, RangeIndex, ensure_index_from_sequences
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+    RangeIndex,
+    ensure_index_from_sequences,
+)
 from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
 
 from pandas.io.common import (
-    _NA_VALUES,
     BaseIterator,
     UnicodeReader,
     UTF8Recoder,
@@ -190,7 +195,7 @@ na_values : scalar, str, list-like, or dict, optional
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values.  By default the following values are interpreted as
     NaN: '"""
-    + fill("', '".join(sorted(_NA_VALUES)), 70, subsequent_indent="    ")
+    + fill("', '".join(sorted(STR_NA_VALUES)), 70, subsequent_indent="    ")
     + """'.
 keep_default_na : bool, default True
     Whether or not to include the default NaN values when parsing the data.
@@ -3393,7 +3398,7 @@ def _clean_na_values(na_values, keep_default_na=True):
 
     if na_values is None:
         if keep_default_na:
-            na_values = _NA_VALUES
+            na_values = STR_NA_VALUES
         else:
             na_values = set()
         na_fvalues = set()
@@ -3410,7 +3415,7 @@ def _clean_na_values(na_values, keep_default_na=True):
                 v = [v]
 
             if keep_default_na:
-                v = set(v) | _NA_VALUES
+                v = set(v) | STR_NA_VALUES
 
             na_values[k] = v
         na_fvalues = {k: _floatify_na_values(v) for k, v in na_values.items()}
@@ -3419,7 +3424,7 @@ def _clean_na_values(na_values, keep_default_na=True):
             na_values = [na_values]
         na_values = _stringify_na_values(na_values)
         if keep_default_na:
-            na_values = na_values | _NA_VALUES
+            na_values = na_values | STR_NA_VALUES
 
         na_fvalues = _floatify_na_values(na_values)
 
@@ -3487,7 +3492,7 @@ def _get_empty_meta(columns, index_col, index_names, dtype=None):
     # 2) index_names (column names)
     #
     # Both must be non-null to ensure a successful construction. Otherwise,
-    # we have to create a generic emtpy Index.
+    # we have to create a generic empty Index.
     if (index_col is None or index_col is False) or index_names is None:
         index = Index([])
     else:
@@ -3570,7 +3575,7 @@ def _get_na_values(col, na_values, na_fvalues, keep_default_na):
             return na_values[col], na_fvalues[col]
         else:
             if keep_default_na:
-                return _NA_VALUES, set()
+                return STR_NA_VALUES, set()
 
             return set(), set()
     else:

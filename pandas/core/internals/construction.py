@@ -37,9 +37,13 @@ from pandas.core.dtypes.generic import (
 from pandas.core import algorithms, common as com
 from pandas.core.arrays import Categorical
 from pandas.core.construction import sanitize_array
-from pandas.core.index import Index, ensure_index, get_objs_combined_axis
 from pandas.core.indexes import base as ibase
-from pandas.core.indexes.api import union_indexes
+from pandas.core.indexes.api import (
+    Index,
+    ensure_index,
+    get_objs_combined_axis,
+    union_indexes,
+)
 from pandas.core.internals import (
     create_block_manager_from_arrays,
     create_block_manager_from_blocks,
@@ -146,7 +150,7 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
 
         index, columns = _get_axes(len(values), 1, index, columns)
         return arrays_to_mgr([values], columns, index, columns, dtype=dtype)
-    elif is_extension_array_dtype(values):
+    elif is_extension_array_dtype(values) or is_extension_array_dtype(dtype):
         # GH#19157
         if columns is None:
             columns = [0]

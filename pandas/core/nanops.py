@@ -314,7 +314,7 @@ def _get_values(
 
         # promote if needed
         else:
-            values, changed = maybe_upcast_putmask(values, mask, fill_value)
+            values, _ = maybe_upcast_putmask(values, mask, fill_value)
 
     # return a platform independent precision dtype
     dtype_max = dtype
@@ -1301,9 +1301,7 @@ def _ensure_numeric(x):
                 x = complex(x)
             except ValueError:
                 # e.g. "foo"
-                raise TypeError(
-                    "Could not convert {value!s} to numeric".format(value=x)
-                )
+                raise TypeError(f"Could not convert {x} to numeric")
     return x
 
 
