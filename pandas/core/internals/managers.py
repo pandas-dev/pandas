@@ -132,8 +132,8 @@ class BlockManager(PandasObject):
         for block in blocks:
             if self.ndim != block.ndim:
                 raise AssertionError(
-                    "Number of Block dimensions ({block}) must equal "
-                    "number of axes ({self})".format(block=block.ndim, self=self.ndim)
+                    f"Number of Block dimensions ({block.ndim}) must equal "
+                    f"number of axes ({self.ndim})"
                 )
 
         if do_integrity_check:
@@ -176,8 +176,8 @@ class BlockManager(PandasObject):
 
         if new_len != old_len:
             raise ValueError(
-                "Length mismatch: Expected axis has {old} elements, new "
-                "values have {new} elements".format(old=old_len, new=new_len)
+                f"Length mismatch: Expected axis has {old_len} elements, new "
+                f"values have {new_len} elements"
             )
 
         self.axes[axis] = new_labels
@@ -319,12 +319,12 @@ class BlockManager(PandasObject):
         output = type(self).__name__
         for i, ax in enumerate(self.axes):
             if i == 0:
-                output += "\nItems: {ax}".format(ax=ax)
+                output += f"\nItems: {ax}"
             else:
-                output += "\nAxis {i}: {ax}".format(i=i, ax=ax)
+                output += f"\nAxis {i}: {ax}"
 
         for block in self.blocks:
-            output += "\n{block}".format(block=pprint_thing(block))
+            output += f"\n{pprint_thing(block)}"
         return output
 
     def _verify_integrity(self):
@@ -336,8 +336,8 @@ class BlockManager(PandasObject):
         if len(self.items) != tot_items:
             raise AssertionError(
                 "Number of manager items must equal union of "
-                "block items\n# manager items: {0}, # "
-                "tot_items: {1}".format(len(self.items), tot_items)
+                f"block items\n# manager items: {len(self.items)}, # "
+                f"tot_items: {tot_items}"
             )
 
     def apply(self, f: str, filter=None, **kwargs):
@@ -1140,7 +1140,7 @@ class BlockManager(PandasObject):
         """
         if not allow_duplicates and item in self.items:
             # Should this be a different kind of error??
-            raise ValueError("cannot insert {}, already exists".format(item))
+            raise ValueError(f"cannot insert {item}, already exists")
 
         if not isinstance(loc, int):
             raise TypeError("loc must be int")
@@ -1661,9 +1661,7 @@ def construction_error(tot_items, block_shape, axes, e=None):
         raise e
     if block_shape[0] == 0:
         raise ValueError("Empty data passed with indices specified.")
-    raise ValueError(
-        "Shape of passed values is {0}, indices imply {1}".format(passed, implied)
-    )
+    raise ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
 
 
 # -----------------------------------------------------------------------
@@ -1899,10 +1897,10 @@ def _compare_or_regex_search(a, b, regex=False):
         type_names = [type(a).__name__, type(b).__name__]
 
         if is_a_array:
-            type_names[0] = "ndarray(dtype={dtype})".format(dtype=a.dtype)
+            type_names[0] = f"ndarray(dtype={a.dtype})"
 
         if is_b_array:
-            type_names[1] = "ndarray(dtype={dtype})".format(dtype=b.dtype)
+            type_names[1] = f"ndarray(dtype={b.dtype})"
 
         raise TypeError(
             f"Cannot compare types {repr(type_names[0])} and {repr(type_names[1])}"
