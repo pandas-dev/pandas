@@ -1965,7 +1965,7 @@ class DataFrame(NDFrame):
 
         to_feather(self, path)
 
-    def to_markdown(self):
+    def to_markdown(self, **kwargs):
         """
         Print a DataFrame in markdown-friendly format.
 
@@ -1986,7 +1986,7 @@ class DataFrame(NDFrame):
         |  1 |      2 |      4 |
         """
         tabulate = import_optional_dependency("tabulate")
-        return self.pipe(tabulate.tabulate, headers="keys", tablefmt="pipe")
+        return tabulate.tabulate(self, headers="keys", tablefmt="pipe", **kwargs)
 
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
     def to_parquet(
