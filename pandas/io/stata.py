@@ -9,7 +9,7 @@ a once again improved version.
 You can find more information on http://presbrey.mit.edu/PyDTA and
 http://www.statsmodels.org/devel/
 """
-
+from collections.abc import Iterator
 import datetime
 from io import BytesIO
 import os
@@ -44,7 +44,7 @@ from pandas import (
 from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 
-from pandas.io.common import BaseIterator, _stringify_path, get_filepath_or_buffer
+from pandas.io.common import _stringify_path, get_filepath_or_buffer
 
 _version_error = (
     "Version of given Stata file is not 104, 105, 108, "
@@ -1010,7 +1010,7 @@ class StataParser:
         )
 
 
-class StataReader(StataParser, BaseIterator):
+class StataReader(StataParser, Iterator):
     __doc__ = _stata_reader_doc
 
     def __init__(

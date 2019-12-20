@@ -3,6 +3,7 @@ Module contains tools for processing files into DataFrames or other objects
 """
 
 from collections import defaultdict
+from collections.abc import Iterator
 import csv
 import datetime
 from io import StringIO
@@ -61,7 +62,6 @@ from pandas.core.tools import datetimes as tools
 
 from pandas.io.common import (
     _NA_VALUES,
-    BaseIterator,
     UnicodeReader,
     UTF8Recoder,
     _get_handle,
@@ -787,7 +787,7 @@ def read_fwf(
     return _read(filepath_or_buffer, kwds)
 
 
-class TextFileReader(BaseIterator):
+class TextFileReader(Iterator):
     """
 
     Passed dialect overrides any of the related parser options
@@ -3593,7 +3593,7 @@ def _get_col_names(colspec, columns):
     return colnames
 
 
-class FixedWidthReader(BaseIterator):
+class FixedWidthReader(Iterator):
     """
     A reader of fixed-width lines.
     """
