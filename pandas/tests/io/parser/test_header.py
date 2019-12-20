@@ -11,7 +11,7 @@ import pytest
 
 from pandas.errors import ParserError
 
-from pandas import DataFrame, Index, MultiIndex, read_csv
+from pandas import DataFrame, Index, MultiIndex
 import pandas.util.testing as tm
 
 
@@ -542,8 +542,10 @@ def test_multi_index_unnamed(all_parsers, index_col, columns):
         tm.assert_frame_equal(result, expected)
 
 
-def test_read_csv_multiindex_columns():
+def test_read_csv_multiindex_columns(all_parsers):
     # GH#6051
+    parser = all_parsers
+
     s1 = "Male, Male, Male, Female, Female\nR, R, L, R, R\n.86, .67, .88, .78, .81"
     s2 = (
         "Male, Male, Male, Female, Female\n"
@@ -565,7 +567,7 @@ def test_read_csv_multiindex_columns():
         [[0.86, 0.67, 0.88, 0.78, 0.81], [0.86, 0.67, 0.88, 0.78, 0.82]], columns=mi
     )
 
-    df1 = read_csv(StringIO(s1), header=[0, 1])
+    df1 = parser.read_csv(StringIO(s1), header=[0, 1])
     tm.assert_frame_equal(df1, expected.iloc[:1])
-    df2 = read_csv(StringIO(s2), header=[0, 1])
+    df2 = parser.read_csv(StringIO(s2), header=[0, 1])
     tm.assert_frame_equal(df2, expected)
