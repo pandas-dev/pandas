@@ -37,7 +37,12 @@ from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, lib
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender, Substitution, rewrite_axis_style_signature
+from pandas.util._decorators import (
+    Appender,
+    Substitution,
+    deprecate_kwarg,
+    rewrite_axis_style_signature,
+)
 from pandas.util._validators import (
     validate_axis_style_args,
     validate_bool_kwarg,
@@ -1829,9 +1834,10 @@ class DataFrame(NDFrame):
         mgr = arrays_to_mgr(arrays, columns, index, columns, dtype=dtype)
         return cls(mgr)
 
+    @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
     def to_stata(
         self,
-        fname,
+        path,
         convert_dates=None,
         write_index=True,
         byteorder=None,
@@ -1849,11 +1855,16 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        fname : str, buffer or path object
+        path : str, buffer or path object
             String, path object (pathlib.Path or py._path.local.LocalPath) or
             object implementing a binary write() function. If using a buffer
             then the buffer will not be automatically closed after the file
             data has been written.
+
+            .. versionchanged:: 1.0.0
+
+            Previously this was "fname"
+
         convert_dates : dict
             Dictionary mapping columns containing datetime types to stata
             internal format to use when writing the dates. Options are 'tc',
@@ -1927,7 +1938,7 @@ class DataFrame(NDFrame):
             kwargs["convert_strl"] = convert_strl
 
         writer = statawriter(
-            fname,
+            path,
             self,
             convert_dates=convert_dates,
             byteorder=byteorder,
@@ -1939,22 +1950,24 @@ class DataFrame(NDFrame):
         )
         writer.write_file()
 
-    def to_feather(self, fname):
+    @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
+    def to_feather(self, path):
         """
         Write out the binary feather-format for DataFrames.
 
         Parameters
         ----------
-        fname : str
+        path : str
             String file path.
         """
         from pandas.io.feather_format import to_feather
 
-        to_feather(self, fname)
+        to_feather(self, path)
 
+    @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
     def to_parquet(
         self,
-        fname,
+        path,
         engine="auto",
         compression="snappy",
         index=None,
@@ -1973,11 +1986,13 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        fname : str
+        path : str
             File path or Root Directory path. Will be used as Root Directory
             path while writing a partitioned dataset.
 
-            .. versionchanged:: 0.24.0
+            .. versionchanged:: 1.0.0
+
+            Previously this was "fname"
 
         engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
             Parquet library to use. If 'auto', then the option
@@ -2034,7 +2049,7 @@ class DataFrame(NDFrame):
 
         to_parquet(
             self,
-            fname,
+            path,
             engine,
             compression=compression,
             index=index,
