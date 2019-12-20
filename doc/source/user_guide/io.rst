@@ -4828,7 +4828,6 @@ See also some :ref:`cookbook examples <cookbook.sql>` for some advanced strategi
 The key functions are:
 
 .. autosummary::
-    :toctree: ../reference/api/
 
     read_sql_table
     read_sql_query
