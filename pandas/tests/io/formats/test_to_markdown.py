@@ -21,15 +21,15 @@ class TestToMarkdown:
     def test_other_headers(self):
         df = pd.DataFrame([1, 2, 3])
         result = df.to_markdown(headers=["foo", "bar"])
-        assert (
-            result
-            == "|   foo |   bar |\n|------:|------:|\n|     0 |     1 |\n|     1 |     2 |\n|     2 |     3 |"
+        assert result == (
+            "|   foo |   bar |\n|------:|------:|\n|     0 "
+            "|     1 |\n|     1 |     2 |\n|     2 |     3 |"
         )
 
     def test_series(self):
         s = pd.Series([1, 2, 3], name="foo")
         result = s.to_markdown()
-        assert (
-            result
-            == "|    |   foo |\n|---:|------:|\n|  0 |     1 |\n|  1 |     2 |\n|  2 |     3 |"
+        assert result == (
+            "|    |   foo |\n|---:|------:|\n|  0 |     1 "
+            "|\n|  1 |     2 |\n|  2 |     3 |"
         )
