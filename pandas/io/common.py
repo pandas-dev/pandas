@@ -47,29 +47,6 @@ from pandas._typing import FilePathOrBuffer
 
 lzma = _import_lzma()
 
-# common NA values
-# no longer excluding inf representations
-# '1.#INF','-1.#INF', '1.#INF000000',
-_NA_VALUES = {
-    "-1.#IND",
-    "1.#QNAN",
-    "1.#IND",
-    "-1.#QNAN",
-    "#N/A N/A",
-    "#N/A",
-    "N/A",
-    "n/a",
-    "NA",
-    "#NA",
-    "NULL",
-    "null",
-    "NaN",
-    "-NaN",
-    "nan",
-    "-nan",
-    "",
-}
-
 
 _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
 _VALID_URLS.discard("")
