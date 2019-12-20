@@ -1011,9 +1011,6 @@ class TestPeriodIndexArithmetic:
         ],
     )
     def test_parr_add_sub_tdt64_nat_array(self, box_with_array, other):
-        # FIXME: DataFrame fails because when when operating column-wise
-        #  timedelta64 entries become NaT and are treated like datetimes
-
         pi = pd.period_range("1994-04-01", periods=9, freq="19D")
         expected = pd.PeriodIndex(["NaT"] * 9, freq="19D")
 

@@ -162,7 +162,7 @@ class TestReshaping(BaseJSON, base.BaseReshapingTests):
         # this matches otherwise
         return super().test_unstack(data, index)
 
-    @pytest.mark.skip(reason="Inconsistent sizes.")
+    @pytest.mark.xfail(reason="Inconsistent sizes.")
     def test_transpose(self, data):
         super().test_transpose(data)
 
