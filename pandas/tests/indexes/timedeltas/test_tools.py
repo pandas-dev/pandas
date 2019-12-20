@@ -111,6 +111,15 @@ class TestTimedeltas:
             invalid_data, to_timedelta(invalid_data, errors="ignore")
         )
 
+        # GH#10720
+        invalid_data = "some_nonesense"
+        expected_msg = (
+            "unit abbreviation w/o a number. "
+            "You can coerce to NaT by passing errors='coerce'"
+        )
+        with pytest.raises(ValueError, match=expected_msg):
+            to_timedelta(invalid_data, errors="raise")
+
     def test_to_timedelta_via_apply(self):
         # GH 5458
         expected = Series([np.timedelta64(1, "s")])

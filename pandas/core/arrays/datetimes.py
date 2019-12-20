@@ -1970,6 +1970,15 @@ def objects_to_datetime64ns(
             #  return them as i8 to distinguish from wall times
             return values.view("i8"), tz_parsed
         except (ValueError, TypeError):
+            # GH#10720. If we failed to parse datetime then notify
+            #  that flag errors='coerce' could be used to NaT.
+            #  Trying to distinguish exception based on message.
+            if "Unknown string format" in e.args[0]:
+                msg = (
+                    " ".join(e.args)
+                    + ". You can coerce to NaT by passing errors='coerce'"
+                )
+                e.args = (msg,)
             raise e
 
     if tz_parsed is not None:
