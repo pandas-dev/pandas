@@ -2033,9 +2033,6 @@ class IndexCol:
             if min_itemsize is not None and self.typ.itemsize < min_itemsize:
                 self.typ = _tables().StringCol(itemsize=min_itemsize, pos=self.pos)
 
-    def validate(self, handler, append):
-        self.validate_names()
-
     def validate_names(self):
         pass
 
@@ -3169,16 +3166,27 @@ class Table(Fixed):
     info: Dict
 
     def __init__(
-        self, parent: HDFStore, group: "Node", encoding=None, errors: str = "strict"
+        self,
+        parent: HDFStore,
+        group: "Node",
+        encoding=None,
+        errors: str = "strict",
+        index_axes=None,
+        non_index_axes=None,
+        values_axes=None,
+        data_columns=None,
+        metadata=None,
+        info=None,
+        nan_rep=None,
     ):
         super().__init__(parent, group, encoding=encoding, errors=errors)
-        self.index_axes = []
-        self.non_index_axes = []
-        self.values_axes = []
-        self.data_columns = []
-        self.metadata = []
-        self.info = dict()
-        self.nan_rep = None
+        self.index_axes = index_axes or []
+        self.non_index_axes = non_index_axes or []
+        self.values_axes = values_axes or []
+        self.data_columns = data_columns or []
+        self.metadata = metadata or []
+        self.info = info or dict()
+        self.nan_rep = nan_rep
 
     @property
     def table_type_short(self) -> str:
@@ -3651,60 +3659,56 @@ class Table(Fixed):
         # return valid columns in the order of our axis
         return [c for c in data_columns if c in axis_labels]
 
-    def create_axes(
+    def _create_axes(
         self,
         axes,
-        obj,
+        obj: DataFrame,
         validate: bool = True,
         nan_rep=None,
         data_columns=None,
         min_itemsize=None,
     ):
-        """ create and return the axes
-        legacy tables create an indexable column, indexable index,
-        non-indexable fields
-
-            Parameters
-            ----------
-            axes: a list of the axes in order to create (names or numbers of
-                the axes)
-            obj : the object to create axes on
-            validate: validate the obj against an existing object already
-                written
-            min_itemsize: a dict of the min size for a column in bytes
-            nan_rep : a values to use for string column nan_rep
-            encoding : the encoding for string values
-            data_columns : a list of columns that we want to create separate to
-                allow indexing (or True will force all columns)
-
         """
+        Create and return the axes.
+
+        Parameters
+        ----------
+        axes: a list of the axes in order to create (names or numbers of the axes)
+        obj : DataFrame
+            The object to create axes on.
+        validate: bool, default True
+            Whethr to validate the obj against an existing object already written.
+        min_itemsize: a dict of the min size for a column in bytes
+        nan_rep : a values to use for string column nan_rep
+        encoding : the encoding for string values
+        data_columns : a list of columns that we want to create separate to
+            allow indexing (or True will force all columns)
+        """
+
+        if not isinstance(obj, DataFrame):
+            group = self.group._v_name
+            raise TypeError(
+                f"cannot properly create the storer for: [group->{group},"
+                f"value->{type(obj)}]"
+            )
 
         # set the default axes if needed
         if axes is None:
-            try:
-                axes = _AXES_MAP[type(obj)]
-            except KeyError:
-                group = self.group._v_name
-                raise TypeError(
-                    f"cannot properly create the storer for: [group->{group},"
-                    f"value->{type(obj)}]"
-                )
+            axes = [0]
 
         # map axes to numbers
         axes = [obj._get_axis_number(a) for a in axes]
 
         # do we have an existing table (if so, use its axes & data_columns)
         if self.infer_axes():
-            existing_table = self.copy()
-            existing_table.infer_axes()
-            axes = [a.axis for a in existing_table.index_axes]
-            data_columns = existing_table.data_columns
-            nan_rep = existing_table.nan_rep
-            self.encoding = existing_table.encoding
-            self.errors = existing_table.errors
-            self.info = copy.copy(existing_table.info)
+            table_exists = True
+            axes = [a.axis for a in self.index_axes]
+            data_columns = list(self.data_columns)
+            nan_rep = self.nan_rep
         else:
-            existing_table = None
+            table_exists = False
+
+        new_info = self.info
 
         assert self.ndim == 2  # with next check, we must have len(axes) == 1
         # currently support on ndim-1 axes
@@ -3726,9 +3730,9 @@ class Table(Fixed):
         a = obj.axes[idx]
         # we might be able to change the axes on the appending data if necessary
         append_axis = list(a)
-        if existing_table is not None:
+        if table_exists:
             indexer = len(new_non_index_axes)  # i.e. 0
-            exist_axis = existing_table.non_index_axes[indexer][1]
+            exist_axis = self.non_index_axes[indexer][1]
             if not array_equivalent(np.array(append_axis), np.array(exist_axis)):
 
                 # ahah! -> reindex
@@ -3738,7 +3742,7 @@ class Table(Fixed):
                     append_axis = exist_axis
 
         # the non_index_axes info
-        info = self.info.setdefault(idx, {})
+        info = new_info.setdefault(idx, {})
         info["names"] = list(a.names)
         info["type"] = type(a).__name__
 
@@ -3747,14 +3751,14 @@ class Table(Fixed):
         # Now we can construct our new index axis
         idx = axes[0]
         a = obj.axes[idx]
-        name = obj._AXIS_NAMES[idx]
-        new_index = _convert_index(name, a, self.encoding, self.errors)
+        axis_name = obj._AXIS_NAMES[idx]
+        new_index = _convert_index(axis_name, a, self.encoding, self.errors)
         new_index.axis = idx
 
         # Because we are always 2D, there is only one new_index, so
         #  we know it will have pos=0
         new_index.set_pos(0)
-        new_index.update_info(self.info)
+        new_index.update_info(new_info)
         new_index.maybe_set_size(min_itemsize)  # check for column conflicts
 
         new_index_axes = [new_index]
@@ -3792,14 +3796,14 @@ class Table(Fixed):
                 blk_items.extend(get_blk_items(mgr, mgr.blocks))
 
         # reorder the blocks in the same order as the existing_table if we can
-        if existing_table is not None:
+        if table_exists:
             by_items = {
                 tuple(b_items.tolist()): (b, b_items)
                 for b, b_items in zip(blocks, blk_items)
             }
             new_blocks = []
             new_blk_items = []
-            for ea in existing_table.values_axes:
+            for ea in self.values_axes:
                 items = tuple(ea.values)
                 try:
                     b, b_items = by_items.pop(items)
@@ -3832,13 +3836,15 @@ class Table(Fixed):
 
             # make sure that we match up the existing columns
             # if we have an existing table
-            if existing_table is not None and validate:
+            existing_col: Optional[DataCol]
+
+            if table_exists and validate:
                 try:
-                    existing_col = existing_table.values_axes[i]
+                    existing_col = self.values_axes[i]
                 except (IndexError, KeyError):
                     raise ValueError(
                         f"Incompatible appended table [{blocks}]"
-                        f"with existing table [{existing_table.values_axes}]"
+                        f"with existing table [{self.values_axes}]"
                     )
             else:
                 existing_col = None
@@ -3881,27 +3887,40 @@ class Table(Fixed):
                 dtype=dtype_name,
                 data=data,
             )
-            col.update_info(self.info)
+            col.update_info(new_info)
 
             vaxes.append(col)
 
             j += 1
 
-        self.nan_rep = nan_rep
-        self.data_columns = [col.name for col in vaxes if col.is_data_indexable]
-        self.values_axes = vaxes
-        self.index_axes = new_index_axes
-        self.non_index_axes = new_non_index_axes
-
-        # validate our min_itemsize
-        self.validate_min_itemsize(min_itemsize)
+        dcs = [col.name for col in vaxes if col.is_data_indexable]
 
         # validate our metadata
-        self.metadata = [c.name for c in self.values_axes if c.metadata is not None]
+        new_metadata = [c.name for c in vaxes if c.metadata is not None]
 
-        # validate the axes if we have an existing table
-        if validate:
-            self.validate(existing_table)
+        new_table = type(self)(
+            parent=self.parent,
+            group=self.group,
+            encoding=self.encoding,
+            errors=self.errors,
+            index_axes=new_index_axes,
+            non_index_axes=new_non_index_axes,
+            values_axes=vaxes,
+            data_columns=dcs,
+            metadata=new_metadata,
+            info=new_info,
+            nan_rep=nan_rep,
+        )
+        if hasattr(self, "levels"):
+            # TODO: get this into constructor, only for appropriate subclass
+            new_table.levels = self.levels
+
+        new_table.validate_min_itemsize(min_itemsize)
+
+        if validate and table_exists:
+            new_table.validate(self)
+
+        return new_table
 
     def process_axes(self, obj, selection: "Selection", columns=None):
         """ process axes filters """
@@ -4117,7 +4136,7 @@ class AppendableTable(Table):
             self._handle.remove_node(self.group, "table")
 
         # create the axes
-        self.create_axes(
+        table = self._create_axes(
             axes=axes,
             obj=obj,
             validate=append,
@@ -4126,13 +4145,13 @@ class AppendableTable(Table):
             data_columns=data_columns,
         )
 
-        for a in self.axes:
-            a.validate(self, append)
+        for a in table.axes:
+            a.validate_names()
 
-        if not self.is_exists:
+        if not table.is_exists:
 
             # create the table
-            options = self.create_description(
+            options = table.create_description(
                 complib=complib,
                 complevel=complevel,
                 fletcher32=fletcher32,
@@ -4140,20 +4159,20 @@ class AppendableTable(Table):
             )
 
             # set the table attributes
-            self.set_attrs()
+            table.set_attrs()
 
             # create the table
-            self._handle.create_table(self.group, **options)
+            table._handle.create_table(table.group, **options)
 
         # update my info
-        self.attrs.info = self.info
+        table.attrs.info = table.info
 
         # validate the axes and set the kinds
-        for a in self.axes:
-            a.validate_and_set(self, append)
+        for a in table.axes:
+            a.validate_and_set(table, append)
 
         # add the rows
-        self.write_data(chunksize, dropna=dropna)
+        table.write_data(chunksize, dropna=dropna)
 
     def write_data(self, chunksize: Optional[int], dropna: bool = False):
         """ we form the data into a 2-d including indexes,values,mask
