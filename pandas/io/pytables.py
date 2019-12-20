@@ -3654,7 +3654,7 @@ class Table(Fixed):
         obj : DataFrame
             The object to create axes on.
         validate: bool, default True
-            Whethr to validate the obj against an existing object already written.
+            Whether to validate the obj against an existing object already written.
         min_itemsize: a dict of the min size for a column in bytes
         nan_rep : a values to use for string column nan_rep
         encoding : the encoding for string values
