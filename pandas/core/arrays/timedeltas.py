@@ -1,7 +1,5 @@
 from datetime import timedelta
-import textwrap
 from typing import List
-import warnings
 
 import numpy as np
 
@@ -1121,14 +1119,12 @@ def objects_to_td64ns(data, unit="ns", errors="raise"):
 def _validate_td64_dtype(dtype):
     dtype = pandas_dtype(dtype)
     if is_dtype_equal(dtype, np.dtype("timedelta64")):
-        dtype = _TD_DTYPE
-        msg = textwrap.dedent(
-            """\
-            Passing in 'timedelta' dtype with no precision is deprecated
-            and will raise in a future version. Please pass in
-            'timedelta64[ns]' instead."""
+        # no precision disallowed GH#24806
+        msg = (
+            "Passing in 'timedelta' dtype with no precision is not allowed. "
+            "Please pass in 'timedelta64[ns]' instead."
         )
-        warnings.warn(msg, FutureWarning, stacklevel=4)
+        raise ValueError(msg)
 
     if not is_dtype_equal(dtype, _TD_DTYPE):
         raise ValueError(_BAD_DTYPE.format(dtype=dtype))

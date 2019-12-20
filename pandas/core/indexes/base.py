@@ -45,7 +45,6 @@ from pandas.core.dtypes.common import (
     is_signed_integer_dtype,
     is_timedelta64_dtype,
     is_unsigned_integer_dtype,
-    pandas_dtype,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
@@ -332,11 +331,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         # extension dtype
         elif is_extension_array_dtype(data) or is_extension_array_dtype(dtype):
-            data = np.asarray(data)
             if not (dtype is None or is_object_dtype(dtype)):
                 # coerce to the provided dtype
                 ea_cls = dtype.construct_array_type()
                 data = ea_cls._from_sequence(data, dtype=dtype, copy=False)
+            else:
+                data = np.asarray(data, dtype=object)
 
             # coerce to the object dtype
             data = data.astype(object)
@@ -732,24 +732,11 @@ class Index(IndexOpsMixin, PandasObject):
             from .category import CategoricalIndex
 
             return CategoricalIndex(self.values, name=self.name, dtype=dtype, copy=copy)
-        elif is_datetime64tz_dtype(dtype):
-            # TODO(GH-24559): Remove this block, use the following elif.
-            # avoid FutureWarning from DatetimeIndex constructor.
-            from pandas import DatetimeIndex
-
-            tz = pandas_dtype(dtype).tz
-            return DatetimeIndex(np.asarray(self)).tz_localize("UTC").tz_convert(tz)
 
         elif is_extension_array_dtype(dtype):
             return Index(np.asarray(self), dtype=dtype, copy=copy)
 
         try:
-            if is_datetime64tz_dtype(dtype):
-                from pandas import DatetimeIndex
-
-                return DatetimeIndex(
-                    self.values, name=self.name, dtype=dtype, copy=copy
-                )
             return Index(
                 self.values.astype(dtype, copy=copy), name=self.name, dtype=dtype
             )
@@ -924,8 +911,6 @@ class Index(IndexOpsMixin, PandasObject):
         memo, default None
             Standard signature. Unused
         """
-        if memo is None:
-            memo = {}
         return self.copy(deep=True)
 
     # --------------------------------------------------------------------
@@ -2953,11 +2938,11 @@ class Index(IndexOpsMixin, PandasObject):
                     "unicode",
                     "mixed",
                 ]:
-                    return self._invalid_indexer("label", key)
+                    self._invalid_indexer("label", key)
 
             elif kind in ["loc"] and is_integer(key):
                 if not self.holds_integer():
-                    return self._invalid_indexer("label", key)
+                    self._invalid_indexer("label", key)
 
         return key
 
@@ -2996,7 +2981,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         is_null_slicer = start is None and stop is None
         is_index_slice = is_int(start) and is_int(stop)
-        is_positional = is_index_slice and not self.is_integer()
+        is_positional = is_index_slice and not (
+            self.is_integer() or self.is_categorical()
+        )
 
         if kind == "getitem":
             """
@@ -5474,6 +5461,6 @@ def _validate_join_method(method):
 
 
 def default_index(n):
-    from pandas.core.index import RangeIndex
+    from pandas.core.indexes.range import RangeIndex
 
     return RangeIndex(0, n, name=None)

@@ -1,5 +1,4 @@
 from datetime import datetime, time, timedelta
-import textwrap
 from typing import Union
 import warnings
 
@@ -799,9 +798,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
                 values = self.tz_localize(None)
             else:
                 values = self
-            result = offset.apply_index(values)
-            if self.tz is not None:
-                result = result.tz_localize(self.tz)
+            result = offset.apply_index(values).tz_localize(self.tz)
 
         except NotImplementedError:
             warnings.warn(
@@ -809,6 +806,9 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
                 PerformanceWarning,
             )
             result = self.astype("O") + offset
+            if len(self) == 0:
+                # _from_sequence won't be able to infer self.tz
+                return type(self)._from_sequence(result).tz_localize(self.tz)
 
         return type(self)._from_sequence(result, freq="infer")
 
@@ -1080,9 +1080,9 @@ default 'raise'
             nonexistent, timedelta
         ):
             raise ValueError(
-                "The nonexistent argument must be one of 'raise',"
-                " 'NaT', 'shift_forward', 'shift_backward' or"
-                " a timedelta object"
+                "The nonexistent argument must be one of 'raise', "
+                "'NaT', 'shift_forward', 'shift_backward' or "
+                "a timedelta object"
             )
 
         if self.tz is not None:
@@ -1155,7 +1155,7 @@ default 'raise'
         """
         if self.tz is None or timezones.is_utc(self.tz):
             not_null = ~self.isna()
-            DAY_NS = ccalendar.DAY_SECONDS * 1000000000
+            DAY_NS = ccalendar.DAY_SECONDS * 1_000_000_000
             new_values = self.asi8.copy()
             adjustment = new_values[not_null] % DAY_NS
             new_values[not_null] = new_values[not_null] - adjustment
@@ -1771,7 +1771,7 @@ default 'raise'
             + np.floor(year / 4)
             - np.floor(year / 100)
             + np.floor(year / 400)
-            + 1721118.5
+            + 1_721_118.5
             + (
                 self.hour
                 + self.minute / 60.0
@@ -2035,7 +2035,7 @@ def maybe_convert_dtype(data, copy):
         # Note: without explicitly raising here, PeriodIndex
         #  test_setops.test_join_does_not_recur fails
         raise TypeError(
-            "Passing PeriodDtype data is invalid.  Use `data.to_timestamp()` instead"
+            "Passing PeriodDtype data is invalid. Use `data.to_timestamp()` instead"
         )
 
     elif is_categorical_dtype(data):
@@ -2113,15 +2113,12 @@ def _validate_dt64_dtype(dtype):
     if dtype is not None:
         dtype = pandas_dtype(dtype)
         if is_dtype_equal(dtype, np.dtype("M8")):
-            # no precision, warn
-            dtype = _NS_DTYPE
-            msg = textwrap.dedent(
-                """\
-                Passing in 'datetime64' dtype with no precision is deprecated
-                and will raise in a future version. Please pass in
-                'datetime64[ns]' instead."""
+            # no precision, disallowed GH#24806
+            msg = (
+                "Passing in 'datetime64' dtype with no precision is not allowed. "
+                "Please pass in 'datetime64[ns]' instead."
             )
-            warnings.warn(msg, FutureWarning, stacklevel=5)
+            raise ValueError(msg)
 
         if (isinstance(dtype, np.dtype) and dtype != _NS_DTYPE) or not isinstance(
             dtype, (np.dtype, DatetimeTZDtype)

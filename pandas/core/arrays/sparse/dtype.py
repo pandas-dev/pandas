@@ -168,6 +168,13 @@ class SparseDtype(ExtensionDtype):
 
     @classmethod
     def construct_array_type(cls):
+        """
+        Return the array type associated with this dtype.
+
+        Returns
+        -------
+        type
+        """
         from .array import SparseArray
 
         return SparseArray
@@ -199,7 +206,7 @@ class SparseDtype(ExtensionDtype):
         -------
         SparseDtype
         """
-        msg = f"Could not construct SparseDtype from '{string}'"
+        msg = f"Cannot construct a 'SparseDtype' from '{string}'"
         if string.startswith("Sparse"):
             try:
                 sub_type, has_fill_value = cls._parse_subtype(string)
@@ -208,7 +215,7 @@ class SparseDtype(ExtensionDtype):
             else:
                 result = SparseDtype(sub_type)
                 msg = (
-                    f"Could not construct SparseDtype from '{string}'.\n\nIt "
+                    f"Cannot construct a 'SparseDtype' from '{string}'.\n\nIt "
                     "looks like the fill_value in the string is not "
                     "the default for the dtype. Non-default fill_values "
                     "are not supported. Use the 'SparseDtype()' "
@@ -283,7 +290,7 @@ class SparseDtype(ExtensionDtype):
         Returns
         -------
         SparseDtype
-            A new SparseDtype with the corret `dtype` and fill value
+            A new SparseDtype with the correct `dtype` and fill value
             for that `dtype`.
 
         Raises
