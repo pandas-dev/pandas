@@ -1210,6 +1210,8 @@ class TestOperationsNumExprPandas:
         ex = "s / 1"
         d = {"s": s}  # noqa
 
+        # FutureWarning: The `truediv` parameter in pd.eval is deprecated and will be
+        # removed in a future version.
         with tm.assert_produces_warning(FutureWarning):
             res = self.eval(ex, truediv=False)
         tm.assert_numpy_array_equal(res, np.array([1.0]))
