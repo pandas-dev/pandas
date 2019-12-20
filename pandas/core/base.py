@@ -35,11 +35,6 @@ from pandas.core.accessor import DirNamesMixin
 from pandas.core.algorithms import duplicated, unique1d, value_counts
 from pandas.core.arrays import ExtensionArray
 from pandas.core.construction import create_series_with_explicit_dtype
-from pandas.core.groupby.generic import (
-    _is_multi_agg_with_relabel,
-    _maybe_mangle_lambdas,
-    _normalize_keyword_aggregation,
-)
 import pandas.core.nanops as nanops
 
 _shared_docs: Dict[str, str] = dict()
@@ -303,6 +298,12 @@ class SelectionMixin:
         names, and the reconstructed order of columns.
         If relabeling is False, the columns and order will be None.
         """
+        from pandas.core.groupby.generic import (
+            _is_multi_agg_with_relabel,
+            _maybe_mangle_lambdas,
+            _normalize_keyword_aggregation,
+        )
+
         relabeling = func is None and _is_multi_agg_with_relabel(**kwargs)
         if relabeling:
             func, columns, order = _normalize_keyword_aggregation(kwargs)
