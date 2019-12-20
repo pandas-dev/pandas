@@ -7,16 +7,7 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    CategoricalIndex,
-    DataFrame,
-    MultiIndex,
-    Series,
-    date_range,
-    isna,
-    notna,
-)
+from pandas import Categorical, DataFrame, MultiIndex, Series, date_range, isna, notna
 from pandas.core.indexes.datetimes import Timestamp
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 import pandas.util.testing as tm
@@ -1217,67 +1208,6 @@ class TestCategoricalSeriesAnalytics:
         )
         result = s.count()
         assert result == 2
-
-    def test_value_counts(self):
-        # GH 12835
-        cats = Categorical(list("abcccb"), categories=list("cabd"))
-        s = Series(cats, name="xxx")
-        res = s.value_counts(sort=False)
-
-        exp_index = CategoricalIndex(list("cabd"), categories=cats.categories)
-        exp = Series([3, 1, 2, 0], name="xxx", index=exp_index)
-        tm.assert_series_equal(res, exp)
-
-        res = s.value_counts(sort=True)
-
-        exp_index = CategoricalIndex(list("cbad"), categories=cats.categories)
-        exp = Series([3, 2, 1, 0], name="xxx", index=exp_index)
-        tm.assert_series_equal(res, exp)
-
-        # check object dtype handles the Series.name as the same
-        # (tested in tests/base)
-        s = Series(["a", "b", "c", "c", "c", "b"], name="xxx")
-        res = s.value_counts()
-        exp = Series([3, 2, 1], name="xxx", index=["c", "b", "a"])
-        tm.assert_series_equal(res, exp)
-
-    def test_value_counts_with_nan(self):
-        # see gh-9443
-
-        # sanity check
-        s = Series(["a", "b", "a"], dtype="category")
-        exp = Series([2, 1], index=CategoricalIndex(["a", "b"]))
-
-        res = s.value_counts(dropna=True)
-        tm.assert_series_equal(res, exp)
-
-        res = s.value_counts(dropna=True)
-        tm.assert_series_equal(res, exp)
-
-        # same Series via two different constructions --> same behaviour
-        series = [
-            Series(["a", "b", None, "a", None, None], dtype="category"),
-            Series(
-                Categorical(["a", "b", None, "a", None, None], categories=["a", "b"])
-            ),
-        ]
-
-        for s in series:
-            # None is a NaN value, so we exclude its count here
-            exp = Series([2, 1], index=CategoricalIndex(["a", "b"]))
-            res = s.value_counts(dropna=True)
-            tm.assert_series_equal(res, exp)
-
-            # we don't exclude the count of None and sort by counts
-            exp = Series([3, 2, 1], index=CategoricalIndex([np.nan, "a", "b"]))
-            res = s.value_counts(dropna=False)
-            tm.assert_series_equal(res, exp)
-
-            # When we aren't sorting by counts, and np.nan isn't a
-            # category, it should be last.
-            exp = Series([2, 1, 3], index=CategoricalIndex(["a", "b", np.nan]))
-            res = s.value_counts(dropna=False, sort=False)
-            tm.assert_series_equal(res, exp)
 
     @pytest.mark.parametrize(
         "dtype",
