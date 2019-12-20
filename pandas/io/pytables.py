@@ -3650,16 +3650,23 @@ class Table(Fixed):
 
         Parameters
         ----------
-        axes: a list of the axes in order to create (names or numbers of the axes)
+        axes: list or None
+            The names or numbers of the axes to create.
         obj : DataFrame
             The object to create axes on.
         validate: bool, default True
             Whether to validate the obj against an existing object already written.
-        min_itemsize: a dict of the min size for a column in bytes
-        nan_rep : a values to use for string column nan_rep
-        encoding : the encoding for string values
-        data_columns : a list of columns that we want to create separate to
-            allow indexing (or True will force all columns)
+        nan_rep :
+            A value to use for string column nan_rep.
+        data_columns : List[str], True, or None, default None
+            Specify the columns that we want to create to allow indexing on.
+
+            * True : Use all available columns.
+            * None : Use no columns.
+            * List[str] : Use the specified columns.
+
+        min_itemsize: Dict[str, int] or None, default None
+            The min itemsize for a column in bytes.
         """
 
         if not isinstance(obj, DataFrame):
