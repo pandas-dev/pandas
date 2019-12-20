@@ -51,9 +51,8 @@ class TestTSPlot(TestPlotBase):
         tz = tz_aware_fixture
         index = date_range("1/1/2011", periods=2, freq="H", tz=tz)
         ts = Series([188.5, 328.25], index=index)
-        if (
-            tz in ["UTC", pytz.UTC, timezone.utc]
-            or isinstance(tz, dateutil.tz.tz.tzutc)
+        if tz in ["UTC", pytz.UTC, timezone.utc] or isinstance(
+            tz, dateutil.tz.tz.tzutc
         ):
             # Converting to PeriodArray/Index representation will drop timezone
             # information.
