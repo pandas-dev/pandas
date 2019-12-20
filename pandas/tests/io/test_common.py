@@ -4,6 +4,7 @@ Tests for the pandas.io.common functionalities
 from io import StringIO
 import mmap
 import os
+from pathlib import Path
 
 import pytest
 
@@ -27,14 +28,7 @@ class CustomFSPath:
 
 
 # Functions that consume a string path and return a string or path-like object
-path_types = [str, CustomFSPath]
-
-try:
-    from pathlib import Path
-
-    path_types.append(Path)
-except ImportError:
-    pass
+path_types = [str, CustomFSPath, Path]
 
 try:
     from py.path import local as LocalPath
