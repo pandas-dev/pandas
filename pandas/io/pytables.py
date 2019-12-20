@@ -63,7 +63,7 @@ import pandas.core.common as com
 from pandas.core.computation.pytables import PyTablesExpr, maybe_expression
 from pandas.core.indexes.api import ensure_index
 
-from pandas.io.common import _stringify_path
+from pandas.io.common import stringify_path
 from pandas.io.formats.printing import adjoin, pprint_thing
 
 if TYPE_CHECKING:
@@ -274,7 +274,7 @@ def to_hdf(
             encoding=encoding,
         )
 
-    path_or_buf = _stringify_path(path_or_buf)
+    path_or_buf = stringify_path(path_or_buf)
     if isinstance(path_or_buf, str):
         with HDFStore(
             path_or_buf, mode=mode, complevel=complevel, complib=complib
@@ -379,7 +379,7 @@ def read_hdf(
         store = path_or_buf
         auto_close = False
     else:
-        path_or_buf = _stringify_path(path_or_buf)
+        path_or_buf = stringify_path(path_or_buf)
         if not isinstance(path_or_buf, str):
             raise NotImplementedError(
                 "Support for generic buffers has not been implemented."
@@ -525,7 +525,7 @@ class HDFStore:
         if complib is None and complevel is not None:
             complib = tables.filters.default_complib
 
-        self._path = _stringify_path(path)
+        self._path = stringify_path(path)
         if mode is None:
             mode = "a"
         self._mode = mode

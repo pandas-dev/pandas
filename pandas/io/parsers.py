@@ -64,10 +64,10 @@ from pandas.core.tools import datetimes as tools
 from pandas.io.common import (
     BaseIterator,
     UTF8Recoder,
-    _get_handle,
-    _infer_compression,
-    _validate_header_arg,
     get_filepath_or_buffer,
+    get_handle,
+    infer_compression,
+    validate_header_arg,
 )
 from pandas.io.date_converters import generic_parser
 
@@ -425,7 +425,7 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
         kwds["encoding"] = encoding
 
     compression = kwds.get("compression", "infer")
-    compression = _infer_compression(filepath_or_buffer, compression)
+    compression = infer_compression(filepath_or_buffer, compression)
 
     # TODO: get_filepath_or_buffer could return
     # Union[FilePathOrBuffer, s3fs.S3File, gcsfs.GCSFile]
@@ -1049,7 +1049,7 @@ class TextFileReader(BaseIterator):
         na_values = options["na_values"]
         skiprows = options["skiprows"]
 
-        _validate_header_arg(options["header"])
+        validate_header_arg(options["header"])
 
         depr_warning = ""
 
@@ -2282,7 +2282,7 @@ class PythonParser(ParserBase):
         self.comment = kwds["comment"]
         self._comment_lines = []
 
-        f, handles = _get_handle(
+        f, handles = get_handle(
             f,
             "r",
             encoding=self.encoding,
