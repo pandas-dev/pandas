@@ -1774,11 +1774,16 @@ double precise_xstrtod(const char *str, char **endptr, char decimal,
 
 double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
                   int skip_trailing, int *error, int *maybe_int) {
+    PyGILState_STATE gstate;
+    gstate = PyGILState_Ensure();
+
     double r = PyOS_string_to_double(p, q, 0);
     if (maybe_int != NULL) *maybe_int = 0;
     if (PyErr_Occurred() != NULL) *error = -1;
     else if (r == Py_HUGE_VAL) *error = (int)Py_HUGE_VAL;
     PyErr_Clear();
+
+    PyGILState_Release(gstate);
     return r;
 }
 
