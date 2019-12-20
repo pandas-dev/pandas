@@ -17,7 +17,6 @@ from pandas import (
     isna,
     notna,
 )
-from pandas.api.types import is_scalar
 from pandas.core.indexes.datetimes import Timestamp
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 import pandas.util.testing as tm
@@ -802,54 +801,6 @@ class TestSeriesAnalytics:
         msg = "the 'axis' parameter is not supported"
         with pytest.raises(ValueError, match=msg):
             np.repeat(s, 2, axis=0)
-
-    def test_searchsorted(self):
-        s = Series([1, 2, 3])
-
-        result = s.searchsorted(1, side="left")
-        assert is_scalar(result)
-        assert result == 0
-
-        result = s.searchsorted(1, side="right")
-        assert is_scalar(result)
-        assert result == 1
-
-    def test_searchsorted_numeric_dtypes_scalar(self):
-        s = Series([1, 2, 90, 1000, 3e9])
-        r = s.searchsorted(30)
-        assert is_scalar(r)
-        assert r == 2
-
-        r = s.searchsorted([30])
-        e = np.array([2], dtype=np.intp)
-        tm.assert_numpy_array_equal(r, e)
-
-    def test_searchsorted_numeric_dtypes_vector(self):
-        s = Series([1, 2, 90, 1000, 3e9])
-        r = s.searchsorted([91, 2e6])
-        e = np.array([3, 4], dtype=np.intp)
-        tm.assert_numpy_array_equal(r, e)
-
-    def test_search_sorted_datetime64_scalar(self):
-        s = Series(pd.date_range("20120101", periods=10, freq="2D"))
-        v = pd.Timestamp("20120102")
-        r = s.searchsorted(v)
-        assert is_scalar(r)
-        assert r == 1
-
-    def test_search_sorted_datetime64_list(self):
-        s = Series(pd.date_range("20120101", periods=10, freq="2D"))
-        v = [pd.Timestamp("20120102"), pd.Timestamp("20120104")]
-        r = s.searchsorted(v)
-        e = np.array([1, 2], dtype=np.intp)
-        tm.assert_numpy_array_equal(r, e)
-
-    def test_searchsorted_sorter(self):
-        # GH8490
-        s = Series([3, 1, 2])
-        r = s.searchsorted([0, 3], sorter=np.argsort(s))
-        e = np.array([0, 2], dtype=np.intp)
-        tm.assert_numpy_array_equal(r, e)
 
     def test_is_monotonic(self):
 
