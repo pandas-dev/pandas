@@ -4594,7 +4594,6 @@ class TestHDFStore:
             with pytest.raises(ValueError):
                 read_hdf(path)
 
-    @td.skip_if_no("pathlib")
     def test_read_from_pathlib_path(self, setup_path):
 
         # GH11773

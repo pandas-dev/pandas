@@ -68,7 +68,6 @@ class TestSAS7BDAT:
                 tm.assert_frame_equal(df, df0.iloc[2:5, :])
                 rdr.close()
 
-    @td.skip_if_no("pathlib")
     def test_path_pathlib(self):
         from pathlib import Path
 
