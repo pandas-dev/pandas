@@ -291,8 +291,11 @@ def _create_binary_propagating_op(name, divmod=False):
 
     def method(self, other):
         if (other is C_NA or isinstance(other, str)
-                or isinstance(other, (numbers.Number, np.bool_, np.int64, np.int_))
+                or isinstance(other, (numbers.Number, np.bool_))
                 or isinstance(other, np.ndarray) and not other.shape):
+            # Need the other.shape clause to handle NumPy scalars,
+            # since we do a setitem on `out` below, which
+            # won't work for NumPy scalars.
             if divmod:
                 return NA, NA
             else:
@@ -449,10 +452,8 @@ class NAType(C_NAType):
 
     __rxor__ = __xor__
 
-    # What else to add here? datetime / Timestamp? Period? Interval?
-    # Note: we only handle 0-d ndarrays.
     __array_priority__ = 1000
-    _HANDLED_TYPES = (np.ndarray, numbers.Number, str, np.bool_, np.int64)
+    _HANDLED_TYPES = (np.ndarray, numbers.Number, str, np.bool_)
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         types = self._HANDLED_TYPES + (NAType,)

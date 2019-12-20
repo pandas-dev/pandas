@@ -934,7 +934,7 @@ work with ``NA``, and generally return ``NA``:
 
 .. warning::
 
-   Currently, ufuncs involving an ndarray an NA will return an
+   Currently, ufuncs involving an ndarray and ``NA`` will return an
    object-dtype filled with NA values.
 
    .. ipython:: python
