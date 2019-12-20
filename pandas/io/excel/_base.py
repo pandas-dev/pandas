@@ -6,6 +6,7 @@ from textwrap import fill
 
 from pandas._config import config
 
+from pandas._libs.parsers import STR_NA_VALUES
 from pandas.errors import EmptyDataError
 from pandas.util._decorators import Appender
 
@@ -14,7 +15,6 @@ from pandas.core.dtypes.common import is_bool, is_float, is_integer, is_list_lik
 from pandas.core.frame import DataFrame
 
 from pandas.io.common import (
-    _NA_VALUES,
     _is_url,
     _stringify_path,
     _validate_header_arg,
@@ -124,7 +124,7 @@ na_values : scalar, str, list-like, or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values. By default the following values are interpreted
     as NaN: '"""
-    + fill("', '".join(sorted(_NA_VALUES)), 70, subsequent_indent="    ")
+    + fill("', '".join(sorted(STR_NA_VALUES)), 70, subsequent_indent="    ")
     + """'.
 keep_default_na : bool, default True
     Whether or not to include the default NaN values when parsing the data.
