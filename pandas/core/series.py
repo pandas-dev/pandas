@@ -3544,10 +3544,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         self._get_axis_number(axis)
 
         if func is None:
-            # This is due to order issue of dictionary in PY35, e.g. if {"foo"
-            # : "sum", "bar": "min"}, then it will take "bar" first because it
-            # b is before f
-            func = OrderedDict(kwargs.items())
+            func = dict(kwargs.items())
             kwargs = {}
 
         result, how = self._aggregate(func, *args, **kwargs)
@@ -4394,9 +4391,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     hist = pandas.plotting.hist_series
 
 
-Series._setup_axes(
-    ["index"], docs={"index": "The index (axis labels) of the Series."},
-)
+Series._setup_axes(["index"], docs={"index": "The index (axis labels) of the Series."})
 Series._add_numeric_operations()
 Series._add_series_only_operations()
 Series._add_series_or_dataframe_operations()

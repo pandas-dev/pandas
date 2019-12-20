@@ -35,6 +35,11 @@ from pandas.core.accessor import DirNamesMixin
 from pandas.core.algorithms import duplicated, unique1d, value_counts
 from pandas.core.arrays import ExtensionArray
 from pandas.core.construction import create_series_with_explicit_dtype
+from pandas.core.groupby.util import (
+    _is_multi_agg_with_relabel,
+    _maybe_mangle_lambdas,
+    _normalize_keyword_aggregation,
+)
 import pandas.core.nanops as nanops
 
 _shared_docs: Dict[str, str] = dict()
@@ -288,6 +293,29 @@ class SelectionMixin:
         raise AttributeError(
             f"'{arg}' is not a valid function for '{type(self).__name__}' object"
         )
+
+    def _reconstruct_func(self, func, *args, **kwargs):
+
+        relabeling = func is None and _is_multi_agg_with_relabel(**kwargs)
+        if relabeling:
+            func, columns, order = _normalize_keyword_aggregation(kwargs)
+
+        elif isinstance(func, list) and len(func) > len(set(func)):
+
+            # GH 28426 will raise error if duplicated function names are used and
+            # there is no reassigned name
+            raise SpecificationError(
+                "Function names must be unique if there is no new column "
+                "names assigned"
+            )
+        elif func is None:
+            # nicer error message
+            raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
+
+        func = _maybe_mangle_lambdas(func)
+        if relabeling:
+            return relabeling, func, columns, order
+        return relabeling, func, None, None
 
     def _aggregate(self, arg, *args, **kwargs):
         """

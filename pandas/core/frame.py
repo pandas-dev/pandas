@@ -6412,26 +6412,11 @@ class DataFrame(NDFrame):
     )
     @Appender(_shared_docs["aggregate"])
     def aggregate(self, func=None, axis=0, *args, **kwargs):
-        from pandas.core.groupby.generic import (
-            _is_multi_agg_with_relabel,
-            _maybe_mangle_lambdas,
-            _normalize_keyword_aggregation,
-        )
-
         axis = self._get_axis_number(axis)
 
-        relabeling = func is None and _is_multi_agg_with_relabel(**kwargs)
+        relabeling, func, columns, order = self._reconstruct_func(func, *args, **kwargs)
         if relabeling:
-            func, indexes, order = _normalize_keyword_aggregation(kwargs)
-            reordered_indexes = [
-                pair[0] for pair in sorted(zip(indexes, order), key=lambda t: t[1])
-            ]
             kwargs = {}
-        elif func is None:
-            # nicer error message
-            raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
-
-        func = _maybe_mangle_lambdas(func)
 
         result = None
         try:
@@ -6442,11 +6427,14 @@ class DataFrame(NDFrame):
             return self.apply(func, axis=axis, args=args, **kwargs)
 
         if relabeling:
+            reordered_indexes = [
+                pair[0] for pair in sorted(zip(columns, order), key=lambda t: t[1])
+            ]
 
             # when there are more than one column being used in aggregate, the order
             # of result will be reversed, and in case the func is not used by other
             # columns, there might be NaN values, so separate these two cases
-            reordered_result = DataFrame(index=indexes)
+            reordered_result = DataFrame(index=columns)
             idx = 0
             for col, funcs in func.items():
                 v = reordered_indexes[idx : idx + len(funcs)]

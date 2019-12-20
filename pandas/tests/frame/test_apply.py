@@ -1391,9 +1391,8 @@ class TestDataFrameAggregate:
 
 
 class TestDataFrameNamedAggregate:
-
-    # GH 26513
     def test_agg_relabel(self):
+        # GH 26513
         df = pd.DataFrame({"A": [1, 2, 1, 2], "B": [1, 2, 3, 4], "C": [3, 4, 5, 6]})
 
         # simplest case with one column, one func
@@ -1407,7 +1406,9 @@ class TestDataFrameNamedAggregate:
 
         tm.assert_frame_equal(result, expected)
 
-        # test on multiple columns with multiple methods
+    def test_agg_relabel_multi_columns_multi_methods(self):
+        # GH 26513, test on multiple columns with multiple methods
+        df = pd.DataFrame({"A": [1, 2, 1, 2], "B": [1, 2, 3, 4], "C": [3, 4, 5, 6]})
         result = df.agg(
             foo=("A", "sum"),
             bar=("B", "mean"),
@@ -1426,7 +1427,9 @@ class TestDataFrameNamedAggregate:
         )
         tm.assert_frame_equal(result, expected)
 
-        # test on partial, functools or more complex cases
+    def test_agg_relable_partial_functions(self):
+        # GH 26513, test on partial, functools or more complex cases
+        df = pd.DataFrame({"A": [1, 2, 1, 2], "B": [1, 2, 3, 4], "C": [3, 4, 5, 6]})
         result = df.agg(foo=("A", np.mean), bar=("A", "mean"), cat=("A", min))
         expected = pd.DataFrame(
             {"A": [1.5, 1.5, 1.0]}, index=pd.Index(["foo", "bar", "cat"])
@@ -1451,6 +1454,7 @@ class TestDataFrameNamedAggregate:
         tm.assert_frame_equal(result, expected)
 
     def test_agg_namedtuple(self):
+        # GH 26513
         df = pd.DataFrame({"A": [0, 1], "B": [1, 2]})
         result = df.agg(
             foo=pd.NamedAgg("B", "sum"),
@@ -1476,6 +1480,7 @@ class TestDataFrameNamedAggregate:
         tm.assert_frame_equal(result, expected)
 
     def test_agg_raises(self):
+        # GH 26513
         df = pd.DataFrame({"A": [0, 1], "B": [1, 2]})
         msg = "Must provide"
 
