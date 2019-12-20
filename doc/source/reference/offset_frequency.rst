@@ -1372,6 +1372,104 @@ Methods
     CDay.rollback
     CDay.rollforward
 
+.. This is to prevent warnings in the doc build. We don't want to encourage
+.. these methods.
+
+..
+    .. toctree::
+
+        api.offsets.DateOffset.isAnchored
+        api.offsets.BusinessDay.isAnchored
+        api.offsets.CDay.isAnchored
+        api.offsets.CBMonthBegin.isAnchored
+        api.offsets.CBMonthEnd.isAnchored
+        api.offsets.BMonthBegin.isAnchored
+        api.offsets.BMonthEnd.isAnchored
+        api.offsets.BDay.isAnchored
+        api.offsets.Nano.isAnchored
+        api.offsets.Micro.isAnchored
+        api.offsets.Milli.isAnchored
+        api.offsets.Second.isAnchored
+        api.offsets.Minute.isAnchored
+        api.offsets.Hour.isAnchored
+        api.offsets.Day.isAnchored
+        api.offsets.Tick.isAnchored
+        api.offsets.Easter.isAnchored
+        api.offsets.FY5253Quarter.isAnchored
+        api.offsets.FY5253.isAnchored
+        api.offsets.YearBegin.isAnchored
+        api.offsets.YearEnd.isAnchored
+        api.offsets.BYearBegin.isAnchored
+        api.offsets.BYearEnd.isAnchored
+        api.offsets.YearOffset.isAnchored
+        api.offsets.QuarterBegin.isAnchored
+        api.offsets.QuarterEnd.isAnchored
+        api.offsets.BQuarterBegin.isAnchored
+        api.offsets.BQuarterEnd.isAnchored
+        api.offsets.QuarterOffset.isAnchored
+        api.offsets.LastWeekOfMonth.isAnchored
+        api.offsets.WeekOfMonth.isAnchored
+        api.offsets.Week.isAnchored
+        api.offsets.SemiMonthBegin.isAnchored
+        api.offsets.SemiMonthEnd.isAnchored
+        api.offsets.SemiMonthOffset.isAnchored
+        api.offsets.CustomBusinessMonthBegin.isAnchored
+        api.offsets.CustomBusinessMonthEnd.isAnchored
+        api.offsets.BusinessMonthBegin.isAnchored
+        api.offsets.BusinessMonthEnd.isAnchored
+        api.offsets.MonthBegin.isAnchored
+        api.offsets.MonthEnd.isAnchored
+        api.offsets.MonthOffset.isAnchored
+        api.offsets.CustomBusinessHour.isAnchored
+        api.offsets.CustomBusinessDay.isAnchored
+        api.offsets.BusinessHour.isAnchored
+        api.offsets.DateOffset.onOffset
+        api.offsets.BusinessDay.onOffset
+        api.offsets.CDay.onOffset
+        api.offsets.CBMonthBegin.onOffset
+        api.offsets.CBMonthEnd.onOffset
+        api.offsets.BMonthBegin.onOffset
+        api.offsets.BMonthEnd.onOffset
+        api.offsets.BDay.onOffset
+        api.offsets.Nano.onOffset
+        api.offsets.Micro.onOffset
+        api.offsets.Milli.onOffset
+        api.offsets.Second.onOffset
+        api.offsets.Minute.onOffset
+        api.offsets.Hour.onOffset
+        api.offsets.Day.onOffset
+        api.offsets.Tick.onOffset
+        api.offsets.Easter.onOffset
+        api.offsets.FY5253Quarter.onOffset
+        api.offsets.FY5253.onOffset
+        api.offsets.YearBegin.onOffset
+        api.offsets.YearEnd.onOffset
+        api.offsets.BYearBegin.onOffset
+        api.offsets.BYearEnd.onOffset
+        api.offsets.YearOffset.onOffset
+        api.offsets.QuarterBegin.onOffset
+        api.offsets.QuarterEnd.onOffset
+        api.offsets.BQuarterBegin.onOffset
+        api.offsets.BQuarterEnd.onOffset
+        api.offsets.QuarterOffset.onOffset
+        api.offsets.LastWeekOfMonth.onOffset
+        api.offsets.WeekOfMonth.onOffset
+        api.offsets.Week.onOffset
+        api.offsets.SemiMonthBegin.onOffset
+        api.offsets.SemiMonthEnd.onOffset
+        api.offsets.SemiMonthOffset.onOffset
+        api.offsets.CustomBusinessMonthBegin.onOffset
+        api.offsets.CustomBusinessMonthEnd.onOffset
+        api.offsets.BusinessMonthBegin.onOffset
+        api.offsets.BusinessMonthEnd.onOffset
+        api.offsets.MonthBegin.onOffset
+        api.offsets.MonthEnd.onOffset
+        api.offsets.MonthOffset.onOffset
+        api.offsets.CustomBusinessHour.onOffset
+        api.offsets.CustomBusinessDay.onOffset
+        api.offsets.BusinessHour.onOffset
+
+
 .. _api.frequencies:
 
 ===========
