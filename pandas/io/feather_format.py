@@ -4,7 +4,7 @@ from pandas.compat._optional import import_optional_dependency
 
 from pandas import DataFrame, Int64Index, RangeIndex
 
-from pandas.io.common import _stringify_path
+from pandas.io.common import stringify_path
 
 
 def to_feather(df: DataFrame, path):
@@ -20,7 +20,7 @@ def to_feather(df: DataFrame, path):
     import_optional_dependency("pyarrow")
     from pyarrow import feather
 
-    path = _stringify_path(path)
+    path = stringify_path(path)
 
     if not isinstance(df, DataFrame):
         raise ValueError("feather only support IO with DataFrames")
@@ -98,6 +98,6 @@ def read_feather(path, columns=None, use_threads: bool = True):
     import_optional_dependency("pyarrow")
     from pyarrow import feather
 
-    path = _stringify_path(path)
+    path = stringify_path(path)
 
     return feather.read_feather(path, columns=columns, use_threads=bool(use_threads))

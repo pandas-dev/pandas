@@ -44,14 +44,14 @@ def test_compression_size(obj, method, compression_only):
 @pytest.mark.parametrize("method", ["to_csv", "to_json"])
 def test_compression_size_fh(obj, method, compression_only):
     with tm.ensure_clean() as path:
-        f, handles = icom._get_handle(path, "w", compression=compression_only)
+        f, handles = icom.get_handle(path, "w", compression=compression_only)
         with f:
             getattr(obj, method)(f)
             assert not f.closed
         assert f.closed
         compressed_size = os.path.getsize(path)
     with tm.ensure_clean() as path:
-        f, handles = icom._get_handle(path, "w", compression=None)
+        f, handles = icom.get_handle(path, "w", compression=None)
         with f:
             getattr(obj, method)(f)
             assert not f.closed
@@ -108,7 +108,7 @@ def test_compression_warning(compression_only):
         columns=["X", "Y", "Z"],
     )
     with tm.ensure_clean() as path:
-        f, handles = icom._get_handle(path, "w", compression=compression_only)
+        f, handles = icom.get_handle(path, "w", compression=compression_only)
         with tm.assert_produces_warning(RuntimeWarning, check_stacklevel=False):
             with f:
                 df.to_csv(f, compression=compression_only)

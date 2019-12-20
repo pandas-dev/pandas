@@ -68,9 +68,9 @@ bar2,12,13,14,15
         assert os.path.expanduser(filename) == expanded_name
 
     def test_stringify_path_pathlib(self):
-        rel_path = icom._stringify_path(Path("."))
+        rel_path = icom.stringify_path(Path("."))
         assert rel_path == "."
-        redundant_path = icom._stringify_path(Path("foo//bar"))
+        redundant_path = icom.stringify_path(Path("foo//bar"))
         assert redundant_path == os.path.join("foo", "bar")
 
     @td.skip_if_no("py.path")
@@ -78,11 +78,11 @@ bar2,12,13,14,15
         path = os.path.join("foo", "bar")
         abs_path = os.path.abspath(path)
         lpath = LocalPath(path)
-        assert icom._stringify_path(lpath) == abs_path
+        assert icom.stringify_path(lpath) == abs_path
 
     def test_stringify_path_fspath(self):
         p = CustomFSPath("foo/bar.csv")
-        result = icom._stringify_path(p)
+        result = icom.stringify_path(p)
         assert result == "foo/bar.csv"
 
     @pytest.mark.parametrize(
@@ -92,7 +92,7 @@ bar2,12,13,14,15
     @pytest.mark.parametrize("path_type", path_types)
     def test_infer_compression_from_path(self, extension, expected, path_type):
         path = path_type("foo/bar.csv" + extension)
-        compression = icom._infer_compression(path, compression="infer")
+        compression = icom.infer_compression(path, compression="infer")
         assert compression == expected
 
     def test_get_filepath_or_buffer_with_path(self):
@@ -313,18 +313,18 @@ class TestMMapWrapper:
             err = mmap.error
 
         with pytest.raises(err, match=msg):
-            icom.MMapWrapper(non_file)
+            icom._MMapWrapper(non_file)
 
         target = open(mmap_file, "r")
         target.close()
 
         msg = "I/O operation on closed file"
         with pytest.raises(ValueError, match=msg):
-            icom.MMapWrapper(target)
+            icom._MMapWrapper(target)
 
     def test_get_attr(self, mmap_file):
         with open(mmap_file, "r") as target:
-            wrapper = icom.MMapWrapper(target)
+            wrapper = icom._MMapWrapper(target)
 
         attrs = dir(wrapper.mmap)
         attrs = [attr for attr in attrs if not attr.startswith("__")]
@@ -337,7 +337,7 @@ class TestMMapWrapper:
 
     def test_next(self, mmap_file):
         with open(mmap_file, "r") as target:
-            wrapper = icom.MMapWrapper(target)
+            wrapper = icom._MMapWrapper(target)
             lines = target.readlines()
 
         for line in lines:

@@ -9,7 +9,7 @@ import pandas as pd
 from pandas import DataFrame, Series
 import pandas.util.testing as tm
 
-from pandas.io.common import _get_handle
+from pandas.io.common import get_handle
 
 
 class TestSeriesToCSV:
@@ -143,7 +143,7 @@ class TestSeriesToCSV:
             tm.assert_series_equal(s, result)
 
             # test the round trip using file handle - to_csv -> read_csv
-            f, _handles = _get_handle(
+            f, _handles = get_handle(
                 filename, "w", compression=compression, encoding=encoding
             )
             with f:
