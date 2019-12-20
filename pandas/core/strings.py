@@ -113,7 +113,7 @@ def cat_safe(list_of_columns: List, sep: str):
                 raise TypeError(
                     "Concatenation requires list-likes containing only "
                     "strings (or missing values). Offending values found in "
-                    "column {}".format(dtype)
+                    f"column {dtype}"
                 ) from None
     return result
 
@@ -1355,8 +1355,8 @@ def str_find(arr, sub, start=0, end=None, side="left"):
     """
 
     if not isinstance(sub, str):
-        msg = "expected a string object, not {0}"
-        raise TypeError(msg.format(type(sub).__name__))
+        msg = f"expected a string object, not {type(sub).__name__}"
+        raise TypeError(msg)
 
     if side == "left":
         method = "find"
@@ -1375,8 +1375,8 @@ def str_find(arr, sub, start=0, end=None, side="left"):
 
 def str_index(arr, sub, start=0, end=None, side="left"):
     if not isinstance(sub, str):
-        msg = "expected a string object, not {0}"
-        raise TypeError(msg.format(type(sub).__name__))
+        msg = f"expected a string object, not {type(sub).__name__}"
+        raise TypeError(msg)
 
     if side == "left":
         method = "index"
@@ -1447,15 +1447,15 @@ def str_pad(arr, width, side="left", fillchar=" "):
     dtype: object
     """
     if not isinstance(fillchar, str):
-        msg = "fillchar must be a character, not {0}"
-        raise TypeError(msg.format(type(fillchar).__name__))
+        msg = f"fillchar must be a character, not {type(fillchar).__name__}"
+        raise TypeError(msg)
 
     if len(fillchar) != 1:
         raise TypeError("fillchar must be a character, not str")
 
     if not is_integer(width):
-        msg = "width must be of integer type, not {0}"
-        raise TypeError(msg.format(type(width).__name__))
+        msg = f"width must be of integer type, not {type(width).__name__}"
+        raise TypeError(msg)
 
     if side == "left":
         f = lambda x: x.rjust(width, fillchar)

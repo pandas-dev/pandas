@@ -1745,7 +1745,7 @@ class DataFrame(NDFrame):
         rec.array([(b'a', 1, 0.5 ), (b'b', 2, 0.75)],
                   dtype=[('I', 'S2'), ('A', '<i8'), ('B', '<f8')])
 
-        >>> index_dtypes = "<S{}".format(df.index.str.len().max())
+        >>> index_dtypes = f"<S{df.index.str.len().max()}"
         >>> df.to_records(index_dtypes=index_dtypes)
         rec.array([(b'a', 1, 0.5 ), (b'b', 2, 0.75)],
                   dtype=[('I', 'S1'), ('A', '<i8'), ('B', '<f8')])
@@ -2355,13 +2355,9 @@ class DataFrame(NDFrame):
             # returns size in human readable format
             for x in ["bytes", "KB", "MB", "GB", "TB"]:
                 if num < 1024.0:
-                    return "{num:3.1f}{size_q} {x}".format(
-                        num=num, size_q=size_qualifier, x=x
-                    )
+                    return f"{num:3.1f}{size_qualifier} {x}"
                 num /= 1024.0
-            return "{num:3.1f}{size_q} {pb}".format(
-                num=num, size_q=size_qualifier, pb="PB"
-            )
+            return f"{num:3.1f}{size_qualifier} PB"
 
         if verbose:
             _verbose_repr()
@@ -2374,7 +2370,7 @@ class DataFrame(NDFrame):
                 _verbose_repr()
 
         counts = self._data.get_dtype_counts()
-        dtypes = ["{k}({kk:d})".format(k=k[0], kk=k[1]) for k in sorted(counts.items())]
+        dtypes = [f"{k[0]}({k[1]:d})" for k in sorted(counts.items())]
         lines.append(f"dtypes: {', '.join(dtypes)}")
 
         if memory_usage is None:
