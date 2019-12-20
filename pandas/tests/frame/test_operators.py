@@ -1,5 +1,6 @@
 from decimal import Decimal
 import operator
+import warnings
 
 import numpy as np
 import pytest
@@ -908,7 +909,14 @@ class TestTranspose:
         # case with more than 1 column, must have same dtype
         df = pd.DataFrame({"a": ser, "b": ser})
         result = df.T.T
-        tm.assert_frame_equal(result, df)
+        # For Categorical[datetime64[ns, tz]], we have a warning that the
+        # dtype will change to preserve tz in the future. We don't care,
+        # since happeneing to both sides here.
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore", "Converting timezone-aware", FutureWarning
+            )
+            tm.assert_frame_equal(result, df)
 
     def test_transpose_tzaware_1col_single_tz(self):
         # GH#26825
