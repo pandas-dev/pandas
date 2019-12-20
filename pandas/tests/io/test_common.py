@@ -73,7 +73,6 @@ bar2,12,13,14,15
         assert expanded_name == filename
         assert os.path.expanduser(filename) == expanded_name
 
-    @td.skip_if_no("pathlib")
     def test_stringify_path_pathlib(self):
         rel_path = icom._stringify_path(Path("."))
         assert rel_path == "."
