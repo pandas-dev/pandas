@@ -90,13 +90,11 @@ class Resampler(_GroupBy, ShallowMixin):
         Provide a nice str repr of our rolling object.
         """
         attrs = (
-            "{k}={v}".format(k=k, v=getattr(self.groupby, k))
+            f"{k}={getattr(self.groupby, k)}"
             for k in self._attributes
             if getattr(self.groupby, k, None) is not None
         )
-        return "{klass} [{attrs}]".format(
-            klass=type(self).__name__, attrs=", ".join(attrs)
-        )
+        return f"{type(self).__name__} [{', '.join(attrs)}]"
 
     def __getattr__(self, attr):
         if attr in self._internal_names_set:
@@ -1188,8 +1186,8 @@ class PeriodIndexResampler(DatetimeIndexResampler):
             return self.asfreq()
 
         raise IncompatibleFrequency(
-            "Frequency {} cannot be resampled to {}, as they are not "
-            "sub or super periods".format(ax.freq, self.freq)
+            f"Frequency {ax.freq} cannot be resampled to {self.freq}, "
+            "as they are not sub or super periods"
         )
 
     def _upsample(self, method, limit=None, fill_value=None):
@@ -1333,11 +1331,11 @@ class TimeGrouper(Grouper):
         # Check for correctness of the keyword arguments which would
         # otherwise silently use the default if misspelled
         if label not in {None, "left", "right"}:
-            raise ValueError("Unsupported value {} for `label`".format(label))
+            raise ValueError(f"Unsupported value {label} for `label`")
         if closed not in {None, "left", "right"}:
-            raise ValueError("Unsupported value {} for `closed`".format(closed))
+            raise ValueError(f"Unsupported value {closed} for `closed`")
         if convention not in {None, "start", "end", "e", "s"}:
-            raise ValueError("Unsupported value {} for `convention`".format(convention))
+            raise ValueError(f"Unsupported value {convention} for `convention`")
 
         freq = to_offset(freq)
 
@@ -1407,7 +1405,7 @@ class TimeGrouper(Grouper):
         raise TypeError(
             "Only valid with DatetimeIndex, "
             "TimedeltaIndex or PeriodIndex, "
-            "but got an instance of '{typ}'".format(typ=type(ax).__name__)
+            f"but got an instance of '{type(ax).__name__}'"
         )
 
     def _get_grouper(self, obj, validate=True):
@@ -1420,7 +1418,7 @@ class TimeGrouper(Grouper):
         if not isinstance(ax, DatetimeIndex):
             raise TypeError(
                 "axis must be a DatetimeIndex, but got "
-                "an instance of {typ}".format(typ=type(ax).__name__)
+                f"an instance of {type(ax).__name__}"
             )
 
         if len(ax) == 0:
@@ -1496,7 +1494,7 @@ class TimeGrouper(Grouper):
         if not isinstance(ax, TimedeltaIndex):
             raise TypeError(
                 "axis must be a TimedeltaIndex, but got "
-                "an instance of {typ}".format(typ=type(ax).__name__)
+                f"an instance of {type(ax).__name__}"
             )
 
         if not len(ax):
@@ -1521,7 +1519,7 @@ class TimeGrouper(Grouper):
         if not isinstance(ax, DatetimeIndex):
             raise TypeError(
                 "axis must be a DatetimeIndex, but got "
-                "an instance of {typ}".format(typ=type(ax).__name__)
+                f"an instance of {type(ax).__name__}"
             )
 
         freq = self.freq
@@ -1543,7 +1541,7 @@ class TimeGrouper(Grouper):
         if not isinstance(ax, PeriodIndex):
             raise TypeError(
                 "axis must be a PeriodIndex, but got "
-                "an instance of {typ}".format(typ=type(ax).__name__)
+                f"an instance of {type(ax).__name__}"
             )
 
         memb = ax.asfreq(self.freq, how=self.convention)
