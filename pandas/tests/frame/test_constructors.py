@@ -25,6 +25,7 @@ from pandas import (
     date_range,
     isna,
 )
+from pandas.arrays import IntervalArray, PeriodArray
 from pandas.core.construction import create_series_with_explicit_dtype
 import pandas.util.testing as tm
 
@@ -1725,9 +1726,9 @@ class TestDataFrameConstructors:
         expected = DataFrame({"a": i.to_series().reset_index(drop=True), "b": i_no_tz})
         tm.assert_frame_equal(df, expected)
 
-    def test_constructor_datetimes_with_nulls(self):
-        # gh-15869, GH#11220
-        for arr in [
+    @pytest.mark.parametrize(
+        "arr",
+        [
             np.array([None, None, None, None, datetime.now(), None]),
             np.array([None, None, datetime.now(), None]),
             [[np.datetime64("NaT")], [None]],
@@ -1736,10 +1737,13 @@ class TestDataFrameConstructors:
             [[None], [pd.NaT]],
             [[pd.NaT], [np.datetime64("NaT")]],
             [[pd.NaT], [None]],
-        ]:
-            result = DataFrame(arr).dtypes
-            expected = Series([np.dtype("datetime64[ns]")])
-            tm.assert_series_equal(result, expected)
+        ],
+    )
+    def test_constructor_datetimes_with_nulls(self, arr):
+        # gh-15869, GH#11220
+        result = DataFrame(arr).dtypes
+        expected = Series([np.dtype("datetime64[ns]")])
+        tm.assert_series_equal(result, expected)
 
     def test_constructor_for_list_with_dtypes(self):
         # test list of lists/ndarrays
@@ -2391,6 +2395,21 @@ class TestDataFrameConstructors:
 
         expected = DataFrame([[1, 2, 3], [4, 5, 6]])
         result = DataFrame(List([List([1, 2, 3]), List([4, 5, 6])]))
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "extension_arr",
+        [
+            Categorical(list("aabbc")),
+            pd.SparseArray([1, np.nan, np.nan, np.nan]),
+            IntervalArray([pd.Interval(0, 1), pd.Interval(1, 5)]),
+            PeriodArray(pd.period_range(start="1/1/2017", end="1/1/2018", freq="M")),
+        ],
+    )
+    def test_constructor_with_extension_array(self, extension_arr):
+        # GH11363
+        expected = DataFrame(Series(extension_arr))
+        result = DataFrame(extension_arr)
         tm.assert_frame_equal(result, expected)
 
 

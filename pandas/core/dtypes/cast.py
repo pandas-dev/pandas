@@ -41,7 +41,7 @@ from .common import (
     is_unsigned_integer_dtype,
     pandas_dtype,
 )
-from .dtypes import DatetimeTZDtype, ExtensionDtype, PeriodDtype
+from .dtypes import DatetimeTZDtype, ExtensionDtype, IntervalDtype, PeriodDtype
 from .generic import (
     ABCDataFrame,
     ABCDatetimeArray,
@@ -244,13 +244,13 @@ def maybe_upcast_putmask(result: np.ndarray, mask: np.ndarray, other):
         necessary.
     mask : boolean ndarray
     other : scalar
-        The source value
+        The source value.
 
     Returns
     -------
     result : ndarray
-    changed : boolean
-        Set to true if the result array was upcasted
+    changed : bool
+        Set to true if the result array was upcasted.
 
     Examples
     --------
@@ -337,6 +337,21 @@ def maybe_upcast_putmask(result: np.ndarray, mask: np.ndarray, other):
 
 
 def maybe_promote(dtype, fill_value=np.nan):
+    """
+    Find the minimal dtype that can hold both the given dtype and fill_value.
+
+    Parameters
+    ----------
+    dtype : np.dtype or ExtensionDtype
+    fill_value : scalar, default np.nan
+
+    Returns
+    -------
+    dtype
+        Upcasted from dtype argument if necessary.
+    fill_value
+        Upcasted from fill_value argument if necessary.
+    """
     if not is_scalar(fill_value) and not is_object_dtype(dtype):
         # with object dtype there is nothing to promote, and the user can
         #  pass pretty much any weird fill_value they like
@@ -586,17 +601,20 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False):
         if lib.is_period(val):
             dtype = PeriodDtype(freq=val.freq)
             val = val.ordinal
+        elif lib.is_interval(val):
+            subtype = infer_dtype_from_scalar(val.left, pandas_dtype=True)[0]
+            dtype = IntervalDtype(subtype=subtype)
 
     return dtype, val
 
 
 def infer_dtype_from_array(arr, pandas_dtype: bool = False):
     """
-    Infer the dtype from a scalar or array.
+    Infer the dtype from an array.
 
     Parameters
     ----------
-    arr : scalar or array
+    arr : array
     pandas_dtype : bool, default False
         whether to infer dtype including pandas extension types.
         If False, array belongs to pandas extension types
@@ -622,7 +640,6 @@ def infer_dtype_from_array(arr, pandas_dtype: bool = False):
 
     >>> infer_dtype_from_array([1, '1'])
     (numpy.object_, [1, '1'])
-
     """
 
     if isinstance(arr, np.ndarray):
@@ -686,10 +703,12 @@ def maybe_upcast(values, fill_value=np.nan, dtype=None, copy: bool = False):
 
     Parameters
     ----------
-    values : the ndarray that we want to maybe upcast
+    values : ndarray or ExtensionArray
+        The array that we want to maybe upcast.
     fill_value : what we want to fill with
     dtype : if None, then use the dtype of the values, else coerce to this type
-    copy : if True always make a copy even if no upcast is required
+    copy : bool, default True
+        If True always make a copy even if no upcast is required.
     """
     if not is_scalar(fill_value) and not is_object_dtype(values.dtype):
         # We allow arbitrary fill values for object dtype

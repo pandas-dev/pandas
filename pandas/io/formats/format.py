@@ -72,7 +72,7 @@ from pandas.core.indexes.api import Index, ensure_index
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
-from pandas.io.common import _stringify_path
+from pandas.io.common import stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
 
 if TYPE_CHECKING:
@@ -482,7 +482,7 @@ class TableFormatter:
         objects, otherwise yield buf unchanged.
         """
         if buf is not None:
-            buf = _stringify_path(buf)
+            buf = stringify_path(buf)
         else:
             buf = StringIO()
 
@@ -1640,7 +1640,7 @@ def _get_format_datetime64_from_values(
     """ given values and a date_format, return a string format """
 
     if isinstance(values, np.ndarray) and values.ndim > 1:
-        # We don't actaully care about the order of values, and DatetimeIndex
+        # We don't actually care about the order of values, and DatetimeIndex
         #  only accepts 1D values
         values = values.ravel()
 

@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-import warnings
 import weakref
 
 import numpy as np
@@ -182,11 +181,8 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         }
 
         if not set(fields).issubset(valid_field_set):
-            raise TypeError(
-                "__new__() got an unexpected keyword argument {}".format(
-                    list(set(fields) - valid_field_set)[0]
-                )
-            )
+            argument = list(set(fields) - valid_field_set)[0]
+            raise TypeError(f"__new__() got an unexpected keyword argument {argument}")
 
         if name is None and hasattr(data, "name"):
             name = data.name
@@ -445,10 +441,10 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
                     return Index(result, name=name)
             elif isinstance(func, np.ufunc):
                 if "M->M" not in func.types:
-                    msg = "ufunc '{0}' not supported for the PeriodIndex"
+                    msg = f"ufunc '{func.__name__}' not supported for the PeriodIndex"
                     # This should be TypeError, but TypeError cannot be raised
                     # from here because numpy catches.
-                    raise ValueError(msg.format(func.__name__))
+                    raise ValueError(msg)
 
         if is_bool_dtype(result):
             return result
@@ -508,7 +504,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             try:
                 value = Period(value, freq=self.freq).ordinal
             except DateParseError:
-                raise KeyError("Cannot interpret '{}' as period".format(value))
+                raise KeyError(f"Cannot interpret '{value}' as period")
 
         return self._ndarray_values.searchsorted(value, side=side, sorter=sorter)
 
@@ -656,7 +652,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
                 pass
             except DateParseError:
                 # A string with invalid format
-                raise KeyError("Cannot interpret '{}' as period".format(key))
+                raise KeyError(f"Cannot interpret '{key}' as period")
 
             try:
                 key = Period(key, freq=self.freq)
@@ -864,27 +860,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             raise Exception("invalid pickle state")
 
     _unpickle_compat = __setstate__
-
-    def item(self):
-        """
-        Return the first element of the underlying data as a python
-        scalar
-
-        .. deprecated:: 0.25.0
-
-        """
-        warnings.warn(
-            "`item` has been deprecated and will be removed in a future version",
-            FutureWarning,
-            stacklevel=2,
-        )
-        # TODO(DatetimeArray): remove
-        if len(self) == 1:
-            return self[0]
-        else:
-            # TODO: is this still necessary?
-            # copy numpy's message here because Py26 raises an IndexError
-            raise ValueError("can only convert an array of size 1 to a Python scalar")
 
     def memory_usage(self, deep=False):
         result = super().memory_usage(deep=deep)

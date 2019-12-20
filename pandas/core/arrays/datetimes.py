@@ -794,9 +794,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
                 values = self.tz_localize(None)
             else:
                 values = self
-            result = offset.apply_index(values)
-            if self.tz is not None:
-                result = result.tz_localize(self.tz)
+            result = offset.apply_index(values).tz_localize(self.tz)
 
         except NotImplementedError:
             warnings.warn(
@@ -804,6 +802,9 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
                 PerformanceWarning,
             )
             result = self.astype("O") + offset
+            if len(self) == 0:
+                # _from_sequence won't be able to infer self.tz
+                return type(self)._from_sequence(result).tz_localize(self.tz)
 
         return type(self)._from_sequence(result, freq="infer")
 
@@ -2109,7 +2110,6 @@ def _validate_dt64_dtype(dtype):
         dtype = pandas_dtype(dtype)
         if is_dtype_equal(dtype, np.dtype("M8")):
             # no precision, disallowed GH#24806
-            dtype = _NS_DTYPE
             msg = (
                 "Passing in 'datetime64' dtype with no precision is not allowed. "
                 "Please pass in 'datetime64[ns]' instead."

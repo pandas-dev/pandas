@@ -44,7 +44,7 @@ from pandas import (
 from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 
-from pandas.io.common import BaseIterator, _stringify_path, get_filepath_or_buffer
+from pandas.io.common import BaseIterator, get_filepath_or_buffer, stringify_path
 
 _version_error = (
     "Version of given Stata file is not 104, 105, 108, "
@@ -1051,7 +1051,7 @@ class StataReader(StataParser, BaseIterator):
         self._lines_read = 0
 
         self._native_byteorder = _set_endianness(sys.byteorder)
-        path_or_buf = _stringify_path(path_or_buf)
+        path_or_buf = stringify_path(path_or_buf)
         if isinstance(path_or_buf, str):
             path_or_buf, encoding, _, should_close = get_filepath_or_buffer(path_or_buf)
 
@@ -2112,7 +2112,7 @@ class StataWriter(StataParser):
         if byteorder is None:
             byteorder = sys.byteorder
         self._byteorder = _set_endianness(byteorder)
-        self._fname = _stringify_path(fname)
+        self._fname = stringify_path(fname)
         self.type_converters = {253: np.int32, 252: np.int16, 251: np.int8}
         self._converted_names = {}
 
