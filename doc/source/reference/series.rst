@@ -578,3 +578,4 @@ Serialization / IO / conversion
    Series.to_string
    Series.to_clipboard
    Series.to_latex
+   Series.to_markdown
