@@ -175,6 +175,8 @@ from pandas.io.api import (
     read_spss,
 )
 
+from pandas.io.json import _json_normalize as json_normalize
+
 from pandas.util._tester import test
 import pandas.testing
 import pandas.arrays
@@ -273,6 +275,5 @@ Here are just a few of the things that pandas does well:
     Excel files, databases, and saving/loading data from the ultrafast HDF5
     format.
   - Time series-specific functionality: date range generation and frequency
-    conversion, moving window statistics, moving window linear regressions,
-    date shifting and lagging, etc.
+    conversion, moving window statistics, date shifting and lagging.
 """
