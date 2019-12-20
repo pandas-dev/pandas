@@ -1986,7 +1986,11 @@ class DataFrame(NDFrame):
         |  1 |      2 |      4 |
         """
         tabulate = import_optional_dependency("tabulate")
-        return tabulate.tabulate(self, headers="keys", tablefmt="pipe", **kwargs)
+        if "headers" not in kwargs:
+            kwargs["headers"] = "keys"
+        if "tablefmt" not in kwargs:
+            kwargs["tablefmt"] = "pipe"
+        return tabulate.tabulate(self, **kwargs)
 
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
     def to_parquet(
