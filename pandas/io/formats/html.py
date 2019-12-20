@@ -12,7 +12,7 @@ from pandas.core.dtypes.generic import ABCMultiIndex
 
 from pandas import option_context
 
-from pandas.io.common import _is_url
+from pandas.io.common import is_url
 from pandas.io.formats.format import (
     DataFrameFormatter,
     TableFormatter,
@@ -147,7 +147,7 @@ class HTMLFormatter(TableFormatter):
 
         rs = pprint_thing(s, escape_chars=esc).strip()
 
-        if self.render_links and _is_url(rs):
+        if self.render_links and is_url(rs):
             rs_unescaped = pprint_thing(s, escape_chars={}).strip()
             start_tag += '<a href="{url}" target="_blank">'.format(url=rs_unescaped)
             end_a = "</a>"
