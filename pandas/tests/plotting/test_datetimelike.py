@@ -1,10 +1,12 @@
 """ Test cases for time series specific (freq conversion, etc) """
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, time, timedelta, timezone
+import dateutil
 import pickle
 import sys
 
 import numpy as np
 import pytest
+import pytz
 
 import pandas.util._test_decorators as td
 
@@ -44,16 +46,21 @@ class TestTSPlot(TestPlotBase):
         tm.close()
 
     @pytest.mark.slow
-    @pytest.mark.filterwarnings(
-        "ignore:Converting to PeriodArray/Index representation "
-        "will drop timezone information."
-    )
     def test_ts_plot_with_tz(self, tz_aware_fixture):
         # GH2877, GH17173
         tz = tz_aware_fixture
         index = date_range("1/1/2011", periods=2, freq="H", tz=tz)
         ts = Series([188.5, 328.25], index=index)
-        _check_plot_works(ts.plot)
+        if (
+            tz in ["UTC", pytz.UTC, timezone.utc]
+            or isinstance(tz, dateutil.tz.tz.tzutc)
+        ):
+            # Converting to PeriodArray/Index representation will drop timezone
+            # information.
+            with tm.assert_produces_warning(UserWarning):
+                _check_plot_works(ts.plot)
+        else:
+            _check_plot_works(ts.plot)
 
     def test_fontsize_set_correctly(self):
         # For issue #8765
