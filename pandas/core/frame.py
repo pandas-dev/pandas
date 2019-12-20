@@ -1973,14 +1973,14 @@ class DataFrame(NDFrame):
         **kwargs,
     ) -> None:
         """
-        Print a DataFrame in markdown-friendly format.
+        Print a DataFrame in Markdown-friendly format.
 
         .. versionadded:: 1.0
 
         Returns
         -------
         str
-            DataFrame in markdown-friendly format.
+            DataFrame in Markdown-friendly format.
 
         Examples
         --------

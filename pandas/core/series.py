@@ -1447,14 +1447,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         **kwargs,
     ) -> str:
         """
-        Print a Series in markdown-friendly format.
+        Print a Series in Markdown-friendly format.
 
         .. versionadded:: 1.0
 
         Returns
         -------
         str
-            Series in markdown-friendly format.
+            Series in Markdown-friendly format.
 
         Examples
         --------
