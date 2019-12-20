@@ -1,9 +1,9 @@
 """ Test cases for time series specific (freq conversion, etc) """
 from datetime import date, datetime, time, timedelta, timezone
-import dateutil
 import pickle
 import sys
 
+import dateutil
 import numpy as np
 import pytest
 import pytz
