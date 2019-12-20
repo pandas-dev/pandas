@@ -1439,6 +1439,28 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 with open(buf, "w") as f:
                     f.write(result)
 
+    def to_markdown(self, **kwargs):
+        """
+        Print a Series in markdown-friendly format.
+
+        .. versionadded:: 1.0
+
+        Returns
+        -------
+        str
+            Series in markdown-friendly format.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3, 4])
+        >>> print(s.to_markdown())
+        |    |   col1 |   col2 |
+        |---:|-------:|-------:|
+        |  0 |      1 |      3 |
+        |  1 |      2 |      4 |
+        """
+        return self.to_frame().to_markdown(**kwargs)
+
     # ----------------------------------------------------------------------
 
     def items(self):
