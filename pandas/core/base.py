@@ -35,7 +35,7 @@ from pandas.core.accessor import DirNamesMixin
 from pandas.core.algorithms import duplicated, unique1d, value_counts
 from pandas.core.arrays import ExtensionArray
 from pandas.core.construction import create_series_with_explicit_dtype
-from pandas.core.groupby.util import (
+from pandas.core.groupby.generic import (
     _is_multi_agg_with_relabel,
     _maybe_mangle_lambdas,
     _normalize_keyword_aggregation,
