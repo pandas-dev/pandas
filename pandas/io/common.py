@@ -581,10 +581,8 @@ class UTF8Recoder(Iterator):
     def readline(self) -> bytes:
         return self.reader.readline().encode("utf-8")
 
-    def next(self) -> bytes:
+    def __next__(self) -> bytes:
         return next(self.reader).encode("utf-8")
-
-    __next__ = next
 
     def close(self):
         self.reader.close()
