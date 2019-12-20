@@ -34,6 +34,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
+    is_file_like,
     is_float,
     is_integer,
     is_integer_dtype,
@@ -62,13 +63,11 @@ from pandas.core.tools import datetimes as tools
 from pandas.io.common import (
     _NA_VALUES,
     BaseIterator,
-    UnicodeReader,
     UTF8Recoder,
     _get_handle,
     _infer_compression,
     _validate_header_arg,
     get_filepath_or_buffer,
-    is_file_like,
 )
 from pandas.io.date_converters import generic_parser
 
@@ -2431,23 +2430,13 @@ class PythonParser(ParserBase):
                 self.line_pos += 1
                 sniffed = csv.Sniffer().sniff(line)
                 dia.delimiter = sniffed.delimiter
-                if self.encoding is not None:
-                    self.buf.extend(
-                        list(
-                            UnicodeReader(
-                                StringIO(line), dialect=dia, encoding=self.encoding
-                            )
-                        )
-                    )
-                else:
-                    self.buf.extend(list(csv.reader(StringIO(line), dialect=dia)))
 
-            if self.encoding is not None:
-                reader = UnicodeReader(
-                    f, dialect=dia, encoding=self.encoding, strict=True
-                )
-            else:
-                reader = csv.reader(f, dialect=dia, strict=True)
+                # Note: self.encoding is irrelevant here
+                line_rdr = csv.reader(StringIO(line), dialect=dia)
+                self.buf.extend(list(line_rdr))
+
+            # Note: self.encoding is irrelevant here
+            reader = csv.reader(f, dialect=dia, strict=True)
 
         else:
 

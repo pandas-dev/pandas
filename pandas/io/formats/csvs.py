@@ -22,7 +22,6 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import notna
 
 from pandas.io.common import (
-    UnicodeWriter,
     _get_compression_method,
     _get_handle,
     _infer_compression,
@@ -196,10 +195,8 @@ class CSVFormatter:
                 escapechar=self.escapechar,
                 quotechar=self.quotechar,
             )
-            if self.encoding == "ascii":
-                self.writer = csvlib.writer(f, **writer_kwargs)
-            else:
-                self.writer = UnicodeWriter(f, encoding=self.encoding, **writer_kwargs)
+            # Note: self.encoding is irrelevant here
+            self.writer = csvlib.writer(f, **writer_kwargs)
 
             self._save()
 
