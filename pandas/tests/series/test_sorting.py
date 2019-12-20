@@ -157,8 +157,8 @@ class TestSeriesSorting:
 
     def test_sort_index_kind(self):
         # GH #14444 & #13589:  Add support for sort algo choosing
-        series = Series(index=[3, 2, 1, 4, 3])
-        expected_series = Series(index=[1, 2, 3, 3, 4])
+        series = Series(index=[3, 2, 1, 4, 3], dtype=object)
+        expected_series = Series(index=[1, 2, 3, 3, 4], dtype=object)
 
         index_sorted_series = series.sort_index(kind="mergesort")
         tm.assert_series_equal(expected_series, index_sorted_series)
@@ -170,13 +170,14 @@ class TestSeriesSorting:
         tm.assert_series_equal(expected_series, index_sorted_series)
 
     def test_sort_index_na_position(self):
-        series = Series(index=[3, 2, 1, 4, 3, np.nan])
+        series = Series(index=[3, 2, 1, 4, 3, np.nan], dtype=object)
+        expected_series_first = Series(index=[np.nan, 1, 2, 3, 3, 4], dtype=object)
 
-        expected_series_first = Series(index=[np.nan, 1, 2, 3, 3, 4])
         index_sorted_series = series.sort_index(na_position="first")
         tm.assert_series_equal(expected_series_first, index_sorted_series)
 
-        expected_series_last = Series(index=[1, 2, 3, 3, 4, np.nan])
+        expected_series_last = Series(index=[1, 2, 3, 3, 4, np.nan], dtype=object)
+
         index_sorted_series = series.sort_index(na_position="last")
         tm.assert_series_equal(expected_series_last, index_sorted_series)
 

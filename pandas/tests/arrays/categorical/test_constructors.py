@@ -16,6 +16,7 @@ from pandas import (
     Index,
     Interval,
     IntervalIndex,
+    MultiIndex,
     NaT,
     Series,
     Timestamp,
@@ -285,8 +286,6 @@ class TestCategoricalConstructors:
         tm.assert_categorical_equal(cat, exp)
 
         # This uses xrange internally
-        from pandas.core.index import MultiIndex
-
         MultiIndex.from_product([range(5), ["a", "b", "c"]])
 
         # check that categories accept generators and sequences
@@ -529,13 +528,11 @@ class TestCategoricalConstructors:
         # empty codes should not raise for floats
         Categorical.from_codes([], dtype.categories)
 
-        with tm.assert_produces_warning(FutureWarning):
-            cat = Categorical.from_codes(codes, dtype.categories)
-        tm.assert_numpy_array_equal(cat.codes, np.array([1, 2, 0], dtype="i1"))
+        with pytest.raises(ValueError, match="codes need to be array-like integers"):
+            Categorical.from_codes(codes, dtype.categories)
 
-        with tm.assert_produces_warning(FutureWarning):
-            cat = Categorical.from_codes(codes, dtype=dtype)
-        tm.assert_numpy_array_equal(cat.codes, np.array([1, 2, 0], dtype="i1"))
+        with pytest.raises(ValueError, match="codes need to be array-like integers"):
+            Categorical.from_codes(codes, dtype=dtype)
 
         codes = [1.1, 2.0, 0]  # non-integer
         with pytest.raises(ValueError, match="codes need to be array-like integers"):

@@ -1,6 +1,5 @@
 import operator
 from typing import Any
-import warnings
 
 import numpy as np
 
@@ -172,18 +171,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         dtype=None,
         copy=False,
         name=None,
-        fastpath=None,
     ):
-
-        if fastpath is not None:
-            warnings.warn(
-                "The 'fastpath' keyword is deprecated, and will be "
-                "removed in a future version.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            if fastpath:
-                return cls._simple_new(data, name=name, dtype=dtype)
 
         dtype = CategoricalDtype._from_values_or_dtype(data, categories, ordered, dtype)
 
@@ -708,9 +696,11 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     @Appender(_index_shared_docs["_convert_scalar_indexer"])
     def _convert_scalar_indexer(self, key, kind=None):
-        if self.categories._defer_to_indexing:
-            return self.categories._convert_scalar_indexer(key, kind=kind)
-
+        if kind == "loc":
+            try:
+                return self.categories._convert_scalar_indexer(key, kind=kind)
+            except TypeError:
+                self._invalid_indexer("label", key)
         return super()._convert_scalar_indexer(key, kind=kind)
 
     @Appender(_index_shared_docs["_convert_list_indexer"])
@@ -762,6 +752,13 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         return self._data.is_dtype_equal(other)
 
     take_nd = take
+
+    @Appender(_index_shared_docs["_maybe_cast_slice_bound"])
+    def _maybe_cast_slice_bound(self, label, side, kind):
+        if kind == "loc":
+            return label
+
+        return super()._maybe_cast_slice_bound(label, side, kind)
 
     def map(self, mapper):
         """
@@ -896,7 +893,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         """ add in comparison methods """
 
         def _make_compare(op):
-            opname = "__{op}__".format(op=op.__name__)
+            opname = f"__{op.__name__}__"
 
             def _evaluate_compare(self, other):
                 with np.errstate(all="ignore"):

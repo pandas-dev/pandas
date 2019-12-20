@@ -27,6 +27,7 @@ from pandas import (
     isna,
     read_csv,
 )
+from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.tests.extension.decimal import to_decimal
 import pandas.util.testing as tm
 
@@ -757,23 +758,6 @@ class TestConcatAppendCommon:
         tm.assert_series_equal(pd.concat([s2, s1], ignore_index=True), exp)
         tm.assert_series_equal(s2.append(s1, ignore_index=True), exp)
 
-    def test_concat_join_axes_deprecated(self, axis):
-        # GH21951
-        one = pd.DataFrame([[0.0, 1.0], [2.0, 3.0]], columns=list("ab"))
-        two = pd.DataFrame(
-            [[10.0, 11.0], [12.0, 13.0]], index=[1, 2], columns=list("bc")
-        )
-
-        expected = pd.concat([one, two], axis=1, sort=False).reindex(index=two.index)
-        result = pd.concat([one, two], axis=1, sort=False, join_axes=[two.index])
-        tm.assert_frame_equal(result, expected)
-
-        expected = pd.concat([one, two], axis=0, sort=False).reindex(
-            columns=two.columns
-        )
-        result = pd.concat([one, two], axis=0, sort=False, join_axes=[two.columns])
-        tm.assert_frame_equal(result, expected)
-
 
 class TestAppend:
     def test_append(self, sort, float_frame):
@@ -947,7 +931,7 @@ class TestAppend:
 
     all_indexes = indexes_can_append + indexes_cannot_append_with_other
 
-    @pytest.mark.parametrize("index", all_indexes, ids=lambda x: x.__class__.__name__)
+    @pytest.mark.parametrize("index", all_indexes, ids=lambda x: type(x).__name__)
     def test_append_same_columns_type(self, index):
         # GH18359
 
@@ -977,7 +961,7 @@ class TestAppend:
     @pytest.mark.parametrize(
         "df_columns, series_index",
         combinations(indexes_can_append, r=2),
-        ids=lambda x: x.__class__.__name__,
+        ids=lambda x: type(x).__name__,
     )
     def test_append_different_columns_types(self, df_columns, series_index):
         # GH18359
@@ -1002,12 +986,12 @@ class TestAppend:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "index_can_append", indexes_can_append, ids=lambda x: x.__class__.__name__
+        "index_can_append", indexes_can_append, ids=lambda x: type(x).__name__
     )
     @pytest.mark.parametrize(
         "index_cannot_append_with_other",
         indexes_cannot_append_with_other,
-        ids=lambda x: x.__class__.__name__,
+        ids=lambda x: type(x).__name__,
     )
     def test_append_different_columns_types_raises(
         self, index_can_append, index_cannot_append_with_other
@@ -2175,7 +2159,7 @@ bar2,12,13,14,15
     def test_concat_empty_series(self):
         # GH 11082
         s1 = pd.Series([1, 2, 3], name="x")
-        s2 = pd.Series(name="y")
+        s2 = pd.Series(name="y", dtype="float64")
         res = pd.concat([s1, s2], axis=1)
         exp = pd.DataFrame(
             {"x": [1, 2, 3], "y": [np.nan, np.nan, np.nan]},
@@ -2184,7 +2168,7 @@ bar2,12,13,14,15
         tm.assert_frame_equal(res, exp)
 
         s1 = pd.Series([1, 2, 3], name="x")
-        s2 = pd.Series(name="y")
+        s2 = pd.Series(name="y", dtype="float64")
         res = pd.concat([s1, s2], axis=0)
         # name will be reset
         exp = pd.Series([1, 2, 3])
@@ -2192,7 +2176,7 @@ bar2,12,13,14,15
 
         # empty Series with no name
         s1 = pd.Series([1, 2, 3], name="x")
-        s2 = pd.Series(name=None)
+        s2 = pd.Series(name=None, dtype="float64")
         res = pd.concat([s1, s2], axis=1)
         exp = pd.DataFrame(
             {"x": [1, 2, 3], 0: [np.nan, np.nan, np.nan]},
@@ -2207,7 +2191,9 @@ bar2,12,13,14,15
         # GH 18447
 
         first = Series([], dtype="M8[ns]").dt.tz_localize(tz)
-        second = Series(values)
+        dtype = None if values else np.float64
+        second = Series(values, dtype=dtype)
+
         expected = DataFrame(
             {
                 0: pd.Series([pd.NaT] * len(values), dtype="M8[ns]").dt.tz_localize(tz),
@@ -2567,7 +2553,8 @@ bar2,12,13,14,15
 @pytest.mark.parametrize("dt", np.sctypes["float"])
 def test_concat_no_unnecessary_upcast(dt, pdt):
     # GH 13247
-    dims = pdt().ndim
+    dims = pdt(dtype=object).ndim
+
     dfs = [
         pdt(np.array([1], dtype=dt, ndmin=dims)),
         pdt(np.array([np.nan], dtype=dt, ndmin=dims)),
@@ -2577,7 +2564,7 @@ def test_concat_no_unnecessary_upcast(dt, pdt):
     assert x.values.dtype == dt
 
 
-@pytest.mark.parametrize("pdt", [pd.Series, pd.DataFrame])
+@pytest.mark.parametrize("pdt", [create_series_with_explicit_dtype, pd.DataFrame])
 @pytest.mark.parametrize("dt", np.sctypes["int"])
 def test_concat_will_upcast(dt, pdt):
     with catch_warnings(record=True):
@@ -2603,7 +2590,8 @@ def test_concat_empty_and_non_empty_frame_regression():
 def test_concat_empty_and_non_empty_series_regression():
     # GH 18187 regression test
     s1 = pd.Series([1])
-    s2 = pd.Series([])
+    s2 = pd.Series([], dtype=object)
+
     expected = s1
     result = pd.concat([s1, s2])
     tm.assert_series_equal(result, expected)

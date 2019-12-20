@@ -1,6 +1,5 @@
 """ implement the TimedeltaIndex """
 from datetime import datetime
-import warnings
 
 import numpy as np
 
@@ -83,30 +82,6 @@ class TimedeltaIndex(
         inferred frequency upon creation.
     copy  : bool
         Make a copy of input ndarray.
-    start : starting value, timedelta-like, optional
-        If data is None, start is used as the start point in generating regular
-        timedelta data.
-
-        .. deprecated:: 0.24.0
-
-    periods  : int, optional, > 0
-        Number of periods to generate, if generating index. Takes precedence
-        over end argument.
-
-        .. deprecated:: 0.24.0
-
-    end : end time, timedelta-like, optional
-        If periods is none, generated index will extend to first conforming
-        time on or just past end argument.
-
-        .. deprecated:: 0.24. 0
-
-    closed : str or None, default None
-        Make the interval closed with respect to the given frequency to
-        the 'left', 'right', or both sides (None).
-
-        .. deprecated:: 0.24. 0
-
     name : object
         Name to be stored in the index.
 
@@ -141,9 +116,6 @@ class TimedeltaIndex(
     -----
     To learn more about the frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
-
-    Creating a TimedeltaIndex based on `start`, `periods`, and `end` has
-    been deprecated in favor of :func:`timedelta_range`.
     """
 
     _typ = "timedeltaindex"
@@ -186,54 +158,22 @@ class TimedeltaIndex(
         data=None,
         unit=None,
         freq=None,
-        start=None,
-        end=None,
-        periods=None,
         closed=None,
         dtype=_TD_DTYPE,
         copy=False,
         name=None,
-        verify_integrity=None,
     ):
-
-        if verify_integrity is not None:
-            warnings.warn(
-                "The 'verify_integrity' argument is deprecated, "
-                "will be removed in a future version.",
-                FutureWarning,
-                stacklevel=2,
-            )
-        else:
-            verify_integrity = True
-
-        if data is None:
-            freq, freq_infer = dtl.maybe_infer_freq(freq)
-            warnings.warn(
-                "Creating a TimedeltaIndex by passing range "
-                "endpoints is deprecated.  Use "
-                "`pandas.timedelta_range` instead.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            result = TimedeltaArray._generate_range(
-                start, end, periods, freq, closed=closed
-            )
-            return cls._simple_new(result._data, freq=freq, name=name)
 
         if is_scalar(data):
             raise TypeError(
-                "{cls}() must be called with a "
-                "collection of some kind, {data} was passed".format(
-                    cls=cls.__name__, data=repr(data)
-                )
+                f"{cls.__name__}() must be called with a "
+                f"collection of some kind, {repr(data)} was passed"
             )
 
         if unit in {"Y", "y", "M"}:
-            warnings.warn(
-                "M and Y units are deprecated and "
-                "will be removed in a future version.",
-                FutureWarning,
-                stacklevel=2,
+            raise ValueError(
+                "Units 'M' and 'Y' are no longer supported, as they do not "
+                "represent unambiguous timedelta values durations."
             )
 
         if isinstance(data, TimedeltaArray):

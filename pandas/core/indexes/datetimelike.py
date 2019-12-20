@@ -137,7 +137,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             return result
 
         wrapper.__doc__ = op.__doc__
-        wrapper.__name__ = "__{}__".format(op.__name__)
+        wrapper.__name__ = f"__{op.__name__}__"
         return wrapper
 
     @property
@@ -284,7 +284,10 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             sorted_index = self.take(_as)
             return sorted_index, _as
         else:
-            sorted_values = np.sort(self._ndarray_values)
+            # NB: using asi8 instead of _ndarray_values matters in numpy 1.18
+            #  because the treatment of NaT has been changed to put NaT last
+            #  instead of first.
+            sorted_values = np.sort(self.asi8)
             attribs = self._get_attributes_dict()
             freq = attribs["freq"]
 
@@ -472,7 +475,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             if attrib == "freq":
                 freq = self.freqstr
                 if freq is not None:
-                    freq = f"{freq!r}"
+                    freq = repr(freq)
                 attrs.append(("freq", freq))
         return attrs
 
@@ -674,7 +677,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             name = type(self).__name__
         result = f"{name}: {len(self)} entries{index_summary}"
         if self.freq:
-            result += "\nFreq: %s" % self.freqstr
+            result += f"\nFreq: {self.freqstr}"
 
         # display as values, not quoted
         result = result.replace("'", "")

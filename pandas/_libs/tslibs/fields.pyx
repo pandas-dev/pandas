@@ -90,7 +90,7 @@ def build_field_sarray(const int64_t[:] dtindex):
 def get_date_name_field(const int64_t[:] dtindex, object field, object locale=None):
     """
     Given a int64-based datetime index, return array of strings of date
-    name based on requested field (e.g. weekday_name)
+    name based on requested field (e.g. day_name)
     """
     cdef:
         Py_ssize_t i, count = len(dtindex)
@@ -100,7 +100,7 @@ def get_date_name_field(const int64_t[:] dtindex, object field, object locale=No
 
     out = np.empty(count, dtype=object)
 
-    if field == 'day_name' or field == 'weekday_name':
+    if field == 'day_name':
         if locale is None:
             names = np.array(DAYS_FULL, dtype=np.object_)
         else:

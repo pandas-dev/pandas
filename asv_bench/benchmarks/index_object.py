@@ -7,6 +7,7 @@ from pandas import (
     Float64Index,
     Index,
     IntervalIndex,
+    MultiIndex,
     RangeIndex,
     Series,
     date_range,
@@ -109,6 +110,18 @@ class Range:
 
     def time_get_loc_dec(self):
         self.idx_dec.get_loc(100000)
+
+
+class IndexEquals:
+    def setup(self):
+        idx_large_fast = RangeIndex(100000)
+        idx_small_slow = date_range(start="1/1/2012", periods=1)
+        self.mi_large_slow = MultiIndex.from_product([idx_large_fast, idx_small_slow])
+
+        self.idx_non_object = RangeIndex(1)
+
+    def time_non_object_equals_multiindex(self):
+        self.idx_non_object.equals(self.mi_large_slow)
 
 
 class IndexAppend:

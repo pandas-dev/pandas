@@ -31,7 +31,8 @@ class JSONDtype(ExtensionDtype):
 
     @classmethod
     def construct_array_type(cls):
-        """Return the array type associated with this dtype
+        """
+        Return the array type associated with this dtype.
 
         Returns
         -------
@@ -44,7 +45,7 @@ class JSONDtype(ExtensionDtype):
         if string == cls.name:
             return cls()
         else:
-            raise TypeError("Cannot construct a '{}' from '{}'".format(cls, string))
+            raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
 
 
 class JSONArray(ExtensionArray):
@@ -182,7 +183,7 @@ class JSONArray(ExtensionArray):
 
     def _values_for_argsort(self):
         # Disable NumPy's shape inference by including an empty tuple...
-        # If all the elemnts of self are the same size P, NumPy will
+        # If all the elements of self are the same size P, NumPy will
         # cast them to an (N, P) array, instead of an (N,) array of tuples.
         frozen = [()] + [tuple(x.items()) for x in self]
         return np.array(frozen, dtype=object)[1:]

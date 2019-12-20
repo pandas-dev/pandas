@@ -26,7 +26,7 @@ import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.groupby import ops
 from pandas.core.groupby.categorical import recode_for_groupby, recode_from_groupby
-from pandas.core.index import CategoricalIndex, Index, MultiIndex
+from pandas.core.indexes.api import CategoricalIndex, Index, MultiIndex
 from pandas.core.series import Series
 
 from pandas.io.formats.printing import pprint_thing
@@ -131,7 +131,7 @@ class Grouper:
         """
 
         self._set_grouper(obj)
-        self.grouper, exclusions, self.obj = get_grouper(
+        self.grouper, _, self.obj = get_grouper(
             self.obj,
             [self.key],
             axis=self.axis,
@@ -206,12 +206,12 @@ class Grouper:
 
     def __repr__(self) -> str:
         attrs_list = (
-            f"{attr_name}={getattr(self, attr_name)!r}"
+            f"{attr_name}={repr(getattr(self, attr_name))}"
             for attr_name in self._attributes
             if getattr(self, attr_name) is not None
         )
         attrs = ", ".join(attrs_list)
-        cls_name = self.__class__.__name__
+        cls_name = type(self).__name__
         return f"{cls_name}({attrs})"
 
 
@@ -491,8 +491,11 @@ def get_grouper(
                     raise ValueError("multiple levels only valid with MultiIndex")
 
             if isinstance(level, str):
-                if obj.index.name != level:
-                    raise ValueError(f"level name {level} is not the name of the index")
+                if obj._get_axis(axis).name != level:
+                    raise ValueError(
+                        f"level name {level} is not the name "
+                        f"of the {obj._get_axis_name(axis)}"
+                    )
             elif level > 0 or level < -1:
                 raise ValueError("level > 0 or level < -1 only valid with MultiIndex")
 

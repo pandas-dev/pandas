@@ -81,25 +81,8 @@ class RangeIndex(Int64Index):
     # Constructors
 
     def __new__(
-        cls,
-        start=None,
-        stop=None,
-        step=None,
-        dtype=None,
-        copy=False,
-        name=None,
-        fastpath=None,
+        cls, start=None, stop=None, step=None, dtype=None, copy=False, name=None,
     ):
-
-        if fastpath is not None:
-            warnings.warn(
-                "The 'fastpath' keyword is deprecated, and will be "
-                "removed in a future version.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            if fastpath:
-                return cls._simple_new(range(start, stop, step), name=name)
 
         cls._validate_dtype(dtype)
 
@@ -138,8 +121,8 @@ class RangeIndex(Int64Index):
         """
         if not isinstance(data, range):
             raise TypeError(
-                "{0}(...) must be called with object coercible to a "
-                "range, {1} was passed".format(cls.__name__, repr(data))
+                f"{cls.__name__}(...) must be called with object coercible to a "
+                f"range, {repr(data)} was passed"
             )
 
         cls._validate_dtype(dtype)
@@ -196,7 +179,7 @@ class RangeIndex(Int64Index):
     def __reduce__(self):
         d = self._get_attributes_dict()
         d.update(dict(self._get_data_as_items()))
-        return ibase._new_Index, (self.__class__, d), None
+        return ibase._new_Index, (type(self), d), None
 
     # --------------------------------------------------------------------
     # Rendering Methods
@@ -609,27 +592,27 @@ class RangeIndex(Int64Index):
                     and (start_s - end_o) <= step_s
                     and (start_o - end_s) <= step_s
                 ):
-                    return self.__class__(start_r, end_r + step_s, step_s)
+                    return type(self)(start_r, end_r + step_s, step_s)
                 if (
                     (step_s % 2 == 0)
                     and (abs(start_s - start_o) <= step_s / 2)
                     and (abs(end_s - end_o) <= step_s / 2)
                 ):
-                    return self.__class__(start_r, end_r + step_s / 2, step_s / 2)
+                    return type(self)(start_r, end_r + step_s / 2, step_s / 2)
             elif step_o % step_s == 0:
                 if (
                     (start_o - start_s) % step_s == 0
                     and (start_o + step_s >= start_s)
                     and (end_o - step_s <= end_s)
                 ):
-                    return self.__class__(start_r, end_r + step_s, step_s)
+                    return type(self)(start_r, end_r + step_s, step_s)
             elif step_s % step_o == 0:
                 if (
                     (start_s - start_o) % step_o == 0
                     and (start_s + step_o >= start_o)
                     and (end_s - step_o <= end_o)
                 ):
-                    return self.__class__(start_r, end_r + step_o, step_o)
+                    return type(self)(start_r, end_r + step_o, step_o)
         return self._int64index._union(other, sort=sort)
 
     @Appender(_index_shared_docs["join"])
@@ -712,8 +695,7 @@ class RangeIndex(Int64Index):
                 return self._range[new_key]
             except IndexError:
                 raise IndexError(
-                    "index {key} is out of bounds for axis 0 "
-                    "with size {size}".format(key=key, size=len(self))
+                    f"index {key} is out of bounds for axis 0 with size {len(self)}"
                 )
         elif is_scalar(key):
             raise IndexError(
@@ -798,7 +780,7 @@ class RangeIndex(Int64Index):
                         rstart = op(left.start, right)
                         rstop = op(left.stop, right)
 
-                    result = self.__class__(rstart, rstop, rstep, **attrs)
+                    result = type(self)(rstart, rstop, rstep, **attrs)
 
                     # for compat with numpy / Int64Index
                     # even if we can represent as a RangeIndex, return
@@ -813,7 +795,7 @@ class RangeIndex(Int64Index):
                     return op(self._int64index, other)
                     # TODO: Do attrs get handled reliably?
 
-            name = "__{name}__".format(name=op.__name__)
+            name = f"__{op.__name__}__"
             return compat.set_function_name(_evaluate_numeric_binop, name, cls)
 
         cls.__add__ = _make_evaluate_binop(operator.add)

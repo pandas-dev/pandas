@@ -101,13 +101,14 @@ def test_to_boolean_array_all_none():
 @pytest.mark.parametrize(
     "a, b",
     [
-        ([True, None], [True, np.nan]),
-        ([None], [np.nan]),
-        ([None, np.nan], [np.nan, np.nan]),
-        ([np.nan, np.nan], [np.nan, np.nan]),
+        ([True, False, None, np.nan, pd.NA], [True, False, None, None, None]),
+        ([True, np.nan], [True, None]),
+        ([True, pd.NA], [True, None]),
+        ([np.nan, np.nan], [None, None]),
+        (np.array([np.nan, np.nan], dtype=float), [None, None]),
     ],
 )
-def test_to_boolean_array_none_is_nan(a, b):
+def test_to_boolean_array_missing_indicators(a, b):
     result = pd.array(a, dtype="boolean")
     expected = pd.array(b, dtype="boolean")
     tm.assert_extension_array_equal(result, expected)
@@ -123,6 +124,8 @@ def test_to_boolean_array_none_is_nan(a, b):
         [1.0, 2.0],
         pd.date_range("20130101", periods=2),
         np.array(["foo"]),
+        np.array([1, 2]),
+        np.array([1.0, 2.0]),
         [np.nan, {"a": 1}],
     ],
 )
@@ -132,24 +135,37 @@ def test_to_boolean_array_error(values):
         pd.array(values, dtype="boolean")
 
 
+def test_to_boolean_array_from_integer_array():
+    result = pd.array(np.array([1, 0, 1, 0]), dtype="boolean")
+    expected = pd.array([True, False, True, False], dtype="boolean")
+    tm.assert_extension_array_equal(result, expected)
+
+    # with missing values
+    result = pd.array(np.array([1, 0, 1, None]), dtype="boolean")
+    expected = pd.array([True, False, True, None], dtype="boolean")
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_to_boolean_array_from_float_array():
+    result = pd.array(np.array([1.0, 0.0, 1.0, 0.0]), dtype="boolean")
+    expected = pd.array([True, False, True, False], dtype="boolean")
+    tm.assert_extension_array_equal(result, expected)
+
+    # with missing values
+    result = pd.array(np.array([1.0, 0.0, 1.0, np.nan]), dtype="boolean")
+    expected = pd.array([True, False, True, None], dtype="boolean")
+    tm.assert_extension_array_equal(result, expected)
+
+
 def test_to_boolean_array_integer_like():
     # integers of 0's and 1's
     result = pd.array([1, 0, 1, 0], dtype="boolean")
     expected = pd.array([True, False, True, False], dtype="boolean")
     tm.assert_extension_array_equal(result, expected)
 
-    result = pd.array(np.array([1, 0, 1, 0]), dtype="boolean")
-    tm.assert_extension_array_equal(result, expected)
-
-    result = pd.array(np.array([1.0, 0.0, 1.0, 0.0]), dtype="boolean")
-    tm.assert_extension_array_equal(result, expected)
-
     # with missing values
     result = pd.array([1, 0, 1, None], dtype="boolean")
     expected = pd.array([True, False, True, None], dtype="boolean")
-    tm.assert_extension_array_equal(result, expected)
-
-    result = pd.array(np.array([1.0, 0.0, 1.0, np.nan]), dtype="boolean")
     tm.assert_extension_array_equal(result, expected)
 
 
@@ -216,7 +232,7 @@ def test_coerce_to_numpy_array():
     # with missing values -> object dtype
     arr = pd.array([True, False, None], dtype="boolean")
     result = np.array(arr)
-    expected = np.array([True, False, None], dtype="object")
+    expected = np.array([True, False, pd.NA], dtype="object")
     tm.assert_numpy_array_equal(result, expected)
 
     # also with no missing values -> object dtype
@@ -238,12 +254,11 @@ def test_coerce_to_numpy_array():
 def test_astype():
     # with missing values
     arr = pd.array([True, False, None], dtype="boolean")
-    msg = "cannot convert float NaN to"
 
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(ValueError, match="cannot convert NA to integer"):
         arr.astype("int64")
 
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(ValueError, match="cannot convert float NaN to"):
         arr.astype("bool")
 
     result = arr.astype("float64")
@@ -278,6 +293,14 @@ def test_astype_to_integer_array():
     result = arr.astype("Int64")
     expected = pd.array([1, 0, None], dtype="Int64")
     tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("na", [None, np.nan, pd.NA])
+def test_setitem_missing_values(na):
+    arr = pd.array([True, False, None], dtype="boolean")
+    expected = pd.array([True, None, None], dtype="boolean")
+    arr[1] = na
+    tm.assert_extension_array_equal(arr, expected)
 
 
 @pytest.mark.parametrize(
@@ -348,6 +371,13 @@ def test_ufunc_reduce_raises(values):
 
 
 class TestLogicalOps(BaseOpsUtil):
+    def test_numpy_scalars_ok(self, all_logical_operators):
+        a = pd.array([True, False, None], dtype="boolean")
+        op = getattr(a, all_logical_operators)
+
+        tm.assert_extension_array_equal(op(True), op(np.bool(True)))
+        tm.assert_extension_array_equal(op(False), op(np.bool(False)))
+
     def get_op_from_name(self, op_name):
         short_opname = op_name.strip("_")
         short_opname = short_opname if "xor" in short_opname else short_opname + "_"
@@ -360,43 +390,205 @@ class TestLogicalOps(BaseOpsUtil):
 
         return op
 
-    def _compare_other(self, data, op_name, other):
-        op = self.get_op_from_name(op_name)
-
-        # array
-        result = pd.Series(op(data, other))
-        expected = pd.Series(op(data._data, other), dtype="boolean")
-
-        # fill the nan locations
-        expected[data._mask] = np.nan
-
-        tm.assert_series_equal(result, expected)
-
-        # series
-        s = pd.Series(data)
-        result = op(s, other)
-
-        expected = pd.Series(data._data)
-        expected = op(expected, other)
-        expected = pd.Series(expected, dtype="boolean")
-
-        # fill the nan locations
-        expected[data._mask] = np.nan
-
-        tm.assert_series_equal(result, expected)
-
-    def test_scalar(self, data, all_logical_operators):
+    def test_empty_ok(self, all_logical_operators):
+        a = pd.array([], dtype="boolean")
         op_name = all_logical_operators
-        self._compare_other(data, op_name, True)
+        result = getattr(a, op_name)(True)
+        tm.assert_extension_array_equal(a, result)
 
-    def test_array(self, data, all_logical_operators):
+        result = getattr(a, op_name)(False)
+        tm.assert_extension_array_equal(a, result)
+
+        # TODO: pd.NA
+        # result = getattr(a, op_name)(pd.NA)
+        # tm.assert_extension_array_equal(a, result)
+
+    def test_logical_length_mismatch_raises(self, all_logical_operators):
         op_name = all_logical_operators
-        other = pd.array([True] * len(data), dtype="boolean")
-        self._compare_other(data, op_name, other)
-        other = np.array([True] * len(data))
-        self._compare_other(data, op_name, other)
-        other = pd.Series([True] * len(data), dtype="boolean")
-        self._compare_other(data, op_name, other)
+        a = pd.array([True, False, None], dtype="boolean")
+        msg = "Lengths must match to compare"
+
+        with pytest.raises(ValueError, match=msg):
+            getattr(a, op_name)([True, False])
+
+        with pytest.raises(ValueError, match=msg):
+            getattr(a, op_name)(np.array([True, False]))
+
+        with pytest.raises(ValueError, match=msg):
+            getattr(a, op_name)(pd.array([True, False], dtype="boolean"))
+
+    def test_logical_nan_raises(self, all_logical_operators):
+        op_name = all_logical_operators
+        a = pd.array([True, False, None], dtype="boolean")
+        msg = "Got float instead"
+
+        with pytest.raises(TypeError, match=msg):
+            getattr(a, op_name)(np.nan)
+
+    @pytest.mark.parametrize("other", ["a", 1])
+    def test_non_bool_or_na_other_raises(self, other, all_logical_operators):
+        a = pd.array([True, False], dtype="boolean")
+        with pytest.raises(TypeError, match=str(type(other).__name__)):
+            getattr(a, all_logical_operators)(other)
+
+    def test_kleene_or(self):
+        # A clear test of behavior.
+        a = pd.array([True] * 3 + [False] * 3 + [None] * 3, dtype="boolean")
+        b = pd.array([True, False, None] * 3, dtype="boolean")
+        result = a | b
+        expected = pd.array(
+            [True, True, True, True, False, None, True, None, None], dtype="boolean"
+        )
+        tm.assert_extension_array_equal(result, expected)
+
+        result = b | a
+        tm.assert_extension_array_equal(result, expected)
+
+        # ensure we haven't mutated anything inplace
+        tm.assert_extension_array_equal(
+            a, pd.array([True] * 3 + [False] * 3 + [None] * 3, dtype="boolean")
+        )
+        tm.assert_extension_array_equal(
+            b, pd.array([True, False, None] * 3, dtype="boolean")
+        )
+
+    @pytest.mark.parametrize(
+        "other, expected",
+        [
+            (pd.NA, [True, None, None]),
+            (True, [True, True, True]),
+            (np.bool_(True), [True, True, True]),
+            (False, [True, False, None]),
+            (np.bool_(False), [True, False, None]),
+        ],
+    )
+    def test_kleene_or_scalar(self, other, expected):
+        # TODO: test True & False
+        a = pd.array([True, False, None], dtype="boolean")
+        result = a | other
+        expected = pd.array(expected, dtype="boolean")
+        tm.assert_extension_array_equal(result, expected)
+
+        result = other | a
+        tm.assert_extension_array_equal(result, expected)
+
+        # ensure we haven't mutated anything inplace
+        tm.assert_extension_array_equal(
+            a, pd.array([True, False, None], dtype="boolean")
+        )
+
+    def test_kleene_and(self):
+        # A clear test of behavior.
+        a = pd.array([True] * 3 + [False] * 3 + [None] * 3, dtype="boolean")
+        b = pd.array([True, False, None] * 3, dtype="boolean")
+        result = a & b
+        expected = pd.array(
+            [True, False, None, False, False, False, None, False, None], dtype="boolean"
+        )
+        tm.assert_extension_array_equal(result, expected)
+
+        result = b & a
+        tm.assert_extension_array_equal(result, expected)
+
+        # ensure we haven't mutated anything inplace
+        tm.assert_extension_array_equal(
+            a, pd.array([True] * 3 + [False] * 3 + [None] * 3, dtype="boolean")
+        )
+        tm.assert_extension_array_equal(
+            b, pd.array([True, False, None] * 3, dtype="boolean")
+        )
+
+    @pytest.mark.parametrize(
+        "other, expected",
+        [
+            (pd.NA, [None, False, None]),
+            (True, [True, False, None]),
+            (False, [False, False, False]),
+            (np.bool_(True), [True, False, None]),
+            (np.bool_(False), [False, False, False]),
+        ],
+    )
+    def test_kleene_and_scalar(self, other, expected):
+        a = pd.array([True, False, None], dtype="boolean")
+        result = a & other
+        expected = pd.array(expected, dtype="boolean")
+        tm.assert_extension_array_equal(result, expected)
+
+        result = other & a
+        tm.assert_extension_array_equal(result, expected)
+
+        # ensure we haven't mutated anything inplace
+        tm.assert_extension_array_equal(
+            a, pd.array([True, False, None], dtype="boolean")
+        )
+
+    def test_kleene_xor(self):
+        a = pd.array([True] * 3 + [False] * 3 + [None] * 3, dtype="boolean")
+        b = pd.array([True, False, None] * 3, dtype="boolean")
+        result = a ^ b
+        expected = pd.array(
+            [False, True, None, True, False, None, None, None, None], dtype="boolean"
+        )
+        tm.assert_extension_array_equal(result, expected)
+
+        result = b ^ a
+        tm.assert_extension_array_equal(result, expected)
+
+        # ensure we haven't mutated anything inplace
+        tm.assert_extension_array_equal(
+            a, pd.array([True] * 3 + [False] * 3 + [None] * 3, dtype="boolean")
+        )
+        tm.assert_extension_array_equal(
+            b, pd.array([True, False, None] * 3, dtype="boolean")
+        )
+
+    @pytest.mark.parametrize(
+        "other, expected",
+        [
+            (pd.NA, [None, None, None]),
+            (True, [False, True, None]),
+            (np.bool_(True), [False, True, None]),
+            (np.bool_(False), [True, False, None]),
+        ],
+    )
+    def test_kleene_xor_scalar(self, other, expected):
+        a = pd.array([True, False, None], dtype="boolean")
+        result = a ^ other
+        expected = pd.array(expected, dtype="boolean")
+        tm.assert_extension_array_equal(result, expected)
+
+        result = other ^ a
+        tm.assert_extension_array_equal(result, expected)
+
+        # ensure we haven't mutated anything inplace
+        tm.assert_extension_array_equal(
+            a, pd.array([True, False, None], dtype="boolean")
+        )
+
+    @pytest.mark.parametrize(
+        "other", [True, False, pd.NA, [True, False, None] * 3],
+    )
+    def test_no_masked_assumptions(self, other, all_logical_operators):
+        # The logical operations should not assume that masked values are False!
+        a = pd.arrays.BooleanArray(
+            np.array([True, True, True, False, False, False, True, False, True]),
+            np.array([False] * 6 + [True, True, True]),
+        )
+        b = pd.array([True] * 3 + [False] * 3 + [None] * 3, dtype="boolean")
+        if isinstance(other, list):
+            other = pd.array(other, dtype="boolean")
+
+        result = getattr(a, all_logical_operators)(other)
+        expected = getattr(b, all_logical_operators)(other)
+        tm.assert_extension_array_equal(result, expected)
+
+        if isinstance(other, BooleanArray):
+            other._data[other._mask] = True
+            a._data[a._mask] = False
+
+            result = getattr(a, all_logical_operators)(other)
+            expected = getattr(b, all_logical_operators)(other)
+            tm.assert_extension_array_equal(result, expected)
 
 
 class TestComparisonOps(BaseOpsUtil):
@@ -406,9 +598,8 @@ class TestComparisonOps(BaseOpsUtil):
         # array
         result = pd.Series(op(data, other))
         expected = pd.Series(op(data._data, other), dtype="boolean")
-
-        # fill the nan locations
-        expected[data._mask] = op_name == "__ne__"
+        # propagate NAs
+        expected[data._mask] = pd.NA
 
         tm.assert_series_equal(result, expected)
 
@@ -419,9 +610,8 @@ class TestComparisonOps(BaseOpsUtil):
         expected = pd.Series(data._data)
         expected = op(expected, other)
         expected = expected.astype("boolean")
-
-        # fill the nan locations
-        expected[data._mask] = op_name == "__ne__"
+        # propagate NAs
+        expected[data._mask] = pd.NA
 
         tm.assert_series_equal(result, expected)
 
@@ -437,6 +627,47 @@ class TestComparisonOps(BaseOpsUtil):
         self._compare_other(data, op_name, other)
         other = pd.Series([True] * len(data))
         self._compare_other(data, op_name, other)
+
+    @pytest.mark.parametrize("other", [True, False, pd.NA])
+    def test_scalar(self, other, all_compare_operators):
+        op = self.get_op_from_name(all_compare_operators)
+        a = pd.array([True, False, None], dtype="boolean")
+
+        result = op(a, other)
+
+        if other is pd.NA:
+            expected = pd.array([None, None, None], dtype="boolean")
+        else:
+            values = op(a._data, other)
+            expected = BooleanArray(values, a._mask, copy=True)
+        tm.assert_extension_array_equal(result, expected)
+
+        # ensure we haven't mutated anything inplace
+        result[0] = None
+        tm.assert_extension_array_equal(
+            a, pd.array([True, False, None], dtype="boolean")
+        )
+
+    def test_array(self, all_compare_operators):
+        op = self.get_op_from_name(all_compare_operators)
+        a = pd.array([True] * 3 + [False] * 3 + [None] * 3, dtype="boolean")
+        b = pd.array([True, False, None] * 3, dtype="boolean")
+
+        result = op(a, b)
+
+        values = op(a._data, b._data)
+        mask = a._mask | b._mask
+        expected = BooleanArray(values, mask)
+        tm.assert_extension_array_equal(result, expected)
+
+        # ensure we haven't mutated anything inplace
+        result[0] = None
+        tm.assert_extension_array_equal(
+            a, pd.array([True] * 3 + [False] * 3 + [None] * 3, dtype="boolean")
+        )
+        tm.assert_extension_array_equal(
+            b, pd.array([True, False, None] * 3, dtype="boolean")
+        )
 
 
 class TestArithmeticOps(BaseOpsUtil):
@@ -484,6 +715,33 @@ def test_reductions_return_types(dropna, data, all_numeric_reductions):
         assert isinstance(getattr(s, op)(), np.float64)
 
 
+@pytest.mark.parametrize(
+    "values, exp_any, exp_all, exp_any_noskip, exp_all_noskip",
+    [
+        ([True, pd.NA], True, True, True, pd.NA),
+        ([False, pd.NA], False, False, pd.NA, False),
+        ([pd.NA], False, True, pd.NA, pd.NA),
+        ([], False, True, False, True),
+    ],
+)
+def test_any_all(values, exp_any, exp_all, exp_any_noskip, exp_all_noskip):
+    # the methods return numpy scalars
+    exp_any = pd.NA if exp_any is pd.NA else np.bool_(exp_any)
+    exp_all = pd.NA if exp_all is pd.NA else np.bool_(exp_all)
+    exp_any_noskip = pd.NA if exp_any_noskip is pd.NA else np.bool_(exp_any_noskip)
+    exp_all_noskip = pd.NA if exp_all_noskip is pd.NA else np.bool_(exp_all_noskip)
+
+    for con in [pd.array, pd.Series]:
+        a = con(values, dtype="boolean")
+        assert a.any() is exp_any
+        assert a.all() is exp_all
+        assert a.any(skipna=False) is exp_any_noskip
+        assert a.all(skipna=False) is exp_all_noskip
+
+        assert np.any(a.any()) is exp_any
+        assert np.all(a.all()) is exp_all
+
+
 # TODO when BooleanArray coerces to object dtype numpy array, need to do conversion
 # manually in the indexing code
 # def test_indexing_boolean_mask():
@@ -505,5 +763,23 @@ def test_arrow_array(data):
     import pyarrow as pa
 
     arr = pa.array(data)
-    expected = pa.array(np.array(data, dtype=object), type=pa.bool_(), from_pandas=True)
+
+    # TODO use to_numpy(na_value=None) here
+    data_object = np.array(data, dtype=object)
+    data_object[data.isna()] = None
+    expected = pa.array(data_object, type=pa.bool_(), from_pandas=True)
     assert arr.equals(expected)
+
+
+@td.skip_if_no("pyarrow", min_version="0.15.1.dev")
+def test_arrow_roundtrip():
+    # roundtrip possible from arrow 1.0.0
+    import pyarrow as pa
+
+    data = pd.array([True, False, None], dtype="boolean")
+    df = pd.DataFrame({"a": data})
+    table = pa.table(df)
+    assert table.field("a").type == "bool"
+    result = table.to_pandas()
+    assert isinstance(result["a"].dtype, pd.BooleanDtype)
+    tm.assert_frame_equal(result, df)
