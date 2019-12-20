@@ -63,7 +63,6 @@ from pandas.core.tools import datetimes as tools
 
 from pandas.io.common import (
     BaseIterator,
-    UnicodeReader,
     UTF8Recoder,
     get_filepath_or_buffer,
     get_handle,
@@ -2431,23 +2430,13 @@ class PythonParser(ParserBase):
                 self.line_pos += 1
                 sniffed = csv.Sniffer().sniff(line)
                 dia.delimiter = sniffed.delimiter
-                if self.encoding is not None:
-                    self.buf.extend(
-                        list(
-                            UnicodeReader(
-                                StringIO(line), dialect=dia, encoding=self.encoding
-                            )
-                        )
-                    )
-                else:
-                    self.buf.extend(list(csv.reader(StringIO(line), dialect=dia)))
 
-            if self.encoding is not None:
-                reader = UnicodeReader(
-                    f, dialect=dia, encoding=self.encoding, strict=True
-                )
-            else:
-                reader = csv.reader(f, dialect=dia, strict=True)
+                # Note: self.encoding is irrelevant here
+                line_rdr = csv.reader(StringIO(line), dialect=dia)
+                self.buf.extend(list(line_rdr))
+
+            # Note: self.encoding is irrelevant here
+            reader = csv.reader(f, dialect=dia, strict=True)
 
         else:
 
