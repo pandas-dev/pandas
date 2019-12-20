@@ -2064,7 +2064,7 @@ class MultiIndex(Index):
         dropped : MultiIndex
         """
         if level is not None:
-            return self._drop_from_level(codes, level)
+            return self._drop_from_level(codes, level, errors)
 
         if not isinstance(codes, (np.ndarray, Index)):
             try:
@@ -2102,13 +2102,15 @@ class MultiIndex(Index):
 
         return self.delete(inds)
 
-    def _drop_from_level(self, codes, level):
+    def _drop_from_level(self, codes, level, errors="raise"):
         codes = com.index_labels_to_array(codes)
         i = self._get_level_number(level)
         index = self.levels[i]
         values = index.get_indexer(codes)
 
         mask = ~algos.isin(self.codes[i], values)
+        if mask.all() and errors != "ignore":
+            raise KeyError(f"labels {codes} not found in level")
 
         return self[mask]
 
