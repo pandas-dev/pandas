@@ -47,6 +47,7 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas as pd
+from pandas._typing import FilePathOrBuffer
 from pandas.core import algorithms, base, generic, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import ExtensionArray, try_cast_to_ea
@@ -1439,7 +1440,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 with open(buf, "w") as f:
                     f.write(result)
 
-    def to_markdown(self, **kwargs):
+    def to_markdown(
+        self,
+        buf: Optional[FilePathOrBuffer[str]] = None,
+        mode: Optional[str] = None,
+        **kwargs,
+    ) -> str:
         """
         Print a Series in markdown-friendly format.
 
@@ -1461,7 +1467,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         |  2 |   3 |
         |  3 |   4 |
         """
-        return self.to_frame().to_markdown(**kwargs)
+        return self.to_frame().to_markdown(buf, mode, **kwargs)
 
     # ----------------------------------------------------------------------
 

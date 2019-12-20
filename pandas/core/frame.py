@@ -119,6 +119,7 @@ from pandas.core.internals.construction import (
 from pandas.core.ops.missing import dispatch_fill_zeros
 from pandas.core.series import Series
 
+from pandas.io.common import get_filepath_or_buffer
 from pandas.io.formats import console, format as fmt
 from pandas.io.formats.printing import pprint_thing
 import pandas.plotting
@@ -1965,7 +1966,12 @@ class DataFrame(NDFrame):
 
         to_feather(self, path)
 
-    def to_markdown(self, **kwargs):
+    def to_markdown(
+        self,
+        buf: Optional[FilePathOrBuffer[str]] = None,
+        mode: Optional[str] = None,
+        **kwargs,
+    ) -> None:
         """
         Print a DataFrame in markdown-friendly format.
 
@@ -1985,12 +1991,14 @@ class DataFrame(NDFrame):
         |  0 |      1 |      3 |
         |  1 |      2 |      4 |
         """
+        if buf is None:
+            buf = sys.stdout
+
+        buf, _, _, _ = get_filepath_or_buffer(buf, mode=mode)
         tabulate = import_optional_dependency("tabulate")
-        if "headers" not in kwargs:
-            kwargs["headers"] = "keys"
-        if "tablefmt" not in kwargs:
-            kwargs["tablefmt"] = "pipe"
-        return tabulate.tabulate(self, **kwargs)
+        kwargs.setdefault("headers", "keys")
+        kwargs.setdefault("tablefmt", "pipe")
+        buf.writelines(tabulate.tabulate(self, **kwargs))
 
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
     def to_parquet(
