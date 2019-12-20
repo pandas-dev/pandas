@@ -176,22 +176,6 @@ map directly to c-types [inferred_type->%s,key->%s] [items->%s]
 # formats
 _FORMAT_MAP = {"f": "fixed", "fixed": "fixed", "t": "table", "table": "table"}
 
-# storer class map
-_STORER_MAP = {
-    "series": "SeriesFixed",
-    "frame": "FrameFixed",
-}
-
-# table class map
-_TABLE_MAP = {
-    "generic_table": "GenericTable",
-    "appendable_series": "AppendableSeriesTable",
-    "appendable_multiseries": "AppendableMultiSeriesTable",
-    "appendable_frame": "AppendableFrameTable",
-    "appendable_multiframe": "AppendableMultiFrameTable",
-    "worm": "WORMTable",
-}
-
 # axes map
 _AXES_MAP = {DataFrame: [0]}
 
@@ -1553,11 +1537,16 @@ class HDFStore:
         self,
         group,
         format=None,
-        value=None,
+        value: Optional[FrameOrSeries] = None,
         encoding: str = "UTF-8",
         errors: str = "strict",
     ) -> Union["GenericFixed", "Table"]:
         """ return a suitable class to operate """
+
+        cls: Union[Type["GenericFixed"], Type["Table"]]
+
+        if value is not None and not isinstance(value, (Series, DataFrame)):
+            raise TypeError("value must be None, Series, or DataFrame")
 
         def error(t):
             # return instead of raising so mypy can tell where we are raising
@@ -1587,10 +1576,7 @@ class HDFStore:
                     )
             else:
                 _TYPE_MAP = {Series: "series", DataFrame: "frame"}
-                try:
-                    pt = _TYPE_MAP[type(value)]
-                except KeyError:
-                    raise error("_TYPE_MAP")
+                pt = _TYPE_MAP[type(value)]
 
                 # we are actually a table
                 if format == "table":
@@ -1598,12 +1584,12 @@ class HDFStore:
 
         # a storer node
         if "table" not in pt:
+            _STORER_MAP = {"series": SeriesFixed, "frame": FrameFixed}
             try:
-                return globals()[_STORER_MAP[pt]](
-                    self, group, encoding=encoding, errors=errors
-                )
+                cls = _STORER_MAP[pt]
             except KeyError:
                 raise error("_STORER_MAP")
+            return cls(self, group, encoding=encoding, errors=errors)
 
         # existing node (and must be a table)
         if tt is None:
@@ -1625,28 +1611,21 @@ class HDFStore:
                             tt = "appendable_frame"
                         elif index.nlevels > 1:
                             tt = "appendable_multiframe"
-                elif pt == "wide_table":
-                    tt = "appendable_panel"
-                elif pt == "ndim_table":
-                    tt = "appendable_ndim"
 
-            else:
-
-                # distinguish between a frame/table
-                tt = "legacy_panel"
-                try:
-                    fields = group.table._v_attrs.fields
-                    if len(fields) == 1 and fields[0] == "value":
-                        tt = "legacy_frame"
-                except IndexError:
-                    pass
-
+        _TABLE_MAP = {
+            "generic_table": GenericTable,
+            "appendable_series": AppendableSeriesTable,
+            "appendable_multiseries": AppendableMultiSeriesTable,
+            "appendable_frame": AppendableFrameTable,
+            "appendable_multiframe": AppendableMultiFrameTable,
+            "worm": WORMTable,
+        }
         try:
-            return globals()[_TABLE_MAP[tt]](
-                self, group, encoding=encoding, errors=errors
-            )
+            cls = _TABLE_MAP[tt]
         except KeyError:
             raise error("_TABLE_MAP")
+
+        return cls(self, group, encoding=encoding, errors=errors)
 
     def _write_to_group(
         self,
@@ -3175,7 +3154,6 @@ class Table(Fixed):
         non_index_axes=None,
         values_axes=None,
         data_columns=None,
-        metadata=None,
         info=None,
         nan_rep=None,
     ):
@@ -3184,7 +3162,6 @@ class Table(Fixed):
         self.non_index_axes = non_index_axes or []
         self.values_axes = values_axes or []
         self.data_columns = data_columns or []
-        self.metadata = metadata or []
         self.info = info or dict()
         self.nan_rep = nan_rep
 
@@ -3238,13 +3215,13 @@ class Table(Fixed):
                     oax = ov[i]
                     if sax != oax:
                         raise ValueError(
-                            f"invalid combinate of [{c}] on appending data "
+                            f"invalid combination of [{c}] on appending data "
                             f"[{sax}] vs current table [{oax}]"
                         )
 
                 # should never get here
                 raise Exception(
-                    f"invalid combinate of [{c}] on appending data [{sv}] vs "
+                    f"invalid combination of [{c}] on appending data [{sv}] vs "
                     f"current table [{ov}]"
                 )
 
@@ -3384,7 +3361,6 @@ class Table(Fixed):
         self.attrs.encoding = self.encoding
         self.attrs.errors = self.errors
         self.attrs.levels = self.levels
-        self.attrs.metadata = self.metadata
         self.attrs.info = self.info
 
     def get_attrs(self):
@@ -3398,7 +3374,6 @@ class Table(Fixed):
         self.levels = getattr(self.attrs, "levels", None) or []
         self.index_axes = [a for a in self.indexables if a.is_an_indexable]
         self.values_axes = [a for a in self.indexables if not a.is_an_indexable]
-        self.metadata = getattr(self.attrs, "metadata", None) or []
 
     def validate_version(self, where=None):
         """ are we trying to operate on an old version? """
@@ -3617,7 +3592,8 @@ class Table(Fixed):
 
         return results
 
-    def get_object(self, obj, transposed: bool):
+    @classmethod
+    def get_object(cls, obj, transposed: bool):
         """ return the data for this obj """
         return obj
 
@@ -3648,6 +3624,7 @@ class Table(Fixed):
         if isinstance(min_itemsize, dict):
 
             existing_data_columns = set(data_columns)
+            data_columns = list(data_columns)  # ensure we do not modify
             data_columns.extend(
                 [
                     k
@@ -3705,6 +3682,7 @@ class Table(Fixed):
             axes = [a.axis for a in self.index_axes]
             data_columns = list(self.data_columns)
             nan_rep = self.nan_rep
+            # TODO: do we always have validate=True here?
         else:
             table_exists = False
 
@@ -3724,7 +3702,7 @@ class Table(Fixed):
         if nan_rep is None:
             nan_rep = "nan"
 
-        # We construct the non-index-axis first, since that alters self.info
+        # We construct the non-index-axis first, since that alters new_info
         idx = [x for x in [0, 1] if x not in axes][0]
 
         a = obj.axes[idx]
@@ -3776,47 +3754,15 @@ class Table(Fixed):
         transposed = new_index.axis == 1
 
         # figure out data_columns and get out blocks
-        block_obj = self.get_object(obj, transposed)._consolidate()
-        blocks = block_obj._data.blocks
-        blk_items = get_blk_items(block_obj._data, blocks)
-
         data_columns = self.validate_data_columns(
             data_columns, min_itemsize, new_non_index_axes
         )
-        if len(data_columns):
-            axis, axis_labels = new_non_index_axes[0]
-            new_labels = Index(axis_labels).difference(Index(data_columns))
-            mgr = block_obj.reindex(new_labels, axis=axis)._data
 
-            blocks = list(mgr.blocks)
-            blk_items = get_blk_items(mgr, blocks)
-            for c in data_columns:
-                mgr = block_obj.reindex([c], axis=axis)._data
-                blocks.extend(mgr.blocks)
-                blk_items.extend(get_blk_items(mgr, mgr.blocks))
+        block_obj = self.get_object(obj, transposed)._consolidate()
 
-        # reorder the blocks in the same order as the existing_table if we can
-        if table_exists:
-            by_items = {
-                tuple(b_items.tolist()): (b, b_items)
-                for b, b_items in zip(blocks, blk_items)
-            }
-            new_blocks = []
-            new_blk_items = []
-            for ea in self.values_axes:
-                items = tuple(ea.values)
-                try:
-                    b, b_items = by_items.pop(items)
-                    new_blocks.append(b)
-                    new_blk_items.append(b_items)
-                except (IndexError, KeyError):
-                    jitems = ",".join(pprint_thing(item) for item in items)
-                    raise ValueError(
-                        f"cannot match existing table structure for [{jitems}] "
-                        "on appending data"
-                    )
-            blocks = new_blocks
-            blk_items = new_blk_items
+        blocks, blk_items = self._get_blocks_and_items(
+            block_obj, table_exists, new_non_index_axes, self.values_axes, data_columns
+        )
 
         # add my values
         vaxes = []
@@ -3895,9 +3841,6 @@ class Table(Fixed):
 
         dcs = [col.name for col in vaxes if col.is_data_indexable]
 
-        # validate our metadata
-        new_metadata = [c.name for c in vaxes if c.metadata is not None]
-
         new_table = type(self)(
             parent=self.parent,
             group=self.group,
@@ -3907,7 +3850,6 @@ class Table(Fixed):
             non_index_axes=new_non_index_axes,
             values_axes=vaxes,
             data_columns=dcs,
-            metadata=new_metadata,
             info=new_info,
             nan_rep=nan_rep,
         )
@@ -3921,6 +3863,55 @@ class Table(Fixed):
             new_table.validate(self)
 
         return new_table
+
+    @staticmethod
+    def _get_blocks_and_items(
+        block_obj, table_exists, new_non_index_axes, values_axes, data_columns
+    ):
+        # Helper to clarify non-state-altering parts of _create_axes
+
+        def get_blk_items(mgr, blocks):
+            return [mgr.items.take(blk.mgr_locs) for blk in blocks]
+
+        blocks = block_obj._data.blocks
+        blk_items = get_blk_items(block_obj._data, blocks)
+
+        if len(data_columns):
+            axis, axis_labels = new_non_index_axes[0]
+            new_labels = Index(axis_labels).difference(Index(data_columns))
+            mgr = block_obj.reindex(new_labels, axis=axis)._data
+
+            blocks = list(mgr.blocks)
+            blk_items = get_blk_items(mgr, blocks)
+            for c in data_columns:
+                mgr = block_obj.reindex([c], axis=axis)._data
+                blocks.extend(mgr.blocks)
+                blk_items.extend(get_blk_items(mgr, mgr.blocks))
+
+        # reorder the blocks in the same order as the existing table if we can
+        if table_exists:
+            by_items = {
+                tuple(b_items.tolist()): (b, b_items)
+                for b, b_items in zip(blocks, blk_items)
+            }
+            new_blocks = []
+            new_blk_items = []
+            for ea in values_axes:
+                items = tuple(ea.values)
+                try:
+                    b, b_items = by_items.pop(items)
+                    new_blocks.append(b)
+                    new_blk_items.append(b_items)
+                except (IndexError, KeyError):
+                    jitems = ",".join(pprint_thing(item) for item in items)
+                    raise ValueError(
+                        f"cannot match existing table structure for [{jitems}] "
+                        "on appending data"
+                    )
+            blocks = new_blocks
+            blk_items = new_blk_items
+
+        return blocks, blk_items
 
     def process_axes(self, obj, selection: "Selection", columns=None):
         """ process axes filters """
@@ -4355,7 +4346,8 @@ class AppendableFrameTable(AppendableTable):
     def is_transposed(self) -> bool:
         return self.index_axes[0].axis == 1
 
-    def get_object(self, obj, transposed: bool):
+    @classmethod
+    def get_object(cls, obj, transposed: bool):
         """ these are written transposed """
         if transposed:
             obj = obj.T
@@ -4454,7 +4446,8 @@ class AppendableSeriesTable(AppendableFrameTable):
     def is_transposed(self) -> bool:
         return False
 
-    def get_object(self, obj, transposed: bool):
+    @classmethod
+    def get_object(cls, obj, transposed: bool):
         return obj
 
     def write(self, obj, data_columns=None, **kwargs):
