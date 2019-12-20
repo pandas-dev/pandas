@@ -179,7 +179,7 @@ def test_downsample_but_actually_upsampling():
 
 def test_combined_up_downsampling_of_irregular():
 
-    # since we are reallydoing an operation like this
+    # since we are really doing an operation like this
     # ts2.resample('2s').mean().ffill()
     # preserve these semantics
 
@@ -187,9 +187,49 @@ def test_combined_up_downsampling_of_irregular():
     ts = Series(np.arange(len(rng)), index=rng)
     ts2 = ts.iloc[[0, 1, 2, 3, 5, 7, 11, 15, 16, 25, 30]]
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        result = ts2.resample("2s", how="mean", fill_method="ffill")
-    expected = ts2.resample("2s").mean().ffill()
+    result = ts2.resample("2s").mean().ffill()
+    expected = Series(
+        [
+            0.5,
+            2.5,
+            5.0,
+            7.0,
+            7.0,
+            11.0,
+            11.0,
+            15.0,
+            16.0,
+            16.0,
+            16.0,
+            16.0,
+            25.0,
+            25.0,
+            25.0,
+            30.0,
+        ],
+        index=pd.DatetimeIndex(
+            [
+                "2012-01-01 00:00:00",
+                "2012-01-01 00:00:02",
+                "2012-01-01 00:00:04",
+                "2012-01-01 00:00:06",
+                "2012-01-01 00:00:08",
+                "2012-01-01 00:00:10",
+                "2012-01-01 00:00:12",
+                "2012-01-01 00:00:14",
+                "2012-01-01 00:00:16",
+                "2012-01-01 00:00:18",
+                "2012-01-01 00:00:20",
+                "2012-01-01 00:00:22",
+                "2012-01-01 00:00:24",
+                "2012-01-01 00:00:26",
+                "2012-01-01 00:00:28",
+                "2012-01-01 00:00:30",
+            ],
+            dtype="datetime64[ns]",
+            freq="2S",
+        ),
+    )
     tm.assert_series_equal(result, expected)
 
 

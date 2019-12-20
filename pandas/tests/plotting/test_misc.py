@@ -202,9 +202,6 @@ class TestDataFramePlots(TestPlotBase):
         handles, labels = ax.get_legend_handles_labels()
         self._check_colors(handles, linecolors=colors)
 
-        with tm.assert_produces_warning(FutureWarning):
-            andrews_curves(data=df, class_column="Name")
-
     @pytest.mark.slow
     def test_parallel_coordinates(self, iris):
         from pandas.plotting import parallel_coordinates
@@ -250,11 +247,6 @@ class TestDataFramePlots(TestPlotBase):
         ax = parallel_coordinates(df, "Name", color=colors)
         handles, labels = ax.get_legend_handles_labels()
         self._check_colors(handles, linecolors=colors)
-
-        with tm.assert_produces_warning(FutureWarning):
-            parallel_coordinates(data=df, class_column="Name")
-        with tm.assert_produces_warning(FutureWarning):
-            parallel_coordinates(df, "Name", colors=colors)
 
     # not sure if this is indicative of a problem
     @pytest.mark.filterwarnings("ignore:Attempting to set:UserWarning")

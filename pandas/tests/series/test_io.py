@@ -9,7 +9,7 @@ import pandas as pd
 from pandas import DataFrame, Series
 import pandas.util.testing as tm
 
-from pandas.io.common import _get_handle
+from pandas.io.common import get_handle
 
 
 class TestSeriesToCSV:
@@ -143,7 +143,7 @@ class TestSeriesToCSV:
             tm.assert_series_equal(s, result)
 
             # test the round trip using file handle - to_csv -> read_csv
-            f, _handles = _get_handle(
+            f, _handles = get_handle(
                 filename, "w", compression=compression, encoding=encoding
             )
             with f:
@@ -215,15 +215,6 @@ class TestSeriesIO:
         for n in [777, 777.0, "name", datetime(2001, 11, 11), (1, 2)]:
             unpickled = self._pickle_roundtrip_name(tm.makeTimeSeries(name=n))
             assert unpickled.name == n
-
-    def test_pickle_categorical_ordered_from_sentinel(self):
-        # GH 27295: can remove test when _ordered_from_sentinel is removed (GH 26403)
-        s = Series(["a", "b", "c", "a"], dtype="category")
-        result = tm.round_trip_pickle(s)
-        result = result.astype("category")
-
-        tm.assert_series_equal(result, s)
-        assert result.dtype._ordered_from_sentinel is False
 
     def _pickle_roundtrip_name(self, obj):
 
