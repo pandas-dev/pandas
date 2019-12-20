@@ -48,9 +48,8 @@ def test_parsers_iso8601(date_str, exp):
         "20010101 123",
         "20010101 12345",
         "20010101 12345Z",
-
-        # un-printable unicode, largely a test that we don't segfault
-        "\ud83d"
+        # GH#30374 un-printable unicode, largely a test that we don't segfault
+        "\ud83d",
     ],
 )
 def test_parsers_iso8601_invalid(date_str):
