@@ -15,6 +15,7 @@ from typing import (
     Callable,
     FrozenSet,
     Iterable,
+    List,
     Mapping,
     Sequence,
     Type,
@@ -63,7 +64,7 @@ from pandas.core.groupby.groupby import (
 )
 from pandas.core.indexes.api import Index, MultiIndex, all_indexes_same
 import pandas.core.indexes.base as ibase
-from pandas.core.internals import BlockManager, make_block
+from pandas.core.internals import Block, BlockManager, make_block
 from pandas.core.series import Series
 
 from pandas.plotting import boxplot_frame_groupby
@@ -987,11 +988,11 @@ class DataFrameGroupBy(GroupBy):
 
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
-    ):
-        new_items, new_blocks = self._cython_agg_blocks(
+    ) -> DataFrame:
+        agg_items, agg_blocks = self._cython_agg_blocks(
             how, alt=alt, numeric_only=numeric_only, min_count=min_count
         )
-        return self._wrap_agged_blocks(new_items, new_blocks)
+        return self._agg_blocks_to_frame(agg_items, agg_blocks)
 
     def _cython_agg_blocks(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
@@ -1691,17 +1692,17 @@ class DataFrameGroupBy(GroupBy):
 
         return result
 
-    def _wrap_agged_blocks(self, items, blocks):
+    def _agg_blocks_to_frame(self, items: Index, blocks: List[Block]) -> DataFrame:
         if not self.as_index:
             index = np.arange(blocks[0].values.shape[-1])
-            mgr = BlockManager(blocks, [items, index])
+            mgr = BlockManager(blocks, axes=[items, index])
             result = DataFrame(mgr)
 
             self._insert_inaxis_grouper_inplace(result)
             result = result._consolidate()
         else:
             index = self.grouper.result_index
-            mgr = BlockManager(blocks, [items, index])
+            mgr = BlockManager(blocks, axes=[items, index])
             result = DataFrame(mgr)
 
         if self.axis == 1:
@@ -1751,7 +1752,7 @@ class DataFrameGroupBy(GroupBy):
         ]
         blk = map(make_block, counted, loc)
 
-        return self._wrap_agged_blocks(data.items, list(blk))
+        return self._agg_blocks_to_frame(data.items, blocks=list(blk))
 
     def nunique(self, dropna: bool = True):
         """
