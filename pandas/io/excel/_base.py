@@ -19,8 +19,8 @@ from pandas.io.common import (
     _stringify_path,
     _validate_header_arg,
     get_filepath_or_buffer,
-    validate_local_path,
     urlopen,
+    validate_local_path,
 )
 from pandas.io.excel._util import (
     _fill_mi_header,
