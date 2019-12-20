@@ -225,3 +225,19 @@ def test_parse_time_string_check_instance_type_raise_exception():
     result = parse_time_string("2019")
     expected = (datetime(2019, 1, 1), datetime(2019, 1, 1), "year")
     assert result == expected
+
+
+def test_non_printable_inputs_dont_raise():
+    # Check that tslibs.parsing functions do not raise/segfault when passed
+    #  non-printable unicode strings.
+
+    val = "\ud83d"  # unprintable "surrogate"
+
+    assert not parsing._does_string_look_like_datetime(val)
+
+    msg = "Given date string not likely a datetime"
+    with pytest.raises(ValueError, match=msg):
+        parsing.parse_datetime_string(val)
+
+    with pytest.raises(ValueError, match=msg):
+        parse_time_string(val)

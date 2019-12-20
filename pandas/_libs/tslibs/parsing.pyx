@@ -86,16 +86,15 @@ cdef inline int _parse_4digit(const char* s):
     return result
 
 
-cdef inline object _parse_delimited_date(object date_string, bint dayfirst):
+cdef inline object _parse_delimited_date(str date_string, bint dayfirst):
     """
     Parse special cases of dates: MM/DD/YYYY, DD/MM/YYYY, MM/YYYY.
+
     At the beginning function tries to parse date in MM/DD/YYYY format, but
     if month > 12 - in DD/MM/YYYY (`dayfirst == False`).
     With `dayfirst == True` function makes an attempt to parse date in
     DD/MM/YYYY, if an attempt is wrong - in DD/MM/YYYY
 
-    Note
-    ----
     For MM/DD/YYYY, DD/MM/YYYY: delimiter can be a space or one of /-.
     For MM/YYYY: delimiter can be a space or one of /-
     If `date_string` can't be converted to date, then function returns
@@ -104,11 +103,16 @@ cdef inline object _parse_delimited_date(object date_string, bint dayfirst):
     Parameters
     ----------
     date_string : str
-    dayfirst : bint
+    dayfirst : bool
 
     Returns:
     --------
     datetime, resolution
+
+    Notes
+    -----
+    We assume that date_string.isprintable() has already been confirmed
+    at this point.
     """
     cdef:
         const char* buf
@@ -156,18 +160,24 @@ cdef inline object _parse_delimited_date(object date_string, bint dayfirst):
     raise DateParseError(f"Invalid date specified ({month}/{day})")
 
 
-cdef inline bint does_string_look_like_time(object parse_string):
+cdef inline bint does_string_look_like_time(str parse_string):
     """
     Checks whether given string is a time: it has to start either from
     H:MM or from HH:MM, and hour and minute values must be valid.
 
     Parameters
     ----------
-    date_string : str
+    parse_string : str
 
     Returns:
     --------
-    whether given string is a time
+    bool
+        Whether given string is potentially a time.
+
+    Notes
+    -----
+    We assume that date_string.isprintable() has already been confirmed
+    at this point.
     """
     cdef:
         const char* buf
@@ -188,7 +198,7 @@ cdef inline bint does_string_look_like_time(object parse_string):
     return 0 <= hour <= 23 and 0 <= minute <= 59
 
 
-def parse_datetime_string(date_string, freq=None, dayfirst=False,
+def parse_datetime_string(date_string: str, freq=None, dayfirst=False,
                           yearfirst=False, **kwargs):
     """parse datetime string, only returns datetime.
     Also cares special handling matching time patterns.
@@ -270,7 +280,7 @@ def parse_time_string(arg: str, freq=None, dayfirst=None, yearfirst=None):
     return res
 
 
-cdef parse_datetime_string_with_reso(date_string, freq=None, dayfirst=False,
+cdef parse_datetime_string_with_reso(str date_string, freq=None, dayfirst=False,
                                      yearfirst=False):
     """parse datetime string, only returns datetime
 
@@ -315,18 +325,19 @@ cdef parse_datetime_string_with_reso(date_string, freq=None, dayfirst=False,
     return parsed, parsed, reso
 
 
-cpdef bint _does_string_look_like_datetime(object py_string):
+cpdef bint _does_string_look_like_datetime(str py_string):
     """
     Checks whether given string is a datetime: it has to start with '0' or
     be greater than 1000.
 
     Parameters
     ----------
-    py_string: object
+    py_string: str
 
     Returns
     -------
-    whether given string is a datetime
+    bool
+        Whether given string is potentially a datetime.
     """
     cdef:
         const char *buf
@@ -335,6 +346,11 @@ cpdef bint _does_string_look_like_datetime(object py_string):
         double converted_date
         char first
         int error = 0
+
+    if not py_string.isprintable():
+        # e.g. unicode surrogates, call to get_c_string_buf_and_size
+        #  risks segfault; definitely not a datetime
+        return False
 
     buf = get_c_string_buf_and_size(py_string, &length)
     if length >= 1:

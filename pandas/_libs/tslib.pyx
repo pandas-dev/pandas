@@ -188,7 +188,7 @@ def ints_to_pydatetime(const int64_t[:] arr, object tz=None, object freq=None,
     return result
 
 
-def _test_parse_iso8601(object ts):
+def _test_parse_iso8601(ts: str):
     """
     TESTING ONLY: Parse string into Timestamp using iso8601 parser. Used
     only for testing, actual construction uses `convert_str_to_tsobject`
@@ -203,6 +203,9 @@ def _test_parse_iso8601(object ts):
         return Timestamp.utcnow()
     elif ts == 'today':
         return Timestamp.now().normalize()
+
+    if not ts.isprintable():
+        raise ValueError(f'Error parsing datetime string "{repr(ts)}"')
 
     _string_to_dts(ts, &obj.dts, &out_local, &out_tzoffset, True)
     obj.value = dtstruct_to_dt64(&obj.dts)

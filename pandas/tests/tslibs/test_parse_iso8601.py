@@ -48,10 +48,17 @@ def test_parsers_iso8601(date_str, exp):
         "20010101 123",
         "20010101 12345",
         "20010101 12345Z",
+
+        # un-printable unicode, largely a test that we don't segfault
+        "\ud83d"
     ],
 )
 def test_parsers_iso8601_invalid(date_str):
+    # Note: repr is needed here for the non-printable case
     msg = 'Error parsing datetime string "{s}"'.format(s=date_str)
+    if not msg.isprintable():
+        # no clear way to get regex to work
+        msg = "Error parsing datetime string"
 
     with pytest.raises(ValueError, match=msg):
         tslib._test_parse_iso8601(date_str)
