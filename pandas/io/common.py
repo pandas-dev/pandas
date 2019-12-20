@@ -2,7 +2,6 @@
 
 import bz2
 import codecs
-import csv
 import gzip
 from io import BufferedIOBase, BytesIO
 import mmap
@@ -17,9 +16,7 @@ from typing import (
     List,
     Mapping,
     Optional,
-    TextIO,
     Tuple,
-    Type,
     Union,
 )
 from urllib.parse import (  # noqa
@@ -574,16 +571,3 @@ class UTF8Recoder(BaseIterator):
 
     def close(self):
         self.reader.close()
-
-
-# Keeping these class for now because it provides a necessary convenience
-# for "dropping" the "encoding" argument from our I/O arguments when
-# creating a Unicode I/O object.
-def UnicodeReader(f, dialect=csv.excel, encoding="utf-8", **kwds):
-    return csv.reader(f, dialect=dialect, **kwds)
-
-
-def UnicodeWriter(
-    f: TextIO, dialect: Type[csv.Dialect] = csv.excel, encoding: str = "utf-8", **kwds
-):
-    return csv.writer(f, dialect=dialect, **kwds)
