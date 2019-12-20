@@ -295,7 +295,14 @@ class SelectionMixin:
         )
 
     def _reconstruct_func(self, func, *args, **kwargs):
+        """
+        This is the internal function to reconstruct func given if there is relabeling
+        or not. And also normalize the keyword to get new order of columns;
 
+        If relabeling is True, will return relabeling, reconstructed func, column
+        names, and the reconstructed order of columns.
+        If relabeling is False, the columns and order will be None.
+        """
         relabeling = func is None and _is_multi_agg_with_relabel(**kwargs)
         if relabeling:
             func, columns, order = _normalize_keyword_aggregation(kwargs)
