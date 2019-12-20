@@ -105,7 +105,6 @@ from pandas.core.api import (
     to_datetime,
     to_timedelta,
     # misc
-    np,
     Grouper,
     factorize,
     unique,
@@ -209,6 +208,19 @@ if pandas.compat.PY37:
                 pass
 
             return Panel
+
+        elif name == "np":
+
+            warnings.warn(
+                "The pandas.np module is deprecated and will be removed from pandas in a future version. "
+                "Import numpy directly instead",
+                FutureWarning,
+                stacklevel=2,
+            )
+            import numpy as np
+
+            return np
+
         elif name in {"SparseSeries", "SparseDataFrame"}:
             warnings.warn(
                 "The {} class is removed from pandas. Accessing it from "
