@@ -2,6 +2,61 @@
 Note: for naming purposes, most tests are title with as e.g. "test_nlargest_foo"
 but are implicitly also testing nsmallest_foo.
 """
+from string import ascii_lowercase
+
+import numpy as np
+import pytest
+
+import pandas as pd
+import pandas.util.testing as tm
+
+
+@pytest.fixture
+def df_duplicates():
+    return pd.DataFrame(
+        {"a": [1, 2, 3, 4, 4], "b": [1, 1, 1, 1, 1], "c": [0, 1, 2, 5, 4]},
+        index=[0, 0, 1, 1, 1],
+    )
+
+
+@pytest.fixture
+def df_strings():
+    return pd.DataFrame(
+        {
+            "a": np.random.permutation(10),
+            "b": list(ascii_lowercase[:10]),
+            "c": np.random.permutation(10).astype("float64"),
+        }
+    )
+
+
+@pytest.fixture
+def df_main_dtypes():
+    return pd.DataFrame(
+        {
+            "group": [1, 1, 2],
+            "int": [1, 2, 3],
+            "float": [4.0, 5.0, 6.0],
+            "string": list("abc"),
+            "category_string": pd.Series(list("abc")).astype("category"),
+            "category_int": [7, 8, 9],
+            "datetime": pd.date_range("20130101", periods=3),
+            "datetimetz": pd.date_range("20130101", periods=3, tz="US/Eastern"),
+            "timedelta": pd.timedelta_range("1 s", periods=3, freq="s"),
+        },
+        columns=[
+            "group",
+            "int",
+            "float",
+            "string",
+            "category_string",
+            "category_int",
+            "datetime",
+            "datetimetz",
+            "timedelta",
+        ],
+    )
+
 
 class TestNLargestNSmallest:
 
@@ -26,8 +81,8 @@ class TestNLargestNSmallest:
         ],
     )
     @pytest.mark.parametrize("n", range(1, 11))
-    def test_n(self, df_strings, nselect_method, n, order):
-        # GH 10393
+    def test_nlargest_n(self, df_strings, nselect_method, n, order):
+        # GH#10393
         df = df_strings
         if "b" in order:
 
@@ -46,7 +101,7 @@ class TestNLargestNSmallest:
     @pytest.mark.parametrize(
         "columns", [["group", "category_string"], ["group", "string"]]
     )
-    def test_n_error(self, df_main_dtypes, nselect_method, columns):
+    def test_nlargest_error(self, df_main_dtypes, nselect_method, columns):
         df = df_main_dtypes
         col = columns[1]
         error_msg = (
@@ -63,38 +118,30 @@ class TestNLargestNSmallest:
         with pytest.raises(TypeError, match=error_msg):
             getattr(df, nselect_method)(2, columns)
 
-    def test_n_all_dtypes(self, df_main_dtypes):
+    def test_nlargest_all_dtypes(self, df_main_dtypes):
         df = df_main_dtypes
         df.nsmallest(2, list(set(df) - {"category_string", "string"}))
         df.nlargest(2, list(set(df) - {"category_string", "string"}))
 
-    @pytest.mark.parametrize(
-        "method,expected",
-        [
-            (
-                "nlargest",
-                pd.DataFrame(
-                    {"a": [2, 2, 2, 1], "b": [3, 2, 1, 3]}, index=[2, 1, 0, 3]
-                ),
-            ),
-            (
-                "nsmallest",
-                pd.DataFrame(
-                    {"a": [1, 1, 1, 2], "b": [1, 2, 3, 1]}, index=[5, 4, 3, 0]
-                ),
-            ),
-        ],
-    )
-    def test_duplicates_on_starter_columns(self, method, expected):
-        # regression test for #22752
+    def test_nlargest_duplicates_on_starter_columns(self):
+        # regression test for GH#22752
 
         df = pd.DataFrame({"a": [2, 2, 2, 1, 1, 1], "b": [1, 2, 3, 3, 2, 1]})
 
-        result = getattr(df, method)(4, columns=["a", "b"])
+        result = df.nlargest(4, columns=["a", "b"])
+        expected = pd.DataFrame(
+            {"a": [2, 2, 2, 1], "b": [3, 2, 1, 3]}, index=[2, 1, 0, 3]
+        )
         tm.assert_frame_equal(result, expected)
 
-    def test_n_identical_values(self):
-        # GH 15297
+        result = df.nsmallest(4, columns=["a", "b"])
+        expected = pd.DataFrame(
+            {"a": [1, 1, 1, 2], "b": [1, 2, 3, 1]}, index=[5, 4, 3, 0]
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_nlargest_n_identical_values(self):
+        # GH#15297
         df = pd.DataFrame({"a": [1] * 5, "b": [1, 2, 3, 4, 5]})
 
         result = df.nlargest(3, "a")
@@ -110,8 +157,8 @@ class TestNLargestNSmallest:
         [["a", "b", "c"], ["c", "b", "a"], ["a"], ["b"], ["a", "b"], ["c", "b"]],
     )
     @pytest.mark.parametrize("n", range(1, 6))
-    def test_n_duplicate_index(self, df_duplicates, n, order):
-        # GH 13412
+    def test_nlargest_n_duplicate_index(self, df_duplicates, n, order):
+        # GH#13412
 
         df = df_duplicates
         result = df.nsmallest(n, order)
@@ -122,8 +169,8 @@ class TestNLargestNSmallest:
         expected = df.sort_values(order, ascending=False).head(n)
         tm.assert_frame_equal(result, expected)
 
-    def test_duplicate_keep_all_ties(self):
-        # GH 16818
+    def test_nlargest_duplicate_keep_all_ties(self):
+        # GH#16818
         df = pd.DataFrame(
             {"a": [5, 4, 4, 2, 3, 3, 3, 3], "b": [10, 9, 8, 7, 5, 50, 10, 20]}
         )
@@ -145,31 +192,9 @@ class TestNLargestNSmallest:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_series_broadcasting(self):
-        # smoke test for numpy warnings
-        # GH 16378, GH 16306
-        df = DataFrame([1.0, 1.0, 1.0])
-        df_nan = DataFrame({"A": [np.nan, 2.0, np.nan]})
-        s = Series([1, 1, 1])
-        s_nan = Series([np.nan, np.nan, 1])
-
-        with tm.assert_produces_warning(None):
-            df_nan.clip(lower=s, axis=0)
-            for op in ["lt", "le", "gt", "ge", "eq", "ne"]:
-                getattr(df, op)(s_nan, axis=0)
-
-    def test_series_nat_conversion(self):
-        # GH 18521
-        # Check rank does not mutate DataFrame
-        df = DataFrame(np.random.randn(10, 3), dtype="float64")
-        expected = df.copy()
-        df.rank()
-        result = df
-        tm.assert_frame_equal(result, expected)
-
-    def test_multiindex_column_lookup(self):
+    def test_nlargest_multiindex_column_lookup(self):
         # Check whether tuples are correctly treated as multi-level lookups.
-        # GH 23033
+        # GH#23033
         df = pd.DataFrame(
             columns=pd.MultiIndex.from_product([["x"], ["a", "b"]]),
             data=[[0.33, 0.13], [0.86, 0.25], [0.25, 0.70], [0.85, 0.91]],

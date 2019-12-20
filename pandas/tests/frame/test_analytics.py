@@ -1,7 +1,6 @@
 from datetime import timedelta
 from decimal import Decimal
 import operator
-from string import ascii_lowercase
 import warnings
 
 import numpy as np
@@ -2442,49 +2441,27 @@ class TestDataFrameAnalytics:
         with pytest.raises(ValueError, match="aligned"):
             operator.matmul(df, df2)
 
+    # ---------------------------------------------------------------------
+    # Unsorted
 
-@pytest.fixture
-def df_duplicates():
-    return pd.DataFrame(
-        {"a": [1, 2, 3, 4, 4], "b": [1, 1, 1, 1, 1], "c": [0, 1, 2, 5, 4]},
-        index=[0, 0, 1, 1, 1],
-    )
+    def test_series_nat_conversion(self):
+        # GH 18521
+        # Check rank does not mutate DataFrame
+        df = DataFrame(np.random.randn(10, 3), dtype="float64")
+        expected = df.copy()
+        df.rank()
+        result = df
+        tm.assert_frame_equal(result, expected)
 
+    def test_series_broadcasting(self):
+        # smoke test for numpy warnings
+        # GH 16378, GH 16306
+        df = DataFrame([1.0, 1.0, 1.0])
+        df_nan = DataFrame({"A": [np.nan, 2.0, np.nan]})
+        s = Series([1, 1, 1])
+        s_nan = Series([np.nan, np.nan, 1])
 
-@pytest.fixture
-def df_strings():
-    return pd.DataFrame(
-        {
-            "a": np.random.permutation(10),
-            "b": list(ascii_lowercase[:10]),
-            "c": np.random.permutation(10).astype("float64"),
-        }
-    )
-
-
-@pytest.fixture
-def df_main_dtypes():
-    return pd.DataFrame(
-        {
-            "group": [1, 1, 2],
-            "int": [1, 2, 3],
-            "float": [4.0, 5.0, 6.0],
-            "string": list("abc"),
-            "category_string": pd.Series(list("abc")).astype("category"),
-            "category_int": [7, 8, 9],
-            "datetime": pd.date_range("20130101", periods=3),
-            "datetimetz": pd.date_range("20130101", periods=3, tz="US/Eastern"),
-            "timedelta": pd.timedelta_range("1 s", periods=3, freq="s"),
-        },
-        columns=[
-            "group",
-            "int",
-            "float",
-            "string",
-            "category_string",
-            "category_int",
-            "datetime",
-            "datetimetz",
-            "timedelta",
-        ],
-    )
+        with tm.assert_produces_warning(None):
+            df_nan.clip(lower=s, axis=0)
+            for op in ["lt", "le", "gt", "ge", "eq", "ne"]:
+                getattr(df, op)(s_nan, axis=0)
