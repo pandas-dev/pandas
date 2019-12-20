@@ -20,6 +20,7 @@ import pandas._libs.tslibs.offsets as liboffsets
 from pandas._libs.tslibs.offsets import ApplyTypeError
 import pandas.compat as compat
 from pandas.compat.numpy import np_datetime64_compat
+from pandas.errors import PerformanceWarning
 
 from pandas.core.indexes.datetimes import DatetimeIndex, _to_M8, date_range
 from pandas.core.series import Series
@@ -43,7 +44,10 @@ from pandas.tseries.offsets import (
     CBMonthBegin,
     CBMonthEnd,
     CDay,
+    CustomBusinessDay,
     CustomBusinessHour,
+    CustomBusinessMonthBegin,
+    CustomBusinessMonthEnd,
     DateOffset,
     Day,
     Easter,
@@ -606,6 +610,46 @@ class TestCommon(Base):
         result = Timestamp(dt, tz=tz) + offset_s
         assert isinstance(result, Timestamp)
         assert result == expected_localize
+
+    def test_add_empty_datetimeindex(self, offset_types, tz_naive_fixture):
+        # GH#12724, GH#30336
+        offset_s = self._get_offset(offset_types)
+
+        dti = DatetimeIndex([], tz=tz_naive_fixture)
+
+        warn = None
+        if isinstance(
+            offset_s,
+            (
+                Easter,
+                WeekOfMonth,
+                LastWeekOfMonth,
+                CustomBusinessDay,
+                BusinessHour,
+                CustomBusinessHour,
+                CustomBusinessMonthBegin,
+                CustomBusinessMonthEnd,
+                FY5253,
+                FY5253Quarter,
+            ),
+        ):
+            # We don't have an optimized apply_index
+            warn = PerformanceWarning
+
+        with tm.assert_produces_warning(warn):
+            result = dti + offset_s
+        tm.assert_index_equal(result, dti)
+        with tm.assert_produces_warning(warn):
+            result = offset_s + dti
+        tm.assert_index_equal(result, dti)
+
+        dta = dti._data
+        with tm.assert_produces_warning(warn):
+            result = dta + offset_s
+        tm.assert_equal(result, dta)
+        with tm.assert_produces_warning(warn):
+            result = offset_s + dta
+        tm.assert_equal(result, dta)
 
     def test_pickle_v0_15_2(self, datapath):
         offsets = {
