@@ -156,7 +156,7 @@ typedef struct parser_t {
     int64_t skip_first_N_rows;
     int64_t skip_footer;
     double (*double_converter)(const char *, char **,
-			       char, char, char, int, int *, int *);
+                               char, char, char, int, int *, int *);
 
     // error handling
     char *warn_msg;
