@@ -6,6 +6,7 @@ from textwrap import fill
 
 from pandas._config import config
 
+from pandas._libs.parsers import STR_NA_VALUES
 from pandas.errors import EmptyDataError
 from pandas.util._decorators import Appender
 
@@ -14,12 +15,11 @@ from pandas.core.dtypes.common import is_bool, is_float, is_integer, is_list_lik
 from pandas.core.frame import DataFrame
 
 from pandas.io.common import (
-    _NA_VALUES,
-    _is_url,
-    _stringify_path,
-    _validate_header_arg,
     get_filepath_or_buffer,
+    is_url,
+    stringify_path,
     urlopen,
+    validate_header_arg,
 )
 from pandas.io.excel._util import (
     _fill_mi_header,
@@ -124,7 +124,7 @@ na_values : scalar, str, list-like, or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values. By default the following values are interpreted
     as NaN: '"""
-    + fill("', '".join(sorted(_NA_VALUES)), 70, subsequent_indent="    ")
+    + fill("', '".join(sorted(STR_NA_VALUES)), 70, subsequent_indent="    ")
     + """'.
 keep_default_na : bool, default True
     Whether or not to include the default NaN values when parsing the data.
@@ -339,7 +339,7 @@ def read_excel(
 class _BaseExcelReader(metaclass=abc.ABCMeta):
     def __init__(self, filepath_or_buffer):
         # If filepath_or_buffer is a url, load the data into a BytesIO
-        if _is_url(filepath_or_buffer):
+        if is_url(filepath_or_buffer):
             filepath_or_buffer = BytesIO(urlopen(filepath_or_buffer).read())
         elif not isinstance(filepath_or_buffer, (ExcelFile, self._workbook_class)):
             filepath_or_buffer, _, _, _ = get_filepath_or_buffer(filepath_or_buffer)
@@ -408,7 +408,7 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
         **kwds,
     ):
 
-        _validate_header_arg(header)
+        validate_header_arg(header)
 
         ret_dict = False
 
@@ -708,7 +708,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         self.mode = mode
 
     def __fspath__(self):
-        return _stringify_path(self.path)
+        return stringify_path(self.path)
 
     def _get_sheet_name(self, sheet_name):
         if sheet_name is None:
@@ -808,7 +808,7 @@ class ExcelFile:
         # could be a str, ExcelFile, Book, etc.
         self.io = io
         # Always a string
-        self._io = _stringify_path(io)
+        self._io = stringify_path(io)
 
         self._reader = self._engines[engine](self._io)
 

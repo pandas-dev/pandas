@@ -20,10 +20,10 @@ from pandas.core.reshape.concat import concat
 
 from pandas.io.common import (
     BaseIterator,
-    _get_handle,
-    _infer_compression,
-    _stringify_path,
     get_filepath_or_buffer,
+    get_handle,
+    infer_compression,
+    stringify_path,
 )
 from pandas.io.formats.printing import pprint_thing
 from pandas.io.parsers import _validate_integer
@@ -58,7 +58,7 @@ def to_json(
             "'index=False' is only valid when 'orient' is " "'split' or 'table'"
         )
 
-    path_or_buf = _stringify_path(path_or_buf)
+    path_or_buf = stringify_path(path_or_buf)
     if lines and orient != "records":
         raise ValueError("'lines' keyword only valid when 'orient' is records")
 
@@ -91,7 +91,7 @@ def to_json(
         s = convert_to_line_delimits(s)
 
     if isinstance(path_or_buf, str):
-        fh, handles = _get_handle(path_or_buf, "w", compression=compression)
+        fh, handles = get_handle(path_or_buf, "w", compression=compression)
         try:
             fh.write(s)
         finally:
@@ -314,7 +314,7 @@ class JSONTableWriter(FrameWriter):
         timedeltas = obj.select_dtypes(include=["timedelta"]).columns
         if len(timedeltas):
             obj[timedeltas] = obj[timedeltas].applymap(lambda x: x.isoformat())
-        # Convert PeriodIndex to datetimes before serialzing
+        # Convert PeriodIndex to datetimes before serializing
         if is_period_dtype(obj.index):
             obj.index = obj.index.to_timestamp()
 
@@ -584,7 +584,7 @@ def read_json(
     if encoding is None:
         encoding = "utf-8"
 
-    compression = _infer_compression(path_or_buf, compression)
+    compression = infer_compression(path_or_buf, compression)
     filepath_or_buffer, _, compression, should_close = get_filepath_or_buffer(
         path_or_buf, encoding=encoding, compression=compression
     )
@@ -704,7 +704,7 @@ class JsonReader(BaseIterator):
                 pass
 
         if exists or self.compression is not None:
-            data, _ = _get_handle(
+            data, _ = get_handle(
                 filepath_or_buffer,
                 "r",
                 encoding=self.encoding,
