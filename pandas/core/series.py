@@ -1454,10 +1454,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         --------
         >>> s = pd.Series([1, 2, 3, 4])
         >>> print(s.to_markdown())
-        |    |   col1 |   col2 |
-        |---:|-------:|-------:|
-        |  0 |      1 |      3 |
-        |  1 |      2 |      4 |
+        |    |   0 |
+        |---:|----:|
+        |  0 |   1 |
+        |  1 |   2 |
+        |  2 |   3 |
+        |  3 |   4 |
         """
         return self.to_frame().to_markdown(**kwargs)
 
