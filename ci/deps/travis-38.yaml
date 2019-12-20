@@ -17,4 +17,4 @@ dependencies:
   - nomkl
   - pytz
   - pip
-  - tabulate==0.8
+  - tabulate==0.8.0

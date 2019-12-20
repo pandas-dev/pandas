@@ -100,6 +100,6 @@ dependencies:
   - sqlalchemy  # pandas.read_sql, DataFrame.to_sql
   - xarray  # DataFrame.to_xarray
   - pyreadstat  # pandas.read_spss
-  - tabulate>=0.8  # DataFrame.to_markdown
+  - tabulate>=0.8.0  # DataFrame.to_markdown
   - pip:
     - git+https://github.com/pandas-dev/pandas-sphinx-theme.git@master
