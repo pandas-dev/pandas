@@ -5,7 +5,6 @@ import builtins
 from collections import OrderedDict
 import textwrap
 from typing import Dict, FrozenSet, List, Optional
-import warnings
 
 import numpy as np
 
@@ -26,6 +25,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_timedelta64_ns_dtype,
+    needs_i8_conversion,
 )
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
@@ -659,19 +659,27 @@ class IndexOpsMixin:
         """
         Return the first element of the underlying data as a python scalar.
 
-        .. deprecated:: 0.25.0
-
         Returns
         -------
         scalar
             The first element of %(klass)s.
+
+        Raises
+        ------
+        ValueError
+            If the data is not length-1.
         """
-        warnings.warn(
-            "`item` has been deprecated and will be removed in a future version",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.values.item()
+        if not (
+            is_extension_array_dtype(self.dtype) or needs_i8_conversion(self.dtype)
+        ):
+            # numpy returns ints instead of datetime64/timedelta64 objects,
+            #  which we need to wrap in Timestamp/Timedelta/Period regardless.
+            return self.values.item()
+
+        if len(self) == 1:
+            return next(iter(self))
+        else:
+            raise ValueError("can only convert an array of size 1 to a Python scalar")
 
     @property
     def nbytes(self):
