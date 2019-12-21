@@ -733,7 +733,7 @@ class MultiIndex(Index):
             Level(s) to set (None for all levels).
         inplace : bool
             If True, mutates in place.
-        verify_integrity : bool ,default True
+        verify_integrity : bool, default True
             If True, checks that levels and codes are compatible.
 
         Returns
