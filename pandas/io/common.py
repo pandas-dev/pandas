@@ -2,7 +2,6 @@
 
 import bz2
 import codecs
-import csv
 import gzip
 from io import BufferedIOBase, BytesIO
 import mmap
@@ -17,9 +16,7 @@ from typing import (
     List,
     Mapping,
     Optional,
-    TextIO,
     Tuple,
-    Type,
     Union,
 )
 from urllib.parse import (  # noqa
@@ -47,29 +44,6 @@ from pandas._typing import FilePathOrBuffer
 
 lzma = _import_lzma()
 
-# common NA values
-# no longer excluding inf representations
-# '1.#INF','-1.#INF', '1.#INF000000',
-_NA_VALUES = {
-    "-1.#IND",
-    "1.#QNAN",
-    "1.#IND",
-    "-1.#QNAN",
-    "#N/A N/A",
-    "#N/A",
-    "N/A",
-    "n/a",
-    "NA",
-    "#NA",
-    "NULL",
-    "null",
-    "NaN",
-    "-NaN",
-    "nan",
-    "-nan",
-    "",
-}
-
 
 _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
 _VALID_URLS.discard("")
@@ -87,7 +61,7 @@ class BaseIterator:
         raise AbstractMethodError(self)
 
 
-def _is_url(url) -> bool:
+def is_url(url) -> bool:
     """
     Check to see if a URL has a valid protocol.
 
@@ -125,7 +99,7 @@ def _expand_user(
     return filepath_or_buffer
 
 
-def _validate_header_arg(header) -> None:
+def validate_header_arg(header) -> None:
     if isinstance(header, bool):
         raise TypeError(
             "Passing a bool to header is invalid. "
@@ -135,7 +109,7 @@ def _validate_header_arg(header) -> None:
         )
 
 
-def _stringify_path(
+def stringify_path(
     filepath_or_buffer: FilePathOrBuffer[AnyStr],
 ) -> FilePathOrBuffer[AnyStr]:
     """Attempt to convert a path-like object to a string.
@@ -216,9 +190,9 @@ def get_filepath_or_buffer(
               compression, str,
               should_close, bool)
     """
-    filepath_or_buffer = _stringify_path(filepath_or_buffer)
+    filepath_or_buffer = stringify_path(filepath_or_buffer)
 
-    if isinstance(filepath_or_buffer, str) and _is_url(filepath_or_buffer):
+    if isinstance(filepath_or_buffer, str) and is_url(filepath_or_buffer):
         req = urlopen(filepath_or_buffer)
         content_encoding = req.headers.get("Content-Encoding", None)
         if content_encoding == "gzip":
@@ -273,7 +247,7 @@ def file_path_to_url(path: str) -> str:
 _compression_to_extension = {"gzip": ".gz", "bz2": ".bz2", "zip": ".zip", "xz": ".xz"}
 
 
-def _get_compression_method(
+def get_compression_method(
     compression: Optional[Union[str, Mapping[str, str]]]
 ) -> Tuple[Optional[str], Dict[str, str]]:
     """
@@ -306,7 +280,7 @@ def _get_compression_method(
     return compression, compression_args
 
 
-def _infer_compression(
+def infer_compression(
     filepath_or_buffer: FilePathOrBuffer, compression: Optional[str]
 ) -> Optional[str]:
     """
@@ -340,7 +314,7 @@ def _infer_compression(
     # Infer compression
     if compression == "infer":
         # Convert all path types (e.g. pathlib.Path) to strings
-        filepath_or_buffer = _stringify_path(filepath_or_buffer)
+        filepath_or_buffer = stringify_path(filepath_or_buffer)
         if not isinstance(filepath_or_buffer, str):
             # Cannot infer compression of a buffer, assume no compression
             return None
@@ -361,7 +335,7 @@ def _infer_compression(
     raise ValueError(msg)
 
 
-def _get_handle(
+def get_handle(
     path_or_buf,
     mode: str,
     encoding=None,
@@ -419,12 +393,12 @@ def _get_handle(
     f = path_or_buf
 
     # Convert pathlib.Path/py.path.local or string
-    path_or_buf = _stringify_path(path_or_buf)
+    path_or_buf = stringify_path(path_or_buf)
     is_path = isinstance(path_or_buf, str)
 
-    compression, compression_args = _get_compression_method(compression)
+    compression, compression_args = get_compression_method(compression)
     if is_path:
-        compression = _infer_compression(path_or_buf, compression)
+        compression = infer_compression(path_or_buf, compression)
 
     if compression:
 
@@ -444,7 +418,7 @@ def _get_handle(
 
         # ZIP Compression
         elif compression == "zip":
-            zf = BytesZipFile(path_or_buf, mode, **compression_args)
+            zf = _BytesZipFile(path_or_buf, mode, **compression_args)
             # Ensure the container is closed as well.
             handles.append(zf)
             if zf.mode == "w":
@@ -495,7 +469,7 @@ def _get_handle(
 
     if memory_map and hasattr(f, "fileno"):
         try:
-            wrapped = MMapWrapper(f)
+            wrapped = _MMapWrapper(f)
             f.close()
             f = wrapped
         except Exception:
@@ -508,7 +482,7 @@ def _get_handle(
     return f, handles
 
 
-class BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore
+class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore
     """
     Wrapper for standard library class ZipFile and allow the returned file-like
     handle to accept byte strings via `write` method.
@@ -541,7 +515,7 @@ class BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore
         return self.fp is None
 
 
-class MMapWrapper(BaseIterator):
+class _MMapWrapper(BaseIterator):
     """
     Wrapper for the Python's mmap class so that it can be properly read in
     by Python's csv.reader class.
@@ -560,7 +534,7 @@ class MMapWrapper(BaseIterator):
     def __getattr__(self, name: str):
         return getattr(self.mmap, name)
 
-    def __iter__(self) -> "MMapWrapper":
+    def __iter__(self) -> "_MMapWrapper":
         return self
 
     def __next__(self) -> str:
@@ -597,16 +571,3 @@ class UTF8Recoder(BaseIterator):
 
     def close(self):
         self.reader.close()
-
-
-# Keeping these class for now because it provides a necessary convenience
-# for "dropping" the "encoding" argument from our I/O arguments when
-# creating a Unicode I/O object.
-def UnicodeReader(f, dialect=csv.excel, encoding="utf-8", **kwds):
-    return csv.reader(f, dialect=dialect, **kwds)
-
-
-def UnicodeWriter(
-    f: TextIO, dialect: Type[csv.Dialect] = csv.excel, encoding: str = "utf-8", **kwds
-):
-    return csv.writer(f, dialect=dialect, **kwds)
