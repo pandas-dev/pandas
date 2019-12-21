@@ -1209,7 +1209,7 @@ def period_format(int64_t value, int freq, object fmt=None):
         elif freq_group == 4000:  # WK
             left = period_asfreq(value, freq, 6000, 0)
             right = period_asfreq(value, freq, 6000, 1)
-            return f"(period_format(left, 6000)/period_format(right, 6000))"
+            return f"{period_format(left, 6000)}/{period_format(right, 6000)}"
         elif (freq_group == 5000      # BUS
               or freq_group == 6000):  # DAY
             fmt = b'%Y-%m-%d'
