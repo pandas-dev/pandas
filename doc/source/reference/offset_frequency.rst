@@ -33,6 +33,8 @@ Methods
 
     DateOffset.apply
     DateOffset.copy
+    DateOffset.isAnchored
+    DateOffset.onOffset
     DateOffset.is_anchored
     DateOffset.is_on_offset
 
@@ -63,6 +65,8 @@ Methods
     BusinessDay.apply
     BusinessDay.apply_index
     BusinessDay.copy
+    BusinessDay.isAnchored
+    BusinessDay.onOffset
     BusinessDay.is_anchored
     BusinessDay.is_on_offset
 
@@ -92,6 +96,8 @@ Methods
 
     BusinessHour.apply
     BusinessHour.copy
+    BusinessHour.isAnchored
+    BusinessHour.onOffset
     BusinessHour.is_anchored
     BusinessHour.is_on_offset
 
@@ -121,6 +127,8 @@ Methods
 
     CustomBusinessDay.apply
     CustomBusinessDay.copy
+    CustomBusinessDay.isAnchored
+    CustomBusinessDay.onOffset
     CustomBusinessDay.is_anchored
     CustomBusinessDay.is_on_offset
 
@@ -150,6 +158,8 @@ Methods
 
     CustomBusinessHour.apply
     CustomBusinessHour.copy
+    CustomBusinessHour.isAnchored
+    CustomBusinessHour.onOffset
     CustomBusinessHour.is_anchored
     CustomBusinessHour.is_on_offset
 
@@ -180,6 +190,8 @@ Methods
     MonthOffset.apply
     MonthOffset.apply_index
     MonthOffset.copy
+    MonthOffset.isAnchored
+    MonthOffset.onOffset
     MonthOffset.is_anchored
     MonthOffset.is_on_offset
 
@@ -210,6 +222,8 @@ Methods
     MonthEnd.apply
     MonthEnd.apply_index
     MonthEnd.copy
+    MonthEnd.isAnchored
+    MonthEnd.onOffset
     MonthEnd.is_anchored
     MonthEnd.is_on_offset
 
@@ -240,6 +254,8 @@ Methods
     MonthBegin.apply
     MonthBegin.apply_index
     MonthBegin.copy
+    MonthBegin.isAnchored
+    MonthBegin.onOffset
     MonthBegin.is_anchored
     MonthBegin.is_on_offset
 
@@ -270,6 +286,8 @@ Methods
     BusinessMonthEnd.apply
     BusinessMonthEnd.apply_index
     BusinessMonthEnd.copy
+    BusinessMonthEnd.isAnchored
+    BusinessMonthEnd.onOffset
     BusinessMonthEnd.is_anchored
     BusinessMonthEnd.is_on_offset
 
@@ -300,6 +318,8 @@ Methods
     BusinessMonthBegin.apply
     BusinessMonthBegin.apply_index
     BusinessMonthBegin.copy
+    BusinessMonthBegin.isAnchored
+    BusinessMonthBegin.onOffset
     BusinessMonthBegin.is_anchored
     BusinessMonthBegin.is_on_offset
 
@@ -330,6 +350,8 @@ Methods
 
     CustomBusinessMonthEnd.apply
     CustomBusinessMonthEnd.copy
+    CustomBusinessMonthEnd.isAnchored
+    CustomBusinessMonthEnd.onOffset
     CustomBusinessMonthEnd.is_anchored
     CustomBusinessMonthEnd.is_on_offset
 
@@ -360,6 +382,8 @@ Methods
 
     CustomBusinessMonthBegin.apply
     CustomBusinessMonthBegin.copy
+    CustomBusinessMonthBegin.isAnchored
+    CustomBusinessMonthBegin.onOffset
     CustomBusinessMonthBegin.is_anchored
     CustomBusinessMonthBegin.is_on_offset
 
@@ -390,6 +414,8 @@ Methods
     SemiMonthOffset.apply
     SemiMonthOffset.apply_index
     SemiMonthOffset.copy
+    SemiMonthOffset.isAnchored
+    SemiMonthOffset.onOffset
     SemiMonthOffset.is_anchored
     SemiMonthOffset.is_on_offset
 
@@ -420,6 +446,8 @@ Methods
     SemiMonthEnd.apply
     SemiMonthEnd.apply_index
     SemiMonthEnd.copy
+    SemiMonthEnd.isAnchored
+    SemiMonthEnd.onOffset
     SemiMonthEnd.is_anchored
     SemiMonthEnd.is_on_offset
 
@@ -450,6 +478,8 @@ Methods
     SemiMonthBegin.apply
     SemiMonthBegin.apply_index
     SemiMonthBegin.copy
+    SemiMonthBegin.isAnchored
+    SemiMonthBegin.onOffset
     SemiMonthBegin.is_anchored
     SemiMonthBegin.is_on_offset
 
@@ -480,6 +510,8 @@ Methods
     Week.apply
     Week.apply_index
     Week.copy
+    Week.isAnchored
+    Week.onOffset
     Week.is_anchored
     Week.is_on_offset
 
@@ -509,6 +541,8 @@ Methods
 
     WeekOfMonth.apply
     WeekOfMonth.copy
+    WeekOfMonth.isAnchored
+    WeekOfMonth.onOffset
     WeekOfMonth.is_anchored
     WeekOfMonth.is_on_offset
 
@@ -538,6 +572,8 @@ Methods
 
     LastWeekOfMonth.apply
     LastWeekOfMonth.copy
+    LastWeekOfMonth.isAnchored
+    LastWeekOfMonth.onOffset
     LastWeekOfMonth.is_anchored
     LastWeekOfMonth.is_on_offset
 
@@ -568,6 +604,8 @@ Methods
     QuarterOffset.apply
     QuarterOffset.apply_index
     QuarterOffset.copy
+    QuarterOffset.isAnchored
+    QuarterOffset.onOffset
     QuarterOffset.is_anchored
     QuarterOffset.is_on_offset
 
@@ -598,6 +636,8 @@ Methods
     BQuarterEnd.apply
     BQuarterEnd.apply_index
     BQuarterEnd.copy
+    BQuarterEnd.isAnchored
+    BQuarterEnd.onOffset
     BQuarterEnd.is_anchored
     BQuarterEnd.is_on_offset
 
@@ -628,6 +668,8 @@ Methods
     BQuarterBegin.apply
     BQuarterBegin.apply_index
     BQuarterBegin.copy
+    BQuarterBegin.isAnchored
+    BQuarterBegin.onOffset
     BQuarterBegin.is_anchored
     BQuarterBegin.is_on_offset
 
@@ -658,6 +700,8 @@ Methods
     QuarterEnd.apply
     QuarterEnd.apply_index
     QuarterEnd.copy
+    QuarterEnd.isAnchored
+    QuarterEnd.onOffset
     QuarterEnd.is_anchored
     QuarterEnd.is_on_offset
 
@@ -688,6 +732,8 @@ Methods
     QuarterBegin.apply
     QuarterBegin.apply_index
     QuarterBegin.copy
+    QuarterBegin.isAnchored
+    QuarterBegin.onOffset
     QuarterBegin.is_anchored
     QuarterBegin.is_on_offset
 
@@ -718,6 +764,8 @@ Methods
     YearOffset.apply
     YearOffset.apply_index
     YearOffset.copy
+    YearOffset.isAnchored
+    YearOffset.onOffset
     YearOffset.is_anchored
     YearOffset.is_on_offset
 
@@ -748,6 +796,8 @@ Methods
     BYearEnd.apply
     BYearEnd.apply_index
     BYearEnd.copy
+    BYearEnd.isAnchored
+    BYearEnd.onOffset
     BYearEnd.is_anchored
     BYearEnd.is_on_offset
 
@@ -778,6 +828,8 @@ Methods
     BYearBegin.apply
     BYearBegin.apply_index
     BYearBegin.copy
+    BYearBegin.isAnchored
+    BYearBegin.onOffset
     BYearBegin.is_anchored
     BYearBegin.is_on_offset
 
@@ -808,6 +860,8 @@ Methods
     YearEnd.apply
     YearEnd.apply_index
     YearEnd.copy
+    YearEnd.isAnchored
+    YearEnd.onOffset
     YearEnd.is_anchored
     YearEnd.is_on_offset
 
@@ -838,6 +892,8 @@ Methods
     YearBegin.apply
     YearBegin.apply_index
     YearBegin.copy
+    YearBegin.isAnchored
+    YearBegin.onOffset
     YearBegin.is_anchored
     YearBegin.is_on_offset
 
@@ -869,6 +925,8 @@ Methods
     FY5253.copy
     FY5253.get_rule_code_suffix
     FY5253.get_year_end
+    FY5253.isAnchored
+    FY5253.onOffset
     FY5253.is_anchored
     FY5253.is_on_offset
 
@@ -899,6 +957,8 @@ Methods
     FY5253Quarter.apply
     FY5253Quarter.copy
     FY5253Quarter.get_weeks
+    FY5253Quarter.isAnchored
+    FY5253Quarter.onOffset
     FY5253Quarter.is_anchored
     FY5253Quarter.is_on_offset
     FY5253Quarter.year_has_extra_week
@@ -929,6 +989,8 @@ Methods
 
     Easter.apply
     Easter.copy
+    Easter.isAnchored
+    Easter.onOffset
     Easter.is_anchored
     Easter.is_on_offset
 
@@ -958,6 +1020,8 @@ Methods
    :toctree: api/
 
     Tick.copy
+    Tick.isAnchored
+    Tick.onOffset
     Tick.is_anchored
     Tick.is_on_offset
 
@@ -987,6 +1051,8 @@ Methods
    :toctree: api/
 
     Day.copy
+    Day.isAnchored
+    Day.onOffset
     Day.is_anchored
     Day.is_on_offset
 
@@ -1016,6 +1082,8 @@ Methods
    :toctree: api/
 
     Hour.copy
+    Hour.isAnchored
+    Hour.onOffset
     Hour.is_anchored
     Hour.is_on_offset
 
@@ -1045,6 +1113,8 @@ Methods
    :toctree: api/
 
     Minute.copy
+    Minute.isAnchored
+    Minute.onOffset
     Minute.is_anchored
     Minute.is_on_offset
 
@@ -1074,6 +1144,8 @@ Methods
    :toctree: api/
 
     Second.copy
+    Second.isAnchored
+    Second.onOffset
     Second.is_anchored
     Second.is_on_offset
 
@@ -1103,6 +1175,8 @@ Methods
    :toctree: api/
 
     Milli.copy
+    Milli.isAnchored
+    Milli.onOffset
     Milli.is_anchored
     Milli.is_on_offset
 
@@ -1132,6 +1206,8 @@ Methods
    :toctree: api/
 
     Micro.copy
+    Micro.isAnchored
+    Micro.onOffset
     Micro.is_anchored
     Micro.is_on_offset
 
@@ -1161,6 +1237,8 @@ Methods
    :toctree: api/
 
     Nano.copy
+    Nano.isAnchored
+    Nano.onOffset
     Nano.is_anchored
     Nano.is_on_offset
 
@@ -1193,6 +1271,8 @@ Methods
     BDay.apply
     BDay.apply_index
     BDay.copy
+    BDay.isAnchored
+    BDay.onOffset
     BDay.is_anchored
     BDay.is_on_offset
     BDay.rollback
@@ -1226,6 +1306,8 @@ Methods
     BMonthEnd.apply
     BMonthEnd.apply_index
     BMonthEnd.copy
+    BMonthEnd.isAnchored
+    BMonthEnd.onOffset
     BMonthEnd.is_anchored
     BMonthEnd.is_on_offset
     BMonthEnd.rollback
@@ -1259,6 +1341,8 @@ Methods
     BMonthBegin.apply
     BMonthBegin.apply_index
     BMonthBegin.copy
+    BMonthBegin.isAnchored
+    BMonthBegin.onOffset
     BMonthBegin.is_anchored
     BMonthBegin.is_on_offset
     BMonthBegin.rollback
@@ -1296,6 +1380,8 @@ Methods
     CBMonthEnd.apply
     CBMonthEnd.apply_index
     CBMonthEnd.copy
+    CBMonthEnd.isAnchored
+    CBMonthEnd.onOffset
     CBMonthEnd.is_anchored
     CBMonthEnd.is_on_offset
     CBMonthEnd.rollback
@@ -1333,6 +1419,8 @@ Methods
     CBMonthBegin.apply
     CBMonthBegin.apply_index
     CBMonthBegin.copy
+    CBMonthBegin.isAnchored
+    CBMonthBegin.onOffset
     CBMonthBegin.is_anchored
     CBMonthBegin.is_on_offset
     CBMonthBegin.rollback
@@ -1367,557 +1455,12 @@ Methods
     CDay.apply
     CDay.apply_index
     CDay.copy
+    CDay.isAnchored
+    CDay.onOffset
     CDay.is_anchored
     CDay.is_on_offset
     CDay.rollback
     CDay.rollforward
-
-.. This is to prevent warnings in the doc build. We don't want to encourage
-.. these methods.
-
-..
-    .. toctree::
-
-        ..api/pandas.tseries.offsets.DateOffset.isAnchored
-        ..api/pandas.tseries.offsets.BusinessDay.isAnchored
-        ..api/pandas.tseries.offsets.CDay.isAnchored
-        ..api/pandas.tseries.offsets.CBMonthBegin.isAnchored
-        ..api/pandas.tseries.offsets.CBMonthEnd.isAnchored
-        ..api/pandas.tseries.offsets.BMonthBegin.isAnchored
-        ..api/pandas.tseries.offsets.BMonthEnd.isAnchored
-        ..api/pandas.tseries.offsets.BDay.isAnchored
-        ..api/pandas.tseries.offsets.Nano.isAnchored
-        ..api/pandas.tseries.offsets.Micro.isAnchored
-        ..api/pandas.tseries.offsets.Milli.isAnchored
-        ..api/pandas.tseries.offsets.Second.isAnchored
-        ..api/pandas.tseries.offsets.Minute.isAnchored
-        ..api/pandas.tseries.offsets.Hour.isAnchored
-        ..api/pandas.tseries.offsets.Day.isAnchored
-        ..api/pandas.tseries.offsets.Tick.isAnchored
-        ..api/pandas.tseries.offsets.Easter.isAnchored
-        ..api/pandas.tseries.offsets.FY5253Quarter.isAnchored
-        ..api/pandas.tseries.offsets.FY5253.isAnchored
-        ..api/pandas.tseries.offsets.YearBegin.isAnchored
-        ..api/pandas.tseries.offsets.YearEnd.isAnchored
-        ..api/pandas.tseries.offsets.BYearBegin.isAnchored
-        ..api/pandas.tseries.offsets.BYearEnd.isAnchored
-        ..api/pandas.tseries.offsets.YearOffset.isAnchored
-        ..api/pandas.tseries.offsets.QuarterBegin.isAnchored
-        ..api/pandas.tseries.offsets.QuarterEnd.isAnchored
-        ..api/pandas.tseries.offsets.BQuarterBegin.isAnchored
-        ..api/pandas.tseries.offsets.BQuarterEnd.isAnchored
-        ..api/pandas.tseries.offsets.QuarterOffset.isAnchored
-        ..api/pandas.tseries.offsets.LastWeekOfMonth.isAnchored
-        ..api/pandas.tseries.offsets.WeekOfMonth.isAnchored
-        ..api/pandas.tseries.offsets.Week.isAnchored
-        ..api/pandas.tseries.offsets.SemiMonthBegin.isAnchored
-        ..api/pandas.tseries.offsets.SemiMonthEnd.isAnchored
-        ..api/pandas.tseries.offsets.SemiMonthOffset.isAnchored
-        ..api/pandas.tseries.offsets.CustomBusinessMonthBegin.isAnchored
-        ..api/pandas.tseries.offsets.CustomBusinessMonthEnd.isAnchored
-        ..api/pandas.tseries.offsets.BusinessMonthBegin.isAnchored
-        ..api/pandas.tseries.offsets.BusinessMonthEnd.isAnchored
-        ..api/pandas.tseries.offsets.MonthBegin.isAnchored
-        ..api/pandas.tseries.offsets.MonthEnd.isAnchored
-        ..api/pandas.tseries.offsets.MonthOffset.isAnchored
-        ..api/pandas.tseries.offsets.CustomBusinessHour.isAnchored
-        ..api/pandas.tseries.offsets.CustomBusinessDay.isAnchored
-        ..api/pandas.tseries.offsets.BusinessHour.isAnchored
-        ..api/pandas.tseries.offsets.DateOffset.onOffset
-        ..api/pandas.tseries.offsets.BusinessDay.onOffset
-        ..api/pandas.tseries.offsets.CDay.onOffset
-        ..api/pandas.tseries.offsets.CBMonthBegin.onOffset
-        ..api/pandas.tseries.offsets.CBMonthEnd.onOffset
-        ..api/pandas.tseries.offsets.BMonthBegin.onOffset
-        ..api/pandas.tseries.offsets.BMonthEnd.onOffset
-        ..api/pandas.tseries.offsets.BDay.onOffset
-        ..api/pandas.tseries.offsets.Nano.onOffset
-        ..api/pandas.tseries.offsets.Micro.onOffset
-        ..api/pandas.tseries.offsets.Milli.onOffset
-        ..api/pandas.tseries.offsets.Second.onOffset
-        ..api/pandas.tseries.offsets.Minute.onOffset
-        ..api/pandas.tseries.offsets.Hour.onOffset
-        ..api/pandas.tseries.offsets.Day.onOffset
-        ..api/pandas.tseries.offsets.Tick.onOffset
-        ..api/pandas.tseries.offsets.Easter.onOffset
-        ..api/pandas.tseries.offsets.FY5253Quarter.onOffset
-        ..api/pandas.tseries.offsets.FY5253.onOffset
-        ..api/pandas.tseries.offsets.YearBegin.onOffset
-        ..api/pandas.tseries.offsets.YearEnd.onOffset
-        ..api/pandas.tseries.offsets.BYearBegin.onOffset
-        ..api/pandas.tseries.offsets.BYearEnd.onOffset
-        ..api/pandas.tseries.offsets.YearOffset.onOffset
-        ..api/pandas.tseries.offsets.QuarterBegin.onOffset
-        ..api/pandas.tseries.offsets.QuarterEnd.onOffset
-        ..api/pandas.tseries.offsets.BQuarterBegin.onOffset
-        ..api/pandas.tseries.offsets.BQuarterEnd.onOffset
-        ..api/pandas.tseries.offsets.QuarterOffset.onOffset
-        ..api/pandas.tseries.offsets.LastWeekOfMonth.onOffset
-        ..api/pandas.tseries.offsets.WeekOfMonth.onOffset
-        ..api/pandas.tseries.offsets.Week.onOffset
-        ..api/pandas.tseries.offsets.SemiMonthBegin.onOffset
-        ..api/pandas.tseries.offsets.SemiMonthEnd.onOffset
-        ..api/pandas.tseries.offsets.SemiMonthOffset.onOffset
-        ..api/pandas.tseries.offsets.CustomBusinessMonthBegin.onOffset
-        ..api/pandas.tseries.offsets.CustomBusinessMonthEnd.onOffset
-        ..api/pandas.tseries.offsets.BusinessMonthBegin.onOffset
-        ..api/pandas.tseries.offsets.BusinessMonthEnd.onOffset
-        ..api/pandas.tseries.offsets.MonthBegin.onOffset
-        ..api/pandas.tseries.offsets.MonthEnd.onOffset
-        ..api/pandas.tseries.offsets.MonthOffset.onOffset
-        ..api/pandas.tseries.offsets.CustomBusinessHour.onOffset
-        ..api/pandas.tseries.offsets.CustomBusinessDay.onOffset
-        ..api/pandas.tseries.offsets.BusinessHour.onOffset
-        api/pandas.tseries.offsets.DateOffset.isAnchored
-        api/pandas.tseries.offsets.BusinessDay.isAnchored
-        api/pandas.tseries.offsets.CDay.isAnchored
-        api/pandas.tseries.offsets.CBMonthBegin.isAnchored
-        api/pandas.tseries.offsets.CBMonthEnd.isAnchored
-        api/pandas.tseries.offsets.BMonthBegin.isAnchored
-        api/pandas.tseries.offsets.BMonthEnd.isAnchored
-        api/pandas.tseries.offsets.BDay.isAnchored
-        api/pandas.tseries.offsets.Nano.isAnchored
-        api/pandas.tseries.offsets.Micro.isAnchored
-        api/pandas.tseries.offsets.Milli.isAnchored
-        api/pandas.tseries.offsets.Second.isAnchored
-        api/pandas.tseries.offsets.Minute.isAnchored
-        api/pandas.tseries.offsets.Hour.isAnchored
-        api/pandas.tseries.offsets.Day.isAnchored
-        api/pandas.tseries.offsets.Tick.isAnchored
-        api/pandas.tseries.offsets.Easter.isAnchored
-        api/pandas.tseries.offsets.FY5253Quarter.isAnchored
-        api/pandas.tseries.offsets.FY5253.isAnchored
-        api/pandas.tseries.offsets.YearBegin.isAnchored
-        api/pandas.tseries.offsets.YearEnd.isAnchored
-        api/pandas.tseries.offsets.BYearBegin.isAnchored
-        api/pandas.tseries.offsets.BYearEnd.isAnchored
-        api/pandas.tseries.offsets.YearOffset.isAnchored
-        api/pandas.tseries.offsets.QuarterBegin.isAnchored
-        api/pandas.tseries.offsets.QuarterEnd.isAnchored
-        api/pandas.tseries.offsets.BQuarterBegin.isAnchored
-        api/pandas.tseries.offsets.BQuarterEnd.isAnchored
-        api/pandas.tseries.offsets.QuarterOffset.isAnchored
-        api/pandas.tseries.offsets.LastWeekOfMonth.isAnchored
-        api/pandas.tseries.offsets.WeekOfMonth.isAnchored
-        api/pandas.tseries.offsets.Week.isAnchored
-        api/pandas.tseries.offsets.SemiMonthBegin.isAnchored
-        api/pandas.tseries.offsets.SemiMonthEnd.isAnchored
-        api/pandas.tseries.offsets.SemiMonthOffset.isAnchored
-        api/pandas.tseries.offsets.CustomBusinessMonthBegin.isAnchored
-        api/pandas.tseries.offsets.CustomBusinessMonthEnd.isAnchored
-        api/pandas.tseries.offsets.BusinessMonthBegin.isAnchored
-        api/pandas.tseries.offsets.BusinessMonthEnd.isAnchored
-        api/pandas.tseries.offsets.MonthBegin.isAnchored
-        api/pandas.tseries.offsets.MonthEnd.isAnchored
-        api/pandas.tseries.offsets.MonthOffset.isAnchored
-        api/pandas.tseries.offsets.CustomBusinessHour.isAnchored
-        api/pandas.tseries.offsets.CustomBusinessDay.isAnchored
-        api/pandas.tseries.offsets.BusinessHour.isAnchored
-        api/pandas.tseries.offsets.DateOffset.onOffset
-        api/pandas.tseries.offsets.BusinessDay.onOffset
-        api/pandas.tseries.offsets.CDay.onOffset
-        api/pandas.tseries.offsets.CBMonthBegin.onOffset
-        api/pandas.tseries.offsets.CBMonthEnd.onOffset
-        api/pandas.tseries.offsets.BMonthBegin.onOffset
-        api/pandas.tseries.offsets.BMonthEnd.onOffset
-        api/pandas.tseries.offsets.BDay.onOffset
-        api/pandas.tseries.offsets.Nano.onOffset
-        api/pandas.tseries.offsets.Micro.onOffset
-        api/pandas.tseries.offsets.Milli.onOffset
-        api/pandas.tseries.offsets.Second.onOffset
-        api/pandas.tseries.offsets.Minute.onOffset
-        api/pandas.tseries.offsets.Hour.onOffset
-        api/pandas.tseries.offsets.Day.onOffset
-        api/pandas.tseries.offsets.Tick.onOffset
-        api/pandas.tseries.offsets.Easter.onOffset
-        api/pandas.tseries.offsets.FY5253Quarter.onOffset
-        api/pandas.tseries.offsets.FY5253.onOffset
-        api/pandas.tseries.offsets.YearBegin.onOffset
-        api/pandas.tseries.offsets.YearEnd.onOffset
-        api/pandas.tseries.offsets.BYearBegin.onOffset
-        api/pandas.tseries.offsets.BYearEnd.onOffset
-        api/pandas.tseries.offsets.YearOffset.onOffset
-        api/pandas.tseries.offsets.QuarterBegin.onOffset
-        api/pandas.tseries.offsets.QuarterEnd.onOffset
-        api/pandas.tseries.offsets.BQuarterBegin.onOffset
-        api/pandas.tseries.offsets.BQuarterEnd.onOffset
-        api/pandas.tseries.offsets.QuarterOffset.onOffset
-        api/pandas.tseries.offsets.LastWeekOfMonth.onOffset
-        api/pandas.tseries.offsets.WeekOfMonth.onOffset
-        api/pandas.tseries.offsets.Week.onOffset
-        api/pandas.tseries.offsets.SemiMonthBegin.onOffset
-        api/pandas.tseries.offsets.SemiMonthEnd.onOffset
-        api/pandas.tseries.offsets.SemiMonthOffset.onOffset
-        api/pandas.tseries.offsets.CustomBusinessMonthBegin.onOffset
-        api/pandas.tseries.offsets.CustomBusinessMonthEnd.onOffset
-        api/pandas.tseries.offsets.BusinessMonthBegin.onOffset
-        api/pandas.tseries.offsets.BusinessMonthEnd.onOffset
-        api/pandas.tseries.offsets.MonthBegin.onOffset
-        api/pandas.tseries.offsets.MonthEnd.onOffset
-        api/pandas.tseries.offsets.MonthOffset.onOffset
-        api/pandas.tseries.offsets.CustomBusinessHour.onOffset
-        api/pandas.tseries.offsets.CustomBusinessDay.onOffset
-        api/pandas.tseries.offsets.BusinessHour.onOffset
-        ..api/pandas.offsets.DateOffset.isAnchored
-        ..api/pandas.offsets.BusinessDay.isAnchored
-        ..api/pandas.offsets.CDay.isAnchored
-        ..api/pandas.offsets.CBMonthBegin.isAnchored
-        ..api/pandas.offsets.CBMonthEnd.isAnchored
-        ..api/pandas.offsets.BMonthBegin.isAnchored
-        ..api/pandas.offsets.BMonthEnd.isAnchored
-        ..api/pandas.offsets.BDay.isAnchored
-        ..api/pandas.offsets.Nano.isAnchored
-        ..api/pandas.offsets.Micro.isAnchored
-        ..api/pandas.offsets.Milli.isAnchored
-        ..api/pandas.offsets.Second.isAnchored
-        ..api/pandas.offsets.Minute.isAnchored
-        ..api/pandas.offsets.Hour.isAnchored
-        ..api/pandas.offsets.Day.isAnchored
-        ..api/pandas.offsets.Tick.isAnchored
-        ..api/pandas.offsets.Easter.isAnchored
-        ..api/pandas.offsets.FY5253Quarter.isAnchored
-        ..api/pandas.offsets.FY5253.isAnchored
-        ..api/pandas.offsets.YearBegin.isAnchored
-        ..api/pandas.offsets.YearEnd.isAnchored
-        ..api/pandas.offsets.BYearBegin.isAnchored
-        ..api/pandas.offsets.BYearEnd.isAnchored
-        ..api/pandas.offsets.YearOffset.isAnchored
-        ..api/pandas.offsets.QuarterBegin.isAnchored
-        ..api/pandas.offsets.QuarterEnd.isAnchored
-        ..api/pandas.offsets.BQuarterBegin.isAnchored
-        ..api/pandas.offsets.BQuarterEnd.isAnchored
-        ..api/pandas.offsets.QuarterOffset.isAnchored
-        ..api/pandas.offsets.LastWeekOfMonth.isAnchored
-        ..api/pandas.offsets.WeekOfMonth.isAnchored
-        ..api/pandas.offsets.Week.isAnchored
-        ..api/pandas.offsets.SemiMonthBegin.isAnchored
-        ..api/pandas.offsets.SemiMonthEnd.isAnchored
-        ..api/pandas.offsets.SemiMonthOffset.isAnchored
-        ..api/pandas.offsets.CustomBusinessMonthBegin.isAnchored
-        ..api/pandas.offsets.CustomBusinessMonthEnd.isAnchored
-        ..api/pandas.offsets.BusinessMonthBegin.isAnchored
-        ..api/pandas.offsets.BusinessMonthEnd.isAnchored
-        ..api/pandas.offsets.MonthBegin.isAnchored
-        ..api/pandas.offsets.MonthEnd.isAnchored
-        ..api/pandas.offsets.MonthOffset.isAnchored
-        ..api/pandas.offsets.CustomBusinessHour.isAnchored
-        ..api/pandas.offsets.CustomBusinessDay.isAnchored
-        ..api/pandas.offsets.BusinessHour.isAnchored
-        ..api/pandas.offsets.DateOffset.onOffset
-        ..api/pandas.offsets.BusinessDay.onOffset
-        ..api/pandas.offsets.CDay.onOffset
-        ..api/pandas.offsets.CBMonthBegin.onOffset
-        ..api/pandas.offsets.CBMonthEnd.onOffset
-        ..api/pandas.offsets.BMonthBegin.onOffset
-        ..api/pandas.offsets.BMonthEnd.onOffset
-        ..api/pandas.offsets.BDay.onOffset
-        ..api/pandas.offsets.Nano.onOffset
-        ..api/pandas.offsets.Micro.onOffset
-        ..api/pandas.offsets.Milli.onOffset
-        ..api/pandas.offsets.Second.onOffset
-        ..api/pandas.offsets.Minute.onOffset
-        ..api/pandas.offsets.Hour.onOffset
-        ..api/pandas.offsets.Day.onOffset
-        ..api/pandas.offsets.Tick.onOffset
-        ..api/pandas.offsets.Easter.onOffset
-        ..api/pandas.offsets.FY5253Quarter.onOffset
-        ..api/pandas.offsets.FY5253.onOffset
-        ..api/pandas.offsets.YearBegin.onOffset
-        ..api/pandas.offsets.YearEnd.onOffset
-        ..api/pandas.offsets.BYearBegin.onOffset
-        ..api/pandas.offsets.BYearEnd.onOffset
-        ..api/pandas.offsets.YearOffset.onOffset
-        ..api/pandas.offsets.QuarterBegin.onOffset
-        ..api/pandas.offsets.QuarterEnd.onOffset
-        ..api/pandas.offsets.BQuarterBegin.onOffset
-        ..api/pandas.offsets.BQuarterEnd.onOffset
-        ..api/pandas.offsets.QuarterOffset.onOffset
-        ..api/pandas.offsets.LastWeekOfMonth.onOffset
-        ..api/pandas.offsets.WeekOfMonth.onOffset
-        ..api/pandas.offsets.Week.onOffset
-        ..api/pandas.offsets.SemiMonthBegin.onOffset
-        ..api/pandas.offsets.SemiMonthEnd.onOffset
-        ..api/pandas.offsets.SemiMonthOffset.onOffset
-        ..api/pandas.offsets.CustomBusinessMonthBegin.onOffset
-        ..api/pandas.offsets.CustomBusinessMonthEnd.onOffset
-        ..api/pandas.offsets.BusinessMonthBegin.onOffset
-        ..api/pandas.offsets.BusinessMonthEnd.onOffset
-        ..api/pandas.offsets.MonthBegin.onOffset
-        ..api/pandas.offsets.MonthEnd.onOffset
-        ..api/pandas.offsets.MonthOffset.onOffset
-        ..api/pandas.offsets.CustomBusinessHour.onOffset
-        ..api/pandas.offsets.CustomBusinessDay.onOffset
-        ..api/pandas.offsets.BusinessHour.onOffset
-        api/pandas.offsets.DateOffset.isAnchored
-        api/pandas.offsets.BusinessDay.isAnchored
-        api/pandas.offsets.CDay.isAnchored
-        api/pandas.offsets.CBMonthBegin.isAnchored
-        api/pandas.offsets.CBMonthEnd.isAnchored
-        api/pandas.offsets.BMonthBegin.isAnchored
-        api/pandas.offsets.BMonthEnd.isAnchored
-        api/pandas.offsets.BDay.isAnchored
-        api/pandas.offsets.Nano.isAnchored
-        api/pandas.offsets.Micro.isAnchored
-        api/pandas.offsets.Milli.isAnchored
-        api/pandas.offsets.Second.isAnchored
-        api/pandas.offsets.Minute.isAnchored
-        api/pandas.offsets.Hour.isAnchored
-        api/pandas.offsets.Day.isAnchored
-        api/pandas.offsets.Tick.isAnchored
-        api/pandas.offsets.Easter.isAnchored
-        api/pandas.offsets.FY5253Quarter.isAnchored
-        api/pandas.offsets.FY5253.isAnchored
-        api/pandas.offsets.YearBegin.isAnchored
-        api/pandas.offsets.YearEnd.isAnchored
-        api/pandas.offsets.BYearBegin.isAnchored
-        api/pandas.offsets.BYearEnd.isAnchored
-        api/pandas.offsets.YearOffset.isAnchored
-        api/pandas.offsets.QuarterBegin.isAnchored
-        api/pandas.offsets.QuarterEnd.isAnchored
-        api/pandas.offsets.BQuarterBegin.isAnchored
-        api/pandas.offsets.BQuarterEnd.isAnchored
-        api/pandas.offsets.QuarterOffset.isAnchored
-        api/pandas.offsets.LastWeekOfMonth.isAnchored
-        api/pandas.offsets.WeekOfMonth.isAnchored
-        api/pandas.offsets.Week.isAnchored
-        api/pandas.offsets.SemiMonthBegin.isAnchored
-        api/pandas.offsets.SemiMonthEnd.isAnchored
-        api/pandas.offsets.SemiMonthOffset.isAnchored
-        api/pandas.offsets.CustomBusinessMonthBegin.isAnchored
-        api/pandas.offsets.CustomBusinessMonthEnd.isAnchored
-        api/pandas.offsets.BusinessMonthBegin.isAnchored
-        api/pandas.offsets.BusinessMonthEnd.isAnchored
-        api/pandas.offsets.MonthBegin.isAnchored
-        api/pandas.offsets.MonthEnd.isAnchored
-        api/pandas.offsets.MonthOffset.isAnchored
-        api/pandas.offsets.CustomBusinessHour.isAnchored
-        api/pandas.offsets.CustomBusinessDay.isAnchored
-        api/pandas.offsets.BusinessHour.isAnchored
-        api/pandas.offsets.DateOffset.onOffset
-        api/pandas.offsets.BusinessDay.onOffset
-        api/pandas.offsets.CDay.onOffset
-        api/pandas.offsets.CBMonthBegin.onOffset
-        api/pandas.offsets.CBMonthEnd.onOffset
-        api/pandas.offsets.BMonthBegin.onOffset
-        api/pandas.offsets.BMonthEnd.onOffset
-        api/pandas.offsets.BDay.onOffset
-        api/pandas.offsets.Nano.onOffset
-        api/pandas.offsets.Micro.onOffset
-        api/pandas.offsets.Milli.onOffset
-        api/pandas.offsets.Second.onOffset
-        api/pandas.offsets.Minute.onOffset
-        api/pandas.offsets.Hour.onOffset
-        api/pandas.offsets.Day.onOffset
-        api/pandas.offsets.Tick.onOffset
-        api/pandas.offsets.Easter.onOffset
-        api/pandas.offsets.FY5253Quarter.onOffset
-        api/pandas.offsets.FY5253.onOffset
-        api/pandas.offsets.YearBegin.onOffset
-        api/pandas.offsets.YearEnd.onOffset
-        api/pandas.offsets.BYearBegin.onOffset
-        api/pandas.offsets.BYearEnd.onOffset
-        api/pandas.offsets.YearOffset.onOffset
-        api/pandas.offsets.QuarterBegin.onOffset
-        api/pandas.offsets.QuarterEnd.onOffset
-        api/pandas.offsets.BQuarterBegin.onOffset
-        api/pandas.offsets.BQuarterEnd.onOffset
-        api/pandas.offsets.QuarterOffset.onOffset
-        api/pandas.offsets.LastWeekOfMonth.onOffset
-        api/pandas.offsets.WeekOfMonth.onOffset
-        api/pandas.offsets.Week.onOffset
-        api/pandas.offsets.SemiMonthBegin.onOffset
-        api/pandas.offsets.SemiMonthEnd.onOffset
-        api/pandas.offsets.SemiMonthOffset.onOffset
-        api/pandas.offsets.CustomBusinessMonthBegin.onOffset
-        api/pandas.offsets.CustomBusinessMonthEnd.onOffset
-        api/pandas.offsets.BusinessMonthBegin.onOffset
-        api/pandas.offsets.BusinessMonthEnd.onOffset
-        api/pandas.offsets.MonthBegin.onOffset
-        api/pandas.offsets.MonthEnd.onOffset
-        api/pandas.offsets.MonthOffset.onOffset
-        api/pandas.offsets.CustomBusinessHour.onOffset
-        api/pandas.offsets.CustomBusinessDay.onOffset
-        api/pandas.offsets.BusinessHour.onOffset
-        ..api/pandas.DateOffset.isAnchored
-        ..api/pandas.BusinessDay.isAnchored
-        ..api/pandas.CDay.isAnchored
-        ..api/pandas.CBMonthBegin.isAnchored
-        ..api/pandas.CBMonthEnd.isAnchored
-        ..api/pandas.BMonthBegin.isAnchored
-        ..api/pandas.BMonthEnd.isAnchored
-        ..api/pandas.BDay.isAnchored
-        ..api/pandas.Nano.isAnchored
-        ..api/pandas.Micro.isAnchored
-        ..api/pandas.Milli.isAnchored
-        ..api/pandas.Second.isAnchored
-        ..api/pandas.Minute.isAnchored
-        ..api/pandas.Hour.isAnchored
-        ..api/pandas.Day.isAnchored
-        ..api/pandas.Tick.isAnchored
-        ..api/pandas.Easter.isAnchored
-        ..api/pandas.FY5253Quarter.isAnchored
-        ..api/pandas.FY5253.isAnchored
-        ..api/pandas.YearBegin.isAnchored
-        ..api/pandas.YearEnd.isAnchored
-        ..api/pandas.BYearBegin.isAnchored
-        ..api/pandas.BYearEnd.isAnchored
-        ..api/pandas.YearOffset.isAnchored
-        ..api/pandas.QuarterBegin.isAnchored
-        ..api/pandas.QuarterEnd.isAnchored
-        ..api/pandas.BQuarterBegin.isAnchored
-        ..api/pandas.BQuarterEnd.isAnchored
-        ..api/pandas.QuarterOffset.isAnchored
-        ..api/pandas.LastWeekOfMonth.isAnchored
-        ..api/pandas.WeekOfMonth.isAnchored
-        ..api/pandas.Week.isAnchored
-        ..api/pandas.SemiMonthBegin.isAnchored
-        ..api/pandas.SemiMonthEnd.isAnchored
-        ..api/pandas.SemiMonthOffset.isAnchored
-        ..api/pandas.CustomBusinessMonthBegin.isAnchored
-        ..api/pandas.CustomBusinessMonthEnd.isAnchored
-        ..api/pandas.BusinessMonthBegin.isAnchored
-        ..api/pandas.BusinessMonthEnd.isAnchored
-        ..api/pandas.MonthBegin.isAnchored
-        ..api/pandas.MonthEnd.isAnchored
-        ..api/pandas.MonthOffset.isAnchored
-        ..api/pandas.CustomBusinessHour.isAnchored
-        ..api/pandas.CustomBusinessDay.isAnchored
-        ..api/pandas.BusinessHour.isAnchored
-        ..api/pandas.DateOffset.onOffset
-        ..api/pandas.BusinessDay.onOffset
-        ..api/pandas.CDay.onOffset
-        ..api/pandas.CBMonthBegin.onOffset
-        ..api/pandas.CBMonthEnd.onOffset
-        ..api/pandas.BMonthBegin.onOffset
-        ..api/pandas.BMonthEnd.onOffset
-        ..api/pandas.BDay.onOffset
-        ..api/pandas.Nano.onOffset
-        ..api/pandas.Micro.onOffset
-        ..api/pandas.Milli.onOffset
-        ..api/pandas.Second.onOffset
-        ..api/pandas.Minute.onOffset
-        ..api/pandas.Hour.onOffset
-        ..api/pandas.Day.onOffset
-        ..api/pandas.Tick.onOffset
-        ..api/pandas.Easter.onOffset
-        ..api/pandas.FY5253Quarter.onOffset
-        ..api/pandas.FY5253.onOffset
-        ..api/pandas.YearBegin.onOffset
-        ..api/pandas.YearEnd.onOffset
-        ..api/pandas.BYearBegin.onOffset
-        ..api/pandas.BYearEnd.onOffset
-        ..api/pandas.YearOffset.onOffset
-        ..api/pandas.QuarterBegin.onOffset
-        ..api/pandas.QuarterEnd.onOffset
-        ..api/pandas.BQuarterBegin.onOffset
-        ..api/pandas.BQuarterEnd.onOffset
-        ..api/pandas.QuarterOffset.onOffset
-        ..api/pandas.LastWeekOfMonth.onOffset
-        ..api/pandas.WeekOfMonth.onOffset
-        ..api/pandas.Week.onOffset
-        ..api/pandas.SemiMonthBegin.onOffset
-        ..api/pandas.SemiMonthEnd.onOffset
-        ..api/pandas.SemiMonthOffset.onOffset
-        ..api/pandas.CustomBusinessMonthBegin.onOffset
-        ..api/pandas.CustomBusinessMonthEnd.onOffset
-        ..api/pandas.BusinessMonthBegin.onOffset
-        ..api/pandas.BusinessMonthEnd.onOffset
-        ..api/pandas.MonthBegin.onOffset
-        ..api/pandas.MonthEnd.onOffset
-        ..api/pandas.MonthOffset.onOffset
-        ..api/pandas.CustomBusinessHour.onOffset
-        ..api/pandas.CustomBusinessDay.onOffset
-        ..api/pandas.BusinessHour.onOffset
-        api/pandas.DateOffset.isAnchored
-        api/pandas.BusinessDay.isAnchored
-        api/pandas.CDay.isAnchored
-        api/pandas.CBMonthBegin.isAnchored
-        api/pandas.CBMonthEnd.isAnchored
-        api/pandas.BMonthBegin.isAnchored
-        api/pandas.BMonthEnd.isAnchored
-        api/pandas.BDay.isAnchored
-        api/pandas.Nano.isAnchored
-        api/pandas.Micro.isAnchored
-        api/pandas.Milli.isAnchored
-        api/pandas.Second.isAnchored
-        api/pandas.Minute.isAnchored
-        api/pandas.Hour.isAnchored
-        api/pandas.Day.isAnchored
-        api/pandas.Tick.isAnchored
-        api/pandas.Easter.isAnchored
-        api/pandas.FY5253Quarter.isAnchored
-        api/pandas.FY5253.isAnchored
-        api/pandas.YearBegin.isAnchored
-        api/pandas.YearEnd.isAnchored
-        api/pandas.BYearBegin.isAnchored
-        api/pandas.BYearEnd.isAnchored
-        api/pandas.YearOffset.isAnchored
-        api/pandas.QuarterBegin.isAnchored
-        api/pandas.QuarterEnd.isAnchored
-        api/pandas.BQuarterBegin.isAnchored
-        api/pandas.BQuarterEnd.isAnchored
-        api/pandas.QuarterOffset.isAnchored
-        api/pandas.LastWeekOfMonth.isAnchored
-        api/pandas.WeekOfMonth.isAnchored
-        api/pandas.Week.isAnchored
-        api/pandas.SemiMonthBegin.isAnchored
-        api/pandas.SemiMonthEnd.isAnchored
-        api/pandas.SemiMonthOffset.isAnchored
-        api/pandas.CustomBusinessMonthBegin.isAnchored
-        api/pandas.CustomBusinessMonthEnd.isAnchored
-        api/pandas.BusinessMonthBegin.isAnchored
-        api/pandas.BusinessMonthEnd.isAnchored
-        api/pandas.MonthBegin.isAnchored
-        api/pandas.MonthEnd.isAnchored
-        api/pandas.MonthOffset.isAnchored
-        api/pandas.CustomBusinessHour.isAnchored
-        api/pandas.CustomBusinessDay.isAnchored
-        api/pandas.BusinessHour.isAnchored
-        api/pandas.DateOffset.onOffset
-        api/pandas.BusinessDay.onOffset
-        api/pandas.CDay.onOffset
-        api/pandas.CBMonthBegin.onOffset
-        api/pandas.CBMonthEnd.onOffset
-        api/pandas.BMonthBegin.onOffset
-        api/pandas.BMonthEnd.onOffset
-        api/pandas.BDay.onOffset
-        api/pandas.Nano.onOffset
-        api/pandas.Micro.onOffset
-        api/pandas.Milli.onOffset
-        api/pandas.Second.onOffset
-        api/pandas.Minute.onOffset
-        api/pandas.Hour.onOffset
-        api/pandas.Day.onOffset
-        api/pandas.Tick.onOffset
-        api/pandas.Easter.onOffset
-        api/pandas.FY5253Quarter.onOffset
-        api/pandas.FY5253.onOffset
-        api/pandas.YearBegin.onOffset
-        api/pandas.YearEnd.onOffset
-        api/pandas.BYearBegin.onOffset
-        api/pandas.BYearEnd.onOffset
-        api/pandas.YearOffset.onOffset
-        api/pandas.QuarterBegin.onOffset
-        api/pandas.QuarterEnd.onOffset
-        api/pandas.BQuarterBegin.onOffset
-        api/pandas.BQuarterEnd.onOffset
-        api/pandas.QuarterOffset.onOffset
-        api/pandas.LastWeekOfMonth.onOffset
-        api/pandas.WeekOfMonth.onOffset
-        api/pandas.Week.onOffset
-        api/pandas.SemiMonthBegin.onOffset
-        api/pandas.SemiMonthEnd.onOffset
-        api/pandas.SemiMonthOffset.onOffset
-        api/pandas.CustomBusinessMonthBegin.onOffset
-        api/pandas.CustomBusinessMonthEnd.onOffset
-        api/pandas.BusinessMonthBegin.onOffset
-        api/pandas.BusinessMonthEnd.onOffset
-        api/pandas.MonthBegin.onOffset
-        api/pandas.MonthEnd.onOffset
-        api/pandas.MonthOffset.onOffset
-        api/pandas.CustomBusinessHour.onOffset
-        api/pandas.CustomBusinessDay.onOffset
-        api/pandas.BusinessHour.onOffset
 
 .. _api.frequencies:
 
