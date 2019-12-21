@@ -1991,14 +1991,12 @@ class DataFrame(NDFrame):
         |  0 |      1 |      3 |
         |  1 |      2 |      4 |
         """
-        if buf is None:
-            buf = sys.stdout
-
-        buf, _, _, _ = get_filepath_or_buffer(buf, mode=mode)
         tabulate = import_optional_dependency("tabulate")
-        kwargs.setdefault("headers", "keys")
-        kwargs.setdefault("tablefmt", "pipe")
-        buf.writelines(tabulate.tabulate(self, **kwargs))
+        result = tabulate.tabulate(self, **kwargs)
+        if buf is None:
+            return result
+        buf, _, _, _ = get_filepath_or_buffer(buf, mode=mode)
+        buf.writelines(result)
 
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
     def to_parquet(
