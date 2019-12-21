@@ -37,8 +37,6 @@ To retain the current behavior and silence the warning, pass 'sort=True'.
 )
 
 
-# TODO: there are many places that rely on these private methods existing in
-# pandas.core.index
 __all__ = [
     "Index",
     "MultiIndex",

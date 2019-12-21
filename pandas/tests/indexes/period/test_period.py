@@ -180,8 +180,7 @@ class TestPeriodIndex(DatetimeLike):
         exp = np.array([], dtype=np.object)
         tm.assert_numpy_array_equal(idx.values, exp)
         tm.assert_numpy_array_equal(idx.to_numpy(), exp)
-        with tm.assert_produces_warning(FutureWarning):
-            tm.assert_numpy_array_equal(idx.get_values(), exp)
+
         exp = np.array([], dtype=np.int64)
         tm.assert_numpy_array_equal(idx._ndarray_values, exp)
 

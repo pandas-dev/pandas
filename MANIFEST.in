@@ -20,7 +20,6 @@ global-exclude *.gz
 global-exclude *.h5
 global-exclude *.html
 global-exclude *.json
-global-exclude *.msgpack
 global-exclude *.pickle
 global-exclude *.png
 global-exclude *.pyc

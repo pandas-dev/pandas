@@ -5,7 +5,7 @@ This is not a public API.
 """
 import datetime
 import operator
-from typing import Tuple, Union
+from typing import Set, Tuple, Union
 
 import numpy as np
 
@@ -39,6 +39,7 @@ from pandas.core.ops.docstrings import (
     _op_descriptions,
 )
 from pandas.core.ops.invalid import invalid_comparison  # noqa:F401
+from pandas.core.ops.mask_ops import kleene_and, kleene_or, kleene_xor  # noqa: F401
 from pandas.core.ops.methods import (  # noqa:F401
     add_flex_arithmetic_methods,
     add_special_arithmetic_methods,
@@ -57,6 +58,37 @@ from pandas.core.ops.roperator import (  # noqa:F401
     rtruediv,
     rxor,
 )
+
+# -----------------------------------------------------------------------------
+# constants
+ARITHMETIC_BINOPS: Set[str] = {
+    "add",
+    "sub",
+    "mul",
+    "pow",
+    "mod",
+    "floordiv",
+    "truediv",
+    "divmod",
+    "radd",
+    "rsub",
+    "rmul",
+    "rpow",
+    "rmod",
+    "rfloordiv",
+    "rtruediv",
+    "rdivmod",
+}
+
+
+COMPARISON_BINOPS: Set[str] = {
+    "eq",
+    "ne",
+    "lt",
+    "gt",
+    "le",
+    "ge",
+}
 
 # -----------------------------------------------------------------------------
 # Ops Wrapping Utilities
@@ -461,7 +493,8 @@ def _arith_method_SERIES(cls, op, special):
         res_name = get_op_result_name(left, right)
 
         lvalues = extract_array(left, extract_numpy=True)
-        result = arithmetic_op(lvalues, right, op, str_rep)
+        rvalues = extract_array(right, extract_numpy=True)
+        result = arithmetic_op(lvalues, rvalues, op, str_rep)
 
         return _construct_result(left, result, index=left.index, name=res_name)
 

@@ -302,9 +302,7 @@ class Categorical(ExtensionArray, PandasObject):
     __array_priority__ = 1000
     _dtype = CategoricalDtype(ordered=False)
     # tolist is not actually deprecated, just suppressed in the __dir__
-    _deprecations = PandasObject._deprecations | frozenset(
-        ["tolist", "itemsize", "get_values"]
-    )
+    _deprecations = PandasObject._deprecations | frozenset(["tolist", "itemsize"])
     _typ = "categorical"
 
     def __init__(
@@ -330,7 +328,7 @@ class Categorical(ExtensionArray, PandasObject):
         # sanitize input
         if is_categorical_dtype(values):
             if dtype.categories is None:
-                dtype = CategoricalDtype(values.categories, dtype._ordered)
+                dtype = CategoricalDtype(values.categories, dtype.ordered)
         elif not isinstance(values, (ABCIndexClass, ABCSeries)):
             # sanitize_array coerces np.nan to a string under certain versions
             # of numpy
@@ -353,7 +351,7 @@ class Categorical(ExtensionArray, PandasObject):
                 codes, categories = factorize(values, sort=True)
             except TypeError:
                 codes, categories = factorize(values, sort=False)
-                if dtype._ordered:
+                if dtype.ordered:
                     # raise, as we don't have a sortable data structure and so
                     # the user should give us one by specifying categories
                     raise TypeError(
@@ -369,7 +367,7 @@ class Categorical(ExtensionArray, PandasObject):
                 )
 
             # we're inferring from values
-            dtype = CategoricalDtype(categories, dtype._ordered)
+            dtype = CategoricalDtype(categories, dtype.ordered)
 
         elif is_categorical_dtype(values):
             old_codes = (
@@ -439,7 +437,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
         Whether the categories have an ordered relationship.
         """
-        return self.dtype._ordered
+        return self.dtype.ordered
 
     @property
     def dtype(self) -> CategoricalDtype:
@@ -496,14 +494,13 @@ class Categorical(ExtensionArray, PandasObject):
         if is_extension_array_dtype(dtype):
             return array(self, dtype=dtype, copy=copy)  # type: ignore # GH 28770
         if is_integer_dtype(dtype) and self.isna().any():
-            msg = "Cannot convert float NaN to integer"
-            raise ValueError(msg)
+            raise ValueError("Cannot convert float NaN to integer")
         return np.array(self, dtype=dtype, copy=copy)
 
     @cache_readonly
     def size(self) -> int:
         """
-        return the len of myself
+        Return the len of myself.
         """
         return self._codes.size
 
@@ -835,7 +832,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if ordered is None:
-            ordered = self.dtype._ordered
+            ordered = self.dtype.ordered
         new_dtype = CategoricalDtype(new_categories, ordered=ordered)
 
         cat = self if inplace else self.copy()
@@ -1461,29 +1458,18 @@ class Categorical(ExtensionArray, PandasObject):
 
         return Series(count, index=CategoricalIndex(ix), dtype="int64")
 
-    def get_values(self):
+    def _internal_get_values(self):
         """
         Return the values.
-
-        .. deprecated:: 0.25.0
 
         For internal compatibility with pandas formatting.
 
         Returns
         -------
-        numpy.array
+        np.ndarray or Index
             A numpy array of the same dtype as categorical.categories.dtype or
             Index if datetime / periods.
         """
-        warn(
-            "The 'get_values' method is deprecated and will be removed in a "
-            "future version",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._internal_get_values()
-
-    def _internal_get_values(self):
         # if we are a datetime and period index, return Index to keep metadata
         if needs_i8_conversion(self.categories):
             return self.categories.take(self._codes, fill_value=np.nan)
@@ -1690,7 +1676,6 @@ class Categorical(ExtensionArray, PandasObject):
         """
         return np.asarray(self)
 
-    @deprecate_kwarg(old_arg_name="fill_value", new_arg_name="value")
     def fillna(self, value=None, method=None, limit=None):
         """
         Fill NA/NaN values using the specified method.
@@ -2130,6 +2115,10 @@ class Categorical(ExtensionArray, PandasObject):
 
         Only ordered `Categoricals` have a minimum!
 
+        .. versionchanged:: 1.0.0
+
+           Returns an NA value on empty arrays
+
         Raises
         ------
         TypeError
@@ -2140,6 +2129,10 @@ class Categorical(ExtensionArray, PandasObject):
         min : the minimum of this `Categorical`
         """
         self.check_for_ordered("min")
+
+        if not len(self._codes):
+            return self.dtype.na_value
+
         good = self._codes != -1
         if not good.all():
             if skipna:
@@ -2157,6 +2150,10 @@ class Categorical(ExtensionArray, PandasObject):
 
         Only ordered `Categoricals` have a maximum!
 
+        .. versionchanged:: 1.0.0
+
+           Returns an NA value on empty arrays
+
         Raises
         ------
         TypeError
@@ -2167,6 +2164,10 @@ class Categorical(ExtensionArray, PandasObject):
         max : the maximum of this `Categorical`
         """
         self.check_for_ordered("max")
+
+        if not len(self._codes):
+            return self.dtype.na_value
+
         good = self._codes != -1
         if not good.all():
             if skipna:
