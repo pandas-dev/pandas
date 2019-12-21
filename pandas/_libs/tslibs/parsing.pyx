@@ -3,7 +3,6 @@ Parsing functions for datetime and datetime-like strings.
 """
 import re
 import time
-from io import StringIO
 
 from libc.string cimport strchr
 
@@ -11,9 +10,8 @@ import cython
 from cython import Py_ssize_t
 
 from cpython.object cimport PyObject_Str
-from cpython.unicode cimport PyUnicode_Join
 
-from cpython.datetime cimport datetime, datetime_new, import_datetime
+from cpython.datetime cimport datetime, datetime_new, import_datetime, tzinfo
 from cpython.version cimport PY_VERSION_HEX
 import_datetime()
 
@@ -475,15 +473,14 @@ cdef dateutil_parse(str timestr, object default, ignoretz=False,
     """ lifted from dateutil to get resolution"""
 
     cdef:
-        object fobj, res, attr, ret, tzdata
+        object res, attr, ret, tzdata
         object reso = None
         dict repl = {}
 
-    fobj = StringIO(str(timestr))
-    res = DEFAULTPARSER._parse(fobj, dayfirst=dayfirst, yearfirst=yearfirst)
+    res = DEFAULTPARSER._parse(timestr, dayfirst=dayfirst, yearfirst=yearfirst)
 
     # dateutil 2.2 compat
-    if isinstance(res, tuple):  # PyTuple_Check
+    if isinstance(res, tuple):
         res, _ = res
 
     if res is None:
@@ -510,20 +507,22 @@ cdef dateutil_parse(str timestr, object default, ignoretz=False,
         ret = ret + relativedelta.relativedelta(weekday=res.weekday)
     if not ignoretz:
         if callable(tzinfos) or tzinfos and res.tzname in tzinfos:
+            # Note: as of 1.0 this is not reached because
+            #  we never pass tzinfos, see GH#22234
             if callable(tzinfos):
                 tzdata = tzinfos(res.tzname, res.tzoffset)
             else:
                 tzdata = tzinfos.get(res.tzname)
-            if isinstance(tzdata, datetime.tzinfo):
-                tzinfo = tzdata
+            if isinstance(tzdata, tzinfo):
+                new_tzinfo = tzdata
             elif isinstance(tzdata, str):
-                tzinfo = _dateutil_tzstr(tzdata)
+                new_tzinfo = _dateutil_tzstr(tzdata)
             elif isinstance(tzdata, int):
-                tzinfo = tzoffset(res.tzname, tzdata)
+                new_tzinfo = tzoffset(res.tzname, tzdata)
             else:
                 raise ValueError("offset must be tzinfo subclass, "
                                  "tz string, or int offset")
-            ret = ret.replace(tzinfo=tzinfo)
+            ret = ret.replace(tzinfo=new_tzinfo)
         elif res.tzname and res.tzname in time.tzname:
             ret = ret.replace(tzinfo=_dateutil_tzlocal())
         elif res.tzoffset == 0:
@@ -986,6 +985,6 @@ def _concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True):
                 item = PyArray_GETITEM(array, PyArray_ITER_DATA(it))
                 list_to_join[col_idx] = convert_to_unicode(item, False)
                 PyArray_ITER_NEXT(it)
-            result_view[row_idx] = PyUnicode_Join(' ', list_to_join)
+            result_view[row_idx] = " ".join(list_to_join)
 
     return result
