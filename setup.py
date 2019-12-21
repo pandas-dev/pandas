@@ -63,24 +63,15 @@ except ImportError:
 from distutils.extension import Extension  # noqa: E402 isort:skip
 from distutils.command.build import build  # noqa: E402 isort:skip
 
-try:
-    if not _CYTHON_INSTALLED:
-        raise ImportError("No supported version of Cython installed.")
+if _CYTHON_INSTALLED:
     from Cython.Distutils.old_build_ext import old_build_ext as _build_ext
 
     cython = True
-except ImportError:
+    from Cython import Tempita as tempita
+else:
     from distutils.command.build_ext import build_ext as _build_ext
 
     cython = False
-else:
-    try:
-        try:
-            from Cython import Tempita as tempita
-        except ImportError:
-            import tempita
-    except ImportError:
-        raise ImportError("Building pandas requires Tempita: pip install Tempita")
 
 
 _pxi_dep_template = {
