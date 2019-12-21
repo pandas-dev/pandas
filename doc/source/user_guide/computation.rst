@@ -363,7 +363,7 @@ and the apply for loop. Currently only ``nogil``, ``nopython``, and ``parallel``
 .. code-block:: ipython
 
    In [1]: data = pd.Series(range(1000000))
-   
+
    In [2]: roll = data.rolling(10)
 
    In [3]: f = lambda x: np.sum(x) + 5
