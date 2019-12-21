@@ -379,7 +379,7 @@ class Block(PandasObject):
                 nbs.append(block)
             return nbs
 
-        if not isinstance(result, Block):# and np.ndim(result) != 0:
+        if not isinstance(result, Block):
             # Exclude the 0-dim case so we can do reductions
             result = self.make_block(values=_block_shape(result, ndim=self.ndim))
 
