@@ -4,7 +4,7 @@ Data structure for 1-dimensional cross-sectional and time series data
 from io import StringIO
 from shutil import get_terminal_size
 from textwrap import dedent
-from typing import Any, Callable, Hashable, List, Optional
+from typing import IO, Any, Callable, Hashable, List, Optional
 import warnings
 
 import numpy as np
@@ -47,7 +47,6 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas as pd
-from pandas._typing import FilePathOrBuffer
 from pandas.core import algorithms, base, generic, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import ExtensionArray, try_cast_to_ea
@@ -60,6 +59,7 @@ from pandas.core.construction import (
     is_empty_data,
     sanitize_array,
 )
+from pandas.core.generic import _shared_docs
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.api import (
@@ -1440,33 +1440,25 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 with open(buf, "w") as f:
                     f.write(result)
 
-    def to_markdown(
-        self,
-        buf: Optional[FilePathOrBuffer[str]] = None,
-        mode: Optional[str] = None,
-        **kwargs,
-    ) -> str:
+    @Appender(
         """
-        Print a Series in Markdown-friendly format.
-
-        .. versionadded:: 1.0
-
-        Returns
-        -------
-        str
-            Series in Markdown-friendly format.
-
         Examples
         --------
-        >>> s = pd.Series([1, 2, 3, 4])
+        >>> s = pd.Series(["elk", "pig", "dog", "quetzal"], name="animal")
         >>> print(s.to_markdown())
-        |    |   0 |
-        |---:|----:|
-        |  0 |   1 |
-        |  1 |   2 |
-        |  2 |   3 |
-        |  3 |   4 |
+        |    | animal   |
+        |---:|:---------|
+        |  0 | elk      |
+        |  1 | pig      |
+        |  2 | dog      |
+        |  3 | quetzal  |
         """
+    )
+    @Substitution(klass="Series")
+    @Appender(_shared_docs["to_markdown"])
+    def to_markdown(
+        self, buf: Optional[IO[str]] = None, mode: Optional[str] = None, **kwargs,
+    ) -> Optional[str]:
         return self.to_frame().to_markdown(buf, mode, **kwargs)
 
     # ----------------------------------------------------------------------

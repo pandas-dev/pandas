@@ -49,6 +49,7 @@ def test_series():
 
 def test_no_buf(capsys):
     df = pd.DataFrame([1, 2, 3])
-    df.to_markdown()
-    out, _ = capsys.readouterr()
-    assert out == "|    |   0 |\n|---:|----:|\n|  0 |   1 |\n|  1 |   2 |\n|  2 |   3 |"
+    result = df.to_markdown()
+    assert (
+        result == "|    |   0 |\n|---:|----:|\n|  0 |   1 |\n|  1 |   2 |\n|  2 |   3 |"
+    )

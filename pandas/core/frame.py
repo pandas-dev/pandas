@@ -15,6 +15,7 @@ import itertools
 import sys
 from textwrap import dedent
 from typing import (
+    IO,
     Any,
     FrozenSet,
     Hashable,
@@ -1966,37 +1967,35 @@ class DataFrame(NDFrame):
 
         to_feather(self, path)
 
-    def to_markdown(
-        self,
-        buf: Optional[FilePathOrBuffer[str]] = None,
-        mode: Optional[str] = None,
-        **kwargs,
-    ) -> None:
+    @Appender(
         """
-        Print a DataFrame in Markdown-friendly format.
-
-        .. versionadded:: 1.0
-
-        Returns
-        -------
-        str
-            DataFrame in Markdown-friendly format.
-
         Examples
         --------
-        >>> df = pd.DataFrame(data={'col1': [1, 2], 'col2': [3, 4]})
+        >>> df = pd.DataFrame(
+        ...     data={"animal_1": ["elk", "pig"], "animal_2": ["dog", "quetzal"]}
+        ... )
         >>> print(df.to_markdown())
-        |    |   col1 |   col2 |
-        |---:|-------:|-------:|
-        |  0 |      1 |      3 |
-        |  1 |      2 |      4 |
+        |    | animal_1   | animal_2   |
+        |---:|:-----------|:-----------|
+        |  0 | elk        | dog        |
+        |  1 | pig        | quetzal    |
         """
+    )
+    @Substitution(klass="DataFrame")
+    @Appender(_shared_docs["to_markdown"])
+    def to_markdown(
+        self, buf: Optional[IO[str]] = None, mode: Optional[str] = None, **kwargs,
+    ) -> Optional[str]:
+        kwargs.setdefault("headers", "keys")
+        kwargs.setdefault("tablefmt", "pipe")
         tabulate = import_optional_dependency("tabulate")
         result = tabulate.tabulate(self, **kwargs)
         if buf is None:
             return result
         buf, _, _, _ = get_filepath_or_buffer(buf, mode=mode)
+        assert buf is not None  # Help mypy.
         buf.writelines(result)
+        return None
 
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
     def to_parquet(
