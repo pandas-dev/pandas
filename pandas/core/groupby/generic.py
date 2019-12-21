@@ -1697,7 +1697,7 @@ class DataFrameGroupBy(GroupBy):
 
         return result
 
-    def _agg_blocks_to_frame(self, items: Index, blocks: List["Block"]) -> DataFrame:
+    def _agg_blocks_to_frame(self, items: Index, blocks: "List[Block]") -> DataFrame:
         if not self.as_index:
             index = np.arange(blocks[0].values.shape[-1])
             mgr = BlockManager(blocks, axes=[items, index])
