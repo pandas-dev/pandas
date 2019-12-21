@@ -143,21 +143,19 @@ class SetopCheck:
                     result = result.astype(intvidx_self.dtype)
                 return result
             elif intvidx_self.closed != other.closed:
-                msg = (
+                raise ValueError(
                     "can only do set operations between two IntervalIndex "
                     "objects that are closed on the same side"
                 )
-                raise ValueError(msg)
 
             # GH 19016: ensure set op will not return a prohibited dtype
             subtypes = [intvidx_self.dtype.subtype, other.dtype.subtype]
             common_subtype = find_common_type(subtypes)
             if is_object_dtype(common_subtype):
-                msg = (
+                raise TypeError(
                     f"can only do {self.op_name} between two IntervalIndex "
                     "objects that have compatible dtypes"
                 )
-                raise TypeError(msg)
 
             return setop(intvidx_self, other, sort)
 
@@ -210,7 +208,13 @@ class IntervalIndex(IntervalMixin, Index):
     # Constructors
 
     def __new__(
-        cls, data, closed=None, dtype=None, copy=False, name=None, verify_integrity=True
+        cls,
+        data,
+        closed=None,
+        dtype=None,
+        copy: bool = False,
+        name=None,
+        verify_integrity: bool = True,
     ):
 
         if name is None and hasattr(data, "name"):
@@ -263,7 +267,9 @@ class IntervalIndex(IntervalMixin, Index):
             ),
         )
     )
-    def from_breaks(cls, breaks, closed="right", name=None, copy=False, dtype=None):
+    def from_breaks(
+        cls, breaks, closed: str = "right", name=None, copy: bool = False, dtype=None
+    ):
         with rewrite_exception("IntervalArray", cls.__name__):
             array = IntervalArray.from_breaks(
                 breaks, closed=closed, copy=copy, dtype=dtype
@@ -288,7 +294,13 @@ class IntervalIndex(IntervalMixin, Index):
         )
     )
     def from_arrays(
-        cls, left, right, closed="right", name=None, copy=False, dtype=None
+        cls,
+        left,
+        right,
+        closed: str = "right",
+        name=None,
+        copy: bool = False,
+        dtype=None,
     ):
         with rewrite_exception("IntervalArray", cls.__name__):
             array = IntervalArray.from_arrays(
@@ -313,7 +325,9 @@ class IntervalIndex(IntervalMixin, Index):
             ),
         )
     )
-    def from_tuples(cls, data, closed="right", name=None, copy=False, dtype=None):
+    def from_tuples(
+        cls, data, closed: str = "right", name=None, copy: bool = False, dtype=None
+    ):
         with rewrite_exception("IntervalArray", cls.__name__):
             arr = IntervalArray.from_tuples(data, closed=closed, copy=copy, dtype=dtype)
         return cls._simple_new(arr, name=name)
@@ -329,7 +343,9 @@ class IntervalIndex(IntervalMixin, Index):
 
     @cache_readonly
     def _isnan(self):
-        """Return a mask indicating if each value is NA"""
+        """
+        Return a mask indicating if each value is NA.
+        """
         if self._mask is None:
             self._mask = isna(self.left)
         return self._mask
@@ -351,7 +367,7 @@ class IntervalIndex(IntervalMixin, Index):
 
         Returns
         -------
-        boolean
+        bool
         """
         if not isinstance(key, Interval):
             return False
@@ -470,7 +486,9 @@ class IntervalIndex(IntervalMixin, Index):
         return np.array(self._data)
 
     def __array__(self, result=None):
-        """ the array interface, return my values """
+        """
+        The array interface, return my values.
+        """
         return self._ndarray_values
 
     def __array_wrap__(self, result, context=None):
@@ -503,7 +521,9 @@ class IntervalIndex(IntervalMixin, Index):
 
     @cache_readonly
     def dtype(self):
-        """Return the dtype object of the underlying data"""
+        """
+        Return the dtype object of the underlying data.
+        """
         return self._data.dtype
 
     @property
@@ -551,7 +571,7 @@ class IntervalIndex(IntervalMixin, Index):
     @cache_readonly
     def is_unique(self):
         """
-        Return True if the IntervalIndex contains unique elements, else False
+        Return True if the IntervalIndex contains unique elements, else False.
         """
         left = self.left
         right = self.right
@@ -708,7 +728,7 @@ class IntervalIndex(IntervalMixin, Index):
 
         Returns
         -------
-        boolean
+        bool
         """
         if is_interval_dtype(key) or isinstance(key, Interval):
             return self._needs_i8_conversion(key.left)
@@ -729,7 +749,7 @@ class IntervalIndex(IntervalMixin, Index):
 
         Returns
         -------
-        key: scalar or list-like
+        scalar or list-like
             The original key if no conversion occurred, int if converted scalar,
             Int64Index if converted list-like.
         """
@@ -775,22 +795,21 @@ class IntervalIndex(IntervalMixin, Index):
             return
 
         if method in ["bfill", "backfill", "pad", "ffill", "nearest"]:
-            msg = f"method {method} not yet implemented for IntervalIndex"
-            raise NotImplementedError(msg)
+            raise NotImplementedError(
+                f"method {method} not yet implemented for IntervalIndex"
+            )
 
         raise ValueError("Invalid fill method")
 
     def _searchsorted_monotonic(self, label, side, exclude_label=False):
         if not self.is_non_overlapping_monotonic:
             raise KeyError(
-                "can only get slices from an IntervalIndex if "
-                "bounds are non-overlapping and all monotonic "
-                "increasing or decreasing"
+                "can only get slices from an IntervalIndex if bounds are "
+                "non-overlapping and all monotonic increasing or decreasing"
             )
 
         if isinstance(label, IntervalMixin):
-            msg = "Interval objects are not currently supported"
-            raise NotImplementedError(msg)
+            raise NotImplementedError("Interval objects are not currently supported")
 
         # GH 20921: "not is_monotonic_increasing" for the second condition
         # instead of "is_monotonic_decreasing" to account for single element
@@ -850,7 +869,7 @@ class IntervalIndex(IntervalMixin, Index):
 
         Returns
         -------
-        loc : int if unique index, slice if monotonic index, else mask
+        int if unique index, slice if monotonic index, else mask
 
         Examples
         --------
@@ -933,11 +952,10 @@ class IntervalIndex(IntervalMixin, Index):
         self._check_method(method)
 
         if self.is_overlapping:
-            msg = (
-                "cannot handle overlapping indices; use "
-                "IntervalIndex.get_indexer_non_unique"
+            raise InvalidIndexError(
+                "cannot handle overlapping indices; "
+                "use IntervalIndex.get_indexer_non_unique"
             )
-            raise InvalidIndexError(msg)
 
         target_as_index = ensure_index(target)
 
@@ -1071,7 +1089,7 @@ class IntervalIndex(IntervalMixin, Index):
 
         Returns
         -------
-        new_index : IntervalIndex
+        IntervalIndex
         """
         new_left = self.left.delete(loc)
         new_right = self.right.delete(loc)
@@ -1090,7 +1108,7 @@ class IntervalIndex(IntervalMixin, Index):
 
         Returns
         -------
-        new_index : IntervalIndex
+        IntervalIndex
         """
         if isinstance(item, Interval):
             if item.closed != self.closed:
@@ -1117,11 +1135,10 @@ class IntervalIndex(IntervalMixin, Index):
         we allow a 0-len index here as well
         """
         if not len({i.closed for i in to_concat if len(i)}) == 1:
-            msg = (
+            raise ValueError(
                 "can only append two IntervalIndex objects "
                 "that are closed on the same side"
             )
-            raise ValueError(msg)
         return super()._concat_same_dtype(to_concat, name)
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
@@ -1175,10 +1192,13 @@ class IntervalIndex(IntervalMixin, Index):
                 n = min(max_seq_items // 2, 10)
                 head = [formatter(x) for x in self[:n]]
                 tail = [formatter(x) for x in self[-n:]]
-                summary = f"[{', '.join(head)} ... {', '.join(tail)}]"
+                head_joined = ", ".join(head)
+                tail_joined = ", ".join(tail)
+                summary = f"[{head_joined} ... {tail_joined}]"
             else:
                 tail = [formatter(x) for x in self]
-                summary = f"[{', '.join(tail)}]"
+                joined = ", ".join(tail)
+                summary = f"[{joined}]"
 
         return summary + "," + self._format_space()
 
@@ -1189,7 +1209,7 @@ class IntervalIndex(IntervalMixin, Index):
         attrs.append(("dtype", f"'{self.dtype}'"))
         return attrs
 
-    def _format_space(self):
+    def _format_space(self) -> str:
         space = " " * (len(type(self).__name__) + 1)
         return f"\n{space}"
 
@@ -1200,7 +1220,7 @@ class IntervalIndex(IntervalMixin, Index):
 
     def equals(self, other) -> bool:
         """
-        Determines if two IntervalIndex objects contain the same elements
+        Determines if two IntervalIndex objects contain the same elements.
         """
         if self.is_(other):
             return True
@@ -1288,7 +1308,7 @@ class IntervalIndex(IntervalMixin, Index):
 
         Returns
         -------
-        taken : IntervalIndex
+        IntervalIndex
         """
         lindexer = self.left.get_indexer(other.left)
         rindexer = self.right.get_indexer(other.right)
@@ -1310,7 +1330,7 @@ class IntervalIndex(IntervalMixin, Index):
 
         Returns
         -------
-        taken : IntervalIndex
+        IntervalIndex
         """
         mask = np.zeros(len(self), dtype=bool)
 
@@ -1360,7 +1380,9 @@ IntervalIndex._add_logical_methods_disabled()
 
 
 def _is_valid_endpoint(endpoint) -> bool:
-    """helper for interval_range to check if start/end are valid types"""
+    """
+    Helper for interval_range to check if start/end are valid types.
+    """
     return any(
         [
             is_number(endpoint),
@@ -1372,7 +1394,9 @@ def _is_valid_endpoint(endpoint) -> bool:
 
 
 def _is_type_compatible(a, b) -> bool:
-    """helper for interval_range to check type compat of start/end/freq"""
+    """
+    Helper for interval_range to check type compat of start/end/freq.
+    """
     is_ts_compat = lambda x: isinstance(x, (Timestamp, DateOffset))
     is_td_compat = lambda x: isinstance(x, (Timedelta, DateOffset))
     return (

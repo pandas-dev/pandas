@@ -85,8 +85,9 @@ class NumericIndex(Index):
 
         validation_func, expected = validation_metadata[cls._typ]
         if not validation_func(dtype):
-            msg = f"Incorrect `dtype` passed: expected {expected}, received {dtype}"
-            raise ValueError(msg)
+            raise ValueError(
+                f"Incorrect `dtype` passed: expected {expected}, received {dtype}"
+            )
 
     @Appender(_index_shared_docs["_maybe_cast_slice_bound"])
     def _maybe_cast_slice_bound(self, label, side, kind):
@@ -106,7 +107,6 @@ class NumericIndex(Index):
         """
         Convert value to be insertable to ndarray.
         """
-
         if is_bool(value) or is_bool_dtype(value):
             # force conversion to object
             # so we don't lose the bools
@@ -121,17 +121,13 @@ class NumericIndex(Index):
         if not np.issubdtype(tolerance.dtype, np.number):
             if tolerance.ndim > 0:
                 raise ValueError(
-                    (
-                        f"tolerance argument for {type(self).__name__} must contain "
-                        "numeric elements if it is list type"
-                    )
+                    f"tolerance argument for {type(self).__name__} must contain "
+                    "numeric elements if it is list type"
                 )
             else:
                 raise ValueError(
-                    (
-                        f"tolerance argument for {type(self).__name__} must be numeric "
-                        f"if it is a scalar: {repr(tolerance)}"
-                    )
+                    f"tolerance argument for {type(self).__name__} must be numeric "
+                    f"if it is a scalar: {repr(tolerance)}"
                 )
         return tolerance
 
@@ -244,7 +240,9 @@ class Int64Index(IntegerIndex):
 
     @property
     def inferred_type(self) -> str:
-        """Always 'integer' for ``Int64Index``"""
+        """
+        Always 'integer' for ``Int64Index``
+        """
         return "integer"
 
     @property
@@ -299,7 +297,9 @@ class UInt64Index(IntegerIndex):
 
     @property
     def inferred_type(self) -> str:
-        """Always 'integer' for ``UInt64Index``"""
+        """
+        Always 'integer' for ``UInt64Index``
+        """
         return "integer"
 
     @property
@@ -374,7 +374,9 @@ class Float64Index(NumericIndex):
 
     @property
     def inferred_type(self) -> str:
-        """Always 'floating' for ``Float64Index``"""
+        """
+        Always 'floating' for ``Float64Index``
+        """
         return "floating"
 
     @Appender(_index_shared_docs["astype"])
