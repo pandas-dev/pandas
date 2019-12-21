@@ -21,12 +21,9 @@ from cpython.bytes cimport PyBytes_AsString, PyBytes_FromString
 from cpython.exc cimport PyErr_Occurred, PyErr_Fetch
 from cpython.object cimport PyObject
 from cpython.ref cimport Py_XDECREF
-from cpython.unicode cimport PyUnicode_AsUTF8String, PyUnicode_Decode
-
-
-cdef extern from "Python.h":
-    object PyUnicode_FromString(char *v)
-
+from cpython.unicode cimport (
+    PyUnicode_AsUTF8String, PyUnicode_Decode, PyUnicode_FromString
+)
 
 import numpy as np
 cimport numpy as cnp

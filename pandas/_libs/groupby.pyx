@@ -877,8 +877,7 @@ def group_last(rank_t[:, :] out,
 
     N, K = (<object>values).shape
 
-    if rank_t is object:
-        # TODO: De-duplicate once conditional-nogil is available
+    with nogil(rank_t is not object):
         for i in range(N):
             lab = labels[i]
             if lab < 0:
@@ -888,47 +887,24 @@ def group_last(rank_t[:, :] out,
             for j in range(K):
                 val = values[i, j]
 
-                if val == val:
-                    # NB: use _treat_as_na here once
-                    #  conditional-nogil is available.
+                if (rank_t is object and val == val) or (rank_t is not object and not _treat_as_na(val, True)):
+                    # TODO: Sure we always want is_datetimelike=True?
                     nobs[lab, j] += 1
                     resx[lab, j] = val
 
         for i in range(ncounts):
             for j in range(K):
                 if nobs[i, j] == 0:
-                    out[i, j] = NAN
+                    if rank_t is int64_t:
+                        out[i, j] = NPY_NAT
+                    elif rank_t is uint64_t:
+                        runtime_error = True
+                        break
+                    else:
+                        out[i, j] = NAN
+
                 else:
                     out[i, j] = resx[i, j]
-    else:
-        with nogil:
-            for i in range(N):
-                lab = labels[i]
-                if lab < 0:
-                    continue
-
-                counts[lab] += 1
-                for j in range(K):
-                    val = values[i, j]
-
-                    if not _treat_as_na(val, True):
-                        # TODO: Sure we always want is_datetimelike=True?
-                        nobs[lab, j] += 1
-                        resx[lab, j] = val
-
-            for i in range(ncounts):
-                for j in range(K):
-                    if nobs[i, j] == 0:
-                        if rank_t is int64_t:
-                            out[i, j] = NPY_NAT
-                        elif rank_t is uint64_t:
-                            runtime_error = True
-                            break
-                        else:
-                            out[i, j] = NAN
-
-                    else:
-                        out[i, j] = resx[i, j]
 
     if runtime_error:
         # We cannot raise directly above because that is within a nogil
@@ -966,8 +942,7 @@ def group_nth(rank_t[:, :] out,
 
     N, K = (<object>values).shape
 
-    if rank_t is object:
-        # TODO: De-duplicate once conditional-nogil is available
+    with nogil(rank_t is not object):
         for i in range(N):
             lab = labels[i]
             if lab < 0:
@@ -977,9 +952,8 @@ def group_nth(rank_t[:, :] out,
             for j in range(K):
                 val = values[i, j]
 
-                if val == val:
-                    # NB: use _treat_as_na here once
-                    #  conditional-nogil is available.
+                if (rank_t is object and val == val) or (rank_t is not object and not _treat_as_na(val, True)):
+                    # TODO: Sure we always want is_datetimelike=True?
                     nobs[lab, j] += 1
                     if nobs[lab, j] == rank:
                         resx[lab, j] = val
@@ -987,39 +961,15 @@ def group_nth(rank_t[:, :] out,
         for i in range(ncounts):
             for j in range(K):
                 if nobs[i, j] == 0:
-                    out[i, j] = NAN
+                    if rank_t is int64_t:
+                        out[i, j] = NPY_NAT
+                    elif rank_t is uint64_t:
+                        runtime_error = True
+                        break
+                    else:
+                        out[i, j] = NAN
                 else:
                     out[i, j] = resx[i, j]
-
-    else:
-        with nogil:
-            for i in range(N):
-                lab = labels[i]
-                if lab < 0:
-                    continue
-
-                counts[lab] += 1
-                for j in range(K):
-                    val = values[i, j]
-
-                    if not _treat_as_na(val, True):
-                        # TODO: Sure we always want is_datetimelike=True?
-                        nobs[lab, j] += 1
-                        if nobs[lab, j] == rank:
-                            resx[lab, j] = val
-
-            for i in range(ncounts):
-                for j in range(K):
-                    if nobs[i, j] == 0:
-                        if rank_t is int64_t:
-                            out[i, j] = NPY_NAT
-                        elif rank_t is uint64_t:
-                            runtime_error = True
-                            break
-                        else:
-                            out[i, j] = NAN
-                    else:
-                        out[i, j] = resx[i, j]
 
     if runtime_error:
         # We cannot raise directly above because that is within a nogil

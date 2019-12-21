@@ -45,27 +45,7 @@ def unstack(reshape_t[:, :] values, uint8_t[:] mask,
     cdef:
         Py_ssize_t i, j, w, nulls, s, offset
 
-    if reshape_t is not object:
-        # evaluated at compile-time
-        with nogil:
-            for i in range(stride):
-
-                nulls = 0
-                for j in range(length):
-
-                    for w in range(width):
-
-                        offset = j * width + w
-
-                        if mask[offset]:
-                            s = i * width + w
-                            new_values[j, s] = values[offset - nulls, i]
-                            new_mask[j, s] = 1
-                        else:
-                            nulls += 1
-
-    else:
-        # object-dtype, identical to above but we cannot use nogil
+    with nogil(reshape_t is not object):
         for i in range(stride):
 
             nulls = 0

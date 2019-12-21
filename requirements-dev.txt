@@ -2,7 +2,7 @@ numpy>=1.15
 python-dateutil>=2.6.1
 pytz
 asv
-cython>=0.29.13
+git+https://github.com/cython/cython@master
 black==19.10b0
 cpplint
 flake8

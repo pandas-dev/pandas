@@ -45,13 +45,13 @@ def get_dispatch(dtypes):
 
     fv = fill_value
 
-    %(nogil_str)s
-    %(tab)sfor i in range(n):
-    %(tab)s    idx = indexer[i]
-    %(tab)s    if idx == -1:
-    %(tab)s        out[i] = fv
-    %(tab)s    else:
-    %(tab)s        out[i] = %(preval)svalues[idx]%(postval)s
+    with nogil(%(use_nogil)s):
+        for i in range(n):
+            idx = indexer[i]
+            if idx == -1:
+                out[i] = fv
+            else:
+                out[i] = %(preval)svalues[idx]%(postval)s
 """
 
     inner_take_2d_axis0_template = """\
@@ -121,12 +121,6 @@ def get_dispatch(dtypes):
 
         can_copy = c_type_in == c_type_out != "object"
         nogil = c_type_out != "object"
-        if nogil:
-            nogil_str = "with nogil:"
-            tab = '    '
-        else:
-            nogil_str = ''
-            tab = ''
 
         def get_name(dtype_name):
             if dtype_name == "object":
@@ -140,7 +134,7 @@ def get_dispatch(dtypes):
 
         args = dict(name=name, dest=dest, c_type_in=c_type_in,
                     c_type_out=c_type_out, preval=preval, postval=postval,
-                    can_copy=can_copy, nogil_str=nogil_str, tab=tab)
+                    can_copy=can_copy, use_nogil=nogil)
 
         inner_take_1d = inner_take_1d_template % args
         inner_take_2d_axis0 = inner_take_2d_axis0_template % args

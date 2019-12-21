@@ -2,9 +2,7 @@ import cython
 from cython import Py_ssize_t
 
 from cpython.slice cimport PySlice_GetIndicesEx
-
-cdef extern from "Python.h":
-    Py_ssize_t PY_SSIZE_T_MAX
+from cpython.pyport cimport PY_SSIZE_T_MAX
 
 import numpy as np
 from numpy cimport int64_t

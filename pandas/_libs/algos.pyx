@@ -706,33 +706,7 @@ def is_monotonic(ndarray[algos_t, ndim=1] arr, bint timelike):
     if timelike and <int64_t>arr[0] == NPY_NAT:
         return False, False, True
 
-    if algos_t is not object:
-        with nogil:
-            prev = arr[0]
-            for i in range(1, n):
-                cur = arr[i]
-                if timelike and <int64_t>cur == NPY_NAT:
-                    is_monotonic_inc = 0
-                    is_monotonic_dec = 0
-                    break
-                if cur < prev:
-                    is_monotonic_inc = 0
-                elif cur > prev:
-                    is_monotonic_dec = 0
-                elif cur == prev:
-                    is_unique = 0
-                else:
-                    # cur or prev is NaN
-                    is_monotonic_inc = 0
-                    is_monotonic_dec = 0
-                    break
-                if not is_monotonic_inc and not is_monotonic_dec:
-                    is_monotonic_inc = 0
-                    is_monotonic_dec = 0
-                    break
-                prev = cur
-    else:
-        # object-dtype, identical to above except we cannot use `with nogil`
+    with nogil(algos_t is not object):
         prev = arr[0]
         for i in range(1, n):
             cur = arr[i]
@@ -797,6 +771,10 @@ def rank_1d(rank_t[:] in_arr, ties_method='average',
         float64_t count = 0.0
 
     tiebreak = tiebreakers[ties_method]
+
+    if rank_t is object and tiebreak == TIEBREAK_FIRST:
+        # FIXME: apparently this case is not tested
+        raise RuntimeError("This will raise below in a nogil block!")
 
     if rank_t is float64_t:
         values = np.asarray(in_arr).copy()
@@ -872,8 +850,8 @@ def rank_1d(rank_t[:] in_arr, ties_method='average',
     non_na_idx = _indices[0] if len(_indices) > 0 else -1
     argsorted = _as.astype('i8')
 
-    if rank_t is object:
-        # TODO: de-duplicate once cython supports conditional nogil
+    with nogil(rank_t is not object):
+        # TODO: why does the 2d version not have a nogil block?
         for i in range(n):
             sum_ranks += i + 1
             dups += 1
@@ -913,9 +891,11 @@ def rank_1d(rank_t[:] in_arr, ties_method='average',
                     for j in range(i - dups + 1, i + 1):
                         ranks[argsorted[j]] = i + 1
                 elif tiebreak == TIEBREAK_FIRST:
-                    if rank_t is object:
-                        raise ValueError('first not supported for '
-                                         'non-numeric data')
+                    if False:#rank_t is object:
+                        pass
+                        # FIXME: this breaks with the conditional nogil
+                        #raise ValueError('first not supported for '
+                        #                 'non-numeric data')
                     else:
                         for j in range(i - dups + 1, i + 1):
                             ranks[argsorted[j]] = j + 1
@@ -927,63 +907,6 @@ def rank_1d(rank_t[:] in_arr, ties_method='average',
                     for j in range(i - dups + 1, i + 1):
                         ranks[argsorted[j]] = total_tie_count
                 sum_ranks = dups = 0
-
-    else:
-        with nogil:
-            # TODO: why does the 2d version not have a nogil block?
-            for i in range(n):
-                sum_ranks += i + 1
-                dups += 1
-
-                val = sorted_data[i]
-
-                if rank_t is not uint64_t:
-                    isnan = sorted_mask[i]
-                    if isnan and keep_na:
-                        ranks[argsorted[i]] = NaN
-                        continue
-
-                count += 1.0
-
-                if rank_t is object:
-                    condition = (
-                        i == n - 1 or
-                        are_diff(sorted_data[i + 1], val) or
-                        i == non_na_idx
-                    )
-                else:
-                    condition = (
-                        i == n - 1 or
-                        sorted_data[i + 1] != val or
-                        i == non_na_idx
-                    )
-
-                if condition:
-
-                    if tiebreak == TIEBREAK_AVERAGE:
-                        for j in range(i - dups + 1, i + 1):
-                            ranks[argsorted[j]] = sum_ranks / dups
-                    elif tiebreak == TIEBREAK_MIN:
-                        for j in range(i - dups + 1, i + 1):
-                            ranks[argsorted[j]] = i - dups + 2
-                    elif tiebreak == TIEBREAK_MAX:
-                        for j in range(i - dups + 1, i + 1):
-                            ranks[argsorted[j]] = i + 1
-                    elif tiebreak == TIEBREAK_FIRST:
-                        if rank_t is object:
-                            raise ValueError('first not supported for '
-                                             'non-numeric data')
-                        else:
-                            for j in range(i - dups + 1, i + 1):
-                                ranks[argsorted[j]] = j + 1
-                    elif tiebreak == TIEBREAK_FIRST_DESCENDING:
-                        for j in range(i - dups + 1, i + 1):
-                            ranks[argsorted[j]] = 2 * i - j - dups + 2
-                    elif tiebreak == TIEBREAK_DENSE:
-                        total_tie_count += 1
-                        for j in range(i - dups + 1, i + 1):
-                            ranks[argsorted[j]] = total_tie_count
-                    sum_ranks = dups = 0
 
     if pct:
         if tiebreak == TIEBREAK_DENSE:

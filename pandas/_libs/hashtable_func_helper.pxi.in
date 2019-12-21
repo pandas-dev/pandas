@@ -284,14 +284,11 @@ dtypes = [('float64', 'float64_t', 'float64', 'float64'),
 @cython.boundscheck(False)
 
 {{if dtype == 'object'}}
-
-
 def mode_{{dtype}}(ndarray[{{ctype}}] values, bint dropna):
 {{else}}
-
-
 def mode_{{dtype}}({{ctype}}[:] values, bint dropna):
 {{endif}}
+
     cdef:
         int count, max_count = 1
         int j = -1  # so you can do +=
@@ -304,8 +301,7 @@ def mode_{{dtype}}({{ctype}}[:] values, bint dropna):
 
     modes = np.empty(table.n_buckets, dtype=np.{{npy_dtype}})
 
-    {{if dtype != 'object'}}
-    with nogil:
+    with nogil({{dtype != 'object'}}):
         for k in range(table.n_buckets):
             if kh_exist_{{table_type}}(table, k):
                 count = table.vals[k]
@@ -317,22 +313,11 @@ def mode_{{dtype}}({{ctype}}[:] values, bint dropna):
                 else:
                     continue
 
+                {{if dtype == 'object'}}
+                modes[j] = <object>table.keys[k]
+                {{else}}
                 modes[j] = table.keys[k]
-    {{else}}
-    for k in range(table.n_buckets):
-        if kh_exist_{{table_type}}(table, k):
-            count = table.vals[k]
-
-            if count == max_count:
-                j += 1
-            elif count > max_count:
-                max_count = count
-                j = 0
-            else:
-                continue
-
-            modes[j] = <object>table.keys[k]
-    {{endif}}
+                {{endif}}
 
     kh_destroy_{{table_type}}(table)
 
