@@ -11,6 +11,7 @@ from functools import partial
 from textwrap import dedent
 import typing
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     FrozenSet,
@@ -64,10 +65,14 @@ from pandas.core.groupby.groupby import (
 )
 from pandas.core.indexes.api import Index, MultiIndex, all_indexes_same
 import pandas.core.indexes.base as ibase
-from pandas.core.internals import Block, BlockManager, make_block
+from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
 
 from pandas.plotting import boxplot_frame_groupby
+
+if TYPE_CHECKING:
+    from pandas.core.internals import Block
+
 
 NamedAgg = namedtuple("NamedAgg", ["column", "aggfunc"])
 # TODO(typing) the return value on this callable should be any *scalar*.
@@ -1692,7 +1697,7 @@ class DataFrameGroupBy(GroupBy):
 
         return result
 
-    def _agg_blocks_to_frame(self, items: Index, blocks: List[Block]) -> DataFrame:
+    def _agg_blocks_to_frame(self, items: Index, blocks: List["Block"]) -> DataFrame:
         if not self.as_index:
             index = np.arange(blocks[0].values.shape[-1])
             mgr = BlockManager(blocks, axes=[items, index])
@@ -1750,9 +1755,9 @@ class DataFrameGroupBy(GroupBy):
         counted = [
             lib.count_level_2d(x, labels=ids, max_bin=ngroups, axis=1) for x in val
         ]
-        blk = map(make_block, counted, loc)
+        blocks = map(make_block, counted, loc)
 
-        return self._agg_blocks_to_frame(data.items, blocks=list(blk))
+        return self._agg_blocks_to_frame(data.items, blocks=list(blocks))
 
     def nunique(self, dropna: bool = True):
         """
