@@ -22,6 +22,17 @@ cdef kh_destroy(table_t *table):
         kh_destroy_pymap(table)
 
 
+cdef kh_init(table_t **table_ptr):
+    if table_t is kh_float64_t:
+        table_ptr[0] = kh_init_float64()
+    elif table_t is kh_int64_t:
+        table_ptr[0] = kh_init_int64()
+    elif table_t is kh_uint64_t:
+        table_ptr[0] = kh_init_uint64()
+    elif table_t is kh_pymap_t:
+        table_ptr[0] = kh_init_pymap()
+
+
 {{py:
 
 # dtype, ttype, c_type
@@ -104,7 +115,7 @@ cpdef value_count_{{dtype}}({{c_type}}[:] values, bint dropna):
 
         Py_ssize_t k
 
-    table = kh_init_{{ttype}}()
+    kh_init(&table)
     {{if dtype == 'object'}}
     build_count_table_{{dtype}}(values, table, 1)
     {{else}}
@@ -151,9 +162,10 @@ def duplicated_{{dtype}}({{c_type}}[:] values, object keep='first'):
         {{dtype}}_t value
         {{endif}}
         Py_ssize_t k, i, n = len(values)
-        kh_{{ttype}}_t *table = kh_init_{{ttype}}()
+        kh_{{ttype}}_t *table
         ndarray[uint8_t, ndim=1, cast=True] out = np.empty(n, dtype='bool')
 
+    kh_init(&table)
     kh_resize_{{ttype}}(table, min(n, _SIZE_HINT_LIMIT))
 
     if keep not in ('last', 'first', False):
@@ -245,8 +257,9 @@ def ismember_{{dtype}}({{c_type}}[:] arr, {{c_type}}[:] values):
         int ret = 0
         ndarray[uint8_t] result
         {{c_type}} val
-        kh_{{ttype}}_t *table = kh_init_{{ttype}}()
+        kh_{{ttype}}_t *table
 
+    kh_init(&table)
     # construct the table
     n = len(values)
     kh_resize_{{ttype}}(table, n)
@@ -318,7 +331,7 @@ def mode_{{dtype}}({{ctype}}[:] values, bint dropna):
         kh_{{table_type}}_t *table
         ndarray[{{ctype}}] modes
 
-    table = kh_init_{{table_type}}()
+    kh_init(&table)
     build_count_table_{{dtype}}(values, table, dropna)
 
     modes = np.empty(table.n_buckets, dtype=np.{{npy_dtype}})
