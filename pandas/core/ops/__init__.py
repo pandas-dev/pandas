@@ -718,7 +718,7 @@ def _arith_method_FRAME(cls, op, special):
             if fill_value is not None:
                 self = self.fillna(fill_value)
 
-            new_data = dispatch_to_series(self, other, op)
+            new_data = dispatch_to_series(self, other, op, str_rep)
             return self._construct_result(new_data)
 
     f.__name__ = op_name

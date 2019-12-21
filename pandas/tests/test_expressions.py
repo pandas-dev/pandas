@@ -277,9 +277,11 @@ class TestExpressions:
         with pytest.raises(NotImplementedError, match=err_msg):
             f(False, df.a)
 
-        f(False, df)
+        with pytest.raises(NotImplementedError, match=err_msg):
+            f(False, df)
 
-        f(df, True)
+        with pytest.raises(NotImplementedError, match=err_msg):
+            f(df, True)
 
     @pytest.mark.parametrize(
         "op_str,opname", [("+", "add"), ("*", "mul"), ("-", "sub")]
@@ -319,13 +321,15 @@ class TestExpressions:
                 e = fe(False, df.a)
                 tm.assert_series_equal(r, e)
 
-            r = f(False, df)
-            e = fe(False, df)
-            tm.assert_frame_equal(r, e)
+            with tm.assert_produces_warning(check_stacklevel=False):
+                r = f(False, df)
+                e = fe(False, df)
+                tm.assert_frame_equal(r, e)
 
-            r = f(df, True)
-            e = fe(df, True)
-            tm.assert_frame_equal(r, e)
+            with tm.assert_produces_warning(check_stacklevel=False):
+                r = f(df, True)
+                e = fe(df, True)
+                tm.assert_frame_equal(r, e)
 
     @pytest.mark.parametrize(
         "test_input,expected",

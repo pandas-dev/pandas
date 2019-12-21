@@ -789,7 +789,6 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
 
     def _add_offset(self, offset):
         if self.ndim == 2:
-            # TODO: does order matter here?
             return self.ravel()._add_offset(offset).reshape(self.shape)
 
         assert not isinstance(offset, Tick)
