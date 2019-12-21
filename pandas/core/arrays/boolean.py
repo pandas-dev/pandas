@@ -340,16 +340,11 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
         """
         if dtype is None:
             dtype = object
-        if is_bool_dtype(dtype) and na_value is libmissing.NA:
-            if not self.isna().any():
-                data = self._data
-                if copy:
-                    data = data.copy()
-            else:
+        if self.isna().any():
+            if is_bool_dtype(dtype) and na_value is libmissing.NA:
                 raise ValueError(
                     "cannot convert to bool numpy array in presence of missing values"
                 )
-        if self.isna().any():
             # don't pass copy to astype -> always need a copy since we are mutating
             data = self._data.astype(dtype)
             data[self._mask] = na_value
