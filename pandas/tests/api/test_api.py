@@ -101,7 +101,7 @@ class TestPDApi(Base):
     deprecated_classes_in_future: List[str] = []
 
     # external modules exposed in pandas namespace
-    modules = ["np", "datetime"]
+    modules = ["datetime"]
 
     # top-level functions
     funcs = [
