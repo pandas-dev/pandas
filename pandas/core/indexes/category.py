@@ -715,9 +715,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         indexer = self.categories.get_indexer(np.asarray(keyarr))
         if (indexer == -1).any():
             raise KeyError(
-                "a list-indexer must only "
-                "include values that are "
-                "in the categories"
+                "a list-indexer must only include values that are in the categories"
             )
 
         return self.get_indexer(keyarr)
