@@ -37,6 +37,7 @@ from pandas._config import get_option
 from pandas._libs.tslibs.ccalendar import MONTH_NUMBERS
 from pandas._libs.tslibs.nattype import nat_strings, NaT
 from pandas._libs.tslibs.util cimport is_array, get_c_string_buf_and_size
+from pandas._libs.tslibs.frequencies cimport get_rule_month
 
 cdef extern from "../src/headers/portable.h":
     int getdigit_ascii(char c, int default) nogil
@@ -429,7 +430,7 @@ cdef inline object _parse_dateabbr_string(object date_string, object default,
             if freq is not None:
                 # hack attack, #1228
                 try:
-                    mnum = MONTH_NUMBERS[_get_rule_month(freq)] + 1
+                    mnum = MONTH_NUMBERS[get_rule_month(freq)] + 1
                 except (KeyError, ValueError):
                     raise DateParseError(f'Unable to retrieve month '
                                          f'information from given '
@@ -469,7 +470,7 @@ cdef inline object _parse_dateabbr_string(object date_string, object default,
     raise ValueError(f'Unable to parse {date_string}')
 
 
-cdef dateutil_parse(object timestr, object default, ignoretz=False,
+cdef dateutil_parse(str timestr, object default, ignoretz=False,
                     tzinfos=None, dayfirst=None, yearfirst=None):
     """ lifted from dateutil to get resolution"""
 
@@ -530,28 +531,6 @@ cdef dateutil_parse(object timestr, object default, ignoretz=False,
         elif res.tzoffset:
             ret = ret.replace(tzinfo=tzoffset(res.tzname, res.tzoffset))
     return ret, reso
-
-
-cdef str _get_rule_month(object source):
-    """
-    Return starting month of given freq, default is December.
-
-    Example
-    -------
-    >>> _get_rule_month('D')
-    'DEC'
-
-    >>> _get_rule_month('A-JAN')
-    'JAN'
-    """
-    if hasattr(source, 'freqstr'):
-        source = source.freqstr
-    source = source.upper()
-    if '-' not in source:
-        # Default is December
-        return "DEC"
-    else:
-        return source.split('-')[1]
 
 
 # ----------------------------------------------------------------------
