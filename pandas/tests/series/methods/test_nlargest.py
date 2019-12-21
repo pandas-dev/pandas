@@ -11,7 +11,6 @@ import pandas as pd
 from pandas import Series
 import pandas.util.testing as tm
 
-
 main_dtypes = [
     "datetime",
     "datetimetz",
