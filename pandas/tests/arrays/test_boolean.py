@@ -251,30 +251,32 @@ def test_coerce_to_numpy_array():
         np.array(arr, dtype="bool")
 
 
-def test_to_numpy():
+@pytest.mark.parametrize("box", [True, False], ids=["series", "array"])
+def test_to_numpy(box):
+    con = pd.Series if box else pd.array
     # default (with or without missing values) -> object dtype
-    arr = pd.array([True, False, True], dtype="boolean")
+    arr = con([True, False, True], dtype="boolean")
     result = arr.to_numpy()
     expected = np.array([True, False, True], dtype="object")
     tm.assert_numpy_array_equal(result, expected)
 
-    arr = pd.array([True, False, None], dtype="boolean")
+    arr = con([True, False, None], dtype="boolean")
     result = arr.to_numpy()
     expected = np.array([True, False, pd.NA], dtype="object")
     tm.assert_numpy_array_equal(result, expected)
 
     # no missing values -> can convert to bool, otherwise raises
-    arr = pd.array([True, False, True], dtype="boolean")
+    arr = con([True, False, True], dtype="boolean")
     result = arr.to_numpy(dtype="bool")
     expected = np.array([True, False, True], dtype="bool")
     tm.assert_numpy_array_equal(result, expected)
 
-    arr = pd.array([True, False, None], dtype="boolean")
+    arr = con([True, False, None], dtype="boolean")
     with pytest.raises(ValueError, match="cannot convert to bool numpy"):
         result = arr.to_numpy(dtype="bool")
 
     # specify dtype and na_value
-    arr = pd.array([True, False, None], dtype="boolean")
+    arr = con([True, False, None], dtype="boolean")
     result = arr.to_numpy(dtype=object, na_value=None)
     expected = np.array([True, False, None], dtype="object")
     tm.assert_numpy_array_equal(result, expected)

@@ -780,7 +780,7 @@ class IndexOpsMixin:
 
         return result
 
-    def to_numpy(self, dtype=None, copy=False):
+    def to_numpy(self, dtype=None, copy=False, **kwargs):
         """
         A NumPy ndarray representing the values in this Series or Index.
 
@@ -795,6 +795,11 @@ class IndexOpsMixin:
             another array. Note that ``copy=False`` does not *ensure* that
             ``to_numpy()`` is no-copy. Rather, ``copy=True`` ensure that
             a copy is made, even if not strictly necessary.
+        **kwargs
+            Additional keywords passed through to the ``to_numpy`` method
+            of the underlying array (for extension arrays).
+
+            .. versionadded:: 1.0.0
 
         Returns
         -------
@@ -864,6 +869,14 @@ class IndexOpsMixin:
         array(['1999-12-31T23:00:00.000000000', '2000-01-01T23:00:00...'],
               dtype='datetime64[ns]')
         """
+        if is_extension_array_dtype(self.dtype) and hasattr(self.array, "to_numpy"):
+            return self.array.to_numpy(dtype, copy=copy, **kwargs)
+        else:
+            if kwargs:
+                msg = "to_numpy() got an unexpected keyword argument '{}'".format(
+                    list(kwargs.keys())[0]
+                )
+                raise TypeError(msg)
         if is_datetime64tz_dtype(self.dtype) and dtype is None:
             # note: this is going to change very soon.
             # I have a WIP PR making this unnecessary, but it's
