@@ -19,9 +19,9 @@ jobs:
         PATTERN: "not slow and not network"
 
   steps:
-    - powershell: |
-        Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
-        Write-Host "##vso[task.prependpath]$HOME/miniconda3/bin"
+    - script: |
+        echo '##vso[task.prependpath]$env:CONDA\Scripts'
+        echo '##vso[task.prependpath]$HOME/miniconda3/bin'
       displayName: 'Add conda to PATH'
     - script: conda update -q -n base conda
       displayName: 'Update conda'
@@ -31,7 +31,8 @@ jobs:
     - bash: |
         source activate pandas-dev
         conda list
-        ci\\incremental\\build.cmd
+        python setup.py build_ext -q -i
+        python -m pip install --no-build-isolation -e .
       displayName: 'Build'
     - bash: |
         source activate pandas-dev
