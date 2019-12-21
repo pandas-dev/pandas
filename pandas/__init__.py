@@ -188,7 +188,6 @@ __version__ = v.get("closest-tag", v["version"])
 __git_version__ = v.get("full-revisionid")
 del get_versions, v
 
-
 # GH 27101
 # TODO: remove Panel compat in 1.0
 if pandas.compat.PY37:
@@ -248,6 +247,24 @@ else:
     class SparseSeries:
         pass
 
+    class numpy:
+        def __init__(self):
+            import numpy as np
+            import warnings
+
+            self.np = np
+            self.warnings = warnings
+
+        def __getattr__(self, item):
+            self.warnings.warn(
+                "The pandas.np module is deprecated and will be removed from pandas in a future version. "
+                "Import numpy directly instead",
+                FutureWarning,
+                stacklevel=2,
+            )
+            return getattr(self.np, item)
+
+    np = numpy()
 
 # module level doc-string
 __doc__ = """

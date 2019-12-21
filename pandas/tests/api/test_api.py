@@ -93,6 +93,7 @@ class TestPDApi(Base):
     ]
     if not compat.PY37:
         classes.extend(["Panel", "SparseSeries", "SparseDataFrame"])
+        deprecated_modules.extend("np")
 
     # these are already deprecated; awaiting removal
     deprecated_classes: List[str] = []
@@ -219,6 +220,18 @@ class TestPDApi(Base):
             + self.private_modules,
             self.ignored,
         )
+
+    def test_depr(self):
+        deprecated = (
+            self.deprecated_modules
+            + self.deprecated_classes
+            + self.deprecated_classes_in_future
+            + self.deprecated_funcs
+            + self.deprecated_funcs_in_future
+        )
+        for depr in deprecated:
+            with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+                getattr(pd, depr)
 
 
 class TestApi(Base):
