@@ -37,8 +37,7 @@ echo $PYTEST_CMD
 sh -c "$PYTEST_CMD"
 
 if [[ "$COVERAGE" && $? == 0 && "$TRAVIS_BRANCH" == "master" ]]; then
-    SHA=`git rev-parse HEAD`
     echo "uploading coverage"
-    echo "bash <(curl -s https://codecov.io/bash) -Z -c -F $TYPE -f $COVERAGE_FNAME -C $SHA"
-          bash <(curl -s https://codecov.io/bash) -Z -c -F $TYPE -f $COVERAGE_FNAME -C `git rev-parse HEAD`
+    echo "bash <(curl -s https://codecov.io/bash) -Z -c -f $COVERAGE_FNAME"
+          bash <(curl -s https://codecov.io/bash) -Z -c -f $COVERAGE_FNAME
 fi
