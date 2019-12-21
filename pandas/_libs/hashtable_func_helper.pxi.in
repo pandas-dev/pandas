@@ -4,6 +4,24 @@ Template for each `dtype` helper function for hashtable
 WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
 
+ctypedef fused table_t:
+    kh_float64_t
+    kh_uint64_t
+    kh_int64_t
+    kh_pymap_t
+
+
+cdef kh_destroy(table_t *table):
+    if table_t is kh_float64_t:
+        kh_destroy_float64(table)
+    elif table_t is kh_uint64_t:
+        kh_destroy_uint64(table)
+    elif table_t is kh_int64_t:
+        kh_destroy_int64(table)
+    elif table_t is kh_pymap_t:
+        kh_destroy_pymap(table)
+
+
 {{py:
 
 # dtype, ttype, c_type
@@ -111,7 +129,7 @@ cpdef value_count_{{dtype}}({{c_type}}[:] values, bint dropna):
                 i += 1
     {{endif}}
 
-    kh_destroy_{{ttype}}(table)
+    kh_destroy(table)
 
     {{if dtype == 'object'}}
     return result_keys, result_counts
@@ -192,7 +210,8 @@ def duplicated_{{dtype}}({{c_type}}[:] values, object keep='first'):
                     table.vals[k] = i
                     out[i] = 0
         {{endif}}
-    kh_destroy_{{ttype}}(table)
+
+    kh_destroy(table)
     return out
 
 
@@ -258,7 +277,7 @@ def ismember_{{dtype}}({{c_type}}[:] arr, {{c_type}}[:] values):
             result[i] = (k != table.n_buckets)
     {{endif}}
 
-    kh_destroy_{{ttype}}(table)
+    kh_destroy(table)
     return result.view(np.bool_)
 
 {{endfor}}
@@ -334,7 +353,7 @@ def mode_{{dtype}}({{ctype}}[:] values, bint dropna):
             modes[j] = <object>table.keys[k]
     {{endif}}
 
-    kh_destroy_{{table_type}}(table)
+    kh_destroy(table)
 
     return modes[:j + 1]
 
