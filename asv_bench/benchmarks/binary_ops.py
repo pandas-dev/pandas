@@ -15,14 +15,23 @@ class IntFrameWithScalar:
         [np.float64, np.int64],
         [2, 3.0, np.int32(4), np.float64(5)],
         [
-            operator.add, operator.sub,
-            operator.mul, operator.truediv, operator.floordiv,
-            operator.pow, operator.mod,
-            operator.and_, operator.or_, operator.xor,
-            operator.eq, operator.ne,
-            operator.gt, operator.ge,
-            operator.lt, operator.le
-        ]
+            operator.add,
+            operator.sub,
+            operator.mul,
+            operator.truediv,
+            operator.floordiv,
+            operator.pow,
+            operator.mod,
+            operator.and_,
+            operator.or_,
+            operator.xor,
+            operator.eq,
+            operator.ne,
+            operator.gt,
+            operator.ge,
+            operator.lt,
+            operator.le,
+        ],
     ]
     param_names = ["dtype", "scalar", "op"]
 
