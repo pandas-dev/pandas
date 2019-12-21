@@ -8,6 +8,14 @@ dependencies:
   - python-dateutil>=2.6.1
   - pytz
 
+  # optional - performance
+  - numexpr>=2.6.8
+  - bottleneck>=1.2.1
+
+  # optional - features
+  - scipy>=1.1
+  - matplotlib>=2.2.2  # pandas.plotting, Series.plot, DataFrame.plot
+
   # benchmarks
   - asv
 
@@ -28,17 +36,13 @@ dependencies:
   - gitpython  # obtain contributors from git for whatsnew
   - sphinx
   - numpydoc>=0.9.0
+  - pip:
+    - git+https://github.com/pandas-dev/pandas-sphinx-theme.git@master
 
   # documentation (jupyter notebooks)
   - nbconvert>=5.4.1
   - nbsphinx
   - pandoc
-  # Dask and its dependencies
-  - dask-core
-  - toolz>=0.7.3
-  - fsspec>=0.5.1
-  - partd>=0.3.10
-  - cloudpickle>=0.2.1
 
   # web (jinja2 is also needed, but it's also an optional pandas dependency)
   - markdown
@@ -54,42 +58,41 @@ dependencies:
   - pytest>=5.0.1
   - pytest-cov
   - pytest-xdist>=1.21
+
+  # downstream tests
   - seaborn
   - statsmodels
 
-  # unused (required indirectly may be?)
-  - ipywidgets
-  - nbformat
-  - notebook>=5.7.5
-  - pip
-
-  # optional
-  - blosc
-  - bottleneck>=1.2.1
-  - ipykernel
-  - ipython>=5.6.0
-  - jinja2  # pandas.Styler
-  - matplotlib>=2.2.2  # pandas.plotting, Series.plot, DataFrame.plot
-  - numexpr>=2.6.8
-  - scipy>=1.1
+  # Dask and its dependencies (that dont install automatically with dask)
+  - dask-core
+  - toolz>=0.7.3
+  - fsspec>=0.5.1
+  - partd>=0.3.10
+  - cloudpickle>=0.2.1
 
   # optional for io
   - beautifulsoup4>=4.6.0  # pandas.read_html
-  - fastparquet>=0.3.2  # pandas.read_parquet, DataFrame.to_parquet
   - html5lib  # pandas.read_html
   - lxml  # pandas.read_html
+
   - openpyxl<=3.0.1  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
-  - pyarrow>=0.13.1  # pandas.read_parquet, DataFrame.to_parquet, pandas.read_feather, DataFrame.to_feather
-  - pyqt>=5.9.2  # pandas.read_clipboard
-  - pytables>=3.4.2  # pandas.read_hdf, DataFrame.to_hdf
-  - python-snappy  # required by pyarrow
-  - s3fs  # pandas.read_csv... when using 's3://...' path
-  - sqlalchemy  # pandas.read_sql, DataFrame.to_sql
-  - xarray  # DataFrame.to_xarray
   - xlrd  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
   - xlsxwriter  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
   - xlwt  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
   - odfpy  # pandas.read_excel
+
+  - pyarrow>=0.13.1  # pandas.read_parquet, DataFrame.to_parquet, pandas.read_feather, DataFrame.to_feather
+  - fastparquet>=0.3.2  # pandas.read_parquet, DataFrame.to_parquet
+  - python-snappy  # required by pyarrow
+
+  - pyqt>=5.9.2  # pandas.read_clipboard
+
+  - pytables>=3.4.2  # pandas.read_hdf, DataFrame.to_hdf
+  - blosc  # compression option for hdf5
+
+  - s3fs  # pandas.read_csv... when using 's3://...' path
+  - sqlalchemy  # pandas.read_sql, DataFrame.to_sql
+  - xarray  # DataFrame.to_xarray
   - pyreadstat  # pandas.read_spss
-  - pip:
-    - git+https://github.com/pandas-dev/pandas-sphinx-theme.git@master
+
+  - jinja2  # pandas.Styler
