@@ -804,10 +804,11 @@ class Index(IndexOpsMixin, PandasObject):
         # only fill if we are passing a non-None fill_value
         if allow_fill and fill_value is not None:
             if (indices < -1).any():
-                raise ValueError(
+                msg = (
                     "When allow_fill=True and fill_value is not None, "
                     "all indices must be >= -1"
                 )
+                raise ValueError(msg)
             taken = algos.take(
                 values, indices, allow_fill=allow_fill, fill_value=na_value
             )
@@ -1323,7 +1324,8 @@ class Index(IndexOpsMixin, PandasObject):
             raise ValueError("Level must be None for non-MultiIndex")
 
         if level is not None and not is_list_like(level) and is_list_like(names):
-            raise TypeError("Names must be a string when a single level is provided.")
+            msg = "Names must be a string when a single level is provided."
+            raise TypeError(msg)
 
         if not is_list_like(names) and level is None and self.nlevels > 1:
             raise TypeError("Must pass list-like as `names`.")
@@ -1419,8 +1421,8 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(level, int):
             if level < 0 and level != -1:
                 raise IndexError(
-                    "Too many levels: Index has only 1 level, "
-                    f"{level} is not a valid level number"
+                    f"Too many levels: Index has only 1 level,"
+                    f" {level} is not a valid level number"
                 )
             elif level > 0:
                 raise IndexError(

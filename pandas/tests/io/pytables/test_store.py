@@ -3,7 +3,6 @@ from datetime import timedelta
 from distutils.version import LooseVersion
 from io import BytesIO
 import os
-from pathlib import Path
 import re
 from warnings import catch_warnings, simplefilter
 
@@ -4595,9 +4594,12 @@ class TestHDFStore:
             with pytest.raises(ValueError):
                 read_hdf(path)
 
+    @td.skip_if_no("pathlib")
     def test_read_from_pathlib_path(self, setup_path):
 
         # GH11773
+        from pathlib import Path
+
         expected = DataFrame(
             np.random.rand(4, 5), index=list("abcd"), columns=list("ABCDE")
         )

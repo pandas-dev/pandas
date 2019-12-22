@@ -117,8 +117,9 @@ def _single_replace(self, to_replace, method, inplace, limit):
     """
     if self.ndim != 1:
         raise TypeError(
-            f"cannot replace {to_replace} with method {method} on a "
-            f"{type(self).__name__}"
+            "cannot replace {0} with method {1} on a {2}".format(
+                to_replace, method, type(self).__name__
+            )
         )
 
     orig_dtype = self.dtype
@@ -253,7 +254,7 @@ class NDFrame(PandasObject, SelectionMixin):
             if dtype.kind == "V":
                 raise NotImplementedError(
                     "compound dtypes are not implemented"
-                    f" in the {type(self).__name__} constructor"
+                    " in the {0} constructor".format(type(self).__name__)
                 )
 
         return dtype
@@ -395,7 +396,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 return cls._AXIS_NUMBERS[axis]
             except KeyError:
                 pass
-        raise ValueError(f"No axis named {axis} for object type {cls}")
+        raise ValueError("No axis named {0} for object type {1}".format(axis, cls))
 
     @classmethod
     def _get_axis_name(cls, axis):
@@ -408,7 +409,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 return cls._AXIS_NAMES[axis]
             except KeyError:
                 pass
-        raise ValueError(f"No axis named {axis} for object type {cls}")
+        raise ValueError("No axis named {0} for object type {1}".format(axis, cls))
 
     def _get_axis(self, axis):
         name = self._get_axis_name(axis)
@@ -436,7 +437,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 # prefix with 'i' or 'c' depending on the input axis
                 # e.g., you must do ilevel_0 for the 0th level of an unnamed
                 # multiiindex
-                key = f"{prefix}level_{i}"
+                key = "{prefix}level_{i}".format(prefix=prefix, i=i)
                 level = i
 
             level_values = axis_index.get_level_values(level)
@@ -1081,7 +1082,7 @@ class NDFrame(PandasObject, SelectionMixin):
         if kwargs:
             raise TypeError(
                 "rename() got an unexpected keyword "
-                f'argument "{list(kwargs.keys())[0]}"'
+                'argument "{0}"'.format(list(kwargs.keys())[0])
             )
 
         if com.count_not_none(*axes.values()) == 0:
@@ -1107,7 +1108,7 @@ class NDFrame(PandasObject, SelectionMixin):
                     missing_labels = [
                         label for index, label in enumerate(v) if indexer[index] == -1
                     ]
-                    raise KeyError(f"{missing_labels} not found in axis")
+                    raise KeyError("{} not found in axis".format(missing_labels))
 
             result._data = result._data.rename_axis(
                 f, axis=baxis, copy=copy, level=level
@@ -1256,7 +1257,7 @@ class NDFrame(PandasObject, SelectionMixin):
         if kwargs:
             raise TypeError(
                 "rename_axis() got an unexpected keyword "
-                f'argument "{list(kwargs.keys())[0]}"'
+                'argument "{0}"'.format(list(kwargs.keys())[0])
             )
 
         inplace = validate_bool_kwarg(inplace, "inplace")
@@ -1460,7 +1461,9 @@ class NDFrame(PandasObject, SelectionMixin):
         ):
             arr = operator.neg(values)
         else:
-            raise TypeError(f"Unary negative expects numeric dtype, not {values.dtype}")
+            raise TypeError(
+                "Unary negative expects numeric dtype, not {}".format(values.dtype)
+            )
         return self.__array_wrap__(arr)
 
     def __pos__(self):
@@ -1474,7 +1477,9 @@ class NDFrame(PandasObject, SelectionMixin):
         ):
             arr = operator.pos(values)
         else:
-            raise TypeError(f"Unary plus expects numeric dtype, not {values.dtype}")
+            raise TypeError(
+                "Unary plus expects numeric dtype, not {}".format(values.dtype)
+            )
         return self.__array_wrap__(arr)
 
     def __invert__(self):
@@ -1487,8 +1492,10 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def __nonzero__(self):
         raise ValueError(
-            f"The truth value of a {type(self).__name__} is ambiguous. "
-            "Use a.empty, a.bool(), a.item(), a.any() or a.all()."
+            "The truth value of a {0} is ambiguous. "
+            "Use a.empty, a.bool(), a.item(), a.any() or a.all().".format(
+                type(self).__name__
+            )
         )
 
     __bool__ = __nonzero__
@@ -1512,7 +1519,7 @@ class NDFrame(PandasObject, SelectionMixin):
         elif is_scalar(v):
             raise ValueError(
                 "bool cannot act on a non-boolean single element "
-                f"{type(self).__name__}"
+                "{0}".format(type(self).__name__)
             )
 
         self.__nonzero__()
@@ -1652,8 +1659,14 @@ class NDFrame(PandasObject, SelectionMixin):
             )
 
             msg = (
-                f"'{key}' is both {level_article} {level_type} level and "
-                f"{label_article} {label_type} label, which is ambiguous."
+                "'{key}' is both {level_article} {level_type} level and "
+                "{label_article} {label_type} label, which is ambiguous."
+            ).format(
+                key=key,
+                level_article=level_article,
+                level_type=level_type,
+                label_article=label_article,
+                label_type=label_type,
             )
             raise ValueError(msg)
 
@@ -1718,8 +1731,12 @@ class NDFrame(PandasObject, SelectionMixin):
             label_axis_name = "column" if axis == 0 else "index"
             raise ValueError(
                 (
-                    f"The {label_axis_name} label '{key}' "
-                    f"is not unique.{multi_message}"
+                    "The {label_axis_name} label '{key}' "
+                    "is not unique.{multi_message}"
+                ).format(
+                    key=key,
+                    label_axis_name=label_axis_name,
+                    multi_message=multi_message,
                 )
             )
 
@@ -1763,8 +1780,8 @@ class NDFrame(PandasObject, SelectionMixin):
             raise ValueError(
                 (
                     "The following keys are not valid labels or "
-                    f"levels for axis {axis}: {invalid_keys}"
-                )
+                    "levels for axis {axis}: {invalid_keys}"
+                ).format(axis=axis, invalid_keys=invalid_keys)
             )
 
         # Compute levels and labels to drop
@@ -1981,7 +1998,7 @@ class NDFrame(PandasObject, SelectionMixin):
     def __repr__(self) -> str:
         # string representation based upon iterating over self
         # (since, by definition, `PandasContainers` are iterable)
-        prepr = f"[{','.join(map(pprint_thing, self))}]"
+        prepr = "[%s]" % ",".join(map(pprint_thing, self))
         return f"{type(self).__name__}({prepr})"
 
     def _repr_latex_(self):
@@ -3929,13 +3946,13 @@ class NDFrame(PandasObject, SelectionMixin):
 
                 # GH 18561 MultiIndex.drop should raise if label is absent
                 if errors == "raise" and indexer.all():
-                    raise KeyError(f"{labels} not found in axis")
+                    raise KeyError("{} not found in axis".format(labels))
             else:
                 indexer = ~axis.isin(labels)
                 # Check if label doesn't exist along axis
                 labels_missing = (axis.get_indexer_for(labels) == -1).any()
                 if errors == "raise" and labels_missing:
-                    raise KeyError(f"{labels} not found in axis")
+                    raise KeyError("{} not found in axis".format(labels))
 
             slicer = [slice(None)] * self.ndim
             slicer[self._get_axis_number(axis_name)] = indexer
@@ -4459,7 +4476,7 @@ class NDFrame(PandasObject, SelectionMixin):
         if kwargs:
             raise TypeError(
                 "reindex() got an unexpected keyword "
-                f'argument "{list(kwargs.keys())[0]}"'
+                'argument "{0}"'.format(list(kwargs.keys())[0])
             )
 
         self._consolidate_inplace()
@@ -5980,7 +5997,7 @@ class NDFrame(PandasObject, SelectionMixin):
                     raise TypeError(
                         '"value" parameter must be a scalar, dict '
                         "or Series, but you passed a "
-                        f'"{type(value).__name__}"'
+                        '"{0}"'.format(type(value).__name__)
                     )
 
                 new_data = self._data.fillna(
@@ -6764,9 +6781,9 @@ class NDFrame(PandasObject, SelectionMixin):
             if method not in methods and not is_numeric_or_datetime:
                 raise ValueError(
                     "Index column must be numeric or datetime type when "
-                    f"using {method} method other than linear. "
+                    "using {method} method other than linear. "
                     "Try setting a numeric or datetime index column before "
-                    "interpolating."
+                    "interpolating.".format(method=method)
                 )
 
         if isna(index).any():
@@ -9188,7 +9205,7 @@ class NDFrame(PandasObject, SelectionMixin):
             ax = ax.set_levels(new_level, level=level)
         else:
             if level not in (None, 0, ax.name):
-                raise ValueError(f"The level {level} is not valid")
+                raise ValueError("The level {0} is not valid".format(level))
             ax = _tz_convert(ax, tz)
 
         result = self._constructor(self._data, copy=copy)
@@ -9358,7 +9375,7 @@ class NDFrame(PandasObject, SelectionMixin):
             ax = ax.set_levels(new_level, level=level)
         else:
             if level not in (None, 0, ax.name):
-                raise ValueError(f"The level {level} is not valid")
+                raise ValueError("The level {0} is not valid".format(level))
             ax = _tz_localize(ax, tz, ambiguous, nonexistent)
 
         result = self._constructor(self._data, copy=copy)
@@ -10340,8 +10357,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
 def _doc_parms(cls):
     """Return a tuple of the doc parms."""
-    axis_descr = (
-        f"{{{', '.join(f'{a} ({i})' for i, a in enumerate(cls._AXIS_ORDERS))}}}"
+    axis_descr = "{%s}" % ", ".join(
+        "{0} ({1})".format(a, i) for i, a in enumerate(cls._AXIS_ORDERS)
     )
     name = cls._constructor_sliced.__name__ if cls._AXIS_LEN > 1 else "scalar"
     name2 = cls.__name__

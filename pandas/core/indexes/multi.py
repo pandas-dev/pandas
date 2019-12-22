@@ -1,7 +1,6 @@
 from collections import OrderedDict
 import datetime
 from sys import getsizeof
-from typing import List, Optional
 import warnings
 
 import numpy as np
@@ -86,7 +85,7 @@ class MultiIndexUIntEngine(libindex.BaseMultiIndexCodesEngine, libindex.UInt64En
 
         Returns
         -------
-        scalar or 1-dimensional array, of dtype uint64
+        int_keys : scalar or 1-dimensional array, of dtype uint64
             Integer(s) representing one combination (each).
         """
         # Shift the representation of each level by the pre-calculated number
@@ -126,7 +125,7 @@ class MultiIndexPyIntEngine(libindex.BaseMultiIndexCodesEngine, libindex.ObjectE
 
         Returns
         -------
-        int, or 1-dimensional array of dtype object
+        int_keys : int, or 1-dimensional array of dtype object
             Integer(s) representing one combination (each).
         """
 
@@ -249,8 +248,8 @@ class MultiIndex(Index):
         dtype=None,
         copy=False,
         name=None,
-        verify_integrity: bool = True,
-        _set_identity: bool = True,
+        verify_integrity=True,
+        _set_identity=True,
     ):
 
         # compat with Index
@@ -288,7 +287,7 @@ class MultiIndex(Index):
 
         return result
 
-    def _validate_codes(self, level: List, code: List):
+    def _validate_codes(self, level: list, code: list):
         """
         Reassign code values as -1 if their corresponding levels are NaN.
 
@@ -301,7 +300,7 @@ class MultiIndex(Index):
 
         Returns
         -------
-        new code where code value = -1 if it corresponds
+        code : new code where code value = -1 if it corresponds
         to a level with missing values (NaN, NaT, None).
         """
         null_mask = isna(level)
@@ -309,10 +308,9 @@ class MultiIndex(Index):
             code = np.where(null_mask[code], -1, code)
         return code
 
-    def _verify_integrity(
-        self, codes: Optional[List] = None, levels: Optional[List] = None
-    ):
+    def _verify_integrity(self, codes=None, levels=None):
         """
+
         Parameters
         ----------
         codes : optional list
@@ -328,7 +326,7 @@ class MultiIndex(Index):
 
         Returns
         -------
-        new codes where code value = -1 if it corresponds to a
+        codes : new codes where code value = -1 if it corresponds to a
         NaN level.
         """
         # NOTE: Currently does not check, among other things, that cached
@@ -338,8 +336,8 @@ class MultiIndex(Index):
 
         if len(levels) != len(codes):
             raise ValueError(
-                "Length of levels and codes must match. NOTE: "
-                "this index is in an inconsistent state."
+                "Length of levels and codes must match. NOTE:"
+                " this index is in an inconsistent state."
             )
         codes_length = len(codes[0])
         for i, (level, level_codes) in enumerate(zip(levels, codes)):
@@ -391,7 +389,7 @@ class MultiIndex(Index):
 
         Returns
         -------
-        MultiIndex
+        index : MultiIndex
 
         See Also
         --------
@@ -456,7 +454,7 @@ class MultiIndex(Index):
 
         Returns
         -------
-        MultiIndex
+        index : MultiIndex
 
         See Also
         --------
@@ -483,7 +481,8 @@ class MultiIndex(Index):
 
         if len(tuples) == 0:
             if names is None:
-                raise TypeError("Cannot infer number of levels from empty list")
+                msg = "Cannot infer number of levels from empty list"
+                raise TypeError(msg)
             arrays = [[]] * len(names)
         elif isinstance(tuples, (np.ndarray, Index)):
             if isinstance(tuples, Index):
@@ -519,7 +518,7 @@ class MultiIndex(Index):
 
         Returns
         -------
-        MultiIndex
+        index : MultiIndex
 
         See Also
         --------
@@ -654,15 +653,15 @@ class MultiIndex(Index):
         ------
         ValueError
         """
-        raise ValueError(
+        msg = (
             "MultiIndex has no single backing array. Use "
             "'MultiIndex.to_numpy()' to get a NumPy array of tuples."
         )
+        raise ValueError(msg)
 
     @property
     def _is_homogeneous_type(self) -> bool:
-        """
-        Whether the levels of a MultiIndex all have the same dtype.
+        """Whether the levels of a MultiIndex all have the same dtype.
 
         This looks at the dtypes of the levels.
 
@@ -733,7 +732,7 @@ class MultiIndex(Index):
             Level(s) to set (None for all levels).
         inplace : bool
             If True, mutates in place.
-        verify_integrity : bool, default True
+        verify_integrity : bool (default True)
             If True, checks that levels and codes are compatible.
 
         Returns

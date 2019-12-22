@@ -37,12 +37,7 @@ from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, lib
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import (
-    Appender,
-    Substitution,
-    deprecate_kwarg,
-    rewrite_axis_style_signature,
-)
+from pandas.util._decorators import Appender, Substitution, rewrite_axis_style_signature
 from pandas.util._validators import (
     validate_axis_style_args,
     validate_bool_kwarg,
@@ -455,7 +450,7 @@ class DataFrame(NDFrame):
 
         # For data is list-like, or Iterable (will consume into list)
         elif isinstance(data, abc.Iterable) and not isinstance(data, (str, bytes)):
-            if not isinstance(data, (abc.Sequence, ExtensionArray)):
+            if not isinstance(data, abc.Sequence):
                 data = list(data)
             if len(data) > 0:
                 if is_list_like(data[0]) and getattr(data[0], "ndim", 1) == 1:
@@ -1745,7 +1740,7 @@ class DataFrame(NDFrame):
         rec.array([(b'a', 1, 0.5 ), (b'b', 2, 0.75)],
                   dtype=[('I', 'S2'), ('A', '<i8'), ('B', '<f8')])
 
-        >>> index_dtypes = f"<S{df.index.str.len().max()}"
+        >>> index_dtypes = "<S{}".format(df.index.str.len().max())
         >>> df.to_records(index_dtypes=index_dtypes)
         rec.array([(b'a', 1, 0.5 ), (b'b', 2, 0.75)],
                   dtype=[('I', 'S1'), ('A', '<i8'), ('B', '<f8')])
@@ -1834,10 +1829,9 @@ class DataFrame(NDFrame):
         mgr = arrays_to_mgr(arrays, columns, index, columns, dtype=dtype)
         return cls(mgr)
 
-    @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
     def to_stata(
         self,
-        path,
+        fname,
         convert_dates=None,
         write_index=True,
         byteorder=None,
@@ -1855,16 +1849,11 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        path : str, buffer or path object
+        fname : str, buffer or path object
             String, path object (pathlib.Path or py._path.local.LocalPath) or
             object implementing a binary write() function. If using a buffer
             then the buffer will not be automatically closed after the file
             data has been written.
-
-            .. versionchanged:: 1.0.0
-
-            Previously this was "fname"
-
         convert_dates : dict
             Dictionary mapping columns containing datetime types to stata
             internal format to use when writing the dates. Options are 'tc',
@@ -1938,7 +1927,7 @@ class DataFrame(NDFrame):
             kwargs["convert_strl"] = convert_strl
 
         writer = statawriter(
-            path,
+            fname,
             self,
             convert_dates=convert_dates,
             byteorder=byteorder,
@@ -1950,24 +1939,22 @@ class DataFrame(NDFrame):
         )
         writer.write_file()
 
-    @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
-    def to_feather(self, path):
+    def to_feather(self, fname):
         """
         Write out the binary feather-format for DataFrames.
 
         Parameters
         ----------
-        path : str
+        fname : str
             String file path.
         """
         from pandas.io.feather_format import to_feather
 
-        to_feather(self, path)
+        to_feather(self, fname)
 
-    @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
     def to_parquet(
         self,
-        path,
+        fname,
         engine="auto",
         compression="snappy",
         index=None,
@@ -1986,13 +1973,11 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        path : str
+        fname : str
             File path or Root Directory path. Will be used as Root Directory
             path while writing a partitioned dataset.
 
-            .. versionchanged:: 1.0.0
-
-            Previously this was "fname"
+            .. versionchanged:: 0.24.0
 
         engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
             Parquet library to use. If 'auto', then the option
@@ -2049,7 +2034,7 @@ class DataFrame(NDFrame):
 
         to_parquet(
             self,
-            path,
+            fname,
             engine,
             compression=compression,
             index=index,
@@ -2355,9 +2340,13 @@ class DataFrame(NDFrame):
             # returns size in human readable format
             for x in ["bytes", "KB", "MB", "GB", "TB"]:
                 if num < 1024.0:
-                    return f"{num:3.1f}{size_qualifier} {x}"
+                    return "{num:3.1f}{size_q} {x}".format(
+                        num=num, size_q=size_qualifier, x=x
+                    )
                 num /= 1024.0
-            return f"{num:3.1f}{size_qualifier} PB"
+            return "{num:3.1f}{size_q} {pb}".format(
+                num=num, size_q=size_qualifier, pb="PB"
+            )
 
         if verbose:
             _verbose_repr()
@@ -2370,7 +2359,7 @@ class DataFrame(NDFrame):
                 _verbose_repr()
 
         counts = self._data.get_dtype_counts()
-        dtypes = [f"{k[0]}({k[1]:d})" for k in sorted(counts.items())]
+        dtypes = ["{k}({kk:d})".format(k=k[0], kk=k[1]) for k in sorted(counts.items())]
         lines.append(f"dtypes: {', '.join(dtypes)}")
 
         if memory_usage is None:

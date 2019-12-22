@@ -46,7 +46,7 @@ def get_engine(engine: str) -> "BaseImpl":
 
 class BaseImpl:
     @staticmethod
-    def validate_dataframe(df: DataFrame):
+    def validate_dataframe(df):
 
         if not isinstance(df, DataFrame):
             raise ValueError("to_parquet only supports IO with DataFrames")
@@ -62,7 +62,7 @@ class BaseImpl:
         if not valid_names:
             raise ValueError("Index level names must be strings")
 
-    def write(self, df: DataFrame, path, compression, **kwargs):
+    def write(self, df, path, compression, **kwargs):
         raise AbstractMethodError(self)
 
     def read(self, path, columns=None, **kwargs):
@@ -80,7 +80,7 @@ class PyArrowImpl(BaseImpl):
 
     def write(
         self,
-        df: DataFrame,
+        df,
         path,
         compression="snappy",
         coerce_timestamps="ms",
@@ -137,13 +137,7 @@ class FastParquetImpl(BaseImpl):
         self.api = fastparquet
 
     def write(
-        self,
-        df: DataFrame,
-        path,
-        compression="snappy",
-        index=None,
-        partition_cols=None,
-        **kwargs,
+        self, df, path, compression="snappy", index=None, partition_cols=None, **kwargs
     ):
         self.validate_dataframe(df)
         # thriftpy/protocol/compact.py:339:
@@ -202,9 +196,9 @@ class FastParquetImpl(BaseImpl):
 
 
 def to_parquet(
-    df: DataFrame,
+    df,
     path,
-    engine: str = "auto",
+    engine="auto",
     compression="snappy",
     index: Optional[bool] = None,
     partition_cols=None,
@@ -215,7 +209,6 @@ def to_parquet(
 
     Parameters
     ----------
-    df : DataFrame
     path : str
         File path or Root Directory path. Will be used as Root Directory path
         while writing a partitioned dataset.
@@ -262,7 +255,7 @@ def to_parquet(
     )
 
 
-def read_parquet(path, engine: str = "auto", columns=None, **kwargs):
+def read_parquet(path, engine="auto", columns=None, **kwargs):
     """
     Load a parquet object from the file path, returning a DataFrame.
 

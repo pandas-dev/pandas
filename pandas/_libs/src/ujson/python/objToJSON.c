@@ -1632,7 +1632,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
                 sprintf(buf, "%" NPY_INT64_FMT, value);
                 len = strlen(cLabel);
             }
-        } else { // Fallback to string representation
+        } else { // Fallack to string representation
             PyObject *str = PyObject_Str(item);
             if (str == NULL) {
                 Py_DECREF(item);

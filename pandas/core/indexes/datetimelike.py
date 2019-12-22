@@ -2,7 +2,7 @@
 Base and utility classes for tseries type pandas objects.
 """
 import operator
-from typing import List, Set
+from typing import Set
 
 import numpy as np
 
@@ -73,7 +73,7 @@ def _make_wrapped_arith_op(opname):
 
 class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     """
-    Common ops mixin to support a unified interface datetimelike Index.
+    common ops mixin to support a unified interface datetimelike Index
     """
 
     _data: ExtensionArray
@@ -336,7 +336,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             raise ValueError("list-like tolerance size must match target index size")
         return tolerance
 
-    def tolist(self) -> List:
+    def tolist(self):
         """
         Return a list of the underlying data.
         """
@@ -661,12 +661,11 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         Parameters
         ----------
         name : str
-            Name to use in the summary representation.
+            name to use in the summary representation
 
         Returns
         -------
-        str
-            Summarized representation of the index.
+        String with a summarized representation of the index
         """
         formatter = self._formatter_func
         if len(self) > 0:

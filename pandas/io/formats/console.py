@@ -6,8 +6,7 @@ from shutil import get_terminal_size
 
 
 def get_console_size():
-    """
-    Return console size as tuple = (width, height).
+    """Return console size as tuple = (width, height).
 
     Returns (None,None) in non-interactive session.
     """
@@ -51,13 +50,9 @@ def get_console_size():
 
 
 def in_interactive_session():
-    """
-    Check if we're running in an interactive shell.
+    """ check if we're running in an interactive shell
 
-    Returns
-    -------
-    bool
-        True if running under python/ipython interactive shell.
+    returns True if running under python/ipython interactive shell
     """
     from pandas import get_option
 
@@ -76,11 +71,7 @@ def in_interactive_session():
 
 def in_ipython_frontend():
     """
-    Check if we're inside an an IPython zmq frontend.
-
-    Returns
-    -------
-    bool
+    check if we're inside an an IPython zmq frontend
     """
     try:
         ip = get_ipython()  # noqa

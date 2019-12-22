@@ -232,7 +232,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             except ValueError:
                 raise ValueError(
                     "Location based indexing can only have "
-                    f"[{self._valid_types}] types"
+                    "[{types}] types".format(types=self._valid_types)
                 )
 
     def _is_nested_tuple_indexer(self, tup: Tuple) -> bool:
@@ -286,7 +286,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         bool
         """
         if isinstance(indexer, dict):
-            raise IndexError(f"{self.name} cannot enlarge its target object")
+            raise IndexError("{0} cannot enlarge its target object".format(self.name))
         else:
             if not isinstance(indexer, tuple):
                 indexer = _tuplify(self.ndim, indexer)
@@ -300,10 +300,13 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 elif is_integer(i):
                     if i >= len(ax):
                         raise IndexError(
-                            f"{self.name} cannot enlarge its target object"
+                            "{name} cannot enlarge its target "
+                            "object".format(name=self.name)
                         )
                 elif isinstance(i, dict):
-                    raise IndexError(f"{self.name} cannot enlarge its target object")
+                    raise IndexError(
+                        "{name} cannot enlarge its target object".format(name=self.name)
+                    )
 
         return True
 
@@ -1163,14 +1166,17 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
         if missing:
             if missing == len(indexer):
-                axis_name = self.obj._get_axis_name(axis)
-                raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+                raise KeyError(
+                    "None of [{key}] are in the [{axis}]".format(
+                        key=key, axis=self.obj._get_axis_name(axis)
+                    )
+                )
 
             # We (temporarily) allow for some missing keys with .loc, except in
             # some cases (e.g. setting) in which "raise_missing" will be False
             if not (self.name == "loc" and not raise_missing):
                 not_found = list(set(key) - set(ax))
-                raise KeyError(f"{not_found} not in index")
+                raise KeyError("{} not in index".format(not_found))
 
             # we skip the warning on Categorical/Interval
             # as this check is actually done (check for
@@ -1899,13 +1905,18 @@ class _iLocIndexer(_LocationIndexer):
 
             # check that the key has a numeric dtype
             if not is_numeric_dtype(arr.dtype):
-                raise IndexError(f".iloc requires numeric indexers, got {arr}")
+                raise IndexError(
+                    ".iloc requires numeric indexers, got {arr}".format(arr=arr)
+                )
 
             # check that the key does not exceed the maximum size of the index
             if len(arr) and (arr.max() >= len_axis or arr.min() < -len_axis):
                 raise IndexError("positional indexers are out-of-bounds")
         else:
-            raise ValueError(f"Can only index by location with a [{self._valid_types}]")
+            raise ValueError(
+                "Can only index by location with "
+                "a [{types}]".format(types=self._valid_types)
+            )
 
     def _has_valid_setitem_indexer(self, indexer):
         self._has_valid_positional_setitem_indexer(indexer)
@@ -2052,7 +2063,10 @@ class _iLocIndexer(_LocationIndexer):
             self._validate_key(obj, axis)
             return obj
         except ValueError:
-            raise ValueError(f"Can only index by location with a [{self._valid_types}]")
+            raise ValueError(
+                "Can only index by location with "
+                "a [{types}]".format(types=self._valid_types)
+            )
 
 
 class _ScalarAccessIndexer(_NDFrameIndexerBase):
@@ -2313,7 +2327,7 @@ def check_bool_indexer(index: Index, key) -> np.ndarray:
         # GH26658
         if len(result) != len(index):
             raise IndexError(
-                f"Item wrong length {len(result)} instead of {len(index)}."
+                "Item wrong length {} instead of {}.".format(len(result), len(index))
             )
 
     return result

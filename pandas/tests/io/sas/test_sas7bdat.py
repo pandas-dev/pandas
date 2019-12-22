@@ -1,6 +1,5 @@
 import io
 import os
-from pathlib import Path
 
 import numpy as np
 import pytest
@@ -69,7 +68,10 @@ class TestSAS7BDAT:
                 tm.assert_frame_equal(df, df0.iloc[2:5, :])
                 rdr.close()
 
+    @td.skip_if_no("pathlib")
     def test_path_pathlib(self):
+        from pathlib import Path
+
         for j in 0, 1:
             df0 = self.data[j]
             for k in self.test_ix[j]:

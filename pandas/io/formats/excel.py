@@ -15,7 +15,6 @@ from pandas.core.dtypes.generic import ABCMultiIndex, ABCPeriodIndex
 from pandas import Index
 import pandas.core.common as com
 
-from pandas.io.common import stringify_path
 from pandas.io.formats.css import CSSResolver, CSSWarning
 from pandas.io.formats.format import get_level_lengths
 from pandas.io.formats.printing import pprint_thing
@@ -712,6 +711,7 @@ class ExcelFormatter:
             and ``io.excel.xlsm.writer``.
         """
         from pandas.io.excel import ExcelWriter
+        from pandas.io.common import _stringify_path
 
         num_rows, num_cols = self.df.shape
         if num_rows > self.max_rows or num_cols > self.max_cols:
@@ -724,7 +724,7 @@ class ExcelFormatter:
         if isinstance(writer, ExcelWriter):
             need_save = False
         else:
-            writer = ExcelWriter(stringify_path(writer), engine=engine)
+            writer = ExcelWriter(_stringify_path(writer), engine=engine)
             need_save = True
 
         formatted_cells = self.get_formatted_cells()

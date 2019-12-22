@@ -57,10 +57,10 @@ import warnings
 DeprecatedOption = namedtuple("DeprecatedOption", "key msg rkey removal_ver")
 RegisteredOption = namedtuple("RegisteredOption", "key defval doc validator cb")
 
-# holds deprecated option metadata
+# holds deprecated option metdata
 _deprecated_options: Dict[str, DeprecatedOption] = {}
 
-# holds registered option metadata
+# holds registered option metdata
 _registered_options: Dict[str, RegisteredOption] = {}
 
 # holds the current values for registered options

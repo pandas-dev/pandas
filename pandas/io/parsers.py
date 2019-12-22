@@ -17,7 +17,6 @@ import numpy as np
 import pandas._libs.lib as lib
 import pandas._libs.ops as libops
 import pandas._libs.parsers as parsers
-from pandas._libs.parsers import STR_NA_VALUES
 from pandas._libs.tslibs import parsing
 from pandas.errors import (
     AbstractMethodError,
@@ -35,7 +34,6 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
-    is_file_like,
     is_float,
     is_integer,
     is_integer_dtype,
@@ -62,12 +60,15 @@ from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
 
 from pandas.io.common import (
+    _NA_VALUES,
     BaseIterator,
+    UnicodeReader,
     UTF8Recoder,
+    _get_handle,
+    _infer_compression,
+    _validate_header_arg,
     get_filepath_or_buffer,
-    get_handle,
-    infer_compression,
-    validate_header_arg,
+    is_file_like,
 )
 from pandas.io.date_converters import generic_parser
 
@@ -194,7 +195,7 @@ na_values : scalar, str, list-like, or dict, optional
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values.  By default the following values are interpreted as
     NaN: '"""
-    + fill("', '".join(sorted(STR_NA_VALUES)), 70, subsequent_indent="    ")
+    + fill("', '".join(sorted(_NA_VALUES)), 70, subsequent_indent="    ")
     + """'.
 keep_default_na : bool, default True
     Whether or not to include the default NaN values when parsing the data.
@@ -425,7 +426,7 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
         kwds["encoding"] = encoding
 
     compression = kwds.get("compression", "infer")
-    compression = infer_compression(filepath_or_buffer, compression)
+    compression = _infer_compression(filepath_or_buffer, compression)
 
     # TODO: get_filepath_or_buffer could return
     # Union[FilePathOrBuffer, s3fs.S3File, gcsfs.GCSFile]
@@ -1049,7 +1050,7 @@ class TextFileReader(BaseIterator):
         na_values = options["na_values"]
         skiprows = options["skiprows"]
 
-        validate_header_arg(options["header"])
+        _validate_header_arg(options["header"])
 
         depr_warning = ""
 
@@ -2282,7 +2283,7 @@ class PythonParser(ParserBase):
         self.comment = kwds["comment"]
         self._comment_lines = []
 
-        f, handles = get_handle(
+        f, handles = _get_handle(
             f,
             "r",
             encoding=self.encoding,
@@ -2430,13 +2431,23 @@ class PythonParser(ParserBase):
                 self.line_pos += 1
                 sniffed = csv.Sniffer().sniff(line)
                 dia.delimiter = sniffed.delimiter
+                if self.encoding is not None:
+                    self.buf.extend(
+                        list(
+                            UnicodeReader(
+                                StringIO(line), dialect=dia, encoding=self.encoding
+                            )
+                        )
+                    )
+                else:
+                    self.buf.extend(list(csv.reader(StringIO(line), dialect=dia)))
 
-                # Note: self.encoding is irrelevant here
-                line_rdr = csv.reader(StringIO(line), dialect=dia)
-                self.buf.extend(list(line_rdr))
-
-            # Note: self.encoding is irrelevant here
-            reader = csv.reader(f, dialect=dia, strict=True)
+            if self.encoding is not None:
+                reader = UnicodeReader(
+                    f, dialect=dia, encoding=self.encoding, strict=True
+                )
+            else:
+                reader = csv.reader(f, dialect=dia, strict=True)
 
         else:
 
@@ -3387,7 +3398,7 @@ def _clean_na_values(na_values, keep_default_na=True):
 
     if na_values is None:
         if keep_default_na:
-            na_values = STR_NA_VALUES
+            na_values = _NA_VALUES
         else:
             na_values = set()
         na_fvalues = set()
@@ -3404,7 +3415,7 @@ def _clean_na_values(na_values, keep_default_na=True):
                 v = [v]
 
             if keep_default_na:
-                v = set(v) | STR_NA_VALUES
+                v = set(v) | _NA_VALUES
 
             na_values[k] = v
         na_fvalues = {k: _floatify_na_values(v) for k, v in na_values.items()}
@@ -3413,7 +3424,7 @@ def _clean_na_values(na_values, keep_default_na=True):
             na_values = [na_values]
         na_values = _stringify_na_values(na_values)
         if keep_default_na:
-            na_values = na_values | STR_NA_VALUES
+            na_values = na_values | _NA_VALUES
 
         na_fvalues = _floatify_na_values(na_values)
 
@@ -3481,7 +3492,7 @@ def _get_empty_meta(columns, index_col, index_names, dtype=None):
     # 2) index_names (column names)
     #
     # Both must be non-null to ensure a successful construction. Otherwise,
-    # we have to create a generic empty Index.
+    # we have to create a generic emtpy Index.
     if (index_col is None or index_col is False) or index_names is None:
         index = Index([])
     else:
@@ -3564,7 +3575,7 @@ def _get_na_values(col, na_values, na_fvalues, keep_default_na):
             return na_values[col], na_fvalues[col]
         else:
             if keep_default_na:
-                return STR_NA_VALUES, set()
+                return _NA_VALUES, set()
 
             return set(), set()
     else:
