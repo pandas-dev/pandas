@@ -569,8 +569,96 @@ do not make sudden changes to the code that could have the potential to break
 a lot of user code as a result, that is, we need it to be as *backwards compatible*
 as possible to avoid mass breakages.
 
-Additional standards are outlined on the `code style wiki
-page <https://github.com/pandas-dev/pandas/wiki/Code-Style-and-Conventions>`_.
+Cross-compatible code
+---------------------
+
+Not all functions are available between versions. It's important to write code 
+that will be compatible from Python 2.6 through the most recent version of Python 3.
+
+Python 2/3 Compatibility
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Before `#4384 <https://github.com/pandas-dev/pandas/pull/4384>`_, ``pandas`` 
+depended on the ``2to3`` tool to ensure that the codebase was Python 
+2 and 3 compatible. This is not the case anymore. That means that you should be 
+careful about writing code that is Python 2 and Python 3 compatible. To that end, 
+there are new internal functions that abstract away the details of the API changes 
+between Python 2.6 - Python 3.X in ``pandas.util.compat`` (which incorporates much of 
+the ``six`` module).
+
+string handling/unicode
+^^^^^^^^^^^^^^^^^^^^^^^
+
+* Unicode strings: ``u"some word"`` (no need to use ``compat.u``)
+* Checks for string types: ``basestring`` --> ``compat.string_types``
+* Conversion to unicode (Python 3 this is just ``str``): ``unicode`` --> ``compat.text_type``
+
+``range``, ``zip``, ``map``, ``filter``, and ``reduce``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+``range``, ``zip``, ``map``, and ``filter`` changed from producing ``list``\ s to 
+iterators in Python 3. For compatibility, you should generally import these functions from 
+``pandas.compat``, which will mean that they use the iterator form in both Python 2 and Python 3. 
+If you want the list form (i.e., ``2.X`` behavior, you can use ``lrange``, ``lzip``, ``lmap``, and 
+``lfilter``, which have the same call structure, but wrapped in the list constructor 
+in Python 3. [reduce moved from builtins to ``functools``]
+
+The ``itertools`` module: ``izip``, ``ifilter``, ``imap``, etc.
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+These changed names between Python 2 and Python 3. Just import ``zip``, ``filter`` and ``map`` 
+from ``pandas.compat`` to use them.
+
+``iteritems()``, ``itervalues()``, ``iterkeys()``, ``iterlists()``, etc.
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Python ``builtins`` no longer have these methods in Python 3 and are replaced by 
+iterators in ``items``, ``values``, etc. ``keys()``. Whereas the ``six`` library maps, for 
+example, ``six.iteritems`` to ``iteritems`` in ``2.X`` and ``items()``, some ``pandas`` objects 
+have iterator methods that are actually different than their equivalents, so 
+``pandas.compat`` tries calling the ``iter`` version first and then calls the ``3.X`` 
+version if that fails.
+
+``StringIO()``, ``cStringIO()``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Import it from ``compat``, note that ``cStringIO`` can be more limited in functionality, 
+so be careful which you choose. Only different in Python 2.X.
+
+Other pairings
+^^^^^^^^^^^^^^
+
+* ``callable`` - not available in Python 3.0 - Python 3.2
+* ``long`` - doesn't exist in Python 3 (it's just int), import from ``pandas.compat``
+* ``__builtin__`` (2) vs. ``builtins`` (3) - changed name for builtins. import ``builtins`` 
+  from ``pandas.compat``
+
+Date parsing with ``parse_date`` (and ``dateutil`` <= 1.5)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Need to import ``parse_date`` from ``compat`` to handle versions of dateutil that don't 
+play nice with unicode.
+
+Imports (aim for absolute)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In Python 3, everything is an absolute import, so doing something like: ``import 
+string`` will import the string module rather than ``string.py`` in the same directory. 
+As much as possible, you should try to write out absolute imports that show the 
+whole import chain from toplevel pandas. In test code, it might be easier to just 
+reference local variables with relative imports (that start with ``.``) for clarity, 
+but in other code better to be explicit.
+
+::
+
+    # cross compatible and preferred
+    import pandas.core.common as com
+
+    # may FAIL in Python 3
+    import common
+
+    # okay in test code
+    from .common import test_base
 
 Optional dependencies
 ---------------------
