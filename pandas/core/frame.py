@@ -4704,6 +4704,7 @@ class DataFrame(NDFrame):
         inplace=False,
         kind="quicksort",
         na_position="last",
+        ignore_index: bool = False,
     ):
         inplace = validate_bool_kwarg(inplace, "inplace")
         axis = self._get_axis_number(axis)
@@ -4736,6 +4737,9 @@ class DataFrame(NDFrame):
         new_data = self._data.take(
             indexer, axis=self._get_block_manager_axis(axis), verify=False
         )
+
+        if ignore_index:
+            new_data.axes[1] = ibase.default_index(len(indexer))
 
         if inplace:
             return self._update_inplace(new_data)
