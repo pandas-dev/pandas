@@ -609,6 +609,14 @@ class TestDataFrameTimeSeriesMethods:
         assert expected_first == df.first_valid_index()
         assert expected_last == df.last_valid_index()
 
+    @pytest.mark.parametrize("klass", [Series, DataFrame])
+    def test_first_valid_index_all_nan(self, klass):
+        # GH#9752 Series/DataFrame should both return None, not raise
+        obj = klass([np.nan])
+
+        assert obj.first_valid_index() is None
+        assert obj.iloc[:0].first_valid_index() is None
+
     def test_first_subset(self):
         ts = tm.makeTimeDataFrame(freq="12h")
         result = ts.first("10d")

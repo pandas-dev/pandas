@@ -59,15 +59,15 @@ from pandas.core.construction import (
     is_empty_data,
     sanitize_array,
 )
-from pandas.core.index import (
+from pandas.core.indexers import maybe_convert_indices
+from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
+from pandas.core.indexes.api import (
     Float64Index,
     Index,
     InvalidIndexError,
     MultiIndex,
     ensure_index,
 )
-from pandas.core.indexers import maybe_convert_indices
-from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex
@@ -197,9 +197,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if is_empty_data(data) and dtype is None:
                 # gh-17261
                 warnings.warn(
-                    "The default dtype for empty Series will be 'object' instead"
-                    " of 'float64' in a future version. Specify a dtype explicitly"
-                    " to silence this warning.",
+                    "The default dtype for empty Series will be 'object' instead "
+                    "of 'float64' in a future version. Specify a dtype explicitly "
+                    "to silence this warning.",
                     DeprecationWarning,
                     stacklevel=2,
                 )
@@ -257,14 +257,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     raise AssertionError(
                         "Cannot pass both SingleBlockManager "
                         "`data` argument and a different "
-                        "`index` argument.  `copy` must "
-                        "be False."
+                        "`index` argument. `copy` must be False."
                     )
 
             elif is_extension_array_dtype(data):
                 pass
             elif isinstance(data, (set, frozenset)):
-                raise TypeError(f"{repr(type(data).__name__)} type is unordered")
+                raise TypeError(f"'{type(data).__name__}' type is unordered")
             elif isinstance(data, ABCSparseArray):
                 # handle sparse passed here (and force conversion)
                 data = data.to_dense()
@@ -3721,7 +3720,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         If we have an ndarray as a value, then simply perform the operation,
         otherwise delegate to the object.
         """
-
         delegate = self._values
 
         if axis is not None:

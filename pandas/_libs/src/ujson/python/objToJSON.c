@@ -405,22 +405,7 @@ static void *PyBytesToUTF8(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
 
 static void *PyUnicodeToUTF8(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
                              size_t *_outLen) {
-    PyObject *obj, *newObj;
-    obj = (PyObject *)_obj;
-
-    if (PyUnicode_IS_COMPACT_ASCII(obj)) {
-        Py_ssize_t len;
-        char *data = (char *)PyUnicode_AsUTF8AndSize(obj, &len);
-        *_outLen = len;
-        return data;
-    }
-
-    newObj = PyUnicode_AsUTF8String(obj);
-
-    GET_TC(tc)->newObj = newObj;
-
-    *_outLen = PyBytes_GET_SIZE(newObj);
-    return PyBytes_AS_STRING(newObj);
+  return PyUnicode_AsUTF8AndSize(_obj, _outLen);
 }
 
 static void *PandasDateTimeStructToJSON(npy_datetimestruct *dts,
@@ -531,25 +516,7 @@ static void *PyTimeToJSON(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
 static int NpyTypeToJSONType(PyObject *obj, JSONTypeContext *tc, int npyType,
                              void *value) {
     PyArray_VectorUnaryFunc *castfunc;
-    npy_double doubleVal;
     npy_int64 longVal;
-
-    if (PyTypeNum_ISFLOAT(npyType)) {
-        PRINTMARK();
-        castfunc =
-            PyArray_GetCastFunc(PyArray_DescrFromType(npyType), NPY_DOUBLE);
-        if (!castfunc) {
-            PyErr_Format(PyExc_ValueError,
-                         "Cannot cast numpy dtype %d to double", npyType);
-        }
-        castfunc(value, &doubleVal, 1, NULL, NULL);
-        if (npy_isnan(doubleVal) || npy_isinf(doubleVal)) {
-            PRINTMARK();
-            return JT_NULL;
-        }
-        GET_TC(tc)->doubleValue = (double)doubleVal;
-        return JT_DOUBLE;
-    }
 
     if (PyTypeNum_ISDATETIME(npyType)) {
         PRINTMARK();
@@ -579,24 +546,6 @@ static int NpyTypeToJSONType(PyObject *obj, JSONTypeContext *tc, int npyType,
                 // TODO: some kind of error handling
             }
         }
-    }
-
-    if (PyTypeNum_ISINTEGER(npyType)) {
-        PRINTMARK();
-        castfunc =
-            PyArray_GetCastFunc(PyArray_DescrFromType(npyType), NPY_INT64);
-        if (!castfunc) {
-            PyErr_Format(PyExc_ValueError, "Cannot cast numpy dtype %d to long",
-                         npyType);
-        }
-        castfunc(value, &longVal, 1, NULL, NULL);
-        GET_TC(tc)->longValue = (JSINT64)longVal;
-        return JT_LONG;
-    }
-
-    if (PyTypeNum_ISBOOL(npyType)) {
-        PRINTMARK();
-        return *((npy_bool *)value) == NPY_TRUE ? JT_TRUE : JT_FALSE;
     }
 
     PRINTMARK();
@@ -1683,7 +1632,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
                 sprintf(buf, "%" NPY_INT64_FMT, value);
                 len = strlen(cLabel);
             }
-        } else { // Fallack to string representation
+        } else { // Fallback to string representation
             PyObject *str = PyObject_Str(item);
             if (str == NULL) {
                 Py_DECREF(item);
