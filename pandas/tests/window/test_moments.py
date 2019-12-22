@@ -10,7 +10,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, Index, Series, concat, isna, notna
-import pandas.core.window as rwindow
+from pandas.core.window.common import _flex_binary_moment
 from pandas.tests.window.common import Base
 import pandas.util.testing as tm
 
@@ -108,7 +108,7 @@ class TestMoments(Base):
         assert np.isnan(result).all()
 
         # empty
-        vals = pd.Series([])
+        vals = pd.Series([], dtype=object)
         result = vals.rolling(5, center=True, win_type="boxcar").mean()
         assert len(result) == 0
 
@@ -119,64 +119,95 @@ class TestMoments(Base):
         assert len(result) == 5
 
     @td.skip_if_no_scipy
-    def test_cmov_window_frame(self):
+    @pytest.mark.parametrize(
+        "f,xp",
+        [
+            (
+                "mean",
+                [
+                    [np.nan, np.nan],
+                    [np.nan, np.nan],
+                    [9.252, 9.392],
+                    [8.644, 9.906],
+                    [8.87, 10.208],
+                    [6.81, 8.588],
+                    [7.792, 8.644],
+                    [9.05, 7.824],
+                    [np.nan, np.nan],
+                    [np.nan, np.nan],
+                ],
+            ),
+            (
+                "std",
+                [
+                    [np.nan, np.nan],
+                    [np.nan, np.nan],
+                    [3.789706, 4.068313],
+                    [3.429232, 3.237411],
+                    [3.589269, 3.220810],
+                    [3.405195, 2.380655],
+                    [3.281839, 2.369869],
+                    [3.676846, 1.801799],
+                    [np.nan, np.nan],
+                    [np.nan, np.nan],
+                ],
+            ),
+            (
+                "var",
+                [
+                    [np.nan, np.nan],
+                    [np.nan, np.nan],
+                    [14.36187, 16.55117],
+                    [11.75963, 10.48083],
+                    [12.88285, 10.37362],
+                    [11.59535, 5.66752],
+                    [10.77047, 5.61628],
+                    [13.51920, 3.24648],
+                    [np.nan, np.nan],
+                    [np.nan, np.nan],
+                ],
+            ),
+            (
+                "sum",
+                [
+                    [np.nan, np.nan],
+                    [np.nan, np.nan],
+                    [46.26, 46.96],
+                    [43.22, 49.53],
+                    [44.35, 51.04],
+                    [34.05, 42.94],
+                    [38.96, 43.22],
+                    [45.25, 39.12],
+                    [np.nan, np.nan],
+                    [np.nan, np.nan],
+                ],
+            ),
+        ],
+    )
+    def test_cmov_window_frame(self, f, xp):
         # Gh 8238
-        vals = np.array(
-            [
-                [12.18, 3.64],
-                [10.18, 9.16],
-                [13.24, 14.61],
-                [4.51, 8.11],
-                [6.15, 11.44],
-                [9.14, 6.21],
-                [11.31, 10.67],
-                [2.94, 6.51],
-                [9.42, 8.39],
-                [12.44, 7.34],
-            ]
+        df = DataFrame(
+            np.array(
+                [
+                    [12.18, 3.64],
+                    [10.18, 9.16],
+                    [13.24, 14.61],
+                    [4.51, 8.11],
+                    [6.15, 11.44],
+                    [9.14, 6.21],
+                    [11.31, 10.67],
+                    [2.94, 6.51],
+                    [9.42, 8.39],
+                    [12.44, 7.34],
+                ]
+            )
         )
+        xp = DataFrame(np.array(xp))
 
-        xp = np.array(
-            [
-                [np.nan, np.nan],
-                [np.nan, np.nan],
-                [9.252, 9.392],
-                [8.644, 9.906],
-                [8.87, 10.208],
-                [6.81, 8.588],
-                [7.792, 8.644],
-                [9.05, 7.824],
-                [np.nan, np.nan],
-                [np.nan, np.nan],
-            ]
-        )
+        roll = df.rolling(5, win_type="boxcar", center=True)
+        rs = getattr(roll, f)()
 
-        # DataFrame
-        rs = DataFrame(vals).rolling(5, win_type="boxcar", center=True).mean()
-        tm.assert_frame_equal(DataFrame(xp), rs)
-
-        # invalid method
-        with pytest.raises(AttributeError):
-            (DataFrame(vals).rolling(5, win_type="boxcar", center=True).std())
-
-        # sum
-        xp = np.array(
-            [
-                [np.nan, np.nan],
-                [np.nan, np.nan],
-                [46.26, 46.96],
-                [43.22, 49.53],
-                [44.35, 51.04],
-                [34.05, 42.94],
-                [38.96, 43.22],
-                [45.25, 39.12],
-                [np.nan, np.nan],
-                [np.nan, np.nan],
-            ]
-        )
-
-        rs = DataFrame(vals).rolling(5, win_type="boxcar", center=True).sum()
-        tm.assert_frame_equal(DataFrame(xp), rs)
+        tm.assert_frame_equal(xp, rs)
 
     @td.skip_if_no_scipy
     def test_cmov_window_na_min_periods(self):
@@ -643,7 +674,7 @@ class TestMoments(Base):
 
         self._check_moment_func(np.mean, name="apply", func=f, raw=raw)
 
-        expected = Series([])
+        expected = Series([], dtype="float64")
         result = expected.rolling(10).apply(lambda x: x.mean(), raw=raw)
         tm.assert_series_equal(result, expected)
 
@@ -656,17 +687,10 @@ class TestMoments(Base):
         result = s.rolling(2, min_periods=0).apply(len, raw=raw)
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("klass", [Series, DataFrame])
-    @pytest.mark.parametrize(
-        "method", [lambda x: x.rolling(window=2), lambda x: x.expanding()]
-    )
-    def test_apply_future_warning(self, klass, method):
-
-        # gh-5071
-        s = klass(np.arange(3))
-
-        with tm.assert_produces_warning(FutureWarning):
-            method(s).apply(lambda x: len(x))
+    @pytest.mark.parametrize("bad_raw", [None, 1, 0])
+    def test_rolling_apply_invalid_raw(self, bad_raw):
+        with pytest.raises(ValueError, match="raw parameter must be `True` or `False`"):
+            Series(range(3)).rolling(1).apply(len, raw=bad_raw)
 
     def test_rolling_apply_out_of_bounds(self, raw):
         # gh-1850
@@ -769,7 +793,7 @@ class TestMoments(Base):
         has_time_rule=True,
         fill_value=None,
         zero_min_periods_equal=True,
-        **kwargs
+        **kwargs,
     ):
 
         # inject raw
@@ -1169,8 +1193,10 @@ class TestMoments(Base):
                 assert not result[11:].isna().any()
 
             # check series of length 0
-            result = getattr(Series().ewm(com=50, min_periods=min_periods), name)()
-            tm.assert_series_equal(result, Series())
+            result = getattr(
+                Series(dtype=object).ewm(com=50, min_periods=min_periods), name
+            )()
+            tm.assert_series_equal(result, Series(dtype="float64"))
 
             # check series of length 1
             result = getattr(Series([1.0]).ewm(50, min_periods=min_periods), name)()
@@ -1190,7 +1216,7 @@ class TestMoments(Base):
 def _create_consistency_data():
     def create_series():
         return [
-            Series(),
+            Series(dtype=object),
             Series([np.nan]),
             Series([np.nan, np.nan]),
             Series([3.0]),
@@ -1878,7 +1904,7 @@ class TestMomentsConsistency(Base):
             " np.ndarray/Series/DataFrame"
         )
         with pytest.raises(TypeError, match=msg):
-            rwindow._flex_binary_moment(5, 6, None)
+            _flex_binary_moment(5, 6, None)
 
     def test_corr_sanity(self):
         # GH 3155
@@ -1965,8 +1991,9 @@ class TestMomentsConsistency(Base):
             assert not np.isnan(result.values[11:]).any()
 
             # check series of length 0
-            result = func(Series([]), Series([]), 50, min_periods=min_periods)
-            tm.assert_series_equal(result, Series([]))
+            empty = Series([], dtype=np.float64)
+            result = func(empty, empty, 50, min_periods=min_periods)
+            tm.assert_series_equal(result, empty)
 
             # check series of length 1
             result = func(Series([1.0]), Series([1.0]), 50, min_periods=min_periods)
@@ -2166,7 +2193,7 @@ class TestMomentsConsistency(Base):
 
     def test_moment_functions_zero_length(self):
         # GH 8056
-        s = Series()
+        s = Series(dtype=np.float64)
         s_expected = s
         df1 = DataFrame()
         df1_expected = df1
@@ -2385,7 +2412,7 @@ class TestMomentsConsistency(Base):
         # here to make this pass
         self._check_expanding(expanding_mean, np.mean, preserve_nan=False)
 
-        ser = Series([])
+        ser = Series([], dtype=np.float64)
         tm.assert_series_equal(ser, ser.expanding().apply(lambda x: x.mean(), raw=raw))
 
         # GH 8080

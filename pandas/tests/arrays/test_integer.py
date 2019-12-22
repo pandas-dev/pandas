@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes.generic import ABCIndexClass
 
 import pandas as pd
@@ -280,7 +282,7 @@ class TestArithmeticOps(BaseOpsUtil):
         other = 0.01
         self._check_op(s, op, other)
 
-    @pytest.mark.parametrize("other", [1.0, 1.0, np.array(1.0), np.array([1.0])])
+    @pytest.mark.parametrize("other", [1.0, np.array(1.0)])
     def test_arithmetic_conversion(self, all_arithmetic_operators, other):
         # if we have a float operand we should have a float result
         # if that is equal to an integer
@@ -289,6 +291,15 @@ class TestArithmeticOps(BaseOpsUtil):
         s = pd.Series([1, 2, 3], dtype="Int64")
         result = op(s, other)
         assert result.dtype is np.dtype("float")
+
+    def test_arith_len_mismatch(self, all_arithmetic_operators):
+        # operating with a list-like with non-matching length raises
+        op = self.get_op_from_name(all_arithmetic_operators)
+        other = np.array([1.0])
+
+        s = pd.Series([1, 2, 3], dtype="Int64")
+        with pytest.raises(ValueError, match="Lengths must match"):
+            op(s, other)
 
     @pytest.mark.parametrize("other", [0, 0.5])
     def test_arith_zero_dim_ndarray(self, other):
@@ -322,21 +333,67 @@ class TestArithmeticOps(BaseOpsUtil):
                 ops(pd.Series(pd.date_range("20180101", periods=len(s))))
 
         # 2d
-        with pytest.raises(NotImplementedError):
-            opa(pd.DataFrame({"A": s}))
+        result = opa(pd.DataFrame({"A": s}))
+        assert result is NotImplemented
+
         with pytest.raises(NotImplementedError):
             opa(np.arange(len(s)).reshape(-1, len(s)))
 
-    def test_pow(self):
-        # https://github.com/pandas-dev/pandas/issues/22022
-        a = integer_array([1, np.nan, np.nan, 1])
-        b = integer_array([1, np.nan, 1, np.nan])
+    @pytest.mark.parametrize("zero, negative", [(0, False), (0.0, False), (-0.0, True)])
+    def test_divide_by_zero(self, zero, negative):
+        # https://github.com/pandas-dev/pandas/issues/27398
+        a = pd.array([0, 1, -1, None], dtype="Int64")
+        result = a / zero
+        expected = np.array([np.nan, np.inf, -np.inf, np.nan])
+        if negative:
+            expected *= -1
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_pow_scalar(self):
+        a = pd.array([0, 1, None, 2], dtype="Int64")
+        result = a ** 0
+        expected = pd.array([1, 1, 1, 1], dtype="Int64")
+        tm.assert_extension_array_equal(result, expected)
+
+        result = a ** 1
+        expected = pd.array([0, 1, None, 2], dtype="Int64")
+        tm.assert_extension_array_equal(result, expected)
+
+        # result = a ** pd.NA
+        # expected = pd.array([None, 1, None, None], dtype="Int64")
+        # tm.assert_extension_array_equal(result, expected)
+
+        result = a ** np.nan
+        expected = np.array([np.nan, 1, np.nan, np.nan], dtype="float64")
+        tm.assert_numpy_array_equal(result, expected)
+
+        # reversed
+        result = 0 ** a
+        expected = pd.array([1, 0, None, 0], dtype="Int64")
+        tm.assert_extension_array_equal(result, expected)
+
+        result = 1 ** a
+        expected = pd.array([1, 1, 1, 1], dtype="Int64")
+        tm.assert_extension_array_equal(result, expected)
+
+        # result = pd.NA ** a
+        # expected = pd.array([1, None, None, None], dtype="Int64")
+        # tm.assert_extension_array_equal(result, expected)
+
+        result = np.nan ** a
+        expected = np.array([1, np.nan, np.nan, np.nan], dtype="float64")
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_pow_array(self):
+        a = integer_array([0, 0, 0, 1, 1, 1, None, None, None])
+        b = integer_array([0, 1, None, 0, 1, None, 0, 1, None])
         result = a ** b
-        expected = pd.core.arrays.integer_array([1, np.nan, np.nan, 1])
+        expected = integer_array([1, 0, None, 1, 1, 1, 1, None, None])
         tm.assert_extension_array_equal(result, expected)
 
     def test_rpow_one_to_na(self):
         # https://github.com/pandas-dev/pandas/issues/22022
+        # https://github.com/pandas-dev/pandas/issues/29997
         arr = integer_array([np.nan, np.nan])
         result = np.array([1.0, 2.0]) ** arr
         expected = np.array([1.0, np.nan])
@@ -377,10 +434,33 @@ class TestComparisonOps(BaseOpsUtil):
         other = pd.Series([0] * len(data))
         self._compare_other(data, op_name, other)
 
+    def test_no_shared_mask(self, data):
+        result = data + 1
+        assert np.shares_memory(result._mask, data._mask) is False
+
+    def test_compare_to_string(self, any_nullable_int_dtype):
+        # GH 28930
+        s = pd.Series([1, None], dtype=any_nullable_int_dtype)
+        result = s == "a"
+        expected = pd.Series([False, False])
+
+        self.assert_series_equal(result, expected)
+
+    def test_compare_to_int(self, any_nullable_int_dtype, all_compare_operators):
+        # GH 28930
+        s1 = pd.Series([1, 2, 3], dtype=any_nullable_int_dtype)
+        s2 = pd.Series([1, 2, 3], dtype="int")
+
+        method = getattr(s1, all_compare_operators)
+        result = method(2)
+
+        method = getattr(s2, all_compare_operators)
+        expected = method(2)
+
+        self.assert_series_equal(result, expected)
+
 
 class TestCasting:
-    pass
-
     @pytest.mark.parametrize("dropna", [True, False])
     def test_construct_index(self, all_data, dropna):
         # ensure that we do not coerce to Float64Index, rather
@@ -807,6 +887,48 @@ def test_ufunc_reduce_raises(values):
     a = integer_array(values)
     with pytest.raises(NotImplementedError):
         np.add.reduce(a)
+
+
+@td.skip_if_no("pyarrow", min_version="0.15.0")
+def test_arrow_array(data):
+    # protocol added in 0.15.0
+    import pyarrow as pa
+
+    arr = pa.array(data)
+    expected = pa.array(list(data), type=data.dtype.name.lower(), from_pandas=True)
+    assert arr.equals(expected)
+
+
+@td.skip_if_no("pyarrow", min_version="0.15.1.dev")
+def test_arrow_roundtrip(data):
+    # roundtrip possible from arrow 1.0.0
+    import pyarrow as pa
+
+    df = pd.DataFrame({"a": data})
+    table = pa.table(df)
+    assert table.field("a").type == str(data.dtype.numpy_dtype)
+    result = table.to_pandas()
+    tm.assert_frame_equal(result, df)
+
+
+@pytest.mark.parametrize(
+    "pandasmethname, kwargs",
+    [
+        ("var", {"ddof": 0}),
+        ("var", {"ddof": 1}),
+        ("kurtosis", {}),
+        ("skew", {}),
+        ("sem", {}),
+    ],
+)
+def test_stat_method(pandasmethname, kwargs):
+    s = pd.Series(data=[1, 2, 3, 4, 5, 6, np.nan, np.nan], dtype="Int64")
+    pandasmeth = getattr(s, pandasmethname)
+    result = pandasmeth(**kwargs)
+    s2 = pd.Series(data=[1, 2, 3, 4, 5, 6], dtype="Int64")
+    pandasmeth = getattr(s2, pandasmethname)
+    expected = pandasmeth(**kwargs)
+    assert expected == result
 
 
 # TODO(jreback) - these need testing / are broken

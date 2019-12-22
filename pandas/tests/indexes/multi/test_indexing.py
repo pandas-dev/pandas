@@ -14,7 +14,6 @@ from pandas import (
 )
 from pandas.core.indexes.base import InvalidIndexError
 import pandas.util.testing as tm
-from pandas.util.testing import assert_almost_equal
 
 
 def test_slice_locs_partial(idx):
@@ -96,7 +95,6 @@ def test_slice_locs_not_contained():
     index = MultiIndex(
         levels=[[0, 2, 4, 6], [0, 2, 4]],
         codes=[[0, 0, 0, 1, 1, 2, 3, 3, 3], [0, 1, 2, 1, 2, 2, 0, 1, 2]],
-        sortorder=0,
     )
 
     result = index.slice_locs((1, 0), (5, 2))
@@ -146,32 +144,32 @@ def test_get_indexer():
     idx2 = index[[1, 3, 5]]
 
     r1 = idx1.get_indexer(idx2)
-    assert_almost_equal(r1, np.array([1, 3, -1], dtype=np.intp))
+    tm.assert_almost_equal(r1, np.array([1, 3, -1], dtype=np.intp))
 
     r1 = idx2.get_indexer(idx1, method="pad")
     e1 = np.array([-1, 0, 0, 1, 1], dtype=np.intp)
-    assert_almost_equal(r1, e1)
+    tm.assert_almost_equal(r1, e1)
 
     r2 = idx2.get_indexer(idx1[::-1], method="pad")
-    assert_almost_equal(r2, e1[::-1])
+    tm.assert_almost_equal(r2, e1[::-1])
 
     rffill1 = idx2.get_indexer(idx1, method="ffill")
-    assert_almost_equal(r1, rffill1)
+    tm.assert_almost_equal(r1, rffill1)
 
     r1 = idx2.get_indexer(idx1, method="backfill")
     e1 = np.array([0, 0, 1, 1, 2], dtype=np.intp)
-    assert_almost_equal(r1, e1)
+    tm.assert_almost_equal(r1, e1)
 
     r2 = idx2.get_indexer(idx1[::-1], method="backfill")
-    assert_almost_equal(r2, e1[::-1])
+    tm.assert_almost_equal(r2, e1[::-1])
 
     rbfill1 = idx2.get_indexer(idx1, method="bfill")
-    assert_almost_equal(r1, rbfill1)
+    tm.assert_almost_equal(r1, rbfill1)
 
     # pass non-MultiIndex
     r1 = idx1.get_indexer(idx2.values)
     rexp1 = idx1.get_indexer(idx2)
-    assert_almost_equal(r1, rexp1)
+    tm.assert_almost_equal(r1, rexp1)
 
     r1 = idx1.get_indexer([1, 2, 3])
     assert (r1 == [-1, -1, -1]).all()

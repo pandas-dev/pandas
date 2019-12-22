@@ -70,28 +70,21 @@ class TestDatetimeIndex:
         with pytest.raises(TypeError, match="PeriodDtype data is invalid"):
             to_datetime(period_array(data))
 
-    def test_dti_with_timedelta64_data_deprecation(self):
-        # GH#23675
+    def test_dti_with_timedelta64_data_raises(self):
+        # GH#23675 deprecated, enforrced in GH#29794
         data = np.array([0], dtype="m8[ns]")
-        with tm.assert_produces_warning(FutureWarning):
-            result = DatetimeIndex(data)
+        msg = r"timedelta64\[ns\] cannot be converted to datetime64"
+        with pytest.raises(TypeError, match=msg):
+            DatetimeIndex(data)
 
-        assert result[0] == Timestamp("1970-01-01")
+        with pytest.raises(TypeError, match=msg):
+            to_datetime(data)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = to_datetime(data)
+        with pytest.raises(TypeError, match=msg):
+            DatetimeIndex(pd.TimedeltaIndex(data))
 
-        assert result[0] == Timestamp("1970-01-01")
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = DatetimeIndex(pd.TimedeltaIndex(data))
-
-        assert result[0] == Timestamp("1970-01-01")
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = to_datetime(pd.TimedeltaIndex(data))
-
-        assert result[0] == Timestamp("1970-01-01")
+        with pytest.raises(TypeError, match=msg):
+            to_datetime(pd.TimedeltaIndex(data))
 
     def test_construction_caching(self):
 
@@ -129,15 +122,11 @@ class TestDatetimeIndex:
         i = pd.date_range("20130101", periods=5, freq="H", tz=tz)
         kwargs = {key: attrgetter(val)(i) for key, val in kwargs.items()}
 
-        if str(tz) in ("UTC", "tzutc()", "UTC+00:00"):
-            warn = None
-        else:
-            warn = FutureWarning
+        if "tz" in kwargs:
+            result = DatetimeIndex(i.asi8, tz="UTC").tz_convert(kwargs["tz"])
 
-        with tm.assert_produces_warning(warn, check_stacklevel=False):
-            result = DatetimeIndex(i.tz_localize(None).asi8, **kwargs)
-        expected = DatetimeIndex(i, **kwargs)
-        tm.assert_index_equal(result, expected)
+            expected = DatetimeIndex(i, **kwargs)
+            tm.assert_index_equal(result, expected)
 
         # localize into the provided tz
         i2 = DatetimeIndex(i.tz_localize(None).asi8, tz="UTC")
@@ -492,21 +481,13 @@ class TestDatetimeIndex:
         expected = DatetimeIndex(["2013-10-07", "2013-10-08", "2013-10-09"], freq="B")
         tm.assert_index_equal(result, expected)
 
-    def test_verify_integrity_deprecated(self):
-        # GH#23919
-        with tm.assert_produces_warning(FutureWarning):
-            DatetimeIndex(["1/1/2000"], verify_integrity=False)
-
-    def test_range_kwargs_deprecated(self):
-        # GH#23919
-        with tm.assert_produces_warning(FutureWarning):
-            DatetimeIndex(start="1/1/2000", end="1/10/2000", freq="D")
-
-    def test_integer_values_and_tz_deprecated(self):
+    def test_integer_values_and_tz_interpreted_as_utc(self):
         # GH-24559
-        values = np.array([946684800000000000])
-        with tm.assert_produces_warning(FutureWarning):
-            result = DatetimeIndex(values, tz="US/Central")
+        val = np.datetime64("2000-01-01 00:00:00", "ns")
+        values = np.array([val.view("i8")])
+
+        result = DatetimeIndex(values).tz_localize("US/Central")
+
         expected = pd.DatetimeIndex(["2000-01-01T00:00:00"], tz="US/Central")
         tm.assert_index_equal(result, expected)
 
@@ -523,10 +504,6 @@ class TestDatetimeIndex:
         msg = "periods must be a number, got foo"
         with pytest.raises(TypeError, match=msg):
             date_range(start="1/1/2000", periods="foo", freq="D")
-
-        with pytest.raises(ValueError):
-            with tm.assert_produces_warning(FutureWarning):
-                DatetimeIndex(start="1/1/2000", end="1/10/2000")
 
         with pytest.raises(TypeError):
             DatetimeIndex("1/1/2000")
@@ -739,17 +716,7 @@ class TestDatetimeIndex:
     @pytest.mark.parametrize("box", [np.array, partial(np.array, dtype=object), list])
     @pytest.mark.parametrize(
         "tz, dtype",
-        [
-            pytest.param(
-                "US/Pacific",
-                "datetime64[ns, US/Pacific]",
-                marks=[
-                    pytest.mark.xfail(),
-                    pytest.mark.filterwarnings("ignore:\\n    Passing:FutureWarning"),
-                ],
-            ),
-            [None, "datetime64[ns]"],
-        ],
+        [("US/Pacific", "datetime64[ns, US/Pacific]"), (None, "datetime64[ns]")],
     )
     def test_constructor_with_int_tz(self, klass, box, tz, dtype):
         # GH 20997, 20964
@@ -759,6 +726,8 @@ class TestDatetimeIndex:
         assert result == expected
 
     # This is the desired future behavior
+    # Note: this xfail is not strict because the test passes with
+    #  None or any of the UTC variants for tz_naive_fixture
     @pytest.mark.xfail(reason="Future behavior", strict=False)
     @pytest.mark.filterwarnings("ignore:\\n    Passing:FutureWarning")
     def test_construction_int_rountrip(self, tz_naive_fixture):
@@ -766,7 +735,7 @@ class TestDatetimeIndex:
         # TODO(GH-24559): Remove xfail
         tz = tz_naive_fixture
         result = 1293858000000000000
-        expected = DatetimeIndex([1293858000000000000], tz=tz).asi8[0]
+        expected = DatetimeIndex([result], tz=tz).asi8[0]
         assert result == expected
 
     def test_construction_from_replaced_timestamps_with_dst(self):
@@ -805,18 +774,15 @@ class TestDatetimeIndex:
         expected = DatetimeIndex([Timestamp("2018", tz=tz), pd.NaT])
         tm.assert_index_equal(result, expected)
 
-    def test_constructor_no_precision_warns(self):
+    def test_constructor_no_precision_raises(self):
         # GH-24753, GH-24739
-        expected = pd.DatetimeIndex(["2000"], dtype="datetime64[ns]")
 
-        # we set the stacklevel for DatetimeIndex
-        with tm.assert_produces_warning(FutureWarning):
-            result = pd.DatetimeIndex(["2000"], dtype="datetime64")
-        tm.assert_index_equal(result, expected)
+        msg = "with no precision is not allowed"
+        with pytest.raises(ValueError, match=msg):
+            pd.DatetimeIndex(["2000"], dtype="datetime64")
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = pd.Index(["2000"], dtype="datetime64")
-        tm.assert_index_equal(result, expected)
+        with pytest.raises(ValueError, match=msg):
+            pd.Index(["2000"], dtype="datetime64")
 
     def test_constructor_wrong_precision_raises(self):
         with pytest.raises(ValueError):

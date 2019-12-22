@@ -144,10 +144,9 @@ def validate_indices(indices: np.ndarray, n: int) -> None:
     if len(indices):
         min_idx = indices.min()
         if min_idx < -1:
-            msg = "'indices' contains values less than allowed ({} < {})".format(
-                min_idx, -1
+            raise ValueError(
+                f"'indices' contains values less than allowed ({min_idx} < -1)"
             )
-            raise ValueError(msg)
 
         max_idx = indices.max()
         if max_idx >= n:
@@ -226,6 +225,7 @@ def length_of_indexer(indexer, target=None) -> int:
         if step is None:
             step = 1
         elif step < 0:
+            start, stop = stop + 1, start + 1
             step = -step
         return (stop - start + step - 1) // step
     elif isinstance(indexer, (ABCSeries, ABCIndexClass, np.ndarray, list)):

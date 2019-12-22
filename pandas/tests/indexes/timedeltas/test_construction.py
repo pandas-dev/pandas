@@ -10,16 +10,6 @@ import pandas.util.testing as tm
 
 
 class TestTimedeltaIndex:
-    def test_verify_integrity_deprecated(self):
-        # GH#23919
-        with tm.assert_produces_warning(FutureWarning):
-            TimedeltaIndex(["1 Day"], verify_integrity=False)
-
-    def test_range_kwargs_deprecated(self):
-        # GH#23919
-        with tm.assert_produces_warning(FutureWarning):
-            TimedeltaIndex(start="1 Day", end="3 Days", freq="D")
-
     def test_int64_nocopy(self):
         # GH#23539 check that a copy isn't made when we pass int64 data
         #  and copy=False
@@ -60,17 +50,17 @@ class TestTimedeltaIndex:
     def test_dt64_data_invalid(self):
         # GH#23539
         # passing tz-aware DatetimeIndex raises, naive or ndarray[datetime64]
-        #  does not yet, but will in the future
+        #  raise as of GH#29794
         dti = pd.date_range("2016-01-01", periods=3)
 
         msg = "cannot be converted to timedelta64"
         with pytest.raises(TypeError, match=msg):
             TimedeltaIndex(dti.tz_localize("Europe/Brussels"))
 
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match=msg):
             TimedeltaIndex(dti)
 
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match=msg):
             TimedeltaIndex(np.asarray(dti))
 
     def test_float64_ns_rounded(self):
@@ -166,10 +156,6 @@ class TestTimedeltaIndex:
         with pytest.raises(TypeError, match=msg):
             timedelta_range(start="1 days", periods="foo", freq="D")
 
-        with pytest.raises(ValueError):
-            with tm.assert_produces_warning(FutureWarning):
-                TimedeltaIndex(start="1 days", end="10 days")
-
         with pytest.raises(TypeError):
             TimedeltaIndex("1 days")
 
@@ -211,18 +197,15 @@ class TestTimedeltaIndex:
         idx2 = TimedeltaIndex(idx, name="something else")
         assert idx2.name == "something else"
 
-    def test_constructor_no_precision_warns(self):
+    def test_constructor_no_precision_raises(self):
         # GH-24753, GH-24739
-        expected = pd.TimedeltaIndex(["2000"], dtype="timedelta64[ns]")
 
-        # we set the stacklevel for DatetimeIndex
-        with tm.assert_produces_warning(FutureWarning):
-            result = pd.TimedeltaIndex(["2000"], dtype="timedelta64")
-        tm.assert_index_equal(result, expected)
+        msg = "with no precision is not allowed"
+        with pytest.raises(ValueError, match=msg):
+            pd.TimedeltaIndex(["2000"], dtype="timedelta64")
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = pd.Index(["2000"], dtype="timedelta64")
-        tm.assert_index_equal(result, expected)
+        with pytest.raises(ValueError, match=msg):
+            pd.Index(["2000"], dtype="timedelta64")
 
     def test_constructor_wrong_precision_raises(self):
         with pytest.raises(ValueError):

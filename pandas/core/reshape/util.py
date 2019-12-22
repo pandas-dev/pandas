@@ -2,7 +2,7 @@ import numpy as np
 
 from pandas.core.dtypes.common import is_list_like
 
-from pandas.core import common as com
+import pandas.core.common as com
 
 
 def cartesian_product(X):
