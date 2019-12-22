@@ -6609,10 +6609,10 @@ class DataFrame(NDFrame):
                 if isinstance(result, Series):
                     results = np.append(results, result.values)
                 else:
-                    for i in range(result.shape[0], results.shape[0]):
-                        result.loc[i, :] = np.nan
-                    for i in range(results.shape[0], result.shape[0]):
-                        results.loc[i, :] = np.nan
+                    for k in range(result.shape[0], results.shape[0]):
+                        result.loc[k, :] = np.nan
+                    for k in range(results.shape[0], result.shape[0]):
+                        results.loc[k, :] = np.nan
                     results = pandas.concat([results, result], axis=1)
 
             if isinstance(result, Series):
