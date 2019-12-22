@@ -467,7 +467,14 @@ class NaTType(_NaT):
         Return a new Timestamp representing UTC day and time.
         """
     )
+    fromisocalendar = _make_error_func('fromisocalendar',  # noqa:E128
+        """
+        Timestamp.fromisocalendar(year, week, day)
 
+        Return a new Timestamp corresponding to the
+        ISO calendar date specified by year, week and day.
+        """
+    )
     timestamp = _make_error_func('timestamp',  # noqa:E128
         """Return POSIX timestamp as float.""")
 

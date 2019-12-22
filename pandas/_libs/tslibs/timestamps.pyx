@@ -336,6 +336,23 @@ class Timestamp(_Timestamp):
         """
         return cls(datetime.combine(date, time))
 
+    @classmethod
+    def fromisocalendar(cls, year, week, day):
+        """
+        Timestamp.fromisocalendar(year, week, day)
+
+        Return a new Timestamp corresponding to the
+        ISO calendar date specified by year, week and day.
+        """
+        import pandas.compat as compat
+
+        if not compat.PY38:
+            raise NotImplementedError(
+                "'fromisocalendar' is not supported for versions earlier than 3.8"
+            )
+
+        return cls(datetime.fromisocalendar(year, week, day))
+
     def __new__(
         cls,
         object ts_input=_no_input,
