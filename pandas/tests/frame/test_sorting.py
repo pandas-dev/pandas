@@ -377,19 +377,33 @@ class TestDataFrameSorting:
         tm.assert_frame_equal(sorted_df, expected)
 
     @pytest.mark.parametrize(
-        "original_dict, sorted_dict",
+        "original_dict, sorted_dict, ignore_index, output_index",
         [
-            ({"A": [1, 2, 3]}, {"A": [3, 2, 1]}),
-            ({"A": [1, 2, 3], "B": [2, 3, 4]}, {"A": [3, 2, 1], "B": [4, 3, 2]}),
+            ({"A": [1, 2, 3]}, {"A": [3, 2, 1]}, True, [0, 1, 2]),
+            ({"A": [1, 2, 3]}, {"A": [3, 2, 1]}, False, [2, 1, 0]),
+            (
+                {"A": [1, 2, 3], "B": [2, 3, 4]},
+                {"A": [3, 2, 1], "B": [4, 3, 2]},
+                True,
+                [0, 1, 2],
+            ),
+            (
+                {"A": [1, 2, 3], "B": [2, 3, 4]},
+                {"A": [3, 2, 1], "B": [4, 3, 2]},
+                False,
+                [2, 1, 0],
+            ),
         ],
     )
-    def test_sort_values_ignore_index(self, original_dict, sorted_dict):
+    def test_sort_values_ignore_index(
+        self, original_dict, sorted_dict, ignore_index, output_index
+    ):
 
         # GH 30114
         df = pd.DataFrame(original_dict)
-        sorted_df = df.sort_values("A", ascending=False, ignore_index=True)
+        sorted_df = df.sort_values("A", ascending=False, ignore_index=ignore_index)
 
-        expected = pd.DataFrame(sorted_dict, index=[0, 1, 2])
+        expected = pd.DataFrame(sorted_dict, index=output_index)
         tm.assert_frame_equal(sorted_df, expected)
 
 
