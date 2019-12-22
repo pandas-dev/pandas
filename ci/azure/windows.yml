@@ -19,9 +19,9 @@ jobs:
         PATTERN: "not slow and not network"
 
   steps:
-    - script: |
-        echo '##vso[task.prependpath]$env:CONDA\Scripts'
-        echo '##vso[task.prependpath]$HOME/miniconda3/bin'
+    - powershell: |
+        Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
+        Write-Host "##vso[task.prependpath]$HOME/miniconda3/bin"
       displayName: 'Add conda to PATH'
     - script: conda update -q -n base conda
       displayName: 'Update conda'
