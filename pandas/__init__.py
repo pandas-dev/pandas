@@ -213,7 +213,8 @@ if pandas.compat.PY37:
         elif name == "np":
 
             warnings.warn(
-                "The pandas.np module is deprecated and will be removed from pandas in a future version. "
+                "The pandas.np module is deprecated "
+                "and will be removed from pandas in a future version. "
                 "Import numpy directly instead",
                 FutureWarning,
                 stacklevel=2,
@@ -259,7 +260,8 @@ else:
             np = object.__getattribute__(self, "np")
             warnings = object.__getattribute__(self, "warnings")
             warnings.warn(
-                "The pandas.np module is deprecated and will be removed from pandas in a future version. "
+                "The pandas.np module is deprecated "
+                "and will be removed from pandas in a future version. "
                 "Import numpy directly instead",
                 FutureWarning,
                 stacklevel=2,
