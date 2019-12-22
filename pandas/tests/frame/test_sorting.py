@@ -376,10 +376,13 @@ class TestDataFrameSorting:
         sorted_df = df.sort_values(by=["a", "b"])
         tm.assert_frame_equal(sorted_df, expected)
 
-    @pytest.mark.parametrize("original_dict, sorted_dict", [
-        ({"A": [1, 2, 3]}, {"A": [3, 2, 1]}),
-        ({"A": [1, 2, 3], "B": [2, 3, 4]}, {"A": [3, 2, 1], "B": [4, 3, 2]})
-    ])
+    @pytest.mark.parametrize(
+        "original_dict, sorted_dict",
+        [
+            ({"A": [1, 2, 3]}, {"A": [3, 2, 1]}),
+            ({"A": [1, 2, 3], "B": [2, 3, 4]}, {"A": [3, 2, 1], "B": [4, 3, 2]}),
+        ],
+    )
     def test_sort_values_ignore_index(self, original_dict, sorted_dict):
 
         # GH 30114
