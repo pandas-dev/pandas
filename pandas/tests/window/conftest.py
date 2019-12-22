@@ -1,3 +1,10 @@
+try:
+    import numba  # noqa
+
+    _HAVE_NUMBA = True
+except ImportError:
+    _HAVE_NUMBA = False
+
 import pytest
 
 
@@ -64,6 +71,14 @@ def nopython(request):
     return request.param
 
 
-@pytest.fixture(params=["numba", "cython"])
+@pytest.fixture(
+    params=[
+        pytest.param(
+            "numba",
+            marks=pytest.mark.skipif(not _HAVE_NUMBA, reason="numba is not installed"),
+        ),
+        "cython",
+    ]
+)
 def engine(request):
     return request.param
