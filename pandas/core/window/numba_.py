@@ -1,3 +1,4 @@
+import types
 from typing import Callable, Dict, Optional, Tuple
 
 import numpy as np
@@ -54,7 +55,9 @@ def _generate_numba_apply_func(
 
             @numba.generated_jit(nopython=nopython, nogil=nogil, parallel=parallel)
             def numba_func(window, *_args):
-                if getattr(np, func.__name__, False) is func:
+                if getattr(np, func.__name__, False) is func or isinstance(
+                    func, types.BuiltinFunctionType
+                ):
 
                     def impl(window, *_args):
                         return func(window, *_args)

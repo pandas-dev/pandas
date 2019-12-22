@@ -62,3 +62,8 @@ def nogil(request):
 @pytest.fixture(params=[True, False])
 def nopython(request):
     return request.param
+
+
+@pytest.fixture(params=["numba", "cython"])
+def engine(request):
+    return request.param

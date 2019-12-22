@@ -366,7 +366,8 @@ and the apply for loop. Currently only ``nogil``, ``nopython``, and ``parallel``
 
    In [2]: roll = data.rolling(10)
 
-   In [3]: f = lambda x: np.sum(x) + 5
+   In [3]: def f(x):
+      ...:     return np.sum(x) + 5
    # Ran the first time, compilation time will affect performance
    In [4]: %timeit -r 1 -n 1 roll.apply(f, engine='numba', raw=True)
    1.23 s ± 0 ns per loop (mean ± std. dev. of 1 run, 1 loop each)
