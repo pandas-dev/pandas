@@ -247,7 +247,7 @@ else:
     class SparseSeries:
         pass
 
-    class numpy:
+    class __numpy:
         def __init__(self):
             import numpy as np
             import warnings
@@ -255,16 +255,18 @@ else:
             self.np = np
             self.warnings = warnings
 
-        def __getattr__(self, item):
-            self.warnings.warn(
+        def __getattribute__(self, item):
+            np = object.__getattribute__(self, "np")
+            warnings = object.__getattribute__(self, "warnings")
+            warnings.warn(
                 "The pandas.np module is deprecated and will be removed from pandas in a future version. "
                 "Import numpy directly instead",
                 FutureWarning,
                 stacklevel=2,
             )
-            return getattr(self.np, item)
+            return object.__getattribute__(np, item)
 
-    np = numpy()
+    np = __numpy()
 
 # module level doc-string
 __doc__ = """
