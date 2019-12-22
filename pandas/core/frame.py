@@ -4608,7 +4608,7 @@ class DataFrame(NDFrame):
         inplace : bool, default False
             Whether to drop duplicates in place or to return a copy.
         ignore_index : bool, default False
-            If True, the resulting axis will be labeled 0, …, n - 1.
+            If True, the resulting axis will be labeled 0, 1, …, n - 1.
 
         Returns
         -------
@@ -4624,6 +4624,7 @@ class DataFrame(NDFrame):
         if inplace:
             (inds,) = (-duplicated)._ndarray_values.nonzero()
             new_data = self._data.take(inds)
+
             if ignore_index:
                 new_data.axes[1] = ibase.default_index(len(inds))
             self._update_inplace(new_data)
