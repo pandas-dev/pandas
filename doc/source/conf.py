@@ -204,7 +204,11 @@ html_theme = "pandas_sphinx_theme"
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-# html_theme_options = {}
+html_theme_options = {
+    "external_links": [],
+    "github_url": "https://github.com/pandas-dev/pandas",
+    "twitter_url": "https://twitter.com/pandas_dev",
+}
 
 # Add any paths that contain custom themes here, relative to this directory.
 # html_theme_path = ["themes"]
@@ -228,7 +232,7 @@ html_static_path = ["_static"]
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
 # pixels large.
-html_favicon = os.path.join(html_static_path[0], "favicon.ico")
+html_favicon = "../../web/pandas/static/img/favicon.ico"
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
