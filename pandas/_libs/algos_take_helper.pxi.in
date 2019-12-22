@@ -82,7 +82,7 @@ cdef inline take_1d_{{name}}_{{dest}}_memview({{c_type_in}}[:] values,
         for i in range(n):
             idx = indexer[i]
             if idx == -1:
-                 out[i] = fv
+                out[i] = fv
             else:
                 {{if c_type_in == "uint8_t" and c_type_out == "object"}}
                 out[i] = True if values[idx] > 0 else False
@@ -123,14 +123,13 @@ def take_1d_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=1] values,
         for i in range(n):
             idx = indexer[i]
             if idx == -1:
-                 out[i] = fv
+                out[i] = fv
             else:
                 {{if c_type_in == "uint8_t" and c_type_out == "object"}}
                 out[i] = True if values[idx] > 0 else False
                 {{else}}
                 out[i] = values[idx]
                 {{endif}}
-
 
 
 @cython.wraparound(False)
