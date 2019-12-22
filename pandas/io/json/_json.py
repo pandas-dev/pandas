@@ -10,6 +10,7 @@ import numpy as np
 import pandas._libs.json as json
 from pandas._libs.tslibs import iNaT
 from pandas.errors import AbstractMethodError
+from pandas.util._decorators import deprecate_kwarg
 
 from pandas.core.dtypes.common import ensure_str, is_period_dtype
 
@@ -27,7 +28,6 @@ from pandas.io.common import (
 )
 from pandas.io.formats.printing import pprint_thing
 from pandas.io.parsers import _validate_integer
-from pandas.util._decorators import deprecate_kwarg
 
 from ._normalize import convert_to_line_delimits
 from ._table_schema import build_table_schema, parse_table_schema

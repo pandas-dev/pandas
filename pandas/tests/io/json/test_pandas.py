@@ -1,9 +1,9 @@
 from collections import OrderedDict
 from datetime import timedelta
 from io import StringIO
-from warnings import catch_warnings, filterwarnings
 import json
 import os
+from warnings import catch_warnings, filterwarnings
 
 import numpy as np
 import pytest
