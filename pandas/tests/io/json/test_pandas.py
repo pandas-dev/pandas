@@ -1606,9 +1606,9 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
     @pytest.mark.filterwarnings("ignore:.*msgpack:FutureWarning")
     def test_deprecate_numpy_argument_read_json(self):
         # https://github.com/pandas-dev/pandas/issues/28512
-        df = DataFrame([1, 2, 3])
+        expected = DataFrame([1, 2, 3])
         with tm.assert_produces_warning(None):
             with catch_warnings():
                 filterwarnings("ignore", category=FutureWarning)
-                result = read_json(df.to_json(), numpy=True)
-                assert_frame_equal(result, df)
+                result = read_json(expected.to_json(), numpy=True)
+                tm.assert_frame_equal(result, expected)
