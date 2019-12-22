@@ -455,6 +455,7 @@ class TestTimeSeries:
         expected = ts[(rng.hour == 9) & (rng.minute == 30)]
         exp_df = df[(rng.hour == 9) & (rng.minute == 30)]
 
+        # FIXME: dont leave commented-out
         # expected.index = date_range('1/1/2000', '1/4/2000')
 
         tm.assert_series_equal(result, expected)
