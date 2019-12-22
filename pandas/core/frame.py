@@ -4704,7 +4704,7 @@ class DataFrame(NDFrame):
         inplace=False,
         kind="quicksort",
         na_position="last",
-        ignore_index: bool = False,
+        ignore_index=False,
     ):
         inplace = validate_bool_kwarg(inplace, "inplace")
         axis = self._get_axis_number(axis)
