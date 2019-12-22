@@ -456,9 +456,11 @@ class SAS7BDATReader(BaseIterator):
         offset += int_len
         self.column_count = self._read_int(offset, int_len)
         if self.col_count_p1 + self.col_count_p2 != self.column_count:
-            print(f"Warning: column count mismatch ({self.col_count_p1} + "
-                  f"{self.col_count_p2} != "
-                  f"{self.column_count})\n")
+            print(
+                f"Warning: column count mismatch ({self.col_count_p1} + "
+                f"{self.col_count_p2} != "
+                f"{self.column_count})\n"
+            )
 
     # Unknown purpose
     def _process_subheader_counts(self, offset, length):
@@ -667,9 +669,11 @@ class SAS7BDATReader(BaseIterator):
             return True
         elif len(self._cached_page) != self._page_length:
             self.close()
-            msg = ("failed to read complete page from file (read "
-                   f"{len(self._cached_page):d} of "
-                   f"{self._page_length:d} bytes)")
+            msg = (
+                "failed to read complete page from file (read "
+                f"{len(self._cached_page):d} of "
+                f"{self._page_length:d} bytes)"
+            )
             raise ValueError(msg)
 
         self._read_page_header()
