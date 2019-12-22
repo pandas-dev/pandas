@@ -350,19 +350,14 @@ class BlockManager(PandasObject):
         res = {}
         for blk in self.blocks:
             bres = func(blk.values, *args, **kwargs)
-            if np.ndim(bres) == 0 and blk.shape[0] != 1:
-                # i.e. we reduced over all axes and not just one; re-do column-wise
-                new_res = {
-                    blk.mgr_locs.as_array[i]: func(blk.values[i], *args, **kwargs)
-                    for i in range(len(blk.values))
-                }
-            elif np.ndim(bres) == 0:
+
+            if np.ndim(bres) == 0:
                 # EA
                 assert blk.shape[0] == 1
                 new_res = zip(blk.mgr_locs.as_array, [bres])
             else:
                 assert bres.ndim == 1, bres.shape
-                assert blk.shape[0] == len(bres)
+                assert blk.shape[0] == len(bres), (blk.shape, bres.shape, args, kwargs)
                 new_res = zip(blk.mgr_locs.as_array, bres)
 
             nr = dict(new_res)
