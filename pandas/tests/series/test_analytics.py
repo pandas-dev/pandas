@@ -858,7 +858,6 @@ class TestSeriesAnalytics:
         arr = np.random.randn(N)
         ser = Series(arr)
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            print("hell")
             assert np.ptp(ser) == np.ptp(arr)
 
     def test_repeat(self):
