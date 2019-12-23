@@ -605,17 +605,18 @@ class TestPandasContainer:
             df_mixed.to_json()
 
         # default_handler should resolve exceptions for non-string types
-        assert df_nonprintable.to_json(
-            default_handler=str
-        ) == f'{{"A":{{"0":"{hexed}"}}}}'
-        assert df_mixed.to_json(
-            default_handler=str
-        ) == f'{{"A":{{"0":"{hexex}"}},"B":{{"0":1}}}}'
+        assert (
+            df_nonprintable.to_json(default_handler=str) == f'{{"A":{{"0":"{hexed}"}}}}'
+        )
+        assert (
+            df_mixed.to_json(default_handler=str)
+            == f'{{"A":{{"0":"{hexed}"}},"B":{{"0":1}}}}'
+        )
 
     def test_label_overflow(self):
         # GH14256: buffer length not checked when writing label
         df = pd.DataFrame({"bar" * 100000: [1], "foo": [1337]})
-        assert df.to_json() == f'{{\"{"bar" * 10}\":{{"0":1}},"foo":{{"0":1337}}}}'
+        assert df.to_json() == f'{{"{"bar" * 10}":{{"0":1}},"foo":{{"0":1337}}}}'
 
     def test_series_non_unique_index(self):
         s = Series(["a", "b"], index=[1, 1])
@@ -1456,16 +1457,18 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
         result = df.to_json(indent=indent)
         spaces = " " * indent
-        expected = ('{\n'
-                    f'{spaces}"a":{{\n'
-                    f'{spaces}{spaces}"0":"foo",\n'
-                    f'{spaces}{spaces}"1":"baz"\n'
-                    f'{spaces}}},\n'
-                    f'{spaces}"b":{{\n'
-                    f'{spaces}{spaces}"0":"bar",\n'
-                    f'{spaces}{spaces}"1":"qux"\n'
-                    f'{spaces}}}\n'
-                    '}')
+        expected = (
+            "{\n"
+            f'{spaces}"a":{{\n'
+            f'{spaces}{spaces}"0":"foo",\n'
+            f'{spaces}{spaces}"1":"baz"\n'
+            f"{spaces}}},\n"
+            f'{spaces}"b":{{\n'
+            f'{spaces}{spaces}"0":"bar",\n'
+            f'{spaces}{spaces}"1":"qux"\n'
+            f"{spaces}}}\n"
+            "}"
+        )
 
         assert result == expected
 

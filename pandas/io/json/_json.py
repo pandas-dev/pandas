@@ -175,9 +175,7 @@ class SeriesWriter(Writer):
 
     def _format_axes(self):
         if not self.obj.index.is_unique and self.orient == "index":
-            raise ValueError(
-                f"Series index must be unique for orient='{self.orient}'"
-            )
+            raise ValueError(f"Series index must be unique for orient='{self.orient}'")
 
     def _write(
         self,
@@ -825,9 +823,7 @@ class Parser:
         if date_unit is not None:
             date_unit = date_unit.lower()
             if date_unit not in self._STAMP_UNITS:
-                raise ValueError(
-                    f"date_unit must be one of {self._STAMP_UNITS}"
-                )
+                raise ValueError(f"date_unit must be one of {self._STAMP_UNITS}")
             self.min_stamp = self._MIN_STAMPS[date_unit]
         else:
             self.min_stamp = self._MIN_STAMPS["s"]
