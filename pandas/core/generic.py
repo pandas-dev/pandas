@@ -1984,6 +1984,9 @@ class NDFrame(PandasObject, SelectionMixin):
         sys.stdout. Pass a writable buffer if you need to further process
         the output.
     mode : str, optional
+        Mode in which file is opened.
+    **kwargs
+        These parameters will be passed to `tabulate`.
 
     Returns
     -------
