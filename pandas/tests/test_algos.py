@@ -1412,7 +1412,7 @@ class TestHashTable:
         with pytest.raises(TypeError, match="'key' has incorrect type"):
             # key arg typed as string, not object
             tbl.set_item(4, 6)
-        with pytest.raises(TypeError, match="Expected unicode, got int"):
+        with pytest.raises(TypeError, match="'val' has incorrect type"):
             tbl.get_item(4)
 
     def test_lookup_nan(self, writable):

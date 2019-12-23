@@ -36,7 +36,7 @@ cdef class PyObjectHashTable(HashTable):
 cdef class StringHashTable(HashTable):
     cdef kh_str_t *table
 
-    cpdef get_item(self, object val)
+    cpdef get_item(self, str val)
     cpdef set_item(self, str key, Py_ssize_t val)
 
 cdef struct Int64VectorData:
