@@ -401,9 +401,9 @@ class MPLPlot:
             include_type = [np.number]
             exclude_type = ["timedelta"]
 
-        # GH 18755, include object type for scatter
+        # GH 18755, include object and category type for scatter plot
         if self._kind == "scatter":
-            include_type.append("object")
+            include_type.extend(["object", "category"])
 
         numeric_data = data.select_dtypes(include=include_type, exclude=exclude_type)
 
