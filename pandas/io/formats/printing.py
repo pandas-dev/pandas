@@ -1,15 +1,25 @@
 """
-printing tools
+Printing tools.
 """
 
 import sys
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 from pandas._config import get_option
 
 from pandas.core.dtypes.inference import is_sequence
 
-EscapeChars = Union[Dict[str, str], Iterable[str]]
+EscapeChars = Union[Mapping[str, str], Iterable[str]]
 
 
 def adjoin(space: int, *lists: List[str], **kwargs) -> str:
@@ -119,7 +129,7 @@ def _pprint_seq(
 
 
 def _pprint_dict(
-    seq: Dict, _nest_lvl: int = 0, max_seq_items: Optional[int] = None, **kwds
+    seq: Mapping, _nest_lvl: int = 0, max_seq_items: Optional[int] = None, **kwds
 ) -> str:
     """
     internal. pprinter for iterables. you should probably use pprint_thing()
@@ -172,13 +182,12 @@ def pprint_thing(
         replacements
     default_escapes : bool, default False
         Whether the input escape characters replaces or adds to the defaults
-    max_seq_items : False, int, default None
-        Pass thru to other pretty printers to limit sequence printing
+    max_seq_items : int or None, default None
+        Pass through to other pretty printers to limit sequence printing
 
     Returns
     -------
     str
-
     """
 
     def as_escaped_string(
@@ -302,7 +311,6 @@ def format_object_summary(
     Returns
     -------
     summary string
-
     """
     from pandas.io.formats.console import get_console_size
     from pandas.io.formats.format import _get_adjustment
@@ -311,12 +319,12 @@ def format_object_summary(
     if display_width is None:
         display_width = get_option("display.width") or 80
     if name is None:
-        name = obj.__class__.__name__
+        name = type(obj).__name__
 
     if indent_for_name:
         name_len = len(name)
-        space1 = "\n%s" % (" " * (name_len + 1))
-        space2 = "\n%s" % (" " * (name_len + 2))
+        space1 = f'\n{(" " * (name_len + 1))}'
+        space2 = f'\n{(" " * (name_len + 2))}'
     else:
         space1 = "\n"
         space2 = "\n "  # space for the opening '['
@@ -336,7 +344,9 @@ def format_object_summary(
     # adj can optionally handle unicode eastern asian width
     adj = _get_adjustment()
 
-    def _extend_line(s, line, value, display_width, next_line_prefix):
+    def _extend_line(
+        s: str, line: str, value: str, display_width: int, next_line_prefix: str
+    ) -> Tuple[str, str]:
 
         if adj.len(line.rstrip()) + adj.len(value.rstrip()) >= display_width:
             s += line.rstrip()
@@ -344,7 +354,7 @@ def format_object_summary(
         line += value
         return s, line
 
-    def best_len(values):
+    def best_len(values: List[str]) -> int:
         if values:
             return max(adj.len(x) for x in values)
         else:
@@ -353,14 +363,14 @@ def format_object_summary(
     close = ", "
 
     if n == 0:
-        summary = "[]{}".format(close)
+        summary = f"[]{close}"
     elif n == 1 and not line_break_each_value:
         first = formatter(obj[0])
-        summary = "[{}]{}".format(first, close)
+        summary = f"[{first}]{close}"
     elif n == 2 and not line_break_each_value:
         first = formatter(obj[0])
         last = formatter(obj[-1])
-        summary = "[{}, {}]{}".format(first, last, close)
+        summary = f"[{first}, {last}]{close}"
     else:
 
         if n > max_seq_items:
@@ -503,10 +513,10 @@ def format_object_attrs(
     list of 2-tuple
 
     """
-    attrs = []  # type: List[Tuple[str, Union[str, int]]]
+    attrs: List[Tuple[str, Union[str, int]]] = []
     if hasattr(obj, "dtype") and include_dtype:
         # error: "Sequence[Any]" has no attribute "dtype"
-        attrs.append(("dtype", "'{}'".format(obj.dtype)))  # type: ignore
+        attrs.append(("dtype", f"'{obj.dtype}'"))  # type: ignore
     if getattr(obj, "name", None) is not None:
         # error: "Sequence[Any]" has no attribute "name"
         attrs.append(("name", default_pprint(obj.name)))  # type: ignore

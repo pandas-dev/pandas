@@ -1,7 +1,7 @@
 from datetime import date, datetime, timedelta
 import functools
 import operator
-from typing import Optional
+from typing import Any, Optional
 
 from dateutil.easter import easter
 import numpy as np
@@ -35,8 +35,6 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes.inference import is_list_like
-
-from pandas.core.tools.datetimes import to_datetime
 
 __all__ = [
     "Day",
@@ -204,7 +202,8 @@ class DateOffset(BaseOffset):
     normalize : bool, default False
         Whether to round the result of a DateOffset addition down to the
         previous midnight.
-    **kwds : Temporal parameter that add to or replace the offset value.
+    **kwds
+        Temporal parameter that add to or replace the offset value.
 
         Parameters that **add** to the offset (like Timedelta):
 
@@ -228,7 +227,7 @@ class DateOffset(BaseOffset):
         - minute
         - second
         - microsecond
-        - nanosecond
+        - nanosecond.
 
     See Also
     --------
@@ -310,9 +309,8 @@ class DateOffset(BaseOffset):
 
         if type(self) is not DateOffset:
             raise NotImplementedError(
-                "DateOffset subclass {name} "
-                "does not have a vectorized "
-                "implementation".format(name=self.__class__.__name__)
+                f"DateOffset subclass {type(self).__name__} "
+                "does not have a vectorized implementation"
             )
         kwds = self.kwds
         relativedelta_fast = {
@@ -361,8 +359,8 @@ class DateOffset(BaseOffset):
             kwd = set(kwds) - relativedelta_fast
             raise NotImplementedError(
                 "DateOffset with relativedelta "
-                "keyword(s) {kwd} not able to be "
-                "applied vectorized".format(kwd=kwd)
+                f"keyword(s) {kwd} not able to be "
+                "applied vectorized"
             )
 
     def isAnchored(self):
@@ -381,7 +379,7 @@ class DateOffset(BaseOffset):
                 continue
             elif attr not in exclude:
                 value = getattr(self, attr)
-                attrs.append("{attr}={value}".format(attr=attr, value=value))
+                attrs.append(f"{attr}={value}")
 
         out = ""
         if attrs:
@@ -403,7 +401,7 @@ class DateOffset(BaseOffset):
         """
         dt = as_timestamp(dt)
         if not self.onOffset(dt):
-            dt = dt - self.__class__(1, normalize=self.normalize, **self.kwds)
+            dt = dt - type(self)(1, normalize=self.normalize, **self.kwds)
         return dt
 
     def rollforward(self, dt):
@@ -417,7 +415,7 @@ class DateOffset(BaseOffset):
         """
         dt = as_timestamp(dt)
         if not self.onOffset(dt):
-            dt = dt + self.__class__(1, normalize=self.normalize, **self.kwds)
+            dt = dt + type(self)(1, normalize=self.normalize, **self.kwds)
         return dt
 
     def onOffset(self, dt):
@@ -451,7 +449,7 @@ class DateOffset(BaseOffset):
             return repr(self)
 
         if self.n != 1:
-            fstr = "{n}{code}".format(n=self.n, code=code)
+            fstr = f"{self.n}{code}"
         else:
             fstr = code
 
@@ -469,7 +467,7 @@ class DateOffset(BaseOffset):
 
     @property
     def nanos(self):
-        raise ValueError("{name} is a non-fixed frequency".format(name=self))
+        raise ValueError(f"{self} is a non-fixed frequency")
 
 
 class SingleConstructorOffset(DateOffset):
@@ -477,7 +475,7 @@ class SingleConstructorOffset(DateOffset):
     def _from_name(cls, suffix=None):
         # default _from_name calls cls with no args
         if suffix:
-            raise ValueError("Bad freq suffix {suffix}".format(suffix=suffix))
+            raise ValueError(f"Bad freq suffix {suffix}")
         return cls()
 
 
@@ -515,7 +513,7 @@ class BusinessMixin:
 
     def _repr_attrs(self):
         if self.offset:
-            attrs = ["offset={offset!r}".format(offset=self.offset)]
+            attrs = [f"offset={repr(self.offset)}"]
         else:
             attrs = None
         out = ""
@@ -605,7 +603,7 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
             return BDay(self.n, offset=self.offset + other, normalize=self.normalize)
         else:
             raise ApplyTypeError(
-                "Only know how to combine business day with " "datetime or timedelta."
+                "Only know how to combine business day with datetime or timedelta."
             )
 
     @apply_index_wraps
@@ -657,9 +655,7 @@ class BusinessHourMixin(BusinessMixin):
 
         # Validation of input
         if len(start) != len(end):
-            raise ValueError(
-                "number of starting time and ending time " "must be the same"
-            )
+            raise ValueError("number of starting time and ending time must be the same")
         num_openings = len(start)
 
         # sort starting and ending time by starting time
@@ -970,10 +966,10 @@ class BusinessHourMixin(BusinessMixin):
     def _repr_attrs(self):
         out = super()._repr_attrs()
         hours = ",".join(
-            "{}-{}".format(st.strftime("%H:%M"), en.strftime("%H:%M"))
+            f'{st.strftime("%H:%M")}-{en.strftime("%H:%M")}'
             for st, en in zip(self.start, self.end)
         )
-        attrs = ["{prefix}={hours}".format(prefix=self._prefix, hours=hours)]
+        attrs = [f"{self._prefix}={hours}"]
         out += ": " + ", ".join(attrs)
         return out
 
@@ -981,8 +977,6 @@ class BusinessHourMixin(BusinessMixin):
 class BusinessHour(BusinessHourMixin, SingleConstructorOffset):
     """
     DateOffset subclass representing possibly n business hours.
-
-    .. versionadded:: 0.16.1
     """
 
     _prefix = "BH"
@@ -1005,12 +999,12 @@ class CustomBusinessDay(_CustomMixin, BusinessDay):
     ----------
     n : int, default 1
     normalize : bool, default False
-        Normalize start/end dates to midnight before generating date range
+        Normalize start/end dates to midnight before generating date range.
     weekmask : str, Default 'Mon Tue Wed Thu Fri'
-        weekmask of valid business days, passed to ``numpy.busdaycalendar``
+        Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
     holidays : list
-        list/array of dates to exclude from the set of valid business days,
-        passed to ``numpy.busdaycalendar``
+        List/array of dates to exclude from the set of valid business days,
+        passed to ``numpy.busdaycalendar``.
     calendar : pd.HolidayCalendar or np.busdaycalendar
     offset : timedelta, default timedelta(0)
     """
@@ -1119,7 +1113,7 @@ class MonthOffset(SingleConstructorOffset):
             return self.rule_code
         else:
             month = ccalendar.MONTH_ALIASES[self.n]
-            return "{code}-{month}".format(code=self.rule_code, month=month)
+            return f"{self.code_rule}-{month}"
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -1302,9 +1296,10 @@ class SemiMonthOffset(DateOffset):
         else:
             object.__setattr__(self, "day_of_month", int(day_of_month))
         if not self._min_day_of_month <= self.day_of_month <= 27:
-            msg = "day_of_month must be {min}<=day_of_month<=27, got {day}"
             raise ValueError(
-                msg.format(min=self._min_day_of_month, day=self.day_of_month)
+                "day_of_month must be "
+                f"{self._min_day_of_month}<=day_of_month<=27, "
+                f"got {self.day_of_month}"
             )
 
     @classmethod
@@ -1313,7 +1308,7 @@ class SemiMonthOffset(DateOffset):
 
     @property
     def rule_code(self):
-        suffix = "-{day_of_month}".format(day_of_month=self.day_of_month)
+        suffix = f"-{self.day_of_month}"
         return self._prefix + suffix
 
     @apply_wraps
@@ -1519,7 +1514,7 @@ class Week(DateOffset):
     Parameters
     ----------
     weekday : int, default None
-        Always generate specific day of week. 0 for Monday
+        Always generate specific day of week. 0 for Monday.
     """
 
     _adjust_dst = True
@@ -1533,9 +1528,7 @@ class Week(DateOffset):
 
         if self.weekday is not None:
             if self.weekday < 0 or self.weekday > 6:
-                raise ValueError(
-                    "Day must be 0<=day<=6, got {day}".format(day=self.weekday)
-                )
+                raise ValueError(f"Day must be 0<=day<=6, got {self.weekday}")
 
     def isAnchored(self):
         return self.n == 1 and self.weekday is not None
@@ -1544,6 +1537,11 @@ class Week(DateOffset):
     def apply(self, other):
         if self.weekday is None:
             return other + self.n * self._inc
+
+        if not isinstance(other, datetime):
+            raise TypeError(
+                f"Cannot add {type(other).__name__} to {type(self).__name__}"
+            )
 
         k = self.n
         otherDay = other.weekday()
@@ -1620,7 +1618,7 @@ class Week(DateOffset):
         suffix = ""
         if self.weekday is not None:
             weekday = ccalendar.int_to_weekday[self.weekday]
-            suffix = "-{weekday}".format(weekday=weekday)
+            suffix = f"-{weekday}"
         return self._prefix + suffix
 
     @classmethod
@@ -1664,16 +1662,19 @@ class WeekOfMonth(_WeekOfMonthMixin, DateOffset):
     Parameters
     ----------
     n : int
-    week : {0, 1, 2, 3, ...}, default 0
-        0 is 1st week of month, 1 2nd week, etc.
-    weekday : {0, 1, ..., 6}, default 0
-        0: Mondays
-        1: Tuesdays
-        2: Wednesdays
-        3: Thursdays
-        4: Fridays
-        5: Saturdays
-        6: Sundays
+    week : int {0, 1, 2, 3, ...}, default 0
+        A specific integer for the week of the month.
+        e.g. 0 is 1st week of month, 1 is the 2nd week, etc.
+    weekday : int {0, 1, ..., 6}, default 0
+        A specific integer for the day of the week.
+
+        - 0 is Monday
+        - 1 is Tuesday
+        - 2 is Wednesday
+        - 3 is Thursday
+        - 4 is Friday
+        - 5 is Saturday
+        - 6 is Sunday.
     """
 
     _prefix = "WOM"
@@ -1686,13 +1687,9 @@ class WeekOfMonth(_WeekOfMonthMixin, DateOffset):
         object.__setattr__(self, "week", week)
 
         if self.weekday < 0 or self.weekday > 6:
-            raise ValueError(
-                "Day must be 0<=day<=6, got {day}".format(day=self.weekday)
-            )
+            raise ValueError(f"Day must be 0<=day<=6, got {self.weekday}")
         if self.week < 0 or self.week > 3:
-            raise ValueError(
-                "Week must be 0<=week<=3, got {week}".format(week=self.week)
-            )
+            raise ValueError(f"Week must be 0<=week<=3, got {self.week}")
 
     def _get_offset_day(self, other):
         """
@@ -1715,16 +1712,12 @@ class WeekOfMonth(_WeekOfMonthMixin, DateOffset):
     @property
     def rule_code(self):
         weekday = ccalendar.int_to_weekday.get(self.weekday, "")
-        return "{prefix}-{week}{weekday}".format(
-            prefix=self._prefix, week=self.week + 1, weekday=weekday
-        )
+        return f"{self._prefix}-{self.week + 1}{weekday}"
 
     @classmethod
     def _from_name(cls, suffix=None):
         if not suffix:
-            raise ValueError(
-                "Prefix {prefix!r} requires a suffix.".format(prefix=cls._prefix)
-            )
+            raise ValueError(f"Prefix {repr(cls._prefix)} requires a suffix.")
         # TODO: handle n here...
         # only one digit weeks (1 --> week 0, 2 --> week 1, etc.)
         week = int(suffix[0]) - 1
@@ -1740,14 +1733,16 @@ class LastWeekOfMonth(_WeekOfMonthMixin, DateOffset):
     Parameters
     ----------
     n : int, default 1
-    weekday : {0, 1, ..., 6}, default 0
-        0: Mondays
-        1: Tuesdays
-        2: Wednesdays
-        3: Thursdays
-        4: Fridays
-        5: Saturdays
-        6: Sundays
+    weekday : int {0, 1, ..., 6}, default 0
+        A specific integer for the day of the week.
+
+        - 0 is Monday
+        - 1 is Tuesday
+        - 2 is Wednesday
+        - 3 is Thursday
+        - 4 is Friday
+        - 5 is Saturday
+        - 6 is Sunday.
     """
 
     _prefix = "LWOM"
@@ -1762,9 +1757,7 @@ class LastWeekOfMonth(_WeekOfMonthMixin, DateOffset):
             raise ValueError("N cannot be 0")
 
         if self.weekday < 0 or self.weekday > 6:
-            raise ValueError(
-                "Day must be 0<=day<=6, got {day}".format(day=self.weekday)
-            )
+            raise ValueError(f"Day must be 0<=day<=6, got {self.weekday}")
 
     def _get_offset_day(self, other):
         """
@@ -1788,14 +1781,12 @@ class LastWeekOfMonth(_WeekOfMonthMixin, DateOffset):
     @property
     def rule_code(self):
         weekday = ccalendar.int_to_weekday.get(self.weekday, "")
-        return "{prefix}-{weekday}".format(prefix=self._prefix, weekday=weekday)
+        return f"{self._prefix}-{weekday}"
 
     @classmethod
     def _from_name(cls, suffix=None):
         if not suffix:
-            raise ValueError(
-                "Prefix {prefix!r} requires a suffix.".format(prefix=cls._prefix)
-            )
+            raise ValueError(f"Prefix {repr(cls._prefix)} requires a suffix.")
         # TODO: handle n here...
         weekday = ccalendar.weekday_to_int[suffix]
         return cls(weekday=weekday)
@@ -1810,8 +1801,8 @@ class QuarterOffset(DateOffset):
     Quarter representation - doesn't call super.
     """
 
-    _default_startingMonth = None  # type: Optional[int]
-    _from_name_startingMonth = None  # type: Optional[int]
+    _default_startingMonth: Optional[int] = None
+    _from_name_startingMonth: Optional[int] = None
     _adjust_dst = True
     _attributes = frozenset(["n", "normalize", "startingMonth"])
     # TODO: Consider combining QuarterOffset and YearOffset __init__ at some
@@ -1841,7 +1832,7 @@ class QuarterOffset(DateOffset):
     @property
     def rule_code(self):
         month = ccalendar.MONTH_ALIASES[self.startingMonth]
-        return "{prefix}-{month}".format(prefix=self._prefix, month=month)
+        return f"{self._prefix}-{month}"
 
     @apply_wraps
     def apply(self, other):
@@ -1984,7 +1975,7 @@ class YearOffset(DateOffset):
     @property
     def rule_code(self):
         month = ccalendar.MONTH_ALIASES[self.month]
-        return "{prefix}-{month}".format(prefix=self._prefix, month=month)
+        return f"{self._prefix}-{month}"
 
 
 class BYearEnd(YearOffset):
@@ -2048,6 +2039,7 @@ class FY5253(DateOffset):
     http://en.wikipedia.org/wiki/4-4-5_calendar
 
     The year may either:
+
     - end on the last X day of the Y month.
     - end on the last X day closest to the last day of the Y month.
 
@@ -2057,17 +2049,27 @@ class FY5253(DateOffset):
     Parameters
     ----------
     n : int
-    weekday : {0, 1, ..., 6}
-        0: Mondays
-        1: Tuesdays
-        2: Wednesdays
-        3: Thursdays
-        4: Fridays
-        5: Saturdays
-        6: Sundays
-    startingMonth : The month in which fiscal years end. {1, 2, ... 12}
-    variation : str
-        {"nearest", "last"} for "LastOfMonth" or "NearestEndMonth"
+    weekday : int {0, 1, ..., 6}, default 0
+        A specific integer for the day of the week.
+
+        - 0 is Monday
+        - 1 is Tuesday
+        - 2 is Wednesday
+        - 3 is Thursday
+        - 4 is Friday
+        - 5 is Saturday
+        - 6 is Sunday.
+
+    startingMonth : int {1, 2, ... 12}, default 1
+        The month in which the fiscal year ends.
+
+    variation : str, default "nearest"
+        Method of employing 4-4-5 calendar.
+
+        There are two options:
+
+        - "nearest" means year end is **weekday** closest to last day of month in year.
+        - "last" means year end is final **weekday** of the final month in fiscal year.
     """
 
     _prefix = "RE"
@@ -2087,9 +2089,7 @@ class FY5253(DateOffset):
             raise ValueError("N cannot be 0")
 
         if self.variation not in ["nearest", "last"]:
-            raise ValueError(
-                "{variation} is not a valid variation".format(variation=self.variation)
-            )
+            raise ValueError(f"{self.variation} is not a valid variation")
 
     def isAnchored(self):
         return (
@@ -2194,7 +2194,7 @@ class FY5253(DateOffset):
     def rule_code(self):
         prefix = self._prefix
         suffix = self.get_rule_code_suffix()
-        return "{prefix}-{suffix}".format(prefix=prefix, suffix=suffix)
+        return f"{prefix}-{suffix}"
 
     def _get_suffix_prefix(self):
         if self.variation == "nearest":
@@ -2206,9 +2206,7 @@ class FY5253(DateOffset):
         prefix = self._get_suffix_prefix()
         month = ccalendar.MONTH_ALIASES[self.startingMonth]
         weekday = ccalendar.int_to_weekday[self.weekday]
-        return "{prefix}-{month}-{weekday}".format(
-            prefix=prefix, month=month, weekday=weekday
-        )
+        return f"{prefix}-{month}-{weekday}"
 
     @classmethod
     def _parse_suffix(cls, varion_code, startingMonth_code, weekday_code):
@@ -2217,9 +2215,7 @@ class FY5253(DateOffset):
         elif varion_code == "L":
             variation = "last"
         else:
-            raise ValueError(
-                "Unable to parse varion_code: " "{code}".format(code=varion_code)
-            )
+            raise ValueError(f"Unable to parse varion_code: {varion_code}")
 
         startingMonth = ccalendar.MONTH_TO_CAL_NUM[startingMonth_code]
         weekday = ccalendar.weekday_to_int[weekday_code]
@@ -2251,6 +2247,7 @@ class FY5253Quarter(DateOffset):
     http://en.wikipedia.org/wiki/4-4-5_calendar
 
     The year may either:
+
     - end on the last X day of the Y month.
     - end on the last X day closest to the last day of the Y month.
 
@@ -2264,19 +2261,30 @@ class FY5253Quarter(DateOffset):
     Parameters
     ----------
     n : int
-    weekday : {0, 1, ..., 6}
-        0: Mondays
-        1: Tuesdays
-        2: Wednesdays
-        3: Thursdays
-        4: Fridays
-        5: Saturdays
-        6: Sundays
-    startingMonth : The month in which fiscal years end. {1, 2, ... 12}
-    qtr_with_extra_week : The quarter number that has the leap
-        or 14 week when needed. {1,2,3,4}
-    variation : str
-        {"nearest", "last"} for "LastOfMonth" or "NearestEndMonth"
+    weekday : int {0, 1, ..., 6}, default 0
+        A specific integer for the day of the week.
+
+        - 0 is Monday
+        - 1 is Tuesday
+        - 2 is Wednesday
+        - 3 is Thursday
+        - 4 is Friday
+        - 5 is Saturday
+        - 6 is Sunday.
+
+    startingMonth : int {1, 2, ..., 12}, default 1
+        The month in which fiscal years end.
+
+    qtr_with_extra_week : int {1, 2, 3, 4}, default 1
+        The quarter number that has the leap or 14 week when needed.
+
+    variation : str, default "nearest"
+        Method of employing 4-4-5 calendar.
+
+        There are two options:
+
+        - "nearest" means year end is **weekday** closest to last day of month in year.
+        - "last" means year end is final **weekday** of the final month in fiscal year.
     """
 
     _prefix = "REQ"
@@ -2432,9 +2440,7 @@ class FY5253Quarter(DateOffset):
     def rule_code(self):
         suffix = self._offset.get_rule_code_suffix()
         qtr = self.qtr_with_extra_week
-        return "{prefix}-{suffix}-{qtr}".format(
-            prefix=self._prefix, suffix=suffix, qtr=qtr
-        )
+        return f"{self._prefix}-{suffix}-{qtr}"
 
     @classmethod
     def _from_name(cls, *args):
@@ -2503,12 +2509,11 @@ def _tick_comp(op):
         except AttributeError:
             # comparing with a non-Tick object
             raise TypeError(
-                "Invalid comparison between {cls} and {typ}".format(
-                    cls=type(self).__name__, typ=type(other).__name__
-                )
+                f"Invalid comparison between {type(self).__name__} "
+                f"and {type(other).__name__}"
             )
 
-    f.__name__ = "__{opname}__".format(opname=op.__name__)
+    f.__name__ = f"__{op.__name__}__"
     return f
 
 
@@ -2521,7 +2526,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
         BaseOffset.__init__(self, n, normalize)
         if normalize:
             raise ValueError(
-                "Tick offset with `normalize=True` are not " "allowed."
+                "Tick offset with `normalize=True` are not allowed."
             )  # GH#21427
 
     __gt__ = _tick_comp(operator.gt)
@@ -2543,11 +2548,10 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
             return NotImplemented
         except OverflowError:
             raise OverflowError(
-                "the add operation between {self} and {other} "
-                "will overflow".format(self=self, other=other)
+                f"the add operation between {self} and {other} will overflow"
             )
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         if isinstance(other, str):
             from pandas.tseries.frequencies import to_offset
 
@@ -2616,9 +2620,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
         elif isinstance(other, type(self)):
             return type(self)(self.n + other.n)
 
-        raise ApplyTypeError(
-            "Unhandled type: {type_str}".format(type_str=type(other).__name__)
-        )
+        raise ApplyTypeError(f"Unhandled type: {type(other).__name__}")
 
     def isAnchored(self):
         return False
@@ -2700,8 +2702,8 @@ def generate_range(start=None, end=None, periods=None, offset=BDay()):
 
     Parameters
     ----------
-    start : datetime (default None)
-    end : datetime (default None)
+    start : datetime, (default None)
+    end : datetime, (default None)
     periods : int, (default None)
     offset : DateOffset, (default BDay())
 
@@ -2720,8 +2722,10 @@ def generate_range(start=None, end=None, periods=None, offset=BDay()):
 
     offset = to_offset(offset)
 
-    start = to_datetime(start)
-    end = to_datetime(end)
+    start = Timestamp(start)
+    start = start if start is not NaT else None
+    end = Timestamp(end)
+    end = end if end is not NaT else None
 
     if start and not offset.onOffset(start):
         start = offset.rollforward(start)
@@ -2752,9 +2756,7 @@ def generate_range(start=None, end=None, periods=None, offset=BDay()):
             # faster than cur + offset
             next_date = offset.apply(cur)
             if next_date <= cur:
-                raise ValueError(
-                    "Offset {offset} did not increment date".format(offset=offset)
-                )
+                raise ValueError(f"Offset {offset} did not increment date")
             cur = next_date
     else:
         while cur >= end:
@@ -2768,9 +2770,7 @@ def generate_range(start=None, end=None, periods=None, offset=BDay()):
             # faster than cur + offset
             next_date = offset.apply(cur)
             if next_date >= cur:
-                raise ValueError(
-                    "Offset {offset} did not decrement date".format(offset=offset)
-                )
+                raise ValueError(f"Offset {offset} did not decrement date")
             cur = next_date
 
 

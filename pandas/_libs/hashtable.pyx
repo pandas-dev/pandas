@@ -1,7 +1,7 @@
 cimport cython
 
-from cpython cimport (PyObject, Py_INCREF,
-                      PyMem_Malloc, PyMem_Realloc, PyMem_Free)
+from cpython.ref cimport PyObject, Py_INCREF
+from cpython.mem cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
 
 from libc.stdlib cimport malloc, free
 
@@ -142,7 +142,7 @@ cdef class Int64Factorizer:
 @cython.boundscheck(False)
 def unique_label_indices(const int64_t[:] labels):
     """
-    indices of the first occurrences of the unique labels
+    Indices of the first occurrences of the unique labels
     *excluding* -1. equivalent to:
         np.unique(labels, return_index=True)[1]
     """

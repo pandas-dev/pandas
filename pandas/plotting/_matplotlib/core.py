@@ -4,8 +4,6 @@ import warnings
 
 import numpy as np
 
-from pandas._config import get_option
-
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
@@ -31,8 +29,8 @@ from pandas.core.index import MultiIndex
 from pandas.core.reshape.concat import concat
 
 from pandas.io.formats.printing import pprint_thing
-from pandas.plotting._matplotlib import converter
 from pandas.plotting._matplotlib.compat import _mpl_ge_3_0_0
+from pandas.plotting._matplotlib.converter import register_pandas_matplotlib_converters
 from pandas.plotting._matplotlib.style import _get_standard_colors
 from pandas.plotting._matplotlib.tools import (
     _flatten,
@@ -43,9 +41,6 @@ from pandas.plotting._matplotlib.tools import (
     format_date_labels,
     table,
 )
-
-if get_option("plotting.matplotlib.register_converters"):
-    converter.register(explicit=False)
 
 
 class MPLPlot:
@@ -65,7 +60,7 @@ class MPLPlot:
 
     _layout_type = "vertical"
     _default_rot = 0
-    orientation = None  # type: Optional[str]
+    orientation: Optional[str] = None
     _pop_attributes = [
         "label",
         "style",
@@ -116,7 +111,6 @@ class MPLPlot:
 
         import matplotlib.pyplot as plt
 
-        converter._WARN = False  # no warning for pandas plots
         self.data = data
         self.by = by
         self.column = column
@@ -206,15 +200,7 @@ class MPLPlot:
         self._validate_color_args()
 
     def _validate_color_args(self):
-        if "color" not in self.kwds and "colors" in self.kwds:
-            warnings.warn(
-                (
-                    "'colors' is being deprecated. Please use 'color'"
-                    "instead of 'colors'"
-                )
-            )
-            colors = self.kwds.pop("colors")
-            self.kwds["color"] = colors
+        import matplotlib.colors
 
         if (
             "color" in self.kwds
@@ -237,7 +223,7 @@ class MPLPlot:
             "color" in self.kwds or "colors" in self.kwds
         ) and self.colormap is not None:
             warnings.warn(
-                "'color' and 'colormap' cannot be used " "simultaneously. Using 'color'"
+                "'color' and 'colormap' cannot be used simultaneously. Using 'color'"
             )
 
         if "color" in self.kwds and self.style is not None:
@@ -247,13 +233,14 @@ class MPLPlot:
                 styles = [self.style]
             # need only a single match
             for s in styles:
-                if re.match("^[a-z]+?", s) is not None:
-                    raise ValueError(
-                        "Cannot pass 'style' string with a color "
-                        "symbol and 'color' keyword argument. Please"
-                        " use one or the other or pass 'style' "
-                        "without a color symbol"
-                    )
+                for char in s:
+                    if char in matplotlib.colors.BASE_COLORS:
+                        raise ValueError(
+                            "Cannot pass 'style' string with a color "
+                            "symbol and 'color' keyword argument. Please"
+                            " use one or the other or pass 'style' "
+                            "without a color symbol"
+                        )
 
     def _iter_data(self, data=None, keep_index=False, fillna=None):
         if data is None:
@@ -374,8 +361,7 @@ class MPLPlot:
         if input_log - valid_log:
             invalid_log = next(iter((input_log - valid_log)))
             raise ValueError(
-                "Boolean, None and 'sym' are valid options,"
-                " '{}' is given.".format(invalid_log)
+                f"Boolean, None and 'sym' are valid options, '{invalid_log}' is given."
             )
 
         if self.logx is True or self.loglog is True:
@@ -551,14 +537,13 @@ class MPLPlot:
             if self.subplots:
                 if is_list_like(self.title):
                     if len(self.title) != self.nseries:
-                        msg = (
+                        raise ValueError(
                             "The length of `title` must equal the number "
                             "of columns if using `title` of type `list` "
                             "and `subplots=True`.\n"
-                            "length of title = {}\n"
-                            "number of columns = {}"
-                        ).format(len(self.title), self.nseries)
-                        raise ValueError(msg)
+                            f"length of title = {len(self.title)}\n"
+                            f"number of columns = {self.nseries}"
+                        )
 
                     for (ax, title) in zip(self.axes, self.title):
                         ax.set_title(title)
@@ -695,6 +680,7 @@ class MPLPlot:
         return x
 
     @classmethod
+    @register_pandas_matplotlib_converters
     def _plot(cls, ax, x, y, style=None, is_errorbar=False, **kwds):
         mask = isna(y)
         if mask.any():
@@ -862,11 +848,10 @@ class MPLPlot:
                     or (err_shape[1] != 2)
                     or (err_shape[2] != len(self.data))
                 ):
-                    msg = (
+                    raise ValueError(
                         "Asymmetrical error bars should be provided "
-                        + "with the shape (%u, 2, %u)" % (self.nseries, len(self.data))
+                        f"with the shape ({self.nseries}, 2, {len(self.data)})"
                     )
-                    raise ValueError(msg)
 
             # broadcast errors to each data series
             if len(err) == 1:
@@ -876,7 +861,7 @@ class MPLPlot:
             err = np.tile([err], (self.nseries, len(self.data)))
 
         else:
-            msg = "No valid {label} detected".format(label=label)
+            msg = f"No valid {label} detected"
             raise ValueError(msg)
 
         return err
@@ -1034,7 +1019,7 @@ class ScatterPlot(PlanePlot):
             c=c_values,
             label=label,
             cmap=cmap,
-            **self.kwds
+            **self.kwds,
         )
         if cb:
             cbar_label = c if c_is_column else ""
@@ -1144,7 +1129,7 @@ class LinePlot(MPLPlot):
                 column_num=i,
                 stacking_id=stacking_id,
                 is_errorbar=is_errorbar,
-                **kwds
+                **kwds,
             )
             self._add_legend_handle(newlines[0], label, index=i)
 
@@ -1227,7 +1212,7 @@ class LinePlot(MPLPlot):
         raise ValueError(
             "When stacked is True, each column must be either "
             "all positive or negative."
-            "{0} contains both positive and negative values".format(label)
+            f"{label} contains both positive and negative values"
         )
 
     @classmethod
@@ -1299,7 +1284,7 @@ class AreaPlot(LinePlot):
         column_num=None,
         stacking_id=None,
         is_errorbar=False,
-        **kwds
+        **kwds,
     ):
 
         if column_num == 0:
@@ -1435,7 +1420,7 @@ class BarPlot(MPLPlot):
                     start=start,
                     label=label,
                     log=self.log,
-                    **kwds
+                    **kwds,
                 )
                 ax.set_title(label)
             elif self.stacked:
@@ -1450,7 +1435,7 @@ class BarPlot(MPLPlot):
                     start=start,
                     label=label,
                     log=self.log,
-                    **kwds
+                    **kwds,
                 )
                 pos_prior = pos_prior + np.where(mask, y, 0)
                 neg_prior = neg_prior + np.where(mask, 0, y)
@@ -1464,7 +1449,7 @@ class BarPlot(MPLPlot):
                     start=start,
                     label=label,
                     log=self.log,
-                    **kwds
+                    **kwds,
                 )
             self._add_legend_handle(rect, label, index=i)
 
@@ -1482,8 +1467,13 @@ class BarPlot(MPLPlot):
 
     def _decorate_ticks(self, ax, name, ticklabels, start_edge, end_edge):
         ax.set_xlim((start_edge, end_edge))
-        ax.set_xticks(self.tick_pos)
-        ax.set_xticklabels(ticklabels)
+
+        if self.xticks is not None:
+            ax.set_xticks(np.array(self.xticks))
+        else:
+            ax.set_xticks(self.tick_pos)
+            ax.set_xticklabels(ticklabels)
+
         if name is not None and self.use_index:
             ax.set_xlabel(name)
 
@@ -1517,7 +1507,7 @@ class PiePlot(MPLPlot):
     def __init__(self, data, kind=None, **kwargs):
         data = data.fillna(value=0)
         if (data < 0).any().any():
-            raise ValueError("{0} doesn't allow negative values".format(kind))
+            raise ValueError(f"{kind} doesn't allow negative values")
         MPLPlot.__init__(self, data, kind=kind, **kwargs)
 
     def _args_adjust(self):

@@ -175,6 +175,34 @@ class TestDataFramePlots(TestPlotBase):
         ax = df.plot(kind="box")
         assert [x.get_text() for x in ax.get_xticklabels()] == ["b", "c"]
 
+    @pytest.mark.parametrize(
+        "colors_kwd, expected",
+        [
+            (
+                dict(boxes="r", whiskers="b", medians="g", caps="c"),
+                dict(boxes="r", whiskers="b", medians="g", caps="c"),
+            ),
+            (dict(boxes="r"), dict(boxes="r")),
+            ("r", dict(boxes="r", whiskers="r", medians="r", caps="r")),
+        ],
+    )
+    def test_color_kwd(self, colors_kwd, expected):
+        # GH: 26214
+        df = DataFrame(random.rand(10, 2))
+        result = df.boxplot(color=colors_kwd, return_type="dict")
+        for k, v in expected.items():
+            assert result[k][0].get_color() == v
+
+    @pytest.mark.parametrize(
+        "dict_colors, msg",
+        [(dict(boxes="r", invalid_key="r"), "invalid key 'invalid_key'")],
+    )
+    def test_color_kwd_errors(self, dict_colors, msg):
+        # GH: 26214
+        df = DataFrame(random.rand(10, 2))
+        with pytest.raises(ValueError, match=msg):
+            df.boxplot(color=dict_colors, return_type="dict")
+
 
 @td.skip_if_no_mpl
 class TestDataFrameGroupByPlots(TestPlotBase):

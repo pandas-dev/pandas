@@ -22,12 +22,13 @@ class DecimalDtype(ExtensionDtype):
     def __init__(self, context=None):
         self.context = context or decimal.getcontext()
 
-    def __repr__(self):
-        return "DecimalDtype(context={})".format(self.context)
+    def __repr__(self) -> str:
+        return f"DecimalDtype(context={self.context})"
 
     @classmethod
     def construct_array_type(cls):
-        """Return the array type associated with this dtype
+        """
+        Return the array type associated with this dtype.
 
         Returns
         -------
@@ -40,7 +41,7 @@ class DecimalDtype(ExtensionDtype):
         if string == cls.name:
             return cls()
         else:
-            raise TypeError("Cannot construct a '{}' from '{}'".format(cls, string))
+            raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
 
     @property
     def _is_numeric(self):
@@ -166,14 +167,19 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
     def _reduce(self, name, skipna=True, **kwargs):
 
         if skipna:
-            raise NotImplementedError("decimal does not support skipna=True")
+            # If we don't have any NAs, we can ignore skipna
+            if self.isna().any():
+                other = self[~self.isna()]
+                return other._reduce(name, **kwargs)
+
+        if name == "sum" and len(self) == 0:
+            # GH#29630 avoid returning int 0 or np.bool_(False) on old numpy
+            return decimal.Decimal(0)
 
         try:
             op = getattr(self.data, name)
         except AttributeError:
-            raise NotImplementedError(
-                "decimal does not support the {} operation".format(name)
-            )
+            raise NotImplementedError(f"decimal does not support the {name} operation")
         return op(axis=0)
 
 
