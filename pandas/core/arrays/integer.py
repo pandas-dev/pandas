@@ -24,13 +24,11 @@ from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import nanops, ops
-from pandas.core.algorithms import take
-from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
-import pandas.core.common as com
-from pandas.core.indexers import check_bool_array_indexer
 from pandas.core.ops import invalid_comparison
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.tools.numeric import to_numeric
+
+from .masked import BaseMaskedArray
 
 
 class _IntegerDtype(ExtensionDtype):
@@ -259,7 +257,7 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
     return values, mask
 
 
-class IntegerArray(ExtensionArray, ExtensionOpsMixin):
+class IntegerArray(BaseMaskedArray):
     """
     Array of integer (optional missing) values.
 
@@ -329,6 +327,9 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
     Length: 3, dtype: UInt16
     """
 
+    # The value used to fill '_data' to avoid upcasting
+    _internal_fill_value = 1
+
     @cache_readonly
     def dtype(self):
         return _dtypes[str(self._data.dtype)]
@@ -365,17 +366,6 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
     def _from_factorized(cls, values, original):
         return integer_array(values, dtype=original.dtype)
 
-    def __getitem__(self, item):
-        if is_integer(item):
-            if self._mask[item]:
-                return self.dtype.na_value
-            return self._data[item]
-
-        elif com.is_bool_indexer(item):
-            item = check_bool_array_indexer(self, item)
-
-        return type(self)(self._data[item], self._mask[item])
-
     def _coerce_to_ndarray(self, dtype=None, na_value=lib._no_default):
         """
         coerce to an ndarary of object dtype
@@ -402,22 +392,13 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         data[self._mask] = na_value
         return data
 
-    __array_priority__ = 1000  # higher than ndarray so ops dispatch to us
-
+    # TODO: remove this when _coerce_to_ndarray is replace with to_numpy
     def __array__(self, dtype=None):
         """
         the array interface, return my values
         We return an object array here to preserve our scalar values
         """
         return self._coerce_to_ndarray(dtype=dtype)
-
-    def __arrow_array__(self, type=None):
-        """
-        Convert myself into a pyarrow Array.
-        """
-        import pyarrow as pa
-
-        return pa.array(self._data, mask=self._mask, type=type)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
 
@@ -466,40 +447,6 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         else:
             return reconstruct(result)
 
-    def __iter__(self):
-        for i in range(len(self)):
-            if self._mask[i]:
-                yield self.dtype.na_value
-            else:
-                yield self._data[i]
-
-    def take(self, indexer, allow_fill=False, fill_value=None):
-        # we always fill with 1 internally
-        # to avoid upcasting
-        data_fill_value = 1 if isna(fill_value) else fill_value
-        result = take(
-            self._data, indexer, fill_value=data_fill_value, allow_fill=allow_fill
-        )
-
-        mask = take(self._mask, indexer, fill_value=True, allow_fill=allow_fill)
-
-        # if we are filling
-        # we only fill where the indexer is null
-        # not existing missing values
-        # TODO(jreback) what if we have a non-na float as a fill value?
-        if allow_fill and notna(fill_value):
-            fill_mask = np.asarray(indexer) == -1
-            result[fill_mask] = fill_value
-            mask = mask ^ fill_mask
-
-        return type(self)(result, mask, copy=False)
-
-    def copy(self):
-        data, mask = self._data, self._mask
-        data = data.copy()
-        mask = mask.copy()
-        return type(self)(data, mask, copy=False)
-
     def __setitem__(self, key, value):
         _is_scalar = is_scalar(value)
         if _is_scalar:
@@ -512,26 +459,6 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         self._data[key] = value
         self._mask[key] = mask
-
-    def __len__(self) -> int:
-        return len(self._data)
-
-    @property
-    def nbytes(self):
-        return self._data.nbytes + self._mask.nbytes
-
-    def isna(self):
-        return self._mask
-
-    @property
-    def _na_value(self):
-        return self.dtype.na_value
-
-    @classmethod
-    def _concat_same_type(cls, to_concat):
-        data = np.concatenate([x._data for x in to_concat])
-        mask = np.concatenate([x._mask for x in to_concat])
-        return cls(data, mask)
 
     def astype(self, dtype, copy=True):
         """
