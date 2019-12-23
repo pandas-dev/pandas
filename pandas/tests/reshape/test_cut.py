@@ -585,3 +585,21 @@ def test_timedelta_cut_roundtrip():
         ["0 days 23:57:07.200000", "2 days 00:00:00", "3 days 00:00:00"]
     )
     tm.assert_index_equal(result_bins, expected_bins)
+
+
+@pytest.mark.parametrize("bins", [6, 7])
+@pytest.mark.parametrize(
+    "box, compare",
+    [
+        (Series, tm.assert_series_equal),
+        (np.array, tm.assert_categorical_equal),
+        (list, tm.assert_equal),
+    ],
+)
+def test_cut_bool_coercion_to_int(bins, box, compare):
+    # issue 20303
+    data_expected = box([0, 1, 1, 0, 1] * 10)
+    data_result = box([False, True, True, False, True] * 10)
+    expected = cut(data_expected, bins, duplicates="drop")
+    result = cut(data_result, bins, duplicates="drop")
+    compare(result, expected)

@@ -8,6 +8,7 @@ from typing import DefaultDict, Dict, List, Optional, Union
 import numpy as np
 
 from pandas._libs.writers import convert_json_to_lines
+from pandas.util._decorators import deprecate
 
 from pandas import DataFrame
 
@@ -46,9 +47,6 @@ def nested_to_record(
     sep : str, default '.'
         Nested records will generate names separated by sep,
         e.g., for sep='.', { 'foo' : { 'bar' : 0 } } -> foo.bar
-
-        .. versionadded:: 0.20.0
-
     level: int, optional, default: 0
         The number of levels in the json string.
 
@@ -111,7 +109,7 @@ def nested_to_record(
     return new_ds
 
 
-def json_normalize(
+def _json_normalize(
     data: Union[Dict, List[Dict]],
     record_path: Optional[Union[str, List]] = None,
     meta: Optional[Union[str, List]] = None,
@@ -146,15 +144,9 @@ def json_normalize(
           always present.
         * 'raise' : will raise KeyError if keys listed in meta are not
           always present.
-
-        .. versionadded:: 0.20.0
-
     sep : str, default '.'
         Nested records will generate names separated by sep.
         e.g., for sep='.', {'foo': {'bar': 0}} -> foo.bar.
-
-        .. versionadded:: 0.20.0
-
     max_level : int, default None
         Max number of levels(depth of dict) to normalize.
         if None, normalizes all levels.
@@ -192,7 +184,7 @@ def json_normalize(
     1   {'height': 130, 'weight': 60}  NaN    Mose Reg
     2   {'height': 130, 'weight': 60}  2.0  Faye Raker
 
-    Normalizes nested data upto level 1.
+    Normalizes nested data up to level 1.
 
     >>> data = [{'id': 1,
     ...          'name': "Cole Volk",
@@ -276,10 +268,10 @@ def json_normalize(
     meta = [m if isinstance(m, list) else [m] for m in meta]
 
     # Disastrously inefficient for now
-    records = []  # type: List
+    records: List = []
     lengths = []
 
-    meta_vals = defaultdict(list)  # type: DefaultDict
+    meta_vals: DefaultDict = defaultdict(list)
     meta_keys = [sep.join(val) for val in meta]
 
     def _recursive_extract(data, path, seen_meta, level=0):
@@ -341,3 +333,8 @@ def json_normalize(
             )
         result[k] = np.array(v, dtype=object).repeat(lengths)
     return result
+
+
+json_normalize = deprecate(
+    "pandas.io.json.json_normalize", _json_normalize, "1.0.0", "pandas.json_normalize"
+)

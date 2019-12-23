@@ -37,12 +37,19 @@ So that a ``pandas.DataFrame`` can be faithfully reconstructed, we store a
 
 .. code-block:: text
 
-   {'index_columns': ['__index_level_0__', '__index_level_1__', ...],
+   {'index_columns': [<descr0>, <descr1>, ...],
     'column_indexes': [<ci0>, <ci1>, ..., <ciN>],
     'columns': [<c0>, <c1>, ...],
-    'pandas_version': $VERSION}
+    'pandas_version': $VERSION,
+    'creator': {
+      'library': $LIBRARY,
+      'version': $LIBRARY_VERSION
+    }}
 
-Here, ``<c0>``/``<ci0>`` and so forth are dictionaries containing the metadata
+The "descriptor" values ``<descr0>`` in the ``'index_columns'`` field are
+strings (referring to a column) or dictionaries with values as described below.
+
+The ``<c0>``/``<ci0>`` and so forth are dictionaries containing the metadata
 for each column, *including the index columns*. This has JSON form:
 
 .. code-block:: text
@@ -53,26 +60,37 @@ for each column, *including the index columns*. This has JSON form:
     'numpy_type': numpy_type,
     'metadata': metadata}
 
-.. note::
+See below for the detailed specification for these.
 
-   Every index column is stored with a name matching the pattern
-   ``__index_level_\d+__`` and its corresponding column information is can be
-   found with the following code snippet.
+Index Metadata Descriptors
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-   Following this naming convention isn't strictly necessary, but strongly
-   suggested for compatibility with Arrow.
+``RangeIndex`` can be stored as metadata only, not requiring serialization. The
+descriptor format for these as is follows:
 
-   Here's an example of how the index metadata is structured in pyarrow:
+.. code-block:: python
 
-    .. code-block:: python
+   index = pd.RangeIndex(0, 10, 2)
+   {'kind': 'range',
+    'name': index.name,
+    'start': index.start,
+    'stop': index.stop,
+    'step': index.step}
 
-       # assuming there's at least 3 levels in the index
-       index_columns = metadata['index_columns']  # noqa: F821
-       columns = metadata['columns']  # noqa: F821
-       ith_index = 2
-       assert index_columns[ith_index] == '__index_level_2__'
-       ith_index_info = columns[-len(index_columns):][ith_index]
-       ith_index_level_name = ith_index_info['name']
+Other index types must be serialized as data columns along with the other
+DataFrame columns. The metadata for these is a string indicating the name of
+the field in the data columns, for example ``'__index_level_0__'``.
+
+If an index has a non-None ``name`` attribute, and there is no other column
+with a name matching that value, then the ``index.name`` value can be used as
+the descriptor. Otherwise (for unnamed indexes and ones with names colliding
+with other column names) a disambiguating name with pattern matching
+``__index_level_\d+__`` should be used. In cases of named indexes as data
+columns, ``name`` attribute is always stored in the column descriptors as
+above.
+
+Column Metadata
+~~~~~~~~~~~~~~~
 
 ``pandas_type`` is the logical type of the column, and is one of:
 
@@ -107,7 +125,6 @@ The ``metadata`` field is ``None`` except for:
   in ``BYTE_ARRAY`` Parquet columns. The encoding can be one of:
 
     * ``'pickle'``
-    * ``'msgpack'``
     * ``'bson'``
     * ``'json'``
 
@@ -161,4 +178,8 @@ As an example of fully-formed metadata:
          'numpy_type': 'int64',
          'metadata': None}
     ],
-    'pandas_version': '0.20.0'}
+    'pandas_version': '0.20.0',
+    'creator': {
+      'library': 'pyarrow',
+      'version': '0.13.0'
+    }}
