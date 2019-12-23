@@ -28,10 +28,11 @@ def is_list_like_indexer(key) -> bool:
 
 def is_scalar_indexer(indexer, arr_value) -> bool:
     """
+    Return True if we are all scalar indexers.
+
     Returns
     -------
     bool
-        True if we are all scalar indexers.
     """
     if arr_value.ndim == 1:
         if not isinstance(indexer, tuple):
@@ -82,6 +83,10 @@ def check_setitem_lengths(indexer, value, values) -> None:
         Value for the setitem.
     values : array-like
         Values being set into.
+
+    Returns
+    -------
+    None
 
     Raises
     ------
@@ -147,7 +152,6 @@ def validate_indices(indices: np.ndarray, n: int) -> None:
             raise ValueError(msg)
 
         max_idx = indices.max()
-
         if max_idx >= n:
             raise IndexError("indices are out-of-bounds")
 
@@ -185,7 +189,7 @@ def maybe_convert_indices(indices, n: int):
     if isinstance(indices, list):
         indices = np.array(indices)
         if len(indices) == 0:
-            # If `indices` is empty, `np.array` will return a float,
+            # If `indices` is empty, np.array will return a float,
             # and will cause indexing errors.
             return np.empty(0, dtype=np.intp)
 
@@ -206,13 +210,11 @@ def maybe_convert_indices(indices, n: int):
 
 def length_of_indexer(indexer, target=None) -> int:
     """
-    Checks the length of a given indexer.
+    Return the length of a single non-tuple indexer which could be a slice.
 
     Returns
     -------
     int
-        Length of a single non-tuple indexer,
-        which could be a slice.
     """
     if target is not None and isinstance(indexer, slice):
         target_len = len(target)
