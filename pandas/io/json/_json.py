@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from collections.abc import Iterator
 import functools
 from io import StringIO
 from itertools import islice
@@ -19,7 +20,6 @@ from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.reshape.concat import concat
 
 from pandas.io.common import (
-    BaseIterator,
     get_filepath_or_buffer,
     get_handle,
     infer_compression,
@@ -616,7 +616,7 @@ def read_json(
     return result
 
 
-class JsonReader(BaseIterator):
+class JsonReader(Iterator):
     """
     JsonReader provides an interface for reading in a JSON file.
 
