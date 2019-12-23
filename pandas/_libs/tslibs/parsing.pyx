@@ -106,7 +106,7 @@ cdef inline object _parse_delimited_date(str date_string, bint dayfirst):
 
     Returns:
     --------
-    datetime or Nont
+    datetime or None
     str or None
         Describing resolution of the parsed string.
     """
@@ -477,11 +477,7 @@ cdef dateutil_parse(str timestr, object default, ignoretz=False,
         object reso = None
         dict repl = {}
 
-    res = DEFAULTPARSER._parse(timestr, dayfirst=dayfirst, yearfirst=yearfirst)
-
-    # dateutil 2.2 compat
-    if isinstance(res, tuple):
-        res, _ = res
+    res, _ = DEFAULTPARSER._parse(timestr, dayfirst=dayfirst, yearfirst=yearfirst)
 
     if res is None:
         raise ValueError(f"Unknown datetime string format, unable to parse: {timestr}")
