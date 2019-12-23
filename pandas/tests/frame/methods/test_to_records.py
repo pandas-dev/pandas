@@ -1,82 +1,13 @@
-from collections import OrderedDict, abc, defaultdict
-from datetime import datetime
+from collections import abc
 
 import numpy as np
 import pytest
-import pytz
 
-from pandas import (
-    CategoricalDtype,
-    DataFrame,
-    MultiIndex,
-    Series,
-    Timestamp,
-    date_range,
-)
+from pandas import CategoricalDtype, DataFrame, MultiIndex, Series, date_range
 import pandas.util.testing as tm
 
 
-class TestDataFrameConvertTo:
-    def test_to_dict_timestamp(self):
-
-        # GH11247
-        # split/records producing np.datetime64 rather than Timestamps
-        # on datetime64[ns] dtypes only
-
-        tsmp = Timestamp("20130101")
-        test_data = DataFrame({"A": [tsmp, tsmp], "B": [tsmp, tsmp]})
-        test_data_mixed = DataFrame({"A": [tsmp, tsmp], "B": [1, 2]})
-
-        expected_records = [{"A": tsmp, "B": tsmp}, {"A": tsmp, "B": tsmp}]
-        expected_records_mixed = [{"A": tsmp, "B": 1}, {"A": tsmp, "B": 2}]
-
-        assert test_data.to_dict(orient="records") == expected_records
-        assert test_data_mixed.to_dict(orient="records") == expected_records_mixed
-
-        expected_series = {
-            "A": Series([tsmp, tsmp], name="A"),
-            "B": Series([tsmp, tsmp], name="B"),
-        }
-        expected_series_mixed = {
-            "A": Series([tsmp, tsmp], name="A"),
-            "B": Series([1, 2], name="B"),
-        }
-
-        tm.assert_dict_equal(test_data.to_dict(orient="series"), expected_series)
-        tm.assert_dict_equal(
-            test_data_mixed.to_dict(orient="series"), expected_series_mixed
-        )
-
-        expected_split = {
-            "index": [0, 1],
-            "data": [[tsmp, tsmp], [tsmp, tsmp]],
-            "columns": ["A", "B"],
-        }
-        expected_split_mixed = {
-            "index": [0, 1],
-            "data": [[tsmp, 1], [tsmp, 2]],
-            "columns": ["A", "B"],
-        }
-
-        tm.assert_dict_equal(test_data.to_dict(orient="split"), expected_split)
-        tm.assert_dict_equal(
-            test_data_mixed.to_dict(orient="split"), expected_split_mixed
-        )
-
-    def test_to_dict_index_not_unique_with_index_orient(self):
-        # GH22801
-        # Data loss when indexes are not unique. Raise ValueError.
-        df = DataFrame({"a": [1, 2], "b": [0.5, 0.75]}, index=["A", "A"])
-        msg = "DataFrame index must be unique for orient='index'"
-        with pytest.raises(ValueError, match=msg):
-            df.to_dict(orient="index")
-
-    def test_to_dict_invalid_orient(self):
-        df = DataFrame({"A": [0, 1]})
-        msg = "orient 'xinvalid' not understood"
-        with pytest.raises(ValueError, match=msg):
-            df.to_dict(orient="xinvalid")
-
+class TestDataFrameToRecords:
     def test_to_records_dt64(self):
         df = DataFrame(
             [["one", "two", "three"], ["four", "five", "six"]],
@@ -88,7 +19,7 @@ class TestDataFrameConvertTo:
         assert expected == result
 
     def test_to_records_with_multindex(self):
-        # GH3189
+        # GH#3189
         index = [
             ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
             ["one", "two", "one", "two", "one", "two", "one", "two"],
@@ -136,15 +67,15 @@ class TestDataFrameConvertTo:
         assert "level_0" in rs.dtype.fields
 
     def test_to_records_with_unicode_index(self):
-        # GH13172
+        # GH#13172
         # unicode_literals conflict with to_records
         result = DataFrame([{"a": "x", "b": "y"}]).set_index("a").to_records()
         expected = np.rec.array([("x", "y")], dtype=[("a", "O"), ("b", "O")])
         tm.assert_almost_equal(result, expected)
 
     def test_to_records_with_unicode_column_names(self):
-        # xref issue: https://github.com/numpy/numpy/issues/2407
-        # Issue #11879. to_records used to raise an exception when used
+        # xref GH#2407
+        # Issue GH#11879. to_records used to raise an exception when used
         # with column names containing non-ascii characters in Python 2
         result = DataFrame(data={"accented_name_é": [1.0]}).to_records()
 
@@ -157,8 +88,7 @@ class TestDataFrameConvertTo:
         tm.assert_almost_equal(result, expected)
 
     def test_to_records_with_categorical(self):
-
-        # GH8626
+        # GH#8626
 
         # dict creation
         df = DataFrame({"A": list("abc")}, dtype="category")
@@ -310,7 +240,7 @@ class TestDataFrameConvertTo:
         ],
     )
     def test_to_records_dtype(self, kwargs, expected):
-        # see gh-18146
+        # see GH#18146
         df = DataFrame({"A": [1, 2], "B": [0.2, 1.5], "C": ["a", "bc"]})
 
         if not isinstance(expected, np.recarray):
@@ -383,12 +313,12 @@ class TestDataFrameConvertTo:
         ],
     )
     def test_to_records_dtype_mi(self, df, kwargs, expected):
-        # see gh-18146
+        # see GH#18146
         result = df.to_records(**kwargs)
         tm.assert_almost_equal(result, expected)
 
     def test_to_records_dict_like(self):
-        # see gh-18146
+        # see GH#18146
         class DictLike:
             def __init__(self, **kwargs):
                 self.d = kwargs.copy()
@@ -416,81 +346,9 @@ class TestDataFrameConvertTo:
         )
         tm.assert_almost_equal(result, expected)
 
-    @pytest.mark.parametrize("mapping", [dict, defaultdict(list), OrderedDict])
-    def test_to_dict(self, mapping):
-        test_data = {"A": {"1": 1, "2": 2}, "B": {"1": "1", "2": "2", "3": "3"}}
-
-        # GH16122
-        recons_data = DataFrame(test_data).to_dict(into=mapping)
-
-        for k, v in test_data.items():
-            for k2, v2 in v.items():
-                assert v2 == recons_data[k][k2]
-
-        recons_data = DataFrame(test_data).to_dict("l", mapping)
-
-        for k, v in test_data.items():
-            for k2, v2 in v.items():
-                assert v2 == recons_data[k][int(k2) - 1]
-
-        recons_data = DataFrame(test_data).to_dict("s", mapping)
-
-        for k, v in test_data.items():
-            for k2, v2 in v.items():
-                assert v2 == recons_data[k][k2]
-
-        recons_data = DataFrame(test_data).to_dict("sp", mapping)
-        expected_split = {
-            "columns": ["A", "B"],
-            "index": ["1", "2", "3"],
-            "data": [[1.0, "1"], [2.0, "2"], [np.nan, "3"]],
-        }
-        tm.assert_dict_equal(recons_data, expected_split)
-
-        recons_data = DataFrame(test_data).to_dict("r", mapping)
-        expected_records = [
-            {"A": 1.0, "B": "1"},
-            {"A": 2.0, "B": "2"},
-            {"A": np.nan, "B": "3"},
-        ]
-        assert isinstance(recons_data, list)
-        assert len(recons_data) == 3
-        for l, r in zip(recons_data, expected_records):
-            tm.assert_dict_equal(l, r)
-
-        # GH10844
-        recons_data = DataFrame(test_data).to_dict("i")
-
-        for k, v in test_data.items():
-            for k2, v2 in v.items():
-                assert v2 == recons_data[k2][k]
-
-        df = DataFrame(test_data)
-        df["duped"] = df[df.columns[0]]
-        recons_data = df.to_dict("i")
-        comp_data = test_data.copy()
-        comp_data["duped"] = comp_data[df.columns[0]]
-        for k, v in comp_data.items():
-            for k2, v2 in v.items():
-                assert v2 == recons_data[k2][k]
-
-    @pytest.mark.parametrize("mapping", [list, defaultdict, []])
-    def test_to_dict_errors(self, mapping):
-        # GH16122
-        df = DataFrame(np.random.randn(3, 3))
-        with pytest.raises(TypeError):
-            df.to_dict(into=mapping)
-
-    def test_to_dict_not_unique_warning(self):
-        # GH16927: When converting to a dict, if a column has a non-unique name
-        # it will be dropped, throwing a warning.
-        df = DataFrame([[1, 2, 3]], columns=["a", "a", "b"])
-        with tm.assert_produces_warning(UserWarning):
-            df.to_dict()
-
     @pytest.mark.parametrize("tz", ["UTC", "GMT", "US/Eastern"])
     def test_to_records_datetimeindex_with_tz(self, tz):
-        # GH13937
+        # GH#13937
         dr = date_range("2016-01-01", periods=10, freq="S", tz=tz)
 
         df = DataFrame({"datetime": dr}, index=dr)
@@ -500,118 +358,3 @@ class TestDataFrameConvertTo:
 
         # both converted to UTC, so they are equal
         tm.assert_numpy_array_equal(result, expected)
-
-    # orient - orient argument to to_dict function
-    # item_getter - function for extracting value from
-    # the resulting dict using column name and index
-    @pytest.mark.parametrize(
-        "orient,item_getter",
-        [
-            ("dict", lambda d, col, idx: d[col][idx]),
-            ("records", lambda d, col, idx: d[idx][col]),
-            ("list", lambda d, col, idx: d[col][idx]),
-            ("split", lambda d, col, idx: d["data"][idx][d["columns"].index(col)]),
-            ("index", lambda d, col, idx: d[idx][col]),
-        ],
-    )
-    def test_to_dict_box_scalars(self, orient, item_getter):
-        # 14216, 23753
-        # make sure that we are boxing properly
-        df = DataFrame({"a": [1, 2], "b": [0.1, 0.2]})
-        result = df.to_dict(orient=orient)
-        assert isinstance(item_getter(result, "a", 0), int)
-        assert isinstance(item_getter(result, "b", 0), float)
-
-    def test_frame_to_dict_tz(self):
-        # GH18372 When converting to dict with orient='records' columns of
-        # datetime that are tz-aware were not converted to required arrays
-        data = [
-            (datetime(2017, 11, 18, 21, 53, 0, 219225, tzinfo=pytz.utc),),
-            (datetime(2017, 11, 18, 22, 6, 30, 61810, tzinfo=pytz.utc),),
-        ]
-        df = DataFrame(list(data), columns=["d"])
-
-        result = df.to_dict(orient="records")
-        expected = [
-            {"d": Timestamp("2017-11-18 21:53:00.219225+0000", tz=pytz.utc)},
-            {"d": Timestamp("2017-11-18 22:06:30.061810+0000", tz=pytz.utc)},
-        ]
-        tm.assert_dict_equal(result[0], expected[0])
-        tm.assert_dict_equal(result[1], expected[1])
-
-    @pytest.mark.parametrize(
-        "into, expected",
-        [
-            (
-                dict,
-                {
-                    0: {"int_col": 1, "float_col": 1.0},
-                    1: {"int_col": 2, "float_col": 2.0},
-                    2: {"int_col": 3, "float_col": 3.0},
-                },
-            ),
-            (
-                OrderedDict,
-                OrderedDict(
-                    [
-                        (0, {"int_col": 1, "float_col": 1.0}),
-                        (1, {"int_col": 2, "float_col": 2.0}),
-                        (2, {"int_col": 3, "float_col": 3.0}),
-                    ]
-                ),
-            ),
-            (
-                defaultdict(dict),
-                defaultdict(
-                    dict,
-                    {
-                        0: {"int_col": 1, "float_col": 1.0},
-                        1: {"int_col": 2, "float_col": 2.0},
-                        2: {"int_col": 3, "float_col": 3.0},
-                    },
-                ),
-            ),
-        ],
-    )
-    def test_to_dict_index_dtypes(self, into, expected):
-        # GH 18580
-        # When using to_dict(orient='index') on a dataframe with int
-        # and float columns only the int columns were cast to float
-
-        df = DataFrame({"int_col": [1, 2, 3], "float_col": [1.0, 2.0, 3.0]})
-
-        result = df.to_dict(orient="index", into=into)
-        cols = ["int_col", "float_col"]
-        result = DataFrame.from_dict(result, orient="index")[cols]
-        expected = DataFrame.from_dict(expected, orient="index")[cols]
-        tm.assert_frame_equal(result, expected)
-
-    def test_to_dict_numeric_names(self):
-        # https://github.com/pandas-dev/pandas/issues/24940
-        df = DataFrame({str(i): [i] for i in range(5)})
-        result = set(df.to_dict("records")[0].keys())
-        expected = set(df.columns)
-        assert result == expected
-
-    def test_to_dict_wide(self):
-        # https://github.com/pandas-dev/pandas/issues/24939
-        df = DataFrame({("A_{:d}".format(i)): [i] for i in range(256)})
-        result = df.to_dict("records")[0]
-        expected = {"A_{:d}".format(i): i for i in range(256)}
-        assert result == expected
-
-    def test_to_dict_orient_dtype(self):
-        # https://github.com/pandas-dev/pandas/issues/22620
-        # Input Data
-        input_data = {"a": [1, 2, 3], "b": [1.0, 2.0, 3.0], "c": ["X", "Y", "Z"]}
-        df = DataFrame(input_data)
-        # Expected Dtypes
-        expected = {"a": int, "b": float, "c": str}
-        # Extracting dtypes out of to_dict operation
-        for df_dict in df.to_dict("records"):
-            result = {
-                "a": type(df_dict["a"]),
-                "b": type(df_dict["b"]),
-                "c": type(df_dict["c"]),
-            }
-            assert result == expected
