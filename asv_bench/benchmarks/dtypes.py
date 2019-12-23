@@ -5,6 +5,7 @@ from pandas.api.types import pandas_dtype
 from .pandas_vb_common import (
     datetime_dtypes,
     extension_dtypes,
+    lib,
     numeric_dtypes,
     string_dtypes,
 )
@@ -38,6 +39,27 @@ class DtypesInvalid:
             pandas_dtype(self.data_dict[dtype])
         except TypeError:
             pass
+
+
+class InferDtypes:
+    param_names = ["dtype"]
+    data_dict = {
+        "np-object": np.array([1] * 100000, dtype="O"),
+        "py-object": [1] * 100000,
+        "np-null": np.array([1] * 50000 + [np.nan] * 50000),
+        "py-null": [1] * 50000 + [None] * 50000,
+        "np-int": np.array([1] * 100000, dtype=int),
+        "np-floating": np.array([1.0] * 100000, dtype=float),
+        "empty": [],
+        "bytes": [b"a"] * 100000,
+    }
+    params = list(data_dict.keys())
+
+    def time_infer_skipna(self, dtype):
+        lib.infer_dtype(self.data_dict[dtype], skipna=True)
+
+    def time_infer(self, dtype):
+        lib.infer_dtype(self.data_dict[dtype], skipna=False)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
