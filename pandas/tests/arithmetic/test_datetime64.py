@@ -29,56 +29,12 @@ from pandas import (
 import pandas.core.arrays.datetimelike as dtl
 from pandas.core.indexes.datetimes import _to_M8
 from pandas.core.ops import roperator
+from pandas.tests.arithmetic.common import (
+    assert_invalid_addsub_type,
+    assert_invalid_comparison,
+    get_upcast_box,
+)
 import pandas.util.testing as tm
-
-
-def assert_invalid_comparison(left, right, box):
-    """
-    Assert that comparison operations with mismatched types behave correctly.
-
-    Parameters
-    ----------
-    left : np.ndarray, ExtensionArray, Index, or Series
-    right : object
-    box : {pd.DataFrame, pd.Series, pd.Index, tm.to_array}
-    """
-    # Not for tznaive-tzaware comparison
-
-    # Note: not quite the same as how we do this for tm.box_expected
-    xbox = box if box is not pd.Index else np.array
-
-    result = left == right
-    expected = xbox(np.zeros(result.shape, dtype=np.bool_))
-
-    tm.assert_equal(result, expected)
-
-    result = right == left
-    tm.assert_equal(result, expected)
-
-    result = left != right
-    tm.assert_equal(result, ~expected)
-
-    result = right != left
-    tm.assert_equal(result, ~expected)
-
-    msg = "Invalid comparison between"
-    with pytest.raises(TypeError, match=msg):
-        left < right
-    with pytest.raises(TypeError, match=msg):
-        left <= right
-    with pytest.raises(TypeError, match=msg):
-        left > right
-    with pytest.raises(TypeError, match=msg):
-        left >= right
-    with pytest.raises(TypeError, match=msg):
-        right < left
-    with pytest.raises(TypeError, match=msg):
-        right <= left
-    with pytest.raises(TypeError, match=msg):
-        right > left
-    with pytest.raises(TypeError, match=msg):
-        right >= left
-
 
 # ------------------------------------------------------------------
 # Comparisons
@@ -1033,14 +989,7 @@ class TestDatetime64Arithmetic:
                 "ufunc '?(add|subtract)'? cannot use operands with types",
             ]
         )
-        with pytest.raises(TypeError, match=msg):
-            dtarr + other
-        with pytest.raises(TypeError, match=msg):
-            other + dtarr
-        with pytest.raises(TypeError, match=msg):
-            dtarr - other
-        with pytest.raises(TypeError, match=msg):
-            other - dtarr
+        assert_invalid_addsub_type(dtarr, other, msg)
 
     @pytest.mark.parametrize("pi_freq", ["D", "W", "Q", "H"])
     @pytest.mark.parametrize("dti_freq", [None, "D"])
@@ -1061,14 +1010,7 @@ class TestDatetime64Arithmetic:
                 "ufunc.*cannot use operands",
             ]
         )
-        with pytest.raises(TypeError, match=msg):
-            dtarr + parr
-        with pytest.raises(TypeError, match=msg):
-            parr + dtarr
-        with pytest.raises(TypeError, match=msg):
-            dtarr - parr
-        with pytest.raises(TypeError, match=msg):
-            parr - dtarr
+        assert_invalid_addsub_type(dtarr, parr, msg)
 
 
 class TestDatetime64DateOffsetArithmetic:
@@ -2368,7 +2310,6 @@ class TestDatetimeIndexArithmetic:
         # GH#18849, GH#19744
         box = pd.Index
         other_box = index_or_series
-        from .test_timedelta64 import get_upcast_box
 
         tz = tz_naive_fixture
         dti = pd.date_range("2017-01-01", periods=2, tz=tz, name=names[0])
