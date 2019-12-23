@@ -339,6 +339,7 @@ class SeriesFormatter:
         return fmt_index, have_header
 
     def _get_formatted_values(self) -> List[str]:
+        leading_space: Union[bool, str]
         if self.index:
             leading_space = "compat"
         else:
@@ -951,6 +952,8 @@ class DataFrameFormatter(TableFormatter):
     def _format_col(self, i: int) -> List[str]:
         frame = self.tr_frame
         formatter = self._get_formatter(i)
+
+        leading_space: Union[bool, str]
         if self.index:
             leading_space = "compat"
         else:
