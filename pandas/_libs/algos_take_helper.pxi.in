@@ -61,52 +61,15 @@ def get_dispatch(dtypes):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef inline take_1d_{{name}}_{{dest}}_memview({{c_type_in}}[:] values,
-                                              const int64_t[:] indexer,
-                                              {{c_type_out}}[:] out,
-                                              fill_value=np.nan):
-
-    cdef:
-        Py_ssize_t i, n, idx
-        {{c_type_out}} fv
-
-    n = indexer.shape[0]
-
-    fv = fill_value
-
-    {{if c_type_out != "object"}}
-    with nogil:
-    {{else}}
-    if True:
-    {{endif}}
-        for i in range(n):
-            idx = indexer[i]
-            if idx == -1:
-                out[i] = fv
-            else:
-                {{if c_type_in == "uint8_t" and c_type_out == "object"}}
-                out[i] = True if values[idx] > 0 else False
-                {{else}}
-                out[i] = values[idx]
-                {{endif}}
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
+{{if c_type_in != "object"}}
+def take_1d_{{name}}_{{dest}}(const {{c_type_in}}[:] values,
+{{else}}
 def take_1d_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=1] values,
+{{endif}}
                               const int64_t[:] indexer,
                               {{c_type_out}}[:] out,
                               fill_value=np.nan):
 
-    if values.flags.writeable:
-        # We can call the memoryview version of the code
-        take_1d_{{name}}_{{dest}}_memview(values, indexer, out,
-                                          fill_value=fill_value)
-        return
-
-    # We cannot use the memoryview version on readonly-buffers due to
-    # a limitation of Cython's typed memoryviews. Instead we can use
-    # the slightly slower Cython ndarray type directly.
     cdef:
         Py_ssize_t i, n, idx
         {{c_type_out}} fv
@@ -134,69 +97,14 @@ def take_1d_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=1] values,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef inline take_2d_axis0_{{name}}_{{dest}}_memview({{c_type_in}}[:, :] values,
-                                                    const int64_t[:] indexer,
-                                                    {{c_type_out}}[:, :] out,
-                                                    fill_value=np.nan):
-    cdef:
-        Py_ssize_t i, j, k, n, idx
-        {{c_type_out}} fv
-
-    n = len(indexer)
-    k = values.shape[1]
-
-    fv = fill_value
-
-    IF {{True if c_type_in == c_type_out != "object" else False}}:
-        cdef:
-            {{c_type_out}} *v
-            {{c_type_out}} *o
-
-        # GH#3130
-        if (values.strides[1] == out.strides[1] and
-            values.strides[1] == sizeof({{c_type_out}}) and
-            sizeof({{c_type_out}}) * n >= 256):
-
-            for i in range(n):
-                idx = indexer[i]
-                if idx == -1:
-                    for j in range(k):
-                        out[i, j] = fv
-                else:
-                    v = &values[idx, 0]
-                    o = &out[i, 0]
-                    memmove(o, v, <size_t>(sizeof({{c_type_out}}) * k))
-            return
-
-    for i in range(n):
-        idx = indexer[i]
-        if idx == -1:
-            for j in range(k):
-                out[i, j] = fv
-        else:
-            for j in range(k):
-                {{if c_type_in == "uint8_t" and c_type_out == "object"}}
-                out[i, j] = True if values[idx, j] > 0 else False
-                {{else}}
-                out[i, j] = values[idx, j]
-                {{endif}}
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
+{{if c_type_in != "object"}}
+def take_2d_axis0_{{name}}_{{dest}}(const {{c_type_in}}[:, :] values,
+{{else}}
 def take_2d_axis0_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
+{{endif}}
                                     ndarray[int64_t] indexer,
                                     {{c_type_out}}[:, :] out,
                                     fill_value=np.nan):
-    if values.flags.writeable:
-        # We can call the memoryview version of the code
-        take_2d_axis0_{{name}}_{{dest}}_memview(values, indexer, out,
-                                                fill_value=fill_value)
-        return
-
-    # We cannot use the memoryview version on readonly-buffers due to
-    # a limitation of Cython's typed memoryviews. Instead we can use
-    # the slightly slower Cython ndarray type directly.
     cdef:
         Py_ssize_t i, j, k, n, idx
         {{c_type_out}} fv
@@ -243,51 +151,15 @@ def take_2d_axis0_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef inline take_2d_axis1_{{name}}_{{dest}}_memview({{c_type_in}}[:, :] values,
-                                                    const int64_t[:] indexer,
-                                                    {{c_type_out}}[:, :] out,
-                                                    fill_value=np.nan):
-    cdef:
-        Py_ssize_t i, j, k, n, idx
-        {{c_type_out}} fv
-
-    n = len(values)
-    k = len(indexer)
-
-    if n == 0 or k == 0:
-        return
-
-    fv = fill_value
-
-    for i in range(n):
-        for j in range(k):
-            idx = indexer[j]
-            if idx == -1:
-                out[i, j] = fv
-            else:
-                {{if c_type_in == "uint8_t" and c_type_out == "object"}}
-                out[i, j] = True if values[i, idx] > 0 else False
-                {{else}}
-                out[i, j] = values[i, idx]
-                {{endif}}
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
+{{if c_type_in != "object"}}
+def take_2d_axis1_{{name}}_{{dest}}(const {{c_type_in}}[:, :] values,
+{{else}}
 def take_2d_axis1_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
+{{endif}}
                                     ndarray[int64_t] indexer,
                                     {{c_type_out}}[:, :] out,
                                     fill_value=np.nan):
 
-    if values.flags.writeable:
-        # We can call the memoryview version of the code
-        take_2d_axis1_{{name}}_{{dest}}_memview(values, indexer, out,
-                                                fill_value=fill_value)
-        return
-
-    # We cannot use the memoryview version on readonly-buffers due to
-    # a limitation of Cython's typed memoryviews. Instead we can use
-    # the slightly slower Cython ndarray type directly.
     cdef:
         Py_ssize_t i, j, k, n, idx
         {{c_type_out}} fv
