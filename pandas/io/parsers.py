@@ -3,6 +3,7 @@ Module contains tools for processing files into DataFrames or other objects
 """
 
 from collections import defaultdict
+from collections.abc import Iterator
 import csv
 import datetime
 from io import StringIO
@@ -19,6 +20,7 @@ import pandas._libs.ops as libops
 import pandas._libs.parsers as parsers
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._libs.tslibs import parsing
+from pandas._typing import FilePathOrBuffer
 from pandas.errors import (
     AbstractMethodError,
     EmptyDataError,
@@ -48,7 +50,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import isna
 
-from pandas._typing import FilePathOrBuffer
 from pandas.core import algorithms
 from pandas.core.arrays import Categorical
 from pandas.core.frame import DataFrame
@@ -62,7 +63,6 @@ from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
 
 from pandas.io.common import (
-    BaseIterator,
     UTF8Recoder,
     get_filepath_or_buffer,
     get_handle,
@@ -786,7 +786,7 @@ def read_fwf(
     return _read(filepath_or_buffer, kwds)
 
 
-class TextFileReader(BaseIterator):
+class TextFileReader(Iterator):
     """
 
     Passed dialect overrides any of the related parser options
@@ -3582,7 +3582,7 @@ def _get_col_names(colspec, columns):
     return colnames
 
 
-class FixedWidthReader(BaseIterator):
+class FixedWidthReader(Iterator):
     """
     A reader of fixed-width lines.
     """
