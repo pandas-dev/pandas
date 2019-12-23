@@ -10199,9 +10199,9 @@ class NDFrame(PandasObject, SelectionMixin):
             warnings.warn(
                 "Method .ptp is deprecated and will be removed "
                 "in a future version. Use numpy.ptp instead."
-                "if you are already using numpy.ptp and still getting this message"
-                "please call to_numpy() to avoid this message in future calls"
-                "eg : np.ptp(pd.Series([1, 2, 3]).to_numpy())",
+                "if you are already using numpy.ptp and still getting this message,"
+                "please call to_numpy() to avoid this message in future calls."
+                "For example: np.ptp(pd.Series([1, 2, 3]).to_numpy())",
                 FutureWarning,
                 stacklevel=4,
             )
