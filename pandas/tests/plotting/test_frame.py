@@ -1162,6 +1162,27 @@ class TestDataFramePlots(TestPlotBase):
         axes = df.plot(x="x", y="y", kind="scatter", subplots=True)
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
 
+    def test_scatterplot_datetime_data(self):
+        # GH 30391
+        dates = pd.date_range(start=date(2019, 1, 1), periods=12, freq="W")
+        vals = np.random.normal(0, 1, len(dates))
+        df = pd.DataFrame({"dates": dates, "vals": vals})
+
+        _check_plot_works(df.plot.scatter, x="dates", y="vals")
+        _check_plot_works(df.plot.scatter, x=0, y=1)
+
+    def test_scatterplot_object_data(self):
+        # GH 18755
+        df = pd.DataFrame(dict(a=["A", "B", "C"], b=[2, 3, 4]))
+
+        _check_plot_works(df.plot.scatter, x="a", y="b")
+        _check_plot_works(df.plot.scatter, x=0, y=1)
+
+        df = pd.DataFrame(dict(a=["A", "B", "C"], b=["a", "b", "c"]))
+
+        _check_plot_works(df.plot.scatter, x="a", y="b")
+        _check_plot_works(df.plot.scatter, x=0, y=1)
+
     @pytest.mark.slow
     def test_if_scatterplot_colorbar_affects_xaxis_visibility(self):
         # addressing issue #10611, to ensure colobar does not
