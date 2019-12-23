@@ -2693,6 +2693,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         inplace=False,
         kind="quicksort",
         na_position="last",
+        ignore_index=False,
     ):
         """
         Sort by the values.
@@ -2715,6 +2716,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         na_position : {'first' or 'last'}, default 'last'
             Argument 'first' puts NaNs at the beginning, 'last' puts NaNs at
             the end.
+        ignore_index : bool, default False
+             If True, the resulting axis will be labeled 0, 1, …, n - 1.
 
         Returns
         -------
@@ -2854,6 +2857,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             raise ValueError(f"invalid na_position: {na_position}")
 
         result = self._constructor(arr[sortedIdx], index=self.index[sortedIdx])
+
+        if ignore_index:
+            result = result.reset_index(drop=True)
 
         if inplace:
             self._update_inplace(result)

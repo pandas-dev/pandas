@@ -269,3 +269,21 @@ class TestSeriesSorting:
         result = df.sort_values(by=["grade", "id"])
         expected = df.iloc[[2, 1, 5, 4, 3, 0]]
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "original_list, sorted_list, ignore_index, output_index",
+        [
+            ([2, 3, 6, 1], [6, 3, 2, 1], True, [0, 1, 2, 3]),
+            ([2, 3, 6, 1], [6, 3, 2, 1], False, [2, 1, 0, 3]),
+        ],
+    )
+    def test_sort_values_ignore_index(
+        self, original_list, sorted_list, ignore_index, output_index
+    ):
+
+        # GH 30114
+        sr = Series(original_list)
+        sorted_sr = sr.sort_values(ascending=False, ignore_index=ignore_index)
+
+        expected = Series(sorted_list, index=output_index)
+        tm.assert_series_equal(sorted_sr, expected)
