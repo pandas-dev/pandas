@@ -997,7 +997,7 @@ class DataFrameGroupBy(GroupBy):
         agg_items, agg_blocks = self._cython_agg_blocks(
             how, alt=alt, numeric_only=numeric_only, min_count=min_count
         )
-        return self._agg_blocks_to_frame(agg_items, agg_blocks)
+        return self._wrap_agged_blocks(agg_blocks, items=agg_items)
 
     def _cython_agg_blocks(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
@@ -1697,7 +1697,7 @@ class DataFrameGroupBy(GroupBy):
 
         return result
 
-    def _agg_blocks_to_frame(self, items: Index, blocks: "List[Block]") -> DataFrame:
+    def _wrap_agged_blocks(self, blocks: "List[Block]", items: Index) -> DataFrame:
         if not self.as_index:
             index = np.arange(blocks[0].values.shape[-1])
             mgr = BlockManager(blocks, axes=[items, index])
@@ -1746,18 +1746,18 @@ class DataFrameGroupBy(GroupBy):
         ids, _, ngroups = self.grouper.group_info
         mask = ids != -1
 
-        val = (
+        vals = (
             (mask & ~_isna_ndarraylike(np.atleast_2d(blk.get_values())))
             for blk in data.blocks
         )
-        loc = (blk.mgr_locs for blk in data.blocks)
+        locs = (blk.mgr_locs for blk in data.blocks)
 
         counted = [
-            lib.count_level_2d(x, labels=ids, max_bin=ngroups, axis=1) for x in val
+            lib.count_level_2d(x, labels=ids, max_bin=ngroups, axis=1) for x in vals
         ]
-        blocks = map(make_block, counted, loc)
+        blocks = [make_block(val, placement=loc) for val, loc in zip(counted, locs)]
 
-        return self._agg_blocks_to_frame(data.items, blocks=list(blocks))
+        return self._wrap_agged_blocks(blocks, items=data.items)
 
     def nunique(self, dropna: bool = True):
         """
