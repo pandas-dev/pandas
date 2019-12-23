@@ -5,7 +5,7 @@ Module for formatting output data into CSV files.
 import csv as csvlib
 from io import StringIO
 import os
-from typing import List
+from typing import List, Optional, Sequence, Union
 import warnings
 from zipfile import ZipFile
 
@@ -21,6 +21,8 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import notna
 
+from pandas._typing import FilePathOrBuffer
+
 from pandas.io.common import (
     get_compression_method,
     get_filepath_or_buffer,
@@ -33,27 +35,26 @@ class CSVFormatter:
     def __init__(
         self,
         obj,
-        path_or_buf=None,
-        sep=",",
-        na_rep="",
+        path_or_buf: Optional[FilePathOrBuffer[str]] = None,
+        sep: str = ",",
+        na_rep: str = "",
         float_format=None,
         cols=None,
-        header=True,
-        index=True,
+        header: Union[bool, Sequence[str]] = True,
+        index: bool = True,
         index_label=None,
-        mode="w",
-        encoding=None,
+        mode: str = "w",
+        encoding: Optional[str] = None,
         compression="infer",
-        quoting=None,
-        line_terminator="\n",
-        chunksize=None,
-        quotechar='"',
-        date_format=None,
-        doublequote=True,
+        quoting: Optional[int] = None,
+        line_terminator: Optional[str] = "\n",
+        chunksize: Optional[int] = None,
+        quotechar: Optional[str] = '"',
+        date_format: Optional[str] = None,
+        doublequote: bool = True,
         escapechar=None,
-        decimal=".",
+        decimal: Optional[str] = ".",
     ):
-
         self.obj = obj
 
         if path_or_buf is None:
@@ -154,14 +155,17 @@ class CSVFormatter:
         if not index:
             self.nlevels = 0
 
-    def save(self):
+    def save(self) -> None:
         """
-        Create the writer & save
+        Create the writer & save.
         """
         # GH21227 internal compression is not used when file-like passed.
         if self.compression and hasattr(self.path_or_buf, "write"):
-            msg = "compression has no effect when passing file-like object as input."
-            warnings.warn(msg, RuntimeWarning, stacklevel=2)
+            warnings.warn(
+                "compression has no effect when passing file-like object as input.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
 
         # when zip compression is called.
         is_zip = isinstance(self.path_or_buf, ZipFile) or (
@@ -223,7 +227,6 @@ class CSVFormatter:
                     _fh.close()
 
     def _save_header(self):
-
         writer = self.writer
         obj = self.obj
         index_label = self.index_label
@@ -303,8 +306,7 @@ class CSVFormatter:
                 encoded_labels.extend([""] * len(columns))
                 writer.writerow(encoded_labels)
 
-    def _save(self):
-
+    def _save(self) -> None:
         self._save_header()
 
         nrows = len(self.data_index)
@@ -321,8 +323,7 @@ class CSVFormatter:
 
             self._save_chunk(start_i, end_i)
 
-    def _save_chunk(self, start_i: int, end_i: int):
-
+    def _save_chunk(self, start_i: int, end_i: int) -> None:
         data_index = self.data_index
 
         # create the data for a chunk
