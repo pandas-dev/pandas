@@ -31,7 +31,8 @@ jobs:
     - bash: |
         source activate pandas-dev
         conda list
-        ci\\incremental\\build.cmd
+        python setup.py build_ext -q -i
+        python -m pip install --no-build-isolation -e .
       displayName: 'Build'
     - bash: |
         source activate pandas-dev
