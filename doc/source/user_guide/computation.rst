@@ -356,13 +356,13 @@ and the apply for loop. Currently only ``nogil``, ``nopython``, and ``parallel``
 .. note::
 
    In terms of performance, **the first time a function is run using the Numba engine will be slow**
-   as Numba will have some function compilation overhead. However, `rolling` objects will cache
+   as Numba will have some function compilation overhead. However, ``rolling`` objects will cache
    the function and subsequent calls will be fast. In general, the Numba engine is performant with
    a larger amount of data points (e.g. 1+ million).
 
 .. code-block:: ipython
 
-   In [1]: data = pd.Series(range(1000000))
+   In [1]: data = pd.Series(range(1_000_000))
 
    In [2]: roll = data.rolling(10)
 
