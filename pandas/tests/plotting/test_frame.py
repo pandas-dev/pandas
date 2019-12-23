@@ -1237,24 +1237,15 @@ class TestDataFramePlots(TestPlotBase):
         colorbar_distance = axes_x_coords[3, :] - axes_x_coords[2, :]
         assert np.isclose(parent_distance, colorbar_distance, atol=1e-7).all()
 
+    @pytest.mark.parametrize("x, y", [("x", "y"), ("y", "x"), ("y", "y")])
     @pytest.mark.slow
-    def test_plot_scatter_with_categorical_data(self):
-        # GH 16199
+    def test_plot_scatter_with_categorical_data(self, x, y):
+        # after fixing GH 18755, should be able to plot categorical data
         df = pd.DataFrame(
             {"x": [1, 2, 3, 4], "y": pd.Categorical(["a", "b", "a", "c"])}
         )
 
-        with pytest.raises(ValueError) as ve:
-            df.plot(x="x", y="y", kind="scatter")
-        ve.match("requires y column to be numeric")
-
-        with pytest.raises(ValueError) as ve:
-            df.plot(x="y", y="x", kind="scatter")
-        ve.match("requires x column to be numeric")
-
-        with pytest.raises(ValueError) as ve:
-            df.plot(x="y", y="y", kind="scatter")
-        ve.match("requires x column to be numeric")
+        _check_plot_works(df.plot.scatter, x=x, y=y)
 
     @pytest.mark.slow
     def test_plot_scatter_with_c(self):
