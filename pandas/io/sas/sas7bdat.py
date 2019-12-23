@@ -169,7 +169,7 @@ class SAS7BDATReader(BaseIterator):
         if buf in const.encoding_names:
             self.file_encoding = const.encoding_names[buf]
         else:
-            self.file_encoding = f"unknown (code={str(buf)})"
+            self.file_encoding = f"unknown (code={buf})"
 
         # Get platform information
         buf = self._read_bytes(const.platform_offset, const.platform_length)
