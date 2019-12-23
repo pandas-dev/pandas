@@ -2693,7 +2693,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         inplace=False,
         kind="quicksort",
         na_position="last",
-        ignore_index: bool = False,
+        ignore_index=False,
     ):
         """
         Sort by the values.
