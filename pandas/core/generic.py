@@ -4087,7 +4087,7 @@ class NDFrame(PandasObject, SelectionMixin):
         inplace: bool_t = False,
         kind: str = "quicksort",
         na_position: str = "last",
-        ignore_index: bool = False,
+        ignore_index: bool_t = False,
     ):
         """
         Sort by the values along either axis.
