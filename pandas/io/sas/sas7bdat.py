@@ -13,6 +13,7 @@ Partial documentation of the file format:
 Reference for binary data compression:
   http://collaboration.cmc.ec.gc.ca/science/rpn/biblio/ddj/Website/articles/CUJ/1992/9210/ross/ross.htm
 """
+from collections.abc import Iterator
 from datetime import datetime
 import struct
 
@@ -22,7 +23,7 @@ from pandas.errors import EmptyDataError
 
 import pandas as pd
 
-from pandas.io.common import BaseIterator, get_filepath_or_buffer
+from pandas.io.common import get_filepath_or_buffer
 from pandas.io.sas._sas import Parser
 import pandas.io.sas.sas_constants as const
 
@@ -36,7 +37,7 @@ class _column:
 
 
 # SAS7BDAT represents a SAS data file in SAS7BDAT format.
-class SAS7BDATReader(BaseIterator):
+class SAS7BDATReader(Iterator):
     """
     Read SAS files in SAS7BDAT format.
 
