@@ -16,7 +16,6 @@ from typing import (
     Callable,
     FrozenSet,
     Iterable,
-    List,
     Mapping,
     Sequence,
     Type,
@@ -1697,7 +1696,7 @@ class DataFrameGroupBy(GroupBy):
 
         return result
 
-    def _wrap_agged_blocks(self, blocks: "List[Block]", items: Index) -> DataFrame:
+    def _wrap_agged_blocks(self, blocks: "Sequence[Block]", items: Index) -> DataFrame:
         if not self.as_index:
             index = np.arange(blocks[0].values.shape[-1])
             mgr = BlockManager(blocks, axes=[items, index])
@@ -1752,9 +1751,9 @@ class DataFrameGroupBy(GroupBy):
         )
         locs = (blk.mgr_locs for blk in data.blocks)
 
-        counted = [
+        counted = (
             lib.count_level_2d(x, labels=ids, max_bin=ngroups, axis=1) for x in vals
-        ]
+        )
         blocks = [make_block(val, placement=loc) for val, loc in zip(counted, locs)]
 
         return self._wrap_agged_blocks(blocks, items=data.items)
