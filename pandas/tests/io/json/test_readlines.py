@@ -134,10 +134,7 @@ def test_readjson_chunks_closes(chunksize):
         reader.read()
         assert (
             reader.open_stream.closed
-        ), "didn't close stream with \
-            chunksize = {chunksize}".format(
-            chunksize=chunksize
-        )
+        ), f"didn't close stream with chunksize = {chunksize}"
 
 
 @pytest.mark.parametrize("chunksize", [0, -1, 2.2, "foo"])
