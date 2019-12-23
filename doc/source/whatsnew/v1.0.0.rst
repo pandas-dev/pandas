@@ -667,6 +667,7 @@ Performance improvements
 - Performance improvement when checking if values in a :class:`Categorical` are equal, equal or larger or larger than a given scalar.
   The improvement is not present if checking if the :class:`Categorical` is less than or less than or equal than the scalar (:issue:`29820`)
 - Performance improvement in :meth:`Index.equals` and  :meth:`MultiIndex.equals` (:issue:`29134`)
+- Performance improvement in :func:`~pandas.api.types.infer_dtype` when ``skipna`` is ``True`` (:issue:`28814`)
 
 .. _whatsnew_1000.bug_fixes:
 

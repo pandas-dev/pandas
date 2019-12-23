@@ -30,6 +30,7 @@ from urllib.parse import (  # noqa
 )
 import zipfile
 
+from pandas._typing import FilePathOrBuffer
 from pandas.compat import _get_lzma_file, _import_lzma
 from pandas.errors import (  # noqa
     AbstractMethodError,
@@ -40,8 +41,6 @@ from pandas.errors import (  # noqa
 )
 
 from pandas.core.dtypes.common import is_file_like
-
-from pandas._typing import FilePathOrBuffer
 
 lzma = _import_lzma()
 
