@@ -4739,7 +4739,7 @@ class DataFrame(NDFrame):
         )
 
         if ignore_index:
-            new_data = new_data.reset_index(drop=True)
+            new_data.axes[1] = ibase.default_index(len(indexer))
 
         if inplace:
             return self._update_inplace(new_data)
