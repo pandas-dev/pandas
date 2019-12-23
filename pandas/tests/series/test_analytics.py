@@ -6,7 +6,7 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import Categorical, DataFrame, MultiIndex, Series, date_range, isna, notna
+from pandas import Categorical, DataFrame, MultiIndex, Series, date_range, isna
 from pandas.core.indexes.datetimes import Timestamp
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 import pandas.util.testing as tm
