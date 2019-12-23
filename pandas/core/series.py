@@ -4390,7 +4390,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
 
 Series._setup_axes(
-    ["index"], docs={"index": "The index (axis labels) of the Series."}
+    ["index"], docs={"index": "The index (axis labels) of the Series."},
 )
 Series._add_numeric_operations()
 Series._add_series_only_operations()
