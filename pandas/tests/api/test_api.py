@@ -243,7 +243,7 @@ def test_np():
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", FutureWarning)
-        assert np.array_equal(pd.np.arange(0, 10), np.arange(0, 10))
+        assert (pd.np.arange(0, 10) == np.arange(0, 10)).all()
 
 
 class TestApi(Base):
