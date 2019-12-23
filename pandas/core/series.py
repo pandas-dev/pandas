@@ -2693,6 +2693,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         inplace=False,
         kind="quicksort",
         na_position="last",
+        ignore_index: bool = False,
     ):
         """
         Sort by the values.
@@ -2715,6 +2716,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         na_position : {'first' or 'last'}, default 'last'
             Argument 'first' puts NaNs at the beginning, 'last' puts NaNs at
             the end.
+        ignore_index : bool, default False
+             If True, the resulting axis will be labeled 0, 1, …, n - 1.
 
         Returns
         -------
@@ -4386,9 +4389,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     hist = pandas.plotting.hist_series
 
 
-Series._setup_axes(
-    ["index"], docs={"index": "The index (axis labels) of the Series."},
-)
+Series._setup_axes(["index"], docs={"index": "The index (axis labels) of the Series."})
 Series._add_numeric_operations()
 Series._add_series_only_operations()
 Series._add_series_or_dataframe_operations()
