@@ -616,7 +616,7 @@ class TestPandasContainer:
     def test_label_overflow(self):
         # GH14256: buffer length not checked when writing label
         df = pd.DataFrame({"bar" * 100000: [1], "foo": [1337]})
-        assert df.to_json() == f'{{"{"bar" * 10}":{{"0":1}},"foo":{{"0":1337}}}}'
+        assert df.to_json() == f'{{"{"bar" * 100000}":{{"0":1}},"foo":{{"0":1337}}}}'
 
     def test_series_non_unique_index(self):
         s = Series(["a", "b"], index=[1, 1])
