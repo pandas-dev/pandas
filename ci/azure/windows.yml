@@ -35,8 +35,8 @@ jobs:
         source activate pandas-dev
         conda list
         ci\\incremental\\build.cmd
-      displayName: 'Build
-      '
+      displayName: 'Build'
+
     - bash: |
         source activate pandas-dev
         ci/run_tests.sh
