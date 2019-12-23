@@ -4626,7 +4626,7 @@ class DataFrame(NDFrame):
             new_data = self._data.take(inds)
 
             if ignore_index:
-                new_data.axes[1] = ibase.default_index(len(inds))
+                new_data = new_data.reset_index(drop=True)
             self._update_inplace(new_data)
         else:
             result = self[-duplicated]
