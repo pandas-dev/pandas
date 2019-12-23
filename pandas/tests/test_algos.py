@@ -1403,7 +1403,7 @@ class TestGroupVarFloat32(GroupVarTestMixin):
 
 class TestHashTable:
     def test_string_hashtable_set_item_signature(self):
-        # GH#??? fix typing in StringHashTable.set_item to prevent segfault
+        # GH#30419 fix typing in StringHashTable.set_item to prevent segfault
         tbl = ht.StringHashTable()
 
         tbl.set_item("key", 1)
