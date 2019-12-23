@@ -4629,10 +4629,10 @@ class DataFrame(NDFrame):
                 new_data.axes[1] = ibase.default_index(len(inds))
             self._update_inplace(new_data)
         else:
+            result = self[-duplicated]
             if ignore_index:
-                idx = ibase.default_index(len(self[-duplicated]))
-                return self[-duplicated].set_index(idx)
-            return self[-duplicated]
+                return result.reset_index(drop=True)
+            return result
 
         return None
 
