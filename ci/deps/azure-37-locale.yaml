@@ -26,7 +26,6 @@ dependencies:
   - pytables
   - python-dateutil
   - pytz
-  - pyxlsb
   - s3fs
   - scipy
   - xarray
@@ -34,3 +33,6 @@ dependencies:
   - xlsxwriter
   - xlwt
   - pyarrow>=0.15
+  - pip
+  - pip:
+    - pyxlsb

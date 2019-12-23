@@ -26,7 +26,6 @@ dependencies:
   - pytables
   - python-dateutil==2.6.1
   - pytz
-  - pyxlsb
   - xarray
   - xlrd
   - xlsxwriter
@@ -34,3 +33,4 @@ dependencies:
   - pip
   - pip:
     - pyreadstat
+    - pyxlsb
