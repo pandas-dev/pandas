@@ -343,7 +343,7 @@ class TestArrayAnalytics:
 
         result = arr.searchsorted("a", side="left")
         assert is_scalar(result)
-        assert result == 0
+        assert result == 1
 
         result = arr.searchsorted("a", side="right")
         assert is_scalar(result)
