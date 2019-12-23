@@ -1191,12 +1191,15 @@ cdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq) except? -1:
     return dtstruct_to_dt64(&dts)
 
 
-def period_format(int64_t value, int freq, object fmt=None):
+cdef str period_format(int64_t value, int freq, object fmt=None):
     cdef:
         int freq_group
 
     if value == NPY_NAT:
-        return repr(NaT)
+        return "NaT"
+
+    if isinstance(fmt, str):
+        fmt = fmt.encode("utf-8")
 
     if fmt is None:
         freq_group = get_freq_group(freq)
@@ -1242,24 +1245,22 @@ cdef list extra_fmts = [(b"%q", b"^`AB`^"),
 cdef list str_extra_fmts = ["^`AB`^", "^`CD`^", "^`EF`^",
                             "^`GH`^", "^`IJ`^", "^`KL`^"]
 
-cdef object _period_strftime(int64_t value, int freq, object fmt):
+cdef str _period_strftime(int64_t value, int freq, bytes fmt):
     cdef:
         Py_ssize_t i
         npy_datetimestruct dts
         char *formatted
-        object pat, repl, result
+        bytes pat, brepl
         list found_pat = [False] * len(extra_fmts)
         int year, quarter
-
-    if isinstance(fmt, unicode):
-        fmt = fmt.encode('utf-8')
+        str result, repl
 
     get_date_info(value, freq, &dts)
     for i in range(len(extra_fmts)):
         pat = extra_fmts[i][0]
-        repl = extra_fmts[i][1]
+        brepl = extra_fmts[i][1]
         if pat in fmt:
-            fmt = fmt.replace(pat, repl)
+            fmt = fmt.replace(pat, brepl)
             found_pat[i] = True
 
     formatted = c_strftime(&dts, <char*>fmt)
@@ -2234,7 +2235,7 @@ cdef class _Period:
         object_state = None, self.freq, self.ordinal
         return (Period, object_state)
 
-    def strftime(self, fmt):
+    def strftime(self, fmt: str) -> str:
         """
         Returns the string representation of the :class:`Period`, depending
         on the selected ``fmt``. ``fmt`` must be a string

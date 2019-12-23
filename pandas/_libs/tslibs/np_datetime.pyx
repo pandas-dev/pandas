@@ -167,7 +167,7 @@ cdef inline int64_t pydate_to_dt64(date val, npy_datetimestruct *dts):
     return dtstruct_to_dt64(dts)
 
 
-cdef inline int _string_to_dts(object val, npy_datetimestruct* dts,
+cdef inline int _string_to_dts(str val, npy_datetimestruct* dts,
                                int* out_local, int* out_tzoffset,
                                bint want_exc) except? -1:
     cdef:
