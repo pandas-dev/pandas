@@ -3,6 +3,7 @@ Module contains tools for processing files into DataFrames or other objects
 """
 
 from collections import defaultdict
+from collections.abc import Iterator
 import csv
 import datetime
 from io import StringIO
@@ -62,8 +63,6 @@ from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
 
 from pandas.io.common import (
-    BaseIterator,
-    UnicodeReader,
     UTF8Recoder,
     get_filepath_or_buffer,
     get_handle,
@@ -787,7 +786,7 @@ def read_fwf(
     return _read(filepath_or_buffer, kwds)
 
 
-class TextFileReader(BaseIterator):
+class TextFileReader(Iterator):
     """
 
     Passed dialect overrides any of the related parser options
@@ -2431,23 +2430,13 @@ class PythonParser(ParserBase):
                 self.line_pos += 1
                 sniffed = csv.Sniffer().sniff(line)
                 dia.delimiter = sniffed.delimiter
-                if self.encoding is not None:
-                    self.buf.extend(
-                        list(
-                            UnicodeReader(
-                                StringIO(line), dialect=dia, encoding=self.encoding
-                            )
-                        )
-                    )
-                else:
-                    self.buf.extend(list(csv.reader(StringIO(line), dialect=dia)))
 
-            if self.encoding is not None:
-                reader = UnicodeReader(
-                    f, dialect=dia, encoding=self.encoding, strict=True
-                )
-            else:
-                reader = csv.reader(f, dialect=dia, strict=True)
+                # Note: self.encoding is irrelevant here
+                line_rdr = csv.reader(StringIO(line), dialect=dia)
+                self.buf.extend(list(line_rdr))
+
+            # Note: self.encoding is irrelevant here
+            reader = csv.reader(f, dialect=dia, strict=True)
 
         else:
 
@@ -3593,7 +3582,7 @@ def _get_col_names(colspec, columns):
     return colnames
 
 
-class FixedWidthReader(BaseIterator):
+class FixedWidthReader(Iterator):
     """
     A reader of fixed-width lines.
     """

@@ -2,7 +2,7 @@
 
 import bz2
 import codecs
-import csv
+from collections.abc import Iterator
 import gzip
 from io import BufferedIOBase, BytesIO
 import mmap
@@ -17,9 +17,7 @@ from typing import (
     List,
     Mapping,
     Optional,
-    TextIO,
     Tuple,
-    Type,
     Union,
 )
 from urllib.parse import (  # noqa
@@ -50,18 +48,6 @@ lzma = _import_lzma()
 
 _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
 _VALID_URLS.discard("")
-
-
-class BaseIterator:
-    """Subclass this and provide a "__next__()" method to obtain an iterator.
-    Useful only when the object being iterated is non-reusable (e.g. OK for a
-    parser, not for an in-memory table, yes for its iterator)."""
-
-    def __iter__(self) -> "BaseIterator":
-        return self
-
-    def __next__(self):
-        raise AbstractMethodError(self)
 
 
 def is_url(url) -> bool:
@@ -518,7 +504,7 @@ class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore
         return self.fp is None
 
 
-class _MMapWrapper(BaseIterator):
+class _MMapWrapper(Iterator):
     """
     Wrapper for the Python's mmap class so that it can be properly read in
     by Python's csv.reader class.
@@ -555,7 +541,7 @@ class _MMapWrapper(BaseIterator):
         return newline
 
 
-class UTF8Recoder(BaseIterator):
+class UTF8Recoder(Iterator):
     """
     Iterator that reads an encoded stream and re-encodes the input to UTF-8
     """
@@ -569,21 +555,8 @@ class UTF8Recoder(BaseIterator):
     def readline(self) -> bytes:
         return self.reader.readline().encode("utf-8")
 
-    def next(self) -> bytes:
+    def __next__(self) -> bytes:
         return next(self.reader).encode("utf-8")
 
     def close(self):
         self.reader.close()
-
-
-# Keeping these class for now because it provides a necessary convenience
-# for "dropping" the "encoding" argument from our I/O arguments when
-# creating a Unicode I/O object.
-def UnicodeReader(f, dialect=csv.excel, encoding="utf-8", **kwds):
-    return csv.reader(f, dialect=dialect, **kwds)
-
-
-def UnicodeWriter(
-    f: TextIO, dialect: Type[csv.Dialect] = csv.excel, encoding: str = "utf-8", **kwds
-):
-    return csv.writer(f, dialect=dialect, **kwds)

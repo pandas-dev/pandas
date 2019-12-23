@@ -336,11 +336,22 @@ class Timestamp(_Timestamp):
         """
         return cls(datetime.combine(date, time))
 
-    def __new__(cls, object ts_input=_no_input,
-                object freq=None, tz=None, unit=None,
-                year=None, month=None, day=None,
-                hour=None, minute=None, second=None, microsecond=None,
-                nanosecond=None, tzinfo=None):
+    def __new__(
+        cls,
+        object ts_input=_no_input,
+        object freq=None,
+        tz=None,
+        unit=None,
+        year=None,
+        month=None,
+        day=None,
+        hour=None,
+        minute=None,
+        second=None,
+        microsecond=None,
+        nanosecond=None,
+        tzinfo=None
+    ):
         # The parameter list folds together legacy parameter names (the first
         # four) and positional and keyword parameter names from pydatetime.
         #
@@ -401,8 +412,8 @@ class Timestamp(_Timestamp):
             freq = None
 
         if getattr(ts_input, 'tzinfo', None) is not None and tz is not None:
-            raise ValueError("Cannot pass a datetime or Timestamp with tzinfo with the"
-                             " tz parameter. Use tz_convert instead.")
+            raise ValueError("Cannot pass a datetime or Timestamp with tzinfo with "
+                             "the tz parameter. Use tz_convert instead.")
 
         ts = convert_to_tsobject(ts_input, tz, unit, 0, 0, nanosecond or 0)
 
