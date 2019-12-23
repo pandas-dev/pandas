@@ -52,7 +52,7 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     black --version
 
     MSG='Checking black formatting' ; echo $MSG
-	black . --check
+    black . --check
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # `setup.cfg` contains the list of error codes that are being ignored in flake8
@@ -104,7 +104,7 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     isort --version-number
 
     # Imports - Check formatting using isort see setup.cfg for settings
-    MSG='Check import format using isort ' ; echo $MSG
+    MSG='Check import format using isort' ; echo $MSG
     ISORT_CMD="isort --recursive --check-only pandas asv_bench"
     if [[ "$GITHUB_ACTIONS" == "true" ]]; then
         eval $ISORT_CMD | awk '{print "##[error]" $0}'; RET=$(($RET + ${PIPESTATUS[0]}))
@@ -201,6 +201,10 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
 
     MSG='Check for use of foo.__class__ instead of type(foo)' ; echo $MSG
     invgrep -R --include=*.{py,pyx} '\.__class__' pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Check for use of xrange instead of range' ; echo $MSG
+    invgrep -R --include=*.{py,pyx} 'xrange' pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check that no file in the repo contains trailing whitespaces' ; echo $MSG
