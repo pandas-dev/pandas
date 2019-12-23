@@ -32,7 +32,7 @@ Dtype = Union[str, np.dtype, "ExtensionDtype"]
 FilePathOrBuffer = Union[str, Path, IO[AnyStr]]
 
 FrameOrSeries = TypeVar("FrameOrSeries", bound="NDFrame")
-Scalar = Union[str, int, float, bool]
+Scalar = Union[str, float, bool]
 Axis = Union[str, int]
 Ordered = Optional[bool]
 JSONSerializable = Union[Scalar, List, Dict]
