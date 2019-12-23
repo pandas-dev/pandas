@@ -1406,7 +1406,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
                     fmt_str = "{value:.{digits:d}f}"
                 float_format = partial(
                     fmt_str.format, digits=self.digits
-                )  # type: Optional[float_format_type]
+                )
             else:
                 float_format = self.float_format
         else:
