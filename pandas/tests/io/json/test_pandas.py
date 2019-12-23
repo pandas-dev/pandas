@@ -1459,13 +1459,13 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         spaces = " " * indent
         expected = (
             "{\n"
-            f'{spaces}"a":{{\n'
-            f'{spaces}{spaces}"0":"foo",\n'
-            f'{spaces}{spaces}"1":"baz"\n'
+            f"{spaces}'a':{{\n"
+            f"{spaces}{spaces}'0':'foo',\n"
+            f"{spaces}{spaces}'1':'baz'\n"
             f"{spaces}}},\n"
-            f'{spaces}"b":{{\n'
-            f'{spaces}{spaces}"0":"bar",\n'
-            f'{spaces}{spaces}"1":"qux"\n'
+            f"{spaces}'b':{{\n"
+            f"{spaces}{spaces}'0':'bar',\n"
+            f"{spaces}{spaces}'1':'qux'\n"
             f"{spaces}}}\n"
             "}"
         )
