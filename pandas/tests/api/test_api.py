@@ -20,7 +20,6 @@ class Base:
 
 
 class TestPDApi(Base):
-
     # these are optionally imported based on testing
     # & need to be ignored
     ignored = ["tests", "locale", "conftest"]
@@ -230,29 +229,34 @@ class TestPDApi(Base):
             + self.deprecated_funcs_in_future
         )
         for depr in deprecated:
-            with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            with tm.assert_produces_warning(FutureWarning):
                 if compat.PY37:
                     getattr(pd, depr)
                 else:
                     deprecated = getattr(pd, depr)
-                    getattr(deprecated, dir(deprecated)[-1])
+                    deprecated.__getattr__(dir(deprecated)[-1])
+
+
+def test_np():
+    import numpy as np
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", FutureWarning)
+        assert np.array_equal(pd.np.arange(0, 10), np.arange(0, 10))
 
 
 class TestApi(Base):
-
     allowed = ["types", "extensions", "indexers"]
 
     def test_api(self):
-
         self.check(api, self.allowed)
 
 
 class TestTesting(Base):
-
     funcs = ["assert_frame_equal", "assert_series_equal", "assert_index_equal"]
 
     def test_testing(self):
-
         from pandas import testing
 
         self.check(testing, self.funcs)

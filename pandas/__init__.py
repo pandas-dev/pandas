@@ -256,17 +256,18 @@ else:
             self.np = np
             self.warnings = warnings
 
-        def __getattribute__(self, item):
-            np = object.__getattribute__(self, "np")
-            warnings = object.__getattribute__(self, "warnings")
-            warnings.warn(
+        def __getattr__(self, item):
+            self.warnings.warn(
                 "The pandas.np module is deprecated "
                 "and will be removed from pandas in a future version. "
                 "Import numpy directly instead",
                 FutureWarning,
                 stacklevel=2,
             )
-            return object.__getattribute__(np, item)
+            try:
+                return getattr(self.np, item)
+            except AttributeError:
+                raise AttributeError(f"module numpy has no attribute {item}")
 
     np = __numpy()
 
