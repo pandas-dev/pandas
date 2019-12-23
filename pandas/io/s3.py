@@ -2,9 +2,8 @@
 from typing import IO, Any, Optional, Tuple
 from urllib.parse import urlparse as parse_url
 
-from pandas.compat._optional import import_optional_dependency
-
 from pandas._typing import FilePathOrBuffer
+from pandas.compat._optional import import_optional_dependency
 
 s3fs = import_optional_dependency(
     "s3fs", extra="The s3fs package is required to handle s3 files."

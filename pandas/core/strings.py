@@ -9,6 +9,7 @@ import numpy as np
 
 import pandas._libs.lib as lib
 import pandas._libs.ops as libops
+from pandas._typing import ArrayLike, Dtype
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
@@ -32,7 +33,6 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas._typing import ArrayLike, Dtype
 from pandas.core.algorithms import take_1d
 from pandas.core.base import NoNewAttributesMixin
 import pandas.core.common as com

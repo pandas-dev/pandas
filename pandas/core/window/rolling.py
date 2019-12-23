@@ -11,6 +11,7 @@ from typing import Callable, Dict, List, Optional, Set, Tuple, Union
 import numpy as np
 
 import pandas._libs.window.aggregations as window_aggregations
+from pandas._typing import Axis, FrameOrSeries, Scalar
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -35,7 +36,6 @@ from pandas.core.dtypes.generic import (
     ABCTimedeltaIndex,
 )
 
-from pandas._typing import Axis, FrameOrSeries, Scalar
 from pandas.core.base import DataError, PandasObject, SelectionMixin, ShallowMixin
 import pandas.core.common as com
 from pandas.core.indexes.api import Index, ensure_index

@@ -2,9 +2,8 @@ from typing import List
 
 import numpy as np
 
-from pandas.compat._optional import import_optional_dependency
-
 from pandas._typing import FilePathOrBuffer, Scalar
+from pandas.compat._optional import import_optional_dependency
 
 from pandas.io.excel._base import ExcelWriter, _BaseExcelReader
 from pandas.io.excel._util import _validate_freeze_panes

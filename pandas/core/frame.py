@@ -36,6 +36,7 @@ import numpy.ma as ma
 from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, lib
+from pandas._typing import Axes, Dtype, FilePathOrBuffer
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender,
@@ -91,7 +92,6 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas._typing import Axes, Dtype, FilePathOrBuffer
 from pandas.core import algorithms, common as com, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import Categorical, ExtensionArray

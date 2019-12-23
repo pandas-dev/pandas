@@ -5,6 +5,8 @@ from typing import Any, Tuple
 
 import numpy as np
 
+from pandas._typing import Dtype
+
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
@@ -16,8 +18,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
-
-from pandas._typing import Dtype
 
 
 @register_extension_dtype

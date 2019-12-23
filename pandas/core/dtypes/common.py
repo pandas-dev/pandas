@@ -6,6 +6,7 @@ import numpy as np
 
 from pandas._libs import algos, lib
 from pandas._libs.tslibs import conversion
+from pandas._typing import ArrayLike
 
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
@@ -45,8 +46,6 @@ from pandas.core.dtypes.inference import (  # noqa:F401
     is_scalar,
     is_sequence,
 )
-
-from pandas._typing import ArrayLike
 
 _POSSIBLY_CAST_DTYPES = {
     np.dtype(t).name

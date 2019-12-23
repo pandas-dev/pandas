@@ -5,6 +5,8 @@ from typing import Any, Callable, Union
 
 import numpy as np
 
+from pandas._typing import ArrayLike
+
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_extension_array_dtype,
@@ -15,7 +17,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import ABCExtensionArray, ABCSeries
 
-from pandas._typing import ArrayLike
 from pandas.core.construction import array
 
 
