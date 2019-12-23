@@ -1,10 +1,10 @@
 """
 Assertion helpers for arithmetic tests.
 """
-import pytest
 import numpy as np
+import pytest
 
-from pandas import DataFrame, Series, Index
+from pandas import DataFrame, Index, Series
 import pandas.util.testing as tm
 
 

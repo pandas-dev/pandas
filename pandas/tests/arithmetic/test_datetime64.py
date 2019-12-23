@@ -29,9 +29,12 @@ from pandas import (
 import pandas.core.arrays.datetimelike as dtl
 from pandas.core.indexes.datetimes import _to_M8
 from pandas.core.ops import roperator
+from pandas.tests.arithmetic.common import (
+    assert_invalid_addsub_type,
+    assert_invalid_comparison,
+    get_upcast_box,
+)
 import pandas.util.testing as tm
-
-from .common import assert_invalid_comparison, get_upcast_box, assert_invalid_addsub_type
 
 # ------------------------------------------------------------------
 # Comparisons
@@ -986,14 +989,7 @@ class TestDatetime64Arithmetic:
                 "ufunc '?(add|subtract)'? cannot use operands with types",
             ]
         )
-        with pytest.raises(TypeError, match=msg):
-            dtarr + other
-        with pytest.raises(TypeError, match=msg):
-            other + dtarr
-        with pytest.raises(TypeError, match=msg):
-            dtarr - other
-        with pytest.raises(TypeError, match=msg):
-            other - dtarr
+        assert_invalid_addsub_type(dtarr, other, msg)
 
     @pytest.mark.parametrize("pi_freq", ["D", "W", "Q", "H"])
     @pytest.mark.parametrize("dti_freq", [None, "D"])
@@ -1014,14 +1010,7 @@ class TestDatetime64Arithmetic:
                 "ufunc.*cannot use operands",
             ]
         )
-        with pytest.raises(TypeError, match=msg):
-            dtarr + parr
-        with pytest.raises(TypeError, match=msg):
-            parr + dtarr
-        with pytest.raises(TypeError, match=msg):
-            dtarr - parr
-        with pytest.raises(TypeError, match=msg):
-            parr - dtarr
+        assert_invalid_addsub_type(dtarr, parr, msg)
 
 
 class TestDatetime64DateOffsetArithmetic:
@@ -1936,9 +1925,10 @@ class TestDatetimeIndexArithmetic:
         # GH#19959
         dti = pd.DatetimeIndex(["2016-01-01", "NaT", "2017-04-05 06:07:08"])
         other = int_holder([9, 4, -1])
-        tmsg = "cannot subtract DatetimeArray from"
-        msg = "Addition/subtraction of integers"
-        assert_invalid_addsub_type(dti, other, msg+"|"+tmsg)
+        msg = "|".join(
+            ["cannot subtract DatetimeArray from", "Addition/subtraction of integers"]
+        )
+        assert_invalid_addsub_type(dti, other, msg)
 
     # -------------------------------------------------------------
     # Binary operations DatetimeIndex and TimedeltaIndex/array

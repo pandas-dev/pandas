@@ -220,3 +220,46 @@ class TestShift:
         msg = "Freq was not given and was not set in the index"
         with pytest.raises(ValueError, match=msg):
             no_freq.tshift()
+
+    def test_shift_int(self, datetime_series):
+        ts = datetime_series.astype(int)
+        shifted = ts.shift(1)
+        expected = ts.astype(float).shift(1)
+        tm.assert_series_equal(shifted, expected)
+
+    def test_shift_object_non_scalar_fill(self):
+        # shift requires scalar fill_value except for object dtype
+        ser = Series(range(3))
+        with pytest.raises(ValueError, match="fill_value must be a scalar"):
+            ser.shift(1, fill_value=[])
+
+        df = ser.to_frame()
+        with pytest.raises(ValueError, match="fill_value must be a scalar"):
+            df.shift(1, fill_value=np.arange(3))
+
+        obj_ser = ser.astype(object)
+        result = obj_ser.shift(1, fill_value={})
+        assert result[0] == {}
+
+        obj_df = obj_ser.to_frame()
+        result = obj_df.shift(1, fill_value={})
+        assert result.iloc[0, 0] == {}
+
+    def test_shift_categorical(self):
+        # GH#9416
+        s = pd.Series(["a", "b", "c", "d"], dtype="category")
+
+        tm.assert_series_equal(s.iloc[:-1], s.shift(1).shift(-1).dropna())
+
+        sp1 = s.shift(1)
+        tm.assert_index_equal(s.index, sp1.index)
+        assert np.all(sp1.values.codes[:1] == -1)
+        assert np.all(s.values.codes[:-1] == sp1.values.codes[1:])
+
+        sn2 = s.shift(-2)
+        tm.assert_index_equal(s.index, sn2.index)
+        assert np.all(sn2.values.codes[-2:] == -1)
+        assert np.all(s.values.codes[2:] == sn2.values.codes[:-2])
+
+        tm.assert_index_equal(s.values.categories, sp1.values.categories)
+        tm.assert_index_equal(s.values.categories, sn2.values.categories)

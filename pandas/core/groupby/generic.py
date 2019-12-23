@@ -25,6 +25,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs import Timestamp, lib
+from pandas._typing import FrameOrSeries
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.cast import (
@@ -47,7 +48,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import _isna_ndarraylike, isna, notna
 
-from pandas._typing import FrameOrSeries
 import pandas.core.algorithms as algorithms
 from pandas.core.base import DataError, SpecificationError
 import pandas.core.common as com
