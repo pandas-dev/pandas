@@ -207,7 +207,7 @@ def test_xs_level_series_ymd(multiindex_year_month_day_dataframe_random_data):
 
 
 def test_xs_level_series_slice_not_implemented(
-    multiindex_year_month_day_dataframe_random_data
+    multiindex_year_month_day_dataframe_random_data,
 ):
     # this test is not explicitly testing .xs functionality
     # TODO: move to another module or refactor

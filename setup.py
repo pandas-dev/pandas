@@ -6,6 +6,7 @@ Parts of this file were taken from the pyzmq project
 BSD license. Parts are from lxml (https://github.com/lxml/lxml)
 """
 
+import argparse
 from distutils.sysconfig import get_config_vars
 from distutils.version import LooseVersion
 import os
@@ -38,9 +39,9 @@ setuptools_kwargs = {
     "install_requires": [
         "python-dateutil >= 2.6.1",
         "pytz >= 2017.2",
-        "numpy >= {numpy_ver}".format(numpy_ver=min_numpy_ver),
+        f"numpy >= {min_numpy_ver}",
     ],
-    "setup_requires": ["numpy >= {numpy_ver}".format(numpy_ver=min_numpy_ver)],
+    "setup_requires": [f"numpy >= {min_numpy_ver}"],
     "zip_safe": False,
 }
 
@@ -62,31 +63,19 @@ except ImportError:
 from distutils.extension import Extension  # noqa: E402 isort:skip
 from distutils.command.build import build  # noqa: E402 isort:skip
 
-try:
-    if not _CYTHON_INSTALLED:
-        raise ImportError("No supported version of Cython installed.")
+if _CYTHON_INSTALLED:
     from Cython.Distutils.old_build_ext import old_build_ext as _build_ext
 
     cython = True
-except ImportError:
+    from Cython import Tempita as tempita
+else:
     from distutils.command.build_ext import build_ext as _build_ext
 
     cython = False
-else:
-    try:
-        try:
-            from Cython import Tempita as tempita
-        except ImportError:
-            import tempita
-    except ImportError:
-        raise ImportError("Building pandas requires Tempita: pip install Tempita")
 
 
 _pxi_dep_template = {
-    "algos": [
-        "_libs/algos_common_helper.pxi.in",
-        "_libs/algos_take_helper.pxi.in",
-    ],
+    "algos": ["_libs/algos_common_helper.pxi.in", "_libs/algos_take_helper.pxi.in"],
     "hashtable": [
         "_libs/hashtable_class_helper.pxi.in",
         "_libs/hashtable_func_helper.pxi.in",
@@ -132,12 +121,7 @@ class build_ext(_build_ext):
         if cython:
             self.render_templates(_pxifiles)
 
-        numpy_incl = pkg_resources.resource_filename("numpy", "core/include")
-
-        for ext in self.extensions:
-            if hasattr(ext, "include_dirs") and numpy_incl not in ext.include_dirs:
-                ext.include_dirs.append(numpy_incl)
-        _build_ext.build_extensions(self)
+        super().build_extensions()
 
 
 DESCRIPTION = "Powerful data structures for data analysis, time series, and statistics"
@@ -194,8 +178,7 @@ Here are just a few of the things that pandas does well:
     Excel files, databases, and saving / loading data from the ultrafast **HDF5
     format**
   - **Time series**-specific functionality: date range generation and frequency
-    conversion, moving window statistics, moving window linear regressions,
-    date shifting and lagging, etc.
+    conversion, moving window statistics, date shifting and lagging.
 
 Many of these principles are here to address the shortcomings frequently
 experienced using other languages / scientific research environments. For data
@@ -347,14 +330,13 @@ class CheckSDist(sdist_class):
         "pandas/_libs/tslibs/resolution.pyx",
         "pandas/_libs/tslibs/parsing.pyx",
         "pandas/_libs/tslibs/tzconversion.pyx",
+        "pandas/_libs/window/indexers.pyx",
         "pandas/_libs/writers.pyx",
         "pandas/io/sas/sas.pyx",
     ]
 
     _cpp_pyxfiles = [
-        "pandas/_libs/window.pyx",
-        "pandas/io/msgpack/_packer.pyx",
-        "pandas/io/msgpack/_unpacker.pyx",
+        "pandas/_libs/window/aggregations.pyx",
     ]
 
     def initialize_options(self):
@@ -372,10 +354,8 @@ class CheckSDist(sdist_class):
                 for pyxfile in pyxfiles:
                     sourcefile = pyxfile[:-3] + extension
                     msg = (
-                        "{extension}-source file '{source}' not found.\n"
-                        "Run 'setup.py cython' before sdist.".format(
-                            source=sourcefile, extension=extension
-                        )
+                        f"{extension}-source file '{sourcefile}' not found.\n"
+                        f"Run 'setup.py cython' before sdist."
                     )
                     assert os.path.isfile(sourcefile), msg
         sdist_class.run(self)
@@ -390,14 +370,12 @@ class CheckingBuildExt(build_ext):
         for ext in extensions:
             for src in ext.sources:
                 if not os.path.exists(src):
-                    print("{}: -> [{}]".format(ext.name, ext.sources))
+                    print(f"{ext.name}: -> [{ext.sources}]")
                     raise Exception(
-                        """Cython-generated file '{src}' not found.
+                        f"""Cython-generated file '{src}' not found.
                 Cython is required to compile pandas from a development branch.
                 Please install Cython or download a release package of pandas.
-                """.format(
-                            src=src
-                        )
+                """
                     )
 
     def build_extensions(self):
@@ -465,7 +443,7 @@ if is_platform_windows():
         extra_link_args.append("/DEBUG")
 else:
     # args to ignore warnings
-    extra_compile_args = ["-Wno-unused-function"]
+    extra_compile_args = []
     extra_link_args = []
     if debugging_symbols_requested:
         extra_compile_args.append("-g")
@@ -532,6 +510,19 @@ def maybe_cythonize(extensions, *args, **kwargs):
         if hasattr(ext, "include_dirs") and numpy_incl not in ext.include_dirs:
             ext.include_dirs.append(numpy_incl)
 
+    # reuse any parallel arguments provided for compliation to cythonize
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-j", type=int)
+    parser.add_argument("--parallel", type=int)
+    parsed, _ = parser.parse_known_args()
+
+    nthreads = 0
+    if parsed.parallel:
+        nthreads = parsed.parallel
+    elif parsed.j:
+        nthreads = parsed.j
+
+    kwargs["nthreads"] = nthreads
     build_ext.render_templates(_pxifiles)
     return cythonize(extensions, *args, **kwargs)
 
@@ -540,55 +531,51 @@ def srcpath(name=None, suffix=".pyx", subdir="src"):
     return pjoin("pandas", subdir, name + suffix)
 
 
-common_include = ["pandas/_libs/src/klib", "pandas/_libs/src"]
-ts_include = ["pandas/_libs/tslibs/src", "pandas/_libs/tslibs"]
+lib_depends = ["pandas/_libs/src/parse_helper.h"]
 
+klib_include = ["pandas/_libs/src/klib"]
 
-lib_depends = ["pandas/_libs/src/parse_helper.h", "pandas/_libs/src/compat_helper.h"]
-
-np_datetime_headers = [
+tseries_depends = [
     "pandas/_libs/tslibs/src/datetime/np_datetime.h",
     "pandas/_libs/tslibs/src/datetime/np_datetime_strings.h",
 ]
-np_datetime_sources = [
-    "pandas/_libs/tslibs/src/datetime/np_datetime.c",
-    "pandas/_libs/tslibs/src/datetime/np_datetime_strings.c",
-]
-
-tseries_depends = np_datetime_headers
-
 
 ext_data = {
-    "_libs.algos": {"pyxfile": "_libs/algos", "depends": _pxi_dep["algos"]},
+    "_libs.algos": {
+        "pyxfile": "_libs/algos",
+        "include": klib_include,
+        "depends": _pxi_dep["algos"],
+    },
     "_libs.groupby": {"pyxfile": "_libs/groupby"},
-    "_libs.hashing": {"pyxfile": "_libs/hashing", "include": [], "depends": []},
+    "_libs.hashing": {"pyxfile": "_libs/hashing", "depends": []},
     "_libs.hashtable": {
         "pyxfile": "_libs/hashtable",
+        "include": klib_include,
         "depends": (["pandas/_libs/src/klib/khash_python.h"] + _pxi_dep["hashtable"]),
     },
     "_libs.index": {
         "pyxfile": "_libs/index",
-        "include": common_include + ts_include,
+        "include": klib_include,
         "depends": _pxi_dep["index"],
-        "sources": np_datetime_sources,
     },
     "_libs.indexing": {"pyxfile": "_libs/indexing"},
     "_libs.internals": {"pyxfile": "_libs/internals"},
-    "_libs.interval": {"pyxfile": "_libs/interval", "depends": _pxi_dep["interval"]},
-    "_libs.join": {"pyxfile": "_libs/join"},
+    "_libs.interval": {
+        "pyxfile": "_libs/interval",
+        "include": klib_include,
+        "depends": _pxi_dep["interval"],
+    },
+    "_libs.join": {"pyxfile": "_libs/join", "include": klib_include},
     "_libs.lib": {
         "pyxfile": "_libs/lib",
-        "include": common_include + ts_include,
         "depends": lib_depends + tseries_depends,
+        "include": klib_include,  # due to tokenizer import
         "sources": ["pandas/_libs/src/parser/tokenizer.c"],
     },
-    "_libs.missing": {
-        "pyxfile": "_libs/missing",
-        "include": common_include + ts_include,
-        "depends": tseries_depends,
-    },
+    "_libs.missing": {"pyxfile": "_libs/missing", "depends": tseries_depends},
     "_libs.parsers": {
         "pyxfile": "_libs/parsers",
+        "include": klib_include + ["pandas/_libs/src"],
         "depends": [
             "pandas/_libs/src/parser/tokenizer.h",
             "pandas/_libs/src/parser/io.h",
@@ -600,119 +587,80 @@ ext_data = {
     },
     "_libs.reduction": {"pyxfile": "_libs/reduction"},
     "_libs.ops": {"pyxfile": "_libs/ops"},
-    "_libs.properties": {"pyxfile": "_libs/properties", "include": []},
+    "_libs.properties": {"pyxfile": "_libs/properties"},
     "_libs.reshape": {"pyxfile": "_libs/reshape", "depends": []},
     "_libs.sparse": {"pyxfile": "_libs/sparse", "depends": _pxi_dep["sparse"]},
-    "_libs.tslib": {
-        "pyxfile": "_libs/tslib",
-        "include": ts_include,
-        "depends": tseries_depends,
-        "sources": np_datetime_sources,
-    },
+    "_libs.tslib": {"pyxfile": "_libs/tslib", "depends": tseries_depends},
     "_libs.tslibs.c_timestamp": {
         "pyxfile": "_libs/tslibs/c_timestamp",
-        "include": ts_include,
         "depends": tseries_depends,
-        "sources": np_datetime_sources,
     },
-    "_libs.tslibs.ccalendar": {"pyxfile": "_libs/tslibs/ccalendar", "include": []},
+    "_libs.tslibs.ccalendar": {"pyxfile": "_libs/tslibs/ccalendar"},
     "_libs.tslibs.conversion": {
         "pyxfile": "_libs/tslibs/conversion",
-        "include": ts_include,
         "depends": tseries_depends,
-        "sources": np_datetime_sources,
+        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.tslibs.fields": {
         "pyxfile": "_libs/tslibs/fields",
-        "include": ts_include,
         "depends": tseries_depends,
-        "sources": np_datetime_sources,
     },
-    "_libs.tslibs.frequencies": {"pyxfile": "_libs/tslibs/frequencies", "include": []},
-    "_libs.tslibs.nattype": {"pyxfile": "_libs/tslibs/nattype", "include": []},
+    "_libs.tslibs.frequencies": {"pyxfile": "_libs/tslibs/frequencies"},
+    "_libs.tslibs.nattype": {"pyxfile": "_libs/tslibs/nattype"},
     "_libs.tslibs.np_datetime": {
         "pyxfile": "_libs/tslibs/np_datetime",
-        "include": ts_include,
-        "depends": np_datetime_headers,
-        "sources": np_datetime_sources,
+        "depends": tseries_depends,
+        "sources": [
+            "pandas/_libs/tslibs/src/datetime/np_datetime.c",
+            "pandas/_libs/tslibs/src/datetime/np_datetime_strings.c",
+        ],
     },
     "_libs.tslibs.offsets": {
         "pyxfile": "_libs/tslibs/offsets",
-        "include": ts_include,
         "depends": tseries_depends,
-        "sources": np_datetime_sources,
     },
     "_libs.tslibs.parsing": {
         "pyxfile": "_libs/tslibs/parsing",
+        "include": klib_include,
         "depends": ["pandas/_libs/src/parser/tokenizer.h"],
         "sources": ["pandas/_libs/src/parser/tokenizer.c"],
     },
     "_libs.tslibs.period": {
         "pyxfile": "_libs/tslibs/period",
-        "include": ts_include,
         "depends": tseries_depends,
-        "sources": np_datetime_sources,
+        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.tslibs.resolution": {
         "pyxfile": "_libs/tslibs/resolution",
-        "include": ts_include,
         "depends": tseries_depends,
-        "sources": np_datetime_sources,
     },
     "_libs.tslibs.strptime": {
         "pyxfile": "_libs/tslibs/strptime",
-        "include": ts_include,
         "depends": tseries_depends,
-        "sources": np_datetime_sources,
     },
     "_libs.tslibs.timedeltas": {
         "pyxfile": "_libs/tslibs/timedeltas",
-        "include": ts_include,
-        "depends": np_datetime_headers,
-        "sources": np_datetime_sources,
+        "depends": tseries_depends,
     },
     "_libs.tslibs.timestamps": {
         "pyxfile": "_libs/tslibs/timestamps",
-        "include": ts_include,
         "depends": tseries_depends,
-        "sources": np_datetime_sources,
     },
-    "_libs.tslibs.timezones": {"pyxfile": "_libs/tslibs/timezones", "include": []},
+    "_libs.tslibs.timezones": {"pyxfile": "_libs/tslibs/timezones"},
     "_libs.tslibs.tzconversion": {
         "pyxfile": "_libs/tslibs/tzconversion",
-        "include": ts_include,
         "depends": tseries_depends,
-        "sources": np_datetime_sources,
     },
     "_libs.testing": {"pyxfile": "_libs/testing"},
-    "_libs.window": {"pyxfile": "_libs/window", "language": "c++", "suffix": ".cpp"},
+    "_libs.window.aggregations": {
+        "pyxfile": "_libs/window/aggregations",
+        "language": "c++",
+        "suffix": ".cpp",
+        "depends": ["pandas/_libs/src/skiplist.h"],
+    },
+    "_libs.window.indexers": {"pyxfile": "_libs/window/indexers"},
     "_libs.writers": {"pyxfile": "_libs/writers"},
     "io.sas._sas": {"pyxfile": "io/sas/sas"},
-    "io.msgpack._packer": {
-        "macros": endian_macro + macros,
-        "depends": [
-            "pandas/_libs/src/msgpack/pack.h",
-            "pandas/_libs/src/msgpack/pack_template.h",
-        ],
-        "include": ["pandas/_libs/src/msgpack"] + common_include,
-        "language": "c++",
-        "suffix": ".cpp",
-        "pyxfile": "io/msgpack/_packer",
-        "subdir": "io/msgpack",
-    },
-    "io.msgpack._unpacker": {
-        "depends": [
-            "pandas/_libs/src/msgpack/unpack.h",
-            "pandas/_libs/src/msgpack/unpack_define.h",
-            "pandas/_libs/src/msgpack/unpack_template.h",
-        ],
-        "macros": endian_macro + macros,
-        "include": ["pandas/_libs/src/msgpack"] + common_include,
-        "language": "c++",
-        "suffix": ".cpp",
-        "pyxfile": "io/msgpack/_unpacker",
-        "subdir": "io/msgpack",
-    },
 }
 
 extensions = []
@@ -724,10 +672,10 @@ for name, data in ext_data.items():
 
     sources.extend(data.get("sources", []))
 
-    include = data.get("include", common_include)
+    include = data.get("include")
 
     obj = Extension(
-        "pandas.{name}".format(name=name),
+        f"pandas.{name}",
         sources=sources,
         depends=data.get("depends", []),
         include_dirs=include,
@@ -760,7 +708,10 @@ ujson_ext = Extension(
             "pandas/_libs/src/ujson/lib/ultrajsonenc.c",
             "pandas/_libs/src/ujson/lib/ultrajsondec.c",
         ]
-        + np_datetime_sources
+        + [
+            "pandas/_libs/tslibs/src/datetime/np_datetime.c",
+            "pandas/_libs/tslibs/src/datetime/np_datetime_strings.c",
+        ]
     ),
     include_dirs=[
         "pandas/_libs/src/ujson/python",
@@ -774,19 +725,6 @@ ujson_ext = Extension(
 
 
 extensions.append(ujson_ext)
-
-# ----------------------------------------------------------------------
-# util
-# extension for pseudo-safely moving bytes into mutable buffers
-_move_ext = Extension(
-    "pandas.util._move",
-    depends=[],
-    sources=["pandas/util/move.c"],
-    define_macros=macros,
-    extra_compile_args=extra_compile_args,
-    extra_link_args=extra_link_args,
-)
-extensions.append(_move_ext)
 
 # ----------------------------------------------------------------------
 
@@ -823,5 +761,5 @@ setup(
     entry_points={
         "pandas_plotting_backends": ["matplotlib = pandas:plotting._matplotlib"]
     },
-    **setuptools_kwargs
+    **setuptools_kwargs,
 )

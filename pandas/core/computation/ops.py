@@ -13,7 +13,7 @@ from pandas._libs.tslibs import Timestamp
 from pandas.core.dtypes.common import is_list_like, is_scalar
 
 import pandas.core.common as com
-from pandas.core.computation.common import _ensure_decoded, _result_type_many
+from pandas.core.computation.common import _ensure_decoded, result_type_many
 from pandas.core.computation.scope import _DEFAULT_GLOBALS
 
 from pandas.io.formats.printing import pprint_thing, pprint_thing_encoded
@@ -55,12 +55,13 @@ class UndefinedVariableError(NameError):
     NameError subclass for local variables.
     """
 
-    def __init__(self, name, is_local):
+    def __init__(self, name, is_local: bool):
+        base_msg = f"{repr(name)} is not defined"
         if is_local:
-            msg = "local variable {0!r} is not defined"
+            msg = f"local variable {base_msg}"
         else:
-            msg = "name {0!r} is not defined"
-        super().__init__(msg.format(name))
+            msg = f"name {base_msg}"
+        super().__init__(msg)
 
 
 class Term:
@@ -68,6 +69,8 @@ class Term:
         klass = Constant if not isinstance(name, str) else cls
         supr_new = super(Term, klass).__new__
         return supr_new(klass)
+
+    is_local: bool
 
     def __init__(self, name, env, side=None, encoding=None):
         # name is a str for Term, but may be something else for subclasses
@@ -141,10 +144,7 @@ class Term:
 
     @property
     def raw(self) -> str:
-        return pprint_thing(
-            "{0}(name={1!r}, type={2})"
-            "".format(self.__class__.__name__, self.name, self.type)
-        )
+        return f"{type(self).__name__}(name={repr(self.name)}, type={self.type})"
 
     @property
     def is_datetime(self) -> bool:
@@ -197,7 +197,9 @@ class Op:
     Hold an operator of arbitrary arity.
     """
 
-    def __init__(self, op, operands, *args, **kwargs):
+    op: str
+
+    def __init__(self, op: str, operands, *args, **kwargs):
         self.op = _bool_op_map.get(op, op)
         self.operands = operands
         self.encoding = kwargs.get("encoding", None)
@@ -210,15 +212,15 @@ class Op:
         Print a generic n-ary operator and its operands using infix notation.
         """
         # recurse over the operands
-        parened = ("({0})".format(pprint_thing(opr)) for opr in self.operands)
-        return pprint_thing(" {0} ".format(self.op).join(parened))
+        parened = (f"({pprint_thing(opr)})" for opr in self.operands)
+        return pprint_thing(f" {self.op} ".join(parened))
 
     @property
     def return_type(self):
         # clobber types to bool if the op is a boolean operator
         if self.op in (_cmp_ops_syms + _bool_ops_syms):
             return np.bool_
-        return _result_type_many(*(term.type for term in com.flatten(self)))
+        return result_type_many(*(term.type for term in com.flatten(self)))
 
     @property
     def has_invalid_return_type(self) -> bool:
@@ -370,8 +372,7 @@ class BinOp(Op):
             # has to be made a list for python3
             keys = list(_binary_ops_dict.keys())
             raise ValueError(
-                "Invalid binary operator {0!r}, valid"
-                " operators are {1}".format(op, keys)
+                f"Invalid binary operator {repr(op)}, valid operators are {keys}"
             )
 
     def __call__(self, env):
@@ -387,9 +388,6 @@ class BinOp(Op):
         object
             The result of an evaluated expression.
         """
-        # handle truediv
-        if self.op == "/" and env.scope["truediv"]:
-            self.func = operator.truediv
 
         # recurse over the left/right nodes
         left = self.lhs(env)
@@ -501,18 +499,15 @@ class Div(BinOp):
     ----------
     lhs, rhs : Term or Op
         The Terms or Ops in the ``/`` expression.
-    truediv : bool
-        Whether or not to use true division. With Python 3 this happens
-        regardless of the value of ``truediv``.
     """
 
-    def __init__(self, lhs, rhs, truediv: bool, **kwargs):
+    def __init__(self, lhs, rhs, **kwargs):
         super().__init__("/", lhs, rhs, **kwargs)
 
         if not isnumeric(lhs.return_type) or not isnumeric(rhs.return_type):
             raise TypeError(
-                "unsupported operand type(s) for {0}:"
-                " '{1}' and '{2}'".format(self.op, lhs.return_type, rhs.return_type)
+                f"unsupported operand type(s) for {self.op}: "
+                f"'{lhs.return_type}' and '{rhs.return_type}'"
             )
 
         # do not upcast float32s to float64 un-necessarily
@@ -550,8 +545,8 @@ class UnaryOp(Op):
             self.func = _unary_ops_dict[op]
         except KeyError:
             raise ValueError(
-                "Invalid unary operator {0!r}, valid operators "
-                "are {1}".format(op, _unary_ops_syms)
+                f"Invalid unary operator {repr(op)}, "
+                f"valid operators are {_unary_ops_syms}"
             )
 
     def __call__(self, env):
@@ -559,7 +554,7 @@ class UnaryOp(Op):
         return self.func(operand)
 
     def __repr__(self) -> str:
-        return pprint_thing("{0}({1})".format(self.op, self.operand))
+        return pprint_thing(f"{self.op}({self.operand})")
 
     @property
     def return_type(self) -> np.dtype:
@@ -585,7 +580,7 @@ class MathCall(Op):
 
     def __repr__(self) -> str:
         operands = map(str, self.operands)
-        return pprint_thing("{0}({1})".format(self.op, ",".join(operands)))
+        return pprint_thing(f"{self.op}({','.join(operands)})")
 
 
 class FuncNode:
@@ -597,7 +592,7 @@ class FuncNode:
             and _NUMEXPR_VERSION < LooseVersion("2.6.9")
             and name in ("floor", "ceil")
         ):
-            raise ValueError('"{0}" is not a supported function'.format(name))
+            raise ValueError(f'"{name}" is not a supported function')
 
         self.name = name
         self.func = getattr(np, name)

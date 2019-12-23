@@ -1,4 +1,5 @@
 import numbers
+from typing import Union
 
 import numpy as np
 from numpy.lib.mixins import NDArrayOperatorsMixin
@@ -45,7 +46,7 @@ class PandasDtype(ExtensionDtype):
         self._type = dtype.type
 
     def __repr__(self) -> str:
-        return "PandasDtype({!r})".format(self.name)
+        return f"PandasDtype({repr(self.name)})"
 
     @property
     def numpy_dtype(self):
@@ -71,9 +72,22 @@ class PandasDtype(ExtensionDtype):
 
     @classmethod
     def construct_from_string(cls, string):
-        return cls(np.dtype(string))
+        try:
+            return cls(np.dtype(string))
+        except TypeError as err:
+            raise TypeError(
+                f"Cannot construct a 'PandasDtype' from '{string}'"
+            ) from err
 
+    @classmethod
     def construct_array_type(cls):
+        """
+        Return the array type associated with this dtype.
+
+        Returns
+        -------
+        type
+        """
         return PandasArray
 
     @property
@@ -117,18 +131,17 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
     # pandas internals, which turns off things like block consolidation.
     _typ = "npy_extension"
     __array_priority__ = 1000
+    _ndarray: np.ndarray
 
     # ------------------------------------------------------------------------
     # Constructors
 
-    def __init__(self, values, copy=False):
+    def __init__(self, values: Union[np.ndarray, "PandasArray"], copy: bool = False):
         if isinstance(values, type(self)):
             values = values._ndarray
         if not isinstance(values, np.ndarray):
             raise ValueError(
-                "'values' must be a NumPy array, not {typ}".format(
-                    typ=type(values).__name__
-                )
+                f"'values' must be a NumPy array, not {type(values).__name__}"
             )
 
         if values.ndim != 1:
@@ -259,8 +272,8 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         if is_array_like(value):
             if len(value) != len(self):
                 raise ValueError(
-                    "Length of 'value' does not match. Got ({}) "
-                    " expected {}".format(len(value), len(self))
+                    f"Length of 'value' does not match. Got ({len(value)}) "
+                    f" expected {len(self)}"
                 )
             value = value[mask]
 
@@ -278,6 +291,9 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         return new_values
 
     def take(self, indices, allow_fill=False, fill_value=None):
+        if fill_value is None:
+            # Primarily for subclasses
+            fill_value = self.dtype.na_value
         result = take(
             self._ndarray, indices, allow_fill=allow_fill, fill_value=fill_value
         )
@@ -303,8 +319,8 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         if meth:
             return meth(skipna=skipna, **kwargs)
         else:
-            msg = "'{}' does not implement reduction '{}'"
-            raise TypeError(msg.format(type(self).__name__, name))
+            msg = f"'{type(self).__name__}' does not implement reduction '{name}'"
+            raise TypeError(msg)
 
     def any(self, axis=None, out=None, keepdims=False, skipna=True):
         nv.validate_any((), dict(out=out, keepdims=keepdims))
@@ -451,9 +467,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
 
             return cls(result)
 
-        return compat.set_function_name(
-            arithmetic_method, "__{}__".format(op.__name__), cls
-        )
+        return compat.set_function_name(arithmetic_method, f"__{op.__name__}__", cls)
 
     _create_comparison_method = _create_arithmetic_method
 

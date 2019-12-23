@@ -8,6 +8,7 @@ from typing import DefaultDict, Dict, List, Optional, Union
 import numpy as np
 
 from pandas._libs.writers import convert_json_to_lines
+from pandas.util._decorators import deprecate
 
 from pandas import DataFrame
 
@@ -108,7 +109,7 @@ def nested_to_record(
     return new_ds
 
 
-def json_normalize(
+def _json_normalize(
     data: Union[Dict, List[Dict]],
     record_path: Optional[Union[str, List]] = None,
     meta: Optional[Union[str, List]] = None,
@@ -267,10 +268,10 @@ def json_normalize(
     meta = [m if isinstance(m, list) else [m] for m in meta]
 
     # Disastrously inefficient for now
-    records = []  # type: List
+    records: List = []
     lengths = []
 
-    meta_vals = defaultdict(list)  # type: DefaultDict
+    meta_vals: DefaultDict = defaultdict(list)
     meta_keys = [sep.join(val) for val in meta]
 
     def _recursive_extract(data, path, seen_meta, level=0):
@@ -332,3 +333,8 @@ def json_normalize(
             )
         result[k] = np.array(v, dtype=object).repeat(lengths)
     return result
+
+
+json_normalize = deprecate(
+    "pandas.io.json.json_normalize", _json_normalize, "1.0.0", "pandas.json_normalize"
+)

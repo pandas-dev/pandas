@@ -9,6 +9,7 @@ import itertools
 import pprint
 import struct
 import sys
+from typing import List
 
 import numpy as np
 
@@ -16,9 +17,9 @@ from pandas._libs.tslibs import Timestamp
 from pandas.compat.chainmap import DeepChainMap
 
 
-def _ensure_scope(
-    level, global_dict=None, local_dict=None, resolvers=(), target=None, **kwargs
-):
+def ensure_scope(
+    level: int, global_dict=None, local_dict=None, resolvers=(), target=None, **kwargs
+) -> "Scope":
     """Ensure that we are grabbing the correct scope."""
     return Scope(
         level + 1,
@@ -119,7 +120,7 @@ class Scope:
             self.scope.update(local_dict.scope)
             if local_dict.target is not None:
                 self.target = local_dict.target
-            self.update(local_dict.level)
+            self._update(local_dict.level)
 
         frame = sys._getframe(self.level)
 
@@ -142,10 +143,8 @@ class Scope:
     def __repr__(self) -> str:
         scope_keys = _get_pretty_string(list(self.scope.keys()))
         res_keys = _get_pretty_string(list(self.resolvers.keys()))
-        unicode_str = "{name}(scope={scope_keys}, resolvers={res_keys})"
-        return unicode_str.format(
-            name=type(self).__name__, scope_keys=scope_keys, res_keys=res_keys
-        )
+        unicode_str = f"{type(self).__name__}(scope={scope_keys}, resolvers={res_keys})"
+        return unicode_str
 
     @property
     def has_resolvers(self) -> bool:
@@ -161,7 +160,7 @@ class Scope:
         """
         return bool(len(self.resolvers))
 
-    def resolve(self, key, is_local):
+    def resolve(self, key: str, is_local: bool):
         """
         Resolve a variable name in a possibly local context.
 
@@ -203,7 +202,7 @@ class Scope:
 
                 raise UndefinedVariableError(key, is_local)
 
-    def swapkey(self, old_key, new_key, new_value=None):
+    def swapkey(self, old_key: str, new_key: str, new_value=None):
         """
         Replace a variable name, with a potentially new value.
 
@@ -228,7 +227,7 @@ class Scope:
                 mapping[new_key] = new_value
                 return
 
-    def _get_vars(self, stack, scopes):
+    def _get_vars(self, stack, scopes: List[str]):
         """
         Get specifically scoped variables from a list of stack frames.
 
@@ -251,7 +250,7 @@ class Scope:
                 # scope after the loop
                 del frame
 
-    def update(self, level: int):
+    def _update(self, level: int):
         """
         Update the current scope by going back `level` levels.
 
@@ -285,9 +284,7 @@ class Scope:
         str
             The name of the temporary variable created.
         """
-        name = "{name}_{num}_{hex_id}".format(
-            name=type(value).__name__, num=self.ntemps, hex_id=_raw_hex_id(self)
-        )
+        name = f"{type(value).__name__}_{self.ntemps}_{_raw_hex_id(self)}"
 
         # add to inner most scope
         assert name not in self.temps

@@ -25,36 +25,11 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 
 #include "../headers/portable.h"
 
-static void *safe_realloc(void *buffer, size_t size) {
-    void *result;
-    // OSX is weird.
-    // http://stackoverflow.com/questions/9560609/
-    // different-realloc-behaviour-in-linux-and-osx
-
-    result = realloc(buffer, size);
-    TRACE(("safe_realloc: buffer = %p, size = %zu, result = %p\n", buffer, size,
-           result))
-
-    return result;
-}
-
 void coliter_setup(coliter_t *self, parser_t *parser, int i, int start) {
     // column i, starting at 0
     self->words = parser->words;
     self->col = i;
     self->line_start = parser->line_start + start;
-}
-
-coliter_t *coliter_new(parser_t *self, int i) {
-    // column i, starting at 0
-    coliter_t *iter = (coliter_t *)malloc(sizeof(coliter_t));
-
-    if (NULL == iter) {
-        return NULL;
-    }
-
-    coliter_setup(iter, self, i, 0);
-    return iter;
 }
 
 static void free_if_not_null(void **ptr) {
@@ -80,7 +55,7 @@ static void *grow_buffer(void *buffer, uint64_t length, uint64_t *capacity,
     while ((length + space >= cap) && (newbuffer != NULL)) {
         cap = cap ? cap << 1 : 2;
         buffer = newbuffer;
-        newbuffer = safe_realloc(newbuffer, elsize * cap);
+        newbuffer = realloc(newbuffer, elsize * cap);
     }
 
     if (newbuffer == NULL) {
@@ -321,8 +296,8 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
             ("make_stream_space: cap != self->words_cap, nbytes = %d, "
              "self->words_cap=%d\n",
              nbytes, self->words_cap))
-        newptr = safe_realloc((void *)self->word_starts,
-                              sizeof(int64_t) * self->words_cap);
+        newptr = realloc((void *)self->word_starts,
+                         sizeof(int64_t) * self->words_cap);
         if (newptr == NULL) {
             return PARSER_OUT_OF_MEMORY;
         } else {
@@ -349,8 +324,8 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
     if (cap != self->lines_cap) {
         TRACE(("make_stream_space: cap != self->lines_cap, nbytes = %d\n",
                nbytes))
-        newptr = safe_realloc((void *)self->line_fields,
-                              sizeof(int64_t) * self->lines_cap);
+        newptr = realloc((void *)self->line_fields,
+                         sizeof(int64_t) * self->lines_cap);
         if (newptr == NULL) {
             return PARSER_OUT_OF_MEMORY;
         } else {
@@ -427,7 +402,7 @@ static void append_warning(parser_t *self, const char *msg) {
         snprintf(self->warn_msg, length + 1, "%s", msg);
     } else {
         ex_length = strlen(self->warn_msg);
-        newptr = safe_realloc(self->warn_msg, ex_length + length + 1);
+        newptr = realloc(self->warn_msg, ex_length + length + 1);
         if (newptr != NULL) {
             self->warn_msg = (char *)newptr;
             snprintf(self->warn_msg + ex_length, length + 1, "%s", msg);
@@ -672,8 +647,6 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
 
 #define END_LINE() END_LINE_STATE(START_RECORD)
 
-#define IS_WHITESPACE(c) ((c == ' ' || c == '\t'))
-
 #define IS_TERMINATOR(c)                            \
     (c == line_terminator)
 
@@ -692,7 +665,7 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
 // applied when in a field
 #define IS_DELIMITER(c)                                   \
     ((!self->delim_whitespace && c == self->delimiter) || \
-     (self->delim_whitespace && IS_WHITESPACE(c)))
+     (self->delim_whitespace && isblank(c)))
 
 #define _TOKEN_CLEANUP()                                                \
     self->stream_len = slen;                                            \
@@ -843,7 +816,7 @@ int tokenize_bytes(parser_t *self,
                     self->state = EAT_CRNL_NOP;
                     break;
                 } else if (!self->delim_whitespace) {
-                    if (IS_WHITESPACE(c) && c != self->delimiter) {
+                    if (isblank(c) && c != self->delimiter) {
                     } else {  // backtrack
                         // use i + 1 because buf has been incremented but not i
                         do {
@@ -873,7 +846,7 @@ int tokenize_bytes(parser_t *self,
                 } else if (IS_COMMENT_CHAR(c)) {
                     self->state = EAT_COMMENT;
                     break;
-                } else if (!IS_WHITESPACE(c)) {
+                } else if (!isblank(c)) {
                     self->state = START_FIELD;
                     // fall through to subsequent state
                 } else {
@@ -917,7 +890,7 @@ int tokenize_bytes(parser_t *self,
                 } else if (IS_COMMENT_CHAR(c)) {
                     self->state = EAT_LINE_COMMENT;
                     break;
-                } else if (IS_WHITESPACE(c)) {
+                } else if (isblank(c)) {
                     if (self->delim_whitespace) {
                         if (self->skip_empty_lines) {
                             self->state = WHITESPACE_LINE;
@@ -1290,13 +1263,13 @@ int parser_trim_buffers(parser_t *self) {
     new_cap = _next_pow2(self->words_len) + 1;
     if (new_cap < self->words_cap) {
         TRACE(("parser_trim_buffers: new_cap < self->words_cap\n"));
-        newptr = safe_realloc((void *)self->words, new_cap * sizeof(char *));
+        newptr = realloc((void *)self->words, new_cap * sizeof(char *));
         if (newptr == NULL) {
             return PARSER_OUT_OF_MEMORY;
         } else {
             self->words = (char **)newptr;
         }
-        newptr = safe_realloc((void *)self->word_starts,
+        newptr = realloc((void *)self->word_starts,
                               new_cap * sizeof(int64_t));
         if (newptr == NULL) {
             return PARSER_OUT_OF_MEMORY;
@@ -1315,13 +1288,13 @@ int parser_trim_buffers(parser_t *self) {
     if (new_cap < self->stream_cap) {
         TRACE(
             ("parser_trim_buffers: new_cap < self->stream_cap, calling "
-             "safe_realloc\n"));
-        newptr = safe_realloc((void *)self->stream, new_cap);
+             "realloc\n"));
+        newptr = realloc((void *)self->stream, new_cap);
         if (newptr == NULL) {
             return PARSER_OUT_OF_MEMORY;
         } else {
             // Update the pointers in the self->words array (char **) if
-            // `safe_realloc`
+            // `realloc`
             //  moved the `self->stream` buffer. This block mirrors a similar
             //  block in
             //  `make_stream_space`.
@@ -1342,14 +1315,14 @@ int parser_trim_buffers(parser_t *self) {
     new_cap = _next_pow2(self->lines) + 1;
     if (new_cap < self->lines_cap) {
         TRACE(("parser_trim_buffers: new_cap < self->lines_cap\n"));
-        newptr = safe_realloc((void *)self->line_start,
+        newptr = realloc((void *)self->line_start,
                               new_cap * sizeof(int64_t));
         if (newptr == NULL) {
             return PARSER_OUT_OF_MEMORY;
         } else {
             self->line_start = (int64_t *)newptr;
         }
-        newptr = safe_realloc((void *)self->line_fields,
+        newptr = realloc((void *)self->line_fields,
                               new_cap * sizeof(int64_t));
         if (newptr == NULL) {
             return PARSER_OUT_OF_MEMORY;

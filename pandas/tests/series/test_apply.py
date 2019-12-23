@@ -7,6 +7,7 @@ import pytest
 import pandas as pd
 from pandas import DataFrame, Index, Series, isna
 from pandas.conftest import _get_cython_table_params
+from pandas.core.base import SpecificationError
 import pandas.util.testing as tm
 
 
@@ -36,7 +37,7 @@ class TestSeriesApply:
         assert s.name == rs.name
 
         # index but no data
-        s = Series(index=[1, 2, 3])
+        s = Series(index=[1, 2, 3], dtype=np.float64)
         rs = s.apply(lambda x: x)
         tm.assert_series_equal(s, rs)
 
@@ -91,7 +92,7 @@ class TestSeriesApply:
         s = pd.Series(vals)
         assert s.dtype == "datetime64[ns]"
         # boxed value must be Timestamp instance
-        res = s.apply(lambda x: "{0}_{1}_{2}".format(x.__class__.__name__, x.day, x.tz))
+        res = s.apply(lambda x: f"{type(x).__name__}_{x.day}_{x.tz}")
         exp = pd.Series(["Timestamp_1_None", "Timestamp_2_None"])
         tm.assert_series_equal(res, exp)
 
@@ -101,7 +102,7 @@ class TestSeriesApply:
         ]
         s = pd.Series(vals)
         assert s.dtype == "datetime64[ns, US/Eastern]"
-        res = s.apply(lambda x: "{0}_{1}_{2}".format(x.__class__.__name__, x.day, x.tz))
+        res = s.apply(lambda x: f"{type(x).__name__}_{x.day}_{x.tz}")
         exp = pd.Series(["Timestamp_1_US/Eastern", "Timestamp_2_US/Eastern"])
         tm.assert_series_equal(res, exp)
 
@@ -109,7 +110,7 @@ class TestSeriesApply:
         vals = [pd.Timedelta("1 days"), pd.Timedelta("2 days")]
         s = pd.Series(vals)
         assert s.dtype == "timedelta64[ns]"
-        res = s.apply(lambda x: "{0}_{1}".format(x.__class__.__name__, x.days))
+        res = s.apply(lambda x: f"{type(x).__name__}_{x.days}")
         exp = pd.Series(["Timedelta_1", "Timedelta_2"])
         tm.assert_series_equal(res, exp)
 
@@ -117,7 +118,7 @@ class TestSeriesApply:
         vals = [pd.Period("2011-01-01", freq="M"), pd.Period("2011-01-02", freq="M")]
         s = pd.Series(vals)
         assert s.dtype == "Period[M]"
-        res = s.apply(lambda x: "{0}_{1}".format(x.__class__.__name__, x.freqstr))
+        res = s.apply(lambda x: f"{type(x).__name__}_{x.freqstr}")
         exp = pd.Series(["Period_M", "Period_M"])
         tm.assert_series_equal(res, exp)
 
@@ -157,7 +158,8 @@ class TestSeriesApply:
             columns=["A", "B", "C"],
             index=pd.date_range("1/1/2000", periods=10),
         )
-        with tm.assert_produces_warning(FutureWarning):
+        msg = "nested renamer is not supported"
+        with pytest.raises(SpecificationError, match=msg):
             tsdf.A.agg({"foo": ["sum", "mean"]})
 
     @pytest.mark.parametrize("series", [["1-1", "1-1", np.NaN], ["1-1", "1-2", np.NaN]])
@@ -256,31 +258,17 @@ class TestSeriesAggregate:
         tm.assert_series_equal(result, expected)
 
         # nested renaming
-        with tm.assert_produces_warning(FutureWarning):
-            result = s.agg({"foo": ["min", "max"]})
-
-        expected = (
-            DataFrame({"foo": [0, 5]}, index=["min", "max"]).unstack().rename("series")
-        )
-        tm.assert_series_equal(result, expected)
+        msg = "nested renamer is not supported"
+        with pytest.raises(SpecificationError, match=msg):
+            s.agg({"foo": ["min", "max"]})
 
     def test_multiple_aggregators_with_dict_api(self):
 
         s = Series(range(6), dtype="int64", name="series")
         # nested renaming
-        with tm.assert_produces_warning(FutureWarning):
-            result = s.agg({"foo": ["min", "max"], "bar": ["sum", "mean"]})
-
-        expected = (
-            DataFrame(
-                {"foo": [5.0, np.nan, 0.0, np.nan], "bar": [np.nan, 2.5, np.nan, 15.0]},
-                columns=["foo", "bar"],
-                index=["max", "mean", "min", "sum"],
-            )
-            .unstack()
-            .rename("series")
-        )
-        tm.assert_series_equal(result.reindex_like(expected), expected)
+        msg = "nested renamer is not supported"
+        with pytest.raises(SpecificationError, match=msg):
+            s.agg({"foo": ["min", "max"], "bar": ["sum", "mean"]})
 
     def test_agg_apply_evaluate_lambdas_the_same(self, string_series):
         # test that we are evaluating row-by-row first
@@ -352,7 +340,7 @@ class TestSeriesAggregate:
         "series, func, expected",
         chain(
             _get_cython_table_params(
-                Series(),
+                Series(dtype=np.float64),
                 [
                     ("sum", 0),
                     ("max", np.nan),
@@ -407,8 +395,11 @@ class TestSeriesAggregate:
         "series, func, expected",
         chain(
             _get_cython_table_params(
-                Series(),
-                [("cumprod", Series([], Index([]))), ("cumsum", Series([], Index([])))],
+                Series(dtype=np.float64),
+                [
+                    ("cumprod", Series([], Index([]), dtype=np.float64)),
+                    ("cumsum", Series([], Index([]), dtype=np.float64)),
+                ],
             ),
             _get_cython_table_params(
                 Series([np.nan, 1, 2, 3]),
@@ -626,7 +617,7 @@ class TestSeriesMap:
         s = pd.Series(vals)
         assert s.dtype == "datetime64[ns]"
         # boxed value must be Timestamp instance
-        res = s.map(lambda x: "{0}_{1}_{2}".format(x.__class__.__name__, x.day, x.tz))
+        res = s.apply(lambda x: f"{type(x).__name__}_{x.day}_{x.tz}")
         exp = pd.Series(["Timestamp_1_None", "Timestamp_2_None"])
         tm.assert_series_equal(res, exp)
 
@@ -636,7 +627,7 @@ class TestSeriesMap:
         ]
         s = pd.Series(vals)
         assert s.dtype == "datetime64[ns, US/Eastern]"
-        res = s.map(lambda x: "{0}_{1}_{2}".format(x.__class__.__name__, x.day, x.tz))
+        res = s.apply(lambda x: f"{type(x).__name__}_{x.day}_{x.tz}")
         exp = pd.Series(["Timestamp_1_US/Eastern", "Timestamp_2_US/Eastern"])
         tm.assert_series_equal(res, exp)
 
@@ -644,7 +635,7 @@ class TestSeriesMap:
         vals = [pd.Timedelta("1 days"), pd.Timedelta("2 days")]
         s = pd.Series(vals)
         assert s.dtype == "timedelta64[ns]"
-        res = s.map(lambda x: "{0}_{1}".format(x.__class__.__name__, x.days))
+        res = s.apply(lambda x: f"{type(x).__name__}_{x.days}")
         exp = pd.Series(["Timedelta_1", "Timedelta_2"])
         tm.assert_series_equal(res, exp)
 
@@ -652,7 +643,7 @@ class TestSeriesMap:
         vals = [pd.Period("2011-01-01", freq="M"), pd.Period("2011-01-02", freq="M")]
         s = pd.Series(vals)
         assert s.dtype == "Period[M]"
-        res = s.map(lambda x: "{0}_{1}".format(x.__class__.__name__, x.freqstr))
+        res = s.apply(lambda x: f"{type(x).__name__}_{x.freqstr}")
         exp = pd.Series(["Period_M", "Period_M"])
         tm.assert_series_equal(res, exp)
 

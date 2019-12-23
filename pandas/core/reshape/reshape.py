@@ -25,7 +25,7 @@ from pandas.core.arrays import SparseArray
 from pandas.core.arrays.categorical import factorize_from_iterable
 from pandas.core.construction import extract_array
 from pandas.core.frame import DataFrame
-from pandas.core.index import Index, MultiIndex
+from pandas.core.indexes.api import Index, MultiIndex
 from pandas.core.series import Series
 from pandas.core.sorting import (
     compress_group_index,
@@ -230,11 +230,9 @@ class _Unstacker:
         if needs_i8_conversion(values):
             sorted_values = sorted_values.view("i8")
             new_values = new_values.view("i8")
-            name = "int64"
         elif is_bool_dtype(values):
             sorted_values = sorted_values.astype("object")
             new_values = new_values.astype("object")
-            name = "object"
         else:
             sorted_values = sorted_values.astype(name, copy=False)
 

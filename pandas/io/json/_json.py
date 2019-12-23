@@ -1,4 +1,6 @@
 from collections import OrderedDict
+from collections.abc import Iterator
+import functools
 from io import StringIO
 from itertools import islice
 import os
@@ -14,14 +16,14 @@ from pandas.core.dtypes.common import ensure_str, is_period_dtype
 
 from pandas import DataFrame, MultiIndex, Series, isna, to_datetime
 from pandas._typing import JSONSerializable
+from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.reshape.concat import concat
 
 from pandas.io.common import (
-    BaseIterator,
-    _get_handle,
-    _infer_compression,
-    _stringify_path,
     get_filepath_or_buffer,
+    get_handle,
+    infer_compression,
+    stringify_path,
 )
 from pandas.io.formats.printing import pprint_thing
 from pandas.io.parsers import _validate_integer
@@ -56,14 +58,16 @@ def to_json(
             "'index=False' is only valid when 'orient' is " "'split' or 'table'"
         )
 
-    path_or_buf = _stringify_path(path_or_buf)
+    path_or_buf = stringify_path(path_or_buf)
     if lines and orient != "records":
         raise ValueError("'lines' keyword only valid when 'orient' is records")
 
     if orient == "table" and isinstance(obj, Series):
         obj = obj.to_frame(name=obj.name or "values")
+
+    writer: Type["Writer"]
     if orient == "table" and isinstance(obj, DataFrame):
-        writer = JSONTableWriter  # type: Type["Writer"]
+        writer = JSONTableWriter
     elif isinstance(obj, Series):
         writer = SeriesWriter
     elif isinstance(obj, DataFrame):
@@ -87,7 +91,7 @@ def to_json(
         s = convert_to_line_delimits(s)
 
     if isinstance(path_or_buf, str):
-        fh, handles = _get_handle(path_or_buf, "w", compression=compression)
+        fh, handles = get_handle(path_or_buf, "w", compression=compression)
         try:
             fh.write(s)
         finally:
@@ -310,7 +314,7 @@ class JSONTableWriter(FrameWriter):
         timedeltas = obj.select_dtypes(include=["timedelta"]).columns
         if len(timedeltas):
             obj[timedeltas] = obj[timedeltas].applymap(lambda x: x.isoformat())
-        # Convert PeriodIndex to datetimes before serialzing
+        # Convert PeriodIndex to datetimes before serializing
         if is_period_dtype(obj.index):
             obj.index = obj.index.to_timestamp()
 
@@ -580,7 +584,7 @@ def read_json(
     if encoding is None:
         encoding = "utf-8"
 
-    compression = _infer_compression(path_or_buf, compression)
+    compression = infer_compression(path_or_buf, compression)
     filepath_or_buffer, _, compression, should_close = get_filepath_or_buffer(
         path_or_buf, encoding=encoding, compression=compression
     )
@@ -612,7 +616,7 @@ def read_json(
     return result
 
 
-class JsonReader(BaseIterator):
+class JsonReader(Iterator):
     """
     JsonReader provides an interface for reading in a JSON file.
 
@@ -700,7 +704,7 @@ class JsonReader(BaseIterator):
                 pass
 
         if exists or self.compression is not None:
-            data, _ = _get_handle(
+            data, _ = get_handle(
                 filepath_or_buffer,
                 "r",
                 encoding=self.encoding,
@@ -1004,44 +1008,34 @@ class SeriesParser(Parser):
     _split_keys = ("name", "index", "data")
 
     def _parse_no_numpy(self):
+        data = loads(self.json, precise_float=self.precise_float)
 
-        json = self.json
-        orient = self.orient
-        if orient == "split":
-            decoded = {
-                str(k): v
-                for k, v in loads(json, precise_float=self.precise_float).items()
-            }
+        if self.orient == "split":
+            decoded = {str(k): v for k, v in data.items()}
             self.check_keys_split(decoded)
-            self.obj = Series(dtype=None, **decoded)
+            self.obj = create_series_with_explicit_dtype(**decoded)
         else:
-            self.obj = Series(loads(json, precise_float=self.precise_float), dtype=None)
+            self.obj = create_series_with_explicit_dtype(data, dtype_if_empty=object)
 
     def _parse_numpy(self):
+        load_kwargs = {
+            "dtype": None,
+            "numpy": True,
+            "precise_float": self.precise_float,
+        }
+        if self.orient in ["columns", "index"]:
+            load_kwargs["labelled"] = True
+        loads_ = functools.partial(loads, **load_kwargs)
+        data = loads_(self.json)
 
-        json = self.json
-        orient = self.orient
-        if orient == "split":
-            decoded = loads(
-                json, dtype=None, numpy=True, precise_float=self.precise_float
-            )
-            decoded = {str(k): v for k, v in decoded.items()}
+        if self.orient == "split":
+            decoded = {str(k): v for k, v in data.items()}
             self.check_keys_split(decoded)
-            self.obj = Series(**decoded)
-        elif orient == "columns" or orient == "index":
-            self.obj = Series(
-                *loads(
-                    json,
-                    dtype=None,
-                    numpy=True,
-                    labelled=True,
-                    precise_float=self.precise_float,
-                )
-            )
+            self.obj = create_series_with_explicit_dtype(**decoded)
+        elif self.orient in ["columns", "index"]:
+            self.obj = create_series_with_explicit_dtype(*data, dtype_if_empty=object)
         else:
-            self.obj = Series(
-                loads(json, dtype=None, numpy=True, precise_float=self.precise_float)
-            )
+            self.obj = create_series_with_explicit_dtype(data, dtype_if_empty=object)
 
     def _try_convert_types(self):
         if self.obj is None:

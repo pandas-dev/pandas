@@ -24,7 +24,7 @@ class TestnanopsDataFrame:
         np.random.seed(11235)
         nanops._USE_BOTTLENECK = False
 
-        arr_shape = (11, 7, 5)
+        arr_shape = (11, 7)
 
         self.arr_float = np.random.randn(*arr_shape)
         self.arr_float1 = np.random.randn(*arr_shape)
@@ -68,21 +68,21 @@ class TestnanopsDataFrame:
             self.arr_nan_infj = self.arr_inf * 1j
             self.arr_complex_nan_infj = np.vstack([self.arr_complex, self.arr_nan_infj])
 
-        self.arr_float_2d = self.arr_float[:, :, 0]
-        self.arr_float1_2d = self.arr_float1[:, :, 0]
+        self.arr_float_2d = self.arr_float
+        self.arr_float1_2d = self.arr_float1
 
-        self.arr_nan_2d = self.arr_nan[:, :, 0]
-        self.arr_float_nan_2d = self.arr_float_nan[:, :, 0]
-        self.arr_float1_nan_2d = self.arr_float1_nan[:, :, 0]
-        self.arr_nan_float1_2d = self.arr_nan_float1[:, :, 0]
+        self.arr_nan_2d = self.arr_nan
+        self.arr_float_nan_2d = self.arr_float_nan
+        self.arr_float1_nan_2d = self.arr_float1_nan
+        self.arr_nan_float1_2d = self.arr_nan_float1
 
-        self.arr_float_1d = self.arr_float[:, 0, 0]
-        self.arr_float1_1d = self.arr_float1[:, 0, 0]
+        self.arr_float_1d = self.arr_float[:, 0]
+        self.arr_float1_1d = self.arr_float1[:, 0]
 
-        self.arr_nan_1d = self.arr_nan[:, 0, 0]
-        self.arr_float_nan_1d = self.arr_float_nan[:, 0, 0]
-        self.arr_float1_nan_1d = self.arr_float1_nan[:, 0, 0]
-        self.arr_nan_float1_1d = self.arr_nan_float1[:, 0, 0]
+        self.arr_nan_1d = self.arr_nan[:, 0]
+        self.arr_float_nan_1d = self.arr_float_nan[:, 0]
+        self.arr_float1_nan_1d = self.arr_float1_nan[:, 0]
+        self.arr_nan_float1_1d = self.arr_nan_float1[:, 0]
 
     def teardown_method(self, method):
         nanops._USE_BOTTLENECK = use_bn
@@ -302,7 +302,7 @@ class TestnanopsDataFrame:
         # In the previous implementation mean can overflow for int dtypes, it
         # is now consistent with numpy
 
-        for a in [2 ** 55, -2 ** 55, 20150515061816532]:
+        for a in [2 ** 55, -(2 ** 55), 20150515061816532]:
             s = Series(a, index=range(500), dtype=np.int64)
             result = s.mean()
             np_result = s.values.mean()

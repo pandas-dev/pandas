@@ -321,12 +321,12 @@ def format_object_summary(
     if display_width is None:
         display_width = get_option("display.width") or 80
     if name is None:
-        name = obj.__class__.__name__
+        name = type(obj).__name__
 
     if indent_for_name:
         name_len = len(name)
-        space1 = "\n%s" % (" " * (name_len + 1))
-        space2 = "\n%s" % (" " * (name_len + 2))
+        space1 = f'\n{(" " * (name_len + 1))}'
+        space2 = f'\n{(" " * (name_len + 2))}'
     else:
         space1 = "\n"
         space2 = "\n "  # space for the opening '['
@@ -363,14 +363,14 @@ def format_object_summary(
     close = ", "
 
     if n == 0:
-        summary = "[]{}".format(close)
+        summary = f"[]{close}"
     elif n == 1 and not line_break_each_value:
         first = formatter(obj[0])
-        summary = "[{}]{}".format(first, close)
+        summary = f"[{first}]{close}"
     elif n == 2 and not line_break_each_value:
         first = formatter(obj[0])
         last = formatter(obj[-1])
-        summary = "[{}, {}]{}".format(first, last, close)
+        summary = f"[{first}, {last}]{close}"
     else:
 
         if n > max_seq_items:
@@ -513,10 +513,10 @@ def format_object_attrs(
     list of 2-tuple
 
     """
-    attrs = []  # type: List[Tuple[str, Union[str, int]]]
+    attrs: List[Tuple[str, Union[str, int]]] = []
     if hasattr(obj, "dtype") and include_dtype:
         # error: "Sequence[Any]" has no attribute "dtype"
-        attrs.append(("dtype", "'{}'".format(obj.dtype)))  # type: ignore
+        attrs.append(("dtype", f"'{obj.dtype}'"))  # type: ignore
     if getattr(obj, "name", None) is not None:
         # error: "Sequence[Any]" has no attribute "name"
         attrs.append(("name", default_pprint(obj.name)))  # type: ignore
