@@ -6,9 +6,7 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import Categorical, DataFrame, MultiIndex, Series, date_range, isna
-from pandas.core.indexes.datetimes import Timestamp
-from pandas.core.indexes.timedeltas import TimedeltaIndex
+from pandas import Categorical, DataFrame, MultiIndex, Series, Timestamp, isna
 import pandas.util.testing as tm
 
 
@@ -49,76 +47,6 @@ class TestSeriesAnalytics:
         )
         with pytest.raises(AssertionError, match=msg):
             tm.assert_numpy_array_equal(qindexer, mindexer)
-
-    def test_np_diff(self):
-        pytest.skip("skipping due to Series no longer being an ndarray")
-
-        # no longer works as the return type of np.diff is now nd.array
-        s = Series(np.arange(5))
-
-        r = np.diff(s)
-        tm.assert_series_equal(Series([np.nan, 0, 0, 0, np.nan]), r)
-
-    def test_int_diff(self):
-        # int dtype
-        a = 10000000000000000
-        b = a + 1
-        s = Series([a, b])
-
-        result = s.diff()
-        assert result[1] == 1
-
-    def test_tz_diff(self):
-        # Combined datetime diff, normal diff and boolean diff test
-        ts = tm.makeTimeSeries(name="ts")
-        ts.diff()
-
-        # neg n
-        result = ts.diff(-1)
-        expected = ts - ts.shift(-1)
-        tm.assert_series_equal(result, expected)
-
-        # 0
-        result = ts.diff(0)
-        expected = ts - ts
-        tm.assert_series_equal(result, expected)
-
-        # datetime diff (GH3100)
-        s = Series(date_range("20130102", periods=5))
-        result = s.diff()
-        expected = s - s.shift(1)
-        tm.assert_series_equal(result, expected)
-
-        # timedelta diff
-        result = result - result.shift(1)  # previous result
-        expected = expected.diff()  # previously expected
-        tm.assert_series_equal(result, expected)
-
-        # with tz
-        s = Series(
-            date_range("2000-01-01 09:00:00", periods=5, tz="US/Eastern"), name="foo"
-        )
-        result = s.diff()
-        expected = Series(TimedeltaIndex(["NaT"] + ["1 days"] * 4), name="foo")
-        tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "input,output,diff",
-        [([False, True, True, False, False], [np.nan, True, False, True, False], 1)],
-    )
-    def test_bool_diff(self, input, output, diff):
-        # boolean series (test for fixing #17294)
-        s = Series(input)
-        result = s.diff()
-        expected = Series(output)
-        tm.assert_series_equal(result, expected)
-
-    def test_obj_diff(self):
-        # object series
-        s = Series([False, True, 5.0, np.nan, True, False])
-        result = s.diff()
-        expected = s - s.shift(1)
-        tm.assert_series_equal(result, expected)
 
     def _check_accum_op(self, name, datetime_series_, check_dtype=True):
         func = getattr(np, name)
@@ -550,23 +478,6 @@ class TestSeriesAnalytics:
         assert s.is_monotonic is False
         assert s.is_monotonic_decreasing is True
 
-    def test_sort_index_level(self):
-        mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list("ABC"))
-        s = Series([1, 2], mi)
-        backwards = s.iloc[[1, 0]]
-
-        res = s.sort_index(level="A")
-        tm.assert_series_equal(backwards, res)
-
-        res = s.sort_index(level=["A", "B"])
-        tm.assert_series_equal(backwards, res)
-
-        res = s.sort_index(level="A", sort_remaining=False)
-        tm.assert_series_equal(s, res)
-
-        res = s.sort_index(level=["A", "B"], sort_remaining=False)
-        tm.assert_series_equal(s, res)
-
     def test_apply_categorical(self):
         values = pd.Categorical(list("ABBABCD"), categories=list("DCBA"), ordered=True)
         s = pd.Series(values, name="XX", index=list("abcdefg"))
@@ -583,49 +494,6 @@ class TestSeriesAnalytics:
         exp = pd.Series(["A"] * 7, name="XX", index=list("abcdefg"))
         tm.assert_series_equal(result, exp)
         assert result.dtype == np.object
-
-    def test_shift_int(self, datetime_series):
-        ts = datetime_series.astype(int)
-        shifted = ts.shift(1)
-        expected = ts.astype(float).shift(1)
-        tm.assert_series_equal(shifted, expected)
-
-    def test_shift_object_non_scalar_fill(self):
-        # shift requires scalar fill_value except for object dtype
-        ser = Series(range(3))
-        with pytest.raises(ValueError, match="fill_value must be a scalar"):
-            ser.shift(1, fill_value=[])
-
-        df = ser.to_frame()
-        with pytest.raises(ValueError, match="fill_value must be a scalar"):
-            df.shift(1, fill_value=np.arange(3))
-
-        obj_ser = ser.astype(object)
-        result = obj_ser.shift(1, fill_value={})
-        assert result[0] == {}
-
-        obj_df = obj_ser.to_frame()
-        result = obj_df.shift(1, fill_value={})
-        assert result.iloc[0, 0] == {}
-
-    def test_shift_categorical(self):
-        # GH 9416
-        s = pd.Series(["a", "b", "c", "d"], dtype="category")
-
-        tm.assert_series_equal(s.iloc[:-1], s.shift(1).shift(-1).dropna())
-
-        sp1 = s.shift(1)
-        tm.assert_index_equal(s.index, sp1.index)
-        assert np.all(sp1.values.codes[:1] == -1)
-        assert np.all(s.values.codes[:-1] == sp1.values.codes[1:])
-
-        sn2 = s.shift(-2)
-        tm.assert_index_equal(s.index, sn2.index)
-        assert np.all(sn2.values.codes[-2:] == -1)
-        assert np.all(s.values.codes[2:] == sn2.values.codes[:-2])
-
-        tm.assert_index_equal(s.values.categories, sp1.values.categories)
-        tm.assert_index_equal(s.values.categories, sn2.values.categories)
 
     def test_unstack(self):
 
