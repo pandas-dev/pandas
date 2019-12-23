@@ -27,8 +27,13 @@ def is_list_like_indexer(key) -> bool:
 
 
 def is_scalar_indexer(indexer, arr_value) -> bool:
-    # return True if we are all scalar indexers
+    """
+    Return True if we are all scalar indexers.
 
+    Returns
+    -------
+    bool
+    """
     if arr_value.ndim == 1:
         if not isinstance(indexer, tuple):
             indexer = tuple([indexer])
@@ -73,11 +78,11 @@ def check_setitem_lengths(indexer, value, values) -> None:
     Parameters
     ----------
     indexer : sequence
-        The key for the setitem
+        Key for the setitem.
     value : array-like
-        The value for the setitem
+        Value for the setitem.
     values : array-like
-        The values being set into
+        Values being set into.
 
     Returns
     -------
@@ -86,8 +91,7 @@ def check_setitem_lengths(indexer, value, values) -> None:
     Raises
     ------
     ValueError
-        When the indexer is an ndarray or list and the lengths don't
-        match.
+        When the indexer is an ndarray or list and the lengths don't match.
     """
     # boolean with truth values == len of the value is ok too
     if isinstance(indexer, (np.ndarray, list)):
@@ -122,7 +126,7 @@ def validate_indices(indices: np.ndarray, n: int) -> None:
     ----------
     indices : ndarray
     n : int
-        length of the array being indexed
+        Length of the array being indexed.
 
     Raises
     ------
@@ -144,9 +148,8 @@ def validate_indices(indices: np.ndarray, n: int) -> None:
     if len(indices):
         min_idx = indices.min()
         if min_idx < -1:
-            raise ValueError(
-                f"'indices' contains values less than allowed ({min_idx} < -1)"
-            )
+            msg = f"'indices' contains values less than allowed ({min_idx} < -1)"
+            raise ValueError(msg)
 
         max_idx = indices.max()
         if max_idx >= n:
@@ -167,27 +170,27 @@ def maybe_convert_indices(indices, n: int):
     Parameters
     ----------
     indices : array-like
-        The array of indices that we are to convert.
+        Array of indices that we are to convert.
     n : int
-        The number of elements in the array that we are indexing.
+        Number of elements in the array that we are indexing.
 
     Returns
     -------
-    valid_indices : array-like
+    array-like
         An array-like of positive indices that correspond to the ones
         that were passed in initially to this function.
 
     Raises
     ------
-    IndexError : one of the converted indices either exceeded the number
-        of elements (specified by `n`) OR was still negative.
+    IndexError
+        One of the converted indices either exceeded the number of,
+        elements (specified by `n`), or was still negative.
     """
-
     if isinstance(indices, list):
         indices = np.array(indices)
         if len(indices) == 0:
-            # If list is empty, np.array will return float and cause indexing
-            # errors.
+            # If `indices` is empty, np.array will return a float,
+            # and will cause indexing errors.
             return np.empty(0, dtype=np.intp)
 
     mask = indices < 0
@@ -207,7 +210,11 @@ def maybe_convert_indices(indices, n: int):
 
 def length_of_indexer(indexer, target=None) -> int:
     """
-    return the length of a single non-tuple indexer which could be a slice
+    Return the length of a single non-tuple indexer which could be a slice.
+
+    Returns
+    -------
+    int
     """
     if target is not None and isinstance(indexer, slice):
         target_len = len(target)
