@@ -208,6 +208,7 @@ Other enhancements
 - :func:`to_parquet` now appropriately handles the ``schema`` argument for user defined schemas in the pyarrow engine. (:issue: `30270`)
 - DataFrame constructor preserve `ExtensionArray` dtype with `ExtensionArray` (:issue:`11363`)
 
+- :meth:`DataFrame.drop_duplicates` has gained ``ignore_index`` keyword to reset index (:issue:`30114`)
 
 Build Changes
 ^^^^^^^^^^^^^
@@ -474,7 +475,6 @@ Other API changes
   Supplying anything else than ``how`` to ``**kwargs`` raised a ``TypeError`` previously (:issue:`29388`)
 - When testing pandas, the new minimum required version of pytest is 5.0.1 (:issue:`29664`)
 - :meth:`Series.str.__iter__` was deprecated and will be removed in future releases (:issue:`28277`).
-- Add ``ignore_index`` to :meth:`DataFrame.drop_duplicates` to reset index (:issue:`30114`)
 
 .. _whatsnew_1000.api.documentation:
 

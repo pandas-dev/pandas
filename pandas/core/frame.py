@@ -4610,6 +4610,8 @@ class DataFrame(NDFrame):
         ignore_index : bool, default False
             If True, the resulting axis will be labeled 0, 1, …, n - 1.
 
+            .. versionadded:: 1.0.0
+
         Returns
         -------
         DataFrame
@@ -4626,12 +4628,13 @@ class DataFrame(NDFrame):
             new_data = self._data.take(inds)
 
             if ignore_index:
-                new_data = new_data.reset_index(drop=True)
+                new_data.axes[1] = ibase.default_index(len(inds))
             self._update_inplace(new_data)
         else:
             result = self[-duplicated]
+
             if ignore_index:
-                return result.reset_index(drop=True)
+                result.index = ibase.default_index(sum(-duplicated))
             return result
 
         return None
