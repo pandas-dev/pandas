@@ -857,9 +857,7 @@ class TestSeriesAnalytics:
         N = 1000
         arr = np.random.randn(N)
         ser = Series(arr)
-        ptp_np = np.ptp(arr)
-        ptp_pd = np.ptp(ser)
-        assert ptp_pd == ptp_np
+        assert np.ptp(ser) == np.ptp(arr)
 
     def test_repeat(self):
         s = Series(np.random.randn(3), index=["a", "b", "c"])
