@@ -968,11 +968,3 @@ def test_loc_getitem_label_list_integer_labels(
     expected = df.iloc[:, expected_columns]
     result = df.loc[["A", "B", "C"], column_key]
     tm.assert_frame_equal(result, expected, check_column_type=check_column_type)
-
-
-def test_loc_upcast_int():
-    # GH 6485
-    result = DataFrame({"a": range(10)}, dtype="i4")
-    result.loc[10] = 99
-    expected = DataFrame({"a": list(range(10)) + [99]})
-    tm.assert_frame_equal(result, expected)
