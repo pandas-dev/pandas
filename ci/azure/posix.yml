@@ -69,19 +69,12 @@ jobs:
       displayName: 'Build versions'
 
     - task: PublishTestResults@2
+      condition: succeededOrFailed()
       inputs:
+        failTaskOnFailedTests: true
         testResultsFiles: 'test-data.xml'
         testRunTitle: ${{ format('{0}-$(CONDA_PY)', parameters.name) }}
       displayName: 'Publish test results'
-
-    - powershell: |
-        $(Get-Content "test-data.xml" | Out-String) -match 'failures="(.*?)"'
-        if ($matches[1] -eq 0) {
-          Write-Host "No test failures in test-data"
-        } else {
-          Write-Error "$($matches[1]) tests failed"  # will produce $LASTEXITCODE=1
-        }
-      displayName: 'Check for test failures'
 
     - script: |
         source activate pandas-dev
