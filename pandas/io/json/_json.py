@@ -25,7 +25,6 @@ from pandas.io.common import (
     infer_compression,
     stringify_path,
 )
-from pandas.io.formats.printing import pprint_thing
 from pandas.io.parsers import _validate_integer
 
 from ._normalize import convert_to_line_delimits
@@ -843,9 +842,7 @@ class Parser:
         bad_keys = set(decoded.keys()).difference(set(self._split_keys))
         if bad_keys:
             bad_keys = ", ".join(bad_keys)
-            raise ValueError(
-                f"JSON data had unexpected key(s): {pprint_thing(bad_keys)}"
-            )
+            raise ValueError(f"JSON data had unexpected key(s): {bad_keys}")
 
     def parse(self):
 
