@@ -18,22 +18,8 @@ from pandas import (
     Timestamp,
     timedelta_range,
 )
-from pandas.tests.arithmetic.test_datetime64 import assert_invalid_comparison
+from pandas.tests.arithmetic.common import assert_invalid_comparison, get_upcast_box
 import pandas.util.testing as tm
-
-
-def get_upcast_box(box, vector):
-    """
-    Given two box-types, find the one that takes priority
-    """
-    if box is DataFrame or isinstance(vector, DataFrame):
-        return DataFrame
-    if box is Series or isinstance(vector, Series):
-        return Series
-    if box is pd.Index or isinstance(vector, pd.Index):
-        return pd.Index
-    return box
-
 
 # ------------------------------------------------------------------
 # Timedelta64[ns] dtype Comparisons
