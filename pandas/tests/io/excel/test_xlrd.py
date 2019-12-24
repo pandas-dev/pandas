@@ -1,3 +1,5 @@
+import warnings
+
 import pytest
 
 import pandas as pd
@@ -24,7 +26,6 @@ def test_read_xlrd_book(read_ext, frame):
     with tm.ensure_clean(read_ext) as pth:
         df.to_excel(pth, sheet_name)
         book = xlrd.open_workbook(pth)
-
         with ExcelFile(book, engine=engine) as xl:
             result = pd.read_excel(xl, sheet_name, index_col=0)
             tm.assert_frame_equal(df, result)
@@ -36,20 +37,24 @@ def test_read_xlrd_book(read_ext, frame):
 # TODO: test for openpyxl as well
 def test_excel_table_sheet_by_index(datapath, read_ext):
     path = datapath("io", "data", "excel", "test1{}".format(read_ext))
-    with pd.ExcelFile(path) as excel:
-        with pytest.raises(xlrd.XLRDError):
-            pd.read_excel(excel, "asdf")
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        with pd.ExcelFile(path) as excel:
+            with pytest.raises(xlrd.XLRDError):
+                pd.read_excel(excel, "asdf")
 
 
 # See issue #29375
 def test_excel_file_warning_with_default_engine(datapath):
-    path = datapath("io", "data", "test1.xls")
-    with tm.assert_produces_warning(FutureWarning):
+    path = datapath("io", "data", "excel", "test1.xls")
+    with warnings.catch_warnings(record=True) as w:
         pd.ExcelFile(path)
+        assert "default to \"openpyxl\" in the future." in str(w[-1].message)        
 
 
 # See issue #29375
 def test_read_excel_warning_with_default_engine(tmpdir, datapath):
-    path = datapath("io", "data", "test1.xls")
-    with tm.assert_produces_warning(FutureWarning):
+    path = datapath("io", "data", "excel", "test1.xls")
+    with warnings.catch_warnings(record=True) as w:
         pd.read_excel(path, "Sheet1")
+        assert "default to \"openpyxl\" in the future." in str(w[-1].message)
