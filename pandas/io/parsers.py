@@ -2,8 +2,7 @@
 Module contains tools for processing files into DataFrames or other objects
 """
 
-from collections import defaultdict
-from collections.abc import Iterator
+from collections import abc, defaultdict
 import csv
 import datetime
 from io import StringIO
@@ -786,7 +785,7 @@ def read_fwf(
     return _read(filepath_or_buffer, kwds)
 
 
-class TextFileReader(Iterator):
+class TextFileReader(abc.Iterator):
     """
 
     Passed dialect overrides any of the related parser options
@@ -3582,7 +3581,7 @@ def _get_col_names(colspec, columns):
     return colnames
 
 
-class FixedWidthReader(Iterator):
+class FixedWidthReader(abc.Iterator):
     """
     A reader of fixed-width lines.
     """
