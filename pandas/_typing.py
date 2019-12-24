@@ -3,8 +3,8 @@ from typing import (
     IO,
     TYPE_CHECKING,
     AnyStr,
+    Collection,
     Dict,
-    Iterable,
     List,
     Optional,
     TypeVar,
@@ -37,8 +37,7 @@ Axis = Union[str, int]
 Ordered = Optional[bool]
 JSONSerializable = Union[Scalar, List, Dict]
 
-# use Collection after we drop support for py35
-Axes = Iterable
+Axes = Collection
 
 # to maintain type information across generic functions and parametrization
 _T = TypeVar("_T")
