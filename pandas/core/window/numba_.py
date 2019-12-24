@@ -3,6 +3,7 @@ from typing import Any, Callable, Dict, Optional, Tuple
 
 import numpy as np
 
+from pandas._typing import Scalar
 from pandas.compat._optional import import_optional_dependency
 
 
@@ -55,7 +56,7 @@ def make_rolling_apply(func, args, nogil, parallel, nopython):
 def generate_numba_apply_func(
     args: Tuple,
     kwargs: Dict[str, Any],
-    func: Callable,
+    func: Callable[[np.ndarray, ...], Scalar],
     engine_kwargs: Optional[Dict[str, bool]],
 ):
     """
