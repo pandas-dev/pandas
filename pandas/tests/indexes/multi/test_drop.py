@@ -139,3 +139,29 @@ def test_drop_not_lexsorted():
     tm.assert_index_equal(lexsorted_mi, not_lexsorted_mi)
     with tm.assert_produces_warning(PerformanceWarning):
         tm.assert_index_equal(lexsorted_mi.drop("a"), not_lexsorted_mi.drop("a"))
+
+
+def test_drop_with_non_unique_datetime_index_and_invalid_keys():
+    # GH 30399
+
+    # define dataframe with unique datetime index
+    df_unique = pd.DataFrame(np.random.randn(5, 3), columns=['a', 'b', 'c'],
+                             index=pd.date_range("2012", freq='H', periods=5))
+    # create dataframe with non-unique datetime index
+    df_nonunique = df_unique.copy().iloc[[0, 2, 2, 3]]
+
+    try:
+        df_nonunique.drop(['a', 'b'])  # Dropping with labels not exist in the index
+    except Exception as e:
+        result = e
+    else:
+        result = "df_nonunique.drop(['a', 'b']) should raise error but it didn't"
+
+    try:
+        df_unique.drop(['a', 'b'])  # Dropping with labels not exist in the index
+    except Exception as e:
+        expected = e
+    else:
+        expected = "df_unique.drop(['a', 'b']) should raise error but it didn't"
+
+    assert type(result) is type(expected) and result.args == expected.args
