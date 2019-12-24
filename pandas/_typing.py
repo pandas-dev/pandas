@@ -1,6 +1,15 @@
-from collections.abc import Iterable
 from pathlib import Path
-from typing import IO, TYPE_CHECKING, AnyStr, Dict, List, Optional, TypeVar, Union
+from typing import (
+    IO,
+    TYPE_CHECKING,
+    AnyStr,
+    Collection,
+    Dict,
+    List,
+    Optional,
+    TypeVar,
+    Union,
+)
 
 import numpy as np
 
@@ -28,7 +37,7 @@ Axis = Union[str, int]
 Ordered = Optional[bool]
 JSONSerializable = Union[Scalar, List, Dict]
 
-Axes = Iterable
+Axes = Collection
 
 # to maintain type information across generic functions and parametrization
 _T = TypeVar("_T")
