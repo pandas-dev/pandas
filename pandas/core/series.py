@@ -117,8 +117,6 @@ def _coerce_method(converter):
 # ----------------------------------------------------------------------
 # Series class
 
-bool_t = bool  # Need alias because generic.NDFrame has def bool:
-
 
 class Series(base.IndexOpsMixin, generic.NDFrame):
     """
@@ -2695,7 +2693,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         inplace=False,
         kind="quicksort",
         na_position="last",
-        ignore_index: bool_t = False,
+        ignore_index=False,
     ):
         """
         Sort by the values.
