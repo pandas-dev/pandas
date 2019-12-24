@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from collections.abc import Iterator
 import functools
 from io import StringIO
 from itertools import islice
@@ -9,23 +10,21 @@ import numpy as np
 
 import pandas._libs.json as json
 from pandas._libs.tslibs import iNaT
+from pandas._typing import JSONSerializable
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import ensure_str, is_period_dtype
 
 from pandas import DataFrame, MultiIndex, Series, isna, to_datetime
-from pandas._typing import JSONSerializable
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.reshape.concat import concat
 
 from pandas.io.common import (
-    BaseIterator,
     get_filepath_or_buffer,
     get_handle,
     infer_compression,
     stringify_path,
 )
-from pandas.io.formats.printing import pprint_thing
 from pandas.io.parsers import _validate_integer
 
 from ._normalize import convert_to_line_delimits
@@ -175,10 +174,7 @@ class SeriesWriter(Writer):
 
     def _format_axes(self):
         if not self.obj.index.is_unique and self.orient == "index":
-            raise ValueError(
-                "Series index must be unique for orient="
-                "'{orient}'".format(orient=self.orient)
-            )
+            raise ValueError(f"Series index must be unique for orient='{self.orient}'")
 
     def _write(
         self,
@@ -214,8 +210,7 @@ class FrameWriter(Writer):
         """
         if not self.obj.index.is_unique and self.orient in ("index", "columns"):
             raise ValueError(
-                "DataFrame index must be unique for orient="
-                "'{orient}'.".format(orient=self.orient)
+                f"DataFrame index must be unique for orient='{self.orient}'."
             )
         if not self.obj.columns.is_unique and self.orient in (
             "index",
@@ -223,8 +218,7 @@ class FrameWriter(Writer):
             "records",
         ):
             raise ValueError(
-                "DataFrame columns must be unique for orient="
-                "'{orient}'.".format(orient=self.orient)
+                f"DataFrame columns must be unique for orient='{self.orient}'."
             )
 
     def _write(
@@ -290,8 +284,8 @@ class JSONTableWriter(FrameWriter):
         if date_format != "iso":
             msg = (
                 "Trying to write with `orient='table'` and "
-                "`date_format='{fmt}'`. Table Schema requires dates "
-                "to be formatted with `date_format='iso'`".format(fmt=date_format)
+                f"`date_format='{date_format}'`. Table Schema requires dates "
+                "to be formatted with `date_format='iso'`"
             )
             raise ValueError(msg)
 
@@ -616,7 +610,7 @@ def read_json(
     return result
 
 
-class JsonReader(BaseIterator):
+class JsonReader(Iterator):
     """
     JsonReader provides an interface for reading in a JSON file.
 
@@ -828,9 +822,7 @@ class Parser:
         if date_unit is not None:
             date_unit = date_unit.lower()
             if date_unit not in self._STAMP_UNITS:
-                raise ValueError(
-                    "date_unit must be one of {units}".format(units=self._STAMP_UNITS)
-                )
+                raise ValueError(f"date_unit must be one of {self._STAMP_UNITS}")
             self.min_stamp = self._MIN_STAMPS[date_unit]
         else:
             self.min_stamp = self._MIN_STAMPS["s"]
@@ -850,11 +842,7 @@ class Parser:
         bad_keys = set(decoded.keys()).difference(set(self._split_keys))
         if bad_keys:
             bad_keys = ", ".join(bad_keys)
-            raise ValueError(
-                "JSON data had unexpected key(s): {bad_keys}".format(
-                    bad_keys=pprint_thing(bad_keys)
-                )
-            )
+            raise ValueError(f"JSON data had unexpected key(s): {bad_keys}")
 
     def parse(self):
 

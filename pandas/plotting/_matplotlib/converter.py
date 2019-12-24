@@ -1097,6 +1097,8 @@ class TimeSeries_DateFormatter(Formatter):
             return ""
         else:
             fmt = self.formatdict.pop(x, "")
+            if isinstance(fmt, np.bytes_):
+                fmt = fmt.decode("utf-8")
             return Period(ordinal=int(x), freq=self.freq).strftime(fmt)
 
 
