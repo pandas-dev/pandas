@@ -11,6 +11,7 @@ from functools import partial
 from textwrap import dedent
 import typing
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     FrozenSet,
@@ -67,6 +68,10 @@ from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
 
 from pandas.plotting import boxplot_frame_groupby
+
+if TYPE_CHECKING:
+    from pandas.core.internals import Block
+
 
 NamedAgg = namedtuple("NamedAgg", ["column", "aggfunc"])
 # TODO(typing) the return value on this callable should be any *scalar*.
@@ -987,11 +992,11 @@ class DataFrameGroupBy(GroupBy):
 
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
-    ):
-        new_items, new_blocks = self._cython_agg_blocks(
+    ) -> DataFrame:
+        agg_items, agg_blocks = self._cython_agg_blocks(
             how, alt=alt, numeric_only=numeric_only, min_count=min_count
         )
-        return self._wrap_agged_blocks(new_items, new_blocks)
+        return self._wrap_agged_blocks(agg_blocks, items=agg_items)
 
     def _cython_agg_blocks(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
@@ -1691,17 +1696,17 @@ class DataFrameGroupBy(GroupBy):
 
         return result
 
-    def _wrap_agged_blocks(self, items, blocks):
+    def _wrap_agged_blocks(self, blocks: "Sequence[Block]", items: Index) -> DataFrame:
         if not self.as_index:
             index = np.arange(blocks[0].values.shape[-1])
-            mgr = BlockManager(blocks, [items, index])
+            mgr = BlockManager(blocks, axes=[items, index])
             result = DataFrame(mgr)
 
             self._insert_inaxis_grouper_inplace(result)
             result = result._consolidate()
         else:
             index = self.grouper.result_index
-            mgr = BlockManager(blocks, [items, index])
+            mgr = BlockManager(blocks, axes=[items, index])
             result = DataFrame(mgr)
 
         if self.axis == 1:
@@ -1740,18 +1745,18 @@ class DataFrameGroupBy(GroupBy):
         ids, _, ngroups = self.grouper.group_info
         mask = ids != -1
 
-        val = (
+        vals = (
             (mask & ~_isna_ndarraylike(np.atleast_2d(blk.get_values())))
             for blk in data.blocks
         )
-        loc = (blk.mgr_locs for blk in data.blocks)
+        locs = (blk.mgr_locs for blk in data.blocks)
 
-        counted = [
-            lib.count_level_2d(x, labels=ids, max_bin=ngroups, axis=1) for x in val
-        ]
-        blk = map(make_block, counted, loc)
+        counted = (
+            lib.count_level_2d(x, labels=ids, max_bin=ngroups, axis=1) for x in vals
+        )
+        blocks = [make_block(val, placement=loc) for val, loc in zip(counted, locs)]
 
-        return self._wrap_agged_blocks(data.items, list(blk))
+        return self._wrap_agged_blocks(blocks, items=data.items)
 
     def nunique(self, dropna: bool = True):
         """
