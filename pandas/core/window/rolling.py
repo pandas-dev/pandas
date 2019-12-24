@@ -462,6 +462,8 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         name : str,
             compatibility with groupby.rolling
         use_numba_cache : bool
+            whether to cache a numba compiled function. Only available for numba
+            enabled methods (so far only apply)
         **kwargs
             additional arguments for rolling function and window function
 
