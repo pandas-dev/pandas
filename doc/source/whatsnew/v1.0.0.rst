@@ -714,6 +714,7 @@ Datetimelike
 - Bug in :func:`pandas.to_datetime` failing for `deques` when using ``cache=True`` (the default) (:issue:`29403`)
 - Bug in :meth:`Series.item` with ``datetime64`` or ``timedelta64`` dtype, :meth:`DatetimeIndex.item`, and :meth:`TimedeltaIndex.item` returning an integer instead of a :class:`Timestamp` or :class:`Timedelta` (:issue:`30175`)
 - Bug in :class:`DatetimeIndex` addition when adding a non-optimized :class:`DateOffset` incorrectly dropping timezone information (:issue:`30336`)
+- Bug in :meth:`DataFrame.append` would remove the timezone-awareness of new data (:issue:`30238`)
 
 Timedelta
 ^^^^^^^^^
