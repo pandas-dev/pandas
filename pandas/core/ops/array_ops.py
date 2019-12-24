@@ -4,7 +4,7 @@ ExtensionArrays.
 """
 from functools import partial
 import operator
-from typing import Any, Union
+from typing import Any, Optional, Union
 
 import numpy as np
 
@@ -370,7 +370,21 @@ def logical_op(
     return res_values
 
 
-def get_array_op(op, str_rep=None):
+def get_array_op(op, str_rep: Optional[str] = None):
+    """
+    Return a binary array operation corresponding to the given operator op.
+
+    Parameters
+    ----------
+    op : function
+        Binary operator from operator or roperator module.
+    str_rep : str or None, default None
+        str_rep to pass to arithmetic_op
+
+    Returns
+    -------
+    function
+    """
     op_name = op.__name__.strip("_")
     if op_name in {"eq", "ne", "lt", "le", "gt", "ge"}:
         return partial(comparison_op, op=op)
