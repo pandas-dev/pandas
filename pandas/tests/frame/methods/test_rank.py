@@ -27,7 +27,7 @@ class TestRank:
         """
         return request.param
 
-    @td._skip_if_no_scipy
+    @td.skip_if_no_scipy
     def test_rank(self, float_frame):
         import scipy.stats  # noqa:F401
         from scipy.stats import rankdata
@@ -120,7 +120,7 @@ class TestRank:
         expected = float_string_frame.rank(1, numeric_only=True)
         tm.assert_frame_equal(result, expected)
 
-    @td._skip_if_no_scipy
+    @td.skip_if_no_scipy
     def test_rank_na_option(self, float_frame):
         import scipy.stats  # noqa:F401
         from scipy.stats import rankdata
@@ -204,7 +204,7 @@ class TestRank:
         tm.assert_frame_equal(df.rank(axis=0), df.rank(axis="index"))
         tm.assert_frame_equal(df.rank(axis=1), df.rank(axis="columns"))
 
-    @td._skip_if_no_scipy
+    @td.skip_if_no_scipy
     def test_rank_methods_frame(self):
         import scipy.stats  # noqa:F401
         from scipy.stats import rankdata
