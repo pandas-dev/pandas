@@ -1402,6 +1402,19 @@ class TestGroupVarFloat32(GroupVarTestMixin):
 
 
 class TestHashTable:
+    def test_string_hashtable_set_item_signature(self):
+        # GH#30419 fix typing in StringHashTable.set_item to prevent segfault
+        tbl = ht.StringHashTable()
+
+        tbl.set_item("key", 1)
+        assert tbl.get_item("key") == 1
+
+        with pytest.raises(TypeError, match="'key' has incorrect type"):
+            # key arg typed as string, not object
+            tbl.set_item(4, 6)
+        with pytest.raises(TypeError, match="'val' has incorrect type"):
+            tbl.get_item(4)
+
     def test_lookup_nan(self, writable):
         xs = np.array([2.718, 3.14, np.nan, -7, 5, 2, 3])
         # GH 21688 ensure we can deal with readonly memory views
