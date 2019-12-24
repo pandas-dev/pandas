@@ -151,7 +151,7 @@ def test_drop_with_non_unique_datetime_index_and_invalid_keys():
         index=pd.date_range("2012", freq="H", periods=5),
     )
     # create dataframe with non-unique datetime index
-    df = df.copy().iloc[[0, 2, 2, 3]]
+    df = df.iloc[[0, 2, 2, 3]].copy()
 
     with pytest.raises(KeyError, match="not found in axis"):
         df.drop(["a", "b"])  # Dropping with labels not exist in the index
