@@ -475,8 +475,7 @@ def _adjust_to_origin(arg, origin, unit):
         j_min = Timestamp.min.to_julian_date() - j0
         if np.any(arg > j_max) or np.any(arg < j_min):
             raise tslibs.OutOfBoundsDatetime(
-                f"{original} is Out of Bounds for "
-                "origin='julian'"
+                f"{original} is Out of Bounds for origin='julian'"
             )
     else:
         # arg must be numeric
@@ -493,14 +492,9 @@ def _adjust_to_origin(arg, origin, unit):
         try:
             offset = Timestamp(origin)
         except tslibs.OutOfBoundsDatetime:
-            raise tslibs.OutOfBoundsDatetime(
-                f"origin {origin} is Out of Bounds"
-            )
+            raise tslibs.OutOfBoundsDatetime(f"origin {origin} is Out of Bounds")
         except ValueError:
-            raise ValueError(
-                f"origin {origin} cannot be converted "
-                "to a Timestamp"
-            )
+            raise ValueError(f"origin {origin} cannot be converted to a Timestamp")
 
         if offset.tz is not None:
             raise ValueError(f"origin offset {offset} must be tz-naive")
@@ -1009,9 +1003,7 @@ def to_time(arg, format=None, infer_time_format=False, errors="raise"):
                 if time_object is not None:
                     times.append(time_object)
                 elif errors == "raise":
-                    raise ValueError(
-                        f"Cannot convert arg {arg} to a time"
-                    )
+                    raise ValueError(f"Cannot convert arg {arg} to a time")
                 elif errors == "ignore":
                     return arg
                 else:
