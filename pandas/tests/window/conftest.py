@@ -1,12 +1,6 @@
 import pytest
 
-from pandas.compat._optional import import_optional_dependency
-
-try:
-    import_optional_dependency("numba")  # noqa
-    _HAVE_NUMBA = True
-except ImportError:
-    _HAVE_NUMBA = False
+import pandas.util._test_decorators as td
 
 
 @pytest.fixture(params=[True, False])
@@ -76,13 +70,7 @@ def nopython(request):
 
 
 @pytest.fixture(
-    params=[
-        pytest.param(
-            "numba",
-            marks=pytest.mark.skipif(not _HAVE_NUMBA, reason="numba is not installed"),
-        ),
-        "cython",
-    ]
+    params=[pytest.param("numba", marks=td.skip_if_no("numba", "0.46.0")), "cython"]
 )
 def engine(request):
     """engine keyword argument for rolling.apply"""

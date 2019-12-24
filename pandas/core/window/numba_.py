@@ -1,5 +1,5 @@
 import types
-from typing import Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple
 
 import numpy as np
 
@@ -24,23 +24,19 @@ def make_rolling_apply(func, args, nogil, parallel, nopython):
             if getattr(np, func.__name__, False) is func or isinstance(
                 func, types.BuiltinFunctionType
             ):
-
-                def impl(window, *_args):
-                    return func(window, *_args)
-
-                return impl
+                jf = func
             else:
                 jf = numba.jit(func, nopython=nopython)
 
-                def impl(window, *_args):
-                    return jf(window, *_args)
+            def impl(window, *_args):
+                return jf(window, *_args)
 
-                return impl
+            return impl
 
     @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
     def roll_apply(
         values: np.ndarray, begin: np.ndarray, end: np.ndarray, minimum_periods: int,
-    ):
+    ) -> np.ndarray:
         result = np.empty(len(begin))
         for i in loop_range(len(result)):
             start = begin[i]
@@ -58,9 +54,9 @@ def make_rolling_apply(func, args, nogil, parallel, nopython):
 
 def generate_numba_apply_func(
     args: Tuple,
-    kwargs: Dict,
+    kwargs: Dict[str, Any],
     func: Callable,
-    engine_kwargs: Optional[Dict],
+    engine_kwargs: Optional[Dict[str, bool]],
 ):
     """
     Generate a numba jitted apply function specified by values from engine_kwargs.
