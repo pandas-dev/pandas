@@ -24,24 +24,6 @@ from pandas import (
 import pandas.util.testing as tm
 
 
-def _skip_if_no_pchip():
-    try:
-        from scipy.interpolate import pchip_interpolate  # noqa
-    except ImportError:
-        import pytest
-
-        pytest.skip("scipy.interpolate.pchip missing")
-
-
-def _skip_if_no_akima():
-    try:
-        from scipy.interpolate import Akima1DInterpolator  # noqa
-    except ImportError:
-        import pytest
-
-        pytest.skip("scipy.interpolate.Akima1DInterpolator missing")
-
-
 def _simple_ts(start, end, freq="D"):
     rng = date_range(start, end, freq=freq)
     return Series(np.random.randn(len(rng)), index=rng)
@@ -1099,7 +1081,6 @@ class TestSeriesInterpolateData:
 
     @td.skip_if_no_scipy
     def test_interpolate_pchip(self):
-        _skip_if_no_pchip()
 
         ser = Series(np.sort(np.random.uniform(size=100)))
 
@@ -1113,7 +1094,6 @@ class TestSeriesInterpolateData:
 
     @td.skip_if_no_scipy
     def test_interpolate_akima(self):
-        _skip_if_no_akima()
 
         ser = Series([10, 11, 12, 13])
 
@@ -1619,7 +1599,7 @@ class TestSeriesInterpolateData:
 
         method, kwargs = interp_methods_ind
         if method == "pchip":
-            _skip_if_no_pchip()
+            pytest.importorskip("scipy")
 
         if method == "linear":
             result = df[0].interpolate(**kwargs)
@@ -1647,7 +1627,7 @@ class TestSeriesInterpolateData:
 
         method, kwargs = interp_methods_ind
         if method == "pchip":
-            _skip_if_no_pchip()
+            pytest.importorskip("scipy")
 
         if method in {"linear", "pchip"}:
             result = df[0].interpolate(method=method, **kwargs)
