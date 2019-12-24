@@ -1574,7 +1574,7 @@ def test_resample_apply_product():
     df = DataFrame(dict(A=ts, B=ts + 2))
     result = df.resample("Q").apply(np.product)
     expected = DataFrame(
-        np.array([[0, 24], [60, 210], [336, 720], [990, 1716]]),
+        np.array([[0, 24], [60, 210], [336, 720], [990, 1716]], dtype=np.int64),
         index=DatetimeIndex(
             ["2012-03-31", "2012-06-30", "2012-09-30", "2012-12-31"], freq="Q-DEC"
         ),
