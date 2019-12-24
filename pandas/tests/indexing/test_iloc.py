@@ -1,6 +1,6 @@
 """ test positional based indexing with iloc """
 
-from warnings import catch_warnings, filterwarnings, simplefilter
+from warnings import catch_warnings, simplefilter
 
 import numpy as np
 import pytest
@@ -8,8 +8,9 @@ import pytest
 import pandas as pd
 from pandas import DataFrame, Series, concat, date_range, isna
 from pandas.api.types import is_scalar
+from pandas.core.indexing import IndexingError
 from pandas.tests.indexing.common import Base
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 
 class TestiLoc(Base):
@@ -134,32 +135,22 @@ class TestiLoc(Base):
             df.iloc[index_vals, column_vals]
 
     def test_iloc_getitem_int(self):
-
         # integer
         self.check_result(
-            "integer", "iloc", 2, "ix", {0: 4, 1: 6, 2: 8}, typs=["ints", "uints"]
-        )
-        self.check_result(
-            "integer",
             "iloc",
             2,
-            "indexer",
+            "iloc",
             2,
             typs=["labels", "mixed", "ts", "floats", "empty"],
             fails=IndexError,
         )
 
     def test_iloc_getitem_neg_int(self):
-
         # neg integer
         self.check_result(
-            "neg int", "iloc", -1, "ix", {0: 6, 1: 9, 2: 12}, typs=["ints", "uints"]
-        )
-        self.check_result(
-            "neg int",
             "iloc",
             -1,
-            "indexer",
+            "iloc",
             -1,
             typs=["labels", "mixed", "ts", "floats", "empty"],
             fails=IndexError,
@@ -192,29 +183,10 @@ class TestiLoc(Base):
         tm.assert_numpy_array_equal(array_with_neg_numbers, array_copy)
 
     def test_iloc_getitem_list_int(self):
-
-        # list of ints
         self.check_result(
-            "list int",
             "iloc",
             [0, 1, 2],
-            "ix",
-            {0: [0, 2, 4], 1: [0, 3, 6], 2: [0, 4, 8]},
-            typs=["ints", "uints"],
-        )
-        self.check_result(
-            "list int",
             "iloc",
-            [2],
-            "ix",
-            {0: [4], 1: [6], 2: [8]},
-            typs=["ints", "uints"],
-        )
-        self.check_result(
-            "list int",
-            "iloc",
-            [0, 1, 2],
-            "indexer",
             [0, 1, 2],
             typs=["labels", "mixed", "ts", "floats", "empty"],
             fails=IndexError,
@@ -222,31 +194,6 @@ class TestiLoc(Base):
 
         # array of ints (GH5006), make sure that a single indexer is returning
         # the correct type
-        self.check_result(
-            "array int",
-            "iloc",
-            np.array([0, 1, 2]),
-            "ix",
-            {0: [0, 2, 4], 1: [0, 3, 6], 2: [0, 4, 8]},
-            typs=["ints", "uints"],
-        )
-        self.check_result(
-            "array int",
-            "iloc",
-            np.array([2]),
-            "ix",
-            {0: [4], 1: [6], 2: [8]},
-            typs=["ints", "uints"],
-        )
-        self.check_result(
-            "array int",
-            "iloc",
-            np.array([0, 1, 2]),
-            "indexer",
-            [0, 1, 2],
-            typs=["labels", "mixed", "ts", "floats", "empty"],
-            fails=IndexError,
-        )
 
     def test_iloc_getitem_neg_int_can_reach_first_index(self):
         # GH10547 and GH10779
@@ -276,17 +223,6 @@ class TestiLoc(Base):
         tm.assert_series_equal(result, expected)
 
     def test_iloc_getitem_dups(self):
-
-        self.check_result(
-            "list int (dups)",
-            "iloc",
-            [0, 1, 1, 3],
-            "ix",
-            {0: [0, 2, 2, 6], 1: [0, 3, 3, 9]},
-            objs=["series", "frame"],
-            typs=["ints", "uints"],
-        )
-
         # GH 6766
         df1 = DataFrame([{"A": None, "B": 1}, {"A": 2, "B": 2}])
         df2 = DataFrame([{"A": 3, "B": 3}, {"A": 4, "B": 4}])
@@ -301,32 +237,12 @@ class TestiLoc(Base):
         tm.assert_series_equal(result, expected)
 
     def test_iloc_getitem_array(self):
-
-        # array like
-        s = Series(index=range(1, 4))
-        self.check_result(
-            "array like",
-            "iloc",
-            s.index,
-            "ix",
-            {0: [2, 4, 6], 1: [3, 6, 9], 2: [4, 8, 12]},
-            typs=["ints", "uints"],
-        )
+        # TODO: test something here?
+        pass
 
     def test_iloc_getitem_bool(self):
-
-        # boolean indexers
-        b = [True, False, True, False]
-        self.check_result("bool", "iloc", b, "ix", b, typs=["ints", "uints"])
-        self.check_result(
-            "bool",
-            "iloc",
-            b,
-            "ix",
-            b,
-            typs=["labels", "mixed", "ts", "floats", "empty"],
-            fails=IndexError,
-        )
+        # TODO: test something here?
+        pass
 
     @pytest.mark.parametrize("index", [[True, False], [True, False, True, False]])
     def test_iloc_getitem_bool_diff_len(self, index):
@@ -339,25 +255,8 @@ class TestiLoc(Base):
             _ = s.iloc[index]
 
     def test_iloc_getitem_slice(self):
-
-        # slices
-        self.check_result(
-            "slice",
-            "iloc",
-            slice(1, 3),
-            "ix",
-            {0: [2, 4], 1: [3, 6], 2: [4, 8]},
-            typs=["ints", "uints"],
-        )
-        self.check_result(
-            "slice",
-            "iloc",
-            slice(1, 3),
-            "indexer",
-            slice(1, 3),
-            typs=["labels", "mixed", "ts", "floats", "empty"],
-            fails=IndexError,
-        )
+        # TODO: test something here?
+        pass
 
     def test_iloc_getitem_slice_dups(self):
 
@@ -462,69 +361,53 @@ class TestiLoc(Base):
         df.iloc[[1, 0], [0, 1]] = df.iloc[[1, 0], [0, 1]].reset_index(drop=True)
         tm.assert_frame_equal(df, expected)
 
+    # TODO: GH#27620 this test used to compare iloc against ix; check if this
+    #  is redundant with another test comparing iloc against loc
     def test_iloc_getitem_frame(self):
         df = DataFrame(
             np.random.randn(10, 4), index=range(0, 20, 2), columns=range(0, 8, 2)
         )
 
         result = df.iloc[2]
-        with catch_warnings(record=True):
-            filterwarnings("ignore", "\\n.ix", FutureWarning)
-            exp = df.ix[4]
+        exp = df.loc[4]
         tm.assert_series_equal(result, exp)
 
         result = df.iloc[2, 2]
-        with catch_warnings(record=True):
-            filterwarnings("ignore", "\\n.ix", FutureWarning)
-            exp = df.ix[4, 4]
+        exp = df.loc[4, 4]
         assert result == exp
 
         # slice
         result = df.iloc[4:8]
-        with catch_warnings(record=True):
-            filterwarnings("ignore", "\\n.ix", FutureWarning)
-            expected = df.ix[8:14]
+        expected = df.loc[8:14]
         tm.assert_frame_equal(result, expected)
 
         result = df.iloc[:, 2:3]
-        with catch_warnings(record=True):
-            filterwarnings("ignore", "\\n.ix", FutureWarning)
-            expected = df.ix[:, 4:5]
+        expected = df.loc[:, 4:5]
         tm.assert_frame_equal(result, expected)
 
         # list of integers
         result = df.iloc[[0, 1, 3]]
-        with catch_warnings(record=True):
-            filterwarnings("ignore", "\\n.ix", FutureWarning)
-            expected = df.ix[[0, 2, 6]]
+        expected = df.loc[[0, 2, 6]]
         tm.assert_frame_equal(result, expected)
 
         result = df.iloc[[0, 1, 3], [0, 1]]
-        with catch_warnings(record=True):
-            filterwarnings("ignore", "\\n.ix", FutureWarning)
-            expected = df.ix[[0, 2, 6], [0, 2]]
+        expected = df.loc[[0, 2, 6], [0, 2]]
         tm.assert_frame_equal(result, expected)
 
         # neg indices
         result = df.iloc[[-1, 1, 3], [-1, 1]]
-        with catch_warnings(record=True):
-            filterwarnings("ignore", "\\n.ix", FutureWarning)
-            expected = df.ix[[18, 2, 6], [6, 2]]
+        expected = df.loc[[18, 2, 6], [6, 2]]
         tm.assert_frame_equal(result, expected)
 
         # dups indices
         result = df.iloc[[-1, -1, 1, 3], [-1, 1]]
-        with catch_warnings(record=True):
-            filterwarnings("ignore", "\\n.ix", FutureWarning)
-            expected = df.ix[[18, 18, 2, 6], [6, 2]]
+        expected = df.loc[[18, 18, 2, 6], [6, 2]]
         tm.assert_frame_equal(result, expected)
 
         # with index-like
-        s = Series(index=range(1, 5))
+        s = Series(index=range(1, 5), dtype=object)
         result = df.iloc[s.index]
-        with catch_warnings(record=True):
-            filterwarnings("ignore", "\\n.ix", FutureWarning)
-            expected = df.ix[[2, 4, 6, 8]]
+        expected = df.loc[[2, 4, 6, 8]]
         tm.assert_frame_equal(result, expected)
 
     def test_iloc_getitem_labelled_frame(self):
@@ -722,7 +605,7 @@ class TestiLoc(Base):
                         else:
                             accessor = df
                         ans = str(bin(accessor[mask]["nums"].sum()))
-                    except Exception as e:
+                    except (ValueError, IndexingError, NotImplementedError) as e:
                         ans = str(e)
 
                     key = tuple([idx, method])
@@ -749,25 +632,12 @@ class TestiLoc(Base):
         df2 = DataFrame({"A": [0.1] * 1000, "B": [1] * 1000})
         df2 = concat([df2, 2 * df2, 3 * df2])
 
-        sidx = df2.index.to_series()
-        expected = df2.iloc[idx[idx <= sidx.max()]]
-
-        new_list = []
-        for r, s in expected.iterrows():
-            new_list.append(s)
-            new_list.append(s * 2)
-            new_list.append(s * 3)
-
-        expected = DataFrame(new_list)
-        expected = concat([expected, DataFrame(index=idx[idx > sidx.max()])], sort=True)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = df2.loc[idx]
-        tm.assert_frame_equal(result, expected, check_index_type=False)
+        with pytest.raises(KeyError, match="with any missing labels"):
+            df2.loc[idx]
 
     def test_iloc_empty_list_indexer_is_ok(self):
-        from pandas.util.testing import makeCustomDataframe as mkdf
 
-        df = mkdf(5, 2)
+        df = tm.makeCustomDataframe(5, 2)
         # vertical empty
         tm.assert_frame_equal(
             df.iloc[:, []],

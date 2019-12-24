@@ -3,6 +3,7 @@ Module contains tools for processing files into DataFrames or other objects
 """
 
 from collections import defaultdict
+from collections.abc import Iterator
 import csv
 import datetime
 from io import StringIO
@@ -17,7 +18,9 @@ import numpy as np
 import pandas._libs.lib as lib
 import pandas._libs.ops as libops
 import pandas._libs.parsers as parsers
+from pandas._libs.parsers import STR_NA_VALUES
 from pandas._libs.tslibs import parsing
+from pandas._typing import FilePathOrBuffer
 from pandas.errors import (
     AbstractMethodError,
     EmptyDataError,
@@ -34,6 +37,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
+    is_file_like,
     is_float,
     is_integer,
     is_integer_dtype,
@@ -46,24 +50,24 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import isna
 
-from pandas._typing import FilePathOrBuffer
 from pandas.core import algorithms
 from pandas.core.arrays import Categorical
 from pandas.core.frame import DataFrame
-from pandas.core.index import Index, MultiIndex, RangeIndex, ensure_index_from_sequences
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+    RangeIndex,
+    ensure_index_from_sequences,
+)
 from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
 
 from pandas.io.common import (
-    _NA_VALUES,
-    BaseIterator,
-    UnicodeReader,
     UTF8Recoder,
-    _get_handle,
-    _infer_compression,
-    _validate_header_arg,
     get_filepath_or_buffer,
-    is_file_like,
+    get_handle,
+    infer_compression,
+    validate_header_arg,
 )
 from pandas.io.date_converters import generic_parser
 
@@ -119,9 +123,9 @@ header : int, list of int, default 'infer'
     ``skip_blank_lines=True``, so ``header=0`` denotes the first line of
     data rather than the first line of the file.
 names : array-like, optional
-    List of column names to use. If file contains no header row, then you
-    should explicitly pass ``header=None``. Duplicates in this list are not
-    allowed.
+    List of column names to use. If the file contains a header row,
+    then you should explicitly pass ``header=0`` to override the column names.
+    Duplicates in this list are not allowed.
 index_col : int, str, sequence of int / str, or False, default ``None``
   Column(s) to use as the row labels of the ``DataFrame``, either given as
   string name or column index. If a sequence of int / str is given, a
@@ -190,7 +194,7 @@ na_values : scalar, str, list-like, or dict, optional
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values.  By default the following values are interpreted as
     NaN: '"""
-    + fill("', '".join(sorted(_NA_VALUES)), 70, subsequent_indent="    ")
+    + fill("', '".join(sorted(STR_NA_VALUES)), 70, subsequent_indent="    ")
     + """'.
 keep_default_na : bool, default True
     Whether or not to include the default NaN values when parsing the data.
@@ -257,7 +261,7 @@ date_parser : function, optional
     arguments.
 dayfirst : bool, default False
     DD/MM format dates, international and European format.
-cache_dates : boolean, default True
+cache_dates : bool, default True
     If True, use a cache of unique, converted dates to apply the datetime
     conversion. May produce significant speed-up when parsing duplicate
     date strings, especially ones with timezone offsets.
@@ -395,25 +399,22 @@ def _validate_integer(name, val, min_val=0):
 
 def _validate_names(names):
     """
-    Check if the `names` parameter contains duplicates.
-
-    If duplicates are found, we issue a warning before returning.
+    Raise ValueError if the `names` parameter contains duplicates.
 
     Parameters
     ----------
     names : array-like or None
         An array containing a list of the names used for the output DataFrame.
 
-    Returns
-    -------
-    names : array-like or None
-        The original `names` parameter.
+    Raises
+    ------
+    ValueError
+        If names are not unique.
     """
 
     if names is not None:
         if len(names) != len(set(names)):
             raise ValueError("Duplicate names are not allowed.")
-    return names
 
 
 def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
@@ -424,7 +425,7 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
         kwds["encoding"] = encoding
 
     compression = kwds.get("compression", "infer")
-    compression = _infer_compression(filepath_or_buffer, compression)
+    compression = infer_compression(filepath_or_buffer, compression)
 
     # TODO: get_filepath_or_buffer could return
     # Union[FilePathOrBuffer, s3fs.S3File, gcsfs.GCSFile]
@@ -491,7 +492,7 @@ _parser_defaults = {
     "cache_dates": True,
     "thousands": None,
     "comment": None,
-    "decimal": b".",
+    "decimal": ".",
     # 'engine': 'c',
     "parse_dates": False,
     "keep_date_col": False,
@@ -525,8 +526,8 @@ _fwf_defaults = {"colspecs": "infer", "infer_nrows": 100, "widths": None}
 _c_unsupported = {"skipfooter"}
 _python_unsupported = {"low_memory", "float_precision"}
 
-_deprecated_defaults = {}  # type: Dict[str, Any]
-_deprecated_args = set()  # type: Set[str]
+_deprecated_defaults: Dict[str, Any] = {}
+_deprecated_args: Set[str] = set()
 
 
 def _make_parser_function(name, default_sep=","):
@@ -571,7 +572,7 @@ def _make_parser_function(name, default_sep=","):
         # Quoting, Compression, and File Format
         compression="infer",
         thousands=None,
-        decimal=b".",
+        decimal: str = ".",
         lineterminator=None,
         quotechar='"',
         quoting=csv.QUOTE_MINIMAL,
@@ -687,7 +688,7 @@ read_csv = _make_parser_function("read_csv", default_sep=",")
 read_csv = Appender(
     _doc_read_csv_and_table.format(
         func_name="read_csv",
-        summary=("Read a comma-separated values (csv) file " "into DataFrame."),
+        summary=("Read a comma-separated values (csv) file into DataFrame."),
         _default_sep="','",
     )
 )(read_csv)
@@ -707,7 +708,7 @@ def read_fwf(
     colspecs="infer",
     widths=None,
     infer_nrows=100,
-    **kwds
+    **kwds,
 ):
 
     r"""
@@ -770,7 +771,7 @@ def read_fwf(
     if colspecs is None and widths is None:
         raise ValueError("Must specify either colspecs or widths")
     elif colspecs not in (None, "infer") and widths is not None:
-        raise ValueError("You must specify only one of 'widths' and " "'colspecs'")
+        raise ValueError("You must specify only one of 'widths' and 'colspecs'")
 
     # Compute 'colspecs' from 'widths', if specified.
     if widths is not None:
@@ -785,7 +786,7 @@ def read_fwf(
     return _read(filepath_or_buffer, kwds)
 
 
-class TextFileReader(BaseIterator):
+class TextFileReader(Iterator):
     """
 
     Passed dialect overrides any of the related parser options
@@ -901,9 +902,7 @@ class TextFileReader(BaseIterator):
 
             # see gh-12935
             if argname == "mangle_dupe_cols" and not value:
-                raise ValueError(
-                    "Setting mangle_dupe_cols=False is " "not supported yet"
-                )
+                raise ValueError("Setting mangle_dupe_cols=False is not supported yet")
             else:
                 options[argname] = value
 
@@ -918,8 +917,8 @@ class TextFileReader(BaseIterator):
                         pass
                     else:
                         raise ValueError(
-                            "The %r option is not supported with the"
-                            " %r engine" % (argname, engine)
+                            f"The {repr(argname)} option is not supported with the"
+                            f" {repr(engine)} engine"
                         )
             else:
                 value = _deprecated_defaults.get(argname, default)
@@ -942,7 +941,7 @@ class TextFileReader(BaseIterator):
             # needs to have that attribute ("next" for Python 2.x, "__next__"
             # for Python 3.x)
             if engine != "c" and not hasattr(f, next_attr):
-                msg = "The 'python' engine cannot iterate " "through this file buffer."
+                msg = "The 'python' engine cannot iterate through this file buffer."
                 raise ValueError(msg)
 
         return engine
@@ -959,7 +958,7 @@ class TextFileReader(BaseIterator):
         # C engine not supported yet
         if engine == "c":
             if options["skipfooter"] > 0:
-                fallback_reason = "the 'c' engine does not support" " skipfooter"
+                fallback_reason = "the 'c' engine does not support skipfooter"
                 engine = "python"
 
         encoding = sys.getfilesystemencoding() or "utf-8"
@@ -977,10 +976,10 @@ class TextFileReader(BaseIterator):
             elif engine not in ("python", "python-fwf"):
                 # wait until regex engine integrated
                 fallback_reason = (
-                    "the 'c' engine does not support"
-                    " regex separators (separators > 1 char and"
-                    r" different from '\s+' are"
-                    " interpreted as regex)"
+                    "the 'c' engine does not support "
+                    "regex separators (separators > 1 char and "
+                    r"different from '\s+' are "
+                    "interpreted as regex)"
                 )
                 engine = "python"
         elif delim_whitespace:
@@ -995,9 +994,9 @@ class TextFileReader(BaseIterator):
                 encodeable = False
             if not encodeable and engine not in ("python", "python-fwf"):
                 fallback_reason = (
-                    "the separator encoded in {encoding}"
-                    " is > 1 char long, and the 'c' engine"
-                    " does not support such separators".format(encoding=encoding)
+                    "the separator encoded in {encoding} "
+                    "is > 1 char long, and the 'c' engine "
+                    "does not support such separators".format(encoding=encoding)
                 )
                 engine = "python"
 
@@ -1026,21 +1025,19 @@ class TextFileReader(BaseIterator):
         if "python" in engine:
             for arg in _python_unsupported:
                 if fallback_reason and result[arg] != _c_parser_defaults[arg]:
-                    msg = (
-                        "Falling back to the 'python' engine because"
-                        " {reason}, but this causes {option!r} to be"
-                        " ignored as it is not supported by the 'python'"
-                        " engine."
-                    ).format(reason=fallback_reason, option=arg)
-                    raise ValueError(msg)
+                    raise ValueError(
+                        f"Falling back to the 'python' engine because "
+                        f"{fallback_reason}, but this causes {repr(arg)} to be "
+                        f"ignored as it is not supported by the 'python' engine."
+                    )
                 del result[arg]
 
         if fallback_reason:
             warnings.warn(
                 (
-                    "Falling back to the 'python' engine because"
-                    " {0}; you can avoid this warning by specifying"
-                    " engine='python'."
+                    "Falling back to the 'python' engine because "
+                    "{0}; you can avoid this warning by specifying "
+                    "engine='python'."
                 ).format(fallback_reason),
                 ParserWarning,
                 stacklevel=5,
@@ -1052,7 +1049,7 @@ class TextFileReader(BaseIterator):
         na_values = options["na_values"]
         skiprows = options["skiprows"]
 
-        _validate_header_arg(options["header"])
+        validate_header_arg(options["header"])
 
         depr_warning = ""
 
@@ -1061,12 +1058,11 @@ class TextFileReader(BaseIterator):
             depr_default = _deprecated_defaults[arg]
 
             msg = (
-                "The '{arg}' argument has been deprecated "
-                "and will be removed in a future version.".format(arg=arg)
+                f"The {repr(arg)} argument has been deprecated and will be "
+                f"removed in a future version."
             )
 
             if result.get(arg, depr_default) != depr_default:
-                # raise Exception(result.get(arg, depr_default), depr_default)
                 depr_warning += msg + "\n\n"
             else:
                 result[arg] = parser_default
@@ -1087,9 +1083,8 @@ class TextFileReader(BaseIterator):
         if converters is not None:
             if not isinstance(converters, dict):
                 raise TypeError(
-                    "Type converters must be a dict or"
-                    " subclass, input was "
-                    "a {0!r}".format(type(converters).__name__)
+                    "Type converters must be a dict or subclass, "
+                    f"input was a {type(converters).__name__}"
                 )
         else:
             converters = {}
@@ -1395,13 +1390,17 @@ class ParserBase:
         if isinstance(self.header, (list, tuple, np.ndarray)):
             if not all(map(is_integer, self.header)):
                 raise ValueError("header must be integer or list of integers")
+            if any(i < 0 for i in self.header):
+                raise ValueError(
+                    "cannot specify multi-index header with negative integers"
+                )
             if kwds.get("usecols"):
                 raise ValueError(
-                    "cannot specify usecols when " "specifying a multi-index header"
+                    "cannot specify usecols when specifying a multi-index header"
                 )
             if kwds.get("names"):
                 raise ValueError(
-                    "cannot specify names when " "specifying a multi-index header"
+                    "cannot specify names when specifying a multi-index header"
                 )
 
             # validate index_col that only contains integers
@@ -1420,6 +1419,13 @@ class ParserBase:
         # GH 16338
         elif self.header is not None and not is_integer(self.header):
             raise ValueError("header must be integer or list of integers")
+
+        # GH 27779
+        elif self.header is not None and self.header < 0:
+            raise ValueError(
+                "Passing negative integer to header is invalid. "
+                "For no header, use header=None instead"
+            )
 
         self._name_processed = False
 
@@ -1597,7 +1603,7 @@ class ParserBase:
 
         # remove index items from content and columns, don't pop in
         # loop
-        for i in reversed(sorted(to_remove)):
+        for i in sorted(to_remove, reverse=True):
             data.pop(i)
             if not self._implicit_index:
                 columns.pop(i)
@@ -1611,7 +1617,7 @@ class ParserBase:
 
             if col_names is None:
                 raise ValueError(
-                    ("Must supply column order to use {icol!s} " "as index").format(
+                    ("Must supply column order to use {icol!s} as index").format(
                         icol=icol
                     )
                 )
@@ -1629,7 +1635,7 @@ class ParserBase:
 
         # remove index items from content and columns, don't pop in
         # loop
-        for c in reversed(sorted(to_remove)):
+        for c in sorted(to_remove, reverse=True):
             data.pop(c)
             col_names.remove(c)
 
@@ -1774,14 +1780,17 @@ class ParserBase:
                 np.putmask(values, mask, np.nan)
             return values, na_count
 
-        if try_num_bool:
+        if try_num_bool and is_object_dtype(values.dtype):
+            # exclude e.g DatetimeIndex here
             try:
                 result = lib.maybe_convert_numeric(values, na_values, False)
-                na_count = isna(result).sum()
-            except Exception:
+            except (ValueError, TypeError):
+                # e.g. encountering datetime string gets ValueError
+                #  TypeError can be raised in floatify
                 result = values
-                if values.dtype == np.object_:
-                    na_count = parsers.sanitize_objects(result, na_values, False)
+                na_count = parsers.sanitize_objects(result, na_values, False)
+            else:
+                na_count = isna(result).sum()
         else:
             result = values
             if values.dtype == np.object_:
@@ -1907,7 +1916,12 @@ class CParserWrapper(ParserBase):
         else:
             if len(self._reader.header) > 1:
                 # we have a multi index in the columns
-                self.names, self.index_names, self.col_names, passed_names = self._extract_multi_indexer_columns(  # noqa: E501
+                (
+                    self.names,
+                    self.index_names,
+                    self.col_names,
+                    passed_names,
+                ) = self._extract_multi_indexer_columns(
                     self._reader.header, self.index_names, self.col_names, passed_names
                 )
             else:
@@ -2268,7 +2282,7 @@ class PythonParser(ParserBase):
         self.comment = kwds["comment"]
         self._comment_lines = []
 
-        f, handles = _get_handle(
+        f, handles = get_handle(
             f,
             "r",
             encoding=self.encoding,
@@ -2296,7 +2310,12 @@ class PythonParser(ParserBase):
         # The original set is stored in self.original_columns.
         if len(self.columns) > 1:
             # we are processing a multi index column
-            self.columns, self.index_names, self.col_names, _ = self._extract_multi_indexer_columns(  # noqa: E501
+            (
+                self.columns,
+                self.index_names,
+                self.col_names,
+                _,
+            ) = self._extract_multi_indexer_columns(
                 self.columns, self.index_names, self.col_names
             )
             # Update list of original names to include all indices.
@@ -2379,7 +2398,7 @@ class PythonParser(ParserBase):
         if sep is None or len(sep) == 1:
             if self.lineterminator:
                 raise ValueError(
-                    "Custom line terminators not supported in " "python parser (yet)"
+                    "Custom line terminators not supported in python parser (yet)"
                 )
 
             class MyDialect(csv.Dialect):
@@ -2411,23 +2430,13 @@ class PythonParser(ParserBase):
                 self.line_pos += 1
                 sniffed = csv.Sniffer().sniff(line)
                 dia.delimiter = sniffed.delimiter
-                if self.encoding is not None:
-                    self.buf.extend(
-                        list(
-                            UnicodeReader(
-                                StringIO(line), dialect=dia, encoding=self.encoding
-                            )
-                        )
-                    )
-                else:
-                    self.buf.extend(list(csv.reader(StringIO(line), dialect=dia)))
 
-            if self.encoding is not None:
-                reader = UnicodeReader(
-                    f, dialect=dia, encoding=self.encoding, strict=True
-                )
-            else:
-                reader = csv.reader(f, dialect=dia, strict=True)
+                # Note: self.encoding is irrelevant here
+                line_rdr = csv.reader(StringIO(line), dialect=dia)
+                self.buf.extend(list(line_rdr))
+
+            # Note: self.encoding is irrelevant here
+            reader = csv.reader(f, dialect=dia, strict=True)
 
         else:
 
@@ -2662,7 +2671,7 @@ class PythonParser(ParserBase):
                         "number of header fields in the file"
                     )
                 if len(columns) > 1:
-                    raise TypeError("Cannot pass names with multi-index " "columns")
+                    raise TypeError("Cannot pass names with multi-index columns")
 
                 if self.usecols is not None:
                     # Set _use_cols. We don't store columns because they are
@@ -2727,7 +2736,7 @@ class PythonParser(ParserBase):
             elif any(isinstance(u, str) for u in self.usecols):
                 if len(columns) > 1:
                     raise ValueError(
-                        "If using multiple headers, usecols must " "be integers."
+                        "If using multiple headers, usecols must be integers."
                     )
                 col_indices = []
 
@@ -2918,7 +2927,7 @@ class PythonParser(ParserBase):
             if self.warn_bad_lines or self.error_bad_lines:
                 msg = str(e)
 
-                if "NULL byte" in msg:
+                if "NULL byte" in msg or "line contains NUL" in msg:
                     msg = (
                         "NULL byte detected. This byte "
                         "cannot be processed in Python's "
@@ -3378,7 +3387,7 @@ def _clean_na_values(na_values, keep_default_na=True):
 
     if na_values is None:
         if keep_default_na:
-            na_values = _NA_VALUES
+            na_values = STR_NA_VALUES
         else:
             na_values = set()
         na_fvalues = set()
@@ -3395,7 +3404,7 @@ def _clean_na_values(na_values, keep_default_na=True):
                 v = [v]
 
             if keep_default_na:
-                v = set(v) | _NA_VALUES
+                v = set(v) | STR_NA_VALUES
 
             na_values[k] = v
         na_fvalues = {k: _floatify_na_values(v) for k, v in na_values.items()}
@@ -3404,7 +3413,7 @@ def _clean_na_values(na_values, keep_default_na=True):
             na_values = [na_values]
         na_values = _stringify_na_values(na_values)
         if keep_default_na:
-            na_values = na_values | _NA_VALUES
+            na_values = na_values | STR_NA_VALUES
 
         na_fvalues = _floatify_na_values(na_values)
 
@@ -3472,7 +3481,7 @@ def _get_empty_meta(columns, index_col, index_names, dtype=None):
     # 2) index_names (column names)
     #
     # Both must be non-null to ensure a successful construction. Otherwise,
-    # we have to create a generic emtpy Index.
+    # we have to create a generic empty Index.
     if (index_col is None or index_col is False) or index_names is None:
         index = Index([])
     else:
@@ -3555,7 +3564,7 @@ def _get_na_values(col, na_values, na_fvalues, keep_default_na):
             return na_values[col], na_fvalues[col]
         else:
             if keep_default_na:
-                return _NA_VALUES, set()
+                return STR_NA_VALUES, set()
 
             return set(), set()
     else:
@@ -3573,7 +3582,7 @@ def _get_col_names(colspec, columns):
     return colnames
 
 
-class FixedWidthReader(BaseIterator):
+class FixedWidthReader(Iterator):
     """
     A reader of fixed-width lines.
     """
@@ -3593,7 +3602,7 @@ class FixedWidthReader(BaseIterator):
         if not isinstance(self.colspecs, (tuple, list)):
             raise TypeError(
                 "column specifications must be a list or tuple, "
-                "input was a %r" % type(colspecs).__name__
+                f"input was a {type(colspecs).__name__}"
             )
 
         for colspec in self.colspecs:

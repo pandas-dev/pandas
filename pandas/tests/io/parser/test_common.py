@@ -2,7 +2,6 @@
 Tests that work on both the Python and C engines but do not have a
 specific classification into the other test modules.
 """
-
 import codecs
 from collections import OrderedDict
 import csv
@@ -11,6 +10,7 @@ from io import BytesIO, StringIO
 import os
 import platform
 from tempfile import TemporaryFile
+from urllib.error import URLError
 
 import numpy as np
 import pytest
@@ -21,7 +21,6 @@ from pandas.errors import DtypeWarning, EmptyDataError, ParserError
 from pandas import DataFrame, Index, MultiIndex, Series, compat, concat
 import pandas.util.testing as tm
 
-from pandas.io.common import URLError
 from pandas.io.parsers import CParserWrapper, TextFileReader, TextParser
 
 
@@ -978,15 +977,15 @@ def test_path_local_path(all_parsers):
 def test_nonexistent_path(all_parsers):
     # gh-2428: pls no segfault
     # gh-14086: raise more helpful FileNotFoundError
+    # GH#29233 "File foo" instead of "File b'foo'"
     parser = all_parsers
     path = "{}.csv".format(tm.rands(10))
 
-    msg = "does not exist" if parser.engine == "c" else r"\[Errno 2\]"
+    msg = f"File {path} does not exist" if parser.engine == "c" else r"\[Errno 2\]"
     with pytest.raises(FileNotFoundError, match=msg) as e:
         parser.read_csv(path)
 
         filename = e.value.filename
-        filename = filename.decode() if isinstance(filename, bytes) else filename
 
         assert path == filename
 
@@ -1865,6 +1864,23 @@ j,-inF"""
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("na_filter", [True, False])
+def test_infinity_parsing(all_parsers, na_filter):
+    parser = all_parsers
+    data = """\
+,A
+a,Infinity
+b,-Infinity
+c,+Infinity
+"""
+    expected = DataFrame(
+        {"A": [float("infinity"), float("-infinity"), float("+infinity")]},
+        index=["a", "b", "c"],
+    )
+    result = parser.read_csv(StringIO(data), index_col=0, na_filter=na_filter)
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("nrows", [0, 1, 2, 3, 4, 5])
 def test_raise_on_no_columns(all_parsers, nrows):
     parser = all_parsers
@@ -2020,9 +2036,34 @@ def test_file_handles_with_open(all_parsers, csv1):
     # Don't close user provided file handles.
     parser = all_parsers
 
-    with open(csv1, "r") as f:
-        parser.read_csv(f)
-        assert not f.closed
+    for mode in ["r", "rb"]:
+        with open(csv1, mode) as f:
+            parser.read_csv(f)
+            assert not f.closed
+
+
+@pytest.mark.parametrize(
+    "fname,encoding",
+    [
+        ("test1.csv", "utf-8"),
+        ("unicode_series.csv", "latin-1"),
+        ("sauron.SHIFT_JIS.csv", "shiftjis"),
+    ],
+)
+def test_binary_mode_file_buffers(all_parsers, csv_dir_path, fname, encoding):
+    # gh-23779: Python csv engine shouldn't error on files opened in binary.
+    parser = all_parsers
+
+    fpath = os.path.join(csv_dir_path, fname)
+    expected = parser.read_csv(fpath, encoding=encoding)
+
+    with open(fpath, mode="r", encoding=encoding) as fa:
+        result = parser.read_csv(fa)
+    tm.assert_frame_equal(expected, result)
+
+    with open(fpath, mode="rb") as fb:
+        result = parser.read_csv(fb, encoding=encoding)
+    tm.assert_frame_equal(expected, result)
 
 
 def test_invalid_file_buffer_class(all_parsers):
@@ -2118,11 +2159,7 @@ def test_suppress_error_output(all_parsers, capsys):
     assert captured.err == ""
 
 
-@pytest.mark.skipif(
-    compat.is_platform_windows() and not compat.PY36,
-    reason="On Python < 3.6 won't pass on Windows",
-)
-@pytest.mark.parametrize("filename", ["sé-es-vé.csv", "ru-sй.csv"])
+@pytest.mark.parametrize("filename", ["sé-es-vé.csv", "ru-sй.csv", "中文文件名.csv"])
 def test_filename_with_special_chars(all_parsers, filename):
     # see gh-15086.
     parser = all_parsers
