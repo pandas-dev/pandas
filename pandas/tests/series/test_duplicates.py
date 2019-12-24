@@ -95,45 +95,6 @@ def test_is_unique_class_ne(capsys):
 @pytest.mark.parametrize(
     "keep, expected",
     [
-        ("first", Series([False, False, False, False, True, True, False])),
-        ("last", Series([False, True, True, False, False, False, False])),
-        (False, Series([False, True, True, False, True, True, False])),
-    ],
-)
-def test_drop_duplicates(any_numpy_dtype, keep, expected):
-    tc = Series([1, 0, 3, 5, 3, 0, 4], dtype=np.dtype(any_numpy_dtype))
-
-    if tc.dtype == "bool":
-        pytest.skip("tested separately in test_drop_duplicates_bool")
-
-    tm.assert_series_equal(tc.duplicated(keep=keep), expected)
-    tm.assert_series_equal(tc.drop_duplicates(keep=keep), tc[~expected])
-    sc = tc.copy()
-    sc.drop_duplicates(keep=keep, inplace=True)
-    tm.assert_series_equal(sc, tc[~expected])
-
-
-@pytest.mark.parametrize(
-    "keep, expected",
-    [
-        ("first", Series([False, False, True, True])),
-        ("last", Series([True, True, False, False])),
-        (False, Series([True, True, True, True])),
-    ],
-)
-def test_drop_duplicates_bool(keep, expected):
-    tc = Series([True, False, True, False])
-
-    tm.assert_series_equal(tc.duplicated(keep=keep), expected)
-    tm.assert_series_equal(tc.drop_duplicates(keep=keep), tc[~expected])
-    sc = tc.copy()
-    sc.drop_duplicates(keep=keep, inplace=True)
-    tm.assert_series_equal(sc, tc[~expected])
-
-
-@pytest.mark.parametrize(
-    "keep, expected",
-    [
         ("first", Series([False, False, True, False, True], name="name")),
         ("last", Series([True, True, False, False, False], name="name")),
         (False, Series([True, True, True, False, True], name="name")),
