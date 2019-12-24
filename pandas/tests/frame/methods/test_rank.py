@@ -29,7 +29,7 @@ class TestRank:
 
     @td._skip_if_no_scipy
     def test_rank(self, float_frame):
-        import scipy.stats
+        import scipy.stats  # noqa:F401
         from scipy.stats import rankdata
 
         float_frame["A"][::2] = np.nan
@@ -122,7 +122,7 @@ class TestRank:
 
     @td._skip_if_no_scipy
     def test_rank_na_option(self, float_frame):
-        import scipy.stats
+        import scipy.stats  # noqa:F401
         from scipy.stats import rankdata
 
         float_frame["A"][::2] = np.nan
@@ -206,7 +206,7 @@ class TestRank:
 
     @td._skip_if_no_scipy
     def test_rank_methods_frame(self):
-        import scipy.stats
+        import scipy.stats  # noqa:F401
         from scipy.stats import rankdata
 
         xs = np.random.randint(0, 21, (100, 26))
