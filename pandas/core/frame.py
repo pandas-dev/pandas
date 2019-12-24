@@ -6757,25 +6757,18 @@ class DataFrame(NDFrame):
                     " or if the Series has a name"
                 )
 
-            if other.name is None:
-                index = None
-            else:
-                # other must have the same index name as self, otherwise
-                # index name will be reset
-                index = Index([other.name], name=self.index.name)
-
+            index = Index([other.name], name=self.index.name)
             idx_diff = other.index.difference(self.columns)
             try:
                 combined_columns = self.columns.append(idx_diff)
             except TypeError:
                 combined_columns = self.columns.astype(object).append(idx_diff)
-            other = other.reindex(combined_columns, copy=False)
-            other = DataFrame(
-                other.values.reshape((1, len(other))),
-                index=index,
-                columns=combined_columns,
+            other = (
+                other.reindex(combined_columns, copy=False)
+                .to_frame()
+                .T.infer_objects()
+                .rename_axis(index.names, copy=False)
             )
-            other = other._convert(datetime=True, timedelta=True)
             if not self.columns.equals(combined_columns):
                 self = self.reindex(columns=combined_columns)
         elif isinstance(other, list):

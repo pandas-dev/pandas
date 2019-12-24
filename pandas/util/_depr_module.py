@@ -4,11 +4,13 @@ It is for internal use only and should not be used beyond this purpose.
 """
 
 import importlib
+from typing import Iterable
 import warnings
 
 
 class _DeprecatedModule:
-    """ Class for mocking deprecated modules.
+    """
+    Class for mocking deprecated modules.
 
     Parameters
     ----------
@@ -34,7 +36,7 @@ class _DeprecatedModule:
         # For introspection purposes.
         self.self_dir = frozenset(dir(type(self)))
 
-    def __dir__(self):
+    def __dir__(self) -> Iterable[str]:
         deprmodule = self._import_deprmod()
         return dir(deprmodule)
 
