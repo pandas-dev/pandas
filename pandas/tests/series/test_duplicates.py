@@ -6,7 +6,7 @@ from pandas.core.construction import create_series_with_explicit_dtype
 import pandas.util.testing as tm
 
 
-def test_value_counts_nunique():
+def test_nunique():
     # basics.rst doc example
     series = Series(np.random.randn(500))
     series[20:500] = np.nan
