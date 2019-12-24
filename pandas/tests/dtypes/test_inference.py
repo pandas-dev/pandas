@@ -1123,18 +1123,15 @@ class TestTypeInference:
     def test_to_object_array_tuples(self):
         r = (5, 6)
         values = [r]
-        result = lib.to_object_array_tuples(values)
+        lib.to_object_array_tuples(values)
 
-        try:
-            # make sure record array works
-            from collections import namedtuple
+        # make sure record array works
+        from collections import namedtuple
 
-            record = namedtuple("record", "x y")
-            r = record(5, 6)
-            values = [r]
-            result = lib.to_object_array_tuples(values)  # noqa
-        except ImportError:
-            pass
+        record = namedtuple("record", "x y")
+        r = record(5, 6)
+        values = [r]
+        lib.to_object_array_tuples(values)
 
     def test_object(self):
 
