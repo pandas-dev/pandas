@@ -4,7 +4,9 @@ from typing import Tuple
 
 @contextlib.contextmanager
 def rewrite_exception(old_name: str, new_name: str):
-    """Rewrite the message of an exception."""
+    """
+    Rewrite the message of an exception.
+    """
     try:
         yield
     except Exception as err:

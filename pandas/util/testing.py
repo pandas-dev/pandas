@@ -8,7 +8,7 @@ import os
 from shutil import rmtree
 import string
 import tempfile
-from typing import Union, cast
+from typing import List, Optional, Union, cast
 import warnings
 import zipfile
 
@@ -22,6 +22,7 @@ from pandas._config.localization import (  # noqa:F401
 )
 
 import pandas._libs.testing as _testing
+from pandas._typing import FrameOrSeries
 from pandas.compat import _get_lzma_file, _import_lzma
 
 from pandas.core.dtypes.common import (
@@ -97,11 +98,10 @@ def reset_display_options():
     """
     Reset the display options for printing and representing objects.
     """
-
     pd.reset_option("^display.", silent=True)
 
 
-def round_trip_pickle(obj, path=None):
+def round_trip_pickle(obj: FrameOrSeries, path: Optional[str] = None) -> FrameOrSeries:
     """
     Pickle an object and then read it again.
 
@@ -114,10 +114,9 @@ def round_trip_pickle(obj, path=None):
 
     Returns
     -------
-    round_trip_pickled_object : pandas object
+    pandas object
         The original object that was pickled and then re-read.
     """
-
     if path is None:
         path = f"__{rands(10)}__.pickle"
     with ensure_clean(path) as path:
@@ -125,7 +124,7 @@ def round_trip_pickle(obj, path=None):
         return pd.read_pickle(path)
 
 
-def round_trip_pathlib(writer, reader, path=None):
+def round_trip_pathlib(writer, reader, path: Optional[str] = None):
     """
     Write an object to file specified by a pathlib.Path and read it back
 
@@ -140,10 +139,9 @@ def round_trip_pathlib(writer, reader, path=None):
 
     Returns
     -------
-    round_trip_object : pandas object
+    pandas object
         The original object that was serialized and then re-read.
     """
-
     import pytest
 
     Path = pytest.importorskip("pathlib").Path
@@ -155,9 +153,9 @@ def round_trip_pathlib(writer, reader, path=None):
     return obj
 
 
-def round_trip_localpath(writer, reader, path=None):
+def round_trip_localpath(writer, reader, path: Optional[str] = None):
     """
-    Write an object to file specified by a py.path LocalPath and read it back
+    Write an object to file specified by a py.path LocalPath and read it back.
 
     Parameters
     ----------
@@ -170,7 +168,7 @@ def round_trip_localpath(writer, reader, path=None):
 
     Returns
     -------
-    round_trip_object : pandas object
+    pandas object
         The original object that was serialized and then re-read.
     """
     import pytest
@@ -187,21 +185,20 @@ def round_trip_localpath(writer, reader, path=None):
 @contextmanager
 def decompress_file(path, compression):
     """
-    Open a compressed file and return a file object
+    Open a compressed file and return a file object.
 
     Parameters
     ----------
     path : str
-        The path where the file is read from
+        The path where the file is read from.
 
     compression : {'gzip', 'bz2', 'zip', 'xz', None}
         Name of the decompression to use
 
     Returns
     -------
-    f : file object
+    file object
     """
-
     if compression is None:
         f = open(path, "rb")
     elif compression == "gzip":
@@ -247,7 +244,6 @@ def write_to_compressed(compression, path, data, dest="test"):
     ------
     ValueError : An invalid compression value was passed in.
     """
-
     if compression == "zip":
         import zipfile
 
@@ -279,7 +275,11 @@ def write_to_compressed(compression, path, data, dest="test"):
 
 
 def assert_almost_equal(
-    left, right, check_dtype="equiv", check_less_precise=False, **kwargs
+    left,
+    right,
+    check_dtype: Union[bool, str] = "equiv",
+    check_less_precise: Union[bool, int] = False,
+    **kwargs,
 ):
     """
     Check that the left and right objects are approximately equal.
@@ -306,7 +306,6 @@ def assert_almost_equal(
         compare the **ratio** of the second number to the first number and
         check whether it is equivalent to 1 within the specified precision.
     """
-
     if isinstance(left, pd.Index):
         assert_index_equal(
             left,
@@ -389,13 +388,13 @@ def _check_isinstance(left, right, cls):
         )
 
 
-def assert_dict_equal(left, right, compare_keys=True):
+def assert_dict_equal(left, right, compare_keys: bool = True):
 
     _check_isinstance(left, right, dict)
     _testing.assert_dict_equal(left, right, compare_keys=compare_keys)
 
 
-def randbool(size=(), p=0.5):
+def randbool(size=(), p: float = 0.5):
     return rand(*size) <= p
 
 
@@ -407,7 +406,9 @@ RANDU_CHARS = np.array(
 
 
 def rands_array(nchars, size, dtype="O"):
-    """Generate an array of byte strings."""
+    """
+    Generate an array of byte strings.
+    """
     retval = (
         np.random.choice(RANDS_CHARS, size=nchars * np.prod(size))
         .view((np.str_, nchars))
@@ -420,7 +421,9 @@ def rands_array(nchars, size, dtype="O"):
 
 
 def randu_array(nchars, size, dtype="O"):
-    """Generate an array of unicode strings."""
+    """
+    Generate an array of unicode strings.
+    """
     retval = (
         np.random.choice(RANDU_CHARS, size=nchars * np.prod(size))
         .view((np.unicode_, nchars))
@@ -468,7 +471,8 @@ def close(fignum=None):
 
 @contextmanager
 def ensure_clean(filename=None, return_filelike=False):
-    """Gets a temporary path and agrees to remove on close.
+    """
+    Gets a temporary path and agrees to remove on close.
 
     Parameters
     ----------
@@ -553,8 +557,9 @@ def ensure_safe_environment_variables():
 # Comparators
 
 
-def equalContents(arr1, arr2):
-    """Checks if the set of unique elements of arr1 and arr2 are equivalent.
+def equalContents(arr1, arr2) -> bool:
+    """
+    Checks if the set of unique elements of arr1 and arr2 are equivalent.
     """
     return frozenset(arr1) == frozenset(arr2)
 
@@ -691,8 +696,10 @@ def assert_index_equal(
             assert_categorical_equal(left.values, right.values, obj=f"{obj} category")
 
 
-def assert_class_equal(left, right, exact=True, obj="Input"):
-    """checks classes are equal."""
+def assert_class_equal(left, right, exact: Union[bool, str] = True, obj="Input"):
+    """
+    Checks classes are equal.
+    """
     __tracebackhide__ = True
 
     def repr_class(x):
@@ -2641,8 +2648,9 @@ class SubclassedCategorical(Categorical):
 
 
 @contextmanager
-def set_timezone(tz):
-    """Context manager for temporarily setting a timezone.
+def set_timezone(tz: str):
+    """
+    Context manager for temporarily setting a timezone.
 
     Parameters
     ----------
@@ -2685,7 +2693,8 @@ def set_timezone(tz):
 
 
 def _make_skipna_wrapper(alternative, skipna_alternative=None):
-    """Create a function for calling on an array.
+    """
+    Create a function for calling on an array.
 
     Parameters
     ----------
@@ -2697,7 +2706,7 @@ def _make_skipna_wrapper(alternative, skipna_alternative=None):
 
     Returns
     -------
-    skipna_wrapper : function
+    function
     """
     if skipna_alternative:
 
@@ -2715,7 +2724,7 @@ def _make_skipna_wrapper(alternative, skipna_alternative=None):
     return skipna_wrapper
 
 
-def convert_rows_list_to_csv_str(rows_list):
+def convert_rows_list_to_csv_str(rows_list: List[str]):
     """
     Convert list of CSV rows to single CSV-formatted string for current OS.
 
@@ -2723,13 +2732,13 @@ def convert_rows_list_to_csv_str(rows_list):
 
     Parameters
     ----------
-    rows_list : list
-        The list of string. Each element represents the row of csv.
+    rows_list : List[str]
+        Each element represents the row of csv.
 
     Returns
     -------
-    expected : string
-        Expected output of to_csv() in current OS
+    str
+        Expected output of to_csv() in current OS.
     """
     sep = os.linesep
     expected = sep.join(rows_list) + sep
