@@ -3,7 +3,7 @@ import pytest
 from pandas.compat._optional import import_optional_dependency
 
 try:
-    import_optional_dependency('numba')  # noqa
+    import_optional_dependency("numba")  # noqa
     _HAVE_NUMBA = True
 except ImportError:
     _HAVE_NUMBA = False
