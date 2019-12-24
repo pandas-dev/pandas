@@ -485,7 +485,7 @@ def _adjust_to_origin(arg, origin, unit):
         ):
             raise ValueError(
                 f"'{arg}' is not compatible with origin='{origin}'; "
-                "it must be numeric with a unit specified "
+                "it must be numeric with a unit specified"
             )
 
         # we are going to offset back to unix / epoch time
@@ -800,19 +800,19 @@ def _assemble_from_unit_mappings(arg, errors, tz):
     required = ["year", "month", "day"]
     req = sorted(set(required) - set(unit_rev.keys()))
     if len(req):
+        required = ",".join(req)
         raise ValueError(
             "to assemble mappings requires at least that "
-            f"[year, month, day] be specified: [{','.join(req)}] "
+            f"[year, month, day] be specified: [{required}] "
             "is missing"
         )
 
     # keys we don't recognize
     excess = sorted(set(unit_rev.keys()) - set(_unit_map.values()))
     if len(excess):
+        excess = ",".join(excess)
         raise ValueError(
-            "extra keys have been passed "
-            "to the datetime assemblage: "
-            f"[{','.join(excess)}]"
+            f"extra keys have been passed to the datetime assemblage: [{excess}]"
         )
 
     def coerce(values):
