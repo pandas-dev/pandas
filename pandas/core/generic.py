@@ -790,7 +790,7 @@ class NDFrame(PandasObject, SelectionMixin):
         >>> df = pd.DataFrame([('falcon', 'bird', 389.0),
         ...                    ('parrot', 'bird', 24.0),
         ...                    ('lion', 'mammal', 80.5),
-        ...                    ('monkey','mammal', np.nan)],
+        ...                    ('monkey', 'mammal', np.nan)],
         ...                   columns=('name', 'class', 'max_speed'))
         >>> df
              name   class  max_speed
@@ -2785,12 +2785,12 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame([('falcon', 'bird',  389.0, 2),
+        >>> df = pd.DataFrame([('falcon', 'bird', 389.0, 2),
         ...                    ('parrot', 'bird', 24.0, 2),
-        ...                    ('lion',   'mammal', 80.5, 4),
+        ...                    ('lion', 'mammal', 80.5, 4),
         ...                    ('monkey', 'mammal', np.nan, 4)],
-        ...                    columns=['name', 'class', 'max_speed',
-        ...                             'num_legs'])
+        ...                   columns=['name', 'class', 'max_speed',
+        ...                            'num_legs'])
         >>> df
              name   class  max_speed  num_legs
         0  falcon    bird      389.0         2
@@ -2818,10 +2818,11 @@ class NDFrame(PandasObject, SelectionMixin):
         >>> dates = pd.to_datetime(['2018-01-01', '2018-01-01',
         ...                         '2018-01-02', '2018-01-02'])
         >>> df_multiindex = pd.DataFrame({'date': dates,
-        ...                    'animal': ['falcon', 'parrot', 'falcon',
-        ...                               'parrot'],
-        ...                    'speed': [350, 18, 361, 15]}).set_index(['date',
-        ...                                                    'animal'])
+        ...                               'animal': ['falcon', 'parrot',
+        ...                                          'falcon', 'parrot'],
+        ...                               'speed': [350, 18, 361, 15]})
+        >>> df_multiindex = df_multiindex.set_index(['date', 'animal'])
+
         >>> df_multiindex
                            speed
         date       animal
@@ -3307,12 +3308,12 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame([('falcon', 'bird',    389.0),
-        ...                    ('parrot', 'bird',     24.0),
-        ...                    ('lion',   'mammal',   80.5),
+        >>> df = pd.DataFrame([('falcon', 'bird', 389.0),
+        ...                    ('parrot', 'bird', 24.0),
+        ...                    ('lion', 'mammal', 80.5),
         ...                    ('monkey', 'mammal', np.nan)],
-        ...                    columns=['name', 'class', 'max_speed'],
-        ...                    index=[0, 2, 3, 1])
+        ...                   columns=['name', 'class', 'max_speed'],
+        ...                   index=[0, 2, 3, 1])
         >>> df
              name   class  max_speed
         0  falcon    bird      389.0
@@ -3814,9 +3815,10 @@ class NDFrame(PandasObject, SelectionMixin):
         ...                     [31, 87.8, 'high'],
         ...                     [22, 71.6, 'medium'],
         ...                     [35, 95, 'medium']],
-        ...     columns=['temp_celsius', 'temp_fahrenheit', 'windspeed'],
-        ...     index=pd.date_range(start='2014-02-12',
-        ...                         end='2014-02-15', freq='D'))
+        ...                    columns=['temp_celsius', 'temp_fahrenheit',
+        ...                             'windspeed'],
+        ...                    index=pd.date_range(start='2014-02-12',
+        ...                                        end='2014-02-15', freq='D'))
 
         >>> df1
                     temp_celsius  temp_fahrenheit windspeed
@@ -3828,9 +3830,9 @@ class NDFrame(PandasObject, SelectionMixin):
         >>> df2 = pd.DataFrame([[28, 'low'],
         ...                     [30, 'low'],
         ...                     [35.1, 'medium']],
-        ...     columns=['temp_celsius', 'windspeed'],
-        ...     index=pd.DatetimeIndex(['2014-02-12', '2014-02-13',
-        ...                             '2014-02-15']))
+        ...                    columns=['temp_celsius', 'windspeed'],
+        ...                    index=pd.DatetimeIndex(['2014-02-12', '2014-02-13',
+        ...                                            '2014-02-15']))
 
         >>> df2
                     temp_celsius windspeed
@@ -4000,7 +4002,7 @@ class NDFrame(PandasObject, SelectionMixin):
         item_3    4
         dtype: int64
 
-        >>> df = pd.DataFrame({'A': [1, 2, 3, 4],  'B': [3, 4, 5, 6]})
+        >>> df = pd.DataFrame({'A': [1, 2, 3, 4], 'B': [3, 4, 5, 6]})
         >>> df
            A  B
         0  1  3
@@ -4059,7 +4061,7 @@ class NDFrame(PandasObject, SelectionMixin):
         3_item    4
         dtype: int64
 
-        >>> df = pd.DataFrame({'A': [1, 2, 3, 4],  'B': [3, 4, 5, 6]})
+        >>> df = pd.DataFrame({'A': [1, 2, 3, 4], 'B': [3, 4, 5, 6]})
         >>> df
            A  B
         0  1  3
@@ -4308,10 +4310,9 @@ class NDFrame(PandasObject, SelectionMixin):
         Create a dataframe with some fictional data.
 
         >>> index = ['Firefox', 'Chrome', 'Safari', 'IE10', 'Konqueror']
-        >>> df = pd.DataFrame({
-        ...      'http_status': [200,200,404,404,301],
-        ...      'response_time': [0.04, 0.02, 0.07, 0.08, 1.0]},
-        ...       index=index)
+        >>> df = pd.DataFrame({'http_status': [200, 200, 404, 404, 301],
+        ...                   'response_time': [0.04, 0.02, 0.07, 0.08, 1.0]},
+        ...                   index=index)
         >>> df
                    http_status  response_time
         Firefox            200           0.04
@@ -4324,8 +4325,8 @@ class NDFrame(PandasObject, SelectionMixin):
         values in the new index that do not have corresponding
         records in the dataframe are assigned ``NaN``.
 
-        >>> new_index= ['Safari', 'Iceweasel', 'Comodo Dragon', 'IE10',
-        ...             'Chrome']
+        >>> new_index = ['Safari', 'Iceweasel', 'Comodo Dragon', 'IE10',
+        ...              'Chrome']
         >>> df.reindex(new_index)
                        http_status  response_time
         Safari               404.0           0.07
@@ -4677,7 +4678,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'animal':['alligator', 'bee', 'falcon', 'lion',
+        >>> df = pd.DataFrame({'animal': ['alligator', 'bee', 'falcon', 'lion',
         ...                    'monkey', 'parrot', 'shark', 'whale', 'zebra']})
         >>> df
               animal
@@ -4736,7 +4737,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'animal':['alligator', 'bee', 'falcon', 'lion',
+        >>> df = pd.DataFrame({'animal': ['alligator', 'bee', 'falcon', 'lion',
         ...                    'monkey', 'parrot', 'shark', 'whale', 'zebra']})
         >>> df
               animal
@@ -8046,7 +8047,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Examples
         --------
         >>> i = pd.date_range('2018-04-09', periods=4, freq='2D')
-        >>> ts = pd.DataFrame({'A': [1,2,3,4]}, index=i)
+        >>> ts = pd.DataFrame({'A': [1, 2, 3, 4]}, index=i)
         >>> ts
                     A
         2018-04-09  1
@@ -9025,7 +9026,7 @@ class NDFrame(PandasObject, SelectionMixin):
         >>> df = pd.DataFrame({'A': ['a', 'b', 'c', 'd', 'e'],
         ...                    'B': ['f', 'g', 'h', 'i', 'j'],
         ...                    'C': ['k', 'l', 'm', 'n', 'o']},
-        ...                    index=[1, 2, 3, 4, 5])
+        ...                   index=[1, 2, 3, 4, 5])
         >>> df
            A  B  C
         1  a  f  k
@@ -9266,7 +9267,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Localize local times:
 
         >>> s = pd.Series([1],
-        ... index=pd.DatetimeIndex(['2018-09-15 01:30:00']))
+        ...               index=pd.DatetimeIndex(['2018-09-15 01:30:00']))
         >>> s.tz_localize('CET')
         2018-09-15 01:30:00+02:00    1
         dtype: int64
@@ -9274,14 +9275,14 @@ class NDFrame(PandasObject, SelectionMixin):
         Be careful with DST changes. When there is sequential data, pandas
         can infer the DST time:
 
-        >>> s = pd.Series(range(7), index=pd.DatetimeIndex([
-        ... '2018-10-28 01:30:00',
-        ... '2018-10-28 02:00:00',
-        ... '2018-10-28 02:30:00',
-        ... '2018-10-28 02:00:00',
-        ... '2018-10-28 02:30:00',
-        ... '2018-10-28 03:00:00',
-        ... '2018-10-28 03:30:00']))
+        >>> s = pd.Series(range(7),
+        ...               index=pd.DatetimeIndex(['2018-10-28 01:30:00',
+        ...                                       '2018-10-28 02:00:00',
+        ...                                       '2018-10-28 02:30:00',
+        ...                                       '2018-10-28 02:00:00',
+        ...                                       '2018-10-28 02:30:00',
+        ...                                       '2018-10-28 03:00:00',
+        ...                                       '2018-10-28 03:30:00']))
         >>> s.tz_localize('CET', ambiguous='infer')
         2018-10-28 01:30:00+02:00    0
         2018-10-28 02:00:00+02:00    1
@@ -9295,10 +9296,10 @@ class NDFrame(PandasObject, SelectionMixin):
         In some cases, inferring the DST is impossible. In such cases, you can
         pass an ndarray to the ambiguous parameter to set the DST explicitly
 
-        >>> s = pd.Series(range(3), index=pd.DatetimeIndex([
-        ... '2018-10-28 01:20:00',
-        ... '2018-10-28 02:36:00',
-        ... '2018-10-28 03:46:00']))
+        >>> s = pd.Series(range(3),
+        ...               index=pd.DatetimeIndex(['2018-10-28 01:20:00',
+        ...                                       '2018-10-28 02:36:00',
+        ...                                       '2018-10-28 03:46:00']))
         >>> s.tz_localize('CET', ambiguous=np.array([True, True, False]))
         2018-10-28 01:20:00+02:00    0
         2018-10-28 02:36:00+02:00    1
@@ -9308,9 +9309,9 @@ class NDFrame(PandasObject, SelectionMixin):
         If the DST transition causes nonexistent times, you can shift these
         dates forward or backwards with a timedelta object or `'shift_forward'`
         or `'shift_backwards'`.
-        >>> s = pd.Series(range(2), index=pd.DatetimeIndex([
-        ... '2015-03-29 02:30:00',
-        ... '2015-03-29 03:30:00']))
+        >>> s = pd.Series(range(2),
+        ...               index=pd.DatetimeIndex(['2015-03-29 02:30:00',
+        ...                                       '2015-03-29 03:30:00']))
         >>> s.tz_localize('Europe/Warsaw', nonexistent='shift_forward')
         2015-03-29 03:00:00+02:00    0
         2015-03-29 03:30:00+02:00    1
