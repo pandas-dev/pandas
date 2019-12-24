@@ -305,7 +305,7 @@ class TestDatetimeTZDtype(Base):
     @pytest.mark.parametrize("constructor", ["M8", "datetime64"])
     def test_parser(self, tz, constructor):
         # pr #11245
-        dtz_str = "{con}[ns, {tz}]".format(con=constructor, tz=tz)
+        dtz_str = f"{constructor}[ns, {tz}]"
         result = DatetimeTZDtype.construct_from_string(dtz_str)
         expected = DatetimeTZDtype("ns", tz)
         assert result == expected
@@ -635,7 +635,7 @@ class TestIntervalDtype(Base):
     def test_name_repr(self, subtype):
         # GH 18980
         dtype = IntervalDtype(subtype)
-        expected = "interval[{subtype}]".format(subtype=subtype)
+        expected = f"interval[{subtype}]"
         assert str(dtype) == expected
         assert dtype.name == "interval"
 

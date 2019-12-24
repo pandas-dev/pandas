@@ -1320,7 +1320,7 @@ class TestNumberScalar:
         assert is_datetime64tz_dtype(tsa)
 
         for tz in ["US/Eastern", "UTC"]:
-            dtype = "datetime64[ns, {}]".format(tz)
+            dtype = f"datetime64[ns, {tz}]"
             assert not is_datetime64_dtype(dtype)
             assert is_datetime64tz_dtype(dtype)
             assert is_datetime64_ns_dtype(dtype)
@@ -1414,7 +1414,7 @@ class TestIsScalar:
 
 def test_datetimeindex_from_empty_datetime64_array():
     for unit in ["ms", "us", "ns"]:
-        idx = DatetimeIndex(np.array([], dtype="datetime64[{unit}]".format(unit=unit)))
+        idx = DatetimeIndex(np.array([], dtype=f"datetime64[{unit}]"))
         assert len(idx) == 0
 
 

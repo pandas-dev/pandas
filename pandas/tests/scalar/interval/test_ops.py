@@ -59,8 +59,6 @@ class TestOverlaps:
     )
     def test_overlaps_invalid_type(self, other):
         interval = Interval(0, 1)
-        msg = "`other` must be an Interval, got {other}".format(
-            other=type(other).__name__
-        )
+        msg = f"`other` must be an Interval, got {type(other).__name__}"
         with pytest.raises(TypeError, match=msg):
             interval.overlaps(other)
