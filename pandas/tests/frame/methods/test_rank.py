@@ -5,6 +5,7 @@ import pytest
 
 from pandas import DataFrame, Series
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 
 
 class TestRank:
@@ -26,8 +27,10 @@ class TestRank:
         """
         return request.param
 
+    @td._skip_if_no_scipy
     def test_rank(self, float_frame):
-        rankdata = pytest.importorskip("scipy.stats.rankdata")
+        import scipy.stats
+        from scipy.stats import rankdata
 
         float_frame["A"][::2] = np.nan
         float_frame["B"][::3] = np.nan
@@ -117,8 +120,10 @@ class TestRank:
         expected = float_string_frame.rank(1, numeric_only=True)
         tm.assert_frame_equal(result, expected)
 
+    @td._skip_if_no_scipy
     def test_rank_na_option(self, float_frame):
-        rankdata = pytest.importorskip("scipy.stats.rankdata")
+        import scipy.stats
+        from scipy.stats import rankdata
 
         float_frame["A"][::2] = np.nan
         float_frame["B"][::3] = np.nan
@@ -199,9 +204,10 @@ class TestRank:
         tm.assert_frame_equal(df.rank(axis=0), df.rank(axis="index"))
         tm.assert_frame_equal(df.rank(axis=1), df.rank(axis="columns"))
 
+    @td._skip_if_no_scipy
     def test_rank_methods_frame(self):
-        pytest.importorskip("scipy.stats.special")
-        rankdata = pytest.importorskip("scipy.stats.rankdata")
+        import scipy.stats
+        from scipy.stats import rankdata
 
         xs = np.random.randint(0, 21, (100, 26))
         xs = (xs - 10.0) / 10.0
