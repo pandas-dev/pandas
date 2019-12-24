@@ -105,7 +105,7 @@ class TestPandasContainer:
     @pytest.mark.parametrize("orient", ["index", "columns"])
     def test_frame_non_unique_index_raises(self, orient):
         df = DataFrame([["a", "b"], ["c", "d"]], index=[1, 1], columns=["x", "y"])
-        msg = "DataFrame index must be unique for orient='{}'".format(orient)
+        msg = f"DataFrame index must be unique for orient='{orient}'"
         with pytest.raises(ValueError, match=msg):
             df.to_json(orient=orient)
 
@@ -142,7 +142,7 @@ class TestPandasContainer:
     def test_frame_non_unique_columns_raises(self, orient):
         df = DataFrame([["a", "b"], ["c", "d"]], index=[1, 2], columns=["x", "x"])
 
-        msg = "DataFrame columns must be unique for orient='{}'".format(orient)
+        msg = f"DataFrame columns must be unique for orient='{orient}'"
         with pytest.raises(ValueError, match=msg):
             df.to_json(orient=orient)
 
@@ -225,13 +225,11 @@ class TestPandasContainer:
     def test_roundtrip_categorical(self, orient, convert_axes, numpy):
         # TODO: create a better frame to test with and improve coverage
         if orient in ("index", "columns"):
-            pytest.xfail(
-                "Can't have duplicate index values for orient '{}')".format(orient)
-            )
+            pytest.xfail(f"Can't have duplicate index values for orient '{orient}')")
 
         data = self.categorical.to_json(orient=orient)
         if numpy and orient in ("records", "values"):
-            pytest.xfail("Orient {} is broken with numpy=True".format(orient))
+            pytest.xfail(f"Orient {orient} is broken with numpy=True")
 
         result = pd.read_json(
             data, orient=orient, convert_axes=convert_axes, numpy=numpy
@@ -399,7 +397,7 @@ class TestPandasContainer:
     def test_frame_to_json_float_precision(self, value, precision, expected_val):
         df = pd.DataFrame([dict(a_float=value)])
         encoded = df.to_json(double_precision=precision)
-        assert encoded == '{{"a_float":{{"0":{}}}}}'.format(expected_val)
+        assert encoded == f'{{"a_float":{{"0":{expected_val}}}}}'
 
     def test_frame_to_json_except(self):
         df = DataFrame([1, 2, 3])
@@ -593,7 +591,7 @@ class TestPandasContainer:
 
         # verify the proper conversion of printable content
         df_printable = DataFrame({"A": [binthing.hexed]})
-        assert df_printable.to_json() == '{{"A":{{"0":"{hex}"}}}}'.format(hex=hexed)
+        assert df_printable.to_json() == f'{{"A":{{"0":"{hexed}"}}}}'
 
         # check if non-printable content throws appropriate Exception
         df_nonprintable = DataFrame({"A": [binthing]})
@@ -607,19 +605,19 @@ class TestPandasContainer:
             df_mixed.to_json()
 
         # default_handler should resolve exceptions for non-string types
-        assert df_nonprintable.to_json(
-            default_handler=str
-        ) == '{{"A":{{"0":"{hex}"}}}}'.format(hex=hexed)
-        assert df_mixed.to_json(
-            default_handler=str
-        ) == '{{"A":{{"0":"{hex}"}},"B":{{"0":1}}}}'.format(hex=hexed)
+        result = df_nonprintable.to_json(default_handler=str)
+        expected = f'{{"A":{{"0":"{hexed}"}}}}'
+        assert result == expected
+        assert (
+            df_mixed.to_json(default_handler=str)
+            == f'{{"A":{{"0":"{hexed}"}},"B":{{"0":1}}}}'
+        )
 
     def test_label_overflow(self):
         # GH14256: buffer length not checked when writing label
-        df = pd.DataFrame({"bar" * 100000: [1], "foo": [1337]})
-        assert df.to_json() == '{{"{bar}":{{"0":1}},"foo":{{"0":1337}}}}'.format(
-            bar=("bar" * 100000)
-        )
+        result = pd.DataFrame({"bar" * 100000: [1], "foo": [1337]}).to_json()
+        expected = f'{{"{"bar" * 100000}":{{"0":1}},"foo":{{"0":1337}}}}'
+        assert result == expected
 
     def test_series_non_unique_index(self):
         s = Series(["a", "b"], index=[1, 1])
@@ -1431,7 +1429,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
     )
     def test_timedelta_as_label(self, date_format, key):
         df = pd.DataFrame([[1]], columns=[pd.Timedelta("1D")])
-        expected = '{{"{key}":{{"0":1}}}}'.format(key=key)
+        expected = f'{{"{key}":{{"0":1}}}}'
         result = df.to_json(date_format=date_format)
 
         assert result == expected
@@ -1460,7 +1458,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
         result = df.to_json(indent=indent)
         spaces = " " * indent
-        expected = """{{
+        expected = f"""{{
 {spaces}"a":{{
 {spaces}{spaces}"0":"foo",
 {spaces}{spaces}"1":"baz"
@@ -1469,9 +1467,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 {spaces}{spaces}"0":"bar",
 {spaces}{spaces}"1":"qux"
 {spaces}}}
-}}""".format(
-            spaces=spaces
-        )
+}}"""
 
         assert result == expected
 

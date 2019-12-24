@@ -93,6 +93,7 @@ class BaseJSON:
         tm.assert_series_equal(left, right, **kwargs)
 
     def assert_frame_equal(self, left, right, *args, **kwargs):
+        obj_type = kwargs.get("obj", "DataFrame")
         tm.assert_index_equal(
             left.columns,
             right.columns,
@@ -100,7 +101,7 @@ class BaseJSON:
             check_names=kwargs.get("check_names", True),
             check_exact=kwargs.get("check_exact", False),
             check_categorical=kwargs.get("check_categorical", True),
-            obj="{obj}.columns".format(obj=kwargs.get("obj", "DataFrame")),
+            obj=f"{obj_type}.columns",
         )
 
         jsons = (left.dtypes == "json").index

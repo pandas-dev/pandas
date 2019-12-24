@@ -362,21 +362,21 @@ class TestUltraJSONTests:
     )
     def test_encode_time_conversion_basic(self, test):
         output = ujson.encode(test)
-        expected = '"{iso}"'.format(iso=test.isoformat())
+        expected = f'"{test.isoformat()}"'
         assert expected == output
 
     def test_encode_time_conversion_pytz(self):
         # see gh-11473: to_json segfaults with timezone-aware datetimes
         test = datetime.time(10, 12, 15, 343243, pytz.utc)
         output = ujson.encode(test)
-        expected = '"{iso}"'.format(iso=test.isoformat())
+        expected = f'"{test.isoformat()}"'
         assert expected == output
 
     def test_encode_time_conversion_dateutil(self):
         # see gh-11473: to_json segfaults with timezone-aware datetimes
         test = datetime.time(10, 12, 15, 343243, dateutil.tz.tzutc())
         output = ujson.encode(test)
-        expected = '"{iso}"'.format(iso=test.isoformat())
+        expected = f'"{test.isoformat()}"'
         assert expected == output
 
     @pytest.mark.parametrize(
@@ -580,7 +580,7 @@ class TestUltraJSONTests:
     def test_decode_number_with_32bit_sign_bit(self, val):
         # Test that numbers that fit within 32 bits but would have the
         # sign bit set (2**31 <= x < 2**32) are decoded properly.
-        doc = '{{"id": {val}}}'.format(val=val)
+        doc = f'{{"id": {val}}}'
         assert ujson.decode(doc)["id"] == val
 
     def test_encode_big_escape(self):
