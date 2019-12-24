@@ -1300,7 +1300,7 @@ class SQLDatabase(PandasSQL):
 
             for col, my_type in dtype.items():
                 if not isinstance(to_instance(my_type), TypeEngine):
-                    raise ValueError(f"The type of {col} is not a " "SQLAlchemy type ")
+                    raise ValueError(f"The type of {col} is not a SQLAlchemy type")
 
         table = SQLTable(
             name,
@@ -1588,7 +1588,7 @@ class SQLiteDatabase(PandasSQL):
                 self.con.rollback()
             except Exception as inner_exc:  # pragma: no cover
                 ex = DatabaseError(
-                    f"Execution failed on sql: {args[0]}\n{exc}\nunable " "to rollback"
+                    f"Execution failed on sql: {args[0]}\n{exc}\nunable to rollback"
                 )
                 raise ex from inner_exc
 
