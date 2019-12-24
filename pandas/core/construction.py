@@ -11,6 +11,7 @@ import numpy.ma as ma
 
 from pandas._libs import lib
 from pandas._libs.tslibs import IncompatibleFrequency, OutOfBoundsDatetime
+from pandas._typing import ArrayLike, Dtype
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
@@ -44,7 +45,6 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas._typing import ArrayLike, Dtype
 import pandas.core.common as com
 
 if TYPE_CHECKING:
