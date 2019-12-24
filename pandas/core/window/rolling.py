@@ -1320,9 +1320,13 @@ class _Rolling_and_Expanding(_Rolling):
         elif engine == "numba":
             if raw is False:
                 raise ValueError("raw must be `True` when using the numba engine")
-            apply_func = generate_numba_apply_func(
-                args, kwargs, func, engine_kwargs, self._numba_func_cache
-            )
+            if func in self._numba_func_cache:
+                # Return an already compiled version of roll_apply if available
+                apply_func = self._numba_func_cache[func]
+            else:
+                apply_func = generate_numba_apply_func(
+                    args, kwargs, func, engine_kwargs
+                )
         else:
             raise ValueError("engine must be either 'numba' or 'cython'")
 

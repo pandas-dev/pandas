@@ -61,7 +61,6 @@ def generate_numba_apply_func(
     kwargs: Dict,
     func: Callable,
     engine_kwargs: Optional[Dict],
-    function_cache: Dict,
 ):
     """
     Generate a numba jitted apply function specified by values from engine_kwargs.
@@ -82,8 +81,6 @@ def generate_numba_apply_func(
         function to be applied to each window and will be JITed
     engine_kwargs : dict
         dictionary of arguments to be passed into numba.jit
-    function_cache : dict
-        dictionary of cached apply function to avoid re-compiling the apply loop
 
     Returns
     -------
@@ -102,9 +99,5 @@ def generate_numba_apply_func(
             "numba does not support kwargs with nopython=True: "
             "https://github.com/numba/numba/issues/2916"
         )
-
-    # Return an already compiled version of roll_apply if available
-    if func in function_cache:
-        return function_cache[func]
 
     return make_rolling_apply(func, args, nogil, parallel, nopython)
