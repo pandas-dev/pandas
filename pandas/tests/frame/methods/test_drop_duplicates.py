@@ -9,7 +9,7 @@ import pandas.util.testing as tm
 
 @pytest.mark.parametrize("subset", ["a", ["a"], ["a", "B"]])
 def test_drop_duplicates_with_misspelled_column_name(subset):
-    # GH#19730
+    # GH 19730
     df = DataFrame({"A": [0, 0, 1], "B": [0, 0, 1], "C": [0, 0, 1]})
     msg = re.escape("Index(['a'], dtype='object')")
 
@@ -87,7 +87,7 @@ def test_drop_duplicates():
     expected = df.iloc[[-2, -1]]
     tm.assert_frame_equal(result, expected)
 
-    # GH#11376
+    # GH 11376
     df = DataFrame({"x": [7, 6, 3, 3, 4, 8, 0], "y": [0, 6, 5, 5, 9, 1, 2]})
     expected = df.loc[df.index != 3]
     tm.assert_frame_equal(df.drop_duplicates(), expected)
@@ -105,7 +105,7 @@ def test_drop_duplicates():
     df = DataFrame([[-x, x], [x, x + 4]])
     tm.assert_frame_equal(df.drop_duplicates(), df)
 
-    # GH#11864
+    # GH 11864
     df = DataFrame([i] * 9 for i in range(16))
     df = df.append([[1] + [0] * 8], ignore_index=True)
 
@@ -114,7 +114,7 @@ def test_drop_duplicates():
 
 
 def test_drop_duplicates_with_duplicate_column_names():
-    # GH#17836
+    # GH17836
     df = DataFrame([[1, 2, 5], [3, 4, 6], [3, 4, 7]], columns=["a", "a", "b"])
 
     result0 = df.drop_duplicates()
@@ -201,7 +201,7 @@ def test_drop_duplicates_tuple():
     ],
 )
 def test_drop_duplicates_empty(df):
-    # GH#20516
+    # GH 20516
     result = df.drop_duplicates()
     tm.assert_frame_equal(result, df)
 
