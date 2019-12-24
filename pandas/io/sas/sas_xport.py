@@ -7,7 +7,7 @@ The file format is defined here:
 
 https://support.sas.com/techsup/technote/ts140.pdf
 """
-
+from collections.abc import Iterator
 from datetime import datetime
 from io import BytesIO
 import struct
@@ -19,7 +19,7 @@ from pandas.util._decorators import Appender
 
 import pandas as pd
 
-from pandas.io.common import BaseIterator, get_filepath_or_buffer
+from pandas.io.common import get_filepath_or_buffer
 
 _correct_line1 = (
     "HEADER RECORD*******LIBRARY HEADER RECORD!!!!!!!"
@@ -251,7 +251,7 @@ def _parse_float_vec(vec):
     return ieee
 
 
-class XportReader(BaseIterator):
+class XportReader(Iterator):
     __doc__ = _xport_reader_doc
 
     def __init__(

@@ -1,4 +1,3 @@
-from collections import OrderedDict
 import datetime as dt
 from datetime import datetime
 import gzip
@@ -120,16 +119,6 @@ class TestStata:
             empty_ds.to_stata(path, write_index=False, version=version)
             empty_ds2 = read_stata(path)
             tm.assert_frame_equal(empty_ds, empty_ds2)
-
-    def test_data_method(self):
-        # Minimal testing of legacy data method
-        with StataReader(self.dta1_114) as rdr:
-            with tm.assert_produces_warning(UserWarning):
-                parsed_114_data = rdr.data()
-
-        with StataReader(self.dta1_114) as rdr:
-            parsed_114_read = rdr.read()
-        tm.assert_frame_equal(parsed_114_data, parsed_114_read)
 
     @pytest.mark.parametrize("file", ["dta1_114", "dta1_117"])
     def test_read_dta1(self, file):
@@ -1029,7 +1018,7 @@ class TestStata:
                 cols.append((col, pd.Categorical.from_codes(codes, labels)))
             else:
                 cols.append((col, pd.Series(labels, dtype=np.float32)))
-        expected = DataFrame.from_dict(OrderedDict(cols))
+        expected = DataFrame.from_dict(dict(cols))
 
         # Read with and with out categoricals, ensure order is identical
         file = getattr(self, file)

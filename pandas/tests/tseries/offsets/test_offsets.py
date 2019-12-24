@@ -20,6 +20,7 @@ import pandas._libs.tslibs.offsets as liboffsets
 from pandas._libs.tslibs.offsets import ApplyTypeError
 import pandas.compat as compat
 from pandas.compat.numpy import np_datetime64_compat
+from pandas.errors import PerformanceWarning
 
 from pandas.core.indexes.datetimes import DatetimeIndex, _to_M8, date_range
 from pandas.core.series import Series
@@ -43,7 +44,10 @@ from pandas.tseries.offsets import (
     CBMonthBegin,
     CBMonthEnd,
     CDay,
+    CustomBusinessDay,
     CustomBusinessHour,
+    CustomBusinessMonthBegin,
+    CustomBusinessMonthEnd,
     DateOffset,
     Day,
     Easter,
@@ -358,7 +362,7 @@ class TestCommon(Base):
         ts = Timestamp(dt) + Nano(5)
 
         if (
-            offset_s.__class__.__name__ == "DateOffset"
+            type(offset_s).__name__ == "DateOffset"
             and (funcname == "apply" or normalize)
             and ts.nanosecond > 0
         ):
@@ -395,7 +399,7 @@ class TestCommon(Base):
             ts = Timestamp(dt, tz=tz) + Nano(5)
 
             if (
-                offset_s.__class__.__name__ == "DateOffset"
+                type(offset_s).__name__ == "DateOffset"
                 and (funcname == "apply" or normalize)
                 and ts.nanosecond > 0
             ):
@@ -606,6 +610,46 @@ class TestCommon(Base):
         result = Timestamp(dt, tz=tz) + offset_s
         assert isinstance(result, Timestamp)
         assert result == expected_localize
+
+    def test_add_empty_datetimeindex(self, offset_types, tz_naive_fixture):
+        # GH#12724, GH#30336
+        offset_s = self._get_offset(offset_types)
+
+        dti = DatetimeIndex([], tz=tz_naive_fixture)
+
+        warn = None
+        if isinstance(
+            offset_s,
+            (
+                Easter,
+                WeekOfMonth,
+                LastWeekOfMonth,
+                CustomBusinessDay,
+                BusinessHour,
+                CustomBusinessHour,
+                CustomBusinessMonthBegin,
+                CustomBusinessMonthEnd,
+                FY5253,
+                FY5253Quarter,
+            ),
+        ):
+            # We don't have an optimized apply_index
+            warn = PerformanceWarning
+
+        with tm.assert_produces_warning(warn):
+            result = dti + offset_s
+        tm.assert_index_equal(result, dti)
+        with tm.assert_produces_warning(warn):
+            result = offset_s + dti
+        tm.assert_index_equal(result, dti)
+
+        dta = dti._data
+        with tm.assert_produces_warning(warn):
+            result = dta + offset_s
+        tm.assert_equal(result, dta)
+        with tm.assert_produces_warning(warn):
+            result = offset_s + dta
+        tm.assert_equal(result, dta)
 
     def test_pickle_v0_15_2(self, datapath):
         offsets = {
@@ -3969,10 +4013,9 @@ def test_get_offset():
 
     for name, expected in pairs:
         offset = get_offset(name)
-        assert (
-            offset == expected
-        ), "Expected {name!r} to yield {expected!r} (actual: {offset!r})".format(
-            name=name, expected=expected, offset=offset
+        assert offset == expected, (
+            f"Expected {repr(name)} to yield {repr(expected)} "
+            f"(actual: {repr(offset)})"
         )
 
 
@@ -4170,9 +4213,9 @@ class TestDST:
 
     def _make_timestamp(self, string, hrs_offset, tz):
         if hrs_offset >= 0:
-            offset_string = "{hrs:02d}00".format(hrs=hrs_offset)
+            offset_string = f"{hrs_offset:02d}00"
         else:
-            offset_string = "-{hrs:02d}00".format(hrs=-1 * hrs_offset)
+            offset_string = f"-{(hrs_offset * -1):02}00"
         return Timestamp(string + offset_string).tz_convert(tz)
 
     def test_springforward_plural(self):

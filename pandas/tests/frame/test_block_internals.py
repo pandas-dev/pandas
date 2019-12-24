@@ -585,10 +585,6 @@ starting,ending,measure
         df = DataFrame(index=[0, 1])
         df[0] = np.nan
         wasCol = {}
-        # uncommenting these makes the results match
-        # for col in xrange(100, 200):
-        #    wasCol[col] = 1
-        #    df[col] = np.nan
 
         for i, dt in enumerate(df.index):
             for col in range(100, 200):
@@ -615,12 +611,12 @@ starting,ending,measure
     def test_add_column_with_pandas_array(self):
         # GH 26390
         df = pd.DataFrame({"a": [1, 2, 3, 4], "b": ["a", "b", "c", "d"]})
-        df["c"] = pd.array([1, 2, None, 3])
+        df["c"] = pd.arrays.PandasArray(np.array([1, 2, None, 3], dtype=object))
         df2 = pd.DataFrame(
             {
                 "a": [1, 2, 3, 4],
                 "b": ["a", "b", "c", "d"],
-                "c": pd.array([1, 2, None, 3]),
+                "c": pd.arrays.PandasArray(np.array([1, 2, None, 3], dtype=object)),
             }
         )
         assert type(df["c"]._data.blocks[0]) == ObjectBlock

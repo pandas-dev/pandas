@@ -161,14 +161,6 @@ class TestCategoricalDtypes:
             expected = cat
             tm.assert_categorical_equal(result, expected)
 
-    def test_astype_category_ordered_none_deprecated(self):
-        # GH 26336
-        cdt1 = CategoricalDtype(categories=list("cdab"), ordered=True)
-        cdt2 = CategoricalDtype(categories=list("cedafb"))
-        cat = Categorical(list("abcdaba"), dtype=cdt1)
-        with tm.assert_produces_warning(FutureWarning):
-            cat.astype(cdt2)
-
     def test_iter_python_types(self):
         # GH-19909
         cat = Categorical([1, 2])

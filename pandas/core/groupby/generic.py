@@ -11,6 +11,7 @@ from functools import partial
 from textwrap import dedent
 import typing
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     FrozenSet,
@@ -25,6 +26,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs import Timestamp, lib
+from pandas._typing import FrameOrSeries
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.cast import (
@@ -47,10 +49,10 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import _isna_ndarraylike, isna, notna
 
-from pandas._typing import FrameOrSeries
 import pandas.core.algorithms as algorithms
 from pandas.core.base import DataError, SpecificationError
 import pandas.core.common as com
+from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.frame import DataFrame
 from pandas.core.generic import ABCDataFrame, ABCSeries, NDFrame, _shared_docs
 from pandas.core.groupby import base
@@ -66,6 +68,10 @@ from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
 
 from pandas.plotting import boxplot_frame_groupby
+
+if TYPE_CHECKING:
+    from pandas.core.internals import Block
+
 
 NamedAgg = namedtuple("NamedAgg", ["column", "aggfunc"])
 # TODO(typing) the return value on this callable should be any *scalar*.
@@ -259,7 +265,9 @@ class SeriesGroupBy(GroupBy):
                 result = self._aggregate_named(func, *args, **kwargs)
 
             index = Index(sorted(result), name=self.grouper.names[0])
-            ret = Series(result, index=index)
+            ret = create_series_with_explicit_dtype(
+                result, index=index, dtype_if_empty=object
+            )
 
         if not self.as_index:  # pragma: no cover
             print("Warning, ignoring as_index=True")
@@ -299,10 +307,6 @@ class SeriesGroupBy(GroupBy):
         results = OrderedDict()
         for name, func in arg:
             obj = self
-            if name in results:
-                raise SpecificationError(
-                    f"Function names must be unique, found multiple named {name}"
-                )
 
             # reset the cache so that we
             # only include the named selection
@@ -407,7 +411,7 @@ class SeriesGroupBy(GroupBy):
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
         if len(keys) == 0:
             # GH #6265
-            return Series([], name=self._selection_name, index=keys)
+            return Series([], name=self._selection_name, index=keys, dtype=np.float64)
 
         def _get_index() -> Index:
             if self.grouper.nkeys > 1:
@@ -473,7 +477,7 @@ class SeriesGroupBy(GroupBy):
         """
         Transform with a non-str `func`.
         """
-        klass = self._selected_obj.__class__
+        klass = type(self._selected_obj)
 
         results = []
         for name, group in self:
@@ -493,7 +497,7 @@ class SeriesGroupBy(GroupBy):
 
             result = concat(results).sort_index()
         else:
-            result = Series()
+            result = Series(dtype=np.float64)
 
         # we will only try to coerce the result type if
         # we have a numeric dtype, as these are *always* user-defined funcs
@@ -912,6 +916,14 @@ class DataFrameGroupBy(GroupBy):
             func, columns, order = _normalize_keyword_aggregation(kwargs)
 
             kwargs = {}
+        elif isinstance(func, list) and len(func) > len(set(func)):
+
+            # GH 28426 will raise error if duplicated function names are used and
+            # there is no reassigned name
+            raise SpecificationError(
+                "Function names must be unique if there is no new column "
+                "names assigned"
+            )
         elif func is None:
             # nicer error message
             raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
@@ -980,11 +992,11 @@ class DataFrameGroupBy(GroupBy):
 
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
-    ):
-        new_items, new_blocks = self._cython_agg_blocks(
+    ) -> DataFrame:
+        agg_items, agg_blocks = self._cython_agg_blocks(
             how, alt=alt, numeric_only=numeric_only, min_count=min_count
         )
-        return self._wrap_agged_blocks(new_items, new_blocks)
+        return self._wrap_agged_blocks(agg_blocks, items=agg_items)
 
     def _cython_agg_blocks(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
@@ -1124,7 +1136,6 @@ class DataFrameGroupBy(GroupBy):
         obj = self._obj_with_exclusions
         result: OrderedDict = OrderedDict()
         cannot_agg = []
-        errors = None
         for item in obj:
             data = obj[item]
             colg = SeriesGroupBy(data, selection=item, grouper=self.grouper)
@@ -1149,10 +1160,6 @@ class DataFrameGroupBy(GroupBy):
         result_columns = obj.columns
         if cannot_agg:
             result_columns = result_columns.drop(cannot_agg)
-
-            # GH6337
-            if not len(result_columns) and errors is not None:
-                raise errors
 
         return DataFrame(result, columns=result_columns)
 
@@ -1205,10 +1212,18 @@ class DataFrameGroupBy(GroupBy):
             if v is None:
                 return DataFrame()
             elif isinstance(v, NDFrame):
-                values = [
-                    x if x is not None else v._constructor(**v._construct_axes_dict())
-                    for x in values
-                ]
+
+                # this is to silence a DeprecationWarning
+                # TODO: Remove when default dtype of empty Series is object
+                kwargs = v._construct_axes_dict()
+                if v._constructor is Series:
+                    backup = create_series_with_explicit_dtype(
+                        **kwargs, dtype_if_empty=object
+                    )
+                else:
+                    backup = v._constructor(**kwargs)
+
+                values = [x if (x is not None) else backup for x in values]
 
             v = values[0]
 
@@ -1681,17 +1696,17 @@ class DataFrameGroupBy(GroupBy):
 
         return result
 
-    def _wrap_agged_blocks(self, items, blocks):
+    def _wrap_agged_blocks(self, blocks: "Sequence[Block]", items: Index) -> DataFrame:
         if not self.as_index:
             index = np.arange(blocks[0].values.shape[-1])
-            mgr = BlockManager(blocks, [items, index])
+            mgr = BlockManager(blocks, axes=[items, index])
             result = DataFrame(mgr)
 
             self._insert_inaxis_grouper_inplace(result)
             result = result._consolidate()
         else:
             index = self.grouper.result_index
-            mgr = BlockManager(blocks, [items, index])
+            mgr = BlockManager(blocks, axes=[items, index])
             result = DataFrame(mgr)
 
         if self.axis == 1:
@@ -1730,18 +1745,18 @@ class DataFrameGroupBy(GroupBy):
         ids, _, ngroups = self.grouper.group_info
         mask = ids != -1
 
-        val = (
+        vals = (
             (mask & ~_isna_ndarraylike(np.atleast_2d(blk.get_values())))
             for blk in data.blocks
         )
-        loc = (blk.mgr_locs for blk in data.blocks)
+        locs = (blk.mgr_locs for blk in data.blocks)
 
-        counted = [
-            lib.count_level_2d(x, labels=ids, max_bin=ngroups, axis=1) for x in val
-        ]
-        blk = map(make_block, counted, loc)
+        counted = (
+            lib.count_level_2d(x, labels=ids, max_bin=ngroups, axis=1) for x in vals
+        )
+        blocks = [make_block(val, placement=loc) for val, loc in zip(counted, locs)]
 
-        return self._wrap_agged_blocks(data.items, list(blk))
+        return self._wrap_agged_blocks(blocks, items=data.items)
 
     def nunique(self, dropna: bool = True):
         """
@@ -1803,9 +1818,20 @@ class DataFrameGroupBy(GroupBy):
             # Try to consolidate with normal wrapping functions
             from pandas.core.reshape.concat import concat
 
-            results = [groupby_series(content, label) for label, content in obj.items()]
+            axis_number = obj._get_axis_number(self.axis)
+            other_axis = int(not axis_number)
+            if axis_number == 0:
+                iter_func = obj.items
+            else:
+                iter_func = obj.iterrows
+
+            results = [groupby_series(content, label) for label, content in iter_func()]
             results = concat(results, axis=1)
-            results.columns.names = obj.columns.names
+
+            if axis_number == 1:
+                results = results.T
+
+            results._get_axis(other_axis).names = obj._get_axis(other_axis).names
 
         if not self.as_index:
             results.index = ibase.default_index(len(results))

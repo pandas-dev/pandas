@@ -18,8 +18,8 @@ class BasePrintingTests(BaseExtensionTests):
             data = type(data)._concat_same_type([data] * 5)
 
         result = repr(data)
-        assert data.__class__.__name__ in result
-        assert "Length: {}".format(len(data)) in result
+        assert type(data).__name__ in result
+        assert f"Length: {len(data)}" in result
         assert str(data.dtype) in result
         if size == "big":
             assert "..." in result

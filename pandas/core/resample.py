@@ -2,7 +2,6 @@ import copy
 from datetime import timedelta
 from textwrap import dedent
 from typing import Dict, no_type_check
-import warnings
 
 import numpy as np
 
@@ -91,13 +90,11 @@ class Resampler(_GroupBy, ShallowMixin):
         Provide a nice str repr of our rolling object.
         """
         attrs = (
-            "{k}={v}".format(k=k, v=getattr(self.groupby, k))
+            f"{k}={getattr(self.groupby, k)}"
             for k in self._attributes
             if getattr(self.groupby, k, None) is not None
         )
-        return "{klass} [{attrs}]".format(
-            klass=self.__class__.__name__, attrs=", ".join(attrs)
-        )
+        return f"{type(self).__name__} [{', '.join(attrs)}]"
 
     def __getattr__(self, attr):
         if attr in self._internal_names_set:
@@ -885,7 +882,7 @@ class Resampler(_GroupBy, ShallowMixin):
         result = self._downsample("count")
         if not len(self.ax):
             if self._selected_obj.ndim == 1:
-                result = self._selected_obj.__class__(
+                result = type(self._selected_obj)(
                     [], index=result.index, dtype="int64", name=self._selected_obj.name
                 )
             else:
@@ -951,58 +948,6 @@ for method in ["nunique"]:
 
     h.__doc__ = getattr(SeriesGroupBy, method).__doc__
     setattr(Resampler, method, h)
-
-
-def _maybe_process_deprecations(r, how=None, fill_method=None, limit=None):
-    """
-    Potentially we might have a deprecation warning, show it
-    but call the appropriate methods anyhow.
-    """
-
-    if how is not None:
-
-        # .resample(..., how='sum')
-        if isinstance(how, str):
-            method = "{0}()".format(how)
-
-            # .resample(..., how=lambda x: ....)
-        else:
-            method = ".apply(<func>)"
-
-        # if we have both a how and fill_method, then show
-        # the following warning
-        if fill_method is None:
-            warnings.warn(
-                "how in .resample() is deprecated\n"
-                "the new syntax is "
-                ".resample(...).{method}".format(method=method),
-                FutureWarning,
-                stacklevel=3,
-            )
-        r = r.aggregate(how)
-
-    if fill_method is not None:
-
-        # show the prior function call
-        method = "." + method if how is not None else ""
-
-        args = "limit={0}".format(limit) if limit is not None else ""
-        warnings.warn(
-            "fill_method is deprecated to .resample()\n"
-            "the new syntax is .resample(...){method}"
-            ".{fill_method}({args})".format(
-                method=method, fill_method=fill_method, args=args
-            ),
-            FutureWarning,
-            stacklevel=3,
-        )
-
-        if how is not None:
-            r = getattr(r, fill_method)(limit=limit)
-        else:
-            r = r.aggregate(fill_method, limit=limit)
-
-    return r
 
 
 class _GroupByMixin(GroupByMixin):
@@ -1080,7 +1025,8 @@ class DatetimeIndexResampler(Resampler):
         if not len(ax):
             # reset to the new freq
             obj = obj.copy()
-            obj.index.freq = self.freq
+            # TODO: find a less code-smelly way to set this
+            obj.index._data._freq = self.freq
             return obj
 
         # do we have a regular frequency
@@ -1240,8 +1186,8 @@ class PeriodIndexResampler(DatetimeIndexResampler):
             return self.asfreq()
 
         raise IncompatibleFrequency(
-            "Frequency {} cannot be resampled to {}, as they are not "
-            "sub or super periods".format(ax.freq, self.freq)
+            f"Frequency {ax.freq} cannot be resampled to {self.freq}, "
+            "as they are not sub or super periods"
         )
 
     def _upsample(self, method, limit=None, fill_value=None):
@@ -1341,8 +1287,7 @@ def get_resampler_for_grouping(
 
     tg = TimeGrouper(freq=rule, **kwargs)
     resampler = tg._get_resampler(groupby.obj, kind=kind)
-    r = resampler._get_resampler_for_grouping(groupby=groupby)
-    return _maybe_process_deprecations(r, how=how, fill_method=fill_method, limit=limit)
+    return resampler._get_resampler_for_grouping(groupby=groupby)
 
 
 class TimeGrouper(Grouper):
@@ -1386,11 +1331,11 @@ class TimeGrouper(Grouper):
         # Check for correctness of the keyword arguments which would
         # otherwise silently use the default if misspelled
         if label not in {None, "left", "right"}:
-            raise ValueError("Unsupported value {} for `label`".format(label))
+            raise ValueError(f"Unsupported value {label} for `label`")
         if closed not in {None, "left", "right"}:
-            raise ValueError("Unsupported value {} for `closed`".format(closed))
+            raise ValueError(f"Unsupported value {closed} for `closed`")
         if convention not in {None, "start", "end", "e", "s"}:
-            raise ValueError("Unsupported value {} for `convention`".format(convention))
+            raise ValueError(f"Unsupported value {convention} for `convention`")
 
         freq = to_offset(freq)
 
@@ -1460,7 +1405,7 @@ class TimeGrouper(Grouper):
         raise TypeError(
             "Only valid with DatetimeIndex, "
             "TimedeltaIndex or PeriodIndex, "
-            "but got an instance of '{typ}'".format(typ=type(ax).__name__)
+            f"but got an instance of '{type(ax).__name__}'"
         )
 
     def _get_grouper(self, obj, validate=True):
@@ -1473,7 +1418,7 @@ class TimeGrouper(Grouper):
         if not isinstance(ax, DatetimeIndex):
             raise TypeError(
                 "axis must be a DatetimeIndex, but got "
-                "an instance of {typ}".format(typ=type(ax).__name__)
+                f"an instance of {type(ax).__name__}"
             )
 
         if len(ax) == 0:
@@ -1549,7 +1494,7 @@ class TimeGrouper(Grouper):
         if not isinstance(ax, TimedeltaIndex):
             raise TypeError(
                 "axis must be a TimedeltaIndex, but got "
-                "an instance of {typ}".format(typ=type(ax).__name__)
+                f"an instance of {type(ax).__name__}"
             )
 
         if not len(ax):
@@ -1574,7 +1519,7 @@ class TimeGrouper(Grouper):
         if not isinstance(ax, DatetimeIndex):
             raise TypeError(
                 "axis must be a DatetimeIndex, but got "
-                "an instance of {typ}".format(typ=type(ax).__name__)
+                f"an instance of {type(ax).__name__}"
             )
 
         freq = self.freq
@@ -1596,7 +1541,7 @@ class TimeGrouper(Grouper):
         if not isinstance(ax, PeriodIndex):
             raise TypeError(
                 "axis must be a PeriodIndex, but got "
-                "an instance of {typ}".format(typ=type(ax).__name__)
+                f"an instance of {type(ax).__name__}"
             )
 
         memb = ax.asfreq(self.freq, how=self.convention)

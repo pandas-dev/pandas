@@ -2,8 +2,7 @@
 Base and utility classes for tseries type pandas objects.
 """
 import operator
-from typing import Set
-import warnings
+from typing import List, Set
 
 import numpy as np
 
@@ -74,7 +73,7 @@ def _make_wrapped_arith_op(opname):
 
 class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     """
-    common ops mixin to support a unified interface datetimelike Index
+    Common ops mixin to support a unified interface datetimelike Index.
     """
 
     _data: ExtensionArray
@@ -103,11 +102,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         Return the frequency object if it is set, otherwise None.
         """
         return self._data.freq
-
-    @freq.setter
-    def freq(self, value):
-        # validation is handled by _data setter
-        self._data.freq = value
 
     @property
     def freqstr(self):
@@ -143,7 +137,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             return result
 
         wrapper.__doc__ = op.__doc__
-        wrapper.__name__ = "__{}__".format(op.__name__)
+        wrapper.__name__ = f"__{op.__name__}__"
         return wrapper
 
     @property
@@ -290,7 +284,10 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             sorted_index = self.take(_as)
             return sorted_index, _as
         else:
-            sorted_values = np.sort(self._ndarray_values)
+            # NB: using asi8 instead of _ndarray_values matters in numpy 1.18
+            #  because the treatment of NaT has been changed to put NaT last
+            #  instead of first.
+            sorted_values = np.sort(self.asi8)
             attribs = self._get_attributes_dict()
             freq = attribs["freq"]
 
@@ -332,23 +329,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     _na_value = NaT
     """The expected NA value to use with this index."""
 
-    @property
-    def asobject(self):
-        """
-        Return object Index which contains boxed values.
-
-        .. deprecated:: 0.23.0
-            Use ``astype(object)`` instead.
-
-        *this is an internal non-public method*
-        """
-        warnings.warn(
-            "'asobject' is deprecated. Use 'astype(object)' instead",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.astype(object)
-
     def _convert_tolerance(self, tolerance, target):
         tolerance = np.asarray(to_timedelta(tolerance).to_numpy())
 
@@ -356,7 +336,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             raise ValueError("list-like tolerance size must match target index size")
         return tolerance
 
-    def tolist(self):
+    def tolist(self) -> List:
         """
         Return a list of the underlying data.
         """
@@ -495,7 +475,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             if attrib == "freq":
                 freq = self.freqstr
                 if freq is not None:
-                    freq = f"{freq!r}"
+                    freq = repr(freq)
                 attrs.append(("freq", freq))
         return attrs
 
@@ -612,7 +592,8 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             result = Index.intersection(self, other, sort=sort)
             if isinstance(result, type(self)):
                 if result.freq is None:
-                    result.freq = to_offset(result.inferred_freq)
+                    # TODO: find a less code-smelly way to set this
+                    result._data._freq = to_offset(result.inferred_freq)
             return result
 
         elif (
@@ -626,7 +607,9 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
             # Invalidate the freq of `result`, which may not be correct at
             # this point, depending on the values.
-            result.freq = None
+
+            # TODO: find a less code-smelly way to set this
+            result._data._freq = None
             if hasattr(self, "tz"):
                 result = self._shallow_copy(
                     result._values, name=result.name, tz=result.tz, freq=None
@@ -634,7 +617,8 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             else:
                 result = self._shallow_copy(result._values, name=result.name, freq=None)
             if result.freq is None:
-                result.freq = to_offset(result.inferred_freq)
+                # TODO: find a less code-smelly way to set this
+                result._data._freq = to_offset(result.inferred_freq)
             return result
 
         # to make our life easier, "sort" the two ranges
@@ -677,11 +661,12 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         Parameters
         ----------
         name : str
-            name to use in the summary representation
+            Name to use in the summary representation.
 
         Returns
         -------
-        String with a summarized representation of the index
+        str
+            Summarized representation of the index.
         """
         formatter = self._formatter_func
         if len(self) > 0:
@@ -693,7 +678,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             name = type(self).__name__
         result = f"{name}: {len(self)} entries{index_summary}"
         if self.freq:
-            result += "\nFreq: %s" % self.freqstr
+            result += f"\nFreq: {self.freqstr}"
 
         # display as values, not quoted
         result = result.replace("'", "")
