@@ -588,7 +588,7 @@ class TimeRE(dict):
         else:
             return ''
         regex = '|'.join(re.escape(stuff) for stuff in to_convert)
-        regex = f'(?P<{directive}>{regex})'
+        regex = f"(?P<{directive}>{regex})"
         return regex
 
     def pattern(self, format):
