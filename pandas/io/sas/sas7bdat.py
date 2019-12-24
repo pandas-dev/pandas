@@ -13,7 +13,7 @@ Partial documentation of the file format:
 Reference for binary data compression:
   http://collaboration.cmc.ec.gc.ca/science/rpn/biblio/ddj/Website/articles/CUJ/1992/9210/ross/ross.htm
 """
-from collections.abc import Iterator
+from collections import abc
 from datetime import datetime
 import struct
 
@@ -37,7 +37,7 @@ class _column:
 
 
 # SAS7BDAT represents a SAS data file in SAS7BDAT format.
-class SAS7BDATReader(Iterator):
+class SAS7BDATReader(abc.Iterator):
     """
     Read SAS files in SAS7BDAT format.
 
