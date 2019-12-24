@@ -194,7 +194,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         else:
 
-            name = ibase.maybe_extract_name(name, data, "Series")
+            name = ibase.maybe_extract_name(name, data, type(self))
 
             if is_empty_data(data) and dtype is None:
                 # gh-17261

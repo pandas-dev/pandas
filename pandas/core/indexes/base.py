@@ -274,7 +274,7 @@ class Index(IndexOpsMixin, PandasObject):
         from .interval import IntervalIndex
         from .category import CategoricalIndex
 
-        name = maybe_extract_name(name, data)
+        name = maybe_extract_name(name, data, cls)
 
         if isinstance(data, ABCPandasArray):
             # ensure users don't accidentally put a PandasArray in an index.
@@ -1214,7 +1214,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @name.setter
     def name(self, value):
-        maybe_extract_name(value, None)
+        maybe_extract_name(value, None, type(self))
         self._name = value
 
     def _validate_names(self, name=None, names=None, deep=False):
@@ -5472,7 +5472,7 @@ def default_index(n):
     return RangeIndex(0, n, name=None)
 
 
-def maybe_extract_name(name, obj, cls_name="Index"):
+def maybe_extract_name(name, obj, cls) -> Optional[Hashable]:
     """
     If no name is passed, then extract it from data, validating hashability.
     """
@@ -5483,6 +5483,6 @@ def maybe_extract_name(name, obj, cls_name="Index"):
 
     # GH#29069
     if not is_hashable(name):
-        raise TypeError(f"{cls_name}.name must be a hashable type")
+        raise TypeError(f"{cls.__name__}.name must be a hashable type")
 
     return name

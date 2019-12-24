@@ -85,7 +85,7 @@ class RangeIndex(Int64Index):
     ):
 
         cls._validate_dtype(dtype)
-        name = maybe_extract_name(name, start)
+        name = maybe_extract_name(name, start, cls)
 
         # RangeIndex
         if isinstance(start, RangeIndex):

@@ -73,7 +73,7 @@ class NumericIndex(Index):
         else:
             subarr = data
 
-        name = maybe_extract_name(name, data)
+        name = maybe_extract_name(name, data, cls)
         return cls._simple_new(subarr, name=name)
 
     @classmethod

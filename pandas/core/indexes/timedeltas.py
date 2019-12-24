@@ -163,7 +163,7 @@ class TimedeltaIndex(
         copy=False,
         name=None,
     ):
-        name = maybe_extract_name(name, data)
+        name = maybe_extract_name(name, data, cls)
 
         if is_scalar(data):
             raise TypeError(

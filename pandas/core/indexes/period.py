@@ -188,7 +188,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             argument = list(set(fields) - valid_field_set)[0]
             raise TypeError(f"__new__() got an unexpected keyword argument {argument}")
 
-        name = maybe_extract_name(name, data)
+        name = maybe_extract_name(name, data, cls)
 
         if data is None and ordinal is None:
             # range-based.

@@ -254,7 +254,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
         # - Cases checked above all return/raise before reaching here - #
 
-        name = maybe_extract_name(name, data)
+        name = maybe_extract_name(name, data, cls)
 
         dtarr = DatetimeArray._from_sequence(
             data,

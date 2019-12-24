@@ -175,7 +175,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         dtype = CategoricalDtype._from_values_or_dtype(data, categories, ordered, dtype)
 
-        name = maybe_extract_name(name, data)
+        name = maybe_extract_name(name, data, cls)
 
         if not is_categorical_dtype(data):
             # don't allow scalars
