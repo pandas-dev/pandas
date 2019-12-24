@@ -6767,7 +6767,7 @@ class DataFrame(NDFrame):
                 other.reindex(combined_columns, copy=False)
                 .to_frame()
                 .T.infer_objects()
-                .rename_axis(index.names)
+                .rename_axis(index.names, copy=False)
             )
             if not self.columns.equals(combined_columns):
                 self = self.reindex(columns=combined_columns)

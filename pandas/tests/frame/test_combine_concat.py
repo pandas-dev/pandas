@@ -297,7 +297,7 @@ class TestDataFrameConcatCommon:
         df = pd.DataFrame([pd.Timestamp(timestamp, tz=tz)])
         result = df.append(df.iloc[0]).iloc[-1]
         expected = pd.Series(pd.Timestamp(timestamp, tz=tz), name=0)
-        pd.testing.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_update(self):
         df = DataFrame(
