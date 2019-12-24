@@ -1175,7 +1175,7 @@ class TestReadHtml:
             if is_platform_windows():
                 if "16" in encoding or "32" in encoding:
                     pytest.skip()
-            raise
+                raise
 
     def test_parse_failure_unseekable(self):
         # Issue #17975
