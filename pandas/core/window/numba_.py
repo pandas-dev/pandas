@@ -56,7 +56,7 @@ def make_rolling_apply(func, args, nogil, parallel, nopython):
 def generate_numba_apply_func(
     args: Tuple,
     kwargs: Dict[str, Any],
-    func: Callable[[np.ndarray, ...], Scalar],
+    func: Callable[..., Scalar],
     engine_kwargs: Optional[Dict[str, bool]],
 ):
     """
