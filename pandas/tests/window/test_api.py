@@ -344,7 +344,6 @@ class TestApi(Base):
         tm.assert_frame_equal(result, expected)
 
 
-@td.skip_if_no("numba", "0.46.0")
 class TestEngine:
     def test_invalid_engine(self):
         with pytest.raises(
@@ -366,6 +365,7 @@ class TestEngine:
         ):
             Series(range(1)).rolling(1).apply(lambda x: x, raw=False, engine="numba")
 
+    @td.skip_if_no("numba", "0.46.0")
     def test_invalid_kwargs_nopython(self):
         with pytest.raises(ValueError, match="numba does not support kwargs with"):
             Series(range(1)).rolling(1).apply(

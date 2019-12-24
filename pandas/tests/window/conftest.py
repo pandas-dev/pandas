@@ -1,11 +1,12 @@
-try:
-    import numba  # noqa
+import pytest
 
+from pandas.compat._optional import import_optional_dependency
+
+try:
+    import_optional_dependency('numba')  # noqa
     _HAVE_NUMBA = True
 except ImportError:
     _HAVE_NUMBA = False
-
-import pytest
 
 
 @pytest.fixture(params=[True, False])
@@ -58,16 +59,19 @@ def min_periods(request):
 
 @pytest.fixture(params=[True, False])
 def parallel(request):
+    """parallel keyword argument for numba.jit"""
     return request.param
 
 
 @pytest.fixture(params=[True, False])
 def nogil(request):
+    """nogil keyword argument for numba.jit"""
     return request.param
 
 
 @pytest.fixture(params=[True, False])
 def nopython(request):
+    """nopython keyword argument for numba.jit"""
     return request.param
 
 
@@ -81,4 +85,5 @@ def nopython(request):
     ]
 )
 def engine(request):
+    """engine keyword argument for rolling.apply"""
     return request.param

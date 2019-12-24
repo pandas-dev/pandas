@@ -178,6 +178,7 @@ We've added an ``engine`` keyword to :meth:`~Rolling.apply` that allows the user
 routine using `Numba <https://numba.pydata.org/>`__ instead of Cython. Using the Numba engine
 can yield significant performance gains if the apply function can operate on numpy arrays and
 the data set is larger. For more details, see :ref:`rolling apply documentation <stats.rolling_apply>`
+(:issue:`28987`)
 
 .. _whatsnew_1000.custom_window:
 

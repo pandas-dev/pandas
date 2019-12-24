@@ -6,7 +6,7 @@ import numpy as np
 from pandas.compat._optional import import_optional_dependency
 
 
-def _generate_numba_apply_func(
+def generate_numba_apply_func(
     args: Tuple,
     kwargs: Dict,
     func: Callable,
@@ -21,11 +21,28 @@ def _generate_numba_apply_func(
 
     Configurations specified in engine_kwargs apply to both the user's
     function _AND_ the rolling apply function.
+
+    Parameters
+    ----------
+    args : tuple
+        *args to be passed into the function
+    kwargs : dict
+        **kwargs to be passed into the function
+    func : function
+        function to be applied to each window and will be JITed
+    engine_kwargs : dict
+        dictionary of arguments to be passed into numba.jit
+    function_cache : dict
+        dictionary of cached apply function to avoid re-compiling the apply loop
+
+    Returns
+    -------
+    Numba function
     """
     numba = import_optional_dependency("numba")
 
     if engine_kwargs is None:
-        engine_kwargs = {"nopython": True, "nogil": False, "parallel": False}
+        engine_kwargs = {}
 
     nopython = engine_kwargs.get("nopython", True)
     nogil = engine_kwargs.get("nogil", False)
