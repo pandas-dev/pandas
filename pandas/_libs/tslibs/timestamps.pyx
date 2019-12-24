@@ -343,6 +343,28 @@ class Timestamp(_Timestamp):
 
         Return a new Timestamp corresponding to the
         ISO calendar date specified by year, week and day.
+
+        Parameters
+        ----------
+        year: int
+            Representing a year.
+        week : int
+            Value between 1-53, representing a week in a year.
+        day : int
+            Value between 1-7, representing a day in the week.
+
+        Returns
+        -------
+        Timestamp
+
+        Raises
+        ------
+        NotImplementedError
+            If the running platform is a Python version earlier than 3.8
+
+        Notes
+        -----
+        `week` can have the value of 53, only when year is a leap year.
         """
         import pandas.compat as compat
 
