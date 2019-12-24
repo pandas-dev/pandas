@@ -218,7 +218,7 @@ class IntervalIndex(IntervalMixin, Index):
         verify_integrity: bool = True,
     ):
 
-        name = maybe_extract_name(name, data, cls, cls)
+        name = maybe_extract_name(name, data, cls)
 
         with rewrite_exception("IntervalArray", cls.__name__):
             array = IntervalArray(
