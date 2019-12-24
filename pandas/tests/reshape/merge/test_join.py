@@ -785,7 +785,7 @@ class TestJoin:
         dfb = DataFrame(
             [["2012-08-02", "J", 1], ["2013-04-06", "L", 2]],
             columns=["x", "y", "z"],
-            index=[2, 4,],
+            index=[2, 4],
         )
         dfb["x"] = pd.to_datetime(dfb["x"])
         result = dfb.join(dfa.set_index(["x", "y"]), on=["x", "y"])
