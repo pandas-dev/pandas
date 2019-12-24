@@ -305,6 +305,8 @@ ValueError: columns overlap but no suffix specified:
 # -----------------------------------------------------------------------
 # DataFrame class
 
+bool_t = bool  # Need alias because NDFrame has def bool:
+
 
 class DataFrame(NDFrame):
     """
@@ -4704,7 +4706,7 @@ class DataFrame(NDFrame):
         inplace=False,
         kind="quicksort",
         na_position="last",
-        ignore_index=False,
+        ignore_index: bool_t = False,
     ):
         inplace = validate_bool_kwarg(inplace, "inplace")
         axis = self._get_axis_number(axis)

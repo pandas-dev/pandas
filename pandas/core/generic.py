@@ -4113,6 +4113,8 @@ class NDFrame(PandasObject, SelectionMixin):
         ignore_index : bool, default False
              If True, the resulting axis will be labeled 0, 1, …, n - 1.
 
+             .. versionadded:: 1.0.0
+
         Returns
         -------
         sorted_obj : DataFrame or None

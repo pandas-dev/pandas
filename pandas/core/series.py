@@ -117,6 +117,8 @@ def _coerce_method(converter):
 # ----------------------------------------------------------------------
 # Series class
 
+bool_t = bool  # Need alias because generic.NDFrame has def bool:
+
 
 class Series(base.IndexOpsMixin, generic.NDFrame):
     """
@@ -2693,7 +2695,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         inplace=False,
         kind="quicksort",
         na_position="last",
-        ignore_index=False,
+        ignore_index: bool_t = False,
     ):
         """
         Sort by the values.
@@ -2718,6 +2720,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             the end.
         ignore_index : bool, default False
              If True, the resulting axis will be labeled 0, 1, …, n - 1.
+
+             .. versionadded:: 1.0.0
 
         Returns
         -------
@@ -2859,7 +2863,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         result = self._constructor(arr[sortedIdx], index=self.index[sortedIdx])
 
         if ignore_index:
-            result = result.reset_index(drop=True)
+            result.index = ibase.default_index(len(sortedIdx))
 
         if inplace:
             self._update_inplace(result)
