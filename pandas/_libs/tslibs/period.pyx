@@ -1577,7 +1577,7 @@ cdef class _Period:
         freq = to_offset(freq)
 
         if freq.n <= 0:
-            raise ValueError(f"Frequency must be positive, because it "
+            raise ValueError("Frequency must be positive, because it "
                              f"represents span: {freq.freqstr}")
 
         return freq
@@ -1631,7 +1631,7 @@ cdef class _Period:
                 if nanos % offset_nanos == 0:
                     ordinal = self.ordinal + (nanos // offset_nanos)
                     return Period(ordinal=ordinal, freq=self.freq)
-            raise IncompatibleFrequency(f"Input cannot be converted to "
+            raise IncompatibleFrequency("Input cannot be converted to "
                                         f"Period(freq={self.freqstr})")
         elif util.is_offset_object(other):
             freqstr = other.rule_code
