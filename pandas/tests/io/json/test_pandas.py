@@ -605,9 +605,9 @@ class TestPandasContainer:
             df_mixed.to_json()
 
         # default_handler should resolve exceptions for non-string types
-        assert (
-            df_nonprintable.to_json(default_handler=str) == f'{{"A":{{"0":"{hexed}"}}}}'
-        )
+        result = df_nonprintable.to_json(default_handler=str)
+        expected = f'{{"A":{{"0":"{hexed}"}}}}'
+        assert result == expected
         assert (
             df_mixed.to_json(default_handler=str)
             == f'{{"A":{{"0":"{hexed}"}},"B":{{"0":1}}}}'
@@ -615,8 +615,9 @@ class TestPandasContainer:
 
     def test_label_overflow(self):
         # GH14256: buffer length not checked when writing label
-        df = pd.DataFrame({"bar" * 100000: [1], "foo": [1337]})
-        assert df.to_json() == f'{{"{"bar" * 100000}":{{"0":1}},"foo":{{"0":1337}}}}'
+        result = pd.DataFrame({"bar" * 100000: [1], "foo": [1337]}).to_json()
+        expected = f'{{"{"bar" * 100000}":{{"0":1}},"foo":{{"0":1337}}}}'
+        assert result == expected
 
     def test_series_non_unique_index(self):
         s = Series(["a", "b"], index=[1, 1])
