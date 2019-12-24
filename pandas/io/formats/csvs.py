@@ -237,7 +237,7 @@ class CSVFormatter:
             return
         if has_aliases:
             if len(header) != len(cols):
-                raise ValueError(f"Writing {len(cols)} cols but got {len(header)}")
+                raise ValueError(f"Writing {len(cols)} cols but got {len(header)} aliases")
             else:
                 write_cols = header
         else:
