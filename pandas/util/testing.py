@@ -22,6 +22,7 @@ from pandas._config.localization import (  # noqa:F401
 )
 
 import pandas._libs.testing as _testing
+from pandas._typing import FrameOrSeries
 from pandas.compat import _get_lzma_file, _import_lzma
 
 from pandas.core.dtypes.common import (
@@ -53,7 +54,6 @@ from pandas import (
     Series,
     bdate_range,
 )
-from pandas._typing import FrameOrSeries
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays import (
     DatetimeArray,
@@ -101,7 +101,7 @@ def reset_display_options():
     pd.reset_option("^display.", silent=True)
 
 
-def round_trip_pickle(obj: FrameOrSeries, path: Optional[str] = None):
+def round_trip_pickle(obj: FrameOrSeries, path: Optional[str] = None) -> FrameOrSeries:
     """
     Pickle an object and then read it again.
 
