@@ -1242,9 +1242,9 @@ class _Rolling_and_Expanding(_Rolling):
         Must produce a single value from an ndarray input if ``raw=True``
         or a single value from a Series if ``raw=False``. Can also accept a
         Numba JIT function with ``engine='numba'`` specified.
-        
+
         .. versionchanged:: 1.0.0
-        
+
     raw : bool, default None
         * ``False`` : passes each row or column as a Series to the
           function.
@@ -1256,7 +1256,7 @@ class _Rolling_and_Expanding(_Rolling):
         * ``'cython'`` : Runs rolling apply through C-extensions from cython.
         * ``'numba'`` : Runs rolling apply through JIT compiled code from numba.
           Only available when ``raw`` is set to ``True``.
-          
+
           .. versionadded:: 1.0.0
 
     engine_kwargs : dict, default None
@@ -1266,9 +1266,9 @@ class _Rolling_and_Expanding(_Rolling):
           ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
           ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
           applied to both the ``func`` and the ``apply`` rolling aggregation.
-          
+
           .. versionadded:: 1.0.0
-          
+
     args : tuple, default None
         Positional arguments to be passed into func.
     kwargs : dict, default None
