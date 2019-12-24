@@ -145,20 +145,23 @@ def test_drop_with_non_unique_datetime_index_and_invalid_keys():
     # GH 30399
 
     # define dataframe with unique datetime index
-    df_unique = pd.DataFrame(np.random.randn(5, 3), columns=['a', 'b', 'c'],
-                             index=pd.date_range("2012", freq='H', periods=5))
+    df_unique = pd.DataFrame(
+        np.random.randn(5, 3),
+        columns=["a", "b", "c"],
+        index=pd.date_range("2012", freq="H", periods=5),
+    )
     # create dataframe with non-unique datetime index
     df_nonunique = df_unique.copy().iloc[[0, 2, 2, 3]]
 
     try:
-        df_nonunique.drop(['a', 'b'])  # Dropping with labels not exist in the index
+        df_nonunique.drop(["a", "b"])  # Dropping with labels not exist in the index
     except Exception as e:
         result = e
     else:
         result = "df_nonunique.drop(['a', 'b']) should raise error but it didn't"
 
     try:
-        df_unique.drop(['a', 'b'])  # Dropping with labels not exist in the index
+        df_unique.drop(["a", "b"])  # Dropping with labels not exist in the index
     except Exception as e:
         expected = e
     else:
