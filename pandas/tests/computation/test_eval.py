@@ -43,7 +43,7 @@ import pandas.util.testing as tm
             marks=pytest.mark.skipif(
                 engine == "numexpr" and not _USE_NUMEXPR,
                 reason=f"numexpr enabled->{_USE_NUMEXPR}, "
-                "installed->{_NUMEXPR_INSTALLED}",
+                f"installed->{_NUMEXPR_INSTALLED}",
             ),
         )
         for engine in _engines
@@ -1986,7 +1986,7 @@ def test_bool_ops_fails_on_scalars(lhs, cmp, rhs, engine, parser):
 )
 def test_equals_various(other):
     df = DataFrame({"A": ["a", "b", "c"]})
-    result = df.eval("A == {other}")
+    result = df.eval(f"A == {other}")
     expected = Series([False, False, False], name="A")
     if _USE_NUMEXPR:
         # https://github.com/pandas-dev/pandas/issues/10239
