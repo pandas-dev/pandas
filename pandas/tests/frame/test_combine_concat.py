@@ -288,6 +288,17 @@ class TestDataFrameConcatCommon:
         expected = DataFrame({"bar": Series([Timestamp("20130101"), 1])})
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "timestamp", ["2019-07-19 07:04:57+0100", "2019-07-19 07:04:57"]
+    )
+    def test_append_timestamps_aware_or_naive(self, tz_naive_fixture, timestamp):
+        # GH 30238
+        tz = tz_naive_fixture
+        df = pd.DataFrame([pd.Timestamp(timestamp, tz=tz)])
+        result = df.append(df.iloc[0]).iloc[-1]
+        expected = pd.Series(pd.Timestamp(timestamp, tz=tz), name=0)
+        tm.assert_series_equal(result, expected)
+
     def test_update(self):
         df = DataFrame(
             [[1.5, np.nan, 3.0], [1.5, np.nan, 3.0], [1.5, np.nan, 3], [1.5, np.nan, 3]]
