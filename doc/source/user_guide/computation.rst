@@ -353,7 +353,7 @@ the passed function. ``func`` can also be a JITed function in which case the eng
 The ``engine_kwargs`` argument is a dictionary of keyword arguments that will be passed into the
 `numba.jit decorator <https://numba.pydata.org/numba-doc/latest/reference/jit-compilation.html#numba.jit>`__.
 These keyword arguments will be applied to *both* the passed function (if a standard Python function)
-and the apply for loop. Currently only ``nogil``, ``nopython``, and ``parallel`` are supported,
+and the apply for loop over each window. Currently only ``nogil``, ``nopython``, and ``parallel`` are supported,
 and their default values are set to ``False``, ``True`` and ``False`` respectively.
 
 .. note::
