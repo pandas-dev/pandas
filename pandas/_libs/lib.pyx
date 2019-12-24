@@ -1259,15 +1259,15 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     # make contiguous
     values = values.ravel()
 
-    if skipna:
-        values = values[~isnaobj(values)]
-
     val = _try_infer_map(values)
     if val is not None:
         return val
 
     if values.dtype != np.object_:
         values = values.astype('O')
+
+    if skipna:
+        values = values[~isnaobj(values)]
 
     n = len(values)
     if n == 0:

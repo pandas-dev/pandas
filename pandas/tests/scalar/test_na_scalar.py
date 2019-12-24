@@ -175,3 +175,20 @@ def test_series_isna():
     s = pd.Series([1, NA], dtype=object)
     expected = pd.Series([False, True])
     tm.assert_series_equal(s.isna(), expected)
+
+
+def test_integer_hash_collision_dict():
+    # GH 30013
+    result = {NA: "foo", hash(NA): "bar"}
+
+    assert result[NA] == "foo"
+    assert result[hash(NA)] == "bar"
+
+
+def test_integer_hash_collision_set():
+    # GH 30013
+    result = {NA, hash(NA)}
+
+    assert len(result) == 2
+    assert NA in result
+    assert hash(NA) in result
