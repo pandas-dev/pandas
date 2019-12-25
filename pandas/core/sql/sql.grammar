@@ -1,0 +1,114 @@
+start: set_expr -> final
+
+set_expr: query_expr
+        | set_expr "UNION"i ["DISTINCT"i] set_expr -> union_distinct
+        | set_expr "UNION"i "ALL"i set_expr -> union_all
+        | set_expr "INTERSECT"i ["DISTINCT"i] set_expr -> intersect_distinct
+        | set_expr "EXCEPT"i ["DISTINCT"i] set_expr -> except_distinct
+        | set_expr "EXCEPT"i "ALL"i set_expr -> except_all
+
+query_expr: select [ "ORDER"i "BY"i (order_by_expr ",")*  order_by_expr] [ "LIMIT"i limit_count [ "OFFSET"i skip_rows ] ]
+
+select: "SELECT"i [SELECT_CONSTRAINT] [(select_expr ",")*] select_expr "FROM"i [(from_expr ",")*] from_expr [ "WHERE"i where_expr ] [ "GROUP"i "BY"i [(groupby_expr ",")*] groupby_expr ] [ "HAVING"i having_expr] [ "WINDOW"i window_expr ]
+
+where_expr: bool_expression
+
+select_expr.0: expression_math [ [ "AS"i ] alias ] -> select_expression
+
+?from_expr: from_item -> from_expression
+
+order_by_expr: order -> order_by_expression
+
+having_expr: bool_expression
+
+groupby_expr: expression -> group_by
+
+window_expr: [window_expr ","] _window_name "AS"i ( window_definition )
+
+SET_OP: "UNION"i [ ("ALL"i | "DISTINCT"i) ] | "INTERSECT"i "DISTINCT"i | "EXCEPT"i "DISTINCT"i
+
+from_item: NAME [ [ "AS"i ] alias ] -> table
+            | join -> join
+            | ( "(" query_expr ")" ) [ [ "AS"i ] alias ] -> subquery
+            | with_query_name [ [ "AS"i ] alias ]
+
+join: from_item [ JOIN_TYPE ] "JOIN"i from_item [ "ON"i bool_expression ] -> join_expression
+
+JOIN_TYPE.5: "INNER"i | "CROSS"i | /FULL\sOUTER/i | /LEFT\sOUTER/i |  /RIGHT\sOUTER/i | "FULL"i | "LEFT"i | "RIGHT"i
+
+?expression_math: expression_product
+               | expression_math "+" expression_product -> expression_add
+               | expression_math "-" expression_product -> expression_sub
+               | "CASE"i (when_then)+ "ELSE"i expression_math "END"i -> case_expression
+               | "CAST"i "(" expression_math "AS"i TYPENAME ")" -> as_type
+               | "CAST"i "(" literal "AS"i TYPENAME ")" -> literal_cast
+               | function "(" expression_math ")" -> sql_function
+               | "RANK"i "(" ")" rank_form -> rank_expression
+               | "DENSE_RANK"i "(" ")" rank_form -> dense_rank_expression
+
+rank_form: "OVER"i "(" ["PARTITION"i "BY"i (partition_by)+] "ORDER"i "BY"i (order ",")* order ")"
+partition_by: expression_math
+
+when_then: "WHEN"i bool_expression "THEN"i expression_math
+order: expression_math ["ASC"i] -> order_asc
+          | expression_math "DESC"i -> order_desc
+
+column_name: [NAME "."] NAME
+?expression_product: expression
+                  | expression_product "*" expression -> expression_mul
+                  | expression_product "/" expression -> expression_div
+
+?expression: [NAME "."] (NAME | STAR) -> column_name
+            | literal
+
+
+SELECT_CONSTRAINT.9: "ALL"i | "DISTINCT"i
+TYPENAME: "object"i | "int64"i | "float64"i | "bool"i | "datetime64"i | "timedelta[ns]"i | "category"i
+?function: NAME -> function_name
+alias: NAME -> alias_string
+_window_name: NAME
+limit_count: integer -> limit_count
+skip_rows: integer
+bool_expression: [bool_expression ("AND"i | "OR"i)] (equals | not_equals | greater_than | less_than | between | in_expr | not_in_expr)
+equals: expression_math "=" expression_math
+not_equals: expression_math ("<>" | "!=") expression_math
+greater_than: expression_math ">" expression_math
+less_than: expression_math "<" expression_math
+between: expression_math "BETWEEN"i expression_math "AND"i expression_math
+in_expr: expression_math "IN"i "(" [expression_math ","] expression_math ")"
+not_in_expr: expression_math "NOT"i "IN"i "(" [expression_math ","] expression_math ")"
+?literal: boolean -> bool
+       | number_expr -> number
+       | "'" /[^']+/ "'" -> string
+       | timestamp_expression -> timestamp_expression
+boolean: "true"i -> true
+       | "false"i -> false
+?number_expr: product
+            | number_expr "+" product -> add
+            | number_expr "-" product -> sub
+
+?product: NUMBER
+        | product "*" NUMBER -> mul
+        | product "/" NUMBER -> div
+
+integer: /[1-9][0-9]*/
+STAR: "*"
+window_definition:
+with_query_name:
+timestamp_expression: "NOW"i "(" ")" -> datetime_now
+                    | "TODAY"i "(" ")" -> date_today
+                    | "TIMESTAMP"i "(" "'" date "'" "," "'" time "'" ")" -> custom_timestamp
+
+date: YEAR "-" MONTH "-" DAY
+YEAR: /[0-9]{4}/
+MONTH: /[0-9]{2}/
+DAY: /[0-9]{2}/
+time: HOURS ":" MINUTES ":" SECONDS
+HOURS: /[0-9]{2}/
+MINUTES: /[0-9]{2}/
+SECONDS: /[0-9]{2}/
+
+%import common.CNAME -> NAME
+%import common.NUMBER
+%import common.WS
+%ignore WS
