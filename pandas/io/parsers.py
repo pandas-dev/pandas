@@ -381,7 +381,6 @@ def _validate_integer(name, val, min_val=0):
     min_val : int
         Minimum allowed value (val < min_val will result in a ValueError)
     """
-
     msg = f"{name:s} must be an integer >={min_val:d}"
 
     if val is not None:
@@ -507,6 +506,7 @@ _parser_defaults = {
     "infer_datetime_format": False,
     "skip_blank_lines": True,
 }
+
 
 _c_parser_defaults = {
     "delim_whitespace": False,
@@ -707,6 +707,8 @@ def read_fwf(
     infer_nrows=100,
     **kwds,
 ):
+
+
     r"""
     Read a table of fixed-width formatted lines into DataFrame.
 
@@ -985,8 +987,8 @@ class TextFileReader(abc.Iterator):
             if not encodeable and engine not in ("python", "python-fwf"):
                 fallback_reason = (
                     f"the separator encoded in {encoding} "
-                    f"is > 1 char long, and the 'c' engine "
-                    f"does not support such separators"
+                    "is > 1 char long, and the 'c' engine "
+                    "does not support such separators"
                 )
                 engine = "python"
 
@@ -1016,18 +1018,18 @@ class TextFileReader(abc.Iterator):
             for arg in _python_unsupported:
                 if fallback_reason and result[arg] != _c_parser_defaults[arg]:
                     raise ValueError(
-                        f"Falling back to the 'python' engine because "
+                        "Falling back to the 'python' engine because "
                         f"{fallback_reason}, but this causes {repr(arg)} to be "
-                        f"ignored as it is not supported by the 'python' engine."
+                        "ignored as it is not supported by the 'python' engine."
                     )
                 del result[arg]
 
         if fallback_reason:
             warnings.warn(
                 (
-                    f"Falling back to the 'python' engine because "
+                    "Falling back to the 'python' engine because "
                     f"{fallback_reason}; you can avoid this warning by specifying "
-                    f"engine='python'."
+                    "engine='python'."
                 ),
                 ParserWarning,
                 stacklevel=5,
@@ -1049,7 +1051,7 @@ class TextFileReader(abc.Iterator):
 
             msg = (
                 f"The {repr(arg)} argument has been deprecated and will be "
-                f"removed in a future version."
+                "removed in a future version."
             )
 
             if result.get(arg, depr_default) != depr_default:
@@ -1120,8 +1122,8 @@ class TextFileReader(abc.Iterator):
             else:
                 raise ValueError(
                     f"Unknown engine: {engine} (valid options are"
-                    f' "c", "python", or'
-                    f' "python-fwf")'
+                    ' "c", "python", or'
+                    ' "python-fwf")'
                 )
             self._engine = klass(self.f, **self.options)
 
@@ -1230,7 +1232,7 @@ def _validate_usecols_names(usecols, names):
     missing = [c for c in usecols if c not in names]
     if len(missing) > 0:
         raise ValueError(
-            f"Usecols do not match columns, "
+            "Usecols do not match columns, "
             f"columns expected but not found: {missing}"
         )
 
@@ -1532,7 +1534,7 @@ class ParserBase:
                     counts[col] = cur_count + 1
 
                     if is_potential_mi:
-                        col = col[:-1] + (f"{col[-1]}.{cur_count}")
+                        col = col[:-1] + f"{col[-1]}.{cur_count}"
                     else:
                         col = f"{col}.{cur_count}"
                     cur_count = counts[col]
@@ -1679,7 +1681,7 @@ class ParserBase:
                 if cast_type is not None:
                     warnings.warn(
                         (
-                            f"Both a converter and dtype were specified "
+                            "Both a converter and dtype were specified "
                             f"for column {c} - only the converter will "
                             "be used"
                         ),
@@ -1721,9 +1723,8 @@ class ParserBase:
                             and na_count > 0
                         ):
                             raise ValueError(
-                                f"Bool column has NA values in " f"column {c}"
+                                f"Bool column has NA values in column {c}"
                             )
-
                     except (AttributeError, TypeError):
                         # invalid input to is_bool_dtype
                         pass
@@ -1829,8 +1830,8 @@ class ParserBase:
             except NotImplementedError:
                 raise NotImplementedError(
                     f"Extension Array: {array_type} must implement "
-                    f"_from_sequence_of_strings in order "
-                    f"to be used in parser methods"
+                    "_from_sequence_of_strings in order "
+                    "to be used in parser methods"
                 )
 
         else:
@@ -1838,7 +1839,7 @@ class ParserBase:
                 values = astype_nansafe(values, cast_type, copy=True, skipna=True)
             except ValueError:
                 raise ValueError(
-                    f"Unable to convert column {column} to type " f"{cast_type}"
+                    f"Unable to convert column {column} to type {cast_type}"
                 )
         return values
 
@@ -2562,7 +2563,7 @@ class PythonParser(ParserBase):
                 except StopIteration:
                     if self.line_pos < hr:
                         raise ValueError(
-                            f"Passed header={hr} but only {self.line_pos +1} lines in "
+                            f"Passed header={hr} but only {self.line_pos + 1} lines in "
                             "file"
                         )
 
@@ -3095,7 +3096,7 @@ class PythonParser(ParserBase):
             for row_num, actual_len in bad_lines:
                 msg = (
                     f"Expected {col_len} fields in line {row_num + 1}, saw "
-                    "{actual_len}"
+                    f"{actual_len}"
                 )
                 if (
                     self.delimiter
