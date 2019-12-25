@@ -38,13 +38,18 @@ class SqlToPandas:
         self.sql = sql
         table_info = TableInfo()
         if SHOW_TREE:
-            self.parser = Lark(GRAMMAR_TEXT, parser='lalr')
+            self.parser = Lark(GRAMMAR_TEXT, parser="lalr")
         else:
-            self.parser = Lark(GRAMMAR_TEXT, parser='lalr',
-                               transformer=SQLTransformer(table_info.dataframe_name_map,
-                                                          table_info.dataframe_map,
-                                                          table_info.column_name_map,
-                                                          table_info.column_to_dataframe_name))
+            self.parser = Lark(
+                GRAMMAR_TEXT,
+                parser="lalr",
+                transformer=SQLTransformer(
+                    table_info.dataframe_name_map,
+                    table_info.dataframe_map,
+                    table_info.column_name_map,
+                    table_info.column_to_dataframe_name,
+                ),
+            )
         self.ast = self.parse_sql()
         if SHOW_TREE or SHOW_DF:
             print("Result:")
@@ -63,9 +68,11 @@ class SqlToPandas:
         try:
             return self.parser.parse(self.sql)
         except UnexpectedToken as err:
-            message = f"Expected one of the following input(s): {err.expected}\n" \
-                      f"Unexpected input at line {err.line}, column {err.column}\n" \
-                      f"{err.get_context(self.sql)}"
+            message = (
+                f"Expected one of the following input(s): {err.expected}\n"
+                f"Unexpected input at line {err.line}, column {err.column}\n"
+                f"{err.get_context(self.sql)}"
+            )
             raise InvalidQueryException(message)
 
 
@@ -88,7 +95,9 @@ class TableInfo:
             self.column_to_dataframe_name[column].tables.append(table)
         else:
             original_table = self.column_to_dataframe_name[column]
-            self.column_to_dataframe_name[column] = AmbiguousColumn([original_table, table])
+            self.column_to_dataframe_name[column] = AmbiguousColumn(
+                [original_table, table]
+            )
 
     def register_temporary_table(self, frame: DataFrame, table_name: str):
         """
@@ -98,8 +107,10 @@ class TableInfo:
         :return:
         """
         if table_name.lower() in self.dataframe_name_map:
-            raise Exception(f"A table {table_name.lower()} has already been registered. Keep in mind that table "
-                            f"names are case insensitive")
+            raise Exception(
+                f"A table {table_name.lower()} has already been registered. Keep in mind that table "
+                f"names are case insensitive"
+            )
 
         self.dataframe_name_map[table_name.lower()] = table_name
         self.dataframe_map[table_name] = frame

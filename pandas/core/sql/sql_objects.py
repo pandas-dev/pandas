@@ -22,7 +22,7 @@ class Value:
     Parent class for expressions and columns
     """
 
-    def __init__(self, value, alias='', typename=''):
+    def __init__(self, value, alias="", typename=""):
         self.value = value
         self.alias = alias
         self.typename = typename
@@ -34,7 +34,9 @@ class Value:
         else:
             print_value = self.value
 
-        display = f"{type(self).__name__}(final_name={self.final_name}, value={print_value}"
+        display = (
+            f"{type(self).__name__}(final_name={self.final_name}, value={print_value}"
+        )
         if self.alias:
             display += f", alias={self.alias}"
         if self.typename:
@@ -44,22 +46,30 @@ class Value:
     def __add__(self, other):
         other_name = self.get_other_name(other)
         other = self.get_other_value(other)
-        return Expression(value=self.value + other, alias=f'{self.final_name}_add_{other_name}')
+        return Expression(
+            value=self.value + other, alias=f"{self.final_name}_add_{other_name}"
+        )
 
     def __sub__(self, other):
         other_name = self.get_other_name(other)
         other = self.get_other_value(other)
-        return Expression(value=self.value - other, alias=f'{self.final_name}_sub_{other_name}')
+        return Expression(
+            value=self.value - other, alias=f"{self.final_name}_sub_{other_name}"
+        )
 
     def __mul__(self, other):
         other_name = self.get_other_name(other)
         other = self.get_other_value(other)
-        return Expression(value=self.value * other, alias=f'{self.final_name}_mul_{other_name}')
+        return Expression(
+            value=self.value * other, alias=f"{self.final_name}_mul_{other_name}"
+        )
 
     def __truediv__(self, other):
         other_name = self.get_other_name(other)
         other = self.get_other_value(other)
-        return Expression(value=self.value / other, alias=f"{self.final_name}_div_{other_name}")
+        return Expression(
+            value=self.value / other, alias=f"{self.final_name}_div_{other_name}"
+        )
 
     @staticmethod
     def get_other_name(other):
@@ -104,7 +114,7 @@ class Literal(Value):
 
     literal_count = 0
 
-    def __init__(self, value, alias=''):
+    def __init__(self, value, alias=""):
         super(Literal, self).__init__(value, alias)
         if not alias:
             self.alias = f"_literal{self.literal_count}"
@@ -174,9 +184,10 @@ class Expression(Value):
     """
     Store information about an expression
     """
+
     expressions = 0
 
-    def __init__(self, value, alias='', typename='', function=''):
+    def __init__(self, value, alias="", typename="", function=""):
         super(Expression, self).__init__(value, alias, typename)
         self.function = function
         if self.alias:
@@ -218,7 +229,7 @@ class Column(Value):
     Store information about columns
     """
 
-    def __init__(self, name: str, alias='', typename='', value=None):
+    def __init__(self, name: str, alias="", typename="", value=None):
         super(Column, self).__init__(value, alias, typename)
         self.name = name
         if self.alias:
