@@ -1902,10 +1902,7 @@ def _normalize_keyword_aggregation(kwargs):
     columns, pairs = list(zip(*kwargs.items()))
 
     for name, (column, aggfunc) in zip(columns, pairs):
-        if column in aggspec:
-            aggspec[column].append(aggfunc)
-        else:
-            aggspec[column] = [aggfunc]
+        aggspec[column].append(aggfunc)
         order.append((column, com.get_callable_name(aggfunc) or aggfunc))
 
     # uniquify aggfunc name if duplicated in order list
