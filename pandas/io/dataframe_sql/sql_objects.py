@@ -1,5 +1,5 @@
 """
-Module containing all sql objects
+Module containing all dataframe_sql objects
 """
 from pandas import Series
 

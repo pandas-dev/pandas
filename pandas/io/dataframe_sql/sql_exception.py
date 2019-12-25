@@ -5,7 +5,7 @@ Exceptions for SQL to Pandas
 
 class InvalidQueryException(Exception):
     """
-    Raised when an invalid query is passed into a sql to pandas.
+    Raised when an invalid query is passed into a dataframe_sql to pandas.
     """
 
     def __init__(self, message):

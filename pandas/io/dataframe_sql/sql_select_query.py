@@ -1,14 +1,14 @@
 """
-Convert sql statement to run on pandas dataframes
+Convert dataframe_sql statement to run on pandas dataframes
 """
 from pathlib import Path
 import os
 
 from lark import Lark, UnexpectedToken
 
-from pandas.core.sql.parsers import SQLTransformer
-from pandas.core.sql.sql_objects import AmbiguousColumn
-from pandas.core.sql.sql_exception import InvalidQueryException
+from pandas.io.dataframe_sql.parsers import SQLTransformer
+from pandas.io.dataframe_sql.sql_objects import AmbiguousColumn
+from pandas.io.dataframe_sql.sql_exception import InvalidQueryException
 from pandas.core.frame import DataFrame
 
 SHOW_TREE = False
@@ -31,7 +31,7 @@ def remove_temp_table(table_name: str):
 
 class SqlToPandas:
     """
-    Class that handles conversion from sql to pandas data frame methods.
+    Class that handles conversion from dataframe_sql to pandas data frame methods.
     """
 
     def __init__(self, sql: str):
@@ -62,7 +62,7 @@ class SqlToPandas:
 
     def parse_sql(self):
         """
-        Splits the sql into tokens
+        Splits the dataframe_sql into tokens
         :return:
         """
         try:
@@ -101,7 +101,7 @@ class TableInfo:
 
     def register_temporary_table(self, frame: DataFrame, table_name: str):
         """
-        Registers dataframe info so that the data frame is prepared to be used with sql
+        Registers dataframe info so that the data frame is prepared to be used with dataframe_sql
         :param frame:
         :param table_name:
         :return:

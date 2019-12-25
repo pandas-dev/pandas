@@ -7,8 +7,10 @@ from typing import Tuple, List
 from lark import Transformer, v_args
 from lark.lexer import Token
 from lark.tree import Tree
-from pandas import DataFrame, merge, concat, options
-from pandas.core.sql.sql_objects import (
+from pandas.core.frame import DataFrame
+from pandas.core.reshape.merge import merge
+from pandas.core.reshape.concat import concat
+from pandas.io.dataframe_sql.sql_objects import (
     AmbiguousColumn,
     Column,
     Subquery,
@@ -20,7 +22,7 @@ from pandas.core.sql.sql_objects import (
     Expression,
     Value,
 )
-from pandas.core.sql.sql_exception import DataFrameDoesNotExist
+from pandas.io.dataframe_sql.sql_exception import DataFrameDoesNotExist
 
 DEBUG = False
 PRINT = False
@@ -450,7 +452,7 @@ class InternalTransformer(TransformerBaseClass):
 
     def case_expression(self, when_expressions):
         """
-        Handles sql case expressions
+        Handles dataframe_sql case expressions
         :param when_expressions:
         :return:
         """
@@ -777,7 +779,7 @@ class HavingTransformer(TransformerBaseClass):
 @v_args(inline=True)
 class SQLTransformer(TransformerBaseClass):
     """
-    Transformer for the lark sql parser
+    Transformer for the lark dataframe_sql parser
     """
 
     def __init__(
