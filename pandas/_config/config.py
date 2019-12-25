@@ -57,10 +57,10 @@ import warnings
 DeprecatedOption = namedtuple("DeprecatedOption", "key msg rkey removal_ver")
 RegisteredOption = namedtuple("RegisteredOption", "key defval doc validator cb")
 
-# holds deprecated option metdata
+# holds deprecated option metadata
 _deprecated_options: Dict[str, DeprecatedOption] = {}
 
-# holds registered option metdata
+# holds registered option metadata
 _registered_options: Dict[str, RegisteredOption] = {}
 
 # holds the current values for registered options
@@ -462,6 +462,7 @@ def register_option(key: str, defval: object, doc="", validator=None, cb=None):
 
     cursor = _global_config
     msg = "Path prefix to option '{option}' is already an option"
+
     for i, p in enumerate(path[:-1]):
         if not isinstance(cursor, dict):
             raise OptionError(msg.format(option=".".join(path[:i])))
@@ -650,8 +651,9 @@ def _build_option_description(k):
         s += f"\n    [default: {o.defval}] [currently: {_get_option(k, True)}]"
 
     if d:
+        rkey = d.rkey if d.rkey else ""
         s += "\n    (Deprecated"
-        s += ", use `{rkey}` instead.".format(rkey=d.rkey if d.rkey else "")
+        s += f", use `{rkey}` instead."
         s += ")"
 
     return s

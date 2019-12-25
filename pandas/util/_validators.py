@@ -15,7 +15,6 @@ def _check_arg_length(fname, args, max_fname_arg_count, compat_args):
     Checks whether 'args' has length of at most 'compat_args'. Raises
     a TypeError if that is not the case, similar to in Python when a
     function is called with too many arguments.
-
     """
     if max_fname_arg_count < 0:
         raise ValueError("'max_fname_arg_count' must be non-negative")
@@ -38,7 +37,6 @@ def _check_for_default_values(fname, arg_val_dict, compat_args):
 
     Note that this function is to be called only when it has been
     checked that arg_val_dict.keys() is a subset of compat_args
-
     """
     for key in arg_val_dict:
         # try checking equality directly with '=' operator,
@@ -65,11 +63,8 @@ def _check_for_default_values(fname, arg_val_dict, compat_args):
 
         if not match:
             raise ValueError(
-                (
-                    f"the '{key}' parameter is not "
-                    "supported in the pandas "
-                    f"implementation of {fname}()"
-                )
+                f"the '{key}' parameter is not supported in "
+                f"the pandas implementation of {fname}()"
             )
 
 
@@ -79,19 +74,18 @@ def validate_args(fname, args, max_fname_arg_count, compat_args):
     has at most `len(compat_args)` arguments and whether or not all of these
     elements in `args` are set to their default values.
 
-    fname: str
+    Parameters
+    ----------
+    fname : str
         The name of the function being passed the `*args` parameter
-
-    args: tuple
+    args : tuple
         The `*args` parameter passed into a function
-
-    max_fname_arg_count: int
+    max_fname_arg_count : int
         The maximum number of arguments that the function `fname`
         can accept, excluding those in `args`. Used for displaying
         appropriate error messages. Must be non-negative.
-
-    compat_args: OrderedDict
-        A ordered dictionary of keys and their associated default values.
+    compat_args : Dict
+        An ordered dictionary of keys and their associated default values.
         In order to accommodate buggy behaviour in some versions of `numpy`,
         where a signature displayed keyword arguments but then passed those
         arguments **positionally** internally when calling downstream
@@ -101,10 +95,11 @@ def validate_args(fname, args, max_fname_arg_count, compat_args):
 
     Raises
     ------
-    TypeError if `args` contains more values than there are `compat_args`
-    ValueError if `args` contains values that do not correspond to those
-    of the default values specified in `compat_args`
-
+    TypeError
+        If `args` contains more values than there are `compat_args`
+    ValueError
+        If `args` contains values that do not correspond to those
+        of the default values specified in `compat_args`
     """
     _check_arg_length(fname, args, max_fname_arg_count, compat_args)
 
@@ -119,7 +114,6 @@ def _check_for_invalid_keys(fname, kwargs, compat_args):
     """
     Checks whether 'kwargs' contains any keys that are not
     in 'compat_args' and raises a TypeError if there is one.
-
     """
     # set(dict) --> set of the dictionary's keys
     diff = set(kwargs) - set(compat_args)
@@ -139,12 +133,10 @@ def validate_kwargs(fname, kwargs, compat_args):
 
     Parameters
     ----------
-    fname: str
+    fname : str
         The name of the function being passed the `**kwargs` parameter
-
-    kwargs: dict
+    kwargs : dict
         The `**kwargs` parameter passed into `fname`
-
     compat_args: dict
         A dictionary of keys that `kwargs` is allowed to have and their
         associated default values
@@ -154,7 +146,6 @@ def validate_kwargs(fname, kwargs, compat_args):
     TypeError if `kwargs` contains keys not in `compat_args`
     ValueError if `kwargs` contains keys in `compat_args` that do not
     map to the default values specified in `compat_args`
-
     """
     kwds = kwargs.copy()
     _check_for_invalid_keys(fname, kwargs, compat_args)
@@ -171,18 +162,14 @@ def validate_args_and_kwargs(fname, args, kwargs, max_fname_arg_count, compat_ar
     ----------
     fname: str
         The name of the function being passed the `**kwargs` parameter
-
     args: tuple
         The `*args` parameter passed into a function
-
     kwargs: dict
         The `**kwargs` parameter passed into `fname`
-
     max_fname_arg_count: int
         The minimum number of arguments that the function `fname`
         requires, excluding those in `args`. Used for displaying
         appropriate error messages. Must be non-negative.
-
     compat_args: OrderedDict
         A ordered dictionary of keys that `kwargs` is allowed to
         have and their associated default values. Note that if there

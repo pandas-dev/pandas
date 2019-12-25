@@ -3,11 +3,10 @@ import pickle
 from typing import Any, Optional
 import warnings
 
+from pandas._typing import FilePathOrBuffer
 from pandas.compat import pickle_compat as pc
 
-from pandas._typing import FilePathOrBuffer
-
-from pandas.io.common import _get_handle, get_filepath_or_buffer
+from pandas.io.common import get_filepath_or_buffer, get_handle
 
 
 def to_pickle(
@@ -79,7 +78,7 @@ def to_pickle(
     )
     if not isinstance(fp_or_buf, str) and compression == "infer":
         compression = None
-    f, fh = _get_handle(fp_or_buf, "wb", compression=compression, is_text=False)
+    f, fh = get_handle(fp_or_buf, "wb", compression=compression, is_text=False)
     if protocol < 0:
         protocol = pickle.HIGHEST_PROTOCOL
     try:
@@ -162,7 +161,7 @@ def read_pickle(
     )
     if not isinstance(fp_or_buf, str) and compression == "infer":
         compression = None
-    f, fh = _get_handle(fp_or_buf, "rb", compression=compression, is_text=False)
+    f, fh = get_handle(fp_or_buf, "rb", compression=compression, is_text=False)
 
     # 1) try standard library Pickle
     # 2) try pickle_compat (older pandas version) to handle subclass changes

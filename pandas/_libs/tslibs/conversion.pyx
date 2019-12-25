@@ -444,15 +444,15 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
                                        bint dayfirst=False,
                                        bint yearfirst=False):
     """
-    Convert a string-like (bytes or unicode) input `ts`, along with optional
-    timezone object `tz` to a _TSObject.
+    Convert a string input `ts`, along with optional timezone object`tz`
+    to a _TSObject.
 
     The optional arguments `dayfirst` and `yearfirst` are passed to the
     dateutil parser.
 
     Parameters
     ----------
-    ts : bytes or unicode
+    ts : str
         Value to be converted to _TSObject
     tz : tzinfo or None
         timezone for the timezone-aware output
