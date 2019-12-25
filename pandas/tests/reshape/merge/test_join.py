@@ -226,9 +226,7 @@ class TestJoin:
             {"a": np.random.choice(["m", "f"], size=10), "b": np.random.randn(10)},
             index=tm.makeCustomIndex(10, 2),
         )
-        msg = (
-            r"len\(left_on\) must equal the number of levels in the index" ' of "right"'
-        )
+        msg = r'len\(left_on\) must equal the number of levels in the index of "right"'
         with pytest.raises(ValueError, match=msg):
             merge(df, df2, left_on="a", right_index=True)
 
@@ -240,9 +238,7 @@ class TestJoin:
         df2 = DataFrame(
             {"a": np.random.choice(["m", "f"], size=10), "b": np.random.randn(10)}
         )
-        msg = (
-            r"len\(right_on\) must equal the number of levels in the index" ' of "left"'
-        )
+        msg = r'len\(right_on\) must equal the number of levels in the index of "left"'
         with pytest.raises(ValueError, match=msg):
             merge(df, df2, right_on="b", left_index=True)
 
@@ -737,9 +733,7 @@ class TestJoin:
         )
         tm.assert_frame_equal(expected, result)
 
-        msg = (
-            r"len\(left_on\) must equal the number of levels in the index" ' of "right"'
-        )
+        msg = r'len\(left_on\) must equal the number of levels in the index of "right"'
         with pytest.raises(ValueError, match=msg):
             left.join(right, on="xy", how=join_type)
 

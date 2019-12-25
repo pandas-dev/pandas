@@ -53,7 +53,7 @@ def to_json(
 
     if not index and orient not in ["split", "table"]:
         raise ValueError(
-            "'index=False' is only valid when 'orient' is " "'split' or 'table'"
+            "'index=False' is only valid when 'orient' is 'split' or 'table'"
         )
 
     path_or_buf = stringify_path(path_or_buf)
