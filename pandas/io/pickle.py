@@ -7,10 +7,7 @@ from pandas.compat import pickle_compat as pc
 
 from pandas._typing import FilePathOrBuffer
 
-from pandas.io.common import (
-    _get_handle,
-    get_filepath_or_buffer as _get_filepath_or_buffer,
-)
+from pandas.io.common import _get_handle, get_filepath_or_buffer
 
 
 def to_pickle(
@@ -26,8 +23,9 @@ def to_pickle(
     ----------
     obj : any object
         Any python object.
-    path : str
+    filepath_or_buffer : str, path object or file-like object
         File path, URL, or buffer where the pickled object will be stored.
+        URL has to be either of S3 or GCS.
     compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
         If 'infer' and 'path_or_url' is path-like, then detect compression from
         the following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise no
@@ -76,7 +74,7 @@ def to_pickle(
     >>> import os
     >>> os.remove("./dummy.pkl")
     """
-    fp_or_buf, _, compression, should_close = _get_filepath_or_buffer(
+    fp_or_buf, _, compression, should_close = get_filepath_or_buffer(
         filepath_or_buffer, compression=compression, mode="wb"
     )
     if not isinstance(fp_or_buf, str) and compression == "infer":
@@ -110,8 +108,9 @@ def read_pickle(
 
     Parameters
     ----------
-    filepath_or_buffer : str
+    filepath_or_buffer : str, path object or file-like object
         File path, URL, or buffer where the pickled object will be loaded from.
+        URL is not limited to S3 and GCS.
     compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
         If 'infer' and 'path_or_url' is path-like, then detect compression from
         the following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise no
@@ -158,7 +157,7 @@ def read_pickle(
     >>> import os
     >>> os.remove("./dummy.pkl")
     """
-    fp_or_buf, _, compression, should_close = _get_filepath_or_buffer(
+    fp_or_buf, _, compression, should_close = get_filepath_or_buffer(
         filepath_or_buffer, compression=compression
     )
     if not isinstance(fp_or_buf, str) and compression == "infer":
