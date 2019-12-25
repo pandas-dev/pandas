@@ -89,7 +89,7 @@ def set_default_names(data):
     data = data.copy()
     if data.index.nlevels > 1:
         names = [
-            name if name is not None else "level_{}".format(i)
+            name if name is not None else f"level_{i}"
             for i, name in enumerate(data.index.names)
         ]
         data.index.names = names
@@ -175,7 +175,7 @@ def convert_json_field_to_pandas_type(field):
         return "timedelta64"
     elif typ == "datetime":
         if field.get("tz"):
-            return "datetime64[ns, {tz}]".format(tz=field["tz"])
+            return f"datetime64[ns, {field['tz']}]"
         else:
             return "datetime64[ns]"
     elif typ == "any":
@@ -186,7 +186,7 @@ def convert_json_field_to_pandas_type(field):
         else:
             return "object"
 
-    raise ValueError("Unsupported or invalid field type: {}".format(typ))
+    raise ValueError(f"Unsupported or invalid field type: {typ}")
 
 
 def build_table_schema(data, index=True, primary_key=None, version=True):

@@ -9,7 +9,7 @@ a once again improved version.
 You can find more information on http://presbrey.mit.edu/PyDTA and
 http://www.statsmodels.org/devel/
 """
-from collections.abc import Iterator
+from collections import abc
 import datetime
 from io import BytesIO
 import os
@@ -1010,7 +1010,7 @@ class StataParser:
         )
 
 
-class StataReader(StataParser, Iterator):
+class StataReader(StataParser, abc.Iterator):
     __doc__ = _stata_reader_doc
 
     def __init__(

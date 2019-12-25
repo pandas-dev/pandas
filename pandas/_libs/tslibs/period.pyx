@@ -1212,8 +1212,7 @@ cdef str period_format(int64_t value, int freq, object fmt=None):
         elif freq_group == 4000:  # WK
             left = period_asfreq(value, freq, 6000, 0)
             right = period_asfreq(value, freq, 6000, 1)
-            return '%s/%s' % (period_format(left, 6000),
-                              period_format(right, 6000))
+            return f"{period_format(left, 6000)}/{period_format(right, 6000)}"
         elif (freq_group == 5000      # BUS
               or freq_group == 6000):  # DAY
             fmt = b'%Y-%m-%d'
@@ -1230,7 +1229,7 @@ cdef str period_format(int64_t value, int freq, object fmt=None):
         elif freq_group == 12000:  # NANOSEC
             fmt = b'%Y-%m-%d %H:%M:%S.%n'
         else:
-            raise ValueError(f'Unknown freq: {freq}')
+            raise ValueError(f"Unknown freq: {freq}")
 
     return _period_strftime(value, freq, fmt)
 
@@ -1276,15 +1275,15 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt):
             if i == 0:
                 repl = str(quarter)
             elif i == 1:  # %f, 2-digit year
-                repl = f'{(year % 100):02d}'
+                repl = f"{(year % 100):02d}"
             elif i == 2:
                 repl = str(year)
             elif i == 3:
-                repl = f'{(value % 1_000):03d}'
+                repl = f"{(value % 1_000):03d}"
             elif i == 4:
-                repl = f'{(value % 1_000_000):06d}'
+                repl = f"{(value % 1_000_000):06d}"
             elif i == 5:
-                repl = f'{(value % 1_000_000_000):09d}'
+                repl = f"{(value % 1_000_000_000):09d}"
 
             result = result.replace(str_extra_fmts[i], repl)
 
@@ -1392,7 +1391,7 @@ def get_period_field_arr(int code, int64_t[:] arr, int freq):
 
     func = _get_accessor_func(code)
     if func is NULL:
-        raise ValueError(f'Unrecognized period code: {code}')
+        raise ValueError(f"Unrecognized period code: {code}")
 
     sz = len(arr)
     out = np.empty(sz, dtype=np.int64)
@@ -1579,8 +1578,8 @@ cdef class _Period:
         freq = to_offset(freq)
 
         if freq.n <= 0:
-            raise ValueError(f'Frequency must be positive, because it '
-                             f'represents span: {freq.freqstr}')
+            raise ValueError("Frequency must be positive, because it "
+                             f"represents span: {freq.freqstr}")
 
         return freq
 
@@ -1614,8 +1613,8 @@ cdef class _Period:
                 return NotImplemented
             elif op == Py_NE:
                 return NotImplemented
-            raise TypeError(f'Cannot compare type {type(self).__name__} '
-                            f'with type {type(other).__name__}')
+            raise TypeError(f"Cannot compare type {type(self).__name__} "
+                            f"with type {type(other).__name__}")
 
     def __hash__(self):
         return hash((self.ordinal, self.freqstr))
@@ -1633,8 +1632,8 @@ cdef class _Period:
                 if nanos % offset_nanos == 0:
                     ordinal = self.ordinal + (nanos // offset_nanos)
                     return Period(ordinal=ordinal, freq=self.freq)
-            raise IncompatibleFrequency(f'Input cannot be converted to '
-                                        f'Period(freq={self.freqstr})')
+            raise IncompatibleFrequency("Input cannot be converted to "
+                                        f"Period(freq={self.freqstr})")
         elif util.is_offset_object(other):
             freqstr = other.rule_code
             base = get_base_alias(freqstr)
