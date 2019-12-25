@@ -22,7 +22,7 @@ from pandas._config.localization import (  # noqa:F401
 )
 
 import pandas._libs.testing as _testing
-from pandas._typing import FilePathOrBuffer
+from pandas._typing import FilePathOrBuffer, FrameOrSeries
 from pandas.compat import _get_lzma_file, _import_lzma
 
 from pandas.core.dtypes.common import (
@@ -101,7 +101,9 @@ def reset_display_options():
     pd.reset_option("^display.", silent=True)
 
 
-def round_trip_pickle(obj: Any, path: FilePathOrBuffer = ""):
+def round_trip_pickle(
+    obj: Any, path: Optional[FilePathOrBuffer] = None
+) -> FrameOrSeries:
     """
     Pickle an object and then read it again.
 
@@ -117,11 +119,12 @@ def round_trip_pickle(obj: Any, path: FilePathOrBuffer = ""):
     pandas object
         The original object that was pickled and then re-read.
     """
-    if not path:
-        path = f"__{rands(10)}__.pickle"
-    with ensure_clean(path) as path:
-        pd.to_pickle(obj, path)
-        return pd.read_pickle(path)
+    _path = path
+    if _path is None:
+        _path = f"__{rands(10)}__.pickle"
+    with ensure_clean(_path) as path:
+        pd.to_pickle(obj, _path)
+        return pd.read_pickle(_path)
 
 
 def round_trip_pathlib(writer, reader, path: Optional[str] = None):
