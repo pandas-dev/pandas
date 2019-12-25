@@ -858,7 +858,7 @@ class TestSeriesAnalytics:
         arr = np.random.randn(N)
         ser = Series(arr)
         print(np.ptp(ser), np.ptp(arr))
-
+        print(type(np.ptp(ser)), type(np.ptp(arr)))
         assert np.ptp(ser) == np.ptp(arr)
 
     def test_repeat(self):
