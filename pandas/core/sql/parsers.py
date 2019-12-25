@@ -712,25 +712,25 @@ class SQLTransformer(TransformerBaseClass):
     """
     Transformer for the lark sql parser
     """
-    def __init__(self, env):
-        super(SQLTransformer, self).__init__(dataframe_name_map={}, dataframe_map={}, column_name_map={},
-                                             column_to_dataframe_name={}, _temp_dataframes_dict={})
-        for key in env:
-            if isinstance(env[key], DataFrame):
-                dataframe = env[key]
-                self.dataframe_name_map[key.lower()] = key
-                self.dataframe_map[key] = dataframe
-                self.column_name_map[key] = {}
-                for column in dataframe.columns:
-                    lower_column = column.lower()
-                    self.column_name_map[key][lower_column] = column
-                    self.add_column_to_column_to_dataframe_name_map(lower_column, key)
-
-        print(env)
-        print(self.dataframe_name_map)
-        print(self.dataframe_map)
-        print(self.column_name_map)
-        print(self.column_name_map)
+    def __init__(self, dataframe_name_map={}, dataframe_map={}, column_name_map={}, column_to_dataframe_name={}):
+        super(SQLTransformer, self).__init__(dataframe_name_map, dataframe_map, column_name_map,
+                                             column_to_dataframe_name, _temp_dataframes_dict={})
+        # for key in env:
+        #     if isinstance(env[key], DataFrame):
+        #         dataframe = env[key]
+        #         self.dataframe_name_map[key.lower()] = key
+        #         self.dataframe_map[key] = dataframe
+        #         self.column_name_map[key] = {}
+        #         for column in dataframe.columns:
+        #             lower_column = column.lower()
+        #             self.column_name_map[key][lower_column] = column
+        #             self.add_column_to_column_to_dataframe_name_map(lower_column, key)
+        #
+        # print(env)
+        # print(self.dataframe_name_map)
+        # print(self.dataframe_map)
+        # print(self.column_name_map)
+        # print(self.column_name_map)
 
 
     def add_column_to_column_to_dataframe_name_map(self, column, table):

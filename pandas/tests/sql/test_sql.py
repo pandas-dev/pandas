@@ -2,31 +2,46 @@
 Test cases for panda to sql
 """
 # pylint: disable=broad-except
+import os
+from pathlib import Path
 import numpy as np
 from datetime import datetime, date
+from pandas.core.frame import DataFrame
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.merge import merge
 from pandas.io.parsers import read_csv
 from freezegun import freeze_time
 from pandas.core.sql.sql_to_pandas import SqlToPandas
 from pandas.core.sql.sql_exception import InvalidQueryException, DataFrameDoesNotExist
+from pandas.core.sql.sql_to_pandas import register_temp_table
 from pandas.util.testing import assert_frame_equal
 
-FOREST_FIRES = read_csv('~/PycharmProjects/sql_to_pandas/data/forestfires.csv') # Name is weird intentionally
 
-DIGIMON_MON_LIST = read_csv('~/PycharmProjects/sql_to_pandas/data/DigiDB_digimonlist.csv')
-DIGIMON_MOVE_LIST = read_csv('~/PycharmProjects/sql_to_pandas/data/DigiDB_movelist.csv')
-DIGIMON_SUPPORT_LIST = read_csv('~/PycharmProjects/sql_to_pandas/data/DigiDB_supportlist.csv')
+DATA_PATH = os.path.join(Path(__file__).parent, "data")
+
+
+# Import the data for testing
+FOREST_FIRES = read_csv(os.path.join(DATA_PATH, 'forestfires.csv'))
+DIGIMON_MON_LIST = read_csv(os.path.join(DATA_PATH, 'DigiDB_digimonlist.csv'))
+DIGIMON_MOVE_LIST = read_csv(os.path.join(DATA_PATH, 'DigiDB_movelist.csv'))
+DIGIMON_SUPPORT_LIST = read_csv(os.path.join(DATA_PATH, 'DigiDB_supportlist.csv'))
+
+# Name change is for name interference
 DIGIMON_MON_LIST['mon_attribute'] = DIGIMON_MON_LIST['Attribute']
 DIGIMON_MOVE_LIST['move_attribute'] = DIGIMON_MOVE_LIST['Attribute']
 
 
-def lower_case_globals():
+def register_env_tables():
     """
     Returns all globals but in lower case
     :return:
     """
-    return {global_var: globals()[global_var] for global_var in globals()}
+    for variable_name in globals():
+        variable = globals()[variable_name]
+        if isinstance(variable, DataFrame):
+            register_temp_table(frame=variable, table_name=variable_name)
+
+register_env_tables()
 
 
 def sql_to_pandas_with_vars(sql: str):
@@ -35,7 +50,7 @@ def sql_to_pandas_with_vars(sql: str):
     :param sql: Sql query
     :return: SqlToPandasClass with
     """
-    return SqlToPandas(sql, lower_case_globals()).data_frame
+    return SqlToPandas(sql).data_frame
 
 
 def test_for_valid_query():
@@ -893,4 +908,4 @@ def test_timestamps():
         assert pandas_frame.equals(my_frame)
 
 if __name__ == "__main__":
-    test_timestamps()
+    pass
