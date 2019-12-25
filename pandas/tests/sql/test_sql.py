@@ -746,8 +746,9 @@ def test_rank_statement_many_columns():
             rank_counter += 1
         rank_series[row_num] = rank
     pandas_frame['rank'] = rank_series
-    pandas_frame.set_index('index', inplace=True)
-    pandas_frame.sort_index(inplace=True)
+    pandas_frame.sort_values(by='index', ascending=True, inplace=True)
+    pandas_frame.drop(columns=['index'], inplace=True)
+    pandas_frame.reset_index(drop=True, inplace=True)
     assert_frame_equal(pandas_frame, my_frame)
 
 
@@ -776,8 +777,9 @@ def test_dense_rank_statement_many_columns():
             rank_counter += 1
         rank_series[row_num] = rank
     pandas_frame['rank'] = rank_series
-    pandas_frame.set_index('index', inplace=True)
-    pandas_frame.sort_index(inplace=True)
+    pandas_frame.sort_values(by='index', ascending=True, inplace=True)
+    pandas_frame.drop(columns=['index'], inplace=True)
+    pandas_frame.reset_index(drop=True, inplace=True)
     assert_frame_equal(pandas_frame, my_frame)
 
 
@@ -821,9 +823,11 @@ def test_rank_over_partition_by():
             rank_map[partition_key][key] = rank
         rank_series[row_num] = rank
     pandas_frame['rank'] = rank_series
-    pandas_frame.set_index('index', inplace=True)
-    pandas_frame.sort_index(inplace=True)
+    pandas_frame.sort_values(by='index', ascending=True, inplace=True)
+    pandas_frame.drop(columns=['index'], inplace=True)
+    pandas_frame.reset_index(drop=True, inplace=True)
     assert_frame_equal(pandas_frame, my_frame)
+
 
 def test_dense_rank_over_partition_by():
     """
@@ -862,8 +866,9 @@ def test_dense_rank_over_partition_by():
             rank_map[partition_key][key] = rank
         rank_series[row_num] = rank
     pandas_frame['rank'] = rank_series
-    pandas_frame.set_index('index', inplace=True)
-    pandas_frame.sort_index(inplace=True)
+    pandas_frame.sort_values(by='index', ascending=True, inplace=True)
+    pandas_frame.drop(columns=['index'], inplace=True)
+    pandas_frame.reset_index(drop=True, inplace=True)
     assert_frame_equal(pandas_frame, my_frame)
 
 
@@ -909,4 +914,4 @@ def test_timestamps():
 
 
 if __name__ == "__main__":
-    pass
+    test_rank_statement_many_columns()
