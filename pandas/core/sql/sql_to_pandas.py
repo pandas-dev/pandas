@@ -24,6 +24,11 @@ def register_temp_table(frame: DataFrame, table_name: str):
     table_info.register_temporary_table(frame, table_name)
 
 
+def remove_temp_table(table_name: str):
+    table_info = TableInfo()
+    table_info.remove_temp_table(table_name)
+
+
 class SqlToPandas:
     """
     Class that handles conversion from sql to pandas data frame methods.
@@ -92,6 +97,10 @@ class TableInfo:
         :param table_name:
         :return:
         """
+        if table_name.lower() in self.dataframe_name_map:
+            raise Exception(f"A table {table_name.lower()} has already been registered. Keep in mind that table "
+                            f"names are case insensitive")
+
         self.dataframe_name_map[table_name.lower()] = table_name
         self.dataframe_map[table_name] = frame
         self.column_name_map[table_name] = {}
@@ -99,3 +108,28 @@ class TableInfo:
             lower_column = column.lower()
             self.column_name_map[table_name][lower_column] = column
             self.add_column_to_column_to_dataframe_name_map(lower_column, table_name)
+
+    def remove_temp_table(self, table_name: str):
+        """
+        Unregisters a dataframe from table info
+        :param table_name:
+        :return:
+        """
+        if table_name.lower() not in self.dataframe_name_map:
+            raise Exception(f"Table {table_name.lower()} is not registered")
+        real_table_name = self.dataframe_name_map[table_name.lower()]
+
+        columns = self.dataframe_map[real_table_name].columns.to_list()
+        for column in columns:
+            lower_column = column.lower()
+            value = self.column_to_dataframe_name[lower_column]
+            if isinstance(value, AmbiguousColumn):
+                value.tables.remove(real_table_name)
+                if len(value.tables) == 1:
+                    self.column_to_dataframe_name[lower_column] = value.tables[0]
+            else:
+                del self.column_to_dataframe_name[lower_column]
+
+        del self.dataframe_name_map[table_name.lower()]
+        del self.dataframe_map[real_table_name]
+        del self.column_name_map[real_table_name]
