@@ -859,7 +859,7 @@ class TestSeriesAnalytics:
         ser = Series(arr)
         print(np.ptp(ser), np.ptp(arr))
         print(type(np.ptp(ser)), type(np.ptp(arr)))
-        assert np.ptp(ser) == np.ptp(arr)
+        assert np.ptp(ser.to_numpy()) == np.ptp(arr)
 
     def test_repeat(self):
         s = Series(np.random.randn(3), index=["a", "b", "c"])
