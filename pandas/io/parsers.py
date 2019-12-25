@@ -1605,7 +1605,7 @@ class ParserBase:
                 return icol
 
             if col_names is None:
-                raise ValueError(f"Must supply column order to use {icol:s} as index")
+                raise ValueError(f"Must supply column order to use {icol!s} as index")
 
             for i, c in enumerate(col_names):
                 if i == icol:
@@ -3343,6 +3343,7 @@ def _try_convert_dates(parser, colspec, data_dict, columns):
 
 
 def _clean_na_values(na_values, keep_default_na=True):
+
     if na_values is None:
         if keep_default_na:
             na_values = STR_NA_VALUES
