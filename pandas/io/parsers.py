@@ -1721,9 +1721,7 @@ class ParserBase:
                             and not is_categorical_dtype(cast_type)
                             and na_count > 0
                         ):
-                            raise ValueError(
-                                f"Bool column has NA values in column {c}"
-                            )
+                            raise ValueError(f"Bool column has NA values in column {c}")
                     except (AttributeError, TypeError):
                         # invalid input to is_bool_dtype
                         pass
