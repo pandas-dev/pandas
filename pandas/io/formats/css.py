@@ -15,25 +15,13 @@ class CSSWarning(UserWarning):
 
 
 def _side_expander(prop_fmt: str):
-    """
-    Parameters
-    ----------
-    prop_fmt : str
-    """
-
     def expand(self, prop, value: str):
-        """
-        Parameters
-        ----------
-        prop
-        value : str
-        """
         tokens = value.split()
         try:
             mapping = self.SIDE_SHORTHANDS[len(tokens)]
         except KeyError:
             warnings.warn(
-                f"Could not expand {prop}: {value}", CSSWarning,
+                f'Could not expand "{prop}: {value}"', CSSWarning,
             )
             return
         for key, idx in zip(self.SIDES, mapping):
@@ -187,9 +175,7 @@ class CSSResolver:
 
     def size_to_pt(self, in_val, em_pt=None, conversions=UNIT_RATIOS):
         def _error():
-            warnings.warn(
-                f"Unhandled size: {repr(in_val)}", CSSWarning,
-            )
+            warnings.warn(f"Unhandled size: {repr(in_val)}", CSSWarning)
             return self.size_to_pt("1!!default", conversions=conversions)
 
         try:

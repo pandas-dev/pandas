@@ -5,13 +5,14 @@ Module for formatting output data into CSV files.
 import csv as csvlib
 from io import StringIO
 import os
-from typing import List, Optional, Sequence, Union
+from typing import Hashable, List, Mapping, Optional, Sequence, Union
 import warnings
 from zipfile import ZipFile
 
 import numpy as np
 
 from pandas._libs import writers as libwriters
+from pandas._typing import FilePathOrBuffer
 
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
@@ -20,8 +21,6 @@ from pandas.core.dtypes.generic import (
     ABCPeriodIndex,
 )
 from pandas.core.dtypes.missing import notna
-
-from pandas._typing import FilePathOrBuffer
 
 from pandas.io.common import (
     get_compression_method,
@@ -38,21 +37,21 @@ class CSVFormatter:
         path_or_buf: Optional[FilePathOrBuffer[str]] = None,
         sep: str = ",",
         na_rep: str = "",
-        float_format=None,
+        float_format: Optional[str] = None,
         cols=None,
-        header: Union[bool, Sequence[str]] = True,
+        header: Union[bool, Sequence[Hashable]] = True,
         index: bool = True,
-        index_label=None,
+        index_label: Optional[Union[bool, Hashable, Sequence[Hashable]]] = None,
         mode: str = "w",
         encoding: Optional[str] = None,
-        compression="infer",
+        compression: Union[str, Mapping[str, str], None] = "infer",
         quoting: Optional[int] = None,
         line_terminator: Optional[str] = "\n",
         chunksize: Optional[int] = None,
         quotechar: Optional[str] = '"',
         date_format: Optional[str] = None,
         doublequote: bool = True,
-        escapechar=None,
+        escapechar: Optional[str] = None,
         decimal: Optional[str] = ".",
     ):
         self.obj = obj
