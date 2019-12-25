@@ -681,6 +681,7 @@ Categorical
   same type as if one used the :meth:`.str.` / :meth:`.dt.` on a :class:`Series` of that type. E.g. when accessing :meth:`Series.dt.tz_localize` on a
   :class:`Categorical` with duplicate entries, the accessor was skipping duplicates (:issue:`27952`)
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` that would give incorrect results on categorical data (:issue:`26988`)
+- Bug where calling :meth:`Categorical.min` or :meth:`Categorical.max` on an empty Categorical would raise a numpy exception (:issue:`30227`)
 
 
 Datetimelike
@@ -797,7 +798,7 @@ I/O
 - Bug in :func:`read_json` where default encoding was not set to ``utf-8`` (:issue:`29565`)
 - Bug in :class:`PythonParser` where str and bytes were being mixed when dealing with the decimal field (:issue:`29650`)
 - :meth:`read_gbq` now accepts ``progress_bar_type`` to display progress bar while the data downloads. (:issue:`29857`)
-- Bug in :func: 'to_pickle' and :func: 'read_pickle' where not accepting URL (:issue:'30299')
+- Bug in :func: 'to_pickle' and :func: 'read_pickle' where not accepting URL (:issue:'30163')
 
 Plotting
 ^^^^^^^^
@@ -862,7 +863,7 @@ ExtensionArray
 
 - Bug in :class:`arrays.PandasArray` when setting a scalar string (:issue:`28118`, :issue:`28150`).
 - Bug where nullable integers could not be compared to strings (:issue:`28930`)
--
+- Bug where :class:`DataFrame` constructor raised ValueError with list-like data and ``dtype`` specified (:issue:`30280`)
 
 
 Other
