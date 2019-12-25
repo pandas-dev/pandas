@@ -2186,18 +2186,34 @@ class MultiIndex(Index):
             levels=new_levels, codes=new_codes, names=new_names, verify_integrity=False
         )
 
-    def reorder_levels(self, order):
+    def reorder_levels(self, order, positional=None):
         """
         Rearrange levels using input order. May not drop or duplicate levels.
 
         Parameters
         ----------
+        order: list
+            the order of index levels after reorder, could be level labels or positions
+        positional : bool, optional
+            How to interpret integer values in `order`.
+
+              * None (default): prefer treating the values as labels,
+                but fall back to positional if no label with that
+                value is value.
+              * True : only treat integer values as positions.
+              * False : only treat integer values as labels.
 
         Returns
         -------
         MultiIndex
         """
-        order = [self._get_level_number(i) for i in order]
+        if positional is None:
+            order = [self._get_level_number(i) for i in order]
+        elif positional:
+            order = [self._get_level_number_by_position(i) for i in order]
+        else:
+            order = [self._get_level_number_by_label(i) for i in order]
+
         if len(order) != self.nlevels:
             raise AssertionError(
                 f"Length of order must be same as number of levels ({self.nlevels}),"
