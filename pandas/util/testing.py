@@ -8,7 +8,7 @@ import os
 from shutil import rmtree
 import string
 import tempfile
-from typing import List, Optional, Union, cast
+from typing import Any, List, Optional, Union, cast
 import warnings
 import zipfile
 
@@ -22,7 +22,7 @@ from pandas._config.localization import (  # noqa:F401
 )
 
 import pandas._libs.testing as _testing
-from pandas._typing import FrameOrSeries
+from pandas._typing import FilePathOrBuffer
 from pandas.compat import _get_lzma_file, _import_lzma
 
 from pandas.core.dtypes.common import (
@@ -101,15 +101,15 @@ def reset_display_options():
     pd.reset_option("^display.", silent=True)
 
 
-def round_trip_pickle(obj: FrameOrSeries, path: Optional[str] = None) -> FrameOrSeries:
+def round_trip_pickle(obj: Any, path: FilePathOrBuffer = ""):
     """
     Pickle an object and then read it again.
 
     Parameters
     ----------
-    obj : pandas object
+    obj : any object
         The object to pickle and then re-read.
-    path : str, default None
+    path : str, path object or file-like object, default None
         The path where the pickled object is written and then read.
 
     Returns
@@ -117,7 +117,7 @@ def round_trip_pickle(obj: FrameOrSeries, path: Optional[str] = None) -> FrameOr
     pandas object
         The original object that was pickled and then re-read.
     """
-    if path is None:
+    if not path:
         path = f"__{rands(10)}__.pickle"
     with ensure_clean(path) as path:
         pd.to_pickle(obj, path)
