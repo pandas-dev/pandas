@@ -173,6 +173,10 @@ from pandas.io.api import (
     read_stata,
     read_sas,
     read_spss,
+    # dataframe_sql
+    register_temp_table,
+    remove_temp_table,
+    query,
 )
 
 from pandas.io.json import _json_normalize as json_normalize

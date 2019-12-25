@@ -29,6 +29,10 @@ def remove_temp_table(table_name: str):
     table_info.remove_temp_table(table_name)
 
 
+def query(sql: str):
+    return SqlToPandas(sql).data_frame
+
+
 class SqlToPandas:
     """
     Class that handles conversion from dataframe_sql to pandas data frame methods.
