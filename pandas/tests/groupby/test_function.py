@@ -1398,6 +1398,22 @@ def test_quantile_array_multiple_levels():
     tm.assert_frame_equal(result, expected)
 
 
+def test_groupby_quantile_with_arraylike_q_and_int_columns():
+    # GH30289
+    df = pd.DataFrame(np.array([2 * [_ % 4] for _ in range(10)]), columns=[0, 1])
+
+    quantiles = [0.5, 0.6]
+    expected_index = pd.MultiIndex.from_product(
+        [[0, 1, 2, 3], [0.5, 0.6]], names=[0, None]
+    )
+
+    expected_values = [float(x) for x in [0, 0, 1, 1, 2, 2, 3, 3]]
+    expected = pd.DataFrame(expected_values, index=expected_index, columns=[1])
+    result = df.groupby(0).quantile(quantiles)
+
+    tm.assert_frame_equal(result, expected)
+
+
 def test_quantile_raises():
     df = pd.DataFrame(
         [["foo", "a"], ["foo", "b"], ["foo", "c"]], columns=["key", "val"]
