@@ -502,11 +502,11 @@ class TestSeriesMissingData:
 
     def test_fillna_raise(self):
         s = Series(np.random.randint(-100, 100, 50))
-        msg = '"value" parameter must be a scalar or dict, but you passed a' ' "list"'
+        msg = '"value" parameter must be a scalar or dict, but you passed a "list"'
         with pytest.raises(TypeError, match=msg):
             s.fillna([1, 2])
 
-        msg = '"value" parameter must be a scalar or dict, but you passed a' ' "tuple"'
+        msg = '"value" parameter must be a scalar or dict, but you passed a "tuple"'
         with pytest.raises(TypeError, match=msg):
             s.fillna((1, 2))
 
@@ -593,11 +593,11 @@ class TestSeriesMissingData:
         with pytest.raises(ValueError, match="fill value must be in categories"):
             s.fillna({1: "d", 3: "a"})
 
-        msg = '"value" parameter must be a scalar or ' 'dict, but you passed a "list"'
+        msg = '"value" parameter must be a scalar or dict, but you passed a "list"'
         with pytest.raises(TypeError, match=msg):
             s.fillna(["a", "b"])
 
-        msg = '"value" parameter must be a scalar or ' 'dict, but you passed a "tuple"'
+        msg = '"value" parameter must be a scalar or dict, but you passed a "tuple"'
         with pytest.raises(TypeError, match=msg):
             s.fillna(("a", "b"))
 

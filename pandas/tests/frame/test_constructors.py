@@ -479,11 +479,11 @@ class TestDataFrameConstructors:
             DataFrame(np.zeros((3, 3, 3)), columns=["A", "B", "C"], index=[1])
 
         # wrong size axis labels
-        msg = "Shape of passed values " r"is \(2, 3\), indices " r"imply \(1, 3\)"
+        msg = r"Shape of passed values is \(2, 3\), indices imply \(1, 3\)"
         with pytest.raises(ValueError, match=msg):
             DataFrame(np.random.rand(2, 3), columns=["A", "B", "C"], index=[1])
 
-        msg = "Shape of passed values " r"is \(2, 3\), indices " r"imply \(2, 2\)"
+        msg = r"Shape of passed values is \(2, 3\), indices imply \(2, 2\)"
         with pytest.raises(ValueError, match=msg):
             DataFrame(np.random.rand(2, 3), columns=["A", "B"], index=[1, 2])
 

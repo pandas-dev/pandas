@@ -242,9 +242,7 @@ class TestLoc(Base):
         with pytest.raises(KeyError, match=msg):
             s.loc[[-1, -2]]
 
-        msg = (
-            r"\"None of \[Index\(\['4'\], dtype='object'\)\] are" r" in the \[index\]\""
-        )
+        msg = r"\"None of \[Index\(\['4'\], dtype='object'\)\] are in the \[index\]\""
         with pytest.raises(KeyError, match=msg):
             s.loc[["4"]]
 

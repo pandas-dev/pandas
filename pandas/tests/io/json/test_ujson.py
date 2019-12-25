@@ -111,9 +111,9 @@ class TestUltraJSONTests:
     @pytest.mark.parametrize("ensure_ascii", [True, False])
     def test_encode_string_conversion(self, ensure_ascii):
         string_input = "A string \\ / \b \f \n \r \t </script> &"
-        not_html_encoded = '"A string \\\\ \\/ \\b \\f \\n ' '\\r \\t <\\/script> &"'
+        not_html_encoded = '"A string \\\\ \\/ \\b \\f \\n \\r \\t <\\/script> &"'
         html_encoded = (
-            '"A string \\\\ \\/ \\b \\f \\n \\r \\t ' '\\u003c\\/script\\u003e \\u0026"'
+            '"A string \\\\ \\/ \\b \\f \\n \\r \\t \\u003c\\/script\\u003e \\u0026"'
         )
 
         def helper(expected_output, **encode_kwargs):
@@ -816,7 +816,7 @@ class TestNumpyJSONTests:
 
         # see gh-10837: write out the dump explicitly
         # so there is no dependency on iteration order
-        input_dumps = '[{"a": 42, "b":31}, {"a": 24, "c": 99}, ' '{"a": 2.4, "b": 78}]'
+        input_dumps = '[{"a": 42, "b":31}, {"a": 24, "c": 99}, {"a": 2.4, "b": 78}]'
         output = ujson.loads(input_dumps, numpy=True, labelled=True)
         expected_vals = np.array([42, 31, 24, 99, 2.4, 78], dtype=int).reshape((3, 2))
         assert (expected_vals == output[0]).all()

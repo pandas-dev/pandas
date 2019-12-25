@@ -81,9 +81,7 @@ def set_default_names(data):
         if len(nms) == 1 and data.index.name == "index":
             warnings.warn("Index name of 'index' is not round-trippable")
         elif len(nms) > 1 and any(x.startswith("level_") for x in nms):
-            warnings.warn(
-                "Index names beginning with 'level_' are not " "round-trippable"
-            )
+            warnings.warn("Index names beginning with 'level_' are not round-trippable")
         return data
 
     data = data.copy()
@@ -317,12 +315,12 @@ def parse_table_schema(json, precise_float):
 
     # Cannot directly use as_type with timezone data on object; raise for now
     if any(str(x).startswith("datetime64[ns, ") for x in dtypes.values()):
-        raise NotImplementedError('table="orient" can not yet read timezone ' "data")
+        raise NotImplementedError('table="orient" can not yet read timezone data')
 
     # No ISO constructor for Timedelta as of yet, so need to raise
     if "timedelta64" in dtypes.values():
         raise NotImplementedError(
-            'table="orient" can not yet read ' "ISO-formatted Timedelta data"
+            'table="orient" can not yet read ISO-formatted Timedelta data'
         )
 
     df = df.astype(dtypes)

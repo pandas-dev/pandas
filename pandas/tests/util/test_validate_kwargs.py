@@ -16,9 +16,7 @@ def test_bad_kwarg():
     compat_args[bad_arg + "o"] = "bar"
     kwargs = {good_arg: "foo", bad_arg: "bar"}
 
-    msg = r"{fname}\(\) got an unexpected " r"keyword argument '{arg}'".format(
-        fname=_fname, arg=bad_arg
-    )
+    msg = fr"{_fname}\(\) got an unexpected keyword argument '{bad_arg}'"
 
     with pytest.raises(TypeError, match=msg):
         validate_kwargs(_fname, kwargs, compat_args)

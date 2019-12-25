@@ -376,16 +376,14 @@ $1$,$2$
                 assert f.read() == expected_noarg
         with tm.ensure_clean("lf_test.csv") as path:
             # case 2: LF as line terminator
-            expected_lf = b"int,str_lf\n" b"1,abc\n" b'2,"d\nef"\n' b'3,"g\nh\n\ni"\n'
+            expected_lf = b'int,str_lf\n1,abc\n2,"d\nef"\n3,"g\nh\n\ni"\n'
             df.to_csv(path, line_terminator="\n", index=False)
             with open(path, "rb") as f:
                 assert f.read() == expected_lf
         with tm.ensure_clean("lf_test.csv") as path:
             # case 3: CRLF as line terminator
             # 'line_terminator' should not change inner element
-            expected_crlf = (
-                b"int,str_lf\r\n" b"1,abc\r\n" b'2,"d\nef"\r\n' b'3,"g\nh\n\ni"\r\n'
-            )
+            expected_crlf = b'int,str_lf\r\n1,abc\r\n2,"d\nef"\r\n3,"g\nh\n\ni"\r\n'
             df.to_csv(path, line_terminator="\r\n", index=False)
             with open(path, "rb") as f:
                 assert f.read() == expected_crlf
@@ -412,9 +410,7 @@ $1$,$2$
                 assert f.read() == expected_noarg
         with tm.ensure_clean("crlf_test.csv") as path:
             # case 2: LF as line terminator
-            expected_lf = (
-                b"int,str_crlf\n" b"1,abc\n" b'2,"d\r\nef"\n' b'3,"g\r\nh\r\n\r\ni"\n'
-            )
+            expected_lf = b'int,str_crlf\n1,abc\n2,"d\r\nef"\n3,"g\r\nh\r\n\r\ni"\n'
             df.to_csv(path, line_terminator="\n", index=False)
             with open(path, "rb") as f:
                 assert f.read() == expected_lf

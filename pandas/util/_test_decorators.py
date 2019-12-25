@@ -191,7 +191,7 @@ skip_if_no_scipy = pytest.mark.skipif(
 )
 skip_if_no_ne = pytest.mark.skipif(
     not _USE_NUMEXPR,
-    reason=f"numexpr enabled->{_USE_NUMEXPR}, " f"installed->{_NUMEXPR_INSTALLED}",
+    reason=f"numexpr enabled->{_USE_NUMEXPR}, installed->{_NUMEXPR_INSTALLED}",
 )
 
 

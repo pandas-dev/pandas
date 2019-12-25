@@ -698,9 +698,7 @@ class TestIndexOps(Ops):
 
                 with pytest.raises(
                     TypeError,
-                    match=(
-                        r"drop_duplicates\(\) got an " r"unexpected keyword argument"
-                    ),
+                    match=r"drop_duplicates\(\) got an unexpected keyword argument",
                 ):
                     idx.drop_duplicates(inplace=True)
 

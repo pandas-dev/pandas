@@ -3214,7 +3214,7 @@ class TestHDFStore:
             tm.assert_frame_equal(result, expected)
 
             result = store.select(
-                "df", "(index>df.index[3] & " 'index<=df.index[6]) | string="bar"'
+                "df", '(index>df.index[3] & index<=df.index[6]) | string="bar"'
             )
             expected = df.loc[
                 ((df.index > df.index[3]) & (df.index <= df.index[6]))
