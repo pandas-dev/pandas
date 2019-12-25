@@ -1,5 +1,5 @@
 """
-printing tools
+Printing tools.
 """
 
 import sys
@@ -182,13 +182,12 @@ def pprint_thing(
         replacements
     default_escapes : bool, default False
         Whether the input escape characters replaces or adds to the defaults
-    max_seq_items : False, int, default None
-        Pass thru to other pretty printers to limit sequence printing
+    max_seq_items : int or None, default None
+        Pass through to other pretty printers to limit sequence printing
 
     Returns
     -------
     str
-
     """
 
     def as_escaped_string(
@@ -312,7 +311,6 @@ def format_object_summary(
     Returns
     -------
     summary string
-
     """
     from pandas.io.formats.console import get_console_size
     from pandas.io.formats.format import _get_adjustment
@@ -346,7 +344,9 @@ def format_object_summary(
     # adj can optionally handle unicode eastern asian width
     adj = _get_adjustment()
 
-    def _extend_line(s, line, value, display_width, next_line_prefix):
+    def _extend_line(
+        s: str, line: str, value: str, display_width: int, next_line_prefix: str
+    ) -> Tuple[str, str]:
 
         if adj.len(line.rstrip()) + adj.len(value.rstrip()) >= display_width:
             s += line.rstrip()
@@ -354,7 +354,7 @@ def format_object_summary(
         line += value
         return s, line
 
-    def best_len(values):
+    def best_len(values: List[str]) -> int:
         if values:
             return max(adj.len(x) for x in values)
         else:
