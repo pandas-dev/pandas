@@ -51,12 +51,14 @@ def is_concatenated(file_path):
         0 - All good.
         1 - Needs to be fixed.
     """
+    need_fix = False
     with open(file_path, "r") as file_name:
         toks = list(tokenize.generate_tokens(file_name.readline))
         for i in range(len(toks) - 1):
             tok = toks[i]
             tok2 = toks[i + 1]
             if tok[0] == token.STRING and tok[0] == tok2[0]:
+                need_fix = True
                 print(
                     "{file_path}:{line_number}:\t{start} and {end}".format(
                         file_path=file_path,
@@ -65,8 +67,8 @@ def is_concatenated(file_path):
                         end=tok2[1],
                     )
                 )
-                return 1
-        return 0
+
+    return int(need_fix)
 
 
 if __name__ == "__main__":
