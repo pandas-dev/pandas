@@ -569,6 +569,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - A tuple passed to :meth:`DataFrame.groupby` is now exclusively treated as a single key (:issue:`18314`)
 - Removed the previously deprecated :meth:`Index.contains`, use ``key in index`` instead (:issue:`30103`)
 - Addition and subtraction of ``int`` or integer-arrays is no longer allowed in :class:`Timestamp`, :class:`DatetimeIndex`, :class:`TimedeltaIndex`, use ``obj + n * obj.freq`` instead of ``obj + n`` (:issue:`22535`)
+- Removed :meth:`Series.ptp` (:issue:`21614`)
 - Removed :meth:`Series.from_array` (:issue:`18258`)
 - Removed :meth:`DataFrame.from_items` (:issue:`18458`)
 - Removed :meth:`DataFrame.as_matrix`, :meth:`Series.as_matrix` (:issue:`18458`)
