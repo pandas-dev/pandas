@@ -106,7 +106,9 @@ def data_for_grouping(allow_in_pandas, dtype):
         a, b, c = (1,), (2,), (3,)
     else:
         a, b, c = np.arange(3)
-    return PandasArray(np.array([b, b, np.nan, np.nan, a, a, b, c], dtype=dtype.numpy_dtype))
+    return PandasArray(
+        np.array([b, b, np.nan, np.nan, a, a, b, c], dtype=dtype.numpy_dtype)
+    )
 
 
 @pytest.fixture
