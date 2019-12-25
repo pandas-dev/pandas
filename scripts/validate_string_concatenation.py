@@ -1,6 +1,24 @@
 #!/usr/bin/env python
 """
+GH #30454
+
 Check where there is a string that needs to be concatenated.
+
+This is necessary after black formating,
+where for example black transforms this:
+
+>>> foo = (
+...         "bar "
+...         "baz"
+...     )
+
+into this:
+
+>>> foo = ("bar " "baz")
+
+Black is not considering this as an
+issue (see https://github.com/psf/black/issues/1051), so we are checking
+it here.
 """
 
 import os
@@ -8,7 +26,7 @@ import sys
 import token
 import tokenize
 
-FILE_EXTENTIONS_TO_CHECK = [".pxd", ".py", ".pyx", ".pyx.ini"]
+FILE_EXTENSIONS_TO_CHECK = [".pxd", ".py", ".pyx", ".pyx.ini"]
 
 
 def main():
@@ -26,7 +44,7 @@ def main():
     for subdir, _, files in os.walk(path):
         for file_name in files:
             ext = full_ext(os.path.join(subdir, file_name))
-            if ext in FILE_EXTENTIONS_TO_CHECK:
+            if ext in FILE_EXTENSIONS_TO_CHECK:
                 status_codes.add(is_concatenated(os.path.join(subdir, file_name)))
 
     if 1 in status_codes:
