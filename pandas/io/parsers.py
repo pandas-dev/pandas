@@ -1533,7 +1533,7 @@ class ParserBase:
                     counts[col] = cur_count + 1
 
                     if is_potential_mi:
-                        col = col[:-1] + f"{col[-1]}.{cur_count}"
+                        col = col[:-1] + (f"{col[-1]}.{cur_count}",)
                     else:
                         col = f"{col}.{cur_count}"
                     cur_count = counts[col]
