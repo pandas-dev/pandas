@@ -93,7 +93,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         self.win_freq = None
         self.axis = obj._get_axis_number(axis) if axis is not None else None
         self.validate()
-        self._numba_func_cache: Dict = dict()
+        self._numba_func_cache: Dict[Callable, Callable] = dict()
 
     @property
     def _constructor(self):
@@ -444,7 +444,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         floor: int = 1,
         is_weighted: bool = False,
         name: Optional[str] = None,
-        use_numba_cache: Optional[bool] = False,
+        use_numba_cache: bool = False,
         **kwargs,
     ):
         """

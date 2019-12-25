@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import DataFrame, Series, Timestamp, date_range
 import pandas.util.testing as tm
 
@@ -11,10 +13,9 @@ def test_rolling_apply_invalid_raw(bad_raw):
         Series(range(3)).rolling(1).apply(len, raw=bad_raw)
 
 
-def test_rolling_apply_out_of_bounds(engine, raw):
+def test_rolling_apply_out_of_bounds(engine_and_raw):
     # gh-1850
-    if engine == "numba":
-        raw = True
+    engine, raw = engine_and_raw
 
     vals = Series([1, 2, 3, 4])
 
@@ -49,9 +50,9 @@ def test_rolling_apply_with_pandas_objects(window):
         df.rolling(window).apply(f, raw=True)
 
 
-def test_rolling_apply(engine, raw):
-    if engine == "numba":
-        raw = True
+def test_rolling_apply(engine_and_raw):
+    engine, raw = engine_and_raw
+
     expected = Series([], dtype="float64")
     result = expected.rolling(10).apply(lambda x: x.mean(), engine=engine, raw=raw)
     tm.assert_series_equal(result, expected)
@@ -66,9 +67,8 @@ def test_rolling_apply(engine, raw):
     tm.assert_series_equal(result, expected)
 
 
-def test_all_apply(engine, raw):
-    if engine == "numba":
-        raw = True
+def test_all_apply(engine_and_raw):
+    engine, raw = engine_and_raw
 
     df = (
         DataFrame(
@@ -84,9 +84,8 @@ def test_all_apply(engine, raw):
     tm.assert_frame_equal(result, expected)
 
 
-def test_ragged_apply(engine, raw):
-    if engine == "numba":
-        raw = True
+def test_ragged_apply(engine_and_raw):
+    engine, raw = engine_and_raw
 
     df = DataFrame({"B": range(5)})
     df.index = [
@@ -112,3 +111,30 @@ def test_ragged_apply(engine, raw):
     expected = df.copy()
     expected["B"] = 1.0
     tm.assert_frame_equal(result, expected)
+
+
+def test_invalid_engine():
+    with pytest.raises(ValueError, match="engine must be either 'numba' or 'cython'"):
+        Series(range(1)).rolling(1).apply(lambda x: x, engine="foo")
+
+
+def test_invalid_engine_kwargs_cython():
+    with pytest.raises(ValueError, match="cython engine does not accept engine_kwargs"):
+        Series(range(1)).rolling(1).apply(
+            lambda x: x, engine="cython", engine_kwargs={"nopython": False}
+        )
+
+
+def test_invalid_raw_numba():
+    with pytest.raises(
+        ValueError, match="raw must be `True` when using the numba engine"
+    ):
+        Series(range(1)).rolling(1).apply(lambda x: x, raw=False, engine="numba")
+
+
+@td.skip_if_no("numba")
+def test_invalid_kwargs_nopython():
+    with pytest.raises(ValueError, match="numba does not support kwargs with"):
+        Series(range(1)).rolling(1).apply(
+            lambda x: x, kwargs={"a": 1}, engine="numba", raw=True
+        )

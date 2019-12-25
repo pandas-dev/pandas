@@ -75,3 +75,15 @@ def nopython(request):
 def engine(request):
     """engine keyword argument for rolling.apply"""
     return request.param
+
+
+@pytest.fixture(
+    params=[
+        pytest.param(("numba", True), marks=td.skip_if_no("numba", "0.46.0")),
+        ("cython", True),
+        ("cython", False),
+    ]
+)
+def engine_and_raw(request):
+    """engine and raw keyword arguments for rolling.apply"""
+    return request.param

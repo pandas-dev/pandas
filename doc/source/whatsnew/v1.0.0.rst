@@ -177,8 +177,8 @@ Using Numba in ``rolling.apply``
 We've added an ``engine`` keyword to :meth:`~Rolling.apply` that allows the user to execute the
 routine using `Numba <https://numba.pydata.org/>`__ instead of Cython. Using the Numba engine
 can yield significant performance gains if the apply function can operate on numpy arrays and
-the data set is larger. For more details, see :ref:`rolling apply documentation <stats.rolling_apply>`
-(:issue:`28987`)
+the data set is larger (1 million rows or greater). For more details, see
+:ref:`rolling apply documentation <stats.rolling_apply>` (:issue:`28987`)
 
 .. _whatsnew_1000.custom_window:
 
@@ -439,7 +439,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 | matplotlib      | 2.2.2           |         |
 +-----------------+-----------------+---------+
-| numba           | 0.46.0          |         |
+| numba           | 0.46.0          |    X    |
 +-----------------+-----------------+---------+
 | openpyxl        | 2.5.7           |    X    |
 +-----------------+-----------------+---------+

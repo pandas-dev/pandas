@@ -7,7 +7,13 @@ from pandas._typing import Scalar
 from pandas.compat._optional import import_optional_dependency
 
 
-def make_rolling_apply(func, args, nogil, parallel, nopython):
+def make_rolling_apply(
+    func: Callable[..., Scalar],
+    args: Tuple,
+    nogil: bool,
+    parallel: bool,
+    nopython: bool,
+):
     numba = import_optional_dependency("numba")
 
     if parallel:
