@@ -662,7 +662,7 @@ class TestDataFrameMissingData:
 
     def test_fillna_invalid_value(self, float_frame):
         # list
-        msg = '"value" parameter must be a scalar or dict, but you passed' ' a "{}"'
+        msg = '"value" parameter must be a scalar or dict, but you passed a "{}"'
         with pytest.raises(TypeError, match=msg.format("list")):
             float_frame.fillna([1, 2])
         # tuple

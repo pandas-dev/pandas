@@ -916,9 +916,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
 
     def _add_datetimelike_scalar(self, other):
         # Overriden by TimedeltaArray
-        raise TypeError(
-            f"cannot add {type(self).__name__} and " f"{type(other).__name__}"
-        )
+        raise TypeError(f"cannot add {type(self).__name__} and {type(other).__name__}")
 
     _add_datetime_arraylike = _add_datetimelike_scalar
 
