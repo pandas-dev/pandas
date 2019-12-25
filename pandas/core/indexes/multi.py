@@ -1282,6 +1282,34 @@ class MultiIndex(Index):
     def inferred_type(self) -> str:
         return "mixed"
 
+    def _get_level_number_by_label(self, label) -> int:
+        try:
+            level = self.names.index(label)
+        except ValueError:
+            raise KeyError(f"Level {label} not found")
+        return level
+
+    def _get_level_number_by_position(self, pos) -> int:
+        """Returns level number at given position
+         The pos should be given in python list index style which may be negative.
+         Raises IndexError if pos is out of range
+         """
+        if pos < 0:
+            pos += self.nlevels
+            if pos < 0:
+                orig_pos = pos - self.nlevels
+                raise IndexError(
+                    f"Too many levels: Index has only {self.nlevels} levels,"
+                    f" {orig_pos} is not a valid level number"
+                )
+        # Note: levels are zero-based
+        elif pos >= self.nlevels:
+            raise IndexError(
+                f"Too many levels: Index has only {self.nlevels} levels, "
+                f"not {pos + 1}"
+            )
+        return pos
+
     def _get_level_number(self, level) -> int:
         count = self.names.count(level)
         if (count > 1) and not is_integer(level):
@@ -1289,24 +1317,11 @@ class MultiIndex(Index):
                 f"The name {level} occurs multiple times, use a level number"
             )
         try:
-            level = self.names.index(level)
-        except ValueError:
+            level = self._get_level_number_by_label(level)
+        except KeyError:
             if not is_integer(level):
-                raise KeyError(f"Level {level} not found")
-            elif level < 0:
-                level += self.nlevels
-                if level < 0:
-                    orig_level = level - self.nlevels
-                    raise IndexError(
-                        f"Too many levels: Index has only {self.nlevels} levels,"
-                        f" {orig_level} is not a valid level number"
-                    )
-            # Note: levels are zero-based
-            elif level >= self.nlevels:
-                raise IndexError(
-                    f"Too many levels: Index has only {self.nlevels} levels, "
-                    f"not {level + 1}"
-                )
+                raise
+            level = self._get_level_number_by_position(level)
         return level
 
     _tuples = None
