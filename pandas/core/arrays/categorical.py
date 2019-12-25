@@ -8,6 +8,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, hashtable as htable
+from pandas._typing import ArrayLike, Dtype, Ordered
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender,
@@ -41,7 +42,6 @@ from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas._typing import ArrayLike, Dtype, Ordered
 from pandas.core import ops
 from pandas.core.accessor import PandasDelegate, delegate_names
 import pandas.core.algorithms as algorithms
@@ -2115,6 +2115,10 @@ class Categorical(ExtensionArray, PandasObject):
 
         Only ordered `Categoricals` have a minimum!
 
+        .. versionchanged:: 1.0.0
+
+           Returns an NA value on empty arrays
+
         Raises
         ------
         TypeError
@@ -2125,6 +2129,10 @@ class Categorical(ExtensionArray, PandasObject):
         min : the minimum of this `Categorical`
         """
         self.check_for_ordered("min")
+
+        if not len(self._codes):
+            return self.dtype.na_value
+
         good = self._codes != -1
         if not good.all():
             if skipna:
@@ -2142,6 +2150,10 @@ class Categorical(ExtensionArray, PandasObject):
 
         Only ordered `Categoricals` have a maximum!
 
+        .. versionchanged:: 1.0.0
+
+           Returns an NA value on empty arrays
+
         Raises
         ------
         TypeError
@@ -2152,6 +2164,10 @@ class Categorical(ExtensionArray, PandasObject):
         max : the maximum of this `Categorical`
         """
         self.check_for_ordered("max")
+
+        if not len(self._codes):
+            return self.dtype.na_value
+
         good = self._codes != -1
         if not good.all():
             if skipna:

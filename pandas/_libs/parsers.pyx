@@ -1367,7 +1367,26 @@ def _ensure_encoded(list lst):
 # common NA values
 # no longer excluding inf representations
 # '1.#INF','-1.#INF', '1.#INF000000',
-_NA_VALUES = _ensure_encoded(list(icom._NA_VALUES))
+STR_NA_VALUES = {
+    "-1.#IND",
+    "1.#QNAN",
+    "1.#IND",
+    "-1.#QNAN",
+    "#N/A N/A",
+    "#N/A",
+    "N/A",
+    "n/a",
+    "NA",
+    "#NA",
+    "NULL",
+    "null",
+    "NaN",
+    "-NaN",
+    "nan",
+    "-nan",
+    "",
+}
+_NA_VALUES = _ensure_encoded(list(STR_NA_VALUES))
 
 
 def _maybe_upcast(arr):

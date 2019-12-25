@@ -27,6 +27,7 @@ from pandas._config import config, get_option
 
 from pandas._libs import lib, writers as libwriters
 from pandas._libs.tslibs import timezones
+from pandas._typing import ArrayLike, FrameOrSeries
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import cache_readonly
@@ -57,13 +58,12 @@ from pandas import (
     concat,
     isna,
 )
-from pandas._typing import ArrayLike, FrameOrSeries
 from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
 from pandas.core.computation.pytables import PyTablesExpr, maybe_expression
 from pandas.core.indexes.api import ensure_index
 
-from pandas.io.common import _stringify_path
+from pandas.io.common import stringify_path
 from pandas.io.formats.printing import adjoin, pprint_thing
 
 if TYPE_CHECKING:
@@ -176,22 +176,6 @@ map directly to c-types [inferred_type->%s,key->%s] [items->%s]
 # formats
 _FORMAT_MAP = {"f": "fixed", "fixed": "fixed", "t": "table", "table": "table"}
 
-# storer class map
-_STORER_MAP = {
-    "series": "SeriesFixed",
-    "frame": "FrameFixed",
-}
-
-# table class map
-_TABLE_MAP = {
-    "generic_table": "GenericTable",
-    "appendable_series": "AppendableSeriesTable",
-    "appendable_multiseries": "AppendableMultiSeriesTable",
-    "appendable_frame": "AppendableFrameTable",
-    "appendable_multiframe": "AppendableMultiFrameTable",
-    "worm": "WORMTable",
-}
-
 # axes map
 _AXES_MAP = {DataFrame: [0]}
 
@@ -290,7 +274,7 @@ def to_hdf(
             encoding=encoding,
         )
 
-    path_or_buf = _stringify_path(path_or_buf)
+    path_or_buf = stringify_path(path_or_buf)
     if isinstance(path_or_buf, str):
         with HDFStore(
             path_or_buf, mode=mode, complevel=complevel, complib=complib
@@ -395,7 +379,7 @@ def read_hdf(
         store = path_or_buf
         auto_close = False
     else:
-        path_or_buf = _stringify_path(path_or_buf)
+        path_or_buf = stringify_path(path_or_buf)
         if not isinstance(path_or_buf, str):
             raise NotImplementedError(
                 "Support for generic buffers has not been implemented."
@@ -541,7 +525,7 @@ class HDFStore:
         if complib is None and complevel is not None:
             complib = tables.filters.default_complib
 
-        self._path = _stringify_path(path)
+        self._path = stringify_path(path)
         if mode is None:
             mode = "a"
         self._mode = mode
@@ -1553,11 +1537,16 @@ class HDFStore:
         self,
         group,
         format=None,
-        value=None,
+        value: Optional[FrameOrSeries] = None,
         encoding: str = "UTF-8",
         errors: str = "strict",
     ) -> Union["GenericFixed", "Table"]:
         """ return a suitable class to operate """
+
+        cls: Union[Type["GenericFixed"], Type["Table"]]
+
+        if value is not None and not isinstance(value, (Series, DataFrame)):
+            raise TypeError("value must be None, Series, or DataFrame")
 
         def error(t):
             # return instead of raising so mypy can tell where we are raising
@@ -1587,10 +1576,7 @@ class HDFStore:
                     )
             else:
                 _TYPE_MAP = {Series: "series", DataFrame: "frame"}
-                try:
-                    pt = _TYPE_MAP[type(value)]
-                except KeyError:
-                    raise error("_TYPE_MAP")
+                pt = _TYPE_MAP[type(value)]
 
                 # we are actually a table
                 if format == "table":
@@ -1598,12 +1584,12 @@ class HDFStore:
 
         # a storer node
         if "table" not in pt:
+            _STORER_MAP = {"series": SeriesFixed, "frame": FrameFixed}
             try:
-                return globals()[_STORER_MAP[pt]](
-                    self, group, encoding=encoding, errors=errors
-                )
+                cls = _STORER_MAP[pt]
             except KeyError:
                 raise error("_STORER_MAP")
+            return cls(self, group, encoding=encoding, errors=errors)
 
         # existing node (and must be a table)
         if tt is None:
@@ -1625,28 +1611,21 @@ class HDFStore:
                             tt = "appendable_frame"
                         elif index.nlevels > 1:
                             tt = "appendable_multiframe"
-                elif pt == "wide_table":
-                    tt = "appendable_panel"
-                elif pt == "ndim_table":
-                    tt = "appendable_ndim"
 
-            else:
-
-                # distinguish between a frame/table
-                tt = "legacy_panel"
-                try:
-                    fields = group.table._v_attrs.fields
-                    if len(fields) == 1 and fields[0] == "value":
-                        tt = "legacy_frame"
-                except IndexError:
-                    pass
-
+        _TABLE_MAP = {
+            "generic_table": GenericTable,
+            "appendable_series": AppendableSeriesTable,
+            "appendable_multiseries": AppendableMultiSeriesTable,
+            "appendable_frame": AppendableFrameTable,
+            "appendable_multiframe": AppendableMultiFrameTable,
+            "worm": WORMTable,
+        }
         try:
-            return globals()[_TABLE_MAP[tt]](
-                self, group, encoding=encoding, errors=errors
-            )
+            cls = _TABLE_MAP[tt]
         except KeyError:
             raise error("_TABLE_MAP")
+
+        return cls(self, group, encoding=encoding, errors=errors)
 
     def _write_to_group(
         self,
@@ -2032,9 +2011,6 @@ class IndexCol:
 
             if min_itemsize is not None and self.typ.itemsize < min_itemsize:
                 self.typ = _tables().StringCol(itemsize=min_itemsize, pos=self.pos)
-
-    def validate(self, handler, append):
-        self.validate_names()
 
     def validate_names(self):
         pass
@@ -3176,7 +3152,6 @@ class Table(Fixed):
         self.non_index_axes = []
         self.values_axes = []
         self.data_columns = []
-        self.metadata = []
         self.info = dict()
         self.nan_rep = None
 
@@ -3230,13 +3205,13 @@ class Table(Fixed):
                     oax = ov[i]
                     if sax != oax:
                         raise ValueError(
-                            f"invalid combinate of [{c}] on appending data "
+                            f"invalid combination of [{c}] on appending data "
                             f"[{sax}] vs current table [{oax}]"
                         )
 
                 # should never get here
                 raise Exception(
-                    f"invalid combinate of [{c}] on appending data [{sv}] vs "
+                    f"invalid combination of [{c}] on appending data [{sv}] vs "
                     f"current table [{ov}]"
                 )
 
@@ -3376,7 +3351,6 @@ class Table(Fixed):
         self.attrs.encoding = self.encoding
         self.attrs.errors = self.errors
         self.attrs.levels = self.levels
-        self.attrs.metadata = self.metadata
         self.attrs.info = self.info
 
     def get_attrs(self):
@@ -3390,7 +3364,6 @@ class Table(Fixed):
         self.levels = getattr(self.attrs, "levels", None) or []
         self.index_axes = [a for a in self.indexables if a.is_an_indexable]
         self.values_axes = [a for a in self.indexables if not a.is_an_indexable]
-        self.metadata = getattr(self.attrs, "metadata", None) or []
 
     def validate_version(self, where=None):
         """ are we trying to operate on an old version? """
@@ -3609,7 +3582,8 @@ class Table(Fixed):
 
         return results
 
-    def get_object(self, obj, transposed: bool):
+    @classmethod
+    def get_object(cls, obj, transposed: bool):
         """ return the data for this obj """
         return obj
 
@@ -3640,6 +3614,7 @@ class Table(Fixed):
         if isinstance(min_itemsize, dict):
 
             existing_data_columns = set(data_columns)
+            data_columns = list(data_columns)  # ensure we do not modify
             data_columns.extend(
                 [
                     k
@@ -3651,10 +3626,10 @@ class Table(Fixed):
         # return valid columns in the order of our axis
         return [c for c in data_columns if c in axis_labels]
 
-    def create_axes(
+    def _create_axes(
         self,
         axes,
-        obj,
+        obj: DataFrame,
         validate: bool = True,
         nan_rep=None,
         data_columns=None,
@@ -3679,16 +3654,16 @@ class Table(Fixed):
 
         """
 
+        if not isinstance(obj, DataFrame):
+            group = self.group._v_name
+            raise TypeError(
+                f"cannot properly create the storer for: [group->{group},"
+                f"value->{type(obj)}]"
+            )
+
         # set the default axes if needed
         if axes is None:
-            try:
-                axes = _AXES_MAP[type(obj)]
-            except KeyError:
-                group = self.group._v_name
-                raise TypeError(
-                    f"cannot properly create the storer for: [group->{group},"
-                    f"value->{type(obj)}]"
-                )
+            axes = [0]
 
         # map axes to numbers
         axes = [obj._get_axis_number(a) for a in axes]
@@ -3696,15 +3671,14 @@ class Table(Fixed):
         # do we have an existing table (if so, use its axes & data_columns)
         if self.infer_axes():
             existing_table = self.copy()
-            existing_table.infer_axes()
-            axes = [a.axis for a in existing_table.index_axes]
-            data_columns = existing_table.data_columns
-            nan_rep = existing_table.nan_rep
-            self.encoding = existing_table.encoding
-            self.errors = existing_table.errors
-            self.info = copy.copy(existing_table.info)
+            axes = [a.axis for a in self.index_axes]
+            data_columns = self.data_columns
+            nan_rep = self.nan_rep
+            new_info = self.info
+            # TODO: do we always have validate=True here?
         else:
             existing_table = None
+            new_info = self.info
 
         assert self.ndim == 2  # with next check, we must have len(axes) == 1
         # currently support on ndim-1 axes
@@ -3720,7 +3694,7 @@ class Table(Fixed):
         if nan_rep is None:
             nan_rep = "nan"
 
-        # We construct the non-index-axis first, since that alters self.info
+        # We construct the non-index-axis first, since that alters new_info
         idx = [x for x in [0, 1] if x not in axes][0]
 
         a = obj.axes[idx]
@@ -3738,7 +3712,7 @@ class Table(Fixed):
                     append_axis = exist_axis
 
         # the non_index_axes info
-        info = self.info.setdefault(idx, {})
+        info = new_info.setdefault(idx, {})
         info["names"] = list(a.names)
         info["type"] = type(a).__name__
 
@@ -3747,14 +3721,14 @@ class Table(Fixed):
         # Now we can construct our new index axis
         idx = axes[0]
         a = obj.axes[idx]
-        name = obj._AXIS_NAMES[idx]
-        new_index = _convert_index(name, a, self.encoding, self.errors)
+        index_name = obj._AXIS_NAMES[idx]
+        new_index = _convert_index(index_name, a, self.encoding, self.errors)
         new_index.axis = idx
 
         # Because we are always 2D, there is only one new_index, so
         #  we know it will have pos=0
         new_index.set_pos(0)
-        new_index.update_info(self.info)
+        new_index.update_info(new_info)
         new_index.maybe_set_size(min_itemsize)  # check for column conflicts
 
         new_index_axes = [new_index]
@@ -3772,47 +3746,13 @@ class Table(Fixed):
         transposed = new_index.axis == 1
 
         # figure out data_columns and get out blocks
-        block_obj = self.get_object(obj, transposed)._consolidate()
-        blocks = block_obj._data.blocks
-        blk_items = get_blk_items(block_obj._data, blocks)
-
         data_columns = self.validate_data_columns(
             data_columns, min_itemsize, new_non_index_axes
         )
-        if len(data_columns):
-            axis, axis_labels = new_non_index_axes[0]
-            new_labels = Index(axis_labels).difference(Index(data_columns))
-            mgr = block_obj.reindex(new_labels, axis=axis)._data
-
-            blocks = list(mgr.blocks)
-            blk_items = get_blk_items(mgr, blocks)
-            for c in data_columns:
-                mgr = block_obj.reindex([c], axis=axis)._data
-                blocks.extend(mgr.blocks)
-                blk_items.extend(get_blk_items(mgr, mgr.blocks))
-
-        # reorder the blocks in the same order as the existing_table if we can
-        if existing_table is not None:
-            by_items = {
-                tuple(b_items.tolist()): (b, b_items)
-                for b, b_items in zip(blocks, blk_items)
-            }
-            new_blocks = []
-            new_blk_items = []
-            for ea in existing_table.values_axes:
-                items = tuple(ea.values)
-                try:
-                    b, b_items = by_items.pop(items)
-                    new_blocks.append(b)
-                    new_blk_items.append(b_items)
-                except (IndexError, KeyError):
-                    jitems = ",".join(pprint_thing(item) for item in items)
-                    raise ValueError(
-                        f"cannot match existing table structure for [{jitems}] "
-                        "on appending data"
-                    )
-            blocks = new_blocks
-            blk_items = new_blk_items
+        block_obj = self.get_object(obj, transposed)._consolidate()
+        blocks, blk_items = self._get_blocks_and_items(
+            block_obj, existing_table, new_non_index_axes, data_columns
+        )
 
         # add my values
         vaxes = []
@@ -3881,7 +3821,7 @@ class Table(Fixed):
                 dtype=dtype_name,
                 data=data,
             )
-            col.update_info(self.info)
+            col.update_info(new_info)
 
             vaxes.append(col)
 
@@ -3896,12 +3836,58 @@ class Table(Fixed):
         # validate our min_itemsize
         self.validate_min_itemsize(min_itemsize)
 
-        # validate our metadata
-        self.metadata = [c.name for c in self.values_axes if c.metadata is not None]
-
         # validate the axes if we have an existing table
         if validate:
             self.validate(existing_table)
+
+    @staticmethod
+    def _get_blocks_and_items(
+        block_obj, existing_table, new_non_index_axes, data_columns
+    ):
+        # Helper to clarify non-state-altering parts of _create_axes
+
+        def get_blk_items(mgr, blocks):
+            return [mgr.items.take(blk.mgr_locs) for blk in blocks]
+
+        blocks = block_obj._data.blocks
+        blk_items = get_blk_items(block_obj._data, blocks)
+
+        if len(data_columns):
+            axis, axis_labels = new_non_index_axes[0]
+            new_labels = Index(axis_labels).difference(Index(data_columns))
+            mgr = block_obj.reindex(new_labels, axis=axis)._data
+
+            blocks = list(mgr.blocks)
+            blk_items = get_blk_items(mgr, blocks)
+            for c in data_columns:
+                mgr = block_obj.reindex([c], axis=axis)._data
+                blocks.extend(mgr.blocks)
+                blk_items.extend(get_blk_items(mgr, mgr.blocks))
+
+        # reorder the blocks in the same order as the existing_table if we can
+        if existing_table is not None:
+            by_items = {
+                tuple(b_items.tolist()): (b, b_items)
+                for b, b_items in zip(blocks, blk_items)
+            }
+            new_blocks = []
+            new_blk_items = []
+            for ea in existing_table.values_axes:
+                items = tuple(ea.values)
+                try:
+                    b, b_items = by_items.pop(items)
+                    new_blocks.append(b)
+                    new_blk_items.append(b_items)
+                except (IndexError, KeyError):
+                    jitems = ",".join(pprint_thing(item) for item in items)
+                    raise ValueError(
+                        f"cannot match existing table structure for [{jitems}] "
+                        "on appending data"
+                    )
+            blocks = new_blocks
+            blk_items = new_blk_items
+
+        return blocks, blk_items
 
     def process_axes(self, obj, selection: "Selection", columns=None):
         """ process axes filters """
@@ -4117,7 +4103,7 @@ class AppendableTable(Table):
             self._handle.remove_node(self.group, "table")
 
         # create the axes
-        self.create_axes(
+        self._create_axes(
             axes=axes,
             obj=obj,
             validate=append,
@@ -4127,7 +4113,7 @@ class AppendableTable(Table):
         )
 
         for a in self.axes:
-            a.validate(self, append)
+            a.validate_names()
 
         if not self.is_exists:
 
@@ -4336,7 +4322,8 @@ class AppendableFrameTable(AppendableTable):
     def is_transposed(self) -> bool:
         return self.index_axes[0].axis == 1
 
-    def get_object(self, obj, transposed: bool):
+    @classmethod
+    def get_object(cls, obj, transposed: bool):
         """ these are written transposed """
         if transposed:
             obj = obj.T
@@ -4435,7 +4422,8 @@ class AppendableSeriesTable(AppendableFrameTable):
     def is_transposed(self) -> bool:
         return False
 
-    def get_object(self, obj, transposed: bool):
+    @classmethod
+    def get_object(cls, obj, transposed: bool):
         return obj
 
     def write(self, obj, data_columns=None, **kwargs):

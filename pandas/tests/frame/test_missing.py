@@ -12,15 +12,6 @@ from pandas.tests.frame.common import _check_mixed_float
 import pandas.util.testing as tm
 
 
-def _skip_if_no_pchip():
-    try:
-        from scipy.interpolate import pchip_interpolate  # noqa
-    except ImportError:
-        import pytest
-
-        pytest.skip("scipy.interpolate.pchip missing")
-
-
 class TestDataFrameMissingData:
     def test_dropEmptyRows(self, float_frame):
         N = len(float_frame.index)
@@ -836,8 +827,6 @@ class TestDataFrameInterpolate:
         expectedk = df.copy()
         expectedk["A"] = expected["A"]
         tm.assert_frame_equal(result, expectedk)
-
-        _skip_if_no_pchip()
 
         result = df.interpolate(method="pchip")
         expected.loc[2, "A"] = 3
