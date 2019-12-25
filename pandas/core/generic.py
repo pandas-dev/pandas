@@ -11131,11 +11131,35 @@ def _make_cum_function(
             axis = self._get_axis_number(axis)
 
         y = com.values_from_object(self).copy()
+        d = self._construct_axes_dict()
+        d["copy"] = False
 
-        if skipna and issubclass(y.dtype.type, (np.datetime64, np.timedelta64)):
-            result = accum_func(y, axis)
-            mask = isna(self)
-            np.putmask(result, mask, iNaT)
+        if issubclass(y.dtype.type, (np.datetime64, np.timedelta64)):
+            # numpy 1.18 started sorting NaTs at the end instead of beginning,
+            #  so we need to work around to maintain backwards-consistency.
+            orig_dtype = y.dtype
+            if accum_func == np.minimum.accumulate:
+                # Note: the accum_func comparison fails as an "is" comparison
+                # Note that "y" is always a copy, so we can safely modify it
+                mask = isna(self)
+                y = y.view("i8")
+                y[mask] = np.iinfo(np.int64).max
+
+            result = accum_func(y.view("i8"), axis).view(orig_dtype)
+            if skipna:
+                mask = isna(self)
+                np.putmask(result, mask, iNaT)
+            elif accum_func == np.minimum.accumulate:
+                # Restore NaTs that we masked previously
+                nz = (~np.asarray(mask)).nonzero()[0]
+                if len(nz):
+                    # everything up to the first non-na entry stays NaT
+                    result[: nz[0]] = iNaT
+
+            if self.ndim == 1:
+                # restore dt64tz dtype
+                d["dtype"] = self.dtype
+
         elif skipna and not issubclass(y.dtype.type, (np.integer, np.bool_)):
             mask = isna(self)
             np.putmask(y, mask, mask_a)
@@ -11144,8 +11168,6 @@ def _make_cum_function(
         else:
             result = accum_func(y, axis)
 
-        d = self._construct_axes_dict()
-        d["copy"] = False
         return self._constructor(result, **d).__finalize__(self)
 
     return set_function_name(cum_func, name, cls)
