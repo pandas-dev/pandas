@@ -8,7 +8,7 @@ import sys
 import token
 import tokenize
 
-FILE_EXTENTIONS_TO_CHECK = [".py", ".pyx"]
+FILE_EXTENTIONS_TO_CHECK = [".pxd", ".py", ".pyx", ".pyx.ini"]
 
 
 def main():
@@ -25,7 +25,7 @@ def main():
     # Means that the given path is of a directory.
     for subdir, _, files in os.walk(path):
         for file_name in files:
-            ext = os.path.splitext(os.path.join(subdir, file_name))[1]
+            ext = full_ext(os.path.join(subdir, file_name))
             if ext in FILE_EXTENTIONS_TO_CHECK:
                 status_codes.add(is_concatenated(os.path.join(subdir, file_name)))
 
@@ -33,6 +33,44 @@ def main():
         sys.exit(1)
 
     sys.exit(0)
+
+
+def full_ext(path):
+    """
+    Get the full file extention name.
+
+    Parameters
+    ----------
+    path : str
+        File path.
+
+    Returns
+    -------
+    str
+        Full extention of a file.
+
+    Notes
+    -----
+    This function is needed only because of file extentions like
+    ` .pxi.ini` for example.
+
+    Examples
+    -------
+
+    With one suffix:
+
+    >>> ext = full_ext('/full/path/to/file.py')
+    >>> ext
+        .py
+
+    Wuth two suffixes:
+
+    >>> ext = full_ext('/full/path/to/file.pxi.ini')
+    >>> ext
+        .pxi.ini
+    """
+    ext_list = [".{suffix}".format(suffix=suffix) for suffix in path.split(".")[1:]]
+    return "".join(ext_list)
 
 
 def is_concatenated(file_path):
