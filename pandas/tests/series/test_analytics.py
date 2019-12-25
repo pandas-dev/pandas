@@ -198,41 +198,7 @@ class TestSeriesAnalytics:
         N = 1000
         arr = np.random.randn(N)
         ser = Series(arr)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            assert np.ptp(ser) == np.ptp(arr)
-
-        # GH11163
-        s = Series([3, 5, np.nan, -3, 10])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            assert s.ptp() == 13
-            assert pd.isna(s.ptp(skipna=False))
-
-        mi = pd.MultiIndex.from_product([["a", "b"], [1, 2, 3]])
-        s = pd.Series([1, np.nan, 7, 3, 5, np.nan], index=mi)
-
-        expected = pd.Series([6, 2], index=["a", "b"], dtype=np.float64)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            tm.assert_series_equal(s.ptp(level=0), expected)
-
-        expected = pd.Series([np.nan, np.nan], index=["a", "b"])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            tm.assert_series_equal(s.ptp(level=0, skipna=False), expected)
-
-        msg = "No axis named 1 for object type <class 'pandas.core.series.Series'>"
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-                s.ptp(axis=1)
-
-        s = pd.Series(["a", "b", "c", "d", "e"])
-        msg = r"unsupported operand type\(s\) for -: 'str' and 'str'"
-        with pytest.raises(TypeError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-                s.ptp()
-
-        msg = r"Series\.ptp does not implement numeric_only\."
-        with pytest.raises(NotImplementedError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-                s.ptp(numeric_only=True)
+        assert np.ptp(ser) == np.ptp(arr)
 
     def test_repeat(self):
         s = Series(np.random.randn(3), index=["a", "b", "c"])
