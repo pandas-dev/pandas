@@ -5,7 +5,7 @@ classes that hold the groupby interfaces (and some implementations).
 These are user facing as the result of the ``df.groupby(...)`` operations,
 which here returns a DataFrameGroupBy object.
 """
-from collections import OrderedDict, abc, namedtuple
+from collections import OrderedDict, abc, defaultdict, namedtuple
 import copy
 from functools import partial
 from textwrap import dedent
@@ -1894,12 +1894,10 @@ def _normalize_keyword_aggregation(kwargs):
     """
     # Normalize the aggregation functions as Mapping[column, List[func]],
     # process normally, then fixup the names.
-    # TODO(Py35): When we drop python 3.5, change this to
-    # defaultdict(list)
     # TODO: aggspec type: typing.OrderedDict[str, List[AggScalar]]
     # May be hitting https://github.com/python/mypy/issues/5958
     # saying it doesn't have an attribute __name__
-    aggspec = OrderedDict()
+    aggspec = defaultdict(list)
     order = []
     columns, pairs = list(zip(*kwargs.items()))
 
