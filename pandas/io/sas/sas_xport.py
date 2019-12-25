@@ -7,7 +7,7 @@ The file format is defined here:
 
 https://support.sas.com/techsup/technote/ts140.pdf
 """
-from collections.abc import Iterator
+from collections import abc
 from datetime import datetime
 from io import BytesIO
 import struct
@@ -251,7 +251,7 @@ def _parse_float_vec(vec):
     return ieee
 
 
-class XportReader(Iterator):
+class XportReader(abc.Iterator):
     __doc__ = _xport_reader_doc
 
     def __init__(

@@ -1,5 +1,4 @@
-from collections import OrderedDict
-from collections.abc import Iterator
+from collections import OrderedDict, abc
 import functools
 from io import StringIO
 from itertools import islice
@@ -610,7 +609,7 @@ def read_json(
     return result
 
 
-class JsonReader(Iterator):
+class JsonReader(abc.Iterator):
     """
     JsonReader provides an interface for reading in a JSON file.
 
