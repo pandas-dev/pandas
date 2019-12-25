@@ -46,13 +46,13 @@ class CSVFormatter:
         encoding: Optional[str] = None,
         compression: Union[str, Mapping[str, str], None] = "infer",
         quoting: Optional[int] = None,
-        line_terminator: Optional[str] = "\n",
+        line_terminator="\n",
         chunksize: Optional[int] = None,
-        quotechar: Optional[str] = '"',
+        quotechar='"',
         date_format: Optional[str] = None,
         doublequote: bool = True,
         escapechar: Optional[str] = None,
-        decimal: Optional[str] = ".",
+        decimal=".",
     ):
         self.obj = obj
 
