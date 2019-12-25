@@ -70,8 +70,8 @@ def test_select_star():
     Tests the simple select * case
     :return:
     """
-    myframe = sql_to_pandas_with_vars("select * from forest_fires")
-    assert FOREST_FIRES.equals(myframe)
+    my_frame = sql_to_pandas_with_vars("select * from forest_fires")
+    assert_frame_equal(FOREST_FIRES, my_frame)
 
 
 def test_case_insensitivity():
@@ -79,7 +79,7 @@ def test_case_insensitivity():
     Tests to ensure that the sql is case insensitive for table names
     :return:
     """
-    assert FOREST_FIRES.equals(sql_to_pandas_with_vars("select * from FOREST_fires"))
+    assert_frame_equal(FOREST_FIRES, sql_to_pandas_with_vars("select * from FOREST_fires"))
 
 
 def test_select_specific_fields():
@@ -87,9 +87,9 @@ def test_select_specific_fields():
     Tests selecting specific fields
     :return:
     """
-    myframe = sql_to_pandas_with_vars("select temp, RH, wind, rain as water, area from forest_fires")
+    my_frame = sql_to_pandas_with_vars("select temp, RH, wind, rain as water, area from forest_fires")
     pandas_frame = FOREST_FIRES[['temp', 'RH', 'wind', 'rain', 'area']].rename(columns={'rain': 'water'})
-    assert myframe.equals(pandas_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 
 def test_type_conversion():
@@ -107,7 +107,7 @@ def test_type_conversion():
     fire_frame["my_bool"] = 0
     pandas_frame = fire_frame.astype({'temp': 'int64', 'my_rh': 'float64', 'my_int': 'int64', 'my_float': 'float64',
                                       'my_bool': 'bool'})
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 
 def test_for_non_existent_table():
@@ -129,7 +129,7 @@ def test_using_math():
     my_frame = sql_to_pandas_with_vars("select temp, 1 + 2 * 3 as my_number from forest_fires")
     pandas_frame = FOREST_FIRES[['temp']].copy()
     pandas_frame['my_number'] = 1 + 2 * 3
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 
 def test_distinct():
@@ -142,7 +142,7 @@ def test_distinct():
     pandas_frame.drop_duplicates(keep='first', inplace=True)
     pandas_frame.reset_index(inplace=True)
     pandas_frame.drop(columns='index', inplace=True)
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 
 def test_subquery():
@@ -152,7 +152,7 @@ def test_subquery():
     """
     my_frame = sql_to_pandas_with_vars("select * from (select area, rain from forest_fires) rain_area")
     pandas_frame = FOREST_FIRES[['area', 'rain']].copy()
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 
 def test_join_no_inner():
@@ -167,7 +167,7 @@ def test_join_no_inner():
     pandas_frame1 = DIGIMON_MON_LIST
     pandas_frame2 = DIGIMON_MOVE_LIST
     merged_frame = pandas_frame1.merge(pandas_frame2, on="Attribute")
-    assert merged_frame.equals(my_frame)
+    assert_frame_equal(merged_frame, my_frame)
 
 
 def test_join_wo_specifying_table():
@@ -184,7 +184,7 @@ def test_join_wo_specifying_table():
     pandas_frame1 = DIGIMON_MON_LIST
     pandas_frame2 = DIGIMON_MOVE_LIST
     merged_frame = pandas_frame1.merge(pandas_frame2, left_on="mon_attribute", right_on="move_attribute")
-    assert merged_frame.equals(my_frame)
+    assert_frame_equal(merged_frame, my_frame)
 
 
 def test_join_w_inner():
@@ -199,7 +199,7 @@ def test_join_w_inner():
     pandas_frame1 = DIGIMON_MON_LIST
     pandas_frame2 = DIGIMON_MOVE_LIST
     merged_frame = pandas_frame1.merge(pandas_frame2, on="Attribute")
-    assert merged_frame.equals(my_frame)
+    assert_frame_equal(merged_frame, my_frame)
 
 
 def test_outer_join_no_outer():
@@ -214,7 +214,7 @@ def test_outer_join_no_outer():
     pandas_frame1 = DIGIMON_MON_LIST
     pandas_frame2 = DIGIMON_MOVE_LIST
     merged_frame = pandas_frame1.merge(pandas_frame2, how="outer", on="Type")
-    assert merged_frame.equals(my_frame)
+    assert_frame_equal(merged_frame, my_frame)
 
 
 def test_outer_join_w_outer():
@@ -229,7 +229,7 @@ def test_outer_join_w_outer():
     pandas_frame1 = DIGIMON_MON_LIST
     pandas_frame2 = DIGIMON_MOVE_LIST
     merged_frame = pandas_frame1.merge(pandas_frame2, how="outer", on="Type")
-    assert merged_frame.equals(my_frame)
+    assert_frame_equal(merged_frame, my_frame)
 
 
 def test_left_joins():
@@ -244,7 +244,7 @@ def test_left_joins():
     pandas_frame1 = DIGIMON_MON_LIST
     pandas_frame2 = DIGIMON_MOVE_LIST
     merged_frame = pandas_frame1.merge(pandas_frame2, how="left", on="Type")
-    assert merged_frame.equals(my_frame)
+    assert_frame_equal(merged_frame, my_frame)
 
 
 def test_left_outer_joins():
@@ -259,7 +259,7 @@ def test_left_outer_joins():
     pandas_frame1 = DIGIMON_MON_LIST
     pandas_frame2 = DIGIMON_MOVE_LIST
     merged_frame = pandas_frame1.merge(pandas_frame2, how="left", on="Type")
-    assert merged_frame.equals(my_frame)
+    assert_frame_equal(merged_frame, my_frame)
 
 
 def test_right_joins():
@@ -274,7 +274,7 @@ def test_right_joins():
     pandas_frame1 = DIGIMON_MON_LIST
     pandas_frame2 = DIGIMON_MOVE_LIST
     merged_frame = pandas_frame1.merge(pandas_frame2, how="right", on="Type")
-    assert merged_frame.equals(my_frame)
+    assert_frame_equal(merged_frame, my_frame)
 
 
 def test_right_outer_joins():
@@ -289,7 +289,7 @@ def test_right_outer_joins():
     pandas_frame1 = DIGIMON_MON_LIST
     pandas_frame2 = DIGIMON_MOVE_LIST
     merged_frame = pandas_frame1.merge(pandas_frame2, how="right", on="Type")
-    assert merged_frame.equals(my_frame)
+    assert_frame_equal(merged_frame, my_frame)
 
 
 def test_cross_joins():
@@ -304,7 +304,7 @@ def test_cross_joins():
     pandas_frame1 = DIGIMON_MON_LIST
     pandas_frame2 = DIGIMON_MOVE_LIST
     merged_frame = pandas_frame1.merge(pandas_frame2, how="outer", on="Type")
-    assert merged_frame.equals(my_frame)
+    assert_frame_equal(merged_frame, my_frame)
 
 
 def test_group_by():
@@ -314,7 +314,7 @@ def test_group_by():
     """
     my_frame = sql_to_pandas_with_vars("""select month, day from forest_fires group by month, day""")
     pandas_frame = FOREST_FIRES.groupby(["month", "day"]).size().to_frame('size').reset_index().drop(columns=['size'])
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 
 def test_avg():
@@ -324,7 +324,7 @@ def test_avg():
     """
     my_frame = sql_to_pandas_with_vars("select avg(temp) from forest_fires")
     pandas_frame = FOREST_FIRES.agg({'temp': np.mean}).to_frame('mean_temp').reset_index().drop(columns=['index'])
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 def test_sum():
     """
@@ -333,7 +333,7 @@ def test_sum():
     """
     my_frame = sql_to_pandas_with_vars("select sum(temp) from forest_fires")
     pandas_frame = FOREST_FIRES.agg({'temp': np.sum}).to_frame('sum_temp').reset_index().drop(columns=['index'])
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 
 def test_max():
@@ -343,7 +343,7 @@ def test_max():
     """
     my_frame = sql_to_pandas_with_vars("select max(temp) from forest_fires")
     pandas_frame = FOREST_FIRES.agg({'temp': np.max}).to_frame('max_temp').reset_index().drop(columns=['index'])
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 def test_min():
     """
@@ -352,7 +352,7 @@ def test_min():
     """
     my_frame = sql_to_pandas_with_vars("select min(temp) from forest_fires")
     pandas_frame = FOREST_FIRES.agg({'temp': np.min}).to_frame('min_temp').reset_index().drop(columns=['index'])
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 def test_multiple_aggs():
     """
@@ -367,7 +367,7 @@ def test_multiple_aggs():
     pandas_frame = pandas_frame.agg({'min_temp': np.min, 'max_temp': np.max, 'mean_temp': np.mean, 'wind': np.max})
     pandas_frame.rename({'wind': 'max_wind'}, inplace=True)
     pandas_frame = pandas_frame.to_frame().transpose()
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 
 def test_agg_w_groupby():
@@ -381,7 +381,7 @@ def test_agg_w_groupby():
     pandas_frame['max_temp'] = pandas_frame.temp
     pandas_frame = pandas_frame.groupby(["day", "month"]).aggregate({'min_temp': np.min, 'max_temp': np.max})\
         .reset_index()
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 
 def test_where_clause():
@@ -392,7 +392,7 @@ def test_where_clause():
     my_frame = sql_to_pandas_with_vars("""select * from forest_fires where month = 'mar'""")
     pandas_frame = FOREST_FIRES.copy()
     pandas_frame = pandas_frame[pandas_frame.month == 'mar'].reset_index(drop=True)
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 
 def test_order_by():
@@ -404,7 +404,7 @@ def test_order_by():
     pandas_frame = FOREST_FIRES.copy()
     pandas_frame.sort_values(by=['temp', 'wind', 'area'], ascending=[0, 1, 1], inplace=True)
     pandas_frame.reset_index(drop=True, inplace=True)
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 
 def test_limit():
@@ -414,7 +414,7 @@ def test_limit():
     """
     my_frame = sql_to_pandas_with_vars("""select * from forest_fires limit 10""")
     pandas_frame = FOREST_FIRES.copy().head(10)
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 
 def test_having():
@@ -427,7 +427,7 @@ def test_having():
     pandas_frame['min_temp'] = FOREST_FIRES['temp']
     aggregated_df = pandas_frame.aggregate({'min_temp': 'min'}).to_frame().transpose()
     pandas_frame = aggregated_df[aggregated_df['min_temp'] > 2]
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 
 def test_having_with_group_by():
@@ -440,7 +440,7 @@ def test_having_with_group_by():
     pandas_frame['min_temp'] = FOREST_FIRES['temp']
     pandas_frame = pandas_frame[['day', 'min_temp']].groupby('day').aggregate({'min_temp': np.min})
     pandas_frame = pandas_frame[pandas_frame['min_temp'] > 5].reset_index()
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 
 def test_operations_between_columns_and_numbers():
@@ -453,7 +453,7 @@ def test_operations_between_columns_and_numbers():
     pandas_frame['temp_mul_wind_add_rain_div_dmc_add_37'] = pandas_frame['temp'] * pandas_frame['wind'] + \
                                                             pandas_frame['rain'] / pandas_frame['DMC'] + 37
     pandas_frame = pandas_frame['temp_mul_wind_add_rain_div_dmc_add_37'].to_frame()
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 
 def test_select_star_from_multiple_tables():
@@ -467,7 +467,7 @@ def test_select_star_from_multiple_tables():
     forest_fires['_temp_id'] = 1
     digimon_mon_list_new['_temp_id'] = 1
     pandas_frame = merge(forest_fires, digimon_mon_list_new, on='_temp_id').drop(columns=['_temp_id'])
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 
 def test_select_columns_from_two_tables_with_same_column_name():
@@ -481,7 +481,7 @@ def test_select_columns_from_two_tables_with_same_column_name():
     table1['_temp_id'] = 1
     table2['_temp_id'] = 1
     pandas_frame = merge(table1, table2, on='_temp_id').drop(columns=['_temp_id'])
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 
 def test_maintain_case_in_query():
@@ -492,7 +492,7 @@ def test_maintain_case_in_query():
     my_frame = sql_to_pandas_with_vars(
         """select wind, rh from forest_fires""")
     pandas_frame = FOREST_FIRES.copy()[['wind', 'RH']].rename(columns={"RH": "rh"})
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 
 def test_nested_subquery():
@@ -505,7 +505,7 @@ def test_nested_subquery():
             (select wind, rh from
               (select * from forest_fires) fires) wind_rh""")
     pandas_frame = FOREST_FIRES.copy()[['wind', 'RH']].rename(columns={"RH": "rh"})
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 
 def test_union():
@@ -521,7 +521,7 @@ def test_union():
     pandas_frame1 = FOREST_FIRES.copy().sort_values(by=['wind'], ascending=[False]).head(5)
     pandas_frame2 = FOREST_FIRES.copy().sort_values(by=['wind'], ascending=[True]).head(5)
     pandas_frame = concat([pandas_frame1, pandas_frame2], ignore_index=True).drop_duplicates().reset_index(drop=True)
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 
 def test_union_distinct():
@@ -537,7 +537,7 @@ def test_union_distinct():
     pandas_frame1 = FOREST_FIRES.copy().sort_values(by=['wind'], ascending=[False]).head(5)
     pandas_frame2 = FOREST_FIRES.copy().sort_values(by=['wind'], ascending=[True]).head(5)
     pandas_frame = concat([pandas_frame1, pandas_frame2], ignore_index=True).drop_duplicates().reset_index(drop=True)
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 
 def test_union_all():
@@ -553,7 +553,7 @@ def test_union_all():
     pandas_frame1 = FOREST_FIRES.copy().sort_values(by=['wind'], ascending=[False]).head(5)
     pandas_frame2 = FOREST_FIRES.copy().sort_values(by=['wind'], ascending=[True]).head(5)
     pandas_frame = concat([pandas_frame1, pandas_frame2], ignore_index=True).reset_index(drop=True)
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 
 def test_intersect_distinct():
@@ -569,7 +569,7 @@ def test_intersect_distinct():
     pandas_frame1 = FOREST_FIRES.copy().sort_values(by=['wind'], ascending=[False]).head(5)
     pandas_frame2 = FOREST_FIRES.copy().sort_values(by=['wind'], ascending=[False]).head(3)
     pandas_frame = merge(left=pandas_frame1, right=pandas_frame2, how='inner', on=list(pandas_frame1.columns))
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 
 def test_except_distinct():
@@ -586,7 +586,7 @@ def test_except_distinct():
     pandas_frame2 = FOREST_FIRES.copy().sort_values(by=['wind'], ascending=[False]).head(3)
     pandas_frame = pandas_frame1[~pandas_frame1.isin(pandas_frame2).all(axis=1)].drop_duplicates().reset_index(
         drop=True)
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 
 def test_except_all():
@@ -602,7 +602,7 @@ def test_except_all():
     pandas_frame1 = FOREST_FIRES.copy().sort_values(by=['wind'], ascending=[False]).head(5)
     pandas_frame2 = FOREST_FIRES.copy().sort_values(by=['wind'], ascending=[False]).head(3)
     pandas_frame = pandas_frame1[~pandas_frame1.isin(pandas_frame2).all(axis=1)].reset_index(drop=True)
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 
 def test_between_operator():
@@ -616,7 +616,7 @@ def test_between_operator():
     """)
     pandas_frame = FOREST_FIRES.copy()
     pandas_frame = pandas_frame[(pandas_frame.wind >= 5) & (pandas_frame.wind <= 6)].reset_index(drop=True)
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 
 def test_in_operator():
@@ -629,7 +629,7 @@ def test_in_operator():
     """)
     pandas_frame = FOREST_FIRES.copy()
     pandas_frame = pandas_frame[pandas_frame.day.isin(('fri', 'sun'))].reset_index(drop=True)
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 
 def test_in_operator_expression_numerical():
@@ -642,7 +642,7 @@ def test_in_operator_expression_numerical():
     """)
     pandas_frame = FOREST_FIRES.copy()
     pandas_frame = pandas_frame[(pandas_frame['X'] + 1).isin((5, 9))].reset_index(drop=True)
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 
 def test_not_in_operator():
@@ -655,7 +655,7 @@ def test_not_in_operator():
     """)
     pandas_frame = FOREST_FIRES.copy()
     pandas_frame = pandas_frame[~pandas_frame.day.isin(('fri', 'sun'))].reset_index(drop=True)
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 
 def test_case_statement_w_name():
@@ -671,7 +671,7 @@ def test_case_statement_w_name():
     pandas_frame.loc[pandas_frame.wind == 5, 'wind_strength'] = 'mid'
     pandas_frame.loc[~((pandas_frame.wind == 5) | (pandas_frame.wind > 5)), 'wind_strength'] = 'weak'
     pandas_frame.drop(columns=['wind'], inplace=True)
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 
 def test_case_statement_w_no_name():
@@ -687,7 +687,7 @@ def test_case_statement_w_no_name():
     pandas_frame.loc[pandas_frame.wind == 5, '_expression0'] = 'mid'
     pandas_frame.loc[~((pandas_frame.wind == 5) | (pandas_frame.wind > 5)), '_expression0'] = 'weak'
     pandas_frame.drop(columns=['wind'], inplace=True)
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 
 def test_case_statement_w_other_columns_as_reult():
@@ -703,7 +703,7 @@ def test_case_statement_w_other_columns_as_reult():
     pandas_frame.loc[pandas_frame.wind == 5, '_expression0'] = 'mid'
     pandas_frame.loc[~((pandas_frame.wind == 5) | (pandas_frame.wind > 5)), '_expression0'] = FOREST_FIRES['day']
     pandas_frame.drop(columns=['wind'], inplace=True)
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 
 def test_rank_statement_one_column():
@@ -716,7 +716,7 @@ def test_rank_statement_one_column():
     """)
     pandas_frame = FOREST_FIRES.copy()[['wind']]
     pandas_frame['wind_rank'] = pandas_frame.wind.rank(method='min').astype('int')
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 
 def test_rank_statement_many_columns():
@@ -748,7 +748,7 @@ def test_rank_statement_many_columns():
     pandas_frame['rank'] = rank_series
     pandas_frame.set_index('index', inplace=True)
     pandas_frame.sort_index(inplace=True)
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 
 def test_dense_rank_statement_many_columns():
@@ -778,7 +778,7 @@ def test_dense_rank_statement_many_columns():
     pandas_frame['rank'] = rank_series
     pandas_frame.set_index('index', inplace=True)
     pandas_frame.sort_index(inplace=True)
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 
 def test_rank_over_partition_by():
@@ -823,7 +823,7 @@ def test_rank_over_partition_by():
     pandas_frame['rank'] = rank_series
     pandas_frame.set_index('index', inplace=True)
     pandas_frame.sort_index(inplace=True)
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 def test_dense_rank_over_partition_by():
     """
@@ -864,7 +864,7 @@ def test_dense_rank_over_partition_by():
     pandas_frame['rank'] = rank_series
     pandas_frame.set_index('index', inplace=True)
     pandas_frame.sort_index(inplace=True)
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 
 def test_set_string_value_as_column_value():
@@ -877,7 +877,7 @@ def test_set_string_value_as_column_value():
     pandas_frame = FOREST_FIRES.copy()
     pandas_frame['wind_yes'] = 'yes'
     pandas_frame = pandas_frame[['wind', 'wind_yes']]
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 
 def test_date_cast():
@@ -890,7 +890,7 @@ def test_date_cast():
     pandas_frame = FOREST_FIRES.copy()
     pandas_frame['my_date'] = datetime.strptime('2019-01-01', "%Y-%m-%d")
     pandas_frame = pandas_frame[['wind', 'my_date']]
-    assert pandas_frame.equals(my_frame)
+    assert_frame_equal(pandas_frame, my_frame)
 
 
 def test_timestamps():
@@ -905,7 +905,8 @@ def test_timestamps():
         pandas_frame['now()'] = datetime.now()
         pandas_frame['today()'] = date.today()
         pandas_frame['_literal0'] = datetime(2019, 1, 31, 23, 20, 32)
-        assert pandas_frame.equals(my_frame)
+        assert_frame_equal(pandas_frame, my_frame)
+
 
 if __name__ == "__main__":
     pass
