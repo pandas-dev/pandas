@@ -1290,10 +1290,17 @@ class MultiIndex(Index):
         return level
 
     def _get_level_number_by_position(self, pos) -> int:
-        """Returns level number at given position
-         The pos should be given in python list index style which may be negative.
-         Raises IndexError if pos is out of range
-         """
+        """
+        Returns level number at given position
+
+        Parameters
+        ----------
+        pos : level position given in python list index style which may be negative
+
+        Raises
+        ------
+        IndexError if pos is out of range
+        """
         if pos < 0:
             pos += self.nlevels
             if pos < 0:
@@ -2192,7 +2199,7 @@ class MultiIndex(Index):
 
         Parameters
         ----------
-        order: list
+        order : list
             the order of index levels after reorder, could be level labels or positions
         positional : bool, optional
             How to interpret integer values in `order`.
@@ -2207,6 +2214,7 @@ class MultiIndex(Index):
         -------
         MultiIndex
         """
+        # GH30289
         if positional is None:
             order = [self._get_level_number(i) for i in order]
         elif positional:
