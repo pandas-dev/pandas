@@ -1938,7 +1938,9 @@ class GroupBy(_GroupBy):
             #  but this hits https://github.com/pandas-dev/pandas/issues/10710
             #  which doesn't reorder the list-like `q` on the inner level.
             order = np.roll(list(range(result.index.nlevels)), -1)
-            result = result.reorder_levels(order)
+            result = result.reorder_levels(
+                order, positional=True
+            )  # GH30289: reorder based on position, not labels
             result = result.reindex(q, level=-1)
 
             # fix order.
