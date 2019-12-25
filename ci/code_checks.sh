@@ -208,7 +208,7 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for use of not concatenated strings' ; echo $MSG
-    python ./scripts/validate_string_concatenation.py pandas
+    python $BASE_DIR/scripts/validate_string_concatenation.py pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check that no file in the repo contains trailing whitespaces' ; echo $MSG
