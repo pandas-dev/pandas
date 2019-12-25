@@ -5063,9 +5063,9 @@ class DataFrame(NDFrame):
         result = self.copy()
 
         if axis == 0:
-            result.index = result.index.reorder_levels(order)
+            result.index = result.index.reorder_levels(order, positional=True)
         else:
-            result.columns = result.columns.reorder_levels(order)
+            result.columns = result.columns.reorder_levels(order, positional=True)
         return result
 
     # ----------------------------------------------------------------------
