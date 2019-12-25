@@ -381,7 +381,7 @@ def _validate_integer(name, val, min_val=0):
     min_val : int
         Minimum allowed value (val < min_val will result in a ValueError)
     """
-    msg = f"{name:s} must be an integer >={min_val:d}"
+    msg = f"'{name:s}' must be an integer >={min_val:d}"
 
     if val is not None:
         if is_float(val):
