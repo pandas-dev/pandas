@@ -1,4 +1,3 @@
-import collections
 from datetime import datetime
 from io import StringIO
 
@@ -9,7 +8,7 @@ import pandas as pd
 from pandas import DataFrame, Series
 import pandas.util.testing as tm
 
-from pandas.io.common import _get_handle
+from pandas.io.common import get_handle
 
 
 class TestSeriesToCSV:
@@ -143,7 +142,7 @@ class TestSeriesToCSV:
             tm.assert_series_equal(s, result)
 
             # test the round trip using file handle - to_csv -> read_csv
-            f, _handles = _get_handle(
+            f, _handles = get_handle(
                 filename, "w", compression=compression, encoding=encoding
             )
             with f:
@@ -216,15 +215,6 @@ class TestSeriesIO:
             unpickled = self._pickle_roundtrip_name(tm.makeTimeSeries(name=n))
             assert unpickled.name == n
 
-    def test_pickle_categorical_ordered_from_sentinel(self):
-        # GH 27295: can remove test when _ordered_from_sentinel is removed (GH 26403)
-        s = Series(["a", "b", "c", "a"], dtype="category")
-        result = tm.round_trip_pickle(s)
-        result = result.astype("category")
-
-        tm.assert_series_equal(result, s)
-        assert result.dtype._ordered_from_sentinel is False
-
     def _pickle_roundtrip_name(self, obj):
 
         with tm.ensure_clean() as path:
@@ -248,15 +238,3 @@ class TestSeriesIO:
         assert isinstance(result, SubclassedFrame)
         expected = SubclassedFrame({"X": [1, 2, 3]})
         tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "mapping", (dict, collections.defaultdict(list), collections.OrderedDict)
-    )
-    def test_to_dict(self, mapping, datetime_series):
-        # GH16122
-        tm.assert_series_equal(
-            Series(datetime_series.to_dict(mapping), name="ts"), datetime_series
-        )
-        from_method = Series(datetime_series.to_dict(collections.Counter))
-        from_constructor = Series(collections.Counter(datetime_series.items()))
-        tm.assert_series_equal(from_method, from_constructor)

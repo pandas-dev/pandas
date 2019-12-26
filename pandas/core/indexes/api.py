@@ -37,8 +37,6 @@ To retain the current behavior and silence the warning, pass 'sort=True'.
 )
 
 
-# TODO: there are many places that rely on these private methods existing in
-# pandas.core.index
 __all__ = [
     "Index",
     "MultiIndex",
@@ -126,7 +124,6 @@ def _get_combined_index(
     -------
     Index
     """
-
     # TODO: handle index names!
     indexes = _get_distinct_objs(indexes)
     if len(indexes) == 0:
@@ -275,7 +272,6 @@ def get_consensus_names(indexes):
     list
         A list representing the consensus 'names' found.
     """
-
     # find the non-none names, need to tupleify to make
     # the set hashable, then reverse on return
     consensus_names = {tuple(i.names) for i in indexes if com.any_not_none(*i.names)}

@@ -16,7 +16,7 @@ from pandas import (
     bdate_range,
     date_range,
 )
-from pandas.tests.test_base import Ops
+from pandas.tests.base.test_ops import Ops
 import pandas.util.testing as tm
 
 from pandas.tseries.offsets import BDay, BMonthEnd, CDay, Day, Hour
@@ -41,9 +41,9 @@ class TestDatetimeIndexOps(Ops):
 
         # sanity check that the behavior didn't change
         # GH#7206
-        msg = "'Series' object has no attribute '{}'"
         for op in ["year", "day", "second", "weekday"]:
-            with pytest.raises(AttributeError, match=msg.format(op)):
+            msg = f"'Series' object has no attribute '{op}'"
+            with pytest.raises(AttributeError, match=msg):
                 getattr(self.dt_series, op)
 
         # attribute access should still work!
@@ -436,18 +436,6 @@ class TestDatetimeIndexOps(Ops):
         # setting with non-freq string
         with pytest.raises(ValueError, match="Invalid frequency"):
             idx._data.freq = "foo"
-
-    def test_offset_deprecated(self):
-        # GH 20716
-        idx = pd.DatetimeIndex(["20180101", "20180102"])
-
-        # getter deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            idx.offset
-
-        # setter deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            idx.offset = BDay()
 
 
 class TestBusinessDatetimeIndex:

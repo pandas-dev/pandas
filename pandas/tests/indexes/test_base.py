@@ -33,8 +33,13 @@ from pandas import (
     period_range,
 )
 from pandas.core.algorithms import safe_sort
-from pandas.core.index import ensure_index, ensure_index_from_sequences
-from pandas.core.indexes.api import Index, MultiIndex, _get_combined_index
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+    _get_combined_index,
+    ensure_index,
+    ensure_index_from_sequences,
+)
 from pandas.tests.indexes.common import Base
 from pandas.tests.indexes.conftest import indices_dict
 import pandas.util.testing as tm
@@ -2402,11 +2407,13 @@ Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
             with provisionalcompleter("ignore"):
                 list(ip.Completer.completions("idx.", 4))
 
-    def test_deprecated_contains(self, indices):
-        # deprecated for all types except IntervalIndex
-        warning = FutureWarning if not isinstance(indices, pd.IntervalIndex) else None
-        with tm.assert_produces_warning(warning):
+    def test_contains_method_removed(self, indices):
+        # GH#30103 method removed for all types except IntervalIndex
+        if isinstance(indices, pd.IntervalIndex):
             indices.contains(1)
+        else:
+            with pytest.raises(AttributeError):
+                indices.contains(1)
 
 
 class TestMixedIntIndex(Base):

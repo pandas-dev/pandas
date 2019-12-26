@@ -33,7 +33,8 @@ dependencies:
   - nbconvert>=5.4.1
   - nbsphinx
   - pandoc
-  # Dask and its dependencies
+
+  # Dask and its dependencies (that dont install with dask)
   - dask-core
   - toolz>=0.7.3
   - fsspec>=0.5.1
@@ -54,6 +55,8 @@ dependencies:
   - pytest>=5.0.1
   - pytest-cov
   - pytest-xdist>=1.21
+
+  # downstream tests
   - seaborn
   - statsmodels
 
@@ -74,22 +77,28 @@ dependencies:
   - scipy>=1.1
 
   # optional for io
-  - beautifulsoup4>=4.6.0  # pandas.read_html
+  # ---------------
+  # pd.read_html
+  - beautifulsoup4>=4.6.0
+  - html5lib
+  - lxml
+
+  # pd.read_excel, DataFrame.to_excel, pd.ExcelWriter, pd.ExcelFile
+  - openpyxl<=3.0.1
+  - xlrd
+  - xlsxwriter
+  - xlwt
+  - odfpy
+
   - fastparquet>=0.3.2  # pandas.read_parquet, DataFrame.to_parquet
-  - html5lib  # pandas.read_html
-  - lxml  # pandas.read_html
-  - openpyxl<=3.0.1  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
   - pyarrow>=0.13.1  # pandas.read_parquet, DataFrame.to_parquet, pandas.read_feather, DataFrame.to_feather
+  - python-snappy  # required by pyarrow
+
   - pyqt>=5.9.2  # pandas.read_clipboard
   - pytables>=3.4.2  # pandas.read_hdf, DataFrame.to_hdf
-  - python-snappy  # required by pyarrow
   - s3fs  # pandas.read_csv... when using 's3://...' path
   - sqlalchemy  # pandas.read_sql, DataFrame.to_sql
   - xarray  # DataFrame.to_xarray
-  - xlrd  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
-  - xlsxwriter  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
-  - xlwt  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
-  - odfpy  # pandas.read_excel
   - pyreadstat  # pandas.read_spss
   - pip:
     - git+https://github.com/pandas-dev/pandas-sphinx-theme.git@master

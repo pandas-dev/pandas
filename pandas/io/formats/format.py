@@ -38,6 +38,7 @@ from pandas._libs.missing import NA
 from pandas._libs.tslib import format_array_from_datetime
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas._libs.tslibs.nattype import NaTType
+from pandas._typing import FilePathOrBuffer
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import (
@@ -63,16 +64,15 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas._typing import FilePathOrBuffer
 from pandas.core.arrays.datetimes import DatetimeArray
 from pandas.core.arrays.timedeltas import TimedeltaArray
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.index import Index, ensure_index
+from pandas.core.indexes.api import Index, ensure_index
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
-from pandas.io.common import _stringify_path
+from pandas.io.common import stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
 
 if TYPE_CHECKING:
@@ -482,7 +482,7 @@ class TableFormatter:
         objects, otherwise yield buf unchanged.
         """
         if buf is not None:
-            buf = _stringify_path(buf)
+            buf = stringify_path(buf)
         else:
             buf = StringIO()
 
@@ -984,7 +984,7 @@ class DataFrameFormatter(TableFormatter):
         )
 
     def _get_formatted_column_labels(self, frame: "DataFrame") -> List[List[str]]:
-        from pandas.core.index import _sparsify
+        from pandas.core.indexes.multi import _sparsify
 
         columns = frame.columns
 
@@ -1640,7 +1640,7 @@ def _get_format_datetime64_from_values(
     """ given values and a date_format, return a string format """
 
     if isinstance(values, np.ndarray) and values.ndim > 1:
-        # We don't actaully care about the order of values, and DatetimeIndex
+        # We don't actually care about the order of values, and DatetimeIndex
         #  only accepts 1D values
         values = values.ravel()
 

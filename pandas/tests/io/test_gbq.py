@@ -89,21 +89,6 @@ def make_mixed_dataframe_v2(test_size):
     )
 
 
-def test_read_gbq_with_deprecated_kwargs(monkeypatch):
-    captured_kwargs = {}
-
-    def mock_read_gbq(sql, **kwargs):
-        captured_kwargs.update(kwargs)
-        return DataFrame([[1.0]])
-
-    monkeypatch.setattr("pandas_gbq.read_gbq", mock_read_gbq)
-    private_key = object()
-    pd.read_gbq("SELECT 1", verbose=True, private_key=private_key)
-
-    assert captured_kwargs["verbose"]
-    assert captured_kwargs["private_key"] is private_key
-
-
 def test_read_gbq_without_deprecated_kwargs(monkeypatch):
     captured_kwargs = {}
 
@@ -142,6 +127,24 @@ def test_read_gbq_without_new_kwargs(monkeypatch):
     pd.read_gbq("SELECT 1")
 
     assert "use_bqstorage_api" not in captured_kwargs
+
+
+@pytest.mark.parametrize("progress_bar", [None, "foo"])
+def test_read_gbq_progress_bar_type_kwarg(monkeypatch, progress_bar):
+    # GH 29857
+    captured_kwargs = {}
+
+    def mock_read_gbq(sql, **kwargs):
+        captured_kwargs.update(kwargs)
+        return DataFrame([[1.0]])
+
+    monkeypatch.setattr("pandas_gbq.read_gbq", mock_read_gbq)
+    pd.read_gbq("SELECT 1", progress_bar_type=progress_bar)
+
+    if progress_bar:
+        assert "progress_bar_type" in captured_kwargs
+    else:
+        assert "progress_bar_type" not in captured_kwargs
 
 
 @pytest.mark.single
@@ -192,3 +195,38 @@ class TestToGBQIntegrationWithServiceAccountKeyPath:
             dialect="standard",
         )
         assert result["num_rows"][0] == test_size
+
+    @pytest.mark.xfail(reason="Test breaking master")
+    @pytest.mark.parametrize(
+        "if_exists, expected_num_rows",
+        [("append", 300), ("fail", 200), ("replace", 100)],
+    )
+    def test_gbq_if_exists(self, if_exists, expected_num_rows):
+        # GH 29598
+        destination_table = DESTINATION_TABLE + "2"
+
+        test_size = 200
+        df = make_mixed_dataframe_v2(test_size)
+
+        df.to_gbq(
+            destination_table,
+            _get_project_id(),
+            chunksize=None,
+            credentials=_get_credentials(),
+        )
+
+        df.iloc[:100].to_gbq(
+            destination_table,
+            _get_project_id(),
+            if_exists=if_exists,
+            chunksize=None,
+            credentials=_get_credentials(),
+        )
+
+        result = pd.read_gbq(
+            f"SELECT COUNT(*) AS num_rows FROM {destination_table}",
+            project_id=_get_project_id(),
+            credentials=_get_credentials(),
+            dialect="standard",
+        )
+        assert result["num_rows"][0] == expected_num_rows
