@@ -100,6 +100,10 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     cpplint --quiet --extensions=c,h --headers=h --recursive --filter=-readability/casting,-runtime/int,-build/include_subdir pandas/_libs/src/*.h pandas/_libs/src/parser pandas/_libs/ujson pandas/_libs/tslibs/src/datetime pandas/_libs/*.cpp
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Check for use of not concatenated strings' ; echo $MSG
+    $BASE_DIR/scripts/validate_string_concatenation.py pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     echo "isort --version-number"
     isort --version-number
 
@@ -214,10 +218,6 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
 
     MSG='Check for use of xrange instead of range' ; echo $MSG
     invgrep -R --include=*.{py,pyx} 'xrange' pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for use of not concatenated strings' ; echo $MSG
-    python $BASE_DIR/scripts/validate_string_concatenation.py pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check that no file in the repo contains trailing whitespaces' ; echo $MSG

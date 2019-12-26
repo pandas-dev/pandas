@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 GH #30454
 
@@ -12,77 +12,75 @@ where for example black transforms this:
 ...         "baz"
 ...     )
 
+
 into this:
 
 >>> foo = ("bar " "baz")
 
 Black is not considering this as an
-issue (see https://github.com/psf/black/issues/1051), so we are checking
-it here.
+issue (see issue https://github.com/psf/black/issues/1051),
+so we are checking it here.
 """
 
 import os
 import sys
 import token
 import tokenize
+from typing import FrozenSet, Generator, List
 
-# Can be annotated as typing.FrozenSet[str]
-FILE_EXTENSIONS_TO_CHECK = frozenset((".pxd", ".py", ".pyx", ".pyx.ini"))
+FILE_EXTENSIONS_TO_CHECK: FrozenSet[str] = frozenset(
+    (".pxd", ".py", ".pyx", ".pyx.ini")
+)
 
 
-def is_concatenated(file_path):
+def strings_to_concatenate(file_path: str) -> Generator[str, None, None]:
     """
-    Checking if the file containing strings that needs to be concatenated.
+    Yielding the strings that needs to be concatenated in a given file.
 
     Parameters
     ----------
     file_path : str
         File path pointing to a single file.
 
-    Returns
-    -------
-    int
-        Status code representing if the file needs a fix.
-        0 - All good.
-        1 - Needs to be fixed.
+    Yields
+    ------
+    str
+        Message containing info about the string that needs to be concatenated.
     """
-    need_fix = False
     with open(file_path, "r") as file_name:
-        tokens = list(tokenize.generate_tokens(file_name.readline))
-        for current_token, next_token in zip(tokens, tokens[1:]):
-            if current_token[0] == next_token[0] == token.STRING:
-                need_fix = True
-                print(
-                    "{file_path}:{line_number}:\t{start} and {end}".format(
-                        file_path=file_path,
-                        line_number=current_token[2][0],
-                        start=current_token[1],
-                        end=next_token[1],
-                    )
-                )
+        tokens: List = list(tokenize.generate_tokens(file_name.readline))
 
-    return int(need_fix)
+    for current_token, next_token in zip(tokens, tokens[1:]):
+        if current_token[0] == next_token[0] == token.STRING:
+            line_number = current_token[2][0]
+            start = current_token[1]
+            end = next_token[1]
+            yield f"{file_path}:{line_number}:\t between {start} and {end}\n"
 
 
 if __name__ == "__main__":
-    path = sys.argv[1]
+    path: str = sys.argv[1]
 
     if not os.path.exists(path):
         raise ValueError("Please enter a valid path, to a file/directory.")
 
-    if os.path.isfile(path):
-        # Means that the given path is of a single file.
-        sys.exit(is_concatenated(path))
+    failed: bool = False
 
-    failures = 0
-    # Means that the given path is of a directory.
+    if os.path.isfile(path):
+        for msg in strings_to_concatenate(path):
+            if msg:
+                failed = True
+                print(msg)
+
     for subdir, _, files in os.walk(path):
         for file_name in files:
             if any(
                 file_name.endswith(extension) for extension in FILE_EXTENSIONS_TO_CHECK
             ):
                 file_extension = os.path.join(subdir, file_name)
-                failures += is_concatenated(os.path.join(subdir, file_name))
 
-    exit_code = 1 if failures >= 1 else 0
-    sys.exit(exit_code)
+                for msg in strings_to_concatenate(os.path.join(subdir, file_name)):
+                    if msg:
+                        failed = True
+                        print(msg)
+    sys.exit(failed)
