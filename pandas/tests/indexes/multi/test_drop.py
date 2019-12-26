@@ -172,3 +172,19 @@ def test_drop_errors_ignore(labels, level):
 
     expected_df = df.drop(labels, level=level, errors="ignore")
     tm.assert_frame_equal(df, expected_df)
+
+
+def test_drop_with_non_unique_datetime_index_and_invalid_keys():
+    # GH 30399
+
+    # define dataframe with unique datetime index
+    df = pd.DataFrame(
+        np.random.randn(5, 3),
+        columns=["a", "b", "c"],
+        index=pd.date_range("2012", freq="H", periods=5),
+    )
+    # create dataframe with non-unique datetime index
+    df = df.iloc[[0, 2, 2, 3]].copy()
+
+    with pytest.raises(KeyError, match="not found in axis"):
+        df.drop(["a", "b"])  # Dropping with labels not exist in the index
