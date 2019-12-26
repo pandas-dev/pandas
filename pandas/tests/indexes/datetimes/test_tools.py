@@ -1298,7 +1298,7 @@ class TestToDatetimeUnit:
         tm.assert_series_equal(result, expected)
 
         # extra columns
-        msg = "extra keys have been passed to the datetime assemblage: " r"\[foo\]"
+        msg = r"extra keys have been passed to the datetime assemblage: \[foo\]"
         with pytest.raises(ValueError, match=msg):
             df2 = df.copy()
             df2["foo"] = 1

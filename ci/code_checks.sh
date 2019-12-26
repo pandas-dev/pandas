@@ -200,6 +200,10 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --include="*.py" --include="*.pyx" -E 'class.*:\n\n( )+"""' .
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Check for use of {foo!r} instead of {repr(foo)}' ; echo $MSG
+    invgrep -R --include=*.{py,pyx} '!r}' pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     MSG='Check for use of comment-based annotation syntax' ; echo $MSG
     invgrep -R --include="*.py" -P '# type: (?!ignore)' pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
