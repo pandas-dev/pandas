@@ -3297,7 +3297,7 @@ class Table(Fixed):
     def queryables(self) -> Dict[str, Any]:
         """ return a dict of the kinds allowable columns for this object """
 
-        # mypy doesnt recognize DataFrame._AXIS_NAMES, so we re-write it here
+        # mypy doesn't recognize DataFrame._AXIS_NAMES, so we re-write it here
         axis_names = {0: "index", 1: "columns"}
 
         # compute the values_axes queryables
@@ -4993,7 +4993,7 @@ def _get_data_and_dtype_name(data: Union[np.ndarray, ABCExtensionArray]):
     if data.dtype.kind in ["m", "M"]:
         data = np.asarray(data.view("i8"))
         # TODO: we used to reshape for the dt64tz case, but no longer
-        #  doing that doesnt seem to break anything.  why?
+        #  doing that doesn't seem to break anything.  why?
 
     elif isinstance(data, PeriodIndex):
         data = data.asi8
