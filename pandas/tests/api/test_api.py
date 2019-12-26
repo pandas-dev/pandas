@@ -93,6 +93,7 @@ class TestPDApi(Base):
     ]
     if not compat.PY37:
         classes.extend(["Panel", "SparseSeries", "SparseDataFrame"])
+        deprecated_modules.extend("datetime")
 
     # these are already deprecated; awaiting removal
     deprecated_classes: List[str] = []
@@ -101,7 +102,7 @@ class TestPDApi(Base):
     deprecated_classes_in_future: List[str] = []
 
     # external modules exposed in pandas namespace
-    modules = ["np", "datetime"]
+    modules = ["np"]
 
     # top-level functions
     funcs = [
@@ -219,6 +220,15 @@ class TestPDApi(Base):
             + self.private_modules,
             self.ignored,
         )
+
+
+def test_datetime():
+    from datetime import datetime
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", FutureWarning)
+        assert datetime.date(2015, 7, 10) == pd.datetime.date(2015, 7, 10)
 
 
 class TestApi(Base):
