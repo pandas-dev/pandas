@@ -81,10 +81,6 @@ class DatetimeTimedeltaMixin:
         """
         Set the _freq attribute on our underlying DatetimeArray.
 
-        NB: this assumes that the given freq has already been validated
-        for the underlying data.  This is always OK if freq is None or if the
-        Index is empty.
-
         Parameters
         ----------
         freq : DateOffset, None, or "infer"
