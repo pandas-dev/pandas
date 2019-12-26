@@ -54,7 +54,6 @@ static PyTypeObject *cls_dataframe;
 static PyTypeObject *cls_series;
 static PyTypeObject *cls_index;
 static PyTypeObject *cls_nat;
-PyObject *cls_timestamp;
 PyObject *cls_timedelta;
 
 npy_int64 get_nat(void) { return NPY_MIN_INT64; }
@@ -166,7 +165,6 @@ void *initObjToJSON(void) {
         cls_index = (PyTypeObject *)PyObject_GetAttrString(mod_pandas, "Index");
         cls_series =
             (PyTypeObject *)PyObject_GetAttrString(mod_pandas, "Series");
-        cls_timestamp = PyObject_GetAttrString(mod_pandas, "Timestamp");
         cls_timedelta = PyObject_GetAttrString(mod_pandas, "Timedelta");
         Py_DECREF(mod_pandas);
     }
@@ -484,7 +482,8 @@ static char *PyDateTimeToIsoCallback(JSOBJ obj, JSONTypeContext *tc,
                                      size_t *len) {
 
     if (!PyDateTime_Check(obj)) {
-        // TODO: raise TypeError
+      PyErr_SetString(PyExc_TypeError, "Expected datetime object");
+      return NULL;
     }
 
     NPY_DATETIMEUNIT base = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
@@ -1550,8 +1549,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
             break;
         }
 
-        // TODO: for any matches on type_num (date and timedeltas) should use a
-        // vectorized solution to convert to epoch or iso formats
+        // TODO: vectorized timedelta solution
         if (enc->datetimeIso &&
             (type_num == NPY_TIMEDELTA || PyDelta_Check(item))) {
             PyObject *td = PyObject_CallFunction(cls_timedelta, "(O)", item);
@@ -1589,7 +1587,8 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
                 cLabel = int64ToIso(longVal, base, &len);
             } else {
                 if (!scaleNanosecToUnit(&longVal, base)) {
-                    // TODO: This gets hit but somehow doesn't cause errors
+                  // TODO: This gets hit but somehow doesn't cause errors
+		  // need to clean up (elsewhere in module as well)
                 }
                 sprintf(cLabel, "%" NPY_INT64_FMT, longVal);
                 len = strlen(cLabel);
