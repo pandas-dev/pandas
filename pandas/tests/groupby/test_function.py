@@ -1398,18 +1398,34 @@ def test_quantile_array_multiple_levels():
     tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_quantile_with_arraylike_q_and_int_columns():
+@pytest.mark.parametrize("frame_size", [(2, 2), (100, 10)])
+@pytest.mark.parametrize("groupby", [[0], [0, 1]])
+@pytest.mark.parametrize("q", [[0.5, 0.6], [0.1, 0.9]])
+def test_groupby_quantile_with_arraylike_q_and_int_columns(frame_size, groupby, q):
     # GH30289
-    df = pd.DataFrame(np.array([2 * [_ % 4] for _ in range(10)]), columns=[0, 1])
+    nrow, ncol = frame_size
+    if len(groupby) >= ncol or any([by >= ncol for by in groupby]):
+        pytest.skip(f"Invalid argument groupby={groupby}")
 
-    quantiles = [0.5, 0.6]
-    expected_index = pd.MultiIndex.from_product(
-        [[0, 1, 2, 3], [0.5, 0.6]], names=[0, None]
+    df = pd.DataFrame(
+        np.array([ncol * [_ % 4] for _ in range(nrow)]), columns=range(ncol)
     )
 
-    expected_values = [float(x) for x in [0, 0, 1, 1, 2, 2, 3, 3]]
-    expected = pd.DataFrame(expected_values, index=expected_index, columns=[1])
-    result = df.groupby(0).quantile(quantiles)
+    idx_levels = [list(range(min(nrow, 4)))] * len(groupby) + [q]
+    idx_codes = [[x for x in range(min(nrow, 4)) for _ in q]] * len(groupby) + [
+        list(range(len(q))) * min(nrow, 4)
+    ]
+    expected_index = pd.MultiIndex(
+        levels=idx_levels, codes=idx_codes, names=groupby + [None]
+    )
+    expected_values = [
+        [float(x)] * (ncol - len(groupby)) for x in range(min(nrow, 4)) for _ in q
+    ]
+    expected_columns = [x for x in range(ncol) if x not in groupby]
+    expected = pd.DataFrame(
+        expected_values, index=expected_index, columns=expected_columns
+    )
+    result = df.groupby(groupby).quantile(q)
 
     tm.assert_frame_equal(result, expected)
 
