@@ -98,7 +98,7 @@ class TransformerBaseClass(Transformer):
         column_to_dataframe_name=None,
         _temp_dataframes_dict=None,
     ):
-        super(TransformerBaseClass, self).__init__(visit_tokens=False)
+        Transformer.__init__(self, visit_tokens=False)
         self.dataframe_name_map = dataframe_name_map
         self.dataframe_map = dataframe_map
         self.column_name_map = column_name_map
@@ -153,8 +153,8 @@ class InternalTransformer(TransformerBaseClass):
     def __init__(
         self, tables, dataframe_map, column_name_map, column_to_dataframe_name
     ):
-        super(InternalTransformer, self).__init__(
-            dataframe_map=dataframe_map, column_name_map=column_name_map
+        TransformerBaseClass.__init__(
+            self, dataframe_map=dataframe_map, column_name_map=column_name_map
         )
         self.tables = [
             table.name if isinstance(table, Subquery) else table for table in tables
@@ -719,7 +719,8 @@ class HavingTransformer(TransformerBaseClass):
     ):
         self.tables = tables
         self.group_by = group_by
-        super(HavingTransformer, self).__init__(
+        TransformerBaseClass.__init__(
+            self,
             dataframe_map=dataframe_map,
             column_name_map=column_name_map,
             column_to_dataframe_name=column_to_dataframe_name,
@@ -789,7 +790,8 @@ class SQLTransformer(TransformerBaseClass):
         column_name_map={},
         column_to_dataframe_name={},
     ):
-        super(SQLTransformer, self).__init__(
+        TransformerBaseClass.__init__(
+            self,
             dataframe_name_map,
             dataframe_map,
             column_name_map,

@@ -9,7 +9,7 @@ class InvalidQueryException(Exception):
     """
 
     def __init__(self, message):
-        super(InvalidQueryException, self).__init__(f"Invalid query!\n" + message)
+        Exception.__init__(self, f"Invalid query!\n" + message)
 
 
 class DataFrameDoesNotExist(Exception):
@@ -18,6 +18,6 @@ class DataFrameDoesNotExist(Exception):
     """
 
     def __init__(self, table_name):
-        super(DataFrameDoesNotExist, self).__init__(
-            f"DataFrame {table_name} has not been defined"
+        Exception.__init__(
+            self, f"DataFrame {table_name} has not been defined"
         )

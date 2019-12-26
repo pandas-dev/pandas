@@ -7,8 +7,8 @@ import os
 from lark import Lark, UnexpectedToken
 
 from pandas.io.dataframe_sql.parsers import SQLTransformer
-from pandas.io.dataframe_sql.sql_objects import AmbiguousColumn
 from pandas.io.dataframe_sql.sql_exception import InvalidQueryException
+from pandas.io.dataframe_sql.sql_objects import AmbiguousColumn
 from pandas.core.frame import DataFrame
 
 SHOW_TREE = False

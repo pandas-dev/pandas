@@ -5,6 +5,7 @@ Data IO api
 # flake8: noqa
 
 from pandas.io.clipboards import read_clipboard
+from pandas.io.dataframe_sql import register_temp_table, remove_temp_table, query
 from pandas.io.excel import ExcelFile, ExcelWriter, read_excel
 from pandas.io.feather_format import read_feather
 from pandas.io.gbq import read_gbq
@@ -19,4 +20,3 @@ from pandas.io.sas import read_sas
 from pandas.io.spss import read_spss
 from pandas.io.sql import read_sql, read_sql_query, read_sql_table
 from pandas.io.stata import read_stata
-from pandas.io.dataframe_sql import register_temp_table, remove_temp_table, query
