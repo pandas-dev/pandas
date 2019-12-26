@@ -5,7 +5,7 @@ classes that hold the groupby interfaces (and some implementations).
 These are user facing as the result of the ``df.groupby(...)`` operations,
 which here returns a DataFrameGroupBy object.
 """
-from collections import OrderedDict, abc, defaultdict, namedtuple
+from collections import abc, defaultdict, namedtuple
 import copy
 from functools import partial
 from textwrap import dedent
@@ -306,7 +306,7 @@ class SeriesGroupBy(GroupBy):
 
             arg = zip(columns, arg)
 
-        results = OrderedDict()
+        results = {}
         for name, func in arg:
             obj = self
 
@@ -443,7 +443,7 @@ class SeriesGroupBy(GroupBy):
             return self._reindex_output(result)
 
     def _aggregate_named(self, func, *args, **kwargs):
-        result = OrderedDict()
+        result = {}
 
         for name, group in self:
             group.name = name
@@ -1119,7 +1119,7 @@ class DataFrameGroupBy(GroupBy):
         axis = self.axis
         obj = self._obj_with_exclusions
 
-        result: OrderedDict = OrderedDict()
+        result: dict = {}
         if axis != obj._info_axis_number:
             for name, data in self:
                 fres = func(data, *args, **kwargs)
@@ -1136,7 +1136,7 @@ class DataFrameGroupBy(GroupBy):
         # only for axis==0
 
         obj = self._obj_with_exclusions
-        result: OrderedDict = OrderedDict()
+        result: dict = {}
         cannot_agg = []
         for item in obj:
             data = obj[item]
@@ -1874,7 +1874,7 @@ def _normalize_keyword_aggregation(kwargs):
     Normalize user-provided "named aggregation" kwargs.
 
     Transforms from the new ``Mapping[str, NamedAgg]`` style kwargs
-    to the old OrderedDict[str, List[scalar]]].
+    to the old Dict[str, List[scalar]]].
 
     Parameters
     ----------
@@ -1892,11 +1892,11 @@ def _normalize_keyword_aggregation(kwargs):
     Examples
     --------
     >>> _normalize_keyword_aggregation({'output': ('input', 'sum')})
-    (OrderedDict([('input', ['sum'])]), ('output',), [('input', 'sum')])
+    ({'input': ['sum']}, ('output',), [('input', 'sum')])
     """
     # Normalize the aggregation functions as Mapping[column, List[func]],
     # process normally, then fixup the names.
-    # TODO: aggspec type: typing.OrderedDict[str, List[AggScalar]]
+    # TODO: aggspec type: typing.Dict[str, List[AggScalar]]
     # May be hitting https://github.com/python/mypy/issues/5958
     # saying it doesn't have an attribute __name__
     aggspec = defaultdict(list)
