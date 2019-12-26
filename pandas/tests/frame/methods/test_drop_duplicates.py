@@ -407,11 +407,10 @@ def test_drop_duplicates_ignore_index(
 ):
     # GH 30114
     df = DataFrame(origin_dict)
+    expected = DataFrame(output_dict, index=output_index)
 
     # Test when inplace is False
     result = df.drop_duplicates(ignore_index=ignore_index)
-
-    expected = DataFrame(output_dict, index=output_index)
     tm.assert_frame_equal(result, expected)
 
     # to verify original dataframe is not mutated
@@ -419,9 +418,8 @@ def test_drop_duplicates_ignore_index(
 
     # Test when inplace is True
     copied_df = df.copy()
-    copied_df.drop_duplicates(ignore_index=ignore_index, inplace=True)
 
-    expected = DataFrame(output_dict, index=output_index)
+    copied_df.drop_duplicates(ignore_index=ignore_index, inplace=True)
     tm.assert_frame_equal(copied_df, expected)
 
     # to verify that input is unchanged
