@@ -3,6 +3,7 @@ from io import StringIO
 import re
 import sys
 import textwrap
+import warnings
 
 import numpy as np
 import pytest
@@ -29,17 +30,17 @@ import pandas.io.formats.format as fmt
 class TestDataFrameReprInfoEtc:
     def test_repr_empty(self):
         # empty
-        foo = repr(DataFrame())  # noqa
+        repr(DataFrame())
 
         # empty with index
         frame = DataFrame(index=np.arange(1000))
-        foo = repr(frame)  # noqa
+        repr(frame)
 
     def test_repr_mixed(self, float_string_frame):
         buf = StringIO()
 
         # mixed
-        foo = repr(float_string_frame)  # noqa
+        repr(float_string_frame)
         float_string_frame.info(verbose=False, buf=buf)
 
     @pytest.mark.slow
@@ -51,13 +52,13 @@ class TestDataFrameReprInfoEtc:
         biggie.loc[:20, "A"] = np.nan
         biggie.loc[:20, "B"] = np.nan
 
-        foo = repr(biggie)  # noqa
+        repr(biggie)
 
     def test_repr(self, float_frame):
         buf = StringIO()
 
         # small one
-        foo = repr(float_frame)
+        repr(float_frame)
         float_frame.info(verbose=False, buf=buf)
 
         # even smaller
@@ -68,7 +69,7 @@ class TestDataFrameReprInfoEtc:
 
         # columns but no index
         no_index = DataFrame(columns=[0, 1, 3])
-        foo = repr(no_index)  # noqa
+        repr(no_index)
 
         # no columns or index
         DataFrame().info(buf=buf)
@@ -97,7 +98,6 @@ class TestDataFrameReprInfoEtc:
 
     def test_repr_unsortable(self, float_frame):
         # columns are not sortable
-        import warnings
 
         warn_filters = warnings.filters
         warnings.filterwarnings("ignore", category=FutureWarning, module=".*format")

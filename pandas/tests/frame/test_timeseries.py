@@ -27,62 +27,6 @@ def close_open_fixture(request):
 
 
 class TestDataFrameTimeSeriesMethods:
-    def test_pct_change(self, datetime_frame):
-        rs = datetime_frame.pct_change(fill_method=None)
-        tm.assert_frame_equal(rs, datetime_frame / datetime_frame.shift(1) - 1)
-
-        rs = datetime_frame.pct_change(2)
-        filled = datetime_frame.fillna(method="pad")
-        tm.assert_frame_equal(rs, filled / filled.shift(2) - 1)
-
-        rs = datetime_frame.pct_change(fill_method="bfill", limit=1)
-        filled = datetime_frame.fillna(method="bfill", limit=1)
-        tm.assert_frame_equal(rs, filled / filled.shift(1) - 1)
-
-        rs = datetime_frame.pct_change(freq="5D")
-        filled = datetime_frame.fillna(method="pad")
-        tm.assert_frame_equal(
-            rs, (filled / filled.shift(freq="5D") - 1).reindex_like(filled)
-        )
-
-    def test_pct_change_shift_over_nas(self):
-        s = Series([1.0, 1.5, np.nan, 2.5, 3.0])
-
-        df = DataFrame({"a": s, "b": s})
-
-        chg = df.pct_change()
-        expected = Series([np.nan, 0.5, 0.0, 2.5 / 1.5 - 1, 0.2])
-        edf = DataFrame({"a": expected, "b": expected})
-        tm.assert_frame_equal(chg, edf)
-
-    @pytest.mark.parametrize(
-        "freq, periods, fill_method, limit",
-        [
-            ("5B", 5, None, None),
-            ("3B", 3, None, None),
-            ("3B", 3, "bfill", None),
-            ("7B", 7, "pad", 1),
-            ("7B", 7, "bfill", 3),
-            ("14B", 14, None, None),
-        ],
-    )
-    def test_pct_change_periods_freq(
-        self, datetime_frame, freq, periods, fill_method, limit
-    ):
-        # GH 7292
-        rs_freq = datetime_frame.pct_change(
-            freq=freq, fill_method=fill_method, limit=limit
-        )
-        rs_periods = datetime_frame.pct_change(
-            periods, fill_method=fill_method, limit=limit
-        )
-        tm.assert_frame_equal(rs_freq, rs_periods)
-
-        empty_ts = DataFrame(index=datetime_frame.index, columns=datetime_frame.columns)
-        rs_freq = empty_ts.pct_change(freq=freq, fill_method=fill_method, limit=limit)
-        rs_periods = empty_ts.pct_change(periods, fill_method=fill_method, limit=limit)
-        tm.assert_frame_equal(rs_freq, rs_periods)
-
     def test_frame_ctor_datetime64_column(self):
         rng = date_range("1/1/2000 00:00:00", "1/1/2000 1:59:50", freq="10s")
         dates = np.asarray(rng)
