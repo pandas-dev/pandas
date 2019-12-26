@@ -2204,8 +2204,6 @@ class PythonParser(ParserBase):
     def __init__(self, f, **kwds):
         """
         Workhorse function for processing nested list into DataFrame
-
-        Should be replaced by np.genfromtxt eventually?
         """
         ParserBase.__init__(self, kwds)
 

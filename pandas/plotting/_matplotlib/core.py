@@ -241,12 +241,6 @@ class MPLPlot:
         if fillna is not None:
             data = data.fillna(fillna)
 
-        # TODO: unused?
-        # if self.sort_columns:
-        #     columns = com.try_sort(data.columns)
-        # else:
-        #     columns = data.columns
-
         for col, values in data.items():
             if keep_index is True:
                 yield col, values

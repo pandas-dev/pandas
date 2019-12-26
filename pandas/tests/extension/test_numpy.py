@@ -51,7 +51,7 @@ def data_missing(allow_in_pandas, dtype):
     if dtype.numpy_dtype == "object":
         if _np_version_under1p16:
             raise pytest.skip("Skipping for NumPy <1.16")
-        return PandasArray(np.array([np.nan, (1,)]))
+        return PandasArray(np.array([np.nan, (1,)], dtype=object))
     return PandasArray(np.array([np.nan, 1.0]))
 
 
@@ -78,7 +78,7 @@ def data_for_sorting(allow_in_pandas, dtype):
     if dtype.numpy_dtype == "object":
         # Use an empty tuple for first element, then remove,
         # to disable np.array's shape inference.
-        return PandasArray(np.array([(), (2,), (3,), (1,)])[1:])
+        return PandasArray(np.array([(), (2,), (3,), (1,)], dtype=object)[1:])
     return PandasArray(np.array([1, 2, 0]))
 
 
@@ -90,7 +90,7 @@ def data_missing_for_sorting(allow_in_pandas, dtype):
     A < B and NA missing.
     """
     if dtype.numpy_dtype == "object":
-        return PandasArray(np.array([(1,), np.nan, (0,)]))
+        return PandasArray(np.array([(1,), np.nan, (0,)], dtype=object))
     return PandasArray(np.array([1, np.nan, 0]))
 
 
@@ -106,7 +106,9 @@ def data_for_grouping(allow_in_pandas, dtype):
         a, b, c = (1,), (2,), (3,)
     else:
         a, b, c = np.arange(3)
-    return PandasArray(np.array([b, b, np.nan, np.nan, a, a, b, c]))
+    return PandasArray(
+        np.array([b, b, np.nan, np.nan, a, a, b, c], dtype=dtype.numpy_dtype)
+    )
 
 
 @pytest.fixture
