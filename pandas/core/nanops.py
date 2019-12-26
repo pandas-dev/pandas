@@ -1289,7 +1289,11 @@ def _ensure_numeric(x):
             try:
                 x = x.astype(np.complex128)
             except (TypeError, ValueError):
-                x = x.astype(np.float64)
+                try:
+                    x = x.astype(np.float64)
+                except ValueError:
+                    # GH#29941 we get here with object arrays containing strs
+                    raise TypeError(f"Could not convert {x} to numeric")
             else:
                 if not np.any(np.imag(x)):
                     x = x.real

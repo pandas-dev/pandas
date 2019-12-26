@@ -7609,10 +7609,8 @@ class DataFrame(NDFrame):
                     # TODO: combine with hasattr(result, 'dtype') further down
                     # hard since we don't have `values` down there.
                     result = np.bool_(result)
-            except (TypeError, ValueError):
+            except TypeError:
                 # e.g. in nanops trying to convert strs to float
-                # TODO: the ValueError is raised in trying to convert str
-                #  to float, should we make that a TypError?
 
                 # try by-column first
                 if filter_type is None and axis == 0:
