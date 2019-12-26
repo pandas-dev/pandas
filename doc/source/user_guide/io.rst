@@ -2136,27 +2136,26 @@ into a flat table.
 
 .. ipython:: python
 
-   from pandas.io.json import json_normalize
    data = [{'id': 1, 'name': {'first': 'Coleen', 'last': 'Volk'}},
            {'name': {'given': 'Mose', 'family': 'Regner'}},
            {'id': 2, 'name': 'Faye Raker'}]
-   json_normalize(data)
+   pd.json_normalize(data)
 
 .. ipython:: python
 
    data = [{'state': 'Florida',
             'shortname': 'FL',
             'info': {'governor': 'Rick Scott'},
-            'counties': [{'name': 'Dade', 'population': 12345},
-                         {'name': 'Broward', 'population': 40000},
-                         {'name': 'Palm Beach', 'population': 60000}]},
+            'county': [{'name': 'Dade', 'population': 12345},
+                       {'name': 'Broward', 'population': 40000},
+                       {'name': 'Palm Beach', 'population': 60000}]},
            {'state': 'Ohio',
             'shortname': 'OH',
             'info': {'governor': 'John Kasich'},
-            'counties': [{'name': 'Summit', 'population': 1234},
-                         {'name': 'Cuyahoga', 'population': 1337}]}]
+            'county': [{'name': 'Summit', 'population': 1234},
+                       {'name': 'Cuyahoga', 'population': 1337}]}]
 
-   json_normalize(data, 'counties', ['state', 'shortname', ['info', 'governor']])
+   pd.json_normalize(data, 'county', ['state', 'shortname', ['info', 'governor']])
 
 The max_level parameter provides more control over which level to end normalization.
 With max_level=1 the following snippet normalizes until 1st nesting level of the provided dict.
@@ -2169,7 +2168,7 @@ With max_level=1 the following snippet normalizes until 1st nesting level of the
                                       'Name': 'Name001'}},
              'Image': {'a': 'b'}
              }]
-    json_normalize(data, max_level=1)
+    pd.json_normalize(data, max_level=1)
 
 .. _io.jsonl:
 
@@ -4764,10 +4763,10 @@ Parquet supports partitioning of data based on the values of one or more columns
 .. ipython:: python
 
     df = pd.DataFrame({'a': [0, 0, 1, 1], 'b': [0, 1, 0, 1]})
-    df.to_parquet(fname='test', engine='pyarrow',
+    df.to_parquet(path='test', engine='pyarrow',
                   partition_cols=['a'], compression=None)
 
-The `fname` specifies the parent directory to which data will be saved.
+The `path` specifies the parent directory to which data will be saved.
 The `partition_cols` are the column names by which the dataset will be partitioned.
 Columns are partitioned in the order they are given. The partition splits are
 determined by the unique values in the partition columns.
@@ -4829,7 +4828,6 @@ See also some :ref:`cookbook examples <cookbook.sql>` for some advanced strategi
 The key functions are:
 
 .. autosummary::
-    :toctree: ../reference/api/
 
     read_sql_table
     read_sql_query

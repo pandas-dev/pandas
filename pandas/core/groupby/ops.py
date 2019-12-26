@@ -14,6 +14,7 @@ import numpy as np
 from pandas._libs import NaT, iNaT, lib
 import pandas._libs.groupby as libgroupby
 import pandas._libs.reduction as libreduction
+from pandas._typing import FrameOrSeries
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
@@ -36,7 +37,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import _maybe_fill, isna
 
-from pandas._typing import FrameOrSeries
 import pandas.core.algorithms as algorithms
 from pandas.core.base import SelectionMixin
 import pandas.core.common as com
@@ -563,7 +563,9 @@ class BaseGrouper:
 
         return result, names
 
-    def aggregate(self, values, how: str, axis: int = 0, min_count: int = -1):
+    def aggregate(
+        self, values, how: str, axis: int = 0, min_count: int = -1
+    ) -> Tuple[np.ndarray, Optional[List[str]]]:
         return self._cython_operation(
             "aggregate", values, how, axis, min_count=min_count
         )
@@ -663,10 +665,7 @@ class BaseGrouper:
                     if len(res) == 1:
                         # e.g. test_agg_lambda_with_timezone lambda e: e.head(1)
                         # FIXME: are we potentially losing import res.index info?
-
-                        # TODO: use `.item()` if/when we un-deprecate it.
-                        # For non-Series we could just do `res[0]`
-                        res = next(iter(res))
+                        res = res.item()
                     else:
                         raise ValueError("Function does not reduce")
                 result = np.empty(ngroups, dtype="O")

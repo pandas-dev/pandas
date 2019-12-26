@@ -725,15 +725,10 @@ class TestDatetimeIndex:
         expected = klass([ts])
         assert result == expected
 
-    # This is the desired future behavior
-    # Note: this xfail is not strict because the test passes with
-    #  None or any of the UTC variants for tz_naive_fixture
-    @pytest.mark.xfail(reason="Future behavior", strict=False)
-    @pytest.mark.filterwarnings("ignore:\\n    Passing:FutureWarning")
     def test_construction_int_rountrip(self, tz_naive_fixture):
-        # GH 12619
-        # TODO(GH-24559): Remove xfail
+        # GH 12619, GH#24559
         tz = tz_naive_fixture
+
         result = 1293858000000000000
         expected = DatetimeIndex([result], tz=tz).asi8[0]
         assert result == expected

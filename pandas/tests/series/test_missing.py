@@ -24,24 +24,6 @@ from pandas import (
 import pandas.util.testing as tm
 
 
-def _skip_if_no_pchip():
-    try:
-        from scipy.interpolate import pchip_interpolate  # noqa
-    except ImportError:
-        import pytest
-
-        pytest.skip("scipy.interpolate.pchip missing")
-
-
-def _skip_if_no_akima():
-    try:
-        from scipy.interpolate import Akima1DInterpolator  # noqa
-    except ImportError:
-        import pytest
-
-        pytest.skip("scipy.interpolate.Akima1DInterpolator missing")
-
-
 def _simple_ts(start, end, freq="D"):
     rng = date_range(start, end, freq=freq)
     return Series(np.random.randn(len(rng)), index=rng)
@@ -520,11 +502,11 @@ class TestSeriesMissingData:
 
     def test_fillna_raise(self):
         s = Series(np.random.randint(-100, 100, 50))
-        msg = '"value" parameter must be a scalar or dict, but you passed a' ' "list"'
+        msg = '"value" parameter must be a scalar or dict, but you passed a "list"'
         with pytest.raises(TypeError, match=msg):
             s.fillna([1, 2])
 
-        msg = '"value" parameter must be a scalar or dict, but you passed a' ' "tuple"'
+        msg = '"value" parameter must be a scalar or dict, but you passed a "tuple"'
         with pytest.raises(TypeError, match=msg):
             s.fillna((1, 2))
 
@@ -611,11 +593,11 @@ class TestSeriesMissingData:
         with pytest.raises(ValueError, match="fill value must be in categories"):
             s.fillna({1: "d", 3: "a"})
 
-        msg = '"value" parameter must be a scalar or ' 'dict, but you passed a "list"'
+        msg = '"value" parameter must be a scalar or dict, but you passed a "list"'
         with pytest.raises(TypeError, match=msg):
             s.fillna(["a", "b"])
 
-        msg = '"value" parameter must be a scalar or ' 'dict, but you passed a "tuple"'
+        msg = '"value" parameter must be a scalar or dict, but you passed a "tuple"'
         with pytest.raises(TypeError, match=msg):
             s.fillna(("a", "b"))
 
@@ -1099,7 +1081,6 @@ class TestSeriesInterpolateData:
 
     @td.skip_if_no_scipy
     def test_interpolate_pchip(self):
-        _skip_if_no_pchip()
 
         ser = Series(np.sort(np.random.uniform(size=100)))
 
@@ -1113,7 +1094,6 @@ class TestSeriesInterpolateData:
 
     @td.skip_if_no_scipy
     def test_interpolate_akima(self):
-        _skip_if_no_akima()
 
         ser = Series([10, 11, 12, 13])
 
@@ -1619,7 +1599,7 @@ class TestSeriesInterpolateData:
 
         method, kwargs = interp_methods_ind
         if method == "pchip":
-            _skip_if_no_pchip()
+            pytest.importorskip("scipy")
 
         if method == "linear":
             result = df[0].interpolate(**kwargs)
@@ -1647,7 +1627,7 @@ class TestSeriesInterpolateData:
 
         method, kwargs = interp_methods_ind
         if method == "pchip":
-            _skip_if_no_pchip()
+            pytest.importorskip("scipy")
 
         if method in {"linear", "pchip"}:
             result = df[0].interpolate(method=method, **kwargs)
