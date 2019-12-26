@@ -21,7 +21,7 @@ from pandas.io.dataframe_sql.sql_objects import AmbiguousColumn
 from pandas.util.testing import assert_frame_equal
 
 
-DATA_PATH = os.path.join(Path(__file__).parent, "data")
+DATA_PATH = os.path.join(Path(__file__).parent.parent, "data")
 
 
 # Import the data for testing
