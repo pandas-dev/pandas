@@ -1,15 +1,16 @@
 """
 Convert dataframe_sql statement to run on pandas dataframes
 """
-from pathlib import Path
 import os
+from pathlib import Path
 
 from lark import Lark, UnexpectedToken
+
+from pandas.core.frame import DataFrame
 
 from pandas.io.dataframe_sql.parsers import SQLTransformer
 from pandas.io.dataframe_sql.sql_exception import InvalidQueryException
 from pandas.io.dataframe_sql.sql_objects import AmbiguousColumn
-from pandas.core.frame import DataFrame
 
 SHOW_TREE = False
 SHOW_DF = False

@@ -2,24 +2,26 @@
 Test cases for panda to sql
 """
 # pylint: disable=broad-except
+from datetime import date, datetime
 import os
 from pathlib import Path
+
+from freezegun import freeze_time
 import numpy as np
-from datetime import datetime, date
+
+from pandas import query, register_temp_table, remove_temp_table
 from pandas.core.frame import DataFrame
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.merge import merge
-from pandas.io.parsers import read_csv
-from freezegun import freeze_time
-from pandas import register_temp_table, remove_temp_table, query
-from pandas.io.dataframe_sql.sql_select_query import TableInfo
-from pandas.io.dataframe_sql.sql_exception import (
-    InvalidQueryException,
-    DataFrameDoesNotExist,
-)
-from pandas.io.dataframe_sql.sql_objects import AmbiguousColumn
 import pandas.util.testing as tm
 
+from pandas.io.dataframe_sql.sql_exception import (
+    DataFrameDoesNotExist,
+    InvalidQueryException,
+)
+from pandas.io.dataframe_sql.sql_objects import AmbiguousColumn
+from pandas.io.dataframe_sql.sql_select_query import TableInfo
+from pandas.io.parsers import read_csv
 
 DATA_PATH = os.path.join(Path(__file__).parent.parent, "data")
 
@@ -82,7 +84,8 @@ def test_add_remove_temp_table():
         and real_frame_name in TableInfo.column_name_map
     )
 
-    tm.assert_frame_equal(TableInfo.dataframe_map[registered_frame_name], DIGIMON_MON_LIST)
+    tm.assert_frame_equal(TableInfo.dataframe_map[registered_frame_name],
+                          DIGIMON_MON_LIST)
 
     # Ensure column metadata is added correctly
     for column in DIGIMON_MON_LIST.columns:
@@ -1159,5 +1162,3 @@ def test_timestamps():
         pandas_frame["today()"] = date.today()
         pandas_frame["_literal0"] = datetime(2019, 1, 31, 23, 20, 32)
         tm.assert_frame_equal(pandas_frame, my_frame)
-
-test_select_star()
