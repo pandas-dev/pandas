@@ -31,54 +31,95 @@ def ignore_xlrd_time_clock_warning():
         yield
 
 
-@pytest.fixture(
-    params=[
-        # Add any engines to test here
-        # When defusedxml is installed it triggers deprecation warnings for
-        # xlrd and openpyxl, so catch those here
-        pytest.param(
-            "xlrd",
-            marks=[
-                td.skip_if_no("xlrd"),
-                pytest.mark.filterwarnings("ignore:.*(tree\\.iter|html argument)"),
-            ],
-        ),
-        pytest.param(
-            "openpyxl",
-            marks=[
-                td.skip_if_no("openpyxl"),
-                pytest.mark.filterwarnings("ignore:.*html argument"),
-            ],
-        ),
-        pytest.param(
-            None,
-            marks=[
-                td.skip_if_no("xlrd"),
-                pytest.mark.filterwarnings("ignore:.*(tree\\.iter|html argument)"),
-            ],
-        ),
-        pytest.param("odf", marks=td.skip_if_no("odf")),
-    ]
-)
-def engine(request):
+read_ext_params = [".xls", ".xlsx", ".xlsm", ".ods"]
+engine_params = [
+    # Add any engines to test here
+    # When defusedxml is installed it triggers deprecation warnings for
+    # xlrd and openpyxl, so catch those here
+    pytest.param(
+        "xlrd",
+        marks=[
+            td.skip_if_no("xlrd"),
+            pytest.mark.filterwarnings("ignore:.*(tree\\.iter|html argument)"),
+        ],
+    ),
+    pytest.param(
+        "openpyxl",
+        marks=[
+            td.skip_if_no("openpyxl"),
+            pytest.mark.filterwarnings("ignore:.*html argument"),
+        ],
+    ),
+    pytest.param(
+        None,
+        marks=[
+            td.skip_if_no("xlrd"),
+            pytest.mark.filterwarnings("ignore:.*(tree\\.iter|html argument)"),
+        ],
+    ),
+    pytest.param("odf", marks=td.skip_if_no("odf")),
+]
+
+
+def _is_valid_engine_ext_pair(engine, read_ext: str) -> bool:
     """
-    A fixture for Excel reader engines.
+    Filter out invalid (engine, ext) pairs instead of skipping, as that
+    produces 500+ pytest.skips.
+    """
+    engine = engine.values[0]
+    if engine == "openpyxl" and read_ext == ".xls":
+        return False
+    if engine == "odf" and read_ext != ".ods":
+        return False
+    if read_ext == ".ods" and engine != "odf":
+        return False
+    return True
+
+
+def _transfer_marks(engine, read_ext):
+    """
+    engine gives us a pytest.param objec with some marks, read_ext is just
+    a string.  We need to generate a new pytest.param inheriting the marks.
+    """
+    values = engine.values + (read_ext,)
+    new_param = pytest.param(values, marks=engine.marks)
+    return new_param
+
+
+@pytest.fixture(
+    autouse=True,
+    params=[
+        _transfer_marks(eng, ext)
+        for eng in engine_params
+        for ext in read_ext_params
+        if _is_valid_engine_ext_pair(eng, ext)
+    ],
+)
+def engine_and_read_ext(request):
+    """
+    Fixture for Excel reader engine and read_ext, only including valid pairs.
     """
     return request.param
 
 
+@pytest.fixture
+def engine(engine_and_read_ext):
+    engine, read_ext = engine_and_read_ext
+    return engine
+
+
+@pytest.fixture
+def read_ext(engine_and_read_ext):
+    engine, read_ext = engine_and_read_ext
+    return read_ext
+
+
 class TestReaders:
     @pytest.fixture(autouse=True)
-    def cd_and_set_engine(self, engine, datapath, monkeypatch, read_ext):
+    def cd_and_set_engine(self, engine, datapath, monkeypatch):
         """
         Change directory and set engine for read_excel calls.
         """
-        if engine == "openpyxl" and read_ext == ".xls":
-            pytest.skip()
-        if engine == "odf" and read_ext != ".ods":
-            pytest.skip()
-        if read_ext == ".ods" and engine != "odf":
-            pytest.skip()
 
         func = partial(pd.read_excel, engine=engine)
         monkeypatch.chdir(datapath("io", "data", "excel"))
@@ -806,16 +847,10 @@ class TestReaders:
 
 class TestExcelFileRead:
     @pytest.fixture(autouse=True)
-    def cd_and_set_engine(self, engine, datapath, monkeypatch, read_ext):
+    def cd_and_set_engine(self, engine, datapath, monkeypatch):
         """
         Change directory and set engine for ExcelFile objects.
         """
-        if engine == "odf" and read_ext != ".ods":
-            pytest.skip()
-        if read_ext == ".ods" and engine != "odf":
-            pytest.skip()
-        if engine == "openpyxl" and read_ext == ".xls":
-            pytest.skip()
 
         func = partial(pd.ExcelFile, engine=engine)
         monkeypatch.chdir(datapath("io", "data", "excel"))
