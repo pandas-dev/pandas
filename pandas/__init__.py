@@ -10,7 +10,7 @@ for dependency in hard_dependencies:
     try:
         __import__(dependency)
     except ImportError as e:
-        missing_dependencies.append("{0}: {1}".format(dependency, str(e)))
+        missing_dependencies.append(f"{dependency}: {e}")
 
 if missing_dependencies:
     raise ImportError(
@@ -33,10 +33,10 @@ except ImportError as e:  # pragma: no cover
     # hack but overkill to use re
     module = str(e).replace("cannot import name ", "")
     raise ImportError(
-        "C extension: {0} not built. If you want to import "
+        f"C extension: {module} not built. If you want to import "
         "pandas from the source directory, you may need to run "
         "'python setup.py build_ext --inplace --force' to build "
-        "the C extensions first.".format(module)
+        "the C extensions first."
     )
 
 from datetime import datetime
@@ -213,16 +213,16 @@ if pandas.compat.PY37:
             return Panel
         elif name in {"SparseSeries", "SparseDataFrame"}:
             warnings.warn(
-                "The {} class is removed from pandas. Accessing it from "
+                f"The {name} class is removed from pandas. Accessing it from "
                 "the top-level namespace will also be removed in the next "
-                "version".format(name),
+                "version",
                 FutureWarning,
                 stacklevel=2,
             )
 
             return type(name, (), {})
 
-        raise AttributeError("module 'pandas' has no attribute '{}'".format(name))
+        raise AttributeError(f"module 'pandas' has no attribute '{name}'")
 
 
 else:
