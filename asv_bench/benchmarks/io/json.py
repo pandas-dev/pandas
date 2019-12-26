@@ -119,7 +119,7 @@ class ToJSON(BaseIO):
         getattr(self, frame).to_json(self.fname, orient=orient)
 
     def peakmem_to_json(self, orient, frame):
-        getattr(self, frame).to_json(self.fname, orient=orioent)
+        getattr(self, frame).to_json(self.fname, orient=orient)
 
     def time_to_json_wide(self, orient, frame):
         base_df = getattr(self, frame).copy()
