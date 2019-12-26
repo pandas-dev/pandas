@@ -1,7 +1,8 @@
-from pandas import Index, CategoricalIndex, Categorical, CategoricalDtype
-import pandas.util.testing as tm
 import numpy as np
 import pytest
+
+from pandas import Categorical, CategoricalDtype, CategoricalIndex, Index
+import pandas.util.testing as tm
 
 
 class TestCategoricalIndexConstructors:

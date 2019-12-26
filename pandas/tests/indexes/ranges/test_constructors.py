@@ -1,9 +1,9 @@
 from datetime import datetime
 
-import pytest
 import numpy as np
+import pytest
 
-from pandas import Index, Series, RangeIndex
+from pandas import Index, RangeIndex, Series
 import pandas.util.testing as tm
 
 
