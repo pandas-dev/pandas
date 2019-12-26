@@ -39,8 +39,6 @@ except ImportError as e:  # pragma: no cover
         "the C extensions first.".format(module)
     )
 
-from datetime import datetime
-
 from pandas._config import (
     get_option,
     set_option,
@@ -211,6 +209,20 @@ if pandas.compat.PY37:
                 pass
 
             return Panel
+
+        elif name == "datetime":
+            warnings.warn(
+                "The datetime class is removed from pandas. Accessing it from "
+                "the top-level namespace will also be removed in the next "
+                "version",
+                FutureWarning,
+                stacklevel=2,
+            )
+
+            from datetime import datetime
+
+            return datetime
+
         elif name in {"SparseSeries", "SparseDataFrame"}:
             warnings.warn(
                 "The {} class is removed from pandas. Accessing it from "
@@ -224,7 +236,6 @@ if pandas.compat.PY37:
 
         raise AttributeError("module 'pandas' has no attribute '{}'".format(name))
 
-
 else:
 
     class Panel:
@@ -235,6 +246,28 @@ else:
 
     class SparseSeries:
         pass
+
+    class Datetime:
+        def __init__(self):
+            from datetime import datetime
+            import warnings
+
+            self.datetime = datetime
+            self.warnings = warnings
+
+        def __getattr__(self, item):
+            self.warnings.warn(
+                "The pandas.datetime module is deprecated and will be removed from pandas in a future version. "
+                "Import numpy directly instead",
+                FutureWarning,
+                stacklevel=2,
+            )
+            try:
+                return getattr(self.datetime, item)
+            except AttributeError:
+                raise AttributeError(f"module datetime has no attribute {item}")
+
+    datetime = Datetime()
 
 
 # module level doc-string
