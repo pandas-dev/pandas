@@ -192,7 +192,6 @@ class TestToGBQIntegrationWithServiceAccountKeyPath:
         )
         assert result["num_rows"][0] == test_size
 
-    @pytest.mark.xfail(reason="Test breaking master", strict=False)
     @pytest.mark.parametrize(
         "if_exists, expected_num_rows, expectation",
         [
