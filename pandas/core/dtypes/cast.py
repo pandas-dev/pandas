@@ -820,9 +820,7 @@ def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
         if dtype.kind == "M":
             return arr.astype(dtype)
 
-        raise TypeError(
-            f"cannot astype a datetimelike from [{arr.dtype}] " f"to [{dtype}]"
-        )
+        raise TypeError(f"cannot astype a datetimelike from [{arr.dtype}] to [{dtype}]")
 
     elif is_timedelta64_dtype(arr):
         if is_object_dtype(dtype):
@@ -842,9 +840,7 @@ def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
         elif dtype == _TD_DTYPE:
             return arr.astype(_TD_DTYPE, copy=copy)
 
-        raise TypeError(
-            f"cannot astype a timedelta from [{arr.dtype}] " f"to [{dtype}]"
-        )
+        raise TypeError(f"cannot astype a timedelta from [{arr.dtype}] to [{dtype}]")
 
     elif np.issubdtype(arr.dtype, np.floating) and np.issubdtype(dtype, np.integer):
 

@@ -188,7 +188,7 @@ def ints_to_pydatetime(const int64_t[:] arr, object tz=None, object freq=None,
     return result
 
 
-def _test_parse_iso8601(object ts):
+def _test_parse_iso8601(ts: str):
     """
     TESTING ONLY: Parse string into Timestamp using iso8601 parser. Used
     only for testing, actual construction uses `convert_str_to_tsobject`
