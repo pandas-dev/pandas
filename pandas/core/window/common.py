@@ -70,7 +70,7 @@ class WindowGroupByMixin(GroupByMixin):
         floor: int = 1,
         is_weighted: bool = False,
         name: Optional[str] = None,
-        use_numba_cache: Optional[bool] = False,
+        use_numba_cache: bool = False,
         **kwargs,
     ):
         """

@@ -14,6 +14,27 @@ def make_rolling_apply(
     parallel: bool,
     nopython: bool,
 ):
+    """
+    Creates a JITted rolling apply function with a JITted version of
+    the user's function.
+
+    Parameters
+    ----------
+    func : function
+        function to be applied to each window and will be JITed
+    args : tuple
+        *args to be passed into the function
+    nogil : bool
+        nogil parameter from engine_kwargs for numba.jit
+    parallel : bool
+        parallel parameter from engine_kwargs for numba.jit
+    nopython : bool
+        nopython parameter from engine_kwargs for numba.jit
+
+    Returns
+    -------
+    Numba function
+    """
     numba = import_optional_dependency("numba")
 
     if parallel:
@@ -33,7 +54,7 @@ def make_rolling_apply(
             ):
                 jf = func
             else:
-                jf = numba.jit(func, nopython=nopython)
+                jf = numba.jit(func, nopython=nopython, nogil=nogil)
 
             def impl(window, *_args):
                 return jf(window, *_args)

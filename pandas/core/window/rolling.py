@@ -1286,7 +1286,7 @@ class _Rolling_and_Expanding(_Rolling):
 
     Notes
     -----
-    See :ref:`stats.rolling_window` for extended documentation and performance
+    See :ref:`stats.rolling_apply` for extended documentation and performance
     considerations for the Numba engine.
     """
     )
