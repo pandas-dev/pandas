@@ -2,6 +2,7 @@ from contextlib import ExitStack as does_not_raise
 from datetime import datetime
 import os
 import platform
+import uuid
 
 import numpy as np
 import pytest
@@ -18,11 +19,6 @@ pandas_gbq = pytest.importorskip("pandas_gbq")
 PROJECT_ID = None
 PRIVATE_KEY_JSON_PATH = None
 PRIVATE_KEY_JSON_CONTENTS = None
-
-DATASET_ID = "pydata_pandas_bq_testing_py3"
-
-TABLE_ID = "new_test"
-DESTINATION_TABLE = f"{DATASET_ID + '1'}.{TABLE_ID}"
 
 VERSION = platform.python_version()
 
@@ -156,8 +152,10 @@ class TestToGBQIntegrationWithServiceAccountKeyPath:
         _skip_if_no_project_id()
         _skip_if_no_private_key_path()
 
+        dataset_id = "pydata_pandas_bq_testing_py31"
+
         self.client = _get_client()
-        self.dataset = self.client.dataset(DATASET_ID + "1")
+        self.dataset = self.client.dataset(dataset_id)
         try:
             # Clean-up previous test runs.
             self.client.delete_dataset(self.dataset, delete_contents=True)
@@ -166,13 +164,15 @@ class TestToGBQIntegrationWithServiceAccountKeyPath:
 
         self.client.create_dataset(bigquery.Dataset(self.dataset))
 
-        yield
+        table_id = str(uuid.uuid1())
+        destination_table = f"{dataset_id}.{table_id}"
+        yield destination_table
 
         # Teardown Dataset
         self.client.delete_dataset(self.dataset, delete_contents=True)
 
     def test_roundtrip(self, gbq_dataset):
-        destination_table = DESTINATION_TABLE + "1"
+        destination_table = gbq_dataset
 
         test_size = 20001
         df = make_mixed_dataframe_v2(test_size)
@@ -205,7 +205,7 @@ class TestToGBQIntegrationWithServiceAccountKeyPath:
         self, if_exists, expected_num_rows, expectation, gbq_dataset
     ):
         # GH 29598
-        destination_table = DESTINATION_TABLE + "2"
+        destination_table = gbq_dataset
 
         test_size = 200
         df = make_mixed_dataframe_v2(test_size)
