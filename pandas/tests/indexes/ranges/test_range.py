@@ -64,7 +64,7 @@ class TestRangeIndex(Numeric):
     def test_deprecated_start_stop_step_attrs(self, attr_name):
         # GH 26581
         idx = self.create_index()
-        with tm.assert_produces_warning(DeprecationWarning):
+        with tm.assert_produces_warning(FutureWarning):
             getattr(idx, attr_name)
 
     def test_copy(self):
