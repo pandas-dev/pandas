@@ -727,6 +727,20 @@ ujson_ext = Extension(
 extensions.append(ujson_ext)
 
 # ----------------------------------------------------------------------
+# series_buffer
+
+series_buffer_ext = Extension(
+    "pandas._libs.series_buffer",
+    sources=(
+        ["pandas/_libs/src/series_buffer.c"]
+    ),
+    define_macros=macros,
+)
+
+
+extensions.append(series_buffer_ext)
+
+# ----------------------------------------------------------------------
 
 
 # The build cache system does string matching below this point.

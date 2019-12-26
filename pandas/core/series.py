@@ -12,6 +12,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import index as libindex, lib, reshape, tslibs
+from pandas._libs.series_buffer import SeriesBufferMixin
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_bool_kwarg, validate_percentile
@@ -118,7 +119,7 @@ def _coerce_method(converter):
 # Series class
 
 
-class Series(base.IndexOpsMixin, generic.NDFrame):
+class Series(base.IndexOpsMixin, generic.NDFrame, SeriesBufferMixin):
     """
     One-dimensional ndarray with axis labels (including time series).
 
