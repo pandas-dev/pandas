@@ -447,7 +447,7 @@ static npy_datetime NpyDateTimeToEpoch(npy_datetime dt, NPY_DATETIMEUNIT base) {
 }
 
 /* Convert PyDatetime To ISO C-string. mutates len */
-static char *PyDateTimeToIso(PyObject *obj, NPY_DATETIMEUNIT base,
+static char *PyDateTimeToIso(PyDateTime_Date *obj, NPY_DATETIMEUNIT base,
                              size_t *len) {
     npy_datetimestruct dts;
     int ret;
@@ -1508,7 +1508,8 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
                            npy_intp num) {
     // NOTE this function steals a reference to labels.
     PyObject *item = NULL;
-    npy_intp i, stride, len;
+    size_t len;
+    npy_intp i, stride;
     char **ret;
     char *dataptr, *cLabel;
     int type_num;
@@ -1575,7 +1576,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
             len = strlen(cLabel);
         } else if (PyTypeNum_ISDATETIME(type_num)) {
             NPY_DATETIMEUNIT base = enc->datetimeUnit;
-            int64_t longVal;
+            npy_int64 longVal;
             PyArray_VectorUnaryFunc *castfunc =
                 PyArray_GetCastFunc(PyArray_DescrFromType(type_num), NPY_INT64);
             if (!castfunc) {
@@ -1590,15 +1591,16 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
                 if (!scaleNanosecToUnit(&longVal, base)) {
                     // TODO: This gets hit but somehow doesn't cause errors
                 }
-                sprintf(cLabel, "%" PRId64, longVal);
+                sprintf(cLabel, "%" NPY_INT64_FMT, longVal);
                 len = strlen(cLabel);
             }
         } else if (PyDateTime_Check(item) || PyDate_Check(item)) {
             NPY_DATETIMEUNIT base = enc->datetimeUnit;
             if (enc->datetimeIso) {
-                cLabel = PyDateTimeToIso(item, base, &len);
+                cLabel = PyDateTimeToIso((PyDateTime_Date *)item, base, &len);
             } else {
-                sprintf(cLabel, "%" PRId64, PyDateTimeToEpoch(item, base));
+                sprintf(cLabel, "%" NPY_DATETIME_FMT,
+                        PyDateTimeToEpoch(item, base));
                 len = strlen(cLabel);
             }
         } else { // Fallback to string representation
@@ -1809,7 +1811,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         PRINTMARK();
         if (enc->datetimeIso) {
             PRINTMARK();
-            pc->PyTypeToUTF8 = PyDateTimeToIso;
+            pc->PyTypeToUTF8 = PyDateTimeToIsoCallback;
             tc->type = JT_UTF8;
         } else {
             PRINTMARK();
