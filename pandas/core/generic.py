@@ -28,7 +28,7 @@ import numpy as np
 
 from pandas._config import config
 
-from pandas._libs import Timestamp, iNaT, properties
+from pandas._libs import Timestamp, iNaT, lib, properties
 from pandas._typing import Dtype, FilePathOrBuffer, FrameOrSeries, JSONSerializable
 from pandas.compat import set_function_name
 from pandas.compat._optional import import_optional_dependency
@@ -1920,6 +1920,11 @@ class NDFrame(PandasObject, SelectionMixin):
         return com.values_from_object(self)
 
     def __array_wrap__(self, result, context=None):
+        result = lib.item_from_zerodim(result)
+        if is_scalar(result):
+            # e.g. we get here with np.ptp(series)
+            # ptp also requires the item_from_zerodim
+            return result
         d = self._construct_axes_dict(self._AXIS_ORDERS, copy=False)
         return self._constructor(result, **d).__finalize__(self)
 
@@ -10167,40 +10172,6 @@ class NDFrame(PandasObject, SelectionMixin):
         )
 
     @classmethod
-    def _add_series_only_operations(cls):
-        """
-        Add the series only operations to the cls; evaluate the doc
-        strings again.
-        """
-
-        axis_descr, name, name2 = _doc_parms(cls)
-
-        def nanptp(values, axis=0, skipna=True):
-            nmax = nanops.nanmax(values, axis, skipna)
-            nmin = nanops.nanmin(values, axis, skipna)
-            warnings.warn(
-                "Method .ptp is deprecated and will be removed "
-                "in a future version. Use numpy.ptp instead.",
-                FutureWarning,
-                stacklevel=4,
-            )
-            return nmax - nmin
-
-        cls.ptp = _make_stat_function(
-            cls,
-            "ptp",
-            name,
-            name2,
-            axis_descr,
-            """Return the difference between the min and max value.
-            \n.. deprecated:: 0.24.0 Use numpy.ptp instead
-            \nReturn the difference between the maximum value and the
-            minimum value in the object. This is the equivalent of the
-            ``numpy.ndarray`` method ``ptp``.""",
-            nanptp,
-        )
-
-    @classmethod
     def _add_series_or_dataframe_operations(cls):
         """
         Add the series or dataframe only operations to the cls; evaluate
@@ -11131,11 +11102,35 @@ def _make_cum_function(
             axis = self._get_axis_number(axis)
 
         y = com.values_from_object(self).copy()
+        d = self._construct_axes_dict()
+        d["copy"] = False
 
-        if skipna and issubclass(y.dtype.type, (np.datetime64, np.timedelta64)):
-            result = accum_func(y, axis)
-            mask = isna(self)
-            np.putmask(result, mask, iNaT)
+        if issubclass(y.dtype.type, (np.datetime64, np.timedelta64)):
+            # numpy 1.18 started sorting NaTs at the end instead of beginning,
+            #  so we need to work around to maintain backwards-consistency.
+            orig_dtype = y.dtype
+            if accum_func == np.minimum.accumulate:
+                # Note: the accum_func comparison fails as an "is" comparison
+                # Note that "y" is always a copy, so we can safely modify it
+                mask = isna(self)
+                y = y.view("i8")
+                y[mask] = np.iinfo(np.int64).max
+
+            result = accum_func(y.view("i8"), axis).view(orig_dtype)
+            if skipna:
+                mask = isna(self)
+                np.putmask(result, mask, iNaT)
+            elif accum_func == np.minimum.accumulate:
+                # Restore NaTs that we masked previously
+                nz = (~np.asarray(mask)).nonzero()[0]
+                if len(nz):
+                    # everything up to the first non-na entry stays NaT
+                    result[: nz[0]] = iNaT
+
+            if self.ndim == 1:
+                # restore dt64tz dtype
+                d["dtype"] = self.dtype
+
         elif skipna and not issubclass(y.dtype.type, (np.integer, np.bool_)):
             mask = isna(self)
             np.putmask(y, mask, mask_a)
@@ -11144,8 +11139,6 @@ def _make_cum_function(
         else:
             result = accum_func(y, axis)
 
-        d = self._construct_axes_dict()
-        d["copy"] = False
         return self._constructor(result, **d).__finalize__(self)
 
     return set_function_name(cum_func, name, cls)
