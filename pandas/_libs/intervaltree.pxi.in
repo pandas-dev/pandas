@@ -114,43 +114,6 @@ cdef class IntervalTree(IntervalMixin):
         sort_order = np.lexsort(values)
         return is_monotonic(sort_order, False)[0]
 
-    def get_loc(self, scalar_t key):
-        """Return all positions corresponding to intervals that overlap with
-        the given scalar key
-        """
-        result = Int64Vector()
-        self.root.query(result, key)
-        if not result.data.n:
-            raise KeyError(key)
-        return result.to_array().astype('intp')
-
-    def _get_partial_overlap(self, key_left, key_right, side):
-        """Return all positions corresponding to intervals with the given side
-        falling between the left and right bounds of an interval query
-        """
-        if side == 'left':
-            values = self.left
-            sorter = self.left_sorter
-        else:
-            values = self.right
-            sorter = self.right_sorter
-        key = [key_left, key_right]
-        i, j = values.searchsorted(key, sorter=sorter)
-        return sorter[i:j]
-
-    def get_loc_interval(self, key_left, key_right):
-        """Lookup the intervals enclosed in the given interval bounds
-
-        The given interval is presumed to have closed bounds.
-        """
-        import pandas as pd
-        left_overlap = self._get_partial_overlap(key_left, key_right, 'left')
-        right_overlap = self._get_partial_overlap(key_left, key_right, 'right')
-        enclosing = self.get_loc(0.5 * (key_left + key_right))
-        combined = np.concatenate([left_overlap, right_overlap, enclosing])
-        uniques = pd.unique(combined)
-        return uniques.astype('intp')
-
     def get_indexer(self, scalar_t[:] target):
         """Return the positions corresponding to unique intervals that overlap
         with the given array of scalar targets.
