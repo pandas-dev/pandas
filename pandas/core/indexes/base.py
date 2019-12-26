@@ -4551,7 +4551,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         if is_categorical(target):
             tgt_values = np.asarray(target)
-        elif self.is_all_dates:
+        elif self.is_all_dates and target.is_all_dates:  # GH 30399
             tgt_values = target.asi8
         else:
             tgt_values = target._ndarray_values
