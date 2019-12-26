@@ -1151,7 +1151,7 @@ def test_timestamps():
     with freeze_time(datetime.now()):
         my_frame = query(
             """
-        select wind, now(), today(), timestamp('2019-01-31', '23:20:32') 
+        select wind, now(), today(), timestamp('2019-01-31', '23:20:32')
         from forest_fires"""
         )
         pandas_frame = FOREST_FIRES.copy()[["wind"]]
