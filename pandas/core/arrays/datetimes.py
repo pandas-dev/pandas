@@ -802,8 +802,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
                 PerformanceWarning,
             )
             result = self.astype("O") + offset
-            if len(self) == 0:
-                # _from_sequence won't be able to infer self.tz
+            if not len(self):
+                # GH#30336 _from_sequence won't be able to infer self.tz
                 return type(self)._from_sequence(result).tz_localize(self.tz)
 
         return type(self)._from_sequence(result, freq="infer")

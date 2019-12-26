@@ -510,7 +510,7 @@ def maybe_cythonize(extensions, *args, **kwargs):
         if hasattr(ext, "include_dirs") and numpy_incl not in ext.include_dirs:
             ext.include_dirs.append(numpy_incl)
 
-    # reuse any parallel arguments provided for compliation to cythonize
+    # reuse any parallel arguments provided for compilation to cythonize
     parser = argparse.ArgumentParser()
     parser.add_argument("-j", type=int)
     parser.add_argument("--parallel", type=int)
