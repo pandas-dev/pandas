@@ -97,6 +97,39 @@ def _handle_date_column(col, utc=None, format=None):
             return to_datetime(col, errors="coerce", format=format, utc=utc)
 
 
+def _is_datetime_column_with_dtype_object(df_col):
+    """
+    This function will detect if a Series has the dtype "object"
+    even though it contains only datetime.datetime/NULL objects.
+
+    This situtation hapens for instance when using pd.DataFrame.from_records
+    with a column of datetime.datetime/NULL that has different offsets.
+
+    See GH30207
+    """
+
+    if df_col.dtype == "object":
+        # first find if any object is neither datetime.datetime
+        # nor NULL (pd.NaT, None...)
+        # this way if e.g. a str is found minimal time is lost
+        val_is_not_datetime = lambda val: (
+            not isinstance(val, datetime) and not isna(val)
+        )
+        no_datetime_objs = df_col.map(val_is_not_datetime).any()
+        # if any datetime obj is found then
+        # check if all objects are datetimes/NULL
+        if not no_datetime_objs:
+            val_is_datetime = lambda val: (isinstance(val, datetime) or isna(val))
+            all_datetime_objs = df_col.map(val_is_datetime).all()
+            if all_datetime_objs:
+                # handle case where we would have only NULLs
+                has_any_value = df_col.notna().any()
+                if has_any_value:
+                    return True
+
+    return False
+
+
 def _parse_date_columns(data_frame, parse_dates):
     """
     Force non-datetime columns to be read as such.
@@ -114,6 +147,11 @@ def _parse_date_columns(data_frame, parse_dates):
             except TypeError:
                 fmt = None
             data_frame[col_name] = _handle_date_column(df_col, format=fmt)
+        # handle columns that should be of datetime dtype but
+        # are of "object" dtype instead
+        # see GH30207
+        if _is_datetime_column_with_dtype_object(df_col):
+            data_frame[col_name] = to_datetime(df_col, utc=True)
 
     return data_frame
 
@@ -976,6 +1014,15 @@ class SQLTable(PandasObject):
                 # The column is actually a DatetimeIndex
                 if col.tz is not None:
                     return TIMESTAMP(timezone=True)
+            except ValueError as e:
+                # case where .dt accessor fails
+                # even though we have only datetimes/NULL
+                # e.g. GH30207 (different offsets)
+                if _is_datetime_column_with_dtype_object(col):
+                    return TIMESTAMP(timezone=True)
+                else:
+                    raise e
+
             return DateTime
         if col_type == "timedelta64":
             warnings.warn(
