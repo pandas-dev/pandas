@@ -104,7 +104,6 @@ def _is_datetime_series_with_different_offsets(df_col):
 
     See GH30207
     """
-    
     # when a Series contains datetimes with diff offsets
     # it is of dtype object
     if df_col.dtype == "object":
@@ -119,13 +118,13 @@ def _is_datetime_series_with_different_offsets(df_col):
         has_any_value = df_col.notna().any()
         if not no_datetime_objs and has_any_value:
             # get unique utc offsets
-            get_utc_offsets = lambda dt: (dt.utcoffset()
-                if isinstance(dt, datetime) else None)
+            get_utc_offsets = lambda dt: (
+                dt.utcoffset() if isinstance(dt, datetime) else None
+            )
             utc_offsets = df_col.map(get_utc_offsets).unique()
-            utc_offsets = [offset for offset in utc_offsets 
-                           if offset is not None]
+            utc_offsets = [off for off in utc_offsets if off is not None]
             # if there are more than 1 utc offsets return True
-            if len(utc_offsets) >=2:
+            if len(utc_offsets) >= 2:
                 return True
     return False
 
@@ -147,8 +146,7 @@ def _parse_date_columns(data_frame, parse_dates):
             except TypeError:
                 fmt = None
             data_frame[col_name] = _handle_date_column(df_col, format=fmt)
-        # handle columns that should be of datetime dtype but
-        # are of "object" dtype instead
+        # handle datetime Series with different offsets
         # see GH30207
         if _is_datetime_series_with_different_offsets(df_col):
             data_frame[col_name] = to_datetime(df_col, utc=True)
@@ -1016,10 +1014,12 @@ class SQLTable(PandasObject):
                     return TIMESTAMP(timezone=True)
             except ValueError as e:
                 # case where .dt accessor fails
-                # even though we have only datetimes/NULL
-                # e.g. GH30207 (different offsets)
+                # because of datetimes with different offsets
+                # see GH30207
                 if _is_datetime_series_with_different_offsets(col):
                     return TIMESTAMP(timezone=True)
+                # other cases where we have a ValueError
+                # reraise
                 else:
                     raise e
 
