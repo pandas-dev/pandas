@@ -105,15 +105,16 @@ class TableInfo:
 
     def register_temporary_table(self, frame: DataFrame, table_name: str):
         """
-        Registers dataframe info so that the data frame is prepared to be used with dataframe_sql
+        Registers dataframe info so that the data frame is prepared to be used
+        with dataframe_sql
         :param frame:
         :param table_name:
         :return:
         """
         if table_name.lower() in self.dataframe_name_map:
             raise Exception(
-                f"A table {table_name.lower()} has already been registered. Keep in mind that table "
-                f"names are case insensitive"
+                f"A table {table_name.lower()} has already been registered. Keep in "
+                f"mind that table names are case insensitive"
             )
 
         self.dataframe_name_map[table_name.lower()] = table_name
