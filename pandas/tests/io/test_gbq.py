@@ -4,7 +4,6 @@ import os
 import platform
 
 import numpy as np
-from pandas_gbq.gbq import TableCreationError
 import pytest
 import pytz
 
@@ -198,7 +197,7 @@ class TestToGBQIntegrationWithServiceAccountKeyPath:
         "if_exists, expected_num_rows, expectation",
         [
             ("append", 300, does_not_raise()),
-            ("fail", 200, pytest.raises(TableCreationError)),
+            ("fail", 200, pytest.raises(pandas_gbq.gbq.TableCreationError)),
             ("replace", 100, does_not_raise()),
         ],
     )
