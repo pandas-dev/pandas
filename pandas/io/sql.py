@@ -97,17 +97,16 @@ def _handle_date_column(col, utc=None, format=None):
             return to_datetime(col, errors="coerce", format=format, utc=utc)
 
 
-def _is_datetime_column_with_dtype_object(df_col):
+def _is_datetime_series_with_different_offsets(df_col):
     """
-    This function will detect if a Series has the dtype "object"
-    even though it contains only datetime.datetime/NULL objects.
-
-    This situtation hapens for instance when using pd.DataFrame.from_records
-    with a column of datetime.datetime/NULL that has different offsets.
+    This function will detect if a Series contains datetimes with different
+    offsets.
 
     See GH30207
     """
-
+    
+    # when a Series contains datetimes with diff offsets
+    # it is of dtype object
     if df_col.dtype == "object":
         # first find if any object is neither datetime.datetime
         # nor NULL (pd.NaT, None...)
@@ -116,17 +115,18 @@ def _is_datetime_column_with_dtype_object(df_col):
             not isinstance(val, datetime) and not isna(val)
         )
         no_datetime_objs = df_col.map(val_is_not_datetime).any()
-        # if any datetime obj is found then
-        # check if all objects are datetimes/NULL
-        if not no_datetime_objs:
-            val_is_datetime = lambda val: (isinstance(val, datetime) or isna(val))
-            all_datetime_objs = df_col.map(val_is_datetime).all()
-            if all_datetime_objs:
-                # handle case where we would have only NULLs
-                has_any_value = df_col.notna().any()
-                if has_any_value:
-                    return True
-
+        # also check if we have any value
+        has_any_value = df_col.notna().any()
+        if not no_datetime_objs and has_any_value:
+            # get unique utc offsets
+            get_utc_offsets = lambda dt: (dt.utcoffset()
+                if isinstance(dt, datetime) else None)
+            utc_offsets = df_col.map(get_utc_offsets).unique()
+            utc_offsets = [offset for offset in utc_offsets 
+                           if offset is not None]
+            # if there are more than 1 utc offsets return True
+            if len(utc_offsets) >=2:
+                return True
     return False
 
 
@@ -150,7 +150,7 @@ def _parse_date_columns(data_frame, parse_dates):
         # handle columns that should be of datetime dtype but
         # are of "object" dtype instead
         # see GH30207
-        if _is_datetime_column_with_dtype_object(df_col):
+        if _is_datetime_series_with_different_offsets(df_col):
             data_frame[col_name] = to_datetime(df_col, utc=True)
 
     return data_frame
@@ -1018,7 +1018,7 @@ class SQLTable(PandasObject):
                 # case where .dt accessor fails
                 # even though we have only datetimes/NULL
                 # e.g. GH30207 (different offsets)
-                if _is_datetime_column_with_dtype_object(col):
+                if _is_datetime_series_with_different_offsets(col):
                     return TIMESTAMP(timezone=True)
                 else:
                     raise e
