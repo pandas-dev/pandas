@@ -720,13 +720,11 @@ class TestToDatetime:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("cache", [True, False])
+    @td.skip_if_no("psycopg2")
     def test_to_datetime_tz_psycopg2(self, cache):
 
         # xref 8260
-        try:
-            import psycopg2
-        except ImportError:
-            pytest.skip("no psycopg2 installed")
+        import psycopg2
 
         # misc cases
         tz1 = psycopg2.tz.FixedOffsetTimezone(offset=-300, name=None)
@@ -1300,7 +1298,7 @@ class TestToDatetimeUnit:
         tm.assert_series_equal(result, expected)
 
         # extra columns
-        msg = "extra keys have been passed to the datetime assemblage: " r"\[foo\]"
+        msg = r"extra keys have been passed to the datetime assemblage: \[foo\]"
         with pytest.raises(ValueError, match=msg):
             df2 = df.copy()
             df2["foo"] = 1

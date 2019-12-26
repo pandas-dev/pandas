@@ -2150,6 +2150,7 @@ class TestMomentsConsistency(Base):
             lambda x: x.rolling(win_type="boxcar", window=10, min_periods=5).mean(),
         ],
     )
+    @td.skip_if_no_scipy
     def test_rolling_functions_window_non_shrinkage(self, f):
         # GH 7764
         s = Series(range(4))
@@ -2157,16 +2158,11 @@ class TestMomentsConsistency(Base):
         df = DataFrame([[1, 5], [3, 2], [3, 9], [-1, 0]], columns=["A", "B"])
         df_expected = DataFrame(np.nan, index=df.index, columns=df.columns)
 
-        try:
-            s_result = f(s)
-            tm.assert_series_equal(s_result, s_expected)
+        s_result = f(s)
+        tm.assert_series_equal(s_result, s_expected)
 
-            df_result = f(df)
-            tm.assert_frame_equal(df_result, df_expected)
-        except (ImportError):
-
-            # scipy needed for rolling_window
-            pytest.skip("scipy not available")
+        df_result = f(df)
+        tm.assert_frame_equal(df_result, df_expected)
 
     def test_rolling_functions_window_non_shrinkage_binary(self):
 

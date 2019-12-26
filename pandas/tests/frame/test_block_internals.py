@@ -585,10 +585,6 @@ starting,ending,measure
         df = DataFrame(index=[0, 1])
         df[0] = np.nan
         wasCol = {}
-        # uncommenting these makes the results match
-        # for col in xrange(100, 200):
-        #    wasCol[col] = 1
-        #    df[col] = np.nan
 
         for i, dt in enumerate(df.index):
             for col in range(100, 200):
