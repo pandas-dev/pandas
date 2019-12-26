@@ -119,7 +119,7 @@ class ToJSON(BaseIO):
         getattr(self, frame).to_json(self.fname, orient=orient)
 
     def peakmem_to_json(self, orient, frame):
-        getattr(self, frame).to_json(self.fname, orient=orient)
+        getattr(self, frame).to_json(self.fname, orient=orioent)
 
     def time_to_json_wide(self, orient, frame):
         base_df = getattr(self, frame).copy()
@@ -130,6 +130,9 @@ class ToJSON(BaseIO):
         base_df = getattr(self, frame).copy()
         df = concat([base_df.iloc[:100]] * 1000, ignore_index=True, axis=1)
         df.to_json(self.fname, orient=orient)
+
+    def time_iso_format(self, orient, _):
+        self.df_td_int_ts.to_json(orient=orient, date_format="iso")
 
 
 class ToJSONLines(BaseIO):
