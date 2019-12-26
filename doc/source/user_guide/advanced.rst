@@ -573,7 +573,7 @@ When working with an ``Index`` object directly, rather than via a ``DataFrame``,
    .. code-block:: none
 
       >>> mi.levels[0].name = 'name via level'
-      >>> mi.names[0]  # only works for older panads
+      >>> mi.names[0]  # only works for older pandas
       'name via level'
 
    As of pandas 1.0, this will *silently* fail to update the names

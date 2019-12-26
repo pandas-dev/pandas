@@ -10,6 +10,7 @@ from pandas._libs.tslibs.c_timestamp import integer_op_not_supported
 from pandas._libs.tslibs.period import DIFFERENT_FREQ, IncompatibleFrequency, Period
 from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
 from pandas._libs.tslibs.timestamps import RoundTo, round_nsint64
+from pandas._typing import DatetimeLikeScalar
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError, NullFrequencyError, PerformanceWarning
 from pandas.util._decorators import Appender, Substitution
@@ -37,7 +38,6 @@ from pandas.core.dtypes.generic import ABCIndexClass, ABCPeriodArray, ABCSeries
 from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
-from pandas._typing import DatetimeLikeScalar
 from pandas.core import missing, nanops
 from pandas.core.algorithms import checked_add_with_arr, take, unique1d, value_counts
 import pandas.core.common as com
@@ -915,10 +915,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
     __rdivmod__ = make_invalid_op("__rdivmod__")
 
     def _add_datetimelike_scalar(self, other):
-        # Overriden by TimedeltaArray
-        raise TypeError(
-            f"cannot add {type(self).__name__} and " f"{type(other).__name__}"
-        )
+        # Overridden by TimedeltaArray
+        raise TypeError(f"cannot add {type(self).__name__} and {type(other).__name__}")
 
     _add_datetime_arraylike = _add_datetimelike_scalar
 
@@ -930,7 +928,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
     _sub_datetime_arraylike = _sub_datetimelike_scalar
 
     def _sub_period(self, other):
-        # Overriden by PeriodArray
+        # Overridden by PeriodArray
         raise TypeError(f"cannot subtract Period from a {type(self).__name__}")
 
     def _add_offset(self, offset):
@@ -1087,7 +1085,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         -------
         result : same class as self
         """
-        # _addsub_int_array is overriden by PeriodArray
+        # _addsub_int_array is overridden by PeriodArray
         assert not is_period_dtype(self)
         assert op in [operator.add, operator.sub]
 

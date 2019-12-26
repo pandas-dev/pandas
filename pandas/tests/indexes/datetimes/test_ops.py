@@ -41,9 +41,9 @@ class TestDatetimeIndexOps(Ops):
 
         # sanity check that the behavior didn't change
         # GH#7206
-        msg = "'Series' object has no attribute '{}'"
         for op in ["year", "day", "second", "weekday"]:
-            with pytest.raises(AttributeError, match=msg.format(op)):
+            msg = f"'Series' object has no attribute '{op}'"
+            with pytest.raises(AttributeError, match=msg):
                 getattr(self.dt_series, op)
 
         # attribute access should still work!
