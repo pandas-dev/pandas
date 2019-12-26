@@ -2825,7 +2825,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 return arr.argsort(kind="quicksort")
 
         arr = self._values
-        sortedIdx = np.empty(len(self), dtype=np.int32)
+        sorted_index = np.empty(len(self), dtype=np.int32)
 
         bad = isna(arr)
 
@@ -2849,19 +2849,19 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         if na_position == "last":
             n = good.sum()
-            sortedIdx[:n] = idx[good][argsorted]
-            sortedIdx[n:] = idx[bad]
+            sorted_index[:n] = idx[good][argsorted]
+            sorted_index[n:] = idx[bad]
         elif na_position == "first":
             n = bad.sum()
-            sortedIdx[n:] = idx[good][argsorted]
-            sortedIdx[:n] = idx[bad]
+            sorted_index[n:] = idx[good][argsorted]
+            sorted_index[:n] = idx[bad]
         else:
             raise ValueError(f"invalid na_position: {na_position}")
 
-        result = self._constructor(arr[sortedIdx], index=self.index[sortedIdx])
+        result = self._constructor(arr[sorted_index], index=self.index[sorted_index])
 
         if ignore_index:
-            result.index = ibase.default_index(len(sortedIdx))
+            result.index = ibase.default_index(len(sorted_index))
 
         if inplace:
             self._update_inplace(result)

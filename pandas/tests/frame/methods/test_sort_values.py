@@ -483,10 +483,22 @@ class TestDataFrameSortValues:
     def test_sort_values_ignore_index(
         self, original_dict, sorted_dict, ignore_index, output_index
     ):
-
         # GH 30114
         df = DataFrame(original_dict)
-        sorted_df = df.sort_values("A", ascending=False, ignore_index=ignore_index)
-
         expected = DataFrame(sorted_dict, index=output_index)
+
+        # Test when inplace is False
+        sorted_df = df.sort_values("A", ascending=False, ignore_index=ignore_index)
         tm.assert_frame_equal(sorted_df, expected)
+
+        tm.assert_frame_equal(df, DataFrame(original_dict))
+
+        # Test when inplace is True
+        copied_df = df.copy()
+
+        copied_df.sort_values(
+            "A", ascending=False, ignore_index=ignore_index, inplace=True
+        )
+        tm.assert_frame_equal(copied_df, expected)
+
+        tm.assert_frame_equal(df, DataFrame(original_dict))

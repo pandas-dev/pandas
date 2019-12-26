@@ -167,10 +167,19 @@ class TestSeriesSortValues:
     def test_sort_values_ignore_index(
         self, original_list, sorted_list, ignore_index, output_index
     ):
-
         # GH 30114
         sr = Series(original_list)
-        sorted_sr = sr.sort_values(ascending=False, ignore_index=ignore_index)
-
         expected = Series(sorted_list, index=output_index)
+
+        # Test when inplace is False
+        sorted_sr = sr.sort_values(ascending=False, ignore_index=ignore_index)
         tm.assert_series_equal(sorted_sr, expected)
+
+        tm.assert_series_equal(sr, Series(original_list))
+
+        # Test when inplace is True
+        copied_sr = sr.copy()
+        copied_sr.sort_values(ascending=False, ignore_index=ignore_index, inplace=True)
+        tm.assert_series_equal(copied_sr, expected)
+
+        tm.assert_series_equal(sr, Series(original_list))
