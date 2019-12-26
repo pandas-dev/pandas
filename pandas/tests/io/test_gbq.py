@@ -210,21 +210,21 @@ class TestToGBQIntegrationWithServiceAccountKeyPath:
         test_size = 200
         df = make_mixed_dataframe_v2(test_size)
 
-        with expectation:
-            df.to_gbq(
-                destination_table,
-                _get_project_id(),
-                chunksize=None,
-                credentials=_get_credentials(),
-            )
-
-        df.iloc[:100].to_gbq(
+        df.to_gbq(
             destination_table,
             _get_project_id(),
-            if_exists=if_exists,
             chunksize=None,
             credentials=_get_credentials(),
         )
+
+        with expectation:
+            df.iloc[:100].to_gbq(
+                destination_table,
+                _get_project_id(),
+                if_exists=if_exists,
+                chunksize=None,
+                credentials=_get_credentials(),
+            )
 
         result = pd.read_gbq(
             f"SELECT COUNT(*) AS num_rows FROM {destination_table}",
