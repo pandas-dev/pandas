@@ -457,7 +457,7 @@ class TestDatetimeIndex:
     def test_delete(self):
         idx = date_range(start="2000-01-01", periods=5, freq="M", name="idx")
 
-        # prserve freq
+        # preserve freq
         expected_0 = date_range(start="2000-02-01", periods=4, freq="M", name="idx")
         expected_4 = date_range(start="2000-01-01", periods=4, freq="M", name="idx")
 
@@ -511,7 +511,7 @@ class TestDatetimeIndex:
     def test_delete_slice(self):
         idx = date_range(start="2000-01-01", periods=10, freq="D", name="idx")
 
-        # prserve freq
+        # preserve freq
         expected_0_2 = date_range(start="2000-01-04", periods=7, freq="D", name="idx")
         expected_7_9 = date_range(start="2000-01-01", periods=7, freq="D", name="idx")
 

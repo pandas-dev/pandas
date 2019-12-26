@@ -53,18 +53,6 @@ def tree(request, leaf_size):
 
 
 class TestIntervalTree:
-    def test_get_loc(self, tree):
-        result = tree.get_loc(1)
-        expected = np.array([0], dtype="intp")
-        tm.assert_numpy_array_equal(result, expected)
-
-        result = np.sort(tree.get_loc(2))
-        expected = np.array([0, 1], dtype="intp")
-        tm.assert_numpy_array_equal(result, expected)
-
-        with pytest.raises(KeyError, match="-1"):
-            tree.get_loc(-1)
-
     def test_get_indexer(self, tree):
         result = tree.get_indexer(np.array([1.0, 5.5, 6.5]))
         expected = np.array([0, 4, -1], dtype="intp")
@@ -98,10 +86,6 @@ class TestIntervalTree:
         left = np.array([0, 0, 0], dtype=dtype)
         tree = IntervalTree(left, left + 1)
 
-        result = np.sort(tree.get_loc(0.5))
-        expected = np.array([0, 1, 2], dtype="intp")
-        tm.assert_numpy_array_equal(result, expected)
-
         with pytest.raises(
             KeyError, match="'indexer does not intersect a unique set of intervals'"
         ):
@@ -115,17 +99,6 @@ class TestIntervalTree:
         result = missing
         expected = np.array([], dtype="intp")
         tm.assert_numpy_array_equal(result, expected)
-
-    def test_get_loc_closed(self, closed):
-        tree = IntervalTree([0], [1], closed=closed)
-        for p, errors in [(0, tree.open_left), (1, tree.open_right)]:
-            if errors:
-                with pytest.raises(KeyError, match=str(p)):
-                    tree.get_loc(p)
-            else:
-                result = tree.get_loc(p)
-                expected = np.array([0], dtype="intp")
-                tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize(
         "leaf_size", [skipif_32bit(1), skipif_32bit(10), skipif_32bit(100), 10000]
