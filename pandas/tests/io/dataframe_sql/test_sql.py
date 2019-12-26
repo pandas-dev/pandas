@@ -145,8 +145,11 @@ def test_type_conversion():
     :return:
     """
     my_frame = query(
-        """select cast(temp as int64), cast(RH as float64) my_rh, wind, rain, area,
-    cast(2.0 as int64) my_int, cast(3 as float64) as my_float, cast(7 as object) as my_object, 
+        """select cast(temp as int64),
+        cast(RH as float64) my_rh, wind, rain, area,
+    cast(2.0 as int64) my_int,
+    cast(3 as float64) as my_float,
+    cast(7 as object) as my_object,
     cast(0 as bool) as my_bool from forest_fires"""
     )
     fire_frame = FOREST_FIRES[["temp", "RH", "wind", "rain", "area"]].rename(
@@ -637,7 +640,7 @@ def test_union():
     my_frame = query(
         """
     select * from forest_fires order by wind desc limit 5
-     union 
+    union
     select * from forest_fires order by wind asc limit 5
     """
     )
@@ -858,7 +861,11 @@ def test_case_statement_w_name():
     """
     my_frame = query(
         """
-        select case when wind > 5 then 'strong' when wind = 5 then 'mid' else 'weak' end as wind_strength from forest_fires
+        select case when wind > 5 then 'strong'
+        when wind = 5 then 'mid'
+        else 'weak' end as wind_strength
+        from
+        forest_fires
         """
     )
     pandas_frame = FOREST_FIRES.copy()[["wind"]]
@@ -878,7 +885,8 @@ def test_case_statement_w_no_name():
     """
     my_frame = query(
         """
-        select case when wind > 5 then 'strong' when wind = 5 then 'mid' else 'weak' end from forest_fires
+        select case when wind > 5 then 'strong' when wind = 5 then 'mid' else 'weak' end
+        from forest_fires
         """
     )
     pandas_frame = FOREST_FIRES.copy()[["wind"]]
@@ -898,7 +906,8 @@ def test_case_statement_w_other_columns_as_reult():
     """
     my_frame = query(
         """
-        select case when wind > 5 then month when wind = 5 then 'mid' else day end from forest_fires
+        select case when wind > 5 then month when wind = 5 then 'mid' else day end
+        from forest_fires
         """
     )
     pandas_frame = FOREST_FIRES.copy()[["wind"]]
@@ -918,7 +927,8 @@ def test_rank_statement_one_column():
     """
     my_frame = query(
         """
-    select wind, rank() over(order by wind) as wind_rank from forest_fires
+    select wind, rank() over(order by wind) as wind_rank
+    from forest_fires
     """
     )
     pandas_frame = FOREST_FIRES.copy()[["wind"]]
@@ -933,7 +943,8 @@ def test_rank_statement_many_columns():
     """
     my_frame = query(
         """
-    select wind, rain, month, rank() over(order by wind desc, rain asc, month) as rank from forest_fires
+    select wind, rain, month, rank() over(order by wind desc, rain asc, month) as rank
+    from forest_fires
     """
     )
     pandas_frame = FOREST_FIRES.copy()[["wind", "rain", "month"]]
@@ -970,7 +981,9 @@ def test_dense_rank_statement_many_columns():
     """
     my_frame = query(
         """
-    select wind, rain, month, dense_rank() over(order by wind desc, rain asc, month) as rank from forest_fires
+    select wind, rain, month,
+    dense_rank() over(order by wind desc, rain asc, month) as rank
+    from forest_fires
     """
     )
     pandas_frame = FOREST_FIRES.copy()[["wind", "rain", "month"]]
@@ -1005,7 +1018,8 @@ def test_rank_over_partition_by():
     """
     my_frame = query(
         """
-    select wind, rain, month, day, rank() over(partition by day order by wind desc, rain asc, month) as rank
+    select wind, rain, month, day,
+    rank() over(partition by day order by wind desc, rain asc, month) as rank
     from forest_fires
     """
     )
@@ -1058,7 +1072,8 @@ def test_dense_rank_over_partition_by():
     """
     my_frame = query(
         """
-    select wind, rain, month, day, dense_rank() over(partition by day order by wind desc, rain asc, month) as rank
+    select wind, rain, month, day,
+    dense_rank() over(partition by day order by wind desc, rain asc, month) as rank
     from forest_fires
     """
     )
@@ -1136,14 +1151,11 @@ def test_timestamps():
     with freeze_time(datetime.now()):
         my_frame = query(
             """
-        select wind, now(), today(), timestamp('2019-01-31', '23:20:32') from forest_fires"""
+        select wind, now(), today(), timestamp('2019-01-31', '23:20:32') 
+        from forest_fires"""
         )
         pandas_frame = FOREST_FIRES.copy()[["wind"]]
         pandas_frame["now()"] = datetime.now()
         pandas_frame["today()"] = date.today()
         pandas_frame["_literal0"] = datetime(2019, 1, 31, 23, 20, 32)
         assert_frame_equal(pandas_frame, my_frame)
-
-
-if __name__ == "__main__":
-    test_select_star()
