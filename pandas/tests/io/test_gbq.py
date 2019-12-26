@@ -2,7 +2,8 @@ from contextlib import ExitStack as does_not_raise
 from datetime import datetime
 import os
 import platform
-import uuid
+import random
+import string
 
 import numpy as np
 import pytest
@@ -164,8 +165,8 @@ class TestToGBQIntegrationWithServiceAccountKeyPath:
 
         self.client.create_dataset(bigquery.Dataset(self.dataset))
 
-        table_id = str(uuid.uuid1())
-        destination_table = f"{dataset_id}.{table_id}"
+        table_name = "".join(random.choices(string.ascii_lowercase, k=10))
+        destination_table = f"{dataset_id}.{table_name}"
         yield destination_table
 
         # Teardown Dataset
