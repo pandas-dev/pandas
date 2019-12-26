@@ -381,9 +381,7 @@ def _validate_integer(name, val, min_val=0):
     min_val : int
         Minimum allowed value (val < min_val will result in a ValueError)
     """
-    msg = "'{name:s}' must be an integer >={min_val:d}".format(
-        name=name, min_val=min_val
-    )
+    msg = f"'{name:s}' must be an integer >={min_val:d}"
 
     if val is not None:
         if is_float(val):
@@ -822,11 +820,7 @@ class TextFileReader(abc.Iterator):
                 try:
                     dialect_val = getattr(dialect, param)
                 except AttributeError:
-                    raise ValueError(
-                        "Invalid dialect '{dialect}' provided".format(
-                            dialect=kwds["dialect"]
-                        )
-                    )
+                    raise ValueError(f"Invalid dialect {kwds['dialect']} provided")
                 parser_default = _parser_defaults[param]
                 provided = kwds.get(param, parser_default)
 
@@ -838,11 +832,9 @@ class TextFileReader(abc.Iterator):
                 # even if it conflicts with the dialect (gh-23761).
                 if provided != parser_default and provided != dialect_val:
                     msg = (
-                        "Conflicting values for '{param}': '{val}' was "
-                        "provided, but the dialect specifies '{diaval}'. "
-                        "Using the dialect-specified value.".format(
-                            param=param, val=provided, diaval=dialect_val
-                        )
+                        f"Conflicting values for '{param}': '{provided}' was "
+                        f"provided, but the dialect specifies '{dialect_val}'. "
+                        "Using the dialect-specified value."
                     )
 
                     # Annoying corner case for not warning about
@@ -993,9 +985,9 @@ class TextFileReader(abc.Iterator):
                 encodeable = False
             if not encodeable and engine not in ("python", "python-fwf"):
                 fallback_reason = (
-                    "the separator encoded in {encoding} "
+                    f"the separator encoded in {encoding} "
                     "is > 1 char long, and the 'c' engine "
-                    "does not support such separators".format(encoding=encoding)
+                    "does not support such separators"
                 )
                 engine = "python"
 
@@ -1025,9 +1017,9 @@ class TextFileReader(abc.Iterator):
             for arg in _python_unsupported:
                 if fallback_reason and result[arg] != _c_parser_defaults[arg]:
                     raise ValueError(
-                        f"Falling back to the 'python' engine because "
+                        "Falling back to the 'python' engine because "
                         f"{fallback_reason}, but this causes {repr(arg)} to be "
-                        f"ignored as it is not supported by the 'python' engine."
+                        "ignored as it is not supported by the 'python' engine."
                     )
                 del result[arg]
 
@@ -1035,9 +1027,9 @@ class TextFileReader(abc.Iterator):
             warnings.warn(
                 (
                     "Falling back to the 'python' engine because "
-                    "{0}; you can avoid this warning by specifying "
+                    f"{fallback_reason}; you can avoid this warning by specifying "
                     "engine='python'."
-                ).format(fallback_reason),
+                ),
                 ParserWarning,
                 stacklevel=5,
             )
@@ -1058,7 +1050,7 @@ class TextFileReader(abc.Iterator):
 
             msg = (
                 f"The {repr(arg)} argument has been deprecated and will be "
-                f"removed in a future version."
+                "removed in a future version."
             )
 
             if result.get(arg, depr_default) != depr_default:
@@ -1128,9 +1120,9 @@ class TextFileReader(abc.Iterator):
                 klass = FixedWidthFieldParser
             else:
                 raise ValueError(
-                    "Unknown engine: {engine} (valid options are"
+                    f"Unknown engine: {engine} (valid options are"
                     ' "c", "python", or'
-                    ' "python-fwf")'.format(engine=engine)
+                    ' "python-fwf")'
                 )
             self._engine = klass(self.f, **self.options)
 
@@ -1240,7 +1232,7 @@ def _validate_usecols_names(usecols, names):
     if len(missing) > 0:
         raise ValueError(
             "Usecols do not match columns, "
-            "columns expected but not found: {missing}".format(missing=missing)
+            f"columns expected but not found: {missing}"
         )
 
     return usecols
@@ -1541,11 +1533,9 @@ class ParserBase:
                     counts[col] = cur_count + 1
 
                     if is_potential_mi:
-                        col = col[:-1] + (
-                            "{column}.{count}".format(column=col[-1], count=cur_count),
-                        )
+                        col = col[:-1] + (f"{col[-1]}.{cur_count}",)
                     else:
-                        col = "{column}.{count}".format(column=col, count=cur_count)
+                        col = f"{col}.{cur_count}"
                     cur_count = counts[col]
 
                 names[i] = col
@@ -1591,7 +1581,7 @@ class ParserBase:
         def ix(col):
             if not isinstance(col, str):
                 return col
-            raise ValueError("Index {col} invalid".format(col=col))
+            raise ValueError(f"Index {col} invalid")
 
         to_remove = []
         index = []
@@ -1615,11 +1605,7 @@ class ParserBase:
                 return icol
 
             if col_names is None:
-                raise ValueError(
-                    ("Must supply column order to use {icol!s} as index").format(
-                        icol=icol
-                    )
-                )
+                raise ValueError(f"Must supply column order to use {icol!s} as index")
 
             for i, c in enumerate(col_names):
                 if i == icol:
@@ -1695,9 +1681,9 @@ class ParserBase:
                     warnings.warn(
                         (
                             "Both a converter and dtype were specified "
-                            "for column {0} - only the converter will "
+                            f"for column {c} - only the converter will "
                             "be used"
-                        ).format(c),
+                        ),
                         ParserWarning,
                         stacklevel=7,
                     )
@@ -1735,10 +1721,7 @@ class ParserBase:
                             and not is_categorical_dtype(cast_type)
                             and na_count > 0
                         ):
-                            raise ValueError(
-                                "Bool column has NA values in "
-                                "column {column}".format(column=c)
-                            )
+                            raise ValueError(f"Bool column has NA values in column {c}")
                     except (AttributeError, TypeError):
                         # invalid input to is_bool_dtype
                         pass
@@ -1746,11 +1729,7 @@ class ParserBase:
 
             result[c] = cvals
             if verbose and na_count:
-                print(
-                    "Filled {count} NA values in column {c!s}".format(
-                        count=na_count, c=c
-                    )
-                )
+                print(f"Filled {na_count} NA values in column {c!s}")
         return result
 
     def _infer_types(self, values, na_values, try_num_bool=True):
@@ -1847,9 +1826,9 @@ class ParserBase:
                 return array_type._from_sequence_of_strings(values, dtype=cast_type)
             except NotImplementedError:
                 raise NotImplementedError(
-                    "Extension Array: {ea} must implement "
+                    f"Extension Array: {array_type} must implement "
                     "_from_sequence_of_strings in order "
-                    "to be used in parser methods".format(ea=array_type)
+                    "to be used in parser methods"
                 )
 
         else:
@@ -1857,8 +1836,7 @@ class ParserBase:
                 values = astype_nansafe(values, cast_type, copy=True, skipna=True)
             except ValueError:
                 raise ValueError(
-                    "Unable to convert column {column} to type "
-                    "{cast_type}".format(column=column, cast_type=cast_type)
+                    f"Unable to convert column {column} to type {cast_type}"
                 )
         return values
 
@@ -1929,8 +1907,7 @@ class CParserWrapper(ParserBase):
         if self.names is None:
             if self.prefix:
                 self.names = [
-                    "{prefix}{i}".format(prefix=self.prefix, i=i)
-                    for i in range(self._reader.table_width)
+                    f"{self.prefix}{i}" for i in range(self._reader.table_width)
                 ]
             else:
                 self.names = list(range(self._reader.table_width))
@@ -2345,15 +2322,9 @@ class PythonParser(ParserBase):
             raise ValueError("Only length-1 decimal markers supported")
 
         if self.thousands is None:
-            self.nonnum = re.compile(
-                r"[^-^0-9^{decimal}]+".format(decimal=self.decimal)
-            )
+            self.nonnum = re.compile(fr"[^-^0-9^{self.decimal}]+")
         else:
-            self.nonnum = re.compile(
-                r"[^-^0-9^{thousands}^{decimal}]+".format(
-                    thousands=self.thousands, decimal=self.decimal
-                )
-            )
+            self.nonnum = re.compile(fr"[^-^0-9^{self.thousands}^{self.decimal}]+")
 
     def _set_no_thousands_columns(self):
         # Create a set of column ids that are not to be stripped of thousands
@@ -2589,8 +2560,8 @@ class PythonParser(ParserBase):
                 except StopIteration:
                     if self.line_pos < hr:
                         raise ValueError(
-                            "Passed header={hr} but only {pos} lines in "
-                            "file".format(hr=hr, pos=(self.line_pos + 1))
+                            f"Passed header={hr} but only {self.line_pos + 1} lines in "
+                            "file"
                         )
 
                     # We have an empty file, so check
@@ -2613,11 +2584,9 @@ class PythonParser(ParserBase):
                 for i, c in enumerate(line):
                     if c == "":
                         if have_mi_columns:
-                            col_name = "Unnamed: {i}_level_{level}".format(
-                                i=i, level=level
-                            )
+                            col_name = f"Unnamed: {i}_level_{level}"
                         else:
-                            col_name = "Unnamed: {i}".format(i=i)
+                            col_name = f"Unnamed: {i}"
 
                         this_unnamed_cols.append(i)
                         this_columns.append(col_name)
@@ -2632,7 +2601,7 @@ class PythonParser(ParserBase):
 
                         while cur_count > 0:
                             counts[col] = cur_count + 1
-                            col = "{column}.{count}".format(column=col, count=cur_count)
+                            col = f"{col}.{cur_count}"
                             cur_count = counts[col]
 
                         this_columns[i] = col
@@ -2697,12 +2666,7 @@ class PythonParser(ParserBase):
 
             if not names:
                 if self.prefix:
-                    columns = [
-                        [
-                            "{prefix}{idx}".format(prefix=self.prefix, idx=i)
-                            for i in range(ncols)
-                        ]
-                    ]
+                    columns = [[f"{self.prefix}{i}" for i in range(ncols)]]
                 else:
                     columns = [list(range(ncols))]
                 columns = self._handle_usecols(columns, columns[0])
@@ -2904,7 +2868,7 @@ class PythonParser(ParserBase):
         if self.error_bad_lines:
             raise ParserError(msg)
         elif self.warn_bad_lines:
-            base = "Skipping line {row_num}: ".format(row_num=row_num)
+            base = f"Skipping line {row_num}: "
             sys.stderr.write(base + msg + "\n")
 
     def _next_iter_line(self, row_num):
@@ -3128,10 +3092,8 @@ class PythonParser(ParserBase):
 
             for row_num, actual_len in bad_lines:
                 msg = (
-                    "Expected {col_len} fields in line {line}, saw "
-                    "{length}".format(
-                        col_len=col_len, line=(row_num + 1), length=actual_len
-                    )
+                    f"Expected {col_len} fields in line {row_num + 1}, saw "
+                    f"{actual_len}"
                 )
                 if (
                     self.delimiter
@@ -3329,9 +3291,7 @@ def _process_date_conversion(
                     converter, colspec, data_dict, orig_names
                 )
                 if new_name in data_dict:
-                    raise ValueError(
-                        "New date column already in dict {name}".format(name=new_name)
-                    )
+                    raise ValueError(f"New date column already in dict {new_name}")
                 new_data[new_name] = col
                 new_cols.append(new_name)
                 date_cols.update(old_names)
@@ -3340,9 +3300,7 @@ def _process_date_conversion(
         # dict of new name to column list
         for new_name, colspec in parse_spec.items():
             if new_name in data_dict:
-                raise ValueError(
-                    "Date column {name} already in dict".format(name=new_name)
-                )
+                raise ValueError(f"Date column {new_name} already in dict")
 
             _, col, old_names = _try_convert_dates(
                 converter, colspec, data_dict, orig_names
@@ -3521,7 +3479,7 @@ def _stringify_na_values(na_values):
             # we are like 999 here
             if v == int(v):
                 v = int(v)
-                result.append("{value}.0".format(value=v))
+                result.append(f"{v}.0")
                 result.append(str(v))
 
             result.append(v)
