@@ -220,7 +220,7 @@ static TypeContext *createTypeContext(void) {
  *
  * Mutates the provided value directly. Returns 0 on success, non-zero on error.
  */
-static int64_t scaleNanosecToUnit(npy_int64 *value, NPY_DATETIMEUNIT unit) {
+static int scaleNanosecToUnit(npy_int64 *value, NPY_DATETIMEUNIT unit) {
     switch (unit) {
     case NPY_FR_ns:
         break;
@@ -1588,7 +1588,6 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
                 cLabel = int64ToIso(longVal, base, &len);
             } else {
                 scaleNanosecToUnit(&longVal, base);
-
                 sprintf(cLabel, "%" PRId64, longVal);
                 len = strlen(cLabel);
             }
