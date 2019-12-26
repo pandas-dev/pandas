@@ -10,7 +10,7 @@ for dependency in hard_dependencies:
     try:
         __import__(dependency)
     except ImportError as e:
-        missing_dependencies.append(f"{dependency}: {str(e)}")
+        missing_dependencies.append(f"{dependency}: {e}")
 
 if missing_dependencies:
     raise ImportError(
