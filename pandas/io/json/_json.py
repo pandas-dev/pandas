@@ -1,4 +1,4 @@
-from collections import OrderedDict, abc
+from collections import abc
 import functools
 from io import StringIO
 from itertools import islice
@@ -53,7 +53,7 @@ def to_json(
 
     if not index and orient not in ["split", "table"]:
         raise ValueError(
-            "'index=False' is only valid when 'orient' is " "'split' or 'table'"
+            "'index=False' is only valid when 'orient' is 'split' or 'table'"
         )
 
     path_or_buf = stringify_path(path_or_buf)
@@ -331,7 +331,7 @@ class JSONTableWriter(FrameWriter):
         default_handler,
         indent,
     ):
-        table_obj = OrderedDict((("schema", self.schema), ("data", obj)))
+        table_obj = {"schema": self.schema, "data": obj}
         serialized = super()._write(
             table_obj,
             orient,

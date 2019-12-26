@@ -120,9 +120,7 @@ def _check_for_invalid_keys(fname, kwargs, compat_args):
 
     if diff:
         bad_arg = list(diff)[0]
-        raise TypeError(
-            (f"{fname}() got an unexpected " f"keyword argument '{bad_arg}'")
-        )
+        raise TypeError(f"{fname}() got an unexpected keyword argument '{bad_arg}'")
 
 
 def validate_kwargs(fname, kwargs, compat_args):
@@ -202,7 +200,7 @@ def validate_args_and_kwargs(fname, args, kwargs, max_fname_arg_count, compat_ar
     for key in args_dict:
         if key in kwargs:
             raise TypeError(
-                f"{fname}() got multiple values for keyword " f"argument '{key}'"
+                f"{fname}() got multiple values for keyword argument '{key}'"
             )
 
     kwargs.update(args_dict)
