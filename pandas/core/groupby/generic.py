@@ -5,7 +5,7 @@ classes that hold the groupby interfaces (and some implementations).
 These are user facing as the result of the ``df.groupby(...)`` operations,
 which here returns a DataFrameGroupBy object.
 """
-from collections import OrderedDict, abc, namedtuple
+from collections import OrderedDict, abc, defaultdict, namedtuple
 import copy
 from functools import partial
 from textwrap import dedent
@@ -16,8 +16,10 @@ from typing import (
     Callable,
     FrozenSet,
     Iterable,
+    List,
     Mapping,
     Sequence,
+    Tuple,
     Type,
     Union,
     cast,
@@ -993,25 +995,25 @@ class DataFrameGroupBy(GroupBy):
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
     ) -> DataFrame:
-        agg_items, agg_blocks = self._cython_agg_blocks(
+        agg_blocks, agg_items = self._cython_agg_blocks(
             how, alt=alt, numeric_only=numeric_only, min_count=min_count
         )
         return self._wrap_agged_blocks(agg_blocks, items=agg_items)
 
     def _cython_agg_blocks(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
-    ):
+    ) -> "Tuple[List[Block], Index]":
         # TODO: the actual managing of mgr_locs is a PITA
         # here, it should happen via BlockManager.combine
 
-        data = self._get_data_to_aggregate()
+        data: BlockManager = self._get_data_to_aggregate()
 
         if numeric_only:
             data = data.get_numeric_data(copy=False)
 
-        new_blocks = []
-        new_items = []
-        deleted_items = []
+        agg_blocks: List[Block] = []
+        new_items: List[np.ndarray] = []
+        deleted_items: List[np.ndarray] = []
         no_result = object()
         for block in data.blocks:
             # Avoid inheriting result from earlier in the loop
@@ -1077,20 +1079,20 @@ class DataFrameGroupBy(GroupBy):
                             # reshape to be valid for non-Extension Block
                             result = result.reshape(1, -1)
 
-                    newb = block.make_block(result)
+                    agg_block: Block = block.make_block(result)
 
             new_items.append(locs)
-            new_blocks.append(newb)
+            agg_blocks.append(agg_block)
 
-        if len(new_blocks) == 0:
+        if not agg_blocks:
             raise DataError("No numeric types to aggregate")
 
         # reset the locs in the blocks to correspond to our
         # current ordering
         indexer = np.concatenate(new_items)
-        new_items = data.items.take(np.sort(indexer))
+        agg_items = data.items.take(np.sort(indexer))
 
-        if len(deleted_items):
+        if deleted_items:
 
             # we need to adjust the indexer to account for the
             # items we have removed
@@ -1103,12 +1105,12 @@ class DataFrameGroupBy(GroupBy):
             indexer = (ai - mask.cumsum())[indexer]
 
         offset = 0
-        for b in new_blocks:
-            loc = len(b.mgr_locs)
-            b.mgr_locs = indexer[offset : (offset + loc)]
+        for blk in agg_blocks:
+            loc = len(blk.mgr_locs)
+            blk.mgr_locs = indexer[offset : (offset + loc)]
             offset += loc
 
-        return new_items, new_blocks
+        return agg_blocks, agg_items
 
     def _aggregate_frame(self, func, *args, **kwargs) -> DataFrame:
         if self.grouper.nkeys != 1:
@@ -1615,7 +1617,7 @@ class DataFrameGroupBy(GroupBy):
         else:
             return DataFrame(result, index=obj.index, columns=result_index)
 
-    def _get_data_to_aggregate(self):
+    def _get_data_to_aggregate(self) -> BlockManager:
         obj = self._obj_with_exclusions
         if self.axis == 1:
             return obj.T._data
@@ -1894,20 +1896,15 @@ def _normalize_keyword_aggregation(kwargs):
     """
     # Normalize the aggregation functions as Mapping[column, List[func]],
     # process normally, then fixup the names.
-    # TODO(Py35): When we drop python 3.5, change this to
-    # defaultdict(list)
     # TODO: aggspec type: typing.OrderedDict[str, List[AggScalar]]
     # May be hitting https://github.com/python/mypy/issues/5958
     # saying it doesn't have an attribute __name__
-    aggspec = OrderedDict()
+    aggspec = defaultdict(list)
     order = []
     columns, pairs = list(zip(*kwargs.items()))
 
     for name, (column, aggfunc) in zip(columns, pairs):
-        if column in aggspec:
-            aggspec[column].append(aggfunc)
-        else:
-            aggspec[column] = [aggfunc]
+        aggspec[column].append(aggfunc)
         order.append((column, com.get_callable_name(aggfunc) or aggfunc))
 
     # uniquify aggfunc name if duplicated in order list

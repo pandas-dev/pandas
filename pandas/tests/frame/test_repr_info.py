@@ -3,6 +3,7 @@ from io import StringIO
 import re
 import sys
 import textwrap
+import warnings
 
 import numpy as np
 import pytest
@@ -57,7 +58,7 @@ class TestDataFrameReprInfoEtc:
         buf = StringIO()
 
         # small one
-        foo = repr(float_frame)
+        repr(float_frame)
         float_frame.info(verbose=False, buf=buf)
 
         # even smaller
@@ -97,7 +98,6 @@ class TestDataFrameReprInfoEtc:
 
     def test_repr_unsortable(self, float_frame):
         # columns are not sortable
-        import warnings
 
         warn_filters = warnings.filters
         warnings.filterwarnings("ignore", category=FutureWarning, module=".*format")
