@@ -111,7 +111,7 @@ A new ``pd.NA`` value (singleton) is introduced to represent scalar missing
 values. Up to now, ``np.nan`` is used for this for float data, ``np.nan`` or
 ``None`` for object-dtype data and ``pd.NaT`` for datetime-like data. The
 goal of ``pd.NA`` is provide a "missing" indicator that can be used
-consistently accross data types. For now, the nullable integer and boolean
+consistently across data types. For now, the nullable integer and boolean
 data types and the new string data type make use of ``pd.NA`` (:issue:`28095`).
 
 .. warning::
@@ -580,8 +580,8 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - :meth:`Series.where` with ``Categorical`` dtype (or :meth:`DataFrame.where` with ``Categorical`` column) no longer allows setting new categories (:issue:`24114`)
 - :class:`DatetimeIndex`, :class:`TimedeltaIndex`, and :class:`PeriodIndex` constructors no longer allow ``start``, ``end``, and ``periods`` keywords, use :func:`date_range`, :func:`timedelta_range`, and :func:`period_range` instead (:issue:`23919`)
 - :class:`DatetimeIndex` and :class:`TimedeltaIndex` constructors no longer have a ``verify_integrity`` keyword argument (:issue:`23919`)
-- ``pandas.core.internals.blocks.make_block`` no longer accepts the "fastpath" keyword(:issue:`19265`)
-- :meth:`Block.make_block_same_class` no longer accepts the "dtype" keyword(:issue:`19434`)
+- ``pandas.core.internals.blocks.make_block`` no longer accepts the "fastpath" keyword (:issue:`19265`)
+- :meth:`Block.make_block_same_class` no longer accepts the "dtype" keyword (:issue:`19434`)
 - Removed the previously deprecated :meth:`ExtensionArray._formatting_values`. Use :attr:`ExtensionArray._formatter` instead. (:issue:`23601`)
 - Removed the previously deprecated :meth:`MultiIndex.to_hierarchical` (:issue:`21613`)
 - Removed the previously deprecated :attr:`MultiIndex.labels`, use :attr:`MultiIndex.codes` instead (:issue:`23752`)
@@ -789,7 +789,7 @@ MultiIndex
 ^^^^^^^^^^
 
 - Constructior for :class:`MultiIndex` verifies that the given ``sortorder`` is compatible with the actual ``lexsort_depth``  if ``verify_integrity`` parameter is ``True`` (the default) (:issue:`28735`)
--
+- Series and MultiIndex `.drop` with `MultiIndex` raise exception if labels not in given in level (:issue:`8594`)
 -
 
 I/O
@@ -826,7 +826,7 @@ Plotting
 - Bug where :meth:`DataFrame.boxplot` would not accept a `color` parameter like `DataFrame.plot.box` (:issue:`26214`)
 - Bug in the ``xticks`` argument being ignored for :meth:`DataFrame.plot.bar` (:issue:`14119`)
 - :func:`set_option` now validates that the plot backend provided to ``'plotting.backend'`` implements the backend when the option is set, rather than when a plot is created (:issue:`28163`)
-- :meth:`DataFrame.plot` now allow a ``backend`` keyword arugment to allow changing between backends in one session (:issue:`28619`).
+- :meth:`DataFrame.plot` now allow a ``backend`` keyword argument to allow changing between backends in one session (:issue:`28619`).
 - Bug in color validation incorrectly raising for non-color styles (:issue:`29122`).
 
 Groupby/resample/rolling
