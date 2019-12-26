@@ -115,7 +115,7 @@ class Literal(Value):
     literal_count = 0
 
     def __init__(self, value, alias=""):
-        super(Literal, self).__init__(value, alias)
+        Value.__init__(self, value, alias)
         if not alias:
             self.alias = f"_literal{self.literal_count}"
             self.literal_count += 1
@@ -141,7 +141,7 @@ class Literal(Value):
         return self.value <= other
 
     def __repr__(self):
-        return super(Literal, self).__repr__() + ")"
+        return Value.__repr__(self) + ")"
 
 
 class Number(Literal):
@@ -150,7 +150,7 @@ class Number(Literal):
     """
 
     def __init__(self, value):
-        super(Number, self).__init__(value)
+        Literal.__init__(self, value)
 
 
 class String(Literal):
@@ -159,7 +159,7 @@ class String(Literal):
     """
 
     def __init__(self, value):
-        super(String, self).__init__(value)
+        Literal.__init__(self, value)
 
 
 class Date(Literal):
@@ -168,7 +168,7 @@ class Date(Literal):
     """
 
     def __init__(self, value):
-        super(Date, self).__init__(value)
+        Literal.__init__(self, value)
 
 
 class Bool(Literal):
@@ -177,7 +177,7 @@ class Bool(Literal):
     """
 
     def __init__(self, value):
-        super(Bool, self).__init__(value)
+        Literal.__init__(self, value)
 
 
 class Expression(Value):
@@ -188,7 +188,7 @@ class Expression(Value):
     expressions = 0
 
     def __init__(self, value, alias="", typename="", function=""):
-        super(Expression, self).__init__(value, alias, typename)
+        Value.__init__(self, value, alias, typename)
         self.function = function
         if self.alias:
             self.final_name = self.alias
@@ -209,7 +209,7 @@ class Expression(Value):
         self.has_columns = True
 
     def __repr__(self):
-        display = super(Expression, self).__repr__()
+        display = Value.__repr__(self)
         if self.function:
             display += f", function={self.function}"
         return display + ")"
@@ -230,7 +230,7 @@ class Column(Value):
     """
 
     def __init__(self, name: str, alias="", typename="", value=None):
-        super(Column, self).__init__(value, alias, typename)
+        Value.__init__(self, value, alias, typename)
         self.name = name
         if self.alias:
             self.final_name = self.alias
@@ -239,7 +239,7 @@ class Column(Value):
         self.table = None
 
     def __repr__(self):
-        display = super(Column, self).__repr__()
+        display = Value.__repr__(self)
         display += f", name={self.name}"
         display += f", table={self.table}"
         return display + ")"

@@ -1159,3 +1159,5 @@ def test_timestamps():
         pandas_frame["today()"] = date.today()
         pandas_frame["_literal0"] = datetime(2019, 1, 31, 23, 20, 32)
         assert_frame_equal(pandas_frame, my_frame)
+
+test_select_star()
