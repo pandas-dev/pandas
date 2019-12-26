@@ -1,4 +1,4 @@
-from collections import Counter, OrderedDict, defaultdict
+from collections import Counter, defaultdict
 from itertools import chain
 
 import numpy as np
@@ -297,18 +297,16 @@ class TestSeriesAggregate:
         # this also tests a result set that is all scalars
         expected = string_series.describe()
         result = string_series.apply(
-            OrderedDict(
-                [
-                    ("count", "count"),
-                    ("mean", "mean"),
-                    ("std", "std"),
-                    ("min", "min"),
-                    ("25%", lambda x: x.quantile(0.25)),
-                    ("50%", "median"),
-                    ("75%", lambda x: x.quantile(0.75)),
-                    ("max", "max"),
-                ]
-            )
+            {
+                "count": "count",
+                "mean": "mean",
+                "std": "std",
+                "min": "min",
+                "25%": lambda x: x.quantile(0.25),
+                "50%": "median",
+                "75%": lambda x: x.quantile(0.75),
+                "max": "max",
+            }
         )
         tm.assert_series_equal(result, expected)
 
@@ -333,7 +331,7 @@ class TestSeriesAggregate:
 
         # test when mixed w/ callable reducers
         result = s.agg(["size", "count", "mean"])
-        expected = Series(OrderedDict([("size", 3.0), ("count", 2.0), ("mean", 1.5)]))
+        expected = Series({"size": 3.0, "count": 2.0, "mean": 1.5})
         tm.assert_series_equal(result[expected.index], expected)
 
     @pytest.mark.parametrize(
