@@ -111,7 +111,7 @@ A new ``pd.NA`` value (singleton) is introduced to represent scalar missing
 values. Up to now, ``np.nan`` is used for this for float data, ``np.nan`` or
 ``None`` for object-dtype data and ``pd.NaT`` for datetime-like data. The
 goal of ``pd.NA`` is provide a "missing" indicator that can be used
-consistently accross data types. For now, the nullable integer and boolean
+consistently across data types. For now, the nullable integer and boolean
 data types and the new string data type make use of ``pd.NA`` (:issue:`28095`).
 
 .. warning::
@@ -826,7 +826,7 @@ Plotting
 - Bug where :meth:`DataFrame.boxplot` would not accept a `color` parameter like `DataFrame.plot.box` (:issue:`26214`)
 - Bug in the ``xticks`` argument being ignored for :meth:`DataFrame.plot.bar` (:issue:`14119`)
 - :func:`set_option` now validates that the plot backend provided to ``'plotting.backend'`` implements the backend when the option is set, rather than when a plot is created (:issue:`28163`)
-- :meth:`DataFrame.plot` now allow a ``backend`` keyword arugment to allow changing between backends in one session (:issue:`28619`).
+- :meth:`DataFrame.plot` now allow a ``backend`` keyword argument to allow changing between backends in one session (:issue:`28619`).
 - Bug in color validation incorrectly raising for non-color styles (:issue:`29122`).
 
 Groupby/resample/rolling

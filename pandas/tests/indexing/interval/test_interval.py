@@ -64,7 +64,7 @@ class TestIntervalIndex:
         s = self.s
 
         # this is a departure from our current
-        # indexin scheme, but simpler
+        # indexing scheme, but simpler
         with pytest.raises(KeyError, match="^$"):
             s.loc[[-1, 3, 4, 5]]
 

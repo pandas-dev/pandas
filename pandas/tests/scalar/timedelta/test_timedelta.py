@@ -20,7 +20,7 @@ class TestTimedeltaArithmetic:
             Timestamp("1700-01-01") + timedelta(days=13 * 19999)
 
     def test_array_timedelta_floordiv(self):
-        # deprected GH#19761, enforced GH#29797
+        # deprecated GH#19761, enforced GH#29797
         ints = pd.date_range("2012-10-08", periods=4, freq="D").view("i8")
 
         with pytest.raises(TypeError, match="Invalid dtype"):

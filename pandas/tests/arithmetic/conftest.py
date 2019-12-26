@@ -248,7 +248,7 @@ def box_df_fail(request):
 def box_transpose_fail(request):
     """
     Fixture similar to `box` but testing both transpose cases for DataFrame,
-    with the tranpose=True case xfailed.
+    with the transpose=True case xfailed.
     """
     # GH#23620
     return request.param

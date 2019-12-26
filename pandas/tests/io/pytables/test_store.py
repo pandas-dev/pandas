@@ -1273,7 +1273,7 @@ class TestHDFStore:
             with pytest.raises(ValueError):
                 store.append("df", df)
 
-            # store multile additional fields in different blocks
+            # store multiple additional fields in different blocks
             df["float_3"] = Series([1.0] * len(df), dtype="float64")
             with pytest.raises(ValueError):
                 store.append("df", df)

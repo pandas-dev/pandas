@@ -727,7 +727,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                Timestamp('2000-01-02 00:00:00+0100', tz='CET', freq='D')],
               dtype=object)
 
-        Or the values may be localized to UTC and the tzinfo discared with
+        Or the values may be localized to UTC and the tzinfo discarded with
         ``dtype='datetime64[ns]'``
 
         >>> np.asarray(tzser, dtype="datetime64[ns]")  # doctest: +ELLIPSIS

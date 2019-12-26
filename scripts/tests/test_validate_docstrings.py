@@ -719,7 +719,7 @@ class BadReturns:
 
     def no_description(self):
         """
-        Provides type but no descrption.
+        Provides type but no description.
 
         Returns
         -------
