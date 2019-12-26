@@ -1404,7 +1404,7 @@ def test_quantile_array_multiple_levels():
 def test_groupby_quantile_with_arraylike_q_and_int_columns(frame_size, groupby, q):
     # GH30289
     nrow, ncol = frame_size
-    if len(groupby) >= ncol or any([by >= ncol for by in groupby]):
+    if len(groupby) >= ncol or any(by >= ncol for by in groupby):
         pytest.skip(f"Invalid argument groupby={groupby}")
 
     df = pd.DataFrame(
