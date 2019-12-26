@@ -122,13 +122,18 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     # Check for imports from collections.abc instead of `from collections import abc`
     MSG='Check for non-standard imports' ; echo $MSG
     invgrep -R --include="*.py*" -E "from pandas.core.common import" pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
     invgrep -R --include="*.py*" -E "from pandas.core import common" pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
     invgrep -R --include="*.py*" -E "from collections.abc import" pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
     invgrep -R --include="*.py*" -E "from numpy import nan" pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # Checks for test suite
     # Check for imports from pandas.util.testing instead of `import pandas.util.testing as tm`
     invgrep -R --include="*.py*" -E "from pandas.util.testing import" pandas/tests
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
     invgrep -R --include="*.py*" -E "from pandas.util import testing as tm" pandas/tests
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
@@ -193,6 +198,10 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
 
     MSG='Check for extra blank lines after the class definition' ; echo $MSG
     invgrep -R --include="*.py" --include="*.pyx" -E 'class.*:\n\n( )+"""' .
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Check for use of {foo!r} instead of {repr(foo)}' ; echo $MSG
+    invgrep -R --include=*.{py,pyx} '!r}' pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for use of comment-based annotation syntax' ; echo $MSG

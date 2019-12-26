@@ -139,3 +139,19 @@ def test_drop_not_lexsorted():
     tm.assert_index_equal(lexsorted_mi, not_lexsorted_mi)
     with tm.assert_produces_warning(PerformanceWarning):
         tm.assert_index_equal(lexsorted_mi.drop("a"), not_lexsorted_mi.drop("a"))
+
+
+def test_drop_with_non_unique_datetime_index_and_invalid_keys():
+    # GH 30399
+
+    # define dataframe with unique datetime index
+    df = pd.DataFrame(
+        np.random.randn(5, 3),
+        columns=["a", "b", "c"],
+        index=pd.date_range("2012", freq="H", periods=5),
+    )
+    # create dataframe with non-unique datetime index
+    df = df.iloc[[0, 2, 2, 3]].copy()
+
+    with pytest.raises(KeyError, match="not found in axis"):
+        df.drop(["a", "b"])  # Dropping with labels not exist in the index
