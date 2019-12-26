@@ -224,11 +224,16 @@ class TestPDApi(Base):
 
 def test_datetime():
     from datetime import datetime
-    import warnings
 
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", FutureWarning)
-        assert datetime.date(2015, 7, 10) == pd.datetime.date(2015, 7, 10)
+    msg = (
+        "The pandas.datetime module is deprecated "
+        "and will be removed from pandas in a future version. "
+        "Import datetime directly instead."
+    )
+
+    with tm.assert_produces_warning(FutureWarning) as w:
+        assert datetime(2015, 1, 2, 0, 0) == pd.datetime(2015, 1, 2, 0, 0)
+        assert msg in str(w[-1].message)
 
 
 class TestApi(Base):

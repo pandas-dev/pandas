@@ -212,9 +212,9 @@ if pandas.compat.PY37:
 
         elif name == "datetime":
             warnings.warn(
-                "The datetime class is removed from pandas. Accessing it from "
-                "the top-level namespace will also be removed in the next "
-                "version",
+                "The pandas.datetime module is deprecated "
+                "and will be removed from pandas in a future version. "
+                "Import datetime directly instead.",
                 FutureWarning,
                 stacklevel=2,
             )
@@ -235,6 +235,7 @@ if pandas.compat.PY37:
             return type(name, (), {})
 
         raise AttributeError("module 'pandas' has no attribute '{}'".format(name))
+
 
 else:
 
@@ -257,8 +258,9 @@ else:
 
         def __getattr__(self, item):
             self.warnings.warn(
-                "The pandas.datetime module is deprecated and will be removed from pandas in a future version. "
-                "Import numpy directly instead",
+                "The pandas.datetime module is deprecated "
+                "and will be removed from pandas in a future version. "
+                "Import datetime directly instead.",
                 FutureWarning,
                 stacklevel=2,
             )
