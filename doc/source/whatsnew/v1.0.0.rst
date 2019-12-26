@@ -503,7 +503,7 @@ Deprecations
   Usage of ``json_normalize`` as ``pandas.io.json.json_normalize`` is now deprecated and
   it is recommended to use ``json_normalize`` as :func:`pandas.json_normalize` instead (:issue:`27586`).
 - :meth:`DataFrame.to_stata`, :meth:`DataFrame.to_feather`, and :meth:`DataFrame.to_parquet` argument "fname" is deprecated, use "path" instead (:issue:`23574`)
-
+- The deprecated internal attributes ``_start``, ``_stop`` and ``_step`` of :class:`RangeIndex` now raise a ``FutureWarning`` instead of a ``DeprecationWarning`` (:issue:`26581`)
 
 .. _whatsnew_1000.prior_deprecations:
 
