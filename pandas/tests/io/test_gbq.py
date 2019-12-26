@@ -1,8 +1,10 @@
+from contextlib import ExitStack as does_not_raise
 from datetime import datetime
 import os
 import platform
 
 import numpy as np
+from pandas_gbq.gbq import TableCreationError
 import pytest
 import pytz
 
@@ -21,7 +23,7 @@ PRIVATE_KEY_JSON_CONTENTS = None
 DATASET_ID = "pydata_pandas_bq_testing_py3"
 
 TABLE_ID = "new_test"
-DESTINATION_TABLE = "{0}.{1}".format(DATASET_ID + "1", TABLE_ID)
+DESTINATION_TABLE = f"{DATASET_ID + '1'}.{TABLE_ID}"
 
 VERSION = platform.python_version()
 
@@ -149,33 +151,28 @@ def test_read_gbq_progress_bar_type_kwarg(monkeypatch, progress_bar):
 
 @pytest.mark.single
 class TestToGBQIntegrationWithServiceAccountKeyPath:
-    @classmethod
-    def setup_class(cls):
-        # - GLOBAL CLASS FIXTURES -
-        # put here any instruction you want to execute only *ONCE* *BEFORE*
-        # executing *ALL* tests described below.
-
+    @pytest.fixture()
+    def gbq_dataset(self):
+        # Setup Dataset
         _skip_if_no_project_id()
         _skip_if_no_private_key_path()
 
-        cls.client = _get_client()
-        cls.dataset = cls.client.dataset(DATASET_ID + "1")
+        self.client = _get_client()
+        self.dataset = self.client.dataset(DATASET_ID + "1")
         try:
             # Clean-up previous test runs.
-            cls.client.delete_dataset(cls.dataset, delete_contents=True)
+            self.client.delete_dataset(self.dataset, delete_contents=True)
         except api_exceptions.NotFound:
             pass  # It's OK if the dataset doesn't already exist.
 
-        cls.client.create_dataset(bigquery.Dataset(cls.dataset))
+        self.client.create_dataset(bigquery.Dataset(self.dataset))
 
-    @classmethod
-    def teardown_class(cls):
-        # - GLOBAL CLASS FIXTURES -
-        # put here any instruction you want to execute only *ONCE* *AFTER*
-        # executing all tests.
-        cls.client.delete_dataset(cls.dataset, delete_contents=True)
+        yield
 
-    def test_roundtrip(self):
+        # Teardown Dataset
+        self.client.delete_dataset(self.dataset, delete_contents=True)
+
+    def test_roundtrip(self, gbq_dataset):
         destination_table = DESTINATION_TABLE + "1"
 
         test_size = 20001
@@ -189,31 +186,38 @@ class TestToGBQIntegrationWithServiceAccountKeyPath:
         )
 
         result = pd.read_gbq(
-            "SELECT COUNT(*) AS num_rows FROM {0}".format(destination_table),
+            f"SELECT COUNT(*) AS num_rows FROM {destination_table}",
             project_id=_get_project_id(),
             credentials=_get_credentials(),
             dialect="standard",
         )
         assert result["num_rows"][0] == test_size
 
-    @pytest.mark.xfail(reason="Test breaking master")
+    @pytest.mark.xfail(reason="Test breaking master", strict=False)
     @pytest.mark.parametrize(
-        "if_exists, expected_num_rows",
-        [("append", 300), ("fail", 200), ("replace", 100)],
+        "if_exists, expected_num_rows, expectation",
+        [
+            ("append", 300, does_not_raise()),
+            ("fail", 200, pytest.raises(TableCreationError)),
+            ("replace", 100, does_not_raise()),
+        ],
     )
-    def test_gbq_if_exists(self, if_exists, expected_num_rows):
+    def test_gbq_if_exists(
+        self, if_exists, expected_num_rows, expectation, gbq_dataset
+    ):
         # GH 29598
         destination_table = DESTINATION_TABLE + "2"
 
         test_size = 200
         df = make_mixed_dataframe_v2(test_size)
 
-        df.to_gbq(
-            destination_table,
-            _get_project_id(),
-            chunksize=None,
-            credentials=_get_credentials(),
-        )
+        with expectation:
+            df.to_gbq(
+                destination_table,
+                _get_project_id(),
+                chunksize=None,
+                credentials=_get_credentials(),
+            )
 
         df.iloc[:100].to_gbq(
             destination_table,
