@@ -5040,7 +5040,7 @@ class DataFrame(NDFrame):
             result.columns = result.columns.swaplevel(i, j)
         return result
 
-    def reorder_levels(self, order, axis=0, positional=None):
+    def reorder_levels(self, order, axis=0):
         """
         Rearrange index levels using input order. May not drop or duplicate levels.
 
@@ -5051,14 +5051,6 @@ class DataFrame(NDFrame):
             (position) or by key (label).
         axis : int
             Where to reorder levels.
-        positional : bool, optional
-            How to interpret integer values in `order`.
-
-              * None (default): prefer treating the values as labels,
-                but fall back to positional if no label with that
-                value is value.
-              * True : only treat integer values as positions.
-              * False : only treat integer values as labels.
 
         Returns
         -------
@@ -5071,9 +5063,9 @@ class DataFrame(NDFrame):
         result = self.copy()
 
         if axis == 0:
-            result.index = result.index.reorder_levels(order, positional=positional)
+            result.index = result.index.reorder_levels(order)
         else:
-            result.columns = result.columns.reorder_levels(order, positional=positional)
+            result.columns = result.columns.reorder_levels(order)
         return result
 
     # ----------------------------------------------------------------------

@@ -1282,41 +1282,6 @@ class MultiIndex(Index):
     def inferred_type(self) -> str:
         return "mixed"
 
-    def _get_level_number_by_label(self, label) -> int:
-        try:
-            level = self.names.index(label)
-        except ValueError:
-            raise KeyError(f"Level {label} not found")
-        return level
-
-    def _get_level_number_by_position(self, pos) -> int:
-        """
-        Returns level number at given position
-
-        Parameters
-        ----------
-        pos : level position given in python list index style which may be negative
-
-        Raises
-        ------
-        IndexError if pos is out of range
-        """
-        if pos < 0:
-            pos += self.nlevels
-            if pos < 0:
-                orig_pos = pos - self.nlevels
-                raise IndexError(
-                    f"Too many levels: Index has only {self.nlevels} levels,"
-                    f" {orig_pos} is not a valid level number"
-                )
-        # Note: levels are zero-based
-        elif pos >= self.nlevels:
-            raise IndexError(
-                f"Too many levels: Index has only {self.nlevels} levels, "
-                f"not {pos + 1}"
-            )
-        return pos
-
     def _get_level_number(self, level) -> int:
         count = self.names.count(level)
         if (count > 1) and not is_integer(level):
@@ -1324,11 +1289,24 @@ class MultiIndex(Index):
                 f"The name {level} occurs multiple times, use a level number"
             )
         try:
-            level = self._get_level_number_by_label(level)
-        except KeyError:
+            level = self.names.index(level)
+        except ValueError:
             if not is_integer(level):
-                raise
-            level = self._get_level_number_by_position(level)
+                raise KeyError(f"Level {level} not found")
+            elif level < 0:
+                level += self.nlevels
+                if level < 0:
+                    orig_level = level - self.nlevels
+                    raise IndexError(
+                        f"Too many levels: Index has only {self.nlevels} levels,"
+                        f" {orig_level} is not a valid level number"
+                    )
+            # Note: levels are zero-based
+            elif level >= self.nlevels:
+                raise IndexError(
+                    f"Too many levels: Index has only {self.nlevels} levels, "
+                    f"not {level + 1}"
+                )
         return level
 
     _tuples = None
@@ -2193,35 +2171,18 @@ class MultiIndex(Index):
             levels=new_levels, codes=new_codes, names=new_names, verify_integrity=False
         )
 
-    def reorder_levels(self, order, positional=None):
+    def reorder_levels(self, order):
         """
         Rearrange levels using input order. May not drop or duplicate levels.
 
         Parameters
         ----------
-        order : list
-            the order of index levels after reorder, could be level labels or positions
-        positional : bool, optional
-            How to interpret integer values in `order`.
-
-              * None (default): prefer treating the values as labels,
-                but fall back to positional if no label with that
-                value is value.
-              * True : only treat integer values as positions.
-              * False : only treat integer values as labels.
 
         Returns
         -------
         MultiIndex
         """
-        # GH30289
-        if positional is None:
-            order = [self._get_level_number(i) for i in order]
-        elif positional:
-            order = [self._get_level_number_by_position(i) for i in order]
-        else:
-            order = [self._get_level_number_by_label(i) for i in order]
-
+        order = [self._get_level_number(i) for i in order]
         if len(order) != self.nlevels:
             raise AssertionError(
                 f"Length of order must be same as number of levels ({self.nlevels}),"
