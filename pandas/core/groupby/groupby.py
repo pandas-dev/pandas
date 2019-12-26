@@ -1937,13 +1937,17 @@ class GroupBy(_GroupBy):
             #  >>> result.stack(0).loc[pd.IndexSlice[:, ..., q], :]
             #  but this hits https://github.com/pandas-dev/pandas/issues/10710
             #  which doesn't reorder the list-like `q` on the inner level.
-            order = np.append(np.arange(1, result.index.nlevels), 0)
+            order = list(range(1, result.index.nlevels)) + [0]
+
             # temporarily saves the index names
             index_names = np.array(result.index.names)
+
             # set index names to positions to avoid confusion
             result.index.names = np.arange(len(index_names))
+
             # place quantiles on the inside
             result = result.reorder_levels(order)
+
             # restore the index names in order
             result.index.names = index_names[order]
 
