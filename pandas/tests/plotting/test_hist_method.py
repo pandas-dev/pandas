@@ -266,7 +266,8 @@ class TestDataFramePlots(TestPlotBase):
             bins=5,
             xrot=0
         )
-        self._check_ticks_props(axes,xrot=0)
+        self._check_ticks_props(axes, xrot=0)
+
 
 @td.skip_if_no_mpl
 class TestDataFrameGroupByPlots(TestPlotBase):
