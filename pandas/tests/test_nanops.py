@@ -742,8 +742,8 @@ class TestEnsureNumeric:
 
         # Test non-convertible string ndarray
         s_values = np.array(["foo", "bar", "baz"], dtype=object)
-        msg = r"could not convert string to float: '(foo|baz)'"
-        with pytest.raises(ValueError, match=msg):
+        msg = r"Could not convert .* to numeric"
+        with pytest.raises(TypeError, match=msg):
             nanops._ensure_numeric(s_values)
 
     def test_convertable_values(self):
