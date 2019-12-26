@@ -1587,7 +1587,9 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
             if (enc->datetimeIso) {
                 cLabel = int64ToIso(longVal, base, &len);
             } else {
-                scaleNanosecToUnit(&longVal, base);
+                if (!scaleNanosecToUnit(&longVal, base)) {
+                    // TODO: This gets hit but somehow doesn't cause errors
+                }
                 sprintf(cLabel, "%" PRId64, longVal);
                 len = strlen(cLabel);
             }
