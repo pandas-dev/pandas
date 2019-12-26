@@ -4634,7 +4634,7 @@ class DataFrame(NDFrame):
             result = self[-duplicated]
 
             if ignore_index:
-                result.index = ibase.default_index(sum(-duplicated))
+                result.index = ibase.default_index(len(result))
             return result
 
         return None
