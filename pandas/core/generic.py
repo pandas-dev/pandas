@@ -11106,6 +11106,7 @@ def _make_cum_function(
         d["copy"] = False
 
         if issubclass(y.dtype.type, (np.datetime64, np.timedelta64)):
+            # GH#30460, GH#29058
             # numpy 1.18 started sorting NaTs at the end instead of beginning,
             #  so we need to work around to maintain backwards-consistency.
             orig_dtype = y.dtype
