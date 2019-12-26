@@ -3,7 +3,7 @@ Module containing all lark transformer classes
 """
 from datetime import date, datetime
 import re
-from typing import List, Tuple
+from typing import Any, Dict, List, Tuple
 
 from lark import Transformer, v_args
 from lark.lexer import Token
@@ -177,11 +177,11 @@ class InternalTransformer(TransformerBaseClass):
             self.set_rank_regular: self.set_rank_regular_partition,
             self.set_rank_dense: self.set_rank_dense_partition,
         }
-        self.partition_rank_counter = {}
-        self.partition_rank_offset = {}
+        self.partition_rank_counter: Dict[str, int] = {}
+        self.partition_rank_offset: Dict[str, int] = {}
         self.rank_counter = 1
         self.rank_offset = 0
-        self.rank_map = {}
+        self.rank_map: Dict[str, int] = {}
         self.last_key = None
 
     def mul(self, args):
@@ -460,10 +460,10 @@ class InternalTransformer(TransformerBaseClass):
         # TODO Possibly a problem when dealing with booleans
         new_column = when_expressions[0][0]
         for when_expression in when_expressions:
-            if isinstance(when_expression, Tuple):
+            if isinstance(when_expression, Tuple):  # type: ignore
                 new_column[when_expression[0]] = when_expression[1]
             else:
-                new_column[new_column == False] = get_wrapper_value(when_expression) # noqa
+                new_column[new_column == False] = get_wrapper_value(when_expression)  # noqa
         return Expression(value=new_column)
 
     def rank_form(self, form):
@@ -650,7 +650,7 @@ class InternalTransformer(TransformerBaseClass):
         :return:
         """
         expression = expression_and_alias[0]
-        alias = ""
+        alias = None
         if len(expression_and_alias) == 2:
             alias = expression_and_alias[1]
         if isinstance(expression, Tree):
@@ -970,7 +970,8 @@ class SQLTransformer(TransformerBaseClass):
             join_condition = args[3]
             if "outer" in join_type:
                 match = re.match(r"(?P<type>.*)\souter", join_type)
-                join_type = match.group("type")
+                if match:
+                    join_type = match.group("type")
             if join_type in ("full", "cross"):
                 join_type = "outer"
 
@@ -999,7 +1000,7 @@ class SQLTransformer(TransformerBaseClass):
             left_on=left_on,
             right_on=right_on,
         )
-        return Subquery(dictionary_name, query_info="")
+        return Subquery(dictionary_name, query_info={})
 
     @staticmethod
     def has_star(column_list: List[str]):
@@ -1075,7 +1076,7 @@ class SQLTransformer(TransformerBaseClass):
             print("Select Expressions:", select_expressions)
 
         tables = []
-        query_info = {
+        query_info: Dict[str, Any] = {
             "columns": [],
             "expressions": [],
             "literals": [],
@@ -1202,7 +1203,7 @@ class SQLTransformer(TransformerBaseClass):
                 column_names.append(true_column_name)
                 if aliases.get(true_column_name) is None:
                     aliases[true_column_name] = column.name
-            new_frame: DataFrame = first_frame[column_names].rename(columns=aliases)
+            new_frame = first_frame[column_names].rename(columns=aliases)
 
         return new_frame
 

@@ -3,6 +3,7 @@ Convert dataframe_sql statement to run on pandas dataframes
 """
 import os
 from pathlib import Path
+from typing import Dict
 
 from lark import Lark, UnexpectedToken
 
@@ -63,7 +64,7 @@ class SqlToPandas:
             print(self.ast.pretty())
         if SHOW_DF:
             print(self.ast)
-        self.data_frame = self.ast
+        self.data_frame: DataFrame = self.ast
 
     def parse_sql(self):
         """
@@ -82,10 +83,10 @@ class SqlToPandas:
 
 
 class TableInfo:
-    column_to_dataframe_name = {}
-    column_name_map = {}
-    dataframe_name_map = {}
-    dataframe_map = {}
+    column_to_dataframe_name: Dict[str, str] = {}
+    column_name_map: Dict[str, Dict[str, str]] = {}
+    dataframe_name_map: Dict[str, str] = {}
+    dataframe_map: Dict[str, DataFrame] = {}
 
     def add_column_to_column_to_dataframe_name_map(self, column, table):
         """
