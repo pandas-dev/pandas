@@ -605,7 +605,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - Removed :meth:`Index.is_lexsorted_for_tuple` (:issue:`29305`)
 - Removed support for nexted renaming in :meth:`DataFrame.aggregate`, :meth:`Series.aggregate`, :meth:`DataFrameGroupBy.aggregate`, :meth:`SeriesGroupBy.aggregate`, :meth:`Rolling.aggregate` (:issue:`29608`)
 - Removed :meth:`Series.valid`; use :meth:`Series.dropna` instead (:issue:`18800`)
-- Removed the previously properties :attr:`DataFrame.is_copy`, :attr:`Series.is_copy` (:issue:`18812`)
+- Removed :attr:`DataFrame.is_copy`, :attr:`Series.is_copy` (:issue:`18812`)
 - Removed :meth:`DataFrame.get_ftype_counts`, :meth:`Series.get_ftype_counts` (:issue:`18243`)
 - Removed :meth:`DataFrame.ftypes`, :meth:`Series.ftypes`, :meth:`Series.ftype` (:issue:`26744`)
 - Removed :meth:`Index.get_duplicates`, use ``idx[idx.duplicated()].unique()`` instead (:issue:`20239`)
