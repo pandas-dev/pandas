@@ -248,7 +248,7 @@ else:
     class SparseSeries:
         pass
 
-    class Datetime:
+    class __Datetime:
         def __init__(self):
             from datetime import datetime
             import warnings
@@ -269,7 +269,7 @@ else:
             except AttributeError:
                 raise AttributeError(f"module datetime has no attribute {item}")
 
-    datetime = Datetime()
+    datetime = __Datetime()
 
 
 # module level doc-string
