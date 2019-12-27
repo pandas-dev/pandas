@@ -417,7 +417,6 @@ def test_maybe_promote_datetimetz_with_any_numpy_dtype(
     # filling datetimetz with any numpy dtype casts to object
     expected_dtype = np.dtype(object)
     exp_val_for_scalar = fill_value
-    print(421, dtype.type, type(fill_value))
 
     _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
 
