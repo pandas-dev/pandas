@@ -121,7 +121,7 @@ class TestDataFrameCumulativeOps:
 
     def test_cumulative_ops_preserve_dtypes(self):
         # GH#19296 dont incorrectly upcast to object
-        df = DataFrame({"A": [1, 2, 3], "B": [1, 2, 3.0], "C": [True, False, False],})
+        df = DataFrame({"A": [1, 2, 3], "B": [1, 2, 3.0], "C": [True, False, False]})
 
         result = df.cumsum()
 
