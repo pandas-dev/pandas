@@ -353,3 +353,16 @@ def test_hash_collisions():
 
     result = hash_array(np.asarray(hashes, dtype=object), "utf8")
     tm.assert_numpy_array_equal(result, np.concatenate([expected1, expected2], axis=0))
+
+
+def test_hash_with_tuple():
+    # GH#28969 array containing a tuple raises on call to arr.astype(str)
+    #  apparently a numpy bug github.com/numpy/numpy/issues/9441
+
+    df = pd.DataFrame({"data": [tuple("1"), tuple("2")]})
+
+    hash_pandas_object(df)
+
+    df2 = pd.DataFrame({"data": [tuple([1]), tuple([2])]})
+
+    hash_pandas_object(df2)
