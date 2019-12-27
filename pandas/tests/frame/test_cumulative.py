@@ -129,7 +129,7 @@ class TestDataFrameCumulativeOps:
             {
                 "A": Series([1, 3, 6], dtype=np.int64),
                 "B": Series([1, 3, 6], dtype=np.float64),
-                "C": Series([1, 1, 1], dtype=np.int64),
+                "C": Series([1, 1, 1], dtype=np.intp),
             }
         )
         tm.assert_frame_equal(result, expected)
