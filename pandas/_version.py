@@ -239,7 +239,7 @@ def git_pieces_from_vcs(tag_prefix, root, verbose, run_command=run_command):
         if not mo:
             # unparseable. Maybe git-describe is misbehaving?
             pieces["error"] = (
-                "unable to parse git-describe output: " f"'{describe_out}'"
+                f"unable to parse git-describe output: '{describe_out}'"
             )
             return pieces
 
