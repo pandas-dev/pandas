@@ -315,23 +315,21 @@ def test_array_equivalent():
     assert not array_equivalent(
         TimedeltaIndex([0, np.nan]), TimedeltaIndex([1, np.nan])
     )
-    with catch_warnings():
-        filterwarnings("ignore", "Converting timezone", FutureWarning)
-        assert array_equivalent(
-            DatetimeIndex([0, np.nan], tz="US/Eastern"),
-            DatetimeIndex([0, np.nan], tz="US/Eastern"),
-        )
-        assert not array_equivalent(
-            DatetimeIndex([0, np.nan], tz="US/Eastern"),
-            DatetimeIndex([1, np.nan], tz="US/Eastern"),
-        )
-        assert not array_equivalent(
-            DatetimeIndex([0, np.nan]), DatetimeIndex([0, np.nan], tz="US/Eastern")
-        )
-        assert not array_equivalent(
-            DatetimeIndex([0, np.nan], tz="CET"),
-            DatetimeIndex([0, np.nan], tz="US/Eastern"),
-        )
+    assert array_equivalent(
+        DatetimeIndex([0, np.nan], tz="US/Eastern"),
+        DatetimeIndex([0, np.nan], tz="US/Eastern"),
+    )
+    assert not array_equivalent(
+        DatetimeIndex([0, np.nan], tz="US/Eastern"),
+        DatetimeIndex([1, np.nan], tz="US/Eastern"),
+    )
+    assert not array_equivalent(
+        DatetimeIndex([0, np.nan]), DatetimeIndex([0, np.nan], tz="US/Eastern")
+    )
+    assert not array_equivalent(
+        DatetimeIndex([0, np.nan], tz="CET"),
+        DatetimeIndex([0, np.nan], tz="US/Eastern"),
+    )
 
     assert not array_equivalent(DatetimeIndex([0, np.nan]), TimedeltaIndex([0, np.nan]))
 
