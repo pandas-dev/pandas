@@ -472,9 +472,7 @@ class TestMergeMulti:
         if klass is not None:
             on_vector = klass(on_vector)
 
-        expected = DataFrame(
-            {"a": [1, 2, 3], "key_1": [2016, 2017, 2018]}
-        )
+        expected = DataFrame({"a": [1, 2, 3], "key_1": [2016, 2017, 2018]})
 
         result = df.merge(df, on=["a", on_vector], how="inner")
         tm.assert_frame_equal(result, expected)
@@ -784,9 +782,7 @@ class TestJoinMultiMulti:
         if box is not None:
             on_vector = box(on_vector)
 
-        expected = DataFrame(
-            {"a": [1, 2, 3], "key_1": [2016, 2017, 2018]}
-        )
+        expected = DataFrame({"a": [1, 2, 3], "key_1": [2016, 2017, 2018]})
 
         result = df.merge(df, on=["a", on_vector], how="inner")
         tm.assert_frame_equal(result, expected)
