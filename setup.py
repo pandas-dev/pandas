@@ -504,6 +504,10 @@ def maybe_cythonize(extensions, *args, **kwargs):
         # See https://github.com/cython/cython/issues/1495
         return extensions
 
+    elif not cython:
+        # GH#28836 raise a helfpul error message
+        raise RuntimeError("Cannot cythonize without Cython installed.")
+
     numpy_incl = pkg_resources.resource_filename("numpy", "core/include")
     # TODO: Is this really necessary here?
     for ext in extensions:
