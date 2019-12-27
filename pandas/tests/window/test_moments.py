@@ -674,57 +674,6 @@ class TestMoments(Base):
 
         self._check_moment_func(np.mean, name="apply", func=f, raw=raw)
 
-        expected = Series([], dtype="float64")
-        result = expected.rolling(10).apply(lambda x: x.mean(), raw=raw)
-        tm.assert_series_equal(result, expected)
-
-        # gh-8080
-        s = Series([None, None, None])
-        result = s.rolling(2, min_periods=0).apply(lambda x: len(x), raw=raw)
-        expected = Series([1.0, 2.0, 2.0])
-        tm.assert_series_equal(result, expected)
-
-        result = s.rolling(2, min_periods=0).apply(len, raw=raw)
-        tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize("bad_raw", [None, 1, 0])
-    def test_rolling_apply_invalid_raw(self, bad_raw):
-        with pytest.raises(ValueError, match="raw parameter must be `True` or `False`"):
-            Series(range(3)).rolling(1).apply(len, raw=bad_raw)
-
-    def test_rolling_apply_out_of_bounds(self, raw):
-        # gh-1850
-        vals = pd.Series([1, 2, 3, 4])
-
-        result = vals.rolling(10).apply(np.sum, raw=raw)
-        assert result.isna().all()
-
-        result = vals.rolling(10, min_periods=1).apply(np.sum, raw=raw)
-        expected = pd.Series([1, 3, 6, 10], dtype=float)
-        tm.assert_almost_equal(result, expected)
-
-    @pytest.mark.parametrize("window", [2, "2s"])
-    def test_rolling_apply_with_pandas_objects(self, window):
-        # 5071
-        df = pd.DataFrame(
-            {"A": np.random.randn(5), "B": np.random.randint(0, 10, size=5)},
-            index=pd.date_range("20130101", periods=5, freq="s"),
-        )
-
-        # we have an equal spaced timeseries index
-        # so simulate removing the first period
-        def f(x):
-            if x.index[0] == df.index[0]:
-                return np.nan
-            return x.iloc[-1]
-
-        result = df.rolling(window).apply(f, raw=False)
-        expected = df.iloc[2:].reindex_like(df)
-        tm.assert_frame_equal(result, expected)
-
-        with pytest.raises(AttributeError):
-            df.rolling(window).apply(f, raw=True)
-
     def test_rolling_std(self, raw):
         self._check_moment_func(lambda x: np.std(x, ddof=1), name="std", raw=raw)
         self._check_moment_func(
