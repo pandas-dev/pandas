@@ -915,7 +915,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
     __rdivmod__ = make_invalid_op("__rdivmod__")
 
     def _add_datetimelike_scalar(self, other):
-        # Overriden by TimedeltaArray
+        # Overridden by TimedeltaArray
         raise TypeError(f"cannot add {type(self).__name__} and {type(other).__name__}")
 
     _add_datetime_arraylike = _add_datetimelike_scalar
@@ -928,7 +928,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
     _sub_datetime_arraylike = _sub_datetimelike_scalar
 
     def _sub_period(self, other):
-        # Overriden by PeriodArray
+        # Overridden by PeriodArray
         raise TypeError(f"cannot subtract Period from a {type(self).__name__}")
 
     def _add_offset(self, offset):
@@ -1085,7 +1085,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         -------
         result : same class as self
         """
-        # _addsub_int_array is overriden by PeriodArray
+        # _addsub_int_array is overridden by PeriodArray
         assert not is_period_dtype(self)
         assert op in [operator.add, operator.sub]
 
@@ -1311,14 +1311,23 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
 
         return -(self - other)
 
-    # FIXME: DTA/TDA/PA inplace methods should actually be inplace, GH#24115
     def __iadd__(self, other):  # type: ignore
-        # alias for __add__
-        return self.__add__(other)
+        result = self + other
+        self[:] = result[:]
+
+        if not is_period_dtype(self):
+            # restore freq, which is invalidated by setitem
+            self._freq = result._freq
+        return self
 
     def __isub__(self, other):  # type: ignore
-        # alias for __sub__
-        return self.__sub__(other)
+        result = self - other
+        self[:] = result[:]
+
+        if not is_period_dtype(self):
+            # restore freq, which is invalidated by setitem
+            self._freq = result._freq
+        return self
 
     # --------------------------------------------------------------
     # Comparison Methods

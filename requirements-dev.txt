@@ -67,4 +67,5 @@ s3fs
 sqlalchemy
 xarray
 pyreadstat
+tabulate>=0.8.3
 git+https://github.com/pandas-dev/pandas-sphinx-theme.git@master

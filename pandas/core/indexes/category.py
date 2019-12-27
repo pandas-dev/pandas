@@ -29,7 +29,7 @@ from pandas.core.arrays.categorical import Categorical, _recode_for_categories, 
 from pandas.core.base import _shared_docs
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.base import Index, _index_shared_docs
+from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
 import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name
 
@@ -175,8 +175,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         dtype = CategoricalDtype._from_values_or_dtype(data, categories, ordered, dtype)
 
-        if name is None and hasattr(data, "name"):
-            name = data.name
+        name = maybe_extract_name(name, data, cls)
 
         if not is_categorical_dtype(data):
             # don't allow scalars
