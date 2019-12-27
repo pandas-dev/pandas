@@ -2,7 +2,6 @@ from datetime import date, datetime, timedelta
 import functools
 import operator
 from typing import Any, Optional
-import warnings
 
 from dateutil.easter import easter
 import numpy as np
@@ -2559,14 +2558,6 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
             except ValueError:
                 # e.g. "infer"
                 return False
-            else:
-                warnings.warn(
-                    f"Comparing {type(self).__name__} equality with strings "
-                    "is deprecated and will return False in a future version.  "
-                    "Explicitly call `to_offset(other)` to retain the old behavior.",
-                    FutureWarning,
-                    stacklevel=2,
-                )
 
         return _tick_comp("__eq__")(self, other)
 
@@ -2586,14 +2577,6 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
             except ValueError:
                 # e.g. "infer"
                 return True
-            else:
-                warnings.warn(
-                    f"Comparing {type(self).__name__} inequality with strings "
-                    "is deprecated and will return True in a future version.  "
-                    "Explicitly call `to_offset(other)` to retain the old behavior.",
-                    FutureWarning,
-                    stacklevel=2,
-                )
 
         return _tick_comp("__ne__")(self, other)
 

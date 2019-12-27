@@ -321,13 +321,6 @@ def test_compare_ticks_to_strs(cls):
         with pytest.raises(TypeError):
             left >= right
 
-    # string that will successfully cast with to_offset
-    other = str(off.n) + off.delta.resolution_string
-    with tm.assert_produces_warning(FutureWarning):
-        off == other
-    with tm.assert_produces_warning(FutureWarning):
-        off != other
-
 
 @pytest.mark.parametrize("cls", tick_classes)
 def test_compare_ticks_to_timedeltalike(cls):
