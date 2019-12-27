@@ -1449,7 +1449,7 @@ class Block(PandasObject):
         -------
         Block
         """
-        # We should always have ndim == 2 becase Series dispatches to DataFrame
+        # We should always have ndim == 2 because Series dispatches to DataFrame
         assert self.ndim == 2
 
         values = self.get_values()
@@ -2432,7 +2432,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
             # Deprecation GH#24694, GH#19233
             raise TypeError(
                 "Passing integers to fillna for timedelta64[ns] dtype is no "
-                "longer supporetd.  To obtain the old behavior, pass "
+                "longer supported.  To obtain the old behavior, pass "
                 "`pd.Timedelta(seconds=n)` instead."
             )
         return super().fillna(value, **kwargs)
@@ -2971,7 +2971,7 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None):
 
 
 def _extend_blocks(result, blocks=None):
-    """ return a new extended blocks, givin the result """
+    """ return a new extended blocks, given the result """
     from pandas.core.internals import BlockManager
 
     if blocks is None:
