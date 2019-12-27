@@ -137,7 +137,7 @@ class ToJSONISO(BaseIO):
     params = [["split", "columns", "index", "values", "records"]]
     param_names = ["orient"]
 
-    def setup(self, orient, frame):
+    def setup(self, orient):
         N = 10 ** 5
         index = date_range("20000101", periods=N, freq="H")
         timedeltas = timedelta_range(start=1, periods=N, freq="s")
