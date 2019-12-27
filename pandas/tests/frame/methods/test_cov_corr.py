@@ -62,32 +62,15 @@ class TestDataFrameCov:
 class TestDataFrameCorr:
     # DataFrame.corr(), as opposed to DataFrame.corrwith
 
-    @staticmethod
-    def _check_method(frame, method="pearson"):
-        correls = frame.corr(method=method)
-        expected = frame["A"].corr(frame["C"], method=method)
+    @pytest.mark.parametrize("method", ["pearson", "kendall", "spearman"])
+    @td.skip_if_no_scipy
+    def test_corr_scipy_method(self, float_frame, method):
+        float_frame["A"][:5] = np.nan
+        float_frame["B"][5:10] = np.nan
+
+        correls = float_frame.corr(method=method)
+        expected = float_frame["A"].corr(float_frame["C"], method=method)
         tm.assert_almost_equal(correls["A"]["C"], expected)
-
-    @td.skip_if_no_scipy
-    def test_corr_pearson(self, float_frame):
-        float_frame["A"][:5] = np.nan
-        float_frame["B"][5:10] = np.nan
-
-        self._check_method(float_frame, "pearson")
-
-    @td.skip_if_no_scipy
-    def test_corr_kendall(self, float_frame):
-        float_frame["A"][:5] = np.nan
-        float_frame["B"][5:10] = np.nan
-
-        self._check_method(float_frame, "kendall")
-
-    @td.skip_if_no_scipy
-    def test_corr_spearman(self, float_frame):
-        float_frame["A"][:5] = np.nan
-        float_frame["B"][5:10] = np.nan
-
-        self._check_method(float_frame, "spearman")
 
     # ---------------------------------------------------------------------
 

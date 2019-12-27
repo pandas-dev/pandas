@@ -1311,14 +1311,23 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
 
         return -(self - other)
 
-    # FIXME: DTA/TDA/PA inplace methods should actually be inplace, GH#24115
     def __iadd__(self, other):  # type: ignore
-        # alias for __add__
-        return self.__add__(other)
+        result = self + other
+        self[:] = result[:]
+
+        if not is_period_dtype(self):
+            # restore freq, which is invalidated by setitem
+            self._freq = result._freq
+        return self
 
     def __isub__(self, other):  # type: ignore
-        # alias for __sub__
-        return self.__sub__(other)
+        result = self - other
+        self[:] = result[:]
+
+        if not is_period_dtype(self):
+            # restore freq, which is invalidated by setitem
+            self._freq = result._freq
+        return self
 
     # --------------------------------------------------------------
     # Comparison Methods
