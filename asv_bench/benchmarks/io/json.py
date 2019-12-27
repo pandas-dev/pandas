@@ -134,8 +134,7 @@ class ToJSON(BaseIO):
 
 class ToJSONISO(BaseIO):
     fname = "__test__.json"
-    params = [
-        ["split", "columns", "index", "values", "records"],
+    params = [["split", "columns", "index", "values", "records"]]
     param_names = ["orient"]
 
     def setup(self, orient, frame):
