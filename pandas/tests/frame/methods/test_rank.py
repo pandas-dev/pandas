@@ -113,6 +113,15 @@ class TestRank:
         exp = DataFrame({"a": [3.5, 1.0, 3.5, 5.0, 6.0, 7.0, 2.0]})
         tm.assert_frame_equal(df.rank(), exp)
 
+    def test_rank_does_not_mutate(self):
+        # GH#18521
+        # Check rank does not mutate DataFrame
+        df = DataFrame(np.random.randn(10, 3), dtype="float64")
+        expected = df.copy()
+        df.rank()
+        result = df
+        tm.assert_frame_equal(result, expected)
+
     def test_rank_mixed_frame(self, float_string_frame):
         float_string_frame["datetime"] = datetime.now()
         float_string_frame["timedelta"] = timedelta(days=1, seconds=1)
