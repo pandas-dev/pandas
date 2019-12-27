@@ -1,6 +1,5 @@
 from decimal import Decimal
 import operator
-import warnings
 
 import numpy as np
 import pytest
