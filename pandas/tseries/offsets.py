@@ -2,6 +2,7 @@ from datetime import date, datetime, timedelta
 import functools
 import operator
 from typing import Any, Optional
+import warnings
 
 from dateutil.easter import easter
 import numpy as np
@@ -2500,20 +2501,16 @@ class Easter(DateOffset):
 # Ticks
 
 
-def _tick_comp(op):
-    assert op not in [operator.eq, operator.ne]
+def _tick_comp(opname: str):
+    """
+    Tick comparisons should behave identically to Timedelta comparisons.
+    """
 
     def f(self, other):
-        try:
-            return op(self.delta, other.delta)
-        except AttributeError:
-            # comparing with a non-Tick object
-            raise TypeError(
-                f"Invalid comparison between {type(self).__name__} "
-                f"and {type(other).__name__}"
-            )
+        op = getattr(self.delta, opname)
+        return op(other)
 
-    f.__name__ = f"__{op.__name__}__"
+    f.__name__ = opname
     return f
 
 
@@ -2529,10 +2526,10 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
                 "Tick offset with `normalize=True` are not allowed."
             )  # GH#21427
 
-    __gt__ = _tick_comp(operator.gt)
-    __ge__ = _tick_comp(operator.ge)
-    __lt__ = _tick_comp(operator.lt)
-    __le__ = _tick_comp(operator.le)
+    __gt__ = _tick_comp("__gt__")
+    __ge__ = _tick_comp("__ge__")
+    __lt__ = _tick_comp("__lt__")
+    __le__ = _tick_comp("__le__")
 
     def __add__(self, other):
         if isinstance(other, Tick):
@@ -2562,11 +2559,16 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
             except ValueError:
                 # e.g. "infer"
                 return False
+            else:
+                warnings.warn(
+                    f"Comparing {type(self).__name__} equality with strings "
+                    "is deprecated and will return False in a future version.  "
+                    "Explicitly call `to_offset(other)` to retain the old behavior.",
+                    FutureWarning,
+                    stacklevel=2,
+                )
 
-        if isinstance(other, Tick):
-            return self.delta == other.delta
-        else:
-            return False
+        return _tick_comp("__eq__")(self, other)
 
     # This is identical to DateOffset.__hash__, but has to be redefined here
     # for Python 3, because we've redefined __eq__.
@@ -2584,11 +2586,16 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
             except ValueError:
                 # e.g. "infer"
                 return True
+            else:
+                warnings.warn(
+                    f"Comparing {type(self).__name__} inequality with strings "
+                    "is deprecated and will return True in a future version.  "
+                    "Explicitly call `to_offset(other)` to retain the old behavior.",
+                    FutureWarning,
+                    stacklevel=2,
+                )
 
-        if isinstance(other, Tick):
-            return self.delta != other.delta
-        else:
-            return True
+        return _tick_comp("__ne__")(self, other)
 
     @property
     def delta(self):

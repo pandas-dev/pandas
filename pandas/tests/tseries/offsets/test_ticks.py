@@ -320,3 +320,29 @@ def test_compare_ticks_to_strs(cls):
             left > right
         with pytest.raises(TypeError):
             left >= right
+
+    # string that will successfully cast with to_offset
+    other = str(off.n) + off.delta.resolution_string
+    with tm.assert_produces_warning(FutureWarning):
+        off == other
+    with tm.assert_produces_warning(FutureWarning):
+        off != other
+
+
+@pytest.mark.parametrize("cls", tick_classes)
+def test_compare_ticks_to_timedeltalike(cls):
+    off = cls(19)
+
+    td = off.delta
+
+    others = [td, td.to_timedelta64()]
+    if cls is not Nano:
+        others.append(td.to_pytimedelta())
+
+    for other in others:
+        assert off == other
+        assert not off != other
+        assert not off < other
+        assert not off > other
+        assert off <= other
+        assert off >= other
