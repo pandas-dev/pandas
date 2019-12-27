@@ -1,7 +1,5 @@
 # flake8: noqa
 
-import numpy as np
-
 from pandas._libs import NaT, Period, Timedelta, Timestamp
 from pandas._libs.missing import NA
 

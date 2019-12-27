@@ -105,7 +105,6 @@ from pandas.core.api import (
     to_datetime,
     to_timedelta,
     # misc
-    np,
     Grouper,
     factorize,
     unique,
@@ -189,7 +188,6 @@ __version__ = v.get("closest-tag", v["version"])
 __git_version__ = v.get("full-revisionid")
 del get_versions, v
 
-
 # GH 27101
 # TODO: remove Panel compat in 1.0
 if pandas.compat.PY37:
@@ -211,6 +209,20 @@ if pandas.compat.PY37:
                 pass
 
             return Panel
+
+        elif name == "np":
+
+            warnings.warn(
+                "The pandas.np module is deprecated "
+                "and will be removed from pandas in a future version. "
+                "Import numpy directly instead",
+                FutureWarning,
+                stacklevel=2,
+            )
+            import numpy as np
+
+            return np
+
         elif name in {"SparseSeries", "SparseDataFrame"}:
             warnings.warn(
                 f"The {name} class is removed from pandas. Accessing it from "
@@ -236,6 +248,28 @@ else:
     class SparseSeries:
         pass
 
+    class __numpy:
+        def __init__(self):
+            import numpy as np
+            import warnings
+
+            self.np = np
+            self.warnings = warnings
+
+        def __getattr__(self, item):
+            self.warnings.warn(
+                "The pandas.np module is deprecated "
+                "and will be removed from pandas in a future version. "
+                "Import numpy directly instead",
+                FutureWarning,
+                stacklevel=2,
+            )
+            try:
+                return getattr(self.np, item)
+            except AttributeError:
+                raise AttributeError(f"module numpy has no attribute {item}")
+
+    np = __numpy()
 
 # module level doc-string
 __doc__ = """
