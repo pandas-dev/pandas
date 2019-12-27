@@ -93,7 +93,7 @@ class TestPDApi(Base):
     ]
     if not compat.PY37:
         classes.extend(["Panel", "SparseSeries", "SparseDataFrame"])
-        deprecated_modules.extend("datetime")
+        deprecated_modules.append("datetime")
 
     # these are already deprecated; awaiting removal
     deprecated_classes: List[str] = []
