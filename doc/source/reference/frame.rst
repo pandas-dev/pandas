@@ -361,4 +361,5 @@ Serialization / IO / conversion
    DataFrame.to_records
    DataFrame.to_string
    DataFrame.to_clipboard
+   DataFrame.to_markdown
    DataFrame.style

@@ -1971,6 +1971,30 @@ class NDFrame(PandasObject, SelectionMixin):
     # I/O Methods
 
     _shared_docs[
+        "to_markdown"
+    ] = """
+    Print %(klass)s in Markdown-friendly format.
+
+    .. versionadded:: 1.0.0
+
+    Parameters
+    ----------
+    buf : writable buffer, defaults to sys.stdout
+        Where to send the output. By default, the output is printed to
+        sys.stdout. Pass a writable buffer if you need to further process
+        the output.
+    mode : str, optional
+        Mode in which file is opened.
+    **kwargs
+        These parameters will be passed to `tabulate`.
+
+    Returns
+    -------
+    str
+        %(klass)s in Markdown-friendly format.
+    """
+
+    _shared_docs[
         "to_excel"
     ] = """
     Write %(klass)s to an Excel sheet.

@@ -4,7 +4,7 @@ Data structure for 1-dimensional cross-sectional and time series data
 from io import StringIO
 from shutil import get_terminal_size
 from textwrap import dedent
-from typing import Any, Callable, Hashable, List, Optional
+from typing import IO, Any, Callable, Hashable, List, Optional
 import warnings
 
 import numpy as np
@@ -59,6 +59,7 @@ from pandas.core.construction import (
     is_empty_data,
     sanitize_array,
 )
+from pandas.core.generic import _shared_docs
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.api import (
@@ -1438,6 +1439,27 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             except AttributeError:
                 with open(buf, "w") as f:
                     f.write(result)
+
+    @Appender(
+        """
+        Examples
+        --------
+        >>> s = pd.Series(["elk", "pig", "dog", "quetzal"], name="animal")
+        >>> print(s.to_markdown())
+        |    | animal   |
+        |---:|:---------|
+        |  0 | elk      |
+        |  1 | pig      |
+        |  2 | dog      |
+        |  3 | quetzal  |
+        """
+    )
+    @Substitution(klass="Series")
+    @Appender(_shared_docs["to_markdown"])
+    def to_markdown(
+        self, buf: Optional[IO[str]] = None, mode: Optional[str] = None, **kwargs,
+    ) -> Optional[str]:
+        return self.to_frame().to_markdown(buf, mode, **kwargs)
 
     # ----------------------------------------------------------------------
 
