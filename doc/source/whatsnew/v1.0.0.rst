@@ -169,6 +169,17 @@ You can use the alias ``"boolean"`` as well.
    s = pd.Series([True, False, None], dtype="boolean")
    s
 
+.. _whatsnew_1000.numba_rolling_apply:
+
+Using Numba in ``rolling.apply``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We've added an ``engine`` keyword to :meth:`~Rolling.apply` that allows the user to execute the
+routine using `Numba <https://numba.pydata.org/>`__ instead of Cython. Using the Numba engine
+can yield significant performance gains if the apply function can operate on numpy arrays and
+the data set is larger (1 million rows or greater). For more details, see
+:ref:`rolling apply documentation <stats.rolling_apply>` (:issue:`28987`)
+
 .. _whatsnew_1000.custom_window:
 
 Defining custom windows for rolling operations
@@ -432,6 +443,8 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 | matplotlib      | 2.2.2           |         |
 +-----------------+-----------------+---------+
+| numba           | 0.46.0          |    X    |
++-----------------+-----------------+---------+
 | openpyxl        | 2.5.7           |    X    |
 +-----------------+-----------------+---------+
 | pyarrow         | 0.12.0          |    X    |
@@ -646,7 +659,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - Changed the default "ordered" argument in :class:`CategoricalDtype` from ``None`` to ``False`` (:issue:`26336`)
 - :meth:`Series.set_axis` and :meth:`DataFrame.set_axis` now require "labels" as the first argument and "axis" as an optional named parameter (:issue:`30089`)
 - Removed :func:`to_msgpack`, :func:`read_msgpack`, :meth:`DataFrame.to_msgpack`, :meth:`Series.to_msgpack` (:issue:`27103`)
--
+- Removed :meth:`Series.compress` (:issue:`21930`)
 - Removed the previously deprecated keyword "fill_value" from :meth:`Categorical.fillna`, use "value" instead (:issue:`19269`)
 - Removed the previously deprecated keyword "data" from :func:`andrews_curves`, use "frame" instead (:issue:`6956`)
 - Removed the previously deprecated keyword "data" from :func:`parallel_coordinates`, use "frame" instead (:issue:`6956`)
@@ -659,6 +672,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
+- Performance improvement in :class:`DataFrame` arithmetic and comparison operations with scalars (:issue:`24990`, :issue:`29853`)
 - Performance improvement in indexing with a non-unique :class:`IntervalIndex` (:issue:`27489`)
 - Performance improvement in :attr:`MultiIndex.is_monotonic` (:issue:`27495`)
 - Performance improvement in :func:`cut` when ``bins`` is an :class:`IntervalIndex` (:issue:`27668`)
