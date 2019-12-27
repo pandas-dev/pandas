@@ -978,9 +978,28 @@ class SQLTable(PandasObject):
                 if col.dt.tz is not None:
                     return TIMESTAMP(timezone=True)
             except AttributeError:
-                # The column is actually a DatetimeIndex
-                if col.tz is not None:
-                    return TIMESTAMP(timezone=True)
+                # The column might be a DatetimeIndex
+                try:
+                    if col.tz is not None:
+                        return TIMESTAMP(timezone=True)
+                # or in the case of different offsets/timezones
+                # raise a better error message than
+                # "'Series' object has no attribute 'tz'"
+                except AttributeError as e:
+                    get_offset = lambda dt: (
+                        dt.utcoffset() if isinstance(dt, datetime) else None
+                    )
+                    get_tz = lambda dt: getattr(dt, "tzinfo", None)
+                    # use iterator to avoid unpacking all values
+                    iterator = col.iteritems()
+                    unique_offsets = set()
+                    unique_timezones = set()
+                    for ix, dt in iterator:
+                        unique_offsets.add(get_offset(dt))
+                        unique_timezones.add(get_tz(dt))
+                        if len(unique_offsets) == 2 or len(unique_timezones) == 2:
+                            raise ValueError("Array must be all same time zone")
+                    raise e
             return DateTime
         if col_type == "timedelta64":
             warnings.warn(
