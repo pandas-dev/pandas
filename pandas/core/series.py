@@ -194,6 +194,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         else:
 
+            name = ibase.maybe_extract_name(name, data, type(self))
+
             if is_empty_data(data) and dtype is None:
                 # gh-17261
                 warnings.warn(
@@ -219,8 +221,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     "initializing a Series from a MultiIndex is not supported"
                 )
             elif isinstance(data, Index):
-                if name is None:
-                    name = data.name
 
                 if dtype is not None:
                     # astype copies
@@ -244,8 +244,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     )
                 pass
             elif isinstance(data, ABCSeries):
-                if name is None:
-                    name = data.name
                 if index is None:
                     index = data.index
                 else:
