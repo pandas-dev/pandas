@@ -235,25 +235,6 @@ def box_df_fail(request):
     return request.param
 
 
-@pytest.fixture(
-    params=[
-        (pd.Index, False),
-        (pd.Series, False),
-        (pd.DataFrame, False),
-        pytest.param((pd.DataFrame, True), marks=pytest.mark.xfail),
-        (tm.to_array, False),
-    ],
-    ids=id_func,
-)
-def box_transpose_fail(request):
-    """
-    Fixture similar to `box` but testing both transpose cases for DataFrame,
-    with the transpose=True case xfailed.
-    """
-    # GH#23620
-    return request.param
-
-
 @pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, tm.to_array], ids=id_func)
 def box_with_array(request):
     """
