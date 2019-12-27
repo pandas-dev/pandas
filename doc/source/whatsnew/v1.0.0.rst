@@ -205,6 +205,7 @@ Other enhancements
   (:meth:`~DataFrame.to_parquet` / :func:`read_parquet`) using the `'pyarrow'` engine
   now preserve those data types with pyarrow >= 1.0.0 (:issue:`20612`).
 - The ``partition_cols`` argument in :meth:`DataFrame.to_parquet` now accepts a string (:issue:`27117`)
+- The ``pandas.np`` submodule is now deprecated. Import numpy directly instead (:issue:`30296`)
 - :func:`to_parquet` now appropriately handles the ``schema`` argument for user defined schemas in the pyarrow engine. (:issue: `30270`)
 - DataFrame constructor preserve `ExtensionArray` dtype with `ExtensionArray` (:issue:`11363`)
 - :meth:`DataFrame.sort_values` and :meth:`Series.sort_values` have gained ``ignore_index`` keyword to be able to reset index after sorting (:issue:`30114`)
