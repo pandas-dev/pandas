@@ -28,6 +28,7 @@ VERSIONS = {
     "xlrd": "1.1.0",
     "xlwt": "1.2.0",
     "xlsxwriter": "0.9.8",
+    "numba": "0.46.0",
 }
 
 

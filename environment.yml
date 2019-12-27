@@ -75,6 +75,7 @@ dependencies:
   - matplotlib>=2.2.2  # pandas.plotting, Series.plot, DataFrame.plot
   - numexpr>=2.6.8
   - scipy>=1.1
+  - numba>=0.46.0
 
   # optional for io
   # ---------------

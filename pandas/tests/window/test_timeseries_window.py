@@ -566,26 +566,6 @@ class TestRollingTS:
 
         tm.assert_series_equal(result, expected)
 
-    def test_ragged_apply(self, raw):
-
-        df = self.ragged
-
-        f = lambda x: 1
-        result = df.rolling(window="1s", min_periods=1).apply(f, raw=raw)
-        expected = df.copy()
-        expected["B"] = 1.0
-        tm.assert_frame_equal(result, expected)
-
-        result = df.rolling(window="2s", min_periods=1).apply(f, raw=raw)
-        expected = df.copy()
-        expected["B"] = 1.0
-        tm.assert_frame_equal(result, expected)
-
-        result = df.rolling(window="5s", min_periods=1).apply(f, raw=raw)
-        expected = df.copy()
-        expected["B"] = 1.0
-        tm.assert_frame_equal(result, expected)
-
     def test_all(self):
 
         # simple comparison of integer vs time-based windowing
@@ -612,16 +592,6 @@ class TestRollingTS:
 
         result = r.quantile(0.5)
         expected = er.quantile(0.5)
-        tm.assert_frame_equal(result, expected)
-
-    def test_all_apply(self, raw):
-
-        df = self.regular * 2
-        er = df.rolling(window=1)
-        r = df.rolling(window="1s")
-
-        result = r.apply(lambda x: 1, raw=raw)
-        expected = er.apply(lambda x: 1, raw=raw)
         tm.assert_frame_equal(result, expected)
 
     def test_all2(self):
