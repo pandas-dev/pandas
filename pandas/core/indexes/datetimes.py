@@ -30,10 +30,11 @@ from pandas.core.arrays.datetimes import (
 )
 from pandas.core.base import _shared_docs
 import pandas.core.common as com
-from pandas.core.indexes.base import Index
+from pandas.core.indexes.base import Index, maybe_extract_name
 from pandas.core.indexes.datetimelike import (
     DatetimeIndexOpsMixin,
     DatetimelikeDelegateMixin,
+    DatetimeTimedeltaMixin,
     ea_passthrough,
 )
 from pandas.core.indexes.numeric import Int64Index
@@ -93,7 +94,9 @@ class DatetimeDelegateMixin(DatetimelikeDelegateMixin):
     typ="method",
     overwrite=False,
 )
-class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
+class DatetimeIndex(
+    DatetimeTimedeltaMixin, DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin
+):
     """
     Immutable ndarray of datetime64 data, represented internally as int64, and
     which can be boxed to Timestamp objects that are subclasses of datetime and
@@ -254,8 +257,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
         # - Cases checked above all return/raise before reaching here - #
 
-        if name is None and hasattr(data, "name"):
-            name = data.name
+        name = maybe_extract_name(name, data, cls)
 
         dtarr = DatetimeArray._from_sequence(
             data,
@@ -412,7 +414,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     @Appender(Index.difference.__doc__)
     def difference(self, other, sort=None):
         new_idx = super().difference(other, sort=sort)
-        new_idx._data._freq = None
+        new_idx._set_freq(None)
         return new_idx
 
     # --------------------------------------------------------------------
@@ -698,7 +700,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
         for i, v in enumerate(self):
             s = v
-            if not freq.onOffset(s):
+            if not freq.is_on_offset(s):
                 t0 = freq.rollback(s)
                 t1 = freq.rollforward(s)
                 if abs(s - t0) < abs(t1 - s):
