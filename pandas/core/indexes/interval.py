@@ -47,6 +47,7 @@ from pandas.core.indexes.base import (
     _index_shared_docs,
     default_pprint,
     ensure_index,
+    maybe_extract_name,
 )
 from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 from pandas.core.indexes.multi import MultiIndex
@@ -217,8 +218,7 @@ class IntervalIndex(IntervalMixin, Index):
         verify_integrity: bool = True,
     ):
 
-        if name is None and hasattr(data, "name"):
-            name = data.name
+        name = maybe_extract_name(name, data, cls)
 
         with rewrite_exception("IntervalArray", cls.__name__):
             array = IntervalArray(

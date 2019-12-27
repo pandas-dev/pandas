@@ -26,7 +26,7 @@ from pandas.core import ops
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.base import Index, _index_shared_docs
+from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
@@ -85,10 +85,10 @@ class RangeIndex(Int64Index):
     ):
 
         cls._validate_dtype(dtype)
+        name = maybe_extract_name(name, start, cls)
 
         # RangeIndex
         if isinstance(start, RangeIndex):
-            name = start.name if name is None else name
             start = start._range
             return cls._simple_new(start, dtype=dtype, name=name)
 

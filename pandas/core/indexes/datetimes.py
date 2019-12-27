@@ -30,7 +30,7 @@ from pandas.core.arrays.datetimes import (
 )
 from pandas.core.base import _shared_docs
 import pandas.core.common as com
-from pandas.core.indexes.base import Index
+from pandas.core.indexes.base import Index, maybe_extract_name
 from pandas.core.indexes.datetimelike import (
     DatetimeIndexOpsMixin,
     DatetimelikeDelegateMixin,
@@ -257,8 +257,7 @@ class DatetimeIndex(
 
         # - Cases checked above all return/raise before reaching here - #
 
-        if name is None and hasattr(data, "name"):
-            name = data.name
+        name = maybe_extract_name(name, data, cls)
 
         dtarr = DatetimeArray._from_sequence(
             data,

@@ -25,7 +25,11 @@ from pandas.core.arrays.period import PeriodArray, period_array, validate_dtype_
 from pandas.core.base import _shared_docs
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.base import _index_shared_docs, ensure_index
+from pandas.core.indexes.base import (
+    _index_shared_docs,
+    ensure_index,
+    maybe_extract_name,
+)
 from pandas.core.indexes.datetimelike import (
     DatetimeIndexOpsMixin,
     DatetimelikeDelegateMixin,
@@ -184,8 +188,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             argument = list(set(fields) - valid_field_set)[0]
             raise TypeError(f"__new__() got an unexpected keyword argument {argument}")
 
-        if name is None and hasattr(data, "name"):
-            name = data.name
+        name = maybe_extract_name(name, data, cls)
 
         if data is None and ordinal is None:
             # range-based.
