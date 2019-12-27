@@ -4614,6 +4614,7 @@ class DataFrame(NDFrame):
         subset: Optional[Union[Hashable, Sequence[Hashable]]] = None,
         keep: Union[str, bool] = "first",
         inplace: bool = False,
+        ignore_index: bool = False,
     ) -> Optional["DataFrame"]:
         """
         Return DataFrame with duplicate rows removed.
@@ -4633,6 +4634,10 @@ class DataFrame(NDFrame):
             - False : Drop all duplicates.
         inplace : bool, default False
             Whether to drop duplicates in place or to return a copy.
+        ignore_index : bool, default False
+            If True, the resulting axis will be labeled 0, 1, …, n - 1.
+
+            .. versionadded:: 1.0.0
 
         Returns
         -------
@@ -4648,9 +4653,16 @@ class DataFrame(NDFrame):
         if inplace:
             (inds,) = (-duplicated)._ndarray_values.nonzero()
             new_data = self._data.take(inds)
+
+            if ignore_index:
+                new_data.axes[1] = ibase.default_index(len(inds))
             self._update_inplace(new_data)
         else:
-            return self[-duplicated]
+            result = self[-duplicated]
+
+            if ignore_index:
+                result.index = ibase.default_index(len(result))
+            return result
 
         return None
 
