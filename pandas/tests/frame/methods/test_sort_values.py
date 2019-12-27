@@ -460,3 +460,45 @@ class TestDataFrameSortValues:
 
         with pytest.raises(ValueError):
             df.sort_values(by="c", ascending=False, na_position="bad_position")
+
+    @pytest.mark.parametrize(
+        "original_dict, sorted_dict, ignore_index, output_index",
+        [
+            ({"A": [1, 2, 3]}, {"A": [3, 2, 1]}, True, [0, 1, 2]),
+            ({"A": [1, 2, 3]}, {"A": [3, 2, 1]}, False, [2, 1, 0]),
+            (
+                {"A": [1, 2, 3], "B": [2, 3, 4]},
+                {"A": [3, 2, 1], "B": [4, 3, 2]},
+                True,
+                [0, 1, 2],
+            ),
+            (
+                {"A": [1, 2, 3], "B": [2, 3, 4]},
+                {"A": [3, 2, 1], "B": [4, 3, 2]},
+                False,
+                [2, 1, 0],
+            ),
+        ],
+    )
+    def test_sort_values_ignore_index(
+        self, original_dict, sorted_dict, ignore_index, output_index
+    ):
+        # GH 30114
+        df = DataFrame(original_dict)
+        expected = DataFrame(sorted_dict, index=output_index)
+
+        # Test when inplace is False
+        sorted_df = df.sort_values("A", ascending=False, ignore_index=ignore_index)
+        tm.assert_frame_equal(sorted_df, expected)
+
+        tm.assert_frame_equal(df, DataFrame(original_dict))
+
+        # Test when inplace is True
+        copied_df = df.copy()
+
+        copied_df.sort_values(
+            "A", ascending=False, ignore_index=ignore_index, inplace=True
+        )
+        tm.assert_frame_equal(copied_df, expected)
+
+        tm.assert_frame_equal(df, DataFrame(original_dict))

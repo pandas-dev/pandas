@@ -4050,6 +4050,7 @@ class NDFrame(PandasObject, SelectionMixin):
         inplace: bool_t = False,
         kind: str = "quicksort",
         na_position: str = "last",
+        ignore_index: bool_t = False,
     ):
         """
         Sort by the values along either axis.
@@ -4072,6 +4073,10 @@ class NDFrame(PandasObject, SelectionMixin):
         na_position : {'first', 'last'}, default 'last'
              Puts NaNs at the beginning if `first`; `last` puts NaNs at the
              end.
+        ignore_index : bool, default False
+             If True, the resulting axis will be labeled 0, 1, …, n - 1.
+
+             .. versionadded:: 1.0.0
 
         Returns
         -------
