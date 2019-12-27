@@ -30,7 +30,12 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms
 import pandas.core.common as com
-from pandas.core.indexes.base import Index, InvalidIndexError, _index_shared_docs
+from pandas.core.indexes.base import (
+    Index,
+    InvalidIndexError,
+    _index_shared_docs,
+    maybe_extract_name,
+)
 from pandas.core.ops import get_op_result_name
 
 _num_index_shared_docs = dict()
@@ -68,8 +73,7 @@ class NumericIndex(Index):
         else:
             subarr = data
 
-        if name is None and hasattr(data, "name"):
-            name = data.name
+        name = maybe_extract_name(name, data, cls)
         return cls._simple_new(subarr, name=name)
 
     @classmethod
