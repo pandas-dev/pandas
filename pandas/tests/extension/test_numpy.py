@@ -332,6 +332,10 @@ class TestReshaping(BaseNumPyTests, base.BaseReshapingTests):
         # Fails creating expected
         super().test_merge_on_extension_array_duplicates(data)
 
+    @skip_nested
+    def test_transpose(self, data):
+        super().test_transpose(data)
+
 
 class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
     @skip_nested
