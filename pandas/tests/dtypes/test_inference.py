@@ -793,6 +793,14 @@ class TestTypeInference:
             arr = np.array([n, datetime(2011, 1, 1)])
             assert lib.infer_dtype(arr, skipna=True) == "datetime"
 
+            arr = np.array([n, datetime(2011, 1, 1, tzinfo=datetime.timezone.utc)])
+            assert lib.infer_dtype(arr, skipna=True) == "datetimetz"
+
+            arr = np.array(
+                [n, pd.Timestamp("2011-01-02", tzinfo=datetime.timezone.utc)]
+            )
+            assert lib.infer_dtype(arr, skipna=True) == "datetimetz"
+
             arr = np.array([n, pd.Timestamp("2011-01-02"), n])
             assert lib.infer_dtype(arr, skipna=True) == "datetime"
 
