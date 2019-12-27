@@ -217,9 +217,9 @@ if pandas.compat.PY37:
                 stacklevel=2,
             )
 
-            from datetime import datetime
+            from datetime import datetime as dt
 
-            return datetime
+            return dt
 
         elif name == "np":
 
@@ -285,10 +285,10 @@ else:
 
     class __Datetime:
         def __init__(self):
-            from datetime import datetime
+            from datetime import datetime as dt
             import warnings
 
-            self.datetime = datetime
+            self.datetime = dt
             self.warnings = warnings
 
         def __getattr__(self, item):
