@@ -352,6 +352,8 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
             self.book = self.load_workbook(filepath_or_buffer)
         elif isinstance(filepath_or_buffer, str):
             self.book = self.load_workbook(filepath_or_buffer)
+        elif isinstance(filepath_or_buffer, bytes):
+            self.book = self.load_workbook(BytesIO(filepath_or_buffer))
         else:
             raise ValueError(
                 "Must explicitly set engine if not passing in buffer or path for io."
