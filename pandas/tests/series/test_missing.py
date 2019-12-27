@@ -275,7 +275,7 @@ class TestSeriesMissingData:
                 ["2011-01-01 10:00", pd.NaT, "2011-01-03 10:00", pd.NaT], tz=tz
             )
             s = pd.Series(idx)
-            assert s.dtype == "datetime64[ns, {0}]".format(tz)
+            assert s.dtype == f"datetime64[ns, {tz}]"
             tm.assert_series_equal(pd.isna(s), null_loc)
 
             result = s.fillna(pd.Timestamp("2011-01-02 10:00"))
@@ -1284,7 +1284,7 @@ class TestSeriesInterpolateData:
     def test_interp_invalid_method(self, invalid_method):
         s = Series([1, 3, np.nan, 12, np.nan, 25])
 
-        msg = "method must be one of.* Got '{}' instead".format(invalid_method)
+        msg = f"method must be one of.* Got '{invalid_method}' instead"
         with pytest.raises(ValueError, match=msg):
             s.interpolate(method=invalid_method)
 
@@ -1608,9 +1608,9 @@ class TestSeriesInterpolateData:
         else:
             expected_error = (
                 "Index column must be numeric or datetime type when "
-                "using {method} method other than linear. "
+                f"using {method} method other than linear. "
                 "Try setting a numeric or datetime index column before "
-                "interpolating.".format(method=method)
+                "interpolating."
             )
             with pytest.raises(ValueError, match=expected_error):
                 df[0].interpolate(method=method, **kwargs)

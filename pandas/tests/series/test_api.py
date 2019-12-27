@@ -310,7 +310,7 @@ class TestSeriesMisc:
         for idx, val in string_series.iteritems():
             assert val == string_series[idx]
 
-        # assert is lazy (genrators don't define reverse, lists do)
+        # assert is lazy (generators don't define reverse, lists do)
         assert not hasattr(string_series.iteritems(), "reverse")
 
     def test_items_datetimes(self, datetime_series):
@@ -321,7 +321,7 @@ class TestSeriesMisc:
         for idx, val in string_series.items():
             assert val == string_series[idx]
 
-        # assert is lazy (genrators don't define reverse, lists do)
+        # assert is lazy (generators don't define reverse, lists do)
         assert not hasattr(string_series.items(), "reverse")
 
     def test_raise_on_info(self):
@@ -464,30 +464,6 @@ class TestSeriesMisc:
         # ravel
         s = Series(np.random.randn(10))
         tm.assert_almost_equal(s.ravel(order="F"), s.values.ravel(order="F"))
-
-        # compress
-        # GH 6658
-        s = Series([0, 1.0, -1], index=list("abc"))
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = np.compress(s > 0, s)
-        tm.assert_series_equal(result, Series([1.0], index=["b"]))
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = np.compress(s < -1, s)
-        # result empty Index(dtype=object) as the same as original
-        exp = Series([], dtype="float64", index=Index([], dtype="object"))
-        tm.assert_series_equal(result, exp)
-
-        s = Series([0, 1.0, -1], index=[0.1, 0.2, 0.3])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = np.compress(s > 0, s)
-        tm.assert_series_equal(result, Series([1.0], index=[0.2]))
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = np.compress(s < -1, s)
-        # result empty Float64Index as the same as original
-        exp = Series([], dtype="float64", index=Index([], dtype="float64"))
-        tm.assert_series_equal(result, exp)
 
     def test_str_accessor_updates_on_inplace(self):
         s = pd.Series(list("abc"))

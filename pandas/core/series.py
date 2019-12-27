@@ -4,7 +4,7 @@ Data structure for 1-dimensional cross-sectional and time series data
 from io import StringIO
 from shutil import get_terminal_size
 from textwrap import dedent
-from typing import Any, Callable, Hashable, List, Optional
+from typing import IO, Any, Callable, Hashable, List, Optional
 import warnings
 
 import numpy as np
@@ -59,6 +59,7 @@ from pandas.core.construction import (
     is_empty_data,
     sanitize_array,
 )
+from pandas.core.generic import _shared_docs
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.api import (
@@ -194,6 +195,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         else:
 
+            name = ibase.maybe_extract_name(name, data, type(self))
+
             if is_empty_data(data) and dtype is None:
                 # gh-17261
                 warnings.warn(
@@ -219,8 +222,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     "initializing a Series from a MultiIndex is not supported"
                 )
             elif isinstance(data, Index):
-                if name is None:
-                    name = data.name
 
                 if dtype is not None:
                     # astype copies
@@ -235,10 +236,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 copy = False
 
             elif isinstance(data, np.ndarray):
+                if len(data.dtype):
+                    # GH#13296 we are dealing with a compound dtype, which
+                    #  should be treated as 2D
+                    raise ValueError(
+                        "Cannot construct a Series from an ndarray with "
+                        "compound dtype.  Use DataFrame instead."
+                    )
                 pass
             elif isinstance(data, ABCSeries):
-                if name is None:
-                    name = data.name
                 if index is None:
                     index = data.index
                 else:
@@ -504,30 +510,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return self._values.ravel(order=order)
 
-    def compress(self, condition, *args, **kwargs):
-        """
-        Return selected slices of an array along given axis as a Series.
-
-        .. deprecated:: 0.24.0
-
-        Returns
-        -------
-        Series
-            Series without the slices for which condition is false.
-
-        See Also
-        --------
-        numpy.ndarray.compress
-        """
-        msg = (
-            "Series.compress(condition) is deprecated. "
-            "Use 'Series[condition]' or "
-            "'np.asarray(series).compress(condition)' instead."
-        )
-        warnings.warn(msg, FutureWarning, stacklevel=2)
-        nv.validate_compress(args, kwargs)
-        return self[condition]
-
     def __len__(self) -> int:
         """
         Return the length of the Series.
@@ -727,7 +709,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                Timestamp('2000-01-02 00:00:00+0100', tz='CET', freq='D')],
               dtype=object)
 
-        Or the values may be localized to UTC and the tzinfo discared with
+        Or the values may be localized to UTC and the tzinfo discarded with
         ``dtype='datetime64[ns]'``
 
         >>> np.asarray(tzser, dtype="datetime64[ns]")  # doctest: +ELLIPSIS
@@ -1433,6 +1415,27 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             except AttributeError:
                 with open(buf, "w") as f:
                     f.write(result)
+
+    @Appender(
+        """
+        Examples
+        --------
+        >>> s = pd.Series(["elk", "pig", "dog", "quetzal"], name="animal")
+        >>> print(s.to_markdown())
+        |    | animal   |
+        |---:|:---------|
+        |  0 | elk      |
+        |  1 | pig      |
+        |  2 | dog      |
+        |  3 | quetzal  |
+        """
+    )
+    @Substitution(klass="Series")
+    @Appender(_shared_docs["to_markdown"])
+    def to_markdown(
+        self, buf: Optional[IO[str]] = None, mode: Optional[str] = None, **kwargs,
+    ) -> Optional[str]:
+        return self.to_frame().to_markdown(buf, mode, **kwargs)
 
     # ----------------------------------------------------------------------
 
@@ -2693,6 +2696,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         inplace=False,
         kind="quicksort",
         na_position="last",
+        ignore_index=False,
     ):
         """
         Sort by the values.
@@ -2715,6 +2719,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         na_position : {'first' or 'last'}, default 'last'
             Argument 'first' puts NaNs at the beginning, 'last' puts NaNs at
             the end.
+        ignore_index : bool, default False
+             If True, the resulting axis will be labeled 0, 1, …, n - 1.
+
+             .. versionadded:: 1.0.0
 
         Returns
         -------
@@ -2820,7 +2828,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 return arr.argsort(kind="quicksort")
 
         arr = self._values
-        sortedIdx = np.empty(len(self), dtype=np.int32)
+        sorted_index = np.empty(len(self), dtype=np.int32)
 
         bad = isna(arr)
 
@@ -2844,16 +2852,19 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         if na_position == "last":
             n = good.sum()
-            sortedIdx[:n] = idx[good][argsorted]
-            sortedIdx[n:] = idx[bad]
+            sorted_index[:n] = idx[good][argsorted]
+            sorted_index[n:] = idx[bad]
         elif na_position == "first":
             n = bad.sum()
-            sortedIdx[n:] = idx[good][argsorted]
-            sortedIdx[:n] = idx[bad]
+            sorted_index[n:] = idx[good][argsorted]
+            sorted_index[:n] = idx[bad]
         else:
             raise ValueError(f"invalid na_position: {na_position}")
 
-        result = self._constructor(arr[sortedIdx], index=self.index[sortedIdx])
+        result = self._constructor(arr[sorted_index], index=self.index[sorted_index])
+
+        if ignore_index:
+            result.index = ibase.default_index(len(sorted_index))
 
         if inplace:
             self._update_inplace(result)
