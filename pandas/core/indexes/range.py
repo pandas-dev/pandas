@@ -225,7 +225,7 @@ class RangeIndex(Int64Index):
         """
         warnings.warn(
             self._deprecation_message.format("_start", "start"),
-            DeprecationWarning,
+            FutureWarning,
             stacklevel=2,
         )
         return self.start
@@ -248,7 +248,7 @@ class RangeIndex(Int64Index):
         # GH 25710
         warnings.warn(
             self._deprecation_message.format("_stop", "stop"),
-            DeprecationWarning,
+            FutureWarning,
             stacklevel=2,
         )
         return self.stop
@@ -272,7 +272,7 @@ class RangeIndex(Int64Index):
         # GH 25710
         warnings.warn(
             self._deprecation_message.format("_step", "step"),
-            DeprecationWarning,
+            FutureWarning,
             stacklevel=2,
         )
         return self.step
