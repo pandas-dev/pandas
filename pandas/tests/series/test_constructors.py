@@ -67,6 +67,14 @@ class TestSeriesConstructors:
             with pytest.raises(TypeError, match=msg):
                 Series([], name="time", dtype=dtype)
 
+    def test_invalid_compound_dtype(self):
+        # GH#13296
+        c_dtype = np.dtype([("a", "i8"), ("b", "f4")])
+        cdt_arr = np.array([(1, 0.4), (256, -13)], dtype=c_dtype)
+
+        with pytest.raises(ValueError, match="Use DataFrame instead"):
+            Series(cdt_arr, index=["A", "B"])
+
     def test_scalar_conversion(self):
 
         # Pass in scalar is disabled
@@ -773,7 +781,7 @@ class TestSeriesConstructors:
         dts.astype("int64")
 
         # invalid casting
-        msg = r"cannot astype a datetimelike from \[datetime64\[ns\]\] to" r" \[int32\]"
+        msg = r"cannot astype a datetimelike from \[datetime64\[ns\]\] to \[int32\]"
         with pytest.raises(TypeError, match=msg):
             dts.astype("int32")
 
@@ -1198,7 +1206,7 @@ class TestSeriesConstructors:
         td.astype("int64")
 
         # invalid casting
-        msg = r"cannot astype a timedelta from \[timedelta64\[ns\]\] to" r" \[int32\]"
+        msg = r"cannot astype a timedelta from \[timedelta64\[ns\]\] to \[int32\]"
         with pytest.raises(TypeError, match=msg):
             td.astype("int32")
 

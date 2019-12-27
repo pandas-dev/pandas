@@ -112,10 +112,6 @@ class TestSeriesMisc:
             unpickled = pd.read_pickle(path)
             return unpickled
 
-    def test_argsort_preserve_name(self, datetime_series):
-        result = datetime_series.argsort()
-        assert result.name == datetime_series.name
-
     def test_sort_index_name(self, datetime_series):
         result = datetime_series.sort_index(ascending=False)
         assert result.name == datetime_series.name
@@ -314,7 +310,7 @@ class TestSeriesMisc:
         for idx, val in string_series.iteritems():
             assert val == string_series[idx]
 
-        # assert is lazy (genrators don't define reverse, lists do)
+        # assert is lazy (generators don't define reverse, lists do)
         assert not hasattr(string_series.iteritems(), "reverse")
 
     def test_items_datetimes(self, datetime_series):
@@ -325,7 +321,7 @@ class TestSeriesMisc:
         for idx, val in string_series.items():
             assert val == string_series[idx]
 
-        # assert is lazy (genrators don't define reverse, lists do)
+        # assert is lazy (generators don't define reverse, lists do)
         assert not hasattr(string_series.items(), "reverse")
 
     def test_raise_on_info(self):
