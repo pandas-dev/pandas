@@ -118,3 +118,18 @@ class TestDataFrameCumulativeOps:
         # fix issue
         cummax_xs = datetime_frame.cummax(axis=1)
         assert np.shape(cummax_xs) == np.shape(datetime_frame)
+
+    def test_cumulative_ops_preserve_dtypes(self):
+        # GH#19296 dont incorrectly upcast to object
+        df = DataFrame({"A": [1, 2, 3], "B": [1, 2, 3.0], "C": [True, False, False],})
+
+        result = df.cumsum()
+
+        expected = DataFrame(
+            {
+                "A": Series([1, 3, 6], dtype=int),
+                "B": Series([1, 3, 6], dtype=float),
+                "C": Series([1, 1, 1], dtype=int),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
