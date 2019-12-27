@@ -205,9 +205,13 @@ Other enhancements
   (:meth:`~DataFrame.to_parquet` / :func:`read_parquet`) using the `'pyarrow'` engine
   now preserve those data types with pyarrow >= 1.0.0 (:issue:`20612`).
 - The ``partition_cols`` argument in :meth:`DataFrame.to_parquet` now accepts a string (:issue:`27117`)
+- The ``pandas.np`` submodule is now deprecated. Import numpy directly instead (:issue:`30296`)
 - :func:`to_parquet` now appropriately handles the ``schema`` argument for user defined schemas in the pyarrow engine. (:issue: `30270`)
 - DataFrame constructor preserve `ExtensionArray` dtype with `ExtensionArray` (:issue:`11363`)
+- :meth:`DataFrame.sort_values` and :meth:`Series.sort_values` have gained ``ignore_index`` keyword to be able to reset index after sorting (:issue:`30114`)
+- :meth:`DataFrame.to_markdown` and :meth:`Series.to_markdown` added (:issue:`11052`)
 
+- :meth:`DataFrame.drop_duplicates` has gained ``ignore_index`` keyword to reset index (:issue:`30114`)
 
 Build Changes
 ^^^^^^^^^^^^^
@@ -716,7 +720,7 @@ Datetimelike
 - Bug in :class:`DatetimeIndex` addition when adding a non-optimized :class:`DateOffset` incorrectly dropping timezone information (:issue:`30336`)
 - Bug in :meth:`DataFrame.drop` where attempting to drop non-existent values from a DatetimeIndex would yield a confusing error message (:issue:`30399`)
 - Bug in :meth:`DataFrame.append` would remove the timezone-awareness of new data (:issue:`30238`)
-
+- Bug in :class:`DatetimeArray`, :class:`TimedeltaArray`, and :class:`PeriodArray` where inplace addition and subtraction did not actually operate inplace (:issue:`24115`)
 
 Timedelta
 ^^^^^^^^^
@@ -827,6 +831,7 @@ Plotting
 - :func:`set_option` now validates that the plot backend provided to ``'plotting.backend'`` implements the backend when the option is set, rather than when a plot is created (:issue:`28163`)
 - :meth:`DataFrame.plot` now allow a ``backend`` keyword argument to allow changing between backends in one session (:issue:`28619`).
 - Bug in color validation incorrectly raising for non-color styles (:issue:`29122`).
+- Bug in :meth:`DataFrame.hist`, ``xrot=0`` does not work with ``by`` and subplots (:issue:`30288`).
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -847,6 +852,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupBy.agg` with timezone-aware datetime64 column incorrectly casting results to the original dtype (:issue:`29641`)
 - Bug in :meth:`DataFrame.groupby` when using axis=1 and having a single level columns index (:issue:`30208`)
 - Bug in :meth:`DataFrame.groupby` when using nunique on axis=1 (:issue:`30253`)
+- Bug in :meth:`GroupBy.quantile` with multiple list-like q value and integer column names (:issue:`30289`)
 
 Reshaping
 ^^^^^^^^^
@@ -863,6 +869,7 @@ Reshaping
 - Bug where :meth:`DataFrame.equals` returned True incorrectly in some cases when two DataFrames had the same columns in different orders (:issue:`28839`)
 - Bug in :meth:`DataFrame.replace` that caused non-numeric replacer's dtype not respected (:issue:`26632`)
 - Bug in :func:`melt` where supplying mixed strings and numeric values for ``id_vars`` or ``value_vars`` would incorrectly raise a ``ValueError`` (:issue:`29718`)
+- Dtypes are now preserved when transposing a ``DataFrame`` where each column is the same extension dtype (:issue:`30091`)
 - Bug in :func:`merge_asof` merging on a tz-aware ``left_index`` and ``right_on`` a tz-aware column (:issue:`29864`)
 -
 
@@ -894,7 +901,7 @@ Other
 - Fixed :class:`IntegerArray` returning ``inf`` rather than ``NaN`` for operations dividing by 0 (:issue:`27398`)
 - Fixed ``pow`` operations for :class:`IntegerArray` when the other value is ``0`` or ``1`` (:issue:`29997`)
 - Bug in :meth:`Series.count` raises if use_inf_as_na is enabled (:issue:`29478`)
-
+- Bug in :class:`Index` where a non-hashable name could be set without raising ``TypeError`` (:issue:29069`)
 
 .. _whatsnew_1000.contributors:
 

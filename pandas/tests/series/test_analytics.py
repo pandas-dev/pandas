@@ -184,23 +184,6 @@ class TestSeriesAnalytics:
         assert s.is_monotonic is False
         assert s.is_monotonic_decreasing is True
 
-    def test_apply_categorical(self):
-        values = pd.Categorical(list("ABBABCD"), categories=list("DCBA"), ordered=True)
-        s = pd.Series(values, name="XX", index=list("abcdefg"))
-        result = s.apply(lambda x: x.lower())
-
-        # should be categorical dtype when the number of categories are
-        # the same
-        values = pd.Categorical(list("abbabcd"), categories=list("dcba"), ordered=True)
-        exp = pd.Series(values, name="XX", index=list("abcdefg"))
-        tm.assert_series_equal(result, exp)
-        tm.assert_categorical_equal(result.values, exp.values)
-
-        result = s.apply(lambda x: "A")
-        exp = pd.Series(["A"] * 7, name="XX", index=list("abcdefg"))
-        tm.assert_series_equal(result, exp)
-        assert result.dtype == np.object
-
     def test_unstack(self):
 
         index = MultiIndex(

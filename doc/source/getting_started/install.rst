@@ -234,7 +234,8 @@ Optional dependencies
 ~~~~~~~~~~~~~~~~~~~~~
 
 Pandas has many optional dependencies that are only used for specific methods.
-For example, :func:`pandas.read_hdf` requires the ``pytables`` package. If the
+For example, :func:`pandas.read_hdf` requires the ``pytables`` package, while
+:meth:`DataFrame.to_markdown` requires the ``tabulate`` package. If the
 optional dependency is not installed, pandas will raise an ``ImportError`` when
 the method requiring that dependency is called.
 
@@ -264,6 +265,7 @@ pyreadstat                                   SPSS files (.sav) reading
 pytables                  3.4.2              HDF5 reading / writing
 qtpy                                         Clipboard I/O
 s3fs                      0.3.0              Amazon S3 access
+tabulate                  0.8.3              Printing in Markdown-friendly format (see `tabulate`_)
 xarray                    0.8.2              pandas-like API for N-dimensional data
 xclip                                        Clipboard I/O on linux
 xlrd                      1.1.0              Excel reading
@@ -301,3 +303,4 @@ top-level :func:`~pandas.read_html` function:
 .. _html5lib: https://github.com/html5lib/html5lib-python
 .. _BeautifulSoup4: http://www.crummy.com/software/BeautifulSoup
 .. _lxml: http://lxml.de
+.. _tabulate: https://github.com/astanin/python-tabulate
