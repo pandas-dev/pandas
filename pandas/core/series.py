@@ -194,6 +194,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         else:
 
+            name = ibase.maybe_extract_name(name, data, type(self))
+
             if is_empty_data(data) and dtype is None:
                 # gh-17261
                 warnings.warn(
@@ -219,8 +221,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     "initializing a Series from a MultiIndex is not supported"
                 )
             elif isinstance(data, Index):
-                if name is None:
-                    name = data.name
 
                 if dtype is not None:
                     # astype copies
@@ -235,10 +235,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 copy = False
 
             elif isinstance(data, np.ndarray):
+                if len(data.dtype):
+                    # GH#13296 we are dealing with a compound dtype, which
+                    #  should be treated as 2D
+                    raise ValueError(
+                        "Cannot construct a Series from an ndarray with "
+                        "compound dtype.  Use DataFrame instead."
+                    )
                 pass
             elif isinstance(data, ABCSeries):
-                if name is None:
-                    name = data.name
                 if index is None:
                     index = data.index
                 else:
@@ -2693,6 +2698,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         inplace=False,
         kind="quicksort",
         na_position="last",
+        ignore_index=False,
     ):
         """
         Sort by the values.
@@ -2715,6 +2721,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         na_position : {'first' or 'last'}, default 'last'
             Argument 'first' puts NaNs at the beginning, 'last' puts NaNs at
             the end.
+        ignore_index : bool, default False
+             If True, the resulting axis will be labeled 0, 1, …, n - 1.
+
+             .. versionadded:: 1.0.0
 
         Returns
         -------
@@ -2820,7 +2830,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 return arr.argsort(kind="quicksort")
 
         arr = self._values
-        sortedIdx = np.empty(len(self), dtype=np.int32)
+        sorted_index = np.empty(len(self), dtype=np.int32)
 
         bad = isna(arr)
 
@@ -2844,16 +2854,19 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         if na_position == "last":
             n = good.sum()
-            sortedIdx[:n] = idx[good][argsorted]
-            sortedIdx[n:] = idx[bad]
+            sorted_index[:n] = idx[good][argsorted]
+            sorted_index[n:] = idx[bad]
         elif na_position == "first":
             n = bad.sum()
-            sortedIdx[n:] = idx[good][argsorted]
-            sortedIdx[:n] = idx[bad]
+            sorted_index[n:] = idx[good][argsorted]
+            sorted_index[:n] = idx[bad]
         else:
             raise ValueError(f"invalid na_position: {na_position}")
 
-        result = self._constructor(arr[sortedIdx], index=self.index[sortedIdx])
+        result = self._constructor(arr[sorted_index], index=self.index[sorted_index])
+
+        if ignore_index:
+            result.index = ibase.default_index(len(sorted_index))
 
         if inplace:
             self._update_inplace(result)
