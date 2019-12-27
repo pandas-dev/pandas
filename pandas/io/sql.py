@@ -97,56 +97,6 @@ def _handle_date_column(col, utc=None, format=None):
             return to_datetime(col, errors="coerce", format=format, utc=utc)
 
 
-def _is_datetime_series_with_different_offsets(df_col):
-    """
-    This function will detect if a Series contains datetimes with different
-    offsets. See GH30207
-
-    This can happen with a postgres database when using psycopg2
-    with a timestamptz column (local offsets are added by psycopg2)
-    as illustrated in "Examples" below.
-
-    Examples
-    --------
-    >>> from psycopg2.tz import FixedOffsetTimezone
-    >>>
-    >>> # example data one could receive using a psycopg2 cursor
-    >>> # with a timestamptz column
-    >>> # one datetime is in winter and one datetime is in summer
-    >>> # this causes different local offsets (1h and 2h)
-    >>> data=[datetime(2019, 11, 14, 16, 12, 0,
-    ...         tzinfo=FixedOffsetTimezone(offset=60)),
-    ...       datetime(2019, 8, 7, 15, 37, 4,
-    ...         tzinfo=FixedOffsetTimezone(offset=120))]
-    >>> s=Series(data)
-    >>> _is_datetime_series_with_different_offsets(s)
-    True
-    """
-    # when a Series contains datetimes with diff offsets
-    # it is of dtype object
-    if df_col.dtype == "object":
-        # first find if any object is neither datetime.datetime
-        # nor NULL (pd.NaT, None...)
-        # this way if e.g. a str is found minimal time is lost
-        val_is_not_datetime = lambda val: (
-            not isinstance(val, datetime) and not isna(val)
-        )
-        no_datetime_objs = df_col.map(val_is_not_datetime).any()
-        # also check if we have any value
-        has_any_value = df_col.notna().any()
-        if not no_datetime_objs and has_any_value:
-            # get unique utc offsets
-            get_utc_offsets = lambda dt: (
-                dt.utcoffset() if isinstance(dt, datetime) else None
-            )
-            utc_offsets = df_col.map(get_utc_offsets).unique()
-            utc_offsets = [off for off in utc_offsets if off is not None]
-            # if there are more than 1 utc offsets return True
-            if len(utc_offsets) >= 2:
-                return True
-    return False
-
-
 def _parse_date_columns(data_frame, parse_dates):
     """
     Force non-datetime columns to be read as such.
@@ -158,14 +108,12 @@ def _parse_date_columns(data_frame, parse_dates):
     # we could in theory do a 'nice' conversion from a FixedOffset tz
     # GH11216
     for col_name, df_col in data_frame.items():
-        # if df_col is recognized as datetime with timezone enforce UTC
-        if is_datetime64tz_dtype(df_col):
-            data_frame[col_name] = _handle_date_column(df_col, utc=True)
-        # handle datetime Series with different offsets
+        # use updated infer_dtype instead of is_datetime64tz_dtype
+        # this will handle datetime Series with different offsets
         # see GH30207
-        elif _is_datetime_series_with_different_offsets(df_col):
+        if lib.infer_dtype(df_col) == "datetimetz":
             data_frame[col_name] = to_datetime(df_col, utc=True)
-        # if the column still was not handled check argument parse_dates
+        # if the column was not handled check argument parse_dates
         elif col_name in parse_dates:
             try:
                 fmt = parse_dates[col_name]
@@ -1023,7 +971,7 @@ class SQLTable(PandasObject):
             TIMESTAMP,
         )
 
-        if col_type == "datetime64" or col_type == "datetime":
+        if col_type in ("datetime64", "datetime", "datetimetz"):
             # GH 9086: TIMESTAMP is the suggested type if the column contains
             # timezone information
             try:
