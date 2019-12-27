@@ -700,7 +700,7 @@ class DatetimeIndex(
 
         for i, v in enumerate(self):
             s = v
-            if not freq.onOffset(s):
+            if not freq.is_on_offset(s):
                 t0 = freq.rollback(s)
                 t1 = freq.rollforward(s)
                 if abs(s - t0) < abs(t1 - s):

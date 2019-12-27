@@ -339,7 +339,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
                 " those."
             )
             raise ValueError(msg)
-        if values.ndim != 1:
+        if values.ndim not in [1, 2]:
             raise ValueError("Only 1-dimensional input arrays are supported.")
 
         if values.dtype == "i8":
@@ -788,6 +788,9 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         return new_values.view("timedelta64[ns]")
 
     def _add_offset(self, offset):
+        if self.ndim == 2:
+            return self.ravel()._add_offset(offset).reshape(self.shape)
+
         assert not isinstance(offset, Tick)
         try:
             if self.tz is not None:

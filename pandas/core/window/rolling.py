@@ -54,6 +54,7 @@ from pandas.core.window.indexers import (
     FixedWindowIndexer,
     VariableWindowIndexer,
 )
+from pandas.core.window.numba_ import generate_numba_apply_func
 
 
 class _Window(PandasObject, ShallowMixin, SelectionMixin):
@@ -92,6 +93,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         self.win_freq = None
         self.axis = obj._get_axis_number(axis) if axis is not None else None
         self.validate()
+        self._numba_func_cache: Dict[Optional[str], Callable] = dict()
 
     @property
     def _constructor(self):
@@ -442,6 +444,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         floor: int = 1,
         is_weighted: bool = False,
         name: Optional[str] = None,
+        use_numba_cache: bool = False,
         **kwargs,
     ):
         """
@@ -454,10 +457,13 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         func : callable function to apply
         center : bool
         require_min_periods : int
-        floor: int
-        is_weighted
-        name: str,
+        floor : int
+        is_weighted : bool
+        name : str,
             compatibility with groupby.rolling
+        use_numba_cache : bool
+            whether to cache a numba compiled function. Only available for numba
+            enabled methods (so far only apply)
         **kwargs
             additional arguments for rolling function and window function
 
@@ -531,6 +537,9 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                 else:
                     result = calc(values)
                     result = np.asarray(result)
+
+            if use_numba_cache:
+                self._numba_func_cache[name] = func
 
             if center:
                 result = self._center_window(result, window)
@@ -1231,7 +1240,11 @@ class _Rolling_and_Expanding(_Rolling):
     ----------
     func : function
         Must produce a single value from an ndarray input if ``raw=True``
-        or a single value from a Series if ``raw=False``.
+        or a single value from a Series if ``raw=False``. Can also accept a
+        Numba JIT function with ``engine='numba'`` specified.
+
+        .. versionchanged:: 1.0.0
+
     raw : bool, default None
         * ``False`` : passes each row or column as a Series to the
           function.
@@ -1239,9 +1252,27 @@ class _Rolling_and_Expanding(_Rolling):
           objects instead.
           If you are just applying a NumPy reduction function this will
           achieve much better performance.
+    engine : str, default 'cython'
+        * ``'cython'`` : Runs rolling apply through C-extensions from cython.
+        * ``'numba'`` : Runs rolling apply through JIT compiled code from numba.
+          Only available when ``raw`` is set to ``True``.
 
-    *args, **kwargs
-        Arguments and keyword arguments to be passed into func.
+          .. versionadded:: 1.0.0
+
+    engine_kwargs : dict, default None
+        * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+        * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+          and ``parallel`` dictionary keys. The values must either be ``True`` or
+          ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+          ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
+          applied to both the ``func`` and the ``apply`` rolling aggregation.
+
+          .. versionadded:: 1.0.0
+
+    args : tuple, default None
+        Positional arguments to be passed into func.
+    kwargs : dict, default None
+        Keyword arguments to be passed into func.
 
     Returns
     -------
@@ -1252,18 +1283,65 @@ class _Rolling_and_Expanding(_Rolling):
     --------
     Series.%(name)s : Series %(name)s.
     DataFrame.%(name)s : DataFrame %(name)s.
+
+    Notes
+    -----
+    See :ref:`stats.rolling_apply` for extended documentation and performance
+    considerations for the Numba engine.
     """
     )
 
-    def apply(self, func, raw=False, args=(), kwargs={}):
-        from pandas import Series
-
+    def apply(
+        self,
+        func,
+        raw: bool = False,
+        engine: str = "cython",
+        engine_kwargs: Optional[Dict] = None,
+        args: Optional[Tuple] = None,
+        kwargs: Optional[Dict] = None,
+    ):
+        if args is None:
+            args = ()
+        if kwargs is None:
+            kwargs = {}
         kwargs.pop("_level", None)
         kwargs.pop("floor", None)
         window = self._get_window()
         offset = _offset(window, self.center)
         if not is_bool(raw):
             raise ValueError("raw parameter must be `True` or `False`")
+
+        if engine == "cython":
+            if engine_kwargs is not None:
+                raise ValueError("cython engine does not accept engine_kwargs")
+            apply_func = self._generate_cython_apply_func(
+                args, kwargs, raw, offset, func
+            )
+        elif engine == "numba":
+            if raw is False:
+                raise ValueError("raw must be `True` when using the numba engine")
+            if func in self._numba_func_cache:
+                # Return an already compiled version of roll_apply if available
+                apply_func = self._numba_func_cache[func]
+            else:
+                apply_func = generate_numba_apply_func(
+                    args, kwargs, func, engine_kwargs
+                )
+        else:
+            raise ValueError("engine must be either 'numba' or 'cython'")
+
+        # TODO: Why do we always pass center=False?
+        # name=func for WindowGroupByMixin._apply
+        return self._apply(
+            apply_func,
+            center=False,
+            floor=0,
+            name=func,
+            use_numba_cache=engine == "numba",
+        )
+
+    def _generate_cython_apply_func(self, args, kwargs, raw, offset, func):
+        from pandas import Series
 
         window_func = partial(
             self._get_cython_func_type("roll_generic"),
@@ -1279,9 +1357,7 @@ class _Rolling_and_Expanding(_Rolling):
                 values = Series(values, index=self.obj.index)
             return window_func(values, begin, end, min_periods)
 
-        # TODO: Why do we always pass center=False?
-        # name=func for WindowGroupByMixin._apply
-        return self._apply(apply_func, center=False, floor=0, name=func)
+        return apply_func
 
     def sum(self, *args, **kwargs):
         nv.validate_window_func("sum", args, kwargs)
@@ -1927,8 +2003,23 @@ class Rolling(_Rolling_and_Expanding):
 
     @Substitution(name="rolling")
     @Appender(_shared_docs["apply"])
-    def apply(self, func, raw=False, args=(), kwargs={}):
-        return super().apply(func, raw=raw, args=args, kwargs=kwargs)
+    def apply(
+        self,
+        func,
+        raw=False,
+        engine="cython",
+        engine_kwargs=None,
+        args=None,
+        kwargs=None,
+    ):
+        return super().apply(
+            func,
+            raw=raw,
+            engine=engine,
+            engine_kwargs=engine_kwargs,
+            args=args,
+            kwargs=kwargs,
+        )
 
     @Substitution(name="rolling")
     @Appender(_shared_docs["sum"])
