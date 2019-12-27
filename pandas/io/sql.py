@@ -100,9 +100,27 @@ def _handle_date_column(col, utc=None, format=None):
 def _is_datetime_series_with_different_offsets(df_col):
     """
     This function will detect if a Series contains datetimes with different
-    offsets.
+    offsets. See GH30207
 
-    See GH30207
+    This can happen with a postgres database when using psycopg2
+    with a timestamptz column (local offsets are added by psycopg2)
+    as illustrated in "Examples" below.
+
+    Examples
+    --------
+    >>> from psycopg2.tz import FixedOffsetTimezone
+    >>>
+    >>> # example data one could receive using a psycopg2 cursor
+    >>> # with a timestamptz column
+    >>> # one datetime is in winter and one datetime is in summer
+    >>> # this causes different local offsets (1h and 2h)
+    >>> data=[datetime(2019, 11, 14, 16, 12, 0,
+    ...         tzinfo=FixedOffsetTimezone(offset=60)),
+    ...       datetime(2019, 8, 7, 15, 37, 4,
+    ...         tzinfo=FixedOffsetTimezone(offset=120))]
+    >>> s=Series(data)
+    >>> _is_datetime_series_with_different_offsets(s)
+    True
     """
     # when a Series contains datetimes with diff offsets
     # it is of dtype object
@@ -145,10 +163,10 @@ def _parse_date_columns(data_frame, parse_dates):
                 fmt = parse_dates[col_name]
             except TypeError:
                 fmt = None
-            data_frame[col_name] = _handle_date_column(df_col, format=fmt)
+            data_frame[col_name] = _handle_date_column(df_col, format=fmt, utc=True)
         # handle datetime Series with different offsets
         # see GH30207
-        if _is_datetime_series_with_different_offsets(df_col):
+        elif _is_datetime_series_with_different_offsets(df_col):
             data_frame[col_name] = to_datetime(df_col, utc=True)
 
     return data_frame
@@ -1012,17 +1030,6 @@ class SQLTable(PandasObject):
                 # The column is actually a DatetimeIndex
                 if col.tz is not None:
                     return TIMESTAMP(timezone=True)
-            except ValueError as e:
-                # case where .dt accessor fails
-                # because of datetimes with different offsets
-                # see GH30207
-                if _is_datetime_series_with_different_offsets(col):
-                    return TIMESTAMP(timezone=True)
-                # other cases where we have a ValueError
-                # reraise
-                else:
-                    raise e
-
             return DateTime
         if col_type == "timedelta64":
             warnings.warn(
