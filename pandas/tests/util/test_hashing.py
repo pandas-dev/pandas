@@ -366,3 +366,9 @@ def test_hash_with_tuple():
     df2 = pd.DataFrame({"data": [tuple([1]), tuple([2])]})
 
     hash_pandas_object(df2)
+
+    # require that the elements of such tuples are themselves hashable
+
+    df3 = pd.DataFrame({"data": [tuple([1, []]), tuple([2, {}])]})
+    with pytest.raises(TypeError, match="unhashable type: 'list'"):
+        hash_pandas_object(df3)

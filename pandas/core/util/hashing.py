@@ -307,15 +307,8 @@ def hash_array(
             vals = hashing.hash_object_array(vals, hash_key, encoding)
         except TypeError:
             # we have mixed types
-            try:
-                str_vals = vals.astype(str)
-            except ValueError:
-                # GH#28969 if we contain tuples, astype fails here,
-                #  apparently related to github.com/numpy/numpy/issues/9441
-                str_vals = np.array([str(x) for x in vals], dtype=object)
-
             vals = hashing.hash_object_array(
-                str_vals.astype(object), hash_key, encoding
+                vals.astype(str).astype(object), hash_key, encoding
             )
 
     # Then, redistribute these 64-bit ints within the space of 64-bit ints
