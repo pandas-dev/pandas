@@ -35,7 +35,7 @@ import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.tools.timedeltas import to_timedelta
 
-from pandas.tseries.frequencies import to_offset
+from pandas.tseries.frequencies import DateOffset, to_offset
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
@@ -69,6 +69,36 @@ def _make_wrapped_arith_op(opname):
 
     method.__name__ = opname
     return method
+
+
+class DatetimeTimedeltaMixin:
+    """
+    Mixin class for methods shared by DatetimeIndex and TimedeltaIndex,
+    but not PeriodIndex
+    """
+
+    def _set_freq(self, freq):
+        """
+        Set the _freq attribute on our underlying DatetimeArray.
+
+        Parameters
+        ----------
+        freq : DateOffset, None, or "infer"
+        """
+        # GH#29843
+        if freq is None:
+            # Always valid
+            pass
+        elif len(self) == 0 and isinstance(freq, DateOffset):
+            # Always valid.  In the TimedeltaIndex case, we assume this
+            #  is a Tick offset.
+            pass
+        else:
+            # As an internal method, we can ensure this assertion always holds
+            assert freq == "infer"
+            freq = to_offset(self.inferred_freq)
+
+        self._data._freq = freq
 
 
 class DatetimeIndexOpsMixin(ExtensionOpsMixin):
@@ -592,8 +622,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             result = Index.intersection(self, other, sort=sort)
             if isinstance(result, type(self)):
                 if result.freq is None:
-                    # TODO: find a less code-smelly way to set this
-                    result._data._freq = to_offset(result.inferred_freq)
+                    result._set_freq("infer")
             return result
 
         elif (
@@ -608,8 +637,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             # Invalidate the freq of `result`, which may not be correct at
             # this point, depending on the values.
 
-            # TODO: find a less code-smelly way to set this
-            result._data._freq = None
+            result._set_freq(None)
             if hasattr(self, "tz"):
                 result = self._shallow_copy(
                     result._values, name=result.name, tz=result.tz, freq=None
@@ -617,8 +645,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             else:
                 result = self._shallow_copy(result._values, name=result.name, freq=None)
             if result.freq is None:
-                # TODO: find a less code-smelly way to set this
-                result._data._freq = to_offset(result.inferred_freq)
+                result._set_freq("infer")
             return result
 
         # to make our life easier, "sort" the two ranges

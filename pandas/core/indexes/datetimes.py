@@ -34,6 +34,7 @@ from pandas.core.indexes.base import Index
 from pandas.core.indexes.datetimelike import (
     DatetimeIndexOpsMixin,
     DatetimelikeDelegateMixin,
+    DatetimeTimedeltaMixin,
     ea_passthrough,
 )
 from pandas.core.indexes.numeric import Int64Index
@@ -93,7 +94,9 @@ class DatetimeDelegateMixin(DatetimelikeDelegateMixin):
     typ="method",
     overwrite=False,
 )
-class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
+class DatetimeIndex(
+    DatetimeTimedeltaMixin, DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin
+):
     """
     Immutable ndarray of datetime64 data, represented internally as int64, and
     which can be boxed to Timestamp objects that are subclasses of datetime and
@@ -412,7 +415,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     @Appender(Index.difference.__doc__)
     def difference(self, other, sort=None):
         new_idx = super().difference(other, sort=sort)
-        new_idx._data._freq = None
+        new_idx._set_freq(None)
         return new_idx
 
     # --------------------------------------------------------------------
