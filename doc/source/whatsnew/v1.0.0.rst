@@ -848,6 +848,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupBy.agg` with timezone-aware datetime64 column incorrectly casting results to the original dtype (:issue:`29641`)
 - Bug in :meth:`DataFrame.groupby` when using axis=1 and having a single level columns index (:issue:`30208`)
 - Bug in :meth:`DataFrame.groupby` when using nunique on axis=1 (:issue:`30253`)
+- Bug in :meth:`GroupBy.quantile` with multiple list-like q value and integer column names (:issue:`30289`)
 
 Reshaping
 ^^^^^^^^^

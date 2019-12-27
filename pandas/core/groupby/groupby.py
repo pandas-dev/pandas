@@ -1937,21 +1937,22 @@ class GroupBy(_GroupBy):
             #  >>> result.stack(0).loc[pd.IndexSlice[:, ..., q], :]
             #  but this hits https://github.com/pandas-dev/pandas/issues/10710
             #  which doesn't reorder the list-like `q` on the inner level.
-            order = np.roll(list(range(result.index.nlevels)), -1)
+            order = list(range(1, result.index.nlevels)) + [0]
+
+            # temporarily saves the index names
+            index_names = np.array(result.index.names)
+
+            # set index names to positions to avoid confusion
+            result.index.names = np.arange(len(index_names))
+
+            # place quantiles on the inside
             result = result.reorder_levels(order)
-            result = result.reindex(q, level=-1)
 
-            # fix order.
-            hi = len(q) * self.ngroups
-            arr = np.arange(0, hi, self.ngroups)
-            arrays = []
+            # restore the index names in order
+            result.index.names = index_names[order]
 
-            for i in range(self.ngroups):
-                arr2 = arr + i
-                arrays.append(arr2)
-
-            indices = np.concatenate(arrays)
-            assert len(indices) == len(result)
+            # reorder rows to keep things sorted
+            indices = np.arange(len(result)).reshape([len(q), self.ngroups]).T.flatten()
             return result.take(indices)
 
     @Substitution(name="groupby")
