@@ -931,7 +931,7 @@ class TestSeriesConstructors:
             ]
         )
         assert s.dtype == "object"
-        assert lib.infer_dtype(s, skipna=True) == "datetime"
+        assert lib.infer_dtype(s, skipna=True) == "datetimetz"
 
         # with all NaT
         s = Series(pd.NaT, index=[0, 1], dtype="datetime64[ns, US/Eastern]")
