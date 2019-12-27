@@ -933,7 +933,7 @@ def shift_month(stamp: datetime, months: int,
 
 cpdef int get_day_of_month(datetime other, day_opt) except? -1:
     """
-    Find the day in `other`'s month that satisfies a DateOffset's onOffset
+    Find the day in `other`'s month that satisfies a DateOffset's is_on_offset
     policy, as described by the `day_opt` argument.
 
     Parameters

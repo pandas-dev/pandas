@@ -1699,8 +1699,8 @@ def _get_period_range_edges(first, last, offset, closed="left", base=0):
     # GH 23882
     first = first.to_timestamp()
     last = last.to_timestamp()
-    adjust_first = not offset.onOffset(first)
-    adjust_last = offset.onOffset(last)
+    adjust_first = not offset.is_on_offset(first)
+    adjust_last = offset.is_on_offset(last)
 
     first, last = _get_timestamp_range_edges(
         first, last, offset, closed=closed, base=base

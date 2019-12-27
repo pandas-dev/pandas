@@ -468,7 +468,7 @@ def test_series_datetime_index(freq):
 @pytest.mark.parametrize(
     "offset_func",
     [
-        frequencies.get_offset,
+        frequencies._get_offset,
         lambda freq: date_range("2011-01-01", periods=5, freq=freq),
     ],
 )
@@ -528,8 +528,8 @@ def test_legacy_offset_warnings(offset_func, freq):
 
 
 def test_ms_vs_capital_ms():
-    left = frequencies.get_offset("ms")
-    right = frequencies.get_offset("MS")
+    left = frequencies._get_offset("ms")
+    right = frequencies._get_offset("MS")
 
     assert left == offsets.Milli()
     assert right == offsets.MonthBegin()

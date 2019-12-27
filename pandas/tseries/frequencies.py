@@ -1,6 +1,7 @@
 from datetime import timedelta
 import re
 from typing import Dict, Optional
+import warnings
 
 import numpy as np
 from pytz import AmbiguousTimeError
@@ -125,7 +126,7 @@ def to_offset(freq) -> Optional[DateOffset]:
         if isinstance(stride, str):
             name, stride = stride, name
         name, _ = libfreqs._base_and_stride(name)
-        delta = get_offset(name) * stride
+        delta = _get_offset(name) * stride
 
     elif isinstance(freq, timedelta):
         delta = None
@@ -166,7 +167,7 @@ def to_offset(freq) -> Optional[DateOffset]:
                         float(stride), prefix
                     )
                 stride = int(stride)
-                offset = get_offset(name)
+                offset = _get_offset(name)
                 offset = offset * int(np.fabs(stride) * stride_sign)
                 if delta is None:
                     delta = offset
@@ -185,9 +186,28 @@ def get_offset(name: str) -> DateOffset:
     """
     Return DateOffset object associated with rule name.
 
+    .. deprecated:: 1.0.0
+
     Examples
     --------
     get_offset('EOM') --> BMonthEnd(1)
+    """
+    warnings.warn(
+        "get_offset is deprecated and will be removed in a future version, "
+        "use to_offset instead",
+        FutureWarning,
+        stacklevel=2,
+    )
+    return _get_offset(name)
+
+
+def _get_offset(name: str) -> DateOffset:
+    """
+    Return DateOffset object associated with rule name.
+
+    Examples
+    --------
+    _get_offset('EOM') --> BMonthEnd(1)
     """
     if name not in libfreqs._dont_uppercase:
         name = name.upper()

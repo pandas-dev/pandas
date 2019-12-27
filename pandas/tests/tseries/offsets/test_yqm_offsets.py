@@ -23,7 +23,7 @@ from pandas.tseries.offsets import (
     YearEnd,
 )
 
-from .common import assert_offset_equal, assert_onOffset
+from .common import assert_is_on_offset, assert_offset_equal
 from .test_offsets import Base
 
 # --------------------------------------------------------------------
@@ -85,7 +85,7 @@ def test_on_offset(offset):
         if not (m == 11 and d == 31)
     ]
     for date in dates:
-        res = offset.onOffset(date)
+        res = offset.is_on_offset(date)
         slow_version = date == (date + offset) - offset
         assert res == slow_version
 
@@ -247,9 +247,9 @@ class TestMonthEnd(Base):
     ]
 
     @pytest.mark.parametrize("case", on_offset_cases)
-    def test_onOffset(self, case):
+    def test_is_on_offset(self, case):
         offset, dt, expected = case
-        assert_onOffset(offset, dt, expected)
+        assert_is_on_offset(offset, dt, expected)
 
 
 class TestBMonthBegin(Base):
@@ -335,9 +335,9 @@ class TestBMonthBegin(Base):
     ]
 
     @pytest.mark.parametrize("case", on_offset_cases)
-    def test_onOffset(self, case):
+    def test_is_on_offset(self, case):
         offset, dt, expected = case
-        assert_onOffset(offset, dt, expected)
+        assert_is_on_offset(offset, dt, expected)
 
 
 class TestBMonthEnd(Base):
@@ -424,9 +424,9 @@ class TestBMonthEnd(Base):
     ]
 
     @pytest.mark.parametrize("case", on_offset_cases)
-    def test_onOffset(self, case):
+    def test_is_on_offset(self, case):
         offset, dt, expected = case
-        assert_onOffset(offset, dt, expected)
+        assert_is_on_offset(offset, dt, expected)
 
 
 # --------------------------------------------------------------------
@@ -442,10 +442,10 @@ class TestQuarterBegin(Base):
         expected = "<QuarterBegin: startingMonth=1>"
         assert repr(QuarterBegin(startingMonth=1)) == expected
 
-    def test_isAnchored(self):
-        assert QuarterBegin(startingMonth=1).isAnchored()
-        assert QuarterBegin().isAnchored()
-        assert not QuarterBegin(2, startingMonth=1).isAnchored()
+    def test_is_anchored(self):
+        assert QuarterBegin(startingMonth=1).is_anchored()
+        assert QuarterBegin().is_anchored()
+        assert not QuarterBegin(2, startingMonth=1).is_anchored()
 
     def test_offset_corner_case(self):
         # corner
@@ -552,10 +552,10 @@ class TestQuarterEnd(Base):
         expected = "<QuarterEnd: startingMonth=1>"
         assert repr(QuarterEnd(startingMonth=1)) == expected
 
-    def test_isAnchored(self):
-        assert QuarterEnd(startingMonth=1).isAnchored()
-        assert QuarterEnd().isAnchored()
-        assert not QuarterEnd(2, startingMonth=1).isAnchored()
+    def test_is_anchored(self):
+        assert QuarterEnd(startingMonth=1).is_anchored()
+        assert QuarterEnd().is_anchored()
+        assert not QuarterEnd(2, startingMonth=1).is_anchored()
 
     def test_offset_corner_case(self):
         # corner
@@ -683,9 +683,9 @@ class TestQuarterEnd(Base):
     ]
 
     @pytest.mark.parametrize("case", on_offset_cases)
-    def test_onOffset(self, case):
+    def test_is_on_offset(self, case):
         offset, dt, expected = case
-        assert_onOffset(offset, dt, expected)
+        assert_is_on_offset(offset, dt, expected)
 
 
 class TestBQuarterBegin(Base):
@@ -699,10 +699,10 @@ class TestBQuarterBegin(Base):
         expected = "<BusinessQuarterBegin: startingMonth=1>"
         assert repr(BQuarterBegin(startingMonth=1)) == expected
 
-    def test_isAnchored(self):
-        assert BQuarterBegin(startingMonth=1).isAnchored()
-        assert BQuarterBegin().isAnchored()
-        assert not BQuarterBegin(2, startingMonth=1).isAnchored()
+    def test_is_anchored(self):
+        assert BQuarterBegin(startingMonth=1).is_anchored()
+        assert BQuarterBegin().is_anchored()
+        assert not BQuarterBegin(2, startingMonth=1).is_anchored()
 
     def test_offset_corner_case(self):
         # corner
@@ -824,10 +824,10 @@ class TestBQuarterEnd(Base):
         expected = "<BusinessQuarterEnd: startingMonth=1>"
         assert repr(BQuarterEnd(startingMonth=1)) == expected
 
-    def test_isAnchored(self):
-        assert BQuarterEnd(startingMonth=1).isAnchored()
-        assert BQuarterEnd().isAnchored()
-        assert not BQuarterEnd(2, startingMonth=1).isAnchored()
+    def test_is_anchored(self):
+        assert BQuarterEnd(startingMonth=1).is_anchored()
+        assert BQuarterEnd().is_anchored()
+        assert not BQuarterEnd(2, startingMonth=1).is_anchored()
 
     def test_offset_corner_case(self):
         # corner
@@ -951,9 +951,9 @@ class TestBQuarterEnd(Base):
     ]
 
     @pytest.mark.parametrize("case", on_offset_cases)
-    def test_onOffset(self, case):
+    def test_is_on_offset(self, case):
         offset, dt, expected = case
-        assert_onOffset(offset, dt, expected)
+        assert_is_on_offset(offset, dt, expected)
 
 
 # --------------------------------------------------------------------
@@ -1109,9 +1109,9 @@ class TestYearBegin(Base):
     ]
 
     @pytest.mark.parametrize("case", on_offset_cases)
-    def test_onOffset(self, case):
+    def test_is_on_offset(self, case):
         offset, dt, expected = case
-        assert_onOffset(offset, dt, expected)
+        assert_is_on_offset(offset, dt, expected)
 
 
 class TestYearEnd(Base):
@@ -1186,9 +1186,9 @@ class TestYearEnd(Base):
     ]
 
     @pytest.mark.parametrize("case", on_offset_cases)
-    def test_onOffset(self, case):
+    def test_is_on_offset(self, case):
         offset, dt, expected = case
-        assert_onOffset(offset, dt, expected)
+        assert_is_on_offset(offset, dt, expected)
 
 
 class TestYearEndDiffMonth(Base):
@@ -1258,9 +1258,9 @@ class TestYearEndDiffMonth(Base):
     ]
 
     @pytest.mark.parametrize("case", on_offset_cases)
-    def test_onOffset(self, case):
+    def test_is_on_offset(self, case):
         offset, dt, expected = case
-        assert_onOffset(offset, dt, expected)
+        assert_is_on_offset(offset, dt, expected)
 
 
 class TestBYearBegin(Base):
@@ -1404,9 +1404,9 @@ class TestBYearEnd(Base):
     ]
 
     @pytest.mark.parametrize("case", on_offset_cases)
-    def test_onOffset(self, case):
+    def test_is_on_offset(self, case):
         offset, dt, expected = case
-        assert_onOffset(offset, dt, expected)
+        assert_is_on_offset(offset, dt, expected)
 
 
 class TestBYearEndLagged(Base):
@@ -1459,6 +1459,6 @@ class TestBYearEndLagged(Base):
     ]
 
     @pytest.mark.parametrize("case", on_offset_cases)
-    def test_onOffset(self, case):
+    def test_is_on_offset(self, case):
         offset, dt, expected = case
-        assert_onOffset(offset, dt, expected)
+        assert_is_on_offset(offset, dt, expected)
