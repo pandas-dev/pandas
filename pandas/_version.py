@@ -307,10 +307,10 @@ def render_pep440_pre(pieces):
     if pieces["closest-tag"]:
         rendered = pieces["closest-tag"]
         if pieces["distance"]:
-            rendered += f".post.dev{pieces['distance']}"
+            rendered += f".post.dev{pieces['distance']:d}"
     else:
         # exception #1
-        rendered = f"0.post.dev{pieces['distance']}"
+        rendered = f"0.post.dev{pieces['distance']:d}"
     return rendered
 
 
@@ -349,12 +349,12 @@ def render_pep440_old(pieces):
     if pieces["closest-tag"]:
         rendered = pieces["closest-tag"]
         if pieces["distance"] or pieces["dirty"]:
-            rendered += f".post{pieces['distance']}"
+            rendered += f".post{pieces['distance']:d}"
             if pieces["dirty"]:
                 rendered += ".dev0"
     else:
         # exception #1
-        rendered = f"0.post{pieces['distance']}"
+        rendered = f"0.post{pieces['distance']:d}"
         if pieces["dirty"]:
             rendered += ".dev0"
     return rendered
