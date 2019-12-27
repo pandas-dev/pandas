@@ -1466,7 +1466,7 @@ class DataFrame(NDFrame):
             Behavior when the destination table exists. Value can be one of:
 
             ``'fail'``
-                If table exists, do nothing.
+                If table exists raise pandas_gbq.gbq.TableCreationError.
             ``'replace'``
                 If table exists, drop it, recreate it, and insert data.
             ``'append'``
