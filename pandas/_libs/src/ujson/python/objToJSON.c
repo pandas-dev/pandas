@@ -482,8 +482,8 @@ static char *PyDateTimeToIsoCallback(JSOBJ obj, JSONTypeContext *tc,
                                      size_t *len) {
 
     if (!PyDateTime_Check(obj)) {
-      PyErr_SetString(PyExc_TypeError, "Expected datetime object");
-      return NULL;
+        PyErr_SetString(PyExc_TypeError, "Expected datetime object");
+        return NULL;
     }
 
     NPY_DATETIMEUNIT base = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
@@ -1587,9 +1587,10 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
                 cLabel = int64ToIso(longVal, base, &len);
             } else {
                 if (!scaleNanosecToUnit(&longVal, base)) {
-                  // TODO: This gets hit but somehow doesn't cause errors
-		  // need to clean up (elsewhere in module as well)
+                    // TODO: This gets hit but somehow doesn't cause errors
+                    // need to clean up (elsewhere in module as well)
                 }
+                cLabel = PyObject_Malloc(21); // 21 chars for int64
                 sprintf(cLabel, "%" NPY_INT64_FMT, longVal);
                 len = strlen(cLabel);
             }
@@ -1598,6 +1599,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
             if (enc->datetimeIso) {
                 cLabel = PyDateTimeToIso((PyDateTime_Date *)item, base, &len);
             } else {
+                cLabel = PyObject_Malloc(21); // 21 chars for int64
                 sprintf(cLabel, "%" NPY_DATETIME_FMT,
                         PyDateTimeToEpoch(item, base));
                 len = strlen(cLabel);
