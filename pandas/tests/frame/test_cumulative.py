@@ -127,9 +127,9 @@ class TestDataFrameCumulativeOps:
 
         expected = DataFrame(
             {
-                "A": Series([1, 3, 6], dtype=int),
-                "B": Series([1, 3, 6], dtype=float),
-                "C": Series([1, 1, 1], dtype=int),
+                "A": Series([1, 3, 6], dtype=np.int64),
+                "B": Series([1, 3, 6], dtype=np.float64),
+                "C": Series([1, 1, 1], dtype=np.int64),
             }
         )
         tm.assert_frame_equal(result, expected)
