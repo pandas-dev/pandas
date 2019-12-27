@@ -158,17 +158,20 @@ def _parse_date_columns(data_frame, parse_dates):
     # we could in theory do a 'nice' conversion from a FixedOffset tz
     # GH11216
     for col_name, df_col in data_frame.items():
-        if is_datetime64tz_dtype(df_col) or col_name in parse_dates:
-            try:
-                fmt = parse_dates[col_name]
-            except TypeError:
-                fmt = None
-            data_frame[col_name] = _handle_date_column(df_col, format=fmt, utc=True)
+        # if df_col is recognized as datetime with timezone enforce UTC
+        if is_datetime64tz_dtype(df_col):
+            data_frame[col_name] = _handle_date_column(df_col, utc=True)
         # handle datetime Series with different offsets
         # see GH30207
         elif _is_datetime_series_with_different_offsets(df_col):
             data_frame[col_name] = to_datetime(df_col, utc=True)
-
+        # if the column still was not handled check argument parse_dates
+        elif col_name in parse_dates:
+            try:
+                fmt = parse_dates[col_name]
+            except TypeError:
+                fmt = None
+            data_frame[col_name] = _handle_date_column(df_col, format=fmt)
     return data_frame
 
 
