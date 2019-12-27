@@ -1213,6 +1213,10 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     >>> infer_dtype([pd.Timestamp('20130101')])
     'datetime'
 
+    >>> infer_dtype([datetime.datetime(2013,1,1,0,0,0, 
+    ...                                tzinfo = datetime.timezone.utc)])
+    'datetimetz'
+
     >>> infer_dtype([datetime.date(2013, 1, 1)])
     'date'
 
@@ -1315,7 +1319,10 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
 
     elif PyDateTime_Check(val):
         if is_datetime_array(values):
-            return "datetime"
+            if is_datetime_with_tz_array(values):
+                return 'datetimetz'
+            else:
+                return "datetime"
 
     elif PyDate_Check(val):
         if is_date_array(values, skipna=skipna):
@@ -1730,6 +1737,31 @@ def is_datetime_with_singletz_array(values: ndarray) -> bool:
                 return False
 
     return True
+
+
+def is_datetime_with_tz_array(values: ndarray) -> bool:
+    """
+    Check values have any tzinfo attribute.
+    Doesn't check values are datetime-like types.
+    Contrary to function is_datetime_with_singletz_array
+    arrays with different timezones will also return True
+    """
+    cdef:
+        Py_ssize_t i = 0, n = len(values)
+        object val, tz
+
+    if n == 0:
+        return False
+    for i in range(n):
+        val = values[i]
+        if val is not NaT:
+            # return True as soon as an attribute tzinfo
+            # was found in any value
+            tz = get_timezone(getattr(val, 'tzinfo', None))
+            if tz is not None:
+                return True
+
+    return False
 
 
 cdef class TimedeltaValidator(TemporalValidator):
