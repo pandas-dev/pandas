@@ -378,9 +378,6 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
         bm = left._data.apply(array_op, right=right)
         return type(left)(bm)
 
-        def column_op(a, b):
-            return {i: func(a.iloc[:, i], b) for i in range(len(a.columns))}
-
     elif isinstance(right, ABCDataFrame):
         assert right._indexed_same(left)
 
