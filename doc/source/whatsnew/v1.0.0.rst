@@ -716,7 +716,7 @@ Datetimelike
 - Bug in :class:`DatetimeIndex` addition when adding a non-optimized :class:`DateOffset` incorrectly dropping timezone information (:issue:`30336`)
 - Bug in :meth:`DataFrame.drop` where attempting to drop non-existent values from a DatetimeIndex would yield a confusing error message (:issue:`30399`)
 - Bug in :meth:`DataFrame.append` would remove the timezone-awareness of new data (:issue:`30238`)
-
+- Bug in :class:`DatetimeArray`, :class:`TimedeltaArray`, and :class:`PeriodArray` where inplace addition and subtraction did not actually operate inplace (:issue:`24115`)
 
 Timedelta
 ^^^^^^^^^
