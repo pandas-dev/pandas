@@ -212,6 +212,7 @@ Other enhancements
 - :meth:`DataFrame.to_markdown` and :meth:`Series.to_markdown` added (:issue:`11052`)
 
 - :meth:`DataFrame.drop_duplicates` has gained ``ignore_index`` keyword to reset index (:issue:`30114`)
+- :func:`read_excel` now accepts binary objects (:issue:`15914`)
 
 Build Changes
 ^^^^^^^^^^^^^
