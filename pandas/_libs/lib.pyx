@@ -1213,8 +1213,9 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     >>> infer_dtype([pd.Timestamp('20130101')])
     'datetime'
 
+    >>> import pytz
     >>> infer_dtype([datetime.datetime(2013,1,1,0,0,0,
-    ...                                tzinfo = datetime.timezone.utc)])
+    ...                                tzinfo=pytz.utc)])
     'datetimetz'
 
     >>> infer_dtype([datetime.date(2013, 1, 1)])
