@@ -254,6 +254,7 @@ class TestDataFramePlots(TestPlotBase):
         tm.close()
 
     def test_hist_subplot_xrot(self):
+        # GH 30288
         df = DataFrame(
             {
                 "length": [1.5, 0.5, 1.2, 0.9, 3],
