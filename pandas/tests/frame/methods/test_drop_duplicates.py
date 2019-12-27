@@ -391,3 +391,36 @@ def test_drop_duplicates_inplace():
     expected = orig2.drop_duplicates(["A", "B"], keep=False)
     result = df2
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "origin_dict, output_dict, ignore_index, output_index",
+    [
+        ({"A": [2, 2, 3]}, {"A": [2, 3]}, True, [0, 1]),
+        ({"A": [2, 2, 3]}, {"A": [2, 3]}, False, [0, 2]),
+        ({"A": [2, 2, 3], "B": [2, 2, 4]}, {"A": [2, 3], "B": [2, 4]}, True, [0, 1]),
+        ({"A": [2, 2, 3], "B": [2, 2, 4]}, {"A": [2, 3], "B": [2, 4]}, False, [0, 2]),
+    ],
+)
+def test_drop_duplicates_ignore_index(
+    origin_dict, output_dict, ignore_index, output_index
+):
+    # GH 30114
+    df = DataFrame(origin_dict)
+    expected = DataFrame(output_dict, index=output_index)
+
+    # Test when inplace is False
+    result = df.drop_duplicates(ignore_index=ignore_index)
+    tm.assert_frame_equal(result, expected)
+
+    # to verify original dataframe is not mutated
+    tm.assert_frame_equal(df, DataFrame(origin_dict))
+
+    # Test when inplace is True
+    copied_df = df.copy()
+
+    copied_df.drop_duplicates(ignore_index=ignore_index, inplace=True)
+    tm.assert_frame_equal(copied_df, expected)
+
+    # to verify that input is unchanged
+    tm.assert_frame_equal(df, DataFrame(origin_dict))

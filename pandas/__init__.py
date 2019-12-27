@@ -10,7 +10,7 @@ for dependency in hard_dependencies:
     try:
         __import__(dependency)
     except ImportError as e:
-        missing_dependencies.append("{0}: {1}".format(dependency, str(e)))
+        missing_dependencies.append(f"{dependency}: {e}")
 
 if missing_dependencies:
     raise ImportError(
@@ -33,10 +33,10 @@ except ImportError as e:  # pragma: no cover
     # hack but overkill to use re
     module = str(e).replace("cannot import name ", "")
     raise ImportError(
-        "C extension: {0} not built. If you want to import "
+        f"C extension: {module} not built. If you want to import "
         "pandas from the source directory, you may need to run "
         "'python setup.py build_ext --inplace --force' to build "
-        "the C extensions first.".format(module)
+        "the C extensions first."
     )
 
 from pandas._config import (
@@ -103,7 +103,6 @@ from pandas.core.api import (
     to_datetime,
     to_timedelta,
     # misc
-    np,
     Grouper,
     factorize,
     unique,
@@ -187,7 +186,6 @@ __version__ = v.get("closest-tag", v["version"])
 __git_version__ = v.get("full-revisionid")
 del get_versions, v
 
-
 # GH 27101
 # TODO: remove Panel compat in 1.0
 if pandas.compat.PY37:
@@ -223,18 +221,31 @@ if pandas.compat.PY37:
 
             return datetime
 
+        elif name == "np":
+
+            warnings.warn(
+                "The pandas.np module is deprecated "
+                "and will be removed from pandas in a future version. "
+                "Import numpy directly instead",
+                FutureWarning,
+                stacklevel=2,
+            )
+            import numpy as np
+
+            return np
+
         elif name in {"SparseSeries", "SparseDataFrame"}:
             warnings.warn(
-                "The {} class is removed from pandas. Accessing it from "
+                f"The {name} class is removed from pandas. Accessing it from "
                 "the top-level namespace will also be removed in the next "
-                "version".format(name),
+                "version",
                 FutureWarning,
                 stacklevel=2,
             )
 
             return type(name, (), {})
 
-        raise AttributeError("module 'pandas' has no attribute '{}'".format(name))
+        raise AttributeError(f"module 'pandas' has no attribute '{name}'")
 
 
 else:
@@ -248,6 +259,30 @@ else:
     class SparseSeries:
         pass
 
+    class __numpy:
+        def __init__(self):
+            import numpy as np
+            import warnings
+
+            self.np = np
+            self.warnings = warnings
+
+        def __getattr__(self, item):
+            self.warnings.warn(
+                "The pandas.np module is deprecated "
+                "and will be removed from pandas in a future version. "
+                "Import numpy directly instead",
+                FutureWarning,
+                stacklevel=2,
+            )
+
+            try:
+                return getattr(self.np, item)
+            except AttributeError:
+                raise AttributeError(f"module numpy has no attribute {item}")
+
+    np = __numpy()
+
     class __Datetime:
         def __init__(self):
             from datetime import datetime
@@ -259,11 +294,12 @@ else:
         def __getattr__(self, item):
             self.warnings.warn(
                 "The pandas.datetime module is deprecated "
-                "and will be removed from pandas in a future version. "
+                "and will be removed from pandas in a future version."
                 "Import datetime directly instead.",
                 FutureWarning,
                 stacklevel=2,
             )
+
             try:
                 return getattr(self.datetime, item)
             except AttributeError:

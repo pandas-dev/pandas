@@ -4,6 +4,7 @@ related to inference and not otherwise tested in types/test_common.py
 
 """
 import collections
+from collections import namedtuple
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from fractions import Fraction
@@ -1123,18 +1124,13 @@ class TestTypeInference:
     def test_to_object_array_tuples(self):
         r = (5, 6)
         values = [r]
-        result = lib.to_object_array_tuples(values)
+        lib.to_object_array_tuples(values)
 
-        try:
-            # make sure record array works
-            from collections import namedtuple
-
-            record = namedtuple("record", "x y")
-            r = record(5, 6)
-            values = [r]
-            result = lib.to_object_array_tuples(values)  # noqa
-        except ImportError:
-            pass
+        # make sure record array works
+        record = namedtuple("record", "x y")
+        r = record(5, 6)
+        values = [r]
+        lib.to_object_array_tuples(values)
 
     def test_object(self):
 
@@ -1174,8 +1170,6 @@ class TestTypeInference:
     def test_categorical(self):
 
         # GH 8974
-        from pandas import Categorical, Series
-
         arr = Categorical(list("abc"))
         result = lib.infer_dtype(arr, skipna=True)
         assert result == "categorical"
