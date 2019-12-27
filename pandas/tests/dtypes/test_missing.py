@@ -1,6 +1,5 @@
 from datetime import datetime
 from decimal import Decimal
-from warnings import catch_warnings, filterwarnings
 
 import numpy as np
 import pytest

@@ -33,7 +33,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCDatetimeArray,
     ABCDatetimeIndex,
     ABCSeries,
     ABCSparseArray,
