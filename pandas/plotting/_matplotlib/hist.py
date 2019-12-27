@@ -250,7 +250,8 @@ def _grouped_hist(
     def plot_group(group, ax):
         ax.hist(group.dropna().values, bins=bins, **kwargs)
 
-    xrot = xrot or rot
+    if xrot is None:
+        xrot = rot
 
     fig, axes = _grouped_plot(
         plot_group,
