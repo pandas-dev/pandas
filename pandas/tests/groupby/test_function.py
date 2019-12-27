@@ -1398,15 +1398,12 @@ def test_quantile_array_multiple_levels():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("frame_size", [(2, 2), (100, 10)])
+@pytest.mark.parametrize("frame_size", [(2, 3), (100, 10)])
 @pytest.mark.parametrize("groupby", [[0], [0, 1]])
-@pytest.mark.parametrize("q", [[0.5, 0.6], [0.1, 0.9]])
+@pytest.mark.parametrize("q", [[0.5, 0.6]])
 def test_groupby_quantile_with_arraylike_q_and_int_columns(frame_size, groupby, q):
     # GH30289
     nrow, ncol = frame_size
-    if len(groupby) >= ncol or any(by >= ncol for by in groupby):
-        pytest.skip(f"Invalid argument groupby={groupby}")
-
     df = pd.DataFrame(
         np.array([ncol * [_ % 4] for _ in range(nrow)]), columns=range(ncol)
     )
