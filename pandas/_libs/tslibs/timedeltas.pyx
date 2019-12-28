@@ -82,7 +82,23 @@ cdef dict timedelta_abbrevs = { 'Y': 'Y',
                                 'nano': 'ns',
                                 'nanos': 'ns',
                                 'nanosecond': 'ns',
-                                'n': 'ns'}
+                                'n': 'ns',
+                                'picoseconds': 'ps',
+                                'picosecond': 'ps',
+                                'picos': 'ps',
+                                'pico': 'ps',
+                                'ps': 'ps',
+                                'femptoseconds': 'fs',
+                                'femptosecond': 'fs',
+                                'femptos': 'fs',
+                                'fempto': 'fs',
+                                'fs': 'fs',
+                                'attoseconds': 'as',
+                                'attosecond': 'as',
+                                'attos': 'as',
+                                'atto': 'as',
+                                'as': 'as',
+                                }
 
 _no_input = object()
 
@@ -285,6 +301,15 @@ cpdef inline object precision_from_unit(object unit):
     elif unit == 'ns' or unit is None:
         m = 1L
         p = 0
+    elif unit == "ps":
+        m = 0
+        p = -3
+    elif unit == "fs":
+        m = 0
+        p = -6
+    elif unit == "as":
+        m = 0
+        p = -9
     else:
         raise ValueError(f"cannot cast unit {unit}")
     return m, p
@@ -307,8 +332,12 @@ cdef inline int64_t cast_from_unit(object ts, object unit) except? -1:
     # to avoid precision issues from float -> int
     base = <int64_t>ts
     frac = ts - base
-    if p:
+    if p > 0:
         frac = round(frac, p)
+    elif p < 0:
+        # m has been set to None, so we need to recover value from frac
+        # pico, fempto, attoo
+        return <int64_t>(base / 10**(-p))
     return <int64_t>(base * m) + <int64_t>(frac * m)
 
 
