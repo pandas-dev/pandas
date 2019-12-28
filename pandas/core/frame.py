@@ -4014,8 +4014,7 @@ class DataFrame(NDFrame):
         inplace=False,
         limit=None,
         downcast=None,
-        **kwargs,
-    ):
+    ) -> Optional["DataFrame"]:
         return super().fillna(
             value=value,
             method=method,
@@ -4023,7 +4022,6 @@ class DataFrame(NDFrame):
             inplace=inplace,
             limit=limit,
             downcast=downcast,
-            **kwargs,
         )
 
     @Appender(_shared_docs["replace"] % _shared_doc_kwargs)
