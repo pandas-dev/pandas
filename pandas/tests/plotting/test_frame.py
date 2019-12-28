@@ -3,6 +3,7 @@
 """ Test cases for DataFrame.plot """
 
 from datetime import date, datetime
+import itertools
 import string
 import warnings
 
@@ -554,14 +555,14 @@ class TestDataFramePlots(TestPlotBase):
             period:
                 since period isn't yet implemented in ``select_dtypes``
                 and because it will need a custom value converter +
-                tick formater (as was done for x-axis plots)
+                tick formatter (as was done for x-axis plots)
 
             categorical:
                  because it will need a custom value converter +
-                 tick formater (also doesn't work for x-axis, as of now)
+                 tick formatter (also doesn't work for x-axis, as of now)
 
             datetime_mixed_tz:
-                because of the way how pandas handels ``Series`` of
+                because of the way how pandas handles ``Series`` of
                 ``datetime`` objects with different timezone,
                 generally converting ``datetime`` objects in a tz-aware
                 form could help with this problem
@@ -2604,12 +2605,6 @@ class TestDataFramePlots(TestPlotBase):
             ax = _check_plot_works(df.plot, yerr=np.ones((2, 12)) * 0.4)
             self._check_has_errorbars(ax, xerr=0, yerr=2)
 
-            # yerr is iterator
-            import itertools
-
-            ax = _check_plot_works(df.plot, yerr=itertools.repeat(0.1, len(df)))
-            self._check_has_errorbars(ax, xerr=0, yerr=2)
-
             # yerr is column name
             for yerr in ["yerr", "誤差"]:
                 s_df = df.copy()
@@ -2625,6 +2620,17 @@ class TestDataFramePlots(TestPlotBase):
             df_err = DataFrame({"x": ["zzz"] * 12, "y": ["zzz"] * 12})
             with pytest.raises((ValueError, TypeError)):
                 df.plot(yerr=df_err)
+
+    @pytest.mark.xfail(reason="Iterator is consumed", raises=ValueError)
+    @pytest.mark.slow
+    def test_errorbar_plot_iterator(self):
+        with warnings.catch_warnings():
+            d = {"x": np.arange(12), "y": np.arange(12, 0, -1)}
+            df = DataFrame(d)
+
+            # yerr is iterator
+            ax = _check_plot_works(df.plot, yerr=itertools.repeat(0.1, len(df)))
+            self._check_has_errorbars(ax, xerr=0, yerr=2)
 
     @pytest.mark.slow
     def test_errorbar_with_integer_column_names(self):

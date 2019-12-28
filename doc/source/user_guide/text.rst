@@ -13,7 +13,7 @@ Text Data Types
 
 .. versionadded:: 1.0.0
 
-There are two main ways to store text data
+There are two ways to store text data in pandas:
 
 1. ``object`` -dtype NumPy array.
 2. :class:`StringDtype` extension type.
@@ -63,7 +63,51 @@ Or ``astype`` after the ``Series`` or ``DataFrame`` is created
    s
    s.astype("string")
 
-Everything that follows in the rest of this document applies equally to
+.. _text.differences:
+
+Behavior differences
+^^^^^^^^^^^^^^^^^^^^
+
+These are places where the behavior of ``StringDtype`` objects differ from
+``object`` dtype
+
+l. For ``StringDtype``, :ref:`string accessor methods<api.series.str>`
+   that return **numeric** output will always return a nullable integer dtype,
+   rather than either int or float dtype, depending on the presence of NA values.
+   Methods returning **boolean** output will return a nullable boolean dtype.
+
+   .. ipython:: python
+
+      s = pd.Series(["a", None, "b"], dtype="string")
+      s
+      s.str.count("a")
+      s.dropna().str.count("a")
+
+   Both outputs are ``Int64`` dtype. Compare that with object-dtype
+
+   .. ipython:: python
+
+      s.astype(object).str.count("a")
+      s.astype(object).dropna().str.count("a")
+
+   When NA values are present, the output dtype is float64. Similarly for
+   methods returning boolean values.
+
+   .. ipython:: python
+
+      s.str.isdigit()
+      s.str.match("a")
+
+2. Some string methods, like :meth:`Series.str.decode` are not available
+   on ``StringArray`` because ``StringArray`` only holds strings, not
+   bytes.
+3. In comparison operations, :class:`arrays.StringArray` and ``Series`` backed
+   by a ``StringArray`` will return an object with :class:`BooleanDtype`,
+   rather than a ``bool`` dtype object. Missing values in a ``StringArray``
+   will propagate in comparison operations, rather than always comparing
+   unequal like :attr:`numpy.nan`.
+
+Everything else that follows in the rest of this document applies equally to
 ``string`` and ``object`` dtype.
 
 .. _text.string_methods:
@@ -228,8 +272,6 @@ and ``repl`` must be strings:
     dollars.str.replace(r'-\$', '-')
     dollars.str.replace('-$', '-', regex=False)
 
-.. versionadded:: 0.20.0
-
 The ``replace`` method can also take a callable as replacement. It is called
 on every ``pat`` using :func:`re.sub`. The callable should expect one
 positional argument (a regex object) and return a string.
@@ -253,8 +295,6 @@ positional argument (a regex object) and return a string.
 
    pd.Series(['Foo Bar Baz', np.nan],
              dtype="string").str.replace(pat, repl)
-
-.. versionadded:: 0.20.0
 
 The ``replace`` method also accepts a compiled regular expression object
 from :func:`re.compile` as a pattern. All flags should be included in the

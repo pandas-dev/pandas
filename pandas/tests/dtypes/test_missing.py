@@ -23,7 +23,7 @@ from pandas.core.dtypes.missing import (
 
 import pandas as pd
 from pandas import DatetimeIndex, Float64Index, NaT, Series, TimedeltaIndex, date_range
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 now = pd.Timestamp.now()
 utcnow = pd.Timestamp.now("UTC")
@@ -90,7 +90,8 @@ class TestIsNA:
         assert not isna_f(-np.inf)
 
         # type
-        assert not isna_f(type(pd.Series()))
+        assert not isna_f(type(pd.Series(dtype=object)))
+        assert not isna_f(type(pd.Series(dtype=np.float64)))
         assert not isna_f(type(pd.DataFrame()))
 
         # series

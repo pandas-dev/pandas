@@ -197,7 +197,7 @@ cpdef _base_and_stride(str freqstr):
     groups = opattern.match(freqstr)
 
     if not groups:
-        raise ValueError("Could not evaluate {freq}".format(freq=freqstr))
+        raise ValueError(f"Could not evaluate {freqstr}")
 
     stride = groups.group(1)
 
@@ -485,18 +485,18 @@ cdef bint _is_weekly(str rule):
 
 # ----------------------------------------------------------------------
 
-cpdef object get_rule_month(object source, object default='DEC'):
+cpdef str get_rule_month(object source, str default="DEC"):
     """
     Return starting month of given freq, default is December.
 
     Parameters
     ----------
     source : object
-    default : object (default "DEC")
+    default : str, default "DEC"
 
     Returns
     -------
-    rule_month: object (usually string)
+    rule_month: str
 
     Examples
     --------

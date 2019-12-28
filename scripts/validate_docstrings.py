@@ -250,7 +250,7 @@ class Docstring:
         self.clean_doc = pydoc.getdoc(obj)
         self.doc = NumpyDocString(self.clean_doc)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.raw_doc)
 
     @staticmethod
@@ -965,7 +965,7 @@ def main(func_name, prefix, errors, output_format, ignore_deprecated):
                     "]{text}\n"
                 )
             else:
-                raise ValueError('Unknown output_format "{}"'.format(output_format))
+                raise ValueError(f'Unknown output_format "{output_format}"')
 
             output = ""
             for name, res in result.items():
@@ -977,11 +977,10 @@ def main(func_name, prefix, errors, output_format, ignore_deprecated):
                         continue
                     exit_status += 1
                     output += output_format.format(
-                        name=name,
                         path=res["file"],
                         row=res["file_line"],
                         code=err_code,
-                        text="{}: {}".format(name, err_desc),
+                        text=f"{name}: {err_desc}",
                     )
 
         sys.stdout.write(output)
