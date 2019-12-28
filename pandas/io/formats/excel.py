@@ -1,9 +1,11 @@
-"""Utilities for conversion to writer-agnostic Excel representation
+"""
+Utilities for conversion to writer-agnostic Excel representation.
 """
 
 from functools import reduce
 import itertools
 import re
+from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 import warnings
 
 import numpy as np
@@ -25,7 +27,9 @@ class ExcelCell:
     __fields__ = ("row", "col", "val", "style", "mergestart", "mergeend")
     __slots__ = __fields__
 
-    def __init__(self, row, col, val, style=None, mergestart=None, mergeend=None):
+    def __init__(
+        self, row: int, col: int, val, style=None, mergestart=None, mergeend=None
+    ):
         self.row = row
         self.col = col
         self.val = val
@@ -35,7 +39,8 @@ class ExcelCell:
 
 
 class CSSToExcelConverter:
-    """A callable for converting CSS declarations to ExcelWriter styles
+    """
+    A callable for converting CSS declarations to ExcelWriter styles.
 
     Supports parts of CSS 2.2, with minimal CSS 3.0 support (e.g. text-shadow),
     focusing on font styling, backgrounds, borders and alignment.
@@ -56,7 +61,7 @@ class CSSToExcelConverter:
     #     instancemethods so that users can easily experiment with extensions
     #     without monkey-patching.
 
-    def __init__(self, inherited=None):
+    def __init__(self, inherited: Optional[str] = None):
         if inherited is not None:
             inherited = self.compute_css(inherited)
 
@@ -64,7 +69,7 @@ class CSSToExcelConverter:
 
     compute_css = CSSResolver()
 
-    def __call__(self, declarations_str: str):
+    def __call__(self, declarations_str: str) -> Dict[str, Dict[str, str]]:
         """
         Convert CSS declarations to ExcelWriter style.
 
@@ -76,15 +81,23 @@ class CSSToExcelConverter:
 
         Returns
         -------
-        xlstyle : dict
-            A style as interpreted by ExcelWriter when found in
-            ExcelCell.style.
+        Dict
+            A style as interpreted by ExcelWriter when found in ExcelCell.style.
         """
         # TODO: memoize?
         properties = self.compute_css(declarations_str, self.inherited)
         return self.build_xlstyle(properties)
 
-    def build_xlstyle(self, props):
+    def build_xlstyle(self, props: Dict[str, str]) -> Dict[str, Dict[str, str]]:
+        """
+        Parameters
+        ----------
+        props : Dict
+
+        Returns
+        -------
+        Dict
+        """
         out = {
             "alignment": self.build_alignment(props),
             "border": self.build_border(props),
@@ -95,8 +108,14 @@ class CSSToExcelConverter:
 
         # TODO: handle cell width and height: needs support in pandas.io.excel
 
-        def remove_none(d):
-            """Remove key where value is None, through nested dicts"""
+        def remove_none(d: Dict[str, str]) -> None:
+            """
+            Remove key where value is None, through nested dicts.
+
+            Parameters
+            ----------
+            d : Dict
+            """
             for k, v in list(d.items()):
                 if v is None:
                     del d[k]
@@ -118,7 +137,12 @@ class CSSToExcelConverter:
         # OpenXML also has 'justify', 'distributed'
     }
 
-    def build_alignment(self, props):
+    def build_alignment(self, props) -> Dict[str, Any]:
+        """
+        Returns
+        -------
+        Dict
+        """
         # TODO: text-indent, padding-left -> alignment.indent
         return {
             "horizontal": props.get("text-align"),
@@ -130,7 +154,16 @@ class CSSToExcelConverter:
             ),
         }
 
-    def build_border(self, props):
+    def build_border(self, props: Dict) -> Dict[str, Any]:
+        """
+        Parameters
+        ----------
+        props : Dict
+
+        Returns
+        -------
+        Dict
+        """
         return {
             side: {
                 "style": self._border_style(
@@ -142,7 +175,7 @@ class CSSToExcelConverter:
             for side in ["top", "right", "bottom", "left"]
         }
 
-    def _border_style(self, style, width):
+    def _border_style(self, style: Optional[str], width):
         # convert styles and widths to openxml, one of:
         #       'dashDot'
         #       'dashDotDot'
@@ -191,7 +224,12 @@ class CSSToExcelConverter:
                 return "dashed"
             return "mediumDashed"
 
-    def build_fill(self, props):
+    def build_fill(self, props: Dict):
+        """
+        Parameters
+        ----------
+        props : Dict
+        """
         # TODO: perhaps allow for special properties
         #       -excel-pattern-bgcolor and -excel-pattern-type
         fill_color = props.get("background-color")
@@ -215,7 +253,12 @@ class CSSToExcelConverter:
     }
     ITALIC_MAP = {"normal": False, "italic": True, "oblique": True}
 
-    def build_font(self, props):
+    def build_font(self, props) -> Dict[str, Union[bool, int, str, None]]:
+        """
+        Returns
+        -------
+        Dict
+        """
         size = props.get("font-size")
         if size is not None:
             assert size.endswith("pt")
@@ -311,7 +354,12 @@ class CSSToExcelConverter:
         "white": "FFFFFF",
     }
 
-    def color_to_excel(self, val):
+    def color_to_excel(self, val: Optional[str]):
+        """
+        Parameters
+        ----------
+        val : str, optional
+        """
         if val is None:
             return None
         if val.startswith("#") and len(val) == 7:
@@ -323,37 +371,39 @@ class CSSToExcelConverter:
         except KeyError:
             warnings.warn(f"Unhandled color format: {repr(val)}", CSSWarning)
 
-    def build_number_format(self, props):
+    def build_number_format(self, props: Dict) -> Dict[str, Any]:
         return {"format_code": props.get("number-format")}
 
 
 class ExcelFormatter:
     """
-    Class for formatting a DataFrame to a list of ExcelCells,
+    Class for formatting a DataFrame to a list of ExcelCells.
 
     Parameters
     ----------
     df : DataFrame or Styler
-    na_rep: na representation
-    float_format : string, default None
-            Format string for floating point numbers
-    cols : sequence, optional
-        Columns to write
-    header : boolean or list of string, default True
-        Write out column names. If a list of string is given it is
-        assumed to be aliases for the column names
-    index : boolean, default True
-        output row names (index)
-    index_label : string or sequence, default None
-            Column label for index column(s) if desired. If None is given, and
-            `header` and `index` are True, then the index names are used. A
-            sequence should be given if the DataFrame uses MultiIndex.
-    merge_cells : boolean, default False
+    na_rep: str
+        An na representation.
+    float_format : str, optional
+            Format string for floating point numbers.
+    cols : Sequence, optional
+        Columns to write.
+    header : Union[bool, List[str]], default True
+        Write out column names.
+        If a list of string is given it is assumed to be aliases for the column names
+    index : bool, default True
+        Output row names (index).
+    index_label : Union[str, Sequence, None], default None
+            Column label for index column(s) if desired.
+            If None is given, and `header` and `index` are True,
+            then the index names are used.
+            A Sequence should be given if the DataFrame uses MultiIndex.
+    merge_cells : bool, default False
             Format MultiIndex and Hierarchical Rows as merged cells.
-    inf_rep : string, default `'inf'`
+    inf_rep : str, default `'inf'`
         representation for np.inf values (which aren't representable in Excel)
         A `'-'` sign will be added in front of -inf.
-    style_converter : callable, optional
+    style_converter : Callable, optional
         This translates Styler styles (CSS) into ExcelWriter styles.
         Defaults to ``CSSToExcelConverter()``.
         It should have signature css_declarations string -> excel style.
@@ -366,15 +416,15 @@ class ExcelFormatter:
     def __init__(
         self,
         df,
-        na_rep="",
-        float_format=None,
-        cols=None,
-        header=True,
-        index=True,
-        index_label=None,
-        merge_cells=False,
-        inf_rep="inf",
-        style_converter=None,
+        na_rep: str = "",
+        float_format: Optional[str] = None,
+        cols: Optional[Sequence] = None,
+        header: Union[bool, List[str]] = True,
+        index: bool = True,
+        index_label: Union[str, Sequence, None] = None,
+        merge_cells: bool = False,
+        inf_rep: str = "inf",
+        style_converter: Optional[Callable] = None,
     ):
         self.rowcounter = 0
         self.na_rep = na_rep
@@ -442,10 +492,8 @@ class ExcelFormatter:
         if self.columns.nlevels > 1:
             if not self.index:
                 raise NotImplementedError(
-                    "Writing to Excel with MultiIndex"
-                    " columns and no index "
-                    "('index'=False) is not yet "
-                    "implemented."
+                    "Writing to Excel with MultiIndex columns and no "
+                    "index ('index'=False) is not yet implemented."
                 )
 
         has_aliases = isinstance(self.header, (tuple, list, np.ndarray, Index))
@@ -540,7 +588,6 @@ class ExcelFormatter:
         return itertools.chain(gen, gen2)
 
     def _format_body(self):
-
         if isinstance(self.df.index, ABCMultiIndex):
             return self._format_hierarchical_rows()
         else:
@@ -706,7 +753,7 @@ class ExcelFormatter:
         freeze_panes : tuple of integer (length 2), default None
             Specifies the one-based bottommost row and rightmost column that
             is to be frozen
-        engine : string, default None
+        engine : str, default None
             write engine to use if writer is a path - you can also set this
             via the options ``io.excel.xlsx.writer``, ``io.excel.xls.writer``,
             and ``io.excel.xlsm.writer``.
@@ -716,8 +763,7 @@ class ExcelFormatter:
         num_rows, num_cols = self.df.shape
         if num_rows > self.max_rows or num_cols > self.max_cols:
             raise ValueError(
-                "This sheet is too large! Your sheet size is: "
-                f"{num_rows}, {num_cols} "
+                f"This sheet is too large! Your sheet size is: {num_rows}, {num_cols} "
                 f"Max sheet size is: {self.max_rows}, {self.max_cols}"
             )
 
