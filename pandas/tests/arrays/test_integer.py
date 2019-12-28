@@ -193,7 +193,7 @@ class TestArithmeticOps(BaseOpsUtil):
         # to compare properly, we convert the expected
         # to float, mask to nans and convert infs
         # if we have uints then we process as uints
-        # then conert to float
+        # then convert to float
         # and we ultimately want to create a IntArray
         # for comparisons
 
