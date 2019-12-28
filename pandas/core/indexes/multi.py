@@ -1,7 +1,7 @@
 from collections import OrderedDict
 import datetime
 from sys import getsizeof
-from typing import List, Optional
+from typing import Hashable, List, Optional
 import warnings
 
 import numpy as np
@@ -2507,7 +2507,7 @@ class MultiIndex(Index):
         for k, (lab, lev, labs) in enumerate(zipped):
             section = labs[start:end]
 
-            if lab not in lev:
+            if lab not in lev and not isna(lab):
                 if not lev.is_type_compatible(lib.infer_dtype([lab], skipna=False)):
                     raise TypeError(f"Level type mismatch: {lab}")
 
@@ -2517,12 +2517,37 @@ class MultiIndex(Index):
                     loc -= 1
                 return start + section.searchsorted(loc, side=side)
 
-            idx = lev.get_loc(lab)
+            idx = self._get_loc_single_level_index(lev, lab)
             if k < n - 1:
                 end = start + section.searchsorted(idx, side="right")
                 start = start + section.searchsorted(idx, side="left")
             else:
                 return start + section.searchsorted(idx, side=side)
+
+    def _get_loc_single_level_index(self, level_index: Index, key: Hashable) -> int:
+        """
+        If key is NA value, location of index unify as -1.
+
+        Parameters
+        ----------
+        level_index: Index
+        key : label
+
+        Returns
+        -------
+        loc : int
+            If key is NA value, loc is -1
+            Else, location of key in index.
+
+        See Also
+        --------
+        Index.get_loc : The get_loc method for (single-level) index.
+        """
+
+        if is_scalar(key) and isna(key):
+            return -1
+        else:
+            return level_index.get_loc(key)
 
     def get_loc(self, key, method=None):
         """
@@ -2622,7 +2647,9 @@ class MultiIndex(Index):
         loc = np.arange(start, stop, dtype="int64")
 
         for i, k in enumerate(follow_key, len(lead_key)):
-            mask = self.codes[i][loc] == self.levels[i].get_loc(k)
+            mask = self.codes[i][loc] == self._get_loc_single_level_index(
+                self.levels[i], k
+            )
             if not mask.all():
                 loc = loc[mask]
             if not len(loc):
@@ -2850,7 +2877,7 @@ class MultiIndex(Index):
 
         else:
 
-            code = level_index.get_loc(key)
+            code = self._get_loc_single_level_index(level_index, key)
 
             if level > 0 or self.lexsort_depth == 0:
                 # Desired level is not sorted
@@ -3345,14 +3372,11 @@ class MultiIndex(Index):
             return algos.isin(self.values, values)
         else:
             num = self._get_level_number(level)
-            levs = self.levels[num]
-            level_codes = self.codes[num]
+            levs = self.get_level_values(num)
 
-            sought_labels = levs.isin(values).nonzero()[0]
             if levs.size == 0:
-                return np.zeros(len(level_codes), dtype=np.bool_)
-            else:
-                return np.lib.arraysetops.in1d(level_codes, sought_labels)
+                return np.zeros(len(levs), dtype=np.bool_)
+            return levs.isin(values)
 
 
 MultiIndex._add_numeric_methods_disabled()
