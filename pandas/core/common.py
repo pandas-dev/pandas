@@ -87,7 +87,8 @@ def maybe_box_datetimelike(value):
     if isinstance(value, (np.datetime64, datetime)) \
             and not isinstance(value, tslibs.Timestamp):
         value = tslibs.Timestamp(value)
-    elif isinstance(value, (np.timedelta64, timedelta)):
+    elif isinstance(value, (np.timedelta64, timedelta)) \
+            and not isinstance(value, tslibs.Timedelta):
         value = tslibs.Timedelta(value)
 
     return value
