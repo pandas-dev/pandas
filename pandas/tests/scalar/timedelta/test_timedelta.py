@@ -433,11 +433,17 @@ class TestTimedeltas:
         with pytest.raises(ValueError, match=msg):
             to_timedelta([1, 2], unit)
 
-    @pytest.mark.parametrize("val,unit, alts", [
-        (1, "ps", ("ps", "pico", "picos", "picosecond", "picoseconds")),
-        (10**3, "fs", ("fs", "fempto", "femptos", "femptosecond", "femptoseconds")),
-        (10**6, "as", ("as", "atto", "attos", "attosecond", "attoseconds")),
-        ]
+    @pytest.mark.parametrize(
+        "val,unit, alts",
+        [
+            (1, "ps", ("ps", "pico", "picos", "picosecond", "picoseconds")),
+            (
+                10 ** 3,
+                "fs",
+                ("fs", "fempto", "femptos", "femptosecond", "femptoseconds"),
+            ),
+            (10 ** 6, "as", ("as", "atto", "attos", "attosecond", "attoseconds")),
+        ],
     )
     def test_unit_higher_than_nano(self, val, unit, alts):
         # GH#23571
@@ -451,7 +457,7 @@ class TestTimedeltas:
             res2 = Timedelta(val, unit=alt)
             assert res2 == zero
 
-        val *= 10**4
+        val *= 10 ** 4
         td64 = np.timedelta64(val, unit)
         res1 = Timedelta(td64)
         assert res1 == ten_ns
