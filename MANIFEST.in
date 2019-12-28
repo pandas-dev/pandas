@@ -3,6 +3,7 @@ include LICENSE
 include RELEASE.md
 include README.md
 include setup.py
+include pyproject.toml
 
 graft doc
 prune doc/build
@@ -14,16 +15,19 @@ graft pandas
 global-exclude *.bz2
 global-exclude *.csv
 global-exclude *.dta
+global-exclude *.feather
 global-exclude *.gz
 global-exclude *.h5
 global-exclude *.html
 global-exclude *.json
-global-exclude *.msgpack
 global-exclude *.pickle
 global-exclude *.png
 global-exclude *.pyc
 global-exclude *.pyd
+global-exclude *.ods
+global-exclude *.odt
 global-exclude *.sas7bdat
+global-exclude *.sav
 global-exclude *.so
 global-exclude *.xls
 global-exclude *.xlsm

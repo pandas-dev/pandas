@@ -113,13 +113,13 @@ def build_string(revision_range, heading="Contributors"):
     components["authors"] = "* " + "\n* ".join(components["authors"])
 
     tpl = textwrap.dedent(
-        """\
-    {heading}
-    {uline}
+        f"""\
+    {components['heading']}
+    {components['uline']}
 
-    {author_message}
-    {authors}"""
-    ).format(**components)
+    {components['author_message']}
+    {components['authors']}"""
+    )
     return tpl
 
 

@@ -24,6 +24,35 @@ def test_read_with_bad_header(all_parsers):
         parser.read_csv(s, header=[10])
 
 
+def test_negative_header(all_parsers):
+    # see gh-27779
+    parser = all_parsers
+    data = """1,2,3,4,5
+6,7,8,9,10
+11,12,13,14,15
+"""
+    with pytest.raises(
+        ValueError,
+        match="Passing negative integer to header is invalid. "
+        "For no header, use header=None instead",
+    ):
+        parser.read_csv(StringIO(data), header=-1)
+
+
+@pytest.mark.parametrize("header", [([-1, 2, 4]), ([-5, 0])])
+def test_negative_multi_index_header(all_parsers, header):
+    # see gh-27779
+    parser = all_parsers
+    data = """1,2,3,4,5
+        6,7,8,9,10
+        11,12,13,14,15
+        """
+    with pytest.raises(
+        ValueError, match="cannot specify multi-index header with negative integers"
+    ):
+        parser.read_csv(StringIO(data), header=header)
+
+
 @pytest.mark.parametrize("header", [True, False])
 def test_bool_header_arg(all_parsers, header):
     # see gh-6114
@@ -511,3 +540,34 @@ def test_multi_index_unnamed(all_parsers, index_col, columns):
         columns = MultiIndex.from_tuples(zip(exp_columns, ["0", "1"]))
         expected = DataFrame([[2, 3], [4, 5]], columns=columns)
         tm.assert_frame_equal(result, expected)
+
+
+def test_read_csv_multiindex_columns(all_parsers):
+    # GH#6051
+    parser = all_parsers
+
+    s1 = "Male, Male, Male, Female, Female\nR, R, L, R, R\n.86, .67, .88, .78, .81"
+    s2 = (
+        "Male, Male, Male, Female, Female\n"
+        "R, R, L, R, R\n"
+        ".86, .67, .88, .78, .81\n"
+        ".86, .67, .88, .78, .82"
+    )
+
+    mi = MultiIndex.from_tuples(
+        [
+            ("Male", "R"),
+            (" Male", " R"),
+            (" Male", " L"),
+            (" Female", " R"),
+            (" Female", " R.1"),
+        ]
+    )
+    expected = DataFrame(
+        [[0.86, 0.67, 0.88, 0.78, 0.81], [0.86, 0.67, 0.88, 0.78, 0.82]], columns=mi
+    )
+
+    df1 = parser.read_csv(StringIO(s1), header=[0, 1])
+    tm.assert_frame_equal(df1, expected.iloc[:1])
+    df2 = parser.read_csv(StringIO(s2), header=[0, 1])
+    tm.assert_frame_equal(df2, expected)

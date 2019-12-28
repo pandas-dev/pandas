@@ -592,8 +592,8 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
 .. ipython:: python
 
    df = pd.DataFrame([0, 1, 0, 1, 1, 1, 0, 1, 1], columns=['A'])
-   df.A.groupby((df.A != df.A.shift()).cumsum()).groups
-   df.A.groupby((df.A != df.A.shift()).cumsum()).cumsum()
+   df['A'].groupby((df['A'] != df['A'].shift()).cumsum()).groups
+   df['A'].groupby((df['A'] != df['A'].shift()).cumsum()).cumsum()
 
 Expanding data
 **************
@@ -719,7 +719,7 @@ Rolling Apply to multiple columns where function calculates a Series before a Sc
    df
 
    def gm(df, const):
-       v = ((((df.A + df.B) + 1).cumprod()) - 1) * const
+       v = ((((df['A'] + df['B']) + 1).cumprod()) - 1) * const
        return v.iloc[-1]
 
    s = pd.Series({df.index[i]: gm(df.iloc[i:min(i + 51, len(df) - 1)], 5)
@@ -1229,7 +1229,7 @@ in the frame:
    The offsets of the structure elements may be different depending on the
    architecture of the machine on which the file was created. Using a raw
    binary file format like this for general data storage is not recommended, as
-   it is not cross platform. We recommended either HDF5 or msgpack, both of
+   it is not cross platform. We recommended either HDF5 or parquet, both of
    which are supported by pandas' IO facilities.
 
 Computation
