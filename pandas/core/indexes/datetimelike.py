@@ -629,7 +629,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             other.freq is None
             or self.freq is None
             or other.freq != self.freq
-            or not other.freq.isAnchored()
+            or not other.freq.is_anchored()
             or (not self.is_monotonic or not other.is_monotonic)
         ):
             result = Index.intersection(self, other, sort=sort)

@@ -256,6 +256,7 @@ gcsfs                     0.2.2              Google Cloud Storage access
 html5lib                                     HTML parser for read_html (see :ref:`note <optional_html>`)
 lxml                      3.8.0              HTML parser for read_html (see :ref:`note <optional_html>`)
 matplotlib                2.2.2              Visualization
+numba                     0.46.0             Alternative execution engine for rolling operations
 openpyxl                  2.5.7              Reading / writing for xlsx files
 pandas-gbq                0.8.0              Google Big Query access
 psycopg2                                     PostgreSQL engine for sqlalchemy

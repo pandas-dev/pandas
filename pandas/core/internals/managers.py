@@ -340,13 +340,13 @@ class BlockManager(PandasObject):
                 f"tot_items: {tot_items}"
             )
 
-    def apply(self, f: str, filter=None, **kwargs):
+    def apply(self, f, filter=None, **kwargs):
         """
         Iterate over the blocks, collect and create a new BlockManager.
 
         Parameters
         ----------
-        f : str
+        f : str or callable
             Name of the Block method to apply.
         filter : list, if supplied, only call the block if the filter is in
                  the block
@@ -411,7 +411,10 @@ class BlockManager(PandasObject):
                     axis = obj._info_axis_number
                     kwargs[k] = obj.reindex(b_items, axis=axis, copy=align_copy)
 
-            applied = getattr(b, f)(**kwargs)
+            if callable(f):
+                applied = b.apply(f, **kwargs)
+            else:
+                applied = getattr(b, f)(**kwargs)
             result_blocks = _extend_blocks(applied, result_blocks)
 
         if len(result_blocks) == 0:
