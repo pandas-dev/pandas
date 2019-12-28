@@ -1,7 +1,7 @@
 from datetime import datetime
 import operator
 from textwrap import dedent
-from typing import FrozenSet, Union
+from typing import FrozenSet, Hashable, Optional, Union
 import warnings
 
 import numpy as np
@@ -239,7 +239,7 @@ class Index(IndexOpsMixin, PandasObject):
     _typ = "index"
     _data: Union[ExtensionArray, np.ndarray]
     _id = None
-    name = None
+    _name: Optional[Hashable] = None
     _comparables = ["name"]
     _attributes = ["name"]
     _is_numeric_dtype = False
@@ -274,8 +274,7 @@ class Index(IndexOpsMixin, PandasObject):
         from .interval import IntervalIndex
         from .category import CategoricalIndex
 
-        if name is None and hasattr(data, "name"):
-            name = data.name
+        name = maybe_extract_name(name, data, cls)
 
         if isinstance(data, ABCPandasArray):
             # ensure users don't accidentally put a PandasArray in an index.
@@ -520,7 +519,7 @@ class Index(IndexOpsMixin, PandasObject):
         # data buffers and strides. We don't re-use `_ndarray_values`, since
         # we actually set this value too.
         result._index_data = values
-        result.name = name
+        result._name = name
 
         return result._reset_identity()
 
@@ -804,11 +803,10 @@ class Index(IndexOpsMixin, PandasObject):
         # only fill if we are passing a non-None fill_value
         if allow_fill and fill_value is not None:
             if (indices < -1).any():
-                msg = (
+                raise ValueError(
                     "When allow_fill=True and fill_value is not None, "
                     "all indices must be >= -1"
                 )
-                raise ValueError(msg)
             taken = algos.take(
                 values, indices, allow_fill=allow_fill, fill_value=na_value
             )
@@ -1210,6 +1208,15 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Name-Centric Methods
 
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        maybe_extract_name(value, None, type(self))
+        self._name = value
+
     def _validate_names(self, name=None, names=None, deep=False):
         """
         Handles the quirks of having a singular 'name' parameter for general
@@ -1259,7 +1266,7 @@ class Index(IndexOpsMixin, PandasObject):
         for name in values:
             if not is_hashable(name):
                 raise TypeError(f"{type(self).__name__}.name must be a hashable type")
-        self.name = values[0]
+        self._name = values[0]
 
     names = property(fset=_set_names, fget=_get_names)
 
@@ -1324,8 +1331,7 @@ class Index(IndexOpsMixin, PandasObject):
             raise ValueError("Level must be None for non-MultiIndex")
 
         if level is not None and not is_list_like(level) and is_list_like(names):
-            msg = "Names must be a string when a single level is provided."
-            raise TypeError(msg)
+            raise TypeError("Names must be a string when a single level is provided.")
 
         if not is_list_like(names) and level is None and self.nlevels > 1:
             raise TypeError("Must pass list-like as `names`.")
@@ -1421,8 +1427,8 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(level, int):
             if level < 0 and level != -1:
                 raise IndexError(
-                    f"Too many levels: Index has only 1 level,"
-                    f" {level} is not a valid level number"
+                    "Too many levels: Index has only 1 level, "
+                    f"{level} is not a valid level number"
                 )
             elif level > 0:
                 raise IndexError(
@@ -1548,7 +1554,7 @@ class Index(IndexOpsMixin, PandasObject):
             if mask.any():
                 result = result.putmask(mask, np.nan)
 
-            result.name = new_names[0]
+            result._name = new_names[0]
             return result
         else:
             from .multi import MultiIndex
@@ -1779,7 +1785,7 @@ class Index(IndexOpsMixin, PandasObject):
                 nd_state, own_state = state
                 data = np.empty(nd_state[1], dtype=nd_state[2])
                 np.ndarray.__setstate__(data, nd_state)
-                self.name = own_state[0]
+                self._name = own_state[0]
 
             else:  # pragma: no cover
                 data = np.empty(state)
@@ -4553,7 +4559,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         if is_categorical(target):
             tgt_values = np.asarray(target)
-        elif self.is_all_dates:
+        elif self.is_all_dates and target.is_all_dates:  # GH 30399
             tgt_values = target.asi8
         else:
             tgt_values = target._ndarray_values
@@ -5464,3 +5470,19 @@ def default_index(n):
     from pandas.core.indexes.range import RangeIndex
 
     return RangeIndex(0, n, name=None)
+
+
+def maybe_extract_name(name, obj, cls) -> Optional[Hashable]:
+    """
+    If no name is passed, then extract it from data, validating hashability.
+    """
+    if name is None and isinstance(obj, (Index, ABCSeries)):
+        # Note we don't just check for "name" attribute since that would
+        #  pick up e.g. dtype.name
+        name = obj.name
+
+    # GH#29069
+    if not is_hashable(name):
+        raise TypeError(f"{cls.__name__}.name must be a hashable type")
+
+    return name

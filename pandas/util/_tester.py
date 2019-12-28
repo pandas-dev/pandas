@@ -1,5 +1,5 @@
 """
-Entrypoint for testing from the top-level namespace
+Entrypoint for testing from the top-level namespace.
 """
 import os
 import sys
@@ -22,7 +22,8 @@ def test(extra_args=None):
             extra_args = [extra_args]
         cmd = extra_args
     cmd += [PKG]
-    print(f"running: pytest {' '.join(cmd)}")
+    joined = " ".join(cmd)
+    print(f"running: pytest {joined}")
     sys.exit(pytest.main(cmd))
 
 

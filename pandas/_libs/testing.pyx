@@ -159,7 +159,7 @@ cpdef assert_almost_equal(a, b,
 
             raise_assert_detail(obj, f"{obj} length are different", na, nb, r)
 
-        for i in xrange(len(a)):
+        for i in range(len(a)):
             try:
                 assert_almost_equal(a[i], b[i],
                                     check_less_precise=check_less_precise)

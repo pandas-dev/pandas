@@ -233,3 +233,20 @@ def test_divmod_ufunc():
     for arr in result:
         tm.assert_numpy_array_equal(arr, expected)
         tm.assert_numpy_array_equal(arr, expected)
+
+
+def test_integer_hash_collision_dict():
+    # GH 30013
+    result = {NA: "foo", hash(NA): "bar"}
+
+    assert result[NA] == "foo"
+    assert result[hash(NA)] == "bar"
+
+
+def test_integer_hash_collision_set():
+    # GH 30013
+    result = {NA, hash(NA)}
+
+    assert len(result) == 2
+    assert NA in result
+    assert hash(NA) in result

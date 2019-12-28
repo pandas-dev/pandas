@@ -791,7 +791,7 @@ the nullable :doc:`integer <integer_na>`, boolean and
 :ref:`dedicated string <text.types>` data types as the missing value indicator.
 
 The goal of ``pd.NA`` is provide a "missing" indicator that can be used
-consistently accross data types (instead of ``np.nan``, ``None`` or ``pd.NaT``
+consistently across data types (instead of ``np.nan``, ``None`` or ``pd.NaT``
 depending on the data type).
 
 For example, when having missing values in a Series with the nullable integer
