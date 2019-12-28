@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, AnyStr, Optional, Union
 
 from pandas._typing import FilePathOrBuffer
 
-from pandas.io.common import _stringify_path
+from pandas.io.common import stringify_path
 
 if TYPE_CHECKING:
     from pandas.io.sas.sas_xport import XportReader  # noqa: F401
@@ -60,7 +60,7 @@ def read_sas(
             "than a string name, you must specify "
             "a format string"
         )
-        filepath_or_buffer = _stringify_path(filepath_or_buffer)
+        filepath_or_buffer = stringify_path(filepath_or_buffer)
         if not isinstance(filepath_or_buffer, str):
             raise ValueError(buffer_error_msg)
         fname = filepath_or_buffer.lower()

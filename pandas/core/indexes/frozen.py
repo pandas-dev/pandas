@@ -35,7 +35,7 @@ class FrozenList(PandasObject, list):
 
         Returns
         -------
-        diff : FrozenList
+        FrozenList
             The collection difference between self and other.
         """
         if isinstance(other, tuple):
@@ -53,7 +53,7 @@ class FrozenList(PandasObject, list):
 
         Returns
         -------
-        diff : FrozenList
+        FrozenList
             The collection difference between self and other.
         """
         other = set(other)
@@ -92,12 +92,10 @@ class FrozenList(PandasObject, list):
         return hash(tuple(self))
 
     def _disabled(self, *args, **kwargs):
-        """This method will not function because object is immutable."""
-        raise TypeError(
-            "'{cls}' does not support mutable operations.".format(
-                cls=type(self).__name__
-            )
-        )
+        """
+        This method will not function because object is immutable.
+        """
+        raise TypeError(f"'{type(self).__name__}' does not support mutable operations.")
 
     def __str__(self) -> str:
         return pprint_thing(self, quote_strings=True, escape_chars=("\t", "\r", "\n"))

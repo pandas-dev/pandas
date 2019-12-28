@@ -26,6 +26,7 @@ from pandas.core.dtypes.missing import isna, notna
 from pandas.core import nanops, ops
 from pandas.core.algorithms import take
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
+from pandas.core.ops import invalid_comparison
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.tools.numeric import to_numeric
 
@@ -47,7 +48,7 @@ class _IntegerDtype(ExtensionDtype):
 
     def __repr__(self) -> str:
         sign = "U" if self.is_unsigned_integer else ""
-        return "{sign}Int{size}Dtype()".format(sign=sign, size=8 * self.itemsize)
+        return f"{sign}Int{8 * self.itemsize}Dtype()"
 
     @cache_readonly
     def is_signed_integer(self):
@@ -77,7 +78,8 @@ class _IntegerDtype(ExtensionDtype):
 
     @classmethod
     def construct_array_type(cls):
-        """Return the array type associated with this dtype
+        """
+        Return the array type associated with this dtype.
 
         Returns
         -------
@@ -155,9 +157,7 @@ def safe_cast(values, dtype, copy):
             return casted
 
         raise TypeError(
-            "cannot safely cast non-equivalent {} to {}".format(
-                values.dtype, np.dtype(dtype)
-            )
+            f"cannot safely cast non-equivalent {values.dtype} to {np.dtype(dtype)}"
         )
 
 
@@ -194,7 +194,7 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
             try:
                 dtype = _dtypes[str(np.dtype(dtype))]
             except KeyError:
-                raise ValueError("invalid dtype specified {}".format(dtype))
+                raise ValueError(f"invalid dtype specified {dtype}")
 
     if isinstance(values, IntegerArray):
         values, mask = values._data, values._mask
@@ -219,17 +219,13 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
             "integer-na",
             "mixed-integer-float",
         ]:
-            raise TypeError(
-                "{} cannot be converted to an IntegerDtype".format(values.dtype)
-            )
+            raise TypeError(f"{values.dtype} cannot be converted to an IntegerDtype")
 
     elif is_bool_dtype(values) and is_integer_dtype(dtype):
         values = np.array(values, dtype=int, copy=copy)
 
     elif not (is_integer_dtype(values) or is_float_dtype(values)):
-        raise TypeError(
-            "{} cannot be converted to an IntegerDtype".format(values.dtype)
-        )
+        raise TypeError(f"{values.dtype} cannot be converted to an IntegerDtype")
 
     if mask is None:
         mask = isna(values)
@@ -652,7 +648,11 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", "elementwise", FutureWarning)
                 with np.errstate(all="ignore"):
-                    result = op(self._data, other)
+                    method = getattr(self._data, f"__{op_name}__")
+                    result = method(other)
+
+                    if result is NotImplemented:
+                        result = invalid_comparison(self._data, other, op)
 
             # nans propagate
             if mask is None:
@@ -663,7 +663,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             result[mask] = op_name == "ne"
             return result
 
-        name = "__{name}__".format(name=op.__name__)
+        name = f"__{op.__name__}__"
         return set_function_name(cmp_method, name, cls)
 
     def _reduce(self, name, skipna=True, **kwargs):
@@ -701,11 +701,6 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         op_name : str
         """
 
-        # may need to fill infs
-        # and mask wraparound
-        if is_float_dtype(result):
-            mask |= (result == np.inf) | (result == -np.inf)
-
         # if we have a float operand we are by-definition
         # a float result
         # or our op is a divide
@@ -724,13 +719,13 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         @unpack_zerodim_and_defer(op.__name__)
         def integer_arithmetic_method(self, other):
 
-            mask = None
+            omask = None
 
             if getattr(other, "ndim", 0) > 1:
                 raise NotImplementedError("can only perform ops with 1-d structures")
 
             if isinstance(other, IntegerArray):
-                other, mask = other._data, other._mask
+                other, omask = other._data, other._mask
 
             elif is_list_like(other):
                 other = np.asarray(other)
@@ -748,17 +743,28 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
                     raise TypeError("can only perform ops with numeric values")
 
             # nans propagate
-            if mask is None:
-                mask = self._mask
+            if omask is None:
+                mask = self._mask.copy()
             else:
-                mask = self._mask | mask
+                mask = self._mask | omask
 
-            # 1 ** np.nan is 1. So we have to unmask those.
             if op_name == "pow":
-                mask = np.where(self == 1, False, mask)
+                # 1 ** x is 1.
+                mask = np.where((self._data == 1) & ~self._mask, False, mask)
+                # x ** 0 is 1.
+                if omask is not None:
+                    mask = np.where((other == 0) & ~omask, False, mask)
+                else:
+                    mask = np.where(other == 0, False, mask)
 
             elif op_name == "rpow":
-                mask = np.where(other == 1, False, mask)
+                # 1 ** x is 1.
+                if omask is not None:
+                    mask = np.where((other == 1) & ~omask, False, mask)
+                else:
+                    mask = np.where(other == 1, False, mask)
+                # x ** 0 is 1.
+                mask = np.where((self._data == 0) & ~self._mask, False, mask)
 
             with np.errstate(all="ignore"):
                 result = op(self._data, other)
@@ -773,7 +779,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
             return self._maybe_mask_result(result, mask, other, op_name)
 
-        name = "__{name}__".format(name=op.__name__)
+        name = f"__{op.__name__}__"
         return set_function_name(integer_arithmetic_method, name, cls)
 
 

@@ -67,8 +67,10 @@ class disallow:
         def _f(*args, **kwargs):
             obj_iter = itertools.chain(args, kwargs.values())
             if any(self.check(obj) for obj in obj_iter):
-                msg = "reduction operation {name!r} not allowed for this dtype"
-                raise TypeError(msg.format(name=f.__name__.replace("nan", "")))
+                f_name = f.__name__.replace("nan", "")
+                raise TypeError(
+                    f"reduction operation '{f_name}' not allowed for this dtype"
+                )
             try:
                 with np.errstate(invalid="ignore"):
                     return f(*args, **kwargs)
@@ -319,7 +321,7 @@ def _get_values(
 
         # promote if needed
         else:
-            values, changed = maybe_upcast_putmask(values, mask, fill_value)
+            values, _ = maybe_upcast_putmask(values, mask, fill_value)
 
     # return a platform independent precision dtype
     dtype_max = dtype
@@ -1312,9 +1314,7 @@ def _ensure_numeric(x):
                 x = complex(x)
             except ValueError:
                 # e.g. "foo"
-                raise TypeError(
-                    "Could not convert {value!s} to numeric".format(value=x)
-                )
+                raise TypeError(f"Could not convert {x} to numeric")
     return x
 
 
@@ -1350,7 +1350,7 @@ nanne = make_nancomp(operator.ne)
 
 def _nanpercentile_1d(values, mask, q, na_value, interpolation):
     """
-    Wraper for np.percentile that skips missing values, specialized to
+    Wrapper for np.percentile that skips missing values, specialized to
     1-dimensional case.
 
     Parameters
@@ -1381,7 +1381,7 @@ def _nanpercentile_1d(values, mask, q, na_value, interpolation):
 
 def nanpercentile(values, q, axis, na_value, mask, ndim, interpolation):
     """
-    Wraper for np.percentile that skips missing values.
+    Wrapper for np.percentile that skips missing values.
 
     Parameters
     ----------

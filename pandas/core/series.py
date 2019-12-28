@@ -4,7 +4,7 @@ Data structure for 1-dimensional cross-sectional and time series data
 from io import StringIO
 from shutil import get_terminal_size
 from textwrap import dedent
-from typing import Any, Callable, Hashable, List, Optional
+from typing import IO, Any, Callable, Hashable, List, Optional
 import warnings
 
 import numpy as np
@@ -13,14 +13,13 @@ from pandas._config import get_option
 
 from pandas._libs import index as libindex, lib, reshape, tslibs
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender, Substitution, deprecate
+from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_bool_kwarg, validate_percentile
 
 from pandas.core.dtypes.common import (
     _is_unorderable_exception,
     ensure_platform_int,
     is_bool,
-    is_categorical,
     is_categorical_dtype,
     is_datetime64_dtype,
     is_dict_like,
@@ -60,15 +59,16 @@ from pandas.core.construction import (
     is_empty_data,
     sanitize_array,
 )
-from pandas.core.index import (
+from pandas.core.generic import _shared_docs
+from pandas.core.indexers import maybe_convert_indices
+from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
+from pandas.core.indexes.api import (
     Float64Index,
     Index,
     InvalidIndexError,
     MultiIndex,
     ensure_index,
 )
-from pandas.core.indexers import maybe_convert_indices
-from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex
@@ -195,12 +195,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         else:
 
+            name = ibase.maybe_extract_name(name, data, type(self))
+
             if is_empty_data(data) and dtype is None:
                 # gh-17261
                 warnings.warn(
-                    "The default dtype for empty Series will be 'object' instead"
-                    " of 'float64' in a future version. Specify a dtype explicitly"
-                    " to silence this warning.",
+                    "The default dtype for empty Series will be 'object' instead "
+                    "of 'float64' in a future version. Specify a dtype explicitly "
+                    "to silence this warning.",
                     DeprecationWarning,
                     stacklevel=2,
                 )
@@ -213,15 +215,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if data is None:
                 data = {}
             if dtype is not None:
-                # GH 26336: explicitly handle 'category' to avoid warning
-                # TODO: Remove after CategoricalDtype defaults to ordered=False
-                if (
-                    isinstance(dtype, str)
-                    and dtype == "category"
-                    and is_categorical(data)
-                ):
-                    dtype = data.dtype
-
                 dtype = self._validate_dtype(dtype)
 
             if isinstance(data, MultiIndex):
@@ -229,8 +222,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     "initializing a Series from a MultiIndex is not supported"
                 )
             elif isinstance(data, Index):
-                if name is None:
-                    name = data.name
 
                 if dtype is not None:
                     # astype copies
@@ -245,10 +236,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 copy = False
 
             elif isinstance(data, np.ndarray):
+                if len(data.dtype):
+                    # GH#13296 we are dealing with a compound dtype, which
+                    #  should be treated as 2D
+                    raise ValueError(
+                        "Cannot construct a Series from an ndarray with "
+                        "compound dtype.  Use DataFrame instead."
+                    )
                 pass
             elif isinstance(data, ABCSeries):
-                if name is None:
-                    name = data.name
                 if index is None:
                     index = data.index
                 else:
@@ -267,14 +263,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     raise AssertionError(
                         "Cannot pass both SingleBlockManager "
                         "`data` argument and a different "
-                        "`index` argument.  `copy` must "
-                        "be False."
+                        "`index` argument. `copy` must be False."
                     )
 
             elif is_extension_array_dtype(data):
                 pass
             elif isinstance(data, (set, frozenset)):
-                raise TypeError(f"{repr(type(data).__name__)} type is unordered")
+                raise TypeError(f"'{type(data).__name__}' type is unordered")
             elif isinstance(data, ABCSparseArray):
                 # handle sparse passed here (and force conversion)
                 data = data.to_dense()
@@ -515,30 +510,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return self._values.ravel(order=order)
 
-    def compress(self, condition, *args, **kwargs):
-        """
-        Return selected slices of an array along given axis as a Series.
-
-        .. deprecated:: 0.24.0
-
-        Returns
-        -------
-        Series
-            Series without the slices for which condition is false.
-
-        See Also
-        --------
-        numpy.ndarray.compress
-        """
-        msg = (
-            "Series.compress(condition) is deprecated. "
-            "Use 'Series[condition]' or "
-            "'np.asarray(series).compress(condition)' instead."
-        )
-        warnings.warn(msg, FutureWarning, stacklevel=2)
-        nv.validate_compress(args, kwargs)
-        return self[condition]
-
     def __len__(self) -> int:
         """
         Return the length of the Series.
@@ -684,14 +655,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             elif result.ndim > 1:
                 # e.g. np.subtract.outer
                 if method == "outer":
-                    msg = (
-                        "outer method for ufunc {} is not implemented on "
-                        "pandas objects. Returning an ndarray, but in the "
-                        "future this will raise a 'NotImplementedError'. "
-                        "Consider explicitly converting the Series "
-                        "to an array with '.array' first."
-                    )
-                    warnings.warn(msg.format(ufunc), FutureWarning, stacklevel=3)
+                    # GH#27198
+                    raise NotImplementedError
                 return result
             return self._constructor(result, index=index, name=name, copy=False)
 
@@ -744,7 +709,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                Timestamp('2000-01-02 00:00:00+0100', tz='CET', freq='D')],
               dtype=object)
 
-        Or the values may be localized to UTC and the tzinfo discared with
+        Or the values may be localized to UTC and the tzinfo discarded with
         ``dtype='datetime64[ns]'``
 
         >>> np.asarray(tzser, dtype="datetime64[ns]")  # doctest: +ELLIPSIS
@@ -1451,6 +1416,27 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 with open(buf, "w") as f:
                     f.write(result)
 
+    @Appender(
+        """
+        Examples
+        --------
+        >>> s = pd.Series(["elk", "pig", "dog", "quetzal"], name="animal")
+        >>> print(s.to_markdown())
+        |    | animal   |
+        |---:|:---------|
+        |  0 | elk      |
+        |  1 | pig      |
+        |  2 | dog      |
+        |  3 | quetzal  |
+        """
+    )
+    @Substitution(klass="Series")
+    @Appender(_shared_docs["to_markdown"])
+    def to_markdown(
+        self, buf: Optional[IO[str]] = None, mode: Optional[str] = None, **kwargs,
+    ) -> Optional[str]:
+        return self.to_frame().to_markdown(buf, mode, **kwargs)
+
     # ----------------------------------------------------------------------
 
     def items(self):
@@ -2006,36 +1992,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if i == -1:
             return np.nan
         return self.index[i]
-
-    # ndarray compat
-    argmin = deprecate(
-        "argmin",
-        idxmin,
-        "0.21.0",
-        msg=dedent(
-            """
-        The current behaviour of 'Series.argmin' is deprecated, use 'idxmin'
-        instead.
-        The behavior of 'argmin' will be corrected to return the positional
-        minimum in the future. For now, use 'series.values.argmin' or
-        'np.argmin(np.array(values))' to get the position of the minimum
-        row."""
-        ),
-    )
-    argmax = deprecate(
-        "argmax",
-        idxmax,
-        "0.21.0",
-        msg=dedent(
-            """
-        The current behaviour of 'Series.argmax' is deprecated, use 'idxmax'
-        instead.
-        The behavior of 'argmax' will be corrected to return the positional
-        maximum in the future. For now, use 'series.values.argmax' or
-        'np.argmax(np.array(values))' to get the position of the maximum
-        row."""
-        ),
-    )
 
     def round(self, decimals=0, *args, **kwargs):
         """
@@ -2740,6 +2696,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         inplace=False,
         kind="quicksort",
         na_position="last",
+        ignore_index=False,
     ):
         """
         Sort by the values.
@@ -2762,6 +2719,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         na_position : {'first' or 'last'}, default 'last'
             Argument 'first' puts NaNs at the beginning, 'last' puts NaNs at
             the end.
+        ignore_index : bool, default False
+             If True, the resulting axis will be labeled 0, 1, …, n - 1.
+
+             .. versionadded:: 1.0.0
 
         Returns
         -------
@@ -2867,7 +2828,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 return arr.argsort(kind="quicksort")
 
         arr = self._values
-        sortedIdx = np.empty(len(self), dtype=np.int32)
+        sorted_index = np.empty(len(self), dtype=np.int32)
 
         bad = isna(arr)
 
@@ -2891,16 +2852,19 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         if na_position == "last":
             n = good.sum()
-            sortedIdx[:n] = idx[good][argsorted]
-            sortedIdx[n:] = idx[bad]
+            sorted_index[:n] = idx[good][argsorted]
+            sorted_index[n:] = idx[bad]
         elif na_position == "first":
             n = bad.sum()
-            sortedIdx[n:] = idx[good][argsorted]
-            sortedIdx[:n] = idx[bad]
+            sorted_index[n:] = idx[good][argsorted]
+            sorted_index[:n] = idx[bad]
         else:
             raise ValueError(f"invalid na_position: {na_position}")
 
-        result = self._constructor(arr[sortedIdx], index=self.index[sortedIdx])
+        result = self._constructor(arr[sorted_index], index=self.index[sorted_index])
+
+        if ignore_index:
+            result.index = ibase.default_index(len(sorted_index))
 
         if inplace:
             self._update_inplace(result)
@@ -3767,7 +3731,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         If we have an ndarray as a value, then simply perform the operation,
         otherwise delegate to the object.
         """
-
         delegate = self._values
 
         if axis is not None:
@@ -4436,7 +4399,6 @@ Series._setup_axes(
     ["index"], docs={"index": "The index (axis labels) of the Series."},
 )
 Series._add_numeric_operations()
-Series._add_series_only_operations()
 Series._add_series_or_dataframe_operations()
 
 # Add arithmetic!

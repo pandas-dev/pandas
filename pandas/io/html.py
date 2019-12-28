@@ -17,7 +17,7 @@ from pandas.core.dtypes.common import is_list_like
 
 from pandas.core.construction import create_series_with_explicit_dtype
 
-from pandas.io.common import _is_url, _validate_header_arg, urlopen
+from pandas.io.common import is_url, urlopen, validate_header_arg
 from pandas.io.formats.printing import pprint_thing
 from pandas.io.parsers import TextParser
 
@@ -105,9 +105,7 @@ def _get_skiprows(skiprows):
         return skiprows
     elif skiprows is None:
         return 0
-    raise TypeError(
-        "%r is not a valid type for skipping rows" % type(skiprows).__name__
-    )
+    raise TypeError(f"{type(skiprows).__name__} is not a valid type for skipping rows")
 
 
 def _read(obj):
@@ -122,7 +120,7 @@ def _read(obj):
     -------
     raw_text : str
     """
-    if _is_url(obj):
+    if is_url(obj):
         with urlopen(obj) as url:
             text = url.read()
     elif hasattr(obj, "read"):
@@ -136,7 +134,7 @@ def _read(obj):
         except (TypeError, ValueError):
             pass
     else:
-        raise TypeError("Cannot read object of type %r" % type(obj).__name__)
+        raise TypeError(f"Cannot read object of type '{type(obj).__name__}'")
     return text
 
 
@@ -712,7 +710,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
         parser = HTMLParser(recover=True, encoding=self.encoding)
 
         try:
-            if _is_url(self.io):
+            if is_url(self.io):
                 with urlopen(self.io) as f:
                     r = parse(f, parser=parser)
             else:
@@ -724,7 +722,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
                 pass
         except (UnicodeDecodeError, IOError) as e:
             # if the input is a blob of html goop
-            if not _is_url(self.io):
+            if not is_url(self.io):
                 r = fromstring(self.io, parser=parser)
 
                 try:
@@ -1085,7 +1083,7 @@ def read_html(
             "cannot skip rows starting from the end of the "
             "data (you passed a negative value)"
         )
-    _validate_header_arg(header)
+    validate_header_arg(header)
     return _parse(
         flavor=flavor,
         io=io,

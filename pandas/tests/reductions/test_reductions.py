@@ -695,52 +695,40 @@ class TestSeriesReductions:
             assert Series([], dtype=dtype).min(skipna=False) is pd.NaT
             assert Series([], dtype=dtype).max(skipna=False) is pd.NaT
 
-    def test_numpy_argmin_deprecated(self):
+    def test_numpy_argmin(self):
         # See GH#16830
         data = np.arange(1, 11)
 
         s = Series(data, index=data)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            # The deprecation of Series.argmin also causes a deprecation
-            # warning when calling np.argmin. This behavior is temporary
-            # until the implementation of Series.argmin is corrected.
-            result = np.argmin(s)
+        result = np.argmin(s)
 
-        assert result == 1
+        expected = np.argmin(data)
+        assert result == expected
 
-        with tm.assert_produces_warning(FutureWarning):
-            # argmin is aliased to idxmin
-            result = s.argmin()
+        result = s.argmin()
 
-        assert result == 1
+        assert result == expected
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            msg = "the 'out' parameter is not supported"
-            with pytest.raises(ValueError, match=msg):
-                np.argmin(s, out=data)
+        msg = "the 'out' parameter is not supported"
+        with pytest.raises(ValueError, match=msg):
+            np.argmin(s, out=data)
 
-    def test_numpy_argmax_deprecated(self):
+    def test_numpy_argmax(self):
         # See GH#16830
         data = np.arange(1, 11)
 
         s = Series(data, index=data)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            # The deprecation of Series.argmax also causes a deprecation
-            # warning when calling np.argmax. This behavior is temporary
-            # until the implementation of Series.argmax is corrected.
-            result = np.argmax(s)
-        assert result == 10
+        result = np.argmax(s)
+        expected = np.argmax(data)
+        assert result == expected
 
-        with tm.assert_produces_warning(FutureWarning):
-            # argmax is aliased to idxmax
-            result = s.argmax()
+        result = s.argmax()
 
-        assert result == 10
+        assert result == expected
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            msg = "the 'out' parameter is not supported"
-            with pytest.raises(ValueError, match=msg):
-                np.argmax(s, out=data)
+        msg = "the 'out' parameter is not supported"
+        with pytest.raises(ValueError, match=msg):
+            np.argmax(s, out=data)
 
     def test_idxmin(self):
         # test idxmin

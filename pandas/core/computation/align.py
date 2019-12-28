@@ -42,7 +42,9 @@ def _zip_axes_from_type(
 
 
 def _any_pandas_objects(terms) -> bool:
-    """Check a sequence of terms for instances of PandasObject."""
+    """
+    Check a sequence of terms for instances of PandasObject.
+    """
     return any(isinstance(term.value, PandasObject) for term in terms)
 
 
@@ -123,7 +125,9 @@ def _align_core(terms):
 
 
 def align_terms(terms):
-    """Align a set of terms"""
+    """
+    Align a set of terms.
+    """
     try:
         # flatten the parse tree (a nested list, really)
         terms = list(com.flatten(terms))

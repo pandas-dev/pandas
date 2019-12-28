@@ -145,13 +145,13 @@ def _sparse_array_op(
             name = name[1:]
 
         if name in ("and", "or") and dtype == "bool":
-            opname = "sparse_{name}_uint8".format(name=name)
+            opname = f"sparse_{name}_uint8"
             # to make template simple, cast here
             left_sp_values = left.sp_values.view(np.uint8)
             right_sp_values = right.sp_values.view(np.uint8)
             result_dtype = np.bool
         else:
-            opname = "sparse_{name}_{dtype}".format(name=name, dtype=dtype)
+            opname = f"sparse_{name}_{dtype}"
             left_sp_values = left.sp_values
             right_sp_values = right.sp_values
 
@@ -366,8 +366,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             sparse_values = np.asarray(data, dtype=dtype)
             if len(sparse_values) != sparse_index.npoints:
                 raise AssertionError(
-                    "Non array-like type {type} must "
-                    "have the same length as the index".format(type=type(sparse_values))
+                    f"Non array-like type {type(sparse_values)} must "
+                    "have the same length as the index"
                 )
         self._sparse_index = sparse_index
         self._sparse_values = sparse_values
@@ -417,7 +417,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         length, ncol = data.shape
 
         if ncol != 1:
-            raise ValueError("'data' must have a single column, not '{}'".format(ncol))
+            raise ValueError(f"'data' must have a single column, not '{ncol}'")
 
         # our sparse index classes require that the positions be strictly
         # increasing. So we need to sort loc, and arr accordingly.
@@ -776,7 +776,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             elif hasattr(key, "__len__"):
                 return self.take(key)
             else:
-                raise ValueError("Cannot slice with '{}'".format(key))
+                raise ValueError(f"Cannot slice with '{key}'")
 
         return type(self)(data_slice, kind=self.kind)
 
@@ -796,9 +796,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     def take(self, indices, allow_fill: bool = False, fill_value=None):
         if is_scalar(indices):
-            raise ValueError(
-                "'indices' must be an array, not a scalar '{}'.".format(indices)
-            )
+            raise ValueError(f"'indices' must be an array, not a scalar '{indices}'.")
         indices = np.asarray(indices, dtype=np.int32)
 
         result: List
@@ -938,8 +936,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         if not (len(set(fill_values)) == 1 or isna(fill_values).all()):
             warnings.warn(
                 "Concatenating sparse arrays with multiple fill "
-                "values: '{}'. Picking the first and "
-                "converting the rest.".format(fill_values),
+                f"values: '{fill_values}'. Picking the first and "
+                "converting the rest.",
                 PerformanceWarning,
                 stacklevel=6,
             )
@@ -1159,11 +1157,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         method = getattr(self, name, None)
 
         if method is None:
-            raise TypeError(
-                "cannot perform {name} with type {dtype}".format(
-                    name=name, dtype=self.dtype
-                )
-            )
+            raise TypeError(f"cannot perform {name} with type {self.dtype}")
 
         if skipna:
             arr = self
@@ -1259,7 +1253,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         nv.validate_cumsum(args, kwargs)
 
         if axis is not None and axis >= self.ndim:  # Mimic ndarray behaviour.
-            raise ValueError("axis(={axis}) out of bounds".format(axis=axis))
+            raise ValueError(f"axis(={axis}) out of bounds")
 
         if not self._null_fill_value:
             return SparseArray(self.to_dense()).cumsum()
@@ -1375,7 +1369,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             dtype = SparseDtype(values.dtype, fill_value)
             return cls._simple_new(values, self.sp_index, dtype)
 
-        name = "__{name}__".format(name=op.__name__)
+        name = f"__{op.__name__}__"
         return compat.set_function_name(sparse_unary_method, name, cls)
 
     @classmethod
@@ -1409,11 +1403,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                     # TODO: look into _wrap_result
                     if len(self) != len(other):
                         raise AssertionError(
-                            (
-                                "length mismatch: {self} vs. {other}".format(
-                                    self=len(self), other=len(other)
-                                )
-                            )
+                            (f"length mismatch: {len(self)} vs. {len(other)}")
                         )
                     if not isinstance(other, SparseArray):
                         dtype = getattr(other, "dtype", None)
@@ -1422,7 +1412,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                         )
                     return _sparse_array_op(self, other, op, op_name)
 
-        name = "__{name}__".format(name=op.__name__)
+        name = f"__{op.__name__}__"
         return compat.set_function_name(sparse_arithmetic_method, name, cls)
 
     @classmethod
@@ -1442,9 +1432,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                 # TODO: make this more flexible than just ndarray...
                 if len(self) != len(other):
                     raise AssertionError(
-                        "length mismatch: {self} vs. {other}".format(
-                            self=len(self), other=len(other)
-                        )
+                        f"length mismatch: {len(self)} vs. {len(other)}"
                     )
                 other = SparseArray(other, fill_value=self.fill_value)
 
@@ -1462,7 +1450,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                     dtype=np.bool_,
                 )
 
-        name = "__{name}__".format(name=op.__name__)
+        name = f"__{op.__name__}__"
         return compat.set_function_name(cmp_method, name, cls)
 
     @classmethod
@@ -1481,11 +1469,10 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     # Formatting
     # -----------
     def __repr__(self) -> str:
-        return "{self}\nFill: {fill}\n{index}".format(
-            self=printing.pprint_thing(self),
-            fill=printing.pprint_thing(self.fill_value),
-            index=printing.pprint_thing(self.sp_index),
-        )
+        pp_str = printing.pprint_thing(self)
+        pp_fill = printing.pprint_thing(self.fill_value)
+        pp_index = printing.pprint_thing(self.sp_index)
+        return f"{pp_str}\nFill: {pp_fill}\n{pp_index}"
 
     def _formatter(self, boxed=False):
         # Defer to the formatter from the GenericArrayFormatter calling us.
