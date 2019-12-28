@@ -17,7 +17,7 @@ from pandas.core.dtypes.missing import isna
 from pandas import compat
 from pandas.core import nanops
 from pandas.core.algorithms import searchsorted, take, unique
-from pandas.core.common import is_bool_indexer
+import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.missing import backfill_1d, pad_1d
 
@@ -238,7 +238,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         if isinstance(item, type(self)):
             item = item._ndarray
 
-        elif is_bool_indexer(item):
+        elif com.is_bool_indexer(item):
             item = check_bool_array_indexer(self, item)
 
         result = self._ndarray[item]

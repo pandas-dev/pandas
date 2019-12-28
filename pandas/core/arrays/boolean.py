@@ -29,7 +29,7 @@ from pandas.core.dtypes.missing import isna, notna
 from pandas.core import nanops, ops
 from pandas.core.algorithms import take
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
-from pandas.core.common import is_bool_indexer
+import pandas.core.common as com
 
 if TYPE_CHECKING:
     from pandas._typing import Scalar
@@ -324,7 +324,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
                 return self.dtype.na_value
             return self._data[item]
 
-        elif is_bool_indexer(item):
+        elif com.is_bool_indexer(item):
             item = check_bool_array_indexer(self, item)
 
         return type(self)(self._data[item], self._mask[item])
