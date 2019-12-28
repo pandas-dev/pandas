@@ -123,7 +123,7 @@ def is_bool_indexer(key: Any) -> bool:
     api.extensions.check_bool_array_indexer : Check that `key`
         is a valid mask for an array, and convert to an ndarary.
     """
-    na_msg = "cannot index with vector containing NA / NaN values"
+    na_msg = "cannot mask with array containing NA / NaN values"
     if isinstance(key, (ABCSeries, np.ndarray, ABCIndex)) or (
         is_array_like(key) and is_extension_array_dtype(key.dtype)
     ):

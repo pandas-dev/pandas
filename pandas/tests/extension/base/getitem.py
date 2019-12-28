@@ -130,7 +130,7 @@ class BaseGetitemTests(BaseExtensionTests):
         with pytest.raises(IndexError):
             data[mask]
 
-    def test_getitem_boolenarray_mask(self, data):
+    def test_getitem_boolean_array_mask(self, data):
         mask = pd.array(np.zeros(data.shape, dtype="bool"), dtype="boolean")
         result = data[mask]
         assert len(result) == 0
@@ -149,7 +149,7 @@ class BaseGetitemTests(BaseExtensionTests):
         result = pd.Series(data)[mask]
         self.assert_series_equal(result, expected)
 
-    def test_getitem_boolenarray_mask_raises(self, data):
+    def test_getitem_boolean_array_mask_raises(self, data):
         mask = pd.array(np.zeros(data.shape, dtype="bool"), dtype="boolean")
         mask[:2] = pd.NA
         with pytest.raises(ValueError):
