@@ -398,7 +398,10 @@ class SelectionMixin:
                 run the aggregations over the arg with func
                 return a dict
                 """
-                return {}
+                result = {}
+                for fname, agg_how in arg.items():
+                    result[fname] = func(fname, agg_how)
+                return result
 
             # set the final keys
             keys = list(arg.keys())
