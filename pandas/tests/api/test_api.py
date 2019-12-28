@@ -101,7 +101,7 @@ class TestPDApi(Base):
     deprecated_classes_in_future: List[str] = []
 
     # external modules exposed in pandas namespace
-    modules = []
+    modules: List[str] = []
 
     # top-level functions
     funcs = [
@@ -239,16 +239,11 @@ class TestPDApi(Base):
 
 def test_datetime():
     from datetime import datetime
+    import warnings
 
-    msg = (
-        "The pandas.datetime module is deprecated "
-        "and will be removed from pandas in a future version. "
-        "Import datetime directly instead."
-    )
-
-    with tm.assert_produces_warning(FutureWarning) as w:
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", FutureWarning)
         assert datetime(2015, 1, 2, 0, 0) == pd.datetime(2015, 1, 2, 0, 0)
-        assert msg in str(w[-1].message)
 
 
 def test_np():

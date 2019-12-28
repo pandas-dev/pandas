@@ -294,8 +294,8 @@ else:
         def __getattr__(self, item):
             self.warnings.warn(
                 "The pandas.datetime module is deprecated "
-                "and will be removed from pandas in a future version."
-                "Import datetime directly instead.",
+                "and will be removed from pandas in a future version. "
+                "Import datetime directly instead",
                 FutureWarning,
                 stacklevel=2,
             )
@@ -305,7 +305,7 @@ else:
             except AttributeError:
                 raise AttributeError(f"module datetime has no attribute {item}")
 
-    datetime = __Datetime()
+    datetime = __Datetime().datetime
 
 
 # module level doc-string
