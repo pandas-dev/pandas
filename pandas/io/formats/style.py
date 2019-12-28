@@ -255,7 +255,7 @@ class Styler:
         BLANK_VALUE = ""
 
         def format_attr(pair):
-            return "{key}={value}".format(**pair)
+            return f"{pair['key']}={pair['value']}"
 
         # for sparsifying a MultiIndex
         idx_lengths = _get_level_lengths(self.index)

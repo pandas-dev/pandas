@@ -75,6 +75,7 @@ dependencies:
   - matplotlib>=2.2.2  # pandas.plotting, Series.plot, DataFrame.plot
   - numexpr>=2.6.8
   - scipy>=1.1
+  - numba>=0.46.0
 
   # optional for io
   # ---------------
@@ -100,5 +101,6 @@ dependencies:
   - sqlalchemy  # pandas.read_sql, DataFrame.to_sql
   - xarray  # DataFrame.to_xarray
   - pyreadstat  # pandas.read_spss
+  - tabulate>=0.8.3  # DataFrame.to_markdown
   - pip:
     - git+https://github.com/pandas-dev/pandas-sphinx-theme.git@master
