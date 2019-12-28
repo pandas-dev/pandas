@@ -7,11 +7,11 @@ import warnings
 
 import numpy as np
 
+from pandas._typing import FrameOrSeries
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
-from pandas._typing import FrameOrSeries
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.computation.common import result_type_many

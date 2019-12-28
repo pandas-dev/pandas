@@ -2,13 +2,13 @@ from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Sequence, Tupl
 
 import numpy as np
 
+from pandas._typing import Axis
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import is_integer_dtype, is_list_like, is_scalar
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
-from pandas._typing import Axis
 import pandas.core.common as com
 from pandas.core.frame import _shared_docs
 from pandas.core.groupby import Grouper

@@ -399,6 +399,7 @@ class SelectionMixin:
                 return a dict
                 """
                 return {}
+
             # set the final keys
             keys = list(arg.keys())
             result: Any = {}

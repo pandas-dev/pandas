@@ -15,13 +15,13 @@ import numpy as np
 
 from pandas._config import get_option
 
+from pandas._typing import Axis, FrameOrSeries
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import is_float
 
 import pandas as pd
-from pandas._typing import Axis, FrameOrSeries
 from pandas.api.types import is_dict_like, is_list_like
 import pandas.core.common as com
 from pandas.core.generic import _shared_docs
