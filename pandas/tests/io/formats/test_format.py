@@ -446,7 +446,7 @@ class TestDataFrameFormatting:
                     assert not has_truncated_repr(df6)
 
                 with option_context("display.max_rows", 9, "display.max_columns", 10):
-                    # out vertical bounds can not result in exanded repr
+                    # out vertical bounds can not result in expanded repr
                     assert not has_expanded_repr(df10)
                     assert has_vertically_truncated_repr(df10)
 

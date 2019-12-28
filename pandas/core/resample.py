@@ -1025,8 +1025,7 @@ class DatetimeIndexResampler(Resampler):
         if not len(ax):
             # reset to the new freq
             obj = obj.copy()
-            # TODO: find a less code-smelly way to set this
-            obj.index._data._freq = self.freq
+            obj.index._set_freq(self.freq)
             return obj
 
         # do we have a regular frequency
@@ -1700,8 +1699,8 @@ def _get_period_range_edges(first, last, offset, closed="left", base=0):
     # GH 23882
     first = first.to_timestamp()
     last = last.to_timestamp()
-    adjust_first = not offset.onOffset(first)
-    adjust_last = offset.onOffset(last)
+    adjust_first = not offset.is_on_offset(first)
+    adjust_last = offset.is_on_offset(last)
 
     first, last = _get_timestamp_range_edges(
         first, last, offset, closed=closed, base=base

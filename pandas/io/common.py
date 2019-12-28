@@ -2,7 +2,7 @@
 
 import bz2
 import codecs
-from collections.abc import Iterator
+from collections import abc
 import gzip
 from io import BufferedIOBase, BytesIO
 import mmap
@@ -30,6 +30,7 @@ from urllib.parse import (  # noqa
 )
 import zipfile
 
+from pandas._typing import FilePathOrBuffer
 from pandas.compat import _get_lzma_file, _import_lzma
 from pandas.errors import (  # noqa
     AbstractMethodError,
@@ -40,8 +41,6 @@ from pandas.errors import (  # noqa
 )
 
 from pandas.core.dtypes.common import is_file_like
-
-from pandas._typing import FilePathOrBuffer
 
 lzma = _import_lzma()
 
@@ -504,7 +503,7 @@ class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore
         return self.fp is None
 
 
-class _MMapWrapper(Iterator):
+class _MMapWrapper(abc.Iterator):
     """
     Wrapper for the Python's mmap class so that it can be properly read in
     by Python's csv.reader class.
@@ -541,7 +540,7 @@ class _MMapWrapper(Iterator):
         return newline
 
 
-class UTF8Recoder(Iterator):
+class UTF8Recoder(abc.Iterator):
     """
     Iterator that reads an encoded stream and re-encodes the input to UTF-8
     """

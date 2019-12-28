@@ -168,9 +168,7 @@ class TestPeriodIndexComparisons:
 
         # TODO: Could parametrize over boxes for idx?
         idx = PeriodIndex(["2011", "2012", "2013", "2014"], freq="A")
-        rev_msg = (
-            r"Input has different freq=(M|2M|3M) from " r"PeriodArray\(freq=A-DEC\)"
-        )
+        rev_msg = r"Input has different freq=(M|2M|3M) from PeriodArray\(freq=A-DEC\)"
         idx_msg = rev_msg if box_with_array is tm.to_array else msg
         with pytest.raises(IncompatibleFrequency, match=idx_msg):
             base <= idx
@@ -184,7 +182,7 @@ class TestPeriodIndexComparisons:
             Period("2011", freq="4M") >= base
 
         idx = PeriodIndex(["2011", "2012", "2013", "2014"], freq="4M")
-        rev_msg = r"Input has different freq=(M|2M|3M) from " r"PeriodArray\(freq=4M\)"
+        rev_msg = r"Input has different freq=(M|2M|3M) from PeriodArray\(freq=4M\)"
         idx_msg = rev_msg if box_with_array is tm.to_array else msg
         with pytest.raises(IncompatibleFrequency, match=idx_msg):
             base <= idx
@@ -755,18 +753,18 @@ class TestPeriodIndexArithmetic:
         rng -= pd.offsets.MonthEnd(5)
         tm.assert_index_equal(rng, expected)
 
-    def test_pi_add_offset_n_gt1(self, box_transpose_fail):
+    @pytest.mark.parametrize("transpose", [True, False])
+    def test_pi_add_offset_n_gt1(self, box_with_array, transpose):
         # GH#23215
         # add offset to PeriodIndex with freq.n > 1
-        box, transpose = box_transpose_fail
 
         per = pd.Period("2016-01", freq="2M")
         pi = pd.PeriodIndex([per])
 
         expected = pd.PeriodIndex(["2016-03"], freq="2M")
 
-        pi = tm.box_expected(pi, box, transpose=transpose)
-        expected = tm.box_expected(expected, box, transpose=transpose)
+        pi = tm.box_expected(pi, box_with_array, transpose=transpose)
+        expected = tm.box_expected(expected, box_with_array, transpose=transpose)
 
         result = pi + per.freq
         tm.assert_equal(result, expected)
@@ -984,16 +982,15 @@ class TestPeriodIndexArithmetic:
         with pytest.raises(IncompatibleFrequency, match=msg):
             rng -= other
 
-    def test_parr_add_sub_td64_nat(self, box_transpose_fail):
+    @pytest.mark.parametrize("transpose", [True, False])
+    def test_parr_add_sub_td64_nat(self, box_with_array, transpose):
         # GH#23320 special handling for timedelta64("NaT")
-        box, transpose = box_transpose_fail
-
         pi = pd.period_range("1994-04-01", periods=9, freq="19D")
         other = np.timedelta64("NaT")
         expected = pd.PeriodIndex(["NaT"] * 9, freq="19D")
 
-        obj = tm.box_expected(pi, box, transpose=transpose)
-        expected = tm.box_expected(expected, box, transpose=transpose)
+        obj = tm.box_expected(pi, box_with_array, transpose=transpose)
+        expected = tm.box_expected(expected, box_with_array, transpose=transpose)
 
         result = obj + other
         tm.assert_equal(result, expected)
@@ -1011,16 +1008,12 @@ class TestPeriodIndexArithmetic:
             TimedeltaArray._from_sequence(["NaT"] * 9),
         ],
     )
-    def test_parr_add_sub_tdt64_nat_array(self, box_df_fail, other):
-        # FIXME: DataFrame fails because when when operating column-wise
-        #  timedelta64 entries become NaT and are treated like datetimes
-        box = box_df_fail
-
+    def test_parr_add_sub_tdt64_nat_array(self, box_with_array, other):
         pi = pd.period_range("1994-04-01", periods=9, freq="19D")
         expected = pd.PeriodIndex(["NaT"] * 9, freq="19D")
 
-        obj = tm.box_expected(pi, box)
-        expected = tm.box_expected(expected, box)
+        obj = tm.box_expected(pi, box_with_array)
+        expected = tm.box_expected(expected, box_with_array)
 
         result = obj + other
         tm.assert_equal(result, expected)
