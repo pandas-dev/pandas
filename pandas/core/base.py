@@ -398,11 +398,10 @@ class SelectionMixin:
                 run the aggregations over the arg with func
                 return a dict
                 """
-                result = {}
-                return result
+                return {}
             # set the final keys
             keys = list(arg.keys())
-            result = {}
+            result: Any = {}
 
             if self._selection is not None:
 

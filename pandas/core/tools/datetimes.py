@@ -800,19 +800,19 @@ def _assemble_from_unit_mappings(arg, errors, tz):
     required = ["year", "month", "day"]
     req = sorted(set(required) - set(unit_rev.keys()))
     if len(req):
-        required = ",".join(req)
+        _required = ",".join(req)
         raise ValueError(
             "to assemble mappings requires at least that "
-            f"[year, month, day] be specified: [{required}] "
+            f"[year, month, day] be specified: [{_required}] "
             "is missing"
         )
 
     # keys we don't recognize
     excess = sorted(set(unit_rev.keys()) - set(_unit_map.values()))
     if len(excess):
-        excess = ",".join(excess)
+        _excess = ",".join(excess)
         raise ValueError(
-            f"extra keys have been passed to the datetime assemblage: [{excess}]"
+            f"extra keys have been passed to the datetime assemblage: [{_excess}]"
         )
 
     def coerce(values):

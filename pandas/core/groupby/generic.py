@@ -1899,10 +1899,7 @@ def _normalize_keyword_aggregation(
     """
     # Normalize the aggregation functions as Mapping[column, List[func]],
     # process normally, then fixup the names.
-    # TODO: aggspec type: typing.OrderedDict[str, List[AggScalar]]
-    # May be hitting https://github.com/python/mypy/issues/5958
-    # saying it doesn't have an attribute __name__
-    aggspec = defaultdict(list)
+    aggspec: Dict[str, List[AggScalar]] = defaultdict(list)
     order = []
     columns, pairs = list(zip(*kwargs.items()))
 
