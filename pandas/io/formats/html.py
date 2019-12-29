@@ -15,6 +15,7 @@ from pandas import option_context
 from pandas.io.common import _is_url
 from pandas.io.formats.format import (
     DataFrameFormatter,
+    SeriesFormatter,
     TableFormatter,
     buffer_put_lines,
     get_level_lengths,
@@ -22,7 +23,7 @@ from pandas.io.formats.format import (
 from pandas.io.formats.printing import pprint_thing
 
 
-class HTMLFormatter(TableFormatter):
+class HTMLTableFormatter(TableFormatter):
     """
     Internal class for formatting output data in html.
     This class is intended for shared functionality between
@@ -566,7 +567,7 @@ class HTMLFormatter(TableFormatter):
                 )
 
 
-class NotebookFormatter(HTMLFormatter):
+class NotebookTableFormatter(HTMLTableFormatter):
     """
     Internal class for formatting output data in html for display in Jupyter
     Notebooks. This class is intended for functionality specific to
@@ -603,6 +604,315 @@ class NotebookFormatter(HTMLFormatter):
                 )
         else:
             element_props.append(("thead th", "text-align", "right"))
+        template_mid = "\n\n".join(map(lambda t: template_select % t, element_props))
+        template = dedent("\n".join((template_first, template_mid, template_last)))
+        self.write(template)
+
+    def render(self) -> List[str]:
+        self.write("<div>")
+        self.write_style()
+        super().render()
+        self.write("</div>")
+        return self.elements
+
+
+class HTMLColumnFormatter(HTMLTableFormatter):
+    """
+    Internal class for formatting output data in html.
+    This class is intended for shared functionality between
+    Series.to_html() and Series._repr_html_().
+    Any logic in common with other output formatting methods
+    should ideally be inherited from classes in format.py
+    and this class responsible for only producing html markup.
+    """
+
+    indent_delta = 2
+
+    def __init__(
+        self,
+        formatter: SeriesFormatter,
+        classes: Optional[Union[str, List[str], Tuple[str, ...]]] = None,
+        border: Optional[int] = None,
+    ) -> None:
+        self.fmt = formatter
+        self.classes = classes
+
+        self.series = self.fmt.series
+        self.series_id = self.fmt.series_id
+        self.elements = []  # type: List[str]
+        self.bold_rows = self.fmt.bold_rows
+        self.escape = self.fmt.escape
+        self.show_dimensions = self.fmt.show_dimensions
+        if border is None:
+            border = cast(int, get_option("display.html.border"))
+        self.border = border
+        self.render_links = self.fmt.render_links
+
+    def render(self) -> List[str]:
+        self._write_column()
+
+        info = []
+        if self.series.name is not None:
+            info.append('Name: {name}'.format(name=self.series.name))
+        if self.should_show_dimensions:
+            info.append('Length: {rows}'.format(rows=len(self.series)))
+        info.append('dtype: <tt>{dtype}</tt>'.format(dtype=self.series.dtype))
+
+        self.write("<p>{info}</p>".format(info=', '.join(info)))
+
+        return self.elements
+
+    def _get_formatted_values(self) -> Dict[int, List[str]]:
+        return {0: self.fmt._format_col()}
+
+    def _write_column(self, indent: int = 0) -> None:
+        _classes = ["series"]  # Default class.
+        use_mathjax = get_option("display.html.use_mathjax")
+        if not use_mathjax:
+            _classes.append("tex2jax_ignore")
+        if self.classes is not None:
+            if isinstance(self.classes, str):
+                self.classes = self.classes.split()
+            if not isinstance(self.classes, (list, tuple)):
+                raise TypeError(
+                    "classes must be a string, list, or tuple, "
+                    "not {typ}".format(typ=type(self.classes))
+                )
+            _classes.extend(self.classes)
+
+        if self.series_id is None:
+            id_section = ""
+        else:
+            id_section = ' id="{series_id}"'.format(series_id=self.series_id)
+
+        self.write(
+            '<table border="{border}" class="{cls}"{id_section}>'.format(
+                border=self.border, cls=" ".join(_classes), id_section=id_section
+            ),
+            indent,
+        )
+
+        if self.show_row_idx_names:
+            self._write_header(indent + self.indent_delta)
+
+        self._write_body(indent + self.indent_delta)
+
+        self.write("</table>", indent)
+
+    def _write_body(self, indent: int) -> None:
+        self.write("<tbody>", indent)
+        fmt_values = self._get_formatted_values()
+
+        # write values
+        if self.fmt.index and isinstance(self.series.index, ABCMultiIndex):
+            self._write_hierarchical_rows(fmt_values, indent + self.indent_delta)
+        else:
+            self._write_regular_rows(fmt_values, indent + self.indent_delta)
+
+        self.write("</tbody>", indent)
+
+    def _write_row_header(self, indent: int) -> None:
+        row = [x if x is not None else "" for x in self.series.index.names] + [""]
+        self.write_tr(row, indent, self.indent_delta, header=True)
+
+    def _write_header(self, indent: int) -> None:
+        self.write("<thead>", indent)
+
+        if self.show_row_idx_names:
+            self._write_row_header(indent + self.indent_delta)
+
+        self.write("</thead>", indent)
+
+    def _write_regular_rows(
+        self, fmt_values: Mapping[int, List[str]], indent: int
+    ) -> None:
+        truncate_v = self.fmt.truncate_v
+
+        nrows = len(self.fmt.tr_series)
+
+        if self.fmt.index:
+            fmt = self.fmt._get_formatter("__index__")
+            if fmt is not None:
+                index_values = self.fmt.tr_series.index.map(fmt)
+            else:
+                index_values = self.fmt.tr_series.index.format()
+
+        row = []  # type: List[str]
+        for i in range(nrows):
+
+            if truncate_v and i == (self.fmt.tr_row_num):
+                str_sep_row = ["..."] * len(row)
+                self.write_tr(
+                    str_sep_row,
+                    indent,
+                    self.indent_delta,
+                    tags=None,
+                    nindex_levels=self.row_levels,
+                )
+
+            row = []
+            if self.fmt.index:
+                row.append(index_values[i])
+            row.extend(fmt_values[j][i] for j in range(self.ncols))
+
+            self.write_tr(
+                row, indent, self.indent_delta, tags=None, nindex_levels=self.row_levels
+            )
+
+    def _write_hierarchical_rows(
+        self, fmt_values: Mapping[int, List[str]], indent: int
+    ) -> None:
+        template = 'rowspan="{span}" valign="top"'
+
+        truncate_v = self.fmt.truncate_v
+        series = self.fmt.tr_series
+        nrows = len(series)
+
+        idx_values = series.index.format(sparsify=False, adjoin=False, names=False)
+        idx_values = list(zip(*idx_values))
+
+        if self.fmt.sparsify:
+            sentinel = object()
+            levels = series.index.format(sparsify=sentinel, adjoin=False, names=False)
+
+            level_lengths = get_level_lengths(levels, sentinel)
+            inner_lvl = len(level_lengths) - 1
+            if truncate_v:
+                # Insert ... row and adjust idx_values and
+                # level_lengths to take this into account.
+                ins_row = self.fmt.tr_row_num
+                # cast here since if truncate_v is True, self.fmt.tr_row_num is not None
+                ins_row = cast(int, ins_row)
+                inserted = False
+                for lnum, records in enumerate(level_lengths):
+                    rec_new = {}
+                    for tag, span in list(records.items()):
+                        if tag >= ins_row:
+                            rec_new[tag + 1] = span
+                        elif tag + span > ins_row:
+                            rec_new[tag] = span + 1
+
+                            # GH 14882 - Make sure insertion done once
+                            if not inserted:
+                                dot_row = list(idx_values[ins_row - 1])
+                                dot_row[-1] = "..."
+                                idx_values.insert(ins_row, tuple(dot_row))
+                                inserted = True
+                            else:
+                                dot_row = list(idx_values[ins_row])
+                                dot_row[inner_lvl - lnum] = "..."
+                                idx_values[ins_row] = tuple(dot_row)
+                        else:
+                            rec_new[tag] = span
+                        # If ins_row lies between tags, all cols idx cols
+                        # receive ...
+                        if tag + span == ins_row:
+                            rec_new[ins_row] = 1
+                            if lnum == 0:
+                                idx_values.insert(
+                                    ins_row, tuple(["..."] * len(level_lengths))
+                                )
+
+                            # GH 14882 - Place ... in correct level
+                            elif inserted:
+                                dot_row = list(idx_values[ins_row])
+                                dot_row[inner_lvl - lnum] = "..."
+                                idx_values[ins_row] = tuple(dot_row)
+                    level_lengths[lnum] = rec_new
+
+                level_lengths[inner_lvl][ins_row] = 1
+                for ix_col in range(len(fmt_values)):
+                    fmt_values[ix_col].insert(ins_row, "...")
+                nrows += 1
+
+            for i in range(nrows):
+                row = []
+                tags = {}
+
+                sparse_offset = 0
+                j = 0
+                for records, v in zip(level_lengths, idx_values[i]):
+                    if i in records:
+                        if records[i] > 1:
+                            tags[j] = template.format(span=records[i])
+                    else:
+                        sparse_offset += 1
+                        continue
+
+                    j += 1
+                    row.append(v)
+
+                row.append(fmt_values[0][i])
+                self.write_tr(
+                    row,
+                    indent,
+                    self.indent_delta,
+                    tags=tags,
+                    nindex_levels=len(levels) - sparse_offset,
+                )
+        else:
+            row = []
+            for i in range(len(series)):
+                if truncate_v and i == (self.fmt.tr_row_num):
+                    str_sep_row = ["..."] * len(row)
+                    self.write_tr(
+                        str_sep_row,
+                        indent,
+                        self.indent_delta,
+                        tags=None,
+                        nindex_levels=self.row_levels,
+                    )
+
+                idx_values = list(
+                    zip(*series.index.format(sparsify=False, adjoin=False, names=False))
+                )
+                row = []
+                row.extend(idx_values[i])
+                row.append(fmt_values[0][i])
+                self.write_tr(
+                    row,
+                    indent,
+                    self.indent_delta,
+                    tags=None,
+                    nindex_levels=series.index.nlevels,
+                )
+
+    @property
+    def row_levels(self) -> int:
+        if self.fmt.index:
+            # showing (row) index
+            return self.series.index.nlevels
+        else:
+            return 0
+
+    @property
+    def ncols(self) -> int:
+        return 1
+
+
+class NotebookColumnFormatter(HTMLColumnFormatter):
+    """
+    Internal class for formatting output data in html for display in Jupyter
+    Notebooks. This class is intended for functionality specific to
+    DataFrame._repr_html_() and DataFrame.to_html(notebook=True)
+    """
+
+    def write_style(self) -> None:
+        # We use the "scoped" attribute here so that the desired
+        # style properties for the data frame are not then applied
+        # throughout the entire notebook.
+        template_first = """\
+            <style scoped>"""
+        template_last = """\
+            </style>"""
+        template_select = """\
+                .dataframe %s {
+                    %s: %s;
+                }"""
+        element_props = [
+            ("tbody tr th:only-of-type", "vertical-align", "middle"),
+            ("tbody tr th", "vertical-align", "top"),
+        ]
         template_mid = "\n\n".join(map(lambda t: template_select % t, element_props))
         template = dedent("\n".join((template_first, template_mid, template_last)))
         self.write(template)
