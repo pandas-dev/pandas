@@ -995,7 +995,6 @@ class TestExcelFileRead:
 
         with open("test1" + read_ext, "rb") as f:
             data = f.read()
-            f.close()
 
         actual = pd.read_excel(data, engine=engine)
         tm.assert_frame_equal(expected, actual)
