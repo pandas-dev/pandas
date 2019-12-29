@@ -102,7 +102,7 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
 
     MSG='Check for use of not concatenated strings' ; echo $MSG
     if [[ "$GITHUB_ACTIONS" == "true" ]]; then
-        $BASE_DIR/scripts/validate_string_concatenation.py --format="[error]{source_path}:{line_number}:String unnecessarily split in two by black. Please merge them manually." .
+        $BASE_DIR/scripts/validate_string_concatenation.py --format="[error]{source_path}:{line_number}:{msg}" .
     else
         $BASE_DIR/scripts/validate_string_concatenation.py .
     fi

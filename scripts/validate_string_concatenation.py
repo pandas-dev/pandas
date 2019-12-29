@@ -26,7 +26,7 @@ import os
 import sys
 import token
 import tokenize
-from typing import Dict, Generator, List
+from typing import Generator, List, Tuple
 
 FILE_EXTENSIONS_TO_CHECK = (".py", ".pyx", ".pyx.ini", ".pxd")
 
@@ -60,22 +60,40 @@ def main(source_path: str, output_format: str) -> bool:
     is_failed: bool = False
 
     if os.path.isfile(source_path):
-        for values in strings_to_concatenate(source_path):
+        for source_path, line_number in strings_to_concatenate(source_path):
             is_failed = True
-            print(output_format.format(**values))
+            msg = (
+                "String unnecessarily split in two by black. "
+                "Please merge them manually."
+            )
+            print(
+                output_format.format(
+                    source_path=source_path, line_number=line_number, msg=msg
+                )
+            )
 
     for subdir, _, files in os.walk(source_path):
         for file_name in files:
             if any(
                 file_name.endswith(extension) for extension in FILE_EXTENSIONS_TO_CHECK
             ):
-                for values in strings_to_concatenate(os.path.join(subdir, file_name)):
+                for source_path, line_number in strings_to_concatenate(
+                    os.path.join(subdir, file_name)
+                ):
                     is_failed = True
-                    print(output_format.format(**values))
+                    msg = (
+                        "String unnecessarily split in two by black. "
+                        "Please merge them manually."
+                    )
+                    print(
+                        output_format.format(
+                            source_path=source_path, line_number=line_number, msg=msg
+                        )
+                    )
     return is_failed
 
 
-def strings_to_concatenate(source_path: str) -> Generator[Dict[str, str], None, None]:
+def strings_to_concatenate(source_path: str) -> Generator[Tuple[str, int], None, None]:
     """
     Yielding the strings that needs to be concatenated in a given file.
 
@@ -86,7 +104,7 @@ def strings_to_concatenate(source_path: str) -> Generator[Dict[str, str], None, 
 
     Yields
     ------
-    dict of {str: str}
+    Tuple
         Containing:
             source_path
                 Source file path.
@@ -98,7 +116,7 @@ def strings_to_concatenate(source_path: str) -> Generator[Dict[str, str], None, 
 
     for current_token, next_token in zip(tokens, tokens[1:]):
         if current_token[0] == next_token[0] == token.STRING:
-            yield {"source_path": source_path, "line_number": current_token[2][0]}
+            yield (source_path, current_token[2][0])
 
 
 if __name__ == "__main__":
@@ -110,10 +128,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--format",
         "-f",
-        default=(
-            "{source_path}:{line_number}:String unnecessarily split in two by black. "
-            "Please merge them manually."
-        ),
+        default="{source_path}:{line_number}:{msg}",
         help="Output format of the unconcatenated strings.",
     )
 
