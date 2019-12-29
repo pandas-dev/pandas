@@ -167,7 +167,9 @@ def _has_infs(result) -> bool:
 
 
 def _get_fill_value(
-    dtype: Dtype, fill_value: Any = None, fill_value_typ: Optional[str] = None
+    dtype: Dtype,
+    fill_value: Optional[Scalar] = None,
+    fill_value_typ: Optional[str] = None,
 ):
     """ return the correct fill value for the dtype of the values """
     if fill_value is not None:
@@ -652,7 +654,7 @@ def _get_counts_nanvar(
     mask: Optional[np.ndarray],
     axis: Optional[int],
     ddof: int,
-    dtype: Dtype = float,
+    dtype=float,
 ) -> Tuple[Union[int, np.ndarray], Union[int, np.ndarray]]:
     """ Get the count of non-null values along an axis, accounting
     for degrees of freedom.
@@ -1135,7 +1137,7 @@ def nanprod(
     skipna: bool = True,
     min_count: int = 0,
     mask: Optional[np.ndarray] = None,
-) -> Dtype:
+):
     """
     Parameters
     ----------
@@ -1148,7 +1150,7 @@ def nanprod(
 
     Returns
     -------
-    result : dtype
+    The product of all elements on a given axis. ( NaNs are treated as 1)
 
     Examples
     --------
@@ -1156,10 +1158,6 @@ def nanprod(
     >>> s = pd.Series([1, 2, 3, np.nan])
     >>> nanops.nanprod(s)
     6.0
-
-    Returns
-    -------
-    The product of all elements on a given axis. ( NaNs are treated as 1)
     """
     mask = _maybe_get_mask(values, skipna, mask)
 
@@ -1305,8 +1303,9 @@ def nancorr(
     return f(a, b)
 
 
-def get_corr_func(method: str):
-    if method in ["kendall", "spearman"]:
+def get_corr_func(method) -> Callable:
+    if method in ["kendall", "spearman", "pearson"]:
+        import scipy.stats
         from scipy.stats import kendalltau, spearmanr
     elif callable(method):
         return method
