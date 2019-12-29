@@ -1,5 +1,3 @@
-# mypy: allow_untyped_decorators
-
 """ define the IntervalIndex """
 from operator import le, lt
 import textwrap
