@@ -99,7 +99,7 @@ class TestSelection:
 
         tm.assert_frame_equal(result, expected)
         tm.assert_frame_equal(result2, expected)
-        
+
         # per GH 23566 this should raise a deprecation warning
         with tm.assert_produces_warning(DeprecationWarning):
             df.groupby(0)[2, 4].mean()
