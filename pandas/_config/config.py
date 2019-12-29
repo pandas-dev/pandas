@@ -464,13 +464,17 @@ def register_option(key: str, defval: object, doc="", validator=None, cb=None):
 
     for i, p in enumerate(path[:-1]):
         if not isinstance(cursor, dict):
-            raise OptionError(f"Path prefix to option '{'.'.join(path[:i])}' is already an option")
+            raise OptionError(
+                f"Path prefix to option '{'.'.join(path[:i])}' is already an option"
+            )
         if p not in cursor:
             cursor[p] = {}
         cursor = cursor[p]
 
     if not isinstance(cursor, dict):
-        raise OptionError(f"Path prefix to option '{'.'.join(path[:-1])}' is already an option")
+        raise OptionError(
+            f"Path prefix to option '{'.'.join(path[:-1])}' is already an option"
+        )
 
     cursor[path[-1]] = defval  # initialize
 
