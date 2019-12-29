@@ -1,11 +1,10 @@
-"""
-Utilities for conversion to writer-agnostic Excel representation.
+"""Utilities for conversion to writer-agnostic Excel representation
 """
 
 from functools import reduce
 import itertools
 import re
-from typing import Any, Callable, Dict, List, Optional, Sequence, Union
+from typing import Callable, Dict, List, Optional, Sequence, Union
 import warnings
 
 import numpy as np
@@ -39,8 +38,7 @@ class ExcelCell:
 
 
 class CSSToExcelConverter:
-    """
-    A callable for converting CSS declarations to ExcelWriter styles.
+    """A callable for converting CSS declarations to ExcelWriter styles
 
     Supports parts of CSS 2.2, with minimal CSS 3.0 support (e.g. text-shadow),
     focusing on font styling, backgrounds, borders and alignment.
@@ -81,23 +79,15 @@ class CSSToExcelConverter:
 
         Returns
         -------
-        Dict
-            A style as interpreted by ExcelWriter when found in ExcelCell.style.
+        xlstyle : dict
+            A style as interpreted by ExcelWriter when found in
+            ExcelCell.style.
         """
         # TODO: memoize?
         properties = self.compute_css(declarations_str, self.inherited)
         return self.build_xlstyle(properties)
 
     def build_xlstyle(self, props: Dict[str, str]) -> Dict[str, Dict[str, str]]:
-        """
-        Parameters
-        ----------
-        props : Dict
-
-        Returns
-        -------
-        Dict
-        """
         out = {
             "alignment": self.build_alignment(props),
             "border": self.build_border(props),
@@ -109,13 +99,7 @@ class CSSToExcelConverter:
         # TODO: handle cell width and height: needs support in pandas.io.excel
 
         def remove_none(d: Dict[str, str]) -> None:
-            """
-            Remove key where value is None, through nested dicts.
-
-            Parameters
-            ----------
-            d : Dict
-            """
+            """Remove key where value is None, through nested dicts"""
             for k, v in list(d.items()):
                 if v is None:
                     del d[k]
@@ -137,12 +121,7 @@ class CSSToExcelConverter:
         # OpenXML also has 'justify', 'distributed'
     }
 
-    def build_alignment(self, props) -> Dict[str, Any]:
-        """
-        Returns
-        -------
-        Dict
-        """
+    def build_alignment(self, props) -> Dict[str, Optional[Union[bool, str]]]:
         # TODO: text-indent, padding-left -> alignment.indent
         return {
             "horizontal": props.get("text-align"),
@@ -154,16 +133,7 @@ class CSSToExcelConverter:
             ),
         }
 
-    def build_border(self, props: Dict) -> Dict[str, Any]:
-        """
-        Parameters
-        ----------
-        props : Dict
-
-        Returns
-        -------
-        Dict
-        """
+    def build_border(self, props: Dict) -> Dict[str, Dict[str, str]]:
         return {
             side: {
                 "style": self._border_style(
@@ -224,12 +194,7 @@ class CSSToExcelConverter:
                 return "dashed"
             return "mediumDashed"
 
-    def build_fill(self, props: Dict):
-        """
-        Parameters
-        ----------
-        props : Dict
-        """
+    def build_fill(self, props: Dict[str, str]):
         # TODO: perhaps allow for special properties
         #       -excel-pattern-bgcolor and -excel-pattern-type
         fill_color = props.get("background-color")
@@ -253,12 +218,7 @@ class CSSToExcelConverter:
     }
     ITALIC_MAP = {"normal": False, "italic": True, "oblique": True}
 
-    def build_font(self, props) -> Dict[str, Union[bool, int, str, None]]:
-        """
-        Returns
-        -------
-        Dict
-        """
+    def build_font(self, props) -> Dict[str, Optional[Union[bool, int, str]]]:
         size = props.get("font-size")
         if size is not None:
             assert size.endswith("pt")
@@ -355,11 +315,6 @@ class CSSToExcelConverter:
     }
 
     def color_to_excel(self, val: Optional[str]):
-        """
-        Parameters
-        ----------
-        val : str, optional
-        """
         if val is None:
             return None
         if val.startswith("#") and len(val) == 7:
@@ -371,39 +326,37 @@ class CSSToExcelConverter:
         except KeyError:
             warnings.warn(f"Unhandled color format: {repr(val)}", CSSWarning)
 
-    def build_number_format(self, props: Dict) -> Dict[str, Any]:
+    def build_number_format(self, props: Dict) -> Dict[str, Optional[str]]:
         return {"format_code": props.get("number-format")}
 
 
 class ExcelFormatter:
     """
-    Class for formatting a DataFrame to a list of ExcelCells.
+    Class for formatting a DataFrame to a list of ExcelCells,
 
     Parameters
     ----------
     df : DataFrame or Styler
-    na_rep: str
-        An na representation.
-    float_format : str, optional
-            Format string for floating point numbers.
-    cols : Sequence, optional
-        Columns to write.
-    header : Union[bool, List[str]], default True
-        Write out column names.
-        If a list of string is given it is assumed to be aliases for the column names
-    index : bool, default True
-        Output row names (index).
-    index_label : Union[str, Sequence, None], default None
-            Column label for index column(s) if desired.
-            If None is given, and `header` and `index` are True,
-            then the index names are used.
-            A Sequence should be given if the DataFrame uses MultiIndex.
-    merge_cells : bool, default False
+    na_rep: na representation
+    float_format : string, default None
+            Format string for floating point numbers
+    cols : sequence, optional
+        Columns to write
+    header : boolean or list of string, default True
+        Write out column names. If a list of string is given it is
+        assumed to be aliases for the column names
+    index : boolean, default True
+        output row names (index)
+    index_label : string or sequence, default None
+            Column label for index column(s) if desired. If None is given, and
+            `header` and `index` are True, then the index names are used. A
+            sequence should be given if the DataFrame uses MultiIndex.
+    merge_cells : boolean, default False
             Format MultiIndex and Hierarchical Rows as merged cells.
-    inf_rep : str, default `'inf'`
+    inf_rep : string, default `'inf'`
         representation for np.inf values (which aren't representable in Excel)
         A `'-'` sign will be added in front of -inf.
-    style_converter : Callable, optional
+    style_converter : callable, optional
         This translates Styler styles (CSS) into ExcelWriter styles.
         Defaults to ``CSSToExcelConverter()``.
         It should have signature css_declarations string -> excel style.
@@ -753,7 +706,7 @@ class ExcelFormatter:
         freeze_panes : tuple of integer (length 2), default None
             Specifies the one-based bottommost row and rightmost column that
             is to be frozen
-        engine : str, default None
+        engine : string, default None
             write engine to use if writer is a path - you can also set this
             via the options ``io.excel.xlsx.writer``, ``io.excel.xls.writer``,
             and ``io.excel.xlsm.writer``.
