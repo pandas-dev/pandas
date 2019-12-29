@@ -2,7 +2,7 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
-from pandas import DataFrame, Index, Series, isna, notna, MultiIndex
+from pandas import DataFrame, Index, MultiIndex, Series, isna, notna
 from pandas.tests.window.common import ConsistencyBase
 import pandas.util.testing as tm
 
