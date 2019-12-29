@@ -17,7 +17,7 @@ def mix_ab() -> Dict[str, List[Union[int, str]]]:
 
 
 @pytest.fixture
-def mix_abc() -> Dict[str, List[Union[int, str, np.nan]]]:
+def mix_abc() -> Dict[str, List[Union[float, str]]]:
     return {"a": list(range(4)), "b": list("ab.."), "c": ["a", "b", np.nan, "d"]}
 
 
