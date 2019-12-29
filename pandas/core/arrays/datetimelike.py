@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 import operator
-from typing import Any, Sequence, Union, cast
+from typing import Any, Sequence, Type, Union, cast
 import warnings
 
 import numpy as np
@@ -10,6 +10,7 @@ from pandas._libs.tslibs.c_timestamp import integer_op_not_supported
 from pandas._libs.tslibs.period import DIFFERENT_FREQ, IncompatibleFrequency, Period
 from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
 from pandas._libs.tslibs.timestamps import RoundTo, round_nsint64
+from pandas._typing import DatetimeLikeScalar
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError, NullFrequencyError, PerformanceWarning
 from pandas.util._decorators import Appender, Substitution
@@ -57,7 +58,7 @@ class AttributesMixin:
         raise AbstractMethodError(cls)
 
     @property
-    def _scalar_type(self):
+    def _scalar_type(self) -> Type[DatetimeLikeScalar]:
         """The scalar associated with this datelike
 
         * PeriodArray : Period

@@ -634,7 +634,6 @@ class Categorical(ExtensionArray, PandasObject):
         dtype = CategoricalDtype._from_values_or_dtype(
             categories=categories, ordered=ordered, dtype=dtype
         )
-        msg: Optional[str]
         if dtype.categories is None:
             msg = (
                 "The categories must be provided in 'categories' or "
@@ -2108,8 +2107,8 @@ class Categorical(ExtensionArray, PandasObject):
             self.codes.astype("int64"), categories.size
         )
         counts = counts.cumsum()
-        result_ = (r[start:end] for start, end in zip(counts, counts[1:]))
-        result = dict(zip(categories, result_))
+        _result = (r[start:end] for start, end in zip(counts, counts[1:]))
+        result = dict(zip(categories, _result))
         return result
 
     # reduction ops #

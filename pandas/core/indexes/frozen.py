@@ -103,11 +103,5 @@ class FrozenList(PandasObject, list):
     def __repr__(self) -> str:
         return f"{type(self).__name__}({str(self)})"
 
-    # error: Incompatible types in assignment (expression has type
-    #  "Callable[[FrozenList, VarArg(Any), KwArg(Any)], Any]", base class "list"
-    #  defined the type as overloaded function)  [assignment]
-    __setitem__ = __setslice__ = __delitem__ = __delslice__ = _disabled  # type: ignore
-    # Incompatible types in assignment (expression has type
-    #  "Callable[[FrozenList, VarArg(Any), KwArg(Any)], Any]", base class "list"
-    #  defined the type as "Callable[[List[Any], int], Any]")  [assignment]
-    pop = append = extend = remove = sort = insert = _disabled  # type: ignore
+    __setitem__ = __setslice__ = __delitem__ = __delslice__ = _disabled
+    pop = append = extend = remove = sort = insert = _disabled
