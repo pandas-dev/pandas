@@ -101,7 +101,11 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for use of not concatenated strings' ; echo $MSG
-    $BASE_DIR/scripts/validate_string_concatenation.py pandas
+    if [[ "$GITHUB_ACTIONS" == "true" ]]; then
+        $BASE_DIR/scripts/validate_string_concatenation.py --format="[error]{source_path}:{line_number}:String unnecessarily split in two by black. Please merge them manually." .
+    else
+        $BASE_DIR/scripts/validate_string_concatenation.py .
+    fi
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     echo "isort --version-number"
