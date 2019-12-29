@@ -9,7 +9,7 @@ from collections import abc
 from datetime import datetime, timedelta
 from functools import partial
 import inspect
-from typing import Any, Iterable, TypeVar, Union
+from typing import Any, Collection, Iterable, TypeVar, Union
 
 import numpy as np
 
@@ -273,7 +273,7 @@ def maybe_make_list(obj):
 _T = TypeVar("_T")
 
 
-def maybe_iterable_to_list(obj: Union[Iterable[_T], _T]) -> Union[Iterable[_T], _T]:
+def maybe_iterable_to_list(obj: Union[Iterable[_T], _T]) -> Union[Collection[_T], _T]:
     """
     If obj is Iterable but not list-like, consume into list.
     """
