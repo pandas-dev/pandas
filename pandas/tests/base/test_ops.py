@@ -767,27 +767,6 @@ class TestIndexOps(Ops):
                 dropped_series = df[column].drop_duplicates(keep=keep)
                 tm.assert_frame_equal(dropped_frame, dropped_series.to_frame())
 
-    def test_inplace_drop_and_add(self):
-        # GH 30484
-        # Get expected df
-        expected = pd.DataFrame({})
-        expected["x1"] = [1, 2, 3, 4, 5]
-        expected["x2"] = [0, 0, 0, 1, 1]
-        expected["target"] = [10, 20, 30, 40, 50]
-        y = expected["target"]
-        expected.drop("target", axis=1, inplace=True)
-        y = y + np.min(y)
-        # Get tested df
-        df = pd.DataFrame({})
-        df["x1"] = [1, 2, 3, 4, 5]
-        df["x2"] = [0, 0, 0, 1, 1]
-        df["target"] = [10, 20, 30, 40, 50]
-        y = df["target"]
-        df.drop("target", axis=1, inplace=True)
-        y += np.min(y)
-        # compare
-        tm.assert_frame_equal(df, expected)
-
     def test_fillna(self):
         # # GH 11343
         # though Index.fillna and Series.fillna has separate impl,

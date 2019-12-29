@@ -3215,7 +3215,8 @@ class NDFrame(PandasObject, SelectionMixin):
         return cacher
 
     def _maybe_update_cacher(
-        self, clear: bool_t = False, verify_is_copy: bool_t = True
+        self, clear: bool_t = False, verify_is_copy: bool_t = True,
+        change_cache: bool_t = True
     ) -> None:
         """
         See if we need to update our parent cacher if clear, then clear our
@@ -3227,8 +3228,9 @@ class NDFrame(PandasObject, SelectionMixin):
             Clear the item cache.
         verify_is_copy : bool, default True
             Provide is_copy checks.
+        change_cache: bool, default True
+            If True, then cache may be changed
         """
-
         cacher = getattr(self, "_cacher", None)
         if cacher is not None:
             ref = cacher[1]()
@@ -3237,7 +3239,7 @@ class NDFrame(PandasObject, SelectionMixin):
             # a copy
             if ref is None:
                 del self._cacher
-            else:
+            elif change_cache:
                 # Note: we need to call ref._maybe_cache_changed even in the
                 #  case where it will raise.  (Uh, not clear why)
                 try:
@@ -3931,7 +3933,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         return result
 
-    def _update_inplace(self, result, verify_is_copy: bool_t = True) -> None:
+    def _update_inplace(self, result, verify_is_copy: bool_t = True, **kwargs) -> None:
         """
         Replace self internals with result.
 
@@ -3939,6 +3941,8 @@ class NDFrame(PandasObject, SelectionMixin):
         ----------
         verify_is_copy : bool, default True
             Provide is_copy checks.
+        **kwargs
+            Passed to self._maybe_update_cacher
         """
         # NOTE: This does *not* call __finalize__ and that's an explicit
         # decision that we may revisit in the future.
@@ -3946,7 +3950,7 @@ class NDFrame(PandasObject, SelectionMixin):
         self._reset_cache()
         self._clear_item_cache()
         self._data = getattr(result, "_data", result)
-        self._maybe_update_cacher(verify_is_copy=verify_is_copy)
+        self._maybe_update_cacher(verify_is_copy=verify_is_copy, **kwargs)
 
     def add_prefix(self, prefix: str):
         """
