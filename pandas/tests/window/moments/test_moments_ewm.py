@@ -310,4 +310,3 @@ class TestEwmMomentsConsistency(ConsistencyBase):
         # exception raised is Exception
         with pytest.raises(Exception, match=msg):
             func(A, randn(50), 20, min_periods=5)
-
