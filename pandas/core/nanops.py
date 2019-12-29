@@ -1305,7 +1305,6 @@ def nancorr(
 
 def get_corr_func(method) -> Callable:
     if method in ["kendall", "spearman", "pearson"]:
-        import scipy.stats
         from scipy.stats import kendalltau, spearmanr
     elif callable(method):
         return method

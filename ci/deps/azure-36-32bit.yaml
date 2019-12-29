@@ -18,6 +18,7 @@ dependencies:
   - numpy=1.14.*
   - python-dateutil
   - pytz=2017.2
+  - scipy>=1.1
 
   # see comment above
   - pip

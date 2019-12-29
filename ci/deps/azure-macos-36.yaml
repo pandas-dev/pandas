@@ -26,6 +26,7 @@ dependencies:
   - pytables
   - python-dateutil==2.6.1
   - pytz
+  - scipy>=1.1
   - xarray
   - xlrd
   - xlsxwriter
