@@ -93,14 +93,16 @@ class TestSelection:
             }
         )
         result = df.groupby(0)[df.columns[1:3]].mean()
-        result2 = df.groupby(0)[2, 4].mean()
-        result3 = df.groupby(0)[[2, 4]].mean()
+        result2 = df.groupby(0)[[2, 4]].mean()
 
         expected = df.loc[:, [0, 2, 4]].groupby(0).mean()
 
         tm.assert_frame_equal(result, expected)
         tm.assert_frame_equal(result2, expected)
-        tm.assert_frame_equal(result3, expected)
+        
+        # per GH 23566 this should raise a deprecation warning
+        with tm.assert_produces_warning(DeprecationWarning):
+            df.groupby(0)[2, 4].mean()
 
 
 # grouping
