@@ -1,5 +1,3 @@
-# mypy: no_strict_equality
-
 from datetime import timedelta
 import operator
 from typing import Any, Callable, List, Optional, Sequence, Union

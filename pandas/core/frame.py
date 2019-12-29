@@ -758,7 +758,7 @@ class DataFrame(NDFrame):
         max_rows: Optional[int] = None,
         min_rows: Optional[int] = None,
         max_cols: Optional[int] = None,
-        show_dimensions: bool = False,
+        show_dimensions: Union[bool, str] = False,
         decimal: str = ".",
         line_width: Optional[int] = None,
         max_colwidth: Optional[int] = None,

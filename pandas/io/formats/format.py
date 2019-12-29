@@ -1,5 +1,3 @@
-# mypy: no_strict_equality
-
 """
 Internal module for formatting output data in csv, html,
 and latex files. This module also applies to display formatting.
@@ -233,7 +231,7 @@ class SeriesFormatter:
         self,
         series: "Series",
         buf: Optional[IO[str]] = None,
-        length: bool = True,
+        length: Union[bool, str] = True,
         header: bool = True,
         index: bool = True,
         na_rep: str = "NaN",
@@ -452,7 +450,7 @@ def _get_adjustment() -> TextAdjustment:
 
 class TableFormatter:
 
-    show_dimensions: bool
+    show_dimensions: Union[bool, str]
     is_truncated: bool
     formatters: formatters_type
     columns: Index
@@ -556,7 +554,7 @@ class DataFrameFormatter(TableFormatter):
         max_rows: Optional[int] = None,
         min_rows: Optional[int] = None,
         max_cols: Optional[int] = None,
-        show_dimensions: bool = False,
+        show_dimensions: Union[bool, str] = False,
         decimal: str = ".",
         table_id: Optional[str] = None,
         render_links: bool = False,

@@ -1,5 +1,3 @@
-# mypy: no_strict_equality
-
 """Extend pandas with custom array types"""
 from typing import Any, List, Optional, Tuple, Type
 
@@ -238,7 +236,10 @@ class ExtensionDtype:
         """
         if not isinstance(string, str):
             raise TypeError(f"Expects a string, got {type(string).__name__}")
-        if string != cls.name:
+
+        # error: Non-overlapping equality check (left operand type: "str", right
+        #  operand type: "Callable[[ExtensionDtype], str]")  [comparison-overlap]
+        if string != cls.name:  # type: ignore
             raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
         return cls()
 

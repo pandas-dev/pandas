@@ -1,5 +1,3 @@
-# mypy: no_strict_equality
-
 from typing import List
 
 from pandas._typing import FilePathOrBuffer, Scalar
@@ -158,7 +156,7 @@ class _ODFReader(_BaseExcelReader):
             # GH5394
             cell_value = float(cell.attributes.get((OFFICENS, "value")))
 
-            if cell_value == 0.0 and str(cell) != cell_value:  # NA handling
+            if cell_value == 0.0:  # NA handling
                 return str(cell)
 
             if convert_float:

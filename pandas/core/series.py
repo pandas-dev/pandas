@@ -4,7 +4,7 @@ Data structure for 1-dimensional cross-sectional and time series data
 from io import StringIO
 from shutil import get_terminal_size
 from textwrap import dedent
-from typing import IO, Any, Callable, Hashable, List, Optional
+from typing import IO, Any, Callable, Hashable, List, Optional, Union
 import warnings
 
 import numpy as np
@@ -1345,7 +1345,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         float_format=None,
         header=True,
         index=True,
-        length=False,
+        length: Union[bool, str] = False,
         dtype=False,
         name=False,
         max_rows=None,
