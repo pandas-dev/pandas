@@ -3215,8 +3215,10 @@ class NDFrame(PandasObject, SelectionMixin):
         return cacher
 
     def _maybe_update_cacher(
-        self, clear: bool_t = False, verify_is_copy: bool_t = True,
-        change_cache: bool_t = True
+        self,
+        clear: bool_t = False,
+        verify_is_copy: bool_t = True,
+        change_cache: bool_t = True,
     ) -> None:
         """
         See if we need to update our parent cacher if clear, then clear our

@@ -99,7 +99,7 @@ def add_special_arithmetic_methods(cls):
             self._update_inplace(
                 result.reindex_like(self, copy=False)._data,
                 verify_is_copy=False,
-                change_cache=False
+                change_cache=False,
             )
 
             return self
