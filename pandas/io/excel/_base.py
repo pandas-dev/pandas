@@ -766,9 +766,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         extensions.  If it isn't supported, raises UnsupportedFiletypeError."""
         if ext.startswith("."):
             ext = ext[1:]
-        if not any(
-            ext in extension for extension in cls.supported_extensions
-        ):
+        if not any(ext in extension for extension in cls.supported_extensions):
             msg = "Invalid extension for engine '{engine}': '{ext}'".format(
                 engine=pprint_thing(cls.engine), ext=pprint_thing(ext)
             )
