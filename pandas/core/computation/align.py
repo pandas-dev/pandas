@@ -22,7 +22,7 @@ def _align_core_single_unary_op(
 ) -> Tuple[Union[partial, Type[FrameOrSeries]], Optional[Dict[str, int]]]:
 
     typ: Union[partial, Type[FrameOrSeries]]
-    axes: Optional[Dict] = None
+    axes: Optional[Dict[str, int]] = None
 
     if isinstance(term.value, np.ndarray):
         typ = partial(np.asanyarray, dtype=term.value.dtype)
