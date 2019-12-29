@@ -878,7 +878,7 @@ def test_pad_stable_sorting(fill_method):
 @pytest.mark.parametrize("fill_method", ["ffill", "bfill", None])
 @pytest.mark.parametrize("limit", [None, 1])
 def test_pct_change(test_series, freq, periods, fill_method, limit):
-    # GH  21200, 21621
+    # GH  21200, 21621, 30463
     vals = [3, np.nan, np.nan, np.nan, 1, 2, 4, 10, np.nan, 4]
     keys = ["a", "b"]
     key_v = np.repeat(keys, len(vals))
