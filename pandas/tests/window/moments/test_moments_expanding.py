@@ -204,12 +204,7 @@ class TestExpandingMomentsConsistency(ConsistencyBase):
         tm.assert_series_equal(result, expected)
 
     def _check_expanding(
-        self,
-        func,
-        static_comp,
-        has_min_periods=True,
-        has_time_rule=True,
-        preserve_nan=True,
+        self, func, static_comp, has_min_periods=True, preserve_nan=True
     ):
 
         series_result = func(self.series)
@@ -248,17 +243,9 @@ class TestExpandingMomentsConsistency(ConsistencyBase):
             result = func(ser)
             tm.assert_almost_equal(result.iloc[-1], static_comp(ser[:50]))
 
-    def test_moment_functions_zero_length(self):
-        # GH 8056
-        s = Series(dtype=np.float64)
-        s_expected = s
-        df1 = DataFrame()
-        df1_expected = df1
-        df2 = DataFrame(columns=["a"])
-        df2["a"] = df2["a"].astype("float64")
-        df2_expected = df2
-
-        functions = [
+    @pytest.mark.parametrize(
+        "f",
+        [
             lambda x: x.expanding().count(),
             lambda x: x.expanding(min_periods=5).cov(x, pairwise=False),
             lambda x: x.expanding(min_periods=5).corr(x, pairwise=False),
@@ -274,31 +261,47 @@ class TestExpandingMomentsConsistency(ConsistencyBase):
             lambda x: x.expanding(min_periods=5).median(),
             lambda x: x.expanding(min_periods=5).apply(sum, raw=False),
             lambda x: x.expanding(min_periods=5).apply(sum, raw=True),
-        ]
-        for f in functions:
-            try:
-                s_result = f(s)
-                tm.assert_series_equal(s_result, s_expected)
+        ],
+    )
+    def test_moment_functions_zero_length(self, f):
+        # GH 8056
+        s = Series(dtype=np.float64)
+        s_expected = s
+        df1 = DataFrame()
+        df1_expected = df1
+        df2 = DataFrame(columns=["a"])
+        df2["a"] = df2["a"].astype("float64")
+        df2_expected = df2
 
-                df1_result = f(df1)
-                tm.assert_frame_equal(df1_result, df1_expected)
+        try:
+            s_result = f(s)
+            tm.assert_series_equal(s_result, s_expected)
 
-                df2_result = f(df2)
-                tm.assert_frame_equal(df2_result, df2_expected)
-            except (ImportError):
+            df1_result = f(df1)
+            tm.assert_frame_equal(df1_result, df1_expected)
 
-                # scipy needed for rolling_window
-                continue
+            df2_result = f(df2)
+            tm.assert_frame_equal(df2_result, df2_expected)
+        except (ImportError):
 
-    def test_moment_functions_zero_length_pairwise(self):
+            # scipy needed for rolling_window
+            continue
+
+    @pytest.mark.parametrize(
+        "f",
+        [
+            lambda x: (x.expanding(min_periods=5).cov(x, pairwise=True)),
+            lambda x: (x.expanding(min_periods=5).corr(x, pairwise=True)),
+        ],
+    )
+    def test_moment_functions_zero_length_pairwise(self, f):
 
         df1 = DataFrame()
         df2 = DataFrame(columns=Index(["a"], name="foo"), index=Index([], name="bar"))
         df2["a"] = df2["a"].astype("float64")
 
         df1_expected = DataFrame(
-            index=MultiIndex.from_product([df1.index, df1.columns]),
-            columns=Index([]),
+            index=MultiIndex.from_product([df1.index, df1.columns]), columns=Index([])
         )
         df2_expected = DataFrame(
             index=MultiIndex.from_product(
@@ -308,13 +311,8 @@ class TestExpandingMomentsConsistency(ConsistencyBase):
             dtype="float64",
         )
 
-        functions = [
-            lambda x: (x.expanding(min_periods=5).cov(x, pairwise=True)),
-            lambda x: (x.expanding(min_periods=5).corr(x, pairwise=True)),
-        ]
-        for f in functions:
-            df1_result = f(df1)
-            tm.assert_frame_equal(df1_result, df1_expected)
+        df1_result = f(df1)
+        tm.assert_frame_equal(df1_result, df1_expected)
 
-            df2_result = f(df2)
-            tm.assert_frame_equal(df2_result, df2_expected)
+        df2_result = f(df2)
+        tm.assert_frame_equal(df2_result, df2_expected)
