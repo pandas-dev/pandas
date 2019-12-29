@@ -285,7 +285,7 @@ class TestExpandingMomentsConsistency(ConsistencyBase):
         except (ImportError):
 
             # scipy needed for rolling_window
-            continue
+            pass
 
     @pytest.mark.parametrize(
         "f",
