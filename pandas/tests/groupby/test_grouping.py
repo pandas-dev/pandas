@@ -71,14 +71,16 @@ class TestSelection:
         )
 
         result = df.groupby("A")[["C", "D"]].mean()
-        result2 = df.groupby("A")["C", "D"].mean()
-        result3 = df.groupby("A")[df.columns[2:4]].mean()
+        result2 = df.groupby("A")[df.columns[2:4]].mean()
 
         expected = df.loc[:, ["A", "C", "D"]].groupby("A").mean()
 
         tm.assert_frame_equal(result, expected)
         tm.assert_frame_equal(result2, expected)
-        tm.assert_frame_equal(result3, expected)
+
+        # per GH 23566 this should raise a deprecation warning
+        with tm.assert_produces_warning(DeprecationWarning):
+            df.groupby("A")["C", "D"].mean()
 
     def test_getitem_numeric_column_names(self):
         # GH #13731

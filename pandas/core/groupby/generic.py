@@ -24,6 +24,7 @@ from typing import (
     Union,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -325,7 +326,7 @@ class SeriesGroupBy(GroupBy):
         return DataFrame(results, columns=columns)
 
     def _wrap_series_output(
-        self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]], index: Index,
+        self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]], index: Index
     ) -> Union[Series, DataFrame]:
         """
         Wraps the output of a SeriesGroupBy operation into the expected result.
@@ -1573,6 +1574,17 @@ class DataFrameGroupBy(GroupBy):
                 )
 
         return self._apply_filter(indices, dropna)
+
+    def __getitem__(self, key):
+        # per GH 23566
+        if isinstance(key, tuple):
+            warnings.warn(
+                "Indexing with individual keys or with a tuple of keys "
+                "will be deprecated, use a list instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        return super().__getitem__(key)
 
     def _gotitem(self, key, ndim: int, subset=None):
         """
