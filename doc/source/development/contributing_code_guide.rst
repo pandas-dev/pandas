@@ -24,33 +24,16 @@ For example:
 
 .. code-block:: python
 
-    class MyClass:
-        def __init__(self):
-            cls = type(self)
-
-**Good:**
-
-.. code-block:: python
-
-    class MyClass:
-        def __init__(self):
-            name = type(self).__name__
+    foo = "bar"
+    type(foo)
 
 **Bad:**
 
 .. code-block:: python
 
-    class MyClass:
-        def __init__(self):
-            cls = self.__class__
+    foo = "bar"
+    foo.__class__
 
-**Bad:**
-
-.. code-block:: python
-
-    class MyClass:
-        def __init__(self):
-            name = self.__class__.__name__
 
 String formatting
 =================
