@@ -382,6 +382,8 @@ class TestReadHtml:
 
         assert not any(s.isna().any() for _, s in df.items())
 
+    # https://github.com/pandas-dev/pandas/issues/29622
+    @pytest.mark.xfail(reason='fails for bs4 version >= 4.8.0', strict=False)
     @pytest.mark.slow
     def test_thousands_macau_index_col(self, datapath):
         all_non_nan_table_index = -2
