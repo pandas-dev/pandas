@@ -1,6 +1,6 @@
 import operator
 from shutil import get_terminal_size
-from typing import Type, Union, cast
+from typing import List, Type, Union, cast
 from warnings import warn
 
 import numpy as np
@@ -8,7 +8,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, hashtable as htable
-from pandas._typing import ArrayLike, Dtype, Ordered
+from pandas._typing import ArrayLike, Dtype, Ordered, Scalar
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender,
@@ -511,7 +511,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
         return self.categories.itemsize
 
-    def tolist(self) -> list:
+    def tolist(self) -> List[Scalar]:
         """
         Return a list of the values.
 
