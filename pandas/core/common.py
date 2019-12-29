@@ -83,13 +83,12 @@ def maybe_box(indexer, values, obj, key):
 def maybe_box_datetimelike(value):
     # turn a datetime like into a Timestamp/timedelta as needed
 
-    if isinstance(value, (np.datetime64, datetime)) and (
-            not isinstance(value, tslibs.Timestamp)) and (
-            notnull(value)):
+    if isinstance(value, (tslibs.Timedelta, tslibs.Timestamp)) or value is tslibs.NaT:
+        return value
+
+    if isinstance(value, (np.datetime64, datetime)):
         value = tslibs.Timestamp(value)
-    elif isinstance(value, (np.timedelta64, timedelta)) and (
-            not isinstance(value, tslibs.Timedelta)) and (
-            notnull(value)):
+    elif isinstance(value, (np.timedelta64, timedelta)):
         value = tslibs.Timedelta(value)
 
     return value
