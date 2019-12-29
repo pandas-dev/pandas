@@ -917,6 +917,15 @@ class TestMoments(Base):
             tm.assert_frame_equal(frame_xp, frame_rs)
 
 
+def _rolling_consistency_cases():
+    for window in [1, 2, 3, 10, 20]:
+        for min_periods in {0, 1, 2, 3, 4, window}:
+            if min_periods and (min_periods > window):
+                continue
+            for center in [False, True]:
+                yield window, min_periods, center
+
+
 class TestRollingMomentsConsistency(ConsistencyBase):
     def setup_method(self, method):
         self._create_data()
