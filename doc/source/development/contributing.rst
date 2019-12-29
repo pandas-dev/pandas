@@ -569,8 +569,7 @@ do not make sudden changes to the code that could have the potential to break
 a lot of user code as a result, that is, we need it to be as *backwards compatible*
 as possible to avoid mass breakages.
 
-Additional standards are outlined on the (Placeholder as a reminder to ask the
-devs for the help on how to properly link the new created file)
+Additional standards are outlined on the `pandas code style guide <contributing_code_guide>`_
 
 Optional dependencies
 ---------------------

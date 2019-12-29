@@ -1,4 +1,4 @@
-.. _Not_sure_what_to_put_here:
+.. _contributing_code_guide:
 
 {{ header }}
 
@@ -121,79 +121,12 @@ For example:
 
 .. code-block:: python
 
-    raise ValueError(f"Unknown recived value, got: {repr(value)}")
+    value = str
+    f"Unknown recived value, got: {repr(value)}"
 
 **Good:**
 
 .. code-block:: python
 
-    raise ValueError(f"Unknown recived type, got: '{type(value).__name__}'")
-
-**Bad:**
-
-.. code-block:: python
-
-    raise ValueError(f"Unknown recived type, got: {repr(type(value).__name__)}")
-
-Single and double quotes
-------------------------
-
-*pandas* uses single quotes when ....
-
-For example:
-
-**Good:**
-
-.. code-block:: python
-
-    placeholder = True
-
-
-**Bad:**
-
-.. code-block:: python
-
-    placeholder = True
-
-And using double quotes when....
-
-For example:
-
-**Good:**
-
-.. code-block:: python
-
-    placeholder = True
-
-
-**Bad:**
-
-.. code-block:: python
-
-    placeholder = True
-
-Typing
-======
-
-Annotating __init__
--------------------
-
-*pandas* does not annotate the '__init__' function. it is redundant
-as almost every '__init__' function will most like not to return anything.
-
-For example:
-
-**Good:**
-
-.. code-block:: python
-
-    def __init__(self, name):
-        self.name = name
-
-**Bad:**
-
-.. code-block:: python
-
-    def __init__(self, name) -> None:
-        self.name = name
-
+    value = str
+    f"Unknown recived type, got: '{type(value).__name__}'"
