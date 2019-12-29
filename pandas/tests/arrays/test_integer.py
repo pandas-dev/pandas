@@ -193,7 +193,7 @@ class TestArithmeticOps(BaseOpsUtil):
         # to compare properly, we convert the expected
         # to float, mask to nans and convert infs
         # if we have uints then we process as uints
-        # then conert to float
+        # then convert to float
         # and we ultimately want to create a IntArray
         # for comparisons
 
@@ -339,16 +339,61 @@ class TestArithmeticOps(BaseOpsUtil):
         with pytest.raises(NotImplementedError):
             opa(np.arange(len(s)).reshape(-1, len(s)))
 
-    def test_pow(self):
-        # https://github.com/pandas-dev/pandas/issues/22022
-        a = integer_array([1, np.nan, np.nan, 1])
-        b = integer_array([1, np.nan, 1, np.nan])
+    @pytest.mark.parametrize("zero, negative", [(0, False), (0.0, False), (-0.0, True)])
+    def test_divide_by_zero(self, zero, negative):
+        # https://github.com/pandas-dev/pandas/issues/27398
+        a = pd.array([0, 1, -1, None], dtype="Int64")
+        result = a / zero
+        expected = np.array([np.nan, np.inf, -np.inf, np.nan])
+        if negative:
+            expected *= -1
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_pow_scalar(self):
+        a = pd.array([0, 1, None, 2], dtype="Int64")
+        result = a ** 0
+        expected = pd.array([1, 1, 1, 1], dtype="Int64")
+        tm.assert_extension_array_equal(result, expected)
+
+        result = a ** 1
+        expected = pd.array([0, 1, None, 2], dtype="Int64")
+        tm.assert_extension_array_equal(result, expected)
+
+        # result = a ** pd.NA
+        # expected = pd.array([None, 1, None, None], dtype="Int64")
+        # tm.assert_extension_array_equal(result, expected)
+
+        result = a ** np.nan
+        expected = np.array([np.nan, 1, np.nan, np.nan], dtype="float64")
+        tm.assert_numpy_array_equal(result, expected)
+
+        # reversed
+        result = 0 ** a
+        expected = pd.array([1, 0, None, 0], dtype="Int64")
+        tm.assert_extension_array_equal(result, expected)
+
+        result = 1 ** a
+        expected = pd.array([1, 1, 1, 1], dtype="Int64")
+        tm.assert_extension_array_equal(result, expected)
+
+        # result = pd.NA ** a
+        # expected = pd.array([1, None, None, None], dtype="Int64")
+        # tm.assert_extension_array_equal(result, expected)
+
+        result = np.nan ** a
+        expected = np.array([1, np.nan, np.nan, np.nan], dtype="float64")
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_pow_array(self):
+        a = integer_array([0, 0, 0, 1, 1, 1, None, None, None])
+        b = integer_array([0, 1, None, 0, 1, None, 0, 1, None])
         result = a ** b
-        expected = pd.core.arrays.integer_array([1, np.nan, np.nan, 1])
+        expected = integer_array([1, 0, None, 1, 1, 1, 1, None, None])
         tm.assert_extension_array_equal(result, expected)
 
     def test_rpow_one_to_na(self):
         # https://github.com/pandas-dev/pandas/issues/22022
+        # https://github.com/pandas-dev/pandas/issues/29997
         arr = integer_array([np.nan, np.nan])
         result = np.array([1.0, 2.0]) ** arr
         expected = np.array([1.0, np.nan])
@@ -388,6 +433,31 @@ class TestComparisonOps(BaseOpsUtil):
         op_name = all_compare_operators
         other = pd.Series([0] * len(data))
         self._compare_other(data, op_name, other)
+
+    def test_no_shared_mask(self, data):
+        result = data + 1
+        assert np.shares_memory(result._mask, data._mask) is False
+
+    def test_compare_to_string(self, any_nullable_int_dtype):
+        # GH 28930
+        s = pd.Series([1, None], dtype=any_nullable_int_dtype)
+        result = s == "a"
+        expected = pd.Series([False, False])
+
+        self.assert_series_equal(result, expected)
+
+    def test_compare_to_int(self, any_nullable_int_dtype, all_compare_operators):
+        # GH 28930
+        s1 = pd.Series([1, 2, 3], dtype=any_nullable_int_dtype)
+        s2 = pd.Series([1, 2, 3], dtype="int")
+
+        method = getattr(s1, all_compare_operators)
+        result = method(2)
+
+        method = getattr(s2, all_compare_operators)
+        expected = method(2)
+
+        self.assert_series_equal(result, expected)
 
 
 class TestCasting:

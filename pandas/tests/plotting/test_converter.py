@@ -84,7 +84,7 @@ class TestRegistration:
         units = pytest.importorskip("matplotlib.units")
 
         # Can't make any assertion about the start state.
-        # We we check that toggling converters off remvoes it, and toggling it
+        # We we check that toggling converters off removes it, and toggling it
         # on restores it.
 
         with cf.option_context("plotting.matplotlib.register_converters", True):
@@ -138,15 +138,6 @@ class TestRegistration:
             units.registry.clear()
             for k, v in original.items():
                 units.registry[k] = v
-
-    def test_old_import_warns(self):
-        with tm.assert_produces_warning(FutureWarning) as w:
-            from pandas.tseries import converter
-
-            converter.register()
-
-        assert len(w)
-        assert "pandas.plotting.register_matplotlib_converters" in str(w[0].message)
 
 
 class TestDateTimeConverter:
@@ -277,7 +268,7 @@ class TestDateTimeConverter:
             val1 = self.dtc.convert(ts1, None, None)
             val2 = self.dtc.convert(ts2, None, None)
             if not val1 < val2:
-                raise AssertionError("{0} is not less than {1}.".format(val1, val2))
+                raise AssertionError(f"{val1} is not less than {val2}.")
 
         # Matplotlib's time representation using floats cannot distinguish
         # intervals smaller than ~10 microsecond in the common range of years.

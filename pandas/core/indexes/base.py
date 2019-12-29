@@ -1,7 +1,7 @@
 from datetime import datetime
 import operator
 from textwrap import dedent
-from typing import FrozenSet, Union
+from typing import FrozenSet, Hashable, Optional, Union
 import warnings
 
 import numpy as np
@@ -45,7 +45,6 @@ from pandas.core.dtypes.common import (
     is_signed_integer_dtype,
     is_timedelta64_dtype,
     is_unsigned_integer_dtype,
-    pandas_dtype,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
@@ -69,6 +68,7 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import IndexOpsMixin, PandasObject
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.frozen import FrozenList
 import pandas.core.missing as missing
@@ -214,7 +214,7 @@ class Index(IndexOpsMixin, PandasObject):
     _deprecations: FrozenSet[str] = (
         PandasObject._deprecations
         | IndexOpsMixin._deprecations
-        | frozenset(["contains", "get_values", "set_value"])
+        | frozenset(["contains", "set_value"])
     )
 
     # To hand over control to subclasses
@@ -239,7 +239,7 @@ class Index(IndexOpsMixin, PandasObject):
     _typ = "index"
     _data: Union[ExtensionArray, np.ndarray]
     _id = None
-    name = None
+    _name: Optional[Hashable] = None
     _comparables = ["name"]
     _attributes = ["name"]
     _is_numeric_dtype = False
@@ -274,8 +274,7 @@ class Index(IndexOpsMixin, PandasObject):
         from .interval import IntervalIndex
         from .category import CategoricalIndex
 
-        if name is None and hasattr(data, "name"):
-            name = data.name
+        name = maybe_extract_name(name, data, cls)
 
         if isinstance(data, ABCPandasArray):
             # ensure users don't accidentally put a PandasArray in an index.
@@ -331,11 +330,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         # extension dtype
         elif is_extension_array_dtype(data) or is_extension_array_dtype(dtype):
-            data = np.asarray(data)
             if not (dtype is None or is_object_dtype(dtype)):
                 # coerce to the provided dtype
                 ea_cls = dtype.construct_array_type()
                 data = ea_cls._from_sequence(data, dtype=dtype, copy=False)
+            else:
+                data = np.asarray(data, dtype=object)
 
             # coerce to the object dtype
             data = data.astype(object)
@@ -519,7 +519,7 @@ class Index(IndexOpsMixin, PandasObject):
         # data buffers and strides. We don't re-use `_ndarray_values`, since
         # we actually set this value too.
         result._index_data = values
-        result.name = name
+        result._name = name
 
         return result._reset_identity()
 
@@ -731,24 +731,11 @@ class Index(IndexOpsMixin, PandasObject):
             from .category import CategoricalIndex
 
             return CategoricalIndex(self.values, name=self.name, dtype=dtype, copy=copy)
-        elif is_datetime64tz_dtype(dtype):
-            # TODO(GH-24559): Remove this block, use the following elif.
-            # avoid FutureWarning from DatetimeIndex constructor.
-            from pandas import DatetimeIndex
-
-            tz = pandas_dtype(dtype).tz
-            return DatetimeIndex(np.asarray(self)).tz_localize("UTC").tz_convert(tz)
 
         elif is_extension_array_dtype(dtype):
             return Index(np.asarray(self), dtype=dtype, copy=copy)
 
         try:
-            if is_datetime64tz_dtype(dtype):
-                from pandas import DatetimeIndex
-
-                return DatetimeIndex(
-                    self.values, name=self.name, dtype=dtype, copy=copy
-                )
             return Index(
                 self.values.astype(dtype, copy=copy), name=self.name, dtype=dtype
             )
@@ -816,11 +803,10 @@ class Index(IndexOpsMixin, PandasObject):
         # only fill if we are passing a non-None fill_value
         if allow_fill and fill_value is not None:
             if (indices < -1).any():
-                msg = (
+                raise ValueError(
                     "When allow_fill=True and fill_value is not None, "
                     "all indices must be >= -1"
                 )
-                raise ValueError(msg)
             taken = algos.take(
                 values, indices, allow_fill=allow_fill, fill_value=na_value
             )
@@ -923,8 +909,6 @@ class Index(IndexOpsMixin, PandasObject):
         memo, default None
             Standard signature. Unused
         """
-        if memo is None:
-            memo = {}
         return self.copy(deep=True)
 
     # --------------------------------------------------------------------
@@ -1224,6 +1208,15 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Name-Centric Methods
 
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        maybe_extract_name(value, None, type(self))
+        self._name = value
+
     def _validate_names(self, name=None, names=None, deep=False):
         """
         Handles the quirks of having a singular 'name' parameter for general
@@ -1273,7 +1266,7 @@ class Index(IndexOpsMixin, PandasObject):
         for name in values:
             if not is_hashable(name):
                 raise TypeError(f"{type(self).__name__}.name must be a hashable type")
-        self.name = values[0]
+        self._name = values[0]
 
     names = property(fset=_set_names, fget=_get_names)
 
@@ -1338,8 +1331,7 @@ class Index(IndexOpsMixin, PandasObject):
             raise ValueError("Level must be None for non-MultiIndex")
 
         if level is not None and not is_list_like(level) and is_list_like(names):
-            msg = "Names must be a string when a single level is provided."
-            raise TypeError(msg)
+            raise TypeError("Names must be a string when a single level is provided.")
 
         if not is_list_like(names) and level is None and self.nlevels > 1:
             raise TypeError("Must pass list-like as `names`.")
@@ -1435,8 +1427,8 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(level, int):
             if level < 0 and level != -1:
                 raise IndexError(
-                    f"Too many levels: Index has only 1 level,"
-                    f" {level} is not a valid level number"
+                    "Too many levels: Index has only 1 level, "
+                    f"{level} is not a valid level number"
                 )
             elif level > 0:
                 raise IndexError(
@@ -1562,7 +1554,7 @@ class Index(IndexOpsMixin, PandasObject):
             if mask.any():
                 result = result.putmask(mask, np.nan)
 
-            result.name = new_names[0]
+            result._name = new_names[0]
             return result
         else:
             from .multi import MultiIndex
@@ -1793,7 +1785,7 @@ class Index(IndexOpsMixin, PandasObject):
                 nd_state, own_state = state
                 data = np.empty(nd_state[1], dtype=nd_state[2])
                 np.ndarray.__setstate__(data, nd_state)
-                self.name = own_state[0]
+                self._name = own_state[0]
 
             else:  # pragma: no cover
                 data = np.empty(state)
@@ -2137,68 +2129,6 @@ class Index(IndexOpsMixin, PandasObject):
         array([ True, False,  True, False,  True])
         """
         return super().duplicated(keep=keep)
-
-    def get_duplicates(self):
-        """
-        Extract duplicated index elements.
-
-        .. deprecated:: 0.23.0
-            Use idx[idx.duplicated()].unique() instead
-
-        Returns a sorted list of index elements which appear more than once in
-        the index.
-
-        Returns
-        -------
-        array-like
-            List of duplicated indexes.
-
-        See Also
-        --------
-        Index.duplicated : Return boolean array denoting duplicates.
-        Index.drop_duplicates : Return Index with duplicates removed.
-
-        Examples
-        --------
-
-        Works on different Index of types.
-
-        >>> pd.Index([1, 2, 2, 3, 3, 3, 4]).get_duplicates()  # doctest: +SKIP
-        [2, 3]
-
-        Note that for a DatetimeIndex, it does not return a list but a new
-        DatetimeIndex:
-
-        >>> dates = pd.to_datetime(['2018-01-01', '2018-01-02', '2018-01-03',
-        ...                         '2018-01-03', '2018-01-04', '2018-01-04'],
-        ...                        format='%Y-%m-%d')
-        >>> pd.Index(dates).get_duplicates()  # doctest: +SKIP
-        DatetimeIndex(['2018-01-03', '2018-01-04'],
-                      dtype='datetime64[ns]', freq=None)
-
-        Sorts duplicated elements even when indexes are unordered.
-
-        >>> pd.Index([1, 2, 3, 2, 3, 4, 3]).get_duplicates()  # doctest: +SKIP
-        [2, 3]
-
-        Return empty array-like structure when all elements are unique.
-
-        >>> pd.Index([1, 2, 3, 4]).get_duplicates()  # doctest: +SKIP
-        []
-        >>> dates = pd.to_datetime(['2018-01-01', '2018-01-02', '2018-01-03'],
-        ...                        format='%Y-%m-%d')
-        >>> pd.Index(dates).get_duplicates()  # doctest: +SKIP
-        DatetimeIndex([], dtype='datetime64[ns]', freq=None)
-        """
-        warnings.warn(
-            "'get_duplicates' is deprecated and will be removed in "
-            "a future release. You can use "
-            "idx[idx.duplicated()].unique() instead",
-            FutureWarning,
-            stacklevel=2,
-        )
-
-        return self[self.duplicated()].unique()
 
     def _get_unique_index(self, dropna=False):
         """
@@ -3014,11 +2944,11 @@ class Index(IndexOpsMixin, PandasObject):
                     "unicode",
                     "mixed",
                 ]:
-                    return self._invalid_indexer("label", key)
+                    self._invalid_indexer("label", key)
 
             elif kind in ["loc"] and is_integer(key):
                 if not self.holds_integer():
-                    return self._invalid_indexer("label", key)
+                    self._invalid_indexer("label", key)
 
         return key
 
@@ -3057,7 +2987,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         is_null_slicer = start is None and stop is None
         is_index_slice = is_int(start) and is_int(stop)
-        is_positional = is_index_slice and not self.is_integer()
+        is_positional = is_index_slice and not (
+            self.is_integer() or self.is_categorical()
+        )
 
         if kind == "getitem":
             """
@@ -3814,12 +3746,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self._data
 
-    def get_values(self):
+    def _internal_get_values(self):
         """
         Return `Index` data as an `numpy.ndarray`.
-
-        .. deprecated:: 0.25.0
-            Use :meth:`Index.to_numpy` or :attr:`Index.array` instead.
 
         Returns
         -------
@@ -3828,7 +3757,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        Index.values : The attribute that get_values wraps.
+        Index.values : The attribute that _internal_get_values wraps.
 
         Examples
         --------
@@ -3841,33 +3770,24 @@ class Index(IndexOpsMixin, PandasObject):
         a  1  2  3
         b  4  5  6
         c  7  8  9
-        >>> df.index.get_values()
+        >>> df.index._internal_get_values()
         array(['a', 'b', 'c'], dtype=object)
 
         Standalone `Index` values:
 
         >>> idx = pd.Index(['1', '2', '3'])
-        >>> idx.get_values()
+        >>> idx._internal_get_values()
         array(['1', '2', '3'], dtype=object)
 
         `MultiIndex` arrays also have only one dimension:
 
         >>> midx = pd.MultiIndex.from_arrays([[1, 2, 3], ['a', 'b', 'c']],
         ...                                  names=('number', 'letter'))
-        >>> midx.get_values()
+        >>> midx._internal_get_values()
         array([(1, 'a'), (2, 'b'), (3, 'c')], dtype=object)
-        >>> midx.get_values().ndim
+        >>> midx._internal_get_values().ndim
         1
         """
-        warnings.warn(
-            "The 'get_values' method is deprecated and will be removed in a "
-            "future version. Use '.to_numpy()' or '.array' instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._internal_get_values()
-
-    def _internal_get_values(self):
         return self.values
 
     @Appender(IndexOpsMixin.memory_usage.__doc__)
@@ -4067,26 +3987,6 @@ class Index(IndexOpsMixin, PandasObject):
         except (OverflowError, TypeError, ValueError):
             return False
 
-    def contains(self, key) -> bool:
-        """
-        Return a boolean indicating whether the provided key is in the index.
-
-        .. deprecated:: 0.25.0
-            Use ``key in index`` instead of ``index.contains(key)``.
-
-        Returns
-        -------
-        bool
-        """
-        warnings.warn(
-            "The 'contains' method is deprecated and will be removed in a "
-            "future version. Use 'key in index' instead of "
-            "'index.contains(key)'",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return key in self
-
     def __hash__(self):
         raise TypeError(f"unhashable type: {repr(type(self).__name__)}")
 
@@ -4244,6 +4144,12 @@ class Index(IndexOpsMixin, PandasObject):
         if is_object_dtype(self) and not is_object_dtype(other):
             # if other is not object, use other's logic for coercion
             return other.equals(self)
+
+        if isinstance(other, ABCMultiIndex):
+            # d-level MultiIndex can equal d-tuple Index
+            if not is_object_dtype(self.dtype):
+                if self.nlevels != other.nlevels:
+                    return False
 
         return array_equivalent(
             com.values_from_object(self), com.values_from_object(other)
@@ -4551,22 +4457,26 @@ class Index(IndexOpsMixin, PandasObject):
         # if we have something that is Index-like, then
         # use this, e.g. DatetimeIndex
         # Things like `Series._get_value` (via .at) pass the EA directly here.
-        s = getattr(series, "_values", series)
-        if isinstance(s, (ExtensionArray, Index)) and is_scalar(key):
-            # GH 20882, 21257
-            # Unify Index and ExtensionArray treatment
-            # First try to convert the key to a location
-            # If that fails, raise a KeyError if an integer
-            # index, otherwise, see if key is an integer, and
-            # try that
-            try:
-                iloc = self.get_loc(key)
-                return s[iloc]
-            except KeyError:
-                if len(self) > 0 and (self.holds_integer() or self.is_boolean()):
-                    raise
-                elif is_integer(key):
-                    return s[key]
+        s = extract_array(series, extract_numpy=True)
+        if isinstance(s, ExtensionArray):
+            if is_scalar(key):
+                # GH 20882, 21257
+                # First try to convert the key to a location
+                # If that fails, raise a KeyError if an integer
+                # index, otherwise, see if key is an integer, and
+                # try that
+                try:
+                    iloc = self.get_loc(key)
+                    return s[iloc]
+                except KeyError:
+                    if len(self) > 0 and (self.holds_integer() or self.is_boolean()):
+                        raise
+                    elif is_integer(key):
+                        return s[key]
+            else:
+                # if key is not a scalar, directly raise an error (the code below
+                # would convert to numpy arrays and raise later any way) - GH29926
+                raise InvalidIndexError(key)
 
         s = com.values_from_object(series)
         k = com.values_from_object(key)
@@ -4649,7 +4559,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         if is_categorical(target):
             tgt_values = np.asarray(target)
-        elif self.is_all_dates:
+        elif self.is_all_dates and target.is_all_dates:  # GH 30399
             tgt_values = target.asi8
         else:
             tgt_values = target._ndarray_values
@@ -5557,6 +5467,22 @@ def _validate_join_method(method):
 
 
 def default_index(n):
-    from pandas.core.index import RangeIndex
+    from pandas.core.indexes.range import RangeIndex
 
     return RangeIndex(0, n, name=None)
+
+
+def maybe_extract_name(name, obj, cls) -> Optional[Hashable]:
+    """
+    If no name is passed, then extract it from data, validating hashability.
+    """
+    if name is None and isinstance(obj, (Index, ABCSeries)):
+        # Note we don't just check for "name" attribute since that would
+        #  pick up e.g. dtype.name
+        name = obj.name
+
+    # GH#29069
+    if not is_hashable(name):
+        raise TypeError(f"{cls.__name__}.name must be a hashable type")
+
+    return name

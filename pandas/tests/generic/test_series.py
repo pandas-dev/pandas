@@ -224,7 +224,7 @@ class TestSeries(Generic):
     def test_to_xarray(self):
         from xarray import DataArray
 
-        s = Series([])
+        s = Series([], dtype=object)
         s.index.name = "foo"
         result = s.to_xarray()
         assert len(result) == 0

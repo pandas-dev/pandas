@@ -1,5 +1,3 @@
-import warnings
-
 import numpy as np
 
 from pandas.core.dtypes.common import is_integer, is_list_like
@@ -29,7 +27,7 @@ class HistPlot(LinePlot):
             values = np.ravel(values)
             values = values[~isna(values)]
 
-            hist, self.bins = np.histogram(
+            _, self.bins = np.histogram(
                 values,
                 bins=self.bins,
                 range=self.kwds.get("range", None),
@@ -182,12 +180,10 @@ def _grouped_plot(
 
     if figsize == "default":
         # allowed to specify mpl default with 'default'
-        warnings.warn(
-            "figsize='default' is deprecated. Specify figure size by tuple instead",
-            FutureWarning,
-            stacklevel=5,
+        raise ValueError(
+            "figsize='default' is no longer supported. "
+            "Specify figure size by tuple instead"
         )
-        figsize = None
 
     grouped = data.groupby(by)
     if column is not None:
@@ -254,7 +250,8 @@ def _grouped_hist(
     def plot_group(group, ax):
         ax.hist(group.dropna().values, bins=bins, **kwargs)
 
-    xrot = xrot or rot
+    if xrot is None:
+        xrot = rot
 
     fig, axes = _grouped_plot(
         plot_group,

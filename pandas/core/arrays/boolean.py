@@ -1,11 +1,12 @@
 import numbers
-from typing import TYPE_CHECKING, Type
+from typing import TYPE_CHECKING, Any, Tuple, Type
 import warnings
 
 import numpy as np
 
-from pandas._libs import lib
+from pandas._libs import lib, missing as libmissing
 from pandas.compat import set_function_name
+from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import astype_nansafe
@@ -17,6 +18,7 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_integer_dtype,
     is_list_like,
+    is_numeric_dtype,
     is_scalar,
     pandas_dtype,
 )
@@ -61,13 +63,13 @@ class BooleanDtype(ExtensionDtype):
     @property
     def na_value(self) -> "Scalar":
         """
-        BooleanDtype uses :attr:`numpy.nan` as the missing NA value.
+        BooleanDtype uses :attr:`pandas.NA` as the missing NA value.
 
         .. warning::
 
            `na_value` may change in a future release.
         """
-        return np.nan
+        return libmissing.NA
 
     @property
     def type(self) -> Type:
@@ -101,6 +103,24 @@ class BooleanDtype(ExtensionDtype):
     def _is_boolean(self) -> bool:
         return True
 
+    def __from_arrow__(self, array):
+        """Construct BooleanArray from passed pyarrow Array/ChunkedArray"""
+        import pyarrow
+
+        if isinstance(array, pyarrow.Array):
+            chunks = [array]
+        else:
+            # pyarrow.ChunkedArray
+            chunks = array.chunks
+
+        results = []
+        for arr in chunks:
+            # TODO should optimize this without going through object array
+            bool_arr = BooleanArray._from_sequence(np.array(arr))
+            results.append(bool_arr)
+
+        return BooleanArray._concat_same_type(results)
+
 
 def coerce_to_array(values, mask=None, copy: bool = False):
     """
@@ -130,9 +150,19 @@ def coerce_to_array(values, mask=None, copy: bool = False):
     if isinstance(values, np.ndarray) and values.dtype == np.bool_:
         if copy:
             values = values.copy()
+    elif isinstance(values, np.ndarray) and is_numeric_dtype(values.dtype):
+        mask_values = isna(values)
+
+        values_bool = np.zeros(len(values), dtype=bool)
+        values_bool[~mask_values] = values[~mask_values].astype(bool)
+
+        if not np.all(
+            values_bool[~mask_values].astype(values.dtype) == values[~mask_values]
+        ):
+            raise TypeError("Need to pass bool-like values")
+
+        values = values_bool
     else:
-        # TODO conversion from integer/float ndarray can be done more efficiently
-        #  (avoid roundtrip through object)
         values_object = np.asarray(values, dtype=object)
 
         inferred_dtype = lib.infer_dtype(values_object, skipna=True)
@@ -184,6 +214,9 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
     represented by 2 numpy arrays: a boolean array with the data and
     a boolean array with the mask (True indicating missing).
 
+    BooleanArray implements Kleene logic (sometimes called three-value
+    logic) for logical operations. See :ref:`boolean.kleene` for more.
+
     To construct an BooleanArray from generic array-like input, use
     :func:`pandas.array` specifying ``dtype="boolean"`` (see examples
     below).
@@ -223,7 +256,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
 
     >>> pd.array([True, False, None], dtype="boolean")
     <BooleanArray>
-    [True, False, NaN]
+    [True, False, NA]
     Length: 3, dtype: boolean
     """
 
@@ -262,17 +295,17 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
         values, mask = coerce_to_array(scalars, copy=copy)
         return BooleanArray(values, mask)
 
+    def _values_for_factorize(self) -> Tuple[np.ndarray, Any]:
+        data = self._data.astype("int8")
+        data[self._mask] = -1
+        return data, -1
+
     @classmethod
     def _from_factorized(cls, values, original: "BooleanArray"):
         return cls._from_sequence(values, dtype=original.dtype)
 
     def _formatter(self, boxed=False):
-        def fmt(x):
-            if isna(x):
-                return "NaN"
-            return str(x)
-
-        return fmt
+        return str
 
     def __getitem__(self, item):
         if is_integer(item):
@@ -281,25 +314,29 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
             return self._data[item]
         return type(self)(self._data[item], self._mask[item])
 
-    def _coerce_to_ndarray(self, force_bool: bool = False):
+    def _coerce_to_ndarray(self, dtype=None, na_value: "Scalar" = libmissing.NA):
         """
-        Coerce to an ndarary of object dtype or bool dtype (if force_bool=True).
+        Coerce to an ndarray of object dtype or bool dtype (if force_bool=True).
 
         Parameters
         ----------
-        force_bool : bool, default False
-            If True, return bool array or raise error if not possible (in
-            presence of missing values)
+        dtype : dtype, default object
+            The numpy dtype to convert to
+        na_value : scalar, optional
+             Scalar missing value indicator to use in numpy array. Defaults
+             to the native missing value indicator of this array (pd.NA).
         """
-        if force_bool:
+        if dtype is None:
+            dtype = object
+        if is_bool_dtype(dtype):
             if not self.isna().any():
                 return self._data
             else:
                 raise ValueError(
                     "cannot convert to bool numpy array in presence of missing values"
                 )
-        data = self._data.astype(object)
-        data[self._mask] = self._na_value
+        data = self._data.astype(dtype)
+        data[self._mask] = na_value
         return data
 
     __array_priority__ = 1000  # higher than ndarray so ops dispatch to us
@@ -309,15 +346,8 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
         the array interface, return my values
         We return an object array here to preserve our scalar values
         """
-        if dtype is not None:
-            if is_bool_dtype(dtype):
-                return self._coerce_to_ndarray(force_bool=True)
-            # TODO can optimize this to not go through object dtype for
-            # numeric dtypes
-            arr = self._coerce_to_ndarray()
-            return arr.astype(dtype, copy=False)
         # by default (no dtype specified), return an object array
-        return self._coerce_to_ndarray()
+        return self._coerce_to_ndarray(dtype=dtype)
 
     def __arrow_array__(self, type=None):
         """
@@ -483,8 +513,17 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
             return IntegerArray(
                 self._data.astype(dtype.numpy_dtype), self._mask.copy(), copy=False
             )
+        # for integer, error if there are missing values
+        if is_integer_dtype(dtype):
+            if self.isna().any():
+                raise ValueError("cannot convert NA to integer")
+        # for float dtype, ensure we use np.nan before casting (numpy cannot
+        # deal with pd.NA)
+        na_value = self._na_value
+        if is_float_dtype(dtype):
+            na_value = np.nan
         # coerce
-        data = self._coerce_to_ndarray()
+        data = self._coerce_to_ndarray(na_value=na_value)
         return astype_nansafe(data, dtype, copy=None)
 
     def value_counts(self, dropna=True):
@@ -551,6 +590,143 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
         data[self._mask] = -1
         return data
 
+    def any(self, skipna: bool = True, **kwargs):
+        """
+        Return whether any element is True.
+
+        Returns False unless there is at least one element that is True.
+        By default, NAs are skipped. If ``skipna=False`` is specified and
+        missing values are present, similar :ref:`Kleene logic <boolean.kleene>`
+        is used as for logical operations.
+
+        Parameters
+        ----------
+        skipna : bool, default True
+            Exclude NA values. If the entire array is NA and `skipna` is
+            True, then the result will be False, as for an empty array.
+            If `skipna` is False, the result will still be True if there is
+            at least one element that is True, otherwise NA will be returned
+            if there are NA's present.
+        **kwargs : any, default None
+            Additional keywords have no effect but might be accepted for
+            compatibility with NumPy.
+
+        Returns
+        -------
+        bool or :attr:`pandas.NA`
+
+        See Also
+        --------
+        numpy.any : Numpy version of this method.
+        BooleanArray.all : Return whether all elements are True.
+
+        Examples
+        --------
+
+        The result indicates whether any element is True (and by default
+        skips NAs):
+
+        >>> pd.array([True, False, True]).any()
+        True
+        >>> pd.array([True, False, pd.NA]).any()
+        True
+        >>> pd.array([False, False, pd.NA]).any()
+        False
+        >>> pd.array([], dtype="boolean").any()
+        False
+        >>> pd.array([pd.NA], dtype="boolean").any()
+        False
+
+        With ``skipna=False``, the result can be NA if this is logically
+        required (whether ``pd.NA`` is True or False influences the result):
+
+        >>> pd.array([True, False, pd.NA]).any(skipna=False)
+        True
+        >>> pd.array([False, False, pd.NA]).any(skipna=False)
+        NA
+        """
+        kwargs.pop("axis", None)
+        nv.validate_any((), kwargs)
+
+        values = self._data.copy()
+        np.putmask(values, self._mask, False)
+        result = values.any()
+        if skipna:
+            return result
+        else:
+            if result or len(self) == 0:
+                return result
+            else:
+                return self.dtype.na_value
+
+    def all(self, skipna: bool = True, **kwargs):
+        """
+        Return whether all elements are True.
+
+        Returns True unless there is at least one element that is False.
+        By default, NAs are skipped. If ``skipna=False`` is specified and
+        missing values are present, similar :ref:`Kleene logic <boolean.kleene>`
+        is used as for logical operations.
+
+        Parameters
+        ----------
+        skipna : bool, default True
+            Exclude NA values. If the entire array is NA and `skipna` is
+            True, then the result will be True, as for an empty array.
+            If `skipna` is False, the result will still be False if there is
+            at least one element that is False, otherwise NA will be returned
+            if there are NA's present.
+        **kwargs : any, default None
+            Additional keywords have no effect but might be accepted for
+            compatibility with NumPy.
+
+        Returns
+        -------
+        bool or :attr:`pandas.NA`
+
+        See Also
+        --------
+        numpy.all : Numpy version of this method.
+        BooleanArray.any : Return whether any element is True.
+
+        Examples
+        --------
+
+        The result indicates whether any element is True (and by default
+        skips NAs):
+
+        >>> pd.array([True, True, pd.NA]).all()
+        True
+        >>> pd.array([True, False, pd.NA]).all()
+        False
+        >>> pd.array([], dtype="boolean").all()
+        True
+        >>> pd.array([pd.NA], dtype="boolean").all()
+        True
+
+        With ``skipna=False``, the result can be NA if this is logically
+        required (whether ``pd.NA`` is True or False influences the result):
+
+        >>> pd.array([True, True, pd.NA]).all(skipna=False)
+        NA
+        >>> pd.array([True, False, pd.NA]).all(skipna=False)
+        False
+        """
+        kwargs.pop("axis", None)
+        nv.validate_all((), kwargs)
+
+        values = self._data.copy()
+        np.putmask(values, self._mask, True)
+        result = values.all()
+
+        if skipna:
+            return result
+        else:
+            if not result or len(self) == 0:
+                return result
+            else:
+                return self.dtype.na_value
+
     @classmethod
     def _create_logical_method(cls, op):
         def logical_method(self, other):
@@ -559,10 +735,13 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
                 # Rely on pandas to unbox and dispatch to us.
                 return NotImplemented
 
+            assert op.__name__ in {"or_", "ror_", "and_", "rand_", "xor", "rxor"}
             other = lib.item_from_zerodim(other)
+            other_is_booleanarray = isinstance(other, BooleanArray)
+            other_is_scalar = lib.is_scalar(other)
             mask = None
 
-            if isinstance(other, BooleanArray):
+            if other_is_booleanarray:
                 other, mask = other._data, other._mask
             elif is_list_like(other):
                 other = np.asarray(other, dtype="bool")
@@ -570,22 +749,26 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
                     raise NotImplementedError(
                         "can only perform ops with 1-d structures"
                     )
-                if len(self) != len(other):
-                    raise ValueError("Lengths must match to compare")
                 other, mask = coerce_to_array(other, copy=False)
+            elif isinstance(other, np.bool_):
+                other = other.item()
 
-            # numpy will show a DeprecationWarning on invalid elementwise
-            # comparisons, this will raise in the future
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", "elementwise", FutureWarning)
-                with np.errstate(all="ignore"):
-                    result = op(self._data, other)
+            if other_is_scalar and not (other is libmissing.NA or lib.is_bool(other)):
+                raise TypeError(
+                    "'other' should be pandas.NA or a bool. Got {} instead.".format(
+                        type(other).__name__
+                    )
+                )
 
-            # nans propagate
-            if mask is None:
-                mask = self._mask
-            else:
-                mask = self._mask | mask
+            if not other_is_scalar and len(self) != len(other):
+                raise ValueError("Lengths must match to compare")
+
+            if op.__name__ in {"or_", "ror_"}:
+                result, mask = ops.kleene_or(self._data, other, self._mask, mask)
+            elif op.__name__ in {"and_", "rand_"}:
+                result, mask = ops.kleene_and(self._data, other, self._mask, mask)
+            elif op.__name__ in {"xor", "rxor"}:
+                result, mask = ops.kleene_xor(self._data, other, self._mask, mask)
 
             return BooleanArray(result, mask)
 
@@ -594,8 +777,6 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
 
     @classmethod
     def _create_comparison_method(cls, op):
-        op_name = op.__name__
-
         def cmp_method(self, other):
 
             if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
@@ -617,43 +798,48 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
                 if len(self) != len(other):
                     raise ValueError("Lengths must match to compare")
 
-            # numpy will show a DeprecationWarning on invalid elementwise
-            # comparisons, this will raise in the future
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", "elementwise", FutureWarning)
-                with np.errstate(all="ignore"):
-                    result = op(self._data, other)
-
-            # nans propagate
-            if mask is None:
-                mask = self._mask
+            if other is libmissing.NA:
+                # numpy does not handle pd.NA well as "other" scalar (it returns
+                # a scalar False instead of an array)
+                result = np.zeros_like(self._data)
+                mask = np.ones_like(self._data)
             else:
-                mask = self._mask | mask
+                # numpy will show a DeprecationWarning on invalid elementwise
+                # comparisons, this will raise in the future
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", "elementwise", FutureWarning)
+                    with np.errstate(all="ignore"):
+                        result = op(self._data, other)
 
-            result[mask] = op_name == "ne"
-            return BooleanArray(result, np.zeros(len(result), dtype=bool), copy=False)
+                # nans propagate
+                if mask is None:
+                    mask = self._mask.copy()
+                else:
+                    mask = self._mask | mask
+
+            return BooleanArray(result, mask, copy=False)
 
         name = "__{name}__".format(name=op.__name__)
         return set_function_name(cmp_method, name, cls)
 
     def _reduce(self, name, skipna=True, **kwargs):
+
+        if name in {"any", "all"}:
+            return getattr(self, name)(skipna=skipna, **kwargs)
+
         data = self._data
         mask = self._mask
 
         # coerce to a nan-aware float if needed
         if mask.any():
             data = self._data.astype("float64")
-            data[mask] = self._na_value
+            data[mask] = np.nan
 
         op = getattr(nanops, "nan" + name)
         result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)
 
-        # if we have a boolean op, don't coerce
-        if name in ["any", "all"]:
-            pass
-
         # if we have numeric op that would result in an int, coerce to int if possible
-        elif name in ["sum", "prod"] and notna(result):
+        if name in ["sum", "prod"] and notna(result):
             int_result = np.int64(result)
             if int_result == result:
                 result = int_result

@@ -8,6 +8,7 @@ from typing import DefaultDict, Dict, List, Optional, Union
 import numpy as np
 
 from pandas._libs.writers import convert_json_to_lines
+from pandas.util._decorators import deprecate
 
 from pandas import DataFrame
 
@@ -108,7 +109,7 @@ def nested_to_record(
     return new_ds
 
 
-def json_normalize(
+def _json_normalize(
     data: Union[Dict, List[Dict]],
     record_path: Optional[Union[str, List]] = None,
     meta: Optional[Union[str, List]] = None,
@@ -308,7 +309,7 @@ def json_normalize(
                                 raise KeyError(
                                     "Try running with "
                                     "errors='ignore' as key "
-                                    "{err} is not always present".format(err=e)
+                                    f"{e} is not always present"
                                 )
                     meta_vals[key].append(meta_val)
                 records.extend(recs)
@@ -318,7 +319,7 @@ def json_normalize(
     result = DataFrame(records)
 
     if record_prefix is not None:
-        result = result.rename(columns=lambda x: "{p}{c}".format(p=record_prefix, c=x))
+        result = result.rename(columns=lambda x: f"{record_prefix}{x}")
 
     # Data types, a problem
     for k, v in meta_vals.items():
@@ -327,8 +328,12 @@ def json_normalize(
 
         if k in result:
             raise ValueError(
-                "Conflicting metadata name {name}, "
-                "need distinguishing prefix ".format(name=k)
+                f"Conflicting metadata name {k}, need distinguishing prefix "
             )
         result[k] = np.array(v, dtype=object).repeat(lengths)
     return result
+
+
+json_normalize = deprecate(
+    "pandas.io.json.json_normalize", _json_normalize, "1.0.0", "pandas.json_normalize"
+)

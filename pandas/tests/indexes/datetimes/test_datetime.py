@@ -89,7 +89,7 @@ class TestDatetimeIndex:
     def test_hash_error(self):
         index = date_range("20010101", periods=10)
         with pytest.raises(
-            TypeError, match=("unhashable type: {0.__name__!r}".format(type(index)))
+            TypeError, match=f"unhashable type: '{type(index).__name__}'"
         ):
             hash(index)
 
@@ -187,25 +187,6 @@ class TestDatetimeIndex:
 
         result = df.T["1/3/2000"]
         assert result.name == df.index[2]
-
-    def test_get_duplicates(self):
-        idx = DatetimeIndex(
-            [
-                "2000-01-01",
-                "2000-01-02",
-                "2000-01-02",
-                "2000-01-03",
-                "2000-01-03",
-                "2000-01-04",
-            ]
-        )
-
-        with tm.assert_produces_warning(FutureWarning):
-            # Deprecated - see GH20239
-            result = idx.get_duplicates()
-
-        ex = DatetimeIndex(["2000-01-02", "2000-01-03"])
-        tm.assert_index_equal(result, ex)
 
     def test_argmin_argmax(self):
         idx = DatetimeIndex(["2000-01-04", "2000-01-01", "2000-01-02"])

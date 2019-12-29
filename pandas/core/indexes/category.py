@@ -7,6 +7,7 @@ from pandas._config import get_option
 
 from pandas._libs import index as libindex
 from pandas._libs.hashtable import duplicated_int64
+from pandas._typing import AnyArrayLike
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -22,14 +23,13 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.generic import ABCCategorical, ABCSeries
 from pandas.core.dtypes.missing import isna
 
-from pandas._typing import AnyArrayLike
 from pandas.core import accessor
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays.categorical import Categorical, _recode_for_categories, contains
 from pandas.core.base import _shared_docs
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.base import Index, _index_shared_docs
+from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
 import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name
 
@@ -175,8 +175,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         dtype = CategoricalDtype._from_values_or_dtype(data, categories, ordered, dtype)
 
-        if name is None and hasattr(data, "name"):
-            name = data.name
+        name = maybe_extract_name(name, data, cls)
 
         if not is_categorical_dtype(data):
             # don't allow scalars
@@ -696,9 +695,11 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     @Appender(_index_shared_docs["_convert_scalar_indexer"])
     def _convert_scalar_indexer(self, key, kind=None):
-        if self.categories._defer_to_indexing:
-            return self.categories._convert_scalar_indexer(key, kind=kind)
-
+        if kind == "loc":
+            try:
+                return self.categories._convert_scalar_indexer(key, kind=kind)
+            except TypeError:
+                self._invalid_indexer("label", key)
         return super()._convert_scalar_indexer(key, kind=kind)
 
     @Appender(_index_shared_docs["_convert_list_indexer"])
@@ -713,9 +714,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         indexer = self.categories.get_indexer(np.asarray(keyarr))
         if (indexer == -1).any():
             raise KeyError(
-                "a list-indexer must only "
-                "include values that are "
-                "in the categories"
+                "a list-indexer must only include values that are in the categories"
             )
 
         return self.get_indexer(keyarr)
@@ -750,6 +749,13 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         return self._data.is_dtype_equal(other)
 
     take_nd = take
+
+    @Appender(_index_shared_docs["_maybe_cast_slice_bound"])
+    def _maybe_cast_slice_bound(self, label, side, kind):
+        if kind == "loc":
+            return label
+
+        return super()._maybe_cast_slice_bound(label, side, kind)
 
     def map(self, mapper):
         """
@@ -884,7 +890,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         """ add in comparison methods """
 
         def _make_compare(op):
-            opname = "__{op}__".format(op=op.__name__)
+            opname = f"__{op.__name__}__"
 
             def _evaluate_compare(self, other):
                 with np.errstate(all="ignore"):
