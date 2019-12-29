@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Hashable, List, Tuple, Union
 
 import numpy as np
 
@@ -2224,7 +2224,7 @@ class _iAtIndexer(_ScalarAccessIndexer):
         return key
 
 
-def _tuplify(ndim: int, loc) -> tuple:
+def _tuplify(ndim: int, loc: Hashable) -> Tuple[Union[Hashable, slice], ...]:
     """
     Given an indexer for the first dimension, create an equivalent tuple
     for indexing over all dimensions.
@@ -2238,9 +2238,10 @@ def _tuplify(ndim: int, loc) -> tuple:
     -------
     tuple
     """
-    tup = [slice(None, None) for _ in range(ndim)]
-    tup[0] = loc
-    return tuple(tup)
+    _tup: List[Union[Hashable, slice]]
+    _tup = [slice(None, None) for _ in range(ndim)]
+    _tup[0] = loc
+    return tuple(_tup)
 
 
 def convert_to_index_sliceable(obj, key):
