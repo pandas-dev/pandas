@@ -127,7 +127,7 @@ class TestExpandingMomentsConsistency(ConsistencyBase):
         )
         # TODO: xref gh-15826
         # .loc is not preserving the names
-        result1 = df1.expanding().cov(df2a, pairwise=True).loc[2]
+        result1 = df1.expanding().cov(df2, pairwise=True).loc[2]
         result2 = df1.expanding().cov(df2a, pairwise=True).loc[2]
         result3 = df1a.expanding().cov(df2, pairwise=True).loc[2]
         result4 = df1a.expanding().cov(df2a, pairwise=True).loc[2]
