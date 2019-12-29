@@ -1,7 +1,7 @@
 from datetime import datetime
 import operator
 from textwrap import dedent
-from typing import FrozenSet, Hashable, Optional, Union
+from typing import Dict, FrozenSet, Hashable, Optional, Union
 import warnings
 
 import numpy as np
@@ -4594,7 +4594,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return self.astype("object"), other.astype("object")
         return self, other
 
-    def groupby(self, values):
+    def groupby(self, values) -> Dict[Hashable, np.ndarray]:
         """
         Group the index labels by a given array of values.
 
@@ -4605,7 +4605,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        groups : dict
+        dict
             {group name -> group labels}
         """
 
