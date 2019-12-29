@@ -865,9 +865,9 @@ class Block(PandasObject):
             values[indexer] = value
 
         elif (
-            is_categorical_dtype(arr_value.dtype)
+            exact_match
+            and is_categorical_dtype(arr_value.dtype)
             and not is_categorical_dtype(values)
-            and exact_match
         ):
             # GH25495 - If the current dtype is not categorical,
             # we need to create a new categorical block
