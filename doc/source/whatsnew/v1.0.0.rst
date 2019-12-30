@@ -365,6 +365,64 @@ The following methods now also correctly output values for unobserved categories
 
 As a reminder, you can specify the ``dtype`` to disable all inference.
 
+:class:`arrays.IntegerArray` now uses :attr:`pandas.NA`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:class:`arrays.IntegerArray` now uses :attr:`pandas.NA` rather than
+:attr:`numpy.nan` as its missing value marker (:issue:`29964`).
+
+*pandas 0.25.x*
+
+.. code-block:: python
+
+   >>> a = pd.array([1, 2, None], dtype="Int64")
+   >>> a
+   <IntegerArray>
+   [1, 2, NaN]
+   Length: 3, dtype: Int64
+
+   >>> a[2]
+   nan
+
+*pandas 1.0.0*
+
+.. ipython:: python
+
+   a = pd.array([1, 2, None], dtype="Int64")
+   a[2]
+
+See :ref:`missing_data.NA` for more on the differences between :attr:`pandas.NA`
+and :attr:`numpy.nan`.
+
+:class:`arrays.IntegerArray` comparisons return :class:`arrays.BooleanArray`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Comparison operations on a :class:`arrays.IntegerArray` now returns a
+:class:`arrays.BooleanArray` rather than a NumPy array (:issue:`29964`).
+
+*pandas 0.25.x*
+
+.. code-block:: python
+
+   >>> a = pd.array([1, 2, None], dtype="Int64")
+   >>> a
+   <IntegerArray>
+   [1, 2, NaN]
+   Length: 3, dtype: Int64
+
+   >>> a > 1
+   array([False,  True, False])
+
+*pandas 1.0.0*
+
+.. ipython:: python
+
+   a = pd.array([1, 2, None], dtype="Int64")
+   a > 1
+
+Note that missing values now propagate, rather than always comparing unequal
+like :attr:`numpy.nan`. See :ref:`missing_data.NA` for more.
+
 By default :meth:`Categorical.min` now returns the minimum instead of np.nan
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
