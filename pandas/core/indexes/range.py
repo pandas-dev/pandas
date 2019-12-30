@@ -141,6 +141,7 @@ class RangeIndex(Int64Index):
 
         result._range = values
         result.name = name
+        result._no_setting_name = False
 
         result._reset_identity()
         return result

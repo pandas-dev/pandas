@@ -124,3 +124,12 @@ def test_get_names_from_levels():
 
     assert idx.levels[0].name == "a"
     assert idx.levels[1].name == "b"
+
+
+def test_setting_names_from_levels_raises():
+    idx = pd.MultiIndex.from_product([["a"], [1, 2]], names=["a", "b"])
+    with pytest.raises(RuntimeError, match="set_names"):
+        idx.levels[0].name = "foo"
+
+    with pytest.raises(RuntimeError, match="set_names"):
+        idx.levels[1].name = "foo"
