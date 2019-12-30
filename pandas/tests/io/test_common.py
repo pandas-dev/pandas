@@ -149,7 +149,7 @@ bar2,12,13,14,15
             fr"\[Errno 2\] File .+does_not_exist\.{fn_ext} does not exist:"
             fr" '.+does_not_exist\.{fn_ext}'"
         )
-        msg6 = fr"[Errno 2] 没有那个文件或目录: '.+does_not_exist.{fn_ext}'"
+        msg6 = fr"\[Errno 2\] 没有那个文件或目录: '.+does_not_exist.{fn_ext}'"
         with pytest.raises(
             error_class, match=fr"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6})"
         ):
