@@ -192,7 +192,7 @@ del get_versions, v
 # TODO: remove Panel compat in 1.0
 if pandas.compat.PY37:
 
-    def __getattr__(name: str):
+    def __getattr__(name):
         import warnings
 
         if name == "Panel":
@@ -256,7 +256,7 @@ else:
             self.np = np
             self.warnings = warnings
 
-        def __getattr__(self, item: str):
+        def __getattr__(self, item):
             self.warnings.warn(
                 "The pandas.np module is deprecated "
                 "and will be removed from pandas in a future version. "
