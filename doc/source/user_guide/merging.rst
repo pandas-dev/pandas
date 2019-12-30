@@ -843,8 +843,6 @@ resulting dtype will be upcast.
    pd.merge(left, right, how='outer', on='key')
    pd.merge(left, right, how='outer', on='key').dtypes
 
-.. versionadded:: 0.20.0
-
 Merging will preserve ``category`` dtypes of the mergands. See also the section on :ref:`categoricals <categorical.merge>`.
 
 The left frame.
@@ -883,7 +881,7 @@ The merged result:
 .. note::
 
    The category dtypes must be *exactly* the same, meaning the same categories and the ordered attribute.
-   Otherwise the result will coerce to ``object`` dtype.
+   Otherwise the result will coerce to the categories' dtype.
 
 .. note::
 

@@ -6,7 +6,7 @@ import pytest
 
 from pandas import DataFrame, date_range, read_csv
 from pandas.util import _test_decorators as td
-from pandas.util.testing import assert_frame_equal
+import pandas.util.testing as tm
 
 from pandas.io.common import is_gcs_url
 
@@ -35,7 +35,7 @@ def test_read_csv_gcs(monkeypatch):
     monkeypatch.setattr("gcsfs.GCSFileSystem", MockGCSFileSystem)
     df2 = read_csv("gs://test/test.csv", parse_dates=["dt"])
 
-    assert_frame_equal(df1, df2)
+    tm.assert_frame_equal(df1, df2)
 
 
 @td.skip_if_no("gcsfs")
@@ -58,7 +58,7 @@ def test_to_csv_gcs(monkeypatch):
     df1.to_csv("gs://test/test.csv", index=True)
     df2 = read_csv(StringIO(s.getvalue()), parse_dates=["dt"], index_col=0)
 
-    assert_frame_equal(df1, df2)
+    tm.assert_frame_equal(df1, df2)
 
 
 @td.skip_if_no("fastparquet")
@@ -105,7 +105,7 @@ def test_gcs_get_filepath_or_buffer(monkeypatch):
     )
     df2 = read_csv("gs://test/test.csv", parse_dates=["dt"])
 
-    assert_frame_equal(df1, df2)
+    tm.assert_frame_equal(df1, df2)
 
 
 @td.skip_if_installed("gcsfs")

@@ -4,8 +4,7 @@ Support pre-0.12 series pickle compatibility.
 
 import copy
 import pickle as pkl
-import sys
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 import warnings
 
 from pandas import Index
@@ -25,14 +24,14 @@ def load_reduce(self):
     try:
         stack[-1] = func(*args)
         return
-    except Exception as e:
+    except TypeError as err:
 
         # If we have a deprecated function,
         # try to replace and try again.
 
         msg = "_reconstruct: First argument must be a sub-type of ndarray"
 
-        if msg in str(e):
+        if msg in str(err):
             try:
                 cls = args[0]
                 stack[-1] = object.__new__(cls)
@@ -40,22 +39,6 @@ def load_reduce(self):
             except TypeError:
                 pass
 
-        # try to re-encode the arguments
-        if getattr(self, "encoding", None) is not None:
-            args = tuple(
-                arg.encode(self.encoding) if isinstance(arg, str) else arg
-                for arg in args
-            )
-            try:
-                stack[-1] = func(*args)
-                return
-            except TypeError:
-                pass
-
-        # unknown exception, re-raise
-        if getattr(self, "is_verbose", None):
-            print(sys.exc_info())
-            print(func, args)
         raise
 
 
@@ -68,7 +51,11 @@ Loading a saved '{cls}' as a {new} with sparse values.
 
 class _LoadSparseSeries:
     # To load a SparseSeries as a Series[Sparse]
-    def __new__(cls) -> "Series":
+
+    # https://github.com/python/mypy/issues/1020
+    # error: Incompatible return type for "__new__" (returns "Series", but must return
+    # a subtype of "_LoadSparseSeries")
+    def __new__(cls) -> "Series":  # type: ignore
         from pandas import Series
 
         warnings.warn(
@@ -77,12 +64,16 @@ class _LoadSparseSeries:
             stacklevel=6,
         )
 
-        return Series()
+        return Series(dtype=object)
 
 
 class _LoadSparseFrame:
     # To load a SparseDataFrame as a DataFrame[Sparse]
-    def __new__(cls) -> "DataFrame":
+
+    # https://github.com/python/mypy/issues/1020
+    # error: Incompatible return type for "__new__" (returns "DataFrame", but must
+    # return a subtype of "_LoadSparseFrame")
+    def __new__(cls) -> "DataFrame":  # type: ignore
         from pandas import DataFrame
 
         warnings.warn(
@@ -98,21 +89,8 @@ class _LoadSparseFrame:
 _class_locations_map = {
     ("pandas.core.sparse.array", "SparseArray"): ("pandas.core.arrays", "SparseArray"),
     # 15477
-    #
-    # TODO: When FrozenNDArray is removed, add
-    # the following lines for compat:
-    #
-    # ('pandas.core.base', 'FrozenNDArray'):
-    #     ('numpy', 'ndarray'),
-    # ('pandas.core.indexes.frozen', 'FrozenNDArray'):
-    #     ('numpy', 'ndarray'),
-    #
-    # Afterwards, remove the current entry
-    # for `pandas.core.base.FrozenNDArray`.
-    ("pandas.core.base", "FrozenNDArray"): (
-        "pandas.core.indexes.frozen",
-        "FrozenNDArray",
-    ),
+    ("pandas.core.base", "FrozenNDArray"): ("numpy", "ndarray"),
+    ("pandas.core.indexes.frozen", "FrozenNDArray"): ("numpy", "ndarray"),
     ("pandas.core.base", "FrozenList"): ("pandas.core.indexes.frozen", "FrozenList"),
     # 10890
     ("pandas.core.series", "TimeSeries"): ("pandas.core.series", "Series"),
@@ -241,8 +219,9 @@ except (AttributeError, KeyError):
     pass
 
 
-def load(fh, encoding=None, is_verbose=False):
-    """load a pickle, with a provided encoding
+def load(fh, encoding: Optional[str] = None, is_verbose: bool = False):
+    """
+    Load a pickle, with a provided encoding,
 
     Parameters
     ----------

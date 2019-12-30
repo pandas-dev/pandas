@@ -14,7 +14,6 @@ from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
 from pandas import NaT, Timestamp
-import pandas.util.testing as tm
 
 
 class TestTimestampTZOperations:
@@ -80,7 +79,6 @@ class TestTimestampTZOperations:
             ("2015-03-29 02:30", "Europe/Belgrade"),
         ],
     )
-    @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_tz_localize_nonexistent(self, stamp, tz):
         # GH#13057
         ts = Timestamp(stamp)
@@ -88,36 +86,21 @@ class TestTimestampTZOperations:
             ts.tz_localize(tz)
         # GH 22644
         with pytest.raises(NonExistentTimeError):
-            with tm.assert_produces_warning(FutureWarning):
-                ts.tz_localize(tz, errors="raise")
-        with tm.assert_produces_warning(FutureWarning):
-            assert ts.tz_localize(tz, errors="coerce") is NaT
+            ts.tz_localize(tz, nonexistent="raise")
+        assert ts.tz_localize(tz, nonexistent="NaT") is NaT
 
-    def test_tz_localize_errors_ambiguous(self):
+    def test_tz_localize_ambiguous_raise(self):
         # GH#13057
         ts = Timestamp("2015-11-1 01:00")
         with pytest.raises(AmbiguousTimeError):
-            with tm.assert_produces_warning(FutureWarning):
-                ts.tz_localize("US/Pacific", errors="coerce")
+            ts.tz_localize("US/Pacific", ambiguous="raise")
 
-    @pytest.mark.filterwarnings("ignore::FutureWarning")
-    def test_tz_localize_errors_invalid_arg(self):
+    def test_tz_localize_nonexistent_invalid_arg(self):
         # GH 22644
         tz = "Europe/Warsaw"
         ts = Timestamp("2015-03-29 02:00:00")
         with pytest.raises(ValueError):
-            with tm.assert_produces_warning(FutureWarning):
-                ts.tz_localize(tz, errors="foo")
-
-    def test_tz_localize_errors_coerce(self):
-        # GH 22644
-        # make sure errors='coerce' gets mapped correctly to nonexistent
-        tz = "Europe/Warsaw"
-        ts = Timestamp("2015-03-29 02:00:00")
-        with tm.assert_produces_warning(FutureWarning):
-            result = ts.tz_localize(tz, errors="coerce")
-        expected = ts.tz_localize(tz, nonexistent="NaT")
-        assert result is expected
+            ts.tz_localize(tz, nonexistent="foo")
 
     @pytest.mark.parametrize(
         "stamp",
@@ -306,15 +289,14 @@ class TestTimestampTZOperations:
 
     @td.skip_if_windows
     def test_tz_convert_utc_with_system_utc(self):
-        from pandas._libs.tslibs.timezones import maybe_get_tz
 
         # from system utc to real utc
-        ts = Timestamp("2001-01-05 11:56", tz=maybe_get_tz("dateutil/UTC"))
+        ts = Timestamp("2001-01-05 11:56", tz=timezones.maybe_get_tz("dateutil/UTC"))
         # check that the time hasn't changed.
         assert ts == ts.tz_convert(dateutil.tz.tzutc())
 
         # from system utc to real utc
-        ts = Timestamp("2001-01-05 11:56", tz=maybe_get_tz("dateutil/UTC"))
+        ts = Timestamp("2001-01-05 11:56", tz=timezones.maybe_get_tz("dateutil/UTC"))
         # check that the time hasn't changed.
         assert ts == ts.tz_convert(dateutil.tz.tzutc())
 

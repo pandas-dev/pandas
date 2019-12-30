@@ -1,6 +1,5 @@
 import operator
 from typing import Any
-import warnings
 
 import numpy as np
 
@@ -8,6 +7,7 @@ from pandas._config import get_option
 
 from pandas._libs import index as libindex
 from pandas._libs.hashtable import duplicated_int64
+from pandas._typing import AnyArrayLike
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -23,14 +23,13 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.generic import ABCCategorical, ABCSeries
 from pandas.core.dtypes.missing import isna
 
-from pandas._typing import AnyArrayLike
 from pandas.core import accessor
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays.categorical import Categorical, _recode_for_categories, contains
 from pandas.core.base import _shared_docs
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.base import Index, _index_shared_docs
+from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
 import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name
 
@@ -77,7 +76,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         Whether or not this categorical is treated as an ordered
         categorical. If not given here or in `dtype`, the resulting
         categorical will be unordered.
-    dtype : CategoricalDtype or the string "category", optional
+    dtype : CategoricalDtype or "category", optional
         If :class:`CategoricalDtype`, cannot be used together with
         `categories` or `ordered`.
 
@@ -172,23 +171,11 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         dtype=None,
         copy=False,
         name=None,
-        fastpath=None,
     ):
-
-        if fastpath is not None:
-            warnings.warn(
-                "The 'fastpath' keyword is deprecated, and will be "
-                "removed in a future version.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            if fastpath:
-                return cls._simple_new(data, name=name, dtype=dtype)
 
         dtype = CategoricalDtype._from_values_or_dtype(data, categories, ordered, dtype)
 
-        if name is None and hasattr(data, "name"):
-            name = data.name
+        name = maybe_extract_name(name, data, cls)
 
         if not is_categorical_dtype(data):
             # don't allow scalars
@@ -276,7 +263,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             dtype = self.dtype
         return super()._shallow_copy(values=values, dtype=dtype, **kwargs)
 
-    def _is_dtype_compat(self, other):
+    def _is_dtype_compat(self, other) -> bool:
         """
         *this is an internal non-public method*
 
@@ -357,7 +344,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         ]
         if self.name is not None:
             attrs.append(("name", ibase.default_pprint(self.name)))
-        attrs.append(("dtype", "'%s'" % self.dtype.name))
+        attrs.append(("dtype", f"'{self.dtype.name}'"))
         max_seq_items = get_option("display.max_seq_items") or len(self)
         if len(self) > max_seq_items:
             attrs.append(("length", len(self)))
@@ -366,7 +353,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     # --------------------------------------------------------------------
 
     @property
-    def inferred_type(self):
+    def inferred_type(self) -> str:
         return "categorical"
 
     @property
@@ -407,7 +394,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         return self._data._reverse_indexer()
 
     @Appender(_index_shared_docs["contains"] % _index_doc_kwargs)
-    def __contains__(self, key):
+    def __contains__(self, key) -> bool:
         # if key is a NaN, check if any NaN is in self.
         if is_scalar(key) and isna(key):
             return self.hasnans
@@ -455,7 +442,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     # introspection
     @cache_readonly
-    def is_unique(self):
+    def is_unique(self) -> bool:
         return self._engine.is_unique
 
     @property
@@ -463,7 +450,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         return self._engine.is_monotonic_increasing
 
     @property
-    def is_monotonic_decreasing(self):
+    def is_monotonic_decreasing(self) -> bool:
         return self._engine.is_monotonic_decreasing
 
     @Appender(_index_shared_docs["index_unique"] % _index_doc_kwargs)
@@ -552,10 +539,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         # we might be a positional inexer
         return super().get_value(series, key)
 
-    def _can_reindex(self, indexer):
-        """ always allow reindexing """
-        pass
-
     @Substitution(klass="CategoricalIndex")
     @Appender(_shared_docs["searchsorted"])
     def searchsorted(self, value, side="left", sorter=None):
@@ -585,7 +568,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             Indices of output values in original index
 
         """
-
         if method is not None:
             raise NotImplementedError(
                 "argument method is not implemented for CategoricalIndex.reindex"
@@ -605,9 +587,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             indexer = None
             missing = []
         else:
-            if not target.is_unique:
-                raise ValueError("cannot reindex with a non-unique indexer")
-
             indexer, missing = self.get_indexer_non_unique(np.array(target))
 
         if len(self.codes) and indexer is not None:
@@ -716,9 +695,11 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     @Appender(_index_shared_docs["_convert_scalar_indexer"])
     def _convert_scalar_indexer(self, key, kind=None):
-        if self.categories._defer_to_indexing:
-            return self.categories._convert_scalar_indexer(key, kind=kind)
-
+        if kind == "loc":
+            try:
+                return self.categories._convert_scalar_indexer(key, kind=kind)
+            except TypeError:
+                self._invalid_indexer("label", key)
         return super()._convert_scalar_indexer(key, kind=kind)
 
     @Appender(_index_shared_docs["_convert_list_indexer"])
@@ -733,9 +714,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         indexer = self.categories.get_indexer(np.asarray(keyarr))
         if (indexer == -1).any():
             raise KeyError(
-                "a list-indexer must only "
-                "include values that are "
-                "in the categories"
+                "a list-indexer must only include values that are in the categories"
             )
 
         return self.get_indexer(keyarr)
@@ -770,6 +749,13 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         return self._data.is_dtype_equal(other)
 
     take_nd = take
+
+    @Appender(_index_shared_docs["_maybe_cast_slice_bound"])
+    def _maybe_cast_slice_bound(self, label, side, kind):
+        if kind == "loc":
+            return label
+
+        return super()._maybe_cast_slice_bound(label, side, kind)
 
     def map(self, mapper):
         """
@@ -904,7 +890,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         """ add in comparison methods """
 
         def _make_compare(op):
-            opname = "__{op}__".format(op=op.__name__)
+            opname = f"__{op.__name__}__"
 
             def _evaluate_compare(self, other):
                 with np.errstate(all="ignore"):

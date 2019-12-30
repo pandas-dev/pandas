@@ -14,10 +14,9 @@ class TestBase(Base):
 
     _holder = IntervalIndex
 
-    def setup_method(self, method):
-        self.index = IntervalIndex.from_arrays([0, 1], [1, 2])
-        self.index_with_nan = IntervalIndex.from_tuples([(0, 1), np.nan, (1, 2)])
-        self.indices = dict(intervalIndex=tm.makeIntervalIndex(10))
+    @pytest.fixture
+    def indices(self):
+        return tm.makeIntervalIndex(10)
 
     def create_index(self, closed="right"):
         return IntervalIndex.from_breaks(range(11), closed=closed)
