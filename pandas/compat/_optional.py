@@ -14,7 +14,7 @@ VERSIONS = {
     "matplotlib": "2.2.2",
     "numexpr": "2.6.2",
     "odfpy": "1.3.0",
-    "openpyxl": "2.4.8",
+    "openpyxl": "2.5.7",
     "pandas_gbq": "0.8.0",
     "pyarrow": "0.12.0",
     "pytables": "3.4.2",
@@ -23,10 +23,12 @@ VERSIONS = {
     "scipy": "0.19.0",
     "sqlalchemy": "1.1.4",
     "tables": "3.4.2",
+    "tabulate": "0.8.3",
     "xarray": "0.8.2",
     "xlrd": "1.1.0",
     "xlwt": "1.2.0",
     "xlsxwriter": "0.9.8",
+    "numba": "0.46.0",
 }
 
 

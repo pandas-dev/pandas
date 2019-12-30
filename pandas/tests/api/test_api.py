@@ -20,7 +20,6 @@ class Base:
 
 
 class TestPDApi(Base):
-
     # these are optionally imported based on testing
     # & need to be ignored
     ignored = ["tests", "locale", "conftest"]
@@ -46,7 +45,7 @@ class TestPDApi(Base):
     deprecated_modules: List[str] = []
 
     # misc
-    misc = ["IndexSlice", "NaT"]
+    misc = ["IndexSlice", "NaT", "NA"]
 
     # top-level classes
     classes = [
@@ -93,6 +92,7 @@ class TestPDApi(Base):
     ]
     if not compat.PY37:
         classes.extend(["Panel", "SparseSeries", "SparseDataFrame"])
+        deprecated_modules.append("np")
 
     # these are already deprecated; awaiting removal
     deprecated_classes: List[str] = []
@@ -101,7 +101,7 @@ class TestPDApi(Base):
     deprecated_classes_in_future: List[str] = []
 
     # external modules exposed in pandas namespace
-    modules = ["np", "datetime"]
+    modules = ["datetime"]
 
     # top-level functions
     funcs = [
@@ -157,7 +157,6 @@ class TestPDApi(Base):
         "read_hdf",
         "read_html",
         "read_json",
-        "read_msgpack",
         "read_pickle",
         "read_sas",
         "read_sql",
@@ -167,11 +166,15 @@ class TestPDApi(Base):
         "read_table",
         "read_feather",
         "read_parquet",
+        "read_orc",
         "read_spss",
     ]
 
+    # top-level json funcs
+    funcs_json = ["json_normalize"]
+
     # top-level to_* funcs
-    funcs_to = ["to_datetime", "to_msgpack", "to_numeric", "to_pickle", "to_timedelta"]
+    funcs_to = ["to_datetime", "to_numeric", "to_pickle", "to_timedelta"]
 
     # top-level to deprecate in the future
     deprecated_funcs_in_future: List[str] = []
@@ -209,6 +212,7 @@ class TestPDApi(Base):
             + self.funcs
             + self.funcs_option
             + self.funcs_read
+            + self.funcs_json
             + self.funcs_to
             + self.deprecated_funcs_in_future
             + self.deprecated_funcs
@@ -216,22 +220,43 @@ class TestPDApi(Base):
             self.ignored,
         )
 
+    def test_depr(self):
+        deprecated = (
+            self.deprecated_modules
+            + self.deprecated_classes
+            + self.deprecated_classes_in_future
+            + self.deprecated_funcs
+            + self.deprecated_funcs_in_future
+        )
+        for depr in deprecated:
+            with tm.assert_produces_warning(FutureWarning):
+                if compat.PY37:
+                    getattr(pd, depr)
+                else:
+                    deprecated = getattr(pd, depr)
+                    deprecated.__getattr__(dir(deprecated)[-1])
+
+
+def test_np():
+    import numpy as np
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", FutureWarning)
+        assert (pd.np.arange(0, 10) == np.arange(0, 10)).all()
+
 
 class TestApi(Base):
-
-    allowed = ["types", "extensions"]
+    allowed = ["types", "extensions", "indexers"]
 
     def test_api(self):
-
         self.check(api, self.allowed)
 
 
 class TestTesting(Base):
-
     funcs = ["assert_frame_equal", "assert_series_equal", "assert_index_equal"]
 
     def test_testing(self):
-
         from pandas import testing
 
         self.check(testing, self.funcs)

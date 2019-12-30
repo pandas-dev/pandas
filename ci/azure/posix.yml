@@ -20,14 +20,14 @@ jobs:
           CONDA_PY: "36"
           PATTERN: "not slow and not network"
         py36_locale_slow_old_np:
-          ENV_FILE: ci/deps/azure-36-locale.yaml
+          ENV_FILE: ci/deps/azure-36-locale_slow.yaml
           CONDA_PY: "36"
           PATTERN: "slow"
           LOCALE_OVERRIDE: "zh_CN.UTF-8"
           EXTRA_APT: "language-pack-zh-hans"
 
-        py36_locale_slow:
-          ENV_FILE: ci/deps/azure-36-locale_slow.yaml
+        py36_locale:
+          ENV_FILE: ci/deps/azure-36-locale.yaml
           CONDA_PY: "36"
           PATTERN: "not slow and not network"
           LOCALE_OVERRIDE: "it_IT.UTF-8"
@@ -69,19 +69,12 @@ jobs:
       displayName: 'Build versions'
 
     - task: PublishTestResults@2
+      condition: succeededOrFailed()
       inputs:
+        failTaskOnFailedTests: true
         testResultsFiles: 'test-data.xml'
         testRunTitle: ${{ format('{0}-$(CONDA_PY)', parameters.name) }}
       displayName: 'Publish test results'
-
-    - powershell: |
-        $(Get-Content "test-data.xml" | Out-String) -match 'failures="(.*?)"'
-        if ($matches[1] -eq 0) {
-          Write-Host "No test failures in test-data"
-        } else {
-          Write-Error "$($matches[1]) tests failed"  # will produce $LASTEXITCODE=1
-        }
-      displayName: 'Check for test failures'
 
     - script: |
         source activate pandas-dev

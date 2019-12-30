@@ -1,6 +1,5 @@
 """ test the scalar Timedelta """
 from datetime import timedelta
-import re
 
 import numpy as np
 import pytest
@@ -21,7 +20,7 @@ class TestTimedeltaArithmetic:
             Timestamp("1700-01-01") + timedelta(days=13 * 19999)
 
     def test_array_timedelta_floordiv(self):
-        # deprected GH#19761, enforced GH#29797
+        # deprecated GH#19761, enforced GH#29797
         ints = pd.date_range("2012-10-08", periods=4, freq="D").view("i8")
 
         with pytest.raises(TypeError, match="Invalid dtype"):
@@ -318,12 +317,9 @@ class TestTimedeltas:
         assert result.dtype.kind == "M"
         assert result.astype("int64") == iNaT
 
-    @pytest.mark.filterwarnings("ignore:M and Y units are deprecated")
     @pytest.mark.parametrize(
         "units, np_unit",
         [
-            (["Y", "y"], "Y"),
-            (["M"], "M"),
             (["W", "w"], "W"),
             (["D", "d", "days", "day", "Days", "Day"], "D"),
             (
@@ -403,7 +399,7 @@ class TestTimedeltas:
                     [np.timedelta64(i, "m") for i in np.arange(5).tolist()]
                 )
 
-            str_repr = ["{}{}".format(x, unit) for x in np.arange(5)]
+            str_repr = [f"{x}{unit}" for x in np.arange(5)]
             result = to_timedelta(wrapper(str_repr))
             tm.assert_index_equal(result, expected)
             result = TimedeltaIndex(wrapper(str_repr))
@@ -420,25 +416,22 @@ class TestTimedeltas:
             if unit == "M":
                 expected = Timedelta(np.timedelta64(2, "m").astype("timedelta64[ns]"))
 
-            result = to_timedelta("2{}".format(unit))
+            result = to_timedelta(f"2{unit}")
             assert result == expected
-            result = Timedelta("2{}".format(unit))
+            result = Timedelta(f"2{unit}")
             assert result == expected
 
     @pytest.mark.parametrize("unit", ["Y", "y", "M"])
-    def test_unit_m_y_deprecated(self, unit):
-        with tm.assert_produces_warning(FutureWarning) as w1:
+    def test_unit_m_y_raises(self, unit):
+        msg = "Units 'M' and 'Y' are no longer supported"
+        with pytest.raises(ValueError, match=msg):
             Timedelta(10, unit)
-        msg = r".* units are deprecated .*"
-        assert re.match(msg, str(w1[0].message))
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False) as w2:
+
+        with pytest.raises(ValueError, match=msg):
             to_timedelta(10, unit)
-        msg = r".* units are deprecated .*"
-        assert re.match(msg, str(w2[0].message))
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False) as w3:
+
+        with pytest.raises(ValueError, match=msg):
             to_timedelta([1, 2], unit)
-        msg = r".* units are deprecated .*"
-        assert re.match(msg, str(w3[0].message))
 
     def test_numeric_conversions(self):
         assert Timedelta(0) == np.timedelta64(0, "ns")

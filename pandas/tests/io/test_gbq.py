@@ -1,6 +1,9 @@
+from contextlib import ExitStack as does_not_raise
 from datetime import datetime
 import os
 import platform
+import random
+import string
 
 import numpy as np
 import pytest
@@ -17,11 +20,6 @@ pandas_gbq = pytest.importorskip("pandas_gbq")
 PROJECT_ID = None
 PRIVATE_KEY_JSON_PATH = None
 PRIVATE_KEY_JSON_CONTENTS = None
-
-DATASET_ID = "pydata_pandas_bq_testing_py3"
-
-TABLE_ID = "new_test"
-DESTINATION_TABLE = "{0}.{1}".format(DATASET_ID + "1", TABLE_ID)
 
 VERSION = platform.python_version()
 
@@ -89,21 +87,6 @@ def make_mixed_dataframe_v2(test_size):
     )
 
 
-def test_read_gbq_with_deprecated_kwargs(monkeypatch):
-    captured_kwargs = {}
-
-    def mock_read_gbq(sql, **kwargs):
-        captured_kwargs.update(kwargs)
-        return DataFrame([[1.0]])
-
-    monkeypatch.setattr("pandas_gbq.read_gbq", mock_read_gbq)
-    private_key = object()
-    pd.read_gbq("SELECT 1", verbose=True, private_key=private_key)
-
-    assert captured_kwargs["verbose"]
-    assert captured_kwargs["private_key"] is private_key
-
-
 def test_read_gbq_without_deprecated_kwargs(monkeypatch):
     captured_kwargs = {}
 
@@ -144,36 +127,53 @@ def test_read_gbq_without_new_kwargs(monkeypatch):
     assert "use_bqstorage_api" not in captured_kwargs
 
 
+@pytest.mark.parametrize("progress_bar", [None, "foo"])
+def test_read_gbq_progress_bar_type_kwarg(monkeypatch, progress_bar):
+    # GH 29857
+    captured_kwargs = {}
+
+    def mock_read_gbq(sql, **kwargs):
+        captured_kwargs.update(kwargs)
+        return DataFrame([[1.0]])
+
+    monkeypatch.setattr("pandas_gbq.read_gbq", mock_read_gbq)
+    pd.read_gbq("SELECT 1", progress_bar_type=progress_bar)
+
+    if progress_bar:
+        assert "progress_bar_type" in captured_kwargs
+    else:
+        assert "progress_bar_type" not in captured_kwargs
+
+
 @pytest.mark.single
 class TestToGBQIntegrationWithServiceAccountKeyPath:
-    @classmethod
-    def setup_class(cls):
-        # - GLOBAL CLASS FIXTURES -
-        # put here any instruction you want to execute only *ONCE* *BEFORE*
-        # executing *ALL* tests described below.
-
+    @pytest.fixture()
+    def gbq_dataset(self):
+        # Setup Dataset
         _skip_if_no_project_id()
         _skip_if_no_private_key_path()
 
-        cls.client = _get_client()
-        cls.dataset = cls.client.dataset(DATASET_ID + "1")
+        dataset_id = "pydata_pandas_bq_testing_py31"
+
+        self.client = _get_client()
+        self.dataset = self.client.dataset(dataset_id)
         try:
             # Clean-up previous test runs.
-            cls.client.delete_dataset(cls.dataset, delete_contents=True)
+            self.client.delete_dataset(self.dataset, delete_contents=True)
         except api_exceptions.NotFound:
             pass  # It's OK if the dataset doesn't already exist.
 
-        cls.client.create_dataset(bigquery.Dataset(cls.dataset))
+        self.client.create_dataset(bigquery.Dataset(self.dataset))
 
-    @classmethod
-    def teardown_class(cls):
-        # - GLOBAL CLASS FIXTURES -
-        # put here any instruction you want to execute only *ONCE* *AFTER*
-        # executing all tests.
-        cls.client.delete_dataset(cls.dataset, delete_contents=True)
+        table_name = "".join(random.choices(string.ascii_lowercase, k=10))
+        destination_table = f"{dataset_id}.{table_name}"
+        yield destination_table
 
-    def test_roundtrip(self):
-        destination_table = DESTINATION_TABLE + "1"
+        # Teardown Dataset
+        self.client.delete_dataset(self.dataset, delete_contents=True)
+
+    def test_roundtrip(self, gbq_dataset):
+        destination_table = gbq_dataset
 
         test_size = 20001
         df = make_mixed_dataframe_v2(test_size)
@@ -186,9 +186,50 @@ class TestToGBQIntegrationWithServiceAccountKeyPath:
         )
 
         result = pd.read_gbq(
-            "SELECT COUNT(*) AS num_rows FROM {0}".format(destination_table),
+            f"SELECT COUNT(*) AS num_rows FROM {destination_table}",
             project_id=_get_project_id(),
             credentials=_get_credentials(),
             dialect="standard",
         )
         assert result["num_rows"][0] == test_size
+
+    @pytest.mark.parametrize(
+        "if_exists, expected_num_rows, expectation",
+        [
+            ("append", 300, does_not_raise()),
+            ("fail", 200, pytest.raises(pandas_gbq.gbq.TableCreationError)),
+            ("replace", 100, does_not_raise()),
+        ],
+    )
+    def test_gbq_if_exists(
+        self, if_exists, expected_num_rows, expectation, gbq_dataset
+    ):
+        # GH 29598
+        destination_table = gbq_dataset
+
+        test_size = 200
+        df = make_mixed_dataframe_v2(test_size)
+
+        df.to_gbq(
+            destination_table,
+            _get_project_id(),
+            chunksize=None,
+            credentials=_get_credentials(),
+        )
+
+        with expectation:
+            df.iloc[:100].to_gbq(
+                destination_table,
+                _get_project_id(),
+                if_exists=if_exists,
+                chunksize=None,
+                credentials=_get_credentials(),
+            )
+
+        result = pd.read_gbq(
+            f"SELECT COUNT(*) AS num_rows FROM {destination_table}",
+            project_id=_get_project_id(),
+            credentials=_get_credentials(),
+            dialect="standard",
+        )
+        assert result["num_rows"][0] == expected_num_rows

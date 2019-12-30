@@ -10,6 +10,7 @@ from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
+from pandas._typing import ArrayLike
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -21,13 +22,10 @@ from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCExtensionArray, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
-from pandas._typing import ArrayLike
 from pandas.core import ops
 from pandas.core.algorithms import _factorize_array, unique
 from pandas.core.missing import backfill_1d, pad_1d
 from pandas.core.sorting import nargsort
-
-_not_implemented_message = "{} does not implement {}."
 
 _extension_array_shared_docs: Dict[str, str] = dict()
 
@@ -330,9 +328,7 @@ class ExtensionArray:
         #   __init__ method coerces that value, then so should __setitem__
         # Note, also, that Series/DataFrame.where internally use __setitem__
         # on a copy of the data.
-        raise NotImplementedError(
-            _not_implemented_message.format(type(self), "__setitem__")
-        )
+        raise NotImplementedError(f"{type(self)} does not implement __setitem__.")
 
     def __len__(self) -> int:
         """
@@ -451,7 +447,9 @@ class ExtensionArray:
         # Note: this is used in `ExtensionArray.argsort`.
         return np.array(self)
 
-    def argsort(self, ascending=True, kind="quicksort", *args, **kwargs):
+    def argsort(
+        self, ascending: bool = True, kind: str = "quicksort", *args, **kwargs
+    ) -> np.ndarray:
         """
         Return the indices that would sort this array.
 
@@ -467,7 +465,7 @@ class ExtensionArray:
 
         Returns
         -------
-        index_array : ndarray
+        ndarray
             Array of indices that sort ``self``. If NaN values are contained,
             NaN values are placed at the end.
 
@@ -518,8 +516,8 @@ class ExtensionArray:
         if is_array_like(value):
             if len(value) != len(self):
                 raise ValueError(
-                    "Length of 'value' does not match. Got ({}) "
-                    " expected {}".format(len(value), len(self))
+                    f"Length of 'value' does not match. Got ({len(value)}) "
+                    f"expected {len(self)}"
                 )
             value = value[mask]
 
@@ -916,17 +914,14 @@ class ExtensionArray:
     def __repr__(self) -> str:
         from pandas.io.formats.printing import format_object_summary
 
-        template = "{class_name}{data}\nLength: {length}, dtype: {dtype}"
         # the short repr has no trailing newline, while the truncated
         # repr does. So we include a newline in our template, and strip
         # any trailing newlines from format_object_summary
         data = format_object_summary(
             self, self._formatter(), indent_for_name=False
         ).rstrip(", \n")
-        class_name = "<{}>\n".format(type(self).__name__)
-        return template.format(
-            class_name=class_name, data=data, length=len(self), dtype=self.dtype
-        )
+        class_name = f"<{type(self).__name__}>\n"
+        return f"{class_name}{data}\nLength: {len(self)}, dtype: {self.dtype}"
 
     def _formatter(self, boxed: bool = False) -> Callable[[Any], Optional[str]]:
         """Formatting function for scalar values.
@@ -1042,11 +1037,7 @@ class ExtensionArray:
         ------
         TypeError : subclass does not define reductions
         """
-        raise TypeError(
-            "cannot perform {name} with type {dtype}".format(
-                name=name, dtype=self.dtype
-            )
-        )
+        raise TypeError(f"cannot perform {name} with type {self.dtype}")
 
 
 class ExtensionOpsMixin:
@@ -1198,10 +1189,9 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
 
             if op.__name__ in {"divmod", "rdivmod"}:
                 a, b = zip(*res)
-                res = _maybe_convert(a), _maybe_convert(b)
-            else:
-                res = _maybe_convert(res)
-            return res
+                return _maybe_convert(a), _maybe_convert(b)
+
+            return _maybe_convert(res)
 
         op_name = ops._get_op_name(op, True)
         return set_function_name(_binop, op_name, cls)

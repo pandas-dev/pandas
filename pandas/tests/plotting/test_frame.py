@@ -555,14 +555,14 @@ class TestDataFramePlots(TestPlotBase):
             period:
                 since period isn't yet implemented in ``select_dtypes``
                 and because it will need a custom value converter +
-                tick formater (as was done for x-axis plots)
+                tick formatter (as was done for x-axis plots)
 
             categorical:
                  because it will need a custom value converter +
-                 tick formater (also doesn't work for x-axis, as of now)
+                 tick formatter (also doesn't work for x-axis, as of now)
 
             datetime_mixed_tz:
-                because of the way how pandas handels ``Series`` of
+                because of the way how pandas handles ``Series`` of
                 ``datetime`` objects with different timezone,
                 generally converting ``datetime`` objects in a tz-aware
                 form could help with this problem

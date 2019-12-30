@@ -8,7 +8,7 @@ import os
 from shutil import rmtree
 import string
 import tempfile
-from typing import Union, cast
+from typing import List, Optional, Union, cast
 import warnings
 import zipfile
 
@@ -22,6 +22,7 @@ from pandas._config.localization import (  # noqa:F401
 )
 
 import pandas._libs.testing as _testing
+from pandas._typing import FrameOrSeries
 from pandas.compat import _get_lzma_file, _import_lzma
 
 from pandas.core.dtypes.common import (
@@ -97,11 +98,10 @@ def reset_display_options():
     """
     Reset the display options for printing and representing objects.
     """
-
     pd.reset_option("^display.", silent=True)
 
 
-def round_trip_pickle(obj, path=None):
+def round_trip_pickle(obj: FrameOrSeries, path: Optional[str] = None) -> FrameOrSeries:
     """
     Pickle an object and then read it again.
 
@@ -114,18 +114,17 @@ def round_trip_pickle(obj, path=None):
 
     Returns
     -------
-    round_trip_pickled_object : pandas object
+    pandas object
         The original object that was pickled and then re-read.
     """
-
     if path is None:
-        path = "__{random_bytes}__.pickle".format(random_bytes=rands(10))
+        path = f"__{rands(10)}__.pickle"
     with ensure_clean(path) as path:
         pd.to_pickle(obj, path)
         return pd.read_pickle(path)
 
 
-def round_trip_pathlib(writer, reader, path=None):
+def round_trip_pathlib(writer, reader, path: Optional[str] = None):
     """
     Write an object to file specified by a pathlib.Path and read it back
 
@@ -140,10 +139,9 @@ def round_trip_pathlib(writer, reader, path=None):
 
     Returns
     -------
-    round_trip_object : pandas object
+    pandas object
         The original object that was serialized and then re-read.
     """
-
     import pytest
 
     Path = pytest.importorskip("pathlib").Path
@@ -155,9 +153,9 @@ def round_trip_pathlib(writer, reader, path=None):
     return obj
 
 
-def round_trip_localpath(writer, reader, path=None):
+def round_trip_localpath(writer, reader, path: Optional[str] = None):
     """
-    Write an object to file specified by a py.path LocalPath and read it back
+    Write an object to file specified by a py.path LocalPath and read it back.
 
     Parameters
     ----------
@@ -170,7 +168,7 @@ def round_trip_localpath(writer, reader, path=None):
 
     Returns
     -------
-    round_trip_object : pandas object
+    pandas object
         The original object that was serialized and then re-read.
     """
     import pytest
@@ -187,21 +185,20 @@ def round_trip_localpath(writer, reader, path=None):
 @contextmanager
 def decompress_file(path, compression):
     """
-    Open a compressed file and return a file object
+    Open a compressed file and return a file object.
 
     Parameters
     ----------
     path : str
-        The path where the file is read from
+        The path where the file is read from.
 
     compression : {'gzip', 'bz2', 'zip', 'xz', None}
         Name of the decompression to use
 
     Returns
     -------
-    f : file object
+    file object
     """
-
     if compression is None:
         f = open(path, "rb")
     elif compression == "gzip":
@@ -216,10 +213,9 @@ def decompress_file(path, compression):
         if len(zip_names) == 1:
             f = zip_file.open(zip_names.pop())
         else:
-            raise ValueError("ZIP file {} error. Only one file per ZIP.".format(path))
+            raise ValueError(f"ZIP file {path} error. Only one file per ZIP.")
     else:
-        msg = "Unrecognized compression type: {}".format(compression)
-        raise ValueError(msg)
+        raise ValueError(f"Unrecognized compression type: {compression}")
 
     try:
         yield f
@@ -248,7 +244,6 @@ def write_to_compressed(compression, path, data, dest="test"):
     ------
     ValueError : An invalid compression value was passed in.
     """
-
     if compression == "zip":
         import zipfile
 
@@ -264,8 +259,7 @@ def write_to_compressed(compression, path, data, dest="test"):
     elif compression == "xz":
         compress_method = _get_lzma_file(lzma)
     else:
-        msg = "Unrecognized compression type: {}".format(compression)
-        raise ValueError(msg)
+        raise ValueError(f"Unrecognized compression type: {compression}")
 
     if compression == "zip":
         mode = "w"
@@ -281,7 +275,11 @@ def write_to_compressed(compression, path, data, dest="test"):
 
 
 def assert_almost_equal(
-    left, right, check_dtype="equiv", check_less_precise=False, **kwargs
+    left,
+    right,
+    check_dtype: Union[bool, str] = "equiv",
+    check_less_precise: Union[bool, int] = False,
+    **kwargs,
 ):
     """
     Check that the left and right objects are approximately equal.
@@ -308,7 +306,6 @@ def assert_almost_equal(
         compare the **ratio** of the second number to the first number and
         check whether it is equivalent to 1 within the specified precision.
     """
-
     if isinstance(left, pd.Index):
         assert_index_equal(
             left,
@@ -379,27 +376,25 @@ def _check_isinstance(left, right, cls):
     ------
     AssertionError : Either `left` or `right` is not an instance of `cls`.
     """
-
-    err_msg = "{name} Expected type {exp_type}, found {act_type} instead"
     cls_name = cls.__name__
 
     if not isinstance(left, cls):
         raise AssertionError(
-            err_msg.format(name=cls_name, exp_type=cls, act_type=type(left))
+            f"{cls_name} Expected type {cls}, found {type(left)} instead"
         )
     if not isinstance(right, cls):
         raise AssertionError(
-            err_msg.format(name=cls_name, exp_type=cls, act_type=type(right))
+            f"{cls_name} Expected type {cls}, found {type(right)} instead"
         )
 
 
-def assert_dict_equal(left, right, compare_keys=True):
+def assert_dict_equal(left, right, compare_keys: bool = True):
 
     _check_isinstance(left, right, dict)
     _testing.assert_dict_equal(left, right, compare_keys=compare_keys)
 
 
-def randbool(size=(), p=0.5):
+def randbool(size=(), p: float = 0.5):
     return rand(*size) <= p
 
 
@@ -411,7 +406,9 @@ RANDU_CHARS = np.array(
 
 
 def rands_array(nchars, size, dtype="O"):
-    """Generate an array of byte strings."""
+    """
+    Generate an array of byte strings.
+    """
     retval = (
         np.random.choice(RANDS_CHARS, size=nchars * np.prod(size))
         .view((np.str_, nchars))
@@ -424,7 +421,9 @@ def rands_array(nchars, size, dtype="O"):
 
 
 def randu_array(nchars, size, dtype="O"):
-    """Generate an array of unicode strings."""
+    """
+    Generate an array of unicode strings.
+    """
     retval = (
         np.random.choice(RANDU_CHARS, size=nchars * np.prod(size))
         .view((np.unicode_, nchars))
@@ -472,7 +471,8 @@ def close(fignum=None):
 
 @contextmanager
 def ensure_clean(filename=None, return_filelike=False):
-    """Gets a temporary path and agrees to remove on close.
+    """
+    Gets a temporary path and agrees to remove on close.
 
     Parameters
     ----------
@@ -510,16 +510,12 @@ def ensure_clean(filename=None, return_filelike=False):
             try:
                 os.close(fd)
             except OSError:
-                print(
-                    "Couldn't close file descriptor: {fdesc} (file: {fname})".format(
-                        fdesc=fd, fname=filename
-                    )
-                )
+                print(f"Couldn't close file descriptor: {fd} (file: {filename})")
             try:
                 if os.path.exists(filename):
                     os.remove(filename)
             except OSError as e:
-                print("Exception on removing file: {error}".format(error=e))
+                print(f"Exception on removing file: {e}")
 
 
 @contextmanager
@@ -561,8 +557,9 @@ def ensure_safe_environment_variables():
 # Comparators
 
 
-def equalContents(arr1, arr2):
-    """Checks if the set of unique elements of arr1 and arr2 are equivalent.
+def equalContents(arr1, arr2) -> bool:
+    """
+    Checks if the set of unique elements of arr1 and arr2 are equivalent.
     """
     return frozenset(arr1) == frozenset(arr2)
 
@@ -634,16 +631,16 @@ def assert_index_equal(
 
     # level comparison
     if left.nlevels != right.nlevels:
-        msg1 = "{obj} levels are different".format(obj=obj)
-        msg2 = "{nlevels}, {left}".format(nlevels=left.nlevels, left=left)
-        msg3 = "{nlevels}, {right}".format(nlevels=right.nlevels, right=right)
+        msg1 = f"{obj} levels are different"
+        msg2 = f"{left.nlevels}, {left}"
+        msg3 = f"{right.nlevels}, {right}"
         raise_assert_detail(obj, msg1, msg2, msg3)
 
     # length comparison
     if len(left) != len(right):
-        msg1 = "{obj} length are different".format(obj=obj)
-        msg2 = "{length}, {left}".format(length=len(left), left=left)
-        msg3 = "{length}, {right}".format(length=len(right), right=right)
+        msg1 = f"{obj} length are different"
+        msg2 = f"{len(left)}, {left}"
+        msg3 = f"{len(right)}, {right}"
         raise_assert_detail(obj, msg1, msg2, msg3)
 
     # MultiIndex special comparison for little-friendly error messages
@@ -656,7 +653,7 @@ def assert_index_equal(
             llevel = _get_ilevel_values(left, level)
             rlevel = _get_ilevel_values(right, level)
 
-            lobj = "MultiIndex level [{level}]".format(level=level)
+            lobj = f"MultiIndex level [{level}]"
             assert_index_equal(
                 llevel,
                 rlevel,
@@ -673,9 +670,7 @@ def assert_index_equal(
     if check_exact and check_categorical:
         if not left.equals(right):
             diff = np.sum((left.values != right.values).astype(int)) * 100.0 / len(left)
-            msg = "{obj} values are different ({pct} %)".format(
-                obj=obj, pct=np.round(diff, 5)
-            )
+            msg = f"{obj} values are different ({np.round(diff, 5)} %)"
             raise_assert_detail(obj, msg, left, right)
     else:
         _testing.assert_almost_equal(
@@ -698,13 +693,13 @@ def assert_index_equal(
 
     if check_categorical:
         if is_categorical_dtype(left) or is_categorical_dtype(right):
-            assert_categorical_equal(
-                left.values, right.values, obj="{obj} category".format(obj=obj)
-            )
+            assert_categorical_equal(left.values, right.values, obj=f"{obj} category")
 
 
-def assert_class_equal(left, right, exact=True, obj="Input"):
-    """checks classes are equal."""
+def assert_class_equal(left, right, exact: Union[bool, str] = True, obj="Input"):
+    """
+    Checks classes are equal.
+    """
     __tracebackhide__ = True
 
     def repr_class(x):
@@ -722,11 +717,11 @@ def assert_class_equal(left, right, exact=True, obj="Input"):
             # allow equivalence of Int64Index/RangeIndex
             types = {type(left).__name__, type(right).__name__}
             if len(types - {"Int64Index", "RangeIndex"}):
-                msg = "{obj} classes are not equivalent".format(obj=obj)
+                msg = f"{obj} classes are not equivalent"
                 raise_assert_detail(obj, msg, repr_class(left), repr_class(right))
     elif exact:
         if type(left) != type(right):
-            msg = "{obj} classes are different".format(obj=obj)
+            msg = f"{obj} classes are different"
             raise_assert_detail(obj, msg, repr_class(left), repr_class(right))
 
 
@@ -770,7 +765,7 @@ def assert_attr_equal(attr, left, right, obj="Attributes"):
     if result:
         return True
     else:
-        msg = 'Attribute "{attr}" are different'.format(attr=attr)
+        msg = f'Attribute "{attr}" are different'
         raise_assert_detail(obj, msg, left_attr, right_attr)
 
 
@@ -828,25 +823,20 @@ def assert_categorical_equal(
     _check_isinstance(left, right, Categorical)
 
     if check_category_order:
-        assert_index_equal(
-            left.categories, right.categories, obj="{obj}.categories".format(obj=obj)
-        )
+        assert_index_equal(left.categories, right.categories, obj=f"{obj}.categories")
         assert_numpy_array_equal(
-            left.codes,
-            right.codes,
-            check_dtype=check_dtype,
-            obj="{obj}.codes".format(obj=obj),
+            left.codes, right.codes, check_dtype=check_dtype, obj=f"{obj}.codes",
         )
     else:
         assert_index_equal(
             left.categories.sort_values(),
             right.categories.sort_values(),
-            obj="{obj}.categories".format(obj=obj),
+            obj=f"{obj}.categories",
         )
         assert_index_equal(
             left.categories.take(left.codes),
             right.categories.take(right.codes),
-            obj="{obj}.values".format(obj=obj),
+            obj=f"{obj}.values",
         )
 
     assert_attr_equal("ordered", left, right, obj=obj)
@@ -869,21 +859,15 @@ def assert_interval_array_equal(left, right, exact="equiv", obj="IntervalArray")
     """
     _check_isinstance(left, right, IntervalArray)
 
-    assert_index_equal(
-        left.left, right.left, exact=exact, obj="{obj}.left".format(obj=obj)
-    )
-    assert_index_equal(
-        left.right, right.right, exact=exact, obj="{obj}.left".format(obj=obj)
-    )
+    assert_index_equal(left.left, right.left, exact=exact, obj=f"{obj}.left")
+    assert_index_equal(left.right, right.right, exact=exact, obj=f"{obj}.left")
     assert_attr_equal("closed", left, right, obj=obj)
 
 
 def assert_period_array_equal(left, right, obj="PeriodArray"):
     _check_isinstance(left, right, PeriodArray)
 
-    assert_numpy_array_equal(
-        left._data, right._data, obj="{obj}.values".format(obj=obj)
-    )
+    assert_numpy_array_equal(left._data, right._data, obj=f"{obj}.values")
     assert_attr_equal("freq", left, right, obj=obj)
 
 
@@ -891,7 +875,7 @@ def assert_datetime_array_equal(left, right, obj="DatetimeArray"):
     __tracebackhide__ = True
     _check_isinstance(left, right, DatetimeArray)
 
-    assert_numpy_array_equal(left._data, right._data, obj="{obj}._data".format(obj=obj))
+    assert_numpy_array_equal(left._data, right._data, obj=f"{obj}._data")
     assert_attr_equal("freq", left, right, obj=obj)
     assert_attr_equal("tz", left, right, obj=obj)
 
@@ -899,7 +883,7 @@ def assert_datetime_array_equal(left, right, obj="DatetimeArray"):
 def assert_timedelta_array_equal(left, right, obj="TimedeltaArray"):
     __tracebackhide__ = True
     _check_isinstance(left, right, TimedeltaArray)
-    assert_numpy_array_equal(left._data, right._data, obj="{obj}._data".format(obj=obj))
+    assert_numpy_array_equal(left._data, right._data, obj=f"{obj}._data")
     assert_attr_equal("freq", left, right, obj=obj)
 
 
@@ -916,16 +900,14 @@ def raise_assert_detail(obj, message, left, right, diff=None):
     elif is_categorical_dtype(right):
         right = repr(right)
 
-    msg = """{obj} are different
+    msg = f"""{obj} are different
 
 {message}
 [left]:  {left}
-[right]: {right}""".format(
-        obj=obj, message=message, left=left, right=right
-    )
+[right]: {right}"""
 
     if diff is not None:
-        msg += "\n[diff]: {diff}".format(diff=diff)
+        msg += f"\n[diff]: {diff}"
 
     raise AssertionError(msg)
 
@@ -973,21 +955,16 @@ def assert_numpy_array_equal(
 
     if check_same == "same":
         if left_base is not right_base:
-            msg = "{left!r} is not {right!r}".format(left=left_base, right=right_base)
-            raise AssertionError(msg)
+            raise AssertionError(f"{repr(left_base)} is not {repr(right_base)}")
     elif check_same == "copy":
         if left_base is right_base:
-            msg = "{left!r} is {right!r}".format(left=left_base, right=right_base)
-            raise AssertionError(msg)
+            raise AssertionError(f"{repr(left_base)} is {repr(right_base)}")
 
     def _raise(left, right, err_msg):
         if err_msg is None:
             if left.shape != right.shape:
                 raise_assert_detail(
-                    obj,
-                    "{obj} shapes are different".format(obj=obj),
-                    left.shape,
-                    right.shape,
+                    obj, f"{obj} shapes are different", left.shape, right.shape,
                 )
 
             diff = 0
@@ -997,9 +974,7 @@ def assert_numpy_array_equal(
                     diff += 1
 
             diff = diff * 100.0 / left.size
-            msg = "{obj} values are different ({pct} %)".format(
-                obj=obj, pct=np.round(diff, 5)
-            )
+            msg = f"{obj} values are different ({np.round(diff, 5)} %)"
             raise_assert_detail(obj, msg, left, right)
 
         raise AssertionError(err_msg)
@@ -1128,8 +1103,8 @@ def assert_series_equal(
 
     # length comparison
     if len(left) != len(right):
-        msg1 = "{len}, {left}".format(len=len(left), left=left.index)
-        msg2 = "{len}, {right}".format(len=len(right), right=right.index)
+        msg1 = f"{len(left)}, {left.index}"
+        msg2 = f"{len(right)}, {right.index}"
         raise_assert_detail(obj, "Series length are different", msg1, msg2)
 
     # index comparison
@@ -1141,7 +1116,7 @@ def assert_series_equal(
         check_less_precise=check_less_precise,
         check_exact=check_exact,
         check_categorical=check_categorical,
-        obj="{obj}.index".format(obj=obj),
+        obj=f"{obj}.index",
     )
 
     if check_dtype:
@@ -1155,16 +1130,14 @@ def assert_series_equal(
         ):
             pass
         else:
-            assert_attr_equal(
-                "dtype", left, right, obj="Attributes of {obj}".format(obj=obj)
-            )
+            assert_attr_equal("dtype", left, right, obj=f"Attributes of {obj}")
 
     if check_exact:
         assert_numpy_array_equal(
             left._internal_get_values(),
             right._internal_get_values(),
             check_dtype=check_dtype,
-            obj="{obj}".format(obj=obj),
+            obj=str(obj),
         )
     elif check_datetimelike_compat:
         # we want to check only if we have compat dtypes
@@ -1176,8 +1149,9 @@ def assert_series_equal(
             # vs Timestamp) but will compare equal
             if not Index(left.values).equals(Index(right.values)):
                 msg = (
-                    "[datetimelike_compat=True] {left} is not equal to {right}."
-                ).format(left=left.values, right=right.values)
+                    f"[datetimelike_compat=True] {left.values} "
+                    f"is not equal to {right.values}."
+                )
                 raise AssertionError(msg)
         else:
             assert_numpy_array_equal(
@@ -1205,7 +1179,7 @@ def assert_series_equal(
             right._internal_get_values(),
             check_less_precise=check_less_precise,
             check_dtype=check_dtype,
-            obj="{obj}".format(obj=obj),
+            obj=str(obj),
         )
 
     # metadata comparison
@@ -1214,9 +1188,7 @@ def assert_series_equal(
 
     if check_categorical:
         if is_categorical_dtype(left) or is_categorical_dtype(right):
-            assert_categorical_equal(
-                left.values, right.values, obj="{obj} category".format(obj=obj)
-            )
+            assert_categorical_equal(left.values, right.values, obj=f"{obj} category")
 
 
 # This could be refactored to use the NDFrame.equals method
@@ -1336,10 +1308,7 @@ def assert_frame_equal(
     # shape comparison
     if left.shape != right.shape:
         raise_assert_detail(
-            obj,
-            "{obj} shape mismatch".format(obj=obj),
-            "{shape!r}".format(shape=left.shape),
-            "{shape!r}".format(shape=right.shape),
+            obj, f"{obj} shape mismatch", f"{repr(left.shape)}", f"{repr(right.shape)}",
         )
 
     if check_like:
@@ -1354,7 +1323,7 @@ def assert_frame_equal(
         check_less_precise=check_less_precise,
         check_exact=check_exact,
         check_categorical=check_categorical,
-        obj="{obj}.index".format(obj=obj),
+        obj=f"{obj}.index",
     )
 
     # column comparison
@@ -1366,7 +1335,7 @@ def assert_frame_equal(
         check_less_precise=check_less_precise,
         check_exact=check_exact,
         check_categorical=check_categorical,
-        obj="{obj}.columns".format(obj=obj),
+        obj=f"{obj}.columns",
     )
 
     # compare by blocks
@@ -1396,7 +1365,7 @@ def assert_frame_equal(
                 check_names=check_names,
                 check_datetimelike_compat=check_datetimelike_compat,
                 check_categorical=check_categorical,
-                obj="{obj}.iloc[:, {idx}]".format(obj=obj, idx=i),
+                obj=f"{obj}.iloc[:, {i}]",
             )
 
 
@@ -1562,7 +1531,7 @@ def assert_sp_array_equal(
 
 def assert_contains_all(iterable, dic):
     for k in iterable:
-        assert k in dic, "Did not contain item: '{key!r}'".format(key=k)
+        assert k in dic, f"Did not contain item: {repr(k)}"
 
 
 def assert_copy(iter1, iter2, **eql_kwargs):
@@ -1577,9 +1546,9 @@ def assert_copy(iter1, iter2, **eql_kwargs):
     for elem1, elem2 in zip(iter1, iter2):
         assert_almost_equal(elem1, elem2, **eql_kwargs)
         msg = (
-            "Expected object {obj1!r} and object {obj2!r} to be "
+            f"Expected object {repr(type(elem1))} and object {repr(type(elem2))} to be "
             "different objects, but they were the same object."
-        ).format(obj1=type(elem1), obj2=type(elem2))
+        )
         assert elem1 is not elem2, msg
 
 
@@ -1926,8 +1895,8 @@ def makeCustomIndex(
         return idx
     elif idx_type is not None:
         raise ValueError(
-            '"{idx_type}" is not a legal value for `idx_type`, '
-            'use  "i"/"f"/"s"/"u"/"dt/"p"/"td".'.format(idx_type=idx_type)
+            f"{repr(idx_type)} is not a legal value for `idx_type`, "
+            "use  'i'/'f'/'s'/'u'/'dt'/'p'/'td'."
         )
 
     if len(ndupe_l) < nlevels:
@@ -1949,7 +1918,7 @@ def makeCustomIndex(
         div_factor = nentries // ndupe_l[i] + 1
         cnt = Counter()
         for j in range(div_factor):
-            label = "{prefix}_l{i}_g{j}".format(prefix=prefix, i=i, j=j)
+            label = f"{prefix}_l{i}_g{j}"
             cnt[label] = ndupe_l[i]
         # cute Counter trick
         result = sorted(cnt.elements(), key=keyfunc)[:nentries]
@@ -2066,7 +2035,7 @@ def makeCustomDataframe(
 
     # by default, generate data based on location
     if data_gen_f is None:
-        data_gen_f = lambda r, c: "R{rows}C{cols}".format(rows=r, cols=c)
+        data_gen_f = lambda r, c: f"R{r}C{c}"
 
     data = [[data_gen_f(r, c) for c in range(ncols)] for r in range(nrows)]
 
@@ -2370,17 +2339,13 @@ def network(
                 errno = getattr(err.reason, "errno", None)
 
             if errno in skip_errnos:
-                skip(
-                    "Skipping test due to known errno"
-                    " and error {error}".format(error=err)
-                )
+                skip(f"Skipping test due to known errno and error {err}")
 
             e_str = str(err)
 
             if any(m.lower() in e_str.lower() for m in _skip_on_messages):
                 skip(
-                    "Skipping test because exception "
-                    "message is known and error {error}".format(error=err)
+                    f"Skipping test because exception message is known and error {err}"
                 )
 
             if not isinstance(err, error_classes):
@@ -2389,10 +2354,7 @@ def network(
             if raise_on_error or can_connect(url, error_classes):
                 raise
             else:
-                skip(
-                    "Skipping test due to lack of connectivity"
-                    " and error {error}".format(error=err)
-                )
+                skip(f"Skipping test due to lack of connectivity and error {err}")
 
     return wrapper
 
@@ -2504,12 +2466,8 @@ def assert_produces_warning(
                     caller = getframeinfo(stack()[2][0])
                     msg = (
                         "Warning not set with correct stacklevel. "
-                        "File where warning is raised: {actual} != "
-                        "{caller}. Warning message: {message}"
-                    ).format(
-                        actual=actual_warning.filename,
-                        caller=caller.filename,
-                        message=actual_warning.message,
+                        f"File where warning is raised: {actual_warning.filename} != "
+                        f"{caller.filename}. Warning message: {actual_warning.message}"
                     )
                     assert actual_warning.filename == caller.filename, msg
             else:
@@ -2522,13 +2480,14 @@ def assert_produces_warning(
                     )
                 )
         if expected_warning:
-            msg = "Did not see expected warning of class {name!r}.".format(
-                name=expected_warning.__name__
+            msg = (
+                f"Did not see expected warning of class "
+                f"{repr(expected_warning.__name__)}"
             )
             assert saw_warning, msg
         if raise_on_extra_warnings and extra_warnings:
             raise AssertionError(
-                "Caused unexpected warning(s): {!r}.".format(extra_warnings)
+                f"Caused unexpected warning(s): {repr(extra_warnings)}"
             )
 
 
@@ -2689,8 +2648,9 @@ class SubclassedCategorical(Categorical):
 
 
 @contextmanager
-def set_timezone(tz):
-    """Context manager for temporarily setting a timezone.
+def set_timezone(tz: str):
+    """
+    Context manager for temporarily setting a timezone.
 
     Parameters
     ----------
@@ -2733,7 +2693,8 @@ def set_timezone(tz):
 
 
 def _make_skipna_wrapper(alternative, skipna_alternative=None):
-    """Create a function for calling on an array.
+    """
+    Create a function for calling on an array.
 
     Parameters
     ----------
@@ -2745,7 +2706,7 @@ def _make_skipna_wrapper(alternative, skipna_alternative=None):
 
     Returns
     -------
-    skipna_wrapper : function
+    function
     """
     if skipna_alternative:
 
@@ -2763,7 +2724,7 @@ def _make_skipna_wrapper(alternative, skipna_alternative=None):
     return skipna_wrapper
 
 
-def convert_rows_list_to_csv_str(rows_list):
+def convert_rows_list_to_csv_str(rows_list: List[str]):
     """
     Convert list of CSV rows to single CSV-formatted string for current OS.
 
@@ -2771,13 +2732,13 @@ def convert_rows_list_to_csv_str(rows_list):
 
     Parameters
     ----------
-    rows_list : list
-        The list of string. Each element represents the row of csv.
+    rows_list : List[str]
+        Each element represents the row of csv.
 
     Returns
     -------
-    expected : string
-        Expected output of to_csv() in current OS
+    str
+        Expected output of to_csv() in current OS.
     """
     sep = os.linesep
     expected = sep.join(rows_list) + sep

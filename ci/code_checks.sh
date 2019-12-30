@@ -39,7 +39,7 @@ function invgrep {
 }
 
 if [[ "$GITHUB_ACTIONS" == "true" ]]; then
-    FLAKE8_FORMAT="##[error]%(path)s:%(row)s:%(col)s:%(code):%(text)s"
+    FLAKE8_FORMAT="##[error]%(path)s:%(row)s:%(col)s:%(code)s:%(text)s"
     INVGREP_PREPEND="##[error]"
 else
     FLAKE8_FORMAT="default"
@@ -52,7 +52,7 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     black --version
 
     MSG='Checking black formatting' ; echo $MSG
-	black . --check
+    black . --check
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # `setup.cfg` contains the list of error codes that are being ignored in flake8
@@ -94,18 +94,23 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
 
     # We don't lint all C files because we don't want to lint any that are built
     # from Cython files nor do we want to lint C files that we didn't modify for
-    # this particular codebase (e.g. src/headers, src/klib, src/msgpack). However,
+    # this particular codebase (e.g. src/headers, src/klib). However,
     # we can lint all header files since they aren't "generated" like C files are.
     MSG='Linting .c and .h' ; echo $MSG
-    cpplint --quiet --extensions=c,h --headers=h --recursive --filter=-readability/casting,-runtime/int,-build/include_subdir pandas/_libs/src/*.h pandas/_libs/src/parser pandas/_libs/ujson pandas/_libs/tslibs/src/datetime pandas/io/msgpack pandas/_libs/*.cpp pandas/util
+    cpplint --quiet --extensions=c,h --headers=h --recursive --filter=-readability/casting,-runtime/int,-build/include_subdir pandas/_libs/src/*.h pandas/_libs/src/parser pandas/_libs/ujson pandas/_libs/tslibs/src/datetime pandas/_libs/*.cpp
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     echo "isort --version-number"
     isort --version-number
 
     # Imports - Check formatting using isort see setup.cfg for settings
-    MSG='Check import format using isort ' ; echo $MSG
-    isort --recursive --check-only pandas asv_bench
+    MSG='Check import format using isort' ; echo $MSG
+    ISORT_CMD="isort --recursive --check-only pandas asv_bench"
+    if [[ "$GITHUB_ACTIONS" == "true" ]]; then
+        eval $ISORT_CMD | awk '{print "##[error]" $0}'; RET=$(($RET + ${PIPESTATUS[0]}))
+    else
+        eval $ISORT_CMD
+    fi
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
@@ -117,13 +122,18 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     # Check for imports from collections.abc instead of `from collections import abc`
     MSG='Check for non-standard imports' ; echo $MSG
     invgrep -R --include="*.py*" -E "from pandas.core.common import" pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
     invgrep -R --include="*.py*" -E "from pandas.core import common" pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
     invgrep -R --include="*.py*" -E "from collections.abc import" pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
     invgrep -R --include="*.py*" -E "from numpy import nan" pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # Checks for test suite
     # Check for imports from pandas.util.testing instead of `import pandas.util.testing as tm`
     invgrep -R --include="*.py*" -E "from pandas.util.testing import" pandas/tests
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
     invgrep -R --include="*.py*" -E "from pandas.util import testing as tm" pandas/tests
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
@@ -190,8 +200,20 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --include="*.py" --include="*.pyx" -E 'class.*:\n\n( )+"""' .
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Check for use of {foo!r} instead of {repr(foo)}' ; echo $MSG
+    invgrep -R --include=*.{py,pyx} '!r}' pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     MSG='Check for use of comment-based annotation syntax' ; echo $MSG
     invgrep -R --include="*.py" -P '# type: (?!ignore)' pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Check for use of foo.__class__ instead of type(foo)' ; echo $MSG
+    invgrep -R --include=*.{py,pyx} '\.__class__' pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Check for use of xrange instead of range' ; echo $MSG
+    invgrep -R --include=*.{py,pyx} 'xrange' pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check that no file in the repo contains trailing whitespaces' ; echo $MSG
@@ -270,6 +292,10 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Doctests arrays/string_.py' ; echo $MSG
     pytest -q --doctest-modules pandas/core/arrays/string_.py
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests arrays/boolean.py' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/arrays/boolean.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi

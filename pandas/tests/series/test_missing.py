@@ -16,29 +16,12 @@ from pandas import (
     MultiIndex,
     NaT,
     Series,
+    Timedelta,
     Timestamp,
     date_range,
     isna,
 )
 import pandas.util.testing as tm
-
-
-def _skip_if_no_pchip():
-    try:
-        from scipy.interpolate import pchip_interpolate  # noqa
-    except ImportError:
-        import pytest
-
-        pytest.skip("scipy.interpolate.pchip missing")
-
-
-def _skip_if_no_akima():
-    try:
-        from scipy.interpolate import Akima1DInterpolator  # noqa
-    except ImportError:
-        import pytest
-
-        pytest.skip("scipy.interpolate.Akima1DInterpolator missing")
 
 
 def _simple_ts(start, end, freq="D"):
@@ -60,8 +43,7 @@ class TestSeriesMissingData:
         td = s.diff()
 
         # reg fillna
-        with tm.assert_produces_warning(FutureWarning):
-            result = td.fillna(0)
+        result = td.fillna(Timedelta(seconds=0))
         expected = Series(
             [
                 timedelta(0),
@@ -73,8 +55,10 @@ class TestSeriesMissingData:
         tm.assert_series_equal(result, expected)
 
         # interpreted as seconds, deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            result = td.fillna(1)
+        with pytest.raises(TypeError, match="Passing integers to fillna"):
+            td.fillna(1)
+
+        result = td.fillna(Timedelta(seconds=1))
         expected = Series(
             [
                 timedelta(seconds=1),
@@ -122,16 +106,14 @@ class TestSeriesMissingData:
         # ffill
         td[2] = np.nan
         result = td.ffill()
-        with tm.assert_produces_warning(FutureWarning):
-            expected = td.fillna(0)
+        expected = td.fillna(Timedelta(seconds=0))
         expected[0] = np.nan
         tm.assert_series_equal(result, expected)
 
         # bfill
         td[2] = np.nan
         result = td.bfill()
-        with tm.assert_produces_warning(FutureWarning):
-            expected = td.fillna(0)
+        expected = td.fillna(Timedelta(seconds=0))
         expected[2] = timedelta(days=1, seconds=9 * 3600 + 60 + 1)
         tm.assert_series_equal(result, expected)
 
@@ -293,7 +275,7 @@ class TestSeriesMissingData:
                 ["2011-01-01 10:00", pd.NaT, "2011-01-03 10:00", pd.NaT], tz=tz
             )
             s = pd.Series(idx)
-            assert s.dtype == "datetime64[ns, {0}]".format(tz)
+            assert s.dtype == f"datetime64[ns, {tz}]"
             tm.assert_series_equal(pd.isna(s), null_loc)
 
             result = s.fillna(pd.Timestamp("2011-01-02 10:00"))
@@ -473,6 +455,13 @@ class TestSeriesMissingData:
         s2[1] = "foo"
         tm.assert_series_equal(s2, expected)
 
+    def test_where_sparse(self):
+        # GH#17198 make sure we dont get an AttributeError for sp_index
+        ser = pd.Series(pd.SparseArray([1, 2]))
+        result = ser.where(ser >= 2, 0)
+        expected = pd.Series(pd.SparseArray([0, 2]))
+        tm.assert_series_equal(result, expected)
+
     def test_datetime64tz_fillna_round_issue(self):
         # GH 14872
 
@@ -513,11 +502,11 @@ class TestSeriesMissingData:
 
     def test_fillna_raise(self):
         s = Series(np.random.randint(-100, 100, 50))
-        msg = '"value" parameter must be a scalar or dict, but you passed a' ' "list"'
+        msg = '"value" parameter must be a scalar or dict, but you passed a "list"'
         with pytest.raises(TypeError, match=msg):
             s.fillna([1, 2])
 
-        msg = '"value" parameter must be a scalar or dict, but you passed a' ' "tuple"'
+        msg = '"value" parameter must be a scalar or dict, but you passed a "tuple"'
         with pytest.raises(TypeError, match=msg):
             s.fillna((1, 2))
 
@@ -604,11 +593,11 @@ class TestSeriesMissingData:
         with pytest.raises(ValueError, match="fill value must be in categories"):
             s.fillna({1: "d", 3: "a"})
 
-        msg = '"value" parameter must be a scalar or ' 'dict, but you passed a "list"'
+        msg = '"value" parameter must be a scalar or dict, but you passed a "list"'
         with pytest.raises(TypeError, match=msg):
             s.fillna(["a", "b"])
 
-        msg = '"value" parameter must be a scalar or ' 'dict, but you passed a "tuple"'
+        msg = '"value" parameter must be a scalar or dict, but you passed a "tuple"'
         with pytest.raises(TypeError, match=msg):
             s.fillna(("a", "b"))
 
@@ -710,7 +699,7 @@ class TestSeriesMissingData:
         tm.assert_series_equal(result, expected)
         result = s1.fillna({})
         tm.assert_series_equal(result, s1)
-        result = s1.fillna(Series(()))
+        result = s1.fillna(Series((), dtype=object))
         tm.assert_series_equal(result, s1)
         result = s2.fillna(s1)
         tm.assert_series_equal(result, s2)
@@ -834,7 +823,8 @@ class TestSeriesMissingData:
         #     tm.assert_series_equal(selector, expected)
 
     def test_dropna_empty(self):
-        s = Series([])
+        s = Series([], dtype=object)
+
         assert len(s.dropna()) == 0
         s.dropna(inplace=True)
         assert len(s) == 0
@@ -1091,7 +1081,6 @@ class TestSeriesInterpolateData:
 
     @td.skip_if_no_scipy
     def test_interpolate_pchip(self):
-        _skip_if_no_pchip()
 
         ser = Series(np.sort(np.random.uniform(size=100)))
 
@@ -1105,7 +1094,6 @@ class TestSeriesInterpolateData:
 
     @td.skip_if_no_scipy
     def test_interpolate_akima(self):
-        _skip_if_no_akima()
 
         ser = Series([10, 11, 12, 13])
 
@@ -1163,7 +1151,7 @@ class TestSeriesInterpolateData:
         s = Series([np.nan, np.nan])
         tm.assert_series_equal(s.interpolate(**kwargs), s)
 
-        s = Series([]).interpolate()
+        s = Series([], dtype=object).interpolate()
         tm.assert_series_equal(s.interpolate(**kwargs), s)
 
     def test_interpolate_index_values(self):
@@ -1296,7 +1284,7 @@ class TestSeriesInterpolateData:
     def test_interp_invalid_method(self, invalid_method):
         s = Series([1, 3, np.nan, 12, np.nan, 25])
 
-        msg = "method must be one of.* Got '{}' instead".format(invalid_method)
+        msg = f"method must be one of.* Got '{invalid_method}' instead"
         with pytest.raises(ValueError, match=msg):
             s.interpolate(method=invalid_method)
 
@@ -1597,12 +1585,6 @@ class TestSeriesInterpolateData:
 
         tm.assert_numpy_array_equal(result.values, exp.values)
 
-    def test_nonzero_warning(self):
-        # GH 24048
-        ser = pd.Series([1, 0, 3, 4])
-        with tm.assert_produces_warning(FutureWarning):
-            ser.nonzero()
-
     @pytest.mark.parametrize(
         "ind",
         [
@@ -1617,7 +1599,7 @@ class TestSeriesInterpolateData:
 
         method, kwargs = interp_methods_ind
         if method == "pchip":
-            _skip_if_no_pchip()
+            pytest.importorskip("scipy")
 
         if method == "linear":
             result = df[0].interpolate(**kwargs)
@@ -1626,9 +1608,9 @@ class TestSeriesInterpolateData:
         else:
             expected_error = (
                 "Index column must be numeric or datetime type when "
-                "using {method} method other than linear. "
+                f"using {method} method other than linear. "
                 "Try setting a numeric or datetime index column before "
-                "interpolating.".format(method=method)
+                "interpolating."
             )
             with pytest.raises(ValueError, match=expected_error):
                 df[0].interpolate(method=method, **kwargs)
@@ -1645,7 +1627,7 @@ class TestSeriesInterpolateData:
 
         method, kwargs = interp_methods_ind
         if method == "pchip":
-            _skip_if_no_pchip()
+            pytest.importorskip("scipy")
 
         if method in {"linear", "pchip"}:
             result = df[0].interpolate(method=method, **kwargs)
@@ -1655,3 +1637,14 @@ class TestSeriesInterpolateData:
             pytest.skip(
                 "This interpolation method is not supported for Timedelta Index yet."
             )
+
+    @pytest.mark.parametrize(
+        "ascending, expected_values",
+        [(True, [1, 2, 3, 9, 10]), (False, [10, 9, 3, 2, 1])],
+    )
+    def test_interpolate_unsorted_index(self, ascending, expected_values):
+        # GH 21037
+        ts = pd.Series(data=[10, 9, np.nan, 2, 1], index=[10, 9, 3, 2, 1])
+        result = ts.sort_index(ascending=ascending).interpolate(method="index")
+        expected = pd.Series(data=expected_values, index=expected_values, dtype=float)
+        tm.assert_series_equal(result, expected)

@@ -63,11 +63,6 @@ from pandas.errors import (ParserError, DtypeWarning,
 
 lzma = _import_lzma()
 
-# Import CParserError as alias of ParserError for backwards compatibility.
-# Ultimately, we want to remove this import. See gh-12665 and gh-14479.
-CParserError = ParserError
-
-
 cdef:
     float64_t INF = <float64_t>np.inf
     float64_t NEGINF = -INF
@@ -662,7 +657,7 @@ cdef class TextReader:
 
         if isinstance(source, str):
             encoding = sys.getfilesystemencoding() or "utf-8"
-
+            usource = source
             source = source.encode(encoding)
 
             if self.memory_map:
@@ -682,10 +677,11 @@ cdef class TextReader:
 
             if ptr == NULL:
                 if not os.path.exists(source):
+
                     raise FileNotFoundError(
                         ENOENT,
-                        f'File {source} does not exist',
-                        source)
+                        f'File {usource} does not exist',
+                        usource)
                 raise IOError('Initializing from file failed')
 
             self.parser.source = ptr
@@ -1371,7 +1367,26 @@ def _ensure_encoded(list lst):
 # common NA values
 # no longer excluding inf representations
 # '1.#INF','-1.#INF', '1.#INF000000',
-_NA_VALUES = _ensure_encoded(list(icom._NA_VALUES))
+STR_NA_VALUES = {
+    "-1.#IND",
+    "1.#QNAN",
+    "1.#IND",
+    "-1.#QNAN",
+    "#N/A N/A",
+    "#N/A",
+    "N/A",
+    "n/a",
+    "NA",
+    "#NA",
+    "NULL",
+    "null",
+    "NaN",
+    "-NaN",
+    "nan",
+    "-nan",
+    "",
+}
+_NA_VALUES = _ensure_encoded(list(STR_NA_VALUES))
 
 
 def _maybe_upcast(arr):
