@@ -63,7 +63,7 @@ class AbstractEngine(metaclass=abc.ABCMeta):
 
         Returns
         -------
-        obj : object
+        object
             The result of the passed expression.
         """
         if not self._is_aligned:

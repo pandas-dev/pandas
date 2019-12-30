@@ -4005,7 +4005,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         inplace=False,
         limit=None,
         downcast=None,
-    ):
+    ) -> Optional["Series"]:
         return super().fillna(
             value=value,
             method=method,
