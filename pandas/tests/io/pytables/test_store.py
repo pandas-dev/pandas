@@ -3,6 +3,7 @@ from datetime import timedelta
 from distutils.version import LooseVersion
 from io import BytesIO
 import os
+from pathlib import Path
 import re
 from warnings import catch_warnings, simplefilter
 
@@ -1272,7 +1273,7 @@ class TestHDFStore:
             with pytest.raises(ValueError):
                 store.append("df", df)
 
-            # store multile additional fields in different blocks
+            # store multiple additional fields in different blocks
             df["float_3"] = Series([1.0] * len(df), dtype="float64")
             with pytest.raises(ValueError):
                 store.append("df", df)
@@ -2376,8 +2377,8 @@ class TestHDFStore:
 
     @td.xfail_non_writeable
     def test_empty_series_frame(self, setup_path):
-        s0 = Series()
-        s1 = Series(name="myseries")
+        s0 = Series(dtype=object)
+        s1 = Series(name="myseries", dtype=object)
         df0 = DataFrame()
         df1 = DataFrame(index=["a", "b", "c"])
         df2 = DataFrame(columns=["d", "e", "f"])
@@ -3213,7 +3214,7 @@ class TestHDFStore:
             tm.assert_frame_equal(result, expected)
 
             result = store.select(
-                "df", "(index>df.index[3] & " 'index<=df.index[6]) | string="bar"'
+                "df", '(index>df.index[3] & index<=df.index[6]) | string="bar"'
             )
             expected = df.loc[
                 ((df.index > df.index[3]) & (df.index <= df.index[6]))
@@ -4594,12 +4595,9 @@ class TestHDFStore:
             with pytest.raises(ValueError):
                 read_hdf(path)
 
-    @td.skip_if_no("pathlib")
     def test_read_from_pathlib_path(self, setup_path):
 
         # GH11773
-        from pathlib import Path
-
         expected = DataFrame(
             np.random.rand(4, 5), index=list("abcd"), columns=list("ABCDE")
         )

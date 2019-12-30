@@ -9,13 +9,13 @@ a once again improved version.
 You can find more information on http://presbrey.mit.edu/PyDTA and
 http://www.statsmodels.org/devel/
 """
-
-from collections import OrderedDict
+from collections import abc
 import datetime
 from io import BytesIO
 import os
 import struct
 import sys
+from typing import Any
 import warnings
 
 from dateutil.relativedelta import relativedelta
@@ -23,7 +23,7 @@ import numpy as np
 
 from pandas._libs.lib import infer_dtype
 from pandas._libs.writers import max_len_string_array
-from pandas.util._decorators import Appender, deprecate_kwarg
+from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -44,7 +44,7 @@ from pandas import (
 from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 
-from pandas.io.common import BaseIterator, _stringify_path, get_filepath_or_buffer
+from pandas.io.common import get_filepath_or_buffer, stringify_path
 
 _version_error = (
     "Version of given Stata file is not 104, 105, 108, "
@@ -132,25 +132,6 @@ Read a Stata dta file in 10,000 line chunks:
     _iterator_params,
 )
 
-_data_method_doc = """
-Read observations from Stata file, converting them into a dataframe.
-
-.. deprecated::
-    This is a legacy method.  Use `read` in new code.
-
-Parameters
-----------
-%s
-%s
-
-Returns
--------
-DataFrame
-""" % (
-    _statafile_processing_params1,
-    _statafile_processing_params2,
-)
-
 _read_method_doc = """\
 Reads observations from Stata file, converting them into a dataframe
 
@@ -191,7 +172,6 @@ path_or_buf : path (string), buffer or path object
 
 
 @Appender(_read_stata_doc)
-@deprecate_kwarg(old_arg_name="index", new_arg_name="index_col")
 def read_stata(
     filepath_or_buffer,
     convert_dates=True,
@@ -858,7 +838,7 @@ class StataMissingValue:
     def __repr__(self) -> str:
         return f"{type(self)}({self})"
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: Any) -> bool:
         return (
             isinstance(other, type(self))
             and self.string == other.string
@@ -1030,10 +1010,9 @@ class StataParser:
         )
 
 
-class StataReader(StataParser, BaseIterator):
+class StataReader(StataParser, abc.Iterator):
     __doc__ = _stata_reader_doc
 
-    @deprecate_kwarg(old_arg_name="index", new_arg_name="index_col")
     def __init__(
         self,
         path_or_buf,
@@ -1072,7 +1051,7 @@ class StataReader(StataParser, BaseIterator):
         self._lines_read = 0
 
         self._native_byteorder = _set_endianness(sys.byteorder)
-        path_or_buf = _stringify_path(path_or_buf)
+        path_or_buf = stringify_path(path_or_buf)
         if isinstance(path_or_buf, str):
             path_or_buf, encoding, _, should_close = get_filepath_or_buffer(path_or_buf)
 
@@ -1525,18 +1504,6 @@ the string values returned are correct."""
             # Wrap v_o in a string to allow uint64 values as keys on 32bit OS
             self.GSO[str(v_o)] = va
 
-    # legacy
-    @Appender(_data_method_doc)
-    def data(self, **kwargs):
-
-        warnings.warn("'data' is deprecated, use 'read' instead")
-
-        if self._data_read:
-            raise Exception("Data has already been read.")
-        self._data_read = True
-
-        return self.read(None, **kwargs)
-
     def __next__(self):
         return self.read(nrows=self._chunksize or 1)
 
@@ -1558,7 +1525,6 @@ the string values returned are correct."""
         return self.read(nrows=size)
 
     @Appender(_read_method_doc)
-    @deprecate_kwarg(old_arg_name="index", new_arg_name="index_col")
     def read(
         self,
         nrows=None,
@@ -1676,7 +1642,7 @@ the string values returned are correct."""
                 else:
                     data_formatted.append((col, data[col]))
         if requires_type_conversion:
-            data = DataFrame.from_dict(OrderedDict(data_formatted))
+            data = DataFrame.from_dict(dict(data_formatted))
         del data_formatted
 
         data = self._do_convert_missing(data, convert_missing)
@@ -1715,7 +1681,7 @@ the string values returned are correct."""
                     convert = True
                 retyped_data.append((col, data[col].astype(dtype)))
             if convert:
-                data = DataFrame.from_dict(OrderedDict(retyped_data))
+                data = DataFrame.from_dict(dict(retyped_data))
 
         if index_col is not None:
             data = data.set_index(data.pop(index_col))
@@ -1845,7 +1811,7 @@ The repeated labels are:
                 cat_converted_data.append((col, cat_data))
             else:
                 cat_converted_data.append((col, data[col]))
-        data = DataFrame.from_dict(OrderedDict(cat_converted_data))
+        data = DataFrame.from_dict(dict(cat_converted_data))
         return data
 
     @property
@@ -2146,7 +2112,7 @@ class StataWriter(StataParser):
         if byteorder is None:
             byteorder = sys.byteorder
         self._byteorder = _set_endianness(byteorder)
-        self._fname = _stringify_path(fname)
+        self._fname = stringify_path(fname)
         self.type_converters = {253: np.int32, 252: np.int16, 251: np.int8}
         self._converted_names = {}
 
@@ -2194,7 +2160,7 @@ class StataWriter(StataParser):
                 data_formatted.append((col, values))
             else:
                 data_formatted.append((col, data[col]))
-        return DataFrame.from_dict(OrderedDict(data_formatted))
+        return DataFrame.from_dict(dict(data_formatted))
 
     def _replace_nans(self, data):
         # return data
@@ -2673,7 +2639,7 @@ class StataStrLWriter:
 
         self.df = df
         self.columns = columns
-        self._gso_table = OrderedDict((("", (0, 0)),))
+        self._gso_table = {"": (0, 0)}
         if byteorder is None:
             byteorder = sys.byteorder
         self._byteorder = _set_endianness(byteorder)
@@ -2703,7 +2669,7 @@ class StataStrLWriter:
 
         Returns
         -------
-        gso_table : OrderedDict
+        gso_table : dict
             Ordered dictionary using the string found as keys
             and their lookup position (v,o) as values
         gso_df : DataFrame
@@ -2761,7 +2727,7 @@ class StataStrLWriter:
 
         Parameters
         ----------
-        gso_table : OrderedDict
+        gso_table : dict
             Ordered dictionary (str, vo)
 
         Returns
@@ -2991,7 +2957,7 @@ class StataWriter117(StataWriter):
         the map with 0s.  The second call writes the final map locations when
         all blocks have been written."""
         if self._map is None:
-            self._map = OrderedDict(
+            self._map = dict(
                 (
                     ("stata_data", 0),
                     ("map", self._file.tell()),

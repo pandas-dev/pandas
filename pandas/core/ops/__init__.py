@@ -5,7 +5,7 @@ This is not a public API.
 """
 import datetime
 import operator
-from typing import Tuple, Union
+from typing import Set, Tuple, Union
 
 import numpy as np
 
@@ -26,6 +26,7 @@ from pandas.core.ops.array_ops import (
     arithmetic_op,
     comparison_op,
     define_na_arithmetic_op,
+    get_array_op,
     logical_op,
 )
 from pandas.core.ops.array_ops import comp_method_OBJECT_ARRAY  # noqa:F401
@@ -39,6 +40,7 @@ from pandas.core.ops.docstrings import (
     _op_descriptions,
 )
 from pandas.core.ops.invalid import invalid_comparison  # noqa:F401
+from pandas.core.ops.mask_ops import kleene_and, kleene_or, kleene_xor  # noqa: F401
 from pandas.core.ops.methods import (  # noqa:F401
     add_flex_arithmetic_methods,
     add_special_arithmetic_methods,
@@ -57,6 +59,37 @@ from pandas.core.ops.roperator import (  # noqa:F401
     rtruediv,
     rxor,
 )
+
+# -----------------------------------------------------------------------------
+# constants
+ARITHMETIC_BINOPS: Set[str] = {
+    "add",
+    "sub",
+    "mul",
+    "pow",
+    "mod",
+    "floordiv",
+    "truediv",
+    "divmod",
+    "radd",
+    "rsub",
+    "rmul",
+    "rpow",
+    "rmod",
+    "rfloordiv",
+    "rtruediv",
+    "rdivmod",
+}
+
+
+COMPARISON_BINOPS: Set[str] = {
+    "eq",
+    "ne",
+    "lt",
+    "gt",
+    "le",
+    "ge",
+}
 
 # -----------------------------------------------------------------------------
 # Ops Wrapping Utilities
@@ -340,8 +373,10 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
     right = lib.item_from_zerodim(right)
     if lib.is_scalar(right) or np.ndim(right) == 0:
 
-        def column_op(a, b):
-            return {i: func(a.iloc[:, i], b) for i in range(len(a.columns))}
+        # Get the appropriate array-op to apply to each block's values.
+        array_op = get_array_op(func, str_rep=str_rep)
+        bm = left._data.apply(array_op, right=right)
+        return type(left)(bm)
 
     elif isinstance(right, ABCDataFrame):
         assert right._indexed_same(left)
@@ -461,7 +496,8 @@ def _arith_method_SERIES(cls, op, special):
         res_name = get_op_result_name(left, right)
 
         lvalues = extract_array(left, extract_numpy=True)
-        result = arithmetic_op(lvalues, right, op, str_rep)
+        rvalues = extract_array(right, extract_numpy=True)
+        result = arithmetic_op(lvalues, rvalues, op, str_rep)
 
         return _construct_result(left, result, index=left.index, name=res_name)
 
@@ -680,7 +716,7 @@ def _arith_method_FRAME(cls, op, special):
             if fill_value is not None:
                 self = self.fillna(fill_value)
 
-            new_data = dispatch_to_series(self, other, op)
+            new_data = dispatch_to_series(self, other, op, str_rep)
             return self._construct_result(new_data)
 
     f.__name__ = op_name

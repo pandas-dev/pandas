@@ -87,7 +87,7 @@ def test_same_ordering(datapath):
 @pytest.mark.parametrize(
     "flavor",
     [
-        pytest.param("bs4", marks=td.skip_if_no("lxml")),
+        pytest.param("bs4", marks=td.skip_if_no("bs4")),
         pytest.param("lxml", marks=td.skip_if_no("lxml")),
     ],
     scope="class",
@@ -178,7 +178,7 @@ class TestReadHtml:
 
         assert_framelist_equal(df1, df2)
 
-    def test_skiprows_xrange(self):
+    def test_skiprows_range(self):
         df1 = self.read_html(self.spam_data, ".*Water.*", skiprows=range(2))[0]
         df2 = self.read_html(self.spam_data, "Unit", skiprows=range(2))[0]
         tm.assert_frame_equal(df1, df2)
@@ -395,8 +395,7 @@ class TestReadHtml:
         """
         Make sure that read_html ignores empty tables.
         """
-        result = self.read_html(
-            """
+        html = """
             <table>
                 <thead>
                     <tr>
@@ -416,8 +415,7 @@ class TestReadHtml:
                 </tbody>
             </table>
         """
-        )
-
+        result = self.read_html(html)
         assert len(result) == 1
 
     def test_multiple_tbody(self):
@@ -902,8 +900,8 @@ class TestReadHtml:
 
     def test_wikipedia_states_table(self, datapath):
         data = datapath("io", "data", "html", "wikipedia_states.html")
-        assert os.path.isfile(data), "{data!r} is not a file".format(data=data)
-        assert os.path.getsize(data), "{data!r} is an empty file".format(data=data)
+        assert os.path.isfile(data), f"{repr(data)} is not a file"
+        assert os.path.getsize(data), f"{repr(data)} is an empty file"
         result = self.read_html(data, "Arizona", header=1)[0]
         assert result["sq mi"].dtype == np.dtype("float64")
 

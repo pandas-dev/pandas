@@ -13,6 +13,7 @@ import numpy as np
 
 from pandas._libs import Timedelta, hashtable as libhashtable, lib
 import pandas._libs.join as libjoin
+from pandas._typing import FrameOrSeries
 from pandas.errors import MergeError
 from pandas.util._decorators import Appender, Substitution
 
@@ -40,7 +41,6 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
 from pandas import Categorical, Index, MultiIndex
-from pandas._typing import FrameOrSeries
 import pandas.core.algorithms as algos
 from pandas.core.arrays.categorical import _recode_for_categories
 import pandas.core.common as com
@@ -116,17 +116,20 @@ def _groupby_and_merge(
 
     # if we can groupby the rhs
     # then we can get vastly better perf
+
+    # we will check & remove duplicates if indicated
+    if check_duplicates:
+        if on is None:
+            on = []
+        elif not isinstance(on, (list, tuple)):
+            on = [on]
+
+        if right.duplicated(by + on).any():
+            _right = right.drop_duplicates(by + on, keep="last")
+            # TODO: use overload to refine return type of drop_duplicates
+            assert _right is not None  # needed for mypy
+            right = _right
     try:
-
-        # we will check & remove duplicates if indicated
-        if check_duplicates:
-            if on is None:
-                on = []
-            elif not isinstance(on, (list, tuple)):
-                on = [on]
-
-            if right.duplicated(by + on).any():
-                right = right.drop_duplicates(by + on, keep="last")
         rby = right.groupby(by, sort=False)
     except KeyError:
         rby = None
@@ -1027,7 +1030,7 @@ class _MergeOperation:
                     )
                 ]
             else:
-                left_keys = [self.left.index.values]
+                left_keys = [self.left.index._values]
 
         if left_drop:
             self.left = self.left._drop_labels_or_levels(left_drop)
@@ -1194,9 +1197,7 @@ class _MergeOperation:
                         )
                     )
                 if not common_cols.is_unique:
-                    raise MergeError(
-                        "Data columns not unique: {common!r}".format(common=common_cols)
-                    )
+                    raise MergeError(f"Data columns not unique: {repr(common_cols)}")
                 self.left_on = self.right_on = common_cols
         elif self.on is not None:
             if self.left_on is not None or self.right_on is not None:

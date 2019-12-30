@@ -146,9 +146,7 @@ def test_resample_basic_grouper(series):
 def test_resample_string_kwargs(series, keyword, value):
     # see gh-19303
     # Check that wrong keyword argument strings raise an error
-    msg = "Unsupported value {value} for `{keyword}`".format(
-        value=value, keyword=keyword
-    )
+    msg = f"Unsupported value {value} for `{keyword}`"
     with pytest.raises(ValueError, match=msg):
         series.resample("5min", **({keyword: value}))
 
@@ -1431,10 +1429,11 @@ def test_downsample_across_dst_weekly():
     tm.assert_frame_equal(result, expected)
 
     idx = pd.date_range("2013-04-01", "2013-05-01", tz="Europe/London", freq="H")
-    s = Series(index=idx)
+    s = Series(index=idx, dtype=np.float64)
     result = s.resample("W").mean()
     expected = Series(
-        index=pd.date_range("2013-04-07", freq="W", periods=5, tz="Europe/London")
+        index=pd.date_range("2013-04-07", freq="W", periods=5, tz="Europe/London"),
+        dtype=np.float64,
     )
     tm.assert_series_equal(result, expected)
 
@@ -1565,3 +1564,20 @@ def test_get_timestamp_range_edges(first, last, offset, exp_first, exp_last):
     result = _get_timestamp_range_edges(first, last, offset)
     expected = (exp_first, exp_last)
     assert result == expected
+
+
+def test_resample_apply_product():
+    # GH 5586
+    index = date_range(start="2012-01-31", freq="M", periods=12)
+
+    ts = Series(range(12), index=index)
+    df = DataFrame(dict(A=ts, B=ts + 2))
+    result = df.resample("Q").apply(np.product)
+    expected = DataFrame(
+        np.array([[0, 24], [60, 210], [336, 720], [990, 1716]], dtype=np.int64),
+        index=DatetimeIndex(
+            ["2012-03-31", "2012-06-30", "2012-09-30", "2012-12-31"], freq="Q-DEC"
+        ),
+        columns=["A", "B"],
+    )
+    tm.assert_frame_equal(result, expected)

@@ -87,9 +87,14 @@ def main(conda_fname, pip_fname, compare=False):
         elif isinstance(dep, dict) and len(dep) == 1 and "pip" in dep:
             pip_deps += dep["pip"]
         else:
-            raise ValueError("Unexpected dependency {}".format(dep))
+            raise ValueError(f"Unexpected dependency {dep}")
 
-    pip_content = "\n".join(pip_deps)
+    fname = os.path.split(conda_fname)[1]
+    header = (
+        f"# This file is auto-generated from {fname}, do not modify.\n"
+        "# See that file for comments about the need/usage of each depdendency.\n\n"
+    )
+    pip_content = header + "\n".join(pip_deps)
 
     if compare:
         with open(pip_fname) as pip_fd:

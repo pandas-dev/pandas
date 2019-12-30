@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 
-from pandas.errors import NullFrequencyError, OutOfBoundsDatetime, PerformanceWarning
+from pandas.errors import OutOfBoundsDatetime, PerformanceWarning
 
 import pandas as pd
 from pandas import (
@@ -18,22 +18,12 @@ from pandas import (
     Timestamp,
     timedelta_range,
 )
-from pandas.tests.arithmetic.test_datetime64 import assert_invalid_comparison
+from pandas.tests.arithmetic.common import (
+    assert_invalid_addsub_type,
+    assert_invalid_comparison,
+    get_upcast_box,
+)
 import pandas.util.testing as tm
-
-
-def get_upcast_box(box, vector):
-    """
-    Given two box-types, find the one that takes priority
-    """
-    if box is DataFrame or isinstance(vector, DataFrame):
-        return DataFrame
-    if box is Series or isinstance(vector, Series):
-        return Series
-    if box is pd.Index or isinstance(vector, pd.Index):
-        return pd.Index
-    return box
-
 
 # ------------------------------------------------------------------
 # Timedelta64[ns] dtype Comparisons
@@ -409,7 +399,7 @@ class TestTimedelta64ArithmeticUnsorted:
             tdi[0:1] + dti
 
         # random indexes
-        with pytest.raises(NullFrequencyError):
+        with pytest.raises(TypeError):
             tdi + pd.Int64Index([1, 2, 3])
 
         # this is a union!
@@ -484,6 +474,62 @@ class TestTimedelta64ArithmeticUnsorted:
         expected = tdi - tdi
         tm.assert_index_equal(result, expected)
 
+    # -------------------------------------------------------------
+    # Binary operations TimedeltaIndex and timedelta-like
+
+    def test_tdi_iadd_timedeltalike(self, two_hours):
+        # only test adding/sub offsets as + is now numeric
+        rng = timedelta_range("1 days", "10 days")
+        expected = timedelta_range("1 days 02:00:00", "10 days 02:00:00", freq="D")
+        rng += two_hours
+        tm.assert_index_equal(rng, expected)
+
+    def test_tdi_isub_timedeltalike(self, two_hours):
+        # only test adding/sub offsets as - is now numeric
+        rng = timedelta_range("1 days", "10 days")
+        expected = timedelta_range("0 days 22:00:00", "9 days 22:00:00")
+        rng -= two_hours
+        tm.assert_index_equal(rng, expected)
+
+    # -------------------------------------------------------------
+
+    def test_tdi_ops_attributes(self):
+        rng = timedelta_range("2 days", periods=5, freq="2D", name="x")
+
+        result = rng + 1 * rng.freq
+        exp = timedelta_range("4 days", periods=5, freq="2D", name="x")
+        tm.assert_index_equal(result, exp)
+        assert result.freq == "2D"
+
+        result = rng - 2 * rng.freq
+        exp = timedelta_range("-2 days", periods=5, freq="2D", name="x")
+        tm.assert_index_equal(result, exp)
+        assert result.freq == "2D"
+
+        result = rng * 2
+        exp = timedelta_range("4 days", periods=5, freq="4D", name="x")
+        tm.assert_index_equal(result, exp)
+        assert result.freq == "4D"
+
+        result = rng / 2
+        exp = timedelta_range("1 days", periods=5, freq="D", name="x")
+        tm.assert_index_equal(result, exp)
+        assert result.freq == "D"
+
+        result = -rng
+        exp = timedelta_range("-2 days", periods=5, freq="-2D", name="x")
+        tm.assert_index_equal(result, exp)
+        assert result.freq == "-2D"
+
+        rng = pd.timedelta_range("-2 days", periods=5, freq="D", name="x")
+
+        result = abs(rng)
+        exp = TimedeltaIndex(
+            ["2 days", "1 days", "0 days", "1 days", "2 days"], name="x"
+        )
+        tm.assert_index_equal(result, exp)
+        assert result.freq is None
+
 
 class TestAddSubNaTMasking:
     # TODO: parametrize over boxes
@@ -554,22 +600,6 @@ class TestAddSubNaTMasking:
 
 class TestTimedeltaArraylikeAddSubOps:
     # Tests for timedelta64[ns] __add__, __sub__, __radd__, __rsub__
-
-    # TODO: moved from frame tests; needs parametrization/de-duplication
-    def test_td64_df_add_int_frame(self):
-        # GH#22696 Check that we don't dispatch to numpy implementation,
-        #  which treats int64 as m8[ns]
-        tdi = pd.timedelta_range("1", periods=3)
-        df = tdi.to_frame()
-        other = pd.DataFrame([1, 2, 3], index=tdi)  # indexed like `df`
-        with pytest.raises(TypeError):
-            df + other
-        with pytest.raises(TypeError):
-            other + df
-        with pytest.raises(TypeError):
-            df - other
-        with pytest.raises(TypeError):
-            other - df
 
     # TODO: moved from tests.indexes.timedeltas.test_arithmetic; needs
     #  parametrization+de-duplication
@@ -826,51 +856,6 @@ class TestTimedeltaArraylikeAddSubOps:
         tm.assert_series_equal(timedelta_series / np.nan, nat_series_dtype_timedelta)
 
     # -------------------------------------------------------------
-    # Invalid Operations
-
-    @pytest.mark.parametrize("other", ["a", 3.14, np.array([2.0, 3.0])])
-    def test_td64arr_add_sub_invalid(self, box_with_array, other):
-        # GH#13624 for str
-        tdi = TimedeltaIndex(["1 day", "2 days"])
-        tdarr = tm.box_expected(tdi, box_with_array)
-
-        with pytest.raises(TypeError):
-            tdarr + other
-        with pytest.raises(TypeError):
-            other + tdarr
-        with pytest.raises(TypeError):
-            tdarr - other
-        with pytest.raises(TypeError):
-            other - tdarr
-
-    @pytest.mark.parametrize("freq", [None, "H"])
-    def test_td64arr_sub_period(self, box_with_array, freq):
-        # GH#13078
-        # not supported, check TypeError
-        p = pd.Period("2011-01-01", freq="D")
-        idx = TimedeltaIndex(["1 hours", "2 hours"], freq=freq)
-        idx = tm.box_expected(idx, box_with_array)
-
-        with pytest.raises(TypeError):
-            idx - p
-
-        with pytest.raises(TypeError):
-            p - idx
-
-    @pytest.mark.parametrize("pi_freq", ["D", "W", "Q", "H"])
-    @pytest.mark.parametrize("tdi_freq", [None, "H"])
-    def test_td64arr_sub_pi(self, box_with_array, tdi_freq, pi_freq):
-        # GH#20049 subtracting PeriodIndex should raise TypeError
-        tdi = TimedeltaIndex(["1 hours", "2 hours"], freq=tdi_freq)
-        dti = Timestamp("2018-03-07 17:16:40") + tdi
-        pi = dti.to_period(pi_freq)
-
-        # TODO: parametrize over box for pi?
-        tdi = tm.box_expected(tdi, box_with_array)
-        with pytest.raises(TypeError):
-            tdi - pi
-
-    # -------------------------------------------------------------
     # Binary operations td64 arraylike and datetime-like
 
     def test_td64arr_sub_timestamp_raises(self, box_with_array):
@@ -976,82 +961,109 @@ class TestTimedeltaArraylikeAddSubOps:
         tm.assert_equal(other + tdser, expected)
 
     # ------------------------------------------------------------------
-    # Operations with int-like others
+    # Invalid __add__/__sub__ operations
+
+    # TODO: moved from frame tests; needs parametrization/de-duplication
+    def test_td64_df_add_int_frame(self):
+        # GH#22696 Check that we don't dispatch to numpy implementation,
+        #  which treats int64 as m8[ns]
+        tdi = pd.timedelta_range("1", periods=3)
+        df = tdi.to_frame()
+        other = pd.DataFrame([1, 2, 3], index=tdi)  # indexed like `df`
+        assert_invalid_addsub_type(df, other)
+
+    @pytest.mark.parametrize("pi_freq", ["D", "W", "Q", "H"])
+    @pytest.mark.parametrize("tdi_freq", [None, "H"])
+    def test_td64arr_sub_periodlike(self, box_with_array, tdi_freq, pi_freq):
+        # GH#20049 subtracting PeriodIndex should raise TypeError
+        tdi = TimedeltaIndex(["1 hours", "2 hours"], freq=tdi_freq)
+        dti = Timestamp("2018-03-07 17:16:40") + tdi
+        pi = dti.to_period(pi_freq)
+
+        # TODO: parametrize over box for pi?
+        tdi = tm.box_expected(tdi, box_with_array)
+        with pytest.raises(TypeError):
+            tdi - pi
+
+        # FIXME: don't leave commented-out
+        # FIXME: this raises with period scalar but not with PeriodIndex?
+        # with pytest.raises(TypeError):
+        #    pi - tdi
+
+        # GH#13078 subtraction of Period scalar not supported
+        with pytest.raises(TypeError):
+            tdi - pi[0]
+        with pytest.raises(TypeError):
+            pi[0] - tdi
 
     @pytest.mark.parametrize(
         "other",
         [
+            # GH#12624 for str case
+            "a",
             # GH#19123
             1,
-            Series([20, 30, 40], dtype="uint8"),
-            np.array([20, 30, 40], dtype="uint8"),
-            pd.UInt64Index([20, 30, 40]),
-            pd.Int64Index([20, 30, 40]),
-            Series([2, 3, 4]),
             1.5,
             np.array(2),
         ],
     )
-    def test_td64arr_addsub_numeric_invalid(self, box_with_array, other):
-        box = box_with_array
+    def test_td64arr_addsub_numeric_scalar_invalid(self, box_with_array, other):
+        # vector-like others are tested in test_td64arr_add_sub_numeric_arr_invalid
         tdser = pd.Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
-        tdser = tm.box_expected(tdser, box)
+        tdarr = tm.box_expected(tdser, box_with_array)
 
-        err = TypeError
-        if box in [pd.Index, tm.to_array] and not isinstance(other, float):
-            err = NullFrequencyError
+        assert_invalid_addsub_type(tdarr, other)
 
-        with pytest.raises(err):
-            tdser + other
-        with pytest.raises(err):
-            other + tdser
-        with pytest.raises(err):
-            tdser - other
-        with pytest.raises(err):
-            other - tdser
-
-    @pytest.mark.parametrize(
-        "dtype",
-        [
-            "int64",
-            "int32",
-            "int16",
-            "uint64",
-            "uint32",
-            "uint16",
-            "uint8",
-            "float64",
-            "float32",
-            "float16",
-        ],
-    )
     @pytest.mark.parametrize(
         "vec",
         [
             np.array([1, 2, 3]),
             pd.Index([1, 2, 3]),
-            Series([1, 2, 3])
-            # TODO: Add DataFrame in here?
+            Series([1, 2, 3]),
+            DataFrame([[1, 2, 3]]),
         ],
         ids=lambda x: type(x).__name__,
     )
-    def test_td64arr_add_sub_numeric_arr_invalid(self, box_with_array, vec, dtype):
-        box = box_with_array
+    def test_td64arr_addsub_numeric_arr_invalid(
+        self, box_with_array, vec, any_real_dtype
+    ):
         tdser = pd.Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
-        tdser = tm.box_expected(tdser, box)
-        err = TypeError
-        if box in [pd.Index, tm.to_array] and not dtype.startswith("float"):
-            err = NullFrequencyError
+        tdarr = tm.box_expected(tdser, box_with_array)
 
-        vector = vec.astype(dtype)
-        with pytest.raises(err):
-            tdser + vector
-        with pytest.raises(err):
-            vector + tdser
-        with pytest.raises(err):
-            tdser - vector
-        with pytest.raises(err):
-            vector - tdser
+        vector = vec.astype(any_real_dtype)
+        assert_invalid_addsub_type(tdarr, vector)
+
+    def test_td64arr_add_sub_int(self, box_with_array, one):
+        # Variants of `one` for #19012, deprecated GH#22535
+        rng = timedelta_range("1 days 09:00:00", freq="H", periods=10)
+        tdarr = tm.box_expected(rng, box_with_array)
+
+        msg = "Addition/subtraction of integers"
+        assert_invalid_addsub_type(tdarr, one, msg)
+
+        # TOOD: get inplace ops into assert_invalid_addsub_type
+        with pytest.raises(TypeError, match=msg):
+            tdarr += one
+        with pytest.raises(TypeError, match=msg):
+            tdarr -= one
+
+    def test_td64arr_add_sub_integer_array(self, box_with_array):
+        # GH#19959, deprecated GH#22535
+        rng = timedelta_range("1 days 09:00:00", freq="H", periods=3)
+        tdarr = tm.box_expected(rng, box_with_array)
+        other = tm.box_expected([4, 3, 2], box_with_array)
+
+        msg = "Addition/subtraction of integers and integer-arrays"
+        assert_invalid_addsub_type(tdarr, other, msg)
+
+    def test_td64arr_addsub_integer_array_no_freq(self, box_with_array):
+        # GH#19959
+        tdi = TimedeltaIndex(["1 Day", "NaT", "3 Hours"])
+        tdarr = tm.box_expected(tdi, box_with_array)
+        other = tm.box_expected([14, -1, 16], box_with_array)
+
+        msg = "Addition/subtraction of integers"
+        assert_invalid_addsub_type(tdarr, other, msg)
 
     # ------------------------------------------------------------------
     # Operations with timedelta-like others
@@ -1882,7 +1894,6 @@ class TestTimedeltaArraylikeMulDivOps:
     # ------------------------------------------------------------------
     # Operations with numeric others
 
-    @pytest.mark.parametrize("one", [1, np.array(1), 1.0, np.array(1.0)])
     def test_td64arr_mul_numeric_scalar(self, box_with_array, one):
         # GH#4521
         # divide/multiply by integers
@@ -1922,32 +1933,17 @@ class TestTimedeltaArraylikeMulDivOps:
             two / tdser
 
     @pytest.mark.parametrize(
-        "dtype",
-        [
-            "int64",
-            "int32",
-            "int16",
-            "uint64",
-            "uint32",
-            "uint16",
-            "uint8",
-            "float64",
-            "float32",
-            "float16",
-        ],
-    )
-    @pytest.mark.parametrize(
         "vector",
         [np.array([20, 30, 40]), pd.Index([20, 30, 40]), Series([20, 30, 40])],
         ids=lambda x: type(x).__name__,
     )
-    def test_td64arr_rmul_numeric_array(self, box_with_array, vector, dtype):
+    def test_td64arr_rmul_numeric_array(self, box_with_array, vector, any_real_dtype):
         # GH#4521
         # divide/multiply by integers
         xbox = get_upcast_box(box_with_array, vector)
 
         tdser = pd.Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
-        vector = vector.astype(dtype)
+        vector = vector.astype(any_real_dtype)
 
         expected = Series(["1180 Days", "1770 Days", "NaT"], dtype="timedelta64[ns]")
 
@@ -1961,31 +1957,18 @@ class TestTimedeltaArraylikeMulDivOps:
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "dtype",
-        [
-            "int64",
-            "int32",
-            "int16",
-            "uint64",
-            "uint32",
-            "uint16",
-            "uint8",
-            "float64",
-            "float32",
-            "float16",
-        ],
-    )
-    @pytest.mark.parametrize(
         "vector",
         [np.array([20, 30, 40]), pd.Index([20, 30, 40]), Series([20, 30, 40])],
         ids=lambda x: type(x).__name__,
     )
-    def test_td64arr_div_numeric_array(self, box_with_array, vector, dtype):
+    def test_td64arr_div_numeric_array(self, box_with_array, vector, any_real_dtype):
         # GH#4521
         # divide/multiply by integers
         xbox = get_upcast_box(box_with_array, vector)
+
         tdser = pd.Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
-        vector = vector.astype(dtype)
+        vector = vector.astype(any_real_dtype)
+
         expected = Series(["2.95D", "1D 23H 12m", "NaT"], dtype="timedelta64[ns]")
 
         tdser = tm.box_expected(tdser, box_with_array)

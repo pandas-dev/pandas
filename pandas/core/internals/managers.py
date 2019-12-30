@@ -32,8 +32,8 @@ from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject
-from pandas.core.index import Index, MultiIndex, ensure_index
 from pandas.core.indexers import maybe_convert_indices
+from pandas.core.indexes.api import Index, MultiIndex, ensure_index
 
 from pandas.io.formats.printing import pprint_thing
 
@@ -132,8 +132,8 @@ class BlockManager(PandasObject):
         for block in blocks:
             if self.ndim != block.ndim:
                 raise AssertionError(
-                    "Number of Block dimensions ({block}) must equal "
-                    "number of axes ({self})".format(block=block.ndim, self=self.ndim)
+                    f"Number of Block dimensions ({block.ndim}) must equal "
+                    f"number of axes ({self.ndim})"
                 )
 
         if do_integrity_check:
@@ -176,8 +176,8 @@ class BlockManager(PandasObject):
 
         if new_len != old_len:
             raise ValueError(
-                "Length mismatch: Expected axis has {old} elements, new "
-                "values have {new} elements".format(old=old_len, new=new_len)
+                f"Length mismatch: Expected axis has {old_len} elements, new "
+                f"values have {new_len} elements"
             )
 
         self.axes[axis] = new_labels
@@ -319,12 +319,12 @@ class BlockManager(PandasObject):
         output = type(self).__name__
         for i, ax in enumerate(self.axes):
             if i == 0:
-                output += "\nItems: {ax}".format(ax=ax)
+                output += f"\nItems: {ax}"
             else:
-                output += "\nAxis {i}: {ax}".format(i=i, ax=ax)
+                output += f"\nAxis {i}: {ax}"
 
         for block in self.blocks:
-            output += "\n{block}".format(block=pprint_thing(block))
+            output += f"\n{pprint_thing(block)}"
         return output
 
     def _verify_integrity(self):
@@ -336,37 +336,24 @@ class BlockManager(PandasObject):
         if len(self.items) != tot_items:
             raise AssertionError(
                 "Number of manager items must equal union of "
-                "block items\n# manager items: {0}, # "
-                "tot_items: {1}".format(len(self.items), tot_items)
+                f"block items\n# manager items: {len(self.items)}, # "
+                f"tot_items: {tot_items}"
             )
 
-    def apply(
-        self,
-        f,
-        axes=None,
-        filter=None,
-        do_integrity_check=False,
-        consolidate=True,
-        **kwargs,
-    ):
+    def apply(self, f, filter=None, **kwargs):
         """
-        iterate over the blocks, collect and create a new block manager
+        Iterate over the blocks, collect and create a new BlockManager.
 
         Parameters
         ----------
-        f : the callable or function name to operate on at the block level
-        axes : optional (if not supplied, use self.axes)
+        f : str or callable
+            Name of the Block method to apply.
         filter : list, if supplied, only call the block if the filter is in
                  the block
-        do_integrity_check : boolean, default False. Do the block manager
-            integrity check
-        consolidate: boolean, default True. Join together blocks having same
-            dtype
 
         Returns
         -------
-        Block Manager (new object)
-
+        BlockManager
         """
 
         result_blocks = []
@@ -380,8 +367,7 @@ class BlockManager(PandasObject):
             else:
                 kwargs["filter"] = filter_locs
 
-        if consolidate:
-            self._consolidate_inplace()
+        self._consolidate_inplace()
 
         if f == "where":
             align_copy = True
@@ -425,15 +411,15 @@ class BlockManager(PandasObject):
                     axis = obj._info_axis_number
                     kwargs[k] = obj.reindex(b_items, axis=axis, copy=align_copy)
 
-            applied = getattr(b, f)(**kwargs)
+            if callable(f):
+                applied = b.apply(f, **kwargs)
+            else:
+                applied = getattr(b, f)(**kwargs)
             result_blocks = _extend_blocks(applied, result_blocks)
 
         if len(result_blocks) == 0:
-            return self.make_empty(axes or self.axes)
-        bm = type(self)(
-            result_blocks, axes or self.axes, do_integrity_check=do_integrity_check
-        )
-        bm._consolidate_inplace()
+            return self.make_empty(self.axes)
+        bm = type(self)(result_blocks, self.axes, do_integrity_check=False)
         return bm
 
     def quantile(
@@ -540,8 +526,8 @@ class BlockManager(PandasObject):
             [make_block(values, ndim=1, placement=np.arange(len(values)))], axes[0]
         )
 
-    def isna(self, func, **kwargs):
-        return self.apply("apply", func=func, **kwargs)
+    def isna(self, func):
+        return self.apply("apply", func=func)
 
     def where(self, **kwargs):
         return self.apply("where", **kwargs)
@@ -567,8 +553,8 @@ class BlockManager(PandasObject):
     def downcast(self, **kwargs):
         return self.apply("downcast", **kwargs)
 
-    def astype(self, dtype, **kwargs):
-        return self.apply("astype", dtype=dtype, **kwargs)
+    def astype(self, dtype, copy: bool = False, errors: str = "raise"):
+        return self.apply("astype", dtype=dtype, copy=copy, errors=errors)
 
     def convert(self, **kwargs):
         return self.apply("convert", **kwargs)
@@ -758,24 +744,31 @@ class BlockManager(PandasObject):
 
         Parameters
         ----------
-        deep : boolean o rstring, default True
+        deep : bool or string, default True
             If False, return shallow copy (do not copy data)
             If 'all', copy data and a deep copy of the index
 
         Returns
         -------
-        copy : BlockManager
+        BlockManager
         """
         # this preserves the notion of view copying of axes
         if deep:
-            if deep == "all":
-                copy = lambda ax: ax.copy(deep=True)
-            else:
-                copy = lambda ax: ax.view()
-            new_axes = [copy(ax) for ax in self.axes]
+            # hit in e.g. tests.io.json.test_pandas
+
+            def copy_func(ax):
+                if deep == "all":
+                    return ax.copy(deep=True)
+                else:
+                    return ax.view()
+
+            new_axes = [copy_func(ax) for ax in self.axes]
         else:
             new_axes = list(self.axes)
-        return self.apply("copy", axes=new_axes, deep=deep, do_integrity_check=False)
+
+        res = self.apply("copy", deep=deep)
+        res.axes = new_axes
+        return res
 
     def as_array(self, transpose=False, items=None):
         """Convert the blockmanager data into an numpy array.
@@ -1152,7 +1145,7 @@ class BlockManager(PandasObject):
         """
         if not allow_duplicates and item in self.items:
             # Should this be a different kind of error??
-            raise ValueError("cannot insert {}, already exists".format(item))
+            raise ValueError(f"cannot insert {item}, already exists")
 
         if not isinstance(loc, int):
             raise TypeError("loc must be int")
@@ -1527,10 +1520,6 @@ class SingleBlockManager(BlockManager):
     def index(self):
         return self.axes[0]
 
-    def convert(self, **kwargs):
-        """ convert the whole block as one """
-        return self.apply("convert", **kwargs)
-
     @property
     def dtype(self):
         return self._block.dtype
@@ -1677,9 +1666,7 @@ def construction_error(tot_items, block_shape, axes, e=None):
         raise e
     if block_shape[0] == 0:
         raise ValueError("Empty data passed with indices specified.")
-    raise ValueError(
-        "Shape of passed values is {0}, indices imply {1}".format(passed, implied)
-    )
+    raise ValueError(f"Shape of passed values is {passed}, indices imply {implied}")
 
 
 # -----------------------------------------------------------------------
@@ -1915,15 +1902,13 @@ def _compare_or_regex_search(a, b, regex=False):
         type_names = [type(a).__name__, type(b).__name__]
 
         if is_a_array:
-            type_names[0] = "ndarray(dtype={dtype})".format(dtype=a.dtype)
+            type_names[0] = f"ndarray(dtype={a.dtype})"
 
         if is_b_array:
-            type_names[1] = "ndarray(dtype={dtype})".format(dtype=b.dtype)
+            type_names[1] = f"ndarray(dtype={b.dtype})"
 
         raise TypeError(
-            "Cannot compare types {a!r} and {b!r}".format(
-                a=type_names[0], b=type_names[1]
-            )
+            f"Cannot compare types {repr(type_names[0])} and {repr(type_names[1])}"
         )
     return result
 

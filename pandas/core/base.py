@@ -2,10 +2,8 @@
 Base and utility classes for pandas objects.
 """
 import builtins
-from collections import OrderedDict
 import textwrap
 from typing import Dict, FrozenSet, List, Optional
-import warnings
 
 import numpy as np
 
@@ -26,6 +24,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_timedelta64_ns_dtype,
+    needs_i8_conversion,
 )
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
@@ -34,6 +33,7 @@ from pandas.core import algorithms, common as com
 from pandas.core.accessor import DirNamesMixin
 from pandas.core.algorithms import duplicated, unique1d, value_counts
 from pandas.core.arrays import ExtensionArray
+from pandas.core.construction import create_series_with_explicit_dtype
 import pandas.core.nanops as nanops
 
 _shared_docs: Dict[str, str] = dict()
@@ -92,7 +92,7 @@ class NoNewAttributesMixin:
 
     Prevents additional attributes via xxx.attribute = "something" after a
     call to `self.__freeze()`. Mainly used to prevent the user from using
-    wrong attributes on a accessor (`Series.cat/.str/.dt`).
+    wrong attributes on an accessor (`Series.cat/.str/.dt`).
 
     If you really want to add a new attribute at a later time, you need to use
     `object.__setattr__(self, key, value)`.
@@ -114,9 +114,7 @@ class NoNewAttributesMixin:
             or key in type(self).__dict__
             or getattr(self, key, None) is not None
         ):
-            raise AttributeError(
-                "You cannot add any new attribute '{key}'".format(key=key)
-            )
+            raise AttributeError(f"You cannot add any new attribute '{key}'")
         object.__setattr__(self, key, value)
 
 
@@ -142,39 +140,35 @@ class SelectionMixin:
     _internal_names = ["_cache", "__setstate__"]
     _internal_names_set = set(_internal_names)
 
-    _builtin_table = OrderedDict(
-        ((builtins.sum, np.sum), (builtins.max, np.max), (builtins.min, np.min))
-    )
+    _builtin_table = {builtins.sum: np.sum, builtins.max: np.max, builtins.min: np.min}
 
-    _cython_table = OrderedDict(
-        (
-            (builtins.sum, "sum"),
-            (builtins.max, "max"),
-            (builtins.min, "min"),
-            (np.all, "all"),
-            (np.any, "any"),
-            (np.sum, "sum"),
-            (np.nansum, "sum"),
-            (np.mean, "mean"),
-            (np.nanmean, "mean"),
-            (np.prod, "prod"),
-            (np.nanprod, "prod"),
-            (np.std, "std"),
-            (np.nanstd, "std"),
-            (np.var, "var"),
-            (np.nanvar, "var"),
-            (np.median, "median"),
-            (np.nanmedian, "median"),
-            (np.max, "max"),
-            (np.nanmax, "max"),
-            (np.min, "min"),
-            (np.nanmin, "min"),
-            (np.cumprod, "cumprod"),
-            (np.nancumprod, "cumprod"),
-            (np.cumsum, "cumsum"),
-            (np.nancumsum, "cumsum"),
-        )
-    )
+    _cython_table = {
+        builtins.sum: "sum",
+        builtins.max: "max",
+        builtins.min: "min",
+        np.all: "all",
+        np.any: "any",
+        np.sum: "sum",
+        np.nansum: "sum",
+        np.mean: "mean",
+        np.nanmean: "mean",
+        np.prod: "prod",
+        np.nanprod: "prod",
+        np.std: "std",
+        np.nanstd: "std",
+        np.var: "var",
+        np.nanvar: "var",
+        np.median: "median",
+        np.nanmedian: "median",
+        np.max: "max",
+        np.nanmax: "max",
+        np.min: "min",
+        np.nanmin: "min",
+        np.cumprod: "cumprod",
+        np.nancumprod: "cumprod",
+        np.cumsum: "cumsum",
+        np.nancumsum: "cumsum",
+    }
 
     @property
     def _selection_name(self):
@@ -220,28 +214,22 @@ class SelectionMixin:
 
     def __getitem__(self, key):
         if self._selection is not None:
-            raise IndexError(
-                "Column(s) {selection} already selected".format(
-                    selection=self._selection
-                )
-            )
+            raise IndexError(f"Column(s) {self._selection} already selected")
 
         if isinstance(key, (list, tuple, ABCSeries, ABCIndexClass, np.ndarray)):
             if len(self.obj.columns.intersection(key)) != len(key):
                 bad_keys = list(set(key).difference(self.obj.columns))
-                raise KeyError(
-                    "Columns not found: {missing}".format(missing=str(bad_keys)[1:-1])
-                )
+                raise KeyError(f"Columns not found: {str(bad_keys)[1:-1]}")
             return self._gotitem(list(key), ndim=2)
 
         elif not getattr(self, "as_index", False):
             if key not in self.obj.columns:
-                raise KeyError("Column not found: {key}".format(key=key))
+                raise KeyError(f"Column not found: {key}")
             return self._gotitem(key, ndim=2)
 
         else:
             if key not in self.obj:
-                raise KeyError("Column not found: {key}".format(key=key))
+                raise KeyError(f"Column not found: {key}")
             return self._gotitem(key, ndim=1)
 
     def _gotitem(self, key, ndim, subset=None):
@@ -293,8 +281,7 @@ class SelectionMixin:
                 return f(self, *args, **kwargs)
 
         raise AttributeError(
-            "'{arg}' is not a valid function for "
-            "'{cls}' object".format(arg=arg, cls=type(self).__name__)
+            f"'{arg}' is not a valid function for '{type(self).__name__}' object"
         )
 
     def _aggregate(self, arg, *args, **kwargs):
@@ -317,7 +304,6 @@ class SelectionMixin:
         None if not required
         """
         is_aggregator = lambda x: isinstance(x, (list, tuple, dict))
-        is_nested_renamer = False
 
         _axis = kwargs.pop("_axis", None)
         if _axis is None:
@@ -337,7 +323,7 @@ class SelectionMixin:
             # eg. {'A' : ['mean']}, normalize all to
             # be list-likes
             if any(is_aggregator(x) for x in arg.values()):
-                new_arg = OrderedDict()
+                new_arg = {}
                 for k, v in arg.items():
                     if not isinstance(v, (tuple, list, dict)):
                         new_arg[k] = [v]
@@ -359,7 +345,7 @@ class SelectionMixin:
                     elif isinstance(obj, ABCSeries):
                         raise SpecificationError("nested renamer is not supported")
                     elif isinstance(obj, ABCDataFrame) and k not in obj.columns:
-                        raise KeyError("Column '{col}' does not exist!".format(col=k))
+                        raise KeyError(f"Column '{k}' does not exist!")
 
                 arg = new_arg
 
@@ -395,35 +381,18 @@ class SelectionMixin:
             def _agg(arg, func):
                 """
                 run the aggregations over the arg with func
-                return an OrderedDict
+                return a dict
                 """
-                result = OrderedDict()
+                result = {}
                 for fname, agg_how in arg.items():
                     result[fname] = func(fname, agg_how)
                 return result
 
             # set the final keys
             keys = list(arg.keys())
-            result = OrderedDict()
+            result = {}
 
-            # nested renamer
-            if is_nested_renamer:
-                result = list(_agg(arg, _agg_1dim).values())
-
-                if all(isinstance(r, dict) for r in result):
-
-                    result, results = OrderedDict(), result
-                    for r in results:
-                        result.update(r)
-                    keys = list(result.keys())
-
-                else:
-
-                    if self._selection is not None:
-                        keys = None
-
-            # some selection on the object
-            elif self._selection is not None:
+            if self._selection is not None:
 
                 sl = set(self._selection_list)
 
@@ -685,19 +654,27 @@ class IndexOpsMixin:
         """
         Return the first element of the underlying data as a python scalar.
 
-        .. deprecated:: 0.25.0
-
         Returns
         -------
         scalar
             The first element of %(klass)s.
+
+        Raises
+        ------
+        ValueError
+            If the data is not length-1.
         """
-        warnings.warn(
-            "`item` has been deprecated and will be removed in a future version",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.values.item()
+        if not (
+            is_extension_array_dtype(self.dtype) or needs_i8_conversion(self.dtype)
+        ):
+            # numpy returns ints instead of datetime64/timedelta64 objects,
+            #  which we need to wrap in Timestamp/Timedelta/Period regardless.
+            return self.values.item()
+
+        if len(self) == 1:
+            return next(iter(self))
+        else:
+            raise ValueError("can only convert an array of size 1 to a Python scalar")
 
     @property
     def nbytes(self):
@@ -1101,9 +1078,7 @@ class IndexOpsMixin:
         func = getattr(self, name, None)
         if func is None:
             raise TypeError(
-                "{klass} cannot perform the operation {op}".format(
-                    klass=type(self).__name__, op=name
-                )
+                f"{type(self).__name__} cannot perform the operation {name}"
             )
         return func(skipna=skipna, **kwds)
 
@@ -1143,9 +1118,14 @@ class IndexOpsMixin:
                 # convert to an Series for efficiency.
                 # we specify the keys here to handle the
                 # possibility that they are tuples
-                from pandas import Series
 
-                mapper = Series(mapper)
+                # The return value of mapping with an empty mapper is
+                # expected to be pd.Series(np.nan, ...). As np.nan is
+                # of dtype float64 the return value of this method should
+                # be float64 as well
+                mapper = create_series_with_explicit_dtype(
+                    mapper, dtype_if_empty=np.float64
+                )
 
         if isinstance(mapper, ABCSeries):
             # Since values were input this means we came from either

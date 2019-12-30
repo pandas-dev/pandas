@@ -159,10 +159,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             # don't allow scalars
             if is_scalar(data):
                 msg = (
-                    "{}(...) must be called with a collection of some kind,"
-                    " {} was passed"
+                    f"{cls.__name__}(...) must be called with a collection "
+                    f"of some kind, {data} was passed"
                 )
-                raise TypeError(msg.format(cls.__name__, data))
+                raise TypeError(msg)
 
             # might need to convert empty or purely na data
             data = maybe_convert_platform_interval(data)
@@ -194,8 +194,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             # GH 19262: dtype must be an IntervalDtype to override inferred
             dtype = pandas_dtype(dtype)
             if not is_interval_dtype(dtype):
-                msg = "dtype must be an IntervalDtype, got {dtype}"
-                raise TypeError(msg.format(dtype=dtype))
+                msg = f"dtype must be an IntervalDtype, got {dtype}"
+                raise TypeError(msg)
             elif dtype.subtype is not None:
                 left = left.astype(dtype.subtype)
                 right = right.astype(dtype.subtype)
@@ -207,10 +207,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             left = left.astype(right.dtype)
 
         if type(left) != type(right):
-            msg = "must not have differing left [{ltype}] and right [{rtype}] types"
-            raise ValueError(
-                msg.format(ltype=type(left).__name__, rtype=type(right).__name__)
+            msg = (
+                f"must not have differing left [{type(left).__name__}] and "
+                f"right [{type(right).__name__}] types"
             )
+            raise ValueError(msg)
         elif is_categorical_dtype(left.dtype) or is_string_dtype(left.dtype):
             # GH 19016
             msg = (
@@ -224,9 +225,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         elif isinstance(left, ABCDatetimeIndex) and str(left.tz) != str(right.tz):
             msg = (
                 "left and right must have the same time zone, got "
-                "'{left_tz}' and '{right_tz}'"
+                f"'{left.tz}' and '{right.tz}'"
             )
-            raise ValueError(msg.format(left_tz=left.tz, right_tz=right.tz))
+            raise ValueError(msg)
 
         result._left = left
         result._right = right
@@ -443,14 +444,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                     # need list of length 2 tuples, e.g. [(0, 1), (1, 2), ...]
                     lhs, rhs = d
                 except ValueError:
-                    msg = (
-                        "{name}.from_tuples requires tuples of length 2, got {tpl}"
-                    ).format(name=name, tpl=d)
+                    msg = f"{name}.from_tuples requires tuples of length 2, got {d}"
                     raise ValueError(msg)
                 except TypeError:
-                    msg = ("{name}.from_tuples received an invalid item, {tpl}").format(
-                        name=name, tpl=d
-                    )
+                    msg = f"{name}.from_tuples received an invalid item, {d}"
                     raise TypeError(msg)
             left.append(lhs)
             right.append(rhs)
@@ -468,20 +465,22 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         * left is always below right
         """
         if self.closed not in _VALID_CLOSED:
-            raise ValueError(
-                "invalid option for 'closed': {closed}".format(closed=self.closed)
-            )
+            msg = f"invalid option for 'closed': {self.closed}"
+            raise ValueError(msg)
         if len(self.left) != len(self.right):
-            raise ValueError("left and right must have the same length")
+            msg = "left and right must have the same length"
+            raise ValueError(msg)
         left_mask = notna(self.left)
         right_mask = notna(self.right)
         if not (left_mask == right_mask).all():
-            raise ValueError(
+            msg = (
                 "missing values must be missing in the same "
                 "location both left and right sides"
             )
+            raise ValueError(msg)
         if not (self.left[left_mask] <= self.right[left_mask]).all():
-            raise ValueError("left side of interval must be <= right side")
+            msg = "left side of interval must be <= right side"
+            raise ValueError(msg)
 
     # ---------
     # Interface
@@ -531,8 +530,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 value_left, value_right = array.left, array.right
             except TypeError:
                 # wrong type: not interval or NA
-                msg = "'value' should be an interval type, got {} instead."
-                raise TypeError(msg.format(type(value)))
+                msg = f"'value' should be an interval type, got {type(value)} instead."
+                raise TypeError(msg)
 
         # Need to ensure that left and right are updated atomically, so we're
         # forced to copy, update the copy, and swap in the new values.
@@ -583,9 +582,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if not isinstance(value, ABCInterval):
             msg = (
                 "'IntervalArray.fillna' only supports filling with a "
-                "scalar 'pandas.Interval'. Got a '{}' instead.".format(
-                    type(value).__name__
-                )
+                f"scalar 'pandas.Interval'. Got a '{type(value).__name__}' instead."
             )
             raise TypeError(msg)
 
@@ -630,10 +627,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 new_right = self.right.astype(dtype.subtype)
             except TypeError:
                 msg = (
-                    "Cannot convert {dtype} to {new_dtype}; subtypes are "
-                    "incompatible"
+                    f"Cannot convert {self.dtype} to {dtype}; subtypes are incompatible"
                 )
-                raise TypeError(msg.format(dtype=self.dtype, new_dtype=dtype))
+                raise TypeError(msg)
             return self._shallow_copy(new_left, new_right)
         elif is_categorical_dtype(dtype):
             return Categorical(np.asarray(self))
@@ -641,8 +637,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         try:
             return np.asarray(self).astype(dtype, copy=copy)
         except (TypeError, ValueError):
-            msg = "Cannot cast {name} to dtype {dtype}"
-            raise TypeError(msg.format(name=type(self).__name__, dtype=dtype))
+            msg = f"Cannot cast {type(self).__name__} to dtype {dtype}"
+            raise TypeError(msg)
 
     @classmethod
     def _concat_same_type(cls, to_concat):
@@ -790,9 +786,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             elif not is_scalar(fill_value) and notna(fill_value):
                 msg = (
                     "'IntervalArray.fillna' only supports filling with a "
-                    "'scalar pandas.Interval or NA'. Got a '{}' instead.".format(
-                        type(fill_value).__name__
-                    )
+                    "'scalar pandas.Interval or NA'. "
+                    f"Got a '{type(fill_value).__name__}' instead."
                 )
                 raise ValueError(msg)
 
@@ -840,48 +835,44 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             summary = "[]"
         elif n == 1:
             first = formatter(self[0])
-            summary = "[{first}]".format(first=first)
+            summary = f"[{first}]"
         elif n == 2:
             first = formatter(self[0])
             last = formatter(self[-1])
-            summary = "[{first}, {last}]".format(first=first, last=last)
+            summary = f"[{first}, {last}]"
         else:
 
             if n > max_seq_items:
                 n = min(max_seq_items // 2, 10)
                 head = [formatter(x) for x in self[:n]]
                 tail = [formatter(x) for x in self[-n:]]
-                summary = "[{head} ... {tail}]".format(
-                    head=", ".join(head), tail=", ".join(tail)
-                )
+                head_str = ", ".join(head)
+                tail_str = ", ".join(tail)
+                summary = f"[{head_str} ... {tail_str}]"
             else:
                 tail = [formatter(x) for x in self]
-                summary = "[{tail}]".format(tail=", ".join(tail))
+                tail_str = ", ".join(tail)
+                summary = f"[{tail_str}]"
 
         return summary
 
     def __repr__(self) -> str:
-        template = (
-            "{class_name}"
-            "{data}\n"
-            "Length: {length}, closed: {closed}, dtype: {dtype}"
-        )
         # the short repr has no trailing newline, while the truncated
         # repr does. So we include a newline in our template, and strip
         # any trailing newlines from format_object_summary
         data = self._format_data()
-        class_name = "<{}>\n".format(type(self).__name__)
-        return template.format(
-            class_name=class_name,
-            data=data,
-            length=len(self),
-            closed=self.closed,
-            dtype=self.dtype,
+        class_name = f"<{type(self).__name__}>\n"
+
+        template = (
+            f"{class_name}"
+            f"{data}\n"
+            f"Length: {len(self)}, closed: {self.closed}, dtype: {self.dtype}"
         )
+        return template
 
     def _format_space(self):
         space = " " * (len(type(self).__name__) + 1)
-        return "\n{space}".format(space=space)
+        return f"\n{space}"
 
     @property
     def left(self):
@@ -951,8 +942,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     )
     def set_closed(self, closed):
         if closed not in _VALID_CLOSED:
-            msg = "invalid option for 'closed': {closed}"
-            raise ValueError(msg.format(closed=closed))
+            msg = f"invalid option for 'closed': {closed}"
+            raise ValueError(msg)
 
         return self._shallow_copy(closed=closed)
 
@@ -1188,8 +1179,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if isinstance(other, (IntervalArray, ABCIntervalIndex)):
             raise NotImplementedError
         elif not isinstance(other, Interval):
-            msg = "`other` must be Interval-like, got {other}"
-            raise TypeError(msg.format(other=type(other).__name__))
+            msg = f"`other` must be Interval-like, got {type(other).__name__}"
+            raise TypeError(msg)
 
         # equality is okay if both endpoints are closed (overlap at a point)
         op1 = le if (self.closed_left and other.closed_right) else lt
