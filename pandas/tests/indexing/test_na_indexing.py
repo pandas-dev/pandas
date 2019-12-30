@@ -68,7 +68,7 @@ def test_indexing_with_na_raises(frame):
     if frame:
         s = s.to_frame()
     mask = pd.array([True, False, None], dtype="boolean")
-    match = "cannot index with vector containing NA / NaN values"
+    match = "cannot mask with array containing NA / NaN values"
     with pytest.raises(ValueError, match=match):
         s[mask]
 
