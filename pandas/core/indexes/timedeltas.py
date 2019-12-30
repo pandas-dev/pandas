@@ -25,10 +25,11 @@ from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.timedeltas import TimedeltaArray, _is_convertible_to_td
 from pandas.core.base import _shared_docs
 import pandas.core.common as com
-from pandas.core.indexes.base import Index, _index_shared_docs
+from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
 from pandas.core.indexes.datetimelike import (
     DatetimeIndexOpsMixin,
     DatetimelikeDelegateMixin,
+    DatetimeTimedeltaMixin,
     ea_passthrough,
 )
 from pandas.core.indexes.numeric import Int64Index
@@ -64,7 +65,11 @@ class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
     overwrite=True,
 )
 class TimedeltaIndex(
-    DatetimeIndexOpsMixin, dtl.TimelikeOps, Int64Index, TimedeltaDelegateMixin
+    DatetimeTimedeltaMixin,
+    DatetimeIndexOpsMixin,
+    dtl.TimelikeOps,
+    Int64Index,
+    TimedeltaDelegateMixin,
 ):
     """
     Immutable ndarray of timedelta64 data, represented internally as int64, and
@@ -163,6 +168,7 @@ class TimedeltaIndex(
         copy=False,
         name=None,
     ):
+        name = maybe_extract_name(name, data, cls)
 
         if is_scalar(data):
             raise TypeError(
@@ -210,7 +216,7 @@ class TimedeltaIndex(
         tdarr = TimedeltaArray._simple_new(values._data, freq=freq)
         result = object.__new__(cls)
         result._data = tdarr
-        result.name = name
+        result._name = name
         # For groupby perf. See note in indexes/base about _index_data
         result._index_data = tdarr._data
 
@@ -296,8 +302,7 @@ class TimedeltaIndex(
             result = Index._union(this, other, sort=sort)
             if isinstance(result, TimedeltaIndex):
                 if result.freq is None:
-                    # TODO: find a less code-smelly way to set this
-                    result._data._freq = to_offset(result.inferred_freq)
+                    result._set_freq("infer")
             return result
 
     def join(self, other, how="left", level=None, return_indexers=False, sort=False):
@@ -350,8 +355,7 @@ class TimedeltaIndex(
     @Appender(Index.difference.__doc__)
     def difference(self, other, sort=None):
         new_idx = super().difference(other, sort=sort)
-        # TODO: find a less code-smelly way to set this
-        new_idx._data._freq = None
+        new_idx._set_freq(None)
         return new_idx
 
     def _wrap_joined_index(self, joined, other):
