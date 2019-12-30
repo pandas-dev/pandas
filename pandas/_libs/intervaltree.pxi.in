@@ -25,9 +25,9 @@ cdef class IntervalTree(IntervalMixin):
 
     we are emulating the IndexEngine interface
     """
-    cdef:
-        readonly object left, right, root, dtype
-        readonly str closed
+    cdef readonly:
+        object left, right, root, dtype
+        str closed
         object _is_overlapping, _left_sorter, _right_sorter
 
     def __init__(self, left, right, closed='right', leaf_size=100):
@@ -114,43 +114,6 @@ cdef class IntervalTree(IntervalMixin):
         sort_order = np.lexsort(values)
         return is_monotonic(sort_order, False)[0]
 
-    def get_loc(self, scalar_t key):
-        """Return all positions corresponding to intervals that overlap with
-        the given scalar key
-        """
-        result = Int64Vector()
-        self.root.query(result, key)
-        if not result.data.n:
-            raise KeyError(key)
-        return result.to_array().astype('intp')
-
-    def _get_partial_overlap(self, key_left, key_right, side):
-        """Return all positions corresponding to intervals with the given side
-        falling between the left and right bounds of an interval query
-        """
-        if side == 'left':
-            values = self.left
-            sorter = self.left_sorter
-        else:
-            values = self.right
-            sorter = self.right_sorter
-        key = [key_left, key_right]
-        i, j = values.searchsorted(key, sorter=sorter)
-        return sorter[i:j]
-
-    def get_loc_interval(self, key_left, key_right):
-        """Lookup the intervals enclosed in the given interval bounds
-
-        The given interval is presumed to have closed bounds.
-        """
-        import pandas as pd
-        left_overlap = self._get_partial_overlap(key_left, key_right, 'left')
-        right_overlap = self._get_partial_overlap(key_left, key_right, 'right')
-        enclosing = self.get_loc(0.5 * (key_left + key_right))
-        combined = np.concatenate([left_overlap, right_overlap, enclosing])
-        uniques = pd.unique(combined)
-        return uniques.astype('intp')
-
     def get_indexer(self, scalar_t[:] target):
         """Return the positions corresponding to unique intervals that overlap
         with the given array of scalar targets.
@@ -158,7 +121,7 @@ cdef class IntervalTree(IntervalMixin):
 
         # TODO: write get_indexer_intervals
         cdef:
-            size_t old_len
+            Py_ssize_t old_len
             Py_ssize_t i
             Int64Vector result
 
@@ -179,7 +142,7 @@ cdef class IntervalTree(IntervalMixin):
         the given array of scalar targets. Non-unique positions are repeated.
         """
         cdef:
-            size_t old_len
+            Py_ssize_t old_len
             Py_ssize_t i
             Int64Vector result, missing
 
@@ -195,7 +158,7 @@ cdef class IntervalTree(IntervalMixin):
         return (result.to_array().astype('intp'),
                 missing.to_array().astype('intp'))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return ('<IntervalTree[{dtype},{closed}]: '
                 '{n_elements} elements>'.format(
                     dtype=self.dtype, closed=self.closed,
@@ -259,14 +222,14 @@ cdef class {{dtype_title}}Closed{{closed_title}}IntervalNode:
     Categorizes intervals by those that fall to the left, those that fall to
     the right, and those that overlap with the pivot.
     """
-    cdef:
+    cdef readonly:
         {{dtype_title}}Closed{{closed_title}}IntervalNode left_node, right_node
         {{dtype}}_t[:] center_left_values, center_right_values, left, right
         int64_t[:] center_left_indices, center_right_indices, indices
         {{dtype}}_t min_left, max_right
-        readonly {{dtype}}_t pivot
-        readonly int64_t n_elements, n_center, leaf_size
-        readonly bint is_leaf_node
+        {{dtype}}_t pivot
+        int64_t n_elements, n_center, leaf_size
+        bint is_leaf_node
 
     def __init__(self,
                  ndarray[{{dtype}}_t, ndim=1] left,
@@ -394,7 +357,7 @@ cdef class {{dtype_title}}Closed{{closed_title}}IntervalNode:
             else:
                 result.extend(self.center_left_indices)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         if self.is_leaf_node:
             return ('<{{dtype_title}}Closed{{closed_title}}IntervalNode: '
                     '%s elements (terminal)>' % self.n_elements)

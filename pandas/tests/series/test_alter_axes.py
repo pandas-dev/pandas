@@ -233,7 +233,7 @@ class TestSeriesAlterAxes:
     def test_rename_axis_mapper(self):
         # GH 19978
         mi = MultiIndex.from_product([["a", "b", "c"], [1, 2]], names=["ll", "nn"])
-        s = Series([i for i in range(len(mi))], index=mi)
+        s = Series(list(range(len(mi))), index=mi)
 
         result = s.rename_axis(index={"ll": "foo"})
         assert result.index.names == ["foo", "nn"]
@@ -266,6 +266,25 @@ class TestSeriesAlterAxes:
         expected_index = index.rename(None) if kwargs else index
         expected = Series([1, 2, 3], index=expected_index)
         tm.assert_series_equal(result, expected)
+
+    def test_rename_with_custom_indexer(self):
+        # GH 27814
+        class MyIndexer:
+            pass
+
+        ix = MyIndexer()
+        s = Series([1, 2, 3]).rename(ix)
+        assert s.name is ix
+
+    def test_rename_with_custom_indexer_inplace(self):
+        # GH 27814
+        class MyIndexer:
+            pass
+
+        ix = MyIndexer()
+        s = Series([1, 2, 3])
+        s.rename(ix, inplace=True)
+        assert s.name is ix
 
     def test_set_axis_inplace_axes(self, axis_series):
         # GH14636
@@ -302,17 +321,6 @@ class TestSeriesAlterAxes:
         for axis in [2, "foo"]:
             with pytest.raises(ValueError, match="No axis named"):
                 s.set_axis(list("abcd"), axis=axis, inplace=False)
-
-    def test_set_axis_prior_to_deprecation_signature(self):
-        s = Series(np.arange(4), index=[1, 3, 5, 7], dtype="int64")
-
-        expected = s.copy()
-        expected.index = list("abcd")
-
-        for axis in [0, "index"]:
-            with tm.assert_produces_warning(FutureWarning):
-                result = s.set_axis(0, list("abcd"), inplace=False)
-            tm.assert_series_equal(result, expected)
 
     def test_reset_index_drop_errors(self):
         #  GH 20925

@@ -1,21 +1,35 @@
 from functools import wraps
 import inspect
 from textwrap import dedent
-from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
+from typing import (
+    Any,
+    Callable,
+    List,
+    Mapping,
+    Optional,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    cast,
+)
 import warnings
 
 from pandas._libs.properties import cache_readonly  # noqa
 
+FuncType = Callable[..., Any]
+F = TypeVar("F", bound=FuncType)
+
 
 def deprecate(
     name: str,
-    alternative: Callable,
+    alternative: Callable[..., Any],
     version: str,
     alt_name: Optional[str] = None,
     klass: Optional[Type[Warning]] = None,
     stacklevel: int = 2,
     msg: Optional[str] = None,
-) -> Callable:
+) -> Callable[..., Any]:
     """
     Return a new function that emits a deprecation warning on use.
 
@@ -44,20 +58,20 @@ def deprecate(
 
     alt_name = alt_name or alternative.__name__
     klass = klass or FutureWarning
-    warning_msg = msg or "{} is deprecated, use {} instead".format(name, alt_name)
+    warning_msg = msg or f"{name} is deprecated, use {alt_name} instead"
 
     @wraps(alternative)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args, **kwargs) -> Callable[..., Any]:
         warnings.warn(warning_msg, klass, stacklevel=stacklevel)
         return alternative(*args, **kwargs)
 
     # adding deprecated directive to the docstring
-    msg = msg or "Use `{alt_name}` instead.".format(alt_name=alt_name)
+    msg = msg or f"Use `{alt_name}` instead."
     doc_error_msg = (
         "deprecate needs a correctly formatted docstring in "
         "the target function (should have a one liner short "
         "summary, and opening quotes should be in their own "
-        "line). Found:\n{}".format(alternative.__doc__)
+        f"line). Found:\n{alternative.__doc__}"
     )
 
     # when python is running in optimized mode (i.e. `-OO`), docstrings are
@@ -70,18 +84,13 @@ def deprecate(
         if empty1 or empty2 and not summary:
             raise AssertionError(doc_error_msg)
         wrapper.__doc__ = dedent(
-            """
-        {summary}
+            f"""
+        {summary.strip()}
 
-        .. deprecated:: {depr_version}
-            {depr_msg}
+        .. deprecated:: {version}
+            {msg}
 
-        {rest_of_docstring}"""
-        ).format(
-            summary=summary.strip(),
-            depr_version=version,
-            depr_msg=msg,
-            rest_of_docstring=dedent(doc),
+        {dedent(doc)}"""
         )
 
     return wrapper
@@ -90,9 +99,9 @@ def deprecate(
 def deprecate_kwarg(
     old_arg_name: str,
     new_arg_name: Optional[str],
-    mapping: Optional[Union[Dict, Callable[[Any], Any]]] = None,
+    mapping: Optional[Union[Mapping[Any, Any], Callable[[Any], Any]]] = None,
     stacklevel: int = 2,
-) -> Callable:
+) -> Callable[..., Any]:
     """
     Decorator to deprecate a keyword argument of a function.
 
@@ -157,67 +166,64 @@ def deprecate_kwarg(
 
     if mapping is not None and not hasattr(mapping, "get") and not callable(mapping):
         raise TypeError(
-            "mapping from old to new argument values " "must be dict or callable!"
+            "mapping from old to new argument values must be dict or callable!"
         )
 
-    def _deprecate_kwarg(func):
+    def _deprecate_kwarg(func: F) -> F:
         @wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args, **kwargs) -> Callable[..., Any]:
             old_arg_value = kwargs.pop(old_arg_name, None)
 
-            if new_arg_name is None and old_arg_value is not None:
-                msg = (
-                    "the '{old_name}' keyword is deprecated and will be "
-                    "removed in a future version. "
-                    "Please take steps to stop the use of '{old_name}'"
-                ).format(old_name=old_arg_name)
-                warnings.warn(msg, FutureWarning, stacklevel=stacklevel)
-                kwargs[old_arg_name] = old_arg_value
-                return func(*args, **kwargs)
-
             if old_arg_value is not None:
-                if mapping is not None:
-                    if hasattr(mapping, "get"):
-                        new_arg_value = mapping.get(old_arg_value, old_arg_value)
-                    else:
-                        new_arg_value = mapping(old_arg_value)
+                if new_arg_name is None:
                     msg = (
-                        "the {old_name}={old_val!r} keyword is deprecated, "
-                        "use {new_name}={new_val!r} instead"
-                    ).format(
-                        old_name=old_arg_name,
-                        old_val=old_arg_value,
-                        new_name=new_arg_name,
-                        new_val=new_arg_value,
+                        f"the {repr(old_arg_name)} keyword is deprecated and "
+                        "will be removed in a future version. Please take "
+                        f"steps to stop the use of {repr(old_arg_name)}"
+                    )
+                    warnings.warn(msg, FutureWarning, stacklevel=stacklevel)
+                    kwargs[old_arg_name] = old_arg_value
+                    return func(*args, **kwargs)
+
+                elif mapping is not None:
+                    if callable(mapping):
+                        new_arg_value = mapping(old_arg_value)
+                    else:
+                        new_arg_value = mapping.get(old_arg_value, old_arg_value)
+                    msg = (
+                        f"the {old_arg_name}={repr(old_arg_value)} keyword is "
+                        "deprecated, use "
+                        f"{new_arg_name}={repr(new_arg_value)} instead"
                     )
                 else:
                     new_arg_value = old_arg_value
                     msg = (
-                        "the '{old_name}' keyword is deprecated, "
-                        "use '{new_name}' instead"
-                    ).format(old_name=old_arg_name, new_name=new_arg_name)
+                        f"the {repr(old_arg_name)}' keyword is deprecated, "
+                        f"use {repr(new_arg_name)} instead"
+                    )
 
                 warnings.warn(msg, FutureWarning, stacklevel=stacklevel)
-                if kwargs.get(new_arg_name, None) is not None:
+                if kwargs.get(new_arg_name) is not None:
                     msg = (
-                        "Can only specify '{old_name}' or '{new_name}', " "not both"
-                    ).format(old_name=old_arg_name, new_name=new_arg_name)
+                        f"Can only specify {repr(old_arg_name)} "
+                        f"or {repr(new_arg_name)}, not both"
+                    )
                     raise TypeError(msg)
                 else:
                     kwargs[new_arg_name] = new_arg_value
             return func(*args, **kwargs)
 
-        return wrapper
+        return cast(F, wrapper)
 
     return _deprecate_kwarg
 
 
 def rewrite_axis_style_signature(
     name: str, extra_params: List[Tuple[str, Any]]
-) -> Callable:
-    def decorate(func):
+) -> Callable[..., Any]:
+    def decorate(func: F) -> F:
         @wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args, **kwargs) -> Callable[..., Any]:
             return func(*args, **kwargs)
 
         kind = inspect.Parameter.POSITIONAL_OR_KEYWORD
@@ -234,8 +240,9 @@ def rewrite_axis_style_signature(
 
         sig = inspect.Signature(params)
 
-        func.__signature__ = sig
-        return wrapper
+        # https://github.com/python/typing/issues/598
+        func.__signature__ = sig  # type: ignore
+        return cast(F, wrapper)
 
     return decorate
 
@@ -279,18 +286,16 @@ class Substitution:
 
         self.params = args or kwargs
 
-    def __call__(self, func: Callable) -> Callable:
+    def __call__(self, func: F) -> F:
         func.__doc__ = func.__doc__ and func.__doc__ % self.params
         return func
 
     def update(self, *args, **kwargs) -> None:
         """
         Update self.params with supplied args.
-
-        If called, we assume self.params is a dict.
         """
-
-        self.params.update(*args, **kwargs)
+        if isinstance(self.params, dict):
+            self.params.update(*args, **kwargs)
 
 
 class Appender:
@@ -313,14 +318,16 @@ class Appender:
         pass
     """
 
+    addendum: Optional[str]
+
     def __init__(self, addendum: Optional[str], join: str = "", indents: int = 0):
         if indents > 0:
-            self.addendum = indent(addendum, indents=indents)  # type: Optional[str]
+            self.addendum = indent(addendum, indents=indents)
         else:
             self.addendum = addendum
         self.join = join
 
-    def __call__(self, func: Callable) -> Callable:
+    def __call__(self, func: F) -> F:
         func.__doc__ = func.__doc__ if func.__doc__ else ""
         self.addendum = self.addendum if self.addendum else ""
         docitems = [func.__doc__, self.addendum]

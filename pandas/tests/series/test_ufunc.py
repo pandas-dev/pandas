@@ -251,11 +251,8 @@ def test_object_series_ok():
 @pytest.mark.parametrize(
     "values",
     [
-        pd.array([1, 3, 2]),
-        pytest.param(
-            pd.array([1, 10, 0], dtype="Sparse[int]"),
-            marks=pytest.mark.xfail(resason="GH-27080. Bug in SparseArray"),
-        ),
+        pd.array([1, 3, 2], dtype="int64"),
+        pd.array([1, 10, 0], dtype="Sparse[int]"),
         pd.to_datetime(["2000", "2010", "2001"]),
         pd.to_datetime(["2000", "2010", "2001"]).tz_localize("CET"),
         pd.to_datetime(["2000", "2010", "2001"]).to_period(freq="D"),
@@ -285,10 +282,10 @@ def test_object_dtype_ok():
             other = getattr(other, "value", other)
             return type(self)(self.value + other)
 
-        def __eq__(self, other):
+        def __eq__(self, other) -> bool:
             return type(other) is Thing and self.value == other.value
 
-        def __repr__(self):
+        def __repr__(self) -> str:
             return "Thing({})".format(self.value)
 
     s = pd.Series([Thing(1), Thing(2)])
@@ -302,7 +299,5 @@ def test_outer():
     s = pd.Series([1, 2, 3])
     o = np.array([1, 2, 3])
 
-    with tm.assert_produces_warning(FutureWarning):
-        result = np.subtract.outer(s, o)
-    expected = np.array([[0, -1, -2], [1, 0, -1], [2, 1, 0]], dtype=np.dtype("int64"))
-    tm.assert_numpy_array_equal(result, expected)
+    with pytest.raises(NotImplementedError):
+        np.subtract.outer(s, o)

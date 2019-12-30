@@ -13,6 +13,10 @@ Development
     :maxdepth: 2
 
     contributing
+    maintaining
     internals
     extending
     developer
+    policies
+    roadmap
+    meeting

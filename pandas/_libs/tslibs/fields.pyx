@@ -22,7 +22,7 @@ from pandas._libs.tslibs.np_datetime cimport (
 from pandas._libs.tslibs.nattype cimport NPY_NAT
 
 
-def get_time_micros(ndarray[int64_t] dtindex):
+def get_time_micros(const int64_t[:] dtindex):
     """
     Return the number of microseconds in the time component of a
     nanosecond timestamp.
@@ -90,7 +90,7 @@ def build_field_sarray(const int64_t[:] dtindex):
 def get_date_name_field(const int64_t[:] dtindex, object field, object locale=None):
     """
     Given a int64-based datetime index, return array of strings of date
-    name based on requested field (e.g. weekday_name)
+    name based on requested field (e.g. day_name)
     """
     cdef:
         Py_ssize_t i, count = len(dtindex)
@@ -100,7 +100,7 @@ def get_date_name_field(const int64_t[:] dtindex, object field, object locale=No
 
     out = np.empty(count, dtype=object)
 
-    if field == 'day_name' or field == 'weekday_name':
+    if field == 'day_name':
         if locale is None:
             names = np.array(DAYS_FULL, dtype=np.object_)
         else:
@@ -130,7 +130,7 @@ def get_date_name_field(const int64_t[:] dtindex, object field, object locale=No
             out[i] = names[dts.month].capitalize()
 
     else:
-        raise ValueError("Field {field} not supported".format(field=field))
+        raise ValueError(f"Field {field} not supported")
 
     return out
 
@@ -165,8 +165,7 @@ def get_start_end_field(const int64_t[:] dtindex, object field,
 
     if freqstr:
         if freqstr == 'C':
-            raise ValueError("Custom business days is not supported by {field}"
-                             .format(field=field))
+            raise ValueError(f"Custom business days is not supported by {field}")
         is_business = freqstr[0] == 'B'
 
         # YearBegin(), BYearBegin() use month = starting month of year.
@@ -373,7 +372,7 @@ def get_start_end_field(const int64_t[:] dtindex, object field,
                     out[i] = 1
 
     else:
-        raise ValueError("Field {field} not supported".format(field=field))
+        raise ValueError(f"Field {field} not supported")
 
     return out.view(bool)
 
@@ -537,7 +536,7 @@ def get_date_field(const int64_t[:] dtindex, object field):
     elif field == 'is_leap_year':
         return isleapyear_arr(get_date_field(dtindex, 'Y'))
 
-    raise ValueError("Field %s not supported" % field)
+    raise ValueError(f"Field {field} not supported")
 
 
 @cython.wraparound(False)
@@ -653,7 +652,7 @@ def get_timedelta_field(const int64_t[:] tdindex, object field):
                 out[i] = tds.nanoseconds
         return out
 
-    raise ValueError("Field %s not supported" % field)
+    raise ValueError(f"Field {field} not supported")
 
 
 cpdef isleapyear_arr(ndarray years):
