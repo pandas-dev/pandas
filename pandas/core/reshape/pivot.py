@@ -1,4 +1,4 @@
-from typing import cast, TYPE_CHECKING, Callable, Dict, Tuple, Union
+from typing import TYPE_CHECKING, Callable, Dict, Tuple, Union
 
 import numpy as np
 
@@ -149,7 +149,8 @@ def pivot_table(
 
     if fill_value is not None:
         filled = table.fillna(value=fill_value, downcast="infer")
-        table = cast(DataFrame, filled)
+        assert filled is not None  # needed for mypy
+        table = filled
 
     if margins:
         if dropna:
