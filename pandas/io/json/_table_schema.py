@@ -81,15 +81,13 @@ def set_default_names(data):
         if len(nms) == 1 and data.index.name == "index":
             warnings.warn("Index name of 'index' is not round-trippable")
         elif len(nms) > 1 and any(x.startswith("level_") for x in nms):
-            warnings.warn(
-                "Index names beginning with 'level_' are not " "round-trippable"
-            )
+            warnings.warn("Index names beginning with 'level_' are not round-trippable")
         return data
 
     data = data.copy()
     if data.index.nlevels > 1:
         names = [
-            name if name is not None else "level_{}".format(i)
+            name if name is not None else f"level_{i}"
             for i, name in enumerate(data.index.names)
         ]
         data.index.names = names
@@ -175,7 +173,7 @@ def convert_json_field_to_pandas_type(field):
         return "timedelta64"
     elif typ == "datetime":
         if field.get("tz"):
-            return "datetime64[ns, {tz}]".format(tz=field["tz"])
+            return f"datetime64[ns, {field['tz']}]"
         else:
             return "datetime64[ns]"
     elif typ == "any":
@@ -186,7 +184,7 @@ def convert_json_field_to_pandas_type(field):
         else:
             return "object"
 
-    raise ValueError("Unsupported or invalid field type: {}".format(typ))
+    raise ValueError(f"Unsupported or invalid field type: {typ}")
 
 
 def build_table_schema(data, index=True, primary_key=None, version=True):
@@ -317,12 +315,12 @@ def parse_table_schema(json, precise_float):
 
     # Cannot directly use as_type with timezone data on object; raise for now
     if any(str(x).startswith("datetime64[ns, ") for x in dtypes.values()):
-        raise NotImplementedError('table="orient" can not yet read timezone ' "data")
+        raise NotImplementedError('table="orient" can not yet read timezone data')
 
     # No ISO constructor for Timedelta as of yet, so need to raise
     if "timedelta64" in dtypes.values():
         raise NotImplementedError(
-            'table="orient" can not yet read ' "ISO-formatted Timedelta data"
+            'table="orient" can not yet read ISO-formatted Timedelta data'
         )
 
     df = df.astype(dtypes)

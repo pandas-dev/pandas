@@ -103,6 +103,24 @@ class BooleanDtype(ExtensionDtype):
     def _is_boolean(self) -> bool:
         return True
 
+    def __from_arrow__(self, array):
+        """Construct BooleanArray from passed pyarrow Array/ChunkedArray"""
+        import pyarrow
+
+        if isinstance(array, pyarrow.Array):
+            chunks = [array]
+        else:
+            # pyarrow.ChunkedArray
+            chunks = array.chunks
+
+        results = []
+        for arr in chunks:
+            # TODO should optimize this without going through object array
+            bool_arr = BooleanArray._from_sequence(np.array(arr))
+            results.append(bool_arr)
+
+        return BooleanArray._concat_same_type(results)
+
 
 def coerce_to_array(values, mask=None, copy: bool = False):
     """
@@ -736,9 +754,8 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
 
             if other_is_scalar and not (other is libmissing.NA or lib.is_bool(other)):
                 raise TypeError(
-                    "'other' should be pandas.NA or a bool. Got {} instead.".format(
-                        type(other).__name__
-                    )
+                    "'other' should be pandas.NA or a bool. "
+                    f"Got {type(other).__name__} instead."
                 )
 
             if not other_is_scalar and len(self) != len(other):
@@ -753,7 +770,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
 
             return BooleanArray(result, mask)
 
-        name = "__{name}__".format(name=op.__name__)
+        name = f"__{op.__name__}__"
         return set_function_name(logical_method, name, cls)
 
     @classmethod
@@ -803,7 +820,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
 
             return BooleanArray(result, mask, copy=False)
 
-        name = "__{name}__".format(name=op.__name__)
+        name = f"__{op.__name__}"
         return set_function_name(cmp_method, name, cls)
 
     def _reduce(self, name, skipna=True, **kwargs):
@@ -906,7 +923,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
 
             return self._maybe_mask_result(result, mask, other, op_name)
 
-        name = "__{name}__".format(name=op_name)
+        name = f"__{op_name}__"
         return set_function_name(boolean_arithmetic_method, name, cls)
 
 
