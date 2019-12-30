@@ -302,7 +302,7 @@ def _get_op_name(op, special):
     """
     opname = op.__name__.strip("_")
     if special:
-        opname = "__{opname}__".format(opname=opname)
+        opname = f"__{opname}__"
     return opname
 
 
@@ -385,7 +385,7 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
             return {i: func(a.iloc[:, i], b.iloc[:, i]) for i in range(len(a.columns))}
 
     elif isinstance(right, ABCSeries) and axis == "columns":
-        # We only get here if called via _combine_frame_series,
+        # We only get here if called via _combine_series_frame,
         # in which case we specifically want to operate row-by-row
         assert right.index.equals(left.columns)
 
@@ -603,9 +603,7 @@ def _combine_series_frame(self, other, func, fill_value=None, axis=None, level=N
     result : DataFrame
     """
     if fill_value is not None:
-        raise NotImplementedError(
-            "fill_value {fill} not supported.".format(fill=fill_value)
-        )
+        raise NotImplementedError(f"fill_value {fill_value} not supported.")
 
     if axis is None:
         # default axis is columns
@@ -661,15 +659,13 @@ def _align_method_FRAME(left, right, axis):
             else:
                 raise ValueError(
                     "Unable to coerce to DataFrame, shape "
-                    "must be {req_shape}: given {given_shape}".format(
-                        req_shape=left.shape, given_shape=right.shape
-                    )
+                    f"must be {left.shape}: given {right.shape}"
                 )
 
         elif right.ndim > 2:
             raise ValueError(
                 "Unable to coerce to Series/DataFrame, dim "
-                "must be <= 2: {dim}".format(dim=right.shape)
+                f"must be <= 2: {right.shape}"
             )
 
     elif is_list_like(right) and not isinstance(right, (ABCSeries, ABCDataFrame)):
@@ -702,7 +698,11 @@ def _arith_method_FRAME(cls, op, special):
             # Another DataFrame
             pass_op = op if should_series_dispatch(self, other, op) else na_op
             pass_op = pass_op if not is_logical else op
-            return self._combine_frame(other, pass_op, fill_value, level)
+
+            left, right = self.align(other, join="outer", level=level, copy=False)
+            new_data = left._combine_frame(right, pass_op, fill_value)
+            return left._construct_result(new_data)
+
         elif isinstance(other, ABCSeries):
             # For these values of `axis`, we end up dispatching to Series op,
             # so do not want the masked op.
@@ -763,7 +763,7 @@ def _comp_method_FRAME(cls, op, special):
     str_rep = _get_opstr(op)
     op_name = _get_op_name(op, special)
 
-    @Appender("Wrapper for comparison method {name}".format(name=op_name))
+    @Appender(f"Wrapper for comparison method {op_name}")
     def f(self, other):
 
         other = _align_method_FRAME(self, other, axis=None)
