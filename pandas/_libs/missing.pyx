@@ -291,7 +291,7 @@ cdef inline bint is_null_period(v):
 # Implementation of NA singleton
 
 
-def _create_binary_propagating_op(name, divmod=False):
+def _create_binary_propagating_op(name, is_divmod=False):
 
     def method(self, other):
         if (other is C_NA or isinstance(other, str)
@@ -300,7 +300,7 @@ def _create_binary_propagating_op(name, divmod=False):
             # Need the other.shape clause to handle NumPy scalars,
             # since we do a setitem on `out` below, which
             # won't work for NumPy scalars.
-            if divmod:
+            if is_divmod:
                 return NA, NA
             else:
                 return NA
@@ -309,7 +309,7 @@ def _create_binary_propagating_op(name, divmod=False):
             out = np.empty(other.shape, dtype=object)
             out[:] = NA
 
-            if divmod:
+            if is_divmod:
                 return out, out.copy()
             else:
                 return out
@@ -383,8 +383,8 @@ class NAType(C_NAType):
     __rfloordiv__ = _create_binary_propagating_op("__rfloordiv__")
     __mod__ = _create_binary_propagating_op("__mod__")
     __rmod__ = _create_binary_propagating_op("__rmod__")
-    __divmod__ = _create_binary_propagating_op("__divmod__", divmod=True)
-    __rdivmod__ = _create_binary_propagating_op("__rdivmod__", divmod=True)
+    __divmod__ = _create_binary_propagating_op("__divmod__", is_divmod=True)
+    __rdivmod__ = _create_binary_propagating_op("__rdivmod__", is_divmod=True)
     # __lshift__ and __rshift__ are not implemented
 
     __eq__ = _create_binary_propagating_op("__eq__")
