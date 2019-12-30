@@ -1,9 +1,14 @@
+import datetime
+
 import numpy as np
+from pandas._libs.tslibs.timestamps import Timestamp
 
 from pandas import DataFrame, Series, to_numeric
 import pandas.util.testing as tm
 
 from .pandas_vb_common import lib, numeric_dtypes
+
+from pandas.core.common import maybe_box_datetimelike
 
 
 class NumericInferOps:
@@ -52,7 +57,6 @@ class DateInferOps:
 
 
 class ToNumeric:
-
     params = ["ignore", "coerce"]
     param_names = ["errors"]
 
@@ -73,7 +77,6 @@ class ToNumeric:
 
 
 class ToNumericDowncast:
-
     param_names = ["dtype", "downcast"]
     params = [
         [
@@ -119,6 +122,18 @@ class MaybeConvertNumeric:
 
     def time_convert(self, data):
         lib.maybe_convert_numeric(data, set(), coerce_numeric=False)
+
+
+class MaybeBoxDatetimelike:
+    def setup(self):
+        self.pd_timestamp = Timestamp.now()
+        self.py_timestamp = datetime.datetime.now()
+
+    def pd_datetime_box(self):
+        maybe_box_datetimelike(self.pd_timestamp)
+
+    def py_datetime_box(self):
+        maybe_box_datetimelike(self.py_timestamp)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
