@@ -755,7 +755,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
 
             if other_is_scalar and not (other is libmissing.NA or lib.is_bool(other)):
                 raise TypeError(
-                    f"'other' should be pandas.NA or a bool. "
+                    "'other' should be pandas.NA or a bool. "
                     f"Got {type(other).__name__} instead."
                 )
 
