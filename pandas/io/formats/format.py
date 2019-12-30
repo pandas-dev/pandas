@@ -3,7 +3,6 @@ Internal module for formatting output data in csv, html,
 and latex files. This module also applies to display formatting.
 """
 
-import codecs
 from contextlib import contextmanager
 from datetime import tzinfo
 import decimal
@@ -20,7 +19,9 @@ from typing import (
     Dict,
     Iterable,
     List,
+    Mapping,
     Optional,
+    Sequence,
     Tuple,
     Type,
     Union,
@@ -33,9 +34,11 @@ import numpy as np
 from pandas._config.config import get_option, set_option
 
 from pandas._libs import lib
+from pandas._libs.missing import NA
 from pandas._libs.tslib import format_array_from_datetime
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas._libs.tslibs.nattype import NaTType
+from pandas._typing import FilePathOrBuffer
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import (
@@ -61,23 +64,22 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas._typing import FilePathOrBuffer
 from pandas.core.arrays.datetimes import DatetimeArray
 from pandas.core.arrays.timedeltas import TimedeltaArray
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.index import Index, ensure_index
+from pandas.core.indexes.api import Index, ensure_index
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
-from pandas.io.common import _stringify_path
+from pandas.io.common import stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
 
 if TYPE_CHECKING:
     from pandas import Series, DataFrame, Categorical
 
 formatters_type = Union[
-    List[Callable], Tuple[Callable, ...], Dict[Union[str, int], Callable]
+    List[Callable], Tuple[Callable, ...], Mapping[Union[str, int], Callable]
 ]
 float_format_type = Union[str, Callable, "EngFormatter"]
 
@@ -90,7 +92,7 @@ common_docstring = """
             The subset of columns to write. Writes all columns by default.
         col_space : %(col_space_type)s, optional
             %(col_space)s.
-        header : bool, optional
+        header : %(header_type)s, optional
             %(header)s.
         index : bool, optional, default True
             Whether to print index (row) labels.
@@ -260,6 +262,8 @@ class SeriesFormatter:
     def _chk_truncate(self) -> None:
         from pandas.core.reshape.concat import concat
 
+        self.tr_row_num: Optional[int]
+
         min_rows = self.min_rows
         max_rows = self.max_rows
         # truncation determined by max_rows, actual truncated number of rows
@@ -278,7 +282,7 @@ class SeriesFormatter:
             else:
                 row_num = max_rows // 2
                 series = concat((series.iloc[:row_num], series.iloc[-row_num:]))
-            self.tr_row_num = row_num  # type: Optional[int]
+            self.tr_row_num = row_num
         else:
             self.tr_row_num = None
         self.tr_series = series
@@ -348,7 +352,7 @@ class SeriesFormatter:
 
         if len(series) == 0:
             return "{name}([], {footer})".format(
-                name=self.series.__class__.__name__, footer=footer
+                name=type(self.series).__name__, footer=footer
             )
 
         fmt_index, have_header = self._get_formatted_index()
@@ -446,13 +450,13 @@ def _get_adjustment() -> TextAdjustment:
 
 class TableFormatter:
 
-    show_dimensions = None  # type: bool
-    is_truncated = None  # type: bool
-    formatters = None  # type: formatters_type
-    columns = None  # type: Index
+    show_dimensions: bool
+    is_truncated: bool
+    formatters: formatters_type
+    columns: Index
 
     @property
-    def should_show_dimensions(self) -> Optional[bool]:
+    def should_show_dimensions(self) -> bool:
         return self.show_dimensions is True or (
             self.show_dimensions == "truncate" and self.is_truncated
         )
@@ -478,17 +482,23 @@ class TableFormatter:
         objects, otherwise yield buf unchanged.
         """
         if buf is not None:
-            buf = _stringify_path(buf)
+            buf = stringify_path(buf)
         else:
             buf = StringIO()
 
         if encoding is None:
             encoding = "utf-8"
+        elif not isinstance(buf, str):
+            raise ValueError("buf is not a file name and encoding is specified.")
 
         if hasattr(buf, "write"):
             yield buf
         elif isinstance(buf, str):
-            with codecs.open(buf, "w", encoding=encoding) as f:
+            with open(buf, "w", encoding=encoding, newline="") as f:
+                # GH#30034 open instead of codecs.open prevents a file leak
+                #  if we have an invalid encoding argument.
+                # newline="" is needed to roundtrip correctly on
+                #  windows test_to_latex_filename
                 yield f
         else:
             raise TypeError("buf is not a file name and it has no write method")
@@ -530,9 +540,9 @@ class DataFrameFormatter(TableFormatter):
     def __init__(
         self,
         frame: "DataFrame",
-        columns: Optional[List[str]] = None,
+        columns: Optional[Sequence[str]] = None,
         col_space: Optional[Union[str, int]] = None,
-        header: Union[bool, List[str]] = True,
+        header: Union[bool, Sequence[str]] = True,
         index: bool = True,
         na_rep: str = "NaN",
         formatters: Optional[formatters_type] = None,
@@ -560,7 +570,17 @@ class DataFrameFormatter(TableFormatter):
         self.sparsify = sparsify
 
         self.float_format = float_format
-        self.formatters = formatters if formatters is not None else {}
+        if formatters is None:
+            self.formatters = {}
+        elif len(frame.columns) == len(formatters) or isinstance(formatters, dict):
+            self.formatters = formatters
+        else:
+            raise ValueError(
+                (
+                    "Formatters length({flen}) should match"
+                    " DataFrame number of columns({dlen})"
+                ).format(flen=len(formatters), dlen=len(frame.columns))
+            )
         self.na_rep = na_rep
         self.decimal = decimal
         self.col_space = col_space
@@ -602,6 +622,8 @@ class DataFrameFormatter(TableFormatter):
         # Cut the data to the information actually printed
         max_cols = self.max_cols
         max_rows = self.max_rows
+        self.max_rows_adj: Optional[int]
+        max_rows_adj: Optional[int]
 
         if max_cols == 0 or max_rows == 0:  # assume we are in the terminal
             (w, h) = get_terminal_size()
@@ -617,7 +639,7 @@ class DataFrameFormatter(TableFormatter):
                 self.header = cast(bool, self.header)
                 n_add_rows = self.header + dot_row + show_dimension_rows + prompt_row
                 # rows available to fill with actual data
-                max_rows_adj = self.h - n_add_rows  # type: Optional[int]
+                max_rows_adj = self.h - n_add_rows
                 self.max_rows_adj = max_rows_adj
 
             # Format only rows and columns that could potentially fit the
@@ -657,6 +679,13 @@ class DataFrameFormatter(TableFormatter):
                 frame = concat(
                     (frame.iloc[:, :col_num], frame.iloc[:, -col_num:]), axis=1
                 )
+                # truncate formatter
+                if isinstance(self.formatters, (list, tuple)):
+                    truncate_fmt = self.formatters
+                    self.formatters = [
+                        *truncate_fmt[:col_num],
+                        *truncate_fmt[-col_num:],
+                    ]
             self.tr_col_num = col_num
         if truncate_v:
             # cast here since if truncate_v is True, max_rows_adj is not None
@@ -850,6 +879,8 @@ class DataFrameFormatter(TableFormatter):
             np.array([self.adj.len(x) for x in col]).max() if len(col) > 0 else 0
             for col in strcols
         ]
+
+        assert lwidth is not None
         col_bins = _binify(col_widths, lwidth)
         nbins = len(col_bins)
 
@@ -875,8 +906,12 @@ class DataFrameFormatter(TableFormatter):
             st = ed
         return "\n\n".join(str_lst)
 
-    def to_string(self, buf: Optional[FilePathOrBuffer[str]] = None) -> Optional[str]:
-        return self.get_result(buf=buf)
+    def to_string(
+        self,
+        buf: Optional[FilePathOrBuffer[str]] = None,
+        encoding: Optional[str] = None,
+    ) -> Optional[str]:
+        return self.get_result(buf=buf, encoding=encoding)
 
     def to_latex(
         self,
@@ -922,6 +957,7 @@ class DataFrameFormatter(TableFormatter):
     def to_html(
         self,
         buf: Optional[FilePathOrBuffer[str]] = None,
+        encoding: Optional[str] = None,
         classes: Optional[Union[str, List, Tuple]] = None,
         notebook: bool = False,
         border: Optional[int] = None,
@@ -943,10 +979,12 @@ class DataFrameFormatter(TableFormatter):
         from pandas.io.formats.html import HTMLFormatter, NotebookFormatter
 
         Klass = NotebookFormatter if notebook else HTMLFormatter
-        return Klass(self, classes=classes, border=border).get_result(buf=buf)
+        return Klass(self, classes=classes, border=border).get_result(
+            buf=buf, encoding=encoding
+        )
 
     def _get_formatted_column_labels(self, frame: "DataFrame") -> List[List[str]]:
-        from pandas.core.index import _sparsify
+        from pandas.core.indexes.multi import _sparsify
 
         columns = frame.columns
 
@@ -1043,7 +1081,7 @@ class DataFrameFormatter(TableFormatter):
             return adjoined
 
     def _get_column_name_list(self) -> List[str]:
-        names = []  # type: List[str]
+        names: List[str] = []
         columns = self.frame.columns
         if isinstance(columns, ABCMultiIndex):
             names.extend("" if name is None else name for name in columns.names)
@@ -1094,8 +1132,9 @@ def format_array(
     List[str]
     """
 
+    fmt_klass: Type[GenericArrayFormatter]
     if is_datetime64_dtype(values.dtype):
-        fmt_klass = Datetime64Formatter  # type: Type[GenericArrayFormatter]
+        fmt_klass = Datetime64Formatter
     elif is_datetime64tz_dtype(values):
         fmt_klass = Datetime64TZFormatter
     elif is_timedelta64_dtype(values.dtype):
@@ -1188,6 +1227,8 @@ class GenericArrayFormatter:
                     # determine na_rep if x is None or NaT-like
                     if x is None:
                         return "None"
+                    elif x is NA:
+                        return "NA"
                     elif x is NaT or np.isnat(x):
                         return "NaT"
                 except (TypeError, ValueError):
@@ -1345,11 +1386,12 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
         # There is a special default string when we are fixed-width
         # The default is otherwise to use str instead of a formatting string
+        float_format: Optional[float_format_type]
         if self.float_format is None:
             if self.fixed_width:
                 float_format = partial(
                     "{value: .{digits:d}f}".format, digits=self.digits
-                )  # type: Optional[float_format_type]
+                )
             else:
                 float_format = self.float_format
         else:
@@ -1407,7 +1449,7 @@ class Datetime64Formatter(GenericArrayFormatter):
         values: Union[np.ndarray, "Series", DatetimeIndex, DatetimeArray],
         nat_rep: str = "NaT",
         date_format: None = None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(values, **kwargs)
         self.nat_rep = nat_rep
@@ -1598,7 +1640,7 @@ def _get_format_datetime64_from_values(
     """ given values and a date_format, return a string format """
 
     if isinstance(values, np.ndarray) and values.ndim > 1:
-        # We don't actaully care about the order of values, and DatetimeIndex
+        # We don't actually care about the order of values, and DatetimeIndex
         #  only accepts 1D values
         values = values.ravel()
 
@@ -1628,7 +1670,7 @@ class Timedelta64Formatter(GenericArrayFormatter):
         values: Union[np.ndarray, TimedeltaIndex],
         nat_rep: str = "NaT",
         box: bool = False,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(values, **kwargs)
         self.nat_rep = nat_rep
@@ -1872,7 +1914,7 @@ def set_eng_float_format(accuracy: int = 3, use_eng_prefix: bool = False) -> Non
     set_option("display.column_space", max(12, accuracy + 9))
 
 
-def _binify(cols: List[np.int32], line_width: Union[np.int32, int]) -> List[int]:
+def _binify(cols: List[int], line_width: int) -> List[int]:
     adjoin_width = 1
     bins = []
     curr_width = 0

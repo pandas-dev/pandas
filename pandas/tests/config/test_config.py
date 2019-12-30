@@ -218,6 +218,7 @@ class TestConfig:
         self.cf.set_option("a", 2)  # int is_int
         self.cf.set_option("b.c", "wurld")  # str is_str
         self.cf.set_option("d", 2)
+        self.cf.set_option("d", None)  # non-negative int can be None
 
         # None not is_int
         with pytest.raises(ValueError, match=msg):
