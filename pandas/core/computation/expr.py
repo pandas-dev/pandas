@@ -8,7 +8,7 @@ from io import StringIO
 import itertools as it
 import operator
 import tokenize
-from typing import Callable, Iterable, NoReturn, Optional, Set, Tuple, Type, TypeVar
+from typing import Callable, Iterable, Optional, Set, Tuple, Type, TypeVar
 
 import numpy as np
 
@@ -301,7 +301,8 @@ _msg = f"cannot both support and not support {intersection}"
 assert not intersection, _msg
 
 
-def _node_not_implemented(node_name: str) -> Callable[..., NoReturn]:
+# TODO: Python 3.6.2: replace Callable[..., None] with Callable[..., NoReturn]
+def _node_not_implemented(node_name: str) -> Callable[..., None]:
     """
     Return a function that raises a NotImplementedError with a passed node name.
     """
