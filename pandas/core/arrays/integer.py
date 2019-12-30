@@ -546,7 +546,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         # coerce
         data = self._coerce_to_ndarray()
-        return astype_nansafe(data, dtype, copy=None)
+        return astype_nansafe(data, dtype, copy=False)
 
     @property
     def _ndarray_values(self) -> np.ndarray:
