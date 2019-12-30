@@ -32,16 +32,13 @@ ExtensionArray values are different \\(50\\.0 %\\)
         tm.assert_extension_array_equal(arr1, arr2, **kwargs)
 
 
-@pytest.mark.parametrize(
-    "check_less_precise", [True, False, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-)
-def test_assert_extension_array_equal_less_precise(check_less_precise):
+@pytest.mark.parametrize("decimals", range(10))
+def test_assert_extension_array_equal_less_precise(decimals):
+    rtol = 0.5 * 10 ** -decimals
     arr1 = SparseArray([0.5, 0.123456])
     arr2 = SparseArray([0.5, 0.123457])
 
-    kwargs = dict(check_less_precise=check_less_precise)
-
-    if check_less_precise is False or check_less_precise >= 5:
+    if decimals >= 5:
         msg = """\
 ExtensionArray are different
 
@@ -50,9 +47,9 @@ ExtensionArray values are different \\(50\\.0 %\\)
 \\[right\\]: \\[0\\.5, 0\\.123457\\]"""
 
         with pytest.raises(AssertionError, match=msg):
-            tm.assert_extension_array_equal(arr1, arr2, **kwargs)
+            tm.assert_extension_array_equal(arr1, arr2, rtol=rtol)
     else:
-        tm.assert_extension_array_equal(arr1, arr2, **kwargs)
+        tm.assert_extension_array_equal(arr1, arr2, rtol=rtol)
 
 
 def test_assert_extension_array_equal_dtype_mismatch(check_dtype):
