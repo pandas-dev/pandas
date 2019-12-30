@@ -118,7 +118,7 @@ def _json_normalize(
     errors: Optional[str] = "raise",
     sep: str = ".",
     max_level: Optional[int] = None,
-):
+) -> "DataFrame":
     """
     Normalize semi-structured JSON data into a flat table.
 
