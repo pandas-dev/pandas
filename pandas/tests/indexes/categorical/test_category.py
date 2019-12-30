@@ -43,7 +43,7 @@ class TestCategoricalIndex(Base):
             (lambda idx: ["a", "b"] + idx, "__radd__"),
         ],
     )
-    def test_disallow_set_ops(self, func, op_name):
+    def test_disallow_addsub_ops(self, func, op_name):
         # GH 10039
         # set ops (+/-) raise TypeError
         idx = pd.Index(pd.Categorical(["a", "b"]))
