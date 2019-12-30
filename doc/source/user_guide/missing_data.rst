@@ -944,3 +944,5 @@ work with ``NA``, and generally return ``NA``:
 
    The return type here may change to return a different array type
    in the future.
+
+See :ref:`dsintro.numpy_interop` for more on ufuncs.
