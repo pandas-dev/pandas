@@ -8,6 +8,8 @@ import pandas.util.testing as tm
 
 
 @td.skip_if_no("numba", "0.46.0")
+@pytest.mark.filterwarnings("ignore:\\nThe keyword argument")
+# Filter warnings when parallel=True and the function can't be parallelized by Numba
 class TestApply:
     @pytest.mark.parametrize("jit", [True, False])
     def test_numba_vs_cython(self, jit, nogil, parallel, nopython):
