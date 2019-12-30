@@ -3,12 +3,11 @@ Entrypoint for testing from the top-level namespace.
 """
 import os
 import sys
-from typing import NoReturn
 
 PKG = os.path.dirname(os.path.dirname(__file__))
 
 
-def test(extra_args=None) -> NoReturn:
+def test(extra_args=None):
     try:
         import pytest
     except ImportError:
