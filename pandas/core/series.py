@@ -4005,8 +4005,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         inplace=False,
         limit=None,
         downcast=None,
-        **kwargs,
-    ):
+    ) -> Optional["Series"]:
         return super().fillna(
             value=value,
             method=method,
@@ -4014,7 +4013,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             inplace=inplace,
             limit=limit,
             downcast=downcast,
-            **kwargs,
         )
 
     @Appender(generic._shared_docs["replace"] % _shared_doc_kwargs)
