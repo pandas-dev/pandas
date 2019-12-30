@@ -81,9 +81,17 @@ def test_comparison_ops():
         np.float_(-0),
     ],
 )
-def test_pow_special(value):
+@pytest.mark.parametrize("asarray", [True, False])
+def test_pow_special(value, asarray):
+    if asarray:
+        value = np.array([value])
     result = pd.NA ** value
-    assert isinstance(result, type(value))
+
+    if asarray:
+        result = result[0]
+    else:
+        # this assertion isn't possible for ndarray.
+        assert isinstance(result, type(value))
     assert result == 1
 
 
@@ -102,11 +110,19 @@ def test_pow_special(value):
         np.float_(-1),
     ],
 )
-def test_rpow_special(value):
+@pytest.mark.parametrize("asarray", [True, False])
+def test_rpow_special(value, asarray):
+    if asarray:
+        value = np.array([value])
     result = value ** pd.NA
-    assert result == value
-    if not isinstance(value, (np.float_, np.bool_, np.int_)):
+
+    if asarray:
+        result = result[0]
+    elif not isinstance(value, (np.float_, np.bool_, np.int_)):
+        # this assertion isn't possible with asarray=True
         assert isinstance(result, type(value))
+
+    assert result == value
 
 
 def test_unary_ops():
@@ -157,13 +173,7 @@ def test_logical_not():
 
 
 @pytest.mark.parametrize(
-    "shape",
-    [
-        # (),  #  TODO: this fails, since we return a scalar. What to do?
-        (3,),
-        (3, 3),
-        (1, 2, 3),
-    ],
+    "shape", [(3,), (3, 3), (1, 2, 3)],
 )
 def test_arithmetic_ndarray(shape, all_arithmetic_functions):
     op = all_arithmetic_functions
@@ -173,9 +183,6 @@ def test_arithmetic_ndarray(shape, all_arithmetic_functions):
     result = op(pd.NA, a)
     expected = np.full(a.shape, pd.NA, dtype=object)
     tm.assert_numpy_array_equal(result, expected)
-
-
-# TODO: test pow special with ndarray
 
 
 def test_is_scalar():
