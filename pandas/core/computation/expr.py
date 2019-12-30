@@ -308,7 +308,7 @@ def _node_not_implemented(node_name: str) -> Callable[..., None]:
     """
 
     def f(self, *args, **kwargs):
-        raise NotImplementedError(f"{node_name} nodes are not implemented")
+        raise NotImplementedError(f"'{node_name}' nodes are not implemented")
 
     return f
 
