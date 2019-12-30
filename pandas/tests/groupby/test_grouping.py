@@ -104,6 +104,27 @@ class TestSelection:
         with tm.assert_produces_warning(DeprecationWarning):
             df.groupby(0)[2, 4].mean()
 
+    def test_getitem_single_column(self):
+        df = DataFrame(
+            {
+                "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
+                "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
+                "C": np.random.randn(8),
+                "D": np.random.randn(8),
+                "E": np.random.randn(8),
+            }
+        )
+
+        result = df.groupby("A")["C"].mean()
+
+        as_frame = df.loc[:, ["A", "C"]].groupby("A").mean()
+        as_series = as_frame.iloc[:, 0]
+        expected = as_series
+
+        assert isinstance(result, Series)
+        assert not isinstance(result, DataFrame)
+        tm.assert_series_equal(result, expected)
+
 
 # grouping
 # --------------------------------

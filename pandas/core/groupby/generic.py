@@ -1577,10 +1577,10 @@ class DataFrameGroupBy(GroupBy):
 
     def __getitem__(self, key):
         # per GH 23566
-        if isinstance(key, tuple):
+        if isinstance(key, tuple) and len(key) > 1:
             warnings.warn(
-                "Indexing with individual keys or with a tuple of keys "
-                "will be deprecated, use a list instead.",
+                "Indexing with multiple keys (implicitly converted to a tuple "
+                "of keys) will be deprecated, use a list instead.",
                 DeprecationWarning,
                 stacklevel=2,
             )
