@@ -243,9 +243,17 @@ class TestExpandingMomentsConsistency(ConsistencyBase):
             result = func(ser)
             tm.assert_almost_equal(result.iloc[-1], static_comp(ser[:50]))
 
-    @pytest.mark.parametrize(
-        "f",
-        [
+    def test_moment_functions_zero_length(self):
+        # GH 8056
+        s = Series(dtype=np.float64)
+        s_expected = s
+        df1 = DataFrame()
+        df1_expected = df1
+        df2 = DataFrame(columns=["a"])
+        df2["a"] = df2["a"].astype("float64")
+        df2_expected = df2
+
+        functions = [
             lambda x: x.expanding().count(),
             lambda x: x.expanding(min_periods=5).cov(x, pairwise=False),
             lambda x: x.expanding(min_periods=5).corr(x, pairwise=False),
@@ -261,40 +269,23 @@ class TestExpandingMomentsConsistency(ConsistencyBase):
             lambda x: x.expanding(min_periods=5).median(),
             lambda x: x.expanding(min_periods=5).apply(sum, raw=False),
             lambda x: x.expanding(min_periods=5).apply(sum, raw=True),
-        ],
-    )
-    def test_moment_functions_zero_length(self, f):
-        # GH 8056
-        s = Series(dtype=np.float64)
-        s_expected = s
-        df1 = DataFrame()
-        df1_expected = df1
-        df2 = DataFrame(columns=["a"])
-        df2["a"] = df2["a"].astype("float64")
-        df2_expected = df2
+        ]
+        for f in functions:
+            try:
+                s_result = f(s)
+                tm.assert_series_equal(s_result, s_expected)
 
-        try:
-            s_result = f(s)
-            tm.assert_series_equal(s_result, s_expected)
+                df1_result = f(df1)
+                tm.assert_frame_equal(df1_result, df1_expected)
 
-            df1_result = f(df1)
-            tm.assert_frame_equal(df1_result, df1_expected)
+                df2_result = f(df2)
+                tm.assert_frame_equal(df2_result, df2_expected)
+            except (ImportError):
 
-            df2_result = f(df2)
-            tm.assert_frame_equal(df2_result, df2_expected)
-        except (ImportError):
+                # scipy needed for rolling_window
+                continue
 
-            # scipy needed for rolling_window
-            pass
-
-    @pytest.mark.parametrize(
-        "f",
-        [
-            lambda x: (x.expanding(min_periods=5).cov(x, pairwise=True)),
-            lambda x: (x.expanding(min_periods=5).corr(x, pairwise=True)),
-        ],
-    )
-    def test_moment_functions_zero_length_pairwise(self, f):
+    def test_moment_functions_zero_length_pairwise(self):
 
         df1 = DataFrame()
         df2 = DataFrame(columns=Index(["a"], name="foo"), index=Index([], name="bar"))
@@ -310,9 +301,13 @@ class TestExpandingMomentsConsistency(ConsistencyBase):
             columns=Index(["a"], name="foo"),
             dtype="float64",
         )
+        functions = [
+            lambda x: (x.expanding(min_periods=5).cov(x, pairwise=True)),
+            lambda x: (x.expanding(min_periods=5).corr(x, pairwise=True)),
+        ]
+        for f in functions:
+            df1_result = f(df1)
+            tm.assert_frame_equal(df1_result, df1_expected)
 
-        df1_result = f(df1)
-        tm.assert_frame_equal(df1_result, df1_expected)
-
-        df2_result = f(df2)
-        tm.assert_frame_equal(df2_result, df2_expected)
+            df2_result = f(df2)
+            tm.assert_frame_equal(df2_result, df2_expected)

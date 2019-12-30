@@ -1206,14 +1206,7 @@ class TestRollingMomentsConsistency(ConsistencyBase):
         df_result = f(df)
         tm.assert_frame_equal(df_result, df_expected)
 
-    @pytest.mark.parametrize(
-        "f",
-        [
-            lambda x: (x.rolling(window=10, min_periods=5).cov(x, pairwise=True)),
-            lambda x: (x.rolling(window=10, min_periods=5).corr(x, pairwise=True)),
-        ],
-    )
-    def test_rolling_functions_window_non_shrinkage_binary(self, f):
+    def test_rolling_functions_window_non_shrinkage_binary(self):
 
         # corr/cov return a MI DataFrame
         df = DataFrame(
@@ -1228,8 +1221,13 @@ class TestRollingMomentsConsistency(ConsistencyBase):
             ),
             dtype="float64",
         )
-        df_result = f(df)
-        tm.assert_frame_equal(df_result, df_expected)
+        functions = [
+            lambda x: (x.rolling(window=10, min_periods=5).cov(x, pairwise=True)),
+            lambda x: (x.rolling(window=10, min_periods=5).corr(x, pairwise=True)),
+        ]
+        for f in functions:
+            df_result = f(df)
+            tm.assert_frame_equal(df_result, df_expected)
 
     def test_rolling_skew_edge_cases(self):
 
@@ -1403,9 +1401,17 @@ class TestRollingMomentsConsistency(ConsistencyBase):
             result = DataFrame(np.arange(20, dtype=data_type)).rolling(window=5).min()
             assert result.dtypes[0] == np.dtype("f8")
 
-    @pytest.mark.parametrize(
-        "f",
-        [
+    def test_moment_functions_zero_length(self):
+        # GH 8056
+        s = Series(dtype=np.float64)
+        s_expected = s
+        df1 = DataFrame()
+        df1_expected = df1
+        df2 = DataFrame(columns=["a"])
+        df2["a"] = df2["a"].astype("float64")
+        df2_expected = df2
+
+        functions = [
             lambda x: x.rolling(window=10).count(),
             lambda x: x.rolling(window=10, min_periods=5).cov(x, pairwise=False),
             lambda x: x.rolling(window=10, min_periods=5).corr(x, pairwise=False),
@@ -1422,40 +1428,23 @@ class TestRollingMomentsConsistency(ConsistencyBase):
             lambda x: x.rolling(window=10, min_periods=5).apply(sum, raw=False),
             lambda x: x.rolling(window=10, min_periods=5).apply(sum, raw=True),
             lambda x: x.rolling(win_type="boxcar", window=10, min_periods=5).mean(),
-        ],
-    )
-    def test_moment_functions_zero_length(self, f):
-        # GH 8056
-        s = Series(dtype=np.float64)
-        s_expected = s
-        df1 = DataFrame()
-        df1_expected = df1
-        df2 = DataFrame(columns=["a"])
-        df2["a"] = df2["a"].astype("float64")
-        df2_expected = df2
+        ]
+        for f in functions:
+            try:
+                s_result = f(s)
+                tm.assert_series_equal(s_result, s_expected)
 
-        try:
-            s_result = f(s)
-            tm.assert_series_equal(s_result, s_expected)
+                df1_result = f(df1)
+                tm.assert_frame_equal(df1_result, df1_expected)
 
-            df1_result = f(df1)
-            tm.assert_frame_equal(df1_result, df1_expected)
+                df2_result = f(df2)
+                tm.assert_frame_equal(df2_result, df2_expected)
+            except (ImportError):
 
-            df2_result = f(df2)
-            tm.assert_frame_equal(df2_result, df2_expected)
-        except (ImportError):
+                # scipy needed for rolling_window
+                continue
 
-            # scipy needed for rolling_window
-            pass
-
-    @pytest.mark.parametrize(
-        "f",
-        [
-            lambda x: (x.rolling(window=10, min_periods=5).cov(x, pairwise=True)),
-            lambda x: (x.rolling(window=10, min_periods=5).corr(x, pairwise=True)),
-        ],
-    )
-    def test_moment_functions_zero_length_pairwise(self, f):
+    def test_moment_functions_zero_length_pairwise(self):
 
         df1 = DataFrame()
         df2 = DataFrame(columns=Index(["a"], name="foo"), index=Index([], name="bar"))
@@ -1473,8 +1462,14 @@ class TestRollingMomentsConsistency(ConsistencyBase):
             dtype="float64",
         )
 
-        df1_result = f(df1)
-        tm.assert_frame_equal(df1_result, df1_expected)
+        functions = [
+            lambda x: (x.rolling(window=10, min_periods=5).cov(x, pairwise=True)),
+            lambda x: (x.rolling(window=10, min_periods=5).corr(x, pairwise=True)),
+        ]
 
-        df2_result = f(df2)
-        tm.assert_frame_equal(df2_result, df2_expected)
+        for f in functions:
+            df1_result = f(df1)
+            tm.assert_frame_equal(df1_result, df1_expected)
+
+            df2_result = f(df2)
+            tm.assert_frame_equal(df2_result, df2_expected)
