@@ -1,5 +1,5 @@
 """
-Entrypoint for testing from the top-level namespace
+Entrypoint for testing from the top-level namespace.
 """
 import os
 import sys
@@ -11,7 +11,7 @@ def test(extra_args=None):
     try:
         import pytest
     except ImportError:
-        raise ImportError("Need pytest>=4.0.2 to run tests")
+        raise ImportError("Need pytest>=5.0.1 to run tests")
     try:
         import hypothesis  # noqa
     except ImportError:
@@ -22,7 +22,8 @@ def test(extra_args=None):
             extra_args = [extra_args]
         cmd = extra_args
     cmd += [PKG]
-    print("running: pytest {}".format(" ".join(cmd)))
+    joined = " ".join(cmd)
+    print(f"running: pytest {joined}")
     sys.exit(pytest.main(cmd))
 
 
