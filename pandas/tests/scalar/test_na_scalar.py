@@ -217,6 +217,13 @@ def test_binary_input_not_dunder():
     result = np.logaddexp(pd.NA, a)
     tm.assert_numpy_array_equal(result, expected)
 
+    # all NA, multiple inputs
+    assert np.logaddexp(pd.NA, pd.NA) is pd.NA
+
+    result = np.modf(pd.NA, pd.NA)
+    assert len(result) == 2
+    assert all(x is pd.NA for x in result)
+
 
 def test_divmod_ufunc():
     # binary in, binary out.

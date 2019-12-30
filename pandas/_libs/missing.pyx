@@ -473,8 +473,8 @@ class NAType(C_NAType):
             self, ufunc, method, *inputs, **kwargs
         )
         if result is NotImplemented:
-            # TODO: this is wrong for binary, ternary ufuncs. Should handle shape stuff.
-            index, = [i for i, x in enumerate(inputs) if x is NA]
+            # For a NumPy ufunc that's not a binop, like np.logaddexp
+            index = [i for i, x in enumerate(inputs) if x is NA][0]
             result = np.broadcast_arrays(*inputs)[index]
             if result.ndim == 0:
                 result = result.item()
