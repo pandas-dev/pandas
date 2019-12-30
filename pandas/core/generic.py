@@ -4652,7 +4652,7 @@ class NDFrame(PandasObject, SelectionMixin):
         on position. It is useful for quickly testing if your object
         has the right type of data in it.
 
-        For negative values of `n`, this function returns all rows except 
+        For negative values of `n`, this function returns all rows except
         the last `n` rows, equivalent to ``df[:-n]``.
 
         Parameters
@@ -4725,7 +4725,7 @@ class NDFrame(PandasObject, SelectionMixin):
         position. It is useful for quickly verifying data, for example,
         after sorting or appending rows.
 
-        For negative values of `n`, this function returns all rows except 
+        For negative values of `n`, this function returns all rows except
         the first `n` rows, equivalent to ``df[n:]``.
 
         Parameters
