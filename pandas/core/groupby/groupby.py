@@ -2393,9 +2393,9 @@ class GroupBy(_GroupBy):
         0  1  2
         2  5  6
         >>> df.groupby('A').head(-1)
-            Empty DataFrame
-            Columns: [A, B]
-            Index: []
+        Empty DataFrame
+        Columns: [A, B]
+        Index: []
         """
         self._reset_group_selection()
         mask = self._cumcount_array() < n
