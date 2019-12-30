@@ -37,9 +37,13 @@ from pandas.core.dtypes.generic import (
 from pandas.core import algorithms, common as com
 from pandas.core.arrays import Categorical
 from pandas.core.construction import sanitize_array
-from pandas.core.index import Index, ensure_index, get_objs_combined_axis
 from pandas.core.indexes import base as ibase
-from pandas.core.indexes.api import union_indexes
+from pandas.core.indexes.api import (
+    Index,
+    ensure_index,
+    get_objs_combined_axis,
+    union_indexes,
+)
 from pandas.core.internals import (
     create_block_manager_from_arrays,
     create_block_manager_from_blocks,
@@ -146,7 +150,7 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
 
         index, columns = _get_axes(len(values), 1, index, columns)
         return arrays_to_mgr([values], columns, index, columns, dtype=dtype)
-    elif is_extension_array_dtype(values):
+    elif is_extension_array_dtype(values) or is_extension_array_dtype(dtype):
         # GH#19157
         if columns is None:
             columns = [0]
@@ -163,8 +167,7 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
             except Exception as orig:
                 # e.g. ValueError when trying to cast object dtype to float64
                 raise ValueError(
-                    "failed to cast to '{dtype}' (Exception "
-                    "was: {orig})".format(dtype=dtype, orig=orig)
+                    f"failed to cast to '{dtype}' (Exception was: {orig})"
                 ) from orig
 
     index, columns = _get_axes(*values.shape, index=index, columns=columns)
@@ -246,10 +249,13 @@ def init_dict(data, index, columns, dtype=None):
 # ---------------------------------------------------------------------
 
 
-def prep_ndarray(values, copy=True):
+def prep_ndarray(values, copy=True) -> np.ndarray:
     if not isinstance(values, (np.ndarray, ABCSeries, Index)):
         if len(values) == 0:
             return np.empty((0, 0), dtype=object)
+        elif isinstance(values, range):
+            arr = np.arange(values.start, values.stop, values.step, dtype="int64")
+            return arr[..., np.newaxis]
 
         def convert(v):
             return maybe_convert_platform(v)
@@ -358,8 +364,8 @@ def extract_index(data):
             if have_series:
                 if lengths[0] != len(index):
                     msg = (
-                        "array length {length} does not match index "
-                        "length {idx_len}".format(length=lengths[0], idx_len=len(index))
+                        f"array length {lengths[0]} does not match index "
+                        f"length {len(index)}"
                     )
                     raise ValueError(msg)
             else:
@@ -394,7 +400,7 @@ def get_names_from_index(data):
         if n is not None:
             index[i] = n
         else:
-            index[i] = "Unnamed {count}".format(count=count)
+            index[i] = f"Unnamed {count}"
             count += 1
 
     return index
@@ -564,8 +570,8 @@ def _convert_object_array(content, columns, coerce_float=False, dtype=None):
         if len(columns) != len(content):  # pragma: no cover
             # caller's responsibility to check for this...
             raise AssertionError(
-                "{col:d} columns passed, passed data had "
-                "{con} columns".format(col=len(columns), con=len(content))
+                f"{len(columns)} columns passed, passed data had "
+                f"{len(content)} columns"
             )
 
     # provide soft conversion of object dtypes

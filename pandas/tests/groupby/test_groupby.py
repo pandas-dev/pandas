@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from datetime import datetime
 from decimal import Decimal
 from io import StringIO
@@ -598,7 +597,7 @@ def test_groupby_as_index_agg(df):
     expected = grouped.mean()
     tm.assert_frame_equal(result, expected)
 
-    result2 = grouped.agg(OrderedDict([["C", np.mean], ["D", np.sum]]))
+    result2 = grouped.agg({"C": np.mean, "D": np.sum})
     expected2 = grouped.mean()
     expected2["D"] = grouped.sum()["D"]
     tm.assert_frame_equal(result2, expected2)
@@ -617,7 +616,7 @@ def test_groupby_as_index_agg(df):
     expected = grouped.mean()
     tm.assert_frame_equal(result, expected)
 
-    result2 = grouped.agg(OrderedDict([["C", np.mean], ["D", np.sum]]))
+    result2 = grouped.agg({"C": np.mean, "D": np.sum})
     expected2 = grouped.mean()
     expected2["D"] = grouped.sum()["D"]
     tm.assert_frame_equal(result2, expected2)
@@ -1703,6 +1702,15 @@ def test_group_shift_with_fill_value():
     tm.assert_frame_equal(result, expected)
 
 
+def test_group_shift_lose_timezone():
+    # GH 30134
+    now_dt = pd.Timestamp.utcnow()
+    df = DataFrame({"a": [1, 1], "date": now_dt})
+    result = df.groupby("a").shift(0).iloc[0]
+    expected = Series({"date": now_dt}, name=result.name)
+    tm.assert_series_equal(result, expected)
+
+
 def test_pivot_table_values_key_error():
     # This test is designed to replicate the error in issue #14938
     df = pd.DataFrame(
@@ -1734,34 +1742,23 @@ def test_empty_dataframe_groupby():
     tm.assert_frame_equal(result, expected)
 
 
-def test_tuple_warns():
+def test_tuple_as_grouping():
     # https://github.com/pandas-dev/pandas/issues/18314
     df = pd.DataFrame(
         {
-            ("a", "b"): [1, 1, 2, 2],
-            "a": [1, 1, 1, 2],
-            "b": [1, 2, 2, 2],
+            ("a", "b"): [1, 1, 1, 1],
+            "a": [2, 2, 2, 2],
+            "b": [2, 2, 2, 2],
             "c": [1, 1, 1, 1],
         }
     )
-    with tm.assert_produces_warning(FutureWarning) as w:
-        df[["a", "b", "c"]].groupby(("a", "b")).c.mean()
 
-    assert "Interpreting tuple 'by' as a list" in str(w[0].message)
+    with pytest.raises(KeyError):
+        df[["a", "b", "c"]].groupby(("a", "b"))
 
-    with tm.assert_produces_warning(None):
-        df.groupby(("a", "b")).c.mean()
-
-
-def test_tuple_warns_unhashable():
-    # https://github.com/pandas-dev/pandas/issues/18314
-    business_dates = date_range(start="4/1/2014", end="6/30/2014", freq="B")
-    df = DataFrame(1, index=business_dates, columns=["a", "b"])
-
-    with tm.assert_produces_warning(FutureWarning) as w:
-        df.groupby((df.index.year, df.index.month)).nth([0, 3, -1])
-
-    assert "Interpreting tuple 'by' as a list" in str(w[0].message)
+    result = df.groupby(("a", "b"))["c"].sum()
+    expected = pd.Series([4], name="c", index=pd.Index([1], name=("a", "b")))
+    tm.assert_series_equal(result, expected)
 
 
 def test_tuple_correct_keyerror():
@@ -1953,6 +1950,16 @@ def test_groupby_only_none_group():
     tm.assert_series_equal(actual, expected)
 
 
+def test_groupby_duplicate_index():
+    # GH#29189 the groupby call here used to raise
+    ser = pd.Series([2, 5, 6, 8], index=[2.0, 4.0, 4.0, 5.0])
+    gb = ser.groupby(level=0)
+
+    result = gb.mean()
+    expected = pd.Series([2, 5.5, 8], index=[2.0, 4.0, 5.0])
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
 def test_bool_aggs_dup_column_labels(bool_agg_func):
     # 21668
@@ -1987,3 +1994,20 @@ def test_dup_labels_output_shape(groupby_func, idx):
 
     assert result.shape == (1, 2)
     tm.assert_index_equal(result.columns, idx)
+
+
+def test_groupby_crash_on_nunique(axis):
+    # Fix following 30253
+    df = pd.DataFrame({("A", "B"): [1, 2], ("A", "C"): [1, 3], ("D", "B"): [0, 0]})
+
+    axis_number = df._get_axis_number(axis)
+    if not axis_number:
+        df = df.T
+
+    result = df.groupby(axis=axis_number, level=0).nunique()
+
+    expected = pd.DataFrame({"A": [1, 2], "D": [1, 1]})
+    if not axis_number:
+        expected = expected.T
+
+    tm.assert_frame_equal(result, expected)

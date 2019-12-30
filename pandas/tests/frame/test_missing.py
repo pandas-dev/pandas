@@ -12,15 +12,6 @@ from pandas.tests.frame.common import _check_mixed_float
 import pandas.util.testing as tm
 
 
-def _skip_if_no_pchip():
-    try:
-        from scipy.interpolate import pchip_interpolate  # noqa
-    except ImportError:
-        import pytest
-
-        pytest.skip("scipy.interpolate.pchip missing")
-
-
 class TestDataFrameMissingData:
     def test_dropEmptyRows(self, float_frame):
         N = len(float_frame.index)
@@ -165,23 +156,16 @@ class TestDataFrameMissingData:
                 [7, np.nan, 8, 9],
             ]
         )
-        cp = df.copy()
 
         # GH20987
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.dropna(how="all", axis=[0, 1])
-        with tm.assert_produces_warning(FutureWarning):
-            result2 = df.dropna(how="all", axis=(0, 1))
-        expected = df.dropna(how="all").dropna(how="all", axis=1)
-
-        tm.assert_frame_equal(result, expected)
-        tm.assert_frame_equal(result2, expected)
-        tm.assert_frame_equal(df, cp)
+        with pytest.raises(TypeError, match="supplying multiple axes"):
+            df.dropna(how="all", axis=[0, 1])
+        with pytest.raises(TypeError, match="supplying multiple axes"):
+            df.dropna(how="all", axis=(0, 1))
 
         inp = df.copy()
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="supplying multiple axes"):
             inp.dropna(how="all", axis=(0, 1), inplace=True)
-        tm.assert_frame_equal(inp, expected)
 
     def test_dropna_tz_aware_datetime(self):
         # GH13407
@@ -678,7 +662,7 @@ class TestDataFrameMissingData:
 
     def test_fillna_invalid_value(self, float_frame):
         # list
-        msg = '"value" parameter must be a scalar or dict, but you passed' ' a "{}"'
+        msg = '"value" parameter must be a scalar or dict, but you passed a "{}"'
         with pytest.raises(TypeError, match=msg.format("list")):
             float_frame.fillna([1, 2])
         # tuple
@@ -843,8 +827,6 @@ class TestDataFrameInterpolate:
         expectedk = df.copy()
         expectedk["A"] = expected["A"]
         tm.assert_frame_equal(result, expectedk)
-
-        _skip_if_no_pchip()
 
         result = df.interpolate(method="pchip")
         expected.loc[2, "A"] = 3

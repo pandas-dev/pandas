@@ -6,6 +6,7 @@ import numpy as np
 
 from pandas._libs import algos, lib
 from pandas._libs.tslibs import conversion
+from pandas._typing import ArrayLike
 
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
@@ -45,8 +46,6 @@ from pandas.core.dtypes.inference import (  # noqa:F401
     is_scalar,
     is_sequence,
 )
-
-from pandas._typing import ArrayLike
 
 _POSSIBLY_CAST_DTYPES = {
     np.dtype(t).name
@@ -193,9 +192,7 @@ def ensure_python_int(value: Union[int, np.integer]) -> int:
     TypeError: if the value isn't an int or can't be converted to one.
     """
     if not is_scalar(value):
-        raise TypeError(
-            "Value needs to be a scalar value, was type {}".format(type(value))
-        )
+        raise TypeError(f"Value needs to be a scalar value, was type {type(value)}")
     msg = "Wrong type {} for value {}"
     try:
         new_value = int(value)
@@ -268,10 +265,6 @@ def is_sparse(arr) -> bool:
     -------
     bool
         Whether or not the array-like is a pandas sparse array.
-
-    See Also
-    --------
-    Series.to_dense : Return dense representation of a Series.
 
     Examples
     --------
@@ -1191,6 +1184,124 @@ def _is_unorderable_exception(e: TypeError) -> bool:
     return "'>' not supported between instances of" in str(e)
 
 
+# This exists to silence numpy deprecation warnings, see GH#29553
+def is_numeric_v_string_like(a, b):
+    """
+    Check if we are comparing a string-like object to a numeric ndarray.
+    NumPy doesn't like to compare such objects, especially numeric arrays
+    and scalar string-likes.
+
+    Parameters
+    ----------
+    a : array-like, scalar
+        The first object to check.
+    b : array-like, scalar
+        The second object to check.
+
+    Returns
+    -------
+    boolean
+        Whether we return a comparing a string-like object to a numeric array.
+
+    Examples
+    --------
+    >>> is_numeric_v_string_like(1, 1)
+    False
+    >>> is_numeric_v_string_like("foo", "foo")
+    False
+    >>> is_numeric_v_string_like(1, "foo")  # non-array numeric
+    False
+    >>> is_numeric_v_string_like(np.array([1]), "foo")
+    True
+    >>> is_numeric_v_string_like("foo", np.array([1]))  # symmetric check
+    True
+    >>> is_numeric_v_string_like(np.array([1, 2]), np.array(["foo"]))
+    True
+    >>> is_numeric_v_string_like(np.array(["foo"]), np.array([1, 2]))
+    True
+    >>> is_numeric_v_string_like(np.array([1]), np.array([2]))
+    False
+    >>> is_numeric_v_string_like(np.array(["foo"]), np.array(["foo"]))
+    False
+    """
+
+    is_a_array = isinstance(a, np.ndarray)
+    is_b_array = isinstance(b, np.ndarray)
+
+    is_a_numeric_array = is_a_array and is_numeric_dtype(a)
+    is_b_numeric_array = is_b_array and is_numeric_dtype(b)
+    is_a_string_array = is_a_array and is_string_like_dtype(a)
+    is_b_string_array = is_b_array and is_string_like_dtype(b)
+
+    is_a_scalar_string_like = not is_a_array and isinstance(a, str)
+    is_b_scalar_string_like = not is_b_array and isinstance(b, str)
+
+    return (
+        (is_a_numeric_array and is_b_scalar_string_like)
+        or (is_b_numeric_array and is_a_scalar_string_like)
+        or (is_a_numeric_array and is_b_string_array)
+        or (is_b_numeric_array and is_a_string_array)
+    )
+
+
+# This exists to silence numpy deprecation warnings, see GH#29553
+def is_datetimelike_v_numeric(a, b):
+    """
+    Check if we are comparing a datetime-like object to a numeric object.
+    By "numeric," we mean an object that is either of an int or float dtype.
+
+    Parameters
+    ----------
+    a : array-like, scalar
+        The first object to check.
+    b : array-like, scalar
+        The second object to check.
+
+    Returns
+    -------
+    boolean
+        Whether we return a comparing a datetime-like to a numeric object.
+
+    Examples
+    --------
+    >>> dt = np.datetime64(pd.datetime(2017, 1, 1))
+    >>>
+    >>> is_datetimelike_v_numeric(1, 1)
+    False
+    >>> is_datetimelike_v_numeric(dt, dt)
+    False
+    >>> is_datetimelike_v_numeric(1, dt)
+    True
+    >>> is_datetimelike_v_numeric(dt, 1)  # symmetric check
+    True
+    >>> is_datetimelike_v_numeric(np.array([dt]), 1)
+    True
+    >>> is_datetimelike_v_numeric(np.array([1]), dt)
+    True
+    >>> is_datetimelike_v_numeric(np.array([dt]), np.array([1]))
+    True
+    >>> is_datetimelike_v_numeric(np.array([1]), np.array([2]))
+    False
+    >>> is_datetimelike_v_numeric(np.array([dt]), np.array([dt]))
+    False
+    """
+
+    if not hasattr(a, "dtype"):
+        a = np.asarray(a)
+    if not hasattr(b, "dtype"):
+        b = np.asarray(b)
+
+    def is_numeric(x):
+        """
+        Check if an object has a numeric dtype (i.e. integer or float).
+        """
+        return is_integer_dtype(x) or is_float_dtype(x)
+
+    return (needs_i8_conversion(a) and is_numeric(b)) or (
+        needs_i8_conversion(b) and is_numeric(a)
+    )
+
+
 def needs_i8_conversion(arr_or_dtype) -> bool:
     """
     Check whether the array or dtype should be converted to int64.
@@ -1745,10 +1856,12 @@ def _validate_date_like_dtype(dtype) -> None:
     try:
         typ = np.datetime_data(dtype)[0]
     except ValueError as e:
-        raise TypeError("{error}".format(error=e))
+        raise TypeError(e)
     if typ != "generic" and typ != "ns":
-        msg = "{name!r} is too specific of a frequency, try passing {type!r}"
-        raise ValueError(msg.format(name=dtype.name, type=dtype.type.__name__))
+        raise ValueError(
+            f"{repr(dtype.name)} is too specific of a frequency, "
+            f"try passing {repr(dtype.type.__name__)}"
+        )
 
 
 def pandas_dtype(dtype):
@@ -1784,7 +1897,7 @@ def pandas_dtype(dtype):
         npdtype = np.dtype(dtype)
     except SyntaxError:
         # np.dtype uses `eval` which can raise SyntaxError
-        raise TypeError("data type '{}' not understood".format(dtype))
+        raise TypeError(f"data type '{dtype}' not understood")
 
     # Any invalid dtype (such as pd.Timestamp) should raise an error.
     # np.dtype(invalid_type).kind = 0 for such objects. However, this will
@@ -1796,6 +1909,6 @@ def pandas_dtype(dtype):
         # here and `dtype` is an array
         return npdtype
     elif npdtype.kind == "O":
-        raise TypeError("dtype '{}' not understood".format(dtype))
+        raise TypeError(f"dtype '{dtype}' not understood")
 
     return npdtype
