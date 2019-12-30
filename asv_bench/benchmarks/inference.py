@@ -2,9 +2,10 @@ import datetime
 
 import numpy as np
 
-import pandas.util.testing as tm
 from pandas import DataFrame, Series, Timestamp, to_numeric
 from pandas.core.common import maybe_box_datetimelike
+import pandas.util.testing as tm
+
 from .pandas_vb_common import lib, numeric_dtypes
 
 
