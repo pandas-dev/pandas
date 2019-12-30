@@ -132,5 +132,3 @@ class MaybeBoxDatetimelike:
 
     def py_datetime_box(self):
         maybe_box_datetimelike(self.py_timestamp)
-
-
