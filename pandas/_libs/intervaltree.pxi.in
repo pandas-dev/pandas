@@ -136,7 +136,12 @@ cdef class IntervalTree(IntervalMixin):
         result = Int64Vector()
         old_len = 0
         for i in range(len(target)):
-            self.root.query(result, target[i])
+            try:
+                self.root.query(result, target[i])
+            except OverflowError:
+                # overflow -> no match, which is already handled below
+                pass
+
             if result.data.n == old_len:
                 result.append(-1)
             elif result.data.n > old_len + 1:
@@ -158,7 +163,12 @@ cdef class IntervalTree(IntervalMixin):
         missing = Int64Vector()
         old_len = 0
         for i in range(len(target)):
-            self.root.query(result, target[i])
+            try:
+                self.root.query(result, target[i])
+            except OverflowError:
+                # overflow -> no match, which is already handled below
+                pass
+
             if result.data.n == old_len:
                 result.append(-1)
                 missing.append(i)
