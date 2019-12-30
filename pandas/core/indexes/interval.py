@@ -103,19 +103,6 @@ def _get_prev_label(label):
         raise TypeError(f"cannot determine next label for type {repr(type(label))}")
 
 
-def _get_interval_closed_bounds(interval):
-    """
-    Given an Interval or IntervalIndex, return the corresponding interval with
-    closed bounds.
-    """
-    left, right = interval.left, interval.right
-    if interval.open_left:
-        left = _get_next_label(left)
-    if interval.open_right:
-        right = _get_prev_label(right)
-    return left, right
-
-
 def _new_IntervalIndex(cls, d):
     """
     This is called upon unpickling, rather than the default which doesn't have
@@ -675,26 +662,6 @@ class IntervalIndex(IntervalMixin, Index):
 
         return locs
 
-    def _maybe_cast_indexed(self, key):
-        """
-        we need to cast the key, which could be a scalar
-        or an array-like to the type of our subtype
-        """
-        if isinstance(key, IntervalIndex):
-            return key
-
-        subtype = self.dtype.subtype
-        if is_float_dtype(subtype):
-            if is_integer(key):
-                key = float(key)
-            elif isinstance(key, (np.ndarray, Index)):
-                key = key.astype("float64")
-        elif is_integer_dtype(subtype):
-            if is_integer(key):
-                key = int(key)
-
-        return key
-
     def _can_reindex(self, indexer: np.ndarray) -> None:
         """
         Check if we are allowing reindexing with this particular indexer.
@@ -826,34 +793,6 @@ class IntervalIndex(IntervalMixin, Index):
                 label = _get_prev_label(label)
 
         return sub_idx._searchsorted_monotonic(label, side)
-
-    def _find_non_overlapping_monotonic_bounds(self, key):
-        if isinstance(key, IntervalMixin):
-            start = self._searchsorted_monotonic(
-                key.left, "left", exclude_label=key.open_left
-            )
-            stop = self._searchsorted_monotonic(
-                key.right, "right", exclude_label=key.open_right
-            )
-        elif isinstance(key, slice):
-            # slice
-            start, stop = key.start, key.stop
-            if (key.step or 1) != 1:
-                raise NotImplementedError("cannot slice with a slice step")
-            if start is None:
-                start = 0
-            else:
-                start = self._searchsorted_monotonic(start, "left")
-            if stop is None:
-                stop = len(self)
-            else:
-                stop = self._searchsorted_monotonic(stop, "right")
-        else:
-            # scalar or index-like
-
-            start = self._searchsorted_monotonic(key, "left")
-            stop = self._searchsorted_monotonic(key, "right")
-        return start, stop
 
     def get_loc(
         self, key: Any, method: Optional[str] = None, tolerance=None
