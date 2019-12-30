@@ -15,6 +15,7 @@ from hypothesis.extra.pytz import timezones as pytz_timezones
 import pytest
 
 import pandas as pd
+from pandas import Timestamp
 
 from pandas.tseries.offsets import (
     BMonthBegin,
@@ -36,15 +37,15 @@ from pandas.tseries.offsets import (
 
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
-    min_dt = (pd.Timestamp(1900, 1, 1).to_pydatetime(),)
-    max_dt = (pd.Timestamp(1900, 1, 1).to_pydatetime(),)
+    min_dt = Timestamp(1900, 1, 1).to_pydatetime()
+    max_dt = Timestamp(1900, 1, 1).to_pydatetime()
 
 gen_date_range = st.builds(
     pd.date_range,
     start=st.datetimes(
         # TODO: Choose the min/max values more systematically
-        min_value=pd.Timestamp(1900, 1, 1).to_pydatetime(),
-        max_value=pd.Timestamp(2100, 1, 1).to_pydatetime(),
+        min_value=Timestamp(1900, 1, 1).to_pydatetime(),
+        max_value=Timestamp(2100, 1, 1).to_pydatetime(),
     ),
     periods=st.integers(min_value=2, max_value=100),
     freq=st.sampled_from("Y Q M D H T s ms us ns".split()),
@@ -89,11 +90,11 @@ gen_yqm_offset = st.one_of(
 @given(gen_random_datetime, gen_yqm_offset)
 def test_on_offset_implementations(dt, offset):
     assume(not offset.normalize)
-    # check that the class-specific implementations of onOffset match
+    # check that the class-specific implementations of is_on_offset match
     # the general case definition:
     #   (dt + offset) - offset == dt
     compare = (dt + offset) - offset
-    assert offset.onOffset(dt) == (compare == dt)
+    assert offset.is_on_offset(dt) == (compare == dt)
 
 
 @pytest.mark.xfail(

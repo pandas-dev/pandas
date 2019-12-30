@@ -2,7 +2,9 @@ from datetime import timedelta
 
 import dateutil
 import numpy as np
-from pandas import to_datetime, date_range, Series, DataFrame, period_range
+
+from pandas import DataFrame, Series, date_range, period_range, to_datetime
+
 from pandas.tseries.frequencies import infer_freq
 
 try:
@@ -111,7 +113,7 @@ class InferFreq:
     def setup(self, freq):
         if freq is None:
             self.idx = date_range(start="1/1/1700", freq="D", periods=10000)
-            self.idx.freq = None
+            self.idx._data._freq = None
         else:
             self.idx = date_range(start="1/1/1700", freq=freq, periods=10000)
 
@@ -426,4 +428,4 @@ class DatetimeAccessor:
         self.series.dt.year
 
 
-from .pandas_vb_common import setup  # noqa: F401
+from .pandas_vb_common import setup  # noqa: F401 isort:skip
