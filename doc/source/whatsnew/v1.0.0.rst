@@ -417,7 +417,7 @@ Comparison operations on a :class:`arrays.IntegerArray` now returns a
 
 .. ipython:: python
 
-   a = pd.array([1, 2, None], dtype="Int64"``
+   a = pd.array([1, 2, None], dtype="Int64")
    a > 1
 
 Note that missing values now propagate, rather than always comparing unequal
