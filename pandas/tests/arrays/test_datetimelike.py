@@ -40,8 +40,8 @@ def datetime_index(request):
     """
     freqstr = request.param
     # TODO: non-monotone indexes; NaTs, different start dates, timezones
-    pi = pd.date_range(start=pd.Timestamp("2000-01-01"), periods=100, freq=freqstr)
-    return pi
+    dti = pd.date_range(start=pd.Timestamp("2000-01-01"), periods=100, freq=freqstr)
+    return dti
 
 
 @pytest.fixture
@@ -57,7 +57,7 @@ def timedelta_index(request):
 
 
 class SharedTests:
-    index_cls = None  # type: Type[Union[DatetimeIndex, PeriodIndex, TimedeltaIndex]]
+    index_cls: Type[Union[DatetimeIndex, PeriodIndex, TimedeltaIndex]]
 
     def test_compare_len1_raises(self):
         # make sure we raise when comparing with different lengths, specific
@@ -224,6 +224,19 @@ class SharedTests:
 
         with pytest.raises(TypeError, match="'value' should be a.* 'object'"):
             arr[0] = object()
+
+    def test_inplace_arithmetic(self):
+        # GH#24115 check that iadd and isub are actually in-place
+        data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
+        arr = self.array_cls(data, freq="D")
+
+        expected = arr + pd.Timedelta(days=1)
+        arr += pd.Timedelta(days=1)
+        tm.assert_equal(arr, expected)
+
+        expected = arr - pd.Timedelta(days=1)
+        arr -= pd.Timedelta(days=1)
+        tm.assert_equal(arr, expected)
 
 
 class TestDatetimeArray(SharedTests):

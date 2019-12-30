@@ -76,9 +76,7 @@ def test_duplicate_argument():
     kwargs = {"foo": None, "bar": None}
     args = (None,)  # duplicate value for "foo"
 
-    msg = r"{fname}\(\) got multiple values for keyword " r"argument '{arg}'".format(
-        fname=_fname, arg="foo"
-    )
+    msg = fr"{_fname}\(\) got multiple values for keyword argument 'foo'"
 
     with pytest.raises(TypeError, match=msg):
         validate_args_and_kwargs(_fname, args, kwargs, min_fname_arg_count, compat_args)

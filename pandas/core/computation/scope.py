@@ -9,6 +9,7 @@ import itertools
 import pprint
 import struct
 import sys
+from typing import List
 
 import numpy as np
 
@@ -142,10 +143,8 @@ class Scope:
     def __repr__(self) -> str:
         scope_keys = _get_pretty_string(list(self.scope.keys()))
         res_keys = _get_pretty_string(list(self.resolvers.keys()))
-        unicode_str = "{name}(scope={scope_keys}, resolvers={res_keys})"
-        return unicode_str.format(
-            name=type(self).__name__, scope_keys=scope_keys, res_keys=res_keys
-        )
+        unicode_str = f"{type(self).__name__}(scope={scope_keys}, resolvers={res_keys})"
+        return unicode_str
 
     @property
     def has_resolvers(self) -> bool:
@@ -161,7 +160,7 @@ class Scope:
         """
         return bool(len(self.resolvers))
 
-    def resolve(self, key, is_local):
+    def resolve(self, key: str, is_local: bool):
         """
         Resolve a variable name in a possibly local context.
 
@@ -203,7 +202,7 @@ class Scope:
 
                 raise UndefinedVariableError(key, is_local)
 
-    def swapkey(self, old_key, new_key, new_value=None):
+    def swapkey(self, old_key: str, new_key: str, new_value=None):
         """
         Replace a variable name, with a potentially new value.
 
@@ -228,7 +227,7 @@ class Scope:
                 mapping[new_key] = new_value
                 return
 
-    def _get_vars(self, stack, scopes):
+    def _get_vars(self, stack, scopes: List[str]):
         """
         Get specifically scoped variables from a list of stack frames.
 
@@ -285,9 +284,7 @@ class Scope:
         str
             The name of the temporary variable created.
         """
-        name = "{name}_{num}_{hex_id}".format(
-            name=type(value).__name__, num=self.ntemps, hex_id=_raw_hex_id(self)
-        )
+        name = f"{type(value).__name__}_{self.ntemps}_{_raw_hex_id(self)}"
 
         # add to inner most scope
         assert name not in self.temps

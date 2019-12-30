@@ -12,7 +12,7 @@ from pandas.core.dtypes.generic import ABCMultiIndex
 
 from pandas import option_context
 
-from pandas.io.common import _is_url
+from pandas.io.common import is_url
 from pandas.io.formats.format import (
     DataFrameFormatter,
     TableFormatter,
@@ -45,7 +45,7 @@ class HTMLFormatter(TableFormatter):
 
         self.frame = self.fmt.frame
         self.columns = self.fmt.tr_frame.columns
-        self.elements = []  # type: List[str]
+        self.elements: List[str] = []
         self.bold_rows = self.fmt.bold_rows
         self.escape = self.fmt.escape
         self.show_dimensions = self.fmt.show_dimensions
@@ -109,12 +109,12 @@ class HTMLFormatter(TableFormatter):
         ----------
         s : object
             The data to be written inside the cell.
-        header : boolean, default False
+        header : bool, default False
             Set to True if the <th> is for use inside <thead>.  This will
             cause min-width to be set if there is one.
         indent : int, default 0
             The indentation level of the cell.
-        tags : string, default None
+        tags : str, default None
             Tags to include in the cell.
 
         Returns
@@ -138,17 +138,16 @@ class HTMLFormatter(TableFormatter):
         else:
             start_tag = "<{kind}>".format(kind=kind)
 
+        esc: Union[OrderedDict[str, str], Dict]
         if self.escape:
             # escape & first to prevent double escaping of &
-            esc = OrderedDict(
-                [("&", r"&amp;"), ("<", r"&lt;"), (">", r"&gt;")]
-            )  # type: Union[OrderedDict[str, str], Dict]
+            esc = OrderedDict([("&", r"&amp;"), ("<", r"&lt;"), (">", r"&gt;")])
         else:
             esc = {}
 
         rs = pprint_thing(s, escape_chars=esc).strip()
 
-        if self.render_links and _is_url(rs):
+        if self.render_links and is_url(rs):
             rs_unescaped = pprint_thing(s, escape_chars={}).strip()
             start_tag += '<a href="{url}" target="_blank">'.format(url=rs_unescaped)
             end_a = "</a>"
@@ -408,7 +407,7 @@ class HTMLFormatter(TableFormatter):
             else:
                 index_values = self.fmt.tr_frame.index.format()
 
-        row = []  # type: List[str]
+        row: List[str] = []
         for i in range(nrows):
 
             if truncate_v and i == (self.fmt.tr_row_num):
