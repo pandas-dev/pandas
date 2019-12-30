@@ -6,6 +6,7 @@ import numpy as np
 
 from pandas._libs import lib, tslib, tslibs
 from pandas._libs.tslibs import NaT, OutOfBoundsDatetime, Period, iNaT
+from pandas._libs.tslibs.timezones import tz_compare
 from pandas.util._validators import validate_bool_kwarg
 
 from .common import (
@@ -409,6 +410,14 @@ def maybe_promote(dtype, fill_value=np.nan):
     elif is_datetime64tz_dtype(dtype):
         if isna(fill_value):
             fill_value = NaT
+        elif not isinstance(fill_value, datetime):
+            dtype = np.dtype(np.object_)
+        elif fill_value.tzinfo is None:
+            dtype = np.dtype(np.object_)
+        elif not tz_compare(fill_value.tzinfo, dtype.tz):
+            # TODO: sure we want to cast here?
+            dtype = np.dtype(np.object_)
+
     elif is_extension_array_dtype(dtype) and isna(fill_value):
         fill_value = dtype.na_value
 
@@ -820,9 +829,7 @@ def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
         if dtype.kind == "M":
             return arr.astype(dtype)
 
-        raise TypeError(
-            f"cannot astype a datetimelike from [{arr.dtype}] " f"to [{dtype}]"
-        )
+        raise TypeError(f"cannot astype a datetimelike from [{arr.dtype}] to [{dtype}]")
 
     elif is_timedelta64_dtype(arr):
         if is_object_dtype(dtype):
@@ -842,9 +849,7 @@ def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
         elif dtype == _TD_DTYPE:
             return arr.astype(_TD_DTYPE, copy=copy)
 
-        raise TypeError(
-            f"cannot astype a timedelta from [{arr.dtype}] " f"to [{dtype}]"
-        )
+        raise TypeError(f"cannot astype a timedelta from [{arr.dtype}] to [{dtype}]")
 
     elif np.issubdtype(arr.dtype, np.floating) and np.issubdtype(dtype, np.integer):
 

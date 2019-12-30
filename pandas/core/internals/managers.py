@@ -340,13 +340,13 @@ class BlockManager(PandasObject):
                 f"tot_items: {tot_items}"
             )
 
-    def apply(self, f: str, filter=None, **kwargs):
+    def apply(self, f, filter=None, **kwargs):
         """
         Iterate over the blocks, collect and create a new BlockManager.
 
         Parameters
         ----------
-        f : str
+        f : str or callable
             Name of the Block method to apply.
         filter : list, if supplied, only call the block if the filter is in
                  the block
@@ -411,7 +411,10 @@ class BlockManager(PandasObject):
                     axis = obj._info_axis_number
                     kwargs[k] = obj.reindex(b_items, axis=axis, copy=align_copy)
 
-            applied = getattr(b, f)(**kwargs)
+            if callable(f):
+                applied = b.apply(f, **kwargs)
+            else:
+                applied = getattr(b, f)(**kwargs)
             result_blocks = _extend_blocks(applied, result_blocks)
 
         if len(result_blocks) == 0:
@@ -741,16 +744,17 @@ class BlockManager(PandasObject):
 
         Parameters
         ----------
-        deep : boolean o rstring, default True
+        deep : bool or string, default True
             If False, return shallow copy (do not copy data)
             If 'all', copy data and a deep copy of the index
 
         Returns
         -------
-        copy : BlockManager
+        BlockManager
         """
         # this preserves the notion of view copying of axes
         if deep:
+            # hit in e.g. tests.io.json.test_pandas
 
             def copy_func(ax):
                 if deep == "all":
@@ -761,6 +765,7 @@ class BlockManager(PandasObject):
             new_axes = [copy_func(ax) for ax in self.axes]
         else:
             new_axes = list(self.axes)
+
         res = self.apply("copy", deep=deep)
         res.axes = new_axes
         return res
