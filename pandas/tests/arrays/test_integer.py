@@ -90,7 +90,7 @@ def test_repr_dtype(dtype, expected):
 
 def test_repr_array():
     result = repr(integer_array([1, None, 3]))
-    expected = "<IntegerArray>\n[1, NaN, 3]\nLength: 3, dtype: Int64"
+    expected = "<IntegerArray>\n[1, NA, 3]\nLength: 3, dtype: Int64"
     assert result == expected
 
 
@@ -98,9 +98,9 @@ def test_repr_array_long():
     data = integer_array([1, 2, None] * 1000)
     expected = (
         "<IntegerArray>\n"
-        "[  1,   2, NaN,   1,   2, NaN,   1,   2, NaN,   1,\n"
+        "[ 1,  2, NA,  1,  2, NA,  1,  2, NA,  1,\n"
         " ...\n"
-        " NaN,   1,   2, NaN,   1,   2, NaN,   1,   2, NaN]\n"
+        " NA,  1,  2, NA,  1,  2, NA,  1,  2, NA]\n"
         "Length: 3000, dtype: Int64"
     )
     result = repr(data)
@@ -108,13 +108,17 @@ def test_repr_array_long():
 
 
 class TestConstructors:
+    def test_uses_pandas_na(self):
+        a = pd.array([1, None], dtype=pd.Int64Dtype())
+        assert a[1] is pd.NA
+
     def test_from_dtype_from_float(self, data):
         # construct from our dtype & string dtype
         dtype = data.dtype
 
         # from float
         expected = pd.Series(data)
-        result = pd.Series(np.array(data).astype("float"), dtype=str(dtype))
+        result = pd.Series(np.array(data, dtype="float"), dtype=str(dtype))
         tm.assert_series_equal(result, expected)
 
         # from int / list
@@ -156,10 +160,13 @@ class TestArithmeticOps(BaseOpsUtil):
 
         # 1 ** na is na, so need to unmask those
         if op_name == "__pow__":
-            mask = np.where(s == 1, False, mask)
+            mask = np.where(~s.isna() & (s == 1), False, mask)
 
         elif op_name == "__rpow__":
-            mask = np.where(other == 1, False, mask)
+            other_is_one = other == 1
+            if isinstance(other_is_one, pd.Series):
+                other_is_one = other_is_one.fillna(False)
+            mask = np.where(other_is_one, False, mask)
 
         # float result type or float op
         if (
@@ -208,20 +215,27 @@ class TestArithmeticOps(BaseOpsUtil):
                 else:
                     expected = expected.fillna(0)
             else:
-                expected[(s.values == 0) & ((expected == 0) | expected.isna())] = 0
+                expected[
+                    (s.values == 0).fillna(False)
+                    & ((expected == 0).fillna(False) | expected.isna())
+                ] = 0
         try:
-            expected[(expected == np.inf) | (expected == -np.inf)] = fill_value
+            expected[
+                ((expected == np.inf) | (expected == -np.inf)).fillna(False)
+            ] = fill_value
             original = expected
             expected = expected.astype(s.dtype)
 
         except ValueError:
 
             expected = expected.astype(float)
-            expected[(expected == np.inf) | (expected == -np.inf)] = fill_value
+            expected[
+                ((expected == np.inf) | (expected == -np.inf)).fillna(False)
+            ] = fill_value
             original = expected
             expected = expected.astype(s.dtype)
 
-        expected[mask] = np.nan
+        expected[mask] = pd.NA
 
         # assert that the expected astype is ok
         # (skip for unsigned as they have wrap around)
@@ -255,21 +269,18 @@ class TestArithmeticOps(BaseOpsUtil):
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         # scalar
         op = all_arithmetic_operators
-
         s = pd.Series(data)
         self._check_op(s, op, 1, exc=TypeError)
 
     def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
         # frame & scalar
         op = all_arithmetic_operators
-
         df = pd.DataFrame({"A": data})
         self._check_op(df, op, 1, exc=TypeError)
 
     def test_arith_series_with_array(self, data, all_arithmetic_operators):
         # ndarray & other series
         op = all_arithmetic_operators
-
         s = pd.Series(data)
         other = np.ones(len(s), dtype=s.dtype.type)
         self._check_op(s, op, other, exc=TypeError)
@@ -359,9 +370,9 @@ class TestArithmeticOps(BaseOpsUtil):
         expected = pd.array([0, 1, None, 2], dtype="Int64")
         tm.assert_extension_array_equal(result, expected)
 
-        # result = a ** pd.NA
-        # expected = pd.array([None, 1, None, None], dtype="Int64")
-        # tm.assert_extension_array_equal(result, expected)
+        result = a ** pd.NA
+        expected = pd.array([None, 1, None, None], dtype="Int64")
+        tm.assert_extension_array_equal(result, expected)
 
         result = a ** np.nan
         expected = np.array([np.nan, 1, np.nan, np.nan], dtype="float64")
@@ -376,9 +387,9 @@ class TestArithmeticOps(BaseOpsUtil):
         expected = pd.array([1, 1, 1, 1], dtype="Int64")
         tm.assert_extension_array_equal(result, expected)
 
-        # result = pd.NA ** a
-        # expected = pd.array([1, None, None, None], dtype="Int64")
-        # tm.assert_extension_array_equal(result, expected)
+        result = pd.NA ** a
+        expected = pd.array([1, None, None, None], dtype="Int64")
+        tm.assert_extension_array_equal(result, expected)
 
         result = np.nan ** a
         expected = np.array([1, np.nan, np.nan, np.nan], dtype="float64")
@@ -406,10 +417,10 @@ class TestComparisonOps(BaseOpsUtil):
 
         # array
         result = pd.Series(op(data, other))
-        expected = pd.Series(op(data._data, other))
+        expected = pd.Series(op(data._data, other), dtype="boolean")
 
         # fill the nan locations
-        expected[data._mask] = op_name == "__ne__"
+        expected[data._mask] = pd.NA
 
         tm.assert_series_equal(result, expected)
 
@@ -417,22 +428,61 @@ class TestComparisonOps(BaseOpsUtil):
         s = pd.Series(data)
         result = op(s, other)
 
-        expected = pd.Series(data._data)
-        expected = op(expected, other)
+        expected = op(pd.Series(data._data), other)
 
         # fill the nan locations
-        expected[data._mask] = op_name == "__ne__"
+        expected[data._mask] = pd.NA
+        expected = expected.astype("boolean")
 
         tm.assert_series_equal(result, expected)
 
-    def test_compare_scalar(self, data, all_compare_operators):
-        op_name = all_compare_operators
-        self._compare_other(data, op_name, 0)
+    @pytest.mark.parametrize("other", [True, False, pd.NA, -1, 0, 1])
+    def test_scalar(self, other, all_compare_operators):
+        op = self.get_op_from_name(all_compare_operators)
+        a = pd.array([1, 0, None], dtype="Int64")
 
-    def test_compare_array(self, data, all_compare_operators):
-        op_name = all_compare_operators
-        other = pd.Series([0] * len(data))
-        self._compare_other(data, op_name, other)
+        result = op(a, other)
+
+        if other is pd.NA:
+            expected = pd.array([None, None, None], dtype="boolean")
+        else:
+            values = op(a._data, other)
+            expected = pd.arrays.BooleanArray(values, a._mask, copy=True)
+        tm.assert_extension_array_equal(result, expected)
+
+        # ensure we haven't mutated anything inplace
+        result[0] = pd.NA
+        tm.assert_extension_array_equal(a, pd.array([1, 0, None], dtype="Int64"))
+
+    def test_array(self, all_compare_operators):
+        op = self.get_op_from_name(all_compare_operators)
+        a = pd.array([0, 1, 2, None, None, None], dtype="Int64")
+        b = pd.array([0, 1, None, 0, 1, None], dtype="Int64")
+
+        result = op(a, b)
+        values = op(a._data, b._data)
+        mask = a._mask | b._mask
+
+        expected = pd.arrays.BooleanArray(values, mask)
+        tm.assert_extension_array_equal(result, expected)
+
+        # ensure we haven't mutated anything inplace
+        result[0] = pd.NA
+        tm.assert_extension_array_equal(
+            a, pd.array([0, 1, 2, None, None, None], dtype="Int64")
+        )
+        tm.assert_extension_array_equal(
+            b, pd.array([0, 1, None, 0, 1, None], dtype="Int64")
+        )
+
+    def test_compare_with_booleanarray(self, all_compare_operators):
+        op = self.get_op_from_name(all_compare_operators)
+        a = pd.array([True, False, None] * 3, dtype="boolean")
+        b = pd.array([0] * 3 + [1] * 3 + [None] * 3, dtype="Int64")
+        other = pd.array([False] * 3 + [True] * 3 + [None] * 3, dtype="boolean")
+        expected = op(a, other)
+        result = op(a, b)
+        tm.assert_extension_array_equal(result, expected)
 
     def test_no_shared_mask(self, data):
         result = data + 1
@@ -442,20 +492,21 @@ class TestComparisonOps(BaseOpsUtil):
         # GH 28930
         s = pd.Series([1, None], dtype=any_nullable_int_dtype)
         result = s == "a"
-        expected = pd.Series([False, False])
+        expected = pd.Series([False, pd.NA], dtype="boolean")
 
         self.assert_series_equal(result, expected)
 
     def test_compare_to_int(self, any_nullable_int_dtype, all_compare_operators):
         # GH 28930
-        s1 = pd.Series([1, 2, 3], dtype=any_nullable_int_dtype)
-        s2 = pd.Series([1, 2, 3], dtype="int")
+        s1 = pd.Series([1, None, 3], dtype=any_nullable_int_dtype)
+        s2 = pd.Series([1, None, 3], dtype="float")
 
         method = getattr(s1, all_compare_operators)
         result = method(2)
 
         method = getattr(s2, all_compare_operators)
-        expected = method(2)
+        expected = method(2).astype("boolean")
+        expected[s2.isna()] = pd.NA
 
         self.assert_series_equal(result, expected)
 
@@ -543,6 +594,17 @@ class TestCasting:
         expected = pd.Series(np.asarray(mixed))
         tm.assert_series_equal(result, expected)
 
+    def test_astype_to_larger_numpy(self):
+        a = pd.array([1, 2], dtype="Int32")
+        result = a.astype("int64")
+        expected = np.array([1, 2], dtype="int64")
+        tm.assert_numpy_array_equal(result, expected)
+
+        a = pd.array([1, 2], dtype="UInt32")
+        result = a.astype("uint64")
+        expected = np.array([1, 2], dtype="uint64")
+        tm.assert_numpy_array_equal(result, expected)
+
     @pytest.mark.parametrize("dtype", [Int8Dtype(), "Int8", UInt32Dtype(), "UInt32"])
     def test_astype_specific_casting(self, dtype):
         s = pd.Series([1, 2, 3], dtype="Int64")
@@ -572,12 +634,17 @@ class TestCasting:
         with pytest.raises(TypeError, match=msg):
             pd.Series(arr).astype(dtype)
 
+    def test_coerce_to_ndarray_float_NA_rasies(self):
+        a = pd.array([0, 1, 2], dtype="Int64")
+        with pytest.raises(TypeError, match="NAType"):
+            a._coerce_to_ndarray(dtype="float", na_value=pd.NA)
+
 
 def test_frame_repr(data_missing):
 
     df = pd.DataFrame({"A": data_missing})
     result = repr(df)
-    expected = "     A\n0  NaN\n1    1"
+    expected = "    A\n0  NA\n1   1"
     assert result == expected
 
 
@@ -593,7 +660,7 @@ def test_conversions(data_missing):
     # we assert that we are exactly equal
     # including type conversions of scalars
     result = df["A"].astype("object").values
-    expected = np.array([np.nan, 1], dtype=object)
+    expected = np.array([pd.NA, 1], dtype=object)
     tm.assert_numpy_array_equal(result, expected)
 
     for r, e in zip(result, expected):
@@ -756,7 +823,7 @@ def test_cross_type_arithmetic():
     tm.assert_series_equal(result, expected)
 
     result = (df.A + df.C) * 3 == 12
-    expected = pd.Series([False, True, False])
+    expected = pd.Series([False, True, None], dtype="boolean")
     tm.assert_series_equal(result, expected)
 
     result = df.A + df.B
@@ -820,7 +887,7 @@ def test_reduce_to_float(op):
 def test_astype_nansafe():
     # see gh-22343
     arr = integer_array([np.nan, 1, 2], dtype="Int8")
-    msg = "cannot convert float NaN to integer"
+    msg = "cannot convert to integer NumPy array with missing values"
 
     with pytest.raises(ValueError, match=msg):
         arr.astype("uint32")
@@ -895,7 +962,9 @@ def test_arrow_array(data):
     import pyarrow as pa
 
     arr = pa.array(data)
-    expected = pa.array(list(data), type=data.dtype.name.lower(), from_pandas=True)
+    expected = np.array(data, dtype=object)
+    expected[data.isna()] = None
+    expected = pa.array(expected, type=data.dtype.name.lower(), from_pandas=True)
     assert arr.equals(expected)
 
 
