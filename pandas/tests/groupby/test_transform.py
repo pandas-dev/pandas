@@ -765,9 +765,12 @@ def test_transform_with_non_scalar_group():
     ],
 )
 @pytest.mark.parametrize("agg_func", ["count", "rank", "size"])
-def test_transform_numeric_ret(cols, exp, comp_func, agg_func):
+def test_transform_numeric_ret(cols, exp, comp_func, agg_func, request):
     if agg_func == "size" and isinstance(cols, list):
-        pytest.xfail("'size' transformation not supported with NDFrameGroupy")
+        # https://github.com/pytest-dev/pytest/issues/6300
+        # workaround to xfail fixture/param permutations
+        reason = "'size' transformation not supported with NDFrameGroupy"
+        request.node.add_marker(pytest.mark.xfail(reason=reason))
 
     # GH 19200
     df = pd.DataFrame(
@@ -909,6 +912,41 @@ def test_pct_change(test_series, freq, periods, fill_method, limit):
             periods=periods, fill_method=fill_method, limit=limit, freq=freq
         )
         tm.assert_frame_equal(result, expected.to_frame("vals"))
+
+
+@pytest.mark.parametrize(
+    "func, expected_status",
+    [
+        ("ffill", ["shrt", "shrt", "lng", np.nan, "shrt", "ntrl", "ntrl"]),
+        ("bfill", ["shrt", "lng", "lng", "shrt", "shrt", "ntrl", np.nan]),
+    ],
+)
+def test_ffill_bfill_non_unique_multilevel(func, expected_status):
+    # GH 19437
+    date = pd.to_datetime(
+        [
+            "2018-01-01",
+            "2018-01-01",
+            "2018-01-01",
+            "2018-01-01",
+            "2018-01-02",
+            "2018-01-01",
+            "2018-01-02",
+        ]
+    )
+    symbol = ["MSFT", "MSFT", "MSFT", "AAPL", "AAPL", "TSLA", "TSLA"]
+    status = ["shrt", np.nan, "lng", np.nan, "shrt", "ntrl", np.nan]
+
+    df = DataFrame({"date": date, "symbol": symbol, "status": status})
+    df = df.set_index(["date", "symbol"])
+    result = getattr(df.groupby("symbol")["status"], func)()
+
+    index = MultiIndex.from_tuples(
+        tuples=list(zip(*[date, symbol])), names=["date", "symbol"]
+    )
+    expected = Series(expected_status, index=index, name="status")
+
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("func", [np.any, np.all])

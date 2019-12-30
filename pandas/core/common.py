@@ -317,7 +317,7 @@ def get_callable_name(obj):
         return get_callable_name(obj.func)
     # fall back to class name
     if hasattr(obj, "__call__"):
-        return obj.__class__.__name__
+        return type(obj).__name__
     # everything failed (probably because the argument
     # wasn't actually callable); we return None
     # instead of the empty string in this case to allow
@@ -388,7 +388,7 @@ def standardize_mapping(into):
             return partial(collections.defaultdict, into.default_factory)
         into = type(into)
     if not issubclass(into, abc.Mapping):
-        raise TypeError("unsupported type: {into}".format(into=into))
+        raise TypeError(f"unsupported type: {into}")
     elif into == collections.defaultdict:
         raise TypeError("to_dict() only accepts initialized defaultdicts")
     return into
