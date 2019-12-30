@@ -1,3 +1,4 @@
+import io
 import os
 import sys
 
@@ -563,3 +564,12 @@ z
         result = df.to_csv(index=False, na_rep="mynull", encoding="ascii")
 
         assert expected == result
+
+    def test_to_csv_timedelta_precision(self):
+        # GH 6783
+        s = pd.Series([1, 1]).astype("timedelta64[ns]")
+        buf = io.StringIO()
+        s.to_csv(buf)
+        result = buf.getvalue()
+        expected = ",0\n0,0 days 00:00:00.000000001\n1,0 days 00:00:00.000000001\n"
+        assert result == expected
