@@ -15,6 +15,11 @@ Nullable integer data type
    IntegerArray is currently experimental. Its API or implementation may
    change without warning.
 
+.. versionchanged:: 1.0.0
+
+   Now uses :attr:`pandas.NA` as the missing value rather
+   than :attr:`numpy.nan`.
+
 In :ref:`missing_data`, we saw that pandas primarily uses ``NaN`` to represent
 missing data. Because ``NaN`` is a float, this forces an array of integers with
 any missing values to become floating point. In some cases, this may not matter

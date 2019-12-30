@@ -265,7 +265,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
     .. versionchanged:: 1.0.0
 
-       Now uses :attr:`pandas.NA` as its missing value, rather
+       Now uses :attr:`pandas.NA` as the missing value rather
        than :attr:`numpy.nan`.
 
     .. warning::
