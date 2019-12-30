@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     from pandas.core.generic import NDFrame  # noqa: F401
     from pandas import Interval  # noqa: F401
 
-# arrary-like
+# array-like
 
 AnyArrayLike = TypeVar("AnyArrayLike", "ExtensionArray", "Index", "Series", np.ndarray)
 ArrayLike = TypeVar("ArrayLike", "ExtensionArray", np.ndarray)
