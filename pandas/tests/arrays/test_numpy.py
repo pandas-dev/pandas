@@ -226,3 +226,25 @@ def test_setitem_no_coercion():
     arr = PandasArray(np.array([1, 2, 3]))
     with pytest.raises(ValueError, match="int"):
         arr[0] = "a"
+
+    # With a value that we do coerce, check that we coerce the value
+    #  and not the underlying array.
+    arr[0] = 2.5
+    assert isinstance(arr[0], (int, np.integer)), type(arr[0])
+
+
+def test_setitem_preserves_views():
+    # GH#28150, see also extension test of the same name
+    arr = PandasArray(np.array([1, 2, 3]))
+    view1 = arr.view()
+    view2 = arr[:]
+    view3 = np.asarray(arr)
+
+    arr[0] = 9
+    assert view1[0] == 9
+    assert view2[0] == 9
+    assert view3[0] == 9
+
+    arr[-1] = 2.5
+    view1[-1] = 5
+    assert arr[-1] == 5
