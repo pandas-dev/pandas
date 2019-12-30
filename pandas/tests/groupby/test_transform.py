@@ -765,9 +765,12 @@ def test_transform_with_non_scalar_group():
     ],
 )
 @pytest.mark.parametrize("agg_func", ["count", "rank", "size"])
-def test_transform_numeric_ret(cols, exp, comp_func, agg_func):
+def test_transform_numeric_ret(cols, exp, comp_func, agg_func, request):
     if agg_func == "size" and isinstance(cols, list):
-        pytest.xfail("'size' transformation not supported with NDFrameGroupy")
+        # https://github.com/pytest-dev/pytest/issues/6300
+        # workaround to xfail fixture/param permutations
+        reason = "'size' transformation not supported with NDFrameGroupy"
+        request.node.add_marker(pytest.mark.xfail(reason=reason))
 
     # GH 19200
     df = pd.DataFrame(
