@@ -389,7 +389,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         """
         raise AbstractMethodError(self)
 
-    def _formatter(self, boxed=False):
+    def _formatter(self, boxed=False, terminal=False):
         # TODO: Remove Datetime & DatetimeTZ formatters.
         return "'{}'".format
 

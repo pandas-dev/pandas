@@ -237,3 +237,15 @@ def test_arrow_roundtrip():
     tm.assert_frame_equal(result, df)
     # ensure the missing value is represented by NA and not np.nan or None
     assert result.loc[2, "a"] is pd.NA
+
+
+def test_na_str():
+    a = pd.array(["a", "NA", None], dtype="string")
+    expected = "<StringArray>\n['a', 'NA', NA]\nLength: 3, dtype: string"
+    assert str(a) == expected
+
+
+def test_na_repr():
+    a = pd.array(["a", "NA", None], dtype="string")
+    expected = "<StringArray>\n['a', 'NA', \x1b[31mNA\x1b[0m]\nLength: 3, dtype: string"
+    assert repr(a) == expected

@@ -1292,8 +1292,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     # ----------------------------------------------------------------------
     # Rendering Methods
-
-    def __repr__(self) -> str:
+    def _repr_base(self, is_repr: bool = True):
         """
         Return a string representation for a particular Series.
         """
@@ -1318,10 +1317,17 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             min_rows=min_rows,
             max_rows=max_rows,
             length=show_dimensions,
+            terminal=is_repr,
         )
         result = buf.getvalue()
 
         return result
+
+    def __repr__(self) -> str:
+        return self._repr_base(is_repr=True)
+
+    def __str__(self) -> str:
+        return self._repr_base(is_repr=False)
 
     def to_string(
         self,
@@ -1335,6 +1341,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         name=False,
         max_rows=None,
         min_rows=None,
+        terminal: bool = False,
     ):
         """
         Render a string representation of the Series.
@@ -1382,6 +1389,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             float_format=float_format,
             min_rows=min_rows,
             max_rows=max_rows,
+            terminal=terminal,
         )
         result = formatter.to_string()
 

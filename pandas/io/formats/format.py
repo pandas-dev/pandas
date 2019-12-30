@@ -64,6 +64,8 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas.core._formats import strip_ansi
+from pandas.core.arrays.base import _check_formatter_signature
 from pandas.core.arrays.datetimes import DatetimeArray
 from pandas.core.arrays.timedeltas import TimedeltaArray
 from pandas.core.base import PandasObject
@@ -240,6 +242,7 @@ class SeriesFormatter:
         dtype: bool = True,
         max_rows: Optional[int] = None,
         min_rows: Optional[int] = None,
+        terminal: bool = False,
     ):
         self.series = series
         self.buf = buf if buf is not None else StringIO()
@@ -256,6 +259,7 @@ class SeriesFormatter:
         self.float_format = float_format
         self.dtype = dtype
         self.adj = _get_adjustment()
+        self.terminal = terminal
 
         self._chk_truncate()
 
@@ -346,6 +350,7 @@ class SeriesFormatter:
             None,
             float_format=self.float_format,
             na_rep=self.na_rep,
+            terminal=self.terminal,
         )
 
     def to_string(self) -> str:
@@ -394,7 +399,7 @@ class TextAdjustment:
         self.encoding = get_option("display.encoding")
 
     def len(self, text: str) -> int:
-        return len(text)
+        return len(strip_ansi(text))
 
     def justify(self, texts: Any, max_len: int, mode: str = "right") -> List[str]:
         return justify(texts, max_len, mode=mode)
@@ -562,6 +567,7 @@ class DataFrameFormatter(TableFormatter):
         render_links: bool = False,
         bold_rows: bool = False,
         escape: bool = True,
+        terminal: bool = False,
     ):
         self.frame = frame
         self.show_index_names = index_names
@@ -596,6 +602,7 @@ class DataFrameFormatter(TableFormatter):
         self.show_dimensions = show_dimensions
         self.table_id = table_id
         self.render_links = render_links
+        self.terminal = terminal
 
         if justify is None:
             self.justify = get_option("display.colheader_justify")
@@ -954,6 +961,7 @@ class DataFrameFormatter(TableFormatter):
             na_rep=self.na_rep,
             space=self.col_space,
             decimal=self.decimal,
+            terminal=self.terminal,
         )
 
     def to_html(
@@ -1106,6 +1114,7 @@ def format_array(
     justify: str = "right",
     decimal: str = ".",
     leading_space: Optional[bool] = None,
+    terminal: bool = False,
 ) -> List[str]:
     """
     Format an array for printing.
@@ -1169,6 +1178,7 @@ def format_array(
         justify=justify,
         decimal=decimal,
         leading_space=leading_space,
+        terminal=terminal,
     )
 
     return fmt_obj.get_result()
@@ -1188,6 +1198,7 @@ class GenericArrayFormatter:
         quoting: Optional[int] = None,
         fixed_width: bool = True,
         leading_space: Optional[bool] = None,
+        terminal: bool = False,
     ):
         self.values = values
         self.digits = digits
@@ -1200,6 +1211,7 @@ class GenericArrayFormatter:
         self.quoting = quoting
         self.fixed_width = fixed_width
         self.leading_space = leading_space
+        self.terminal = terminal
 
     def get_result(self) -> List[str]:
         fmt_values = self._format_strings()
@@ -1230,7 +1242,7 @@ class GenericArrayFormatter:
                     if x is None:
                         return "None"
                     elif x is NA:
-                        return "NA"
+                        return formatter(x)
                     elif x is NaT or np.isnat(x):
                         return "NaT"
                 except (TypeError, ValueError):
@@ -1482,7 +1494,10 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
         if isinstance(values, (ABCIndexClass, ABCSeries)):
             values = values._values
 
-        formatter = values._formatter(boxed=True)
+        kwargs = _check_formatter_signature(
+            values._formatter, boxed=True, terminal=self.terminal
+        )
+        formatter = values._formatter(**kwargs)
 
         if is_categorical_dtype(values.dtype):
             # Categorical is special for now, so that we can preserve tzinfo
@@ -1499,6 +1514,7 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
             space=self.space,
             justify=self.justify,
             leading_space=self.leading_space,
+            terminal=self.terminal,
         )
         return fmt_values
 
@@ -1736,14 +1752,15 @@ def _make_fixed_width(
     minimum: Optional[int] = None,
     adj: Optional[TextAdjustment] = None,
 ) -> List[str]:
-
+    # https://stackoverflow.com/questions/14693701/how-can-i-remove-the-ansi-escape-sequences-from-a-string-in-python
     if len(strings) == 0 or justify == "all":
         return strings
+    escaped = [strip_ansi(x) for x in strings]
 
     if adj is None:
         adj = _get_adjustment()
 
-    max_len = max(adj.len(x) for x in strings)
+    max_len = max(adj.len(x) for x in escaped)
 
     if minimum is not None:
         max_len = max(minimum, max_len)
@@ -1752,13 +1769,13 @@ def _make_fixed_width(
     if conf_max is not None and max_len > conf_max:
         max_len = conf_max
 
-    def just(x):
+    def just(x, y):
         if conf_max is not None:
-            if (conf_max > 3) & (adj.len(x) > max_len):
+            if (conf_max > 3) & (adj.len(y) > max_len):
                 x = x[: max_len - 3] + "..."
         return x
 
-    strings = [just(x) for x in strings]
+    strings = [just(x, y) for x, y in zip(strings, escaped)]
     result = adj.justify(strings, max_len, mode=justify)
     return result
 

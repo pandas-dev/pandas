@@ -5,8 +5,10 @@
    This is an experimental API and subject to breaking changes
    without warning.
 """
+import inspect
 import operator
 from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
+import warnings
 
 import numpy as np
 
@@ -910,20 +912,35 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
     # Printing
     # ------------------------------------------------------------------------
-
-    def __repr__(self) -> str:
+    def _repr_base(self, is_repr=True):
         from pandas.io.formats.printing import format_object_summary
 
         # the short repr has no trailing newline, while the truncated
         # repr does. So we include a newline in our template, and strip
         # any trailing newlines from format_object_summary
+
+        if is_repr:
+            terminal = True
+        else:
+            terminal = False
+        # compatibility for older EAs
+        kwargs = _check_formatter_signature(self._formatter, terminal=terminal)
+
         data = format_object_summary(
-            self, self._formatter(), indent_for_name=False
+            self, self._formatter(**kwargs), indent_for_name=False
         ).rstrip(", \n")
         class_name = f"<{type(self).__name__}>\n"
         return f"{class_name}{data}\nLength: {len(self)}, dtype: {self.dtype}"
 
-    def _formatter(self, boxed: bool = False) -> Callable[[Any], Optional[str]]:
+    def __repr__(self) -> str:
+        return self._repr_base(is_repr=True)
+
+    def __str__(self):
+        return self._repr_base(is_repr=False)
+
+    def _formatter(
+        self, boxed: bool = False, terminal: bool = False
+    ) -> Callable[[Any], Optional[str]]:
         """Formatting function for scalar values.
 
         This is used in the default '__repr__'. The returned formatting
@@ -937,6 +954,12 @@ class ExtensionArray:
             itself (False). This may be useful if you want scalar values
             to appear differently within a Series versus on its own (e.g.
             quoted or not).
+        terminal : bool, default False
+            Indicator whether the result is being printed to a terminal
+            screen. This may be used to detect whether ANSI codes should
+            be used to style terminal output.
+
+            .. versionadded:: 1.0.0
 
         Returns
         -------
@@ -1203,3 +1226,13 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
     @classmethod
     def _create_comparison_method(cls, op):
         return cls._create_method(op, coerce_to_dtype=False)
+
+
+def _check_formatter_signature(formatter, **kwargs):
+    if len(inspect.signature(formatter).parameters) == 1:
+        warnings.warn(
+            "'_formatter' signature is incorrect. Ensure it matches "
+            "the base class' signature."
+        )
+        kwargs.pop("terminal", None)
+    return kwargs

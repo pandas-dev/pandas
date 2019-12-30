@@ -203,3 +203,19 @@ class TestTableSchemaRepr:
             assert formatters[mimetype].enabled
             # smoke test that it works
             self.display_formatter.format(cf)
+
+
+@pytest.mark.parametrize("max_len", [0, 1, 4, 5, 6, 10, 100])
+@pytest.mark.parametrize("method", ["ljust", "rjust", "center"])
+@pytest.mark.parametrize("value", ["N", "NA"])
+def test_justify(value, method, max_len):
+    ansi_value = f"\x1b[31m{value}\x1b[0m"
+    result = getattr(printing, method)(ansi_value, max_len)
+    expected = getattr(value, method)(max_len)
+    n_non_printed = len(ansi_value) - len(value)
+
+    assert (len(result) - n_non_printed) == len(expected)
+
+    result = getattr(printing, method)(value, max_len)
+    expected = getattr(value, method)(max_len)
+    assert result == expected

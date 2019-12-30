@@ -1,7 +1,7 @@
 """
 Printing tools.
 """
-
+import math
 import sys
 from typing import (
     Any,
@@ -18,6 +18,8 @@ from typing import (
 from pandas._config import get_option
 
 from pandas.core.dtypes.inference import is_sequence
+
+from pandas.core._formats import strip_ansi
 
 EscapeChars = Union[Mapping[str, str], Iterable[str]]
 
@@ -57,16 +59,50 @@ def adjoin(space: int, *lists: List[str], **kwargs) -> str:
     return "\n".join(out_lines)
 
 
+def ljust(x: str, max_len: int):
+    ansi_len = len(strip_ansi(x))
+    padding = max_len - ansi_len
+    if padding > 0:
+        return f'{x}{" " * padding}'
+    return x
+
+
+def rjust(x: str, max_len: int):
+    ansi_len = len(strip_ansi(x))
+    padding = max_len - ansi_len
+    if padding > 0:
+        return f"{padding * ' '}" + x
+    return x
+
+
+def center(x: str, max_len: int):
+    ansi_len = len(strip_ansi(x))
+    padding = max_len - ansi_len
+    if padding > 0:
+        if padding % 2 and ansi_len % 2:
+            # uneven, extra on the right
+            rpadding = math.ceil(padding / 2)
+            lpadding = rpadding - 1
+        elif padding % 2:
+            # uneven, extra on the left
+            lpadding = math.ceil(padding / 2)
+            rpadding = lpadding - 1
+        else:
+            lpadding = rpadding = padding // 2
+        return f"{lpadding * ' '}{x}{rpadding * ' '}"
+    return x
+
+
 def justify(texts: Iterable[str], max_len: int, mode: str = "right") -> List[str]:
     """
     Perform ljust, center, rjust against string or list-like
     """
     if mode == "left":
-        return [x.ljust(max_len) for x in texts]
+        return [ljust(x, max_len) for x in texts]
     elif mode == "center":
-        return [x.center(max_len) for x in texts]
+        return [center(x, max_len) for x in texts]
     else:
-        return [x.rjust(max_len) for x in texts]
+        return [rjust(x, max_len) for x in texts]
 
 
 # Unicode consolidation

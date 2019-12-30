@@ -459,7 +459,7 @@ class Categorical(ExtensionArray, PandasObject):
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         return Categorical(scalars, dtype=dtype)
 
-    def _formatter(self, boxed=False):
+    def _formatter(self, boxed=False, terminal=False):
         # Defer to CategoricalFormatter's formatter.
         return None
 

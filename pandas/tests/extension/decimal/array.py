@@ -164,7 +164,7 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
     def _na_value(self):
         return decimal.Decimal("NaN")
 
-    def _formatter(self, boxed=False):
+    def _formatter(self, boxed=False, terminal=False):
         if boxed:
             return "Decimal: {0}".format
         return repr

@@ -655,7 +655,7 @@ class DataFrame(NDFrame):
             self._repr_fits_horizontal_() and self._repr_fits_vertical_()
         )
 
-    def __repr__(self) -> str:
+    def _repr_base(self, is_repr: bool = True) -> str:
         """
         Return a string representation for a particular DataFrame.
         """
@@ -681,9 +681,16 @@ class DataFrame(NDFrame):
             line_width=width,
             max_colwidth=max_colwidth,
             show_dimensions=show_dimensions,
+            terminal=is_repr,
         )
 
         return buf.getvalue()
+
+    def __repr__(self) -> str:
+        return self._repr_base(is_repr=True)
+
+    def __str__(self) -> str:
+        return self._repr_base(is_repr=False)
 
     def _repr_html_(self) -> Optional[str]:
         """
@@ -761,6 +768,7 @@ class DataFrame(NDFrame):
         line_width: Optional[int] = None,
         max_colwidth: Optional[int] = None,
         encoding: Optional[str] = None,
+        terminal: bool = False,
     ) -> Optional[str]:
         """
         Render a DataFrame to a console-friendly tabular output.
@@ -812,6 +820,7 @@ class DataFrame(NDFrame):
                 show_dimensions=show_dimensions,
                 decimal=decimal,
                 line_width=line_width,
+                terminal=terminal,
             )
             return formatter.to_string(buf=buf, encoding=encoding)
 

@@ -457,7 +457,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     # ----------------------------------------------------------------
     # Rendering Methods
 
-    def _formatter(self, boxed=False):
+    def _formatter(self, boxed=False, terminal=False):
         from pandas.io.formats.format import _get_format_timedelta64
 
         return _get_format_timedelta64(self, box=True)

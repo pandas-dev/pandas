@@ -27,6 +27,7 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import nanops, ops
+from pandas.core._formats import NAFormatterMixin
 from pandas.core.algorithms import take
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
 import pandas.core.common as com
@@ -197,7 +198,7 @@ def coerce_to_array(values, mask=None, copy: bool = False):
     return values, mask
 
 
-class BooleanArray(ExtensionArray, ExtensionOpsMixin):
+class BooleanArray(NAFormatterMixin, ExtensionArray, ExtensionOpsMixin):
     """
     Array of boolean (True/False) data with missing values.
 
@@ -294,9 +295,6 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
     @classmethod
     def _from_factorized(cls, values, original: "BooleanArray"):
         return cls._from_sequence(values, dtype=original.dtype)
-
-    def _formatter(self, boxed=False):
-        return str
 
     @property
     def _hasna(self) -> bool:

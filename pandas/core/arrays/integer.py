@@ -24,6 +24,7 @@ from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import nanops, ops
+from pandas.core._formats import NAFormatterMixin
 from pandas.core.algorithms import take
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
 import pandas.core.common as com
@@ -259,7 +260,7 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
     return values, mask
 
 
-class IntegerArray(ExtensionArray, ExtensionOpsMixin):
+class IntegerArray(NAFormatterMixin, ExtensionArray, ExtensionOpsMixin):
     """
     Array of integer (optional missing) values.
 

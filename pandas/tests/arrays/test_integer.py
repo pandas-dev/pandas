@@ -88,19 +88,46 @@ def test_repr_dtype(dtype, expected):
     assert repr(dtype) == expected
 
 
-def test_repr_array():
-    result = repr(integer_array([1, None, 3]))
-    expected = "<IntegerArray>\n[1, NA, 3]\nLength: 3, dtype: Int64"
-    assert result == expected
+def test_na_str():
+    a = pd.array([1, 2, None], dtype="Int64")
+    expected = "<IntegerArray>\n[1, 2, NA]\nLength: 3, dtype: Int64"
+    assert str(a) == expected
+
+
+def test_na_repr():
+    a = pd.array([1, 2, None], dtype="Int64")
+    expected = "<IntegerArray>\n[1, 2, \x1b[31mNA\x1b[0m]\nLength: 3, dtype: Int64"
+    assert repr(a) == expected
+
+
+def test_series_str():
+    s = pd.Series([1, 2, None], dtype="Int64")
+    expected = "0     1\n1     2\n2    NA\ndtype: Int64"
+    assert str(s) == expected
+
+    s = pd.Series([1, 2, None, 11111111111111], dtype="Int64")
+    expected = "0                 1\n1                 2\n2                NA\n3    11111111111111\ndtype: Int64"
+    assert str(s) == expected
+
+
+def test_series_repr():
+    s = pd.Series([1, 2, None], dtype="Int64")
+    expected = "0     1         \n1     2         \n2    \x1b[31mNA\x1b[0m         \ndtype: Int64"
+    assert repr(s) == expected
+
+    s = pd.Series([1, 2, None, 11111111111111], dtype="Int64")
+    expected = "0                 1         \n1                 2         \n2                \x1b[31mNA\x1b[0m         \n3    11111111111111         \ndtype: Int64"
+    assert repr(s) == expected
 
 
 def test_repr_array_long():
     data = integer_array([1, 2, None] * 1000)
+    NA = "\x1b[31mNA\x1b[0m"
     expected = (
         "<IntegerArray>\n"
-        "[ 1,  2, NA,  1,  2, NA,  1,  2, NA,  1,\n"
+        f"[ 1,  2, {NA},  1,  2, {NA},  1,  2, {NA},  1,\n"
         " ...\n"
-        " NA,  1,  2, NA,  1,  2, NA,  1,  2, NA]\n"
+        f" {NA},  1,  2, {NA},  1,  2, {NA},  1,  2, {NA}]\n"
         "Length: 3000, dtype: Int64"
     )
     result = repr(data)
@@ -641,10 +668,9 @@ class TestCasting:
 
 
 def test_frame_repr(data_missing):
-
     df = pd.DataFrame({"A": data_missing})
     result = repr(df)
-    expected = "    A\n0  NA\n1   1"
+    expected = "    A         \n0  \x1b[31mNA\x1b[0m         \n1   1         "
     assert result == expected
 
 

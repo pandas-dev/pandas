@@ -1,4 +1,5 @@
 import operator
+import textwrap
 
 import numpy as np
 import pytest
@@ -783,3 +784,65 @@ def test_arrow_roundtrip():
     result = table.to_pandas()
     assert isinstance(result["a"].dtype, pd.BooleanDtype)
     tm.assert_frame_equal(result, df)
+
+
+def test_na_str():
+    a = pd.array([True, False, None], dtype="boolean")
+    expected = "<BooleanArray>\n[True, False, NA]\nLength: 3, dtype: boolean"
+    assert str(a) == expected
+
+    # mult-line
+    a = pd.array([True, False, None] * 5, dtype="boolean")
+    expected = textwrap.dedent(
+        """\
+    <BooleanArray>
+    [ True, False,    NA,  True, False,    NA,  True, False,    NA,  True, False,
+        NA,  True, False,    NA]
+    Length: 15, dtype: boolean"""
+    )
+    assert str(a) == expected
+
+    # multi-line, truncated
+    a = pd.array([True, False, None] * 100, dtype="boolean")
+    expected = textwrap.dedent(
+        """\
+    <BooleanArray>
+    [ True, False,    NA,  True, False,    NA,  True, False,    NA,  True,
+     ...
+        NA,  True, False,    NA,  True, False,    NA,  True, False,    NA]
+    Length: 300, dtype: boolean"""
+    )
+    assert str(a) == expected
+
+
+def test_na_repr():
+    a = pd.array([True, False, None], dtype="boolean")
+    expected = (
+        "<BooleanArray>\n[True, False, \x1b[31mNA\x1b[0m]\nLength: 3, dtype: boolean"
+    )
+    assert repr(a) == expected
+
+    a = pd.array([True, False, None] * 5, dtype="boolean")
+    expected = textwrap.dedent(
+        """\
+    <BooleanArray>
+    [ True, False, \x1b[31mNA\x1b[0m,  True, False, \x1b[31mNA\x1b[0m,  \
+True, False, \x1b[31mNA\x1b[0m,  True, False, \x1b[31mNA\x1b[0m,  True,
+     False, \x1b[31mNA\x1b[0m]
+    Length: 15, dtype: boolean"""
+    )
+    assert repr(a) == expected
+
+    # multi-line, truncated
+    a = pd.array([True, False, None] * 100, dtype="boolean")
+    expected = textwrap.dedent(
+        """\
+    <BooleanArray>
+    [ True, False, \x1b[31mNA\x1b[0m,  True, False, \x1b[31mNA\x1b[0m,  \
+True, False, \x1b[31mNA\x1b[0m,  True,
+     ...
+     \x1b[31mNA\x1b[0m,  True, False, \x1b[31mNA\x1b[0m,  True, False, \
+\x1b[31mNA\x1b[0m,  True, False, \x1b[31mNA\x1b[0m]
+    Length: 300, dtype: boolean"""
+    )
+    assert repr(a) == expected
