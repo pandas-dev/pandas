@@ -360,12 +360,14 @@ def test_hash_with_tuple():
     #  apparently a numpy bug github.com/numpy/numpy/issues/9441
 
     df = pd.DataFrame({"data": [tuple("1"), tuple("2")]})
-
-    hash_pandas_object(df)
+    result = hash_pandas_object(df)
+    expected = pd.Series([10345501319357378243, 8331063931016360761], dtype=np.uint64)
+    tm.assert_series_equal(result, expected)
 
     df2 = pd.DataFrame({"data": [tuple([1]), tuple([2])]})
-
-    hash_pandas_object(df2)
+    result = hash_pandas_object(df2)
+    expected = pd.Series([9408946347443669104, 3278256261030523334], dtype=np.uint64)
+    tm.assert_series_equal(result, expected)
 
     # require that the elements of such tuples are themselves hashable
 
