@@ -3,12 +3,10 @@ import datetime
 import numpy as np
 from pandas._libs.tslibs.timestamps import Timestamp
 
-from pandas import DataFrame, Series, to_numeric
 import pandas.util.testing as tm
-
-from .pandas_vb_common import lib, numeric_dtypes
-
+from pandas import DataFrame, Series, to_numeric
 from pandas.core.common import maybe_box_datetimelike
+from .pandas_vb_common import lib, numeric_dtypes
 
 
 class NumericInferOps:
@@ -136,4 +134,3 @@ class MaybeBoxDatetimelike:
         maybe_box_datetimelike(self.py_timestamp)
 
 
-from .pandas_vb_common import setup  # noqa: F401 isort:skip
