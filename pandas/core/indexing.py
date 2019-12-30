@@ -4,6 +4,7 @@ import numpy as np
 
 from pandas._libs.indexing import _NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
+from pandas._typing import AnyArrayLike
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender
 
@@ -21,7 +22,6 @@ from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCDataFrame, ABCMultiIndex, ABCSeries
 from pandas.core.dtypes.missing import _infer_fill_value, isna
 
-from pandas._typing import AnyArrayLike
 import pandas.core.common as com
 from pandas.core.indexers import is_list_like_indexer, length_of_indexer
 from pandas.core.indexes.api import Index, InvalidIndexError
