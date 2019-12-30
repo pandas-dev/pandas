@@ -1,10 +1,9 @@
 import datetime
 
 import numpy as np
-from pandas._libs.tslibs.timestamps import Timestamp
 
 import pandas.util.testing as tm
-from pandas import DataFrame, Series, to_numeric
+from pandas import DataFrame, Series, Timestamp, to_numeric
 from pandas.core.common import maybe_box_datetimelike
 from .pandas_vb_common import lib, numeric_dtypes
 
