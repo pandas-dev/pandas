@@ -34,7 +34,7 @@ ArrayLike = TypeVar("ArrayLike", "ExtensionArray", np.ndarray)
 
 PythonScalar = Union[str, int, float, bool]
 DatetimeLikeScalar = TypeVar("DatetimeLikeScalar", "Period", "Timestamp", "Timedelta")
-PandasScalar = Union[DatetimeLikeScalar, "Interval"]
+PandasScalar = Union["Period", "Timestamp", "Timedelta", "Interval"]
 Scalar = Union[PythonScalar, PandasScalar]
 
 # other
