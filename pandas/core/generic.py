@@ -11096,7 +11096,13 @@ def _make_cum_function(
             axis = self._get_axis_number(axis)
 
         if axis == 1:
-            return cum_func(self.T, axis=0, skipna=skipna, *args, **kwargs).T
+            # pandas\core\generic.py:11099:20: error: "cum_func" gets multiple values
+            #  for keyword argument "axis"  [misc]
+            # pandas\core\generic.py:11099:20: error: "cum_func" gets multiple values
+            #  for keyword argument "skipna"  [misc]
+            return cum_func(  # type: ignore
+                self.T, axis=0, skipna=skipna, *args, **kwargs
+            ).T
 
         def na_accum_func(blk_values):
             # We will be applying this function to block values
