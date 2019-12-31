@@ -1984,7 +1984,7 @@ class DataFrame(NDFrame):
     @Substitution(klass="DataFrame")
     @Appender(_shared_docs["to_markdown"])
     def to_markdown(
-        self, buf: Optional[IO[str]] = None, mode: Optional[str] = None, **kwargs,
+        self, buf: Optional[IO[str]] = None, mode: Optional[str] = None, **kwargs
     ) -> Optional[str]:
         kwargs.setdefault("headers", "keys")
         kwargs.setdefault("tablefmt", "pipe")
@@ -4827,6 +4827,7 @@ class DataFrame(NDFrame):
         kind="quicksort",
         na_position="last",
         sort_remaining=True,
+        ignore_index=False,
     ):
 
         # TODO: this can be combined with Series.sort_index impl as
@@ -4876,6 +4877,9 @@ class DataFrame(NDFrame):
 
         # reconstruct axis if needed
         new_data.axes[baxis] = new_data.axes[baxis]._sort_levels_monotonic()
+
+        if ignore_index:
+            new_data.axes[1] = ibase.default_index(len(indexer))
 
         if inplace:
             return self._update_inplace(new_data)

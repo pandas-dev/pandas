@@ -4178,6 +4178,7 @@ class NDFrame(PandasObject, SelectionMixin):
         kind: str = "quicksort",
         na_position: str = "last",
         sort_remaining: bool_t = True,
+        ignore_index: bool_t = False,
     ):
         """
         Sort object by labels (along an axis).
@@ -4204,6 +4205,10 @@ class NDFrame(PandasObject, SelectionMixin):
         sort_remaining : bool, default True
             If True and sorting by level and index is multilevel, sort by other
             levels too (in order) after sorting by specified level.
+        ignore_index: bool, default False
+            If True, the resulting axis will be labeled 0, 1, …, n - 1.
+
+            .. versionadded:: 1.0.0
 
         Returns
         -------

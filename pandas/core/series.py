@@ -1433,7 +1433,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     @Substitution(klass="Series")
     @Appender(_shared_docs["to_markdown"])
     def to_markdown(
-        self, buf: Optional[IO[str]] = None, mode: Optional[str] = None, **kwargs,
+        self, buf: Optional[IO[str]] = None, mode: Optional[str] = None, **kwargs
     ) -> Optional[str]:
         return self.to_frame().to_markdown(buf, mode, **kwargs)
 
@@ -2880,6 +2880,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         kind="quicksort",
         na_position="last",
         sort_remaining=True,
+        ignore_index=False,
     ):
         """
         Sort Series by index labels.
@@ -2908,6 +2909,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         sort_remaining : bool, default True
             If True and sorting by level and index is multilevel, sort by other
             levels too (in order) after sorting by specified level.
+        ignore_index: bool, default False
+            If True, the resulting axis will be labeled 0, 1, …, n - 1.
+
+            .. versionadded:: 1.0.0
 
         Returns
         -------
@@ -3034,6 +3039,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         new_values = self._values.take(indexer)
         result = self._constructor(new_values, index=new_index)
+
+        if ignore_index:
+            result.index = ibase.default_index(len(result))
 
         if inplace:
             self._update_inplace(result)
@@ -4395,9 +4403,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     hist = pandas.plotting.hist_series
 
 
-Series._setup_axes(
-    ["index"], docs={"index": "The index (axis labels) of the Series."},
-)
+Series._setup_axes(["index"], docs={"index": "The index (axis labels) of the Series."})
 Series._add_numeric_operations()
 Series._add_series_or_dataframe_operations()
 
