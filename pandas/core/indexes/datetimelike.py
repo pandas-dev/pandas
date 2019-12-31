@@ -82,10 +82,6 @@ class DatetimeTimedeltaMixin:
     _is_monotonic_decreasing = Index.is_monotonic_decreasing
     _is_unique = Index.is_unique
 
-    @property
-    def is_all_dates(self) -> bool:
-        return True
-
     def _set_freq(self, freq):
         """
         Set the _freq attribute on our underlying DatetimeArray.
@@ -261,6 +257,10 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     _maybe_mask_results = ea_passthrough(DatetimeLikeArrayMixin._maybe_mask_results)
     __iter__ = ea_passthrough(DatetimeLikeArrayMixin.__iter__)
     mean = ea_passthrough(DatetimeLikeArrayMixin.mean)
+
+    @property
+    def is_all_dates(self) -> bool:
+        return True
 
     @property
     def freq(self):
