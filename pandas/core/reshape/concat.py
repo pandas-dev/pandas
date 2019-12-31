@@ -2,7 +2,7 @@
 concat routines
 """
 
-from typing import Hashable, List, Optional
+from typing import Hashable, List, Optional, cast
 
 import numpy as np
 
@@ -482,7 +482,7 @@ class _Concatenator:
             new_axes[i] = self._get_comb_axis(i)
 
         new_axes[self.axis] = self._get_concat_axis()
-        return new_axes
+        return cast(List[Index], new_axes)
 
     def _get_comb_axis(self, i: int) -> Index:
         data_axis = self.objs[0]._get_block_manager_axis(i)
