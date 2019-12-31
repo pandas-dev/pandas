@@ -8,11 +8,10 @@ This will be replaced with a message indicating the number of
 code contributors and commits, and then list each contributor
 individually.
 """
+from announce import build_components
 from docutils import nodes
 from docutils.parsers.rst import Directive
 import git
-
-from announce import build_components
 
 
 class ContributorsDirective(Directive):
@@ -28,7 +27,7 @@ class ContributorsDirective(Directive):
         except git.GitCommandError as exc:
             return [
                 self.state.document.reporter.warning(
-                    "Cannot find contributors for range '{}': {}".format(range_, exc),
+                    f"Cannot find contributors for range {repr(range_)}: {exc}",
                     line=self.lineno,
                 )
             ]

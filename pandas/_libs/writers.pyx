@@ -1,12 +1,8 @@
 import cython
 from cython import Py_ssize_t
 
-from cpython cimport PyBytes_GET_SIZE, PyUnicode_GET_SIZE
-
-try:
-    from cpython cimport PyString_GET_SIZE
-except ImportError:
-    from cpython cimport PyUnicode_GET_SIZE as PyString_GET_SIZE
+from cpython.bytes cimport PyBytes_GET_SIZE
+from cpython.unicode cimport PyUnicode_GET_SIZE
 
 import numpy as np
 from numpy cimport ndarray, uint8_t
@@ -74,7 +70,7 @@ def write_csv_rows(list data, ndarray data_index,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def convert_json_to_lines(object arr):
+def convert_json_to_lines(arr: object) -> str:
     """
     replace comma separated json with line feeds, paying special attention
     to quotes & brackets
@@ -125,18 +121,25 @@ def max_len_string_array(pandas_string[:] arr) -> Py_ssize_t:
 
     for i in range(length):
         val = arr[i]
-        if isinstance(val, str):
-            l = PyString_GET_SIZE(val)
-        elif isinstance(val, bytes):
-            l = PyBytes_GET_SIZE(val)
-        elif isinstance(val, unicode):
-            l = PyUnicode_GET_SIZE(val)
+        l = word_len(val)
 
         if l > m:
             m = l
 
     return m
 
+
+cpdef inline Py_ssize_t word_len(object val):
+    """ return the maximum length of a string or bytes value """
+    cdef:
+        Py_ssize_t l = 0
+
+    if isinstance(val, str):
+        l = PyUnicode_GET_SIZE(val)
+    elif isinstance(val, bytes):
+        l = PyBytes_GET_SIZE(val)
+
+    return l
 
 # ------------------------------------------------------------------
 # PyTables Helpers

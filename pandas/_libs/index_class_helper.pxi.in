@@ -29,7 +29,7 @@ dtypes = [('Float64', 'float64', 'float64_t', 'Float64', 'float64'),
 
 cdef class {{name}}Engine(IndexEngine):
 
-    cdef _make_hash_table(self, n):
+    cdef _make_hash_table(self, Py_ssize_t n):
         return _hash.{{hashtable_name}}HashTable(n)
 
     {{if name not in {'Float64', 'Float32'} }}
@@ -38,7 +38,7 @@ cdef class {{name}}Engine(IndexEngine):
             raise KeyError(val)
     {{endif}}
 
-    cpdef _call_map_locations(self, values):
+    cdef void _call_map_locations(self, values):
         # self.mapping is of type {{hashtable_name}}HashTable,
         # so convert dtype of values
         self.mapping.map_locations(algos.ensure_{{hashtable_dtype}}(values))
@@ -60,7 +60,16 @@ cdef class {{name}}Engine(IndexEngine):
 
         # A view is needed for some subclasses, such as PeriodEngine:
         values = self._get_index_values().view('{{dtype}}')
-        indexer = values == val
+        try:
+            with warnings.catch_warnings():
+                # e.g. if values is float64 and `val` is a str, suppress warning
+                warnings.filterwarnings("ignore", category=FutureWarning)
+                indexer = values == val
+        except TypeError:
+            # if the equality above returns a bool, cython will raise TypeError
+            #  when trying to cast it to ndarray
+            raise KeyError(val)
+
         found = np.where(indexer)[0]
         count = len(found)
 

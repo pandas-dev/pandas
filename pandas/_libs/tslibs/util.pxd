@@ -1,14 +1,10 @@
 
-from cpython cimport PyTypeObject
+from cpython.object cimport PyTypeObject
 
 cdef extern from *:
     """
     PyObject* char_to_string(const char* data) {
-    #if PY_VERSION_HEX >= 0x03000000
         return PyUnicode_FromString(data);
-    #else
-        return PyString_FromString(data);
-    #endif
     }
     """
     object char_to_string(const char* data)
@@ -18,7 +14,6 @@ cdef extern from "Python.h":
     # Note: importing extern-style allows us to declare these as nogil
     # functions, whereas `from cpython cimport` does not.
     bint PyUnicode_Check(object obj) nogil
-    bint PyString_Check(object obj) nogil
     bint PyBool_Check(object obj) nogil
     bint PyFloat_Check(object obj) nogil
     bint PyComplex_Check(object obj) nogil
@@ -223,7 +218,7 @@ cdef inline bint is_nan(object val):
     return is_complex_object(val) and val != val
 
 
-cdef inline const char* get_c_string_buf_and_size(object py_string,
+cdef inline const char* get_c_string_buf_and_size(str py_string,
                                                   Py_ssize_t *length):
     """
     Extract internal char* buffer of unicode or bytes object `py_string` with
@@ -236,7 +231,7 @@ cdef inline const char* get_c_string_buf_and_size(object py_string,
 
     Parameters
     ----------
-    py_string : object
+    py_string : str
     length : Py_ssize_t*
 
     Returns
@@ -246,12 +241,9 @@ cdef inline const char* get_c_string_buf_and_size(object py_string,
     cdef:
         const char *buf
 
-    if PyUnicode_Check(py_string):
-        buf = PyUnicode_AsUTF8AndSize(py_string, length)
-    else:
-        PyBytes_AsStringAndSize(py_string, <char**>&buf, length)
+    buf = PyUnicode_AsUTF8AndSize(py_string, length)
     return buf
 
 
-cdef inline const char* get_c_string(object py_string):
+cdef inline const char* get_c_string(str py_string):
     return get_c_string_buf_and_size(py_string, NULL)

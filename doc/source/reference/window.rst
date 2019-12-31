@@ -5,7 +5,6 @@
 ======
 Window
 ======
-.. currentmodule:: pandas.core.window
 
 Rolling objects are returned by ``.rolling`` calls: :func:`pandas.DataFrame.rolling`, :func:`pandas.Series.rolling`, etc.
 Expanding objects are returned by ``.expanding`` calls: :func:`pandas.DataFrame.expanding`, :func:`pandas.Series.expanding`, etc.
@@ -13,6 +12,8 @@ EWM objects are returned by ``.ewm`` calls: :func:`pandas.DataFrame.ewm`, :func:
 
 Standard moving window functions
 --------------------------------
+.. currentmodule:: pandas.core.window.rolling
+
 .. autosummary::
    :toctree: api/
 
@@ -33,11 +34,15 @@ Standard moving window functions
    Rolling.quantile
    Window.mean
    Window.sum
+   Window.var
+   Window.std
 
 .. _api.functions_expanding:
 
 Standard expanding window functions
 -----------------------------------
+.. currentmodule:: pandas.core.window.expanding
+
 .. autosummary::
    :toctree: api/
 
@@ -59,6 +64,8 @@ Standard expanding window functions
 
 Exponentially-weighted moving window functions
 ----------------------------------------------
+.. currentmodule:: pandas.core.window.ewm
+
 .. autosummary::
    :toctree: api/
 
@@ -67,3 +74,14 @@ Exponentially-weighted moving window functions
    EWM.var
    EWM.corr
    EWM.cov
+
+Window Indexer
+--------------
+.. currentmodule:: pandas
+
+Base class for defining custom window boundaries.
+
+.. autosummary::
+   :toctree: api/
+
+   api.indexers.BaseIndexer

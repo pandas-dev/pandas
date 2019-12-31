@@ -4,7 +4,7 @@ import pytest
 import pandas as pd
 from pandas import DatetimeIndex, Index, NaT, PeriodIndex, Series
 from pandas.core.arrays import PeriodArray
-from pandas.tests.test_base import Ops
+from pandas.tests.base.test_ops import Ops
 import pandas.util.testing as tm
 
 
@@ -343,5 +343,5 @@ class TestPeriodIndexOps(Ops):
             idx.freq
 
         # warning for setter
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(AttributeError, match="can't set attribute"):
             idx.freq = pd.offsets.Day()
