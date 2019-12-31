@@ -3,7 +3,7 @@ Provide user facing operators for doing the split part of the
 split-apply-combine paradigm.
 """
 
-from typing import Generic, Hashable, List, Optional, Tuple
+from typing import Dict, Generic, Hashable, List, Optional, Tuple
 
 import numpy as np
 
@@ -418,7 +418,7 @@ class Grouping:
             self._group_index = uniques
 
     @cache_readonly
-    def groups(self) -> dict:
+    def groups(self) -> Dict[Hashable, np.ndarray]:
         return self.index.groupby(Categorical.from_codes(self.codes, self.group_index))
 
 

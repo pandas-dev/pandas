@@ -1459,7 +1459,7 @@ class HDFStore:
                 data = self.select(k)
                 if isinstance(s, Table):
 
-                    index: Union[bool, list] = False
+                    index: Union[bool, List[str]] = False
                     if propindexes:
                         index = [a.name for a in s.axes if a.is_indexed]
                     new_store.append(

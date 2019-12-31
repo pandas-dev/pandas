@@ -3,6 +3,7 @@ import operator
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
+    Dict,
     FrozenSet,
     Hashable,
     Optional,
@@ -4611,7 +4612,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return self.astype("object"), other.astype("object")
         return self, other
 
-    def groupby(self, values):
+    def groupby(self, values) -> Dict[Hashable, np.ndarray]:
         """
         Group the index labels by a given array of values.
 
@@ -4622,7 +4623,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        groups : dict
+        dict
             {group name -> group labels}
         """
 
