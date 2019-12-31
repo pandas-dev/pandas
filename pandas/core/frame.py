@@ -1929,14 +1929,17 @@ class DataFrame(NDFrame):
         >>> df.to_stata('animals.dta')  # doctest: +SKIP
         """
         kwargs = {}
-        if version not in (114, 117):
-            raise ValueError("Only formats 114 and 117 supported.")
+        if version not in (114, 117, 118):
+            raise ValueError("Only formats 114, 117 and 118 are supported.")
         if version == 114:
             if convert_strl is not None:
-                raise ValueError("strl support is only available when using format 117")
+                raise ValueError("strl is not supported in format 114")
             from pandas.io.stata import StataWriter as statawriter
         else:
-            from pandas.io.stata import StataWriter117 as statawriter
+            if version == 117:
+                from pandas.io.stata import StataWriter117 as statawriter
+            else:
+                from pandas.io.stata import StataWriter118 as statawriter
 
             kwargs["convert_strl"] = convert_strl
 
