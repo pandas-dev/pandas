@@ -37,7 +37,7 @@ jobs:
           PATTERN: "not slow and not network"
 
         32bit:
-          ENV_FILE: ci/deps/azure-36-32bit.yaml
+          ENV_FILE: ci/deps/32bit.yml
           PATTERN: "not slow and not network and not clipboard"
           BITS32: "yes"
 
