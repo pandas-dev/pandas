@@ -442,6 +442,9 @@ class Index(IndexOpsMixin, PandasObject):
                             pass
             if kwargs:
                 raise TypeError(f"Unexpected keyword arguments {repr(set(kwargs))}")
+            if subarr.ndim > 1:
+                # GH#13601, GH#20285, GH#27125
+                raise ValueError("Index data must be 1-dimensional")
             return cls._simple_new(subarr, name, **kwargs)
 
         elif hasattr(data, "__array__"):
@@ -657,7 +660,7 @@ class Index(IndexOpsMixin, PandasObject):
         Gets called after a ufunc.
         """
         result = lib.item_from_zerodim(result)
-        if is_bool_dtype(result) or lib.is_scalar(result):
+        if is_bool_dtype(result) or lib.is_scalar(result) or np.ndim(result) > 1:
             return result
 
         attrs = self._get_attributes_dict()
@@ -736,11 +739,10 @@ class Index(IndexOpsMixin, PandasObject):
             return Index(np.asarray(self), dtype=dtype, copy=copy)
 
         try:
-            return Index(
-                self.values.astype(dtype, copy=copy), name=self.name, dtype=dtype
-            )
+            casted = self.values.astype(dtype, copy=copy)
         except (TypeError, ValueError):
             raise TypeError(f"Cannot cast {type(self).__name__} to dtype {dtype}")
+        return Index(casted, name=self.name, dtype=dtype)
 
     _index_shared_docs[
         "take"
@@ -4024,6 +4026,10 @@ class Index(IndexOpsMixin, PandasObject):
         key = com.values_from_object(key)
         result = getitem(key)
         if not is_scalar(result):
+            if np.ndim(result) > 1:
+                # GH#27125 indexer like idx[:, None] expands dim, but we
+                #  cannot do that and keep an index, so return ndarray
+                return result
             return promote(result)
         else:
             return result
