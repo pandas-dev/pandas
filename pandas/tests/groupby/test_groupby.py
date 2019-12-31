@@ -588,6 +588,20 @@ def test_groupby_multiple_columns(df, op):
     tm.assert_series_equal(result, expected)
 
 
+def test_as_index_select_column():
+    # GH 5764
+    df = pd.DataFrame([[1, 2], [1, 4], [5, 6]], columns=["A", "B"])
+    result = df.groupby("A", as_index=False)["B"].get_group(1)
+    expected = pd.Series([2, 4], name="B")
+    tm.assert_series_equal(result, expected)
+
+    result = df.groupby("A", as_index=False)["B"].apply(lambda x: x.cumsum())
+    expected = pd.Series(
+        [2, 6, 6], name="B", index=pd.MultiIndex.from_tuples([(0, 0), (0, 1), (1, 2)])
+    )
+    tm.assert_series_equal(result, expected)
+
+
 def test_groupby_as_index_agg(df):
     grouped = df.groupby("A", as_index=False)
 

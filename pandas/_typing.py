@@ -23,21 +23,29 @@ if TYPE_CHECKING:
     from pandas.core.indexes.base import Index  # noqa: F401
     from pandas.core.series import Series  # noqa: F401
     from pandas.core.generic import NDFrame  # noqa: F401
+    from pandas import Interval  # noqa: F401
 
+# array-like
 
 AnyArrayLike = TypeVar("AnyArrayLike", "ExtensionArray", "Index", "Series", np.ndarray)
 ArrayLike = TypeVar("ArrayLike", "ExtensionArray", np.ndarray)
+
+# scalars
+
+PythonScalar = Union[str, int, float, bool]
 DatetimeLikeScalar = TypeVar("DatetimeLikeScalar", "Period", "Timestamp", "Timedelta")
+PandasScalar = Union["Period", "Timestamp", "Timedelta", "Interval"]
+Scalar = Union[PythonScalar, PandasScalar]
+
+# other
+
 Dtype = Union[str, np.dtype, "ExtensionDtype"]
 FilePathOrBuffer = Union[str, Path, IO[AnyStr]]
-
 FrameOrSeries = TypeVar("FrameOrSeries", bound="NDFrame")
-Scalar = Union[str, int, float, bool]
 Axis = Union[str, int]
 Ordered = Optional[bool]
-JSONSerializable = Union[Scalar, List, Dict]
-
+JSONSerializable = Union[PythonScalar, List, Dict]
 Axes = Collection
 
 # to maintain type information across generic functions and parametrization
-_T = TypeVar("_T")
+T = TypeVar("T")

@@ -2366,6 +2366,9 @@ class GroupBy(_GroupBy):
                     axis=axis,
                 )
             )
+        if fill_method is None:  # GH30463
+            fill_method = "pad"
+            limit = 0
         filled = getattr(self, fill_method)(limit=limit)
         fill_grp = filled.groupby(self.grouper.codes)
         shifted = fill_grp.shift(periods=periods, freq=freq)
@@ -2545,9 +2548,9 @@ def get_groupby(
     observed: bool = False,
     mutated: bool = False,
     dropna: Optional[bool] = None,
-):
+) -> GroupBy:
 
-    klass: Union[Type["SeriesGroupBy"], Type["DataFrameGroupBy"]]
+    klass: Type[GroupBy]
     if isinstance(obj, Series):
         from pandas.core.groupby.generic import SeriesGroupBy
 
