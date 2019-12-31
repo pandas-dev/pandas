@@ -308,6 +308,8 @@ ValueError: columns overlap but no suffix specified:
 # -----------------------------------------------------------------------
 # DataFrame class
 
+bool_t = bool  # Need alias because NDFrame has def bool:
+
 
 class DataFrame(NDFrame):
     """
@@ -4827,7 +4829,7 @@ class DataFrame(NDFrame):
         kind="quicksort",
         na_position="last",
         sort_remaining=True,
-        ignore_index=False,
+        ignore_index: bool_t = False,
     ):
 
         # TODO: this can be combined with Series.sort_index impl as

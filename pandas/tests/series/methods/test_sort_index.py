@@ -149,21 +149,20 @@ class TestSeriesSortIndex:
         self, original_list, sorted_list, ascending, ignore_index, output_index
     ):
         # GH 30114
-        # GH 30114
-        sr = Series(original_list)
+        ser = Series(original_list)
         expected = Series(sorted_list, index=output_index)
 
         # Test when inplace is False
-        sorted_sr = sr.sort_index(ascending=ascending, ignore_index=ignore_index)
+        sorted_sr = ser.sort_index(ascending=ascending, ignore_index=ignore_index)
         tm.assert_series_equal(sorted_sr, expected)
 
-        tm.assert_series_equal(sr, Series(original_list))
+        tm.assert_series_equal(ser, Series(original_list))
 
         # Test when inplace is True
-        copied_sr = sr.copy()
+        copied_sr = ser.copy()
         copied_sr.sort_index(
             ascending=ascending, ignore_index=ignore_index, inplace=True
         )
         tm.assert_series_equal(copied_sr, expected)
 
-        tm.assert_series_equal(sr, Series(original_list))
+        tm.assert_series_equal(ser, Series(original_list))
