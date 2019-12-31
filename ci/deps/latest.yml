@@ -27,7 +27,7 @@ dependencies:
   - pyarrow>=0.12.0
   - pytables
   - python-snappy
-  - dateutil
+  - python-dateutil
   - pytz
   - scipy
   - xlrd

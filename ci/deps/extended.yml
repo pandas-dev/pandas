@@ -16,7 +16,7 @@ dependencies:
 
   # pandas dependencies
   - numpy
-  - dateutil
+  - python-dateutil
   - pytz
 
   - dask
