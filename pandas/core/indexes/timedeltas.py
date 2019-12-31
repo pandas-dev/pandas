@@ -217,7 +217,6 @@ class TimedeltaIndex(
         result = object.__new__(cls)
         result._data = tdarr
         result._name = name
-        result._no_setting_name = False
         # For groupby perf. See note in indexes/base about _index_data
         result._index_data = tdarr._data
 
