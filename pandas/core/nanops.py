@@ -857,7 +857,7 @@ def _nanminmax(meth: str, fill_value_typ: str) -> Callable:
         axis: Optional[int] = None,
         skipna: bool = True,
         mask: Optional[np.ndarray] = None,
-    ) -> np.ndarray:
+    ) -> Dtype:
 
         values, mask, dtype, dtype_max, fill_value = _get_values(
             values, skipna, fill_value_typ=fill_value_typ, mask=mask
@@ -1137,7 +1137,7 @@ def nanprod(
     skipna: bool = True,
     min_count: int = 0,
     mask: Optional[np.ndarray] = None,
-):
+) -> Dtype:
     """
     Parameters
     ----------
@@ -1150,7 +1150,8 @@ def nanprod(
 
     Returns
     -------
-    The product of all elements on a given axis. ( NaNs are treated as 1)
+    Dtype
+        The product of all elements on a given axis. ( NaNs are treated as 1)
 
     Examples
     --------
@@ -1242,7 +1243,13 @@ def _maybe_null_out(
     mask: Optional[np.ndarray],
     shape: Tuple,
     min_count: int = 1,
-) -> np.ndarray:
+) -> Dtype:
+    """
+    Returns
+    -------
+    Dtype
+        The product of all elements on a given axis. ( NaNs are treated as 1)
+    """
     if mask is not None and axis is not None and getattr(result, "ndim", False):
         null_mask = (mask.shape[axis] - mask.sum(axis) - min_count) < 0
         if np.any(null_mask):
