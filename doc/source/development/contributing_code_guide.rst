@@ -55,20 +55,26 @@ For example:
 
 .. code-block:: python
 
+    foo = "old_function"
+    bar = "new_function"
+
     my_warning_message = (
-        f"Warning, {old_function_name} is deprecated, "
+        f"Warning, {foo} is deprecated, "
         "please use the new and way better "
-        f"{new_function_name}"
+        f"{bar}"
     )
 
 **Bad:**
 
 .. code-block:: python
 
+    foo = "old_function"
+    bar = "new_function"
+
     my_warning_message = (
-        f"Warning, {old_function_name} is deprecated, "
+        f"Warning, {foo} is deprecated, "
         f"please use the new and way better "
-        f"{new_function_name}"
+        f"{bar}"
     )
 
 White spaces
