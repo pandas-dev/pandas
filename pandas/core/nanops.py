@@ -654,7 +654,7 @@ def _get_counts_nanvar(
     mask: Optional[np.ndarray],
     axis: Optional[int],
     ddof: int,
-    dtype=float,
+    dtype: Dtype = float,
 ) -> Tuple[Union[int, np.ndarray], Union[int, np.ndarray]]:
     """ Get the count of non-null values along an axis, accounting
     for degrees of freedom.
