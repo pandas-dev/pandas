@@ -4652,6 +4652,9 @@ class NDFrame(PandasObject, SelectionMixin):
         on position. It is useful for quickly testing if your object
         has the right type of data in it.
 
+        For negative values of `n`, this function returns all rows except
+        the last `n` rows, equivalent to ``df[:-n]``.
+
         Parameters
         ----------
         n : int, default 5
@@ -4659,7 +4662,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        obj_head : same type as caller
+        same type as caller
             The first `n` rows of the caller object.
 
         See Also
@@ -4699,6 +4702,17 @@ class NDFrame(PandasObject, SelectionMixin):
         0  alligator
         1        bee
         2     falcon
+
+        For negative values of `n`
+
+        >>> df.head(-3)
+              animal
+        0  alligator
+        1        bee
+        2     falcon
+        3       lion
+        4     monkey
+        5     parrot
         """
 
         return self.iloc[:n]
@@ -4710,6 +4724,9 @@ class NDFrame(PandasObject, SelectionMixin):
         This function returns last `n` rows from the object based on
         position. It is useful for quickly verifying data, for example,
         after sorting or appending rows.
+
+        For negative values of `n`, this function returns all rows except
+        the first `n` rows, equivalent to ``df[n:]``.
 
         Parameters
         ----------
@@ -4758,6 +4775,17 @@ class NDFrame(PandasObject, SelectionMixin):
         6  shark
         7  whale
         8  zebra
+
+        For negative values of `n`
+
+        >>> df.tail(-3)
+           animal
+        3    lion
+        4  monkey
+        5  parrot
+        6   shark
+        7   whale
+        8   zebra
         """
 
         if n == 0:
@@ -11086,44 +11114,66 @@ def _make_cum_function(
         else:
             axis = self._get_axis_number(axis)
 
-        y = com.values_from_object(self).copy()
+        if axis == 1:
+            return cum_func(self.T, axis=0, skipna=skipna, *args, **kwargs).T
+
+        def na_accum_func(blk_values):
+            # We will be applying this function to block values
+            if blk_values.dtype.kind in ["m", "M"]:
+                # numpy 1.18 started sorting NaTs at the end instead of beginning,
+                #  so we need to work around to maintain backwards-consistency.
+                orig_dtype = blk_values.dtype
+
+                # We need to define mask before masking NaTs
+                mask = isna(blk_values)
+
+                if accum_func == np.minimum.accumulate:
+                    # Note: the accum_func comparison fails as an "is" comparison
+                    y = blk_values.view("i8")
+                    y[mask] = np.iinfo(np.int64).max
+                    changed = True
+                else:
+                    y = blk_values
+                    changed = False
+
+                result = accum_func(y.view("i8"), axis)
+                if skipna:
+                    np.putmask(result, mask, iNaT)
+                elif accum_func == np.minimum.accumulate:
+                    # Restore NaTs that we masked previously
+                    nz = (~np.asarray(mask)).nonzero()[0]
+                    if len(nz):
+                        # everything up to the first non-na entry stays NaT
+                        result[: nz[0]] = iNaT
+
+                if changed:
+                    # restore NaT elements
+                    y[mask] = iNaT  # TODO: could try/finally for this?
+
+                if isinstance(blk_values, np.ndarray):
+                    result = result.view(orig_dtype)
+                else:
+                    # DatetimeArray
+                    result = type(blk_values)._from_sequence(result, dtype=orig_dtype)
+
+            elif skipna and not issubclass(
+                blk_values.dtype.type, (np.integer, np.bool_)
+            ):
+                vals = blk_values.copy().T
+                mask = isna(vals)
+                np.putmask(vals, mask, mask_a)
+                result = accum_func(vals, axis)
+                np.putmask(result, mask, mask_b)
+            else:
+                result = accum_func(blk_values.T, axis)
+
+            # transpose back for ndarray, not for EA
+            return result.T if hasattr(result, "T") else result
+
+        result = self._data.apply(na_accum_func)
+
         d = self._construct_axes_dict()
         d["copy"] = False
-
-        if issubclass(y.dtype.type, (np.datetime64, np.timedelta64)):
-            # numpy 1.18 started sorting NaTs at the end instead of beginning,
-            #  so we need to work around to maintain backwards-consistency.
-            orig_dtype = y.dtype
-            if accum_func == np.minimum.accumulate:
-                # Note: the accum_func comparison fails as an "is" comparison
-                # Note that "y" is always a copy, so we can safely modify it
-                mask = isna(self)
-                y = y.view("i8")
-                y[mask] = np.iinfo(np.int64).max
-
-            result = accum_func(y.view("i8"), axis).view(orig_dtype)
-            if skipna:
-                mask = isna(self)
-                np.putmask(result, mask, iNaT)
-            elif accum_func == np.minimum.accumulate:
-                # Restore NaTs that we masked previously
-                nz = (~np.asarray(mask)).nonzero()[0]
-                if len(nz):
-                    # everything up to the first non-na entry stays NaT
-                    result[: nz[0]] = iNaT
-
-            if self.ndim == 1:
-                # restore dt64tz dtype
-                d["dtype"] = self.dtype
-
-        elif skipna and not issubclass(y.dtype.type, (np.integer, np.bool_)):
-            mask = isna(self)
-            np.putmask(y, mask, mask_a)
-            result = accum_func(y, axis)
-            np.putmask(result, mask, mask_b)
-        else:
-            result = accum_func(y, axis)
-
         return self._constructor(result, **d).__finalize__(self)
 
     return set_function_name(cum_func, name, cls)
