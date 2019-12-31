@@ -1,7 +1,7 @@
 from collections import ChainMap
-from typing import List, MutableMapping, TypeVar
+from typing import List, MutableMapping
 
-_T = TypeVar("_T")
+from pandas._typing import T
 
 
 class DeepChainMap(ChainMap):
@@ -28,5 +28,5 @@ class DeepChainMap(ChainMap):
         raise KeyError(key)
 
     # FIXME: return type of new_child incorrect in typeshed
-    def new_child(self: _T, m) -> _T:  # type: ignore
+    def new_child(self: T, m) -> T:  # type: ignore
         return super().new_child(m)  # type: ignore
