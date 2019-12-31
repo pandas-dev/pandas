@@ -37,6 +37,9 @@ class BaseDtypeTests(BaseExtensionTests):
         result = type(dtype).is_dtype(dtype)
         assert result is True
 
+    def test_is_dtype_other_input(self, dtype):
+        assert dtype.is_dtype([1, 2, 3]) is False
+
     def test_is_not_string_type(self, dtype):
         return not pd.api.types.is_string_dtype(dtype)
 

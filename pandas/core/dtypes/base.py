@@ -276,10 +276,12 @@ class ExtensionDtype:
             return False
         elif isinstance(dtype, cls):
             return True
-        try:
-            return cls.construct_from_string(dtype) is not None
-        except TypeError:
-            return False
+        if isinstance(dtype, str):
+            try:
+                return cls.construct_from_string(dtype) is not None
+            except TypeError:
+                return False
+        return False
 
     @property
     def _is_numeric(self) -> bool:
