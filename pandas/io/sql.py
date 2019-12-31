@@ -821,8 +821,8 @@ class SQLTable(PandasObject):
                     index_label = [index_label]
                 if len(index_label) != nlevels:
                     raise ValueError(
-                        f"Length of 'index_label' should match number of "
-                        "levels, which is {nlevels}"
+                        "Length of 'index_label' should match number of "
+                        f"levels, which is {nlevels}"
                     )
                 else:
                     return index_label
@@ -1717,7 +1717,7 @@ class SQLiteDatabase(PandasSQL):
         if dtype is not None:
             for col, my_type in dtype.items():
                 if not isinstance(my_type, str):
-                    raise ValueError(f"{col} ({my_type!s}) not a string")
+                    raise ValueError(f"{col} ({my_type}) not a string")
 
         table = SQLiteTable(
             name,
