@@ -123,6 +123,7 @@ def test_round_nat(klass, method, freq):
         "dst",
         "fromordinal",
         "fromtimestamp",
+        "fromisocalendar",
         "isocalendar",
         "strftime",
         "strptime",

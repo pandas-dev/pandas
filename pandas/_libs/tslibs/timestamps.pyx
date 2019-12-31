@@ -336,45 +336,6 @@ class Timestamp(_Timestamp):
         """
         return cls(datetime.combine(date, time))
 
-    @classmethod
-    def fromisocalendar(cls, year, week, day):
-        """
-        Timestamp.fromisocalendar(year, week, day)
-
-        Return a new Timestamp corresponding to the
-        ISO calendar date specified by year, week and day.
-
-        Parameters
-        ----------
-        year: int
-            Representing a year.
-        week : int
-            Value between 1-53, representing a week in a year.
-        day : int
-            Value between 1-7, representing a day in the week.
-
-        Returns
-        -------
-        Timestamp
-
-        Raises
-        ------
-        NotImplementedError
-            If the running platform is a Python version earlier than 3.8
-
-        Notes
-        -----
-        `week` can have the value of 53, only when year is a leap year.
-        """
-        import pandas.compat as compat
-
-        if not compat.PY38:
-            raise NotImplementedError(
-                "'fromisocalendar' is not supported for versions earlier than 3.8"
-            )
-
-        return cls(datetime.fromisocalendar(year, week, day))
-
     def __new__(
         cls,
         object ts_input=_no_input,

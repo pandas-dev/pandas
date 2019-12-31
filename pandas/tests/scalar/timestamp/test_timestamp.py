@@ -712,6 +712,7 @@ class TestTimestampConstructors:
         result = Timestamp.fromisocalendar(2000, 1, 1)
         assert result == expected_timestamp
         assert result == expected_stdlib
+        assert isinstance(result, Timestamp)
 
 
 class TestTimestamp:

@@ -426,6 +426,9 @@ class NaTType(_NaT):
     toordinal = _make_error_func('toordinal', datetime)
     tzname = _make_error_func('tzname', datetime)
     utcoffset = _make_error_func('utcoffset', datetime)
+    fromisocalendar = _make_error_func(
+            'fromisocalendar', datetime.fromisocalendar.__doc__
+    )
 
     # ----------------------------------------------------------------------
     # The remaining methods have docstrings copy/pasted from the analogous
@@ -467,36 +470,7 @@ class NaTType(_NaT):
         Return a new Timestamp representing UTC day and time.
         """
     )
-    fromisocalendar = _make_error_func('fromisocalendar',  # noqa:E128
-        """
-        Timestamp.fromisocalendar(year, week, day)
 
-        Return a new Timestamp corresponding to the
-        ISO calendar date specified by year, week and day.
-
-        Parameters
-        ----------
-        year: int
-            Representing a year.
-        week : int
-            Value between 1-53, representing a week in a year.
-        day : int
-            Value between 1-7, representing a day in the week.
-
-        Returns
-        -------
-        Timestamp
-
-        Raises
-        ------
-        NotImplementedError
-            If the running platform is a Python version earlier than 3.8
-
-        Notes
-        -----
-        `week` can have the value of 53, only when year is a leap year.
-        """
-    )
     timestamp = _make_error_func('timestamp',  # noqa:E128
         """Return POSIX timestamp as float.""")
 
