@@ -7,7 +7,7 @@ from typing import Dict, Hashable, List, Optional, Tuple
 
 import numpy as np
 
-from pandas._typing import FrameOrSeries
+from pandas._typing import FrameOrSeriesT
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -141,7 +141,7 @@ class Grouper:
         )
         return self.binner, self.grouper, self.obj
 
-    def _set_grouper(self, obj: FrameOrSeries, sort: bool = False):
+    def _set_grouper(self, obj: FrameOrSeriesT, sort: bool = False):
         """
         given an object and the specifications, setup the internal grouper
         for this particular specification
@@ -244,7 +244,7 @@ class Grouping:
         self,
         index: Index,
         grouper=None,
-        obj: Optional[FrameOrSeries] = None,
+        obj: Optional[FrameOrSeriesT] = None,
         name=None,
         level=None,
         sort: bool = True,
@@ -424,7 +424,7 @@ class Grouping:
 
 
 def get_grouper(
-    obj: FrameOrSeries,
+    obj: FrameOrSeriesT,
     key=None,
     axis: int = 0,
     level=None,
@@ -432,7 +432,7 @@ def get_grouper(
     observed: bool = False,
     mutated: bool = False,
     validate: bool = True,
-) -> "Tuple[ops.BaseGrouper, List[Hashable], FrameOrSeries]":
+) -> "Tuple[ops.BaseGrouper, List[Hashable], FrameOrSeriesT]":
     """
     Create and return a BaseGrouper, which is an internal
     mapping of how to create the grouper indexers.

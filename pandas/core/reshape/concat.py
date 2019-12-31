@@ -6,6 +6,8 @@ from typing import Hashable, List, Mapping, Optional, Sequence, Union, overload
 
 import numpy as np
 
+from pandas._typing import FrameOrSeries
+
 from pandas import DataFrame, Index, MultiIndex, Series
 from pandas.core.arrays.categorical import (
     factorize_from_iterable,
@@ -25,12 +27,10 @@ from pandas.core.internals import concatenate_block_managers
 # ---------------------------------------------------------------------
 # Concatenate DataFrame objects
 
-FrameOrSeriesUnion = Union["DataFrame", "Series"]
-
 
 @overload
 def concat(
-    objs: Union[Sequence["DataFrame"], Mapping[str, "DataFrame"]],
+    objs: Union[Sequence["DataFrame"], Mapping[Hashable, "DataFrame"]],
     axis=0,
     join: str = "outer",
     ignore_index: bool = False,
@@ -46,7 +46,7 @@ def concat(
 
 @overload
 def concat(
-    objs: Union[Sequence[FrameOrSeriesUnion], Mapping[str, FrameOrSeriesUnion]],
+    objs: Union[Sequence[FrameOrSeries], Mapping[Hashable, FrameOrSeries]],
     axis=0,
     join: str = "outer",
     ignore_index: bool = False,
@@ -56,12 +56,12 @@ def concat(
     verify_integrity: bool = False,
     sort: bool = False,
     copy: bool = True,
-) -> Union["DataFrame", "Series"]:
+) -> FrameOrSeries:
     ...
 
 
 def concat(
-    objs: Union[Sequence[FrameOrSeriesUnion], Mapping[str, FrameOrSeriesUnion]],
+    objs: Union[Sequence[FrameOrSeries], Mapping[Hashable, FrameOrSeries]],
     axis=0,
     join="outer",
     ignore_index: bool = False,
@@ -71,7 +71,7 @@ def concat(
     verify_integrity: bool = False,
     sort: bool = False,
     copy: bool = True,
-) -> Union["DataFrame", "Series"]:
+) -> FrameOrSeries:
     """
     Concatenate pandas objects along a particular axis with optional set logic
     along the other axes.

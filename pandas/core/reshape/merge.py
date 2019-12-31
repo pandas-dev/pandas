@@ -13,7 +13,7 @@ import numpy as np
 
 from pandas._libs import Timedelta, hashtable as libhashtable, lib
 import pandas._libs.join as libjoin
-from pandas._typing import FrameOrSeries
+from pandas._typing import FrameOrSeriesT
 from pandas.errors import MergeError
 from pandas.util._decorators import Appender, Substitution
 
@@ -1994,7 +1994,7 @@ def _any(x) -> bool:
     return x is not None and com.any_not_none(*x)
 
 
-def _validate_operand(obj: FrameOrSeries) -> "DataFrame":
+def _validate_operand(obj: FrameOrSeriesT) -> "DataFrame":
     if isinstance(obj, ABCDataFrame):
         return obj
     elif isinstance(obj, ABCSeries):

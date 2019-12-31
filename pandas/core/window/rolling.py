@@ -11,7 +11,7 @@ from typing import Callable, Dict, List, Optional, Set, Tuple, Union
 import numpy as np
 
 import pandas._libs.window.aggregations as window_aggregations
-from pandas._typing import Axis, FrameOrSeries, Scalar
+from pandas._typing import Axis, FrameOrSeriesT, Scalar
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -324,7 +324,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             return type(obj)(result, index=index, columns=block.columns)
         return result
 
-    def _wrap_results(self, results, blocks, obj, exclude=None) -> FrameOrSeries:
+    def _wrap_results(self, results, blocks, obj, exclude=None) -> FrameOrSeriesT:
         """
         Wrap the results.
 
