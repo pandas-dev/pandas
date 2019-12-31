@@ -9,22 +9,22 @@ jobs:
   strategy:
     matrix:
       ${{ if eq(parameters.name, 'macOS') }}:
-        macos_latest:
+        latest:
           ENV_FILE: ci/deps/latest.yml
           PATTERN: "not slow and not network"
 
-        macos_oldest:
+        oldest:
           ENV_FILE: ci/deps/oldest.yml
           PATTERN: "not slow and not network"
 
       ${{ if eq(parameters.name, 'Linux') }}:
-        linux_latest:
+        latest:
           ENV_FILE: ci/deps/latest.yml
           PATTERN: "not slow and not network"
           LOCALE_OVERRIDE: "zh_CN.UTF-8"
           EXTRA_APT: "language-pack-zh-hans xsel"
 
-        linux_oldest:
+        oldest:
           ENV_FILE: ci/deps/oldest.yml
           PATTERN: "not slow and not network"
 

@@ -8,11 +8,11 @@ jobs:
     vmImage: ${{ parameters.vmImage }}
   strategy:
     matrix:
-      windows_latest:
+      latest:
         ENV_FILE: ci\\deps\\latest.yml
         PATTERN: "not slow and not network"
 
-      windows_oldest:
+      oldest:
         ENV_FILE: ci\\deps\\oldest.yml
         PATTERN: "not slow and not network"
 
