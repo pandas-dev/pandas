@@ -8,6 +8,7 @@ from typing import DefaultDict, Dict, List, Optional, Union
 import numpy as np
 
 from pandas._libs.writers import convert_json_to_lines
+from pandas.util._decorators import deprecate
 
 from pandas import DataFrame
 
@@ -108,16 +109,16 @@ def nested_to_record(
     return new_ds
 
 
-def json_normalize(
+def _json_normalize(
     data: Union[Dict, List[Dict]],
     record_path: Optional[Union[str, List]] = None,
-    meta: Optional[Union[str, List]] = None,
+    meta: Optional[Union[str, List[Union[str, List[str]]]]] = None,
     meta_prefix: Optional[str] = None,
     record_prefix: Optional[str] = None,
     errors: Optional[str] = "raise",
     sep: str = ".",
     max_level: Optional[int] = None,
-):
+) -> "DataFrame":
     """
     Normalize semi-structured JSON data into a flat table.
 
@@ -264,21 +265,21 @@ def json_normalize(
     elif not isinstance(meta, list):
         meta = [meta]
 
-    meta = [m if isinstance(m, list) else [m] for m in meta]
+    _meta = [m if isinstance(m, list) else [m] for m in meta]
 
     # Disastrously inefficient for now
     records: List = []
     lengths = []
 
     meta_vals: DefaultDict = defaultdict(list)
-    meta_keys = [sep.join(val) for val in meta]
+    meta_keys = [sep.join(val) for val in _meta]
 
     def _recursive_extract(data, path, seen_meta, level=0):
         if isinstance(data, dict):
             data = [data]
         if len(path) > 1:
             for obj in data:
-                for val, key in zip(meta, meta_keys):
+                for val, key in zip(_meta, meta_keys):
                     if level + 1 == len(val):
                         seen_meta[key] = _pull_field(obj, val[-1])
 
@@ -295,7 +296,7 @@ def json_normalize(
 
                 # For repeating the metadata later
                 lengths.append(len(recs))
-                for val, key in zip(meta, meta_keys):
+                for val, key in zip(_meta, meta_keys):
                     if level + 1 > len(val):
                         meta_val = seen_meta[key]
                     else:
@@ -308,7 +309,7 @@ def json_normalize(
                                 raise KeyError(
                                     "Try running with "
                                     "errors='ignore' as key "
-                                    "{err} is not always present".format(err=e)
+                                    f"{e} is not always present"
                                 )
                     meta_vals[key].append(meta_val)
                 records.extend(recs)
@@ -318,7 +319,7 @@ def json_normalize(
     result = DataFrame(records)
 
     if record_prefix is not None:
-        result = result.rename(columns=lambda x: "{p}{c}".format(p=record_prefix, c=x))
+        result = result.rename(columns=lambda x: f"{record_prefix}{x}")
 
     # Data types, a problem
     for k, v in meta_vals.items():
@@ -327,8 +328,12 @@ def json_normalize(
 
         if k in result:
             raise ValueError(
-                "Conflicting metadata name {name}, "
-                "need distinguishing prefix ".format(name=k)
+                f"Conflicting metadata name {k}, need distinguishing prefix "
             )
         result[k] = np.array(v, dtype=object).repeat(lengths)
     return result
+
+
+json_normalize = deprecate(
+    "pandas.io.json.json_normalize", _json_normalize, "1.0.0", "pandas.json_normalize"
+)

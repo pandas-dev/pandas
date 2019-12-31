@@ -25,6 +25,7 @@ from pandas import (
     date_range,
     isna,
 )
+from pandas.arrays import IntervalArray, PeriodArray
 from pandas.core.construction import create_series_with_explicit_dtype
 import pandas.util.testing as tm
 
@@ -42,6 +43,19 @@ MIXED_INT_DTYPES = [
 
 
 class TestDataFrameConstructors:
+    def test_series_with_name_not_matching_column(self):
+        # GH#9232
+        x = pd.Series(range(5), name=1)
+        y = pd.Series(range(5), name=0)
+
+        result = pd.DataFrame(x, columns=[0])
+        expected = pd.DataFrame([], columns=[0])
+        tm.assert_frame_equal(result, expected)
+
+        result = pd.DataFrame(y, columns=[1])
+        expected = pd.DataFrame([], columns=[1])
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize(
         "constructor",
         [
@@ -465,11 +479,11 @@ class TestDataFrameConstructors:
             DataFrame(np.zeros((3, 3, 3)), columns=["A", "B", "C"], index=[1])
 
         # wrong size axis labels
-        msg = "Shape of passed values " r"is \(2, 3\), indices " r"imply \(1, 3\)"
+        msg = r"Shape of passed values is \(2, 3\), indices imply \(1, 3\)"
         with pytest.raises(ValueError, match=msg):
             DataFrame(np.random.rand(2, 3), columns=["A", "B", "C"], index=[1])
 
-        msg = "Shape of passed values " r"is \(2, 3\), indices " r"imply \(2, 2\)"
+        msg = r"Shape of passed values is \(2, 3\), indices imply \(2, 2\)"
         with pytest.raises(ValueError, match=msg):
             DataFrame(np.random.rand(2, 3), columns=["A", "B"], index=[1, 2])
 
@@ -1725,15 +1739,24 @@ class TestDataFrameConstructors:
         expected = DataFrame({"a": i.to_series().reset_index(drop=True), "b": i_no_tz})
         tm.assert_frame_equal(df, expected)
 
-    def test_constructor_datetimes_with_nulls(self):
-        # gh-15869
-        for arr in [
+    @pytest.mark.parametrize(
+        "arr",
+        [
             np.array([None, None, None, None, datetime.now(), None]),
             np.array([None, None, datetime.now(), None]),
-        ]:
-            result = DataFrame(arr).dtypes
-            expected = Series([np.dtype("datetime64[ns]")])
-            tm.assert_series_equal(result, expected)
+            [[np.datetime64("NaT")], [None]],
+            [[np.datetime64("NaT")], [pd.NaT]],
+            [[None], [np.datetime64("NaT")]],
+            [[None], [pd.NaT]],
+            [[pd.NaT], [np.datetime64("NaT")]],
+            [[pd.NaT], [None]],
+        ],
+    )
+    def test_constructor_datetimes_with_nulls(self, arr):
+        # gh-15869, GH#11220
+        result = DataFrame(arr).dtypes
+        expected = Series([np.dtype("datetime64[ns]")])
+        tm.assert_series_equal(result, expected)
 
     def test_constructor_for_list_with_dtypes(self):
         # test list of lists/ndarrays
@@ -2385,6 +2408,21 @@ class TestDataFrameConstructors:
 
         expected = DataFrame([[1, 2, 3], [4, 5, 6]])
         result = DataFrame(List([List([1, 2, 3]), List([4, 5, 6])]))
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "extension_arr",
+        [
+            Categorical(list("aabbc")),
+            pd.SparseArray([1, np.nan, np.nan, np.nan]),
+            IntervalArray([pd.Interval(0, 1), pd.Interval(1, 5)]),
+            PeriodArray(pd.period_range(start="1/1/2017", end="1/1/2018", freq="M")),
+        ],
+    )
+    def test_constructor_with_extension_array(self, extension_arr):
+        # GH11363
+        expected = DataFrame(Series(extension_arr))
+        result = DataFrame(extension_arr)
         tm.assert_frame_equal(result, expected)
 
 

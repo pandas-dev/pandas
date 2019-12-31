@@ -5,6 +5,7 @@ Top level ``eval`` module.
 """
 
 import tokenize
+from typing import Optional
 import warnings
 
 from pandas._libs.lib import _no_default
@@ -17,7 +18,7 @@ from pandas.core.computation.scope import ensure_scope
 from pandas.io.formats.printing import pprint_thing
 
 
-def _check_engine(engine):
+def _check_engine(engine: Optional[str]) -> str:
     """
     Make sure a valid engine is passed.
 
@@ -168,7 +169,7 @@ def _check_for_locals(expr: str, stack_level: int, parser: str):
 def eval(
     expr,
     parser="pandas",
-    engine=None,
+    engine: Optional[str] = None,
     truediv=_no_default,
     local_dict=None,
     global_dict=None,
@@ -307,6 +308,9 @@ def eval(
             "multi-line expressions are only valid in the "
             "context of data, use DataFrame.eval"
         )
+    engine = _check_engine(engine)
+    _check_parser(parser)
+    _check_resolvers(resolvers)
 
     ret = None
     first_expr = True
@@ -314,9 +318,6 @@ def eval(
 
     for expr in exprs:
         expr = _convert_expression(expr)
-        engine = _check_engine(engine)
-        _check_parser(parser)
-        _check_resolvers(resolvers)
         _check_for_locals(expr, level, parser)
 
         # get our (possibly passed-in) scope

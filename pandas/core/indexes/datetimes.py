@@ -30,10 +30,11 @@ from pandas.core.arrays.datetimes import (
 )
 from pandas.core.base import _shared_docs
 import pandas.core.common as com
-from pandas.core.indexes.base import Index
+from pandas.core.indexes.base import Index, maybe_extract_name
 from pandas.core.indexes.datetimelike import (
     DatetimeIndexOpsMixin,
     DatetimelikeDelegateMixin,
+    DatetimeTimedeltaMixin,
     ea_passthrough,
 )
 from pandas.core.indexes.numeric import Int64Index
@@ -45,9 +46,10 @@ from pandas.tseries.offsets import Nano, prefix_mapping
 
 
 def _new_DatetimeIndex(cls, d):
-    """ This is called upon unpickling, rather than the default which doesn't
-    have arguments and breaks __new__ """
-
+    """
+    This is called upon unpickling, rather than the default which doesn't
+    have arguments and breaks __new__
+    """
     if "data" in d and not isinstance(d["data"], DatetimeIndex):
         # Avoid need to verify integrity by calling simple_new directly
         data = d.pop("data")
@@ -92,7 +94,9 @@ class DatetimeDelegateMixin(DatetimelikeDelegateMixin):
     typ="method",
     overwrite=False,
 )
-class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
+class DatetimeIndex(
+    DatetimeTimedeltaMixin, DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin
+):
     """
     Immutable ndarray of datetime64 data, represented internally as int64, and
     which can be boxed to Timestamp objects that are subclasses of datetime and
@@ -100,9 +104,9 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
     Parameters
     ----------
-    data  : array-like (1-dimensional), optional
+    data : array-like (1-dimensional), optional
         Optional datetime-like data to construct index with.
-    copy  : bool
+    copy : bool
         Make a copy of input ndarray.
     freq : str or pandas offset object, optional
         One of pandas date offset strings or corresponding objects. The string
@@ -247,16 +251,13 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
         if is_scalar(data):
             raise TypeError(
-                "{cls}() must be called with a "
-                "collection of some kind, {data} was passed".format(
-                    cls=cls.__name__, data=repr(data)
-                )
+                f"{cls.__name__}() must be called with a "
+                f"collection of some kind, {repr(data)} was passed"
             )
 
         # - Cases checked above all return/raise before reaching here - #
 
-        if name is None and hasattr(data, "name"):
-            name = data.name
+        name = maybe_extract_name(name, data, cls)
 
         dtarr = DatetimeArray._from_sequence(
             data,
@@ -275,7 +276,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     @classmethod
     def _simple_new(cls, values, name=None, freq=None, tz=None, dtype=None):
         """
-        we require the we have a dtype compat for the values
+        We require the we have a dtype compat for the values
         if we are passed a non-dtype compat, then coerce using the constructor
         """
         if isinstance(values, DatetimeArray):
@@ -347,7 +348,13 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
     @cache_readonly
     def _is_dates_only(self) -> bool:
-        """Return a boolean if we are only dates (and don't have a timezone)"""
+        """
+        Return a boolean if we are only dates (and don't have a timezone)
+
+        Returns
+        -------
+        bool
+        """
         from pandas.io.formats.format import _is_dates_only
 
         return _is_dates_only(self.values) and self.tz is None
@@ -362,7 +369,9 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         return _new_DatetimeIndex, (type(self), d), None
 
     def __setstate__(self, state):
-        """Necessary for making this object picklable"""
+        """
+        Necessary for making this object picklable.
+        """
         if isinstance(state, dict):
             super().__setstate__(state)
 
@@ -395,7 +404,9 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     _unpickle_compat = __setstate__
 
     def _convert_for_op(self, value):
-        """ Convert value to be insertable to ndarray """
+        """
+        Convert value to be insertable to ndarray.
+        """
         if self._has_same_tz(value):
             return _to_M8(value)
         raise ValueError("Passed item and index have different timezone")
@@ -403,7 +414,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
     @Appender(Index.difference.__doc__)
     def difference(self, other, sort=None):
         new_idx = super().difference(other, sort=sort)
-        new_idx._data._freq = None
+        new_idx._set_freq(None)
         return new_idx
 
     # --------------------------------------------------------------------
@@ -463,7 +474,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
     def union_many(self, others):
         """
-        A bit of a hack to accelerate unioning a collection of indexes
+        A bit of a hack to accelerate unioning a collection of indexes.
         """
         this = self
 
@@ -491,7 +502,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
                     this._data._dtype = dtype
         return this
 
-    def _can_fast_union(self, other):
+    def _can_fast_union(self, other) -> bool:
         if not isinstance(other, DatetimeIndex):
             return False
 
@@ -583,7 +594,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
         Returns
         -------
-        y : Index or DatetimeIndex or TimedeltaIndex
+        Index or DatetimeIndex or TimedeltaIndex
         """
         return super().intersection(other, sort=sort)
 
@@ -689,7 +700,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
 
         for i, v in enumerate(self):
             s = v
-            if not freq.onOffset(s):
+            if not freq.is_on_offset(s):
                 t0 = freq.rollback(s)
                 t1 = freq.rollforward(s)
                 if abs(s - t0) < abs(t1 - s):
@@ -701,7 +712,9 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         # we know it conforms; skip check
         return DatetimeIndex._simple_new(snapped, name=self.name, tz=self.tz, freq=freq)
 
-    def join(self, other, how="left", level=None, return_indexers=False, sort=False):
+    def join(
+        self, other, how: str = "left", level=None, return_indexers=False, sort=False
+    ):
         """
         See Index.join
         """
@@ -842,9 +855,8 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         if parsed.tzinfo is not None:
             if self.tz is None:
                 raise ValueError(
-                    "The index must be timezone aware "
-                    "when indexing with a date string with a "
-                    "UTC offset"
+                    "The index must be timezone aware when indexing "
+                    "with a date string with a UTC offset"
                 )
             start = start.tz_localize(parsed.tzinfo).tz_convert(self.tz)
             end = end.tz_localize(parsed.tzinfo).tz_convert(self.tz)
@@ -853,7 +865,16 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
             end = end.tz_localize(self.tz)
         return start, end
 
-    def _partial_date_slice(self, reso, parsed, use_lhs=True, use_rhs=True):
+    def _partial_date_slice(
+        self, reso: str, parsed, use_lhs: bool = True, use_rhs: bool = True
+    ):
+        """
+        Parameters
+        ----------
+        reso : str
+        use_lhs : bool, default True
+        use_rhs : bool, default True
+        """
         is_monotonic = self.is_monotonic
         if (
             is_monotonic
@@ -973,9 +994,7 @@ class DatetimeIndex(DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin):
         elif isinstance(key, timedelta):
             # GH#20464
             raise TypeError(
-                "Cannot index {cls} with {other}".format(
-                    cls=type(self).__name__, other=type(key).__name__
-                )
+                f"Cannot index {type(self).__name__} with {type(key).__name__}"
             )
 
         if isinstance(key, time):
@@ -1337,7 +1356,7 @@ def date_range(
     name=None,
     closed=None,
     **kwargs,
-):
+) -> DatetimeIndex:
     """
     Return a fixed frequency DatetimeIndex.
 
@@ -1503,7 +1522,7 @@ def bdate_range(
     holidays=None,
     closed=None,
     **kwargs,
-):
+) -> DatetimeIndex:
     """
     Return a fixed frequency DatetimeIndex, with business day as the default
     frequency.
@@ -1577,13 +1596,13 @@ def bdate_range(
             weekmask = weekmask or "Mon Tue Wed Thu Fri"
             freq = prefix_mapping[freq](holidays=holidays, weekmask=weekmask)
         except (KeyError, TypeError):
-            msg = "invalid custom frequency string: {freq}".format(freq=freq)
+            msg = f"invalid custom frequency string: {freq}"
             raise ValueError(msg)
     elif holidays or weekmask:
         msg = (
             "a custom frequency string is required when holidays or "
-            "weekmask are passed, got frequency {freq}"
-        ).format(freq=freq)
+            f"weekmask are passed, got frequency {freq}"
+        )
         raise ValueError(msg)
 
     return date_range(

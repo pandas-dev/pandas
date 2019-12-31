@@ -2,10 +2,8 @@
 Base and utility classes for pandas objects.
 """
 import builtins
-from collections import OrderedDict
 import textwrap
 from typing import Dict, FrozenSet, List, Optional
-import warnings
 
 import numpy as np
 
@@ -26,6 +24,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_timedelta64_ns_dtype,
+    needs_i8_conversion,
 )
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
@@ -141,39 +140,35 @@ class SelectionMixin:
     _internal_names = ["_cache", "__setstate__"]
     _internal_names_set = set(_internal_names)
 
-    _builtin_table = OrderedDict(
-        ((builtins.sum, np.sum), (builtins.max, np.max), (builtins.min, np.min))
-    )
+    _builtin_table = {builtins.sum: np.sum, builtins.max: np.max, builtins.min: np.min}
 
-    _cython_table = OrderedDict(
-        (
-            (builtins.sum, "sum"),
-            (builtins.max, "max"),
-            (builtins.min, "min"),
-            (np.all, "all"),
-            (np.any, "any"),
-            (np.sum, "sum"),
-            (np.nansum, "sum"),
-            (np.mean, "mean"),
-            (np.nanmean, "mean"),
-            (np.prod, "prod"),
-            (np.nanprod, "prod"),
-            (np.std, "std"),
-            (np.nanstd, "std"),
-            (np.var, "var"),
-            (np.nanvar, "var"),
-            (np.median, "median"),
-            (np.nanmedian, "median"),
-            (np.max, "max"),
-            (np.nanmax, "max"),
-            (np.min, "min"),
-            (np.nanmin, "min"),
-            (np.cumprod, "cumprod"),
-            (np.nancumprod, "cumprod"),
-            (np.cumsum, "cumsum"),
-            (np.nancumsum, "cumsum"),
-        )
-    )
+    _cython_table = {
+        builtins.sum: "sum",
+        builtins.max: "max",
+        builtins.min: "min",
+        np.all: "all",
+        np.any: "any",
+        np.sum: "sum",
+        np.nansum: "sum",
+        np.mean: "mean",
+        np.nanmean: "mean",
+        np.prod: "prod",
+        np.nanprod: "prod",
+        np.std: "std",
+        np.nanstd: "std",
+        np.var: "var",
+        np.nanvar: "var",
+        np.median: "median",
+        np.nanmedian: "median",
+        np.max: "max",
+        np.nanmax: "max",
+        np.min: "min",
+        np.nanmin: "min",
+        np.cumprod: "cumprod",
+        np.nancumprod: "cumprod",
+        np.cumsum: "cumsum",
+        np.nancumsum: "cumsum",
+    }
 
     @property
     def _selection_name(self):
@@ -309,7 +304,6 @@ class SelectionMixin:
         None if not required
         """
         is_aggregator = lambda x: isinstance(x, (list, tuple, dict))
-        is_nested_renamer = False
 
         _axis = kwargs.pop("_axis", None)
         if _axis is None:
@@ -329,7 +323,7 @@ class SelectionMixin:
             # eg. {'A' : ['mean']}, normalize all to
             # be list-likes
             if any(is_aggregator(x) for x in arg.values()):
-                new_arg = OrderedDict()
+                new_arg = {}
                 for k, v in arg.items():
                     if not isinstance(v, (tuple, list, dict)):
                         new_arg[k] = [v]
@@ -387,35 +381,18 @@ class SelectionMixin:
             def _agg(arg, func):
                 """
                 run the aggregations over the arg with func
-                return an OrderedDict
+                return a dict
                 """
-                result = OrderedDict()
+                result = {}
                 for fname, agg_how in arg.items():
                     result[fname] = func(fname, agg_how)
                 return result
 
             # set the final keys
             keys = list(arg.keys())
-            result = OrderedDict()
+            result = {}
 
-            # nested renamer
-            if is_nested_renamer:
-                result = list(_agg(arg, _agg_1dim).values())
-
-                if all(isinstance(r, dict) for r in result):
-
-                    result, results = OrderedDict(), result
-                    for r in results:
-                        result.update(r)
-                    keys = list(result.keys())
-
-                else:
-
-                    if self._selection is not None:
-                        keys = None
-
-            # some selection on the object
-            elif self._selection is not None:
+            if self._selection is not None:
 
                 sl = set(self._selection_list)
 
@@ -677,19 +654,27 @@ class IndexOpsMixin:
         """
         Return the first element of the underlying data as a python scalar.
 
-        .. deprecated:: 0.25.0
-
         Returns
         -------
         scalar
             The first element of %(klass)s.
+
+        Raises
+        ------
+        ValueError
+            If the data is not length-1.
         """
-        warnings.warn(
-            "`item` has been deprecated and will be removed in a future version",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.values.item()
+        if not (
+            is_extension_array_dtype(self.dtype) or needs_i8_conversion(self.dtype)
+        ):
+            # numpy returns ints instead of datetime64/timedelta64 objects,
+            #  which we need to wrap in Timestamp/Timedelta/Period regardless.
+            return self.values.item()
+
+        if len(self) == 1:
+            return next(iter(self))
+        else:
+            raise ValueError("can only convert an array of size 1 to a Python scalar")
 
     @property
     def nbytes(self):

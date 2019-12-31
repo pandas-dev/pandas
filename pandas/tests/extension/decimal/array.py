@@ -27,7 +27,8 @@ class DecimalDtype(ExtensionDtype):
 
     @classmethod
     def construct_array_type(cls):
-        """Return the array type associated with this dtype
+        """
+        Return the array type associated with this dtype.
 
         Returns
         -------
@@ -40,7 +41,7 @@ class DecimalDtype(ExtensionDtype):
         if string == cls.name:
             return cls()
         else:
-            raise TypeError(f"Cannot construct a '{cls}' from '{string}'")
+            raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
 
     @property
     def _is_numeric(self):

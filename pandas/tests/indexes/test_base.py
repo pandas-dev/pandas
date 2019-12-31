@@ -33,8 +33,13 @@ from pandas import (
     period_range,
 )
 from pandas.core.algorithms import safe_sort
-from pandas.core.index import ensure_index, ensure_index_from_sequences
-from pandas.core.indexes.api import Index, MultiIndex, _get_combined_index
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+    _get_combined_index,
+    ensure_index,
+    ensure_index_from_sequences,
+)
 from pandas.tests.indexes.common import Base
 from pandas.tests.indexes.conftest import indices_dict
 import pandas.util.testing as tm
@@ -95,6 +100,7 @@ class TestIndex(Base):
         arr[0] = "SOMEBIGLONGSTRING"
         assert new_index[0] != "SOMEBIGLONGSTRING"
 
+        # FIXME: dont leave commented-out
         # what to do here?
         # arr = np.array(5.)
         # pytest.raises(Exception, arr.view, Index)

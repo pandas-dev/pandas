@@ -217,7 +217,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
                 " TimedeltaArray ndarray, or Series or Index containing one of those."
             )
             raise ValueError(msg)
-        if values.ndim != 1:
+        if values.ndim not in [1, 2]:
             raise ValueError("Only 1-dimensional input arrays are supported.")
 
         if values.dtype == "i8":
@@ -1036,8 +1036,6 @@ def sequence_to_td64ns(data, copy=False, unit="ns", errors="raise"):
         raise TypeError(f"dtype {data.dtype} cannot be converted to timedelta64[ns]")
 
     data = np.array(data, copy=copy)
-    if data.ndim != 1:
-        raise ValueError("Only 1-dimensional input arrays are supported.")
 
     assert data.dtype == "m8[ns]", data
     return data, inferred_freq
@@ -1122,7 +1120,6 @@ def _validate_td64_dtype(dtype):
     dtype = pandas_dtype(dtype)
     if is_dtype_equal(dtype, np.dtype("timedelta64")):
         # no precision disallowed GH#24806
-        dtype = _TD_DTYPE
         msg = (
             "Passing in 'timedelta' dtype with no precision is not allowed. "
             "Please pass in 'timedelta64[ns]' instead."

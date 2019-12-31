@@ -35,7 +35,7 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     binary;`SPSS <https://en.wikipedia.org/wiki/SPSS>`__;:ref:`read_spss<io.spss_reader>`;
     binary;`Python Pickle Format <https://docs.python.org/3/library/pickle.html>`__;:ref:`read_pickle<io.pickle>`;:ref:`to_pickle<io.pickle>`
     SQL;`SQL <https://en.wikipedia.org/wiki/SQL>`__;:ref:`read_sql<io.sql>`;:ref:`to_sql<io.sql>`
-    SQL;`Google Big Query <https://en.wikipedia.org/wiki/BigQuery>`__;:ref:`read_gbq<io.bigquery>`;:ref:`to_gbq<io.bigquery>`
+    SQL;`Google BigQuery <https://en.wikipedia.org/wiki/BigQuery>`__;:ref:`read_gbq<io.bigquery>`;:ref:`to_gbq<io.bigquery>`
 
 :ref:`Here <io.perf>` is an informal performance comparison for some of these IO methods.
 
@@ -2136,27 +2136,26 @@ into a flat table.
 
 .. ipython:: python
 
-   from pandas.io.json import json_normalize
    data = [{'id': 1, 'name': {'first': 'Coleen', 'last': 'Volk'}},
            {'name': {'given': 'Mose', 'family': 'Regner'}},
            {'id': 2, 'name': 'Faye Raker'}]
-   json_normalize(data)
+   pd.json_normalize(data)
 
 .. ipython:: python
 
    data = [{'state': 'Florida',
             'shortname': 'FL',
             'info': {'governor': 'Rick Scott'},
-            'counties': [{'name': 'Dade', 'population': 12345},
-                         {'name': 'Broward', 'population': 40000},
-                         {'name': 'Palm Beach', 'population': 60000}]},
+            'county': [{'name': 'Dade', 'population': 12345},
+                       {'name': 'Broward', 'population': 40000},
+                       {'name': 'Palm Beach', 'population': 60000}]},
            {'state': 'Ohio',
             'shortname': 'OH',
             'info': {'governor': 'John Kasich'},
-            'counties': [{'name': 'Summit', 'population': 1234},
-                         {'name': 'Cuyahoga', 'population': 1337}]}]
+            'county': [{'name': 'Summit', 'population': 1234},
+                       {'name': 'Cuyahoga', 'population': 1337}]}]
 
-   json_normalize(data, 'counties', ['state', 'shortname', ['info', 'governor']])
+   pd.json_normalize(data, 'county', ['state', 'shortname', ['info', 'governor']])
 
 The max_level parameter provides more control over which level to end normalization.
 With max_level=1 the following snippet normalizes until 1st nesting level of the provided dict.
@@ -2169,7 +2168,7 @@ With max_level=1 the following snippet normalizes until 1st nesting level of the
                                       'Name': 'Name001'}},
              'Image': {'a': 'b'}
              }]
-    json_normalize(data, max_level=1)
+    pd.json_normalize(data, max_level=1)
 
 .. _io.jsonl:
 
@@ -3382,87 +3381,19 @@ The default is to 'infer':
 msgpack
 -------
 
-pandas supports the ``msgpack`` format for
-object serialization. This is a lightweight portable binary format, similar
-to binary JSON, that is highly space efficient, and provides good performance
-both on the writing (serialization), and reading (deserialization).
+pandas support for ``msgpack`` has been removed in version 1.0.0.  It is recommended to use pyarrow for on-the-wire transmission of pandas objects.
 
-.. warning::
+Example pyarrow usage:
 
-   The msgpack format is deprecated as of 0.25 and will be removed in a future version.
-   It is recommended to use pyarrow for on-the-wire transmission of pandas objects.
+.. code-block:: python
 
-.. warning::
+    >>> import pandas as pd
+    >>> import pyarrow as pa
+    >>> df = pd.DataFrame({'A': [1, 2, 3]})
+    >>> context = pa.default_serialization_context()
+    >>> df_bytestring = context.serialize(df).to_buffer().to_pybytes()
 
-   :func:`read_msgpack` is only guaranteed backwards compatible back to pandas version 0.20.3
-
-.. ipython:: python
-   :okwarning:
-
-   df = pd.DataFrame(np.random.rand(5, 2), columns=list('AB'))
-   df.to_msgpack('foo.msg')
-   pd.read_msgpack('foo.msg')
-   s = pd.Series(np.random.rand(5), index=pd.date_range('20130101', periods=5))
-
-You can pass a list of objects and you will receive them back on deserialization.
-
-.. ipython:: python
-   :okwarning:
-
-   pd.to_msgpack('foo.msg', df, 'foo', np.array([1, 2, 3]), s)
-   pd.read_msgpack('foo.msg')
-
-You can pass ``iterator=True`` to iterate over the unpacked results:
-
-.. ipython:: python
-   :okwarning:
-
-   for o in pd.read_msgpack('foo.msg', iterator=True):
-       print(o)
-
-You can pass ``append=True`` to the writer to append to an existing pack:
-
-.. ipython:: python
-   :okwarning:
-
-   df.to_msgpack('foo.msg', append=True)
-   pd.read_msgpack('foo.msg')
-
-Unlike other io methods, ``to_msgpack`` is available on both a per-object basis,
-``df.to_msgpack()`` and using the top-level ``pd.to_msgpack(...)`` where you
-can pack arbitrary collections of Python lists, dicts, scalars, while intermixing
-pandas objects.
-
-.. ipython:: python
-   :okwarning:
-
-   pd.to_msgpack('foo2.msg', {'dict': [{'df': df}, {'string': 'foo'},
-                                       {'scalar': 1.}, {'s': s}]})
-   pd.read_msgpack('foo2.msg')
-
-.. ipython:: python
-   :suppress:
-   :okexcept:
-
-   os.remove('foo.msg')
-   os.remove('foo2.msg')
-
-Read/write API
-''''''''''''''
-
-Msgpacks can also be read from and written to strings.
-
-.. ipython:: python
-   :okwarning:
-
-   df.to_msgpack()
-
-Furthermore you can concatenate the strings to produce a list of the original objects.
-
-.. ipython:: python
-   :okwarning:
-
-   pd.read_msgpack(df.to_msgpack() + s.to_msgpack())
+For documentation on pyarrow, see `here <https://arrow.apache.org/docs/python/index.html>`__.
 
 .. _io.hdf5:
 
@@ -4751,6 +4682,7 @@ See the documentation for `pyarrow <https://arrow.apache.org/docs/python/>`__ an
 Write to a parquet file.
 
 .. ipython:: python
+   :okwarning:
 
    df.to_parquet('example_pa.parquet', engine='pyarrow')
    df.to_parquet('example_fp.parquet', engine='fastparquet')
@@ -4831,10 +4763,10 @@ Parquet supports partitioning of data based on the values of one or more columns
 .. ipython:: python
 
     df = pd.DataFrame({'a': [0, 0, 1, 1], 'b': [0, 1, 0, 1]})
-    df.to_parquet(fname='test', engine='pyarrow',
+    df.to_parquet(path='test', engine='pyarrow',
                   partition_cols=['a'], compression=None)
 
-The `fname` specifies the parent directory to which data will be saved.
+The `path` specifies the parent directory to which data will be saved.
 The `partition_cols` are the column names by which the dataset will be partitioned.
 Columns are partitioned in the order they are given. The partition splits are
 determined by the unique values in the partition columns.
@@ -4896,7 +4828,6 @@ See also some :ref:`cookbook examples <cookbook.sql>` for some advanced strategi
 The key functions are:
 
 .. autosummary::
-    :toctree: ../reference/api/
 
     read_sql_table
     read_sql_query

@@ -1,4 +1,5 @@
-"""Utilities for interpreting CSS from Stylers for formatting non-HTML outputs
+"""
+Utilities for interpreting CSS from Stylers for formatting non-HTML outputs.
 """
 
 import re
@@ -6,20 +7,21 @@ import warnings
 
 
 class CSSWarning(UserWarning):
-    """This CSS syntax cannot currently be parsed"""
+    """
+    This CSS syntax cannot currently be parsed.
+    """
 
     pass
 
 
 def _side_expander(prop_fmt: str):
-    def expand(self, prop, value):
+    def expand(self, prop, value: str):
         tokens = value.split()
         try:
             mapping = self.SIDE_SHORTHANDS[len(tokens)]
         except KeyError:
             warnings.warn(
-                'Could not expand "{prop}: {val}"'.format(prop=prop, val=value),
-                CSSWarning,
+                f'Could not expand "{prop}: {value}"', CSSWarning,
             )
             return
         for key, idx in zip(self.SIDES, mapping):
@@ -29,12 +31,13 @@ def _side_expander(prop_fmt: str):
 
 
 class CSSResolver:
-    """A callable for parsing and resolving CSS to atomic properties
-
+    """
+    A callable for parsing and resolving CSS to atomic properties.
     """
 
     def __call__(self, declarations_str, inherited=None):
-        """ the given declarations to atomic properties
+        """
+        The given declarations to atomic properties.
 
         Parameters
         ----------
@@ -47,8 +50,8 @@ class CSSResolver:
 
         Returns
         -------
-        props : dict
-            Atomic CSS 2.2 properties
+        dict
+            Atomic CSS 2.2 properties.
 
         Examples
         --------
@@ -70,7 +73,6 @@ class CSSResolver:
          ('font-size', '24pt'),
          ('font-weight', 'bold')]
         """
-
         props = dict(self.atomize(self.parse(declarations_str)))
         if inherited is None:
             inherited = {}
@@ -110,14 +112,14 @@ class CSSResolver:
 
         # 3. TODO: resolve other font-relative units
         for side in self.SIDES:
-            prop = "border-{side}-width".format(side=side)
+            prop = f"border-{side}-width"
             if prop in props:
                 props[prop] = self.size_to_pt(
                     props[prop], em_pt=font_size, conversions=self.BORDER_WIDTH_RATIOS
                 )
             for prop in [
-                "margin-{side}".format(side=side),
-                "padding-{side}".format(side=side),
+                f"margin-{side}",
+                f"padding-{side}",
             ]:
                 if prop in props:
                     # TODO: support %
@@ -206,9 +208,9 @@ class CSSResolver:
 
         val = round(val, 5)
         if int(val) == val:
-            size_fmt = "{fmt:d}pt".format(fmt=int(val))
+            size_fmt = f"{int(val):d}pt"
         else:
-            size_fmt = "{fmt:f}pt".format(fmt=val)
+            size_fmt = f"{val:f}pt"
         return size_fmt
 
     def atomize(self, declarations):
@@ -236,10 +238,15 @@ class CSSResolver:
     expand_margin = _side_expander("margin-{:s}")
     expand_padding = _side_expander("padding-{:s}")
 
-    def parse(self, declarations_str):
-        """Generates (prop, value) pairs from declarations
+    def parse(self, declarations_str: str):
+        """
+        Generates (prop, value) pairs from declarations.
 
         In a future version may generate parsed tokens from tinycss/tinycss2
+
+        Parameters
+        ----------
+        declarations_str : str
         """
         for decl in declarations_str.split(";"):
             if not decl.strip():

@@ -96,7 +96,7 @@ cdef class BlockPlacement:
             return self._as_array
 
     def isin(self, arr):
-        from pandas.core.index import Int64Index
+        from pandas.core.indexes.api import Int64Index
         return Int64Index(self.as_array, copy=False).isin(arr)
 
     @property

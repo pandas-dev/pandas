@@ -27,7 +27,7 @@ class HistPlot(LinePlot):
             values = np.ravel(values)
             values = values[~isna(values)]
 
-            hist, self.bins = np.histogram(
+            _, self.bins = np.histogram(
                 values,
                 bins=self.bins,
                 range=self.kwds.get("range", None),
@@ -250,7 +250,8 @@ def _grouped_hist(
     def plot_group(group, ax):
         ax.hist(group.dropna().values, bins=bins, **kwargs)
 
-    xrot = xrot or rot
+    if xrot is None:
+        xrot = rot
 
     fig, axes = _grouped_plot(
         plot_group,

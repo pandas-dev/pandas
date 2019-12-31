@@ -1,4 +1,4 @@
-from collections import Counter, OrderedDict, defaultdict
+from collections import Counter, defaultdict
 from itertools import chain
 
 import numpy as np
@@ -162,6 +162,23 @@ class TestSeriesApply:
         with pytest.raises(SpecificationError, match=msg):
             tsdf.A.agg({"foo": ["sum", "mean"]})
 
+    def test_apply_categorical(self):
+        values = pd.Categorical(list("ABBABCD"), categories=list("DCBA"), ordered=True)
+        ser = pd.Series(values, name="XX", index=list("abcdefg"))
+        result = ser.apply(lambda x: x.lower())
+
+        # should be categorical dtype when the number of categories are
+        # the same
+        values = pd.Categorical(list("abbabcd"), categories=list("dcba"), ordered=True)
+        exp = pd.Series(values, name="XX", index=list("abcdefg"))
+        tm.assert_series_equal(result, exp)
+        tm.assert_categorical_equal(result.values, exp.values)
+
+        result = ser.apply(lambda x: "A")
+        exp = pd.Series(["A"] * 7, name="XX", index=list("abcdefg"))
+        tm.assert_series_equal(result, exp)
+        assert result.dtype == np.object
+
     @pytest.mark.parametrize("series", [["1-1", "1-1", np.NaN], ["1-1", "1-2", np.NaN]])
     def test_apply_categorical_with_nan_values(self, series):
         # GH 20714 bug fixed in: GH 24275
@@ -297,18 +314,16 @@ class TestSeriesAggregate:
         # this also tests a result set that is all scalars
         expected = string_series.describe()
         result = string_series.apply(
-            OrderedDict(
-                [
-                    ("count", "count"),
-                    ("mean", "mean"),
-                    ("std", "std"),
-                    ("min", "min"),
-                    ("25%", lambda x: x.quantile(0.25)),
-                    ("50%", "median"),
-                    ("75%", lambda x: x.quantile(0.75)),
-                    ("max", "max"),
-                ]
-            )
+            {
+                "count": "count",
+                "mean": "mean",
+                "std": "std",
+                "min": "min",
+                "25%": lambda x: x.quantile(0.25),
+                "50%": "median",
+                "75%": lambda x: x.quantile(0.75),
+                "max": "max",
+            }
         )
         tm.assert_series_equal(result, expected)
 
@@ -333,7 +348,7 @@ class TestSeriesAggregate:
 
         # test when mixed w/ callable reducers
         result = s.agg(["size", "count", "mean"])
-        expected = Series(OrderedDict([("size", 3.0), ("count", 2.0), ("mean", 1.5)]))
+        expected = Series({"size": 3.0, "count": 2.0, "mean": 1.5})
         tm.assert_series_equal(result[expected.index], expected)
 
     @pytest.mark.parametrize(

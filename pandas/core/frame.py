@@ -15,6 +15,7 @@ import itertools
 import sys
 from textwrap import dedent
 from typing import (
+    IO,
     Any,
     FrozenSet,
     Hashable,
@@ -36,8 +37,15 @@ import numpy.ma as ma
 from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, lib
+from pandas._typing import Axes, Dtype, FilePathOrBuffer
+from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender, Substitution, rewrite_axis_style_signature
+from pandas.util._decorators import (
+    Appender,
+    Substitution,
+    deprecate_kwarg,
+    rewrite_axis_style_signature,
+)
 from pandas.util._validators import (
     validate_axis_style_args,
     validate_bool_kwarg,
@@ -86,15 +94,14 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas._typing import Axes, Dtype, FilePathOrBuffer
 from pandas.core import algorithms, common as com, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin as DatetimeLikeArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.generic import NDFrame, _shared_docs
-from pandas.core.index import Index, ensure_index, ensure_index_from_sequences
 from pandas.core.indexes import base as ibase
+from pandas.core.indexes.api import Index, ensure_index, ensure_index_from_sequences
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.multi import maybe_droplevels
 from pandas.core.indexes.period import PeriodIndex
@@ -113,6 +120,7 @@ from pandas.core.internals.construction import (
 from pandas.core.ops.missing import dispatch_fill_zeros
 from pandas.core.series import Series
 
+from pandas.io.common import get_filepath_or_buffer
 from pandas.io.formats import console, format as fmt
 from pandas.io.formats.printing import pprint_thing
 import pandas.plotting
@@ -451,7 +459,7 @@ class DataFrame(NDFrame):
 
         # For data is list-like, or Iterable (will consume into list)
         elif isinstance(data, abc.Iterable) and not isinstance(data, (str, bytes)):
-            if not isinstance(data, abc.Sequence):
+            if not isinstance(data, (abc.Sequence, ExtensionArray)):
                 data = list(data)
             if len(data) > 0:
                 if is_list_like(data[0]) and getattr(data[0], "ndim", 1) == 1:
@@ -1434,8 +1442,6 @@ class DataFrame(NDFrame):
         location=None,
         progress_bar=True,
         credentials=None,
-        verbose=None,
-        private_key=None,
     ):
         """
         Write a DataFrame to a Google BigQuery table.
@@ -1464,7 +1470,7 @@ class DataFrame(NDFrame):
             Behavior when the destination table exists. Value can be one of:
 
             ``'fail'``
-                If table exists, do nothing.
+                If table exists raise pandas_gbq.gbq.TableCreationError.
             ``'replace'``
                 If table exists, drop it, recreate it, and insert data.
             ``'append'``
@@ -1510,21 +1516,6 @@ class DataFrame(NDFrame):
             *New in version 0.8.0 of pandas-gbq*.
 
             .. versionadded:: 0.24.0
-        verbose : bool, deprecated
-            Deprecated in pandas-gbq version 0.4.0. Use the `logging module
-            to adjust verbosity instead
-            <https://pandas-gbq.readthedocs.io/en/latest/intro.html#logging>`__.
-        private_key : str, deprecated
-            Deprecated in pandas-gbq version 0.8.0. Use the ``credentials``
-            parameter and
-            :func:`google.oauth2.service_account.Credentials.from_service_account_info`
-            or
-            :func:`google.oauth2.service_account.Credentials.from_service_account_file`
-            instead.
-
-            Service account private key in JSON format. Can be file path
-            or string contents. This is useful for remote server
-            authentication (eg. Jupyter/IPython notebook on remote host).
 
         See Also
         --------
@@ -1545,8 +1536,6 @@ class DataFrame(NDFrame):
             location=location,
             progress_bar=progress_bar,
             credentials=credentials,
-            verbose=verbose,
-            private_key=private_key,
         )
 
     @classmethod
@@ -1760,7 +1749,7 @@ class DataFrame(NDFrame):
         rec.array([(b'a', 1, 0.5 ), (b'b', 2, 0.75)],
                   dtype=[('I', 'S2'), ('A', '<i8'), ('B', '<f8')])
 
-        >>> index_dtypes = "<S{}".format(df.index.str.len().max())
+        >>> index_dtypes = f"<S{df.index.str.len().max()}"
         >>> df.to_records(index_dtypes=index_dtypes)
         rec.array([(b'a', 1, 0.5 ), (b'b', 2, 0.75)],
                   dtype=[('I', 'S1'), ('A', '<i8'), ('B', '<f8')])
@@ -1849,9 +1838,10 @@ class DataFrame(NDFrame):
         mgr = arrays_to_mgr(arrays, columns, index, columns, dtype=dtype)
         return cls(mgr)
 
+    @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
     def to_stata(
         self,
-        fname,
+        path,
         convert_dates=None,
         write_index=True,
         byteorder=None,
@@ -1869,11 +1859,16 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        fname : str, buffer or path object
+        path : str, buffer or path object
             String, path object (pathlib.Path or py._path.local.LocalPath) or
             object implementing a binary write() function. If using a buffer
             then the buffer will not be automatically closed after the file
             data has been written.
+
+            .. versionchanged:: 1.0.0
+
+            Previously this was "fname"
+
         convert_dates : dict
             Dictionary mapping columns containing datetime types to stata
             internal format to use when writing the dates. Options are 'tc',
@@ -1947,7 +1942,7 @@ class DataFrame(NDFrame):
             kwargs["convert_strl"] = convert_strl
 
         writer = statawriter(
-            fname,
+            path,
             self,
             convert_dates=convert_dates,
             byteorder=byteorder,
@@ -1959,22 +1954,54 @@ class DataFrame(NDFrame):
         )
         writer.write_file()
 
-    def to_feather(self, fname):
+    @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
+    def to_feather(self, path):
         """
         Write out the binary feather-format for DataFrames.
 
         Parameters
         ----------
-        fname : str
+        path : str
             String file path.
         """
         from pandas.io.feather_format import to_feather
 
-        to_feather(self, fname)
+        to_feather(self, path)
 
+    @Appender(
+        """
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     data={"animal_1": ["elk", "pig"], "animal_2": ["dog", "quetzal"]}
+        ... )
+        >>> print(df.to_markdown())
+        |    | animal_1   | animal_2   |
+        |---:|:-----------|:-----------|
+        |  0 | elk        | dog        |
+        |  1 | pig        | quetzal    |
+        """
+    )
+    @Substitution(klass="DataFrame")
+    @Appender(_shared_docs["to_markdown"])
+    def to_markdown(
+        self, buf: Optional[IO[str]] = None, mode: Optional[str] = None, **kwargs,
+    ) -> Optional[str]:
+        kwargs.setdefault("headers", "keys")
+        kwargs.setdefault("tablefmt", "pipe")
+        tabulate = import_optional_dependency("tabulate")
+        result = tabulate.tabulate(self, **kwargs)
+        if buf is None:
+            return result
+        buf, _, _, _ = get_filepath_or_buffer(buf, mode=mode)
+        assert buf is not None  # Help mypy.
+        buf.writelines(result)
+        return None
+
+    @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
     def to_parquet(
         self,
-        fname,
+        path,
         engine="auto",
         compression="snappy",
         index=None,
@@ -1993,11 +2020,13 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        fname : str
+        path : str
             File path or Root Directory path. Will be used as Root Directory
             path while writing a partitioned dataset.
 
-            .. versionchanged:: 0.24.0
+            .. versionchanged:: 1.0.0
+
+            Previously this was "fname"
 
         engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
             Parquet library to use. If 'auto', then the option
@@ -2054,7 +2083,7 @@ class DataFrame(NDFrame):
 
         to_parquet(
             self,
-            fname,
+            path,
             engine,
             compression=compression,
             index=index,
@@ -2361,13 +2390,9 @@ class DataFrame(NDFrame):
             # returns size in human readable format
             for x in ["bytes", "KB", "MB", "GB", "TB"]:
                 if num < 1024.0:
-                    return "{num:3.1f}{size_q} {x}".format(
-                        num=num, size_q=size_qualifier, x=x
-                    )
+                    return f"{num:3.1f}{size_qualifier} {x}"
                 num /= 1024.0
-            return "{num:3.1f}{size_q} {pb}".format(
-                num=num, size_q=size_qualifier, pb="PB"
-            )
+            return f"{num:3.1f}{size_qualifier} PB"
 
         if verbose:
             _verbose_repr()
@@ -2380,7 +2405,7 @@ class DataFrame(NDFrame):
                 _verbose_repr()
 
         counts = self._data.get_dtype_counts()
-        dtypes = ["{k}({kk:d})".format(k=k[0], kk=k[1]) for k in sorted(counts.items())]
+        dtypes = [f"{k[0]}({k[1]:d})" for k in sorted(counts.items())]
         lines.append(f"dtypes: {', '.join(dtypes)}")
 
         if memory_usage is None:
@@ -2495,7 +2520,7 @@ class DataFrame(NDFrame):
             )
         return result
 
-    def transpose(self, *args, **kwargs):
+    def transpose(self, *args, copy: bool = False):
         """
         Transpose index and columns.
 
@@ -2505,9 +2530,14 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        *args, **kwargs
-            Additional arguments and keywords have no effect but might be
-            accepted for compatibility with numpy.
+        *args : tuple, optional
+            Accepted for compatibility with NumPy.
+        copy : bool, default False
+            Whether to copy the data after transposing, even for DataFrames
+            with a single dtype.
+
+            Note that a copy is always required for mixed dtype DataFrames,
+            or for DataFrames with any extension types.
 
         Returns
         -------
@@ -2588,7 +2618,29 @@ class DataFrame(NDFrame):
         dtype: object
         """
         nv.validate_transpose(args, dict())
-        return super().transpose(1, 0, **kwargs)
+        # construct the args
+
+        dtypes = list(self.dtypes)
+        if self._is_homogeneous_type and dtypes and is_extension_array_dtype(dtypes[0]):
+            # We have EAs with the same dtype. We can preserve that dtype in transpose.
+            dtype = dtypes[0]
+            arr_type = dtype.construct_array_type()
+            values = self.values
+
+            new_values = [arr_type._from_sequence(row, dtype=dtype) for row in values]
+            result = self._constructor(
+                dict(zip(self.index, new_values)), index=self.columns
+            )
+
+        else:
+            new_values = self.values.T
+            if copy:
+                new_values = new_values.copy()
+            result = self._constructor(
+                new_values, index=self.columns, columns=self.index
+            )
+
+        return result.__finalize__(self)
 
     T = property(transpose)
 
@@ -2608,7 +2660,6 @@ class DataFrame(NDFrame):
         """
         # irow
         if axis == 0:
-            label = self.index[i]
             new_values = self._data.fast_xs(i)
 
             # if we are a copy, mark as such
@@ -3965,8 +4016,7 @@ class DataFrame(NDFrame):
         inplace=False,
         limit=None,
         downcast=None,
-        **kwargs,
-    ):
+    ) -> Optional["DataFrame"]:
         return super().fillna(
             value=value,
             method=method,
@@ -3974,7 +4024,6 @@ class DataFrame(NDFrame):
             inplace=inplace,
             limit=limit,
             downcast=downcast,
-            **kwargs,
         )
 
     @Appender(_shared_docs["replace"] % _shared_doc_kwargs)
@@ -4375,7 +4424,7 @@ class DataFrame(NDFrame):
                         values = values._data
 
                     if mask.any():
-                        values, changed = maybe_upcast_putmask(values, mask, np.nan)
+                        values, _ = maybe_upcast_putmask(values, mask, np.nan)
 
                     if issubclass(values_type, DatetimeLikeArray):
                         values = values_type(values, dtype=values_dtype)
@@ -4598,6 +4647,7 @@ class DataFrame(NDFrame):
         subset: Optional[Union[Hashable, Sequence[Hashable]]] = None,
         keep: Union[str, bool] = "first",
         inplace: bool = False,
+        ignore_index: bool = False,
     ) -> Optional["DataFrame"]:
         """
         Return DataFrame with duplicate rows removed.
@@ -4617,6 +4667,10 @@ class DataFrame(NDFrame):
             - False : Drop all duplicates.
         inplace : bool, default False
             Whether to drop duplicates in place or to return a copy.
+        ignore_index : bool, default False
+            If True, the resulting axis will be labeled 0, 1, …, n - 1.
+
+            .. versionadded:: 1.0.0
 
         Returns
         -------
@@ -4632,9 +4686,16 @@ class DataFrame(NDFrame):
         if inplace:
             (inds,) = (-duplicated)._ndarray_values.nonzero()
             new_data = self._data.take(inds)
+
+            if ignore_index:
+                new_data.axes[1] = ibase.default_index(len(inds))
             self._update_inplace(new_data)
         else:
-            return self[-duplicated]
+            result = self[-duplicated]
+
+            if ignore_index:
+                result.index = ibase.default_index(len(result))
+            return result
 
         return None
 
@@ -4715,6 +4776,7 @@ class DataFrame(NDFrame):
         inplace=False,
         kind="quicksort",
         na_position="last",
+        ignore_index=False,
     ):
         inplace = validate_bool_kwarg(inplace, "inplace")
         axis = self._get_axis_number(axis)
@@ -4747,6 +4809,9 @@ class DataFrame(NDFrame):
         new_data = self._data.take(
             indexer, axis=self._get_block_manager_axis(axis), verify=False
         )
+
+        if ignore_index:
+            new_data.axes[1] = ibase.default_index(len(indexer))
 
         if inplace:
             return self._update_inplace(new_data)
@@ -5083,7 +5148,7 @@ class DataFrame(NDFrame):
     # Arithmetic / combination related
 
     def _combine_frame(self, other, func, fill_value=None, level=None):
-        this, other = self.align(other, join="outer", level=level, copy=False)
+        # at this point we have `self._indexed_same(other)`
 
         if fill_value is None:
             # since _arith_op may be called in a loop, avoid function call
@@ -5099,14 +5164,15 @@ class DataFrame(NDFrame):
                 left, right = ops.fill_binop(left, right, fill_value)
                 return func(left, right)
 
-        if ops.should_series_dispatch(this, other, func):
+        if ops.should_series_dispatch(self, other, func):
             # iterate over columns
-            new_data = ops.dispatch_to_series(this, other, _arith_op)
+            new_data = ops.dispatch_to_series(self, other, _arith_op)
         else:
             with np.errstate(all="ignore"):
-                res_values = _arith_op(this.values, other.values)
-            new_data = dispatch_fill_zeros(func, this.values, other.values, res_values)
-        return this._construct_result(new_data)
+                res_values = _arith_op(self.values, other.values)
+            new_data = dispatch_fill_zeros(func, self.values, other.values, res_values)
+
+        return new_data
 
     def _combine_match_index(self, other, func):
         # at this point we have `self.index.equals(other.index)`
@@ -6666,7 +6732,7 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Merging / joining methods
 
-    def append(self, other, ignore_index=False, verify_integrity=False, sort=None):
+    def append(self, other, ignore_index=False, verify_integrity=False, sort=False):
         """
         Append rows of `other` to the end of caller, returning a new object.
 
@@ -6680,14 +6746,13 @@ class DataFrame(NDFrame):
             If True, do not use the index labels.
         verify_integrity : bool, default False
             If True, raise ValueError on creating index with duplicates.
-        sort : bool, default None
+        sort : bool, default False
             Sort columns if the columns of `self` and `other` are not aligned.
-            The default sorting is deprecated and will change to not-sorting
-            in a future version of pandas. Explicitly pass ``sort=True`` to
-            silence the warning and sort. Explicitly pass ``sort=False`` to
-            silence the warning and not sort.
 
             .. versionadded:: 0.23.0
+            .. versionchanged:: 1.0.0
+
+                Changed to not sort by default.
 
         Returns
         -------
@@ -6769,25 +6834,18 @@ class DataFrame(NDFrame):
                     " or if the Series has a name"
                 )
 
-            if other.name is None:
-                index = None
-            else:
-                # other must have the same index name as self, otherwise
-                # index name will be reset
-                index = Index([other.name], name=self.index.name)
-
+            index = Index([other.name], name=self.index.name)
             idx_diff = other.index.difference(self.columns)
             try:
                 combined_columns = self.columns.append(idx_diff)
             except TypeError:
                 combined_columns = self.columns.astype(object).append(idx_diff)
-            other = other.reindex(combined_columns, copy=False)
-            other = DataFrame(
-                other.values.reshape((1, len(other))),
-                index=index,
-                columns=combined_columns,
+            other = (
+                other.reindex(combined_columns, copy=False)
+                .to_frame()
+                .T.infer_objects()
+                .rename_axis(index.names, copy=False)
             )
-            other = other._convert(datetime=True, timedelta=True)
             if not self.columns.equals(combined_columns):
                 self = self.reindex(columns=combined_columns)
         elif isinstance(other, list):

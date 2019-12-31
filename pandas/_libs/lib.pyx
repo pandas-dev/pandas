@@ -510,7 +510,7 @@ def maybe_booleans_to_slice(ndarray[uint8_t] mask):
 @cython.boundscheck(False)
 def array_equivalent_object(left: object[:], right: object[:]) -> bool:
     """
-    Perform an element by element comparion on 1-d object arrays
+    Perform an element by element comparison on 1-d object arrays
     taking into account nan positions.
     """
     cdef:
@@ -598,7 +598,7 @@ def astype_str(arr: ndarray, skipna: bool=False) -> ndarray[object]:
 @cython.boundscheck(False)
 def clean_index_list(obj: list):
     """
-    Utility used in ``pandas.core.index.ensure_index``.
+    Utility used in ``pandas.core.indexes.api.ensure_index``.
     """
     cdef:
         Py_ssize_t i, n = len(obj)
@@ -1259,15 +1259,15 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     # make contiguous
     values = values.ravel()
 
-    if skipna:
-        values = values[~isnaobj(values)]
-
     val = _try_infer_map(values)
     if val is not None:
         return val
 
     if values.dtype != np.object_:
         values = values.astype('O')
+
+    if skipna:
+        values = values[~isnaobj(values)]
 
     n = len(values)
     if n == 0:
