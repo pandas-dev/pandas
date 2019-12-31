@@ -2,7 +2,7 @@
 concat routines
 """
 
-from typing import Hashable, List, Optional
+from typing import Hashable, List, Optional, Union
 
 import numpy as np
 
@@ -37,7 +37,7 @@ def concat(
     verify_integrity: bool = False,
     sort: bool = False,
     copy: bool = True,
-):
+) -> Union["DataFrame", "Series"]:
     """
     Concatenate pandas objects along a particular axis with optional set logic
     along the other axes.

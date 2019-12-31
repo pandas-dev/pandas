@@ -58,7 +58,9 @@ def pivot_table(
             pieces.append(table)
             keys.append(getattr(func, "__name__", func))
 
-        return concat(pieces, keys=keys, axis=1)
+        result = concat(pieces, keys=keys, axis=1)
+        assert isinstance(result, DataFrame)
+        return result
 
     keys = index + columns
 
@@ -459,7 +461,7 @@ def crosstab(
     margins_name: str = "All",
     dropna: bool = True,
     normalize=False,
-):
+) -> "DataFrame":
     """
     Compute a simple cross tabulation of two (or more) factors. By default
     computes a frequency table of the factors unless an array of values and an

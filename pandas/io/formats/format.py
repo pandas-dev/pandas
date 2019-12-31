@@ -281,7 +281,9 @@ class SeriesFormatter:
                 series = series.iloc[:max_rows]
             else:
                 row_num = max_rows // 2
-                series = concat((series.iloc[:row_num], series.iloc[-row_num:]))
+                concatted = concat((series.iloc[:row_num], series.iloc[-row_num:]))
+                assert isinstance(concatted, Series)
+                series = concatted
             self.tr_row_num = row_num
         else:
             self.tr_row_num = None
@@ -676,9 +678,11 @@ class DataFrameFormatter(TableFormatter):
                 col_num = max_cols
             else:
                 col_num = max_cols_adj // 2
-                frame = concat(
+                concatted = concat(
                     (frame.iloc[:, :col_num], frame.iloc[:, -col_num:]), axis=1
                 )
+                assert isinstance(concatted, DataFrame)
+                frame = concatted
                 # truncate formatter
                 if isinstance(self.formatters, (list, tuple)):
                     truncate_fmt = self.formatters
@@ -695,7 +699,9 @@ class DataFrameFormatter(TableFormatter):
                 frame = frame.iloc[:max_rows, :]
             else:
                 row_num = max_rows_adj // 2
-                frame = concat((frame.iloc[:row_num, :], frame.iloc[-row_num:, :]))
+                concatted = concat((frame.iloc[:row_num, :], frame.iloc[-row_num:, :]))
+                assert isinstance(concatted, DataFrame)
+                frame = concatted
             self.tr_row_num = row_num
         else:
             self.tr_row_num = None
