@@ -944,15 +944,14 @@ class Block(PandasObject):
                 and np.any(mask[mask])
                 and getattr(new, "ndim", 1) == 1
             ):
-
-                if not (
-                    mask.shape[-1] == len(new)
-                    or mask[mask].shape[-1] == len(new)
-                    or len(new) == 1
-                ):
+                if mask[mask].shape[-1] == len(new):  # GH 30567
+                    np.place(new_values, mask, new)
+                elif mask.shape[-1] == len(new) or len(new) == 1:
+                    np.putmask(new_values, mask, new)
+                else:
                     raise ValueError("cannot assign mismatch length to masked array")
-
-            np.putmask(new_values, mask, new)
+            else:
+                np.putmask(new_values, mask, new)
 
         # maybe upcast me
         elif mask.any():
