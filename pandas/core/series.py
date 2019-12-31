@@ -2909,7 +2909,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         sort_remaining : bool, default True
             If True and sorting by level and index is multilevel, sort by other
             levels too (in order) after sorting by specified level.
-        ignore_index: bool, default False
+        ignore_index : bool, default False
             If True, the resulting axis will be labeled 0, 1, …, n - 1.
 
             .. versionadded:: 1.0.0
