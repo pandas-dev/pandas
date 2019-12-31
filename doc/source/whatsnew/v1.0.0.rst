@@ -984,6 +984,7 @@ Other
 ``TypeError`` (:issue:`29069`)
 - Disabled parallel cython builds on Windows (:issue:`30214`)
 
+
 .. _whatsnew_1000.contributors:
 
 Contributors
