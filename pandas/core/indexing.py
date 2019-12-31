@@ -4,7 +4,6 @@ import numpy as np
 
 from pandas._libs.indexing import _NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
-from pandas._typing import AnyArrayLike
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender
 
@@ -23,7 +22,11 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCMultiIndex, ABCSeries
 from pandas.core.dtypes.missing import _infer_fill_value, isna
 
 import pandas.core.common as com
-from pandas.core.indexers import is_list_like_indexer, length_of_indexer
+from pandas.core.indexers import (
+    check_bool_array_indexer,
+    is_list_like_indexer,
+    length_of_indexer,
+)
 from pandas.core.indexes.api import Index, InvalidIndexError
 
 
@@ -2268,69 +2271,6 @@ def convert_to_index_sliceable(obj, key):
                 return None
 
     return None
-
-
-def check_bool_array_indexer(array: AnyArrayLike, mask: AnyArrayLike) -> np.ndarray:
-    """
-    Check if `mask` is a valid boolean indexer for `array`.
-
-    `array` and `mask` are checked to have the same length, and the
-    dtype is validated.
-
-    Parameters
-    ----------
-    array : array
-        The array that's being masked.
-    mask : array
-        The boolean array that's masking.
-
-    Returns
-    -------
-    numpy.ndarray
-        The validated boolean mask.
-
-    Raises
-    ------
-    IndexError
-        When the lengths don't match.
-    ValueError
-        When `mask` cannot be converted to a bool-dtype ndarray.
-
-    See Also
-    --------
-    api.extensions.is_bool_indexer : Check if `key` is a boolean indexer.
-
-    Examples
-    --------
-    A boolean ndarray is returned when the arguments are all valid.
-
-    >>> mask = pd.array([True, False])
-    >>> arr = pd.Series([1, 2])
-    >>> pd.api.extensions.check_bool_array_indexer(arr, mask)
-    array([ True, False])
-
-    An IndexError is raised when the lengths don't match.
-
-    >>> mask = pd.array([True, False, True])
-    >>> pd.api.extensions.check_bool_array_indexer(arr, mask)
-    Traceback (most recent call last):
-    ...
-    IndexError: Item wrong length 3 instead of 2.
-
-    A ValueError is raised when the mask cannot be converted to
-    a bool-dtype ndarray.
-
-    >>> mask = pd.array([True, pd.NA])
-    >>> pd.api.extensions.check_bool_array_indexer(arr, mask)
-    Traceback (most recent call last):
-    ...
-    ValueError: cannot convert to bool numpy array in presence of missing values
-    """
-    result = np.asarray(mask, dtype=bool)
-    # GH26658
-    if len(result) != len(array):
-        raise IndexError(f"Item wrong length {len(result)} instead of {len(array)}.")
-    return result
 
 
 def check_bool_indexer(index: Index, key) -> np.ndarray:

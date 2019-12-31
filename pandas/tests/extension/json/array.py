@@ -19,12 +19,9 @@ import sys
 
 import numpy as np
 
-from pandas.api.extensions import (
-    ExtensionArray,
-    ExtensionDtype,
-    check_bool_array_indexer,
-    is_bool_indexer,
-)
+from pandas.api.extensions import ExtensionArray, ExtensionDtype
+from pandas.core.common import is_bool_indexer
+from pandas.core.indexers import check_bool_array_indexer
 
 
 class JSONDtype(ExtensionDtype):

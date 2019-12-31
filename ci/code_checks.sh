@@ -121,7 +121,7 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     # Check for imports from pandas.core.common instead of `import pandas.core.common as com`
     # Check for imports from collections.abc instead of `from collections import abc`
     MSG='Check for non-standard imports' ; echo $MSG
-    invgrep -R --include="*.py*" --exclude="__init__.py" -E "from pandas.core.common import" pandas
+    invgrep -R --include="*.py*" -E "from pandas.core.common import" pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
     invgrep -R --include="*.py*" -E "from pandas.core import common" pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"

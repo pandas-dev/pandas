@@ -8,12 +8,10 @@ import numpy as np
 from pandas.core.dtypes.base import ExtensionDtype
 
 import pandas as pd
-from pandas.api.extensions import (
-    check_bool_array_indexer,
-    is_bool_indexer,
-    register_extension_dtype,
-)
+from pandas.api.extensions import register_extension_dtype
 from pandas.core.arrays import ExtensionArray, ExtensionScalarOpsMixin
+from pandas.core.common import is_bool_indexer
+from pandas.core.indexers import check_bool_array_indexer
 
 
 @register_extension_dtype

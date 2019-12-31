@@ -437,7 +437,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             return type(self)(val, dtype=self.dtype)
 
         if com.is_bool_indexer(key):
-            from pandas.core.indexing import check_bool_array_indexer
+            from pandas.core.indexers import check_bool_array_indexer
 
             key = check_bool_array_indexer(self, key)
             if key.all():

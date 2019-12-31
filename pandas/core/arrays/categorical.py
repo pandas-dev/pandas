@@ -1990,7 +1990,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
         Return an item.
         """
-        from pandas.core.indexing import check_bool_array_indexer
+        from pandas.core.indexers import check_bool_array_indexer
 
         if isinstance(key, (int, np.integer)):
             i = self._codes[key]

@@ -233,7 +233,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
 
     def __getitem__(self, item):
         # Avoid mypy failures when importing at the top-level
-        from pandas.core.indexing import check_bool_array_indexer
+        from pandas.core.indexers import check_bool_array_indexer
 
         if isinstance(item, type(self)):
             item = item._ndarray

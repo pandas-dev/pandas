@@ -317,7 +317,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
 
     def __getitem__(self, item):
         # import here to avoid circular import. Probably need to restructure
-        from pandas.core.indexing import check_bool_array_indexer
+        from pandas.core.indexers import check_bool_array_indexer
 
         if is_integer(item):
             if self._mask[item]:
