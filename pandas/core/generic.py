@@ -11120,6 +11120,7 @@ def _make_cum_function(
         def na_accum_func(blk_values):
             # We will be applying this function to block values
             if blk_values.dtype.kind in ["m", "M"]:
+                # GH#30460, GH#29058
                 # numpy 1.18 started sorting NaTs at the end instead of beginning,
                 #  so we need to work around to maintain backwards-consistency.
                 orig_dtype = blk_values.dtype

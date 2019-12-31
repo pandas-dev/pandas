@@ -96,7 +96,7 @@ class Resampler(_GroupBy, ShallowMixin):
         )
         return f"{type(self).__name__} [{', '.join(attrs)}]"
 
-    def __getattr__(self, attr):
+    def __getattr__(self, attr: str):
         if attr in self._internal_names_set:
             return object.__getattribute__(self, attr)
         if attr in self._attributes:
@@ -131,7 +131,7 @@ class Resampler(_GroupBy, ShallowMixin):
         return self.groupby.ax
 
     @property
-    def _typ(self):
+    def _typ(self) -> str:
         """
         Masquerade for compat as a Series or a DataFrame.
         """
@@ -140,7 +140,7 @@ class Resampler(_GroupBy, ShallowMixin):
         return "dataframe"
 
     @property
-    def _from_selection(self):
+    def _from_selection(self) -> bool:
         """
         Is the resampling from a DataFrame column or MultiIndex level.
         """
@@ -316,7 +316,7 @@ class Resampler(_GroupBy, ShallowMixin):
     def _upsample(self, f, limit=None, fill_value=None):
         raise AbstractMethodError(self)
 
-    def _gotitem(self, key, ndim, subset=None):
+    def _gotitem(self, key, ndim: int, subset=None):
         """
         Sub-classes to define. Return a sliced object.
 
@@ -1407,7 +1407,7 @@ class TimeGrouper(Grouper):
             f"but got an instance of '{type(ax).__name__}'"
         )
 
-    def _get_grouper(self, obj, validate=True):
+    def _get_grouper(self, obj, validate: bool = True):
         # create the resampler and return our binner
         r = self._get_resampler(obj)
         r._set_binner()
