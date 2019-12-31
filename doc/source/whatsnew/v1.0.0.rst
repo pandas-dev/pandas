@@ -930,6 +930,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.groupby` when using axis=1 and having a single level columns index (:issue:`30208`)
 - Bug in :meth:`DataFrame.groupby` when using nunique on axis=1 (:issue:`30253`)
 - Bug in :meth:`GroupBy.quantile` with multiple list-like q value and integer column names (:issue:`30289`)
+- Bug in :meth:`GroupBy.pct_change` and :meth:`SeriesGroupBy.pct_change` causes ``TypeError`` when ``fill_method`` is ``None`` (:issue:`30463`)
 
 Reshaping
 ^^^^^^^^^
