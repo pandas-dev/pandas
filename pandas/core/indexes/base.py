@@ -243,7 +243,7 @@ class Index(IndexOpsMixin, PandasObject):
     # MultiIndex.levels previously allowed setting the index name. We
     # don't allow this anymore, and raise if it happens rather than
     # failing silently.
-    _no_setting_name: bool = False
+    _no_setting_name: bool
     _comparables = ["name"]
     _attributes = ["name"]
     _is_numeric_dtype = False
