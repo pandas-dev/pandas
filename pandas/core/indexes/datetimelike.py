@@ -77,6 +77,15 @@ class DatetimeTimedeltaMixin:
     but not PeriodIndex
     """
 
+    # Compat for frequency inference, see GH#23789
+    _is_monotonic_increasing = Index.is_monotonic_increasing
+    _is_monotonic_decreasing = Index.is_monotonic_decreasing
+    _is_unique = Index.is_unique
+
+    @property
+    def is_all_dates(self) -> bool:
+        return True
+
     def _set_freq(self, freq):
         """
         Set the _freq attribute on our underlying DatetimeArray.
@@ -99,6 +108,133 @@ class DatetimeTimedeltaMixin:
             freq = to_offset(self.inferred_freq)
 
         self._data._freq = freq
+
+    # --------------------------------------------------------------------
+    # Set Operation Methods
+
+    @Appender(Index.difference.__doc__)
+    def difference(self, other, sort=None):
+        new_idx = super().difference(other, sort=sort)
+        new_idx._set_freq(None)
+        return new_idx
+
+    def intersection(self, other, sort=False):
+        """
+        Specialized intersection for DatetimeIndex/TimedeltaIndex.
+
+        May be much faster than Index.intersection
+
+        Parameters
+        ----------
+        other : Same type as self or array-like
+        sort : False or None, default False
+            Sort the resulting index if possible.
+
+            .. versionadded:: 0.24.0
+
+            .. versionchanged:: 0.24.1
+
+               Changed the default to ``False`` to match the behaviour
+               from before 0.24.0.
+
+            .. versionchanged:: 0.25.0
+
+               The `sort` keyword is added
+
+        Returns
+        -------
+        y : Index or same type as self
+        """
+        self._validate_sort_keyword(sort)
+        self._assert_can_do_setop(other)
+
+        if self.equals(other):
+            return self._get_reconciled_name_object(other)
+
+        if len(self) == 0:
+            return self.copy()
+        if len(other) == 0:
+            return other.copy()
+
+        if not isinstance(other, type(self)):
+            result = Index.intersection(self, other, sort=sort)
+            if isinstance(result, type(self)):
+                if result.freq is None:
+                    result._set_freq("infer")
+            return result
+
+        elif (
+            other.freq is None
+            or self.freq is None
+            or other.freq != self.freq
+            or not other.freq.is_anchored()
+            or (not self.is_monotonic or not other.is_monotonic)
+        ):
+            result = Index.intersection(self, other, sort=sort)
+
+            # Invalidate the freq of `result`, which may not be correct at
+            # this point, depending on the values.
+
+            result._set_freq(None)
+            if hasattr(self, "tz"):
+                result = self._shallow_copy(
+                    result._values, name=result.name, tz=result.tz, freq=None
+                )
+            else:
+                result = self._shallow_copy(result._values, name=result.name, freq=None)
+            if result.freq is None:
+                result._set_freq("infer")
+            return result
+
+        # to make our life easier, "sort" the two ranges
+        if self[0] <= other[0]:
+            left, right = self, other
+        else:
+            left, right = other, self
+
+        # after sorting, the intersection always starts with the right index
+        # and ends with the index of which the last elements is smallest
+        end = min(left[-1], right[-1])
+        start = right[0]
+
+        if end < start:
+            return type(self)(data=[])
+        else:
+            lslice = slice(*left.slice_locs(start, end))
+            left_chunk = left.values[lslice]
+            return self._shallow_copy(left_chunk)
+
+    def _can_fast_union(self, other) -> bool:
+        if not isinstance(other, type(self)):
+            return False
+
+        freq = self.freq
+
+        if freq is None or freq != other.freq:
+            return False
+
+        if not self.is_monotonic or not other.is_monotonic:
+            return False
+
+        if len(self) == 0 or len(other) == 0:
+            return True
+
+        # to make our life easier, "sort" the two ranges
+        if self[0] <= other[0]:
+            left, right = self, other
+        else:
+            left, right = other, self
+
+        right_start = right[0]
+        left_end = left[-1]
+
+        # Only need to "adjoin", not overlap
+        try:
+            return (right_start == left_end + freq) or right_start in left
+        except ValueError:
+            # if we are comparing a freq that does not propagate timezones
+            # this will raise
+            return False
 
 
 class DatetimeIndexOpsMixin(ExtensionOpsMixin):
@@ -605,66 +741,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
                 return self.astype(object).isin(values)
 
         return algorithms.isin(self.asi8, values.asi8)
-
-    def intersection(self, other, sort=False):
-        self._validate_sort_keyword(sort)
-        self._assert_can_do_setop(other)
-
-        if self.equals(other):
-            return self._get_reconciled_name_object(other)
-
-        if len(self) == 0:
-            return self.copy()
-        if len(other) == 0:
-            return other.copy()
-
-        if not isinstance(other, type(self)):
-            result = Index.intersection(self, other, sort=sort)
-            if isinstance(result, type(self)):
-                if result.freq is None:
-                    result._set_freq("infer")
-            return result
-
-        elif (
-            other.freq is None
-            or self.freq is None
-            or other.freq != self.freq
-            or not other.freq.is_anchored()
-            or (not self.is_monotonic or not other.is_monotonic)
-        ):
-            result = Index.intersection(self, other, sort=sort)
-
-            # Invalidate the freq of `result`, which may not be correct at
-            # this point, depending on the values.
-
-            result._set_freq(None)
-            if hasattr(self, "tz"):
-                result = self._shallow_copy(
-                    result._values, name=result.name, tz=result.tz, freq=None
-                )
-            else:
-                result = self._shallow_copy(result._values, name=result.name, freq=None)
-            if result.freq is None:
-                result._set_freq("infer")
-            return result
-
-        # to make our life easier, "sort" the two ranges
-        if self[0] <= other[0]:
-            left, right = self, other
-        else:
-            left, right = other, self
-
-        # after sorting, the intersection always starts with the right index
-        # and ends with the index of which the last elements is smallest
-        end = min(left[-1], right[-1])
-        start = right[0]
-
-        if end < start:
-            return type(self)(data=[])
-        else:
-            lslice = slice(*left.slice_locs(start, end))
-            left_chunk = left.values[lslice]
-            return self._shallow_copy(left_chunk)
 
     @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
     def repeat(self, repeats, axis=None):
