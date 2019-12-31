@@ -27,6 +27,7 @@ dependencies:
   - pyarrow>=0.12.0
   - pytables
   - python-snappy
+  - dateutil
   - pytz
   - scipy
   - xlrd
@@ -34,7 +35,4 @@ dependencies:
   - xlwt
   - pip
   - pip:
-    - brotlipy
     - coverage
-    - pandas-datareader
-    - python-dateutil
