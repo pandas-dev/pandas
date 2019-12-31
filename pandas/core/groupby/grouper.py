@@ -100,7 +100,9 @@ class Grouper:
             cls = TimeGrouper
         return super().__new__(cls)
 
-    def __init__(self, key=None, level=None, freq=None, axis=0, sort=False):
+    def __init__(
+        self, key=None, level=None, freq=None, axis=0, sort=False, dropna=None
+    ):
         self.key = key
         self.level = level
         self.freq = freq
@@ -112,6 +114,7 @@ class Grouper:
         self.indexer = None
         self.binner = None
         self._grouper = None
+        self.dropna = dropna if dropna is not None else True
 
     @property
     def ax(self):
@@ -138,6 +141,7 @@ class Grouper:
             level=self.level,
             sort=self.sort,
             validate=validate,
+            dropna=self.dropna,
         )
         return self.binner, self.grouper, self.obj
 
@@ -250,6 +254,7 @@ class Grouping:
         sort: bool = True,
         observed: bool = False,
         in_axis: bool = False,
+        dropna: Optional[bool] = None,
     ):
         self.name = name
         self.level = level
@@ -260,6 +265,8 @@ class Grouping:
         self.obj = obj
         self.observed = observed
         self.in_axis = in_axis
+
+        self.dropna = dropna if dropna is not None else True
 
         # right place for this?
         if isinstance(grouper, (Series, Index)) and name is None:
@@ -413,7 +420,9 @@ class Grouping:
                 codes = self.grouper.codes_info
                 uniques = self.grouper.result_index
             else:
-                codes, uniques = algorithms.factorize(self.grouper, sort=self.sort)
+                codes, uniques = algorithms.factorize(
+                    self.grouper, sort=self.sort, dropna=self.dropna
+                )
                 uniques = Index(uniques, name=self.name)
             self._codes = codes
             self._group_index = uniques
@@ -432,6 +441,7 @@ def get_grouper(
     observed: bool = False,
     mutated: bool = False,
     validate: bool = True,
+    dropna: Optional[bool] = None,
 ) -> "Tuple[ops.BaseGrouper, List[Hashable], FrameOrSeries]":
     """
     Create and return a BaseGrouper, which is an internal
@@ -621,6 +631,7 @@ def get_grouper(
                 sort=sort,
                 observed=observed,
                 in_axis=in_axis,
+                dropna=dropna,
             )
             if not isinstance(gpr, Grouping)
             else gpr

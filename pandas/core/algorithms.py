@@ -596,7 +596,11 @@ _shared_docs[
 )
 @Appender(_shared_docs["factorize"])
 def factorize(
-    values, sort: bool = False, na_sentinel: int = -1, size_hint: Optional[int] = None
+    values,
+    sort: bool = False,
+    na_sentinel: int = -1,
+    size_hint: Optional[int] = None,
+    dropna: Optional[bool] = None,
 ) -> Tuple[np.ndarray, Union[np.ndarray, ABCIndex]]:
     # Implementation notes: This method is responsible for 3 things
     # 1.) coercing data to array-like (ndarray, Index, extension array)
@@ -630,6 +634,9 @@ def factorize(
         uniques, codes = safe_sort(
             uniques, codes, na_sentinel=na_sentinel, assume_unique=True, verify=False
         )
+    if dropna is False and (codes == na_sentinel).any():
+        uniques = np.append(uniques, [np.nan])
+        codes = np.where(codes == na_sentinel, len(uniques) - 1, codes)
 
     uniques = _reconstruct_data(uniques, dtype, original)
 

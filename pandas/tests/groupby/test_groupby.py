@@ -2011,3 +2011,118 @@ def test_groupby_crash_on_nunique(axis):
         expected = expected.T
 
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dropna, tuples, outputs",
+    [
+        (
+            None,
+            [["A", "B"], ["B", "A"]],
+            {"c": [13.0, 123.23], "d": [13.0, 123.0], "e": [13.0, 1.0]},
+        ),
+        (
+            True,
+            [["A", "B"], ["B", "A"]],
+            {"c": [13.0, 123.23], "d": [13.0, 123.0], "e": [13.0, 1.0]},
+        ),
+        (
+            False,
+            [["A", "B"], ["A", np.nan], ["B", "A"]],
+            {
+                "c": [13.0, 12.3, 123.23],
+                "d": [13.0, 233.0, 123.0],
+                "e": [13.0, 12.0, 1.0],
+            },
+        ),
+    ],
+)
+def test_groupby_dropna_multi_index_dataframe(dropna, tuples, outputs):
+    # GH 3729
+    df_list = [
+        ["A", "B", 12, 12, 12],
+        ["A", None, 12.3, 233.0, 12],
+        ["B", "A", 123.23, 123, 1],
+        ["A", "B", 1, 1, 1.0],
+    ]
+    df = pd.DataFrame(df_list, columns=["a", "b", "c", "d", "e"])
+    grouped = df.groupby(["a", "b"], dropna=dropna).sum()
+
+    mi = pd.MultiIndex.from_tuples(tuples, names=list("ab"))
+    expected = pd.DataFrame(outputs, index=mi)
+
+    tm.assert_frame_equal(grouped, expected, check_index_type=False)
+
+
+@pytest.mark.parametrize(
+    "dropna, idx, outputs",
+    [
+        (None, ["A", "B"], {"b": [123.23, 13.0], "c": [123.0, 13.0], "d": [1.0, 13.0]}),
+        (True, ["A", "B"], {"b": [123.23, 13.0], "c": [123.0, 13.0], "d": [1.0, 13.0]}),
+        (
+            False,
+            ["A", "B", np.nan],
+            {
+                "b": [123.23, 13.0, 12.3],
+                "c": [123.0, 13.0, 233.0],
+                "d": [1.0, 13.0, 12.0],
+            },
+        ),
+    ],
+)
+def test_groupby_dropna_normal_index_dataframe(dropna, idx, outputs):
+    # GH 3729
+    df_list = [
+        ["B", 12, 12, 12],
+        [None, 12.3, 233.0, 12],
+        ["A", 123.23, 123, 1],
+        ["B", 1, 1, 1.0],
+    ]
+    df = pd.DataFrame(df_list, columns=["a", "b", "c", "d"])
+    grouped = df.groupby("a", dropna=dropna).sum()
+
+    expected = pd.DataFrame(outputs, index=pd.Index(idx, dtype="object", name="a"))
+
+    tm.assert_frame_equal(grouped, expected, check_index_type=False)
+
+
+@pytest.mark.parametrize(
+    "dropna, tuples, outputs",
+    [
+        (
+            None,
+            [["A", "B"], ["B", "A"]],
+            {"c": [13.0, 123.23], "d": [12.0, 123.0], "e": [1.0, 1.0]},
+        ),
+        (
+            True,
+            [["A", "B"], ["B", "A"]],
+            {"c": [13.0, 123.23], "d": [12.0, 123.0], "e": [1.0, 1.0]},
+        ),
+        (
+            False,
+            [["A", "B"], ["A", np.nan], ["B", "A"]],
+            {
+                "c": [13.0, 12.3, 123.23],
+                "d": [12.0, 233.0, 123.0],
+                "e": [1.0, 12.0, 1.0],
+            },
+        ),
+    ],
+)
+def test_groupby_dropna_multi_index_dataframe_agg(dropna, tuples, outputs):
+    # GH 3729
+    df_list = [
+        ["A", "B", 12, 12, 12],
+        ["A", None, 12.3, 233.0, 12],
+        ["B", "A", 123.23, 123, 1],
+        ["A", "B", 1, 1, 1.0],
+    ]
+    df = pd.DataFrame(df_list, columns=["a", "b", "c", "d", "e"])
+    agg_dict = {"c": sum, "d": max, "e": "min"}
+    grouped = df.groupby(["a", "b"], dropna=dropna).agg(agg_dict)
+
+    mi = pd.MultiIndex.from_tuples(tuples, names=list("ab"))
+    expected = pd.DataFrame(outputs, index=mi)
+
+    tm.assert_frame_equal(grouped, expected, check_index_type=False)
