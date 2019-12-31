@@ -2540,9 +2540,9 @@ def get_groupby(
     squeeze: bool = False,
     observed: bool = False,
     mutated: bool = False,
-):
+) -> GroupBy:
 
-    klass: Union[Type["SeriesGroupBy"], Type["DataFrameGroupBy"]]
+    klass: Type[GroupBy]
     if isinstance(obj, Series):
         from pandas.core.groupby.generic import SeriesGroupBy
 
