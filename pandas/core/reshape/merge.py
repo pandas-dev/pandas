@@ -68,7 +68,7 @@ def merge(
     copy: bool = True,
     indicator: bool = False,
     validate=None,
-):
+) -> "DataFrame":
     op = _MergeOperation(
         left,
         right,
@@ -183,7 +183,7 @@ def merge_ordered(
     fill_method=None,
     suffixes=("_x", "_y"),
     how: str = "outer",
-):
+) -> "DataFrame":
     """
     Perform merge with optional filling/interpolation.
 
@@ -317,7 +317,7 @@ def merge_asof(
     tolerance=None,
     allow_exact_matches: bool = True,
     direction: str = "backward",
-):
+) -> "DataFrame":
     """
     Perform an asof merge. This is similar to a left-join except that we
     match on nearest key rather than equal keys.
