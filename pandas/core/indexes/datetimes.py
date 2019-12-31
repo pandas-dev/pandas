@@ -1542,7 +1542,7 @@ def bdate_range(
     holidays=None,
     closed=None,
     **kwargs,
-):
+) -> DatetimeIndex:
     """
     Return a fixed frequency DatetimeIndex, with business day as the default
     frequency.

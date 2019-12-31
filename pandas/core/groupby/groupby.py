@@ -2529,6 +2529,7 @@ def get_groupby(
     observed: bool = False,
     mutated: bool = False,
 ) -> GroupBy:
+
     klass: Type[GroupBy]
     if isinstance(obj, Series):
         from pandas.core.groupby.generic import SeriesGroupBy

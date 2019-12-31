@@ -472,7 +472,7 @@ class _Concatenator:
         else:
             return self.objs[0].ndim
 
-    def _get_new_axes(self):
+    def _get_new_axes(self) -> List[Index]:
         ndim = self._get_result_dim()
         new_axes: List[Optional[Index]] = [None] * ndim
 

@@ -4,6 +4,8 @@
 # define abstract base classes to enable isinstance type checking on our
 # objects
 def create_pandas_abc_type(name, attr, comp):
+
+    # https://github.com/python/mypy/issues/1006
     # error: 'classmethod' used with a non-method
     @classmethod  # type: ignore
     def _check(cls, inst) -> bool:

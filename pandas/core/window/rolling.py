@@ -184,7 +184,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                 self._selection = key
         return self
 
-    def __getattr__(self, attr):
+    def __getattr__(self, attr: str):
         if attr in self._internal_names_set:
             return object.__getattribute__(self, attr)
         if attr in self.obj:

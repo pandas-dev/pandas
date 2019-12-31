@@ -118,7 +118,7 @@ def _json_normalize(
     errors: Optional[str] = "raise",
     sep: str = ".",
     max_level: Optional[int] = None,
-):
+) -> "DataFrame":
     """
     Normalize semi-structured JSON data into a flat table.
 
@@ -265,21 +265,21 @@ def _json_normalize(
     elif not isinstance(meta, list):
         meta = [meta]
 
-    meta_ = [m if isinstance(m, list) else [m] for m in meta]
+    _meta = [m if isinstance(m, list) else [m] for m in meta]
 
     # Disastrously inefficient for now
     records: List = []
     lengths = []
 
     meta_vals: DefaultDict = defaultdict(list)
-    meta_keys = [sep.join(val) for val in meta_]
+    meta_keys = [sep.join(val) for val in _meta]
 
     def _recursive_extract(data, path, seen_meta, level=0):
         if isinstance(data, dict):
             data = [data]
         if len(path) > 1:
             for obj in data:
-                for val, key in zip(meta_, meta_keys):
+                for val, key in zip(_meta, meta_keys):
                     if level + 1 == len(val):
                         seen_meta[key] = _pull_field(obj, val[-1])
 
@@ -296,7 +296,7 @@ def _json_normalize(
 
                 # For repeating the metadata later
                 lengths.append(len(recs))
-                for val, key in zip(meta_, meta_keys):
+                for val, key in zip(_meta, meta_keys):
                     if level + 1 > len(val):
                         meta_val = seen_meta[key]
                     else:
