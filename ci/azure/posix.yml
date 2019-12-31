@@ -9,48 +9,43 @@ jobs:
   strategy:
     matrix:
       ${{ if eq(parameters.name, 'macOS') }}:
-        py36_macos:
-          ENV_FILE: ci/deps/azure-macos-36.yaml
-          CONDA_PY: "36"
+        macos_latest:
+          ENV_FILE: ci/deps/latest.yml
+          PATTERN: "not slow and not network"
+
+        macos_oldest:
+          ENV_FILE: ci/deps/oldest.yml
           PATTERN: "not slow and not network"
 
       ${{ if eq(parameters.name, 'Linux') }}:
-        py36_minimum_versions:
-          ENV_FILE: ci/deps/azure-36-minimum_versions.yaml
-          CONDA_PY: "36"
+        linux_latest:
+          ENV_FILE: ci/deps/latest.yml
           PATTERN: "not slow and not network"
-        py36_locale_slow_old_np:
-          ENV_FILE: ci/deps/azure-36-locale_slow.yaml
-          CONDA_PY: "36"
-          PATTERN: "slow"
           LOCALE_OVERRIDE: "zh_CN.UTF-8"
-          EXTRA_APT: "language-pack-zh-hans"
+          EXTRA_APT: "language-pack-zh-hans xsel"
 
-        py36_locale:
-          ENV_FILE: ci/deps/azure-36-locale.yaml
-          CONDA_PY: "36"
+        linux_oldest:
+          ENV_FILE: ci/deps/oldest.yml
           PATTERN: "not slow and not network"
-          LOCALE_OVERRIDE: "it_IT.UTF-8"
 
-        py36_32bit:
+        slow:
+          ENV_FILE: ci/deps/latest.yml
+          PATTERN: "slow"
+
+        performance:
+          ENV_FILE: ci/deps/performance.yml
+          PATTERN: "not slow and not network"
+
+        32bit:
           ENV_FILE: ci/deps/azure-36-32bit.yaml
-          CONDA_PY: "36"
-          PATTERN: "not slow and not network"
+          PATTERN: "not slow and not network and not clipboard"
           BITS32: "yes"
 
-        py37_locale:
-          ENV_FILE: ci/deps/azure-37-locale.yaml
-          CONDA_PY: "37"
-          PATTERN: "not slow and not network"
-          LOCALE_OVERRIDE: "zh_CN.UTF-8"
-
-        py37_np_dev:
-          ENV_FILE: ci/deps/azure-37-numpydev.yaml
-          CONDA_PY: "37"
+        development:
+          ENV_FILE: ci/deps/unstable.yml
           PATTERN: "not slow and not network"
           TEST_ARGS: "-W error"
           PANDAS_TESTING_MODE: "deprecate"
-          EXTRA_APT: "xsel"
 
   steps:
     - script: |

@@ -1,8 +1,10 @@
+# Testing the core of pandas (no optional dependencies) with the development versions of NumPy and dateutil
+
 name: pandas-dev
 channels:
   - defaults
 dependencies:
-  - python=3.7.*
+  - python=3.*
 
   # tools
   - cython>=0.29.13

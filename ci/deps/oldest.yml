@@ -1,3 +1,7 @@
+# Testing pandas with the minimum supported versions of dependencies
+#
+# TODO: The included optional dependencies seem arbitrary, should we add all them?
+
 name: pandas-dev
 channels:
   - defaults

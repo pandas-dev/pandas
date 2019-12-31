@@ -8,14 +8,12 @@ jobs:
     vmImage: ${{ parameters.vmImage }}
   strategy:
     matrix:
-      py36_np15:
-        ENV_FILE: ci/deps/azure-windows-36.yaml
-        CONDA_PY: "36"
+      windows_latest:
+        ENV_FILE: ci\\deps\\latest.yml
         PATTERN: "not slow and not network"
 
-      py37_np141:
-        ENV_FILE: ci/deps/azure-windows-37.yaml
-        CONDA_PY: "37"
+      windows_oldest:
+        ENV_FILE: ci\\deps\\oldest.yml
         PATTERN: "not slow and not network"
 
   steps:
@@ -28,7 +26,7 @@ jobs:
       displayName: 'Update conda'
 
     - bash: |
-        conda env create -q --file ci\\deps\\azure-windows-$(CONDA_PY).yaml
+        conda env create -q --file $(ENV_FILE)
       displayName: 'Create anaconda environment'
 
     - bash: |
@@ -48,7 +46,7 @@ jobs:
       inputs:
         failTaskOnFailedTests: true
         testResultsFiles: 'test-data.xml'
-        testRunTitle: ${{ format('{0}-$(CONDA_PY)', parameters.name) }}
+        testRunTitle: $(build)
       displayName: 'Publish test results'
 
     - bash: |

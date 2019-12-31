@@ -1,9 +1,11 @@
+# Testing pandas with all optional dependencies, with the latest versions obtained from conda
+
 name: pandas-dev
 channels:
   - defaults
   - conda-forge
 dependencies:
-  - python=3.6.*
+  - python=3.*
 
   # tools
   - cython>=0.29.13
@@ -14,36 +16,19 @@ dependencies:
 
   # pandas dependencies
   - beautifulsoup4
-  - botocore>=1.11
-  - cython>=0.29.13
-  - dask
   - fastparquet>=0.3.2
-  - gcsfs
-  - geopandas
   - html5lib
   - matplotlib
-  - moto
   - nomkl
-  - numexpr
-  - numpy=1.15.*
+  - numpy
   - odfpy
   - openpyxl<=3.0.1
   # https://github.com/pandas-dev/pandas/pull/30009 openpyxl 3.0.2 broke
-  - pandas-gbq
-  # https://github.com/pydata/pandas-gbq/issues/271
-  - google-cloud-bigquery<=1.11
-  - psycopg2
   - pyarrow>=0.12.0
-  - pymysql
   - pytables
   - python-snappy
   - pytz
-  - s3fs
-  - scikit-learn
   - scipy
-  - sqlalchemy
-  - statsmodels
-  - xarray
   - xlrd
   - xlsxwriter
   - xlwt

@@ -1,3 +1,5 @@
+# Testing the core of pandas (no optional dependencies) in 32bits
+
 name: pandas-dev
 channels:
   - defaults
