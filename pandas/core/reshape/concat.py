@@ -2,7 +2,7 @@
 concat routines
 """
 
-from typing import Hashable, List, Optional, cast
+from typing import Hashable, List, Optional
 
 import numpy as np
 
@@ -474,15 +474,10 @@ class _Concatenator:
 
     def _get_new_axes(self) -> List[Index]:
         ndim = self._get_result_dim()
-        new_axes: List[Optional[Index]] = [None] * ndim
-
-        for i in range(ndim):
-            if i == self.axis:
-                continue
-            new_axes[i] = self._get_comb_axis(i)
-
-        new_axes[self.axis] = self._get_concat_axis()
-        return cast(List[Index], new_axes)
+        return [
+            self._get_concat_axis() if i == self.axis else self._get_comb_axis(i)
+            for i in range(ndim)
+        ]
 
     def _get_comb_axis(self, i: int) -> Index:
         data_axis = self.objs[0]._get_block_manager_axis(i)
