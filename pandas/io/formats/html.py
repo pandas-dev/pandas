@@ -137,7 +137,6 @@ class HTMLFormatter(TableFormatter):
         else:
             start_tag = "<{kind}>".format(kind=kind)
 
-        esc: Union[Dict[str, str], Dict]
         if self.escape:
             # escape & first to prevent double escaping of &
             esc = {"&": r"&amp;", "<": r"&lt;", ">": r"&gt;"}

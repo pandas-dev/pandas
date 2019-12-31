@@ -14,6 +14,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Dict,
     FrozenSet,
     Iterable,
     List,
@@ -1119,7 +1120,7 @@ class DataFrameGroupBy(GroupBy):
         axis = self.axis
         obj = self._obj_with_exclusions
 
-        result: dict = {}
+        result: Dict[Union[int, str], Union[NDFrame, np.ndarray]] = {}
         if axis != obj._info_axis_number:
             for name, data in self:
                 fres = func(data, *args, **kwargs)
@@ -1136,7 +1137,7 @@ class DataFrameGroupBy(GroupBy):
         # only for axis==0
 
         obj = self._obj_with_exclusions
-        result: dict = {}
+        result: Dict[Union[int, str], NDFrame] = {}
         cannot_agg = []
         for item in obj:
             data = obj[item]
