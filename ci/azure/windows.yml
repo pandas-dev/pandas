@@ -12,10 +12,6 @@ jobs:
         ENV_FILE: ci\\deps\\latest.yml
         PATTERN: "not slow and not network"
 
-      oldest:
-        ENV_FILE: ci\\deps\\oldest.yml
-        PATTERN: "not slow and not network"
-
   steps:
     - powershell: |
         Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"

@@ -13,10 +13,6 @@ jobs:
           ENV_FILE: ci/deps/latest.yml
           PATTERN: "not slow and not network"
 
-        oldest:
-          ENV_FILE: ci/deps/oldest.yml
-          PATTERN: "not slow and not network"
-
       ${{ if eq(parameters.name, 'Linux') }}:
         latest:
           ENV_FILE: ci/deps/latest.yml
@@ -37,7 +33,7 @@ jobs:
           PATTERN: "not slow and not network"
 
         32bit:
-          ENV_FILE: ci/deps/32bit.yml
+          ENV_FILE: ci/deps/32bits.yml
           PATTERN: "not slow and not network and not clipboard"
           BITS32: "yes"
 
