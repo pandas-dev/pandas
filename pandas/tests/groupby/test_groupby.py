@@ -2101,6 +2101,25 @@ def test_groupby_dropna_normal_index_dataframe(dropna, idx, outputs):
 
 
 @pytest.mark.parametrize(
+    "dropna, idx, expected",
+    [
+        (None, ["a", "a", "b", np.nan], pd.Series([3, 3], index=["a", "b"])),
+        (True, ["a", "a", "b", np.nan], pd.Series([3, 3], index=["a", "b"])),
+        (
+            False,
+            ["a", "a", "b", np.nan],
+            pd.Series([3, 3, 3], index=["a", "b", np.nan]),
+        ),
+    ],
+)
+def test_groupby_dropna_series(dropna, idx, expected):
+    ser = pd.Series([1, 2, 3, 3], index=idx)
+
+    result = ser.groupby(level=0, dropna=dropna).sum()
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
     "dropna, tuples, outputs",
     [
         (
