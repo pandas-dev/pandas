@@ -387,7 +387,7 @@ class TestReadHtml:
         # https://github.com/pandas-dev/pandas/issues/29622
         # This tests fails for bs4 >= 4.8.0 - so handle xfail accordingly
         if self.read_html.keywords.get("flavor") == "bs4" and td.safe_import(
-                "bs4", "4.8.0"
+            "bs4", "4.8.0"
         ):
             reason = "fails for bs4 version >= 4.8.0"
             request.node.add_marker(pytest.mark.xfail(reason=reason))
