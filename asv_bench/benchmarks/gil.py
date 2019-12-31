@@ -1,7 +1,8 @@
 import numpy as np
-import pandas.util.testing as tm
-from pandas import DataFrame, Series, read_csv, factorize, date_range
+
+from pandas import DataFrame, Series, date_range, factorize, read_csv
 from pandas.core.algorithms import take_1d
+import pandas.util.testing as tm
 
 try:
     from pandas import (
@@ -36,7 +37,7 @@ except ImportError:
         return wrapper
 
 
-from .pandas_vb_common import BaseIO
+from .pandas_vb_common import BaseIO  # isort:skip
 
 
 class ParallelGroupbyMethods:
@@ -249,13 +250,11 @@ class ParallelReadCSV(BaseIO):
                 np.random.randn(rows, cols), index=date_range("1/1/2000", periods=rows)
             ),
             "object": DataFrame(
-                "foo",
-                index=range(rows),
-                columns=["object%03d".format(i) for i in range(5)],
+                "foo", index=range(rows), columns=["object%03d" for _ in range(5)]
             ),
         }
 
-        self.fname = "__test_{}__.csv".format(dtype)
+        self.fname = f"__test_{dtype}__.csv"
         df = data[dtype]
         df.to_csv(self.fname)
 
@@ -301,4 +300,4 @@ class ParallelFactorize:
             self.loop()
 
 
-from .pandas_vb_common import setup  # noqa: F401
+from .pandas_vb_common import setup  # noqa: F401 isort:skip

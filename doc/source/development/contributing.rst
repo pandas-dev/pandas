@@ -24,6 +24,27 @@ and `good first issue
 where you could start out. Once you've found an interesting issue, you can
 return here to get your development environment setup.
 
+When you start working on an issue, it's a good idea to assign the issue to yourself,
+so nobody else duplicates the work on it. GitHub restricts assigning issues to maintainers
+of the project only. In most projects, and until recently in pandas, contributors added a
+comment letting others know they are working on an issue. While this is ok, you need to
+check each issue individually, and it's not possible to find the unassigned ones.
+
+For this reason, we implemented a workaround consisting of adding a comment with the exact
+text `take`. When you do it, a GitHub action will automatically assign you the issue
+(this will take seconds, and may require refreshint the page to see it).
+By doing this, it's possible to filter the list of issues and find only the unassigned ones.
+
+So, a good way to find an issue to start contributing to pandas is to check the list of
+`unassigned good first issues <https://github.com/pandas-dev/pandas/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22+no%3Aassignee>`_
+and assign yourself one you like by writing a comment with the exact text `take`.
+
+If for whatever reason you are not able to continue working with the issue, please try to
+unassign it, so other people know it's available again. You can check the list of
+assigned issues, since people may not be working in them anymore. If you want to work on one
+that is assigned, feel free to kindly ask the current assignee if you can take it
+(please allow at least a week of inactivity before considering work in the issue discontinued).
+
 Feel free to ask questions on the `mailing list
 <https://groups.google.com/forum/?fromgroups#!forum/pydata>`_ or on `Gitter`_.
 
@@ -133,22 +154,46 @@ Installing a C compiler
 Pandas uses C extensions (mostly written using Cython) to speed up certain
 operations. To install pandas from source, you need to compile these C
 extensions, which means you need a C compiler. This process depends on which
-platform you're using. Follow the `CPython contributing guide
-<https://devguide.python.org/setup/#compile-and-build>`_ for getting a
-compiler installed. You don't need to do any of the ``./configure`` or ``make``
-steps; you only need to install the compiler.
+platform you're using.
 
-For Windows developers, when using Python 3.5 and later, it is sufficient to
-install `Visual Studio 2017 <https://visualstudio.com/>`_ with the
-**Python development workload** and the **Python native development tools**
-option. Otherwise, the following links may be helpful.
+**Windows**
 
-* https://blogs.msdn.microsoft.com/pythonengineering/2017/03/07/python-support-in-vs2017/
-* https://blogs.msdn.microsoft.com/pythonengineering/2016/04/11/unable-to-find-vcvarsall-bat/
-* https://github.com/conda/conda-recipes/wiki/Building-from-Source-on-Windows-32-bit-and-64-bit
-* https://cowboyprogrammer.org/building-python-wheels-for-windows/
-* https://blog.ionelmc.ro/2014/12/21/compiling-python-extensions-on-windows/
-* https://support.enthought.com/hc/en-us/articles/204469260-Building-Python-extensions-with-Canopy
+You will need `Build Tools for Visual Studio 2017
+<https://visualstudio.microsoft.com/downloads/>`_.
+
+.. warning::
+	You DO NOT need to install Visual Studio 2019.
+	You only need "Build Tools for Visual Studio 2019" found by
+	scrolling down to "All downloads" -> "Tools for Visual Studio 2019".
+
+**Mac OS**
+
+Information about compiler installation can be found here:
+https://devguide.python.org/setup/#macos
+
+**Unix**
+
+Some Linux distributions will come with a pre-installed C compiler. To find out
+which compilers (and versions) are installed on your system::
+
+    # for Debian/Ubuntu:
+    dpkg --list | grep compiler
+    # for Red Hat/RHEL/CentOS/Fedora:
+    yum list installed | grep -i --color compiler
+
+`GCC (GNU Compiler Collection) <https://gcc.gnu.org/>`_, is a widely used
+compiler, which supports C and a number of other languages. If GCC is listed
+as an installed compiler nothing more is required. If no C compiler is
+installed (or you wish to install a newer version) you can install a compiler
+(GCC in the example code below) with::
+
+    # for recent Debian/Ubuntu:
+    sudo apt install build-essential
+    # for Red Had/RHEL/CentOS/Fedora
+    yum groupinstall "Development Tools"
+
+For other Linux distributions, consult your favourite search engine for
+compiler installation instructions.
 
 Let us know if you have any difficulties by opening an issue or reaching out on
 `Gitter`_.
@@ -184,7 +229,7 @@ We'll now kick off a three-step process:
 
    # Build and install pandas
    python setup.py build_ext --inplace -j 4
-   python -m pip install -e .
+   python -m pip install -e . --no-build-isolation --no-use-pep517
 
 At this point you should be able to import pandas from your locally built version::
 
@@ -212,14 +257,17 @@ Creating a Python environment (pip)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you aren't using conda for your development environment, follow these instructions.
-You'll need to have at least python3.5 installed on your system.
+You'll need to have at least Python 3.6.1 installed on your system.
 
-.. code-block:: none
+**Unix**/**Mac OS**
+
+.. code-block:: bash
 
    # Create a virtual environment
    # Use an ENV_DIR of your choice. We'll use ~/virtualenvs/pandas-dev
    # Any parent directories should already exist
    python3 -m venv ~/virtualenvs/pandas-dev
+
    # Activate the virtualenv
    . ~/virtualenvs/pandas-dev/bin/activate
 
@@ -227,8 +275,34 @@ You'll need to have at least python3.5 installed on your system.
    python -m pip install -r requirements-dev.txt
 
    # Build and install pandas
-   python setup.py build_ext --inplace -j 4
-   python -m pip install -e .
+   python setup.py build_ext --inplace -j 0
+   python -m pip install -e . --no-build-isolation --no-use-pep517
+
+**Windows**
+
+Below is a brief overview on how to set-up a virtual environment with Powershell
+under Windows. For details please refer to the
+`official virtualenv user guide <https://virtualenv.pypa.io/en/stable/userguide/#activate-script>`__
+
+Use an ENV_DIR of your choice. We'll use ~\virtualenvs\pandas-dev where
+'~' is the folder pointed to by either $env:USERPROFILE (Powershell) or
+%USERPROFILE% (cmd.exe) environment variable. Any parent directories
+should already exist.
+
+.. code-block:: powershell
+
+   # Create a virtual environment
+   python -m venv $env:USERPROFILE\virtualenvs\pandas-dev
+
+   # Activate the virtualenv. Use activate.bat for cmd.exe
+   ~\virtualenvs\pandas-dev\Scripts\Activate.ps1
+
+   # Install the build dependencies
+   python -m pip install -r requirements-dev.txt
+
+   # Build and install pandas
+   python setup.py build_ext --inplace -j 0
+   python -m pip install -e . --no-build-isolation --no-use-pep517
 
 Creating a branch
 -----------------
@@ -429,7 +503,7 @@ reducing the turn-around time for checking your changes.
     python make.py --no-api
 
     # compile the docs with only a single section, relative to the "source" folder.
-    # For example, compiling only this guide (docs/source/development/contributing.rst)
+    # For example, compiling only this guide (doc/source/development/contributing.rst)
     python make.py clean
     python make.py --single development/contributing.rst
 
@@ -580,6 +654,9 @@ submitting code to run the check yourself::
 to auto-format your code. Additionally, many editors have plugins that will
 apply ``black`` as you edit files.
 
+You should use a ``black`` version >= 19.10b0 as previous versions are not compatible
+with the pandas codebase.
+
 Optionally, you may wish to setup `pre-commit hooks <https://pre-commit.com/>`_
 to automatically run ``black`` and ``flake8`` when you make a git commit. This
 can be done by installing ``pre-commit``::
@@ -594,7 +671,8 @@ from the root of the pandas repository. Now ``black`` and ``flake8`` will be run
 each time you commit changes. You can skip these checks with
 ``git commit --no-verify``.
 
-This command will catch any stylistic errors in your changes specifically, but
+One caveat about ``git diff upstream/master -u -- "*.py" | flake8 --diff``: this
+command will catch any stylistic errors in your changes specifically, but
 be beware it may not catch all of them. For example, if you delete the only
 usage of an imported function, it is stylistically incorrect to import an
 unused function. However, style-checking the diff will not catch this because
@@ -710,6 +788,113 @@ You'll also need to
 
 See :ref:`contributing.warnings` for more.
 
+.. _contributing.type_hints:
+
+Type Hints
+----------
+
+*pandas* strongly encourages the use of :pep:`484` style type hints. New development should contain type hints and pull requests to annotate existing code are accepted as well!
+
+Style Guidelines
+~~~~~~~~~~~~~~~~
+
+Types imports should follow the ``from typing import ...`` convention. So rather than
+
+.. code-block:: python
+
+   import typing
+
+   primes: typing.List[int] = []
+
+You should write
+
+.. code-block:: python
+
+   from typing import List, Optional, Union
+
+   primes: List[int] = []
+
+``Optional`` should be used where applicable, so instead of
+
+.. code-block:: python
+
+   maybe_primes: List[Union[int, None]] = []
+
+You should write
+
+.. code-block:: python
+
+   maybe_primes: List[Optional[int]] = []
+
+In some cases in the code base classes may define class variables that shadow builtins. This causes an issue as described in `Mypy 1775 <https://github.com/python/mypy/issues/1775#issuecomment-310969854>`_. The defensive solution here is to create an unambiguous alias of the builtin and use that without your annotation. For example, if you come across a definition like
+
+.. code-block:: python
+
+   class SomeClass1:
+       str = None
+
+The appropriate way to annotate this would be as follows
+
+.. code-block:: python
+
+   str_type = str
+
+   class SomeClass2:
+       str: str_type = None
+
+In some cases you may be tempted to use ``cast`` from the typing module when you know better than the analyzer. This occurs particularly when using custom inference functions. For example
+
+.. code-block:: python
+
+   from typing import cast
+
+   from pandas.core.dtypes.common import is_number
+
+   def cannot_infer_bad(obj: Union[str, int, float]):
+
+       if is_number(obj):
+           ...
+       else:  # Reasonably only str objects would reach this but...
+           obj = cast(str, obj)  # Mypy complains without this!
+	   return obj.upper()
+
+The limitation here is that while a human can reasonably understand that ``is_number`` would catch the ``int`` and ``float`` types mypy cannot make that same inference just yet (see `mypy #5206 <https://github.com/python/mypy/issues/5206>`_. While the above works, the use of ``cast`` is **strongly discouraged**. Where applicable a refactor of the code to appease static analysis is preferable
+
+.. code-block:: python
+
+   def cannot_infer_good(obj: Union[str, int, float]):
+
+       if isinstance(obj, str):
+           return obj.upper()
+       else:
+           ...
+
+With custom types and inference this is not always possible so exceptions are made, but every effort should be exhausted to avoid ``cast`` before going down such paths.
+
+Pandas-specific Types
+~~~~~~~~~~~~~~~~~~~~~
+
+Commonly used types specific to *pandas* will appear in `pandas._typing <https://github.com/pandas-dev/pandas/blob/master/pandas/_typing.py>`_ and you should use these where applicable. This module is private for now but ultimately this should be exposed to third party libraries who want to implement type checking against pandas.
+
+For example, quite a few functions in *pandas* accept a ``dtype`` argument. This can be expressed as a string like ``"object"``, a ``numpy.dtype`` like ``np.int64`` or even a pandas ``ExtensionDtype`` like ``pd.CategoricalDtype``. Rather than burden the user with having to constantly annotate all of those options, this can simply be imported and reused from the pandas._typing module
+
+.. code-block:: python
+
+   from pandas._typing import Dtype
+
+   def as_type(dtype: Dtype) -> ...:
+       ...
+
+This module will ultimately house types for repeatedly used concepts like "path-like", "array-like", "numeric", etc... and can also hold aliases for commonly appearing parameters like `axis`. Development of this module is active so be sure to refer to the source for the most up to date list of available types.
+
+Validating Type Hints
+~~~~~~~~~~~~~~~~~~~~~
+
+*pandas* uses `mypy <http://mypy-lang.org>`_ to statically analyze the code base and type hints. After making any change you can ensure your type hints are correct by running
+
+.. code-block:: shell
+
+   mypy pandas
 
 .. _contributing.ci:
 
@@ -761,7 +946,7 @@ extensions in `numpy.testing
 
 .. note::
 
-   The earliest supported pytest version is 4.0.2.
+   The earliest supported pytest version is 5.0.1.
 
 Writing tests
 ~~~~~~~~~~~~~
@@ -795,10 +980,13 @@ the expected correct result::
 
         assert_frame_equal(pivoted, expected)
 
+Please remember to add the Github Issue Number as a comment to a new test.
+E.g. "# brief comment, see GH#28907"
+
 Transitioning to ``pytest``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-*pandas* existing test structure is *mostly* classed based, meaning that you will typically find tests wrapped in a class.
+*pandas* existing test structure is *mostly* class-based, meaning that you will typically find tests wrapped in a class.
 
 .. code-block:: python
 
@@ -1040,8 +1228,6 @@ submitting a pull request.
 
 For more, see the `pytest <http://docs.pytest.org/en/latest/>`_ documentation.
 
-    .. versionadded:: 0.20.0
-
 Furthermore one can run
 
 .. code-block:: python
@@ -1111,7 +1297,7 @@ environment by::
 
 or, to use a specific Python interpreter,::
 
-    asv run -e -E existing:python3.5
+    asv run -e -E existing:python3.6
 
 This will display stderr from the benchmarks, and use your local
 ``python`` that comes from your ``$PATH``.

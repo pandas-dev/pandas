@@ -29,7 +29,7 @@ Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
   - Improved implementation of rolling min and max (thanks to `Bottleneck
-    <http://berkeleyanalytics.com/bottleneck/>`__ !)
+    <https://bottleneck.readthedocs.io>`__ !)
   - Add accelerated ``'median'`` GroupBy option (:issue:`1358`)
   - Significantly improve the performance of parsing ISO8601-format date
     strings with ``DatetimeIndex`` or ``to_datetime`` (:issue:`1571`)

@@ -1,7 +1,6 @@
 from collections import OrderedDict
 
 import numpy as np
-from numpy import nan
 from numpy.random import randn
 import pytest
 
@@ -196,6 +195,27 @@ class TestMergeMulti:
 
         tm.assert_frame_equal(merged_left_right, merge_right_left)
 
+    def test_merge_multiple_cols_with_mixed_cols_index(self):
+        # GH29522
+        s = pd.Series(
+            range(6),
+            pd.MultiIndex.from_product([["A", "B"], [1, 2, 3]], names=["lev1", "lev2"]),
+            name="Amount",
+        )
+        df = pd.DataFrame(
+            {"lev1": list("AAABBB"), "lev2": [1, 2, 3, 1, 2, 3], "col": 0}
+        )
+        result = pd.merge(df, s.reset_index(), on=["lev1", "lev2"])
+        expected = pd.DataFrame(
+            {
+                "lev1": list("AAABBB"),
+                "lev2": [1, 2, 3, 1, 2, 3],
+                "col": [0] * 6,
+                "Amount": range(6),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_compress_group_combinations(self):
 
         # ~ 40000000 possible unique groups
@@ -311,11 +331,11 @@ class TestMergeMulti:
             [
                 ["X", "Y", "C", "a", 6],
                 ["X", "Y", "C", "a", 9],
-                ["W", "Y", "C", "e", nan],
+                ["W", "Y", "C", "e", np.nan],
                 ["V", "Q", "A", "h", -3],
                 ["V", "R", "D", "i", 2],
                 ["V", "R", "D", "i", -1],
-                ["X", "Y", "D", "b", nan],
+                ["X", "Y", "D", "b", np.nan],
                 ["X", "Y", "A", "c", 1],
                 ["X", "Y", "A", "c", 4],
                 ["W", "Q", "B", "f", 3],
@@ -365,10 +385,10 @@ class TestMergeMulti:
                 ["c", 0, "x"],
                 ["c", 0, "r"],
                 ["c", 0, "s"],
-                ["b", 1, nan],
+                ["b", 1, np.nan],
                 ["a", 2, "v"],
                 ["a", 2, "z"],
-                ["b", 3, nan],
+                ["b", 3, np.nan],
             ],
             columns=["tag", "val", "char"],
             index=[2, 2, 2, 2, 0, 1, 1, 3],

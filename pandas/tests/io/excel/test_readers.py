@@ -3,6 +3,7 @@ import contextlib
 from datetime import datetime, time
 from functools import partial
 import os
+from urllib.error import URLError
 import warnings
 
 import numpy as np
@@ -13,8 +14,6 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
 import pandas.util.testing as tm
-
-from pandas.io.common import URLError
 
 
 @contextlib.contextmanager
@@ -32,83 +31,115 @@ def ignore_xlrd_time_clock_warning():
         yield
 
 
-@pytest.fixture(
-    params=[
-        # Add any engines to test here
-        # When defusedxml is installed it triggers deprecation warnings for
-        # xlrd and openpyxl, so catch those here
-        pytest.param(
-            "xlrd",
-            marks=[
-                td.skip_if_no("xlrd"),
-                pytest.mark.filterwarnings("ignore:.*(tree\\.iter|html argument)"),
-            ],
-        ),
-        pytest.param(
-            "openpyxl",
-            marks=[
-                td.skip_if_no("openpyxl"),
-                pytest.mark.filterwarnings("ignore:.*html argument"),
-            ],
-        ),
-        pytest.param(
-            None,
-            marks=[
-                td.skip_if_no("xlrd"),
-                pytest.mark.filterwarnings("ignore:.*(tree\\.iter|html argument)"),
-            ],
-        ),
-        pytest.param("odf", marks=td.skip_if_no("odf")),
-    ]
-)
-def engine(request):
+read_ext_params = [".xls", ".xlsx", ".xlsm", ".ods"]
+engine_params = [
+    # Add any engines to test here
+    # When defusedxml is installed it triggers deprecation warnings for
+    # xlrd and openpyxl, so catch those here
+    pytest.param(
+        "xlrd",
+        marks=[
+            td.skip_if_no("xlrd"),
+            pytest.mark.filterwarnings("ignore:.*(tree\\.iter|html argument)"),
+        ],
+    ),
+    pytest.param(
+        "openpyxl",
+        marks=[
+            td.skip_if_no("openpyxl"),
+            pytest.mark.filterwarnings("ignore:.*html argument"),
+        ],
+    ),
+    pytest.param(
+        None,
+        marks=[
+            td.skip_if_no("xlrd"),
+            pytest.mark.filterwarnings("ignore:.*(tree\\.iter|html argument)"),
+        ],
+    ),
+    pytest.param("odf", marks=td.skip_if_no("odf")),
+]
+
+
+def _is_valid_engine_ext_pair(engine, read_ext: str) -> bool:
     """
-    A fixture for Excel reader engines.
+    Filter out invalid (engine, ext) pairs instead of skipping, as that
+    produces 500+ pytest.skips.
+    """
+    engine = engine.values[0]
+    if engine == "openpyxl" and read_ext == ".xls":
+        return False
+    if engine == "odf" and read_ext != ".ods":
+        return False
+    if read_ext == ".ods" and engine != "odf":
+        return False
+    return True
+
+
+def _transfer_marks(engine, read_ext):
+    """
+    engine gives us a pytest.param objec with some marks, read_ext is just
+    a string.  We need to generate a new pytest.param inheriting the marks.
+    """
+    values = engine.values + (read_ext,)
+    new_param = pytest.param(values, marks=engine.marks)
+    return new_param
+
+
+@pytest.fixture(
+    autouse=True,
+    params=[
+        _transfer_marks(eng, ext)
+        for eng in engine_params
+        for ext in read_ext_params
+        if _is_valid_engine_ext_pair(eng, ext)
+    ],
+)
+def engine_and_read_ext(request):
+    """
+    Fixture for Excel reader engine and read_ext, only including valid pairs.
     """
     return request.param
 
 
+@pytest.fixture
+def engine(engine_and_read_ext):
+    engine, read_ext = engine_and_read_ext
+    return engine
+
+
+@pytest.fixture
+def read_ext(engine_and_read_ext):
+    engine, read_ext = engine_and_read_ext
+    return read_ext
+
+
 class TestReaders:
     @pytest.fixture(autouse=True)
-    def cd_and_set_engine(self, engine, datapath, monkeypatch, read_ext):
+    def cd_and_set_engine(self, engine, datapath, monkeypatch):
         """
         Change directory and set engine for read_excel calls.
         """
-        if engine == "openpyxl" and read_ext == ".xls":
-            pytest.skip()
-        if engine == "odf" and read_ext != ".ods":
-            pytest.skip()
-        if read_ext == ".ods" and engine != "odf":
-            pytest.skip()
 
         func = partial(pd.read_excel, engine=engine)
-        monkeypatch.chdir(datapath("io", "data"))
+        monkeypatch.chdir(datapath("io", "data", "excel"))
         monkeypatch.setattr(pd, "read_excel", func)
 
     def test_usecols_int(self, read_ext, df_ref):
         df_ref = df_ref.reindex(columns=["A", "B", "C"])
 
         # usecols as int
-        with tm.assert_produces_warning(
-            FutureWarning, check_stacklevel=False, raise_on_extra_warnings=False
-        ):
+        msg = "Passing an integer for `usecols`"
+        with pytest.raises(ValueError, match=msg):
             with ignore_xlrd_time_clock_warning():
-                df1 = pd.read_excel(
-                    "test1" + read_ext, "Sheet1", index_col=0, usecols=3
-                )
+                pd.read_excel("test1" + read_ext, "Sheet1", index_col=0, usecols=3)
 
         # usecols as int
-        with tm.assert_produces_warning(
-            FutureWarning, check_stacklevel=False, raise_on_extra_warnings=False
-        ):
+        with pytest.raises(ValueError, match=msg):
             with ignore_xlrd_time_clock_warning():
-                df2 = pd.read_excel(
+                pd.read_excel(
                     "test1" + read_ext, "Sheet2", skiprows=[1], index_col=0, usecols=3
                 )
-
-        # TODO add index to xls file)
-        tm.assert_frame_equal(df1, df_ref, check_names=False)
-        tm.assert_frame_equal(df2, df_ref, check_names=False)
 
     def test_usecols_list(self, read_ext, df_ref):
 
@@ -500,12 +531,10 @@ class TestReaders:
 
     @tm.network
     def test_read_from_http_url(self, read_ext):
-        if read_ext == ".ods":  # TODO: remove once on master
-            pytest.skip()
 
         url = (
-            "https://raw.github.com/pandas-dev/pandas/master/"
-            "pandas/tests/io/data/test1" + read_ext
+            "https://raw.githubusercontent.com/pandas-dev/pandas/master/"
+            "pandas/tests/io/data/excel/test1" + read_ext
         )
         url_table = pd.read_excel(url)
         local_table = pd.read_excel("test1" + read_ext)
@@ -528,7 +557,7 @@ class TestReaders:
     def test_read_from_file_url(self, read_ext, datapath):
 
         # FILE
-        localtable = os.path.join(datapath("io", "data"), "test1" + read_ext)
+        localtable = os.path.join(datapath("io", "data", "excel"), "test1" + read_ext)
         local_table = pd.read_excel(localtable)
 
         try:
@@ -555,6 +584,7 @@ class TestReaders:
         tm.assert_frame_equal(expected, actual)
 
     @td.skip_if_no("py.path")
+    @td.check_file_leaks
     def test_read_from_py_localpath(self, read_ext):
 
         # GH12655
@@ -817,19 +847,13 @@ class TestReaders:
 
 class TestExcelFileRead:
     @pytest.fixture(autouse=True)
-    def cd_and_set_engine(self, engine, datapath, monkeypatch, read_ext):
+    def cd_and_set_engine(self, engine, datapath, monkeypatch):
         """
         Change directory and set engine for ExcelFile objects.
         """
-        if engine == "odf" and read_ext != ".ods":
-            pytest.skip()
-        if read_ext == ".ods" and engine != "odf":
-            pytest.skip()
-        if engine == "openpyxl" and read_ext == ".xls":
-            pytest.skip()
 
         func = partial(pd.ExcelFile, engine=engine)
-        monkeypatch.chdir(datapath("io", "data"))
+        monkeypatch.chdir(datapath("io", "data", "excel"))
         monkeypatch.setattr(pd, "ExcelFile", func)
 
     def test_excel_passes_na(self, read_ext):
@@ -871,11 +895,33 @@ class TestExcelFileRead:
         )
         tm.assert_frame_equal(parsed, expected)
 
+    @pytest.mark.parametrize("na_filter", [None, True, False])
+    def test_excel_passes_na_filter(self, read_ext, na_filter):
+        # gh-25453
+        kwargs = {}
+
+        if na_filter is not None:
+            kwargs["na_filter"] = na_filter
+
+        with pd.ExcelFile("test5" + read_ext) as excel:
+            parsed = pd.read_excel(
+                excel, "Sheet1", keep_default_na=True, na_values=["apple"], **kwargs
+            )
+
+        if na_filter is False:
+            expected = [["1.#QNAN"], [1], ["nan"], ["apple"], ["rabbit"]]
+        else:
+            expected = [[np.nan], [1], [np.nan], [np.nan], ["rabbit"]]
+
+        expected = DataFrame(expected, columns=["Test"])
+        tm.assert_frame_equal(parsed, expected)
+
     @pytest.mark.parametrize("arg", ["sheet", "sheetname", "parse_cols"])
+    @td.check_file_leaks
     def test_unexpected_kwargs_raises(self, read_ext, arg):
         # gh-17964
         kwarg = {arg: "Sheet1"}
-        msg = "unexpected keyword argument `{}`".format(arg)
+        msg = r"unexpected keyword argument `{}`".format(arg)
 
         with pd.ExcelFile("test1" + read_ext) as excel:
             with pytest.raises(TypeError, match=msg):
@@ -898,14 +944,6 @@ class TestExcelFileRead:
         with pd.ExcelFile("test1" + read_ext) as excel:
             df3 = pd.read_excel(excel, 0, index_col=0, skipfooter=1)
         tm.assert_frame_equal(df3, df1.iloc[:-1])
-
-        with tm.assert_produces_warning(
-            FutureWarning, check_stacklevel=False, raise_on_extra_warnings=False
-        ):
-            with pd.ExcelFile("test1" + read_ext) as excel:
-                df4 = pd.read_excel(excel, 0, index_col=0, skip_footer=1)
-
-            tm.assert_frame_equal(df3, df4)
 
         with pd.ExcelFile("test1" + read_ext) as excel:
             df3 = excel.parse(0, index_col=0, skipfooter=1)

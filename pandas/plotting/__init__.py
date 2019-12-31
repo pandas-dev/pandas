@@ -38,7 +38,6 @@ the current version, backends are expected to implement the next functions:
 - hist_series and hist_frame (for `Series.hist` and `DataFrame.hist`)
 - boxplot (`pandas.plotting.boxplot(df)` equivalent to `DataFrame.boxplot`)
 - boxplot_frame and boxplot_frame_groupby
-- tsplot (deprecated)
 - register and deregister (register converters for the tick formats)
 - Plots not called as `Series` and `DataFrame` methods:
   - table

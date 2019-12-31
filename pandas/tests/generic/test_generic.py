@@ -8,7 +8,6 @@ from pandas.core.dtypes.common import is_scalar
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, date_range
 import pandas.util.testing as tm
-from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 # ----------------------------------------------------------------------
 # Generic types test cases
@@ -34,6 +33,7 @@ class Generic:
             if is_scalar(value):
                 if value == "empty":
                     arr = None
+                    dtype = np.float64
 
                     # remove the info axis
                     kwargs.pop(self._typ._info_axis_name, None)
@@ -323,6 +323,7 @@ class Generic:
             self._compare(
                 o.sample(n=4, random_state=seed), o.sample(n=4, random_state=seed)
             )
+
             self._compare(
                 o.sample(frac=0.7, random_state=seed),
                 o.sample(frac=0.7, random_state=seed),
@@ -336,6 +337,15 @@ class Generic:
             self._compare(
                 o.sample(frac=0.7, random_state=np.random.RandomState(test)),
                 o.sample(frac=0.7, random_state=np.random.RandomState(test)),
+            )
+
+            self._compare(
+                o.sample(
+                    frac=2, replace=True, random_state=np.random.RandomState(test)
+                ),
+                o.sample(
+                    frac=2, replace=True, random_state=np.random.RandomState(test)
+                ),
             )
 
             os1, os2 = [], []
@@ -424,6 +434,17 @@ class Generic:
         weights_with_None = [None] * 10
         weights_with_None[5] = 0.5
         self._compare(o.sample(n=1, axis=0, weights=weights_with_None), o.iloc[5:6])
+
+    def test_sample_upsampling_without_replacement(self):
+        # GH27451
+
+        df = pd.DataFrame({"A": list("abc")})
+        msg = (
+            "Replace has to be set to `True` when "
+            "upsampling the population `frac` > 1."
+        )
+        with pytest.raises(ValueError, match=msg):
+            df.sample(frac=2, replace=False)
 
     def test_size_compat(self):
         # GH8846
@@ -606,7 +627,7 @@ class TestNDFrame:
             }
         )
         sample1 = df.sample(n=1, weights="easyweights")
-        assert_frame_equal(sample1, df.iloc[5:6])
+        tm.assert_frame_equal(sample1, df.iloc[5:6])
 
         # Ensure proper error if string given as weight for Series or
         # DataFrame with axis = 1.
@@ -635,19 +656,21 @@ class TestNDFrame:
         # Test axis argument
         df = pd.DataFrame({"col1": range(10), "col2": ["a"] * 10})
         second_column_weight = [0, 1]
-        assert_frame_equal(
+        tm.assert_frame_equal(
             df.sample(n=1, axis=1, weights=second_column_weight), df[["col2"]]
         )
 
         # Different axis arg types
-        assert_frame_equal(
+        tm.assert_frame_equal(
             df.sample(n=1, axis="columns", weights=second_column_weight), df[["col2"]]
         )
 
         weight = [0] * 10
         weight[5] = 0.5
-        assert_frame_equal(df.sample(n=1, axis="rows", weights=weight), df.iloc[5:6])
-        assert_frame_equal(df.sample(n=1, axis="index", weights=weight), df.iloc[5:6])
+        tm.assert_frame_equal(df.sample(n=1, axis="rows", weights=weight), df.iloc[5:6])
+        tm.assert_frame_equal(
+            df.sample(n=1, axis="index", weights=weight), df.iloc[5:6]
+        )
 
         # Check out of range axis values
         with pytest.raises(ValueError):
@@ -672,26 +695,26 @@ class TestNDFrame:
             {"col1": range(10, 20), "col2": range(20, 30), "colString": ["a"] * 10}
         )
         sample1 = df.sample(n=1, axis=1, weights=easy_weight_list)
-        assert_frame_equal(sample1, df[["colString"]])
+        tm.assert_frame_equal(sample1, df[["colString"]])
 
         # Test default axes
-        assert_frame_equal(
+        tm.assert_frame_equal(
             df.sample(n=3, random_state=42), df.sample(n=3, axis=0, random_state=42)
         )
 
         # Test that function aligns weights with frame
         df = DataFrame({"col1": [5, 6, 7], "col2": ["a", "b", "c"]}, index=[9, 5, 3])
         s = Series([1, 0, 0], index=[3, 5, 9])
-        assert_frame_equal(df.loc[[3]], df.sample(1, weights=s))
+        tm.assert_frame_equal(df.loc[[3]], df.sample(1, weights=s))
 
         # Weights have index values to be dropped because not in
         # sampled DataFrame
         s2 = Series([0.001, 0, 10000], index=[3, 5, 10])
-        assert_frame_equal(df.loc[[3]], df.sample(1, weights=s2))
+        tm.assert_frame_equal(df.loc[[3]], df.sample(1, weights=s2))
 
         # Weights have empty values to be filed with zeros
         s3 = Series([0.01, 0], index=[3, 5])
-        assert_frame_equal(df.loc[[3]], df.sample(1, weights=s3))
+        tm.assert_frame_equal(df.loc[[3]], df.sample(1, weights=s3))
 
         # No overlap in weight and sampled DataFrame indices
         s4 = Series([1, 0], index=[1, 2])
@@ -710,13 +733,10 @@ class TestNDFrame:
         tm.assert_series_equal(df.squeeze(), df["A"])
 
         # don't fail with 0 length dimensions GH11229 & GH8999
-        empty_series = Series([], name="five")
+        empty_series = Series([], name="five", dtype=np.float64)
         empty_frame = DataFrame([empty_series])
-
-        [
-            tm.assert_series_equal(empty_series, higher_dim.squeeze())
-            for higher_dim in [empty_series, empty_frame]
-        ]
+        tm.assert_series_equal(empty_series, empty_series.squeeze())
+        tm.assert_series_equal(empty_series, empty_frame.squeeze())
 
         # axis argument
         df = tm.makeTimeDataFrame(nper=1).iloc[:, :1]
@@ -876,10 +896,10 @@ class TestNDFrame:
         # GH 8437
         a = pd.Series([False, np.nan])
         b = pd.Series([False, np.nan])
-        c = pd.Series(index=range(2))
-        d = pd.Series(index=range(2))
-        e = pd.Series(index=range(2))
-        f = pd.Series(index=range(2))
+        c = pd.Series(index=range(2), dtype=object)
+        d = c.copy()
+        e = c.copy()
+        f = c.copy()
         c[:-1] = d[:-1] = e[0] = f[0] = False
         assert a.equals(a)
         assert a.equals(b)
@@ -893,19 +913,19 @@ class TestNDFrame:
         f = lambda x, y: x ** y
         result = df.pipe(f, 2)
         expected = DataFrame({"A": [1, 4, 9]})
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         result = df.A.pipe(f, 2)
-        assert_series_equal(result, expected.A)
+        tm.assert_series_equal(result, expected.A)
 
     def test_pipe_tuple(self):
         df = DataFrame({"A": [1, 2, 3]})
         f = lambda x, y: y
         result = df.pipe((f, "y"), 0)
-        assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, df)
 
         result = df.A.pipe((f, "y"), 0)
-        assert_series_equal(result, df.A)
+        tm.assert_series_equal(result, df.A)
 
     def test_pipe_tuple_error(self):
         df = DataFrame({"A": [1, 2, 3]})
@@ -918,7 +938,7 @@ class TestNDFrame:
 
     @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
     def test_axis_classmethods(self, box):
-        obj = box()
+        obj = box(dtype=object)
         values = (
             list(box._AXIS_NAMES.keys())
             + list(box._AXIS_NUMBERS.keys())
@@ -928,23 +948,3 @@ class TestNDFrame:
             assert obj._get_axis_number(v) == box._get_axis_number(v)
             assert obj._get_axis_name(v) == box._get_axis_name(v)
             assert obj._get_block_manager_axis(v) == box._get_block_manager_axis(v)
-
-    def test_deprecated_to_dense(self):
-        # GH 26557: DEPR
-        # Deprecated 0.25.0
-
-        df = pd.DataFrame({"A": [1, 2, 3]})
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.to_dense()
-        tm.assert_frame_equal(result, df)
-
-        ser = pd.Series([1, 2, 3])
-        with tm.assert_produces_warning(FutureWarning):
-            result = ser.to_dense()
-        tm.assert_series_equal(result, ser)
-
-    def test_deprecated_get_dtype_counts(self):
-        # GH 18262
-        df = DataFrame([1])
-        with tm.assert_produces_warning(FutureWarning):
-            df.get_dtype_counts()
