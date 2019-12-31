@@ -685,6 +685,10 @@ class TestIntervalDtype(Base):
         tm.round_trip_pickle(dtype)
         assert len(IntervalDtype._cache) == 0
 
+    def test_not_string(self):
+        # GH30568: though IntervalDtype has object kind, it cannot be string
+        assert not is_string_dtype(IntervalDtype())
+
 
 class TestCategoricalDtypeParametrized:
     @pytest.mark.parametrize(

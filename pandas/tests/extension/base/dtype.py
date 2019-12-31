@@ -16,8 +16,7 @@ class BaseDtypeTests(BaseExtensionTests):
 
     def test_kind(self, dtype):
         valid = set("biufcmMOSUV")
-        if dtype.kind is not None:
-            assert dtype.kind in valid
+        assert dtype.kind in valid
 
     def test_construct_from_string_own_name(self, dtype):
         result = dtype.construct_from_string(dtype.name)

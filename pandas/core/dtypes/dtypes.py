@@ -974,7 +974,7 @@ class IntervalDtype(PandasExtensionDtype):
     """
 
     name = "interval"
-    kind: Optional[str_type] = None
+    kind: str_type = "O"
     str = "|O08"
     base = np.dtype("O")
     num = 103

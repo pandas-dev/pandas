@@ -633,7 +633,14 @@ def is_string_dtype(arr_or_dtype) -> bool:
 
     # TODO: gh-15585: consider making the checks stricter.
     def condition(dtype) -> bool:
-        return dtype.kind in ("O", "S", "U") and not is_period_dtype(dtype)
+        return dtype.kind in ("O", "S", "U") and not is_excluded_dtype(dtype)
+
+    def is_excluded_dtype(dtype) -> bool:
+        """
+        These have kind = "O" but aren't string dtypes so need to be explicitly excluded
+        """
+        is_excluded_checks = (is_period_dtype, is_interval_dtype)
+        return any(is_excluded(dtype) for is_excluded in is_excluded_checks)
 
     return _is_dtype(arr_or_dtype, condition)
 
