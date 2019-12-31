@@ -739,7 +739,7 @@ class TestInt64Index(NumericInt):
     def test_get_indexer_nan(self):
         # GH 7820
         result = Index([1, 2, np.nan]).get_indexer([np.nan])
-        expected = np.array([2], dtype="int64")
+        expected = np.array([2], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
     def test_intersection(self):
