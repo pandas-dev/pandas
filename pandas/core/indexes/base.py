@@ -5455,7 +5455,21 @@ def maybe_extract_name(name, obj, cls) -> Optional[Hashable]:
     return name
 
 
-def _maybe_cast_with_dtype(data, dtype: np.dtype, copy: bool):
+def _maybe_cast_with_dtype(data: np.ndarray, dtype: np.dtype, copy: bool) -> np.ndarray:
+    """
+    If a dtype is passed, cast to the closest matching dtype that is supported
+    by Index.
+
+    Parameters
+    ----------
+    data : np.ndarray
+    dtype : np.dtype
+    copy : bool
+
+    Returns
+    -------
+    np.ndarray
+    """
     # we need to avoid having numpy coerce
     # things that look like ints/floats to ints unless
     # they are actually ints, e.g. '0' and 0.0
@@ -5495,7 +5509,9 @@ def _maybe_cast_with_dtype(data, dtype: np.dtype, copy: bool):
     return data
 
 
-def _try_convert_to_int_array(data, copy, dtype):
+def _try_convert_to_int_array(
+    data: np.ndarray, copy: bool, dtype: np.dtype
+) -> np.ndarray:
     """
     Attempt to convert an array of data into an integer array.
 
