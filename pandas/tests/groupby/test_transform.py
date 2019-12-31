@@ -877,27 +877,19 @@ def test_pad_stable_sorting(fill_method):
         ),
     ],
 )
-@pytest.mark.parametrize(
-    "periods,fill_method,limit",
-    [
-        (1, "ffill", None),
-        (1, "ffill", 1),
-        (1, "bfill", None),
-        (1, "bfill", 1),
-        (-1, "ffill", None),
-        (-1, "ffill", 1),
-        (-1, "bfill", None),
-        (-1, "bfill", 1),
-    ],
-)
+@pytest.mark.parametrize("periods", [1, -1])
+@pytest.mark.parametrize("fill_method", ["ffill", "bfill", None])
+@pytest.mark.parametrize("limit", [None, 1])
 def test_pct_change(test_series, freq, periods, fill_method, limit):
-    # GH  21200, 21621
+    # GH  21200, 21621, 30463
     vals = [3, np.nan, np.nan, np.nan, 1, 2, 4, 10, np.nan, 4]
     keys = ["a", "b"]
     key_v = np.repeat(keys, len(vals))
     df = DataFrame({"key": key_v, "vals": vals * 2})
 
-    df_g = getattr(df.groupby("key"), fill_method)(limit=limit)
+    df_g = df
+    if fill_method is not None:
+        df_g = getattr(df.groupby("key"), fill_method)(limit=limit)
     grp = df_g.groupby(df.key)
 
     expected = grp["vals"].obj / grp["vals"].shift(periods) - 1
