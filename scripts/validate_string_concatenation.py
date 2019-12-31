@@ -59,13 +59,11 @@ def main(source_path: str, output_format: str) -> bool:
 
     is_failed: bool = False
 
+    msg = "String unnecessarily split in two by black. Please merge them manually."
+
     if os.path.isfile(source_path):
         for source_path, line_number in strings_to_concatenate(source_path):
             is_failed = True
-            msg = (
-                "String unnecessarily split in two by black. "
-                "Please merge them manually."
-            )
             print(
                 output_format.format(
                     source_path=source_path, line_number=line_number, msg=msg
@@ -81,10 +79,6 @@ def main(source_path: str, output_format: str) -> bool:
                     os.path.join(subdir, file_name)
                 ):
                     is_failed = True
-                    msg = (
-                        "String unnecessarily split in two by black. "
-                        "Please merge them manually."
-                    )
                     print(
                         output_format.format(
                             source_path=source_path, line_number=line_number, msg=msg
@@ -104,19 +98,17 @@ def strings_to_concatenate(source_path: str) -> Generator[Tuple[str, int], None,
 
     Yields
     ------
-    Tuple
-        Containing:
-            source_path
-                Source file path.
-            line_number
-                Line number of unconcatenated string.
+    source_path : str
+        Source file path.
+    line_number : int
+        Line number of unconcatenated string.
     """
     with open(source_path, "r") as file_name:
         tokens: List = list(tokenize.generate_tokens(file_name.readline))
 
     for current_token, next_token in zip(tokens, tokens[1:]):
         if current_token[0] == next_token[0] == token.STRING:
-            yield (source_path, current_token[2][0])
+            yield source_path, current_token[2][0]
 
 
 if __name__ == "__main__":
