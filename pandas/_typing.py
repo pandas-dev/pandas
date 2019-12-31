@@ -2,7 +2,9 @@ from pathlib import Path
 from typing import (
     IO,
     TYPE_CHECKING,
+    Any,
     AnyStr,
+    Callable,
     Collection,
     Dict,
     List,
@@ -49,3 +51,5 @@ Axes = Collection
 
 # to maintain type information across generic functions and parametrization
 T = TypeVar("T")
+FuncType = Callable[..., Any]
+F = TypeVar("F", bound=FuncType)
