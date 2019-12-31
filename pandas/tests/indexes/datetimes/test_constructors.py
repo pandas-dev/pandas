@@ -711,7 +711,6 @@ class TestDatetimeIndex:
         expected = DatetimeIndex([ts[0].to_pydatetime(), ts[1].to_pydatetime()])
         tm.assert_index_equal(result, expected)
 
-    # TODO(GH-24559): Remove the xfail for the tz-aware case.
     @pytest.mark.parametrize("klass", [Index, DatetimeIndex])
     @pytest.mark.parametrize("box", [np.array, partial(np.array, dtype=object), list])
     @pytest.mark.parametrize(
