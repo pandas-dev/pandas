@@ -2,7 +2,7 @@
 concat routines
 """
 
-from typing import Hashable, List, Optional, Union
+from typing import Hashable, List, Mapping, Optional, Sequence, Union, overload
 
 import numpy as np
 
@@ -25,11 +25,45 @@ from pandas.core.internals import concatenate_block_managers
 # ---------------------------------------------------------------------
 # Concatenate DataFrame objects
 
+FrameOrSeriesUnion = Union["DataFrame", "Series"]
 
+
+@overload
 def concat(
-    objs,
+    objs: Union[Sequence["DataFrame"], Mapping[str, "DataFrame"]],
     axis=0,
     join: str = "outer",
+    ignore_index: bool = False,
+    keys=None,
+    levels=None,
+    names=None,
+    verify_integrity: bool = False,
+    sort: bool = False,
+    copy: bool = True,
+) -> "DataFrame":
+    ...
+
+
+@overload
+def concat(
+    objs: Union[Sequence[FrameOrSeriesUnion], Mapping[str, FrameOrSeriesUnion]],
+    axis=0,
+    join: str = "outer",
+    ignore_index: bool = False,
+    keys=None,
+    levels=None,
+    names=None,
+    verify_integrity: bool = False,
+    sort: bool = False,
+    copy: bool = True,
+) -> Union["DataFrame", "Series"]:
+    ...
+
+
+def concat(
+    objs: Union[Sequence[FrameOrSeriesUnion], Mapping[str, FrameOrSeriesUnion]],
+    axis=0,
+    join="outer",
     ignore_index: bool = False,
     keys=None,
     levels=None,

@@ -4432,9 +4432,7 @@ class AppendableFrameTable(AppendableTable):
         if len(frames) == 1:
             df = frames[0]
         else:
-            concatted = concat(frames, axis=1)
-            assert isinstance(concatted, DataFrame)
-            df = concatted
+            df = concat(frames, axis=1)
 
         selection = Selection(self, where=where, start=start, stop=stop)
         # apply the selection filters & axis orderings

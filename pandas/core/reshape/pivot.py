@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Callable, Dict, Tuple, Union
+from typing import TYPE_CHECKING, Callable, Dict, List, Tuple, Union
 
 import numpy as np
 
@@ -40,7 +40,7 @@ def pivot_table(
     columns = _convert_by(columns)
 
     if isinstance(aggfunc, list):
-        pieces = []
+        pieces: List[DataFrame] = []
         keys = []
         for func in aggfunc:
             table = pivot_table(
@@ -58,9 +58,7 @@ def pivot_table(
             pieces.append(table)
             keys.append(getattr(func, "__name__", func))
 
-        result = concat(pieces, keys=keys, axis=1)
-        assert isinstance(result, DataFrame)
-        return result
+        return concat(pieces, keys=keys, axis=1)
 
     keys = index + columns
 

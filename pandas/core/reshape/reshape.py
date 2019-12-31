@@ -922,9 +922,7 @@ def get_dummies(
                 dtype=dtype,
             )
             with_dummies.append(dummy)
-        concatted = concat(with_dummies, axis=1)
-        assert isinstance(concatted, DataFrame)
-        result = concatted
+        result = concat(with_dummies, axis=1)
     else:
         result = _get_dummies_1d(
             data,
