@@ -241,7 +241,7 @@ def read_sql_table(
     try:
         meta.reflect(only=[table_name], views=True)
     except sqlalchemy.exc.InvalidRequestError:
-        raise ValueError("Table {name} not found".format(name=table_name))
+        raise ValueError(f"Table {table_name} not found")
 
     pandas_sql = SQLDatabase(con, meta=meta)
     table = pandas_sql.read_table(
@@ -256,7 +256,7 @@ def read_sql_table(
     if table is not None:
         return table
     else:
-        raise ValueError("Table {name} not found".format(name=table_name), con)
+        raise ValueError(f"Table {table_name} not found", con)
 
 
 def read_sql_query(
@@ -498,7 +498,7 @@ def to_sql(
         .. versionadded:: 0.24.0
     """
     if if_exists not in ("fail", "replace", "append"):
-        raise ValueError("'{0}' is not valid for if_exists".format(if_exists))
+        raise ValueError(f"'{if_exists}' is not valid for if_exists")
 
     pandas_sql = pandasSQL_builder(con, schema=schema)
 
@@ -625,7 +625,7 @@ class SQLTable(PandasObject):
             self.table = self.pd_sql.get_table(self.name, self.schema)
 
         if self.table is None:
-            raise ValueError("Could not init table '{name}'".format(name=name))
+            raise ValueError(f"Could not init table '{name}'")
 
     def exists(self):
         return self.pd_sql.has_table(self.name, self.schema)
@@ -643,18 +643,14 @@ class SQLTable(PandasObject):
     def create(self):
         if self.exists():
             if self.if_exists == "fail":
-                raise ValueError(
-                    "Table '{name}' already exists.".format(name=self.name)
-                )
+                raise ValueError(f"Table '{self.name}' already exists.")
             elif self.if_exists == "replace":
                 self.pd_sql.drop_table(self.name, self.schema)
                 self._execute_create()
             elif self.if_exists == "append":
                 pass
             else:
-                raise ValueError(
-                    "'{0}' is not valid for if_exists".format(self.if_exists)
-                )
+                raise ValueError(f"'{self.if_exists}' is not valid for if_exists")
         else:
             self._execute_create()
 
@@ -689,7 +685,7 @@ class SQLTable(PandasObject):
             try:
                 temp.reset_index(inplace=True)
             except ValueError as err:
-                raise ValueError("duplicate name in index/columns: {0}".format(err))
+                raise ValueError(f"duplicate name in index/columns: {err}")
         else:
             temp = self.frame
 
@@ -732,7 +728,7 @@ class SQLTable(PandasObject):
         elif callable(method):
             exec_insert = partial(method, self)
         else:
-            raise ValueError("Invalid parameter `method`: {}".format(method))
+            raise ValueError(f"Invalid parameter `method`: {method}")
 
         keys, data_list = self.insert_data()
 
@@ -826,7 +822,7 @@ class SQLTable(PandasObject):
                 if len(index_label) != nlevels:
                     raise ValueError(
                         "Length of 'index_label' should match number of "
-                        "levels, which is {0}".format(nlevels)
+                        f"levels, which is {nlevels}"
                     )
                 else:
                     return index_label
@@ -839,7 +835,7 @@ class SQLTable(PandasObject):
                 return ["index"]
             else:
                 return [
-                    l if l is not None else "level_{0}".format(i)
+                    l if l is not None else f"level_{i}"
                     for i, l in enumerate(self.frame.index.names)
                 ]
 
@@ -1304,10 +1300,7 @@ class SQLDatabase(PandasSQL):
 
             for col, my_type in dtype.items():
                 if not isinstance(to_instance(my_type), TypeEngine):
-                    raise ValueError(
-                        "The type of {column} is not a "
-                        "SQLAlchemy type ".format(column=col)
-                    )
+                    raise ValueError(f"The type of {col} is not a SQLAlchemy type")
 
         table = SQLTable(
             name,
@@ -1331,11 +1324,11 @@ class SQLDatabase(PandasSQL):
                 )
             if name not in table_names:
                 msg = (
-                    "The provided table name '{0}' is not found exactly as "
+                    f"The provided table name '{name}' is not found exactly as "
                     "such in the database after writing the table, possibly "
                     "due to case sensitivity issues. Consider using lower "
                     "case table names."
-                ).format(name)
+                )
                 warnings.warn(msg, UserWarning)
 
     @property
@@ -1395,9 +1388,7 @@ def _get_unicode_name(name):
     try:
         uname = str(name).encode("utf-8", "strict").decode("utf-8")
     except UnicodeError:
-        raise ValueError(
-            "Cannot convert identifier to UTF-8: '{name}'".format(name=name)
-        )
+        raise ValueError(f"Cannot convert identifier to UTF-8: '{name}'")
     return uname
 
 
@@ -1461,8 +1452,8 @@ class SQLiteTable(SQLTable):
         bracketed_names = [escape(column) for column in names]
         col_names = ",".join(bracketed_names)
         wildcards = ",".join([wld] * len(names))
-        insert_statement = "INSERT INTO {table} ({columns}) VALUES ({wld})".format(
-            table=escape(self.name), columns=col_names, wld=wildcards
+        insert_statement = (
+            f"INSERT INTO {escape(self.name)} ({col_names}) VALUES ({wildcards})"
         )
         return insert_statement
 
@@ -1496,9 +1487,7 @@ class SQLiteTable(SQLTable):
                 keys = self.keys
             cnames_br = ", ".join(escape(c) for c in keys)
             create_tbl_stmts.append(
-                "CONSTRAINT {tbl}_pk PRIMARY KEY ({cnames_br})".format(
-                    tbl=self.name, cnames_br=cnames_br
-                )
+                f"CONSTRAINT {self.name}_pk PRIMARY KEY ({cnames_br})"
             )
 
         create_stmts = [
@@ -1599,14 +1588,11 @@ class SQLiteDatabase(PandasSQL):
                 self.con.rollback()
             except Exception as inner_exc:  # pragma: no cover
                 ex = DatabaseError(
-                    "Execution failed on sql: {sql}\n{exc}\nunable "
-                    "to rollback".format(sql=args[0], exc=exc)
+                    f"Execution failed on sql: {args[0]}\n{exc}\nunable to rollback"
                 )
                 raise ex from inner_exc
 
-            ex = DatabaseError(
-                "Execution failed on sql '{sql}': {exc}".format(sql=args[0], exc=exc)
-            )
+            ex = DatabaseError(f"Execution failed on sql '{args[0]}': {exc}")
             raise ex from exc
 
     @staticmethod
@@ -1731,11 +1717,7 @@ class SQLiteDatabase(PandasSQL):
         if dtype is not None:
             for col, my_type in dtype.items():
                 if not isinstance(my_type, str):
-                    raise ValueError(
-                        "{column} ({type!s}) not a string".format(
-                            column=col, type=my_type
-                        )
-                    )
+                    raise ValueError(f"{col} ({my_type}) not a string")
 
         table = SQLiteTable(
             name,
@@ -1755,9 +1737,7 @@ class SQLiteDatabase(PandasSQL):
         # esc_name = escape(name)
 
         wld = "?"
-        query = (
-            "SELECT name FROM sqlite_master WHERE type='table' AND name={wld};"
-        ).format(wld=wld)
+        query = f"SELECT name FROM sqlite_master WHERE type='table' AND name={wld};"
 
         return len(self.execute(query, [name]).fetchall()) > 0
 
@@ -1765,7 +1745,7 @@ class SQLiteDatabase(PandasSQL):
         return None  # not supported in fallback mode
 
     def drop_table(self, name, schema=None):
-        drop_sql = "DROP TABLE {name}".format(name=_get_valid_sqlite_name(name))
+        drop_sql = f"DROP TABLE {_get_valid_sqlite_name(name)}"
         self.execute(drop_sql)
 
     def _create_sql_schema(self, frame, table_name, keys=None, dtype=None):
