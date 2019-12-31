@@ -32,7 +32,6 @@ from pandas.core.indexes.datetimelike import (
     DatetimeTimedeltaMixin,
     ea_passthrough,
 )
-from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 
 from pandas.tseries.frequencies import to_offset
@@ -65,11 +64,7 @@ class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
     overwrite=True,
 )
 class TimedeltaIndex(
-    DatetimeTimedeltaMixin,
-    DatetimeIndexOpsMixin,
-    dtl.TimelikeOps,
-    Int64Index,
-    TimedeltaDelegateMixin,
+    DatetimeTimedeltaMixin, dtl.TimelikeOps, TimedeltaDelegateMixin,
 ):
     """
     Immutable ndarray of timedelta64 data, represented internally as int64, and

@@ -34,7 +34,8 @@ from pandas.core.indexes.datetimelike import (
     DatetimeIndexOpsMixin,
     DatetimelikeDelegateMixin,
 )
-from pandas.core.indexes.datetimes import DatetimeIndex, Index, Int64Index
+from pandas.core.indexes.datetimes import DatetimeIndex, Index
+from pandas.core.indexes.numeric import Int64Index
 from pandas.core.missing import isna
 from pandas.core.ops import get_op_result_name
 from pandas.core.tools.datetimes import DateParseError, parse_time_string

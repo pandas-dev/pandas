@@ -37,7 +37,6 @@ from pandas.core.indexes.datetimelike import (
     DatetimeTimedeltaMixin,
     ea_passthrough,
 )
-from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 import pandas.core.tools.datetimes as tools
 
@@ -94,9 +93,7 @@ class DatetimeDelegateMixin(DatetimelikeDelegateMixin):
     typ="method",
     overwrite=False,
 )
-class DatetimeIndex(
-    DatetimeTimedeltaMixin, DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin
-):
+class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
     """
     Immutable ndarray of datetime64 data, represented internally as int64, and
     which can be boxed to Timestamp objects that are subclasses of datetime and
