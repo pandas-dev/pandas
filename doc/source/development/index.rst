@@ -13,7 +13,7 @@ Development
     :maxdepth: 2
 
     contributing
-    contributing_code_guide
+    code_style
     maintaining
     internals
     extending

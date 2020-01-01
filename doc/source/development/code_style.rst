@@ -1,4 +1,4 @@
-.. _contributing_code_guide:
+.. _code_style:
 
 {{ header }}
 
