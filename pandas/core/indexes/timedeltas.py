@@ -3,7 +3,7 @@ from datetime import datetime
 
 import numpy as np
 
-from pandas._libs import NaT, Timedelta, index as libindex, join as libjoin, lib
+from pandas._libs import NaT, Timedelta, index as libindex, lib
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.common import (
@@ -122,16 +122,6 @@ class TimedeltaIndex(
 
     _typ = "timedeltaindex"
     _join_precedence = 10
-
-    def _join_i8_wrapper(joinf, **kwargs):
-        return DatetimeIndexOpsMixin._join_i8_wrapper(joinf, dtype="m8[ns]", **kwargs)
-
-    _inner_indexer = _join_i8_wrapper(libjoin.inner_join_indexer)
-    _outer_indexer = _join_i8_wrapper(libjoin.outer_join_indexer)
-    _left_indexer = _join_i8_wrapper(libjoin.left_join_indexer)
-    _left_indexer_unique = _join_i8_wrapper(
-        libjoin.left_join_indexer_unique, with_indexers=False
-    )
 
     _engine_type = libindex.TimedeltaEngine
 

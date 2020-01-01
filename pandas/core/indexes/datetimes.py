@@ -5,7 +5,6 @@ import warnings
 import numpy as np
 
 from pandas._libs import NaT, Timestamp, index as libindex, lib, tslib as libts
-import pandas._libs.join as libjoin
 from pandas._libs.tslibs import ccalendar, fields, parsing, timezones
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
@@ -32,7 +31,6 @@ from pandas.core.base import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, maybe_extract_name
 from pandas.core.indexes.datetimelike import (
-    DatetimeIndexOpsMixin,
     DatetimelikeDelegateMixin,
     DatetimeTimedeltaMixin,
 )
@@ -196,16 +194,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
 
     _typ = "datetimeindex"
     _join_precedence = 10
-
-    def _join_i8_wrapper(joinf, **kwargs):
-        return DatetimeIndexOpsMixin._join_i8_wrapper(joinf, dtype="M8[ns]", **kwargs)
-
-    _inner_indexer = _join_i8_wrapper(libjoin.inner_join_indexer)
-    _outer_indexer = _join_i8_wrapper(libjoin.outer_join_indexer)
-    _left_indexer = _join_i8_wrapper(libjoin.left_join_indexer)
-    _left_indexer_unique = _join_i8_wrapper(
-        libjoin.left_join_indexer_unique, with_indexers=False
-    )
 
     _engine_type = libindex.DatetimeEngine
     _supports_partial_string_indexing = True
