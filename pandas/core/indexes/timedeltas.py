@@ -42,7 +42,7 @@ class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
     # which we don't want to expose in the .dt accessor.
     _delegate_class = TimedeltaArray
     _raw_properties = {"components", "_box_func"}
-    _raw_methods = {"to_pytimedelta", "sum", "std", "median"}
+    _raw_methods = {"to_pytimedelta", "sum", "std", "median", "_format_native_types"}
 
     _delegated_properties = TimedeltaArray._datetimelike_ops + list(_raw_properties)
     _delegated_methods = (
@@ -221,15 +221,6 @@ class TimedeltaIndex(
         from pandas.io.formats.format import _get_format_timedelta64
 
         return _get_format_timedelta64(self, box=True)
-
-    def _format_native_types(self, na_rep="NaT", date_format=None, **kwargs):
-        from pandas.io.formats.format import Timedelta64Formatter
-
-        return np.asarray(
-            Timedelta64Formatter(
-                values=self, nat_rep=na_rep, justify="all"
-            ).get_result()
-        )
 
     # -------------------------------------------------------------------
     # Wrapping TimedeltaArray

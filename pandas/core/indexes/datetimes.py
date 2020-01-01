@@ -1,5 +1,6 @@
-from datetime import datetime, time, timedelta
+from datetime import datetime, time, timedelta, tzinfo
 import operator
+from typing import Optional
 import warnings
 
 import numpy as np
@@ -70,6 +71,7 @@ class DatetimeDelegateMixin(DatetimelikeDelegateMixin):
         "to_pydatetime",
         "_local_timestamps",
         "_has_same_tz",
+        "_format_native_types",
     ]
     _extra_raw_properties = ["_box_func", "tz", "tzinfo", "dtype"]
     _delegated_properties = DatetimeArray._datetimelike_ops + _extra_raw_properties
@@ -92,7 +94,7 @@ class DatetimeDelegateMixin(DatetimelikeDelegateMixin):
     DatetimeArray,
     DatetimeDelegateMixin._delegated_methods,
     typ="method",
-    overwrite=False,
+    overwrite=True,
 )
 class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
     """
@@ -215,6 +217,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
     _field_ops = DatetimeArray._field_ops
     _datetimelike_ops = DatetimeArray._datetimelike_ops
     _datetimelike_methods = DatetimeArray._datetimelike_methods
+
+    tz: Optional[tzinfo]
 
     # --------------------------------------------------------------------
     # Constructors
@@ -383,15 +387,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
         return libts.ints_to_pydatetime(self.asi8, self.tz)
-
-    def _format_native_types(self, na_rep="NaT", date_format=None, **kwargs):
-        from pandas.io.formats.format import _get_format_datetime64_from_values
-
-        fmt = _get_format_datetime64_from_values(self, date_format)
-
-        return libts.format_array_from_datetime(
-            self.asi8, tz=self.tz, format=fmt, na_rep=na_rep
-        )
 
     @property
     def _formatter_func(self):
