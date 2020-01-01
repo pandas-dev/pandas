@@ -446,7 +446,7 @@ class TestDataFrameFormatting:
                     assert not has_truncated_repr(df6)
 
                 with option_context("display.max_rows", 9, "display.max_columns", 10):
-                    # out vertical bounds can not result in exanded repr
+                    # out vertical bounds can not result in expanded repr
                     assert not has_expanded_repr(df10)
                     assert has_vertically_truncated_repr(df10)
 
@@ -1105,6 +1105,15 @@ class TestDataFrameFormatting:
             result = str(df)
             assert "None" in result
             assert "NaN" not in result
+
+    def test_truncate_with_different_dtypes_multiindex(self):
+        # GH#13000
+        df = DataFrame({"Vals": range(100)})
+        frame = pd.concat([df], keys=["Sweep"], names=["Sweep", "Index"])
+        result = repr(frame)
+
+        result2 = repr(frame.iloc[:5])
+        assert result.startswith(result2)
 
     def test_datetimelike_frame(self):
 
@@ -2376,7 +2385,8 @@ class TestSeriesFormatting:
 
             # object dtype, longer than unicode repr
             s = Series(
-                [1, 22, 3333, 44444], index=[1, "AB", pd.Timestamp("2011-01-01"), "あああ"]
+                [1, 22, 3333, 44444],
+                index=[1, "AB", pd.Timestamp("2011-01-01"), "あああ"],
             )
             expected = (
                 "1                          1\n"

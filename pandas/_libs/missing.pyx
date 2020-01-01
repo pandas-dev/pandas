@@ -15,12 +15,16 @@ from pandas._libs.tslibs.np_datetime cimport (
 from pandas._libs.tslibs.nattype cimport (
     checknull_with_nat, c_NaT as NaT, is_null_datetimelike)
 
+from pandas.compat import is_platform_32bit
+
 
 cdef:
     float64_t INF = <float64_t>np.inf
     float64_t NEGINF = -INF
 
     int64_t NPY_NAT = util.get_nat()
+
+    bint is_32bit = is_platform_32bit()
 
 
 cpdef bint checknull(object val):
@@ -345,7 +349,9 @@ class NAType(C_NAType):
         raise TypeError("boolean value of NA is ambiguous")
 
     def __hash__(self):
-        return id(self)
+        # GH 30013: Ensure hash is large enough to avoid hash collisions with integers
+        exponent = 31 if is_32bit else 61
+        return 2 ** exponent - 1
 
     # Binary arithmetic and comparison ops -> propagate
 
@@ -365,8 +371,6 @@ class NAType(C_NAType):
     __rmod__ = _create_binary_propagating_op("__rmod__")
     __divmod__ = _create_binary_propagating_op("__divmod__", divmod=True)
     __rdivmod__ = _create_binary_propagating_op("__rdivmod__", divmod=True)
-    __pow__ = _create_binary_propagating_op("__pow__")
-    __rpow__ = _create_binary_propagating_op("__rpow__")
     # __lshift__ and __rshift__ are not implemented
 
     __eq__ = _create_binary_propagating_op("__eq__")
@@ -382,6 +386,30 @@ class NAType(C_NAType):
     __pos__ = _create_unary_propagating_op("__pos__")
     __abs__ = _create_unary_propagating_op("__abs__")
     __invert__ = _create_unary_propagating_op("__invert__")
+
+    # pow has special
+    def __pow__(self, other):
+        if other is C_NA:
+            return NA
+        elif isinstance(other, (numbers.Number, np.bool_)):
+            if other == 0:
+                # returning positive is correct for +/- 0.
+                return type(other)(1)
+            else:
+                return NA
+
+        return NotImplemented
+
+    def __rpow__(self, other):
+        if other is C_NA:
+            return NA
+        elif isinstance(other, (numbers.Number, np.bool_)):
+            if other == 1 or other == -1:
+                return other
+            else:
+                return NA
+
+        return NotImplemented
 
     # Logical ops using Kleene logic
 

@@ -111,9 +111,9 @@ class TestUltraJSONTests:
     @pytest.mark.parametrize("ensure_ascii", [True, False])
     def test_encode_string_conversion(self, ensure_ascii):
         string_input = "A string \\ / \b \f \n \r \t </script> &"
-        not_html_encoded = '"A string \\\\ \\/ \\b \\f \\n ' '\\r \\t <\\/script> &"'
+        not_html_encoded = '"A string \\\\ \\/ \\b \\f \\n \\r \\t <\\/script> &"'
         html_encoded = (
-            '"A string \\\\ \\/ \\b \\f \\n \\r \\t ' '\\u003c\\/script\\u003e \\u0026"'
+            '"A string \\\\ \\/ \\b \\f \\n \\r \\t \\u003c\\/script\\u003e \\u0026"'
         )
 
         def helper(expected_output, **encode_kwargs):
@@ -362,21 +362,21 @@ class TestUltraJSONTests:
     )
     def test_encode_time_conversion_basic(self, test):
         output = ujson.encode(test)
-        expected = '"{iso}"'.format(iso=test.isoformat())
+        expected = f'"{test.isoformat()}"'
         assert expected == output
 
     def test_encode_time_conversion_pytz(self):
         # see gh-11473: to_json segfaults with timezone-aware datetimes
         test = datetime.time(10, 12, 15, 343243, pytz.utc)
         output = ujson.encode(test)
-        expected = '"{iso}"'.format(iso=test.isoformat())
+        expected = f'"{test.isoformat()}"'
         assert expected == output
 
     def test_encode_time_conversion_dateutil(self):
         # see gh-11473: to_json segfaults with timezone-aware datetimes
         test = datetime.time(10, 12, 15, 343243, dateutil.tz.tzutc())
         output = ujson.encode(test)
-        expected = '"{iso}"'.format(iso=test.isoformat())
+        expected = f'"{test.isoformat()}"'
         assert expected == output
 
     @pytest.mark.parametrize(
@@ -580,7 +580,7 @@ class TestUltraJSONTests:
     def test_decode_number_with_32bit_sign_bit(self, val):
         # Test that numbers that fit within 32 bits but would have the
         # sign bit set (2**31 <= x < 2**32) are decoded properly.
-        doc = '{{"id": {val}}}'.format(val=val)
+        doc = f'{{"id": {val}}}'
         assert ujson.decode(doc)["id"] == val
 
     def test_encode_big_escape(self):
@@ -761,8 +761,9 @@ class TestNumpyJSONTests:
             ["a", "b"],
             {"key": "val"},
         ]
-        arr = np.array(arr_list)
-        tm.assert_numpy_array_equal(np.array(ujson.decode(ujson.encode(arr))), arr)
+        arr = np.array(arr_list, dtype=object)
+        result = np.array(ujson.decode(ujson.encode(arr)), dtype=object)
+        tm.assert_numpy_array_equal(result, arr)
 
     def test_array_float(self):
         dtype = np.float32
@@ -815,7 +816,7 @@ class TestNumpyJSONTests:
 
         # see gh-10837: write out the dump explicitly
         # so there is no dependency on iteration order
-        input_dumps = '[{"a": 42, "b":31}, {"a": 24, "c": 99}, ' '{"a": 2.4, "b": 78}]'
+        input_dumps = '[{"a": 42, "b":31}, {"a": 24, "c": 99}, {"a": 2.4, "b": 78}]'
         output = ujson.loads(input_dumps, numpy=True, labelled=True)
         expected_vals = np.array([42, 31, 24, 99, 2.4, 78], dtype=int).reshape((3, 2))
         assert (expected_vals == output[0]).all()

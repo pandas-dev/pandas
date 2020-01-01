@@ -588,6 +588,20 @@ def test_groupby_multiple_columns(df, op):
     tm.assert_series_equal(result, expected)
 
 
+def test_as_index_select_column():
+    # GH 5764
+    df = pd.DataFrame([[1, 2], [1, 4], [5, 6]], columns=["A", "B"])
+    result = df.groupby("A", as_index=False)["B"].get_group(1)
+    expected = pd.Series([2, 4], name="B")
+    tm.assert_series_equal(result, expected)
+
+    result = df.groupby("A", as_index=False)["B"].apply(lambda x: x.cumsum())
+    expected = pd.Series(
+        [2, 6, 6], name="B", index=pd.MultiIndex.from_tuples([(0, 0), (0, 1), (1, 2)])
+    )
+    tm.assert_series_equal(result, expected)
+
+
 def test_groupby_as_index_agg(df):
     grouped = df.groupby("A", as_index=False)
 
@@ -771,7 +785,7 @@ def test_omit_nuisance(df):
 
     # won't work with axis = 1
     grouped = df.groupby({"A": 0, "C": 0, "D": 1, "E": 1}, axis=1)
-    msg = r"unsupported operand type\(s\) for \+: 'Timestamp'"
+    msg = "reduction operation 'sum' not allowed for this dtype"
     with pytest.raises(TypeError, match=msg):
         grouped.agg(lambda x: x.sum(0, numeric_only=False))
 
@@ -1702,6 +1716,15 @@ def test_group_shift_with_fill_value():
     tm.assert_frame_equal(result, expected)
 
 
+def test_group_shift_lose_timezone():
+    # GH 30134
+    now_dt = pd.Timestamp.utcnow()
+    df = DataFrame({"a": [1, 1], "date": now_dt})
+    result = df.groupby("a").shift(0).iloc[0]
+    expected = Series({"date": now_dt}, name=result.name)
+    tm.assert_series_equal(result, expected)
+
+
 def test_pivot_table_values_key_error():
     # This test is designed to replicate the error in issue #14938
     df = pd.DataFrame(
@@ -1985,3 +2008,20 @@ def test_dup_labels_output_shape(groupby_func, idx):
 
     assert result.shape == (1, 2)
     tm.assert_index_equal(result.columns, idx)
+
+
+def test_groupby_crash_on_nunique(axis):
+    # Fix following 30253
+    df = pd.DataFrame({("A", "B"): [1, 2], ("A", "C"): [1, 3], ("D", "B"): [0, 0]})
+
+    axis_number = df._get_axis_number(axis)
+    if not axis_number:
+        df = df.T
+
+    result = df.groupby(axis=axis_number, level=0).nunique()
+
+    expected = pd.DataFrame({"A": [1, 2], "D": [1, 1]})
+    if not axis_number:
+        expected = expected.T
+
+    tm.assert_frame_equal(result, expected)

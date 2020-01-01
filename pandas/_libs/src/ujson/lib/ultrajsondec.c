@@ -150,7 +150,7 @@ FASTCALL_ATTR JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
             case '7':
             case '8':
             case '9': {
-                // FIXME: Check for arithemtic overflow here
+                // FIXME: Check for arithmetic overflow here
                 // PERF: Don't do 64-bit arithmetic here unless we know we have
                 // to
                 intValue = intValue * 10ULL + (JSLONG)(chr - 48);
@@ -235,7 +235,7 @@ DECODE_FRACTION:
     }
 
 BREAK_FRC_LOOP:
-    // FIXME: Check for arithemtic overflow here
+    // FIXME: Check for arithmetic overflow here
     ds->lastType = JT_DOUBLE;
     ds->start = offset;
     return ds->dec->newDouble(
@@ -282,7 +282,7 @@ DECODE_EXPONENT:
     }
 
 BREAK_EXP_LOOP:
-    // FIXME: Check for arithemtic overflow here
+    // FIXME: Check for arithmetic overflow here
     ds->lastType = JT_DOUBLE;
     ds->start = offset;
     return ds->dec->newDouble(
