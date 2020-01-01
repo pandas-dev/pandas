@@ -370,43 +370,12 @@ class Index(IndexOpsMixin, PandasObject):
                 subarr = subarr.copy()
 
             if dtype is None:
-                inferred = lib.infer_dtype(subarr, skipna=False)
-                if inferred == "integer":
-                    try:
-                        return cls._try_convert_to_int_index(subarr, copy, name, dtype)
-                    except ValueError:
-                        pass
+                new_data, new_dtype = _maybe_cast_data_without_dtype(subarr)
+                if new_dtype is not None:
+                    return cls(
+                        new_data, dtype=new_dtype, copy=False, name=name, **kwargs
+                    )
 
-                    return Index(subarr, copy=copy, dtype=object, name=name)
-                elif inferred in ["floating", "mixed-integer-float", "integer-na"]:
-                    # TODO: Returns IntegerArray for integer-na case in the future
-                    return Float64Index(subarr, copy=copy, name=name)
-                elif inferred == "interval":
-                    try:
-                        return IntervalIndex(subarr, name=name, copy=copy)
-                    except ValueError:
-                        # GH27172: mixed closed Intervals --> object dtype
-                        pass
-                elif inferred == "boolean":
-                    # don't support boolean explicitly ATM
-                    pass
-                elif inferred != "string":
-                    if inferred.startswith("datetime"):
-                        try:
-                            return DatetimeIndex(subarr, copy=copy, name=name, **kwargs)
-                        except (ValueError, OutOfBoundsDatetime):
-                            # GH 27011
-                            # If we have mixed timezones, just send it
-                            # down the base constructor
-                            pass
-
-                    elif inferred.startswith("timedelta"):
-                        return TimedeltaIndex(subarr, copy=copy, name=name, **kwargs)
-                    elif inferred == "period":
-                        try:
-                            return PeriodIndex(subarr, name=name, **kwargs)
-                        except IncompatibleFrequency:
-                            pass
             if kwargs:
                 raise TypeError(f"Unexpected keyword arguments {repr(set(kwargs))}")
             return cls._simple_new(subarr, name, **kwargs)
@@ -3807,50 +3776,6 @@ class Index(IndexOpsMixin, PandasObject):
 
     # construction helpers
     @classmethod
-    def _try_convert_to_int_index(cls, data, copy, name, dtype):
-        """
-        Attempt to convert an array of data into an integer index.
-
-        Parameters
-        ----------
-        data : The data to convert.
-        copy : Whether to copy the data or not.
-        name : The name of the index returned.
-
-        Returns
-        -------
-        int_index : data converted to either an Int64Index or a
-                    UInt64Index
-
-        Raises
-        ------
-        ValueError if the conversion was not successful.
-        """
-
-        from .numeric import Int64Index, UInt64Index
-
-        if not is_unsigned_integer_dtype(dtype):
-            # skip int64 conversion attempt if uint-like dtype is passed, as
-            # this could return Int64Index when UInt64Index is what's desired
-            try:
-                res = data.astype("i8", copy=False)
-                if (res == data).all():
-                    return Int64Index(res, copy=copy, name=name)
-            except (OverflowError, TypeError, ValueError):
-                pass
-
-        # Conversion to int64 failed (possibly due to overflow) or was skipped,
-        # so let's try now with uint64.
-        try:
-            res = data.astype("u8", copy=False)
-            if (res == data).all():
-                return UInt64Index(res, copy=copy, name=name)
-        except (OverflowError, TypeError, ValueError):
-            pass
-
-        raise ValueError
-
-    @classmethod
     def _scalar_data_error(cls, data):
         # We return the TypeError so that we can raise it from the constructor
         #  in order to keep mypy happy
@@ -5507,6 +5432,77 @@ def _maybe_cast_with_dtype(data: np.ndarray, dtype: np.dtype, copy: bool) -> np.
         data = np.array(data, dtype=dtype, copy=copy)
 
     return data
+
+
+def _maybe_cast_data_without_dtype(subarr):
+    """
+    If we have an arraylike input but no passed dtype, try to infer
+    a supported dtype.
+
+    Parameters
+    ----------
+    subarr : np.ndarray, Index, or Series
+
+    Returns
+    -------
+    converted : np.ndarray or ExtensionArray
+    dtype : np.dtype or ExtensionDtype
+    """
+    # Runtime import needed bc IntervalArray imports Index
+    from pandas.core.arrays import (
+        IntervalArray,
+        PeriodArray,
+        DatetimeArray,
+        TimedeltaArray,
+    )
+
+    inferred = lib.infer_dtype(subarr, skipna=False)
+
+    if inferred == "integer":
+        try:
+            data = _try_convert_to_int_array(subarr, False, None)
+            return data, data.dtype
+        except ValueError:
+            pass
+
+        return subarr, object
+
+    elif inferred in ["floating", "mixed-integer-float", "integer-na"]:
+        # TODO: Returns IntegerArray for integer-na case in the future
+        return subarr, np.float64
+
+    elif inferred == "interval":
+        try:
+            data = IntervalArray._from_sequence(subarr, copy=False)
+            return data, data.dtype
+        except ValueError:
+            # GH27172: mixed closed Intervals --> object dtype
+            pass
+    elif inferred == "boolean":
+        # don't support boolean explicitly ATM
+        pass
+    elif inferred != "string":
+        if inferred.startswith("datetime"):
+            try:
+                data = DatetimeArray._from_sequence(subarr, copy=False)
+                return data, data.dtype
+            except (ValueError, OutOfBoundsDatetime):
+                # GH 27011
+                # If we have mixed timezones, just send it
+                # down the base constructor
+                pass
+
+        elif inferred.startswith("timedelta"):
+            data = TimedeltaArray._from_sequence(subarr, copy=False)
+            return data, data.dtype
+        elif inferred == "period":
+            try:
+                data = PeriodArray._from_sequence(subarr)
+                return data, data.dtype
+            except IncompatibleFrequency:
+                pass
+
+    return subarr, subarr.dtype
 
 
 def _try_convert_to_int_array(
