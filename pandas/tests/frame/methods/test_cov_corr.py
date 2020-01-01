@@ -155,6 +155,7 @@ class TestDataFrameCorr:
 
 
 class TestDataFrameCorrWith:
+    @td.skip_if_no_scipy
     def test_corrwith(self, datetime_frame):
         a = datetime_frame
         noise = Series(np.random.randn(len(a)), index=a.index)
@@ -203,6 +204,7 @@ class TestDataFrameCorrWith:
         expected = df1.loc[:, cols].corrwith(df2.loc[:, cols], axis=1)
         tm.assert_series_equal(result, expected)
 
+    @td.skip_if_no_scipy
     def test_corrwith_series(self, datetime_frame):
         result = datetime_frame.corrwith(datetime_frame["A"])
         expected = datetime_frame.apply(datetime_frame["A"].corr)
@@ -218,6 +220,7 @@ class TestDataFrameCorrWith:
         tm.assert_almost_equal(c1, c2)
         assert c1 < 1
 
+    @td.skip_if_no_scipy
     def test_corrwith_mixed_dtypes(self):
         # GH#18570
         df = pd.DataFrame(
