@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame, MultiIndex, Series
-from pandas.core import common as com
+import pandas.core.common as com
 import pandas.util.testing as tm
 
 

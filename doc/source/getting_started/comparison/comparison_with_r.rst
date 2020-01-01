@@ -81,7 +81,7 @@ R                                            pandas
 ===========================================  ===========================================
 ``select(df, col_one = col1)``               ``df.rename(columns={'col1': 'col_one'})['col_one']``
 ``rename(df, col_one = col1)``               ``df.rename(columns={'col1': 'col_one'})``
-``mutate(df, c=a-b)``                        ``df.assign(c=df.a-df.b)``
+``mutate(df, c=a-b)``                        ``df.assign(c=df['a']-df['b'])``
 ===========================================  ===========================================
 
 
@@ -258,8 +258,8 @@ index/slice as well as standard boolean indexing:
 
    df = pd.DataFrame({'a': np.random.randn(10), 'b': np.random.randn(10)})
    df.query('a <= b')
-   df[df.a <= df.b]
-   df.loc[df.a <= df.b]
+   df[df['a'] <= df['b']]
+   df.loc[df['a'] <= df['b']]
 
 For more details and examples see :ref:`the query documentation
 <indexing.query>`.
@@ -284,7 +284,7 @@ In ``pandas`` the equivalent expression, using the
 
    df = pd.DataFrame({'a': np.random.randn(10), 'b': np.random.randn(10)})
    df.eval('a + b')
-   df.a + df.b  # same as the previous expression
+   df['a'] + df['b']  # same as the previous expression
 
 In certain cases :meth:`~pandas.DataFrame.eval` will be much faster than
 evaluation in pure Python. For more details and examples see :ref:`the eval

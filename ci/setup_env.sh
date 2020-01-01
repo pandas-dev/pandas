@@ -1,6 +1,5 @@
 #!/bin/bash -e
 
-
 # edit the locale file if needed
 if [ -n "$LOCALE_OVERRIDE" ]; then
     echo "Adding locale to the first line of pandas/__init__.py"
@@ -51,6 +50,7 @@ echo
 echo "update conda"
 conda config --set ssl_verify false
 conda config --set quiet true --set always_yes true --set changeps1 false
+conda install pip  # create conda to create a historical artifact for pip & setuptools
 conda update -n base conda
 
 echo "conda info -a"
@@ -110,21 +110,38 @@ conda remove pandas -y --force || true
 pip uninstall -y pandas || true
 
 echo
+echo "remove postgres if has been installed with conda"
+echo "we use the one from the CI"
+conda remove postgresql -y --force || true
+
+echo
 echo "conda list pandas"
 conda list pandas
 
 # Make sure any error below is reported as such
 
-echo "Build extensions and install pandas"
-python setup.py build_ext -q --inplace
-python -m pip install -e .
+echo "[Build extensions]"
+python setup.py build_ext -q -i -j2
+
+# XXX: Some of our environments end up with old versions of pip (10.x)
+# Adding a new enough version of pip to the requirements explodes the
+# solve time. Just using pip to update itself.
+# - py35_macos
+# - py35_compat
+# - py36_32bit
+echo "[Updating pip]"
+python -m pip install --no-deps -U pip wheel setuptools
+
+echo "[Install pandas]"
+python -m pip install --no-build-isolation -e .
 
 echo
 echo "conda list"
 conda list
 
 # Install DB for Linux
-if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
+
+if [[ -n ${SQL:0} ]]; then
   echo "installing dbs"
   mysql -e 'create database pandas_nosetest;'
   psql -c 'create database pandas_nosetest;' -U postgres
