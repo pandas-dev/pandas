@@ -2031,11 +2031,6 @@ def test_groupby_crash_on_nunique(axis):
     "dropna, tuples, outputs",
     [
         (
-            None,
-            [["A", "B"], ["B", "A"]],
-            {"c": [13.0, 123.23], "d": [13.0, 123.0], "e": [13.0, 1.0]},
-        ),
-        (
             True,
             [["A", "B"], ["B", "A"]],
             {"c": [13.0, 123.23], "d": [13.0, 123.0], "e": [13.0, 1.0]},
@@ -2071,7 +2066,6 @@ def test_groupby_dropna_multi_index_dataframe(dropna, tuples, outputs):
 @pytest.mark.parametrize(
     "dropna, idx, outputs",
     [
-        (None, ["A", "B"], {"b": [123.23, 13.0], "c": [123.0, 13.0], "d": [1.0, 13.0]}),
         (True, ["A", "B"], {"b": [123.23, 13.0], "c": [123.0, 13.0], "d": [1.0, 13.0]}),
         (
             False,
@@ -2103,7 +2097,6 @@ def test_groupby_dropna_normal_index_dataframe(dropna, idx, outputs):
 @pytest.mark.parametrize(
     "dropna, idx, expected",
     [
-        (None, ["a", "a", "b", np.nan], pd.Series([3, 3], index=["a", "b"])),
         (True, ["a", "a", "b", np.nan], pd.Series([3, 3], index=["a", "b"])),
         (
             False,
@@ -2122,11 +2115,6 @@ def test_groupby_dropna_series(dropna, idx, expected):
 @pytest.mark.parametrize(
     "dropna, tuples, outputs",
     [
-        (
-            None,
-            [["A", "B"], ["B", "A"]],
-            {"c": [13.0, 123.23], "d": [12.0, 123.0], "e": [1.0, 1.0]},
-        ),
         (
             True,
             [["A", "B"], ["B", "A"]],

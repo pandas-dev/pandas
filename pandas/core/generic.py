@@ -7311,7 +7311,7 @@ class NDFrame(PandasObject, SelectionMixin):
         group_keys: bool_t = True,
         squeeze: bool_t = False,
         observed: bool_t = False,
-        dropna: Optional[bool_t] = None,
+        dropna: bool_t = True,
     ):
         """
         Group DataFrame or Series using a mapper or by a Series of columns.
@@ -7356,8 +7356,8 @@ class NDFrame(PandasObject, SelectionMixin):
             If False: show all values for categorical groupers.
 
             .. versionadded:: 0.23.0
-        dropna : bool or None, default None
-            If None or True, and if group keys contain NaN values, NaN values together
+        dropna : bool, default True
+            If True, and if group keys contain NaN values, NaN values together
             with row/column will be dropped.
             If False, NaN values will also be treated as the key in groups
 

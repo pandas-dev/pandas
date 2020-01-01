@@ -331,18 +331,6 @@ class TestFactorize:
         [
             (
                 ["a", None, "b", "a"],
-                None,
-                np.array([0, -1, 1, 0]),
-                np.array(["a", "b"], dtype=object),
-            ),
-            (
-                ["a", np.nan, "b", "a"],
-                None,
-                np.array([0, -1, 1, 0]),
-                np.array(["a", "b"], dtype=object),
-            ),
-            (
-                ["a", None, "b", "a"],
                 True,
                 np.array([0, -1, 1, 0]),
                 np.array(["a", "b"], dtype=object),
@@ -378,18 +366,6 @@ class TestFactorize:
     @pytest.mark.parametrize(
         "data, dropna, expected_codes, expected_uniques",
         [
-            (
-                [1, None, 1, 2],
-                None,
-                np.array([0, -1, 0, 1]),
-                np.array([1, 2], dtype="O"),
-            ),
-            (
-                [1, np.nan, 1, 2],
-                None,
-                np.array([0, -1, 0, 1]),
-                np.array([1, 2], dtype=np.float64),
-            ),
             (
                 [1, None, 1, 2],
                 True,

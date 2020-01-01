@@ -373,7 +373,7 @@ class _GroupBy(PandasObject, SelectionMixin):
         squeeze: bool = False,
         observed: bool = False,
         mutated: bool = False,
-        dropna: Optional[bool] = None,
+        dropna: bool = True,
     ):
 
         self._selection = selection
@@ -397,7 +397,7 @@ class _GroupBy(PandasObject, SelectionMixin):
         self.observed = observed
         self.mutated = mutated
 
-        self.dropna = dropna if dropna is not None else True
+        self.dropna = dropna
 
         if grouper is None:
             from pandas.core.groupby.grouper import get_grouper
@@ -2547,7 +2547,7 @@ def get_groupby(
     squeeze: bool = False,
     observed: bool = False,
     mutated: bool = False,
-    dropna: Optional[bool] = None,
+    dropna: bool = True,
 ) -> GroupBy:
 
     klass: Type[GroupBy]

@@ -254,7 +254,7 @@ class Grouping:
         sort: bool = True,
         observed: bool = False,
         in_axis: bool = False,
-        dropna: Optional[bool] = None,
+        dropna: bool = True,
     ):
         self.name = name
         self.level = level
@@ -266,7 +266,7 @@ class Grouping:
         self.observed = observed
         self.in_axis = in_axis
 
-        self.dropna = dropna if dropna is not None else True
+        self.dropna = dropna
 
         # right place for this?
         if isinstance(grouper, (Series, Index)) and name is None:
@@ -441,7 +441,7 @@ def get_grouper(
     observed: bool = False,
     mutated: bool = False,
     validate: bool = True,
-    dropna: Optional[bool] = None,
+    dropna: bool = True,
 ) -> "Tuple[ops.BaseGrouper, List[Hashable], FrameOrSeries]":
     """
     Create and return a BaseGrouper, which is an internal
