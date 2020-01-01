@@ -21,7 +21,6 @@ def data():
     return ListArray(data)
 
 
-# @pytest.mark.skip(reason="fails with update to na_rep")
 def test_to_csv(data):
     # https://github.com/pandas-dev/pandas/issues/28840
     # array with list-likes fail when doing astype(str) on the numpy array
