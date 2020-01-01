@@ -20,9 +20,7 @@ def skipif_32bit(param):
     return pytest.param(param, marks=marks)
 
 
-@pytest.fixture(
-    scope="class", params=["int32", "int64", "float32", "float64", "uint64"]
-)
+@pytest.fixture(scope="class", params=["int64", "float64", "uint64"])
 def dtype(request):
     return request.param
 
@@ -39,12 +37,9 @@ def leaf_size(request):
 @pytest.fixture(
     params=[
         np.arange(5, dtype="int64"),
-        np.arange(5, dtype="int32"),
         np.arange(5, dtype="uint64"),
         np.arange(5, dtype="float64"),
-        np.arange(5, dtype="float32"),
         np.array([0, 1, 2, 3, 4, np.nan], dtype="float64"),
-        np.array([0, 1, 2, 3, 4, np.nan], dtype="float32"),
     ]
 )
 def tree(request, leaf_size):
@@ -64,13 +59,14 @@ class TestIntervalTree:
             tree.get_indexer(np.array([3.0]))
 
     @pytest.mark.parametrize(
-        "dtype, target_value", [("int64", 2 ** 63 + 1), ("uint64", -1)]
+        "dtype, target_value, target_dtype",
+        [("int64", 2 ** 63 + 1, "uint64"), ("uint64", -1, "int64")],
     )
-    def test_get_indexer_overflow(self, dtype, target_value):
+    def test_get_indexer_overflow(self, dtype, target_value, target_dtype):
         left, right = np.array([0, 1], dtype=dtype), np.array([1, 2], dtype=dtype)
         tree = IntervalTree(left, right)
 
-        result = tree.get_indexer(np.array([target_value]))
+        result = tree.get_indexer(np.array([target_value], dtype=target_dtype))
         expected = np.array([-1], dtype="intp")
         tm.assert_numpy_array_equal(result, expected)
 
@@ -94,12 +90,13 @@ class TestIntervalTree:
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "dtype, target_value", [("int64", 2 ** 63 + 1), ("uint64", -1)]
+        "dtype, target_value, target_dtype",
+        [("int64", 2 ** 63 + 1, "uint64"), ("uint64", -1, "int64")],
     )
-    def test_get_indexer_non_unique_overflow(self, dtype, target_value):
+    def test_get_indexer_non_unique_overflow(self, dtype, target_value, target_dtype):
         left, right = np.array([0, 2], dtype=dtype), np.array([1, 3], dtype=dtype)
         tree = IntervalTree(left, right)
-        target = np.array([target_value])
+        target = np.array([target_value], dtype=target_dtype)
 
         result_indexer, result_missing = tree.get_indexer_non_unique(target)
         expected_indexer = np.array([-1], dtype="intp")
@@ -146,10 +143,10 @@ class TestIntervalTree:
     @pytest.mark.parametrize(
         "left, right, expected",
         [
-            (np.array([0, 1, 4]), np.array([2, 3, 5]), True),
-            (np.array([0, 1, 2]), np.array([5, 4, 3]), True),
+            (np.array([0, 1, 4], dtype="int64"), np.array([2, 3, 5]), True),
+            (np.array([0, 1, 2], dtype="int64"), np.array([5, 4, 3]), True),
             (np.array([0, 1, np.nan]), np.array([5, 4, np.nan]), True),
-            (np.array([0, 2, 4]), np.array([1, 3, 5]), False),
+            (np.array([0, 2, 4], dtype="int64"), np.array([1, 3, 5]), False),
             (np.array([0, 2, np.nan]), np.array([1, 3, np.nan]), False),
         ],
     )
@@ -164,7 +161,7 @@ class TestIntervalTree:
     def test_is_overlapping_endpoints(self, closed, order):
         """shared endpoints are marked as overlapping"""
         # GH 23309
-        left, right = np.arange(3), np.arange(1, 4)
+        left, right = np.arange(3, dtype="int64"), np.arange(1, 4)
         tree = IntervalTree(left[order], right[order], closed=closed)
         result = tree.is_overlapping
         expected = closed == "both"
@@ -187,7 +184,7 @@ class TestIntervalTree:
     @pytest.mark.skipif(compat.is_platform_32bit(), reason="GH 23440")
     def test_construction_overflow(self):
         # GH 25485
-        left, right = np.arange(101), [np.iinfo(np.int64).max] * 101
+        left, right = np.arange(101, dtype="int64"), [np.iinfo(np.int64).max] * 101
         tree = IntervalTree(left, right)
 
         # pivot should be average of left/right medians
