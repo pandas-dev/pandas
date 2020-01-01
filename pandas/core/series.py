@@ -1433,7 +1433,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     @Substitution(klass="Series")
     @Appender(generic._shared_docs["to_markdown"])
     def to_markdown(
-        self, buf: Optional[IO[str]] = None, mode: Optional[str] = None, **kwargs,
+        self, buf: Optional[IO[str]] = None, mode: Optional[str] = None, **kwargs
     ) -> Optional[str]:
         return self.to_frame().to_markdown(buf, mode, **kwargs)
 
@@ -1619,6 +1619,34 @@ Name: Max Speed, dtype: float64
 Type
 Captive    210.0
 Wild       185.0
+Name: Max Speed, dtype: float64
+
+We can also choose to include NaN in group keys or not by defining
+`dropna` parameter:
+
+>>> ser = pd.Series([1, 2, 3, 3], index=["a", 'a', 'b', np.nan])
+>>> ser.groupby(level=0).sum()
+a    3
+b    3
+dtype: int64
+
+>>> ser.groupby(level=0, dropna=False).sum()
+a    3
+b    3
+NaN  3
+dtype: int64
+
+>>> arrays = ['Falcon', 'Falcon', 'Parrot', 'Parrot']
+>>> ser = pd.Series([390., 350., 30., 20.], index=arrays, name="Max Speed")
+>>> ser.groupby(["a", "b", "a", np.nan]).mean()
+a    210.0
+b    350.0
+Name: Max Speed, dtype: float64
+
+>>> ser.groupby(["a", "b", "a", np.nan], dropna=False).mean()
+a    210.0
+b    350.0
+NaN   20.0
 Name: Max Speed, dtype: float64
 """
     )
@@ -4480,9 +4508,7 @@ Name: Max Speed, dtype: float64
     hist = pandas.plotting.hist_series
 
 
-Series._setup_axes(
-    ["index"], docs={"index": "The index (axis labels) of the Series."},
-)
+Series._setup_axes(["index"], docs={"index": "The index (axis labels) of the Series."})
 Series._add_numeric_operations()
 Series._add_series_or_dataframe_operations()
 
