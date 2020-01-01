@@ -45,11 +45,12 @@ pip
 blosc
 bottleneck>=1.2.1
 ipykernel
-ipython>=5.6.0
+ipython>=5.6.0,<=7.10.1
 jinja2
 matplotlib>=2.2.2
 numexpr>=2.6.8
 scipy>=1.1
+numba>=0.46.0
 beautifulsoup4>=4.6.0
 html5lib
 lxml
@@ -67,4 +68,5 @@ s3fs
 sqlalchemy
 xarray
 pyreadstat
+tabulate>=0.8.3
 git+https://github.com/pandas-dev/pandas-sphinx-theme.git@master

@@ -23,53 +23,53 @@ jobs:
 
     - name: Looking for unwanted patterns
       run: ci/code_checks.sh patterns
-      if: true
+      if: always()
 
     - name: Setup environment and build pandas
       run: ci/setup_env.sh
-      if: true
+      if: always()
 
     - name: Linting
       run: |
         source activate pandas-dev
         ci/code_checks.sh lint
-      if: true
+      if: always()
 
     - name: Dependencies consistency
       run: |
         source activate pandas-dev
         ci/code_checks.sh dependencies
-      if: true
+      if: always()
 
     - name: Checks on imported code
       run: |
         source activate pandas-dev
         ci/code_checks.sh code
-      if: true
+      if: always()
 
     - name: Running doctests
       run: |
         source activate pandas-dev
         ci/code_checks.sh doctests
-      if: true
+      if: always()
 
     - name: Docstring validation
       run: |
         source activate pandas-dev
         ci/code_checks.sh docstrings
-      if: true
+      if: always()
 
     - name: Typing validation
       run: |
         source activate pandas-dev
         ci/code_checks.sh typing
-      if: true
+      if: always()
 
     - name: Testing docstring validation script
       run: |
         source activate pandas-dev
         pytest --capture=no --strict scripts
-      if: true
+      if: always()
 
     - name: Running benchmarks
       run: |
@@ -87,7 +87,7 @@ jobs:
         else
             echo "Benchmarks did not run, no changes detected"
         fi
-      if: true
+      if: always()
 
     - name: Publish benchmarks artifact
       uses: actions/upload-artifact@master
@@ -95,3 +95,65 @@ jobs:
         name: Benchmarks log
         path: asv_bench/benchmarks.log
       if: failure()
+
+  web_and_docs:
+    name: Web and docs
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Setting conda path
+      run: echo "::set-env name=PATH::${HOME}/miniconda3/bin:${PATH}"
+
+    - name: Checkout
+      uses: actions/checkout@v1
+
+    - name: Setup environment and build pandas
+      run: ci/setup_env.sh
+
+    - name: Build website
+      run: |
+        source activate pandas-dev
+        python web/pandas_web.py web/pandas --target-path=web/build
+
+    - name: Build documentation
+      run: |
+        source activate pandas-dev
+        doc/make.py --warnings-are-errors | tee sphinx.log ; exit ${PIPESTATUS[0]}
+
+    # This can be removed when the ipython directive fails when there are errors,
+    # including the `tee sphinx.log` in te previous step (https://github.com/ipython/ipython/issues/11547)
+    - name: Check ipython directive errors
+      run: "! grep -B1 \"^<<<-------------------------------------------------------------------------$\" sphinx.log"
+
+    - name: Merge website and docs
+      run: |
+        mkdir -p pandas_web/docs
+        cp -r web/build/* pandas_web/
+        cp -r doc/build/html/* pandas_web/docs/
+      if: github.event_name == 'push'
+
+    - name: Install Rclone
+      run: sudo apt install rclone -y
+      if: github.event_name == 'push'
+
+    - name: Set up Rclone
+      run: |
+        RCLONE_CONFIG_PATH=$HOME/.config/rclone/rclone.conf
+        mkdir -p `dirname $RCLONE_CONFIG_PATH`
+        echo "[ovh_cloud_pandas_web]" > $RCLONE_CONFIG_PATH
+        echo "type = swift" >> $RCLONE_CONFIG_PATH
+        echo "env_auth = false" >> $RCLONE_CONFIG_PATH
+        echo "auth_version = 3" >> $RCLONE_CONFIG_PATH
+        echo "auth = https://auth.cloud.ovh.net/v3/" >> $RCLONE_CONFIG_PATH
+        echo "endpoint_type = public" >> $RCLONE_CONFIG_PATH
+        echo "tenant_domain = default" >> $RCLONE_CONFIG_PATH
+        echo "tenant = 2977553886518025" >> $RCLONE_CONFIG_PATH
+        echo "domain = default" >> $RCLONE_CONFIG_PATH
+        echo "user = w4KGs3pmDxpd" >> $RCLONE_CONFIG_PATH
+        echo "key = ${{ secrets.ovh_object_store_key }}" >> $RCLONE_CONFIG_PATH
+        echo "region = BHS" >> $RCLONE_CONFIG_PATH
+      if: github.event_name == 'push'
+
+    - name: Sync web
+      run: rclone sync pandas_web ovh_cloud_pandas_web:dev
+      if: github.event_name == 'push'

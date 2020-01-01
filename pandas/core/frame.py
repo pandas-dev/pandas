@@ -15,6 +15,7 @@ import itertools
 import sys
 from textwrap import dedent
 from typing import (
+    IO,
     Any,
     FrozenSet,
     Hashable,
@@ -37,6 +38,7 @@ from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, lib
 from pandas._typing import Axes, Dtype, FilePathOrBuffer
+from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender,
@@ -98,6 +100,7 @@ from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin as DatetimeLikeArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.generic import NDFrame, _shared_docs
+from pandas.core.groupby import generic as groupby_generic
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import Index, ensure_index, ensure_index_from_sequences
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -118,6 +121,7 @@ from pandas.core.internals.construction import (
 from pandas.core.ops.missing import dispatch_fill_zeros
 from pandas.core.series import Series
 
+from pandas.io.common import get_filepath_or_buffer
 from pandas.io.formats import console, format as fmt
 from pandas.io.formats.printing import pprint_thing
 import pandas.plotting
@@ -1466,7 +1470,7 @@ class DataFrame(NDFrame):
             Behavior when the destination table exists. Value can be one of:
 
             ``'fail'``
-                If table exists, do nothing.
+                If table exists raise pandas_gbq.gbq.TableCreationError.
             ``'replace'``
                 If table exists, drop it, recreate it, and insert data.
             ``'append'``
@@ -1926,14 +1930,17 @@ class DataFrame(NDFrame):
         >>> df.to_stata('animals.dta')  # doctest: +SKIP
         """
         kwargs = {}
-        if version not in (114, 117):
-            raise ValueError("Only formats 114 and 117 supported.")
+        if version not in (114, 117, 118):
+            raise ValueError("Only formats 114, 117 and 118 are supported.")
         if version == 114:
             if convert_strl is not None:
-                raise ValueError("strl support is only available when using format 117")
+                raise ValueError("strl is not supported in format 114")
             from pandas.io.stata import StataWriter as statawriter
         else:
-            from pandas.io.stata import StataWriter117 as statawriter
+            if version == 117:
+                from pandas.io.stata import StataWriter117 as statawriter
+            else:
+                from pandas.io.stata import StataWriter118 as statawriter
 
             kwargs["convert_strl"] = convert_strl
 
@@ -1963,6 +1970,36 @@ class DataFrame(NDFrame):
         from pandas.io.feather_format import to_feather
 
         to_feather(self, path)
+
+    @Appender(
+        """
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     data={"animal_1": ["elk", "pig"], "animal_2": ["dog", "quetzal"]}
+        ... )
+        >>> print(df.to_markdown())
+        |    | animal_1   | animal_2   |
+        |---:|:-----------|:-----------|
+        |  0 | elk        | dog        |
+        |  1 | pig        | quetzal    |
+        """
+    )
+    @Substitution(klass="DataFrame")
+    @Appender(_shared_docs["to_markdown"])
+    def to_markdown(
+        self, buf: Optional[IO[str]] = None, mode: Optional[str] = None, **kwargs,
+    ) -> Optional[str]:
+        kwargs.setdefault("headers", "keys")
+        kwargs.setdefault("tablefmt", "pipe")
+        tabulate = import_optional_dependency("tabulate")
+        result = tabulate.tabulate(self, **kwargs)
+        if buf is None:
+            return result
+        buf, _, _, _ = get_filepath_or_buffer(buf, mode=mode)
+        assert buf is not None  # Help mypy.
+        buf.writelines(result)
+        return None
 
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
     def to_parquet(
@@ -2485,7 +2522,7 @@ class DataFrame(NDFrame):
             )
         return result
 
-    def transpose(self, *args, **kwargs):
+    def transpose(self, *args, copy: bool = False):
         """
         Transpose index and columns.
 
@@ -2495,9 +2532,14 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        *args, **kwargs
-            Additional arguments and keywords have no effect but might be
-            accepted for compatibility with numpy.
+        *args : tuple, optional
+            Accepted for compatibility with NumPy.
+        copy : bool, default False
+            Whether to copy the data after transposing, even for DataFrames
+            with a single dtype.
+
+            Note that a copy is always required for mixed dtype DataFrames,
+            or for DataFrames with any extension types.
 
         Returns
         -------
@@ -2578,7 +2620,29 @@ class DataFrame(NDFrame):
         dtype: object
         """
         nv.validate_transpose(args, dict())
-        return super().transpose(1, 0, **kwargs)
+        # construct the args
+
+        dtypes = list(self.dtypes)
+        if self._is_homogeneous_type and dtypes and is_extension_array_dtype(dtypes[0]):
+            # We have EAs with the same dtype. We can preserve that dtype in transpose.
+            dtype = dtypes[0]
+            arr_type = dtype.construct_array_type()
+            values = self.values
+
+            new_values = [arr_type._from_sequence(row, dtype=dtype) for row in values]
+            result = self._constructor(
+                dict(zip(self.index, new_values)), index=self.columns
+            )
+
+        else:
+            new_values = self.values.T
+            if copy:
+                new_values = new_values.copy()
+            result = self._constructor(
+                new_values, index=self.columns, columns=self.index
+            )
+
+        return result.__finalize__(self)
 
     T = property(transpose)
 
@@ -3954,8 +4018,7 @@ class DataFrame(NDFrame):
         inplace=False,
         limit=None,
         downcast=None,
-        **kwargs,
-    ):
+    ) -> Optional["DataFrame"]:
         return super().fillna(
             value=value,
             method=method,
@@ -3963,7 +4026,6 @@ class DataFrame(NDFrame):
             inplace=inplace,
             limit=limit,
             downcast=downcast,
-            **kwargs,
         )
 
     @Appender(_shared_docs["replace"] % _shared_doc_kwargs)
@@ -4587,6 +4649,7 @@ class DataFrame(NDFrame):
         subset: Optional[Union[Hashable, Sequence[Hashable]]] = None,
         keep: Union[str, bool] = "first",
         inplace: bool = False,
+        ignore_index: bool = False,
     ) -> Optional["DataFrame"]:
         """
         Return DataFrame with duplicate rows removed.
@@ -4606,6 +4669,10 @@ class DataFrame(NDFrame):
             - False : Drop all duplicates.
         inplace : bool, default False
             Whether to drop duplicates in place or to return a copy.
+        ignore_index : bool, default False
+            If True, the resulting axis will be labeled 0, 1, …, n - 1.
+
+            .. versionadded:: 1.0.0
 
         Returns
         -------
@@ -4621,9 +4688,16 @@ class DataFrame(NDFrame):
         if inplace:
             (inds,) = (-duplicated)._ndarray_values.nonzero()
             new_data = self._data.take(inds)
+
+            if ignore_index:
+                new_data.axes[1] = ibase.default_index(len(inds))
             self._update_inplace(new_data)
         else:
-            return self[-duplicated]
+            result = self[-duplicated]
+
+            if ignore_index:
+                result.index = ibase.default_index(len(result))
+            return result
 
         return None
 
@@ -4704,6 +4778,7 @@ class DataFrame(NDFrame):
         inplace=False,
         kind="quicksort",
         na_position="last",
+        ignore_index=False,
     ):
         inplace = validate_bool_kwarg(inplace, "inplace")
         axis = self._get_axis_number(axis)
@@ -4736,6 +4811,9 @@ class DataFrame(NDFrame):
         new_data = self._data.take(
             indexer, axis=self._get_block_manager_axis(axis), verify=False
         )
+
+        if ignore_index:
+            new_data.axes[1] = ibase.default_index(len(indexer))
 
         if inplace:
             return self._update_inplace(new_data)
@@ -5072,7 +5150,7 @@ class DataFrame(NDFrame):
     # Arithmetic / combination related
 
     def _combine_frame(self, other, func, fill_value=None, level=None):
-        this, other = self.align(other, join="outer", level=level, copy=False)
+        # at this point we have `self._indexed_same(other)`
 
         if fill_value is None:
             # since _arith_op may be called in a loop, avoid function call
@@ -5088,14 +5166,15 @@ class DataFrame(NDFrame):
                 left, right = ops.fill_binop(left, right, fill_value)
                 return func(left, right)
 
-        if ops.should_series_dispatch(this, other, func):
+        if ops.should_series_dispatch(self, other, func):
             # iterate over columns
-            new_data = ops.dispatch_to_series(this, other, _arith_op)
+            new_data = ops.dispatch_to_series(self, other, _arith_op)
         else:
             with np.errstate(all="ignore"):
-                res_values = _arith_op(this.values, other.values)
-            new_data = dispatch_fill_zeros(func, this.values, other.values, res_values)
-        return this._construct_result(new_data)
+                res_values = _arith_op(self.values, other.values)
+            new_data = dispatch_fill_zeros(func, self.values, other.values, res_values)
+
+        return new_data
 
     def _combine_match_index(self, other, func):
         # at this point we have `self.index.equals(other.index)`
@@ -5523,6 +5602,82 @@ class DataFrame(NDFrame):
 
     # ----------------------------------------------------------------------
     # Data reshaping
+    @Appender(
+        """
+Examples
+--------
+>>> df = pd.DataFrame({'Animal': ['Falcon', 'Falcon',
+...                               'Parrot', 'Parrot'],
+...                    'Max Speed': [380., 370., 24., 26.]})
+>>> df
+   Animal  Max Speed
+0  Falcon      380.0
+1  Falcon      370.0
+2  Parrot       24.0
+3  Parrot       26.0
+>>> df.groupby(['Animal']).mean()
+        Max Speed
+Animal
+Falcon      375.0
+Parrot       25.0
+
+**Hierarchical Indexes**
+
+We can groupby different levels of a hierarchical index
+using the `level` parameter:
+
+>>> arrays = [['Falcon', 'Falcon', 'Parrot', 'Parrot'],
+...           ['Captive', 'Wild', 'Captive', 'Wild']]
+>>> index = pd.MultiIndex.from_arrays(arrays, names=('Animal', 'Type'))
+>>> df = pd.DataFrame({'Max Speed': [390., 350., 30., 20.]},
+...                   index=index)
+>>> df
+                Max Speed
+Animal Type
+Falcon Captive      390.0
+       Wild         350.0
+Parrot Captive       30.0
+       Wild          20.0
+>>> df.groupby(level=0).mean()
+        Max Speed
+Animal
+Falcon      370.0
+Parrot       25.0
+>>> df.groupby(level="Type").mean()
+         Max Speed
+Type
+Captive      210.0
+Wild         185.0
+"""
+    )
+    @Appender(_shared_docs["groupby"] % _shared_doc_kwargs)
+    def groupby(
+        self,
+        by=None,
+        axis=0,
+        level=None,
+        as_index: bool = True,
+        sort: bool = True,
+        group_keys: bool = True,
+        squeeze: bool = False,
+        observed: bool = False,
+    ) -> "groupby_generic.DataFrameGroupBy":
+
+        if level is None and by is None:
+            raise TypeError("You have to supply one of 'by' and 'level'")
+        axis = self._get_axis_number(axis)
+
+        return groupby_generic.DataFrameGroupBy(
+            obj=self,
+            keys=by,
+            axis=axis,
+            level=level,
+            as_index=as_index,
+            sort=sort,
+            group_keys=group_keys,
+            squeeze=squeeze,
+            observed=observed,
+        )
 
     _shared_docs[
         "pivot"
@@ -7585,6 +7740,26 @@ class DataFrame(NDFrame):
                 )
                 raise NotImplementedError(msg)
             return data
+
+        if numeric_only is not None and axis in [0, 1]:
+            df = self
+            if numeric_only is True:
+                df = _get_data(axis_matters=True)
+            if axis == 1:
+                df = df.T
+                axis = 0
+
+            out_dtype = "bool" if filter_type == "bool" else None
+
+            # After possibly _get_data and transposing, we are now in the
+            #  simple case where we can use BlockManager._reduce
+            res = df._data.reduce(op, axis=1, skipna=skipna, **kwds)
+            assert isinstance(res, dict)
+            if len(res):
+                assert len(res) == max(list(res.keys())) + 1, res.keys()
+            out = df._constructor_sliced(res, index=range(len(res)), dtype=out_dtype)
+            out.index = df.columns
+            return out
 
         if numeric_only is None:
             values = self.values

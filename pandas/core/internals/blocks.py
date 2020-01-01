@@ -368,6 +368,17 @@ class Block(PandasObject):
         """
         with np.errstate(all="ignore"):
             result = func(self.values, **kwargs)
+
+        if is_extension_array_dtype(result) and result.ndim > 1:
+            # if we get a 2D ExtensionArray, we need to split it into 1D pieces
+            nbs = []
+            for i, loc in enumerate(self.mgr_locs):
+                vals = result[i]
+                nv = _block_shape(vals, ndim=self.ndim)
+                block = self.make_block(values=nv, placement=[loc])
+                nbs.append(block)
+            return nbs
+
         if not isinstance(result, Block):
             result = self.make_block(values=_block_shape(result, ndim=self.ndim))
 
@@ -646,9 +657,9 @@ class Block(PandasObject):
         if slicer is not None:
             values = values[:, slicer]
         mask = isna(values)
+        itemsize = writers.word_len(na_rep)
 
-        if not self.is_object and not quoting:
-            itemsize = writers.word_len(na_rep)
+        if not self.is_object and not quoting and itemsize:
             values = values.astype(f"<U{itemsize}")
         else:
             values = np.array(values, dtype="object")
@@ -1762,11 +1773,11 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         mask = isna(values)
 
         try:
-            values = values.astype(str)
             values[mask] = na_rep
         except Exception:
             # eg SparseArray does not support setitem, needs to be converted to ndarray
             return super().to_native_types(slicer, na_rep, quoting, **kwargs)
+        values = values.astype(str)
 
         # we are expected to return a 2-d ndarray
         return values.reshape(1, len(values))

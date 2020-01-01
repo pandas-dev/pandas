@@ -643,50 +643,6 @@ class NDFrame(PandasObject, SelectionMixin):
         self._data.set_axis(axis, labels)
         self._clear_item_cache()
 
-    def transpose(self, *args, **kwargs):
-        """
-        Permute the dimensions of the %(klass)s
-
-        Parameters
-        ----------
-        args : %(args_transpose)s
-        copy : bool, default False
-            Make a copy of the underlying data. Mixed-dtype data will
-            always result in a copy
-        **kwargs
-            Additional keyword arguments will be passed to the function.
-
-        Returns
-        -------
-        y : same as input
-
-        Examples
-        --------
-        >>> p.transpose(2, 0, 1)
-        >>> p.transpose(2, 0, 1, copy=True)
-        """
-
-        # construct the args
-        axes, kwargs = self._construct_axes_from_arguments(
-            args, kwargs, require_all=True
-        )
-        axes_names = tuple(self._get_axis_name(axes[a]) for a in self._AXIS_ORDERS)
-        axes_numbers = tuple(self._get_axis_number(axes[a]) for a in self._AXIS_ORDERS)
-
-        # we must have unique axes
-        if len(axes) != len(set(axes)):
-            raise ValueError(f"Must specify {self._AXIS_LEN} unique axes")
-
-        new_axes = self._construct_axes_dict_from(
-            self, [self._get_axis(x) for x in axes_names]
-        )
-        new_values = self.values.transpose(axes_numbers)
-        if kwargs.pop("copy", None) or (len(args) and args[-1]):
-            new_values = new_values.copy()
-
-        nv.validate_transpose(tuple(), kwargs)
-        return self._constructor(new_values, **new_axes).__finalize__(self)
-
     def swapaxes(self, axis1, axis2, copy=True):
         """
         Interchange axes and swap values axes appropriately.
@@ -2013,6 +1969,30 @@ class NDFrame(PandasObject, SelectionMixin):
 
     # ----------------------------------------------------------------------
     # I/O Methods
+
+    _shared_docs[
+        "to_markdown"
+    ] = """
+    Print %(klass)s in Markdown-friendly format.
+
+    .. versionadded:: 1.0.0
+
+    Parameters
+    ----------
+    buf : writable buffer, defaults to sys.stdout
+        Where to send the output. By default, the output is printed to
+        sys.stdout. Pass a writable buffer if you need to further process
+        the output.
+    mode : str, optional
+        Mode in which file is opened.
+    **kwargs
+        These parameters will be passed to `tabulate`.
+
+    Returns
+    -------
+    str
+        %(klass)s in Markdown-friendly format.
+    """
 
     _shared_docs[
         "to_excel"
@@ -4094,6 +4074,7 @@ class NDFrame(PandasObject, SelectionMixin):
         inplace: bool_t = False,
         kind: str = "quicksort",
         na_position: str = "last",
+        ignore_index: bool_t = False,
     ):
         """
         Sort by the values along either axis.
@@ -4116,6 +4097,10 @@ class NDFrame(PandasObject, SelectionMixin):
         na_position : {'first', 'last'}, default 'last'
              Puts NaNs at the beginning if `first`; `last` puts NaNs at the
              end.
+        ignore_index : bool, default False
+             If True, the resulting axis will be labeled 0, 1, …, n - 1.
+
+             .. versionadded:: 1.0.0
 
         Returns
         -------
@@ -4667,6 +4652,9 @@ class NDFrame(PandasObject, SelectionMixin):
         on position. It is useful for quickly testing if your object
         has the right type of data in it.
 
+        For negative values of `n`, this function returns all rows except
+        the last `n` rows, equivalent to ``df[:-n]``.
+
         Parameters
         ----------
         n : int, default 5
@@ -4674,7 +4662,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        obj_head : same type as caller
+        same type as caller
             The first `n` rows of the caller object.
 
         See Also
@@ -4714,6 +4702,17 @@ class NDFrame(PandasObject, SelectionMixin):
         0  alligator
         1        bee
         2     falcon
+
+        For negative values of `n`
+
+        >>> df.head(-3)
+              animal
+        0  alligator
+        1        bee
+        2     falcon
+        3       lion
+        4     monkey
+        5     parrot
         """
 
         return self.iloc[:n]
@@ -4725,6 +4724,9 @@ class NDFrame(PandasObject, SelectionMixin):
         This function returns last `n` rows from the object based on
         position. It is useful for quickly verifying data, for example,
         after sorting or appending rows.
+
+        For negative values of `n`, this function returns all rows except
+        the first `n` rows, equivalent to ``df[n:]``.
 
         Parameters
         ----------
@@ -4773,6 +4775,17 @@ class NDFrame(PandasObject, SelectionMixin):
         6  shark
         7  whale
         8  zebra
+
+        For negative values of `n`
+
+        >>> df.tail(-3)
+           animal
+        3    lion
+        4  monkey
+        5  parrot
+        6   shark
+        7   whale
+        8   zebra
         """
 
         if n == 0:
@@ -7288,19 +7301,10 @@ class NDFrame(PandasObject, SelectionMixin):
 
         return result
 
-    def groupby(
-        self,
-        by=None,
-        axis=0,
-        level=None,
-        as_index: bool_t = True,
-        sort: bool_t = True,
-        group_keys: bool_t = True,
-        squeeze: bool_t = False,
-        observed: bool_t = False,
-    ):
-        """
-        Group DataFrame or Series using a mapper or by a Series of columns.
+    _shared_docs[
+        "groupby"
+    ] = """
+        Group %(klass)s using a mapper or by a Series of columns.
 
         A groupby operation involves some combination of splitting the
         object, applying a function, and combining the results. This can be
@@ -7345,9 +7349,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        DataFrameGroupBy or SeriesGroupBy
-            Depends on the calling object and returns groupby object that
-            contains information about the groups.
+        %(klass)sGroupBy
+            Returns a groupby object that contains information about the groups.
 
         See Also
         --------
@@ -7358,69 +7361,7 @@ class NDFrame(PandasObject, SelectionMixin):
         -----
         See the `user guide
         <http://pandas.pydata.org/pandas-docs/stable/groupby.html>`_ for more.
-
-        Examples
-        --------
-        >>> df = pd.DataFrame({'Animal': ['Falcon', 'Falcon',
-        ...                               'Parrot', 'Parrot'],
-        ...                    'Max Speed': [380., 370., 24., 26.]})
-        >>> df
-           Animal  Max Speed
-        0  Falcon      380.0
-        1  Falcon      370.0
-        2  Parrot       24.0
-        3  Parrot       26.0
-        >>> df.groupby(['Animal']).mean()
-                Max Speed
-        Animal
-        Falcon      375.0
-        Parrot       25.0
-
-        **Hierarchical Indexes**
-
-        We can groupby different levels of a hierarchical index
-        using the `level` parameter:
-
-        >>> arrays = [['Falcon', 'Falcon', 'Parrot', 'Parrot'],
-        ...           ['Captive', 'Wild', 'Captive', 'Wild']]
-        >>> index = pd.MultiIndex.from_arrays(arrays, names=('Animal', 'Type'))
-        >>> df = pd.DataFrame({'Max Speed': [390., 350., 30., 20.]},
-        ...                   index=index)
-        >>> df
-                        Max Speed
-        Animal Type
-        Falcon Captive      390.0
-               Wild         350.0
-        Parrot Captive       30.0
-               Wild          20.0
-        >>> df.groupby(level=0).mean()
-                Max Speed
-        Animal
-        Falcon      370.0
-        Parrot       25.0
-        >>> df.groupby(level=1).mean()
-                 Max Speed
-        Type
-        Captive      210.0
-        Wild         185.0
         """
-        from pandas.core.groupby.groupby import get_groupby
-
-        if level is None and by is None:
-            raise TypeError("You have to supply one of 'by' and 'level'")
-        axis = self._get_axis_number(axis)
-
-        return get_groupby(
-            self,
-            by=by,
-            axis=axis,
-            level=level,
-            as_index=as_index,
-            sort=sort,
-            group_keys=group_keys,
-            squeeze=squeeze,
-            observed=observed,
-        )
 
     def asfreq(
         self,
@@ -8019,7 +7960,7 @@ class NDFrame(PandasObject, SelectionMixin):
         end_date = end = self.index[0] + offset
 
         # Tick-like, e.g. 3 weeks
-        if not offset.isAnchored() and hasattr(offset, "_inc"):
+        if not offset.is_anchored() and hasattr(offset, "_inc"):
             if end_date in self.index:
                 end = self.index.searchsorted(end_date, side="left")
                 return self.iloc[:end]
@@ -11101,44 +11042,67 @@ def _make_cum_function(
         else:
             axis = self._get_axis_number(axis)
 
-        y = com.values_from_object(self).copy()
+        if axis == 1:
+            return cum_func(self.T, axis=0, skipna=skipna, *args, **kwargs).T
+
+        def na_accum_func(blk_values):
+            # We will be applying this function to block values
+            if blk_values.dtype.kind in ["m", "M"]:
+                # GH#30460, GH#29058
+                # numpy 1.18 started sorting NaTs at the end instead of beginning,
+                #  so we need to work around to maintain backwards-consistency.
+                orig_dtype = blk_values.dtype
+
+                # We need to define mask before masking NaTs
+                mask = isna(blk_values)
+
+                if accum_func == np.minimum.accumulate:
+                    # Note: the accum_func comparison fails as an "is" comparison
+                    y = blk_values.view("i8")
+                    y[mask] = np.iinfo(np.int64).max
+                    changed = True
+                else:
+                    y = blk_values
+                    changed = False
+
+                result = accum_func(y.view("i8"), axis)
+                if skipna:
+                    np.putmask(result, mask, iNaT)
+                elif accum_func == np.minimum.accumulate:
+                    # Restore NaTs that we masked previously
+                    nz = (~np.asarray(mask)).nonzero()[0]
+                    if len(nz):
+                        # everything up to the first non-na entry stays NaT
+                        result[: nz[0]] = iNaT
+
+                if changed:
+                    # restore NaT elements
+                    y[mask] = iNaT  # TODO: could try/finally for this?
+
+                if isinstance(blk_values, np.ndarray):
+                    result = result.view(orig_dtype)
+                else:
+                    # DatetimeArray
+                    result = type(blk_values)._from_sequence(result, dtype=orig_dtype)
+
+            elif skipna and not issubclass(
+                blk_values.dtype.type, (np.integer, np.bool_)
+            ):
+                vals = blk_values.copy().T
+                mask = isna(vals)
+                np.putmask(vals, mask, mask_a)
+                result = accum_func(vals, axis)
+                np.putmask(result, mask, mask_b)
+            else:
+                result = accum_func(blk_values.T, axis)
+
+            # transpose back for ndarray, not for EA
+            return result.T if hasattr(result, "T") else result
+
+        result = self._data.apply(na_accum_func)
+
         d = self._construct_axes_dict()
         d["copy"] = False
-
-        if issubclass(y.dtype.type, (np.datetime64, np.timedelta64)):
-            # numpy 1.18 started sorting NaTs at the end instead of beginning,
-            #  so we need to work around to maintain backwards-consistency.
-            orig_dtype = y.dtype
-            if accum_func == np.minimum.accumulate:
-                # Note: the accum_func comparison fails as an "is" comparison
-                # Note that "y" is always a copy, so we can safely modify it
-                mask = isna(self)
-                y = y.view("i8")
-                y[mask] = np.iinfo(np.int64).max
-
-            result = accum_func(y.view("i8"), axis).view(orig_dtype)
-            if skipna:
-                mask = isna(self)
-                np.putmask(result, mask, iNaT)
-            elif accum_func == np.minimum.accumulate:
-                # Restore NaTs that we masked previously
-                nz = (~np.asarray(mask)).nonzero()[0]
-                if len(nz):
-                    # everything up to the first non-na entry stays NaT
-                    result[: nz[0]] = iNaT
-
-            if self.ndim == 1:
-                # restore dt64tz dtype
-                d["dtype"] = self.dtype
-
-        elif skipna and not issubclass(y.dtype.type, (np.integer, np.bool_)):
-            mask = isna(self)
-            np.putmask(y, mask, mask_a)
-            result = accum_func(y, axis)
-            np.putmask(result, mask, mask_b)
-        else:
-            result = accum_func(y, axis)
-
         return self._constructor(result, **d).__finalize__(self)
 
     return set_function_name(cum_func, name, cls)
