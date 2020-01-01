@@ -30,7 +30,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import Timestamp, lib
-from pandas._typing import FrameOrSeriesT
+from pandas._typing import SameFrameOrSeries
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.cast import (
@@ -86,7 +86,7 @@ AggScalar = Union[str, Callable[..., Any]]
 ScalarResult = typing.TypeVar("ScalarResult")
 
 
-def generate_property(name: str, klass: Type[FrameOrSeriesT]):
+def generate_property(name: str, klass: Type[SameFrameOrSeries]):
     """
     Create a property for a GroupBy subclass to dispatch to DataFrame/Series.
 
@@ -109,7 +109,9 @@ def generate_property(name: str, klass: Type[FrameOrSeriesT]):
     return property(prop)
 
 
-def pin_whitelisted_properties(klass: Type[FrameOrSeriesT], whitelist: FrozenSet[str]):
+def pin_whitelisted_properties(
+    klass: Type[SameFrameOrSeries], whitelist: FrozenSet[str]
+):
     """
     Create GroupBy member defs for DataFrame/Series names in a whitelist.
 

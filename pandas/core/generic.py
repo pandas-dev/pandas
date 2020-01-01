@@ -30,7 +30,7 @@ import numpy as np
 from pandas._config import config
 
 from pandas._libs import Timestamp, iNaT, lib, properties
-from pandas._typing import Dtype, FilePathOrBuffer, FrameOrSeriesT, JSONSerializable
+from pandas._typing import Dtype, FilePathOrBuffer, JSONSerializable, SameFrameOrSeries
 from pandas.compat import set_function_name
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -552,12 +552,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return np.prod(self.shape)
 
     @property
-    def _selected_obj(self: FrameOrSeriesT) -> FrameOrSeriesT:
+    def _selected_obj(self: SameFrameOrSeries) -> SameFrameOrSeries:
         """ internal compat with SelectionMixin """
         return self
 
     @property
-    def _obj_with_exclusions(self: FrameOrSeriesT) -> FrameOrSeriesT:
+    def _obj_with_exclusions(self: SameFrameOrSeries) -> SameFrameOrSeries:
         """ internal compat with SelectionMixin """
         return self
 
@@ -4670,7 +4670,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         else:
             raise TypeError("Must pass either `items`, `like`, or `regex`")
 
-    def head(self: FrameOrSeriesT, n: int = 5) -> FrameOrSeriesT:
+    def head(self: SameFrameOrSeries, n: int = 5) -> SameFrameOrSeries:
         """
         Return the first `n` rows.
 
@@ -4743,7 +4743,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         return self.iloc[:n]
 
-    def tail(self: FrameOrSeriesT, n: int = 5) -> FrameOrSeriesT:
+    def tail(self: SameFrameOrSeries, n: int = 5) -> SameFrameOrSeries:
         """
         Return the last `n` rows.
 
@@ -5188,8 +5188,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # Attribute access
 
     def __finalize__(
-        self: FrameOrSeriesT, other, method=None, **kwargs
-    ) -> FrameOrSeriesT:
+        self: SameFrameOrSeries, other, method=None, **kwargs
+    ) -> SameFrameOrSeries:
         """
         Propagate metadata from other to self.
 
@@ -5658,7 +5658,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         result.columns = self.columns
         return result
 
-    def copy(self: FrameOrSeriesT, deep: bool_t = True) -> FrameOrSeriesT:
+    def copy(self: SameFrameOrSeries, deep: bool_t = True) -> SameFrameOrSeries:
         """
         Make a copy of this object's indices and data.
 
@@ -5766,10 +5766,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         data = self._data.copy(deep=deep)
         return self._constructor(data).__finalize__(self)
 
-    def __copy__(self: FrameOrSeriesT, deep: bool_t = True) -> FrameOrSeriesT:
+    def __copy__(self: SameFrameOrSeries, deep: bool_t = True) -> SameFrameOrSeries:
         return self.copy(deep=deep)
 
-    def __deepcopy__(self: FrameOrSeriesT, memo=None) -> FrameOrSeriesT:
+    def __deepcopy__(self: SameFrameOrSeries, memo=None) -> SameFrameOrSeries:
         """
         Parameters
         ----------
@@ -5779,13 +5779,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return self.copy(deep=True)
 
     def _convert(
-        self: FrameOrSeriesT,
+        self: SameFrameOrSeries,
         datetime: bool_t = False,
         numeric: bool_t = False,
         timedelta: bool_t = False,
         coerce: bool_t = False,
         copy: bool_t = True,
-    ) -> FrameOrSeriesT:
+    ) -> SameFrameOrSeries:
         """
         Attempt to infer better dtype for object columns
 
@@ -5877,14 +5877,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # Filling NA's
 
     def fillna(
-        self: FrameOrSeriesT,
+        self: SameFrameOrSeries,
         value=None,
         method=None,
         axis=None,
         inplace: bool_t = False,
         limit=None,
         downcast=None,
-    ) -> Optional[FrameOrSeriesT]:
+    ) -> Optional[SameFrameOrSeries]:
         """
         Fill NA/NaN values using the specified method.
 
@@ -6066,12 +6066,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return self._constructor(new_data).__finalize__(self)
 
     def ffill(
-        self: FrameOrSeriesT,
+        self: SameFrameOrSeries,
         axis=None,
         inplace: bool_t = False,
         limit=None,
         downcast=None,
-    ) -> Optional[FrameOrSeriesT]:
+    ) -> Optional[SameFrameOrSeries]:
         """
         Synonym for :meth:`DataFrame.fillna` with ``method='ffill'``.
 
@@ -6085,12 +6085,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         )
 
     def bfill(
-        self: FrameOrSeriesT,
+        self: SameFrameOrSeries,
         axis=None,
         inplace: bool_t = False,
         limit=None,
         downcast=None,
-    ) -> Optional[FrameOrSeriesT]:
+    ) -> Optional[SameFrameOrSeries]:
         """
         Synonym for :meth:`DataFrame.fillna` with ``method='bfill'``.
 
@@ -8055,14 +8055,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return self.iloc[start:]
 
     def rank(
-        self: FrameOrSeriesT,
+        self: SameFrameOrSeries,
         axis=0,
         method: str = "average",
         numeric_only: Optional[bool_t] = None,
         na_option: str = "keep",
         ascending: bool_t = True,
         pct: bool_t = False,
-    ) -> FrameOrSeriesT:
+    ) -> SameFrameOrSeries:
         """
         Compute numerical data ranks (1 through n) along axis.
 
@@ -8870,7 +8870,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         return self._constructor(new_data).__finalize__(self)
 
-    def slice_shift(self: FrameOrSeriesT, periods: int = 1, axis=0) -> FrameOrSeriesT:
+    def slice_shift(
+        self: SameFrameOrSeries, periods: int = 1, axis=0
+    ) -> SameFrameOrSeries:
         """
         Equivalent to `shift` without copying data.
 
@@ -8970,8 +8972,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return self._constructor(new_data).__finalize__(self)
 
     def truncate(
-        self: FrameOrSeriesT, before=None, after=None, axis=None, copy: bool_t = True
-    ) -> FrameOrSeriesT:
+        self: SameFrameOrSeries, before=None, after=None, axis=None, copy: bool_t = True
+    ) -> SameFrameOrSeries:
         """
         Truncate a Series or DataFrame before and after some index value.
 
@@ -9124,8 +9126,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return result
 
     def tz_convert(
-        self: FrameOrSeriesT, tz, axis=0, level=None, copy: bool_t = True
-    ) -> FrameOrSeriesT:
+        self: SameFrameOrSeries, tz, axis=0, level=None, copy: bool_t = True
+    ) -> SameFrameOrSeries:
         """
         Convert tz-aware axis to target time zone.
 
@@ -9181,14 +9183,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return result.__finalize__(self)
 
     def tz_localize(
-        self: FrameOrSeriesT,
+        self: SameFrameOrSeries,
         tz,
         axis=0,
         level=None,
         copy: bool_t = True,
         ambiguous="raise",
         nonexistent: str = "raise",
-    ) -> FrameOrSeriesT:
+    ) -> SameFrameOrSeries:
         """
         Localize tz-naive index of a Series or DataFrame to target time zone.
 

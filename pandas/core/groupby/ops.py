@@ -14,7 +14,7 @@ import numpy as np
 from pandas._libs import NaT, iNaT, lib
 import pandas._libs.groupby as libgroupby
 import pandas._libs.reduction as libreduction
-from pandas._typing import FrameOrSeriesT
+from pandas._typing import SameFrameOrSeries
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
@@ -111,7 +111,7 @@ class BaseGrouper:
     def nkeys(self) -> int:
         return len(self.groupings)
 
-    def get_iterator(self, data: FrameOrSeriesT, axis: int = 0):
+    def get_iterator(self, data: SameFrameOrSeries, axis: int = 0):
         """
         Groupby iterator
 
@@ -125,7 +125,7 @@ class BaseGrouper:
         for key, (i, group) in zip(keys, splitter):
             yield key, group
 
-    def _get_splitter(self, data: FrameOrSeriesT, axis: int = 0) -> "DataSplitter":
+    def _get_splitter(self, data: SameFrameOrSeries, axis: int = 0) -> "DataSplitter":
         comp_ids, _, ngroups = self.group_info
         return get_splitter(data, comp_ids, ngroups, axis=axis)
 
@@ -147,13 +147,13 @@ class BaseGrouper:
             # provide "flattened" iterator for multi-group setting
             return get_flattened_iterator(comp_ids, ngroups, self.levels, self.codes)
 
-    def apply(self, f, data: FrameOrSeriesT, axis: int = 0):
+    def apply(self, f, data: SameFrameOrSeries, axis: int = 0):
         mutated = self.mutated
         splitter = self._get_splitter(data, axis=axis)
         group_keys = self._get_group_keys()
         result_values = None
 
-        sdata: FrameOrSeriesT = splitter._get_sorted_data()
+        sdata: SameFrameOrSeries = splitter._get_sorted_data()
         if sdata.ndim == 2 and np.any(sdata.dtypes.apply(is_extension_array_dtype)):
             # calling splitter.fast_apply will raise TypeError via apply_frame_axis0
             #  if we pass EA instead of ndarray
@@ -754,7 +754,7 @@ class BinGrouper(BaseGrouper):
         """
         return self
 
-    def get_iterator(self, data: FrameOrSeriesT, axis: int = 0):
+    def get_iterator(self, data: SameFrameOrSeries, axis: int = 0):
         """
         Groupby iterator
 
@@ -862,7 +862,7 @@ def _is_indexed_like(obj, axes) -> bool:
 
 
 class DataSplitter:
-    def __init__(self, data: FrameOrSeriesT, labels, ngroups: int, axis: int = 0):
+    def __init__(self, data: SameFrameOrSeries, labels, ngroups: int, axis: int = 0):
         self.data = data
         self.labels = ensure_int64(labels)
         self.ngroups = ngroups
@@ -893,7 +893,7 @@ class DataSplitter:
         for i, (start, end) in enumerate(zip(starts, ends)):
             yield i, self._chop(sdata, slice(start, end))
 
-    def _get_sorted_data(self) -> FrameOrSeriesT:
+    def _get_sorted_data(self) -> SameFrameOrSeries:
         return self.data.take(self.sort_idx, axis=self.axis)
 
     def _chop(self, sdata, slice_obj: slice) -> NDFrame:
@@ -920,7 +920,7 @@ class FrameSplitter(DataSplitter):
             return sdata._slice(slice_obj, axis=1)
 
 
-def get_splitter(data: FrameOrSeriesT, *args, **kwargs) -> DataSplitter:
+def get_splitter(data: SameFrameOrSeries, *args, **kwargs) -> DataSplitter:
     if isinstance(data, Series):
         klass: Type[DataSplitter] = SeriesSplitter
     else:

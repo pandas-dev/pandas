@@ -30,7 +30,7 @@ from pandas.core.internals import concatenate_block_managers
 
 @overload
 def concat(
-    objs: Union[Sequence["DataFrame"], Mapping[Hashable, "DataFrame"]],
+    objs: Union[Sequence["DataFrame"], Mapping[Optional[Hashable], "DataFrame"]],
     axis=0,
     join: str = "outer",
     ignore_index: bool = False,
@@ -46,7 +46,7 @@ def concat(
 
 @overload
 def concat(
-    objs: Union[Sequence[FrameOrSeries], Mapping[Hashable, FrameOrSeries]],
+    objs: Union[Sequence[FrameOrSeries], Mapping[Optional[Hashable], FrameOrSeries]],
     axis=0,
     join: str = "outer",
     ignore_index: bool = False,
@@ -61,7 +61,7 @@ def concat(
 
 
 def concat(
-    objs: Union[Sequence[FrameOrSeries], Mapping[Hashable, FrameOrSeries]],
+    objs: Union[Sequence[FrameOrSeries], Mapping[Optional[Hashable], FrameOrSeries]],
     axis=0,
     join="outer",
     ignore_index: bool = False,

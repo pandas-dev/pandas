@@ -22,7 +22,7 @@ from pandas._config.localization import (  # noqa:F401
 )
 
 import pandas._libs.testing as _testing
-from pandas._typing import FrameOrSeriesT
+from pandas._typing import SameFrameOrSeries
 from pandas.compat import _get_lzma_file, _import_lzma
 
 from pandas.core.dtypes.common import (
@@ -102,8 +102,8 @@ def reset_display_options():
 
 
 def round_trip_pickle(
-    obj: FrameOrSeriesT, path: Optional[str] = None
-) -> FrameOrSeriesT:
+    obj: SameFrameOrSeries, path: Optional[str] = None
+) -> SameFrameOrSeries:
     """
     Pickle an object and then read it again.
 
