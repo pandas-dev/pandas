@@ -1162,6 +1162,27 @@ class TestDataFramePlots(TestPlotBase):
         axes = df.plot(x="x", y="y", kind="scatter", subplots=True)
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
 
+    def test_scatterplot_datetime_data(self):
+        # GH 30391
+        dates = pd.date_range(start=date(2019, 1, 1), periods=12, freq="W")
+        vals = np.random.normal(0, 1, len(dates))
+        df = pd.DataFrame({"dates": dates, "vals": vals})
+
+        _check_plot_works(df.plot.scatter, x="dates", y="vals")
+        _check_plot_works(df.plot.scatter, x=0, y=1)
+
+    def test_scatterplot_object_data(self):
+        # GH 18755
+        df = pd.DataFrame(dict(a=["A", "B", "C"], b=[2, 3, 4]))
+
+        _check_plot_works(df.plot.scatter, x="a", y="b")
+        _check_plot_works(df.plot.scatter, x=0, y=1)
+
+        df = pd.DataFrame(dict(a=["A", "B", "C"], b=["a", "b", "c"]))
+
+        _check_plot_works(df.plot.scatter, x="a", y="b")
+        _check_plot_works(df.plot.scatter, x=0, y=1)
+
     @pytest.mark.slow
     def test_if_scatterplot_colorbar_affects_xaxis_visibility(self):
         # addressing issue #10611, to ensure colobar does not
@@ -1216,24 +1237,15 @@ class TestDataFramePlots(TestPlotBase):
         colorbar_distance = axes_x_coords[3, :] - axes_x_coords[2, :]
         assert np.isclose(parent_distance, colorbar_distance, atol=1e-7).all()
 
+    @pytest.mark.parametrize("x, y", [("x", "y"), ("y", "x"), ("y", "y")])
     @pytest.mark.slow
-    def test_plot_scatter_with_categorical_data(self):
-        # GH 16199
+    def test_plot_scatter_with_categorical_data(self, x, y):
+        # after fixing GH 18755, should be able to plot categorical data
         df = pd.DataFrame(
             {"x": [1, 2, 3, 4], "y": pd.Categorical(["a", "b", "a", "c"])}
         )
 
-        with pytest.raises(ValueError) as ve:
-            df.plot(x="x", y="y", kind="scatter")
-        ve.match("requires y column to be numeric")
-
-        with pytest.raises(ValueError) as ve:
-            df.plot(x="y", y="x", kind="scatter")
-        ve.match("requires x column to be numeric")
-
-        with pytest.raises(ValueError) as ve:
-            df.plot(x="y", y="y", kind="scatter")
-        ve.match("requires x column to be numeric")
+        _check_plot_works(df.plot.scatter, x=x, y=y)
 
     @pytest.mark.slow
     def test_plot_scatter_with_c(self):
