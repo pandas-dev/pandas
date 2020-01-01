@@ -8,8 +8,6 @@ import pandas.util.testing as tm
 
 from .pandas_vb_common import lib, numeric_dtypes
 
-from .pandas_vb_common import setup  # noqa: F401 isort:skip
-
 
 class NumericInferOps:
     # from GH 7332
@@ -134,3 +132,6 @@ class MaybeBoxDatetimelike:
 
     def py_datetime_box(self):
         maybe_box_datetimelike(self.py_timestamp)
+
+
+from .pandas_vb_common import setup  # noqa: F401 isort:skip
