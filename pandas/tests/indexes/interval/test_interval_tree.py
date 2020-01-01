@@ -65,7 +65,7 @@ class TestIntervalTree:
         left, right = np.array([0, 1], dtype=dtype), np.array([1, 2], dtype=dtype)
         tree = IntervalTree(left, right)
 
-        result = tree.get_indexer(np.array([target_value]))
+        result = tree.get_indexer(np.array([target_value], dtype="int64"))
         expected = np.array([-1], dtype="intp")
         tm.assert_numpy_array_equal(result, expected)
 
@@ -94,7 +94,7 @@ class TestIntervalTree:
     def test_get_indexer_non_unique_overflow(self, dtype, target_value):
         left, right = np.array([0, 2], dtype=dtype), np.array([1, 3], dtype=dtype)
         tree = IntervalTree(left, right)
-        target = np.array([target_value])
+        target = np.array([target_value], dtype="int64")
 
         result_indexer, result_missing = tree.get_indexer_non_unique(target)
         expected_indexer = np.array([-1], dtype="intp")
