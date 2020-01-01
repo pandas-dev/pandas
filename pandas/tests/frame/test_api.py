@@ -5,6 +5,8 @@ import pydoc
 import numpy as np
 import pytest
 
+from pandas.compat import PY37
+
 import pandas as pd
 from pandas import Categorical, DataFrame, Series, compat, date_range, timedelta_range
 import pandas.util.testing as tm
@@ -261,8 +263,27 @@ class TestDataFrameMisc:
         df3 = DataFrame({"f" + str(i): [i] for i in range(1024)})
         # will raise SyntaxError if trying to create namedtuple
         tup3 = next(df3.itertuples())
-        assert not hasattr(tup3, "_fields")
         assert isinstance(tup3, tuple)
+        if PY37:
+            assert hasattr(tup3, "_fields")
+        else:
+            assert not hasattr(tup3, "_fields")
+
+        # GH 28282
+        df_254_columns = DataFrame([{f"foo_{i}": f"bar_{i}" for i in range(254)}])
+        result_254_columns = next(df_254_columns.itertuples(index=False))
+        assert isinstance(result_254_columns, tuple)
+        assert hasattr(result_254_columns, "_fields")
+
+        df_255_columns = DataFrame([{f"foo_{i}": f"bar_{i}" for i in range(255)}])
+        result_255_columns = next(df_255_columns.itertuples(index=False))
+        assert isinstance(result_255_columns, tuple)
+
+        # Dataframes with >=255 columns will fallback to regular tuples on python < 3.7
+        if PY37:
+            assert hasattr(result_255_columns, "_fields")
+        else:
+            assert not hasattr(result_255_columns, "_fields")
 
     def test_sequence_like_with_categorical(self):
 
@@ -287,22 +308,6 @@ class TestDataFrameMisc:
 
         for c, col in df.items():
             str(s)
-
-    def test_itertuples_fallback_to_regular_tuples(self):
-        # GH 28282
-
-        df_254_columns = DataFrame([{f"foo_{i}": f"bar_{i}" for i in range(254)}])
-        result_254_columns = next(df_254_columns.itertuples(index=False))
-        assert isinstance(result_254_columns, tuple)
-        assert result_254_columns.foo_1 == "bar_1"
-
-        df_255_columns = DataFrame([{f"foo_{i}": f"bar_{i}" for i in range(255)}])
-        result_255_columns = next(df_255_columns.itertuples(index=False))
-        assert isinstance(result_255_columns, tuple)
-
-        # Dataframes with >=255 columns will fallback to regular tuples
-        with pytest.raises(AttributeError):
-            result_255_columns.foo_1
 
     def test_len(self, float_frame):
         assert len(float_frame) == len(float_frame.index)
