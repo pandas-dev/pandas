@@ -19,18 +19,24 @@ jobs:
           ENV_FILE: ci/deps/azure-36-minimum_versions.yaml
           CONDA_PY: "36"
           PATTERN: "not slow and not network"
+
         py36_locale_slow_old_np:
           ENV_FILE: ci/deps/azure-36-locale_slow.yaml
           CONDA_PY: "36"
           PATTERN: "slow"
-          LOCALE_OVERRIDE: "zh_CN.UTF-8"
+          # pandas does not use the language (zh_CN), but should support diferent encodings (utf8)
+          # we should test with encodings different than utf8, but doesn't seem like Ubuntu supports any
+          LANG: "zh_CN.utf8"
+          LC_ALL: "zh_CN.utf8"
           EXTRA_APT: "language-pack-zh-hans"
 
         py36_locale:
           ENV_FILE: ci/deps/azure-36-locale.yaml
           CONDA_PY: "36"
           PATTERN: "not slow and not network"
-          LOCALE_OVERRIDE: "it_IT.UTF-8"
+          LANG: "it_IT.utf8"
+          LC_ALL: "it_IT.utf8"
+          EXTRA_APT: "language-pack-it"
 
         py36_32bit:
           ENV_FILE: ci/deps/azure-36-32bit.yaml
@@ -42,7 +48,9 @@ jobs:
           ENV_FILE: ci/deps/azure-37-locale.yaml
           CONDA_PY: "37"
           PATTERN: "not slow and not network"
-          LOCALE_OVERRIDE: "zh_CN.UTF-8"
+          LANG: "zh_CN.utf8"
+          LC_ALL: "zh_CN.utf8"
+          EXTRA_APT: "language-pack-zh-hans"
 
         py37_np_dev:
           ENV_FILE: ci/deps/azure-37-numpydev.yaml
@@ -54,10 +62,16 @@ jobs:
 
   steps:
     - script: |
-        if [ "$(uname)" == "Linux" ]; then sudo apt-get install -y libc6-dev-i386 $EXTRA_APT; fi
-        echo '##vso[task.prependpath]$(HOME)/miniconda3/bin'
-        echo "Creating Environment"
-        ci/setup_env.sh
+        if [ "$(uname)" == "Linux" ]; then
+          sudo apt-get update
+          sudo apt-get install -y libc6-dev-i386 $EXTRA_APT
+        fi
+      displayName: 'Install extra packages'
+
+    - script: echo '##vso[task.prependpath]$(HOME)/miniconda3/bin'
+      displayName: 'Set conda path'
+
+    - script: ci/setup_env.sh
       displayName: 'Setup environment and build pandas'
 
     - script: |
