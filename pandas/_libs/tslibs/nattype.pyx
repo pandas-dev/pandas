@@ -19,6 +19,8 @@ from pandas._libs.tslibs.util cimport (
     get_nat, is_integer_object, is_float_object, is_datetime64_object,
     is_timedelta64_object)
 
+import pandas.compat as compat
+
 # ----------------------------------------------------------------------
 # Constants
 nat_strings = {'NaT', 'nat', 'NAT', 'nan', 'NaN', 'NAN'}
@@ -426,9 +428,10 @@ class NaTType(_NaT):
     toordinal = _make_error_func('toordinal', datetime)
     tzname = _make_error_func('tzname', datetime)
     utcoffset = _make_error_func('utcoffset', datetime)
-    fromisocalendar = _make_error_func(
-            'fromisocalendar', datetime.fromisocalendar.__doc__
-    )
+
+    # "fromisocalendar" was introduced in 3.8
+    if compat.PY38:
+        fromisocalendar = _make_error_func('fromisocalendar', datetime)
 
     # ----------------------------------------------------------------------
     # The remaining methods have docstrings copy/pasted from the analogous

@@ -141,6 +141,10 @@ def test_round_nat(klass, method, freq):
     ],
 )
 def test_nat_methods_raise(method):
+    # "fromisocalendar" was introduced in 3.8
+    if method == "fromisocalendar" and not compat.PY38:
+        method.remove("fromisocalendar")
+
     # see gh-9513, gh-17329
     msg = f"NaTType does not support {method}"
 
@@ -298,6 +302,10 @@ def test_overlap_public_nat_methods(klass, expected):
     # "fromisoformat" was introduced in 3.7
     if klass is Timestamp and not compat.PY37:
         expected.remove("fromisoformat")
+
+    # "fromisocalendar" was introduced in 3.8
+    if klass is Timestamp and not compat.PY38:
+        expected.remove("fromisocalendar")
 
     assert _get_overlap_public_nat_methods(klass) == expected
 
