@@ -1633,6 +1633,7 @@ Name: Max Speed, dtype: float64
         group_keys: bool = True,
         squeeze: bool = False,
         observed: bool = False,
+        dropna: bool = True,
     ) -> "groupby_generic.SeriesGroupBy":
 
         if level is None and by is None:
@@ -1649,6 +1650,7 @@ Name: Max Speed, dtype: float64
             group_keys=group_keys,
             squeeze=squeeze,
             observed=observed,
+            dropna=dropna,
         )
 
     # ----------------------------------------------------------------------
