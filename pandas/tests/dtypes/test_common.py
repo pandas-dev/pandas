@@ -5,6 +5,7 @@ import pytest
 
 import pandas.util._test_decorators as td
 
+from pandas.core.dtypes.cast import astype_nansafe
 import pandas.core.dtypes.common as com
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
@@ -13,6 +14,7 @@ from pandas.core.dtypes.dtypes import (
     IntervalDtype,
     PeriodDtype,
 )
+from pandas.core.dtypes.missing import isna
 
 import pandas as pd
 from pandas.conftest import (
@@ -709,3 +711,42 @@ def test__get_dtype_fails(input_param, expected_error_message):
 )
 def test__is_dtype_type(input_param, result):
     assert com._is_dtype_type(input_param, lambda tipo: tipo == result)
+
+
+@pytest.mark.parametrize("val", [np.datetime64("NaT"), np.timedelta64("NaT")])
+@pytest.mark.parametrize("typ", [np.int64])
+def test_astype_nansafe(val, typ):
+    arr = np.array([val])
+
+    msg = "Cannot convert NaT values to integer"
+    with pytest.raises(ValueError, match=msg):
+        astype_nansafe(arr, dtype=typ)
+
+
+@pytest.mark.parametrize("from_type", [np.datetime64, np.timedelta64])
+@pytest.mark.parametrize(
+    "to_type",
+    [
+        np.uint8,
+        np.uint16,
+        np.uint32,
+        np.int8,
+        np.int16,
+        np.int32,
+        np.float16,
+        np.float32,
+    ],
+)
+def test_astype_datetime64_bad_dtype_raises(from_type, to_type):
+    arr = np.array([from_type("2018")])
+
+    with pytest.raises(TypeError, match="cannot astype"):
+        astype_nansafe(arr, dtype=to_type)
+
+
+@pytest.mark.parametrize("from_type", [np.datetime64, np.timedelta64])
+def test_astype_object_preserves_datetime_na(from_type):
+    arr = np.array([from_type("NaT")])
+    result = astype_nansafe(arr, dtype="object")
+
+    assert isna(result)[0]

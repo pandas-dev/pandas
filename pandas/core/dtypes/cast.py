@@ -823,6 +823,8 @@ def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
         if is_object_dtype(dtype):
             return tslib.ints_to_pydatetime(arr.view(np.int64))
         elif dtype == np.int64:
+            if isna(arr).any():
+                raise ValueError("Cannot convert NaT values to integer")
             return arr.view(dtype)
 
         # allow frequency conversions
@@ -835,6 +837,8 @@ def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
         if is_object_dtype(dtype):
             return tslibs.ints_to_pytimedelta(arr.view(np.int64))
         elif dtype == np.int64:
+            if isna(arr).any():
+                raise ValueError("Cannot convert NaT values to integer")
             return arr.view(dtype)
 
         if dtype not in [_INT64_DTYPE, _TD_DTYPE]:
