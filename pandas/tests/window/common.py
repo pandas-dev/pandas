@@ -212,39 +212,22 @@ class ConsistencyBase(Base):
         super()._create_data()
         self.data = _consistency_data
 
-    def _test_moments_consistency(
-        self,
-        min_periods,
-        count,
-        mean,
-        mock_mean,
-        corr,
-        var_unbiased=None,
-        std_unbiased=None,
-        cov_unbiased=None,
-        var_biased=None,
-        std_biased=None,
-        cov_biased=None,
-        var_debiasing_factors=None,
-    ):
-        def _non_null_values(x):
-            values = x.values.ravel()
-            return set(values[notna(values)].tolist())
-
+    def _test_moments_consistency_mock_mean(self, mean, mock_mean):
         for (x, is_constant, no_nans) in self.data:
-            count_x = count(x)
             mean_x = mean(x)
+            # check that correlation of a series with itself is either 1 or NaN
 
             if mock_mean:
                 # check that mean equals mock_mean
                 expected = mock_mean(x)
                 tm.assert_equal(mean_x, expected.astype("float64"))
 
+    def _test_moments_consistency_is_constant(self, min_periods, count, mean, corr):
+        for (x, is_constant, no_nans) in self.data:
+            count_x = count(x)
+            mean_x = mean(x)
             # check that correlation of a series with itself is either 1 or NaN
             corr_x_x = corr(x, x)
-
-            # assert _non_null_values(corr_x_x).issubset(set([1.]))
-            # restore once rolling_cov(x, x) is identically equal to var(x)
 
             if is_constant:
                 exp = x.max() if isinstance(x, Series) else x.max().max()
@@ -258,12 +241,34 @@ class ConsistencyBase(Base):
                 expected[:] = np.nan
                 tm.assert_equal(corr_x_x, expected)
 
+    def _test_moments_consistency_var_debiasing_factors(
+        self, var_biased=None, var_unbiased=None, var_debiasing_factors=None
+    ):
+        for (x, is_constant, no_nans) in self.data:
             if var_unbiased and var_biased and var_debiasing_factors:
                 # check variance debiasing factors
                 var_unbiased_x = var_unbiased(x)
                 var_biased_x = var_biased(x)
                 var_debiasing_factors_x = var_debiasing_factors(x)
                 tm.assert_equal(var_unbiased_x, var_biased_x * var_debiasing_factors_x)
+
+    def _test_moments_consistency(
+        self,
+        min_periods,
+        count,
+        mean,
+        corr,
+        var_unbiased=None,
+        std_unbiased=None,
+        cov_unbiased=None,
+        var_biased=None,
+        std_biased=None,
+        cov_biased=None,
+    ):
+
+        for (x, is_constant, no_nans) in self.data:
+            count_x = count(x)
+            mean_x = mean(x)
 
             for (std, var, cov) in [
                 (std_biased, var_biased, cov_biased),
