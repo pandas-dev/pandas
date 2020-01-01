@@ -13,6 +13,7 @@ import numpy as np
 
 from pandas._libs import Timedelta, hashtable as libhashtable, lib
 import pandas._libs.join as libjoin
+from pandas._typing import FrameOrSeries
 from pandas.errors import MergeError
 from pandas.util._decorators import Appender, Substitution
 
@@ -40,7 +41,7 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
 from pandas import Categorical, Index, MultiIndex
-from pandas._typing import FrameOrSeries
+from pandas.core import groupby
 import pandas.core.algorithms as algos
 from pandas.core.arrays.categorical import _recode_for_categories
 import pandas.core.common as com
@@ -68,7 +69,7 @@ def merge(
     copy: bool = True,
     indicator: bool = False,
     validate=None,
-):
+) -> "DataFrame":
     op = _MergeOperation(
         left,
         right,
@@ -113,26 +114,27 @@ def _groupby_and_merge(
         by = [by]
 
     lby = left.groupby(by, sort=False)
+    rby: Optional[groupby.DataFrameGroupBy] = None
 
     # if we can groupby the rhs
     # then we can get vastly better perf
+
+    # we will check & remove duplicates if indicated
+    if check_duplicates:
+        if on is None:
+            on = []
+        elif not isinstance(on, (list, tuple)):
+            on = [on]
+
+        if right.duplicated(by + on).any():
+            _right = right.drop_duplicates(by + on, keep="last")
+            # TODO: use overload to refine return type of drop_duplicates
+            assert _right is not None  # needed for mypy
+            right = _right
     try:
-
-        # we will check & remove duplicates if indicated
-        if check_duplicates:
-            if on is None:
-                on = []
-            elif not isinstance(on, (list, tuple)):
-                on = [on]
-
-            if right.duplicated(by + on).any():
-                _right = right.drop_duplicates(by + on, keep="last")
-                # TODO: use overload to refine return type of drop_duplicates
-                assert _right is not None  # needed for mypy
-                right = _right
         rby = right.groupby(by, sort=False)
     except KeyError:
-        rby = None
+        pass
 
     for key, lhs in lby:
 
@@ -183,7 +185,7 @@ def merge_ordered(
     fill_method=None,
     suffixes=("_x", "_y"),
     how: str = "outer",
-):
+) -> "DataFrame":
     """
     Perform merge with optional filling/interpolation.
 
@@ -317,7 +319,7 @@ def merge_asof(
     tolerance=None,
     allow_exact_matches: bool = True,
     direction: str = "backward",
-):
+) -> "DataFrame":
     """
     Perform an asof merge. This is similar to a left-join except that we
     match on nearest key rather than equal keys.

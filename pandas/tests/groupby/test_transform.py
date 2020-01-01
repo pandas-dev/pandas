@@ -765,9 +765,12 @@ def test_transform_with_non_scalar_group():
     ],
 )
 @pytest.mark.parametrize("agg_func", ["count", "rank", "size"])
-def test_transform_numeric_ret(cols, exp, comp_func, agg_func):
+def test_transform_numeric_ret(cols, exp, comp_func, agg_func, request):
     if agg_func == "size" and isinstance(cols, list):
-        pytest.xfail("'size' transformation not supported with NDFrameGroupy")
+        # https://github.com/pytest-dev/pytest/issues/6300
+        # workaround to xfail fixture/param permutations
+        reason = "'size' transformation not supported with NDFrameGroupy"
+        request.node.add_marker(pytest.mark.xfail(reason=reason))
 
     # GH 19200
     df = pd.DataFrame(
@@ -874,27 +877,19 @@ def test_pad_stable_sorting(fill_method):
         ),
     ],
 )
-@pytest.mark.parametrize(
-    "periods,fill_method,limit",
-    [
-        (1, "ffill", None),
-        (1, "ffill", 1),
-        (1, "bfill", None),
-        (1, "bfill", 1),
-        (-1, "ffill", None),
-        (-1, "ffill", 1),
-        (-1, "bfill", None),
-        (-1, "bfill", 1),
-    ],
-)
+@pytest.mark.parametrize("periods", [1, -1])
+@pytest.mark.parametrize("fill_method", ["ffill", "bfill", None])
+@pytest.mark.parametrize("limit", [None, 1])
 def test_pct_change(test_series, freq, periods, fill_method, limit):
-    # GH  21200, 21621
+    # GH  21200, 21621, 30463
     vals = [3, np.nan, np.nan, np.nan, 1, 2, 4, 10, np.nan, 4]
     keys = ["a", "b"]
     key_v = np.repeat(keys, len(vals))
     df = DataFrame({"key": key_v, "vals": vals * 2})
 
-    df_g = getattr(df.groupby("key"), fill_method)(limit=limit)
+    df_g = df
+    if fill_method is not None:
+        df_g = getattr(df.groupby("key"), fill_method)(limit=limit)
     grp = df_g.groupby(df.key)
 
     expected = grp["vals"].obj / grp["vals"].shift(periods) - 1
@@ -1137,4 +1132,41 @@ def test_transform_fastpath_raises():
     result = gb.transform(func)
 
     expected = pd.DataFrame([2, -2, 2, 4], columns=["B"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_transform_lambda_indexing():
+    # GH 7883
+    df = pd.DataFrame(
+        {
+            "A": ["foo", "bar", "foo", "bar", "foo", "flux", "foo", "flux"],
+            "B": ["one", "one", "two", "three", "two", "six", "five", "three"],
+            "C": range(8),
+            "D": range(8),
+            "E": range(8),
+        }
+    )
+    df = df.set_index(["A", "B"])
+    df = df.sort_index()
+    result = df.groupby(level="A").transform(lambda x: x.iloc[-1])
+    expected = DataFrame(
+        {
+            "C": [3, 3, 7, 7, 4, 4, 4, 4],
+            "D": [3, 3, 7, 7, 4, 4, 4, 4],
+            "E": [3, 3, 7, 7, 4, 4, 4, 4],
+        },
+        index=MultiIndex.from_tuples(
+            [
+                ("bar", "one"),
+                ("bar", "three"),
+                ("flux", "six"),
+                ("flux", "three"),
+                ("foo", "five"),
+                ("foo", "one"),
+                ("foo", "two"),
+                ("foo", "two"),
+            ],
+            names=["A", "B"],
+        ),
+    )
     tm.assert_frame_equal(result, expected)

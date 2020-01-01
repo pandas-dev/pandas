@@ -7,10 +7,10 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas._libs.parsers import STR_NA_VALUES
+
 from pandas import DataFrame, Index, MultiIndex
 import pandas.util.testing as tm
-
-import pandas.io.common as com
 
 
 def test_string_nas(all_parsers):
@@ -99,7 +99,7 @@ def test_default_na_values(all_parsers):
         "#N/A N/A",
         "",
     }
-    assert _NA_VALUES == com._NA_VALUES
+    assert _NA_VALUES == STR_NA_VALUES
 
     parser = all_parsers
     nv = len(_NA_VALUES)

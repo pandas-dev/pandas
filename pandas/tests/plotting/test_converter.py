@@ -84,7 +84,7 @@ class TestRegistration:
         units = pytest.importorskip("matplotlib.units")
 
         # Can't make any assertion about the start state.
-        # We we check that toggling converters off remvoes it, and toggling it
+        # We we check that toggling converters off removes it, and toggling it
         # on restores it.
 
         with cf.option_context("plotting.matplotlib.register_converters", True):

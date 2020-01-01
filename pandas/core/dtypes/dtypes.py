@@ -7,10 +7,9 @@ import pytz
 
 from pandas._libs.interval import Interval
 from pandas._libs.tslibs import NaT, Period, Timestamp, timezones
+from pandas._typing import Ordered
 
 from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCDateOffset, ABCIndexClass
-
-from pandas._typing import Ordered
 
 from .base import ExtensionDtype
 from .inference import is_bool, is_list_like
@@ -749,7 +748,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         raise TypeError("Cannot construct a 'DatetimeTZDtype'")
 
     def __str__(self) -> str_type:
-        return "datetime64[{unit}, {tz}]".format(unit=self.unit, tz=self.tz)
+        return f"datetime64[{self.unit}, {self.tz}]"
 
     @property
     def name(self) -> str_type:
@@ -883,14 +882,18 @@ class PeriodDtype(PandasExtensionDtype):
                 return cls(freq=string)
             except ValueError:
                 pass
-        raise TypeError(f"Cannot construct a 'PeriodDtype' from '{string}'")
+        if isinstance(string, str):
+            msg = f"Cannot construct a 'PeriodDtype' from '{string}'"
+        else:
+            msg = f"'construct_from_string' expects a string, got {type(string)}"
+        raise TypeError(msg)
 
     def __str__(self) -> str_type:
         return self.name
 
     @property
     def name(self) -> str_type:
-        return "period[{freq}]".format(freq=self.freq.freqstr)
+        return f"period[{self.freq.freqstr}]"
 
     @property
     def na_value(self):
@@ -975,7 +978,7 @@ class IntervalDtype(PandasExtensionDtype):
     """
 
     name = "interval"
-    kind: Optional[str_type] = None
+    kind: str_type = "O"
     str = "|O08"
     base = np.dtype("O")
     num = 103
@@ -1054,8 +1057,7 @@ class IntervalDtype(PandasExtensionDtype):
         if its not possible
         """
         if not isinstance(string, str):
-            msg = "a string needs to be passed, got type {typ}"
-            raise TypeError(msg.format(typ=type(string)))
+            raise TypeError(f"a string needs to be passed, got type {type(string)}")
 
         if string.lower() == "interval" or cls._match.search(string) is not None:
             return cls(string)
@@ -1075,7 +1077,7 @@ class IntervalDtype(PandasExtensionDtype):
     def __str__(self) -> str_type:
         if self.subtype is None:
             return "interval"
-        return "interval[{subtype}]".format(subtype=self.subtype)
+        return f"interval[{self.subtype}]"
 
     def __hash__(self) -> int:
         # make myself hashable
