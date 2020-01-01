@@ -539,24 +539,6 @@ TimedeltaIndex._add_logical_methods_disabled()
 TimedeltaIndex._add_datetimelike_methods()
 
 
-def _is_convertible_to_index(other) -> bool:
-    """
-    return a boolean whether I can attempt conversion to a TimedeltaIndex
-    """
-    if isinstance(other, TimedeltaIndex):
-        return True
-    elif len(other) > 0 and other.inferred_type not in (
-        "floating",
-        "mixed-integer",
-        "integer",
-        "integer-na",
-        "mixed-integer-float",
-        "mixed",
-    ):
-        return True
-    return False
-
-
 def timedelta_range(
     start=None, end=None, periods=None, freq=None, name=None, closed=None
 ) -> TimedeltaIndex:
