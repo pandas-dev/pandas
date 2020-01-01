@@ -31,7 +31,6 @@ from pandas.core.indexes.datetimelike import (
     DatetimelikeDelegateMixin,
     DatetimeTimedeltaMixin,
 )
-from pandas.core.ops import get_op_result_name
 
 from pandas.tseries.frequencies import to_offset
 
@@ -282,18 +281,6 @@ class TimedeltaIndex(
                 if result.freq is None:
                     result._set_freq("infer")
             return result
-
-    def _wrap_joined_index(self, joined, other):
-        name = get_op_result_name(self, other)
-        if (
-            isinstance(other, TimedeltaIndex)
-            and self.freq == other.freq
-            and self._can_fast_union(other)
-        ):
-            joined = self._shallow_copy(joined, name=name)
-            return joined
-        else:
-            return self._simple_new(joined, name)
 
     def _fast_union(self, other):
         if len(other) == 0:

@@ -35,6 +35,7 @@ from pandas.core.arrays.datetimelike import (
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.numeric import Int64Index
+from pandas.core.ops import get_op_result_name
 from pandas.core.tools.timedeltas import to_timedelta
 
 from pandas.tseries.frequencies import DateOffset, to_offset
@@ -922,6 +923,22 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         ):
             return True
         return False
+
+    def _wrap_joined_index(self, joined, other):
+        name = get_op_result_name(self, other)
+        if (
+            isinstance(other, type(self))
+            and self.freq == other.freq
+            and self._can_fast_union(other)
+        ):
+            joined = self._shallow_copy(joined)
+            joined.name = name
+            return joined
+        else:
+            kwargs = {}
+            if hasattr(self, "tz"):
+                kwargs["tz"] = getattr(other, "tz", None)
+            return self._simple_new(joined, name, **kwargs)
 
 
 def wrap_arithmetic_op(self, other, result):
