@@ -59,13 +59,14 @@ class TestIntervalTree:
             tree.get_indexer(np.array([3.0]))
 
     @pytest.mark.parametrize(
-        "dtype, target_value", [("int64", 2 ** 63 + 1), ("uint64", -1)]
+        "dtype, target_value, target_dtype",
+        [("int64", 2 ** 63 + 1, "uint64"), ("uint64", -1, "int64")],
     )
-    def test_get_indexer_overflow(self, dtype, target_value):
+    def test_get_indexer_overflow(self, dtype, target_value, target_dtype):
         left, right = np.array([0, 1], dtype=dtype), np.array([1, 2], dtype=dtype)
         tree = IntervalTree(left, right)
 
-        result = tree.get_indexer(np.array([target_value], dtype="int64"))
+        result = tree.get_indexer(np.array([target_value], dtype=target_dtype))
         expected = np.array([-1], dtype="intp")
         tm.assert_numpy_array_equal(result, expected)
 
@@ -89,12 +90,13 @@ class TestIntervalTree:
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "dtype, target_value", [("int64", 2 ** 63 + 1), ("uint64", -1)]
+        "dtype, target_value, target_dtype",
+        [("int64", 2 ** 63 + 1, "uint64"), ("uint64", -1, "int64")],
     )
-    def test_get_indexer_non_unique_overflow(self, dtype, target_value):
+    def test_get_indexer_non_unique_overflow(self, dtype, target_value, target_dtype):
         left, right = np.array([0, 2], dtype=dtype), np.array([1, 3], dtype=dtype)
         tree = IntervalTree(left, right)
-        target = np.array([target_value], dtype="int64")
+        target = np.array([target_value], dtype=target_dtype)
 
         result_indexer, result_missing = tree.get_indexer_non_unique(target)
         expected_indexer = np.array([-1], dtype="intp")
