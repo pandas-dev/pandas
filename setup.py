@@ -526,6 +526,11 @@ def maybe_cythonize(extensions, *args, **kwargs):
     elif parsed.j:
         nthreads = parsed.j
 
+    # GH#30356 Cythonize doesn't support parallel on Windows
+    if is_platform_windows() and nthreads > 0:
+        print("Parallel build for cythonize ignored on Windows")
+        nthreads = 0
+
     kwargs["nthreads"] = nthreads
     build_ext.render_templates(_pxifiles)
     return cythonize(extensions, *args, **kwargs)
