@@ -30,7 +30,6 @@ from pandas.core.indexes.datetimelike import (
     DatetimeIndexOpsMixin,
     DatetimelikeDelegateMixin,
     DatetimeTimedeltaMixin,
-    ea_passthrough,
 )
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
@@ -50,9 +49,12 @@ class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
         "__neg__",
         "__pos__",
         "__abs__",
+        "sum",
+        "std",
+        "median",
     ]
     _raw_properties = {"components"}
-    _raw_methods = {"to_pytimedelta"}
+    _raw_methods = {"to_pytimedelta", "sum", "std", "median"}
 
 
 @delegate_names(
@@ -151,9 +153,6 @@ class TimedeltaIndex(
     _datetimelike_ops = TimedeltaArray._datetimelike_ops
     _datetimelike_methods = TimedeltaArray._datetimelike_methods
     _other_ops = TimedeltaArray._other_ops
-    sum = ea_passthrough(TimedeltaArray.sum)
-    std = ea_passthrough(TimedeltaArray.std)
-    median = ea_passthrough(TimedeltaArray.median)
 
     # -------------------------------------------------------------------
     # Constructors
