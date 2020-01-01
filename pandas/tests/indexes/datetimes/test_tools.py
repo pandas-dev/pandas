@@ -2293,10 +2293,11 @@ def test_should_cache_errors(unique_share, check_count, err_message):
         tools.should_cache(arg, unique_share, check_count)
 
 
-def test_intarray_to_datetime():
+def test_nullable_integer_to_datetime():
     # Test for #30050
     ser = pd.Series([1, 2, None, 2 ** 61, None])
     ser = ser.astype("Int64")
+    ser_copy = ser.copy()
 
     res = pd.to_datetime(ser, unit="ns")
 
@@ -2310,3 +2311,5 @@ def test_intarray_to_datetime():
         ]
     )
     tm.assert_series_equal(res, expected)
+    # Check that ser isn't mutated
+    tm.assert_series_equal(ser, ser_copy)
