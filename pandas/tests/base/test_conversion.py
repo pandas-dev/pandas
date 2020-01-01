@@ -315,7 +315,7 @@ def test_array_multiindex_raises():
         ),
         (
             pd.core.arrays.integer_array([0, np.nan]),
-            np.array([0, np.nan], dtype=object),
+            np.array([0, pd.NA], dtype=object),
         ),
         (
             pd.core.arrays.IntervalArray.from_breaks([0, 1, 2]),

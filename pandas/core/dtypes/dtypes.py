@@ -7,10 +7,9 @@ import pytz
 
 from pandas._libs.interval import Interval
 from pandas._libs.tslibs import NaT, Period, Timestamp, timezones
+from pandas._typing import Ordered
 
 from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCDateOffset, ABCIndexClass
-
-from pandas._typing import Ordered
 
 from .base import ExtensionDtype
 from .inference import is_bool, is_list_like
@@ -486,7 +485,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     @classmethod
     def construct_array_type(cls):
         """
-        Return the array type associated with this dtype
+        Return the array type associated with this dtype.
 
         Returns
         -------
@@ -668,8 +667,8 @@ class DatetimeTZDtype(PandasExtensionDtype):
                 unit = result.unit
                 tz = result.tz
                 msg = (
-                    "Passing a dtype alias like 'datetime64[ns, {tz}]' "
-                    "to DatetimeTZDtype is deprecated. Use "
+                    f"Passing a dtype alias like 'datetime64[ns, {tz}]' "
+                    "to DatetimeTZDtype is no longer supported. Use "
                     "'DatetimeTZDtype.construct_from_string()' instead."
                 )
                 raise ValueError(msg)
@@ -704,7 +703,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
     @classmethod
     def construct_array_type(cls):
         """
-        Return the array type associated with this dtype
+        Return the array type associated with this dtype.
 
         Returns
         -------
@@ -732,7 +731,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         datetime64[ns, UTC]
         """
         if isinstance(string, str):
-            msg = "Could not construct DatetimeTZDtype from '{string}'"
+            msg = f"Cannot construct a 'DatetimeTZDtype' from '{string}'"
             match = cls._match.match(string)
             if match:
                 d = match.groupdict()
@@ -743,13 +742,13 @@ class DatetimeTZDtype(PandasExtensionDtype):
                     #  pytz timezone (actually pytz.UnknownTimeZoneError).
                     # TypeError if we pass a nonsense tz;
                     # ValueError if we pass a unit other than "ns"
-                    raise TypeError(msg.format(string=string)) from err
-            raise TypeError(msg.format(string=string))
+                    raise TypeError(msg) from err
+            raise TypeError(msg)
 
-        raise TypeError("Could not construct DatetimeTZDtype")
+        raise TypeError("Cannot construct a 'DatetimeTZDtype'")
 
     def __str__(self) -> str_type:
-        return "datetime64[{unit}, {tz}]".format(unit=self.unit, tz=self.tz)
+        return f"datetime64[{self.unit}, {self.tz}]"
 
     @property
     def name(self) -> str_type:
@@ -883,14 +882,18 @@ class PeriodDtype(PandasExtensionDtype):
                 return cls(freq=string)
             except ValueError:
                 pass
-        raise TypeError("could not construct PeriodDtype")
+        if isinstance(string, str):
+            msg = f"Cannot construct a 'PeriodDtype' from '{string}'"
+        else:
+            msg = f"'construct_from_string' expects a string, got {type(string)}"
+        raise TypeError(msg)
 
     def __str__(self) -> str_type:
         return self.name
 
     @property
     def name(self) -> str_type:
-        return "period[{freq}]".format(freq=self.freq.freqstr)
+        return f"period[{self.freq.freqstr}]"
 
     @property
     def na_value(self):
@@ -936,6 +939,13 @@ class PeriodDtype(PandasExtensionDtype):
 
     @classmethod
     def construct_array_type(cls):
+        """
+        Return the array type associated with this dtype.
+
+        Returns
+        -------
+        type
+        """
         from pandas.core.arrays import PeriodArray
 
         return PeriodArray
@@ -968,7 +978,7 @@ class IntervalDtype(PandasExtensionDtype):
     """
 
     name = "interval"
-    kind: Optional[str_type] = None
+    kind: str_type = "O"
     str = "|O08"
     base = np.dtype("O")
     num = 103
@@ -1030,7 +1040,7 @@ class IntervalDtype(PandasExtensionDtype):
     @classmethod
     def construct_array_type(cls):
         """
-        Return the array type associated with this dtype
+        Return the array type associated with this dtype.
 
         Returns
         -------
@@ -1047,13 +1057,13 @@ class IntervalDtype(PandasExtensionDtype):
         if its not possible
         """
         if not isinstance(string, str):
-            msg = "a string needs to be passed, got type {typ}"
-            raise TypeError(msg.format(typ=type(string)))
+            raise TypeError(f"a string needs to be passed, got type {type(string)}")
 
         if string.lower() == "interval" or cls._match.search(string) is not None:
             return cls(string)
 
         msg = (
+            f"Cannot construct a 'IntervalDtype' from '{string}'.\n\n"
             "Incorrectly formatted string passed to constructor. "
             "Valid formats include Interval or Interval[dtype] "
             "where dtype is numeric, datetime, or timedelta"
@@ -1067,7 +1077,7 @@ class IntervalDtype(PandasExtensionDtype):
     def __str__(self) -> str_type:
         if self.subtype is None:
             return "interval"
-        return "interval[{subtype}]".format(subtype=self.subtype)
+        return f"interval[{self.subtype}]"
 
     def __hash__(self) -> int:
         # make myself hashable

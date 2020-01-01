@@ -472,9 +472,9 @@ class _Concatenator:
         else:
             return self.objs[0].ndim
 
-    def _get_new_axes(self):
+    def _get_new_axes(self) -> List[Index]:
         ndim = self._get_result_dim()
-        new_axes = [None] * ndim
+        new_axes: List = [None] * ndim
 
         for i in range(ndim):
             if i == self.axis:
@@ -507,8 +507,8 @@ class _Concatenator:
                 for i, x in enumerate(self.objs):
                     if not isinstance(x, Series):
                         raise TypeError(
-                            "Cannot concatenate type 'Series' "
-                            "with object of type {type!r}".format(type=type(x).__name__)
+                            f"Cannot concatenate type 'Series' with "
+                            f"object of type '{type(x).__name__}'"
                         )
                     if x.name is not None:
                         names[i] = x.name

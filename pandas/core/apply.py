@@ -320,7 +320,6 @@ class FrameApply(metaclass=abc.ABCMeta):
         series_gen = self.series_generator
         res_index = self.result_index
 
-        i = None
         keys = []
         results = {}
         if self.ignore_failures:

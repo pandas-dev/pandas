@@ -86,7 +86,7 @@ class StringDtype(ExtensionDtype):
 
         results = []
         for arr in chunks:
-            # using _from_sequence to ensure None is convered to np.nan
+            # using _from_sequence to ensure None is converted to NA
             str_arr = StringArray._from_sequence(np.array(arr))
             results.append(str_arr)
 
@@ -134,6 +134,10 @@ class StringArray(PandasArray):
         The string methods are available on Series backed by
         a StringArray.
 
+    Notes
+    -----
+    StringArray returns a BooleanArray for comparison methods.
+
     Examples
     --------
     >>> pd.array(['This is', 'some text', None, 'data.'], dtype="string")
@@ -148,6 +152,13 @@ class StringArray(PandasArray):
     Traceback (most recent call last):
     ...
     ValueError: StringArray requires an object-dtype ndarray of strings.
+
+    For comparison methods, this returns a :class:`pandas.BooleanArray`
+
+    >>> pd.array(["a", None, "c"], dtype="string") == "a"
+    <BooleanArray>
+    [True, NA, False]
+    Length: 3, dtype: boolean
     """
 
     # undo the PandasArray hack
@@ -197,7 +208,10 @@ class StringArray(PandasArray):
 
         if type is None:
             type = pa.string()
-        return pa.array(self._ndarray, type=type, from_pandas=True)
+
+        values = self._ndarray.copy()
+        values[self.isna()] = None
+        return pa.array(values, type=type, from_pandas=True)
 
     def _values_for_factorize(self):
         arr = self._ndarray.copy()
@@ -255,7 +269,12 @@ class StringArray(PandasArray):
     # Overrride parent because we have different return types.
     @classmethod
     def _create_arithmetic_method(cls, op):
+        # Note: this handles both arithmetic and comparison methods.
         def method(self, other):
+            from pandas.arrays import BooleanArray
+
+            assert op.__name__ in ops.ARITHMETIC_BINOPS | ops.COMPARISON_BINOPS
+
             if isinstance(other, (ABCIndexClass, ABCSeries, ABCDataFrame)):
                 return NotImplemented
 
@@ -275,15 +294,16 @@ class StringArray(PandasArray):
                 other = np.asarray(other)
                 other = other[valid]
 
-            result = np.empty_like(self._ndarray, dtype="object")
-            result[mask] = StringDtype.na_value
-            result[valid] = op(self._ndarray[valid], other)
-
-            if op.__name__ in {"add", "radd", "mul", "rmul"}:
+            if op.__name__ in ops.ARITHMETIC_BINOPS:
+                result = np.empty_like(self._ndarray, dtype="object")
+                result[mask] = StringDtype.na_value
+                result[valid] = op(self._ndarray[valid], other)
                 return StringArray(result)
             else:
-                dtype = "object" if mask.any() else "bool"
-                return np.asarray(result, dtype=dtype)
+                # logical
+                result = np.zeros(len(self._ndarray), dtype="bool")
+                result[valid] = op(self._ndarray[valid], other)
+                return BooleanArray(result, mask)
 
         return compat.set_function_name(method, f"__{op.__name__}__", cls)
 
