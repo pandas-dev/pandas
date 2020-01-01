@@ -101,7 +101,7 @@ class Grouper:
         return super().__new__(cls)
 
     def __init__(
-        self, key=None, level=None, freq=None, axis=0, sort=False, dropna=None
+        self, key=None, level=None, freq=None, axis=0, sort=False, dropna=True
     ):
         self.key = key
         self.level = level
@@ -114,7 +114,7 @@ class Grouper:
         self.indexer = None
         self.binner = None
         self._grouper = None
-        self.dropna = dropna if dropna is not None else True
+        self.dropna = dropna
 
     @property
     def ax(self):
