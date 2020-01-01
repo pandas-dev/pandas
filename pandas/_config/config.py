@@ -197,7 +197,7 @@ class DictWrapper:
         else:
             raise OptionError("You can only set the value of existing options")
 
-    def __getattr__(self, key):
+    def __getattr__(self, key: str):
         prefix = object.__getattribute__(self, "prefix")
         if prefix:
             prefix += "."
