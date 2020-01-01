@@ -637,12 +637,23 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
         return new_data
 
-    @Appender(dtl.DatetimeLikeArrayMixin._addsub_int_array.__doc__)
     def _addsub_int_array(
-        self,
-        other: Union[ABCPeriodArray, ABCSeries, ABCPeriodIndex, np.ndarray],
-        op: Callable[[Any], Any],
-    ) -> ABCPeriodArray:
+        self, other: np.ndarray, op: Callable[[Any], Any],
+    ) -> "PeriodArray":
+        """
+        Add or subtract array of integers; equivalent to applying
+        `_time_shift` pointwise.
+
+        Parameters
+        ----------
+        other : np.ndarray[integer-dtype]
+        op : {operator.add, operator.sub}
+
+        Returns
+        -------
+        result : PeriodArray
+        """
+
         assert op in [operator.add, operator.sub]
         if op is operator.sub:
             other = -other
