@@ -1242,7 +1242,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         # e.g. categoricals
         # begin by checking if there is a tz attribute
         # in which case we have a Series with dtype DatetimeTZDtype
-        if hasattr(value.dtype,'tz'):
+        if hasattr(value.dtype, 'tz'):
             return "datetimetz"
         try:
             values = getattr(value, '_values', getattr(value, 'values', value))
