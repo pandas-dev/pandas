@@ -37,7 +37,7 @@ def main(source_path: str, output_format: str) -> bool:
 
     Parameters
     ----------
-    source_path : str, default '.'
+    source_path : str
         Source path representing path to a file/directory.
     output_format : str
         Output format of the script.
