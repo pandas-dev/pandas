@@ -966,7 +966,7 @@ class SQLTable(PandasObject):
             TIMESTAMP,
         )
 
-        if col_type == "datetime64" or col_type == "datetime":
+        if col_type in ("datetime64", "datetime", "datetimetz"):
             # GH 9086: TIMESTAMP is the suggested type if the column contains
             # timezone information
             try:
