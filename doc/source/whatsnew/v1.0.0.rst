@@ -980,7 +980,8 @@ Other
 - Fixed :class:`IntegerArray` returning ``inf`` rather than ``NaN`` for operations dividing by 0 (:issue:`27398`)
 - Fixed ``pow`` operations for :class:`IntegerArray` when the other value is ``0`` or ``1`` (:issue:`29997`)
 - Bug in :meth:`Series.count` raises if use_inf_as_na is enabled (:issue:`29478`)
-- Bug in :class:`Index` where a non-hashable name could be set without raising ``TypeError`` (:issue:29069`)
+- Bug in :class:`Index` where a non-hashable name could be set without raising ``TypeError`` (:issue:`29069`)
+
 
 .. _whatsnew_1000.contributors:
 
