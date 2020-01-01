@@ -380,7 +380,6 @@ class Block(PandasObject):
             return nbs
 
         if not isinstance(result, Block):
-            # Exclude the 0-dim case so we can do reductions
             result = self.make_block(values=_block_shape(result, ndim=self.ndim))
 
         return result

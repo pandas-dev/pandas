@@ -20,7 +20,6 @@ from pandas.core.dtypes.common import (
 )
 
 from pandas.core.accessor import delegate_names
-from pandas.core.algorithms import unique1d
 from pandas.core.arrays.period import PeriodArray, period_array, validate_dtype_freq
 from pandas.core.base import _shared_docs
 import pandas.core.common as com
@@ -621,18 +620,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         if dropna:
             res = res.dropna()
         return res
-
-    @Appender(Index.unique.__doc__)
-    def unique(self, level=None):
-        # override the Index.unique method for performance GH#23083
-        if level is not None:
-            # this should never occur, but is retained to make the signature
-            # match Index.unique
-            self._validate_index_level(level)
-
-        values = self._ndarray_values
-        result = unique1d(values)
-        return self._shallow_copy(result)
 
     def get_loc(self, key, method=None, tolerance=None):
         """

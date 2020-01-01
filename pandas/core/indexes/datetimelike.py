@@ -122,7 +122,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     )
     resolution = cache_readonly(DatetimeLikeArrayMixin.resolution.fget)  # type: ignore
 
-    _maybe_mask_results = ea_passthrough(DatetimeLikeArrayMixin._maybe_mask_results)
     __iter__ = ea_passthrough(DatetimeLikeArrayMixin.__iter__)
     mean = ea_passthrough(DatetimeLikeArrayMixin.mean)
 

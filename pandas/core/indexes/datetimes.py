@@ -35,7 +35,6 @@ from pandas.core.indexes.datetimelike import (
     DatetimeIndexOpsMixin,
     DatetimelikeDelegateMixin,
     DatetimeTimedeltaMixin,
-    ea_passthrough,
 )
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
@@ -1135,8 +1134,6 @@ class DatetimeIndex(
     is_normalized = cache_readonly(DatetimeArray.is_normalized.fget)  # type: ignore
     _resolution = cache_readonly(DatetimeArray._resolution.fget)  # type: ignore
 
-    _has_same_tz = ea_passthrough(DatetimeArray._has_same_tz)
-
     def __getitem__(self, key):
         result = self._data.__getitem__(key)
         if is_scalar(result):
@@ -1202,6 +1199,7 @@ class DatetimeIndex(
             self._assert_can_do_op(item)
             if not self._has_same_tz(item) and not isna(item):
                 raise ValueError("Passed item and index have different timezone")
+
             # check freq can be preserved on edge cases
             if self.size and self.freq is not None:
                 if item is NaT:

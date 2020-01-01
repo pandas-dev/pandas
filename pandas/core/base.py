@@ -597,7 +597,7 @@ class IndexOpsMixin:
     # ndarray compatibility
     __array_priority__ = 1000
     _deprecations: FrozenSet[str] = frozenset(
-        ["tolist", "item"]  # tolist is not deprecated, just suppressed in the __dir__
+        ["tolist"]  # tolist is not deprecated, just suppressed in the __dir__
     )
 
     def transpose(self, *args, **kwargs):
