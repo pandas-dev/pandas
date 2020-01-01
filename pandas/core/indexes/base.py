@@ -349,41 +349,8 @@ class Index(IndexOpsMixin, PandasObject):
                 # they are actually ints, e.g. '0' and 0.0
                 # should not be coerced
                 # GH 11836
-                if is_integer_dtype(dtype):
-                    inferred = lib.infer_dtype(data, skipna=False)
-                    if inferred == "integer":
-                        data = maybe_cast_to_integer_array(data, dtype, copy=copy)
-                    elif inferred in ["floating", "mixed-integer-float"]:
-                        if isna(data).any():
-                            raise ValueError("cannot convert float NaN to integer")
-
-                        if inferred == "mixed-integer-float":
-                            data = maybe_cast_to_integer_array(data, dtype)
-
-                        # If we are actually all equal to integers,
-                        # then coerce to integer.
-                        try:
-                            return cls._try_convert_to_int_index(
-                                data, copy, name, dtype
-                            )
-                        except ValueError:
-                            pass
-
-                        # Return an actual float index.
-                        return Float64Index(data, copy=copy, name=name)
-
-                    elif inferred == "string":
-                        pass
-                    else:
-                        data = data.astype(dtype)
-                elif is_float_dtype(dtype):
-                    inferred = lib.infer_dtype(data, skipna=False)
-                    if inferred == "string":
-                        pass
-                    else:
-                        data = data.astype(dtype)
-                else:
-                    data = np.array(data, dtype=dtype, copy=copy)
+                data = _maybe_cast_with_dtype(data, dtype, copy)
+                dtype = data.dtype  # TODO: maybe not for object?
 
             # maybe coerce to a sub-class
             if is_signed_integer_dtype(data.dtype):
@@ -5486,3 +5453,101 @@ def maybe_extract_name(name, obj, cls) -> Optional[Hashable]:
         raise TypeError(f"{cls.__name__}.name must be a hashable type")
 
     return name
+
+
+def _maybe_cast_with_dtype(data: np.ndarray, dtype: np.dtype, copy: bool) -> np.ndarray:
+    """
+    If a dtype is passed, cast to the closest matching dtype that is supported
+    by Index.
+
+    Parameters
+    ----------
+    data : np.ndarray
+    dtype : np.dtype
+    copy : bool
+
+    Returns
+    -------
+    np.ndarray
+    """
+    # we need to avoid having numpy coerce
+    # things that look like ints/floats to ints unless
+    # they are actually ints, e.g. '0' and 0.0
+    # should not be coerced
+    # GH 11836
+    if is_integer_dtype(dtype):
+        inferred = lib.infer_dtype(data, skipna=False)
+        if inferred == "integer":
+            data = maybe_cast_to_integer_array(data, dtype, copy=copy)
+        elif inferred in ["floating", "mixed-integer-float"]:
+            if isna(data).any():
+                raise ValueError("cannot convert float NaN to integer")
+
+            if inferred == "mixed-integer-float":
+                data = maybe_cast_to_integer_array(data, dtype)
+
+            # If we are actually all equal to integers,
+            # then coerce to integer.
+            try:
+                data = _try_convert_to_int_array(data, copy, dtype)
+            except ValueError:
+                data = np.array(data, dtype=np.float64, copy=copy)
+
+        elif inferred == "string":
+            pass
+        else:
+            data = data.astype(dtype)
+    elif is_float_dtype(dtype):
+        inferred = lib.infer_dtype(data, skipna=False)
+        if inferred == "string":
+            pass
+        else:
+            data = data.astype(dtype)
+    else:
+        data = np.array(data, dtype=dtype, copy=copy)
+
+    return data
+
+
+def _try_convert_to_int_array(
+    data: np.ndarray, copy: bool, dtype: np.dtype
+) -> np.ndarray:
+    """
+    Attempt to convert an array of data into an integer array.
+
+    Parameters
+    ----------
+    data : The data to convert.
+    copy : bool
+        Whether to copy the data or not.
+    dtype : np.dtype
+
+    Returns
+    -------
+    int_array : data converted to either an ndarray[int64] or ndarray[uint64]
+
+    Raises
+    ------
+    ValueError if the conversion was not successful.
+    """
+
+    if not is_unsigned_integer_dtype(dtype):
+        # skip int64 conversion attempt if uint-like dtype is passed, as
+        # this could return Int64Index when UInt64Index is what's desired
+        try:
+            res = data.astype("i8", copy=False)
+            if (res == data).all():
+                return res  # TODO: might still need to copy
+        except (OverflowError, TypeError, ValueError):
+            pass
+
+    # Conversion to int64 failed (possibly due to overflow) or was skipped,
+    # so let's try now with uint64.
+    try:
+        res = data.astype("u8", copy=False)
+        if (res == data).all():
+            return res  # TODO: might still need to copy
+    except (OverflowError, TypeError, ValueError):
+        pass
+
+    raise ValueError
