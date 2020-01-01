@@ -66,8 +66,12 @@ class DatetimeDelegateMixin(DatetimelikeDelegateMixin):
     # We also have a few "extra" attrs, which may or may not be raw,
     # which we we dont' want to expose in the .dt accessor.
     _extra_methods = ["to_period", "to_perioddelta", "to_julian_date", "strftime"]
-    _extra_raw_methods = ["to_pydatetime", "_local_timestamps", "_has_same_tz"]
-    _extra_raw_properties = ["_box_func", "tz", "tzinfo"]
+    _extra_raw_methods = [
+        "to_pydatetime",
+        "_local_timestamps",
+        "_has_same_tz",
+    ]
+    _extra_raw_properties = ["_box_func", "tz", "tzinfo", "dtype"]
     _delegated_properties = DatetimeArray._datetimelike_ops + _extra_raw_properties
     _delegated_methods = (
         DatetimeArray._datetimelike_methods + _extra_methods + _extra_raw_methods
@@ -197,8 +201,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
     _engine_type = libindex.DatetimeEngine
     _supports_partial_string_indexing = True
 
-    _tz = None
-    _freq = None
     _comparables = ["name", "freqstr", "tz"]
     _attributes = ["name", "tz", "freq"]
 
@@ -309,25 +311,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
             warnings.warn(msg, FutureWarning, stacklevel=3)
             dtype = "M8[ns]"
         return np.asarray(self._data, dtype=dtype)
-
-    @property
-    def dtype(self):
-        return self._data.dtype
-
-    @property
-    def tz(self):
-        # GH 18595
-        return self._data.tz
-
-    @tz.setter
-    def tz(self, value):
-        # GH 3746: Prevent localizing or converting the index by setting tz
-        raise AttributeError(
-            "Cannot directly set timezone. Use tz_localize() "
-            "or tz_convert() as appropriate"
-        )
-
-    tzinfo = tz
 
     @cache_readonly
     def _is_dates_only(self) -> bool:
@@ -998,10 +981,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
             assert isinstance(result, np.ndarray), result
             return result
         return type(self)(result, name=self.name)
-
-    @property
-    def _box_func(self):
-        return lambda x: Timestamp(x, tz=self.tz)
 
     # --------------------------------------------------------------------
 
