@@ -78,10 +78,6 @@ class TestSelection:
         tm.assert_frame_equal(result, expected)
         tm.assert_frame_equal(result2, expected)
 
-        # per GH 23566 this should raise a deprecation warning
-        with tm.assert_produces_warning(DeprecationWarning):
-            df.groupby("A")["C", "D"].mean()
-
     def test_getitem_numeric_column_names(self):
         # GH #13731
         df = DataFrame(
@@ -100,9 +96,14 @@ class TestSelection:
         tm.assert_frame_equal(result, expected)
         tm.assert_frame_equal(result2, expected)
 
-        # per GH 23566 this should raise a deprecation warning
-        with tm.assert_produces_warning(DeprecationWarning):
+        # per GH 23566 this should raise a FutureWarning
+        with tm.assert_produces_warning(FutureWarning):
             df.groupby(0)[2, 4].mean()
+
+    def test_getitem_single_list_of_columns(self, df):
+        # per GH 23566 this should raise a FutureWarning
+        with tm.assert_produces_warning(FutureWarning):
+            df.groupby("A")["C", "D"].mean()
 
     def test_getitem_single_column(self):
         df = DataFrame(
@@ -121,8 +122,6 @@ class TestSelection:
         as_series = as_frame.iloc[:, 0]
         expected = as_series
 
-        assert isinstance(result, Series)
-        assert not isinstance(result, DataFrame)
         tm.assert_series_equal(result, expected)
 
 
