@@ -3368,8 +3368,13 @@ class Index(IndexOpsMixin, PandasObject):
             ldrop_names = list(self_names - overlap)
             rdrop_names = list(other_names - overlap)
 
-            self_jnlevels = self.droplevel(ldrop_names)
-            other_jnlevels = other.droplevel(rdrop_names)
+            # if only the order differs
+            if not len(ldrop_names + rdrop_names):
+                self_jnlevels = self
+                other_jnlevels = other.reorder_levels(self.names)
+            else:
+                self_jnlevels = self.droplevel(ldrop_names)
+                other_jnlevels = other.droplevel(rdrop_names)
 
             # Join left and right
             # Join on same leveled multi-index frames is supported
