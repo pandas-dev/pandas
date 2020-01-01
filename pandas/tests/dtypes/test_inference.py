@@ -796,9 +796,7 @@ class TestTypeInference:
             arr = np.array([n, datetime(2011, 1, 1, tzinfo=pytz.utc)])
             assert lib.infer_dtype(arr, skipna=True) == "datetimetz"
 
-            arr = np.array(
-                [n, pd.Timestamp("2011-01-02", tzinfo=pytz.utc)]
-            )
+            arr = np.array([n, pd.Timestamp("2011-01-02", tzinfo=pytz.utc)])
             assert lib.infer_dtype(arr, skipna=True) == "datetimetz"
 
             arr = np.array([n, pd.Timestamp("2011-01-02"), n])
