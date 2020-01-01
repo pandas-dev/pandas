@@ -18,7 +18,6 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.generic import (
     ABCCategorical,
-    ABCDateOffset,
     ABCDatetimeIndex,
     ABCIndexClass,
     ABCPeriodArray,
@@ -366,37 +365,6 @@ def is_categorical(arr) -> bool:
     """
 
     return isinstance(arr, ABCCategorical) or is_categorical_dtype(arr)
-
-
-def is_offsetlike(arr_or_obj) -> bool:
-    """
-    Check if obj or all elements of list-like is DateOffset
-
-    Parameters
-    ----------
-    arr_or_obj : object
-
-    Returns
-    -------
-    boolean
-        Whether the object is a DateOffset or listlike of DatetOffsets
-
-    Examples
-    --------
-    >>> is_offsetlike(pd.DateOffset(days=1))
-    True
-    >>> is_offsetlike('offset')
-    False
-    >>> is_offsetlike([pd.offsets.Minute(4), pd.offsets.MonthEnd()])
-    True
-    >>> is_offsetlike(np.array([pd.DateOffset(months=3), pd.Timestamp.now()]))
-    False
-    """
-    if isinstance(arr_or_obj, ABCDateOffset):
-        return True
-    elif is_list_like(arr_or_obj) and len(arr_or_obj) and is_object_dtype(arr_or_obj):
-        return all(isinstance(x, ABCDateOffset) for x in arr_or_obj)
-    return False
 
 
 def is_datetime64_dtype(arr_or_dtype) -> bool:

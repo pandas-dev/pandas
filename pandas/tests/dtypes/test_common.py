@@ -625,18 +625,6 @@ def test_is_complex_dtype():
     assert com.is_complex_dtype(np.array([1 + 1j, 5]))
 
 
-def test_is_offsetlike():
-    assert com.is_offsetlike(np.array([pd.DateOffset(month=3), pd.offsets.Nano()]))
-    assert com.is_offsetlike(pd.offsets.MonthEnd())
-    assert com.is_offsetlike(pd.Index([pd.DateOffset(second=1)]))
-
-    assert not com.is_offsetlike(pd.Timedelta(1))
-    assert not com.is_offsetlike(np.array([1 + 1j, 5]))
-
-    # mixed case
-    assert not com.is_offsetlike(np.array([pd.DateOffset(), pd.Timestamp(0)]))
-
-
 @pytest.mark.parametrize(
     "input_param,result",
     [
