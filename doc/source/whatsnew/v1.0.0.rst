@@ -274,7 +274,6 @@ New repr for :class:`~pandas.arrays.IntervalArray`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - :class:`pandas.arrays.IntervalArray` adopts a new ``__repr__`` in accordance with other array classes (:issue:`25022`)
-- :class:`pandas.core.groupby.GroupBy.transform` now raises on invalid operation names (:issue:`27489`).
 - :class:`pandas.core.arrays.IntervalArray` adopts a new ``__repr__`` in accordance with other array classes (:issue:`25022`)
 
 *pandas 0.25.x*
