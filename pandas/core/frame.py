@@ -1018,8 +1018,8 @@ class DataFrame(NDFrame):
         # use integer indexing because of possible duplicate column names
         arrays.extend(self.iloc[:, k] for k in range(len(self.columns)))
 
-        # Python 3 supports at most 255 arguments to constructor
-        if name is not None and len(self.columns) + index < 256:
+        # Python versions before 3.7 support at most 255 arguments to constructor
+        if name is not None and len(self.columns) + index < 255:
             itertuple = collections.namedtuple(name, fields, rename=True)
             return map(itertuple._make, zip(*arrays))
 

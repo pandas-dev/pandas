@@ -288,6 +288,22 @@ class TestDataFrameMisc:
         for c, col in df.items():
             str(s)
 
+    def test_itertuples_fallback_to_regular_tuples(self):
+        # GH 28282
+
+        df_254_columns = DataFrame([{f"foo_{i}": f"bar_{i}" for i in range(254)}])
+        result_254_columns = next(df_254_columns.itertuples(index=False))
+        assert isinstance(result_254_columns, tuple)
+        assert result_254_columns.foo_1 == "bar_1"
+
+        df_255_columns = DataFrame([{f"foo_{i}": f"bar_{i}" for i in range(255)}])
+        result_255_columns = next(df_255_columns.itertuples(index=False))
+        assert isinstance(result_255_columns, tuple)
+
+        # Dataframes with >=255 columns will fallback to regular tuples
+        with pytest.raises(AttributeError):
+            result_255_columns.foo_1
+
     def test_len(self, float_frame):
         assert len(float_frame) == len(float_frame.index)
 
