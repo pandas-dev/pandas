@@ -657,9 +657,9 @@ class Block(PandasObject):
         if slicer is not None:
             values = values[:, slicer]
         mask = isna(values)
+        itemsize = writers.word_len(na_rep)
 
-        if not self.is_object and not quoting:
-            itemsize = writers.word_len(na_rep)
+        if not self.is_object and not quoting and itemsize:
             values = values.astype(f"<U{itemsize}")
         else:
             values = np.array(values, dtype="object")
@@ -1773,11 +1773,11 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         mask = isna(values)
 
         try:
-            values = values.astype(str)
             values[mask] = na_rep
         except Exception:
             # eg SparseArray does not support setitem, needs to be converted to ndarray
             return super().to_native_types(slicer, na_rep, quoting, **kwargs)
+        values = values.astype(str)
 
         # we are expected to return a 2-d ndarray
         return values.reshape(1, len(values))
