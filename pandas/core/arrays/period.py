@@ -476,11 +476,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     # --------------------------------------------------------------------
     # Array-like / EA-Interface Methods
 
-    def _formatter(self, boxed=False):
-        if boxed:
-            return str
-        return "'{}'".format
-
     @Appender(dtl.DatetimeLikeArrayMixin._validate_fill_value.__doc__)
     def _validate_fill_value(self, fill_value):
         if isna(fill_value):
@@ -491,6 +486,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         else:
             raise ValueError(f"'fill_value' should be a Period. Got '{fill_value}'.")
         return fill_value
+
+    def _values_for_argsort(self):
+        return self._data
 
     # --------------------------------------------------------------------
 
@@ -582,6 +580,11 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     # ------------------------------------------------------------------
     # Rendering Methods
 
+    def _formatter(self, boxed=False):
+        if boxed:
+            return str
+        return "'{}'".format
+
     def _format_native_types(self, na_rep="NaT", date_format=None, **kwargs):
         """
         actually format my specific types
@@ -634,12 +637,23 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
         return new_data
 
-    @Appender(dtl.DatetimeLikeArrayMixin._addsub_int_array.__doc__)
     def _addsub_int_array(
-        self,
-        other: Union[ABCPeriodArray, ABCSeries, ABCPeriodIndex, np.ndarray],
-        op: Callable[[Any], Any],
-    ) -> ABCPeriodArray:
+        self, other: np.ndarray, op: Callable[[Any], Any],
+    ) -> "PeriodArray":
+        """
+        Add or subtract array of integers; equivalent to applying
+        `_time_shift` pointwise.
+
+        Parameters
+        ----------
+        other : np.ndarray[integer-dtype]
+        op : {operator.add, operator.sub}
+
+        Returns
+        -------
+        result : PeriodArray
+        """
+
         assert op in [operator.add, operator.sub]
         if op is operator.sub:
             other = -other
@@ -773,9 +787,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
             return delta
 
         _raise_on_incompatible(self, other)
-
-    def _values_for_argsort(self):
-        return self._data
 
 
 PeriodArray._add_comparison_ops()
