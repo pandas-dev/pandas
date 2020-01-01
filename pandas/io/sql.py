@@ -1544,7 +1544,7 @@ class SQLiteTable(SQLTable):
             )
             col_type = "integer"
 
-        elif col_type == "datetime64":
+        elif col_type in ("datetime64", "datetimetz"):
             col_type = "datetime"
 
         elif col_type == "empty":
