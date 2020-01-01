@@ -56,7 +56,7 @@ Dedicated string data type
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 We've added :class:`StringDtype`, an extension type dedicated to string data.
-Previously, strings were typically stored in object-dtype NumPy arrays.
+Previously, strings were typically stored in object-dtype NumPy arrays. (:issue:`29975`)
 
 .. warning::
 
@@ -985,7 +985,7 @@ Other
 - Bug in :meth:`Series.count` raises if use_inf_as_na is enabled (:issue:`29478`)
 - Bug in :class:`Index` where a non-hashable name could be set without raising ``TypeError`` (:issue:`29069`)
 - Bug in :class:`DataFrame` constructor when passing a 2D ``ndarray`` and an extension dtype (:issue:`12513`)
--
+- Bug in :meth:`DaataFrame.to_csv` when supplied a series with a ``dtype="string"`` and a ``na_rep``, the ``na_rep`` was being truncated to 2 characters. (:issue:`29975`)
 
 .. _whatsnew_1000.contributors:
 
