@@ -196,7 +196,7 @@ class TestDataFrame(Generic):
     def test_to_xarray_index_types(self, index):
         from xarray import Dataset
 
-        index = getattr(tm, "make{}".format(index))
+        index = getattr(tm, f"make{index}")
         df = DataFrame(
             {
                 "a": list("abc"),

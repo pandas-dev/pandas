@@ -378,6 +378,9 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             return self
         return dtl.DatetimeLikeArrayMixin.astype(self, dtype, copy=copy)
 
+    # ----------------------------------------------------------------
+    # Reductions
+
     def sum(
         self,
         axis=None,
@@ -507,13 +510,13 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         dtype = DatetimeTZDtype(tz=other.tz) if other.tz else _NS_DTYPE
         return DatetimeArray(result, dtype=dtype, freq=self.freq)
 
-    def _addsub_offset_array(self, other, op):
-        # Add or subtract Array-like of DateOffset objects
+    def _addsub_object_array(self, other, op):
+        # Add or subtract Array-like of objects
         try:
             # TimedeltaIndex can only operate with a subset of DateOffset
             # subclasses.  Incompatible classes will raise AttributeError,
             # which we re-raise as TypeError
-            return super()._addsub_offset_array(other, op)
+            return super()._addsub_object_array(other, op)
         except AttributeError:
             raise TypeError(
                 f"Cannot add/subtract non-tick DateOffset to {type(self).__name__}"
