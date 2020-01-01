@@ -1241,7 +1241,7 @@ def nancorr(a, b, method="pearson", min_periods=None):
 
 
 def get_corr_func(method):
-    if method in ["kendall", "spearman"]:
+    if method in ["kendall", "spearman", "pearson"]:
         from scipy.stats import kendalltau, spearmanr
     elif callable(method):
         return method
