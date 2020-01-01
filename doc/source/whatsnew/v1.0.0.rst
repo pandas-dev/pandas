@@ -915,7 +915,7 @@ Plotting
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
--
+- Bug in :meth:`DataFrame.groupby.apply` only showing output from a single group when function returns an :class:`Index` (:issue:`28652`)
 - Bug in :meth:`DataFrame.groupby` with multiple groups where an ``IndexError`` would be raised if any group contained all NA values (:issue:`20519`)
 - Bug in :meth:`pandas.core.resample.Resampler.size` and :meth:`pandas.core.resample.Resampler.count` returning wrong dtype when used with an empty series or dataframe (:issue:`28427`)
 - Bug in :meth:`DataFrame.rolling` not allowing for rolling over datetimes when ``axis=1`` (:issue:`28192`)
