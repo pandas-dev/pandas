@@ -2562,8 +2562,6 @@ def get_groupby(
     else:
         raise TypeError(f"invalid type: {obj}")
 
-    dropna = dropna if dropna is not None else True
-
     return klass(
         obj=obj,
         keys=by,
