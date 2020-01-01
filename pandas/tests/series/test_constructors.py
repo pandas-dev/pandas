@@ -922,7 +922,7 @@ class TestSeriesConstructors:
             ]
         )
         assert s.dtype == "datetime64[ns, US/Pacific]"
-        assert lib.infer_dtype(s, skipna=True) == "datetime64"
+        assert lib.infer_dtype(s, skipna=True) == "datetimetz"
 
         s = Series(
             [
