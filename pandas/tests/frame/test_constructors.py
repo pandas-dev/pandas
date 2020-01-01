@@ -511,17 +511,17 @@ class TestDataFrameConstructors:
         result = df2.loc[1, 0]
         tm.assert_frame_equal(result, df1 + 10)
 
-    def test_constructor_subclass_dict(self, float_frame):
+    def test_constructor_subclass_dict(self, float_frame, dict_subclass):
         # Test for passing dict subclass to constructor
         data = {
-            "col1": tm.TestSubDict((x, 10.0 * x) for x in range(10)),
-            "col2": tm.TestSubDict((x, 20.0 * x) for x in range(10)),
+            "col1": dict_subclass((x, 10.0 * x) for x in range(10)),
+            "col2": dict_subclass((x, 20.0 * x) for x in range(10)),
         }
         df = DataFrame(data)
         refdf = DataFrame({col: dict(val.items()) for col, val in data.items()})
         tm.assert_frame_equal(refdf, df)
 
-        data = tm.TestSubDict(data.items())
+        data = dict_subclass(data.items())
         df = DataFrame(data)
         tm.assert_frame_equal(refdf, df)
 
