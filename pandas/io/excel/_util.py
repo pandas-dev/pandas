@@ -48,7 +48,7 @@ def get_writer(engine_name):
     try:
         return _writers[engine_name]
     except KeyError:
-        raise ValueError("No Excel writer '{engine}'".format(engine=engine_name))
+        raise ValueError(f"No Excel writer '{engine_name}'")
 
 
 def _excel2num(x):
@@ -76,7 +76,7 @@ def _excel2num(x):
         cp = ord(c)
 
         if cp < ord("A") or cp > ord("Z"):
-            raise ValueError("Invalid column name: {x}".format(x=x))
+            raise ValueError(f"Invalid column name: {x}")
 
         index = index * 26 + cp - ord("A") + 1
 
