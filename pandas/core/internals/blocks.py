@@ -944,7 +944,13 @@ class Block(PandasObject):
                 and np.any(mask[mask])
                 and getattr(new, "ndim", 1) == 1
             ):
-                if mask[mask].shape[-1] == len(new):  # GH 30567
+                if mask[mask].shape[-1] == len(new):
+                    # GH 30567
+                    # If length of ``new`` is less than the length of ``new_values``,
+                    # `np.putmask` would first repeat the ``new`` array and then
+                    # assign the masked values hence produces incorrect result.
+                    # `np.place` on the other hand uses the ``new`` values at it is
+                    # to place in the masked locations of ``new_values``
                     np.place(new_values, mask, new)
                 elif mask.shape[-1] == len(new) or len(new) == 1:
                     np.putmask(new_values, mask, new)
