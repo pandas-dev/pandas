@@ -97,20 +97,20 @@ class _XlwtWriter(ExcelWriter):
         if hasattr(item, "items"):
             if firstlevel:
                 it = [
-                    "{key}: {val}".format(key=key, val=cls._style_to_xlwt(value, False))
+                    f"{key}: {cls._style_to_xlwt(value, False)}"
                     for key, value in item.items()
                 ]
-                out = "{sep} ".format(sep=(line_sep).join(it))
+                out = f"{(line_sep).join(it)} "
                 return out
             else:
                 it = [
-                    "{key} {val}".format(key=key, val=cls._style_to_xlwt(value, False))
+                    f"{key} {cls._style_to_xlwt(value, False)}"
                     for key, value in item.items()
                 ]
-                out = "{sep} ".format(sep=(field_sep).join(it))
+                out = f"{(field_sep).join(it)} "
                 return out
         else:
-            item = "{item}".format(item=item)
+            item = f"{item}"
             item = item.replace("True", "on")
             item = item.replace("False", "off")
             return item

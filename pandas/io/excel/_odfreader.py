@@ -178,4 +178,4 @@ class _ODFReader(_BaseExcelReader):
         elif cell_type == "time":
             return pd.to_datetime(str(cell)).time()
         else:
-            raise ValueError("Unrecognized type {}".format(cell_type))
+            raise ValueError(f"Unrecognized type {cell_type}")
