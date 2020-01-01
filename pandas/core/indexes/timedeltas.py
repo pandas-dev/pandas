@@ -31,7 +31,6 @@ from pandas.core.indexes.datetimelike import (
     DatetimelikeDelegateMixin,
     DatetimeTimedeltaMixin,
 )
-from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 
 from pandas.tseries.frequencies import to_offset
@@ -67,11 +66,7 @@ class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
     overwrite=True,
 )
 class TimedeltaIndex(
-    DatetimeTimedeltaMixin,
-    DatetimeIndexOpsMixin,
-    dtl.TimelikeOps,
-    Int64Index,
-    TimedeltaDelegateMixin,
+    DatetimeTimedeltaMixin, dtl.TimelikeOps, TimedeltaDelegateMixin,
 ):
     """
     Immutable ndarray of timedelta64 data, represented internally as int64, and
@@ -254,11 +249,6 @@ class TimedeltaIndex(
     # -------------------------------------------------------------------
     # Wrapping TimedeltaArray
 
-    # Compat for frequency inference, see GH#23789
-    _is_monotonic_increasing = Index.is_monotonic_increasing
-    _is_monotonic_decreasing = Index.is_monotonic_decreasing
-    _is_unique = Index.is_unique
-
     @property
     def _box_func(self):
         return lambda x: Timedelta(x, unit="ns")
@@ -323,40 +313,6 @@ class TimedeltaIndex(
             sort=sort,
         )
 
-    def intersection(self, other, sort=False):
-        """
-        Specialized intersection for TimedeltaIndex objects.
-        May be much faster than Index.intersection
-
-        Parameters
-        ----------
-        other : TimedeltaIndex or array-like
-        sort : False or None, default False
-            Sort the resulting index if possible.
-
-            .. versionadded:: 0.24.0
-
-            .. versionchanged:: 0.24.1
-
-               Changed the default to ``False`` to match the behaviour
-               from before 0.24.0.
-
-            .. versionchanged:: 0.25.0
-
-               The `sort` keyword is added
-
-        Returns
-        -------
-        y : Index or  TimedeltaIndex
-        """
-        return super().intersection(other, sort=sort)
-
-    @Appender(Index.difference.__doc__)
-    def difference(self, other, sort=None):
-        new_idx = super().difference(other, sort=sort)
-        new_idx._set_freq(None)
-        return new_idx
-
     def _wrap_joined_index(self, joined, other):
         name = get_op_result_name(self, other)
         if (
@@ -368,33 +324,6 @@ class TimedeltaIndex(
             return joined
         else:
             return self._simple_new(joined, name)
-
-    def _can_fast_union(self, other):
-        if not isinstance(other, TimedeltaIndex):
-            return False
-
-        freq = self.freq
-
-        if freq is None or freq != other.freq:
-            return False
-
-        if not self.is_monotonic or not other.is_monotonic:
-            return False
-
-        if len(self) == 0 or len(other) == 0:
-            return True
-
-        # to make our life easier, "sort" the two ranges
-        if self[0] <= other[0]:
-            left, right = self, other
-        else:
-            left, right = other, self
-
-        right_start = right[0]
-        left_end = left[-1]
-
-        # Only need to "adjoin", not overlap
-        return (right_start == left_end + freq) or right_start in left
 
     def _fast_union(self, other):
         if len(other) == 0:
@@ -555,10 +484,6 @@ class TimedeltaIndex(
     @property
     def inferred_type(self) -> str:
         return "timedelta64"
-
-    @property
-    def is_all_dates(self) -> bool:
-        return True
 
     def insert(self, loc, item):
         """

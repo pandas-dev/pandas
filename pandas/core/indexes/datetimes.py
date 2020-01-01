@@ -36,7 +36,6 @@ from pandas.core.indexes.datetimelike import (
     DatetimelikeDelegateMixin,
     DatetimeTimedeltaMixin,
 )
-from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 import pandas.core.tools.datetimes as tools
 
@@ -93,9 +92,7 @@ class DatetimeDelegateMixin(DatetimelikeDelegateMixin):
     typ="method",
     overwrite=False,
 )
-class DatetimeIndex(
-    DatetimeTimedeltaMixin, DatetimeIndexOpsMixin, Int64Index, DatetimeDelegateMixin
-):
+class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
     """
     Immutable ndarray of datetime64 data, represented internally as int64, and
     which can be boxed to Timestamp objects that are subclasses of datetime and
@@ -410,12 +407,6 @@ class DatetimeIndex(
             return _to_M8(value)
         raise ValueError("Passed item and index have different timezone")
 
-    @Appender(Index.difference.__doc__)
-    def difference(self, other, sort=None):
-        new_idx = super().difference(other, sort=sort)
-        new_idx._set_freq(None)
-        return new_idx
-
     # --------------------------------------------------------------------
     # Rendering Methods
 
@@ -468,7 +459,7 @@ class DatetimeIndex(
                 if result.freq is None and (
                     this.freq is not None or other.freq is not None
                 ):
-                    result._data._freq = to_offset(result.inferred_freq)
+                    result._set_freq("infer")
             return result
 
     def union_many(self, others):
@@ -500,39 +491,6 @@ class DatetimeIndex(
                     #  in all the tests this equality already holds
                     this._data._dtype = dtype
         return this
-
-    def _can_fast_union(self, other) -> bool:
-        if not isinstance(other, DatetimeIndex):
-            return False
-
-        freq = self.freq
-
-        if freq is None or freq != other.freq:
-            return False
-
-        if not self.is_monotonic or not other.is_monotonic:
-            return False
-
-        if len(self) == 0 or len(other) == 0:
-            return True
-
-        # to make our life easier, "sort" the two ranges
-        if self[0] <= other[0]:
-            left, right = self, other
-        else:
-            left, right = other, self
-
-        right_start = right[0]
-        left_end = left[-1]
-
-        # Only need to "adjoin", not overlap
-        try:
-            return (right_start == left_end + freq) or right_start in left
-        except (ValueError):
-
-            # if we are comparing a freq that does not propagate timezones
-            # this will raise
-            return False
 
     def _fast_union(self, other, sort=None):
         if len(other) == 0:
@@ -572,30 +530,6 @@ class DatetimeIndex(
             return self._shallow_copy(dates)
         else:
             return left
-
-    def intersection(self, other, sort=False):
-        """
-        Specialized intersection for DatetimeIndex objects.
-        May be much faster than Index.intersection
-
-        Parameters
-        ----------
-        other : DatetimeIndex or array-like
-        sort : False or None, default False
-            Sort the resulting index if possible.
-
-            .. versionadded:: 0.24.0
-
-            .. versionchanged:: 0.24.1
-
-               Changed the default to ``False`` to match the behaviour
-               from before 0.24.0.
-
-        Returns
-        -------
-        Index or DatetimeIndex or TimedeltaIndex
-        """
-        return super().intersection(other, sort=sort)
 
     def _wrap_setop_result(self, other, result):
         name = get_op_result_name(self, other)
@@ -1125,11 +1059,6 @@ class DatetimeIndex(
     # --------------------------------------------------------------------
     # Wrapping DatetimeArray
 
-    # Compat for frequency inference, see GH#23789
-    _is_monotonic_increasing = Index.is_monotonic_increasing
-    _is_monotonic_decreasing = Index.is_monotonic_decreasing
-    _is_unique = Index.is_unique
-
     _timezone = cache_readonly(DatetimeArray._timezone.fget)  # type: ignore
     is_normalized = cache_readonly(DatetimeArray.is_normalized.fget)  # type: ignore
     _resolution = cache_readonly(DatetimeArray._resolution.fget)  # type: ignore
@@ -1169,10 +1098,6 @@ class DatetimeIndex(
         # b/c datetime is represented as microseconds since the epoch, make
         # sure we can't have ambiguous indexing
         return "datetime64"
-
-    @property
-    def is_all_dates(self) -> bool:
-        return True
 
     def insert(self, loc, item):
         """
