@@ -374,7 +374,7 @@ For getting values with a boolean array:
    df1.loc['a'] > 0
    df1.loc[:, df1.loc['a'] > 0]
 
-For getting a value explicitly (equivalent to deprecated ``df.get_value('a','A')``):
+For getting a value explicitly:
 
 .. ipython:: python
 

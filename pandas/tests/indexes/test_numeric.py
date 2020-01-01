@@ -736,6 +736,12 @@ class TestInt64Index(NumericInt):
         expected = np.array([0, 1, 1, 2, 2, 3, 3, 4, 4, 5], dtype=np.intp)
         tm.assert_numpy_array_equal(indexer, expected)
 
+    def test_get_indexer_nan(self):
+        # GH 7820
+        result = Index([1, 2, np.nan]).get_indexer([np.nan])
+        expected = np.array([2], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_intersection(self):
         index = self.create_index()
         other = Index([1, 2, 3, 4, 5])
@@ -1209,3 +1215,29 @@ def test_range_float_union_dtype():
 
     result = other.union(index)
     tm.assert_index_equal(result, expected)
+
+
+def test_uint_index_does_not_convert_to_float64():
+    # https://github.com/pandas-dev/pandas/issues/28279
+    # https://github.com/pandas-dev/pandas/issues/28023
+    series = pd.Series(
+        [0, 1, 2, 3, 4, 5],
+        index=[
+            7606741985629028552,
+            17876870360202815256,
+            17876870360202815256,
+            13106359306506049338,
+            8991270399732411471,
+            8991270399732411472,
+        ],
+    )
+
+    result = series.loc[[7606741985629028552, 17876870360202815256]]
+
+    expected = UInt64Index(
+        [7606741985629028552, 17876870360202815256, 17876870360202815256],
+        dtype="uint64",
+    )
+    tm.assert_index_equal(result.index, expected)
+
+    tm.assert_equal(result, series[:3])

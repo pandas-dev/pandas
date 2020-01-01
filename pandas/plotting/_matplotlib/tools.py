@@ -60,10 +60,7 @@ def _get_layout(nplots, layout=None, layout_type="box"):
 
         if nrows * ncols < nplots:
             raise ValueError(
-                "Layout of {nrows}x{ncols} must be larger "
-                "than required size {nplots}".format(
-                    nrows=nrows, ncols=ncols, nplots=nplots
-                )
+                f"Layout of {nrows}x{ncols} must be larger than required size {nplots}"
             )
 
         return layout
@@ -203,8 +200,8 @@ def _subplots(
                 return fig, ax
             else:
                 raise ValueError(
-                    "The number of passed axes must be {0}, the "
-                    "same as the output plot".format(naxes)
+                    f"The number of passed axes must be {naxes}, the "
+                    "same as the output plot"
                 )
 
         fig = ax.get_figure()
