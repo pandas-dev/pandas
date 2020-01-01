@@ -5,7 +5,6 @@ import warnings
 import numpy as np
 
 from pandas._libs import NaT, Timestamp, index as libindex, lib, tslib as libts
-import pandas._libs.join as libjoin
 from pandas._libs.tslibs import ccalendar, fields, parsing, timezones
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
@@ -32,7 +31,6 @@ from pandas.core.base import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, maybe_extract_name
 from pandas.core.indexes.datetimelike import (
-    DatetimeIndexOpsMixin,
     DatetimelikeDelegateMixin,
     DatetimeTimedeltaMixin,
 )
@@ -195,17 +193,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
     """
 
     _typ = "datetimeindex"
-    _join_precedence = 10
-
-    def _join_i8_wrapper(joinf, **kwargs):
-        return DatetimeIndexOpsMixin._join_i8_wrapper(joinf, dtype="M8[ns]", **kwargs)
-
-    _inner_indexer = _join_i8_wrapper(libjoin.inner_join_indexer)
-    _outer_indexer = _join_i8_wrapper(libjoin.outer_join_indexer)
-    _left_indexer = _join_i8_wrapper(libjoin.left_join_indexer)
-    _left_indexer_unique = _join_i8_wrapper(
-        libjoin.left_join_indexer_unique, with_indexers=False
-    )
 
     _engine_type = libindex.DatetimeEngine
     _supports_partial_string_indexing = True
@@ -644,54 +631,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
 
         # we know it conforms; skip check
         return DatetimeIndex._simple_new(snapped, name=self.name, tz=self.tz, freq=freq)
-
-    def join(
-        self, other, how: str = "left", level=None, return_indexers=False, sort=False
-    ):
-        """
-        See Index.join
-        """
-        if (
-            not isinstance(other, DatetimeIndex)
-            and len(other) > 0
-            and other.inferred_type
-            not in (
-                "floating",
-                "integer",
-                "integer-na",
-                "mixed-integer",
-                "mixed-integer-float",
-                "mixed",
-            )
-        ):
-            try:
-                other = DatetimeIndex(other)
-            except (TypeError, ValueError):
-                pass
-
-        this, other = self._maybe_utc_convert(other)
-        return Index.join(
-            this,
-            other,
-            how=how,
-            level=level,
-            return_indexers=return_indexers,
-            sort=sort,
-        )
-
-    def _maybe_utc_convert(self, other):
-        this = self
-        if isinstance(other, DatetimeIndex):
-            if self.tz is not None:
-                if other.tz is None:
-                    raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
-            elif other.tz is not None:
-                raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
-
-            if not timezones.tz_compare(self.tz, other.tz):
-                this = self.tz_convert("UTC")
-                other = other.tz_convert("UTC")
-        return this, other
 
     def _wrap_joined_index(self, joined, other):
         name = get_op_result_name(self, other)
