@@ -123,7 +123,13 @@ def test_round_nat(klass, method, freq):
         "dst",
         "fromordinal",
         "fromtimestamp",
-        "fromisocalendar",
+        pytest.param(
+            "fromisocalendar",
+            marks=pytest.mark.skipif(
+                not compat.PY38,
+                reason="'fromisocalendar' was added in stdlib datetime in python 3.8",
+            ),
+        ),
         "isocalendar",
         "strftime",
         "strptime",
@@ -141,10 +147,6 @@ def test_round_nat(klass, method, freq):
     ],
 )
 def test_nat_methods_raise(method):
-    # "fromisocalendar" was introduced in 3.8
-    if method == "fromisocalendar" and not compat.PY38:
-        method.remove("fromisocalendar")
-
     # see gh-9513, gh-17329
     msg = f"NaTType does not support {method}"
 
