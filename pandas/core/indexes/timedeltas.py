@@ -121,7 +121,6 @@ class TimedeltaIndex(
     """
 
     _typ = "timedeltaindex"
-    _join_precedence = 10
 
     _engine_type = libindex.TimedeltaEngine
 
@@ -283,25 +282,6 @@ class TimedeltaIndex(
                 if result.freq is None:
                     result._set_freq("infer")
             return result
-
-    def join(self, other, how="left", level=None, return_indexers=False, sort=False):
-        """
-        See Index.join
-        """
-        if _is_convertible_to_index(other):
-            try:
-                other = TimedeltaIndex(other)
-            except (TypeError, ValueError):
-                pass
-
-        return Index.join(
-            self,
-            other,
-            how=how,
-            level=level,
-            return_indexers=return_indexers,
-            sort=sort,
-        )
 
     def _wrap_joined_index(self, joined, other):
         name = get_op_result_name(self, other)

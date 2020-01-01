@@ -8,6 +8,7 @@ import numpy as np
 
 from pandas._libs import NaT, iNaT, join as libjoin, lib
 from pandas._libs.algos import unique_deltas
+from pandas._libs.tslibs import timezones
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, cache_readonly
@@ -77,7 +78,6 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
     Create the join wrapper methods.
     """
 
-    @staticmethod
     def wrapper(left, right):
         if isinstance(left, (np.ndarray, ABCIndex, ABCSeries, DatetimeLikeArrayMixin)):
             left = left.view("i8")
@@ -854,6 +854,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
 
     # --------------------------------------------------------------------
     # Join Methods
+    _join_precedence = 10
 
     _inner_indexer = _join_i8_wrapper(libjoin.inner_join_indexer)
     _outer_indexer = _join_i8_wrapper(libjoin.outer_join_indexer)
@@ -861,6 +862,64 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
     _left_indexer_unique = _join_i8_wrapper(
         libjoin.left_join_indexer_unique, with_indexers=False
     )
+
+    def join(
+        self, other, how: str = "left", level=None, return_indexers=False, sort=False
+    ):
+        """
+        See Index.join
+        """
+        if self._is_convertible_to_index_for_join(other):
+            try:
+                other = type(self)(other)
+            except (TypeError, ValueError):
+                pass
+
+        this, other = self._maybe_utc_convert(other)
+        return Index.join(
+            this,
+            other,
+            how=how,
+            level=level,
+            return_indexers=return_indexers,
+            sort=sort,
+        )
+
+    def _maybe_utc_convert(self, other):
+        this = self
+        if not hasattr(self, "tz"):
+            return this, other
+
+        if isinstance(other, type(self)):
+            if self.tz is not None:
+                if other.tz is None:
+                    raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
+            elif other.tz is not None:
+                raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
+
+            if not timezones.tz_compare(self.tz, other.tz):
+                this = self.tz_convert("UTC")
+                other = other.tz_convert("UTC")
+        return this, other
+
+    @classmethod
+    def _is_convertible_to_index_for_join(cls, other: Index) -> bool:
+        """
+        return a boolean whether I can attempt conversion to a
+        DatetimeIndex/TimedeltaIndex
+        """
+        if isinstance(other, cls):
+            return False
+        elif len(other) > 0 and other.inferred_type not in (
+            "floating",
+            "mixed-integer",
+            "integer",
+            "integer-na",
+            "mixed-integer-float",
+            "mixed",
+        ):
+            return True
+        return False
 
 
 def wrap_arithmetic_op(self, other, result):

@@ -193,7 +193,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
     """
 
     _typ = "datetimeindex"
-    _join_precedence = 10
 
     _engine_type = libindex.DatetimeEngine
     _supports_partial_string_indexing = True
@@ -632,54 +631,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
 
         # we know it conforms; skip check
         return DatetimeIndex._simple_new(snapped, name=self.name, tz=self.tz, freq=freq)
-
-    def join(
-        self, other, how: str = "left", level=None, return_indexers=False, sort=False
-    ):
-        """
-        See Index.join
-        """
-        if (
-            not isinstance(other, DatetimeIndex)
-            and len(other) > 0
-            and other.inferred_type
-            not in (
-                "floating",
-                "integer",
-                "integer-na",
-                "mixed-integer",
-                "mixed-integer-float",
-                "mixed",
-            )
-        ):
-            try:
-                other = DatetimeIndex(other)
-            except (TypeError, ValueError):
-                pass
-
-        this, other = self._maybe_utc_convert(other)
-        return Index.join(
-            this,
-            other,
-            how=how,
-            level=level,
-            return_indexers=return_indexers,
-            sort=sort,
-        )
-
-    def _maybe_utc_convert(self, other):
-        this = self
-        if isinstance(other, DatetimeIndex):
-            if self.tz is not None:
-                if other.tz is None:
-                    raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
-            elif other.tz is not None:
-                raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
-
-            if not timezones.tz_compare(self.tz, other.tz):
-                this = self.tz_convert("UTC")
-                other = other.tz_convert("UTC")
-        return this, other
 
     def _wrap_joined_index(self, joined, other):
         name = get_op_result_name(self, other)
