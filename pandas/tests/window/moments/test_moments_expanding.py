@@ -328,12 +328,31 @@ class TestExpandingMomentsConsistency(ConsistencyBase):
             )
 
             # test consistency between different expanding_* moments
+            self._test_moments_consistency_mock_mean(
+                mean=lambda x: x.expanding(min_periods=min_periods).mean(),
+                mock_mean=lambda x: x.expanding(min_periods=min_periods).sum()
+                / x.expanding().count(),
+            )
+
+            self._test_moments_consistency_is_constant(
+                min_periods=min_periods,
+                count=lambda x: x.expanding().count(),
+                mean=lambda x: x.expanding(min_periods=min_periods).mean(),
+                corr=lambda x, y: x.expanding(min_periods=min_periods).corr(y),
+            )
+
+            self._test_moments_consistency_var_debiasing_factors(
+                var_unbiased=lambda x: x.expanding(min_periods=min_periods).var(),
+                var_biased=lambda x: x.expanding(min_periods=min_periods).var(ddof=0),
+                var_debiasing_factors=lambda x: (
+                    x.expanding().count()
+                    / (x.expanding().count() - 1.0).replace(0.0, np.nan)
+                ),
+            )
             self._test_moments_consistency(
                 min_periods=min_periods,
                 count=lambda x: x.expanding().count(),
                 mean=lambda x: x.expanding(min_periods=min_periods).mean(),
-                mock_mean=lambda x: x.expanding(min_periods=min_periods).sum()
-                / x.expanding().count(),
                 corr=lambda x, y: x.expanding(min_periods=min_periods).corr(y),
                 var_unbiased=lambda x: x.expanding(min_periods=min_periods).var(),
                 std_unbiased=lambda x: x.expanding(min_periods=min_periods).std(),
@@ -342,10 +361,6 @@ class TestExpandingMomentsConsistency(ConsistencyBase):
                 std_biased=lambda x: x.expanding(min_periods=min_periods).std(ddof=0),
                 cov_biased=lambda x, y: x.expanding(min_periods=min_periods).cov(
                     y, ddof=0
-                ),
-                var_debiasing_factors=lambda x: (
-                    x.expanding().count()
-                    / (x.expanding().count() - 1.0).replace(0.0, np.nan)
                 ),
             )
 
