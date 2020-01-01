@@ -108,18 +108,13 @@ def _parse_date_columns(data_frame, parse_dates):
     # we could in theory do a 'nice' conversion from a FixedOffset tz
     # GH11216
     for col_name, df_col in data_frame.items():
-        # use updated infer_dtype instead of is_datetime64tz_dtype
-        # this will handle datetime Series with different offsets
-        # see GH30207
-        if lib.infer_dtype(df_col) == "datetimetz":
-            data_frame[col_name] = to_datetime(df_col, utc=True)
-        # if the column was not handled check argument parse_dates
-        elif col_name in parse_dates:
+        if is_datetime64tz_dtype(df_col) or col_name in parse_dates:
             try:
                 fmt = parse_dates[col_name]
             except TypeError:
                 fmt = None
             data_frame[col_name] = _handle_date_column(df_col, format=fmt)
+
     return data_frame
 
 
@@ -971,35 +966,16 @@ class SQLTable(PandasObject):
             TIMESTAMP,
         )
 
-        if col_type in ("datetime64", "datetime", "datetimetz"):
+        if col_type == "datetime64" or col_type == "datetime":
             # GH 9086: TIMESTAMP is the suggested type if the column contains
             # timezone information
             try:
                 if col.dt.tz is not None:
                     return TIMESTAMP(timezone=True)
             except AttributeError:
-                # The column might be a DatetimeIndex
-                try:
-                    if col.tz is not None:
-                        return TIMESTAMP(timezone=True)
-                # or in the case of different offsets/timezones
-                # raise a better error message than
-                # "'Series' object has no attribute 'tz'"
-                except AttributeError as e:
-                    get_offset = lambda dt: (
-                        dt.utcoffset() if isinstance(dt, datetime) else None
-                    )
-                    get_tz = lambda dt: getattr(dt, "tzinfo", None)
-                    # use iterator to avoid unpacking all values
-                    iterator = col.iteritems()
-                    unique_offsets = set()
-                    unique_timezones = set()
-                    for ix, dt in iterator:
-                        unique_offsets.add(get_offset(dt))
-                        unique_timezones.add(get_tz(dt))
-                        if len(unique_offsets) == 2 or len(unique_timezones) == 2:
-                            raise ValueError("Array must be all same time zone")
-                    raise e
+                # The column is actually a DatetimeIndex
+                if col.tz is not None:
+                    return TIMESTAMP(timezone=True)
             return DateTime
         if col_type == "timedelta64":
             warnings.warn(
