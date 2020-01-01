@@ -100,6 +100,7 @@ from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin as DatetimeLikeArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.generic import NDFrame, _shared_docs
+from pandas.core.groupby import generic as groupby_generic
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import Index, ensure_index, ensure_index_from_sequences
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -1929,14 +1930,17 @@ class DataFrame(NDFrame):
         >>> df.to_stata('animals.dta')  # doctest: +SKIP
         """
         kwargs = {}
-        if version not in (114, 117):
-            raise ValueError("Only formats 114 and 117 supported.")
+        if version not in (114, 117, 118):
+            raise ValueError("Only formats 114, 117 and 118 are supported.")
         if version == 114:
             if convert_strl is not None:
-                raise ValueError("strl support is only available when using format 117")
+                raise ValueError("strl is not supported in format 114")
             from pandas.io.stata import StataWriter as statawriter
         else:
-            from pandas.io.stata import StataWriter117 as statawriter
+            if version == 117:
+                from pandas.io.stata import StataWriter117 as statawriter
+            else:
+                from pandas.io.stata import StataWriter118 as statawriter
 
             kwargs["convert_strl"] = convert_strl
 
@@ -4014,8 +4018,7 @@ class DataFrame(NDFrame):
         inplace=False,
         limit=None,
         downcast=None,
-        **kwargs,
-    ):
+    ) -> Optional["DataFrame"]:
         return super().fillna(
             value=value,
             method=method,
@@ -4023,7 +4026,6 @@ class DataFrame(NDFrame):
             inplace=inplace,
             limit=limit,
             downcast=downcast,
-            **kwargs,
         )
 
     @Appender(_shared_docs["replace"] % _shared_doc_kwargs)
@@ -5148,7 +5150,7 @@ class DataFrame(NDFrame):
     # Arithmetic / combination related
 
     def _combine_frame(self, other, func, fill_value=None, level=None):
-        this, other = self.align(other, join="outer", level=level, copy=False)
+        # at this point we have `self._indexed_same(other)`
 
         if fill_value is None:
             # since _arith_op may be called in a loop, avoid function call
@@ -5164,14 +5166,15 @@ class DataFrame(NDFrame):
                 left, right = ops.fill_binop(left, right, fill_value)
                 return func(left, right)
 
-        if ops.should_series_dispatch(this, other, func):
+        if ops.should_series_dispatch(self, other, func):
             # iterate over columns
-            new_data = ops.dispatch_to_series(this, other, _arith_op)
+            new_data = ops.dispatch_to_series(self, other, _arith_op)
         else:
             with np.errstate(all="ignore"):
-                res_values = _arith_op(this.values, other.values)
-            new_data = dispatch_fill_zeros(func, this.values, other.values, res_values)
-        return this._construct_result(new_data)
+                res_values = _arith_op(self.values, other.values)
+            new_data = dispatch_fill_zeros(func, self.values, other.values, res_values)
+
+        return new_data
 
     def _combine_match_index(self, other, func):
         # at this point we have `self.index.equals(other.index)`
@@ -5599,6 +5602,82 @@ class DataFrame(NDFrame):
 
     # ----------------------------------------------------------------------
     # Data reshaping
+    @Appender(
+        """
+Examples
+--------
+>>> df = pd.DataFrame({'Animal': ['Falcon', 'Falcon',
+...                               'Parrot', 'Parrot'],
+...                    'Max Speed': [380., 370., 24., 26.]})
+>>> df
+   Animal  Max Speed
+0  Falcon      380.0
+1  Falcon      370.0
+2  Parrot       24.0
+3  Parrot       26.0
+>>> df.groupby(['Animal']).mean()
+        Max Speed
+Animal
+Falcon      375.0
+Parrot       25.0
+
+**Hierarchical Indexes**
+
+We can groupby different levels of a hierarchical index
+using the `level` parameter:
+
+>>> arrays = [['Falcon', 'Falcon', 'Parrot', 'Parrot'],
+...           ['Captive', 'Wild', 'Captive', 'Wild']]
+>>> index = pd.MultiIndex.from_arrays(arrays, names=('Animal', 'Type'))
+>>> df = pd.DataFrame({'Max Speed': [390., 350., 30., 20.]},
+...                   index=index)
+>>> df
+                Max Speed
+Animal Type
+Falcon Captive      390.0
+       Wild         350.0
+Parrot Captive       30.0
+       Wild          20.0
+>>> df.groupby(level=0).mean()
+        Max Speed
+Animal
+Falcon      370.0
+Parrot       25.0
+>>> df.groupby(level="Type").mean()
+         Max Speed
+Type
+Captive      210.0
+Wild         185.0
+"""
+    )
+    @Appender(_shared_docs["groupby"] % _shared_doc_kwargs)
+    def groupby(
+        self,
+        by=None,
+        axis=0,
+        level=None,
+        as_index: bool = True,
+        sort: bool = True,
+        group_keys: bool = True,
+        squeeze: bool = False,
+        observed: bool = False,
+    ) -> "groupby_generic.DataFrameGroupBy":
+
+        if level is None and by is None:
+            raise TypeError("You have to supply one of 'by' and 'level'")
+        axis = self._get_axis_number(axis)
+
+        return groupby_generic.DataFrameGroupBy(
+            obj=self,
+            keys=by,
+            axis=axis,
+            level=level,
+            as_index=as_index,
+            sort=sort,
+            group_keys=group_keys,
+            squeeze=squeeze,
+            observed=observed,
+        )
 
     _shared_docs[
         "pivot"

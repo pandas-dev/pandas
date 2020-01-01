@@ -378,6 +378,9 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             return self
         return dtl.DatetimeLikeArrayMixin.astype(self, dtype, copy=copy)
 
+    # ----------------------------------------------------------------
+    # Reductions
+
     def sum(
         self,
         axis=None,

@@ -1,5 +1,5 @@
 import operator
-from typing import Any
+from typing import Any, List
 
 import numpy as np
 
@@ -583,6 +583,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         target = ibase.ensure_index(target)
 
+        missing: List[int]
         if self.equals(target):
             indexer = None
             missing = []
