@@ -1213,9 +1213,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     >>> infer_dtype([pd.Timestamp('20130101')])
     'datetime'
 
-    >>> import pytz
-    >>> infer_dtype([datetime.datetime(2013,1,1,0,0,0,
-    ...                                tzinfo=pytz.utc)])
+    >>> infer_dtype([pd.Timestamp('2013-01-01', tz='UTC')])
     'datetimetz'
 
     >>> infer_dtype([datetime.date(2013, 1, 1)])
@@ -1242,6 +1240,10 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     elif hasattr(value, 'dtype'):
         # this will handle ndarray-like
         # e.g. categoricals
+        # begin by checking if there is a tz attribute
+        # in which case we have a Series with dtype DatetimeTZDtype
+        if hasattr(value.dtype,'tz'):
+            return "datetimetz"
         try:
             values = getattr(value, '_values', getattr(value, 'values', value))
         except TypeError:
@@ -1299,7 +1301,11 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
 
     if util.is_datetime64_object(val):
         if is_datetime64_array(values):
-            return "datetime64"
+            # only check for non nulls to avoid numpy nat
+            if is_datetimetz_array(values[~isnaobj(values)]):
+                return "datetimetz"
+            else:
+                return "datetime64"
 
     elif is_timedelta(val):
         if is_timedelta_or_timedelta64_array(values):
@@ -1320,8 +1326,9 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
 
     elif PyDateTime_Check(val):
         if is_datetime_array(values):
-            if is_datetime_with_tz_array(values):
-                return 'datetimetz'
+            # only check for non nulls to avoid numpy nat
+            if is_datetimetz_array(values[~isnaobj(values)]):
+                return "datetimetz"
             else:
                 return "datetime"
 
@@ -1697,6 +1704,21 @@ cpdef bint is_datetime_array(ndarray values):
     return validator.validate(values)
 
 
+cdef class DatetimeTZValidator(TemporalValidator):
+    cdef bint is_value_typed(self, object value) except -1:
+        return PyDateTime_Check(value) and (value.tzinfo is not None)
+
+    cdef inline bint is_valid_null(self, object value) except -1:
+        return is_null_datetime64(value)
+
+
+cpdef bint is_datetimetz_array(ndarray values):
+    cdef:
+        DatetimeTZValidator validator = DatetimeTZValidator(len(values),
+                                                            skipna=True)
+    return validator.validate(values)
+
+
 cdef class Datetime64Validator(DatetimeValidator):
     cdef inline bint is_value_typed(self, object value) except -1:
         return util.is_datetime64_object(value)
@@ -1738,31 +1760,6 @@ def is_datetime_with_singletz_array(values: ndarray) -> bool:
                 return False
 
     return True
-
-
-def is_datetime_with_tz_array(values: ndarray) -> bool:
-    """
-    Check values have any tzinfo attribute.
-    Doesn't check values are datetime-like types.
-    Contrary to function is_datetime_with_singletz_array
-    arrays with different timezones will also return True
-    """
-    cdef:
-        Py_ssize_t i = 0, n = len(values)
-        object val, tz
-
-    if n == 0:
-        return False
-    for i in range(n):
-        val = values[i]
-        if val is not NaT:
-            # return True as soon as an attribute tzinfo
-            # was found in any value
-            tz = get_timezone(getattr(val, 'tzinfo', None))
-            if tz is not None:
-                return True
-
-    return False
 
 
 cdef class TimedeltaValidator(TemporalValidator):
