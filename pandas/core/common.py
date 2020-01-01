@@ -84,7 +84,7 @@ def maybe_box_datetimelike(value):
     # turn a datetime like into a Timestamp/timedelta as needed
 
     if isinstance(value, (tslibs.Timedelta, tslibs.Timestamp)) or (
-            value is tslibs.NaT
+        value is tslibs.NaT
     ):
         return value
 
@@ -123,7 +123,7 @@ def is_bool_indexer(key: Any) -> bool:
     """
     na_msg = "cannot index with vector containing NA / NaN values"
     if isinstance(key, (ABCSeries, np.ndarray, ABCIndex)) or (
-            is_array_like(key) and is_extension_array_dtype(key.dtype)
+        is_array_like(key) and is_extension_array_dtype(key.dtype)
     ):
         if key.dtype == np.object_:
             key = np.asarray(values_from_object(key))
@@ -287,10 +287,10 @@ def is_null_slice(obj):
     We have a null slice.
     """
     return (
-            isinstance(obj, slice)
-            and obj.start is None
-            and obj.stop is None
-            and obj.step is None
+        isinstance(obj, slice)
+        and obj.start is None
+        and obj.stop is None
+        and obj.step is None
     )
 
 
@@ -307,7 +307,7 @@ def is_full_slice(obj, l):
     We have a full length slice.
     """
     return (
-            isinstance(obj, slice) and obj.start == 0 and obj.stop == l and obj.step is None
+        isinstance(obj, slice) and obj.start == 0 and obj.stop == l and obj.step is None
     )
 
 
