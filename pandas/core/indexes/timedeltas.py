@@ -3,7 +3,7 @@ from datetime import datetime
 
 import numpy as np
 
-from pandas._libs import NaT, Timedelta, index as libindex, join as libjoin, lib
+from pandas._libs import NaT, Timedelta, index as libindex, lib
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.common import (
@@ -30,9 +30,7 @@ from pandas.core.indexes.datetimelike import (
     DatetimeIndexOpsMixin,
     DatetimelikeDelegateMixin,
     DatetimeTimedeltaMixin,
-    ea_passthrough,
 )
-from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 
 from pandas.tseries.frequencies import to_offset
@@ -50,9 +48,12 @@ class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
         "__neg__",
         "__pos__",
         "__abs__",
+        "sum",
+        "std",
+        "median",
     ]
     _raw_properties = {"components"}
-    _raw_methods = {"to_pytimedelta"}
+    _raw_methods = {"to_pytimedelta", "sum", "std", "median"}
 
 
 @delegate_names(
@@ -65,11 +66,7 @@ class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
     overwrite=True,
 )
 class TimedeltaIndex(
-    DatetimeTimedeltaMixin,
-    DatetimeIndexOpsMixin,
-    dtl.TimelikeOps,
-    Int64Index,
-    TimedeltaDelegateMixin,
+    DatetimeTimedeltaMixin, dtl.TimelikeOps, TimedeltaDelegateMixin,
 ):
     """
     Immutable ndarray of timedelta64 data, represented internally as int64, and
@@ -124,17 +121,6 @@ class TimedeltaIndex(
     """
 
     _typ = "timedeltaindex"
-    _join_precedence = 10
-
-    def _join_i8_wrapper(joinf, **kwargs):
-        return DatetimeIndexOpsMixin._join_i8_wrapper(joinf, dtype="m8[ns]", **kwargs)
-
-    _inner_indexer = _join_i8_wrapper(libjoin.inner_join_indexer)
-    _outer_indexer = _join_i8_wrapper(libjoin.outer_join_indexer)
-    _left_indexer = _join_i8_wrapper(libjoin.left_join_indexer)
-    _left_indexer_unique = _join_i8_wrapper(
-        libjoin.left_join_indexer_unique, with_indexers=False
-    )
 
     _engine_type = libindex.TimedeltaEngine
 
@@ -151,9 +137,6 @@ class TimedeltaIndex(
     _datetimelike_ops = TimedeltaArray._datetimelike_ops
     _datetimelike_methods = TimedeltaArray._datetimelike_methods
     _other_ops = TimedeltaArray._other_ops
-    sum = ea_passthrough(TimedeltaArray.sum)
-    std = ea_passthrough(TimedeltaArray.std)
-    median = ea_passthrough(TimedeltaArray.median)
 
     # -------------------------------------------------------------------
     # Constructors
@@ -255,11 +238,6 @@ class TimedeltaIndex(
     # -------------------------------------------------------------------
     # Wrapping TimedeltaArray
 
-    # Compat for frequency inference, see GH#23789
-    _is_monotonic_increasing = Index.is_monotonic_increasing
-    _is_monotonic_decreasing = Index.is_monotonic_decreasing
-    _is_unique = Index.is_unique
-
     @property
     def _box_func(self):
         return lambda x: Timedelta(x, unit="ns")
@@ -305,59 +283,6 @@ class TimedeltaIndex(
                     result._set_freq("infer")
             return result
 
-    def join(self, other, how="left", level=None, return_indexers=False, sort=False):
-        """
-        See Index.join
-        """
-        if _is_convertible_to_index(other):
-            try:
-                other = TimedeltaIndex(other)
-            except (TypeError, ValueError):
-                pass
-
-        return Index.join(
-            self,
-            other,
-            how=how,
-            level=level,
-            return_indexers=return_indexers,
-            sort=sort,
-        )
-
-    def intersection(self, other, sort=False):
-        """
-        Specialized intersection for TimedeltaIndex objects.
-        May be much faster than Index.intersection
-
-        Parameters
-        ----------
-        other : TimedeltaIndex or array-like
-        sort : False or None, default False
-            Sort the resulting index if possible.
-
-            .. versionadded:: 0.24.0
-
-            .. versionchanged:: 0.24.1
-
-               Changed the default to ``False`` to match the behaviour
-               from before 0.24.0.
-
-            .. versionchanged:: 0.25.0
-
-               The `sort` keyword is added
-
-        Returns
-        -------
-        y : Index or  TimedeltaIndex
-        """
-        return super().intersection(other, sort=sort)
-
-    @Appender(Index.difference.__doc__)
-    def difference(self, other, sort=None):
-        new_idx = super().difference(other, sort=sort)
-        new_idx._set_freq(None)
-        return new_idx
-
     def _wrap_joined_index(self, joined, other):
         name = get_op_result_name(self, other)
         if (
@@ -369,33 +294,6 @@ class TimedeltaIndex(
             return joined
         else:
             return self._simple_new(joined, name)
-
-    def _can_fast_union(self, other):
-        if not isinstance(other, TimedeltaIndex):
-            return False
-
-        freq = self.freq
-
-        if freq is None or freq != other.freq:
-            return False
-
-        if not self.is_monotonic or not other.is_monotonic:
-            return False
-
-        if len(self) == 0 or len(other) == 0:
-            return True
-
-        # to make our life easier, "sort" the two ranges
-        if self[0] <= other[0]:
-            left, right = self, other
-        else:
-            left, right = other, self
-
-        right_start = right[0]
-        left_end = left[-1]
-
-        # Only need to "adjoin", not overlap
-        return (right_start == left_end + freq) or right_start in left
 
     def _fast_union(self, other):
         if len(other) == 0:
@@ -557,10 +455,6 @@ class TimedeltaIndex(
     def inferred_type(self) -> str:
         return "timedelta64"
 
-    @property
-    def is_all_dates(self) -> bool:
-        return True
-
     def insert(self, loc, item):
         """
         Make new Index inserting new item at location
@@ -643,24 +537,6 @@ class TimedeltaIndex(
 TimedeltaIndex._add_comparison_ops()
 TimedeltaIndex._add_logical_methods_disabled()
 TimedeltaIndex._add_datetimelike_methods()
-
-
-def _is_convertible_to_index(other) -> bool:
-    """
-    return a boolean whether I can attempt conversion to a TimedeltaIndex
-    """
-    if isinstance(other, TimedeltaIndex):
-        return True
-    elif len(other) > 0 and other.inferred_type not in (
-        "floating",
-        "mixed-integer",
-        "integer",
-        "integer-na",
-        "mixed-integer-float",
-        "mixed",
-    ):
-        return True
-    return False
 
 
 def timedelta_range(

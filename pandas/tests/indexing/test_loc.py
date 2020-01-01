@@ -966,3 +966,17 @@ def test_loc_getitem_label_list_integer_labels(
     expected = df.iloc[:, expected_columns]
     result = df.loc[["A", "B", "C"], column_key]
     tm.assert_frame_equal(result, expected, check_column_type=check_column_type)
+
+
+def test_loc_setitem_float_intindex():
+    # GH 8720
+    rand_data = np.random.randn(8, 4)
+    result = pd.DataFrame(rand_data)
+    result.loc[:, 0.5] = np.nan
+    expected_data = np.hstack((rand_data, np.array([np.nan] * 8).reshape(8, 1)))
+    expected = pd.DataFrame(expected_data, columns=[0.0, 1.0, 2.0, 3.0, 0.5])
+    tm.assert_frame_equal(result, expected)
+
+    result = pd.DataFrame(rand_data)
+    result.loc[:, 0.5] = np.nan
+    tm.assert_frame_equal(result, expected)

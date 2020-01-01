@@ -223,6 +223,7 @@ Other enhancements
 - :meth:`DataFrame.to_markdown` and :meth:`Series.to_markdown` added (:issue:`11052`)
 - :meth:`DataFrame.sort_index` and :meth:`Series.sort_index` have gained ``ignore_index`` keyword to reset index (:issue:`30114`)
 - :meth:`DataFrame.drop_duplicates` has gained ``ignore_index`` keyword to reset index (:issue:`30114`)
+- Added new writer for exporting Stata dta files in version 118, ``StataWriter118``.  This format supports exporting strings containing Unicode characters (:issue:`23573`)
 
 Build Changes
 ^^^^^^^^^^^^^
@@ -844,6 +845,7 @@ Interval
 
 - Bug in :meth:`IntervalIndex.get_indexer` where a :class:`Categorical` or :class:`CategoricalIndex` ``target`` would incorrectly raise a ``TypeError`` (:issue:`30063`)
 - Bug in ``pandas.core.dtypes.cast.infer_dtype_from_scalar`` where passing ``pandas_dtype=True`` did not infer :class:`IntervalDtype` (:issue:`30337`)
+- Bug in :class:`IntervalDtype` where the ``kind`` attribute was incorrectly set as ``None`` instead of ``"O"`` (:issue:`30568`)
 
 Indexing
 ^^^^^^^^
@@ -892,6 +894,7 @@ I/O
 - Bug in :func:`read_json` where default encoding was not set to ``utf-8`` (:issue:`29565`)
 - Bug in :class:`PythonParser` where str and bytes were being mixed when dealing with the decimal field (:issue:`29650`)
 - :meth:`read_gbq` now accepts ``progress_bar_type`` to display progress bar while the data downloads. (:issue:`29857`)
+- Bug in :func:`pandas.io.json.json_normalize` where a missing value in the location specified by `record_path` would raise a ``TypeError`` (:issue:`30148`)
 
 Plotting
 ^^^^^^^^
@@ -907,6 +910,7 @@ Plotting
 - :func:`set_option` now validates that the plot backend provided to ``'plotting.backend'`` implements the backend when the option is set, rather than when a plot is created (:issue:`28163`)
 - :meth:`DataFrame.plot` now allow a ``backend`` keyword argument to allow changing between backends in one session (:issue:`28619`).
 - Bug in color validation incorrectly raising for non-color styles (:issue:`29122`).
+- Allow :meth: `DataFrame.plot.scatter` to plot ``objects`` and ``datetime`` type data (:issue:`18755`, :issue:`30391`)
 - Bug in :meth:`DataFrame.hist`, ``xrot=0`` does not work with ``by`` and subplots (:issue:`30288`).
 
 Groupby/resample/rolling
@@ -929,6 +933,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.groupby` when using axis=1 and having a single level columns index (:issue:`30208`)
 - Bug in :meth:`DataFrame.groupby` when using nunique on axis=1 (:issue:`30253`)
 - Bug in :meth:`GroupBy.quantile` with multiple list-like q value and integer column names (:issue:`30289`)
+- Bug in :meth:`GroupBy.pct_change` and :meth:`SeriesGroupBy.pct_change` causes ``TypeError`` when ``fill_method`` is ``None`` (:issue:`30463`)
 
 Reshaping
 ^^^^^^^^^
@@ -971,13 +976,15 @@ Other
 - Bug in :meth:`Series.diff` where a boolean series would incorrectly raise a ``TypeError`` (:issue:`17294`)
 - :meth:`Series.append` will no longer raise a ``TypeError`` when passed a tuple of ``Series`` (:issue:`28410`)
 - Fix corrupted error message when calling ``pandas.libs._json.encode()`` on a 0d array (:issue:`18878`)
+- Bug in ``pd.core.util.hashing.hash_pandas_object`` where arrays containing tuples were incorrectly treated as non-hashable (:issue:`28969`)
 - Bug in :meth:`DataFrame.append` that raised ``IndexError`` when appending with empty list (:issue:`28769`)
 - Fix :class:`AbstractHolidayCalendar` to return correct results for
   years after 2030 (now goes up to 2200) (:issue:`27790`)
 - Fixed :class:`IntegerArray` returning ``inf`` rather than ``NaN`` for operations dividing by 0 (:issue:`27398`)
 - Fixed ``pow`` operations for :class:`IntegerArray` when the other value is ``0`` or ``1`` (:issue:`29997`)
 - Bug in :meth:`Series.count` raises if use_inf_as_na is enabled (:issue:`29478`)
-- Bug in :class:`Index` where a non-hashable name could be set without raising ``TypeError`` (:issue:29069`)
+- Bug in :class:`Index` where a non-hashable name could be set without raising ``TypeError`` (:issue:`29069`)
+
 
 .. _whatsnew_1000.contributors:
 
