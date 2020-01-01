@@ -78,11 +78,13 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
     Create the join wrapper methods.
     """
 
+    @staticmethod  # type: ignore
     def wrapper(left, right):
         if isinstance(left, (np.ndarray, ABCIndex, ABCSeries, DatetimeLikeArrayMixin)):
             left = left.view("i8")
         if isinstance(right, (np.ndarray, ABCIndex, ABCSeries, DatetimeLikeArrayMixin)):
             right = right.view("i8")
+
         results = joinf(left, right)
         if with_indexers:
             # dtype should be timedelta64[ns] for TimedeltaIndex
