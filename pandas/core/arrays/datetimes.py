@@ -559,6 +559,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
     def _check_compatible_with(self, other):
         if other is NaT:
             return
+        if isinstance(other, (datetime, np.datetime64)):
+            other = Timestamp(other)
         if not timezones.tz_compare(self.tz, other.tz):
             raise ValueError(f"Timezones don't match. '{self.tz} != {other.tz}'")
 
