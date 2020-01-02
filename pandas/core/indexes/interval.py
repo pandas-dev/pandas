@@ -199,7 +199,7 @@ class SetopCheck:
 )
 @accessor.delegate_names(
     delegate=IntervalArray,
-    accessors=["__array__", "overlaps", "contains"],
+    accessors=["__array__", "overlaps", "contains", "__len__"],
     typ="method",
     overwrite=True,
 )
@@ -436,9 +436,6 @@ class IntervalIndex(IntervalMixin, Index, accessor.PandasDelegate):
     def set_closed(self, closed):
         array = self._data.set_closed(closed)
         return self._simple_new(array, self.name)  # TODO: can we use _shallow_copy?
-
-    def __len__(self) -> int:
-        return len(self.left)
 
     @cache_readonly
     def values(self):
@@ -1051,7 +1048,7 @@ class IntervalIndex(IntervalMixin, Index, accessor.PandasDelegate):
         result = self._data.take(
             indices, axis=axis, allow_fill=allow_fill, fill_value=fill_value, **kwargs
         )
-        attributes = self._get_attributes_dict()
+        attributes = self._get_attributes_dict()  # TODO: shallow_copy?
         return self._simple_new(result, **attributes)
 
     def __getitem__(self, value):
