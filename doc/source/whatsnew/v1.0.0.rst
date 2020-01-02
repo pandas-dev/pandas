@@ -174,7 +174,7 @@ You can use the alias ``"boolean"`` as well.
 Using Numba in ``rolling.apply``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We've added an ``engine`` keyword to :meth:`~Rolling.apply` that allows the user to execute the
+We've added an ``engine`` keyword to :meth:`~core.window.rolling.Rolling.apply` that allows the user to execute the
 routine using `Numba <https://numba.pydata.org/>`__ instead of Cython. Using the Numba engine
 can yield significant performance gains if the apply function can operate on numpy arrays and
 the data set is larger (1 million rows or greater). For more details, see
@@ -297,45 +297,6 @@ New repr for :class:`~pandas.arrays.IntervalArray`
 
    pd.arrays.IntervalArray.from_tuples([(0, 1), (2, 3)])
 
-
-All :class:`SeriesGroupBy` aggregation methods now respect the ``observed`` keyword
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-The following methods now also correctly output values for unobserved categories when called through ``groupby(..., observed=False)`` (:issue:`17605`)
-
-- :meth:`SeriesGroupBy.count`
-- :meth:`SeriesGroupBy.size`
-- :meth:`SeriesGroupBy.nunique`
-- :meth:`SeriesGroupBy.nth`
-
-.. ipython:: python
-
-    df = pd.DataFrame({
-        "cat_1": pd.Categorical(list("AABB"), categories=list("ABC")),
-        "cat_2": pd.Categorical(list("AB") * 2, categories=list("ABC")),
-        "value": [0.1] * 4,
-    })
-    df
-
-
-*pandas 0.25.x*
-
-.. code-block:: ipython
-
-   In [2]: df.groupby(["cat_1", "cat_2"], observed=False)["value"].count()
-   Out[2]:
-        cat_1  cat_2
-        A      A        1
-               B        1
-        B      A        1
-               B        1
-    Name: value, dtype: int64
-
-
-*pandas 1.0.0*
-
-.. ipython:: python
-
-   df.groupby(["cat_1", "cat_2"], observed=False)["value"].count()
 
 :meth:`pandas.array` inference changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -540,7 +501,7 @@ Other API changes
 ^^^^^^^^^^^^^^^^^
 
 - Bumped the minimum supported version of ``s3fs`` from 0.0.8 to 0.3.0 (:issue:`28616`)
-- :class:`pandas.core.groupby.GroupBy.transform` now raises on invalid operation names (:issue:`27489`)
+- :class:`core.groupby.GroupBy.transform` now raises on invalid operation names (:issue:`27489`)
 - :meth:`pandas.api.types.infer_dtype` will now return "integer-na" for integer and ``np.nan`` mix (:issue:`27283`)
 - :meth:`MultiIndex.from_arrays` will no longer infer names from arrays if ``names=None`` is explicitly provided (:issue:`27292`)
 - In order to improve tab-completion, Pandas does not include most deprecated attributes when introspecting a pandas object using ``dir`` (e.g. ``dir(df)``).
@@ -645,7 +606,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - :meth:`DataFrame.to_excel` and :meth:`Series.to_excel` with non-existent columns will no longer reindex (:issue:`17295`)
 - Removed the previously deprecated keyword "join_axes" from :func:`concat`; use ``reindex_like`` on the result instead (:issue:`22318`)
 - Removed the previously deprecated keyword "by" from :meth:`DataFrame.sort_index`, use :meth:`DataFrame.sort_values` instead (:issue:`10726`)
-- Removed support for nested renaming in :meth:`DataFrame.aggregate`, :meth:`Series.aggregate`, :meth:`DataFrameGroupBy.aggregate`, :meth:`SeriesGroupBy.aggregate`, :meth:`Rolling.aggregate` (:issue:`18529`)
+- Removed support for nested renaming in :meth:`DataFrame.aggregate`, :meth:`Series.aggregate`, :meth:`core.groupby.DataFrameGroupBy.aggregate`, :meth:`core.groupby.SeriesGroupBy.aggregate`, :meth:`core.window.rolling.Rolling.aggregate` (:issue:`18529`)
 - Passing ``datetime64`` data to :class:`TimedeltaIndex` or ``timedelta64`` data to ``DatetimeIndex`` now raises ``TypeError`` (:issue:`23539`, :issue:`23937`)
 - Passing ``int64`` values to :class:`DatetimeIndex` and a timezone now interprets the values as nanosecond timestamps in UTC, not wall times in the given timezone (:issue:`24559`)
 - A tuple passed to :meth:`DataFrame.groupby` is now exclusively treated as a single key (:issue:`18314`)
@@ -685,7 +646,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - Removed the previously deprecated ``FrozenNDArray`` class in ``pandas.core.indexes.frozen`` (:issue:`29335`)
 - Removed the previously deprecated keyword "nthreads" from :func:`read_feather`, use "use_threads" instead (:issue:`23053`)
 - Removed :meth:`Index.is_lexsorted_for_tuple` (:issue:`29305`)
-- Removed support for nested renaming in :meth:`DataFrame.aggregate`, :meth:`Series.aggregate`, :meth:`DataFrameGroupBy.aggregate`, :meth:`SeriesGroupBy.aggregate`, :meth:`Rolling.aggregate` (:issue:`29608`)
+- Removed support for nested renaming in :meth:`DataFrame.aggregate`, :meth:`Series.aggregate`, :meth:`core.groupby.DataFrameGroupBy.aggregate`, :meth:`core.groupby.SeriesGroupBy.aggregate`, :meth:`core.window.rolling.Rolling.aggregate` (:issue:`29608`)
 - Removed :meth:`Series.valid`; use :meth:`Series.dropna` instead (:issue:`18800`)
 - Removed :attr:`DataFrame.is_copy`, :attr:`Series.is_copy` (:issue:`18812`)
 - Removed :meth:`DataFrame.get_ftype_counts`, :meth:`Series.get_ftype_counts` (:issue:`18243`)
@@ -774,6 +735,11 @@ Categorical
   :class:`Categorical` with duplicate entries, the accessor was skipping duplicates (:issue:`27952`)
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` that would give incorrect results on categorical data (:issue:`26988`)
 - Bug where calling :meth:`Categorical.min` or :meth:`Categorical.max` on an empty Categorical would raise a numpy exception (:issue:`30227`)
+- The following methods now also correctly output values for unobserved categories when called through ``groupby(..., observed=False)`` (:issue:`17605`)
+  * :meth:`core.groupby.SeriesGroupBy.count`
+  * :meth:`core.groupby.SeriesGroupBy.size`
+  * :meth:`core.groupby.SeriesGroupBy.nunique`
+  * :meth:`core.groupby.SeriesGroupBy.nth`
 
 
 Datetimelike
@@ -782,14 +748,14 @@ Datetimelike
 - Bug in :meth:`Series.dt` property lookups when the underlying data is read-only (:issue:`27529`)
 - Bug in ``HDFStore.__getitem__`` incorrectly reading tz attribute created in Python 2 (:issue:`26443`)
 - Bug in :func:`to_datetime` where passing arrays of malformed ``str`` with errors="coerce" could incorrectly lead to raising ``ValueError`` (:issue:`28299`)
-- Bug in :meth:`pandas.core.groupby.SeriesGroupBy.nunique` where ``NaT`` values were interfering with the count of unique values (:issue:`27951`)
+- Bug in :meth:`core.groupby.SeriesGroupBy.nunique` where ``NaT`` values were interfering with the count of unique values (:issue:`27951`)
 - Bug in :class:`Timestamp` subtraction when subtracting a :class:`Timestamp` from a ``np.datetime64`` object incorrectly raising ``TypeError`` (:issue:`28286`)
 - Addition and subtraction of integer or integer-dtype arrays with :class:`Timestamp` will now raise ``NullFrequencyError`` instead of ``ValueError`` (:issue:`28268`)
 - Bug in :class:`Series` and :class:`DataFrame` with integer dtype failing to raise ``TypeError`` when adding or subtracting a ``np.datetime64`` object (:issue:`28080`)
 - Bug in :meth:`Series.astype`, :meth:`Index.astype`, and :meth:`DataFrame.astype` failing to handle ``NaT`` when casting to an integer dtype (:issue:`28492`)
 - Bug in :class:`Week` with ``weekday`` incorrectly raising ``AttributeError`` instead of ``TypeError`` when adding or subtracting an invalid type (:issue:`28530`)
 - Bug in :class:`DataFrame` arithmetic operations when operating with a :class:`Series` with dtype `'timedelta64[ns]'` (:issue:`28049`)
-- Bug in :func:`pandas.core.groupby.generic.SeriesGroupBy.apply` raising ``ValueError`` when a column in the original DataFrame is a datetime and the column labels are not standard integers (:issue:`28247`)
+- Bug in :func:`core.groupby.generic.SeriesGroupBy.apply` raising ``ValueError`` when a column in the original DataFrame is a datetime and the column labels are not standard integers (:issue:`28247`)
 - Bug in :func:`pandas._config.localization.get_locales` where the ``locales -a`` encodes the locales list as windows-1252 (:issue:`23638`, :issue:`24760`, :issue:`27368`)
 - Bug in :meth:`Series.var` failing to raise ``TypeError`` when called with ``timedelta64[ns]`` dtype (:issue:`28289`)
 - Bug in :meth:`DatetimeIndex.strftime` and :meth:`Series.dt.strftime` where ``NaT`` was converted to the string ``'NaT'`` instead of ``np.nan`` (:issue:`29578`)
@@ -924,24 +890,24 @@ Plotting
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-- Bug in :meth:`DataFrame.groupby.apply` only showing output from a single group when function returns an :class:`Index` (:issue:`28652`)
+- Bug in :meth:`core.groupby.DataFrameGroupBy.apply` only showing output from a single group when function returns an :class:`Index` (:issue:`28652`)
 - Bug in :meth:`DataFrame.groupby` with multiple groups where an ``IndexError`` would be raised if any group contained all NA values (:issue:`20519`)
 - Bug in :meth:`pandas.core.resample.Resampler.size` and :meth:`pandas.core.resample.Resampler.count` returning wrong dtype when used with an empty series or dataframe (:issue:`28427`)
 - Bug in :meth:`DataFrame.rolling` not allowing for rolling over datetimes when ``axis=1`` (:issue:`28192`)
 - Bug in :meth:`DataFrame.rolling` not allowing rolling over multi-index levels (:issue:`15584`).
 - Bug in :meth:`DataFrame.rolling` not allowing rolling on monotonic decreasing time indexes (:issue:`19248`).
 - Bug in :meth:`DataFrame.groupby` not offering selection by column name when ``axis=1`` (:issue:`27614`)
-- Bug in :meth:`DataFrameGroupby.agg` not able to use lambda function with named aggregation (:issue:`27519`)
+- Bug in :meth:`core.groupby.DataFrameGroupby.agg` not able to use lambda function with named aggregation (:issue:`27519`)
 - Bug in :meth:`DataFrame.groupby` losing column name information when grouping by a categorical column (:issue:`28787`)
 - Remove error raised due to duplicated input functions in named aggregation in :meth:`DataFrame.groupby` and :meth:`Series.groupby`. Previously error will be raised if the same function is applied on the same column and now it is allowed if new assigned names are different. (:issue:`28426`)
-- :meth:`SeriesGroupBy.value_counts` will be able to handle the case even when the :class:`Grouper` makes empty groups (:issue: 28479)
-- Bug in :meth:`DataFrameGroupBy.rolling().quantile()` ignoring ``interpolation`` keyword argument (:issue:`28779`)
+- :meth:`core.groupby.SeriesGroupBy.value_counts` will be able to handle the case even when the :class:`Grouper` makes empty groups (:issue:`28479`)
+- Bug in :meth:`core.window.rolling.Rolling.quantile` ignoring ``interpolation`` keyword argument when used within a groupby (:issue:`28779`)
 - Bug in :meth:`DataFrame.groupby` where ``any``, ``all``, ``nunique`` and transform functions would incorrectly handle duplicate column labels (:issue:`21668`)
-- Bug in :meth:`DataFrameGroupBy.agg` with timezone-aware datetime64 column incorrectly casting results to the original dtype (:issue:`29641`)
+- Bug in :meth:`core.groupby.DataFrameGroupBy.agg` with timezone-aware datetime64 column incorrectly casting results to the original dtype (:issue:`29641`)
 - Bug in :meth:`DataFrame.groupby` when using axis=1 and having a single level columns index (:issue:`30208`)
 - Bug in :meth:`DataFrame.groupby` when using nunique on axis=1 (:issue:`30253`)
 - Bug in :meth:`GroupBy.quantile` with multiple list-like q value and integer column names (:issue:`30289`)
-- Bug in :meth:`GroupBy.pct_change` and :meth:`SeriesGroupBy.pct_change` causes ``TypeError`` when ``fill_method`` is ``None`` (:issue:`30463`)
+- Bug in :meth:`GroupBy.pct_change` and :meth:`core.groupby.SeriesGroupBy.pct_change` causes ``TypeError`` when ``fill_method`` is ``None`` (:issue:`30463`)
 
 Reshaping
 ^^^^^^^^^
