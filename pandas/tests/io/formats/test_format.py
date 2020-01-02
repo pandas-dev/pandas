@@ -1238,7 +1238,7 @@ class TestDataFrameFormatting:
             set_option("display.expand_frame_repr", False)
             rep_str = repr(df)
 
-            assert f"10 rows x {(max_cols - 1)} columns" in rep_str
+            assert f"10 rows x {max_cols - 1} columns" in rep_str
             set_option("display.expand_frame_repr", True)
             wide_repr = repr(df)
             assert rep_str != wide_repr
@@ -1606,7 +1606,7 @@ class TestDataFrameFormatting:
 
         result = df.to_string()
         # sadness per above
-        if f"{1.7e8:.4g}" == "1.7e+008":
+        if _three_digit_exp():
             expected = (
                 "               a\n"
                 "0  1.500000e+000\n"
@@ -1935,7 +1935,7 @@ c  10  11  12  13  14\
             ).set_index("idx")
             reg_repr = df._repr_html_()
             assert ".." not in reg_repr
-            assert f"<td>{str(40 + h)}</td>" in reg_repr
+            assert f"<td>{40 + h}</td>" in reg_repr
 
             h = max_rows + 1
             df = DataFrame(
@@ -1947,7 +1947,7 @@ c  10  11  12  13  14\
             ).set_index("idx")
             long_repr = df._repr_html_()
             assert ".." in long_repr
-            assert f"<td>{str(31)}</td>" not in long_repr
+            assert "<td>31</td>" not in long_repr
             assert f"{h} rows " in long_repr
             assert "2 columns" in long_repr
 
