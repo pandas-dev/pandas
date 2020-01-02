@@ -251,6 +251,8 @@ def check_bool_array_indexer(array: AnyArrayLike, mask: AnyArrayLike) -> np.ndar
     `array` and `mask` are checked to have the same length, and the
     dtype is validated.
 
+    .. versionadded:: 1.0.0
+
     Parameters
     ----------
     array : array

@@ -10,7 +10,6 @@ from pandas.core.dtypes.base import ExtensionDtype
 import pandas as pd
 from pandas.api.extensions import register_extension_dtype
 from pandas.core.arrays import ExtensionArray, ExtensionScalarOpsMixin
-from pandas.core.indexers import check_bool_array_indexer
 
 
 @register_extension_dtype
@@ -116,7 +115,7 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
                     item = pd.array(item)
                 dtype = item.dtype
                 if pd.api.types.is_bool_dtype(dtype):
-                    item = check_bool_array_indexer(self, item)
+                    item = pd.api.indexers.check_bool_array_indexer(self, item)
             return type(self)(self._data[item])
 
     def take(self, indexer, allow_fill=False, fill_value=None):
