@@ -9,9 +9,9 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs import conversion, timezones
-import pandas.util._testing as tm
 
 from pandas import DatetimeIndex, Index, NaT, Series, Timestamp
+import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
 
 

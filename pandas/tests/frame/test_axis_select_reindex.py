@@ -5,10 +5,10 @@ import numpy as np
 import pytest
 
 from pandas.errors import PerformanceWarning
-import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import Categorical, DataFrame, Index, MultiIndex, Series, date_range, isna
+import pandas._testing as tm
 
 
 class TestDataFrameSelectReindex:

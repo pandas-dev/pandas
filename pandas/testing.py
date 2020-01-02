@@ -2,7 +2,7 @@
 Public testing utility functions.
 """
 
-from pandas.util._testing import (
+from pandas._testing import (
     assert_almost_equal,
     assert_categorical_equal,
     assert_datetime_array_equal,

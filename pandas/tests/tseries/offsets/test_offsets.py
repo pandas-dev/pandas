@@ -21,8 +21,8 @@ from pandas._libs.tslibs.offsets import ApplyTypeError
 import pandas.compat as compat
 from pandas.compat.numpy import np_datetime64_compat
 from pandas.errors import PerformanceWarning
-import pandas.util._testing as tm
 
+import pandas._testing as tm
 from pandas.core.indexes.datetimes import DatetimeIndex, _to_M8, date_range
 from pandas.core.series import Series
 

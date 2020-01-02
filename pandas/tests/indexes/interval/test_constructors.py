@@ -3,8 +3,6 @@ from functools import partial
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 from pandas.core.dtypes.common import is_categorical_dtype
 from pandas.core.dtypes.dtypes import IntervalDtype
 
@@ -21,6 +19,7 @@ from pandas import (
     period_range,
     timedelta_range,
 )
+import pandas._testing as tm
 from pandas.core.arrays import IntervalArray
 import pandas.core.common as com
 

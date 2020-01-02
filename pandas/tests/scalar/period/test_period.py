@@ -13,10 +13,10 @@ from pandas._libs.tslibs.parsing import DateParseError
 from pandas._libs.tslibs.period import IncompatibleFrequency
 from pandas._libs.tslibs.timezones import dateutil_gettz, maybe_get_tz
 from pandas.compat.numpy import np_datetime64_compat
-import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import NaT, Period, Timedelta, Timestamp, offsets
+import pandas._testing as tm
 
 
 class TestPeriodConstruction:

@@ -8,10 +8,9 @@ from dateutil.parser import parse
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 import pandas as pd
 from pandas import DataFrame, Index
+import pandas._testing as tm
 
 
 def test_converters_type_must_be_dict(all_parsers):

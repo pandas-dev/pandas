@@ -9,12 +9,12 @@ from numpy import random
 
 from pandas.util._decorators import cache_readonly
 import pandas.util._test_decorators as td
-import pandas.util._testing as tm
 
 from pandas.core.dtypes.api import is_list_like
 
 import pandas as pd
 from pandas import DataFrame, Series
+import pandas._testing as tm
 
 
 """

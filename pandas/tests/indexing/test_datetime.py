@@ -4,10 +4,9 @@ from dateutil import tz
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 import pandas as pd
 from pandas import DataFrame, Index, Series, Timestamp, date_range
+import pandas._testing as tm
 
 
 class TestDatetimeIndex:

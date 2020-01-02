@@ -2,11 +2,10 @@ from warnings import catch_warnings
 
 import numpy as np
 
-import pandas.util._testing as tm
-
 from pandas.core.dtypes import generic as gt
 
 import pandas as pd
+import pandas._testing as tm
 
 
 class TestABCClasses:

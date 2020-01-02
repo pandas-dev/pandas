@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 
 from pandas.errors import OutOfBoundsDatetime, PerformanceWarning
-import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import (
@@ -19,6 +18,7 @@ from pandas import (
     Timestamp,
     timedelta_range,
 )
+import pandas._testing as tm
 from pandas.tests.arithmetic.common import (
     assert_invalid_addsub_type,
     assert_invalid_comparison,

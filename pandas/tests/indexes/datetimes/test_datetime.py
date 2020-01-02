@@ -4,10 +4,9 @@ import dateutil
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex, Index, Timestamp, date_range, offsets
+import pandas._testing as tm
 
 randn = np.random.randn
 

@@ -1,9 +1,8 @@
 import numpy as np
 from numpy.random import randn
 
-import pandas.util._testing as tm
-
 from pandas import DataFrame, MultiIndex, Series
+import pandas._testing as tm
 
 
 class TestMultiIndexSorted:

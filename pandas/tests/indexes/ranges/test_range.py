@@ -1,12 +1,11 @@
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 from pandas.core.dtypes.common import ensure_platform_int
 
 import pandas as pd
 from pandas import Float64Index, Index, Int64Index, RangeIndex
+import pandas._testing as tm
 
 from ..test_numeric import Numeric
 

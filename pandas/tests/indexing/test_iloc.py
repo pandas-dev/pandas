@@ -6,10 +6,9 @@ from warnings import catch_warnings, simplefilter
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 import pandas as pd
 from pandas import DataFrame, Series, concat, date_range, isna
+import pandas._testing as tm
 from pandas.api.types import is_scalar
 from pandas.core.indexing import IndexingError
 from pandas.tests.indexing.common import Base

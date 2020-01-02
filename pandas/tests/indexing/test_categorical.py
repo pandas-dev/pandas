@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 from pandas.core.dtypes.common import is_categorical_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -18,6 +16,7 @@ from pandas import (
     Timestamp,
     conftest,
 )
+import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 
 

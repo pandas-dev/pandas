@@ -2,10 +2,9 @@ from datetime import timedelta
 
 import numpy as np
 
-import pandas.util._testing as tm
-
 import pandas as pd
 from pandas import DataFrame, Series
+import pandas._testing as tm
 from pandas.core.indexes.timedeltas import timedelta_range
 
 

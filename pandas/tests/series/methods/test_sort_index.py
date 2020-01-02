@@ -3,9 +3,8 @@ import random
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 from pandas import IntervalIndex, MultiIndex, Series
+import pandas._testing as tm
 
 
 class TestSeriesSortIndex:

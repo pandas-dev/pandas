@@ -5,10 +5,10 @@ import pytest
 
 from pandas.errors import UnsupportedFunctionCall
 import pandas.util._test_decorators as td
-import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import DataFrame, Index, Series
+import pandas._testing as tm
 from pandas.core.window import Rolling
 from pandas.tests.window.common import Base
 

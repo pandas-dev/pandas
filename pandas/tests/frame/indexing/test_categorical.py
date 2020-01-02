@@ -1,12 +1,11 @@
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
 from pandas import Categorical, DataFrame, Index, Series
+import pandas._testing as tm
 
 
 class TestDataFrameIndexingCategorical:

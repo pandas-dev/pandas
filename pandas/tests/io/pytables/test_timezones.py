@@ -4,10 +4,10 @@ import numpy as np
 import pytest
 
 import pandas.util._test_decorators as td
-import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex, Series, Timestamp, date_range
+import pandas._testing as tm
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
     ensure_clean_path,

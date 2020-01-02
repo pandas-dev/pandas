@@ -3,7 +3,8 @@ from textwrap import dedent
 import pytest
 
 from pandas.util._decorators import deprecate
-import pandas.util._testing as tm
+
+import pandas._testing as tm
 
 
 def new_func():

@@ -17,9 +17,9 @@ import numpy as np
 import pytest
 
 from pandas.compat.numpy import _np_version_under1p14
-import pandas.util._testing as tm
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.core.arrays.boolean import BooleanDtype
 from pandas.tests.extension import base
 

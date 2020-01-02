@@ -4,9 +4,8 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
-import pandas.util._testing as tm
-
 from pandas import DataFrame, Index, MultiIndex, Series, isna, notna
+import pandas._testing as tm
 from pandas.tests.window.common import ConsistencyBase
 
 

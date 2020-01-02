@@ -2,10 +2,10 @@ import numpy as np
 import pytest
 
 from pandas.errors import PerformanceWarning, UnsortedIndexError
-import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import CategoricalIndex, DataFrame, Index, MultiIndex, RangeIndex
+import pandas._testing as tm
 
 
 def test_sortlevel(idx):

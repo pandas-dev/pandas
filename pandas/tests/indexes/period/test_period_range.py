@@ -1,8 +1,7 @@
 import pytest
 
-import pandas.util._testing as tm
-
 from pandas import NaT, Period, PeriodIndex, date_range, period_range
+import pandas._testing as tm
 
 
 class TestPeriodRange:

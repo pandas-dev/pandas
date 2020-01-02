@@ -3,9 +3,8 @@ from collections import abc
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 from pandas import CategoricalDtype, DataFrame, MultiIndex, Series, date_range
+import pandas._testing as tm
 
 
 class TestDataFrameToRecords:

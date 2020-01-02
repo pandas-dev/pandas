@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 from pandas.compat import PY37
-import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import (
@@ -16,6 +15,7 @@ from pandas import (
     Series,
     qcut,
 )
+import pandas._testing as tm
 
 
 def cartesian_product_for_groupers(result, args, names):

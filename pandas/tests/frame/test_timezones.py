@@ -7,12 +7,11 @@ import numpy as np
 import pytest
 import pytz
 
-import pandas.util._testing as tm
-
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
 from pandas import DataFrame, Series
+import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
 
 

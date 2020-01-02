@@ -1,9 +1,8 @@
 import numpy as np
 
-import pandas.util._testing as tm
-
 import pandas as pd
 from pandas import Categorical, MultiIndex, Series
+import pandas._testing as tm
 
 
 class TestSeriesCount:

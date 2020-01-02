@@ -5,10 +5,9 @@ import re
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, option_context
+import pandas._testing as tm
 
 import pandas.io.formats.format as fmt
 

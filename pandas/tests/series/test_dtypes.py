@@ -7,7 +7,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import iNaT
-import pandas.util._testing as tm
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -21,6 +20,7 @@ from pandas import (
     Timestamp,
     date_range,
 )
+import pandas._testing as tm
 
 
 class TestSeriesDtypes:

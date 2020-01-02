@@ -26,8 +26,6 @@ import warnings
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 from pandas.core.dtypes.common import is_datetime64_dtype, is_datetime64tz_dtype
 
 import pandas as pd
@@ -43,6 +41,7 @@ from pandas import (
     to_datetime,
     to_timedelta,
 )
+import pandas._testing as tm
 
 import pandas.io.sql as sql
 from pandas.io.sql import read_sql_query, read_sql_table

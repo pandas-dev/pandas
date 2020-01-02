@@ -5,11 +5,10 @@ import numpy as np
 import pytest
 import pytz
 
-import pandas.util._testing as tm
-
 from pandas.core.dtypes.dtypes import registry
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.api.extensions import register_extension_dtype
 from pandas.api.types import is_scalar
 from pandas.core.arrays import PandasArray, integer_array, period_array

@@ -7,10 +7,10 @@ import pytest
 import pytz
 
 from pandas.errors import UnsupportedFunctionCall
-import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import DataFrame, Series, Timedelta, Timestamp, isna, notna
+import pandas._testing as tm
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import Period, period_range

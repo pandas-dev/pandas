@@ -17,9 +17,9 @@ from pandas._libs.tslibs.timezones import dateutil_gettz as gettz, get_timezone
 from pandas.compat.numpy import np_datetime64_compat
 from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
-import pandas.util._testing as tm
 
 from pandas import NaT, Period, Timedelta, Timestamp
+import pandas._testing as tm
 
 from pandas.tseries import offsets
 

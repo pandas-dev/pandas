@@ -9,7 +9,6 @@ import numpy.ma.mrecords as mrecords
 import pytest
 
 from pandas.compat import is_platform_little_endian
-import pandas.util._testing as tm
 
 from pandas.core.dtypes.common import is_integer_dtype
 
@@ -26,6 +25,7 @@ from pandas import (
     date_range,
     isna,
 )
+import pandas._testing as tm
 from pandas.arrays import IntervalArray, PeriodArray
 from pandas.core.construction import create_series_with_explicit_dtype
 

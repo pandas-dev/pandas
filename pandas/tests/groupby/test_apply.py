@@ -4,10 +4,9 @@ from io import StringIO
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, bdate_range
+import pandas._testing as tm
 
 
 def test_apply_issues():

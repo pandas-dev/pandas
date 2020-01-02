@@ -2,7 +2,7 @@ import warnings
 
 import pytest
 
-import pandas.util._testing as tm
+import pandas._testing as tm
 
 
 def f():

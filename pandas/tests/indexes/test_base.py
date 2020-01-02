@@ -12,7 +12,6 @@ import pandas._config.config as cf
 
 from pandas._libs.tslib import Timestamp
 from pandas.compat.numpy import np_datetime64_compat
-import pandas.util._testing as tm
 
 from pandas.core.dtypes.common import is_unsigned_integer_dtype
 from pandas.core.dtypes.generic import ABCIndex
@@ -33,6 +32,7 @@ from pandas import (
     isna,
     period_range,
 )
+import pandas._testing as tm
 from pandas.core.algorithms import safe_sort
 from pandas.core.indexes.api import (
     Index,

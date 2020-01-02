@@ -4,10 +4,9 @@ from itertools import chain
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 import pandas as pd
 from pandas import DataFrame, Index, Series, isna
+import pandas._testing as tm
 from pandas.conftest import _get_cython_table_params
 from pandas.core.base import SpecificationError
 

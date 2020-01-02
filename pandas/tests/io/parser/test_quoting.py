@@ -9,9 +9,9 @@ from io import StringIO
 import pytest
 
 from pandas.errors import ParserError
-import pandas.util._testing as tm
 
 from pandas import DataFrame
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize(

@@ -2,10 +2,10 @@ import numpy as np
 import pytest
 
 from pandas.errors import UnsupportedFunctionCall
-import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import DataFrame, Series
+import pandas._testing as tm
 from pandas.core.window import Expanding
 from pandas.tests.window.common import Base
 

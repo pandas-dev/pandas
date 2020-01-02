@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 from pandas import (
     DatetimeIndex,
     Float64Index,
@@ -14,6 +12,7 @@ from pandas import (
     _np_version_under1p17,
     _np_version_under1p18,
 )
+import pandas._testing as tm
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 
 

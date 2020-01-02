@@ -4,10 +4,9 @@ import itertools
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Period, Series, Timedelta, date_range
+import pandas._testing as tm
 
 
 class TestDataFrameReshape:

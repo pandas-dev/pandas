@@ -3,9 +3,8 @@ import operator
 
 import pytest
 
-import pandas.util._testing as tm
-
 import pandas as pd
+import pandas._testing as tm
 from pandas.tests.extension import base
 
 from .array import JSONArray, JSONDtype, make_data

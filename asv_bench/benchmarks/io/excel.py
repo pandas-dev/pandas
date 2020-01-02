@@ -5,9 +5,8 @@ from odf.opendocument import OpenDocumentSpreadsheet
 from odf.table import Table, TableCell, TableRow
 from odf.text import P
 
-import pandas.util._testing as tm
-
 from pandas import DataFrame, ExcelWriter, date_range, read_excel
+import pandas._testing as tm
 
 
 def _generate_dataframe():

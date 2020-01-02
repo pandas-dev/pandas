@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 from pandas import (
     DataFrame,
     Index,
@@ -12,6 +10,7 @@ from pandas import (
     date_range,
     to_datetime,
 )
+import pandas._testing as tm
 
 import pandas.tseries.offsets as offsets
 

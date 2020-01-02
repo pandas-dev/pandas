@@ -7,10 +7,10 @@ import pytz
 
 from pandas._libs.tslibs.ccalendar import DAYS, MONTHS
 from pandas._libs.tslibs.period import IncompatibleFrequency
-import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp
+import pandas._testing as tm
 from pandas.core.indexes.base import InvalidIndexError
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import Period, PeriodIndex, period_range

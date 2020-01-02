@@ -4,8 +4,6 @@ from itertools import product
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -17,6 +15,7 @@ from pandas import (
     concat,
     date_range,
 )
+import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 from pandas.core.reshape.pivot import crosstab, pivot_table
 

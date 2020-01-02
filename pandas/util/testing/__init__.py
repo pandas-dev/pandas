@@ -142,4 +142,4 @@ _removals = [
     "zipfile",
 ]
 
-testing = _DeprecatedModule("pandas.util._testing", "pandas.testing", _removals)
+testing = _DeprecatedModule("pandas._testing", "pandas.testing", _removals)

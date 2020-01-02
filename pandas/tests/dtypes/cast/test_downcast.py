@@ -3,11 +3,10 @@ import decimal
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 
 from pandas import DatetimeIndex, Series, Timestamp
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize(

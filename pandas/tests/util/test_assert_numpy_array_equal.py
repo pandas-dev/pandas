@@ -1,9 +1,8 @@
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 from pandas import Timestamp
+import pandas._testing as tm
 
 
 def test_assert_numpy_array_equal_shape_mismatch():

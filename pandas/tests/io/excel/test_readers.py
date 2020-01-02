@@ -10,10 +10,10 @@ import numpy as np
 import pytest
 
 import pandas.util._test_decorators as td
-import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
+import pandas._testing as tm
 
 
 @contextlib.contextmanager

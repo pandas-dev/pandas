@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 
 import pandas.util._test_decorators as td
-import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import (
@@ -21,6 +20,7 @@ from pandas import (
     to_datetime,
     to_timedelta,
 )
+import pandas._testing as tm
 import pandas.core.algorithms as algorithms
 import pandas.core.nanops as nanops
 

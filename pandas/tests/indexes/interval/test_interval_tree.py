@@ -4,9 +4,9 @@ import numpy as np
 import pytest
 
 from pandas._libs.interval import IntervalTree
-import pandas.util._testing as tm
 
 from pandas import compat
+import pandas._testing as tm
 
 
 def skipif_32bit(param):

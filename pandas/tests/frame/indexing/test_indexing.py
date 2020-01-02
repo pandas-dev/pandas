@@ -5,7 +5,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import iNaT
-import pandas.util._testing as tm
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer
 
@@ -21,6 +20,7 @@ from pandas import (
     isna,
     notna,
 )
+import pandas._testing as tm
 import pandas.core.common as com
 from pandas.core.indexing import IndexingError
 

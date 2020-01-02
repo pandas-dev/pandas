@@ -6,9 +6,9 @@ from numpy.random import randint
 import pytest
 
 from pandas._libs import lib
-import pandas.util._testing as tm
 
 from pandas import DataFrame, Index, MultiIndex, Series, concat, isna, notna
+import pandas._testing as tm
 import pandas.core.strings as strings
 
 

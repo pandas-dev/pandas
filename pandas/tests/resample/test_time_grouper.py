@@ -4,10 +4,9 @@ from operator import methodcaller
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 import pandas as pd
 from pandas import DataFrame, Series
+import pandas._testing as tm
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.indexes.datetimes import date_range
 

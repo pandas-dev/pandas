@@ -7,12 +7,11 @@ import itertools as it
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 from pandas.core.dtypes.common import is_dtype_equal
 
 import pandas as pd
 from pandas import Float64Index, Int64Index, RangeIndex, UInt64Index
+import pandas._testing as tm
 from pandas.api.types import pandas_dtype
 from pandas.tests.indexes.conftest import indices_dict
 

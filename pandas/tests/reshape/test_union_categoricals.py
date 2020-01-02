@@ -1,12 +1,11 @@
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 from pandas.core.dtypes.concat import union_categoricals
 
 import pandas as pd
 from pandas import Categorical, CategoricalIndex, Series
+import pandas._testing as tm
 
 
 class TestUnionCategoricals:

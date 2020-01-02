@@ -6,8 +6,6 @@ import re
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 from pandas.core.dtypes.common import is_categorical_dtype, is_object_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -27,6 +25,7 @@ from pandas import (
     TimedeltaIndex,
     UInt64Index,
 )
+import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.merge import MergeError, merge

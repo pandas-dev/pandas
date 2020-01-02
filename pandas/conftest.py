@@ -12,10 +12,10 @@ import pytest
 from pytz import FixedOffset, utc
 
 import pandas.util._test_decorators as td
-import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import DataFrame
+import pandas._testing as tm
 from pandas.core import ops
 
 hypothesis.settings.register_profile(

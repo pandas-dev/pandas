@@ -18,10 +18,9 @@ import string
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 import pandas as pd
 from pandas import Categorical, CategoricalIndex, Timestamp
+import pandas._testing as tm
 from pandas.api.types import CategoricalDtype
 from pandas.tests.extension import base
 

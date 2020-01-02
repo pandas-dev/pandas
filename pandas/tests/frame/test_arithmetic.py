@@ -5,9 +5,8 @@ import operator
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 import pandas as pd
+import pandas._testing as tm
 from pandas.tests.frame.common import _check_mixed_float, _check_mixed_int
 
 # -------------------------------------------------------------------

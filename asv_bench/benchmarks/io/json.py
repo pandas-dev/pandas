@@ -1,8 +1,7 @@
 import numpy as np
 
-import pandas.util._testing as tm
-
 from pandas import DataFrame, concat, date_range, read_json, timedelta_range
+import pandas._testing as tm
 
 from ..pandas_vb_common import BaseIO
 

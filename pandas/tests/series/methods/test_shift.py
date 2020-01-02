@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 from pandas.errors import NullFrequencyError
-import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import (
@@ -14,6 +13,7 @@ from pandas import (
     date_range,
     offsets,
 )
+import pandas._testing as tm
 
 from pandas.tseries.offsets import BDay
 

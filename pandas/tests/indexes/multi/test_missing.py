@@ -2,10 +2,10 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import iNaT
-import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import Int64Index, MultiIndex, PeriodIndex, UInt64Index
+import pandas._testing as tm
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 
 

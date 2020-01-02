@@ -5,10 +5,9 @@ Tests for TimedeltaIndex methods behaving like their Timedelta counterparts
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 import pandas as pd
 from pandas import Index, Series, Timedelta, TimedeltaIndex, timedelta_range
+import pandas._testing as tm
 
 
 class TestVectorizedTimedelta:

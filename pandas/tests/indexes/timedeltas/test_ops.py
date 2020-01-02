@@ -3,12 +3,11 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 from pandas.core.dtypes.generic import ABCDateOffset
 
 import pandas as pd
 from pandas import Series, TimedeltaIndex, timedelta_range
+import pandas._testing as tm
 from pandas.tests.base.test_ops import Ops
 
 from pandas.tseries.offsets import Day, Hour

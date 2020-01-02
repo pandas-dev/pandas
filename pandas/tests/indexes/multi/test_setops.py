@@ -1,10 +1,9 @@
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 import pandas as pd
 from pandas import MultiIndex, Series
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize("case", [0.5, "xxx"])

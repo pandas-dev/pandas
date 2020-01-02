@@ -2,10 +2,9 @@ from textwrap import dedent
 
 import numpy as np
 
-import pandas.util._testing as tm
-
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp
+import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
 
 test_frame = DataFrame(
@@ -19,7 +18,7 @@ def test_tab_complete_ipython6_warning(ip):
 
     code = dedent(
         """\
-    import pandas.util._testing as tm
+    import pandas._testing as tm
     s = tm.makeTimeSeries()
     rs = s.resample("D")
     """

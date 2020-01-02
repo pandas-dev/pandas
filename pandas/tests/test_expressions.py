@@ -5,8 +5,7 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
-import pandas.util._testing as tm
-
+import pandas._testing as tm
 from pandas.core.api import DataFrame
 from pandas.core.computation import expressions as expr
 

@@ -16,9 +16,9 @@ import pytest
 
 from pandas._libs.tslib import Timestamp
 from pandas.errors import DtypeWarning, EmptyDataError, ParserError
-import pandas.util._testing as tm
 
 from pandas import DataFrame, Index, MultiIndex, Series, compat, concat
+import pandas._testing as tm
 
 from pandas.io.parsers import CParserWrapper, TextFileReader, TextParser
 

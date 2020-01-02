@@ -9,7 +9,6 @@ import numpy as np
 import pytest
 
 from pandas.compat import PYPY
-import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import (
@@ -20,6 +19,7 @@ from pandas import (
     option_context,
     period_range,
 )
+import pandas._testing as tm
 
 import pandas.io.formats.format as fmt
 

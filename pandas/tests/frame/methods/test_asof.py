@@ -1,9 +1,8 @@
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 from pandas import DataFrame, Series, Timestamp, date_range, to_datetime
+import pandas._testing as tm
 
 
 @pytest.fixture

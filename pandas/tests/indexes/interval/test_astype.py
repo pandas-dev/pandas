@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 from pandas.core.dtypes.dtypes import CategoricalDtype, IntervalDtype
 
 from pandas import (
@@ -14,6 +12,7 @@ from pandas import (
     Timestamp,
     interval_range,
 )
+import pandas._testing as tm
 
 
 class Base:

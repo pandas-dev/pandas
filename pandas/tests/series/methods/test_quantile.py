@@ -1,12 +1,11 @@
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 from pandas.core.dtypes.common import is_integer
 
 import pandas as pd
 from pandas import Index, Series
+import pandas._testing as tm
 from pandas.core.indexes.datetimes import Timestamp
 
 

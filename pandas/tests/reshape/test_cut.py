@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -21,6 +19,7 @@ from pandas import (
     timedelta_range,
     to_datetime,
 )
+import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 import pandas.core.reshape.tile as tmod
 

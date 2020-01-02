@@ -17,10 +17,10 @@ from pandas._libs.tslibs import parsing
 from pandas._libs.tslibs.parsing import parse_datetime_string
 from pandas.compat import is_platform_windows
 from pandas.compat.numpy import np_array_datetime64_compat
-import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex, Index, MultiIndex, Series
+import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
 
 import pandas.io.date_converters as conv

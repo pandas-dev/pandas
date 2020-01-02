@@ -1,9 +1,8 @@
-import pandas.util._testing as tm
-
 from pandas.core.dtypes.cast import construct_1d_arraylike_from_scalar
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 from pandas import Categorical
+import pandas._testing as tm
 
 
 def test_cast_1d_array_like_from_scalar_categorical():

@@ -9,10 +9,10 @@ import pytest
 
 from pandas.compat import is_platform_32bit, is_platform_windows
 import pandas.util._test_decorators as td
-import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex, Series, Timestamp, read_json
+import pandas._testing as tm
 
 _seriesd = tm.getSeriesData()
 _tsd = tm.getTimeSeriesData()

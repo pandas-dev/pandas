@@ -3,10 +3,10 @@ from numpy.random import randn
 import pytest
 
 from pandas._libs import join as libjoin
-import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, concat, merge
+import pandas._testing as tm
 from pandas.tests.reshape.merge.test_merge import NGROUPS, N, get_test_data
 
 a_ = np.array

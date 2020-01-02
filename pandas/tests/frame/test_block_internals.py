@@ -5,8 +5,6 @@ import itertools
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -17,6 +15,7 @@ from pandas import (
     date_range,
     option_context,
 )
+import pandas._testing as tm
 from pandas.core.arrays import IntervalArray, integer_array
 from pandas.core.internals import ObjectBlock
 from pandas.core.internals.blocks import IntBlock

@@ -7,9 +7,9 @@ import numpy as np
 import pytest
 
 import pandas.util._test_decorators as td
-import pandas.util._testing as tm
 
 from pandas import DataFrame, Index, NaT, Series, isna
+import pandas._testing as tm
 from pandas.core.indexes.datetimes import bdate_range, date_range
 from pandas.core.indexes.period import Period, PeriodIndex, period_range
 from pandas.core.indexes.timedeltas import timedelta_range

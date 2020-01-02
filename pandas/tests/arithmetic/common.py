@@ -4,9 +4,8 @@ Assertion helpers for arithmetic tests.
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 from pandas import DataFrame, Index, Series
+import pandas._testing as tm
 
 
 def assert_invalid_addsub_type(left, right, msg=None):

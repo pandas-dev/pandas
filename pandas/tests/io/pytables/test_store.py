@@ -12,7 +12,6 @@ import pytest
 
 from pandas.compat import is_platform_little_endian, is_platform_windows
 import pandas.util._test_decorators as td
-import pandas.util._testing as tm
 
 from pandas.core.dtypes.common import is_categorical_dtype
 
@@ -34,6 +33,7 @@ from pandas import (
     isna,
     timedelta_range,
 )
+import pandas._testing as tm
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
     create_tempfile,

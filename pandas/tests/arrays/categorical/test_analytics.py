@@ -4,9 +4,9 @@ import numpy as np
 import pytest
 
 from pandas.compat import PYPY
-import pandas.util._testing as tm
 
 from pandas import Categorical, Index, NaT, Series, date_range
+import pandas._testing as tm
 from pandas.api.types import is_scalar
 
 

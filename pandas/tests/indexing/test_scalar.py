@@ -3,9 +3,8 @@
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 from pandas import DataFrame, Series, Timedelta, Timestamp, date_range
+import pandas._testing as tm
 from pandas.tests.indexing.common import Base
 
 

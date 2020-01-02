@@ -5,7 +5,6 @@ import numpy as np
 import pytest
 
 from pandas._libs import groupby
-import pandas.util._testing as tm
 
 from pandas.core.dtypes.common import ensure_platform_int, is_timedelta64_dtype
 
@@ -19,6 +18,7 @@ from pandas import (
     concat,
     date_range,
 )
+import pandas._testing as tm
 from pandas.core.groupby.groupby import DataError
 
 

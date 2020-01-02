@@ -9,7 +9,6 @@ import pytest
 from pandas._libs import algos as libalgos, groupby as libgroupby, hashtable as ht
 from pandas.compat.numpy import np_array_datetime64_compat
 import pandas.util._test_decorators as td
-import pandas.util._testing as tm
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -31,6 +30,7 @@ from pandas import (
     Timestamp,
     compat,
 )
+import pandas._testing as tm
 from pandas.conftest import BYTES_DTYPES, STRING_DTYPES
 import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray

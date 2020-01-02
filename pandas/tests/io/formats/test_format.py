@@ -19,7 +19,6 @@ import pytest
 import pytz
 
 from pandas.compat import is_platform_32bit, is_platform_windows
-import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import (
@@ -36,6 +35,7 @@ from pandas import (
     reset_option,
     set_option,
 )
+import pandas._testing as tm
 
 import pandas.io.formats.format as fmt
 import pandas.io.formats.printing as printing

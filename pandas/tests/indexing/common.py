@@ -4,11 +4,10 @@ from warnings import catch_warnings
 
 import numpy as np
 
-import pandas.util._testing as tm
-
 from pandas.core.dtypes.common import is_scalar
 
 from pandas import DataFrame, Float64Index, MultiIndex, Series, UInt64Index, date_range
+import pandas._testing as tm
 
 
 def _mklbl(prefix, n):

@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 import pandas.util._test_decorators as td
-import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import (
@@ -17,6 +16,7 @@ from pandas import (
     date_range,
     to_datetime,
 )
+import pandas._testing as tm
 
 from pandas.tseries.offsets import BMonthEnd, Minute, MonthEnd
 

@@ -10,9 +10,8 @@ from itertools import product
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 import pandas as pd
+import pandas._testing as tm
 
 
 def _check_accum_op(name, series, check_dtype=True):

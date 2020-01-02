@@ -10,7 +10,8 @@ import pytest
 from pandas._libs.tslibs import parsing
 from pandas._libs.tslibs.parsing import parse_time_string
 import pandas.util._test_decorators as td
-import pandas.util._testing as tm
+
+import pandas._testing as tm
 
 
 def test_parse_time_string():

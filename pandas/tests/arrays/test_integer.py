@@ -2,11 +2,11 @@ import numpy as np
 import pytest
 
 import pandas.util._test_decorators as td
-import pandas.util._testing as tm
 
 from pandas.core.dtypes.generic import ABCIndexClass
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.api.types import is_float, is_float_dtype, is_integer, is_scalar
 from pandas.core.arrays import IntegerArray, integer_array
 from pandas.core.arrays.integer import (

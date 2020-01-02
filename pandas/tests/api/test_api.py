@@ -1,9 +1,8 @@
 from typing import List
 
-import pandas.util._testing as tm
-
 import pandas as pd
 from pandas import api, compat
+import pandas._testing as tm
 
 
 class Base:

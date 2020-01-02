@@ -1,8 +1,7 @@
 import numpy as np
 
-import pandas.util._testing as tm
-
 from pandas import Series
+import pandas._testing as tm
 
 
 def test_iloc():

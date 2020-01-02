@@ -8,7 +8,6 @@ import pytest
 from pandas._libs.tslib import iNaT
 from pandas.compat import PYPY
 from pandas.compat.numpy import np_array_datetime64_compat
-import pandas.util._testing as tm
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
@@ -30,6 +29,7 @@ from pandas import (
     TimedeltaIndex,
     Timestamp,
 )
+import pandas._testing as tm
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 
 

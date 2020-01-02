@@ -15,9 +15,9 @@ import pytest
 
 from pandas.errors import ParserError
 import pandas.util._test_decorators as td
-import pandas.util._testing as tm
 
 from pandas import DataFrame, concat
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize(

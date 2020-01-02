@@ -1,7 +1,6 @@
-import pandas.util._testing as tm
-
 import pandas as pd
 from pandas import DataFrame, Index, Series, date_range, notna
+import pandas._testing as tm
 
 
 class TestDataFrameIndexingDatetimeWithTZ:

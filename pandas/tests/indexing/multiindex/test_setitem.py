@@ -2,10 +2,9 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
-import pandas.util._testing as tm
-
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range, isna, notna
+import pandas._testing as tm
 import pandas.core.common as com
 
 

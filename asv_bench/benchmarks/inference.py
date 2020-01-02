@@ -1,8 +1,7 @@
 import numpy as np
 
-import pandas.util._testing as tm
-
 from pandas import DataFrame, Series, to_numeric
+import pandas._testing as tm
 
 from .pandas_vb_common import lib, numeric_dtypes
 

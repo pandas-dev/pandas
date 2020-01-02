@@ -3,12 +3,11 @@ from copy import copy, deepcopy
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, date_range
+import pandas._testing as tm
 
 # ----------------------------------------------------------------------
 # Generic types test cases

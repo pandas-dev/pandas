@@ -6,9 +6,9 @@ import pytest
 from pandas._libs.algos import Infinity, NegInfinity
 from pandas._libs.tslib import iNaT
 import pandas.util._test_decorators as td
-import pandas.util._testing as tm
 
 from pandas import NaT, Series, Timestamp, date_range
+import pandas._testing as tm
 from pandas.api.types import CategoricalDtype
 
 

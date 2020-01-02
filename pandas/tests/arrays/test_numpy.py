@@ -5,9 +5,8 @@ the interface tests.
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 import pandas as pd
+import pandas._testing as tm
 from pandas.arrays import PandasArray
 from pandas.core.arrays.numpy_ import PandasDtype
 

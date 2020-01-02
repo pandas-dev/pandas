@@ -4,10 +4,10 @@ import pytest
 import pytz
 
 from pandas.errors import NullFrequencyError
-import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import DatetimeIndex, Series, date_range
+import pandas._testing as tm
 
 
 class TestDatetimeIndexShift:

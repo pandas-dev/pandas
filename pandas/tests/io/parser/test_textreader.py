@@ -10,9 +10,9 @@ import pytest
 
 import pandas._libs.parsers as parser
 from pandas._libs.parsers import TextReader
-import pandas.util._testing as tm
 
 from pandas import DataFrame
+import pandas._testing as tm
 
 from pandas.io.parsers import TextFileReader, read_csv
 

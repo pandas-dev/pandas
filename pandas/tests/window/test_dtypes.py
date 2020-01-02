@@ -3,9 +3,8 @@ from itertools import product
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 from pandas import DataFrame, Series
+import pandas._testing as tm
 from pandas.core.base import DataError
 
 # gh-12373 : rolling functions error on float32 data

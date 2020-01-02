@@ -4,8 +4,6 @@ import re
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 import pandas as pd
 from pandas import (
     Index,
@@ -19,6 +17,7 @@ from pandas import (
     notna,
     timedelta_range,
 )
+import pandas._testing as tm
 import pandas.core.common as com
 
 

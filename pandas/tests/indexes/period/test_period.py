@@ -3,7 +3,6 @@ import pytest
 
 from pandas._libs.tslibs.period import IncompatibleFrequency
 import pandas.util._test_decorators as td
-import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import (
@@ -18,6 +17,7 @@ from pandas import (
     offsets,
     period_range,
 )
+import pandas._testing as tm
 
 from ..datetimelike import DatetimeLike
 

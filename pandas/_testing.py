@@ -1274,7 +1274,7 @@ def assert_frame_equal(
     This example shows comparing two DataFrames that are equal
     but with columns of differing dtypes.
 
-    >>> from pandas.util._testing import assert_frame_equal
+    >>> from pandas._testing import assert_frame_equal
     >>> df1 = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
     >>> df2 = pd.DataFrame({'a': [1, 2], 'b': [3.0, 4.0]})
 
@@ -2283,7 +2283,7 @@ def network(
     Tests decorated with @network will fail if it's possible to make a network
     connection to another URL (defaults to google.com)::
 
-      >>> from pandas.util._testing import network
+      >>> from pandas._testing import network
       >>> from pandas.io.common import urlopen
       >>> @network
       ... def test_network():

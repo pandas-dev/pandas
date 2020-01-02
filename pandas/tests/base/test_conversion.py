@@ -1,13 +1,12 @@
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 from pandas.core.dtypes.common import is_datetime64_dtype, is_timedelta64_dtype
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
 from pandas import CategoricalIndex, Series, Timedelta, Timestamp
+import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray, PandasArray, TimedeltaArray
 
 

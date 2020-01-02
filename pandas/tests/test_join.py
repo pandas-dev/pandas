@@ -2,9 +2,9 @@ import numpy as np
 import pytest
 
 from pandas._libs import join as _join
-import pandas.util._testing as tm
 
 from pandas import Categorical, DataFrame, Index, merge
+import pandas._testing as tm
 
 
 class TestIndexer:

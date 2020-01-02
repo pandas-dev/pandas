@@ -9,9 +9,8 @@ from itertools import product
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 from pandas import DataFrame, Grouper, MultiIndex, Series, date_range, to_datetime
+import pandas._testing as tm
 
 
 # our starting frame

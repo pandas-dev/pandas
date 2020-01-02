@@ -6,12 +6,12 @@ import numpy as np
 import pytest
 
 import pandas.util._test_decorators as td
-import pandas.util._testing as tm
 
 from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
 from pandas import Series, isna
+import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray
 import pandas.core.nanops as nanops
 

@@ -3,8 +3,6 @@ import re
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 from pandas import (
     CategoricalIndex,
     Interval,
@@ -13,6 +11,7 @@ from pandas import (
     date_range,
     timedelta_range,
 )
+import pandas._testing as tm
 from pandas.core.indexes.base import InvalidIndexError
 
 

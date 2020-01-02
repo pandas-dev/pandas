@@ -3,10 +3,9 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 import pandas as pd
 from pandas import Timedelta, TimedeltaIndex, timedelta_range, to_timedelta
+import pandas._testing as tm
 from pandas.core.arrays import TimedeltaArray
 
 

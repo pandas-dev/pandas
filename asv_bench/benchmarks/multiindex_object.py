@@ -2,9 +2,8 @@ import string
 
 import numpy as np
 
-import pandas.util._testing as tm
-
 from pandas import DataFrame, MultiIndex, RangeIndex, date_range
+import pandas._testing as tm
 
 
 class GetLoc:

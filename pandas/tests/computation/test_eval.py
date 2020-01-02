@@ -11,12 +11,12 @@ import pytest
 
 from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
-import pandas.util._testing as tm
 
 from pandas.core.dtypes.common import is_bool, is_list_like, is_scalar
 
 import pandas as pd
 from pandas import DataFrame, Series, compat, date_range
+import pandas._testing as tm
 from pandas.core.computation import pytables
 from pandas.core.computation.check import _NUMEXPR_VERSION
 from pandas.core.computation.engines import NumExprClobberingError, _engines

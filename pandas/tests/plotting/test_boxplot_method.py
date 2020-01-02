@@ -8,9 +8,9 @@ from numpy import random
 import pytest
 
 import pandas.util._test_decorators as td
-import pandas.util._testing as tm
 
 from pandas import DataFrame, MultiIndex, Series, date_range, timedelta_range
+import pandas._testing as tm
 from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
 
 import pandas.plotting as plotting

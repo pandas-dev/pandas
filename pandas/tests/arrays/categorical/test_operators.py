@@ -4,10 +4,9 @@ import warnings
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 import pandas as pd
 from pandas import Categorical, DataFrame, Series, date_range
+import pandas._testing as tm
 from pandas.tests.arrays.categorical.common import TestCategorical
 
 

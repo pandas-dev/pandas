@@ -2,8 +2,6 @@ import warnings
 
 import numpy as np
 
-import pandas.util._testing as tm
-
 from pandas import (
     CategoricalIndex,
     DataFrame,
@@ -19,6 +17,7 @@ from pandas import (
     option_context,
     period_range,
 )
+import pandas._testing as tm
 
 
 class NumericSeriesIndexing:

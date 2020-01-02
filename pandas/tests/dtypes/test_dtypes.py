@@ -4,8 +4,6 @@ import numpy as np
 import pytest
 import pytz
 
-import pandas.util._testing as tm
-
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical,
@@ -29,6 +27,7 @@ from pandas.core.dtypes.dtypes import (
 
 import pandas as pd
 from pandas import Categorical, CategoricalIndex, IntervalIndex, Series, date_range
+import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseDtype
 
 

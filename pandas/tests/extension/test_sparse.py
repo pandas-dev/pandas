@@ -2,10 +2,10 @@ import numpy as np
 import pytest
 
 from pandas.errors import PerformanceWarning
-import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import SparseArray, SparseDtype
+import pandas._testing as tm
 from pandas.tests.extension import base
 
 

@@ -2,9 +2,8 @@ from datetime import datetime
 
 import numpy as np
 
-import pandas.util._testing as tm
-
 from pandas import NaT, Series, date_range
+import pandas._testing as tm
 
 
 class SeriesConstructor:

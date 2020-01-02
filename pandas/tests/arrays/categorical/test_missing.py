@@ -3,11 +3,10 @@ import collections
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 from pandas import Categorical, Index, Series, isna
+import pandas._testing as tm
 
 
 class TestCategoricalMissing:

@@ -4,9 +4,8 @@ import string
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 import pandas as pd
+import pandas._testing as tm
 
 UNARY_UFUNCS = [np.positive, np.floor, np.exp]
 BINARY_UFUNCS = [np.add, np.logaddexp]  # dunder op

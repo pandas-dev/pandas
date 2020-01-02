@@ -4,10 +4,9 @@ import numpy as np
 from numpy.random import randint
 import pytest
 
-import pandas.util._testing as tm
-
 import pandas as pd
 from pandas import DataFrame, get_option, read_clipboard
+import pandas._testing as tm
 
 from pandas.io.clipboard import PyperclipException, clipboard_get, clipboard_set
 

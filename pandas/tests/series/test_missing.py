@@ -6,7 +6,6 @@ import pytz
 
 from pandas._libs.tslib import iNaT
 import pandas.util._test_decorators as td
-import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import (
@@ -22,6 +21,7 @@ from pandas import (
     date_range,
     isna,
 )
+import pandas._testing as tm
 
 
 def _simple_ts(start, end, freq="D"):

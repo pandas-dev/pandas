@@ -14,7 +14,6 @@ from pandas._libs.tslibs.conversion import localize_pydatetime
 from pandas._libs.tslibs.offsets import shift_months
 from pandas.compat.numpy import np_datetime64_compat
 from pandas.errors import PerformanceWarning
-import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import (
@@ -27,6 +26,7 @@ from pandas import (
     Timestamp,
     date_range,
 )
+import pandas._testing as tm
 from pandas.core.indexes.datetimes import _to_M8
 from pandas.core.ops import roperator
 from pandas.tests.arithmetic.common import (

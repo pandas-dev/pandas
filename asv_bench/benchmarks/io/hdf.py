@@ -1,8 +1,7 @@
 import numpy as np
 
-import pandas.util._testing as tm
-
 from pandas import DataFrame, HDFStore, date_range, read_hdf
+import pandas._testing as tm
 
 from ..pandas_vb_common import BaseIO
 

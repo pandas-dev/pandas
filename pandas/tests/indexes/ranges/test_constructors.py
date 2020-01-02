@@ -3,9 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 from pandas import Index, RangeIndex, Series
+import pandas._testing as tm
 
 
 class TestRangeIndexConstructors:

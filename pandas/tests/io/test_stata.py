@@ -9,11 +9,10 @@ import warnings
 import numpy as np
 import pytest
 
-import pandas.util._testing as tm
-
 from pandas.core.dtypes.common import is_categorical_dtype
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.core.frame import DataFrame, Series
 
 from pandas.io.parsers import read_csv

@@ -2,10 +2,10 @@ import numpy as np
 import pytest
 
 from pandas.errors import UnsortedIndexError
-import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp
+import pandas._testing as tm
 from pandas.core.indexing import _non_reducing_slice
 from pandas.tests.indexing.common import _mklbl
 

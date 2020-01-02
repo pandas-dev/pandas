@@ -8,9 +8,9 @@ import pytest
 
 from pandas.errors import EmptyDataError
 import pandas.util._test_decorators as td
-import pandas.util._testing as tm
 
 import pandas as pd
+import pandas._testing as tm
 
 
 # https://github.com/cython/cython/issues/1720
