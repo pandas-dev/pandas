@@ -265,17 +265,8 @@ class TestEwmMomentsConsistency(ConsistencyBase):
     def setup_method(self, method):
         self._create_data()
 
-    def _create_binary_ew_data(self):
-        A = Series(randn(50), index=np.arange(50))
-        B = A[2:] + randn(48)
-
-        A[:10] = np.NaN
-        B[-10:] = np.NaN
-        return A, B
-
-    @pytest.mark.parametrize("min_periods", [0, 1, 2])
-    def test_ewmcov(self, min_periods):
-        A, B = self._create_binary_ew_data()
+    def test_ewmcov(self, min_periods, binary_ew_data):
+        A, B = binary_ew_data()
 
         self._check_binary_ew(name="cov", A=A, B=B)
         self._check_binary_ew_min_periods("cov", min_periods, A, B)
@@ -283,9 +274,8 @@ class TestEwmMomentsConsistency(ConsistencyBase):
     def test_ewmcov_pairwise(self):
         self._check_pairwise_moment("ewm", "cov", span=10, min_periods=5)
 
-    @pytest.mark.parametrize("min_periods", [0, 1, 2])
-    def test_ewmcorr(self, min_periods):
-        A, B = self._create_binary_ew_data()
+    def test_ewmcorr(self, min_periods, binary_ew_data):
+        A, B = binary_ew_data()
 
         self._check_binary_ew(name="corr", A=A, B=B)
         self._check_binary_ew_min_periods("corr", min_periods, A, B)
@@ -294,19 +284,14 @@ class TestEwmMomentsConsistency(ConsistencyBase):
         self._check_pairwise_moment("ewm", "corr", span=10, min_periods=5)
 
     def _check_binary_ew(self, name, A, B):
-        def func(A, B, com, **kwargs):
-            return getattr(A.ewm(com, **kwargs), name)(B)
 
-        result = func(A, B, 20, min_periods=5)
+        result = self._ew_func(A, B, 20, name=name, min_periods=5)
         assert np.isnan(result.values[:14]).all()
         assert not np.isnan(result.values[14:]).any()
 
     def _check_binary_ew_min_periods(self, name, min_periods, A, B):
-        def func(A, B, com, **kwargs):
-            return getattr(A.ewm(com, **kwargs), name)(B)
-
         # GH 7898
-        result = func(A, B, 20, min_periods=min_periods)
+        result = self._ew_func(A, B, 20, name=name, min_periods=min_periods)
         # binary functions (ewmcov, ewmcorr) with bias=False require at
         # least two values
         assert np.isnan(result.values[:11]).all()
@@ -314,23 +299,23 @@ class TestEwmMomentsConsistency(ConsistencyBase):
 
         # check series of length 0
         empty = Series([], dtype=np.float64)
-        result = func(empty, empty, 50, min_periods=min_periods)
+        result = self._ew_func(empty, empty, 50, name=name, min_periods=min_periods)
         tm.assert_series_equal(result, empty)
 
         # check series of length 1
-        result = func(Series([1.0]), Series([1.0]), 50, min_periods=min_periods)
+        result = self._ew_func(
+            Series([1.0]), Series([1.0]), 50, name=name, min_periods=min_periods
+        )
         tm.assert_series_equal(result, Series([np.NaN]))
 
     @pytest.mark.parametrize("name", ["cov", "corr"])
-    def test_different_input_array_raise_exception(self, name):
-        def func(A, B, com, **kwargs):
-            return getattr(A.ewm(com, **kwargs), name)(B)
+    def test_different_input_array_raise_exception(self, name, binary_ew_data):
 
-        A, _ = self._create_binary_ew_data()
+        A, _ = binary_ew_data()
         msg = "Input arrays must be of the same type!"
         # exception raised is Exception
         with pytest.raises(Exception, match=msg):
-            func(A, randn(50), 20, min_periods=5)
+            self._ew_func(A, randn(50), 20, name=name, min_periods=5)
 
     @pytest.mark.slow
     @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])

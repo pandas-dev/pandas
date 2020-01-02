@@ -348,3 +348,6 @@ class ConsistencyBase(Base):
         result.index = result.index.droplevel(1)
         expected = get_result(self.frame[1], self.frame[5])
         tm.assert_series_equal(result, expected, check_names=False)
+
+    def _ew_func(self, A, B, com, name, **kwargs):
+        return getattr(self, A.ewm(com, **kwargs), name)(B)
