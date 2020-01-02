@@ -709,7 +709,7 @@ class TestDataFrameFormatting:
 
     def test_to_string_with_formatters_unicode(self):
         df = DataFrame({"c/\u03c3": [1, 2, 3]})
-        result = df.to_string(formatters={"c/\u03c3": lambda x: str(x)})
+        result = df.to_string(formatters={"c/\u03c3": str})
         assert result == "  c/\u03c3\n" + "0   1\n1   2\n2   3"
 
     def test_east_asian_unicode_false(self):
