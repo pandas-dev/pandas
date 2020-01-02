@@ -147,26 +147,30 @@ def test_read_gbq_progress_bar_type_kwarg(monkeypatch, progress_bar):
 
 @pytest.mark.single
 class TestToGBQIntegrationWithServiceAccountKeyPath:
+    @staticmethod
+    def generate_rand_str(length: int = 10) -> str:
+        return "".join(random.choices(string.ascii_lowercase, k=length))
+
     @pytest.fixture()
     def gbq_dataset(self):
         # Setup Dataset
         _skip_if_no_project_id()
         _skip_if_no_private_key_path()
 
-        dataset_id = "pydata_pandas_bq_testing_py31"
+        dataset_id = "pydata_pandas_bq_testing_" + self.generate_rand_str()
 
         self.client = _get_client()
         self.dataset = self.client.dataset(dataset_id)
 
-        # Create the dataset if it doesn't already exist
-        self.client.create_dataset(bigquery.Dataset(self.dataset), exists_ok=True)
+        # Create the dataset
+        self.client.create_dataset(bigquery.Dataset(self.dataset))
 
-        table_name = "".join(random.choices(string.ascii_lowercase, k=10))
+        table_name = self.generate_rand_str()
         destination_table = f"{dataset_id}.{table_name}"
         yield destination_table
 
-        # Teardown tables created
-        self.client.delete_table(destination_table, not_found_ok=True)
+        # Teardown Dataset
+        self.client.delete_dataset(self.dataset, delete_contents=True)
 
     def test_roundtrip(self, gbq_dataset):
         destination_table = gbq_dataset
