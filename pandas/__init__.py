@@ -39,8 +39,6 @@ except ImportError as e:  # pragma: no cover
         "the C extensions first."
     )
 
-from datetime import datetime
-
 from pandas._config import (
     get_option,
     set_option,
@@ -210,6 +208,19 @@ if pandas.compat.PY37:
 
             return Panel
 
+        elif name == "datetime":
+            warnings.warn(
+                "The pandas.datetime class is deprecated "
+                "and will be removed from pandas in a future version. "
+                "Import from datetime module instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+
+            from datetime import datetime as dt
+
+            return dt
+
         elif name == "np":
 
             warnings.warn(
@@ -264,12 +275,38 @@ else:
                 FutureWarning,
                 stacklevel=2,
             )
+
             try:
                 return getattr(self.np, item)
             except AttributeError:
                 raise AttributeError(f"module numpy has no attribute {item}")
 
     np = __numpy()
+
+    class __Datetime:
+        def __init__(self):
+            from datetime import datetime as dt
+
+            self.datetime = dt
+
+        def __getattr__(self, item):
+            import warnings
+
+            warnings.warn(
+                "The pandas.datetime class is deprecated "
+                "and will be removed from pandas in a future version. "
+                "Import from datetime instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+
+            try:
+                return getattr(self.datetime, item)
+            except AttributeError:
+                raise AttributeError(f"module datetime has no attribute {item}")
+
+    datetime = __Datetime().datetime
+
 
 # module level doc-string
 __doc__ = """

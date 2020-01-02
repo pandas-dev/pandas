@@ -288,7 +288,7 @@ def test_numpy_array_all_dtypes(any_numpy_dtype):
 def test_array(array, attr, index_or_series):
     box = index_or_series
     if array.dtype.name in ("Int64", "Sparse[int64, 0]") and box is pd.Index:
-        pytest.skip("No index type for {}".format(array.dtype))
+        pytest.skip(f"No index type for {array.dtype}")
     result = box(array, copy=False).array
 
     if attr:
@@ -354,7 +354,7 @@ def test_to_numpy(array, expected, index_or_series):
     thing = box(array)
 
     if array.dtype.name in ("Int64", "Sparse[int64, 0]") and box is pd.Index:
-        pytest.skip("No index type for {}".format(array.dtype))
+        pytest.skip(f"No index type for {array.dtype}")
 
     result = thing.to_numpy()
     tm.assert_numpy_array_equal(result, expected)

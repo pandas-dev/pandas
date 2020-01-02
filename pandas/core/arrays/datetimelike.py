@@ -27,7 +27,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
     is_object_dtype,
-    is_offsetlike,
     is_period_dtype,
     is_string_dtype,
     is_timedelta64_dtype,
@@ -1075,8 +1074,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
                 f"cannot subtract {other.dtype}-dtype from {type(self).__name__}"
             )
 
-        if len(self) != len(other):
-            raise ValueError("cannot subtract arrays/indices of unequal length")
         if self.freq != other.freq:
             msg = DIFFERENT_FREQ.format(
                 cls=type(self).__name__, own_freq=self.freqstr, other_freq=other.freqstr
@@ -1093,47 +1090,13 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             new_values[mask] = NaT
         return new_values
 
-    def _addsub_int_array(self, other, op):
-        """
-        Add or subtract array-like of integers equivalent to applying
-        `_time_shift` pointwise.
-
-        Parameters
-        ----------
-        other : Index, ExtensionArray, np.ndarray
-            integer-dtype
-        op : {operator.add, operator.sub}
-
-        Returns
-        -------
-        result : same class as self
-        """
-        # _addsub_int_array is overridden by PeriodArray
-        assert not is_period_dtype(self)
-        assert op in [operator.add, operator.sub]
-
-        if self.freq is None:
-            # GH#19123
-            raise NullFrequencyError("Cannot shift with no freq")
-
-        elif isinstance(self.freq, Tick):
-            # easy case where we can convert to timedelta64 operation
-            td = Timedelta(self.freq)
-            return op(self, td * other)
-
-        # We should only get here with DatetimeIndex; dispatch
-        # to _addsub_offset_array
-        assert not is_timedelta64_dtype(self)
-        return op(self, np.array(other) * self.freq)
-
-    def _addsub_offset_array(self, other, op):
+    def _addsub_object_array(self, other: np.ndarray, op):
         """
         Add or subtract array-like of DateOffset objects
 
         Parameters
         ----------
-        other : Index, np.ndarray
-            object-dtype containing pd.DateOffset objects
+        other : np.ndarray[object]
         op : {operator.add, operator.sub}
 
         Returns
@@ -1157,7 +1120,12 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         kwargs = {}
         if not is_period_dtype(self):
             kwargs["freq"] = "infer"
-        return self._from_sequence(res_values, **kwargs)
+        try:
+            res = type(self)._from_sequence(res_values, **kwargs)
+        except ValueError:
+            # e.g. we've passed a Timestamp to TimedeltaArray
+            res = res_values
+        return res
 
     def _time_shift(self, periods, freq=None):
         """
@@ -1220,9 +1188,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         elif is_timedelta64_dtype(other):
             # TimedeltaIndex, ndarray[timedelta64]
             result = self._add_delta(other)
-        elif is_offsetlike(other):
-            # Array/Index of DateOffset objects
-            result = self._addsub_offset_array(other, operator.add)
+        elif is_object_dtype(other):
+            # e.g. Array/Index of DateOffset objects
+            result = self._addsub_object_array(other, operator.add)
         elif is_datetime64_dtype(other) or is_datetime64tz_dtype(other):
             # DatetimeIndex, ndarray[datetime64]
             return self._add_datetime_arraylike(other)
@@ -1275,9 +1243,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         elif is_timedelta64_dtype(other):
             # TimedeltaIndex, ndarray[timedelta64]
             result = self._add_delta(-other)
-        elif is_offsetlike(other):
-            # Array/Index of DateOffset objects
-            result = self._addsub_offset_array(other, operator.sub)
+        elif is_object_dtype(other):
+            # e.g. Array/Index of DateOffset objects
+            result = self._addsub_object_array(other, operator.sub)
         elif is_datetime64_dtype(other) or is_datetime64tz_dtype(other):
             # DatetimeIndex, ndarray[datetime64]
             result = self._sub_datetime_arraylike(other)
