@@ -1,10 +1,10 @@
 from io import BytesIO
 
 import numpy as np
+
 from odf.opendocument import OpenDocumentSpreadsheet
 from odf.table import Table, TableCell, TableRow
 from odf.text import P
-
 from pandas import DataFrame, ExcelWriter, date_range, read_excel
 import pandas.util.testing as tm
 
