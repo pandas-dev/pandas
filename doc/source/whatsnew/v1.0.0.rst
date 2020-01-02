@@ -222,7 +222,7 @@ Other enhancements
 - :meth:`DataFrame.sort_values` and :meth:`Series.sort_values` have gained ``ignore_index`` keyword to be able to reset index after sorting (:issue:`30114`)
 - :meth:`DataFrame.to_markdown` and :meth:`Series.to_markdown` added (:issue:`11052`)
 - :meth:`DataFrame.drop_duplicates` has gained ``ignore_index`` keyword to reset index (:issue:`30114`)
-- The ``pandas.datetime`` submodule is now deprecated. Import ``datetime`` directly instead(:issue:`30296`)
+- The ``pandas.datetime`` class is now deprecated. Import from ``datetime`` instead(:issue:`30296`)
 
 
 Build Changes

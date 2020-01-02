@@ -210,9 +210,9 @@ if pandas.compat.PY37:
 
         elif name == "datetime":
             warnings.warn(
-                "The pandas.datetime module is deprecated "
+                "The pandas.datetime class is deprecated "
                 "and will be removed from pandas in a future version. "
-                "Import datetime directly instead.",
+                "Import from datetime module instead.",
                 FutureWarning,
                 stacklevel=2,
             )
@@ -293,15 +293,15 @@ else:
 
         def __getattr__(self, item):
             self.warnings.warn(
-                "The pandas.datetime module is deprecated "
+                "The pandas.datetime class is deprecated "
                 "and will be removed from pandas in a future version. "
-                "Import datetime directly instead",
+                "Import from datetime instead",
                 FutureWarning,
                 stacklevel=2,
             )
 
             try:
-                return getattr(self.datetime, item)
+                return getattr(dt, item)
             except AttributeError:
                 raise AttributeError(f"module datetime has no attribute {item}")
 
