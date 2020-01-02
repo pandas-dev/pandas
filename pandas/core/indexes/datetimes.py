@@ -1,6 +1,6 @@
 from datetime import datetime, time, timedelta, tzinfo
 import operator
-from typing import Callable, Optional
+from typing import TYPE_CHECKING, Callable, Optional
 import warnings
 
 import numpy as np
@@ -40,6 +40,9 @@ import pandas.core.tools.datetimes as tools
 
 from pandas.tseries.frequencies import Resolution, to_offset
 from pandas.tseries.offsets import Nano, prefix_mapping
+
+if TYPE_CHECKING:
+    from pandas import Int64Index
 
 
 def _new_DatetimeIndex(cls, d):
@@ -198,6 +201,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
     <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
     """
 
+    # Attributes
+    dayofweek: "Int64Index"
     # Methods
     tz_convert: Callable
     tz_localize: Callable
