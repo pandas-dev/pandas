@@ -213,7 +213,7 @@ class TestDataFrameReprInfoEtc:
         frame.info(verbose=True, buf=buf)
 
         res = buf.getvalue()
-        header = " #    Column  Dtype  \n" "---   ------  -----  "
+        header = " #    Column  Dtype  \n---   ------  -----  "
         assert header in res
 
         frame.info(verbose=True, buf=buf)
