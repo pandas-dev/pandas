@@ -560,7 +560,6 @@ class TestnanopsDataFrame:
         tm.assert_almost_equal(targ2, res24)
         tm.assert_almost_equal(targ2, res25)
 
-    @td.skip_if_no_scipy
     def test_nancorr(self):
         targ0 = np.corrcoef(self.arr_float_2d, self.arr_float1_2d)[0, 1]
         targ1 = np.corrcoef(self.arr_float_2d.flat, self.arr_float1_2d.flat)[0, 1]
@@ -569,7 +568,6 @@ class TestnanopsDataFrame:
         targ1 = np.corrcoef(self.arr_float_1d.flat, self.arr_float1_1d.flat)[0, 1]
         self.check_nancorr_nancov_1d(nanops.nancorr, targ0, targ1, method="pearson")
 
-    @td.skip_if_no_scipy
     def test_nancorr_pearson(self):
         targ0 = np.corrcoef(self.arr_float_2d, self.arr_float1_2d)[0, 1]
         targ1 = np.corrcoef(self.arr_float_2d.flat, self.arr_float1_2d.flat)[0, 1]

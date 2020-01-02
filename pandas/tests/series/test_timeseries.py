@@ -76,7 +76,6 @@ class TestTimeSeries:
         result = Series([3], index=index.copy()).asfreq("H")
         tm.assert_index_equal(expected.index, result.index)
 
-    @td.skip_if_no_scipy
     def test_autocorr(self, datetime_series):
         # Just run the function
         corr1 = datetime_series.autocorr()

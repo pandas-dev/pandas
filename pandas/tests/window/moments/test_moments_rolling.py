@@ -1097,7 +1097,6 @@ class TestRollingMomentsConsistency(ConsistencyBase):
     def test_rolling_cov_pairwise(self):
         self._check_pairwise_moment("rolling", "cov", window=10, min_periods=5)
 
-    @td.skip_if_no_scipy
     def test_rolling_corr(self):
         A = self.series
         B = A + randn(len(A))
