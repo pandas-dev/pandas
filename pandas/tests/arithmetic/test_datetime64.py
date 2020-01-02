@@ -26,7 +26,6 @@ from pandas import (
     Timestamp,
     date_range,
 )
-import pandas.core.arrays.datetimelike as dtl
 from pandas.core.indexes.datetimes import _to_M8
 from pandas.core.ops import roperator
 from pandas.tests.arithmetic.common import (
