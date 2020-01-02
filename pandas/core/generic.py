@@ -3275,7 +3275,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # Indexing Methods
 
     def take(
-        self: FrameOrSeries, indices, axis=0, is_copy: bool_t = True, **kwargs
+        self: FrameOrSeries, indices, axis=0, is_copy: bool_t = None, **kwargs
     ) -> FrameOrSeries:
         """
         Return the elements in the given *positional* indices along an axis.
@@ -3293,6 +3293,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             selecting rows, ``1`` means that we are selecting columns.
         is_copy : bool, default True
             Whether to return a copy of the original object or not.
+
+            .. deprecated:: 1.0.0
         **kwargs
             For compatibility with :meth:`numpy.take`. Has no effect on the
             output.
@@ -3361,9 +3363,17 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         result = self._constructor(new_data).__finalize__(self)
 
         # Maybe set copy if we didn't actually change the index.
-        if is_copy:
+        if is_copy is not None:
+            warnings.warn(
+                "is_copy is deprecated and will be removed in a future version. "
+                "take will always return a copy in the future.",
+                FutureWarning,
+                stacklevel=2,
+            )
             if not result._get_axis(axis).equals(self._get_axis(axis)):
                 result._set_is_copy(self)
+        else:
+            is_copy = True
 
         return result
 
@@ -5014,7 +5024,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             )
 
         locs = rs.choice(axis_length, size=n, replace=replace, p=weights)
-        return self.take(locs, axis=axis, is_copy=False)
+        return self.take(locs, axis=axis)
 
     _shared_docs[
         "pipe"
@@ -7011,7 +7021,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         # mask the missing
         missing = locs == -1
-        data = self.take(locs, is_copy=False)
+        data = self.take(locs)
         data.index = where
         data.loc[missing] = np.nan
         return data if is_list else data.iloc[-1]
