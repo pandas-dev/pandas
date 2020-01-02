@@ -1942,7 +1942,7 @@ arguments, strings can be specified as indicated. See the respective
 documentation sections for more on each type.
 
 +------------------+---------------------------+--------------------+-------------------------------+-----------------------------------------+-------------------------------+
-|Kind of Data      | Data Type                 | Scalar             | Array                         | String Shortcuts                        | Documentation                 |
+|Kind of Data      | Data Type                 | Scalar             | Array                         | String Aliases                          | Documentation                 |
 +==================+===========================+====================+===============================+=========================================+===============================+
 |tz-aware datetime | :class:`DatetimeTZDtype`  | :class:`Timestamp` | :class:`arrays.DatetimeArray` | ``'datetime64[ns, <tz>]'``              | :ref:`timeseries.timezone`    |
 +------------------+---------------------------+--------------------+-------------------------------+-----------------------------------------+-------------------------------+
@@ -1952,13 +1952,10 @@ documentation sections for more on each type.
 |(time spans)      |                           |                    |                               | ``'Period[<freq>]'``                    |                               |
 +------------------+---------------------------+--------------------+-------------------------------+-----------------------------------------+-------------------------------+
 |sparse            | :class:`SparseDtype`      | (none)             | :class:`arrays.SparseArray`   | ``'Sparse'``, ``'Sparse[int]'``,        | :ref:`sparse`                 |
-|                  |                           |                    |                               | ``'Sparse[int32, 0]'``,                 |                               |
-|                  |                           |                    |                               | ``'Sparse[int64, 0]'``,                 |                               | 
-|                  |                           |                    |                               | ``'Sparse[float32, nan]'``,             |                               |
-|                  |                           |                    |                               | ``'Sparse[float64, nan]'``              |                               |
+|                  |                           |                    |                               | ``'Sparse[float]'``                     |                               |
 +------------------+---------------------------+--------------------+-------------------------------+-----------------------------------------+-------------------------------+
 | intervals        | :class:`IntervalDtype`    | :class:`Interval`  | :class:`arrays.IntervalArray` | ``'interval'``, ``'Interval'``,         | :ref:`advanced.intervalindex` |
-|                  |                           |                    |                               | ``'Interval[<np.numeric>]'``,           |                               |
+|                  |                           |                    |                               | ``'Interval[<numpy_dtype>]'``,          |                               |
 |                  |                           |                    |                               | ``'Interval[datetime64[ns, <tz>]]'``,   |                               |
 |                  |                           |                    |                               | ``'Interval[timedelta64[<freq>]]'``     |                               |
 +------------------+---------------------------+--------------------+-------------------------------+-----------------------------------------+-------------------------------+
