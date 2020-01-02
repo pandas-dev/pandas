@@ -605,11 +605,11 @@ a list of items should be used instead. (:issue:`23566`) For example:
     g[('B',)]
 
     # tuple of multiple keys, returns DataFrameGroupBy, raises FutureWarning
-    g[('B','C')]
+    g[('B', 'C')]
 
     # multiple keys passed directly, returns DataFrameGroupBy, raises FutureWarning
     # (implicitly converts the passed strings into a single tuple)
-    g['B','C']
+    g['B', 'C']
 
     # proper way, returns DataFrameGroupBy
     g[['B', 'C']]
