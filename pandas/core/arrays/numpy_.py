@@ -19,6 +19,7 @@ from pandas.core import nanops
 from pandas.core.algorithms import searchsorted, take, unique
 import pandas.core.common as com
 from pandas.core.construction import extract_array
+from pandas.core.indexers import check_bool_array_indexer
 from pandas.core.missing import backfill_1d, pad_1d
 
 from .base import ExtensionArray, ExtensionOpsMixin
@@ -232,9 +233,6 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
     # Pandas ExtensionArray Interface
 
     def __getitem__(self, item):
-        # Avoid mypy failures when importing at the top-level
-        from pandas.core.indexers import check_bool_array_indexer
-
         if isinstance(item, type(self)):
             item = item._ndarray
 

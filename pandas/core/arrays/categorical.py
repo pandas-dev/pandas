@@ -49,6 +49,7 @@ from pandas.core.algorithms import _get_data_algo, factorize, take, take_1d, uni
 from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array, sanitize_array
+from pandas.core.indexers import check_bool_array_indexer
 from pandas.core.missing import interpolate_2d
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.sorting import nargsort
@@ -1990,8 +1991,6 @@ class Categorical(ExtensionArray, PandasObject):
         """
         Return an item.
         """
-        from pandas.core.indexers import check_bool_array_indexer
-
         if isinstance(key, (int, np.integer)):
             i = self._codes[key]
             if i == -1:

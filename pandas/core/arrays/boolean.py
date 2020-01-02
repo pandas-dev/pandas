@@ -30,6 +30,7 @@ from pandas.core import nanops, ops
 from pandas.core.algorithms import take
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
 import pandas.core.common as com
+from pandas.core.indexers import check_bool_array_indexer
 
 if TYPE_CHECKING:
     from pandas._typing import Scalar
@@ -316,9 +317,6 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
         return self._mask.any()
 
     def __getitem__(self, item):
-        # import here to avoid circular import. Probably need to restructure
-        from pandas.core.indexers import check_bool_array_indexer
-
         if is_integer(item):
             if self._mask[item]:
                 return self.dtype.na_value

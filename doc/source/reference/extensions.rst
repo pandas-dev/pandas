@@ -67,4 +67,3 @@ behaves correctly.
   :toctree: api/
 
   api.indexers.check_bool_array_indexer
-

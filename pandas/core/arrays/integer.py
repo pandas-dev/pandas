@@ -27,6 +27,7 @@ from pandas.core import nanops, ops
 from pandas.core.algorithms import take
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
 import pandas.core.common as com
+from pandas.core.indexers import check_bool_array_indexer
 from pandas.core.ops import invalid_comparison
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.tools.numeric import to_numeric
@@ -365,9 +366,6 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         return integer_array(values, dtype=original.dtype)
 
     def __getitem__(self, item):
-        # Importing this at the top-level causes many unrelated(?) mypy failures
-        from pandas.core.indexers import check_bool_array_indexer
-
         if is_integer(item):
             if self._mask[item]:
                 return self.dtype.na_value
