@@ -1,0 +1,31 @@
+// For format details, see https://aka.ms/vscode-remote/devcontainer.json or the definition README at
+// https://github.com/microsoft/vscode-dev-containers/tree/master/containers/python-3-miniconda
+{
+	"name": "Python 3 - Miniconda",
+	"context": "..",
+	"dockerFile": "Dockerfile",
+
+	// Use 'settings' to set *default* container specific settings.json values on container create. 
+	// You can edit these settings after create using File > Preferences > Settings > Remote.
+	"settings": { 
+		"terminal.integrated.shell.linux": "/bin/bash",
+		"python.pythonPath": "/opt/conda/bin/python",
+		"python.linting.enabled": true,
+		"python.linting.pylintEnabled": true,
+		"python.linting.pylintPath": "/opt/conda/bin/pylint"
+	},
+
+	// Uncomment the next line to run commands after the container is created.
+	// "postCreateCommand": "python --version",
+
+	// Uncomment the next line to have VS Code connect as an existing non-root user in the container. 
+	// On Linux, by default, the container user's UID/GID will be updated to match your local user. See
+	// https://aka.ms/vscode-remote/containers/non-root for details on adding a non-root user if none exist.
+	// "remoteUser": "vscode",
+
+	// Add the IDs of extensions you want installed when the container is created in the array below.
+	"extensions": [
+		"ms-python.python",
+		"ms-vscode.cpptools"
+	]
+}
