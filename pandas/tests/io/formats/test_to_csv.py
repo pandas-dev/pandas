@@ -486,7 +486,8 @@ z
         compression = compression_only
 
         if compression == "zip":
-            pytest.skip(f"{compression} is not supported " f"for to_csv")
+            pytest.skip(f"{compression} is not supported "
+                        f"for to_csv")
 
         # We'll complete file extension subsequently.
         filename = "test."
