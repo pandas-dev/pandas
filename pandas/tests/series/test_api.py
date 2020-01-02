@@ -126,8 +126,8 @@ class TestSeriesMisc:
         expected = Series([1, 2, np.nan, 0], index=["b", "c", "d", "a"])
         tm.assert_series_equal(result, expected)
 
-    def test_constructor_subclass_dict(self):
-        data = tm.TestSubDict((x, 10.0 * x) for x in range(10))
+    def test_constructor_subclass_dict(self, dict_subclass):
+        data = dict_subclass((x, 10.0 * x) for x in range(10))
         series = Series(data)
         expected = Series(dict(data.items()))
         tm.assert_series_equal(series, expected)

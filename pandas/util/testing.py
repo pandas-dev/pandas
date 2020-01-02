@@ -2123,11 +2123,6 @@ def makeMissingDataframe(density=0.9, random_state=None):
     return df
 
 
-class TestSubDict(dict):
-    def __init__(self, *args, **kwargs):
-        dict.__init__(self, *args, **kwargs)
-
-
 def optional_args(decorator):
     """allows a decorator to take optional positional and keyword arguments.
     Assumes that taking a single, callable, positional argument means that

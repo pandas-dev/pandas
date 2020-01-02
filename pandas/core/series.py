@@ -182,6 +182,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def __init__(
         self, data=None, index=None, dtype=None, name=None, copy=False, fastpath=False
     ):
+
         # we are called internally, so short-circuit
         if fastpath:
 
@@ -250,7 +251,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 else:
                     data = data.reindex(index, copy=copy)
                 data = data._data
-            elif isinstance(data, dict):
+            elif is_dict_like(data):
                 data, index = self._init_dict(data, index, dtype)
                 dtype = None
                 copy = False
@@ -3513,7 +3514,7 @@ Name: Max Speed, dtype: float64
 
         Parameters
         ----------
-        arg : function, dict, or Series
+        arg : function, collections.abc.Mapping subclass or Series
             Mapping correspondence.
         na_action : {None, 'ignore'}, default None
             If 'ignore', propagate NaN values, without passing them to the
