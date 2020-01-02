@@ -19,6 +19,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64_ns_dtype,
     is_datetime64tz_dtype,
+    is_dict_like,
     is_extension_array_dtype,
     is_list_like,
     is_object_dtype,
@@ -597,7 +598,7 @@ class IndexOpsMixin:
     # ndarray compatibility
     __array_priority__ = 1000
     _deprecations: FrozenSet[str] = frozenset(
-        ["tolist", "item"]  # tolist is not deprecated, just suppressed in the __dir__
+        ["tolist"]  # tolist is not deprecated, just suppressed in the __dir__
     )
 
     def transpose(self, *args, **kwargs):
@@ -1107,8 +1108,8 @@ class IndexOpsMixin:
         # we can fastpath dict/Series to an efficient map
         # as we know that we are not going to have to yield
         # python types
-        if isinstance(mapper, dict):
-            if hasattr(mapper, "__missing__"):
+        if is_dict_like(mapper):
+            if isinstance(mapper, dict) and hasattr(mapper, "__missing__"):
                 # If a dictionary subclass defines a default value method,
                 # convert mapper to a lookup function (GH #15999).
                 dict_with_default = mapper

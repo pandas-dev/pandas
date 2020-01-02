@@ -152,9 +152,17 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
         return arrays_to_mgr([values], columns, index, columns, dtype=dtype)
     elif is_extension_array_dtype(values) or is_extension_array_dtype(dtype):
         # GH#19157
+
+        if isinstance(values, np.ndarray) and values.ndim > 1:
+            # GH#12513 a EA dtype passed with a 2D array, split into
+            #  multiple EAs that view the values
+            values = [values[:, n] for n in range(values.shape[1])]
+        else:
+            values = [values]
+
         if columns is None:
-            columns = [0]
-        return arrays_to_mgr([values], columns, index, columns, dtype=dtype)
+            columns = list(range(len(values)))
+        return arrays_to_mgr(values, columns, index, columns, dtype=dtype)
 
     # by definition an array here
     # the dtypes will be coerced to a single dtype

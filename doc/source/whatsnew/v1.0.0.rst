@@ -56,7 +56,7 @@ Dedicated string data type
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 We've added :class:`StringDtype`, an extension type dedicated to string data.
-Previously, strings were typically stored in object-dtype NumPy arrays.
+Previously, strings were typically stored in object-dtype NumPy arrays. (:issue:`29975`)
 
 .. warning::
 
@@ -216,13 +216,18 @@ Other enhancements
   (:meth:`~DataFrame.to_parquet` / :func:`read_parquet`) using the `'pyarrow'` engine
   now preserve those data types with pyarrow >= 1.0.0 (:issue:`20612`).
 - The ``partition_cols`` argument in :meth:`DataFrame.to_parquet` now accepts a string (:issue:`27117`)
+- :func:`pandas.read_json` now parses ``NaN``, ``Infinity`` and ``-Infinity`` (:issue:`12213`)
 - The ``pandas.np`` submodule is now deprecated. Import numpy directly instead (:issue:`30296`)
 - :func:`to_parquet` now appropriately handles the ``schema`` argument for user defined schemas in the pyarrow engine. (:issue: `30270`)
 - DataFrame constructor preserve `ExtensionArray` dtype with `ExtensionArray` (:issue:`11363`)
 - :meth:`DataFrame.sort_values` and :meth:`Series.sort_values` have gained ``ignore_index`` keyword to be able to reset index after sorting (:issue:`30114`)
 - :meth:`DataFrame.to_markdown` and :meth:`Series.to_markdown` added (:issue:`11052`)
-
 - :meth:`DataFrame.drop_duplicates` has gained ``ignore_index`` keyword to reset index (:issue:`30114`)
+- Added new writer for exporting Stata dta files in version 118, ``StataWriter118``.  This format supports exporting strings containing Unicode characters (:issue:`23573`)
+- :meth:`Series.map` now accepts ``collections.abc.Mapping`` subclasses as a mapper (:issue:`29733`)
+- The ``pandas.datetime`` class is now deprecated. Import from ``datetime`` instead (:issue:`30296`)
+
+
 
 Build Changes
 ^^^^^^^^^^^^^
@@ -781,6 +786,7 @@ Datetimelike
 - Bug in :class:`Timestamp` subtraction when subtracting a :class:`Timestamp` from a ``np.datetime64`` object incorrectly raising ``TypeError`` (:issue:`28286`)
 - Addition and subtraction of integer or integer-dtype arrays with :class:`Timestamp` will now raise ``NullFrequencyError`` instead of ``ValueError`` (:issue:`28268`)
 - Bug in :class:`Series` and :class:`DataFrame` with integer dtype failing to raise ``TypeError`` when adding or subtracting a ``np.datetime64`` object (:issue:`28080`)
+- Bug in :meth:`Series.astype`, :meth:`Index.astype`, and :meth:`DataFrame.astype` failing to handle ``NaT`` when casting to an integer dtype (:issue:`28492`)
 - Bug in :class:`Week` with ``weekday`` incorrectly raising ``AttributeError`` instead of ``TypeError`` when adding or subtracting an invalid type (:issue:`28530`)
 - Bug in :class:`DataFrame` arithmetic operations when operating with a :class:`Series` with dtype `'timedelta64[ns]'` (:issue:`28049`)
 - Bug in :func:`pandas.core.groupby.generic.SeriesGroupBy.apply` raising ``ValueError`` when a column in the original DataFrame is a datetime and the column labels are not standard integers (:issue:`28247`)
@@ -894,6 +900,7 @@ I/O
 - Bug in :func:`read_json` where default encoding was not set to ``utf-8`` (:issue:`29565`)
 - Bug in :class:`PythonParser` where str and bytes were being mixed when dealing with the decimal field (:issue:`29650`)
 - :meth:`read_gbq` now accepts ``progress_bar_type`` to display progress bar while the data downloads. (:issue:`29857`)
+- Bug in :func:`pandas.io.json.json_normalize` where a missing value in the location specified by `record_path` would raise a ``TypeError`` (:issue:`30148`)
 
 Plotting
 ^^^^^^^^
@@ -909,12 +916,13 @@ Plotting
 - :func:`set_option` now validates that the plot backend provided to ``'plotting.backend'`` implements the backend when the option is set, rather than when a plot is created (:issue:`28163`)
 - :meth:`DataFrame.plot` now allow a ``backend`` keyword argument to allow changing between backends in one session (:issue:`28619`).
 - Bug in color validation incorrectly raising for non-color styles (:issue:`29122`).
+- Allow :meth: `DataFrame.plot.scatter` to plot ``objects`` and ``datetime`` type data (:issue:`18755`, :issue:`30391`)
 - Bug in :meth:`DataFrame.hist`, ``xrot=0`` does not work with ``by`` and subplots (:issue:`30288`).
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
--
+- Bug in :meth:`DataFrame.groupby.apply` only showing output from a single group when function returns an :class:`Index` (:issue:`28652`)
 - Bug in :meth:`DataFrame.groupby` with multiple groups where an ``IndexError`` would be raised if any group contained all NA values (:issue:`20519`)
 - Bug in :meth:`pandas.core.resample.Resampler.size` and :meth:`pandas.core.resample.Resampler.count` returning wrong dtype when used with an empty series or dataframe (:issue:`28427`)
 - Bug in :meth:`DataFrame.rolling` not allowing for rolling over datetimes when ``axis=1`` (:issue:`28192`)
@@ -944,6 +952,7 @@ Reshaping
 - :func:`qcut` and :func:`cut` now handle boolean input (:issue:`20303`)
 - Fix to ensure all int dtypes can be used in :func:`merge_asof` when using a tolerance value. Previously every non-int64 type would raise an erroneous ``MergeError`` (:issue:`28870`).
 - Better error message in :func:`get_dummies` when `columns` isn't a list-like value (:issue:`28383`)
+- Bug in :meth:`Index.join` that caused infinite recursion error for mismatched ``MultiIndex`` name orders. (:issue:`25760`, :issue:`28956`)
 - Bug :meth:`Series.pct_change` where supplying an anchored frequency would throw a ValueError (:issue:`28664`)
 - Bug where :meth:`DataFrame.equals` returned True incorrectly in some cases when two DataFrames had the same columns in different orders (:issue:`28839`)
 - Bug in :meth:`DataFrame.replace` that caused non-numeric replacer's dtype not respected (:issue:`26632`)
@@ -981,7 +990,10 @@ Other
 - Fixed :class:`IntegerArray` returning ``inf`` rather than ``NaN`` for operations dividing by 0 (:issue:`27398`)
 - Fixed ``pow`` operations for :class:`IntegerArray` when the other value is ``0`` or ``1`` (:issue:`29997`)
 - Bug in :meth:`Series.count` raises if use_inf_as_na is enabled (:issue:`29478`)
-- Bug in :class:`Index` where a non-hashable name could be set without raising ``TypeError`` (:issue:29069`)
+- Bug in :class:`Index` where a non-hashable name could be set without raising ``TypeError`` (:issue:`29069`)
+- Bug in :class:`DataFrame` constructor when passing a 2D ``ndarray`` and an extension dtype (:issue:`12513`)
+- Bug in :meth:`DaataFrame.to_csv` when supplied a series with a ``dtype="string"`` and a ``na_rep``, the ``na_rep`` was being truncated to 2 characters. (:issue:`29975`)
+- Bug where :meth:`DataFrame.itertuples` would incorrectly determine whether or not namedtuples could be used for dataframes of 255 columns (:issue:`28282`)
 
 .. _whatsnew_1000.contributors:
 
