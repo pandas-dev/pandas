@@ -1729,9 +1729,7 @@ def test_pivot_table_values_key_error():
     # This test is designed to replicate the error in issue #14938
     df = pd.DataFrame(
         {
-            "eventDate": pd.date_range(
-                pd.datetime.today(), periods=20, freq="M"
-            ).tolist(),
+            "eventDate": pd.date_range(datetime.today(), periods=20, freq="M").tolist(),
             "thename": range(0, 20),
         }
     )
