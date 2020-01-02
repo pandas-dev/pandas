@@ -802,6 +802,7 @@ Datetimelike
 - Bug in :meth:`DataFrame.append` would remove the timezone-awareness of new data (:issue:`30238`)
 - Bug in :meth:`Series.cummin` and :meth:`Series.cummax` with timezone-aware dtype incorrectly dropping its timezone (:issue:`15553`)
 - Bug in :class:`DatetimeArray`, :class:`TimedeltaArray`, and :class:`PeriodArray` where inplace addition and subtraction did not actually operate inplace (:issue:`24115`)
+- Bug in :func:`pandas.to_datetime` when called with ``Series`` storing ``IntegerArray`` raising ``TypeError`` instead of returning ``Series`` (:issue:`30050`)
 
 Timedelta
 ^^^^^^^^^
