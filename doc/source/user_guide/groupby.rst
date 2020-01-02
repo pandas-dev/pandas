@@ -216,7 +216,7 @@ in case you want to include ``NA`` values in group keys, you could pass ``dropna
 
 .. ipython:: python
 
-    ser = pd.Series([1, 2, 3, 3], index=["a", 'a', 'b', np.nan])
+    ser = pd.Series([1, 2, 3, 3], index=["a", "a", "b", np.nan])
     ser.groupby(level=0).sum()
 
     ser.groupby(level=0, dropna=False).sum()
