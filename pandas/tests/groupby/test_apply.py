@@ -686,6 +686,17 @@ def test_apply_with_mixed_types():
     tm.assert_frame_equal(result, expected)
 
 
+def test_func_returns_object():
+    # GH 28652
+    df = DataFrame({"a": [1, 2]}, index=pd.Int64Index([1, 2]))
+    result = df.groupby("a").apply(lambda g: g.index)
+    expected = Series(
+        [pd.Int64Index([1]), pd.Int64Index([2])], index=pd.Int64Index([1, 2], name="a")
+    )
+
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "group_column_dtlike",
     [datetime.today(), datetime.today().date(), datetime.today().time()],

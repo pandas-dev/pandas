@@ -306,27 +306,6 @@ def test_set_codes(idx):
     result.set_codes(codes=new_codes, level=1, inplace=True)
     assert result.equals(expected)
 
-    with tm.assert_produces_warning(FutureWarning):
-        ind.set_codes(labels=new_codes, level=1)
-
-
-def test_set_labels_deprecated():
-    # GH23752
-    ind = pd.MultiIndex.from_tuples([(0, i) for i in range(130)])
-    new_labels = range(129, -1, -1)
-    expected = pd.MultiIndex.from_tuples([(0, i) for i in new_labels])
-
-    # [w/o mutation]
-    with tm.assert_produces_warning(FutureWarning):
-        result = ind.set_labels(labels=new_labels, level=1)
-    assert result.equals(expected)
-
-    # [w/ mutation]
-    result = ind.copy()
-    with tm.assert_produces_warning(FutureWarning):
-        result.set_labels(labels=new_labels, level=1, inplace=True)
-    assert result.equals(expected)
-
 
 def test_set_levels_codes_names_bad_input(idx):
     levels, codes = idx.levels, idx.codes

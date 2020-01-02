@@ -48,7 +48,9 @@ class TestMultiIndexLoc:
 
         empty = Series(data=[], dtype=np.float64)
         expected = Series(
-            [], index=MultiIndex(levels=index.levels, codes=[[], []], dtype=np.float64)
+            [],
+            index=MultiIndex(levels=index.levels, codes=[[], []], dtype=np.float64),
+            dtype=np.float64,
         )
         result = x.loc[empty]
         tm.assert_series_equal(result, expected)
@@ -70,7 +72,9 @@ class TestMultiIndexLoc:
         # empty array:
         empty = np.array([])
         expected = Series(
-            [], index=MultiIndex(levels=index.levels, codes=[[], []], dtype=np.float64)
+            [],
+            index=MultiIndex(levels=index.levels, codes=[[], []], dtype=np.float64),
+            dtype="float64",
         )
         result = x.loc[empty]
         tm.assert_series_equal(result, expected)
@@ -407,3 +411,29 @@ def test_loc_setitem_single_column_slice():
     df.loc[:, "B"] = np.arange(4)
     expected.iloc[:, 2] = np.arange(4)
     tm.assert_frame_equal(df, expected)
+
+
+def test_loc_nan_multiindex():
+    # GH 5286
+    tups = [
+        ("Good Things", "C", np.nan),
+        ("Good Things", "R", np.nan),
+        ("Bad Things", "C", np.nan),
+        ("Bad Things", "T", np.nan),
+        ("Okay Things", "N", "B"),
+        ("Okay Things", "N", "D"),
+        ("Okay Things", "B", np.nan),
+        ("Okay Things", "D", np.nan),
+    ]
+    df = DataFrame(
+        np.ones((8, 4)),
+        columns=Index(["d1", "d2", "d3", "d4"]),
+        index=MultiIndex.from_tuples(tups, names=["u1", "u2", "u3"]),
+    )
+    result = df.loc["Good Things"].loc["C"]
+    expected = DataFrame(
+        np.ones((1, 4)),
+        index=Index([np.nan], dtype="object", name="u3"),
+        columns=Index(["d1", "d2", "d3", "d4"], dtype="object"),
+    )
+    tm.assert_frame_equal(result, expected)

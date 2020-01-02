@@ -1,4 +1,3 @@
-from collections import OrderedDict
 import datetime as dt
 from datetime import datetime
 import gzip
@@ -22,6 +21,7 @@ from pandas.io.stata import (
     PossiblePrecisionLoss,
     StataMissingValue,
     StataReader,
+    StataWriter118,
     read_stata,
 )
 
@@ -120,16 +120,6 @@ class TestStata:
             empty_ds.to_stata(path, write_index=False, version=version)
             empty_ds2 = read_stata(path)
             tm.assert_frame_equal(empty_ds, empty_ds2)
-
-    def test_data_method(self):
-        # Minimal testing of legacy data method
-        with StataReader(self.dta1_114) as rdr:
-            with tm.assert_produces_warning(UserWarning):
-                parsed_114_data = rdr.data()
-
-        with StataReader(self.dta1_114) as rdr:
-            parsed_114_read = rdr.read()
-        tm.assert_frame_equal(parsed_114_data, parsed_114_read)
 
     @pytest.mark.parametrize("file", ["dta1_114", "dta1_117"])
     def test_read_dta1(self, file):
@@ -383,8 +373,7 @@ class TestStata:
 
         # GH 4626, proper encoding handling
         raw = read_stata(self.dta_encoding)
-        with tm.assert_produces_warning(FutureWarning):
-            encoded = read_stata(self.dta_encoding, encoding="latin-1")
+        encoded = read_stata(self.dta_encoding)
         result = encoded.kreis1849[0]
 
         expected = raw.kreis1849[0]
@@ -392,10 +381,7 @@ class TestStata:
         assert isinstance(result, str)
 
         with tm.ensure_clean() as path:
-            with tm.assert_produces_warning(FutureWarning):
-                encoded.to_stata(
-                    path, write_index=False, version=version, encoding="latin-1"
-                )
+            encoded.to_stata(path, write_index=False, version=version)
             reread_encoded = read_stata(path)
             tm.assert_frame_equal(encoded, reread_encoded)
 
@@ -1033,7 +1019,7 @@ class TestStata:
                 cols.append((col, pd.Categorical.from_codes(codes, labels)))
             else:
                 cols.append((col, pd.Series(labels, dtype=np.float32)))
-        expected = DataFrame.from_dict(OrderedDict(cols))
+        expected = DataFrame.from_dict(dict(cols))
 
         # Read with and with out categoricals, ensure order is identical
         file = getattr(self, file)
@@ -1286,11 +1272,9 @@ class TestStata:
 
         variable_labels["a"] = "invalid character Œ"
         with tm.ensure_clean() as path:
-            msg = (
-                "Variable labels must contain only characters that can be"
-                " encoded in Latin-1"
-            )
-            with pytest.raises(ValueError, match=msg):
+            with pytest.raises(
+                ValueError, match="Variable labels must contain only characters"
+            ):
                 original.to_stata(
                     path, variable_labels=variable_labels, version=version
                 )
@@ -1440,8 +1424,8 @@ The repeated labels are:\n-+\nwolof
             }
         )
         msg = (
-            r"Column ColumnTooBig has a maximum value \(.+\)"
-            r" outside the range supported by Stata \(.+\)"
+            r"Column ColumnTooBig has a maximum value \(.+\) outside the range "
+            r"supported by Stata \(.+\)"
         )
         with pytest.raises(ValueError, match=msg):
             with tm.ensure_clean() as path:
@@ -1449,8 +1433,8 @@ The repeated labels are:\n-+\nwolof
 
         df.loc[2, "ColumnTooBig"] = np.inf
         msg = (
-            "Column ColumnTooBig has a maximum value of infinity which"
-            " is outside the range supported by Stata"
+            "Column ColumnTooBig has a maximum value of infinity which is outside "
+            "the range supported by Stata"
         )
         with pytest.raises(ValueError, match=msg):
             with tm.ensure_clean() as path:
@@ -1721,15 +1705,7 @@ The repeated labels are:\n-+\nwolof
         output = pd.DataFrame(output)
         output.loc[:, "none"] = None
         with tm.ensure_clean() as path:
-            msg = (
-                r"Column `none` cannot be exported\.\n\n"
-                "Only string-like object arrays containing all strings or a"
-                r" mix of strings and None can be exported\. Object arrays"
-                r" containing only null values are prohibited\. Other"
-                " object typescannot be exported and must first be"
-                r" converted to one of the supported types\."
-            )
-            with pytest.raises(ValueError, match=msg):
+            with pytest.raises(ValueError, match="Column `none` cannot be exported"):
                 output.to_stata(path, version=version)
 
     @pytest.mark.parametrize("version", [114, 117])
@@ -1793,3 +1769,41 @@ the string values returned are correct."""
         assert df.iloc[0, 7] == 3.14
         assert df.iloc[0, -1] == 1
         assert df.iloc[0, 0] == pd.Timestamp(datetime(2012, 12, 21, 21, 12, 21))
+
+    def test_118_writer(self):
+        cat = pd.Categorical(["a", "β", "ĉ"], ordered=True)
+        data = pd.DataFrame(
+            [
+                [1.0, 1, "ᴬ", "ᴀ relatively long ŝtring"],
+                [2.0, 2, "ᴮ", ""],
+                [3.0, 3, "ᴰ", None],
+            ],
+            columns=["a", "β", "ĉ", "strls"],
+        )
+        data["ᴐᴬᵀ"] = cat
+        variable_labels = {
+            "a": "apple",
+            "β": "ᵈᵉᵊ",
+            "ĉ": "ᴎტჄႲႳႴႶႺ",
+            "strls": "Long Strings",
+            "ᴐᴬᵀ": "",
+        }
+        data_label = "ᴅaᵀa-label"
+        data["β"] = data["β"].astype(np.int32)
+        with tm.ensure_clean() as path:
+            writer = StataWriter118(
+                path,
+                data,
+                data_label=data_label,
+                convert_strl=["strls"],
+                variable_labels=variable_labels,
+                write_index=False,
+            )
+            writer.write_file()
+            reread_encoded = read_stata(path)
+            # Missing is intentionally converted to empty strl
+            data["strls"] = data["strls"].fillna("")
+            tm.assert_frame_equal(data, reread_encoded)
+            reader = StataReader(path)
+            assert reader.data_label == data_label
+            assert reader.variable_labels() == variable_labels

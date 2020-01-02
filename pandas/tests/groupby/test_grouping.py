@@ -501,15 +501,17 @@ class TestGrouping:
         with pytest.raises(ValueError, match=msg):
             df.groupby(level=1)
 
-    def test_groupby_level_index_names(self):
+    def test_groupby_level_index_names(self, axis):
         # GH4014 this used to raise ValueError since 'exp'>1 (in py2)
         df = DataFrame({"exp": ["A"] * 3 + ["B"] * 3, "var1": range(6)}).set_index(
             "exp"
         )
-        df.groupby(level="exp")
-        msg = "level name foo is not the name of the index"
+        if axis in (1, "columns"):
+            df = df.T
+        df.groupby(level="exp", axis=axis)
+        msg = f"level name foo is not the name of the {df._get_axis_name(axis)}"
         with pytest.raises(ValueError, match=msg):
-            df.groupby(level="foo")
+            df.groupby(level="foo", axis=axis)
 
     @pytest.mark.parametrize("sort", [True, False])
     def test_groupby_level_with_nas(self, sort):
@@ -585,9 +587,18 @@ class TestGrouping:
     @pytest.mark.parametrize(
         "func,expected",
         [
-            ("transform", pd.Series(name=2, index=pd.RangeIndex(0, 0, 1))),
-            ("agg", pd.Series(name=2, index=pd.Float64Index([], name=1))),
-            ("apply", pd.Series(name=2, index=pd.Float64Index([], name=1))),
+            (
+                "transform",
+                pd.Series(name=2, dtype=np.float64, index=pd.RangeIndex(0, 0, 1)),
+            ),
+            (
+                "agg",
+                pd.Series(name=2, dtype=np.float64, index=pd.Float64Index([], name=1)),
+            ),
+            (
+                "apply",
+                pd.Series(name=2, dtype=np.float64, index=pd.Float64Index([], name=1)),
+            ),
         ],
     )
     def test_evaluate_with_empty_groups(self, func, expected):
@@ -602,7 +613,7 @@ class TestGrouping:
 
     def test_groupby_empty(self):
         # https://github.com/pandas-dev/pandas/issues/27190
-        s = pd.Series([], name="name")
+        s = pd.Series([], name="name", dtype="float64")
         gr = s.groupby([])
 
         result = gr.mean()
@@ -731,7 +742,7 @@ class TestGetGroup:
     def test_groupby_with_empty(self):
         index = pd.DatetimeIndex(())
         data = ()
-        series = pd.Series(data, index)
+        series = pd.Series(data, index, dtype=object)
         grouper = pd.Grouper(freq="D")
         grouped = series.groupby(grouper)
         assert next(iter(grouped), None) is None

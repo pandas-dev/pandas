@@ -2,9 +2,8 @@ from typing import List
 
 import numpy as np
 
-from pandas.compat._optional import import_optional_dependency
-
 from pandas._typing import FilePathOrBuffer, Scalar
+from pandas.compat._optional import import_optional_dependency
 
 from pandas.io.excel._base import ExcelWriter, _BaseExcelReader
 from pandas.io.excel._util import _validate_freeze_panes
@@ -100,7 +99,7 @@ class _OpenpyxlWriter(ExcelWriter):
         for k, v in style_dict.items():
             if k in _style_key_map:
                 k = _style_key_map[k]
-            _conv_to_x = getattr(cls, "_convert_to_{k}".format(k=k), lambda x: None)
+            _conv_to_x = getattr(cls, f"_convert_to_{k}", lambda x: None)
             new_v = _conv_to_x(v)
             if new_v:
                 style_kwargs[k] = new_v
@@ -531,7 +530,7 @@ class _OpenpyxlReader(_BaseExcelReader):
         return cell.value
 
     def get_sheet_data(self, sheet, convert_float: bool) -> List[List[Scalar]]:
-        data = []  # type: List[List[Scalar]]
+        data: List[List[Scalar]] = []
         for row in sheet.rows:
             data.append([self._convert_cell(cell, convert_float) for cell in row])
 

@@ -2,8 +2,9 @@
 Functions for arithmetic and comparison operations on NumPy arrays and
 ExtensionArrays.
 """
+from functools import partial
 import operator
-from typing import Any, Union
+from typing import Any, Optional, Union
 
 import numpy as np
 
@@ -24,17 +25,14 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import (
     ABCDatetimeArray,
-    ABCDatetimeIndex,
     ABCExtensionArray,
     ABCIndex,
     ABCIndexClass,
     ABCSeries,
     ABCTimedeltaArray,
-    ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas.core.construction import extract_array
 from pandas.core.ops import missing
 from pandas.core.ops.dispatch import dispatch_to_extension_op, should_extension_dispatch
 from pandas.core.ops.invalid import invalid_comparison
@@ -54,10 +52,10 @@ def comp_method_OBJECT_ARRAY(op, x, y):
         if isinstance(y, (ABCSeries, ABCIndex)):
             y = y.values
 
-        result = libops.vec_compare(x, y, op)
+        result = libops.vec_compare(x.ravel(), y, op)
     else:
-        result = libops.scalar_compare(x, y, op)
-    return result
+        result = libops.scalar_compare(x.ravel(), y, op)
+    return result.reshape(x.shape)
 
 
 def masked_arith_op(x, y, op):
@@ -113,7 +111,7 @@ def masked_arith_op(x, y, op):
             with np.errstate(all="ignore"):
                 result[mask] = op(xrav[mask], y)
 
-    result, changed = maybe_upcast_putmask(result, ~mask, np.nan)
+    result, _ = maybe_upcast_putmask(result, ~mask, np.nan)
     result = result.reshape(x.shape)  # 2D compat
     return result
 
@@ -178,22 +176,10 @@ def arithmetic_op(
 
     from pandas.core.ops import maybe_upcast_for_op
 
-    keep_null_freq = isinstance(
-        right,
-        (
-            ABCDatetimeIndex,
-            ABCDatetimeArray,
-            ABCTimedeltaIndex,
-            ABCTimedeltaArray,
-            Timestamp,
-        ),
-    )
-
-    # NB: We assume that extract_array has already been called on `left`, but
-    #  cannot make the same assumption about `right`.  This is because we need
-    #  to define `keep_null_freq` before calling extract_array on it.
+    # NB: We assume that extract_array has already been called
+    #  on `left` and `right`.
     lvalues = left
-    rvalues = extract_array(right, extract_numpy=True)
+    rvalues = right
 
     rvalues = maybe_upcast_for_op(rvalues, lvalues.shape)
 
@@ -203,7 +189,7 @@ def arithmetic_op(
         # TimedeltaArray, DatetimeArray, and Timestamp are included here
         #  because they have `freq` attribute which is handled correctly
         #  by dispatch_to_extension_op.
-        res_values = dispatch_to_extension_op(op, lvalues, rvalues, keep_null_freq)
+        res_values = dispatch_to_extension_op(op, lvalues, rvalues)
 
     else:
         with np.errstate(all="ignore"):
@@ -252,9 +238,9 @@ def comparison_op(
     elif is_scalar(rvalues) and isna(rvalues):
         # numpy does not like comparisons vs None
         if op is operator.ne:
-            res_values = np.ones(len(lvalues), dtype=bool)
+            res_values = np.ones(lvalues.shape, dtype=bool)
         else:
-            res_values = np.zeros(len(lvalues), dtype=bool)
+            res_values = np.zeros(lvalues.shape, dtype=bool)
 
     elif is_object_dtype(lvalues.dtype):
         res_values = comp_method_OBJECT_ARRAY(op, lvalues, rvalues)
@@ -382,3 +368,27 @@ def logical_op(
         res_values = filler(res_values)  # type: ignore
 
     return res_values
+
+
+def get_array_op(op, str_rep: Optional[str] = None):
+    """
+    Return a binary array operation corresponding to the given operator op.
+
+    Parameters
+    ----------
+    op : function
+        Binary operator from operator or roperator module.
+    str_rep : str or None, default None
+        str_rep to pass to arithmetic_op
+
+    Returns
+    -------
+    function
+    """
+    op_name = op.__name__.strip("_")
+    if op_name in {"eq", "ne", "lt", "le", "gt", "ge"}:
+        return partial(comparison_op, op=op)
+    elif op_name in {"and", "or", "xor", "rand", "ror", "rxor"}:
+        return partial(logical_op, op=op)
+    else:
+        return partial(arithmetic_op, op=op, str_rep=str_rep)

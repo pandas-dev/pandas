@@ -132,6 +132,30 @@ class ToJSON(BaseIO):
         df.to_json(self.fname, orient=orient)
 
 
+class ToJSONISO(BaseIO):
+    fname = "__test__.json"
+    params = [["split", "columns", "index", "values", "records"]]
+    param_names = ["orient"]
+
+    def setup(self, orient):
+        N = 10 ** 5
+        index = date_range("20000101", periods=N, freq="H")
+        timedeltas = timedelta_range(start=1, periods=N, freq="s")
+        datetimes = date_range(start=1, periods=N, freq="s")
+        self.df = DataFrame(
+            {
+                "td_1": timedeltas,
+                "td_2": timedeltas,
+                "ts_1": datetimes,
+                "ts_2": datetimes,
+            },
+            index=index,
+        )
+
+    def time_iso_format(self, orient):
+        self.df.to_json(orient=orient, date_format="iso")
+
+
 class ToJSONLines(BaseIO):
 
     fname = "__test__.json"

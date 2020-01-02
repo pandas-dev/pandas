@@ -4,7 +4,7 @@ Support pre-0.12 series pickle compatibility.
 
 import copy
 import pickle as pkl
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 import warnings
 
 from pandas import Index
@@ -64,7 +64,7 @@ class _LoadSparseSeries:
             stacklevel=6,
         )
 
-        return Series()
+        return Series(dtype=object)
 
 
 class _LoadSparseFrame:
@@ -89,21 +89,8 @@ class _LoadSparseFrame:
 _class_locations_map = {
     ("pandas.core.sparse.array", "SparseArray"): ("pandas.core.arrays", "SparseArray"),
     # 15477
-    #
-    # TODO: When FrozenNDArray is removed, add
-    # the following lines for compat:
-    #
-    # ('pandas.core.base', 'FrozenNDArray'):
-    #     ('numpy', 'ndarray'),
-    # ('pandas.core.indexes.frozen', 'FrozenNDArray'):
-    #     ('numpy', 'ndarray'),
-    #
-    # Afterwards, remove the current entry
-    # for `pandas.core.base.FrozenNDArray`.
-    ("pandas.core.base", "FrozenNDArray"): (
-        "pandas.core.indexes.frozen",
-        "FrozenNDArray",
-    ),
+    ("pandas.core.base", "FrozenNDArray"): ("numpy", "ndarray"),
+    ("pandas.core.indexes.frozen", "FrozenNDArray"): ("numpy", "ndarray"),
     ("pandas.core.base", "FrozenList"): ("pandas.core.indexes.frozen", "FrozenList"),
     # 10890
     ("pandas.core.series", "TimeSeries"): ("pandas.core.series", "Series"),
@@ -182,9 +169,9 @@ _class_locations_map = {
 
 
 # our Unpickler sub-class to override methods and some dispatcher
-# functions for compat
+# functions for compat and uses a non-public class of the pickle module.
 
-
+# error: Name 'pkl._Unpickler' is not defined
 class Unpickler(pkl._Unpickler):  # type: ignore
     def find_class(self, module, name):
         # override superclass
@@ -232,8 +219,9 @@ except (AttributeError, KeyError):
     pass
 
 
-def load(fh, encoding=None, is_verbose=False):
-    """load a pickle, with a provided encoding
+def load(fh, encoding: Optional[str] = None, is_verbose: bool = False):
+    """
+    Load a pickle, with a provided encoding,
 
     Parameters
     ----------
