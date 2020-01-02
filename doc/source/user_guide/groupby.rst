@@ -209,8 +209,8 @@ in case you want to include ``NA`` values in group keys, you could pass ``dropna
 
 .. ipython:: python
 
-    l = [[1, 2, 3], [1, None, 4], [2, 1, 3], [1, 2, 2]]
-    df = pd.DataFrame(l, columns=["a", "b", "c"])
+    df_list = [[1, 2, 3], [1, None, 4], [2, 1, 3], [1, 2, 2]]
+    df = pd.DataFrame(df_list, columns=["a", "b", "c"])
 
     df.groupby(by=["b"], dropna=False).sum()
 
