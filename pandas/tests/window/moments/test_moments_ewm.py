@@ -266,7 +266,7 @@ class TestEwmMomentsConsistency(ConsistencyBase):
         self._create_data()
 
     def test_ewmcov(self, min_periods, binary_ew_data):
-        A, B = binary_ew_data()
+        A, B = binary_ew_data
 
         self._check_binary_ew(name="cov", A=A, B=B)
         self._check_binary_ew_min_periods("cov", min_periods, A, B)
@@ -275,7 +275,7 @@ class TestEwmMomentsConsistency(ConsistencyBase):
         self._check_pairwise_moment("ewm", "cov", span=10, min_periods=5)
 
     def test_ewmcorr(self, min_periods, binary_ew_data):
-        A, B = binary_ew_data()
+        A, B = binary_ew_data
 
         self._check_binary_ew(name="corr", A=A, B=B)
         self._check_binary_ew_min_periods("corr", min_periods, A, B)
@@ -285,7 +285,7 @@ class TestEwmMomentsConsistency(ConsistencyBase):
 
     def _check_binary_ew(self, name, A, B):
 
-        result = self._ew_func(A, B, 20, name=name, min_periods=5)
+        result = self._ew_func(A=A, B=B, com=20, name=name, min_periods=5)
         assert np.isnan(result.values[:14]).all()
         assert not np.isnan(result.values[14:]).any()
 
@@ -311,7 +311,7 @@ class TestEwmMomentsConsistency(ConsistencyBase):
     @pytest.mark.parametrize("name", ["cov", "corr"])
     def test_different_input_array_raise_exception(self, name, binary_ew_data):
 
-        A, _ = binary_ew_data()
+        A, _ = binary_ew_data
         msg = "Input arrays must be of the same type!"
         # exception raised is Exception
         with pytest.raises(Exception, match=msg):
