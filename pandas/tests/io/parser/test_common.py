@@ -3,7 +3,6 @@ Tests that work on both the Python and C engines but do not have a
 specific classification into the other test modules.
 """
 import codecs
-from collections import OrderedDict
 import csv
 from datetime import datetime
 from io import BytesIO, StringIO
@@ -1316,9 +1315,7 @@ def test_float_parser(all_parsers):
 
 def test_scientific_no_exponent(all_parsers):
     # see gh-12215
-    df = DataFrame.from_dict(
-        OrderedDict([("w", ["2e"]), ("x", ["3E"]), ("y", ["42e"]), ("z", ["632E"])])
-    )
+    df = DataFrame.from_dict({"w": ["2e"], "x": ["3E"], "y": ["42e"], "z": ["632E"]})
     data = df.to_csv(index=False)
     parser = all_parsers
 
@@ -2207,3 +2204,13 @@ def test_first_row_bom(all_parsers):
     result = parser.read_csv(StringIO(data), delimiter="\t")
     expected = DataFrame(columns=["Head1", "Head2", "Head3"])
     tm.assert_frame_equal(result, expected)
+
+
+def test_integer_precision(all_parsers):
+    # Gh 7072
+    s = """1,1;0;0;0;1;1;3844;3844;3844;1;1;1;1;1;1;0;0;1;1;0;0,,,4321583677327450765
+5,1;0;0;0;1;1;843;843;843;1;1;1;1;1;1;0;0;1;1;0;0,64.0,;,4321113141090630389"""
+    parser = all_parsers
+    result = parser.read_csv(StringIO(s), header=None)[4]
+    expected = Series([4321583677327450765, 4321113141090630389], name=4)
+    tm.assert_series_equal(result, expected)

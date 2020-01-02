@@ -1,5 +1,5 @@
 import operator
-from typing import Any
+from typing import Any, List
 
 import numpy as np
 
@@ -361,11 +361,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         """ return the underlying data, which is a Categorical """
         return self._data
 
-    @property
-    def itemsize(self):
-        # Size of the items in categories, not codes.
-        return self.values.itemsize
-
     def _wrap_setop_result(self, other, result):
         name = get_op_result_name(self, other)
         return self._shallow_copy(result, name=name)
@@ -583,6 +578,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         target = ibase.ensure_index(target)
 
+        missing: List[int]
         if self.equals(target):
             indexer = None
             missing = []

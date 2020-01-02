@@ -1146,18 +1146,18 @@ class TestDataFrameIndexing:
             {
                 "a": [0, 0, 0, 0, 13, 14],
                 "b": [
-                    pd.datetime(2012, 1, 1),
+                    datetime(2012, 1, 1),
                     1,
                     "x",
                     "y",
-                    pd.datetime(2013, 1, 1),
-                    pd.datetime(2014, 1, 1),
+                    datetime(2013, 1, 1),
+                    datetime(2014, 1, 1),
                 ],
             }
         )
         df = pd.DataFrame(0, columns=list("ab"), index=range(6))
         df["b"] = pd.NaT
-        df.loc[0, "b"] = pd.datetime(2012, 1, 1)
+        df.loc[0, "b"] = datetime(2012, 1, 1)
         df.loc[1, "b"] = 1
         df.loc[[2, 3], "b"] = "x", "y"
         A = np.array(
