@@ -586,7 +586,7 @@ Deprecations
 
 **Selecting Columns from a Grouped DataFrame**
 
-When selecting columns from a :class:`DataFrameGroupBy` object, passing individual keys (or a tuple of keys) inside single brackets is deprecated, 
+When selecting columns from a :class:`DataFrameGroupBy` object, passing individual keys (or a tuple of keys) inside single brackets is deprecated,
 a list of items should be used instead. (:issue:`23566`) For example:
 
 .. code-block:: ipython
@@ -607,7 +607,7 @@ a list of items should be used instead. (:issue:`23566`) For example:
     # tuple of multiple keys, returns DataFrameGroupBy, raises FutureWarning
     g[('B','C')]
 
-    # multiple keys passed directly, returns DataFrameGroupBy, raises FutureWarning 
+    # multiple keys passed directly, returns DataFrameGroupBy, raises FutureWarning
     # (implicitly converts the passed strings into a single tuple)
     g['B','C']
 
