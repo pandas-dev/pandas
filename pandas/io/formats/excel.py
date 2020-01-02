@@ -4,6 +4,7 @@
 from functools import reduce
 import itertools
 import re
+from typing import Callable, Dict, List, Optional, Sequence, Union
 import warnings
 
 import numpy as np
@@ -25,7 +26,9 @@ class ExcelCell:
     __fields__ = ("row", "col", "val", "style", "mergestart", "mergeend")
     __slots__ = __fields__
 
-    def __init__(self, row, col, val, style=None, mergestart=None, mergeend=None):
+    def __init__(
+        self, row: int, col: int, val, style=None, mergestart=None, mergeend=None
+    ):
         self.row = row
         self.col = col
         self.val = val
@@ -56,7 +59,7 @@ class CSSToExcelConverter:
     #     instancemethods so that users can easily experiment with extensions
     #     without monkey-patching.
 
-    def __init__(self, inherited=None):
+    def __init__(self, inherited: Optional[str] = None):
         if inherited is not None:
             inherited = self.compute_css(inherited)
 
@@ -64,7 +67,7 @@ class CSSToExcelConverter:
 
     compute_css = CSSResolver()
 
-    def __call__(self, declarations_str: str):
+    def __call__(self, declarations_str: str) -> Dict[str, Dict[str, str]]:
         """
         Convert CSS declarations to ExcelWriter style.
 
@@ -84,7 +87,7 @@ class CSSToExcelConverter:
         properties = self.compute_css(declarations_str, self.inherited)
         return self.build_xlstyle(properties)
 
-    def build_xlstyle(self, props):
+    def build_xlstyle(self, props: Dict[str, str]) -> Dict[str, Dict[str, str]]:
         out = {
             "alignment": self.build_alignment(props),
             "border": self.build_border(props),
@@ -95,7 +98,7 @@ class CSSToExcelConverter:
 
         # TODO: handle cell width and height: needs support in pandas.io.excel
 
-        def remove_none(d):
+        def remove_none(d: Dict[str, str]) -> None:
             """Remove key where value is None, through nested dicts"""
             for k, v in list(d.items()):
                 if v is None:
@@ -118,7 +121,7 @@ class CSSToExcelConverter:
         # OpenXML also has 'justify', 'distributed'
     }
 
-    def build_alignment(self, props):
+    def build_alignment(self, props) -> Dict[str, Optional[Union[bool, str]]]:
         # TODO: text-indent, padding-left -> alignment.indent
         return {
             "horizontal": props.get("text-align"),
@@ -130,7 +133,7 @@ class CSSToExcelConverter:
             ),
         }
 
-    def build_border(self, props):
+    def build_border(self, props: Dict) -> Dict[str, Dict[str, str]]:
         return {
             side: {
                 "style": self._border_style(
@@ -142,7 +145,7 @@ class CSSToExcelConverter:
             for side in ["top", "right", "bottom", "left"]
         }
 
-    def _border_style(self, style, width):
+    def _border_style(self, style: Optional[str], width):
         # convert styles and widths to openxml, one of:
         #       'dashDot'
         #       'dashDotDot'
@@ -191,7 +194,7 @@ class CSSToExcelConverter:
                 return "dashed"
             return "mediumDashed"
 
-    def build_fill(self, props):
+    def build_fill(self, props: Dict[str, str]):
         # TODO: perhaps allow for special properties
         #       -excel-pattern-bgcolor and -excel-pattern-type
         fill_color = props.get("background-color")
@@ -215,7 +218,7 @@ class CSSToExcelConverter:
     }
     ITALIC_MAP = {"normal": False, "italic": True, "oblique": True}
 
-    def build_font(self, props):
+    def build_font(self, props) -> Dict[str, Optional[Union[bool, int, str]]]:
         size = props.get("font-size")
         if size is not None:
             assert size.endswith("pt")
@@ -311,7 +314,7 @@ class CSSToExcelConverter:
         "white": "FFFFFF",
     }
 
-    def color_to_excel(self, val):
+    def color_to_excel(self, val: Optional[str]):
         if val is None:
             return None
         if val.startswith("#") and len(val) == 7:
@@ -323,7 +326,7 @@ class CSSToExcelConverter:
         except KeyError:
             warnings.warn(f"Unhandled color format: {repr(val)}", CSSWarning)
 
-    def build_number_format(self, props):
+    def build_number_format(self, props: Dict) -> Dict[str, Optional[str]]:
         return {"format_code": props.get("number-format")}
 
 
@@ -366,15 +369,15 @@ class ExcelFormatter:
     def __init__(
         self,
         df,
-        na_rep="",
-        float_format=None,
-        cols=None,
-        header=True,
-        index=True,
-        index_label=None,
-        merge_cells=False,
-        inf_rep="inf",
-        style_converter=None,
+        na_rep: str = "",
+        float_format: Optional[str] = None,
+        cols: Optional[Sequence] = None,
+        header: Union[bool, List[str]] = True,
+        index: bool = True,
+        index_label: Union[str, Sequence, None] = None,
+        merge_cells: bool = False,
+        inf_rep: str = "inf",
+        style_converter: Optional[Callable] = None,
     ):
         self.rowcounter = 0
         self.na_rep = na_rep
@@ -442,10 +445,8 @@ class ExcelFormatter:
         if self.columns.nlevels > 1:
             if not self.index:
                 raise NotImplementedError(
-                    "Writing to Excel with MultiIndex"
-                    " columns and no index "
-                    "('index'=False) is not yet "
-                    "implemented."
+                    "Writing to Excel with MultiIndex columns and no "
+                    "index ('index'=False) is not yet implemented."
                 )
 
         has_aliases = isinstance(self.header, (tuple, list, np.ndarray, Index))
@@ -540,7 +541,6 @@ class ExcelFormatter:
         return itertools.chain(gen, gen2)
 
     def _format_body(self):
-
         if isinstance(self.df.index, ABCMultiIndex):
             return self._format_hierarchical_rows()
         else:
@@ -716,8 +716,7 @@ class ExcelFormatter:
         num_rows, num_cols = self.df.shape
         if num_rows > self.max_rows or num_cols > self.max_cols:
             raise ValueError(
-                "This sheet is too large! Your sheet size is: "
-                f"{num_rows}, {num_cols} "
+                f"This sheet is too large! Your sheet size is: {num_rows}, {num_cols} "
                 f"Max sheet size is: {self.max_rows}, {self.max_cols}"
             )
 
