@@ -19,9 +19,8 @@ import sys
 
 import numpy as np
 
+import pandas as pd
 from pandas.api.extensions import ExtensionArray, ExtensionDtype
-from pandas.core.common import is_bool_indexer
-from pandas.core.indexers import check_bool_array_indexer
 
 
 class JSONDtype(ExtensionDtype):
@@ -76,18 +75,21 @@ class JSONArray(ExtensionArray):
     def __getitem__(self, item):
         if isinstance(item, numbers.Integral):
             return self.data[item]
-        elif is_bool_indexer(item):
-            item = check_bool_array_indexer(self, item)
-            return self._from_sequence([x for x, m in zip(self, item) if m])
-        elif isinstance(item, abc.Iterable):
-            # fancy indexing
-            return type(self)([self.data[i] for i in item])
         elif isinstance(item, slice) and item == slice(None):
             # Make sure we get a view
             return type(self)(self.data)
-        else:
+        elif isinstance(item, slice):
             # slice
             return type(self)(self.data[item])
+        else:
+            if not pd.api.types.is_array_like(item):
+                item = pd.array(item)
+            dtype = item.dtype
+            if pd.api.types.is_bool_dtype(dtype):
+                item = pd.api.indexers.check_bool_array_indexer(self, item)
+                return self._from_sequence([x for x, m in zip(self, item) if m])
+            # integer
+            return type(self)([self.data[i] for i in item])
 
     def __setitem__(self, key, value):
         if isinstance(key, numbers.Integral):
