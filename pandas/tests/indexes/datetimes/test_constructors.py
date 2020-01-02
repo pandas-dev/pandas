@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from functools import partial
 from operator import attrgetter
 
@@ -10,15 +10,7 @@ import pytz
 from pandas._libs.tslibs import OutOfBoundsDatetime, conversion
 
 import pandas as pd
-from pandas import (
-    DatetimeIndex,
-    Index,
-    Timestamp,
-    date_range,
-    datetime,
-    offsets,
-    to_datetime,
-)
+from pandas import DatetimeIndex, Index, Timestamp, date_range, offsets, to_datetime
 from pandas.core.arrays import DatetimeArray, period_array
 import pandas.util.testing as tm
 
@@ -711,7 +703,6 @@ class TestDatetimeIndex:
         expected = DatetimeIndex([ts[0].to_pydatetime(), ts[1].to_pydatetime()])
         tm.assert_index_equal(result, expected)
 
-    # TODO(GH-24559): Remove the xfail for the tz-aware case.
     @pytest.mark.parametrize("klass", [Index, DatetimeIndex])
     @pytest.mark.parametrize("box", [np.array, partial(np.array, dtype=object), list])
     @pytest.mark.parametrize(

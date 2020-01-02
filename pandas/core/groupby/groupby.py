@@ -325,7 +325,7 @@ class GroupByPlot(PandasObject):
         f.__name__ = "plot"
         return self._groupby.apply(f)
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str):
         def attr(*args, **kwargs):
             def f(self):
                 return getattr(self.plot, name)(*args, **kwargs)
@@ -570,7 +570,7 @@ class _GroupBy(PandasObject, SelectionMixin):
     def _dir_additions(self):
         return self.obj._dir_additions() | self._apply_whitelist
 
-    def __getattr__(self, attr):
+    def __getattr__(self, attr: str):
         if attr in self._internal_names_set:
             return object.__getattribute__(self, attr)
         if attr in self.obj:
@@ -2362,6 +2362,9 @@ class GroupBy(_GroupBy):
                     axis=axis,
                 )
             )
+        if fill_method is None:  # GH30463
+            fill_method = "pad"
+            limit = 0
         filled = getattr(self, fill_method)(limit=limit)
         fill_grp = filled.groupby(self.grouper.codes)
         shifted = fill_grp.shift(periods=periods, freq=freq)
@@ -2540,9 +2543,9 @@ def get_groupby(
     squeeze: bool = False,
     observed: bool = False,
     mutated: bool = False,
-):
+) -> GroupBy:
 
-    klass: Union[Type["SeriesGroupBy"], Type["DataFrameGroupBy"]]
+    klass: Type[GroupBy]
     if isinstance(obj, Series):
         from pandas.core.groupby.generic import SeriesGroupBy
 

@@ -70,6 +70,12 @@ def hash_object_array(object[:] arr, object key, object encoding='utf8'):
             # null, stringify and encode
             data = <bytes>str(val).encode(encoding)
 
+        elif isinstance(val, tuple):
+            # GH#28969 we could have a tuple, but need to ensure that
+            #  the tuple entries are themselves hashable before converting
+            #  to str
+            hash(val)
+            data = <bytes>str(val).encode(encoding)
         else:
             raise TypeError(f"{val} of type {type(val)} is not a valid type "
                             "for hashing, must be string or null")
