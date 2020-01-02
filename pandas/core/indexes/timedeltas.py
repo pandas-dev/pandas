@@ -3,7 +3,7 @@ from datetime import datetime
 
 import numpy as np
 
-from pandas._libs import NaT, Timedelta, index as libindex, join as libjoin, lib
+from pandas._libs import NaT, Timedelta, index as libindex, lib
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.common import (
@@ -31,7 +31,6 @@ from pandas.core.indexes.datetimelike import (
     DatetimelikeDelegateMixin,
     DatetimeTimedeltaMixin,
 )
-from pandas.core.ops import get_op_result_name
 
 from pandas.tseries.frequencies import to_offset
 
@@ -42,18 +41,15 @@ class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
     # We also have a few "extra" attrs, which may or may not be raw,
     # which we don't want to expose in the .dt accessor.
     _delegate_class = TimedeltaArray
-    _delegated_properties = TimedeltaArray._datetimelike_ops + ["components"]
-    _delegated_methods = TimedeltaArray._datetimelike_methods + [
-        "_box_values",
-        "__neg__",
-        "__pos__",
-        "__abs__",
-        "sum",
-        "std",
-        "median",
-    ]
-    _raw_properties = {"components"}
-    _raw_methods = {"to_pytimedelta", "sum", "std", "median"}
+    _raw_properties = {"components", "_box_func"}
+    _raw_methods = {"to_pytimedelta", "sum", "std", "median", "_format_native_types"}
+
+    _delegated_properties = TimedeltaArray._datetimelike_ops + list(_raw_properties)
+    _delegated_methods = (
+        TimedeltaArray._datetimelike_methods
+        + list(_raw_methods)
+        + ["_box_values", "__neg__", "__pos__", "__abs__"]
+    )
 
 
 @delegate_names(
@@ -121,17 +117,6 @@ class TimedeltaIndex(
     """
 
     _typ = "timedeltaindex"
-    _join_precedence = 10
-
-    def _join_i8_wrapper(joinf, **kwargs):
-        return DatetimeIndexOpsMixin._join_i8_wrapper(joinf, dtype="m8[ns]", **kwargs)
-
-    _inner_indexer = _join_i8_wrapper(libjoin.inner_join_indexer)
-    _outer_indexer = _join_i8_wrapper(libjoin.outer_join_indexer)
-    _left_indexer = _join_i8_wrapper(libjoin.left_join_indexer)
-    _left_indexer_unique = _join_i8_wrapper(
-        libjoin.left_join_indexer_unique, with_indexers=False
-    )
 
     _engine_type = libindex.TimedeltaEngine
 
@@ -237,21 +222,8 @@ class TimedeltaIndex(
 
         return _get_format_timedelta64(self, box=True)
 
-    def _format_native_types(self, na_rep="NaT", date_format=None, **kwargs):
-        from pandas.io.formats.format import Timedelta64Formatter
-
-        return np.asarray(
-            Timedelta64Formatter(
-                values=self, nat_rep=na_rep, justify="all"
-            ).get_result()
-        )
-
     # -------------------------------------------------------------------
     # Wrapping TimedeltaArray
-
-    @property
-    def _box_func(self):
-        return lambda x: Timedelta(x, unit="ns")
 
     def __getitem__(self, key):
         result = self._data.__getitem__(key)
@@ -293,37 +265,6 @@ class TimedeltaIndex(
                 if result.freq is None:
                     result._set_freq("infer")
             return result
-
-    def join(self, other, how="left", level=None, return_indexers=False, sort=False):
-        """
-        See Index.join
-        """
-        if _is_convertible_to_index(other):
-            try:
-                other = TimedeltaIndex(other)
-            except (TypeError, ValueError):
-                pass
-
-        return Index.join(
-            self,
-            other,
-            how=how,
-            level=level,
-            return_indexers=return_indexers,
-            sort=sort,
-        )
-
-    def _wrap_joined_index(self, joined, other):
-        name = get_op_result_name(self, other)
-        if (
-            isinstance(other, TimedeltaIndex)
-            and self.freq == other.freq
-            and self._can_fast_union(other)
-        ):
-            joined = self._shallow_copy(joined, name=name)
-            return joined
-        else:
-            return self._simple_new(joined, name)
 
     def _fast_union(self, other):
         if len(other) == 0:
@@ -567,24 +508,6 @@ class TimedeltaIndex(
 TimedeltaIndex._add_comparison_ops()
 TimedeltaIndex._add_logical_methods_disabled()
 TimedeltaIndex._add_datetimelike_methods()
-
-
-def _is_convertible_to_index(other) -> bool:
-    """
-    return a boolean whether I can attempt conversion to a TimedeltaIndex
-    """
-    if isinstance(other, TimedeltaIndex):
-        return True
-    elif len(other) > 0 and other.inferred_type not in (
-        "floating",
-        "mixed-integer",
-        "integer",
-        "integer-na",
-        "mixed-integer-float",
-        "mixed",
-    ):
-        return True
-    return False
 
 
 def timedelta_range(
