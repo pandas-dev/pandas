@@ -210,9 +210,9 @@ in case you want to include ``NA`` values in group keys, you could pass ``dropna
 .. ipython:: python
 
     df_list = [[1, 2, 3], [1, None, 4], [2, 1, 3], [1, 2, 2]]
-    df = pd.DataFrame(df_list, columns=["a", "b", "c"])
+    df_dropna = pd.DataFrame(df_list, columns=["a", "b", "c"])
 
-    df.groupby(by=["b"], dropna=False).sum()
+    df_dropna.groupby(by=["b"], dropna=False).sum()
 
 .. ipython:: python
 
