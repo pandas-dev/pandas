@@ -1,5 +1,6 @@
-from datetime import datetime, time, timedelta
+from datetime import datetime, time, timedelta, tzinfo
 import operator
+from typing import Optional
 import warnings
 
 import numpy as np
@@ -66,8 +67,13 @@ class DatetimeDelegateMixin(DatetimelikeDelegateMixin):
     # We also have a few "extra" attrs, which may or may not be raw,
     # which we we dont' want to expose in the .dt accessor.
     _extra_methods = ["to_period", "to_perioddelta", "to_julian_date", "strftime"]
-    _extra_raw_methods = ["to_pydatetime", "_local_timestamps", "_has_same_tz"]
-    _extra_raw_properties = ["_box_func", "tz", "tzinfo"]
+    _extra_raw_methods = [
+        "to_pydatetime",
+        "_local_timestamps",
+        "_has_same_tz",
+        "_format_native_types",
+    ]
+    _extra_raw_properties = ["_box_func", "tz", "tzinfo", "dtype"]
     _delegated_properties = DatetimeArray._datetimelike_ops + _extra_raw_properties
     _delegated_methods = (
         DatetimeArray._datetimelike_methods + _extra_methods + _extra_raw_methods
@@ -88,7 +94,7 @@ class DatetimeDelegateMixin(DatetimelikeDelegateMixin):
     DatetimeArray,
     DatetimeDelegateMixin._delegated_methods,
     typ="method",
-    overwrite=False,
+    overwrite=True,
 )
 class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
     """
@@ -197,8 +203,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
     _engine_type = libindex.DatetimeEngine
     _supports_partial_string_indexing = True
 
-    _tz = None
-    _freq = None
     _comparables = ["name", "freqstr", "tz"]
     _attributes = ["name", "tz", "freq"]
 
@@ -213,6 +217,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
     _field_ops = DatetimeArray._field_ops
     _datetimelike_ops = DatetimeArray._datetimelike_ops
     _datetimelike_methods = DatetimeArray._datetimelike_methods
+
+    tz: Optional[tzinfo]
 
     # --------------------------------------------------------------------
     # Constructors
@@ -310,25 +316,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
             dtype = "M8[ns]"
         return np.asarray(self._data, dtype=dtype)
 
-    @property
-    def dtype(self):
-        return self._data.dtype
-
-    @property
-    def tz(self):
-        # GH 18595
-        return self._data.tz
-
-    @tz.setter
-    def tz(self, value):
-        # GH 3746: Prevent localizing or converting the index by setting tz
-        raise AttributeError(
-            "Cannot directly set timezone. Use tz_localize() "
-            "or tz_convert() as appropriate"
-        )
-
-    tzinfo = tz
-
     @cache_readonly
     def _is_dates_only(self) -> bool:
         """
@@ -400,15 +387,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
         return libts.ints_to_pydatetime(self.asi8, self.tz)
-
-    def _format_native_types(self, na_rep="NaT", date_format=None, **kwargs):
-        from pandas.io.formats.format import _get_format_datetime64_from_values
-
-        fmt = _get_format_datetime64_from_values(self, date_format)
-
-        return libts.format_array_from_datetime(
-            self.asi8, tz=self.tz, format=fmt, na_rep=na_rep
-        )
 
     @property
     def _formatter_func(self):
@@ -998,10 +976,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
             assert isinstance(result, np.ndarray), result
             return result
         return type(self)(result, name=self.name)
-
-    @property
-    def _box_func(self):
-        return lambda x: Timestamp(x, tz=self.tz)
 
     # --------------------------------------------------------------------
 
