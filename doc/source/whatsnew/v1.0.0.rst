@@ -194,7 +194,7 @@ the :ref:`custom window rolling documentation <stats.custom_rolling_window>`
 
 .. _whatsnew_1000.groupby_key:
 
-Allow NaN in groupby key
+Allow NA in groupby key
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 We've added a ``dropna`` keyword to :meth:`DataFrame.groupby` and :meth:`Series.groupby` in order to
