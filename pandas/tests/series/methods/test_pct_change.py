@@ -68,3 +68,12 @@ class TestSeriesPctChange:
         rs_freq = empty_ts.pct_change(freq=freq, fill_method=fill_method, limit=limit)
         rs_periods = empty_ts.pct_change(periods, fill_method=fill_method, limit=limit)
         tm.assert_series_equal(rs_freq, rs_periods)
+
+
+@pytest.mark.parametrize("fill_method", ["pad", "ffill", None])
+def test_pct_change_with_duplicated_indices(fill_method):
+    # GH30463
+    s = Series([np.nan, 1, 2, 3, 9, 18], index=["a", "b"] * 3)
+    result = s.pct_change(fill_method=fill_method)
+    expected = Series([np.nan, np.nan, 1.0, 0.5, 2.0, 1.0], index=["a", "b"] * 3)
+    tm.assert_series_equal(result, expected)

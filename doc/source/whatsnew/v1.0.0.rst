@@ -830,6 +830,7 @@ Numeric
 - Bug in :class:`NumericIndex` construction that caused :class:`UInt64Index` to be casted to :class:`Float64Index` when integers in the ``np.uint64`` range were used to index a :class:`DataFrame` (:issue:`28279`)
 - Bug in :meth:`Series.interpolate` when using method=`index` with an unsorted index, would previously return incorrect results. (:issue:`21037`)
 - Bug in :meth:`DataFrame.round` where a :class:`DataFrame` with a :class:`CategoricalIndex` of :class:`IntervalIndex` columns would incorrectly raise a ``TypeError`` (:issue:`30063`)
+- Bug in :meth:`Series.pct_change` and :meth:`DataFrame.pct_change` when there are duplicated indices (:issue:`30463`)
 - Bug in :class:`DataFrame` cumulative operations (e.g. cumsum, cummax) incorrect casting to object-dtype (:issue:`19296`)
 
 Conversion
