@@ -84,10 +84,10 @@ def maybe_dispatch_ufunc_to_dunder_op(
             and op_name in DISPATCHED_UFUNCS
             and kwargs.get("out") is None):
         if isinstance(inputs[0], type(self)):
-            name = "__{}__".format(op_name)
+            name = f"__{op_name}__"
             return getattr(self, name, not_implemented)(inputs[1])
         else:
-            name = REVERSED_NAMES.get(op_name, "__r{}__".format(op_name))
+            name = REVERSED_NAMES.get(op_name, f"__r{op_name}__")
             result = getattr(self, name, not_implemented)(inputs[0])
             return result
     else:
