@@ -286,13 +286,13 @@ else:
     class __Datetime:
         def __init__(self):
             from datetime import datetime as dt
-            import warnings
 
             self.datetime = dt
-            self.warnings = warnings
 
         def __getattr__(self, item):
-            self.warnings.warn(
+            import warnings
+
+            warnings.warn(
                 "The pandas.datetime class is deprecated "
                 "and will be removed from pandas in a future version. "
                 "Import from datetime instead",
@@ -301,7 +301,7 @@ else:
             )
 
             try:
-                return getattr(dt, item)
+                return getattr(self.datetime, item)
             except AttributeError:
                 raise AttributeError(f"module datetime has no attribute {item}")
 

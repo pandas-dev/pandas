@@ -232,6 +232,9 @@ class TestPDApi(Base):
             with tm.assert_produces_warning(FutureWarning):
                 if compat.PY37:
                     getattr(pd, depr)
+                elif depr == "datetime":
+                    deprecated = getattr(pd, "__Datetime")
+                    deprecated().__getattr__(dir(pd.datetime)[-1])
                 else:
                     deprecated = getattr(pd, depr)
                     deprecated.__getattr__(dir(deprecated)[-1])
