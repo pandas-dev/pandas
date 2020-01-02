@@ -101,8 +101,7 @@ def add_special_arithmetic_methods(cls):
             )
 
             return self
-
-        name = method.name.strip("__")
+        name = method.__name__.strip("__")
         f.__name__ = f"__i{name}__"
         return f
 
