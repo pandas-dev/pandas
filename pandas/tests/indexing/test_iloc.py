@@ -1,5 +1,6 @@
 """ test positional based indexing with iloc """
 
+from datetime import datetime
 from warnings import catch_warnings, simplefilter
 
 import numpy as np
@@ -122,7 +123,7 @@ class TestiLoc(Base):
         [
             ([slice(None), ["A", "D"]]),
             (["1", "2"], slice(None)),
-            ([pd.datetime(2019, 1, 1)], slice(None)),
+            ([datetime(2019, 1, 1)], slice(None)),
         ],
     )
     def test_iloc_non_integer_raises(self, index, columns, index_vals, column_vals):

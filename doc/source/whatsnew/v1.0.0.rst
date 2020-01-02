@@ -225,6 +225,9 @@ Other enhancements
 - :meth:`DataFrame.drop_duplicates` has gained ``ignore_index`` keyword to reset index (:issue:`30114`)
 - Added new writer for exporting Stata dta files in version 118, ``StataWriter118``.  This format supports exporting strings containing Unicode characters (:issue:`23573`)
 - :meth:`Series.map` now accepts ``collections.abc.Mapping`` subclasses as a mapper (:issue:`29733`)
+- The ``pandas.datetime`` class is now deprecated. Import from ``datetime`` instead (:issue:`30296`)
+
+
 
 Build Changes
 ^^^^^^^^^^^^^

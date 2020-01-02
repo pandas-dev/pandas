@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List
 
 import numpy as np
@@ -490,7 +491,7 @@ def test_is_numeric_v_string_like():
 
 
 def test_is_datetimelike_v_numeric():
-    dt = np.datetime64(pd.datetime(2017, 1, 1))
+    dt = np.datetime64(datetime(2017, 1, 1))
 
     assert not com.is_datetimelike_v_numeric(1, 1)
     assert not com.is_datetimelike_v_numeric(dt, dt)
