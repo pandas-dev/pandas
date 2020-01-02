@@ -66,12 +66,11 @@ class PeriodDelegateMixin(DatetimelikeDelegateMixin):
     """
 
     _delegate_class = PeriodArray
-    _delegated_properties = PeriodArray._datetimelike_ops
-    _delegated_methods = set(PeriodArray._datetimelike_methods) | {
-        "_addsub_int_array",
-        "strftime",
-    }
-    _raw_properties = {"is_leap_year"}
+    _raw_methods = {"_format_native_types"}
+    _raw_properties = {"is_leap_year", "freq"}
+
+    _delegated_properties = PeriodArray._datetimelike_ops + list(_raw_properties)
+    _delegated_methods = set(PeriodArray._datetimelike_methods) | _raw_methods
 
 
 @delegate_names(PeriodArray, PeriodDelegateMixin._delegated_properties, typ="property")
@@ -262,10 +261,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     def values(self):
         return np.asarray(self)
 
-    @property
-    def freq(self) -> DateOffset:
-        return self._data.freq
-
     def _shallow_copy(self, values=None, **kwargs):
         # TODO: simplify, figure out type of values
         if values is None:
@@ -362,10 +357,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
     # ------------------------------------------------------------------------
     # Rendering Methods
-
-    def _format_native_types(self, na_rep="NaT", quoting=None, **kwargs):
-        # just dispatch, return ndarray
-        return self._data._format_native_types(na_rep=na_rep, quoting=quoting, **kwargs)
 
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
