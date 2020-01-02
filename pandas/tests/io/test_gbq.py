@@ -158,19 +158,15 @@ class TestToGBQIntegrationWithServiceAccountKeyPath:
         self.client = _get_client()
         self.dataset = self.client.dataset(dataset_id)
 
-        # Ensure previous test runs are removed
-        self.client.delete_dataset(
-            self.dataset, delete_contents=True, not_found_ok=True
-        )
-
+        # Create the dataset if it doesn't already exist
         self.client.create_dataset(bigquery.Dataset(self.dataset), exists_ok=True)
 
         table_name = "".join(random.choices(string.ascii_lowercase, k=10))
         destination_table = f"{dataset_id}.{table_name}"
         yield destination_table
 
-        # Teardown Dataset
-        self.client.delete_dataset(self.dataset, delete_contents=True)
+        # Teardown tables created
+        self.client.delete_table(destination_table, not_found_ok=True)
 
     def test_roundtrip(self, gbq_dataset):
         destination_table = gbq_dataset
