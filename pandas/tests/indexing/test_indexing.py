@@ -1190,3 +1190,13 @@ def test_duplicate_index_mistyped_key_raises_keyerror():
 
     with pytest.raises(KeyError):
         ser.index._engine.get_loc(None)
+
+
+def test_setitem_with_bool_mask_and_values_matching_n_trues_in_length():
+    # GH 30567
+    ser = pd.Series([None] * 10)
+    mask = [False] * 3 + [True] * 5 + [False] * 2
+    ser[mask] = range(5)
+    result = ser
+    expected = pd.Series([None] * 3 + list(range(5)) + [None] * 2).astype("object")
+    tm.assert_series_equal(result, expected)

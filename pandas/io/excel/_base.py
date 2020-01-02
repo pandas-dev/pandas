@@ -297,9 +297,7 @@ def read_excel(
 
     for arg in ("sheet", "sheetname", "parse_cols"):
         if arg in kwds:
-            raise TypeError(
-                "read_excel() got an unexpected keyword argument `{}`".format(arg)
-            )
+            raise TypeError(f"read_excel() got an unexpected keyword argument `{arg}`")
 
     if not isinstance(io, ExcelFile):
         io = ExcelFile(io, engine=engine)
@@ -429,7 +427,7 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
 
         for asheetname in sheets:
             if verbose:
-                print("Reading sheet {sheet}".format(sheet=asheetname))
+                print(f"Reading sheet {asheetname}")
 
             if isinstance(asheetname, str):
                 sheet = self.get_sheet_by_name(asheetname)
@@ -622,11 +620,11 @@ class ExcelWriter(metaclass=abc.ABCMeta):
                     ext = "xlsx"
 
                 try:
-                    engine = config.get_option("io.excel.{ext}.writer".format(ext=ext))
+                    engine = config.get_option(f"io.excel.{ext}.writer")
                     if engine == "auto":
                         engine = _get_default_writer(ext)
                 except KeyError:
-                    raise ValueError("No engine for filetype: '{ext}'".format(ext=ext))
+                    raise ValueError(f"No engine for filetype: '{ext}'")
             cls = get_writer(engine)
 
         return object.__new__(cls)
@@ -757,9 +755,8 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         if ext.startswith("."):
             ext = ext[1:]
         if not any(ext in extension for extension in cls.supported_extensions):
-            msg = "Invalid extension for engine '{engine}': '{ext}'".format(
-                engine=pprint_thing(cls.engine), ext=pprint_thing(ext)
-            )
+            msg = "Invalid extension for engine"
+            f"'{pprint_thing(cls.engine)}': '{pprint_thing(ext)}'"
             raise ValueError(msg)
         else:
             return True
@@ -802,7 +799,7 @@ class ExcelFile:
         if engine is None:
             engine = "xlrd"
         if engine not in self._engines:
-            raise ValueError("Unknown engine: {engine}".format(engine=engine))
+            raise ValueError(f"Unknown engine: {engine}")
 
         self.engine = engine
         # could be a str, ExcelFile, Book, etc.

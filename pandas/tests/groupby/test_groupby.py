@@ -785,7 +785,7 @@ def test_omit_nuisance(df):
 
     # won't work with axis = 1
     grouped = df.groupby({"A": 0, "C": 0, "D": 1, "E": 1}, axis=1)
-    msg = r"unsupported operand type\(s\) for \+: 'Timestamp'"
+    msg = "reduction operation 'sum' not allowed for this dtype"
     with pytest.raises(TypeError, match=msg):
         grouped.agg(lambda x: x.sum(0, numeric_only=False))
 
@@ -1729,9 +1729,7 @@ def test_pivot_table_values_key_error():
     # This test is designed to replicate the error in issue #14938
     df = pd.DataFrame(
         {
-            "eventDate": pd.date_range(
-                pd.datetime.today(), periods=20, freq="M"
-            ).tolist(),
+            "eventDate": pd.date_range(datetime.today(), periods=20, freq="M").tolist(),
             "thename": range(0, 20),
         }
     )

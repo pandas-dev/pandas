@@ -31,7 +31,6 @@ from pandas.core.indexes.datetimelike import (
     DatetimelikeDelegateMixin,
     DatetimeTimedeltaMixin,
 )
-from pandas.core.ops import get_op_result_name
 
 from pandas.tseries.frequencies import to_offset
 
@@ -42,18 +41,15 @@ class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
     # We also have a few "extra" attrs, which may or may not be raw,
     # which we don't want to expose in the .dt accessor.
     _delegate_class = TimedeltaArray
-    _delegated_properties = TimedeltaArray._datetimelike_ops + ["components"]
-    _delegated_methods = TimedeltaArray._datetimelike_methods + [
-        "_box_values",
-        "__neg__",
-        "__pos__",
-        "__abs__",
-        "sum",
-        "std",
-        "median",
-    ]
-    _raw_properties = {"components"}
-    _raw_methods = {"to_pytimedelta", "sum", "std", "median"}
+    _raw_properties = {"components", "_box_func"}
+    _raw_methods = {"to_pytimedelta", "sum", "std", "median", "_format_native_types"}
+
+    _delegated_properties = TimedeltaArray._datetimelike_ops + list(_raw_properties)
+    _delegated_methods = (
+        TimedeltaArray._datetimelike_methods
+        + list(_raw_methods)
+        + ["_box_values", "__neg__", "__pos__", "__abs__"]
+    )
 
 
 @delegate_names(
@@ -226,21 +222,8 @@ class TimedeltaIndex(
 
         return _get_format_timedelta64(self, box=True)
 
-    def _format_native_types(self, na_rep="NaT", date_format=None, **kwargs):
-        from pandas.io.formats.format import Timedelta64Formatter
-
-        return np.asarray(
-            Timedelta64Formatter(
-                values=self, nat_rep=na_rep, justify="all"
-            ).get_result()
-        )
-
     # -------------------------------------------------------------------
     # Wrapping TimedeltaArray
-
-    @property
-    def _box_func(self):
-        return lambda x: Timedelta(x, unit="ns")
 
     def __getitem__(self, key):
         result = self._data.__getitem__(key)
@@ -282,18 +265,6 @@ class TimedeltaIndex(
                 if result.freq is None:
                     result._set_freq("infer")
             return result
-
-    def _wrap_joined_index(self, joined, other):
-        name = get_op_result_name(self, other)
-        if (
-            isinstance(other, TimedeltaIndex)
-            and self.freq == other.freq
-            and self._can_fast_union(other)
-        ):
-            joined = self._shallow_copy(joined, name=name)
-            return joined
-        else:
-            return self._simple_new(joined, name)
 
     def _fast_union(self, other):
         if len(other) == 0:

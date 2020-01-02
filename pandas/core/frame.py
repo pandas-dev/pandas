@@ -38,6 +38,7 @@ from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, lib
 from pandas._typing import Axes, Dtype, FilePathOrBuffer
+from pandas.compat import PY37
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
@@ -975,7 +976,8 @@ class DataFrame(NDFrame):
         -----
         The column names will be renamed to positional names if they are
         invalid Python identifiers, repeated, or start with an underscore.
-        With a large number of columns (>255), regular tuples are returned.
+        On python versions < 3.7 regular tuples are returned for DataFrames
+        with a large number of columns (>254).
 
         Examples
         --------
@@ -1018,8 +1020,9 @@ class DataFrame(NDFrame):
         # use integer indexing because of possible duplicate column names
         arrays.extend(self.iloc[:, k] for k in range(len(self.columns)))
 
-        # Python 3 supports at most 255 arguments to constructor
-        if name is not None and len(self.columns) + index < 256:
+        # Python versions before 3.7 support at most 255 arguments to constructors
+        can_return_named_tuples = PY37 or len(self.columns) + index < 255
+        if name is not None and can_return_named_tuples:
             itertuple = collections.namedtuple(name, fields, rename=True)
             return map(itertuple._make, zip(*arrays))
 
@@ -7777,6 +7780,26 @@ NaN 12.3   33.0
                 )
                 raise NotImplementedError(msg)
             return data
+
+        if numeric_only is not None and axis in [0, 1]:
+            df = self
+            if numeric_only is True:
+                df = _get_data(axis_matters=True)
+            if axis == 1:
+                df = df.T
+                axis = 0
+
+            out_dtype = "bool" if filter_type == "bool" else None
+
+            # After possibly _get_data and transposing, we are now in the
+            #  simple case where we can use BlockManager._reduce
+            res = df._data.reduce(op, axis=1, skipna=skipna, **kwds)
+            assert isinstance(res, dict)
+            if len(res):
+                assert len(res) == max(list(res.keys())) + 1, res.keys()
+            out = df._constructor_sliced(res, index=range(len(res)), dtype=out_dtype)
+            out.index = df.columns
+            return out
 
         if numeric_only is None:
             values = self.values

@@ -125,7 +125,7 @@ class Generic:
         # GH 4633
         # look at the boolean/nonzero behavior for objects
         obj = self._construct(shape=4)
-        msg = "The truth value of a {} is ambiguous".format(self._typ.__name__)
+        msg = f"The truth value of a {self._typ.__name__} is ambiguous"
         with pytest.raises(ValueError, match=msg):
             bool(obj == 0)
         with pytest.raises(ValueError, match=msg):
@@ -203,9 +203,9 @@ class Generic:
         def f(dtype):
             return self._construct(shape=3, value=1, dtype=dtype)
 
-        msg = "compound dtypes are not implemented in the {} constructor".format(
-            self._typ.__name__
-        )
+        msg = "compound dtypes are not implemented"
+        f"in the {self._typ.__name__} constructor"
+
         with pytest.raises(NotImplementedError, match=msg):
             f([("A", "datetime64[h]"), ("B", "str"), ("C", "int32")])
 
