@@ -479,7 +479,6 @@ class NAType(C_NAType):
             if result.ndim == 0:
                 result = result.item()
             if ufunc.nout > 1:
-                result = (result,) * ufunc.nout
                 result = (NA,) * ufunc.nout
 
         return result
