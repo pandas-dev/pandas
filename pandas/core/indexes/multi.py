@@ -1266,10 +1266,10 @@ class MultiIndex(Index):
             # Remove unobserved levels from level_index
             level_index = level_index.take(uniques)
 
-        if len(level_index):
-            grouper = level_index.take(codes)
-        else:
+        if level_index._can_hold_na:
             grouper = level_index.take(codes, fill_value=True)
+        else:
+            grouper = level_index.take(codes)
 
         return grouper, codes, level_index
 
