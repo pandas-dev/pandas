@@ -267,7 +267,21 @@ class TestApi(Base):
 
 
 class TestTesting(Base):
-    funcs = ["assert_frame_equal", "assert_series_equal", "assert_index_equal"]
+    funcs = [
+        "assert_frame_equal",
+        "assert_series_equal",
+        "assert_index_equal",
+        "assert_equal",
+        "assert_almost_equal",
+        "assert_categorical_equal",
+        "assert_datetime_array_equal",
+        "assert_extension_array_equal",
+        "assert_interval_array_equal",
+        "assert_numpy_array_equal",
+        "assert_period_array_equal",
+        "assert_sp_array_equal",
+        "assert_timedelta_array_equal",
+    ]
 
     def test_testing(self):
         from pandas import testing
