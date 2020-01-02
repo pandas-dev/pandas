@@ -3,10 +3,6 @@ Shared methods for Index subclasses backed by ExtensionArray.
 """
 from pandas.util._decorators import cache_readonly
 
-from .base import Index
-
-from pandas.core.arrays import ExtensionArray
-
 
 def inherit_from_data(name, delegate, cache=False):
     """
@@ -23,27 +19,32 @@ def inherit_from_data(name, delegate, cache=False):
     -------
     method, property, or cache_readonly
     """
+
     attr = getattr(delegate, name)
 
     if isinstance(attr, property):
-        # TODO: are we getting the right name/doc here?
         if cache:
             method = cache_readonly(attr.fget)
 
         else:
-            @property
-            def method(self):
+
+            def fget(self):
                 return getattr(self._data, name)
 
-            @method.setter
-            def method(self, value):
+            def fset(self, value):
                 setattr(self._data, name, value)
+
+            fget.__name__ = name
+            fget.__doc__ = attr.__doc__
+
+            method = property(fget, fset)
 
     elif not callable(attr):
         # just a normal attribute, no wrapping
         method = attr
 
     else:
+
         def method(self, *args, **kwargs):
             result = attr(self._data, *args, **kwargs)
             return result

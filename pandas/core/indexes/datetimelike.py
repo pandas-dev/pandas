@@ -2,7 +2,7 @@
 Base and utility classes for tseries type pandas objects.
 """
 import operator
-from typing import List, Set
+from typing import List, Optional, Set
 
 import numpy as np
 
@@ -96,6 +96,11 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     """
 
     _data: ExtensionArray
+    freq: Optional[DateOffset]
+    freqstr: Optional[str]
+    _resolution: int
+    _bool_ops: List[str] = []
+    _field_ops: List[str] = []
 
     hasnans = cache_readonly(DatetimeLikeArrayMixin._hasnans.fget)  # type: ignore
     _hasnans = hasnans  # for index / array -agnostic code
