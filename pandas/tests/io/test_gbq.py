@@ -157,13 +157,13 @@ class TestToGBQIntegrationWithServiceAccountKeyPath:
 
         self.client = _get_client()
         self.dataset = self.client.dataset(dataset_id)
-        try:
-            # Clean-up previous test runs.
-            self.client.delete_dataset(self.dataset, delete_contents=True)
-        except api_exceptions.NotFound:
-            pass  # It's OK if the dataset doesn't already exist.
 
-        self.client.create_dataset(bigquery.Dataset(self.dataset))
+        # Ensure previous test runs are removed
+        self.client.delete_dataset(
+            self.dataset, delete_contents=True, not_found_ok=True
+        )
+
+        self.client.create_dataset(bigquery.Dataset(self.dataset), exists_ok=True)
 
         table_name = "".join(random.choices(string.ascii_lowercase, k=10))
         destination_table = f"{dataset_id}.{table_name}"
