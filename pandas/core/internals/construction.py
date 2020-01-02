@@ -152,9 +152,17 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
         return arrays_to_mgr([values], columns, index, columns, dtype=dtype)
     elif is_extension_array_dtype(values) or is_extension_array_dtype(dtype):
         # GH#19157
+
+        if isinstance(values, np.ndarray) and values.ndim > 1:
+            # GH#12513 a EA dtype passed with a 2D array, split into
+            #  multiple EAs that view the values
+            values = [values[:, n] for n in range(values.shape[1])]
+        else:
+            values = [values]
+
         if columns is None:
-            columns = [0]
-        return arrays_to_mgr([values], columns, index, columns, dtype=dtype)
+            columns = list(range(len(values)))
+        return arrays_to_mgr(values, columns, index, columns, dtype=dtype)
 
     # by definition an array here
     # the dtypes will be coerced to a single dtype
@@ -167,8 +175,7 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
             except Exception as orig:
                 # e.g. ValueError when trying to cast object dtype to float64
                 raise ValueError(
-                    "failed to cast to '{dtype}' (Exception "
-                    "was: {orig})".format(dtype=dtype, orig=orig)
+                    f"failed to cast to '{dtype}' (Exception was: {orig})"
                 ) from orig
 
     index, columns = _get_axes(*values.shape, index=index, columns=columns)
@@ -365,8 +372,8 @@ def extract_index(data):
             if have_series:
                 if lengths[0] != len(index):
                     msg = (
-                        "array length {length} does not match index "
-                        "length {idx_len}".format(length=lengths[0], idx_len=len(index))
+                        f"array length {lengths[0]} does not match index "
+                        f"length {len(index)}"
                     )
                     raise ValueError(msg)
             else:
@@ -401,7 +408,7 @@ def get_names_from_index(data):
         if n is not None:
             index[i] = n
         else:
-            index[i] = "Unnamed {count}".format(count=count)
+            index[i] = f"Unnamed {count}"
             count += 1
 
     return index
@@ -571,8 +578,8 @@ def _convert_object_array(content, columns, coerce_float=False, dtype=None):
         if len(columns) != len(content):  # pragma: no cover
             # caller's responsibility to check for this...
             raise AssertionError(
-                "{col:d} columns passed, passed data had "
-                "{con} columns".format(col=len(columns), con=len(content))
+                f"{len(columns)} columns passed, passed data had "
+                f"{len(content)} columns"
             )
 
     # provide soft conversion of object dtypes

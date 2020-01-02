@@ -1,6 +1,7 @@
 from collections import OrderedDict
 import datetime
 from sys import getsizeof
+from typing import Hashable, List, Optional, Sequence, Union
 import warnings
 
 import numpy as np
@@ -85,7 +86,7 @@ class MultiIndexUIntEngine(libindex.BaseMultiIndexCodesEngine, libindex.UInt64En
 
         Returns
         -------
-        int_keys : scalar or 1-dimensional array, of dtype uint64
+        scalar or 1-dimensional array, of dtype uint64
             Integer(s) representing one combination (each).
         """
         # Shift the representation of each level by the pre-calculated number
@@ -125,7 +126,7 @@ class MultiIndexPyIntEngine(libindex.BaseMultiIndexCodesEngine, libindex.ObjectE
 
         Returns
         -------
-        int_keys : int, or 1-dimensional array of dtype object
+        int, or 1-dimensional array of dtype object
             Integer(s) representing one combination (each).
         """
 
@@ -248,8 +249,8 @@ class MultiIndex(Index):
         dtype=None,
         copy=False,
         name=None,
-        verify_integrity=True,
-        _set_identity=True,
+        verify_integrity: bool = True,
+        _set_identity: bool = True,
     ):
 
         # compat with Index
@@ -287,7 +288,7 @@ class MultiIndex(Index):
 
         return result
 
-    def _validate_codes(self, level: list, code: list):
+    def _validate_codes(self, level: List, code: List):
         """
         Reassign code values as -1 if their corresponding levels are NaN.
 
@@ -300,7 +301,7 @@ class MultiIndex(Index):
 
         Returns
         -------
-        code : new code where code value = -1 if it corresponds
+        new code where code value = -1 if it corresponds
         to a level with missing values (NaN, NaT, None).
         """
         null_mask = isna(level)
@@ -308,9 +309,10 @@ class MultiIndex(Index):
             code = np.where(null_mask[code], -1, code)
         return code
 
-    def _verify_integrity(self, codes=None, levels=None):
+    def _verify_integrity(
+        self, codes: Optional[List] = None, levels: Optional[List] = None
+    ):
         """
-
         Parameters
         ----------
         codes : optional list
@@ -326,7 +328,7 @@ class MultiIndex(Index):
 
         Returns
         -------
-        codes : new codes where code value = -1 if it corresponds to a
+        new codes where code value = -1 if it corresponds to a
         NaN level.
         """
         # NOTE: Currently does not check, among other things, that cached
@@ -336,8 +338,8 @@ class MultiIndex(Index):
 
         if len(levels) != len(codes):
             raise ValueError(
-                "Length of levels and codes must match. NOTE:"
-                " this index is in an inconsistent state."
+                "Length of levels and codes must match. NOTE: "
+                "this index is in an inconsistent state."
             )
         codes_length = len(codes[0])
         for i, (level, level_codes) in enumerate(zip(levels, codes)):
@@ -389,7 +391,7 @@ class MultiIndex(Index):
 
         Returns
         -------
-        index : MultiIndex
+        MultiIndex
 
         See Also
         --------
@@ -454,7 +456,7 @@ class MultiIndex(Index):
 
         Returns
         -------
-        index : MultiIndex
+        MultiIndex
 
         See Also
         --------
@@ -481,8 +483,7 @@ class MultiIndex(Index):
 
         if len(tuples) == 0:
             if names is None:
-                msg = "Cannot infer number of levels from empty list"
-                raise TypeError(msg)
+                raise TypeError("Cannot infer number of levels from empty list")
             arrays = [[]] * len(names)
         elif isinstance(tuples, (np.ndarray, Index)):
             if isinstance(tuples, Index):
@@ -518,7 +519,7 @@ class MultiIndex(Index):
 
         Returns
         -------
-        index : MultiIndex
+        MultiIndex
 
         See Also
         --------
@@ -653,15 +654,15 @@ class MultiIndex(Index):
         ------
         ValueError
         """
-        msg = (
+        raise ValueError(
             "MultiIndex has no single backing array. Use "
             "'MultiIndex.to_numpy()' to get a NumPy array of tuples."
         )
-        raise ValueError(msg)
 
     @property
     def _is_homogeneous_type(self) -> bool:
-        """Whether the levels of a MultiIndex all have the same dtype.
+        """
+        Whether the levels of a MultiIndex all have the same dtype.
 
         This looks at the dtypes of the levels.
 
@@ -732,7 +733,7 @@ class MultiIndex(Index):
             Level(s) to set (None for all levels).
         inplace : bool
             If True, mutates in place.
-        verify_integrity : bool (default True)
+        verify_integrity : bool, default True
             If True, checks that levels and codes are compatible.
 
         Returns
@@ -2064,7 +2065,7 @@ class MultiIndex(Index):
         dropped : MultiIndex
         """
         if level is not None:
-            return self._drop_from_level(codes, level)
+            return self._drop_from_level(codes, level, errors)
 
         if not isinstance(codes, (np.ndarray, Index)):
             try:
@@ -2102,13 +2103,15 @@ class MultiIndex(Index):
 
         return self.delete(inds)
 
-    def _drop_from_level(self, codes, level):
+    def _drop_from_level(self, codes, level, errors="raise"):
         codes = com.index_labels_to_array(codes)
         i = self._get_level_number(level)
         index = self.levels[i]
         values = index.get_indexer(codes)
 
         mask = ~algos.isin(self.codes[i], values)
+        if mask.all() and errors != "ignore":
+            raise KeyError(f"labels {codes} not found in level")
 
         return self[mask]
 
@@ -2429,7 +2432,53 @@ class MultiIndex(Index):
 
         return target, indexer
 
-    def get_slice_bound(self, label, side, kind):
+    def get_slice_bound(
+        self, label: Union[Hashable, Sequence[Hashable]], side: str, kind: str
+    ) -> int:
+        """
+        For an ordered MultiIndex, compute slice bound
+        that corresponds to given label.
+
+        Returns leftmost (one-past-the-rightmost if `side=='right') position
+        of given label.
+
+        Parameters
+        ----------
+        label : object or tuple of objects
+        side : {'left', 'right'}
+        kind : {'loc', 'getitem'}
+
+        Returns
+        -------
+        int
+            Index of label.
+
+        Notes
+        -----
+        This method only works if level 0 index of the MultiIndex is lexsorted.
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_arrays([list('abbc'), list('gefd')])
+
+        Get the locations from the leftmost 'b' in the first level
+        until the end of the multiindex:
+
+        >>> mi.get_slice_bound('b', side="left", kind="loc")
+        1
+
+        Like above, but if you get the locations from the rightmost
+        'b' in the first level and 'f' in the second level:
+
+        >>> mi.get_slice_bound(('b','f'), side="right", kind="loc")
+        3
+
+        See Also
+        --------
+        MultiIndex.get_loc : Get location for a label or a tuple of labels.
+        MultiIndex.get_locs : Get location for a label/slice/list/mask or a
+                              sequence of such.
+        """
 
         if not isinstance(label, tuple):
             label = (label,)
