@@ -62,8 +62,8 @@ class Ops:
         self.unicode_series = Series(arr, index=self.unicode_index, name="a")
 
         types = ["bool", "int", "float", "dt", "dt_tz", "period", "string", "unicode"]
-        self.indexes = [getattr(self, "{}_index".format(t)) for t in types]
-        self.series = [getattr(self, "{}_series".format(t)) for t in types]
+        self.indexes = [getattr(self, f"{t}_index") for t in types]
+        self.series = [getattr(self, f"{t}_series") for t in types]
 
         # To test narrow dtypes, we use narrower *data* elements, not *index* elements
         index = self.int_index
@@ -79,7 +79,7 @@ class Ops:
         self.uint32_series = Series(arr_int.astype(np.uint32), index=index, name="a")
 
         nrw_types = ["float32", "int8", "int16", "int32", "uint8", "uint16", "uint32"]
-        self.narrow_series = [getattr(self, "{}_series".format(t)) for t in nrw_types]
+        self.narrow_series = [getattr(self, f"{t}_series") for t in nrw_types]
 
         self.objs = self.indexes + self.series + self.narrow_series
 

@@ -162,6 +162,23 @@ class TestSeriesApply:
         with pytest.raises(SpecificationError, match=msg):
             tsdf.A.agg({"foo": ["sum", "mean"]})
 
+    def test_apply_categorical(self):
+        values = pd.Categorical(list("ABBABCD"), categories=list("DCBA"), ordered=True)
+        ser = pd.Series(values, name="XX", index=list("abcdefg"))
+        result = ser.apply(lambda x: x.lower())
+
+        # should be categorical dtype when the number of categories are
+        # the same
+        values = pd.Categorical(list("abbabcd"), categories=list("dcba"), ordered=True)
+        exp = pd.Series(values, name="XX", index=list("abcdefg"))
+        tm.assert_series_equal(result, exp)
+        tm.assert_categorical_equal(result.values, exp.values)
+
+        result = ser.apply(lambda x: "A")
+        exp = pd.Series(["A"] * 7, name="XX", index=list("abcdefg"))
+        tm.assert_series_equal(result, exp)
+        assert result.dtype == np.object
+
     @pytest.mark.parametrize("series", [["1-1", "1-1", np.NaN], ["1-1", "1-2", np.NaN]])
     def test_apply_categorical_with_nan_values(self, series):
         # GH 20714 bug fixed in: GH 24275
@@ -607,6 +624,30 @@ class TestSeriesMap:
         s = Series([1, 2, 3])
         dictionary = DictWithoutMissing({3: "three"})
         result = s.map(dictionary)
+        expected = Series([np.nan, np.nan, "three"])
+        tm.assert_series_equal(result, expected)
+
+    def test_map_abc_mapping(self, non_mapping_dict_subclass):
+        # https://github.com/pandas-dev/pandas/issues/29733
+        # Check collections.abc.Mapping support as mapper for Series.map
+        s = Series([1, 2, 3])
+        not_a_dictionary = non_mapping_dict_subclass({3: "three"})
+        result = s.map(not_a_dictionary)
+        expected = Series([np.nan, np.nan, "three"])
+        tm.assert_series_equal(result, expected)
+
+    def test_map_abc_mapping_with_missing(self, non_mapping_dict_subclass):
+        # https://github.com/pandas-dev/pandas/issues/29733
+        # Check collections.abc.Mapping support as mapper for Series.map
+        class NonDictMappingWithMissing(non_mapping_dict_subclass):
+            def __missing__(self, key):
+                return "missing"
+
+        s = Series([1, 2, 3])
+        not_a_dictionary = NonDictMappingWithMissing({3: "three"})
+        result = s.map(not_a_dictionary)
+        # __missing__ is a dict concept, not a Mapping concept,
+        # so it should not change the result!
         expected = Series([np.nan, np.nan, "three"])
         tm.assert_series_equal(result, expected)
 

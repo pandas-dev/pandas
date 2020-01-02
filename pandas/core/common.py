@@ -9,11 +9,12 @@ from collections import abc
 from datetime import datetime, timedelta
 from functools import partial
 import inspect
-from typing import Any, Iterable, Union
+from typing import Any, Collection, Iterable, Union
 
 import numpy as np
 
 from pandas._libs import lib, tslibs
+from pandas._typing import T
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -270,7 +271,7 @@ def maybe_make_list(obj):
     return obj
 
 
-def maybe_iterable_to_list(obj: Union[Iterable, Any]) -> Union[list, Any]:
+def maybe_iterable_to_list(obj: Union[Iterable[T], T]) -> Union[Collection[T], T]:
     """
     If obj is Iterable but not list-like, consume into list.
     """

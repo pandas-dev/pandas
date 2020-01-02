@@ -217,7 +217,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
                 " TimedeltaArray ndarray, or Series or Index containing one of those."
             )
             raise ValueError(msg)
-        if values.ndim != 1:
+        if values.ndim not in [1, 2]:
             raise ValueError("Only 1-dimensional input arrays are supported.")
 
         if values.dtype == "i8":
@@ -378,6 +378,9 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             return self
         return dtl.DatetimeLikeArrayMixin.astype(self, dtype, copy=copy)
 
+    # ----------------------------------------------------------------
+    # Reductions
+
     def sum(
         self,
         axis=None,
@@ -442,7 +445,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
         return _get_format_timedelta64(self, box=True)
 
-    def _format_native_types(self, na_rep="NaT", date_format=None):
+    def _format_native_types(self, na_rep="NaT", date_format=None, **kwargs):
         from pandas.io.formats.format import _get_format_timedelta64
 
         formatter = _get_format_timedelta64(self._data, na_rep)
@@ -507,13 +510,13 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         dtype = DatetimeTZDtype(tz=other.tz) if other.tz else _NS_DTYPE
         return DatetimeArray(result, dtype=dtype, freq=self.freq)
 
-    def _addsub_offset_array(self, other, op):
-        # Add or subtract Array-like of DateOffset objects
+    def _addsub_object_array(self, other, op):
+        # Add or subtract Array-like of objects
         try:
             # TimedeltaIndex can only operate with a subset of DateOffset
             # subclasses.  Incompatible classes will raise AttributeError,
             # which we re-raise as TypeError
-            return super()._addsub_offset_array(other, op)
+            return super()._addsub_object_array(other, op)
         except AttributeError:
             raise TypeError(
                 f"Cannot add/subtract non-tick DateOffset to {type(self).__name__}"
@@ -1036,8 +1039,6 @@ def sequence_to_td64ns(data, copy=False, unit="ns", errors="raise"):
         raise TypeError(f"dtype {data.dtype} cannot be converted to timedelta64[ns]")
 
     data = np.array(data, copy=copy)
-    if data.ndim != 1:
-        raise ValueError("Only 1-dimensional input arrays are supported.")
 
     assert data.dtype == "m8[ns]", data
     return data, inferred_freq

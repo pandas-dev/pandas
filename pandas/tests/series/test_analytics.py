@@ -11,30 +11,6 @@ import pandas.util.testing as tm
 
 
 class TestSeriesAnalytics:
-    def test_compress(self):
-        cond = [True, False, True, False, False]
-        s = Series([1, -1, 5, 8, 7], index=list("abcde"), name="foo")
-        expected = Series(s.values.compress(cond), index=list("ac"), name="foo")
-        with tm.assert_produces_warning(FutureWarning):
-            result = s.compress(cond)
-        tm.assert_series_equal(result, expected)
-
-    def test_numpy_compress(self):
-        cond = [True, False, True, False, False]
-        s = Series([1, -1, 5, 8, 7], index=list("abcde"), name="foo")
-        expected = Series(s.values.compress(cond), index=list("ac"), name="foo")
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            tm.assert_series_equal(np.compress(cond, s), expected)
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            msg = "the 'axis' parameter is not supported"
-            with pytest.raises(ValueError, match=msg):
-                np.compress(cond, s, axis=1)
-
-            msg = "the 'out' parameter is not supported"
-            with pytest.raises(ValueError, match=msg):
-                np.compress(cond, s, out=s)
-
     def test_prod_numpy16_bug(self):
         s = Series([1.0, 1.0, 1.0], index=range(3))
         result = s.prod()
@@ -183,23 +159,6 @@ class TestSeriesAnalytics:
         s = Series(list(reversed(s.tolist())))
         assert s.is_monotonic is False
         assert s.is_monotonic_decreasing is True
-
-    def test_apply_categorical(self):
-        values = pd.Categorical(list("ABBABCD"), categories=list("DCBA"), ordered=True)
-        s = pd.Series(values, name="XX", index=list("abcdefg"))
-        result = s.apply(lambda x: x.lower())
-
-        # should be categorical dtype when the number of categories are
-        # the same
-        values = pd.Categorical(list("abbabcd"), categories=list("dcba"), ordered=True)
-        exp = pd.Series(values, name="XX", index=list("abcdefg"))
-        tm.assert_series_equal(result, exp)
-        tm.assert_categorical_equal(result.values, exp.values)
-
-        result = s.apply(lambda x: "A")
-        exp = pd.Series(["A"] * 7, name="XX", index=list("abcdefg"))
-        tm.assert_series_equal(result, exp)
-        assert result.dtype == np.object
 
     def test_unstack(self):
 

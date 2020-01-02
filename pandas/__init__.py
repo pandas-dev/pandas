@@ -39,8 +39,6 @@ except ImportError as e:  # pragma: no cover
         "the C extensions first."
     )
 
-from datetime import datetime
-
 from pandas._config import (
     get_option,
     set_option,
@@ -105,7 +103,6 @@ from pandas.core.api import (
     to_datetime,
     to_timedelta,
     # misc
-    np,
     Grouper,
     factorize,
     unique,
@@ -189,7 +186,6 @@ __version__ = v.get("closest-tag", v["version"])
 __git_version__ = v.get("full-revisionid")
 del get_versions, v
 
-
 # GH 27101
 # TODO: remove Panel compat in 1.0
 if pandas.compat.PY37:
@@ -211,6 +207,33 @@ if pandas.compat.PY37:
                 pass
 
             return Panel
+
+        elif name == "datetime":
+            warnings.warn(
+                "The pandas.datetime class is deprecated "
+                "and will be removed from pandas in a future version. "
+                "Import from datetime module instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+
+            from datetime import datetime as dt
+
+            return dt
+
+        elif name == "np":
+
+            warnings.warn(
+                "The pandas.np module is deprecated "
+                "and will be removed from pandas in a future version. "
+                "Import numpy directly instead",
+                FutureWarning,
+                stacklevel=2,
+            )
+            import numpy as np
+
+            return np
+
         elif name in {"SparseSeries", "SparseDataFrame"}:
             warnings.warn(
                 f"The {name} class is removed from pandas. Accessing it from "
@@ -235,6 +258,54 @@ else:
 
     class SparseSeries:
         pass
+
+    class __numpy:
+        def __init__(self):
+            import numpy as np
+            import warnings
+
+            self.np = np
+            self.warnings = warnings
+
+        def __getattr__(self, item):
+            self.warnings.warn(
+                "The pandas.np module is deprecated "
+                "and will be removed from pandas in a future version. "
+                "Import numpy directly instead",
+                FutureWarning,
+                stacklevel=2,
+            )
+
+            try:
+                return getattr(self.np, item)
+            except AttributeError:
+                raise AttributeError(f"module numpy has no attribute {item}")
+
+    np = __numpy()
+
+    class __Datetime:
+        def __init__(self):
+            from datetime import datetime as dt
+
+            self.datetime = dt
+
+        def __getattr__(self, item):
+            import warnings
+
+            warnings.warn(
+                "The pandas.datetime class is deprecated "
+                "and will be removed from pandas in a future version. "
+                "Import from datetime instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+
+            try:
+                return getattr(self.datetime, item)
+            except AttributeError:
+                raise AttributeError(f"module datetime has no attribute {item}")
+
+    datetime = __Datetime().datetime
 
 
 # module level doc-string
