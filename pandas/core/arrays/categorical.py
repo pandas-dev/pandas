@@ -302,7 +302,7 @@ class Categorical(ExtensionArray, PandasObject):
     __array_priority__ = 1000
     _dtype = CategoricalDtype(ordered=False)
     # tolist is not actually deprecated, just suppressed in the __dir__
-    _deprecations = PandasObject._deprecations | frozenset(["tolist", "itemsize"])
+    _deprecations = PandasObject._deprecations | frozenset(["tolist"])
     _typ = "categorical"
 
     def __init__(
