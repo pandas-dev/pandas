@@ -3,7 +3,6 @@ Tests that work on both the Python and C engines but do not have a
 specific classification into the other test modules.
 """
 import codecs
-from collections import OrderedDict
 import csv
 from datetime import datetime
 from io import BytesIO, StringIO
@@ -1316,9 +1315,7 @@ def test_float_parser(all_parsers):
 
 def test_scientific_no_exponent(all_parsers):
     # see gh-12215
-    df = DataFrame.from_dict(
-        OrderedDict([("w", ["2e"]), ("x", ["3E"]), ("y", ["42e"]), ("z", ["632E"])])
-    )
+    df = DataFrame.from_dict({"w": ["2e"], "x": ["3E"], "y": ["42e"], "z": ["632E"]})
     data = df.to_csv(index=False)
     parser = all_parsers
 
