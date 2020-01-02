@@ -295,7 +295,7 @@ else:
             warnings.warn(
                 "The pandas.datetime class is deprecated "
                 "and will be removed from pandas in a future version. "
-                "Import from datetime instead",
+                "Import from datetime instead.",
                 FutureWarning,
                 stacklevel=2,
             )

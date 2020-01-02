@@ -1,5 +1,3 @@
-from collections import OrderedDict
-
 import numpy as np
 from numpy.random import randn
 import pytest
@@ -474,17 +472,13 @@ class TestMergeMulti:
         if klass is not None:
             on_vector = klass(on_vector)
 
-        expected = DataFrame(
-            OrderedDict([("a", [1, 2, 3]), ("key_1", [2016, 2017, 2018])])
-        )
+        expected = DataFrame({"a": [1, 2, 3], "key_1": [2016, 2017, 2018]})
 
         result = df.merge(df, on=["a", on_vector], how="inner")
         tm.assert_frame_equal(result, expected)
 
         expected = DataFrame(
-            OrderedDict(
-                [("key_0", [2016, 2017, 2018]), ("a_x", [1, 2, 3]), ("a_y", [1, 2, 3])]
-            )
+            {"key_0": [2016, 2017, 2018], "a_x": [1, 2, 3], "a_y": [1, 2, 3]}
         )
 
         result = df.merge(df, on=[df.index.year], how="inner")
@@ -788,17 +782,13 @@ class TestJoinMultiMulti:
         if box is not None:
             on_vector = box(on_vector)
 
-        expected = DataFrame(
-            OrderedDict([("a", [1, 2, 3]), ("key_1", [2016, 2017, 2018])])
-        )
+        expected = DataFrame({"a": [1, 2, 3], "key_1": [2016, 2017, 2018]})
 
         result = df.merge(df, on=["a", on_vector], how="inner")
         tm.assert_frame_equal(result, expected)
 
         expected = DataFrame(
-            OrderedDict(
-                [("key_0", [2016, 2017, 2018]), ("a_x", [1, 2, 3]), ("a_y", [1, 2, 3])]
-            )
+            {"key_0": [2016, 2017, 2018], "a_x": [1, 2, 3], "a_y": [1, 2, 3]}
         )
 
         result = df.merge(df, on=[df.index.year], how="inner")
