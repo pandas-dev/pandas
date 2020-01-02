@@ -287,3 +287,16 @@ class TestTesting(Base):
         from pandas import testing
 
         self.check(testing, self.funcs)
+
+    def test_util_testing_deprecated(self):
+        s = pd.Series([], dtype="object")
+        with tm.assert_produces_warning(FutureWarning) as m:
+            import pandas.util.testing as tm2
+
+            tm2.assert_series_equal(s, s)
+
+        assert "pandas.testing.assert_series_equal" in str(m[0].message)
+
+        with tm.assert_produces_warning(FutureWarning) as m:
+            tm2.DataFrame
+        assert "removed" in str(m[0].message)
