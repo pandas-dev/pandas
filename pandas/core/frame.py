@@ -40,6 +40,7 @@ from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, lib
 from pandas._typing import Axes, Dtype, FilePathOrBuffer
+from pandas.compat import PY37
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
@@ -102,6 +103,7 @@ from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin as DatetimeLikeArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.generic import NDFrame, _shared_docs
+from pandas.core.groupby import generic as groupby_generic
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import Index, ensure_index, ensure_index_from_sequences
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -981,7 +983,8 @@ class DataFrame(NDFrame):
         -----
         The column names will be renamed to positional names if they are
         invalid Python identifiers, repeated, or start with an underscore.
-        With a large number of columns (>255), regular tuples are returned.
+        On python versions < 3.7 regular tuples are returned for DataFrames
+        with a large number of columns (>254).
 
         Examples
         --------
@@ -1024,8 +1027,9 @@ class DataFrame(NDFrame):
         # use integer indexing because of possible duplicate column names
         arrays.extend(self.iloc[:, k] for k in range(len(self.columns)))
 
-        # Python 3 supports at most 255 arguments to constructor
-        if name is not None and len(self.columns) + index < 256:
+        # Python versions before 3.7 support at most 255 arguments to constructors
+        can_return_named_tuples = PY37 or len(self.columns) + index < 255
+        if name is not None and can_return_named_tuples:
             # https://github.com/python/mypy/issues/848
             # error: namedtuple() expects a string literal as the first argument  [misc]
             itertuple = collections.namedtuple(  # type: ignore
@@ -1940,18 +1944,25 @@ class DataFrame(NDFrame):
         >>> df.to_stata('animals.dta')  # doctest: +SKIP
         """
         kwargs = {}
-        if version not in (114, 117):
-            raise ValueError("Only formats 114 and 117 supported.")
+        if version not in (114, 117, 118):
+            raise ValueError("Only formats 114, 117 and 118 are supported.")
         if version == 114:
             if convert_strl is not None:
-                raise ValueError("strl support is only available when using format 117")
+                raise ValueError("strl is not supported in format 114")
             from pandas.io.stata import StataWriter as statawriter
         else:
-            # https://github.com/python/mypy/issues/1153
-            # error: Name 'statawriter' already defined (possibly by an import)
-            from pandas.io.stata import (  # type: ignore
-                StataWriter117 as statawriter,
-            )
+            if version == 117:
+                # https://github.com/python/mypy/issues/1153
+                # error: Name 'statawriter' already defined (possibly by an import)
+                from pandas.io.stata import (  # type: ignore
+                    StataWriter117 as statawriter,
+                )
+            else:
+                # https://github.com/python/mypy/issues/1153
+                # error: Name 'statawriter' already defined (possibly by an import)
+                from pandas.io.stata import (  # type: ignore
+                    StataWriter118 as statawriter,
+                )
 
             kwargs["convert_strl"] = convert_strl
 
@@ -5621,6 +5632,82 @@ class DataFrame(NDFrame):
 
     # ----------------------------------------------------------------------
     # Data reshaping
+    @Appender(
+        """
+Examples
+--------
+>>> df = pd.DataFrame({'Animal': ['Falcon', 'Falcon',
+...                               'Parrot', 'Parrot'],
+...                    'Max Speed': [380., 370., 24., 26.]})
+>>> df
+   Animal  Max Speed
+0  Falcon      380.0
+1  Falcon      370.0
+2  Parrot       24.0
+3  Parrot       26.0
+>>> df.groupby(['Animal']).mean()
+        Max Speed
+Animal
+Falcon      375.0
+Parrot       25.0
+
+**Hierarchical Indexes**
+
+We can groupby different levels of a hierarchical index
+using the `level` parameter:
+
+>>> arrays = [['Falcon', 'Falcon', 'Parrot', 'Parrot'],
+...           ['Captive', 'Wild', 'Captive', 'Wild']]
+>>> index = pd.MultiIndex.from_arrays(arrays, names=('Animal', 'Type'))
+>>> df = pd.DataFrame({'Max Speed': [390., 350., 30., 20.]},
+...                   index=index)
+>>> df
+                Max Speed
+Animal Type
+Falcon Captive      390.0
+       Wild         350.0
+Parrot Captive       30.0
+       Wild          20.0
+>>> df.groupby(level=0).mean()
+        Max Speed
+Animal
+Falcon      370.0
+Parrot       25.0
+>>> df.groupby(level="Type").mean()
+         Max Speed
+Type
+Captive      210.0
+Wild         185.0
+"""
+    )
+    @Appender(_shared_docs["groupby"] % _shared_doc_kwargs)
+    def groupby(
+        self,
+        by=None,
+        axis=0,
+        level=None,
+        as_index: bool = True,
+        sort: bool = True,
+        group_keys: bool = True,
+        squeeze: bool = False,
+        observed: bool = False,
+    ) -> "groupby_generic.DataFrameGroupBy":
+
+        if level is None and by is None:
+            raise TypeError("You have to supply one of 'by' and 'level'")
+        axis = self._get_axis_number(axis)
+
+        return groupby_generic.DataFrameGroupBy(
+            obj=self,
+            keys=by,
+            axis=axis,
+            level=level,
+            as_index=as_index,
+            sort=sort,
+            group_keys=group_keys,
+            squeeze=squeeze,
+            observed=observed,
+        )
 
     _shared_docs[
         "pivot"
@@ -7691,6 +7778,26 @@ class DataFrame(NDFrame):
                 )
                 raise NotImplementedError(msg)
             return data
+
+        if numeric_only is not None and axis in [0, 1]:
+            df = self
+            if numeric_only is True:
+                df = _get_data(axis_matters=True)
+            if axis == 1:
+                df = df.T
+                axis = 0
+
+            out_dtype = "bool" if filter_type == "bool" else None
+
+            # After possibly _get_data and transposing, we are now in the
+            #  simple case where we can use BlockManager._reduce
+            res = df._data.reduce(op, axis=1, skipna=skipna, **kwds)
+            assert isinstance(res, dict)
+            if len(res):
+                assert len(res) == max(list(res.keys())) + 1, res.keys()
+            out = df._constructor_sliced(res, index=range(len(res)), dtype=out_dtype)
+            out.index = df.columns
+            return out
 
         if numeric_only is None:
             values = self.values

@@ -41,6 +41,7 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
 from pandas import Categorical, Index, MultiIndex
+from pandas.core import groupby
 import pandas.core.algorithms as algos
 from pandas.core.arrays.categorical import _recode_for_categories
 import pandas.core.common as com
@@ -113,6 +114,7 @@ def _groupby_and_merge(
         by = [by]
 
     lby = left.groupby(by, sort=False)
+    rby: Optional[groupby.DataFrameGroupBy] = None
 
     # if we can groupby the rhs
     # then we can get vastly better perf
@@ -132,7 +134,7 @@ def _groupby_and_merge(
     try:
         rby = right.groupby(by, sort=False)
     except KeyError:
-        rby = None
+        pass
 
     for key, lhs in lby:
 
