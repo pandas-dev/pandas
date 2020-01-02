@@ -20,7 +20,6 @@ from pandas.core.dtypes.common import (
 )
 
 from pandas.core.accessor import delegate_names
-from pandas.core.algorithms import unique1d
 from pandas.core.arrays.period import PeriodArray, period_array, validate_dtype_freq
 from pandas.core.base import _shared_docs
 import pandas.core.common as com
@@ -34,7 +33,8 @@ from pandas.core.indexes.datetimelike import (
     DatetimeIndexOpsMixin,
     DatetimelikeDelegateMixin,
 )
-from pandas.core.indexes.datetimes import DatetimeIndex, Index, Int64Index
+from pandas.core.indexes.datetimes import DatetimeIndex, Index
+from pandas.core.indexes.numeric import Int64Index
 from pandas.core.missing import isna
 from pandas.core.ops import get_op_result_name
 from pandas.core.tools.datetimes import DateParseError, parse_time_string
@@ -512,10 +512,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         return self._ndarray_values.searchsorted(value, side=side, sorter=sorter)
 
     @property
-    def is_all_dates(self) -> bool:
-        return True
-
-    @property
     def is_full(self) -> bool:
         """
         Returns True if this PeriodIndex is range-like in that all Periods
@@ -621,18 +617,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         if dropna:
             res = res.dropna()
         return res
-
-    @Appender(Index.unique.__doc__)
-    def unique(self, level=None):
-        # override the Index.unique method for performance GH#23083
-        if level is not None:
-            # this should never occur, but is retained to make the signature
-            # match Index.unique
-            self._validate_index_level(level)
-
-        values = self._ndarray_values
-        result = unique1d(values)
-        return self._shallow_copy(result)
 
     def get_loc(self, key, method=None, tolerance=None):
         """
@@ -807,10 +791,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             result, lidx, ridx = result
             return self._apply_meta(result), lidx, ridx
         return self._apply_meta(result)
-
-    @Appender(Index.intersection.__doc__)
-    def intersection(self, other, sort=False):
-        return Index.intersection(self, other, sort=sort)
 
     def _assert_can_do_setop(self, other):
         super()._assert_can_do_setop(other)

@@ -1,7 +1,7 @@
 from collections import OrderedDict
 import datetime
 from sys import getsizeof
-from typing import List, Optional
+from typing import Hashable, List, Optional, Sequence, Union
 import warnings
 
 import numpy as np
@@ -2432,7 +2432,53 @@ class MultiIndex(Index):
 
         return target, indexer
 
-    def get_slice_bound(self, label, side, kind):
+    def get_slice_bound(
+        self, label: Union[Hashable, Sequence[Hashable]], side: str, kind: str
+    ) -> int:
+        """
+        For an ordered MultiIndex, compute slice bound
+        that corresponds to given label.
+
+        Returns leftmost (one-past-the-rightmost if `side=='right') position
+        of given label.
+
+        Parameters
+        ----------
+        label : object or tuple of objects
+        side : {'left', 'right'}
+        kind : {'loc', 'getitem'}
+
+        Returns
+        -------
+        int
+            Index of label.
+
+        Notes
+        -----
+        This method only works if level 0 index of the MultiIndex is lexsorted.
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_arrays([list('abbc'), list('gefd')])
+
+        Get the locations from the leftmost 'b' in the first level
+        until the end of the multiindex:
+
+        >>> mi.get_slice_bound('b', side="left", kind="loc")
+        1
+
+        Like above, but if you get the locations from the rightmost
+        'b' in the first level and 'f' in the second level:
+
+        >>> mi.get_slice_bound(('b','f'), side="right", kind="loc")
+        3
+
+        See Also
+        --------
+        MultiIndex.get_loc : Get location for a label or a tuple of labels.
+        MultiIndex.get_locs : Get location for a label/slice/list/mask or a
+                              sequence of such.
+        """
 
         if not isinstance(label, tuple):
             label = (label,)
