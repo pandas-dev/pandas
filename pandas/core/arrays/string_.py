@@ -46,6 +46,7 @@ class StringDtype(ExtensionDtype):
     >>> pd.StringDtype()
     StringDtype
     """
+
     name = "string"
 
     #: StringDtype.na_value uses pandas.NA

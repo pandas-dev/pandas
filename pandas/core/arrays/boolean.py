@@ -59,6 +59,7 @@ class BooleanDtype(ExtensionDtype):
     >>> pd.BooleanDtype()
     BooleanDtype
     """
+
     name = "boolean"
 
     @property
