@@ -2,9 +2,7 @@
 Tests that work on both the Python and C engines but do not have a
 specific classification into the other test modules.
 """
-
 import codecs
-from collections import OrderedDict
 import csv
 from datetime import datetime
 from io import BytesIO, StringIO
@@ -978,15 +976,15 @@ def test_path_local_path(all_parsers):
 def test_nonexistent_path(all_parsers):
     # gh-2428: pls no segfault
     # gh-14086: raise more helpful FileNotFoundError
+    # GH#29233 "File foo" instead of "File b'foo'"
     parser = all_parsers
     path = "{}.csv".format(tm.rands(10))
 
-    msg = "does not exist" if parser.engine == "c" else r"\[Errno 2\]"
+    msg = f"File {path} does not exist" if parser.engine == "c" else r"\[Errno 2\]"
     with pytest.raises(FileNotFoundError, match=msg) as e:
         parser.read_csv(path)
 
         filename = e.value.filename
-        filename = filename.decode() if isinstance(filename, bytes) else filename
 
         assert path == filename
 
@@ -1145,9 +1143,8 @@ def test_escapechar(all_parsers):
         StringIO(data), escapechar="\\", quotechar='"', encoding="utf-8"
     )
 
-    assert result["SEARCH_TERM"][2] == (
-        'SLAGBORD, "Bergslagen", ' "IKEA:s 1700-tals serie"
-    )
+    assert result["SEARCH_TERM"][2] == 'SLAGBORD, "Bergslagen", IKEA:s 1700-tals serie'
+
     tm.assert_index_equal(result.columns, Index(["SEARCH_TERM", "ACTUAL_URL"]))
 
 
@@ -1318,9 +1315,7 @@ def test_float_parser(all_parsers):
 
 def test_scientific_no_exponent(all_parsers):
     # see gh-12215
-    df = DataFrame.from_dict(
-        OrderedDict([("w", ["2e"]), ("x", ["3E"]), ("y", ["42e"]), ("z", ["632E"])])
-    )
+    df = DataFrame.from_dict({"w": ["2e"], "x": ["3E"], "y": ["42e"], "z": ["632E"]})
     data = df.to_csv(index=False)
     parser = all_parsers
 
@@ -2209,3 +2204,13 @@ def test_first_row_bom(all_parsers):
     result = parser.read_csv(StringIO(data), delimiter="\t")
     expected = DataFrame(columns=["Head1", "Head2", "Head3"])
     tm.assert_frame_equal(result, expected)
+
+
+def test_integer_precision(all_parsers):
+    # Gh 7072
+    s = """1,1;0;0;0;1;1;3844;3844;3844;1;1;1;1;1;1;0;0;1;1;0;0,,,4321583677327450765
+5,1;0;0;0;1;1;843;843;843;1;1;1;1;1;1;0;0;1;1;0;0,64.0,;,4321113141090630389"""
+    parser = all_parsers
+    result = parser.read_csv(StringIO(s), header=None)[4]
+    expected = Series([4321583677327450765, 4321113141090630389], name=4)
+    tm.assert_series_equal(result, expected)

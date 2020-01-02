@@ -1,5 +1,4 @@
 import abc
-from collections import OrderedDict
 from datetime import date, datetime, timedelta
 from io import BytesIO
 import os
@@ -7,20 +6,20 @@ from textwrap import fill
 
 from pandas._config import config
 
+from pandas._libs.parsers import STR_NA_VALUES
 from pandas.errors import EmptyDataError
-from pandas.util._decorators import Appender, deprecate_kwarg
+from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import is_bool, is_float, is_integer, is_list_like
 
 from pandas.core.frame import DataFrame
 
 from pandas.io.common import (
-    _NA_VALUES,
-    _is_url,
-    _stringify_path,
-    _validate_header_arg,
     get_filepath_or_buffer,
+    is_url,
+    stringify_path,
     urlopen,
+    validate_header_arg,
 )
 from pandas.io.excel._util import (
     _fill_mi_header,
@@ -80,11 +79,6 @@ index_col : int, list of int, default None
     is based on the subset.
 usecols : int, str, list-like, or callable default None
     * If None, then parse all columns.
-    * If int, then indicates last column to be parsed.
-
-      .. deprecated:: 0.24.0
-         Pass in a list of int instead from 0 to `usecols` inclusive.
-
     * If str, then indicates comma separated list of Excel column letters
       and column ranges (e.g. "A:E" or "A,C,E:F"). Ranges are inclusive of
       both sides.
@@ -130,7 +124,7 @@ na_values : scalar, str, list-like, or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values. By default the following values are interpreted
     as NaN: '"""
-    + fill("', '".join(sorted(_NA_VALUES)), 70, subsequent_indent="    ")
+    + fill("', '".join(sorted(STR_NA_VALUES)), 70, subsequent_indent="    ")
     + """'.
 keep_default_na : bool, default True
     Whether or not to include the default NaN values when parsing the data.
@@ -165,8 +159,9 @@ parse_dates : bool, list-like, or dict, default False
       result 'foo'
 
     If a column or index contains an unparseable date, the entire column or
-    index will be returned unaltered as an object data type. For non-standard
-    datetime parsing, use ``pd.to_datetime`` after ``pd.read_excel``.
+    index will be returned unaltered as an object data type. If you don`t want to
+    parse some cells as date just change their type in Excel to "Text".
+    For non-standard datetime parsing, use ``pd.to_datetime`` after ``pd.read_excel``.
 
     Note: A fast-path exists for iso8601-formatted dates.
 date_parser : function, optional
@@ -188,11 +183,6 @@ comment : str, default None
     Comments out remainder of line. Pass a character or characters to this
     argument to indicate comments in the input file. Any data between the
     comment string and the end of the current line is ignored.
-skip_footer : int, default 0
-    Alias of `skipfooter`.
-
-    .. deprecated:: 0.23.0
-       Use `skipfooter` instead.
 skipfooter : int, default 0
     Rows at the end to skip (0-indexed).
 convert_float : bool, default True
@@ -277,7 +267,6 @@ Comment lines in the excel input file can be skipped using the `comment` kwarg
 
 
 @Appender(_read_excel_doc)
-@deprecate_kwarg("skip_footer", "skipfooter")
 def read_excel(
     io,
     sheet_name=0,
@@ -300,7 +289,6 @@ def read_excel(
     date_parser=None,
     thousands=None,
     comment=None,
-    skip_footer=0,
     skipfooter=0,
     convert_float=True,
     mangle_dupe_cols=True,
@@ -309,9 +297,7 @@ def read_excel(
 
     for arg in ("sheet", "sheetname", "parse_cols"):
         if arg in kwds:
-            raise TypeError(
-                "read_excel() got an unexpected keyword argument `{}`".format(arg)
-            )
+            raise TypeError(f"read_excel() got an unexpected keyword argument `{arg}`")
 
     if not isinstance(io, ExcelFile):
         io = ExcelFile(io, engine=engine)
@@ -351,7 +337,7 @@ def read_excel(
 class _BaseExcelReader(metaclass=abc.ABCMeta):
     def __init__(self, filepath_or_buffer):
         # If filepath_or_buffer is a url, load the data into a BytesIO
-        if _is_url(filepath_or_buffer):
+        if is_url(filepath_or_buffer):
             filepath_or_buffer = BytesIO(urlopen(filepath_or_buffer).read())
         elif not isinstance(filepath_or_buffer, (ExcelFile, self._workbook_class)):
             filepath_or_buffer, _, _, _ = get_filepath_or_buffer(filepath_or_buffer)
@@ -420,7 +406,7 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
         **kwds,
     ):
 
-        _validate_header_arg(header)
+        validate_header_arg(header)
 
         ret_dict = False
 
@@ -435,13 +421,13 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
             sheets = [sheet_name]
 
         # handle same-type duplicates.
-        sheets = list(OrderedDict.fromkeys(sheets).keys())
+        sheets = list(dict.fromkeys(sheets).keys())
 
-        output = OrderedDict()
+        output = {}
 
         for asheetname in sheets:
             if verbose:
-                print("Reading sheet {sheet}".format(sheet=asheetname))
+                print(f"Reading sheet {asheetname}")
 
             if isinstance(asheetname, str):
                 sheet = self.get_sheet_by_name(asheetname)
@@ -634,11 +620,11 @@ class ExcelWriter(metaclass=abc.ABCMeta):
                     ext = "xlsx"
 
                 try:
-                    engine = config.get_option("io.excel.{ext}.writer".format(ext=ext))
+                    engine = config.get_option(f"io.excel.{ext}.writer")
                     if engine == "auto":
                         engine = _get_default_writer(ext)
                 except KeyError:
-                    raise ValueError("No engine for filetype: '{ext}'".format(ext=ext))
+                    raise ValueError(f"No engine for filetype: '{ext}'")
             cls = get_writer(engine)
 
         return object.__new__(cls)
@@ -720,7 +706,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         self.mode = mode
 
     def __fspath__(self):
-        return _stringify_path(self.path)
+        return stringify_path(self.path)
 
     def _get_sheet_name(self, sheet_name):
         if sheet_name is None:
@@ -769,9 +755,8 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         if ext.startswith("."):
             ext = ext[1:]
         if not any(ext in extension for extension in cls.supported_extensions):
-            msg = "Invalid extension for engine '{engine}': '{ext}'".format(
-                engine=pprint_thing(cls.engine), ext=pprint_thing(ext)
-            )
+            msg = "Invalid extension for engine"
+            f"'{pprint_thing(cls.engine)}': '{pprint_thing(ext)}'"
             raise ValueError(msg)
         else:
             return True
@@ -814,13 +799,13 @@ class ExcelFile:
         if engine is None:
             engine = "xlrd"
         if engine not in self._engines:
-            raise ValueError("Unknown engine: {engine}".format(engine=engine))
+            raise ValueError(f"Unknown engine: {engine}")
 
         self.engine = engine
         # could be a str, ExcelFile, Book, etc.
         self.io = io
         # Always a string
-        self._io = _stringify_path(io)
+        self._io = stringify_path(io)
 
         self._reader = self._engines[engine](self._io)
 
@@ -899,6 +884,12 @@ class ExcelFile:
 
     def close(self):
         """close io if necessary"""
+        if self.engine == "openpyxl":
+            # https://stackoverflow.com/questions/31416842/
+            #  openpyxl-does-not-close-excel-workbook-in-read-only-mode
+            wb = self.book
+            wb._archive.close()
+
         if hasattr(self.io, "close"):
             self.io.close()
 
@@ -907,3 +898,11 @@ class ExcelFile:
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
+
+    def __del__(self):
+        # Ensure we don't leak file descriptors, but put in try/except in case
+        # attributes are already deleted
+        try:
+            self.close()
+        except AttributeError:
+            pass

@@ -33,7 +33,7 @@ class TestSeriesLogicalOps:
 
         s_tft = Series([True, False, True], index=index)
         s_fff = Series([False, False, False], index=index)
-        s_empty = Series([])
+        s_empty = Series([], dtype=object)
 
         res = s_tft & s_empty
         expected = s_fff
@@ -408,11 +408,13 @@ class TestSeriesLogicalOps:
         # filling
 
         # vs empty
-        result = a & Series([])
+        empty = Series([], dtype=object)
+
+        result = a & empty.copy()
         expected = Series([False, False, False], list("bca"))
         tm.assert_series_equal(result, expected)
 
-        result = a | Series([])
+        result = a | empty.copy()
         expected = Series([True, False, True], list("bca"))
         tm.assert_series_equal(result, expected)
 
@@ -428,7 +430,7 @@ class TestSeriesLogicalOps:
         # identity
         # we would like s[s|e] == s to hold for any e, whether empty or not
         for e in [
-            Series([]),
+            empty.copy(),
             Series([1], ["z"]),
             Series(np.nan, b.index),
             Series(np.nan, a.index),
@@ -797,12 +799,12 @@ class TestSeriesOperators:
         tm.assert_series_equal(result, expected)
 
     def test_operators_corner(self, datetime_series):
-        empty = Series([], index=Index([]))
+        empty = Series([], index=Index([]), dtype=np.float64)
 
         result = datetime_series + empty
         assert np.isnan(result).all()
 
-        result = empty + Series([], index=Index([]))
+        result = empty + empty.copy()
         assert len(result) == 0
 
         # TODO: this returned NotImplemented earlier, what to do?
