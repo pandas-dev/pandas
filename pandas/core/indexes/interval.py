@@ -1048,7 +1048,7 @@ class IntervalIndex(IntervalMixin, Index, accessor.PandasDelegate):
         result = self._data.take(
             indices, axis=axis, allow_fill=allow_fill, fill_value=fill_value, **kwargs
         )
-        attributes = self._get_attributes_dict()  # TODO: shallow_copy?
+        attributes = self._get_attributes_dict()
         return self._simple_new(result, **attributes)
 
     def __getitem__(self, value):
