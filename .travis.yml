@@ -1,5 +1,5 @@
 language: python
-python: 3.5
+python: 3.7
 
 # To turn off cached cython files and compiler cache
 # set NOCACHE-true
@@ -48,16 +48,11 @@ matrix:
         - mysql
         - postgresql
 
-    # In allow_failures
     - env:
         - JOB="3.6, slow" ENV_FILE="ci/deps/travis-36-slow.yaml" PATTERN="slow" SQL="1"
       services:
         - mysql
         - postgresql
-
-    allow_failures:
-      - env:
-          - JOB="3.6, slow" ENV_FILE="ci/deps/travis-36-slow.yaml" PATTERN="slow" SQL="1"
 
 before_install:
   - echo "before_install"

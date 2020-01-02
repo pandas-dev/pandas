@@ -11,30 +11,6 @@ import pandas.util.testing as tm
 
 
 class TestSeriesAnalytics:
-    def test_compress(self):
-        cond = [True, False, True, False, False]
-        s = Series([1, -1, 5, 8, 7], index=list("abcde"), name="foo")
-        expected = Series(s.values.compress(cond), index=list("ac"), name="foo")
-        with tm.assert_produces_warning(FutureWarning):
-            result = s.compress(cond)
-        tm.assert_series_equal(result, expected)
-
-    def test_numpy_compress(self):
-        cond = [True, False, True, False, False]
-        s = Series([1, -1, 5, 8, 7], index=list("abcde"), name="foo")
-        expected = Series(s.values.compress(cond), index=list("ac"), name="foo")
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            tm.assert_series_equal(np.compress(cond, s), expected)
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            msg = "the 'axis' parameter is not supported"
-            with pytest.raises(ValueError, match=msg):
-                np.compress(cond, s, axis=1)
-
-            msg = "the 'out' parameter is not supported"
-            with pytest.raises(ValueError, match=msg):
-                np.compress(cond, s, out=s)
-
     def test_prod_numpy16_bug(self):
         s = Series([1.0, 1.0, 1.0], index=range(3))
         result = s.prod()

@@ -3,13 +3,14 @@
 
 from collections import defaultdict
 import copy
-from typing import DefaultDict, Dict, List, Optional, Union
+from typing import Any, DefaultDict, Dict, Iterable, List, Optional, Union
 
 import numpy as np
 
 from pandas._libs.writers import convert_json_to_lines
 from pandas.util._decorators import deprecate
 
+import pandas as pd
 from pandas import DataFrame
 
 
@@ -112,13 +113,13 @@ def nested_to_record(
 def _json_normalize(
     data: Union[Dict, List[Dict]],
     record_path: Optional[Union[str, List]] = None,
-    meta: Optional[Union[str, List]] = None,
+    meta: Optional[Union[str, List[Union[str, List[str]]]]] = None,
     meta_prefix: Optional[str] = None,
     record_prefix: Optional[str] = None,
     errors: Optional[str] = "raise",
     sep: str = ".",
     max_level: Optional[int] = None,
-):
+) -> "DataFrame":
     """
     Normalize semi-structured JSON data into a flat table.
 
@@ -229,13 +230,22 @@ def _json_normalize(
     Returns normalized data with columns prefixed with the given string.
     """
 
-    def _pull_field(js, spec):
-        result = js
+    def _pull_field(js: Dict[str, Any], spec: Union[List, str]) -> Iterable:
+        result = js  # type: ignore
         if isinstance(spec, list):
             for field in spec:
                 result = result[field]
         else:
             result = result[spec]
+
+        if not isinstance(result, Iterable):
+            if pd.isnull(result):
+                result = []  # type: ignore
+            else:
+                raise TypeError(
+                    f"{js} has non iterable value {result} for path {spec}. "
+                    "Must be iterable or null."
+                )
 
         return result
 
@@ -265,21 +275,21 @@ def _json_normalize(
     elif not isinstance(meta, list):
         meta = [meta]
 
-    meta = [m if isinstance(m, list) else [m] for m in meta]
+    _meta = [m if isinstance(m, list) else [m] for m in meta]
 
     # Disastrously inefficient for now
     records: List = []
     lengths = []
 
     meta_vals: DefaultDict = defaultdict(list)
-    meta_keys = [sep.join(val) for val in meta]
+    meta_keys = [sep.join(val) for val in _meta]
 
     def _recursive_extract(data, path, seen_meta, level=0):
         if isinstance(data, dict):
             data = [data]
         if len(path) > 1:
             for obj in data:
-                for val, key in zip(meta, meta_keys):
+                for val, key in zip(_meta, meta_keys):
                     if level + 1 == len(val):
                         seen_meta[key] = _pull_field(obj, val[-1])
 
@@ -296,7 +306,7 @@ def _json_normalize(
 
                 # For repeating the metadata later
                 lengths.append(len(recs))
-                for val, key in zip(meta, meta_keys):
+                for val, key in zip(_meta, meta_keys):
                     if level + 1 > len(val):
                         meta_val = seen_meta[key]
                     else:
