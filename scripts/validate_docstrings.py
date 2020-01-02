@@ -286,7 +286,7 @@ class Docstring:
                 continue
 
         if "obj" not in locals():
-            raise ImportError("No module can be imported " 'from "{}"'.format(name))
+            raise ImportError(f'No module can be imported from "{name}"')
 
         for part in func_parts:
             obj = getattr(obj, part)

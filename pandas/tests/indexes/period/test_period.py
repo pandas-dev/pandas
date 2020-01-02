@@ -105,25 +105,6 @@ class TestPeriodIndex(DatetimeLike):
         with pytest.raises(AttributeError, match=msg):
             DatetimeIndex([]).millisecond
 
-    @pytest.mark.parametrize("sort", [None, False])
-    def test_difference_freq(self, sort):
-        # GH14323: difference of Period MUST preserve frequency
-        # but the ability to union results must be preserved
-
-        index = period_range("20160920", "20160925", freq="D")
-
-        other = period_range("20160921", "20160924", freq="D")
-        expected = PeriodIndex(["20160920", "20160925"], freq="D")
-        idx_diff = index.difference(other, sort)
-        tm.assert_index_equal(idx_diff, expected)
-        tm.assert_attr_equal("freq", idx_diff, expected)
-
-        other = period_range("20160922", "20160925", freq="D")
-        idx_diff = index.difference(other, sort)
-        expected = PeriodIndex(["20160920", "20160921"], freq="D")
-        tm.assert_index_equal(idx_diff, expected)
-        tm.assert_attr_equal("freq", idx_diff, expected)
-
     def test_hash_error(self):
         index = period_range("20010101", periods=10)
         msg = f"unhashable type: '{type(index).__name__}'"

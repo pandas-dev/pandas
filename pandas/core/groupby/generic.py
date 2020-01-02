@@ -809,6 +809,9 @@ class SeriesGroupBy(GroupBy):
                     periods=periods, fill_method=fill_method, limit=limit, freq=freq
                 )
             )
+        if fill_method is None:  # GH30463
+            fill_method = "pad"
+            limit = 0
         filled = getattr(self, fill_method)(limit=limit)
         fill_grp = filled.groupby(self.grouper.codes)
         shifted = fill_grp.shift(periods=periods, freq=freq)
