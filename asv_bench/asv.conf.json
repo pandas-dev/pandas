@@ -122,5 +122,8 @@
         ".*": "0409521665"
     },
     "regression_thresholds": {
-    }
+    },
+    "build_command":
+    ["python setup.py build -j4",
+     "PIP_NO_BUILD_ISOLATION=false python -mpip wheel --no-deps --no-index -w {build_cache_dir} {build_dir}"],
 }
