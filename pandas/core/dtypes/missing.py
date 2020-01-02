@@ -17,6 +17,7 @@ from .common import (
     is_complex_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
+    is_datetimelike_v_numeric,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float_dtype,
@@ -78,6 +79,9 @@ def isna(obj):
 
     >>> pd.isna('dog')
     False
+
+    >>> pd.isna(pd.NA)
+    True
 
     >>> pd.isna(np.nan)
     True
@@ -175,7 +179,7 @@ def _isna_old(obj):
         raise NotImplementedError("isna is not defined for MultiIndex")
     elif isinstance(obj, type):
         return False
-    elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndexClass)):
+    elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndexClass, ABCExtensionArray)):
         return _isna_ndarraylike_old(obj)
     elif isinstance(obj, ABCGeneric):
         return obj._constructor(obj._data.isna(func=_isna_old))
@@ -326,6 +330,9 @@ def notna(obj):
     >>> pd.notna('dog')
     True
 
+    >>> pd.notna(pd.NA)
+    False
+
     >>> pd.notna(np.nan)
     False
 
@@ -443,16 +450,21 @@ def array_equivalent(left, right, strict_nan: bool = False) -> bool:
             if left_value is NaT and right_value is not NaT:
                 return False
 
+            elif left_value is libmissing.NA and right_value is not libmissing.NA:
+                return False
+
             elif isinstance(left_value, float) and np.isnan(left_value):
                 if not isinstance(right_value, float) or not np.isnan(right_value):
                     return False
             else:
                 try:
-                    if np.any(left_value != right_value):
+                    if np.any(np.asarray(left_value != right_value)):
                         return False
                 except TypeError as err:
                     if "Cannot compare tz-naive" in str(err):
                         # tzawareness compat failure, see GH#28507
+                        return False
+                    elif "boolean value of NA is ambiguous" in str(err):
                         return False
                     raise
         return True
@@ -464,6 +476,10 @@ def array_equivalent(left, right, strict_nan: bool = False) -> bool:
         if not (np.prod(left.shape) and np.prod(right.shape)):
             return True
         return ((left == right) | (isna(left) & isna(right))).all()
+
+    elif is_datetimelike_v_numeric(left, right):
+        # GH#29553 avoid numpy deprecation warning
+        return False
 
     elif needs_i8_conversion(left) or needs_i8_conversion(right):
         # datetime64, timedelta64, Period

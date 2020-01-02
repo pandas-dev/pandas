@@ -8,7 +8,6 @@ dependencies:
   - cython>=0.29.13
   - pytest>=5.0.1
   - pytest-xdist>=1.21
-  - pytest-mock
   - hypothesis>=3.58.0
   - pytest-azurepipelines
 
@@ -21,9 +20,9 @@ dependencies:
   - matplotlib=2.2.3
   - nomkl
   - numexpr
-  - numpy=1.13.3
+  - numpy=1.14
   - openpyxl
-  - pyarrow
+  - pyarrow>=0.12.0
   - pytables
   - python-dateutil==2.6.1
   - pytz

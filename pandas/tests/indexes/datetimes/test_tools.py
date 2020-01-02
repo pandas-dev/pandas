@@ -1,6 +1,7 @@
 """ test to_datetime """
 
 import calendar
+from collections import deque
 from datetime import datetime, time
 import locale
 
@@ -99,6 +100,29 @@ class TestTimeConversionFormats:
 
         result = pd.to_datetime(s, format="%Y%m%d", errors="coerce", cache=cache)
         expected = Series(["20121231", "20141231", "NaT"], dtype="M8[ns]")
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "input_s",
+        [
+            # Null values with Strings
+            ["19801222", "20010112", None],
+            ["19801222", "20010112", np.nan],
+            ["19801222", "20010112", pd.NaT],
+            ["19801222", "20010112", "NaT"],
+            # Null values with Integers
+            [19801222, 20010112, None],
+            [19801222, 20010112, np.nan],
+            [19801222, 20010112, pd.NaT],
+            [19801222, 20010112, "NaT"],
+        ],
+    )
+    def test_to_datetime_format_YYYYMMDD_with_none(self, input_s):
+        # GH 30011
+        # format='%Y%m%d'
+        # with None
+        expected = Series([Timestamp("19801222"), Timestamp("20010112"), pd.NaT])
+        result = Series(pd.to_datetime(input_s, format="%Y%m%d"))
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -696,13 +720,11 @@ class TestToDatetime:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("cache", [True, False])
+    @td.skip_if_no("psycopg2")
     def test_to_datetime_tz_psycopg2(self, cache):
 
         # xref 8260
-        try:
-            import psycopg2
-        except ImportError:
-            pytest.skip("no psycopg2 installed")
+        import psycopg2
 
         # misc cases
         tz1 = psycopg2.tz.FixedOffsetTimezone(offset=-300, name=None)
@@ -838,7 +860,7 @@ class TestToDatetime:
 
     @pytest.mark.parametrize("utc", [True, None])
     @pytest.mark.parametrize("format", ["%Y%m%d %H:%M:%S", None])
-    @pytest.mark.parametrize("constructor", [list, tuple, np.array, pd.Index])
+    @pytest.mark.parametrize("constructor", [list, tuple, np.array, pd.Index, deque])
     def test_to_datetime_cache(self, utc, format, constructor):
         date = "20130101 00:00:00"
         test_dates = [date] * 10 ** 5
@@ -847,6 +869,24 @@ class TestToDatetime:
         result = pd.to_datetime(data, utc=utc, format=format, cache=True)
         expected = pd.to_datetime(data, utc=utc, format=format, cache=False)
 
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "listlike",
+        [
+            (deque([pd.Timestamp("2010-06-02 09:30:00")] * 51)),
+            ([pd.Timestamp("2010-06-02 09:30:00")] * 51),
+            (tuple([pd.Timestamp("2010-06-02 09:30:00")] * 51)),
+        ],
+    )
+    def test_no_slicing_errors_in_should_cache(self, listlike):
+        # GH 29403
+        assert tools.should_cache(listlike) is True
+
+    def test_to_datetime_from_deque(self):
+        # GH 29403
+        result = pd.to_datetime(deque([pd.Timestamp("2010-06-02 09:30:00")] * 51))
+        expected = pd.to_datetime([pd.Timestamp("2010-06-02 09:30:00")] * 51)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("utc", [True, None])
@@ -920,22 +960,6 @@ class TestToDatetime:
 
         result = DatetimeIndex([ts_str] * 2)
         tm.assert_index_equal(result, expected)
-
-    def test_iso_8601_strings_same_offset_no_box(self):
-        # GH 22446
-        data = ["2018-01-04 09:01:00+09:00", "2018-01-04 09:02:00+09:00"]
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = pd.to_datetime(data, box=False)
-
-        expected = np.array(
-            [
-                datetime(2018, 1, 4, 9, 1, tzinfo=pytz.FixedOffset(540)),
-                datetime(2018, 1, 4, 9, 2, tzinfo=pytz.FixedOffset(540)),
-            ],
-            dtype=object,
-        )
-        tm.assert_numpy_array_equal(result, expected)
 
     def test_iso_8601_strings_with_different_offsets(self):
         # GH 17697, 11736
@@ -1024,16 +1048,6 @@ class TestToDatetime:
         result = to_datetime(ts, utc=True)
         assert result == expected
 
-    def test_to_datetime_box_deprecated(self):
-        expected = np.datetime64("2018-09-09")
-
-        # Deprecated - see GH24416
-        with tm.assert_produces_warning(FutureWarning):
-            pd.to_datetime(expected, box=False)
-
-        result = pd.to_datetime(expected).to_datetime64()
-        assert result == expected
-
     @pytest.mark.parametrize("dt_str", ["00010101", "13000101", "30000101", "99990101"])
     def test_to_datetime_with_format_out_of_bounds(self, dt_str):
         # GH 9107
@@ -1045,7 +1059,7 @@ class TestToDatetimeUnit:
     @pytest.mark.parametrize("cache", [True, False])
     def test_unit(self, cache):
         # GH 11758
-        # test proper behavior with erros
+        # test proper behavior with errors
 
         with pytest.raises(ValueError):
             to_datetime([1], unit="D", format="%Y%m%d", cache=cache)
@@ -1284,7 +1298,7 @@ class TestToDatetimeUnit:
         tm.assert_series_equal(result, expected)
 
         # extra columns
-        msg = "extra keys have been passed to the datetime assemblage: " r"\[foo\]"
+        msg = r"extra keys have been passed to the datetime assemblage: \[foo\]"
         with pytest.raises(ValueError, match=msg):
             df2 = df.copy()
             df2["foo"] = 1
@@ -1344,16 +1358,6 @@ class TestToDatetimeUnit:
         df = DataFrame({"year": [2000, 2001], "month": [1.5, 1], "day": [1, 1]})
         with pytest.raises(ValueError):
             to_datetime(df, cache=cache)
-
-    def test_dataframe_box_false(self):
-        # GH 23760
-        df = pd.DataFrame({"year": [2015, 2016], "month": [2, 3], "day": [4, 5]})
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = pd.to_datetime(df, box=False)
-
-        expected = np.array(["2015-02-04", "2016-03-05"], dtype="datetime64[ns]")
-        tm.assert_numpy_array_equal(result, expected)
 
     def test_dataframe_utc_true(self):
         # GH 23760

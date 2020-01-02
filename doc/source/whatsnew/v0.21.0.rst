@@ -428,6 +428,7 @@ Note that this also changes the sum of an empty ``Series``. Previously this alwa
 but for consistency with the all-NaN case, this was changed to return NaN as well:
 
 .. ipython:: python
+   :okwarning:
 
    pd.Series([]).sum()
 

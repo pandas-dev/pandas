@@ -169,13 +169,6 @@ def validate_clip_with_axis(axis, args, kwargs):
     return axis
 
 
-COMPRESS_DEFAULTS: "OrderedDict[str, Any]" = OrderedDict()
-COMPRESS_DEFAULTS["axis"] = None
-COMPRESS_DEFAULTS["out"] = None
-validate_compress = CompatValidator(
-    COMPRESS_DEFAULTS, fname="compress", method="both", max_fname_arg_count=1
-)
-
 CUM_FUNC_DEFAULTS: "OrderedDict[str, Any]" = OrderedDict()
 CUM_FUNC_DEFAULTS["dtype"] = None
 CUM_FUNC_DEFAULTS["out"] = None

@@ -27,6 +27,7 @@ def read_gbq(
     use_bqstorage_api=None,
     private_key=None,
     verbose=None,
+    progress_bar_type=None,
 ):
     """
     Load data from Google BigQuery.
@@ -50,10 +51,10 @@ def read_gbq(
     col_order : list(str), optional
         List of BigQuery column names in the desired order for results
         DataFrame.
-    reauth : boolean, default False
+    reauth : bool, default False
         Force Google BigQuery to re-authenticate the user. This is useful
         if multiple accounts are used.
-    auth_local_webserver : boolean, default False
+    auth_local_webserver : bool, default False
         Use the `local webserver flow`_ instead of the `console flow`_
         when getting user credentials.
 
@@ -64,7 +65,7 @@ def read_gbq(
 
         *New in version 0.2.0 of pandas-gbq*.
     dialect : str, default 'legacy'
-        Note: The default value is changing to 'standard' in a future verion.
+        Note: The default value is changing to 'standard' in a future version.
 
         SQL syntax dialect to use. Value can be one of:
 
@@ -119,21 +120,30 @@ def read_gbq(
         ``fastavro`` packages.
 
         .. versionadded:: 0.25.0
-    private_key : str, deprecated
-        Deprecated in pandas-gbq version 0.8.0. Use the ``credentials``
-        parameter and
-        :func:`google.oauth2.service_account.Credentials.from_service_account_info`
-        or
-        :func:`google.oauth2.service_account.Credentials.from_service_account_file`
-        instead.
+    progress_bar_type : Optional, str
+        If set, use the `tqdm <https://tqdm.github.io/>`__ library to
+        display a progress bar while the data downloads. Install the
+        ``tqdm`` package to use this feature.
 
-        Service account private key in JSON format. Can be file path
-        or string contents. This is useful for remote server
-        authentication (eg. Jupyter/IPython notebook on remote host).
-    verbose : None, deprecated
-        Deprecated in pandas-gbq version 0.4.0. Use the `logging module to
-        adjust verbosity instead
-        <https://pandas-gbq.readthedocs.io/en/latest/intro.html#logging>`__.
+        Possible values of ``progress_bar_type`` include:
+
+        ``None``
+            No progress bar.
+        ``'tqdm'``
+            Use the :func:`tqdm.tqdm` function to print a progress bar
+            to :data:`sys.stderr`.
+        ``'tqdm_notebook'``
+            Use the :func:`tqdm.tqdm_notebook` function to display a
+            progress bar as a Jupyter notebook widget.
+        ``'tqdm_gui'``
+            Use the :func:`tqdm.tqdm_gui` function to display a
+            progress bar as a graphical dialog box.
+
+        Note that his feature requires version 0.12.0 or later of the
+        ``pandas-gbq`` package. And it requires the ``tqdm`` package. Slightly
+        different than ``pandas-gbq``, here the default is ``None``.
+
+        .. versionadded:: 1.0.0
 
     Returns
     -------
@@ -152,15 +162,10 @@ def read_gbq(
     # START: new kwargs.  Don't populate unless explicitly set.
     if use_bqstorage_api is not None:
         kwargs["use_bqstorage_api"] = use_bqstorage_api
+
+    if progress_bar_type is not None:
+        kwargs["progress_bar_type"] = progress_bar_type
     # END: new kwargs
-
-    # START: deprecated kwargs.  Don't populate unless explicitly set.
-    if verbose is not None:
-        kwargs["verbose"] = verbose
-
-    if private_key is not None:
-        kwargs["private_key"] = private_key
-    # END: deprecated kwargs
 
     return pandas_gbq.read_gbq(
         query,
