@@ -21,7 +21,7 @@ from pandas import (
     isna,
 )
 import pandas.core.nanops as nanops
-from pandas.util import _test_decorators as td, testing as tm
+from pandas.util import _test_decorators as td, _testing as tm
 
 
 @pytest.mark.parametrize("agg_func", ["any", "all"])
