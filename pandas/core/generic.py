@@ -9857,11 +9857,11 @@ class NDFrame(PandasObject, SelectionMixin):
             data = self.fillna(method=fill_method, limit=limit, axis=axis)
 
         rs = data.div(data.shift(periods=periods, freq=freq, axis=axis, **kwargs)) - 1
-        rs = rs.loc[~rs.index.duplicated()]
-        rs = rs.reindex_like(data)
-        if freq is None:
-            mask = isna(com.values_from_object(data))
-            np.putmask(rs.values, mask, np.nan)
+        if freq is not None:
+            # Shift method is implemented differently when freq is not None
+            # We want to restore the original index
+            rs = rs.loc[~rs.index.duplicated()]
+            rs = rs.reindex_like(data)
         return rs
 
     def _agg_by_level(self, name, axis=0, level=0, skipna=True, **kwargs):
