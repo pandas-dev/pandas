@@ -932,7 +932,7 @@ Groupby/resample/rolling
 - Bug in :meth:`core.groupby.DataFrameGroupby.agg` not able to use lambda function with named aggregation (:issue:`27519`)
 - Bug in :meth:`DataFrame.groupby` losing column name information when grouping by a categorical column (:issue:`28787`)
 - Remove error raised due to duplicated input functions in named aggregation in :meth:`DataFrame.groupby` and :meth:`Series.groupby`. Previously error will be raised if the same function is applied on the same column and now it is allowed if new assigned names are different. (:issue:`28426`)
-- :meth:`core.groupby.SeriesGroupBy.value_counts` will be able to handle the case even when the :class:`Grouper` makes empty groups (:issue: 28479)
+- :meth:`core.groupby.SeriesGroupBy.value_counts` will be able to handle the case even when the :class:`Grouper` makes empty groups (:issue:`28479`)
 - Bug in :meth:`core.window.rolling.Rolling.quantile` ignoring ``interpolation`` keyword argument when used within a groupby (:issue:`28779`)
 - Bug in :meth:`DataFrame.groupby` where ``any``, ``all``, ``nunique`` and transform functions would incorrectly handle duplicate column labels (:issue:`21668`)
 - Bug in :meth:`core.groupby.DataFrameGroupBy.agg` with timezone-aware datetime64 column incorrectly casting results to the original dtype (:issue:`29641`)
