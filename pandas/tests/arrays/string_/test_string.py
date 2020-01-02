@@ -9,10 +9,20 @@ import pandas as pd
 import pandas.util.testing as tm
 
 
+def test_repr_with_NA():
+    a = pd.array(["a", pd.NA, "b"], dtype="string")
+    for obj in [a, pd.Series(a), pd.DataFrame({"a": a})]:
+        assert "NA" in repr(obj) and "NaN" not in repr(obj)
+        assert "NA" in str(obj) and "NaN" not in str(obj)
+        if hasattr(obj, "_repr_html_"):
+            html_repr = obj._repr_html_()
+            assert "NA" in html_repr and "NaN" not in html_repr
+
+
 def test_none_to_nan():
     a = pd.arrays.StringArray._from_sequence(["a", None, "b"])
     assert a[1] is not None
-    assert np.isnan(a[1])
+    assert a[1] is pd.NA
 
 
 def test_setitem_validates():
@@ -22,6 +32,15 @@ def test_setitem_validates():
 
     with pytest.raises(ValueError, match="strings"):
         a[:] = np.array([1, 2])
+
+
+def test_setitem_with_scalar_string():
+    # is_float_dtype considers some strings, like 'd', to be floats
+    # which can cause issues.
+    arr = pd.array(["a", "c"], dtype="string")
+    arr[0] = "d"
+    expected = pd.array(["d", "c"], dtype="string")
+    tm.assert_extension_array_equal(arr, expected)
 
 
 @pytest.mark.parametrize(
@@ -135,6 +154,37 @@ def test_add_frame():
     tm.assert_frame_equal(result, expected)
 
 
+def test_comparison_methods_scalar(all_compare_operators):
+    op_name = all_compare_operators
+
+    a = pd.array(["a", None, "c"], dtype="string")
+    other = "a"
+    result = getattr(a, op_name)(other)
+    expected = np.array([getattr(item, op_name)(other) for item in a], dtype=object)
+    expected = pd.array(expected, dtype="boolean")
+    tm.assert_extension_array_equal(result, expected)
+
+    result = getattr(a, op_name)(pd.NA)
+    expected = pd.array([None, None, None], dtype="boolean")
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_comparison_methods_array(all_compare_operators):
+    op_name = all_compare_operators
+
+    a = pd.array(["a", None, "c"], dtype="string")
+    other = [None, None, "c"]
+    result = getattr(a, op_name)(other)
+    expected = np.empty_like(a, dtype="object")
+    expected[-1] = getattr(other[-1], op_name)(a[-1])
+    expected = pd.array(expected, dtype="boolean")
+    tm.assert_extension_array_equal(result, expected)
+
+    result = getattr(a, op_name)(pd.NA)
+    expected = pd.array([None, None, None], dtype="boolean")
+    tm.assert_extension_array_equal(result, expected)
+
+
 def test_constructor_raises():
     with pytest.raises(ValueError, match="sequence of strings"):
         pd.arrays.StringArray(np.array(["a", "b"], dtype="S1"))
@@ -185,5 +235,5 @@ def test_arrow_roundtrip():
     result = table.to_pandas()
     assert isinstance(result["a"].dtype, pd.StringDtype)
     tm.assert_frame_equal(result, df)
-    # ensure the missing value is represented by NaN and not None
-    assert np.isnan(result.loc[2, "a"])
+    # ensure the missing value is represented by NA and not np.nan or None
+    assert result.loc[2, "a"] is pd.NA

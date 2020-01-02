@@ -1,7 +1,6 @@
 import operator
 from shutil import get_terminal_size
-import textwrap
-from typing import Type, Union, cast
+from typing import Dict, Hashable, List, Type, Union, cast
 from warnings import warn
 
 import numpy as np
@@ -9,6 +8,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, hashtable as htable
+from pandas._typing import ArrayLike, Dtype, Ordered, Scalar
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender,
@@ -28,7 +28,6 @@ from pandas.core.dtypes.common import (
     is_dict_like,
     is_dtype_equal,
     is_extension_array_dtype,
-    is_float_dtype,
     is_integer_dtype,
     is_iterator,
     is_list_like,
@@ -43,7 +42,6 @@ from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas._typing import ArrayLike, Dtype, Ordered
 from pandas.core import ops
 from pandas.core.accessor import PandasDelegate, delegate_names
 import pandas.core.algorithms as algorithms
@@ -59,30 +57,12 @@ from pandas.io.formats import console
 
 from .base import ExtensionArray, _extension_array_shared_docs, try_cast_to_ea
 
-_take_msg = textwrap.dedent(
-    """\
-    Interpreting negative values in 'indexer' as missing values.
-    In the future, this will change to meaning positional indices
-    from the right.
-
-    Use 'allow_fill=True' to retain the previous behavior and silence this
-    warning.
-
-    Use 'allow_fill=False' to accept the new behavior."""
-)
-
 
 def _cat_compare_op(op):
     opname = f"__{op.__name__}__"
 
     @unpack_zerodim_and_defer(opname)
     def func(self, other):
-        # On python2, you can usually compare any type to any type, and
-        # Categoricals can be seen as a custom type, but having different
-        # results depending whether categories are the same or not is kind of
-        # insane, so be a bit stricter here and use the python3 idea of
-        # comparing only things of equal type.
-
         if is_list_like(other) and len(other) != len(self):
             # TODO: Could this fail if the categories are listlike objects?
             raise ValueError("Lengths must match.")
@@ -114,9 +94,9 @@ def _cat_compare_op(op):
             else:
                 other_codes = other._codes
 
-            mask = (self._codes == -1) | (other_codes == -1)
             f = getattr(self._codes, opname)
             ret = f(other_codes)
+            mask = (self._codes == -1) | (other_codes == -1)
             if mask.any():
                 # In other series, the leads to False, so do that here too
                 ret[mask] = False
@@ -127,9 +107,10 @@ def _cat_compare_op(op):
                 i = self.categories.get_loc(other)
                 ret = getattr(self._codes, opname)(i)
 
-                # check for NaN in self
-                mask = self._codes == -1
-                ret[mask] = False
+                if opname not in {"__eq__", "__ge__", "__gt__"}:
+                    # check for NaN needed if we are not equal or larger
+                    mask = self._codes == -1
+                    ret[mask] = False
                 return ret
             else:
                 if opname == "__eq__":
@@ -321,9 +302,7 @@ class Categorical(ExtensionArray, PandasObject):
     __array_priority__ = 1000
     _dtype = CategoricalDtype(ordered=False)
     # tolist is not actually deprecated, just suppressed in the __dir__
-    _deprecations = PandasObject._deprecations | frozenset(
-        ["tolist", "itemsize", "get_values"]
-    )
+    _deprecations = PandasObject._deprecations | frozenset(["tolist"])
     _typ = "categorical"
 
     def __init__(
@@ -349,7 +328,7 @@ class Categorical(ExtensionArray, PandasObject):
         # sanitize input
         if is_categorical_dtype(values):
             if dtype.categories is None:
-                dtype = CategoricalDtype(values.categories, dtype._ordered)
+                dtype = CategoricalDtype(values.categories, dtype.ordered)
         elif not isinstance(values, (ABCIndexClass, ABCSeries)):
             # sanitize_array coerces np.nan to a string under certain versions
             # of numpy
@@ -372,7 +351,7 @@ class Categorical(ExtensionArray, PandasObject):
                 codes, categories = factorize(values, sort=True)
             except TypeError:
                 codes, categories = factorize(values, sort=False)
-                if dtype._ordered:
+                if dtype.ordered:
                     # raise, as we don't have a sortable data structure and so
                     # the user should give us one by specifying categories
                     raise TypeError(
@@ -388,7 +367,7 @@ class Categorical(ExtensionArray, PandasObject):
                 )
 
             # we're inferring from values
-            dtype = CategoricalDtype(categories, dtype._ordered)
+            dtype = CategoricalDtype(categories, dtype.ordered)
 
         elif is_categorical_dtype(values):
             old_codes = (
@@ -458,7 +437,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
         Whether the categories have an ordered relationship.
         """
-        return self.dtype._ordered
+        return self.dtype.ordered
 
     @property
     def dtype(self) -> CategoricalDtype:
@@ -515,14 +494,13 @@ class Categorical(ExtensionArray, PandasObject):
         if is_extension_array_dtype(dtype):
             return array(self, dtype=dtype, copy=copy)  # type: ignore # GH 28770
         if is_integer_dtype(dtype) and self.isna().any():
-            msg = "Cannot convert float NaN to integer"
-            raise ValueError(msg)
+            raise ValueError("Cannot convert float NaN to integer")
         return np.array(self, dtype=dtype, copy=copy)
 
     @cache_readonly
     def size(self) -> int:
         """
-        return the len of myself
+        Return the len of myself.
         """
         return self._codes.size
 
@@ -533,7 +511,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
         return self.categories.itemsize
 
-    def tolist(self) -> list:
+    def tolist(self) -> List[Scalar]:
         """
         Return a list of the values.
 
@@ -544,13 +522,6 @@ class Categorical(ExtensionArray, PandasObject):
         return list(self)
 
     to_list = tolist
-
-    @property
-    def base(self) -> None:
-        """
-        compat, we are always our own object
-        """
-        return None
 
     @classmethod
     def _from_inferred_categories(
@@ -671,22 +642,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         codes = np.asarray(codes)  # #21767
         if len(codes) and not is_integer_dtype(codes):
-            msg = "codes need to be array-like integers"
-            if is_float_dtype(codes):
-                icodes = codes.astype("i8")
-                if (icodes == codes).all():
-                    msg = None
-                    codes = icodes
-                    warn(
-                        (
-                            "float codes will be disallowed in the future and "
-                            "raise a ValueError"
-                        ),
-                        FutureWarning,
-                        stacklevel=2,
-                    )
-            if msg:
-                raise ValueError(msg)
+            raise ValueError("codes need to be array-like integers")
 
         if len(codes) and (codes.max() >= len(dtype.categories) or codes.min() < -1):
             raise ValueError("codes need to be between -1 and len(categories)-1")
@@ -840,8 +796,8 @@ class Categorical(ExtensionArray, PandasObject):
         On the other hand this methods does not do checks (e.g., whether the
         old categories are included in the new categories on a reorder), which
         can result in surprising changes, for example when using special string
-        dtypes on python3, which does not considers a S1 string equal to a
-        single char python string.
+        dtypes, which does not considers a S1 string equal to a single char
+        python string.
 
         Parameters
         ----------
@@ -876,7 +832,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if ordered is None:
-            ordered = self.dtype._ordered
+            ordered = self.dtype.ordered
         new_dtype = CategoricalDtype(new_categories, ordered=ordered)
 
         cat = self if inplace else self.copy()
@@ -1502,29 +1458,18 @@ class Categorical(ExtensionArray, PandasObject):
 
         return Series(count, index=CategoricalIndex(ix), dtype="int64")
 
-    def get_values(self):
+    def _internal_get_values(self):
         """
         Return the values.
-
-        .. deprecated:: 0.25.0
 
         For internal compatibility with pandas formatting.
 
         Returns
         -------
-        numpy.array
+        np.ndarray or Index
             A numpy array of the same dtype as categorical.categories.dtype or
             Index if datetime / periods.
         """
-        warn(
-            "The 'get_values' method is deprecated and will be removed in a "
-            "future version",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._internal_get_values()
-
-    def _internal_get_values(self):
         # if we are a datetime and period index, return Index to keep metadata
         if needs_i8_conversion(self.categories):
             return self.categories.take(self._codes, fill_value=np.nan)
@@ -1673,7 +1618,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if na_position not in ["last", "first"]:
-            raise ValueError(f"invalid na_position: {na_position!r}")
+            raise ValueError(f"invalid na_position: {repr(na_position)}")
 
         sorted_idx = nargsort(self, ascending=ascending, na_position=na_position)
 
@@ -1714,24 +1659,6 @@ class Categorical(ExtensionArray, PandasObject):
             )
         return values
 
-    def ravel(self, order="C"):
-        """
-        Return a flattened (numpy) array.
-
-        For internal compatibility with numpy arrays.
-
-        Returns
-        -------
-        numpy.array
-        """
-        warn(
-            "Categorical.ravel will return a Categorical object instead "
-            "of an ndarray in a future version.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return np.array(self)
-
     def view(self, dtype=None):
         if dtype is not None:
             raise NotImplementedError(dtype)
@@ -1749,7 +1676,6 @@ class Categorical(ExtensionArray, PandasObject):
         """
         return np.asarray(self)
 
-    @deprecate_kwarg(old_arg_name="fill_value", new_arg_name="value")
     def fillna(self, value=None, method=None, limit=None):
         """
         Fill NA/NaN values using the specified method.
@@ -1828,13 +1754,13 @@ class Categorical(ExtensionArray, PandasObject):
 
             else:
                 raise TypeError(
-                    '"value" parameter must be a scalar, dict '
-                    f'or Series, but you passed a {type(value).__name__!r}"'
+                    f"'value' parameter must be a scalar, dict "
+                    f"or Series, but you passed a {type(value).__name__}"
                 )
 
         return self._constructor(codes, dtype=self.dtype, fastpath=True)
 
-    def take_nd(self, indexer, allow_fill=None, fill_value=None):
+    def take(self, indexer, allow_fill: bool = False, fill_value=None):
         """
         Take elements from the Categorical.
 
@@ -1843,7 +1769,7 @@ class Categorical(ExtensionArray, PandasObject):
         indexer : sequence of int
             The indices in `self` to take. The meaning of negative values in
             `indexer` depends on the value of `allow_fill`.
-        allow_fill : bool, default None
+        allow_fill : bool, default False
             How to handle negative values in `indexer`.
 
             * False: negative values in `indices` indicate positional indices
@@ -1854,11 +1780,9 @@ class Categorical(ExtensionArray, PandasObject):
               (the default). These values are set to `fill_value`. Any other
               other negative values raise a ``ValueError``.
 
-            .. versionchanged:: 0.23.0
+            .. versionchanged:: 1.0.0
 
-               Deprecated the default value of `allow_fill`. The deprecated
-               default is ``True``. In the future, this will change to
-               ``False``.
+               Default value changed from ``True`` to ``False``.
 
         fill_value : object
             The value to use for `indices` that are missing (-1), when
@@ -1908,10 +1832,6 @@ class Categorical(ExtensionArray, PandasObject):
         will raise a ``TypeError``.
         """
         indexer = np.asarray(indexer, dtype=np.intp)
-        if allow_fill is None:
-            if (indexer < 0).any():
-                warn(_take_msg, FutureWarning, stacklevel=2)
-                allow_fill = True
 
         dtype = self.dtype
 
@@ -1932,7 +1852,14 @@ class Categorical(ExtensionArray, PandasObject):
         result = type(self).from_codes(codes, dtype=dtype)
         return result
 
-    take = take_nd
+    def take_nd(self, indexer, allow_fill: bool = False, fill_value=None):
+        # GH#27745 deprecate alias that other EAs dont have
+        warn(
+            "Categorical.take_nd is deprecated, use Categorical.take instead",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.take(indexer, allow_fill=allow_fill, fill_value=fill_value)
 
     def __len__(self) -> int:
         """
@@ -2140,7 +2067,7 @@ class Categorical(ExtensionArray, PandasObject):
         lindexer = self._maybe_coerce_indexer(lindexer)
         self._codes[key] = lindexer
 
-    def _reverse_indexer(self):
+    def _reverse_indexer(self) -> Dict[Hashable, np.ndarray]:
         """
         Compute the inverse of a categorical, returning
         a dict of categories -> indexers.
@@ -2170,8 +2097,8 @@ class Categorical(ExtensionArray, PandasObject):
             self.codes.astype("int64"), categories.size
         )
         counts = counts.cumsum()
-        result = (r[start:end] for start, end in zip(counts, counts[1:]))
-        result = dict(zip(categories, result))
+        _result = (r[start:end] for start, end in zip(counts, counts[1:]))
+        result = dict(zip(categories, _result))
         return result
 
     # reduction ops #
@@ -2181,11 +2108,16 @@ class Categorical(ExtensionArray, PandasObject):
             raise TypeError(f"Categorical cannot perform the operation {name}")
         return func(**kwargs)
 
-    def min(self, numeric_only=None, **kwargs):
+    @deprecate_kwarg(old_arg_name="numeric_only", new_arg_name="skipna")
+    def min(self, skipna=True):
         """
         The minimum value of the object.
 
         Only ordered `Categoricals` have a minimum!
+
+        .. versionchanged:: 1.0.0
+
+           Returns an NA value on empty arrays
 
         Raises
         ------
@@ -2197,21 +2129,30 @@ class Categorical(ExtensionArray, PandasObject):
         min : the minimum of this `Categorical`
         """
         self.check_for_ordered("min")
-        if numeric_only:
-            good = self._codes != -1
-            pointer = self._codes[good].min(**kwargs)
-        else:
-            pointer = self._codes.min(**kwargs)
-        if pointer == -1:
-            return np.nan
-        else:
-            return self.categories[pointer]
 
-    def max(self, numeric_only=None, **kwargs):
+        if not len(self._codes):
+            return self.dtype.na_value
+
+        good = self._codes != -1
+        if not good.all():
+            if skipna:
+                pointer = self._codes[good].min()
+            else:
+                return np.nan
+        else:
+            pointer = self._codes.min()
+        return self.categories[pointer]
+
+    @deprecate_kwarg(old_arg_name="numeric_only", new_arg_name="skipna")
+    def max(self, skipna=True):
         """
         The maximum value of the object.
 
         Only ordered `Categoricals` have a maximum!
+
+        .. versionchanged:: 1.0.0
+
+           Returns an NA value on empty arrays
 
         Raises
         ------
@@ -2223,15 +2164,19 @@ class Categorical(ExtensionArray, PandasObject):
         max : the maximum of this `Categorical`
         """
         self.check_for_ordered("max")
-        if numeric_only:
-            good = self._codes != -1
-            pointer = self._codes[good].max(**kwargs)
+
+        if not len(self._codes):
+            return self.dtype.na_value
+
+        good = self._codes != -1
+        if not good.all():
+            if skipna:
+                pointer = self._codes[good].max()
+            else:
+                return np.nan
         else:
-            pointer = self._codes.max(**kwargs)
-        if pointer == -1:
-            return np.nan
-        else:
-            return self.categories[pointer]
+            pointer = self._codes.max()
+        return self.categories[pointer]
 
     def mode(self, dropna=True):
         """
@@ -2587,43 +2532,6 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
         res = method(*args, **kwargs)
         if res is not None:
             return Series(res, index=self._index, name=self._name)
-
-    @property
-    def categorical(self):
-        # Note: Upon deprecation, `test_tab_completion_with_categorical` will
-        # need to be updated. `categorical` will need to be removed from
-        # `ok_for_cat`.
-        warn(
-            "`Series.cat.categorical` has been deprecated. Use the "
-            "attributes on 'Series.cat' directly instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._parent
-
-    @property
-    def name(self):
-        # Note: Upon deprecation, `test_tab_completion_with_categorical` will
-        # need to be updated. `name` will need to be removed from
-        # `ok_for_cat`.
-        warn(
-            "`Series.cat.name` has been deprecated. Use `Series.name` instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._name
-
-    @property
-    def index(self):
-        # Note: Upon deprecation, `test_tab_completion_with_categorical` will
-        # need to be updated. `index` will need to be removed from
-        # ok_for_cat`.
-        warn(
-            "`Series.cat.index` has been deprecated. Use `Series.index` instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self._index
 
 
 # utility routines

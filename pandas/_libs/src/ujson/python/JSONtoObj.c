@@ -459,6 +459,10 @@ JSOBJ Object_newFalse(void *prv) { Py_RETURN_FALSE; }
 
 JSOBJ Object_newNull(void *prv) { Py_RETURN_NONE; }
 
+JSOBJ Object_newPosInf(void *prv) { return PyFloat_FromDouble(Py_HUGE_VAL); }
+
+JSOBJ Object_newNegInf(void *prv) { return PyFloat_FromDouble(-Py_HUGE_VAL); }
+
 JSOBJ Object_newObject(void *prv, void *decoder) { return PyDict_New(); }
 
 JSOBJ Object_endObject(void *prv, JSOBJ obj) { return obj; }
@@ -502,10 +506,11 @@ PyObject *JSONToObj(PyObject *self, PyObject *args, PyObject *kwargs) {
     JSONObjectDecoder dec = {
         Object_newString, Object_objectAddKey,  Object_arrayAddItem,
         Object_newTrue,   Object_newFalse,      Object_newNull,
-        Object_newObject, Object_endObject,     Object_newArray,
-        Object_endArray,  Object_newInteger,    Object_newLong,
-        Object_newDouble, Object_releaseObject, PyObject_Malloc,
-        PyObject_Free,    PyObject_Realloc};
+        Object_newPosInf, Object_newNegInf,     Object_newObject,
+        Object_endObject,     Object_newArray,  Object_endArray,
+        Object_newInteger,    Object_newLong,   Object_newDouble,
+        Object_releaseObject, PyObject_Malloc, PyObject_Free,
+        PyObject_Realloc};
 
     dec.preciseFloat = 0;
     dec.prv = NULL;

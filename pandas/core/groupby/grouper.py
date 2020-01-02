@@ -3,32 +3,30 @@ Provide user facing operators for doing the split part of the
 split-apply-combine paradigm.
 """
 
-from typing import Hashable, List, Optional, Tuple
-import warnings
+from typing import Dict, Hashable, List, Optional, Tuple
 
 import numpy as np
 
+from pandas._typing import FrameOrSeries
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
     ensure_categorical,
     is_categorical_dtype,
     is_datetime64_dtype,
-    is_hashable,
     is_list_like,
     is_scalar,
     is_timedelta64_dtype,
 )
 from pandas.core.dtypes.generic import ABCSeries
 
-from pandas._typing import FrameOrSeries
 import pandas.core.algorithms as algorithms
 from pandas.core.arrays import Categorical, ExtensionArray
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.groupby import ops
 from pandas.core.groupby.categorical import recode_for_groupby, recode_from_groupby
-from pandas.core.index import CategoricalIndex, Index, MultiIndex
+from pandas.core.indexes.api import CategoricalIndex, Index, MultiIndex
 from pandas.core.series import Series
 
 from pandas.io.formats.printing import pprint_thing
@@ -140,7 +138,7 @@ class Grouper:
         """
 
         self._set_grouper(obj)
-        self.grouper, exclusions, self.obj = get_grouper(
+        self.grouper, _, self.obj = get_grouper(
             self.obj,
             [self.key],
             axis=self.axis,
@@ -217,12 +215,12 @@ class Grouper:
 
     def __repr__(self) -> str:
         attrs_list = (
-            f"{attr_name}={getattr(self, attr_name)!r}"
+            f"{attr_name}={repr(getattr(self, attr_name))}"
             for attr_name in self._attributes
             if getattr(self, attr_name) is not None
         )
         attrs = ", ".join(attrs_list)
-        cls_name = self.__class__.__name__
+        cls_name = type(self).__name__
         return f"{cls_name}({attrs})"
 
 
@@ -430,7 +428,7 @@ class Grouping:
             self._group_index = uniques
 
     @cache_readonly
-    def groups(self) -> dict:
+    def groups(self) -> Dict[Hashable, np.ndarray]:
         return self.index.groupby(Categorical.from_codes(self.codes, self.group_index))
 
 
@@ -502,8 +500,11 @@ def get_grouper(
                     raise ValueError("multiple levels only valid with MultiIndex")
 
             if isinstance(level, str):
-                if obj.index.name != level:
-                    raise ValueError(f"level name {level} is not the name of the index")
+                if obj._get_axis(axis).name != level:
+                    raise ValueError(
+                        f"level name {level} is not the name "
+                        f"of the {obj._get_axis_name(axis)}"
+                    )
             elif level > 0 or level < -1:
                 raise ValueError("level > 0 or level < -1 only valid with MultiIndex")
 
@@ -523,28 +524,6 @@ def get_grouper(
     # already have a BaseGrouper, just return it
     elif isinstance(key, ops.BaseGrouper):
         return key, [], obj
-
-    # In the future, a tuple key will always mean an actual key,
-    # not an iterable of keys. In the meantime, we attempt to provide
-    # a warning. We can assume that the user wanted a list of keys when
-    # the key is not in the index. We just have to be careful with
-    # unhashable elements of `key`. Any unhashable elements implies that
-    # they wanted a list of keys.
-    # https://github.com/pandas-dev/pandas/issues/18314
-    if isinstance(key, tuple):
-        all_hashable = is_hashable(key)
-        if (
-            all_hashable and key not in obj and set(key).issubset(obj)
-        ) or not all_hashable:
-            # column names ('a', 'b') -> ['a', 'b']
-            # arrays like (a, b) -> [a, b]
-            msg = (
-                "Interpreting tuple 'by' as a list of keys, rather than "
-                "a single key. Use 'by=[...]' instead of 'by=(...)'. In "
-                "the future, a tuple will always mean a single key."
-            )
-            warnings.warn(msg, FutureWarning, stacklevel=5)
-            key = list(key)
 
     if not isinstance(key, list):
         keys = [key]

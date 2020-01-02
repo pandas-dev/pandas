@@ -15,7 +15,6 @@ Usage::
 """
 import argparse
 import ast
-import collections
 import doctest
 import functools
 import glob
@@ -286,7 +285,7 @@ class Docstring:
                 continue
 
         if "obj" not in locals():
-            raise ImportError("No module can be imported " 'from "{}"'.format(name))
+            raise ImportError(f'No module can be imported from "{name}"')
 
         for part in func_parts:
             obj = getattr(obj, part)
@@ -422,7 +421,7 @@ class Docstring:
 
     @property
     def doc_parameters(self):
-        parameters = collections.OrderedDict()
+        parameters = {}
         for names, type_, desc in self.doc["Parameters"]:
             for name in names.split(", "):
                 parameters[name] = (type_, "".join(desc))
@@ -510,7 +509,7 @@ class Docstring:
 
     @property
     def see_also(self):
-        result = collections.OrderedDict()
+        result = {}
         for funcs, desc in self.doc["See Also"]:
             for func, _ in funcs:
                 result[func] = "".join(desc)
@@ -965,7 +964,7 @@ def main(func_name, prefix, errors, output_format, ignore_deprecated):
                     "]{text}\n"
                 )
             else:
-                raise ValueError('Unknown output_format "{}"'.format(output_format))
+                raise ValueError(f'Unknown output_format "{output_format}"')
 
             output = ""
             for name, res in result.items():
@@ -977,11 +976,10 @@ def main(func_name, prefix, errors, output_format, ignore_deprecated):
                         continue
                     exit_status += 1
                     output += output_format.format(
-                        name=name,
                         path=res["file"],
                         row=res["file_line"],
                         code=err_code,
-                        text="{}: {}".format(name, err_desc),
+                        text=f"{name}: {err_desc}",
                     )
 
         sys.stdout.write(output)

@@ -5,7 +5,7 @@ from typing import Any, Callable, Union
 
 import numpy as np
 
-from pandas.errors import NullFrequencyError
+from pandas._typing import ArrayLike
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
@@ -17,7 +17,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import ABCExtensionArray, ABCSeries
 
-from pandas._typing import ArrayLike
 from pandas.core.construction import array
 
 
@@ -97,10 +96,7 @@ def should_series_dispatch(left, right, op):
 
 
 def dispatch_to_extension_op(
-    op,
-    left: Union[ABCExtensionArray, np.ndarray],
-    right: Any,
-    keep_null_freq: bool = False,
+    op, left: Union[ABCExtensionArray, np.ndarray], right: Any,
 ):
     """
     Assume that left or right is a Series backed by an ExtensionArray,
@@ -111,9 +107,6 @@ def dispatch_to_extension_op(
     op : binary operator
     left : ExtensionArray or np.ndarray
     right : object
-    keep_null_freq : bool, default False
-        Whether to re-raise a NullFrequencyError unchanged, as opposed to
-        catching and raising TypeError.
 
     Returns
     -------
@@ -131,20 +124,7 @@ def dispatch_to_extension_op(
 
     # The op calls will raise TypeError if the op is not defined
     # on the ExtensionArray
-
-    try:
-        res_values = op(left, right)
-    except NullFrequencyError:
-        # DatetimeIndex and TimedeltaIndex with freq == None raise ValueError
-        # on add/sub of integers (or int-like).  We re-raise as a TypeError.
-        if keep_null_freq:
-            # TODO: remove keep_null_freq after Timestamp+int deprecation
-            #  GH#22535 is enforced
-            raise
-        raise TypeError(
-            "incompatible type for a datetime/timedelta "
-            "operation [{name}]".format(name=op.__name__)
-        )
+    res_values = op(left, right)
     return res_values
 
 
@@ -189,6 +169,9 @@ def maybe_dispatch_ufunc_to_dunder_op(
         "ge",
         "remainder",
         "matmul",
+        "or",
+        "xor",
+        "and",
     }
     aliases = {
         "subtract": "sub",
@@ -204,6 +187,9 @@ def maybe_dispatch_ufunc_to_dunder_op(
         "less_equal": "le",
         "greater": "gt",
         "greater_equal": "ge",
+        "bitwise_or": "or",
+        "bitwise_and": "and",
+        "bitwise_xor": "xor",
     }
 
     # For op(., Array) -> Array.__r{op}__
