@@ -2730,3 +2730,25 @@ def test_concat_datetimeindex_freq():
     expected = pd.DataFrame(data[50:] + data[:50], index=dr[50:].append(dr[:50]))
     expected.index._data.freq = None
     tm.assert_frame_equal(result, expected)
+
+
+def test_concat_copy_false_extension_array():
+    # GH 20756
+    range_arr = list(range(8))
+    dec_arr = to_decimal(range_arr)
+    df1 = pd.DataFrame({"int1": [1, 2, 3], "key1": [0, 1, 2], "ext1": dec_arr[:3]})
+    df2 = pd.DataFrame(
+        {"int2": [1, 2, 3, 4], "key2": [0, 0, 1, 3], "ext2": dec_arr[3:7]}
+    )
+    expected = pd.DataFrame(
+        {
+            "int1": [1, 2, 3, float("nan")],
+            "key1": [0, 1, 2, float("nan")],
+            "ext1": to_decimal(range_arr[:3] + ["nan"]),
+            "int2": [1, 2, 3, 4],
+            "key2": [0, 0, 1, 3],
+            "ext2": dec_arr[3:7],
+        }
+    )
+    result = pd.concat([df1, df2], axis=1, copy=False)
+    tm.assert_frame_equal(result, expected)
