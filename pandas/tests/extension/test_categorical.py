@@ -18,11 +18,12 @@ import string
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 import pandas as pd
 from pandas import Categorical, CategoricalIndex, Timestamp
 from pandas.api.types import CategoricalDtype
 from pandas.tests.extension import base
-import pandas.util.testing as tm
 
 
 def make_data():

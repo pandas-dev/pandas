@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from pandas.errors import OutOfBoundsDatetime, PerformanceWarning
+import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import (
@@ -23,7 +24,6 @@ from pandas.tests.arithmetic.common import (
     assert_invalid_comparison,
     get_upcast_box,
 )
-import pandas.util.testing as tm
 
 # ------------------------------------------------------------------
 # Timedelta64[ns] dtype Comparisons

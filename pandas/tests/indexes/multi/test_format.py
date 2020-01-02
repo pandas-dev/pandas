@@ -2,9 +2,10 @@ import warnings
 
 import pytest
 
+import pandas.util._testing as tm
+
 import pandas as pd
 from pandas import MultiIndex
-import pandas.util.testing as tm
 
 
 def test_format(idx):

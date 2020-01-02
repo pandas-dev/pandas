@@ -5,6 +5,8 @@ import inspect
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_interval_dtype,
@@ -25,7 +27,6 @@ from pandas import (
     date_range,
     to_datetime,
 )
-import pandas.util.testing as tm
 
 
 class TestDataFrameAlterAxes:

@@ -2,9 +2,10 @@ from io import StringIO
 
 import pytest
 
+import pandas.util._testing as tm
+
 import pandas as pd
 from pandas import DataFrame, read_json
-import pandas.util.testing as tm
 
 from pandas.io.json._json import JsonReader
 

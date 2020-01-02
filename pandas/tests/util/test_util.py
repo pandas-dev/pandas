@@ -3,8 +3,7 @@ import os
 import pytest
 
 import pandas.compat as compat
-
-import pandas.util.testing as tm
+import pandas.util._testing as tm
 
 
 def test_rands():

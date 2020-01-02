@@ -4,11 +4,12 @@ import operator
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 import pandas as pd
 from pandas import Categorical, DataFrame, Index, Series, bdate_range, date_range, isna
 from pandas.core import ops
 import pandas.core.nanops as nanops
-import pandas.util.testing as tm
 
 
 class TestSeriesLogicalOps:

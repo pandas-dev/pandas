@@ -1,6 +1,6 @@
 import pytest
 
-import pandas.util.testing as tm
+import pandas.util._testing as tm
 
 
 class TestCategoricalWarnings:

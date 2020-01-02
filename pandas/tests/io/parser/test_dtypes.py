@@ -9,12 +9,12 @@ import numpy as np
 import pytest
 
 from pandas.errors import ParserWarning
+import pandas.util._testing as tm
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
 from pandas import Categorical, DataFrame, Index, MultiIndex, Series, Timestamp, concat
-import pandas.util.testing as tm
 
 
 @pytest.mark.parametrize("dtype", [str, object])

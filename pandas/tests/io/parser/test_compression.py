@@ -8,8 +8,9 @@ import zipfile
 
 import pytest
 
+import pandas.util._testing as tm
+
 import pandas as pd
-import pandas.util.testing as tm
 
 
 @pytest.fixture(params=[True, False])

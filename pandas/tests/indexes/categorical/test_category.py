@@ -4,13 +4,13 @@ import pytest
 import pandas._config.config as cf
 
 from pandas._libs import index as libindex
+import pandas.util._testing as tm
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
 from pandas import Categorical, IntervalIndex
 from pandas.core.indexes.api import CategoricalIndex, Index
-import pandas.util.testing as tm
 
 from ..common import Base
 

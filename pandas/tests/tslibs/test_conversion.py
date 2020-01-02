@@ -6,9 +6,9 @@ from pytz import UTC
 
 from pandas._libs.tslib import iNaT
 from pandas._libs.tslibs import conversion, timezones, tzconversion
+import pandas.util._testing as tm
 
 from pandas import Timestamp, date_range
-import pandas.util.testing as tm
 
 
 def _compare_utc_to_local(tz_didx):

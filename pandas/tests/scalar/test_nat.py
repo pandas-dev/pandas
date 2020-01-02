@@ -7,6 +7,7 @@ import pytz
 
 from pandas._libs.tslibs import iNaT
 import pandas.compat as compat
+import pandas.util._testing as tm
 
 from pandas.core.dtypes.common import is_datetime64_any_dtype
 
@@ -23,7 +24,6 @@ from pandas import (
 )
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 from pandas.core.ops import roperator
-import pandas.util.testing as tm
 
 
 @pytest.mark.parametrize(

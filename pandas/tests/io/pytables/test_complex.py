@@ -4,11 +4,11 @@ import numpy as np
 import pytest
 
 import pandas.util._test_decorators as td
+import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import DataFrame, Series
 from pandas.tests.io.pytables.common import ensure_clean_path, ensure_clean_store
-import pandas.util.testing as tm
 
 from pandas.io.pytables import read_hdf
 

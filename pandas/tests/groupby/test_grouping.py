@@ -3,6 +3,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 import pandas as pd
 from pandas import (
     CategoricalIndex,
@@ -14,7 +16,6 @@ from pandas import (
     date_range,
 )
 from pandas.core.groupby.grouper import Grouping
-import pandas.util.testing as tm
 
 # selection
 # --------------------------------

@@ -11,9 +11,9 @@ from io import BytesIO, StringIO
 import pytest
 
 from pandas.errors import ParserError
+import pandas.util._testing as tm
 
 from pandas import DataFrame, Index, MultiIndex
-import pandas.util.testing as tm
 
 
 def test_default_separator(python_parser_only):

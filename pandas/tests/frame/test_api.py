@@ -6,10 +6,10 @@ import numpy as np
 import pytest
 
 from pandas.compat import PY37
+import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import Categorical, DataFrame, Series, compat, date_range, timedelta_range
-import pandas.util.testing as tm
 
 
 class TestDataFrameMisc:

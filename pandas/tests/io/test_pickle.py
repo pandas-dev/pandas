@@ -22,10 +22,10 @@ import zipfile
 import pytest
 
 from pandas.compat import _get_lzma_file, _import_lzma, is_platform_little_endian
+import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import Index
-import pandas.util.testing as tm
 
 from pandas.tseries.offsets import Day, MonthEnd
 

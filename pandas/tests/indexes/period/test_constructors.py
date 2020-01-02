@@ -2,13 +2,13 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.period import IncompatibleFrequency
+import pandas.util._testing as tm
 
 from pandas.core.dtypes.dtypes import PeriodDtype
 
 import pandas as pd
 from pandas import Index, Period, PeriodIndex, Series, date_range, offsets, period_range
 import pandas.core.indexes.period as period
-import pandas.util.testing as tm
 
 
 class TestPeriodIndex:

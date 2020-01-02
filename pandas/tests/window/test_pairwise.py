@@ -2,9 +2,10 @@ import warnings
 
 import pytest
 
+import pandas.util._testing as tm
+
 from pandas import DataFrame, Series
 from pandas.core.algorithms import safe_sort
-import pandas.util.testing as tm
 
 
 class TestPairwise:

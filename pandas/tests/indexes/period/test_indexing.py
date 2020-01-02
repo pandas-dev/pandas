@@ -4,10 +4,10 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import period as libperiod
+import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import DatetimeIndex, Period, PeriodIndex, Series, notna, period_range
-import pandas.util.testing as tm
 
 
 class TestGetItem:

@@ -4,6 +4,8 @@ import warnings
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 from pandas.core.dtypes.generic import ABCDateOffset
 
 import pandas as pd
@@ -17,7 +19,6 @@ from pandas import (
     date_range,
 )
 from pandas.tests.base.test_ops import Ops
-import pandas.util.testing as tm
 
 from pandas.tseries.offsets import BDay, BMonthEnd, CDay, Day, Hour
 

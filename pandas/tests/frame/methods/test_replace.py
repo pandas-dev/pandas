@@ -6,9 +6,10 @@ from typing import Dict, List, Union
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 import pandas as pd
 from pandas import DataFrame, Index, Series, Timestamp, date_range
-import pandas.util.testing as tm
 
 
 @pytest.fixture

@@ -8,13 +8,14 @@ from string import ascii_lowercase
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 from pandas import DataFrame, Index, MultiIndex, Series, date_range
 from pandas.core.groupby.base import (
     groupby_other_methods,
     reduction_kernels,
     transformation_kernels,
 )
-import pandas.util.testing as tm
 
 AGG_FUNCTIONS = [
     "sum",

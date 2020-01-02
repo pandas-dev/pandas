@@ -5,11 +5,11 @@ import numpy as np
 import pytest
 
 import pandas.util._test_decorators as td
+import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import Categorical, DataFrame, Series, Timestamp, date_range
 from pandas.tests.frame.common import _check_mixed_float
-import pandas.util.testing as tm
 
 
 class TestDataFrameMissingData:

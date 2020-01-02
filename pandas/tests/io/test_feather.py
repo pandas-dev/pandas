@@ -4,8 +4,9 @@ from distutils.version import LooseVersion
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 import pandas as pd
-import pandas.util.testing as tm
 
 from pandas.io.feather_format import read_feather, to_feather  # noqa: E402 isort:skip
 

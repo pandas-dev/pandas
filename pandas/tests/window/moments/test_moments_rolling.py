@@ -7,12 +7,12 @@ from numpy.random import randn
 import pytest
 
 import pandas.util._test_decorators as td
+import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import DataFrame, Index, Series, isna, notna
 from pandas.core.window.common import _flex_binary_moment
 from pandas.tests.window.common import Base, ConsistencyBase
-import pandas.util.testing as tm
 
 import pandas.tseries.offsets as offsets
 

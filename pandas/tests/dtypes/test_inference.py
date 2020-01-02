@@ -18,6 +18,7 @@ import pytz
 
 from pandas._libs import iNaT, lib, missing as libmissing
 import pandas.util._test_decorators as td
+import pandas.util._testing as tm
 
 from pandas.core.dtypes import inference
 from pandas.core.dtypes.common import (
@@ -53,7 +54,6 @@ from pandas import (
     isna,
 )
 from pandas.core.arrays import IntegerArray
-import pandas.util.testing as tm
 
 
 @pytest.fixture(params=[True, False], ids=str)

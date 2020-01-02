@@ -5,10 +5,10 @@ import pytest
 
 from pandas._libs import iNaT
 import pandas._libs.index as _index
+import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex, NaT, Series, Timestamp, date_range
-import pandas.util.testing as tm
 
 
 """

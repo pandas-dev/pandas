@@ -10,9 +10,9 @@ import pytest
 
 from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
+import pandas.util._testing as tm
 
 import pandas as pd
-import pandas.util.testing as tm
 
 import pandas.io.common as icom
 

@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas.compat.numpy import _np_version_under1p16
+import pandas.util._testing as tm
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -24,7 +25,6 @@ from pandas import (
     period_range,
     timedelta_range,
 )
-import pandas.util.testing as tm
 
 
 class TestCategoricalConstructors:

@@ -1,12 +1,13 @@
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 from pandas.core.dtypes.common import is_integer
 
 import pandas as pd
 from pandas import Index, Series, Timestamp, date_range, isna
 from pandas.core.indexing import IndexingError
-import pandas.util.testing as tm
 
 from pandas.tseries.offsets import BDay
 

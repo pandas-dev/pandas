@@ -11,6 +11,8 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
+import pandas.util._testing as tm
+
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
@@ -29,7 +31,6 @@ from pandas import (
 )
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.tests.extension.decimal import to_decimal
-import pandas.util.testing as tm
 
 
 @pytest.fixture(params=[True, False])

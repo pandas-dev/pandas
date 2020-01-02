@@ -1,10 +1,11 @@
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 from pandas import DataFrame, Series
 from pandas.api.indexers import BaseIndexer
 from pandas.core.window.indexers import ExpandingIndexer
-import pandas.util.testing as tm
 
 
 def test_bad_get_window_bounds_signature():

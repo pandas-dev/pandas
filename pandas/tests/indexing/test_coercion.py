@@ -5,9 +5,9 @@ import numpy as np
 import pytest
 
 import pandas.compat as compat
+import pandas.util._testing as tm
 
 import pandas as pd
-import pandas.util.testing as tm
 
 ###############################################################
 # Index / Series common tests which may trigger dtype coercions

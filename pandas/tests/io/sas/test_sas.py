@@ -2,8 +2,9 @@ from io import StringIO
 
 import pytest
 
+import pandas.util._testing as tm
+
 from pandas import read_sas
-import pandas.util.testing as tm
 
 
 class TestSas:

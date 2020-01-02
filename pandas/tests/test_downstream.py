@@ -8,8 +8,9 @@ import sys
 import numpy as np  # noqa
 import pytest
 
+import pandas.util._testing as tm
+
 from pandas import DataFrame, Series
-import pandas.util.testing as tm
 
 
 def import_module(name):

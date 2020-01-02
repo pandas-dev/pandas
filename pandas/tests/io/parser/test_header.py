@@ -10,9 +10,9 @@ import numpy as np
 import pytest
 
 from pandas.errors import ParserError
+import pandas.util._testing as tm
 
 from pandas import DataFrame, Index, MultiIndex
-import pandas.util.testing as tm
 
 
 def test_read_with_bad_header(all_parsers):

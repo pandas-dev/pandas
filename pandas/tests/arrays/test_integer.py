@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 import pandas.util._test_decorators as td
+import pandas.util._testing as tm
 
 from pandas.core.dtypes.generic import ABCIndexClass
 
@@ -19,7 +20,6 @@ from pandas.core.arrays.integer import (
     UInt64Dtype,
 )
 from pandas.tests.extension.base import BaseOpsUtil
-import pandas.util.testing as tm
 
 
 def make_data():

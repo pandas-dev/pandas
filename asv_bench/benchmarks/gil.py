@@ -1,8 +1,9 @@
 import numpy as np
 
+import pandas.util._testing as tm
+
 from pandas import DataFrame, Series, date_range, factorize, read_csv
 from pandas.core.algorithms import take_1d
-import pandas.util.testing as tm
 
 try:
     from pandas import (
@@ -24,7 +25,7 @@ try:
 except ImportError:
     from pandas import algos
 try:
-    from pandas.util.testing import test_parallel
+    from pandas.util._testing import test_parallel
 
     have_real_test_parallel = True
 except ImportError:

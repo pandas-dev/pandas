@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -21,7 +23,6 @@ from pandas import (
 )
 from pandas.api.types import CategoricalDtype as CDT
 import pandas.core.reshape.tile as tmod
-import pandas.util.testing as tm
 
 
 def test_simple():

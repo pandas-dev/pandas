@@ -3,12 +3,12 @@ import pytest
 
 from pandas._libs.tslibs import iNaT
 from pandas._libs.tslibs.period import IncompatibleFrequency
+import pandas.util._testing as tm
 
 from pandas.core.dtypes.dtypes import PeriodDtype, registry
 
 import pandas as pd
 from pandas.core.arrays import PeriodArray, period_array
-import pandas.util.testing as tm
 
 # ----------------------------------------------------------------------------
 # Dtype

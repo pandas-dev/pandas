@@ -5,9 +5,10 @@ import numpy as np
 import pytest
 import pytz
 
+import pandas.util._testing as tm
+
 import pandas as pd
 from pandas import DatetimeIndex, Series
-import pandas.util.testing as tm
 
 
 def test_to_native_types():

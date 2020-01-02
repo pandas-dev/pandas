@@ -9,12 +9,12 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import iNaT
+import pandas.util._testing as tm
 
 from pandas.core.dtypes.common import needs_i8_conversion
 
 import pandas as pd
 from pandas import CategoricalIndex, MultiIndex, RangeIndex
-import pandas.util.testing as tm
 
 
 class TestCommon:

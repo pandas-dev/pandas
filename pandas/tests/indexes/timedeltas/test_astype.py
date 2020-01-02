@@ -3,6 +3,8 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 import pandas as pd
 from pandas import (
     Float64Index,
@@ -13,7 +15,6 @@ from pandas import (
     TimedeltaIndex,
     timedelta_range,
 )
-import pandas.util.testing as tm
 
 
 class TestTimedeltaIndex:

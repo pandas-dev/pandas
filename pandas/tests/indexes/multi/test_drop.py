@@ -2,10 +2,10 @@ import numpy as np
 import pytest
 
 from pandas.errors import PerformanceWarning
+import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import Index, MultiIndex
-import pandas.util.testing as tm
 
 
 def test_drop(idx):

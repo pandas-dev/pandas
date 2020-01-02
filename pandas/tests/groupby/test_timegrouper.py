@@ -7,11 +7,12 @@ import numpy as np
 import pytest
 import pytz
 
+import pandas.util._testing as tm
+
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.groupby.ops import BinGrouper
-import pandas.util.testing as tm
 
 
 class TestGroupBy:

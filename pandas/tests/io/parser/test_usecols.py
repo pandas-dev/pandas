@@ -8,9 +8,9 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import Timestamp
+import pandas.util._testing as tm
 
 from pandas import DataFrame, Index
-import pandas.util.testing as tm
 
 _msg_validate_usecols_arg = (
     "'usecols' must either be list-like "

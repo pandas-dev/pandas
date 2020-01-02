@@ -3,8 +3,9 @@ from datetime import datetime
 import numpy as np
 from numpy.random import randn
 
+import pandas.util._testing as tm
+
 from pandas import DataFrame, Series, bdate_range, notna
-import pandas.util.testing as tm
 
 N, K = 100, 10
 

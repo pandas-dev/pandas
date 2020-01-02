@@ -5,12 +5,12 @@ import numpy as np
 import pytest
 
 from pandas.compat import PYPY
+import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import DataFrame, Index, Series
 from pandas.core.accessor import PandasDelegate
 from pandas.core.base import NoNewAttributesMixin, PandasObject
-import pandas.util.testing as tm
 
 
 class TestPandasDelegate:

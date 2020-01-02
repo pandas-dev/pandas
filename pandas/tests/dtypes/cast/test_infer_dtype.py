@@ -3,6 +3,8 @@ from datetime import date, datetime, timedelta
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 from pandas.core.dtypes.cast import (
     cast_scalar_to_array,
     infer_dtype_from_array,
@@ -19,7 +21,6 @@ from pandas import (
     Timestamp,
     date_range,
 )
-import pandas.util.testing as tm
 
 
 @pytest.fixture(params=[True, False])

@@ -4,6 +4,8 @@ import re
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 import pandas as pd
 from pandas import (
     Index,
@@ -18,7 +20,6 @@ from pandas import (
     timedelta_range,
 )
 import pandas.core.common as com
-import pandas.util.testing as tm
 
 
 @pytest.fixture(scope="class", params=[None, "foo"])

@@ -4,13 +4,13 @@ import numpy as np
 import pytest
 
 from pandas._libs import OutOfBoundsDatetime
+import pandas.util._testing as tm
 
 import pandas as pd
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
-import pandas.util.testing as tm
 
 
 # TODO: more freq variants

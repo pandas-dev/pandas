@@ -8,11 +8,12 @@ from numpy.random import randn
 import pytest
 import pytz
 
+import pandas.util._testing as tm
+
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, isna
-import pandas.util.testing as tm
 
 AGG_FUNCTIONS = [
     "sum",

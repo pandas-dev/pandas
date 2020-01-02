@@ -4,11 +4,12 @@ import operator
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series
 import pandas.core.common as com
 from pandas.tests.frame.common import _check_mixed_float
-import pandas.util.testing as tm
 
 
 class TestDataFrameUnaryOperators:

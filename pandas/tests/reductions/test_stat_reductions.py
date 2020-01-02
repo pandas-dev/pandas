@@ -7,11 +7,11 @@ import numpy as np
 import pytest
 
 import pandas.util._test_decorators as td
+import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import DataFrame, Series
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
-import pandas.util.testing as tm
 
 
 class TestDatetimeLikeStatReductions:

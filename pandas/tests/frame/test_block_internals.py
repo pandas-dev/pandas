@@ -5,6 +5,8 @@ import itertools
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -18,7 +20,6 @@ from pandas import (
 from pandas.core.arrays import IntervalArray, integer_array
 from pandas.core.internals import ObjectBlock
 from pandas.core.internals.blocks import IntBlock
-import pandas.util.testing as tm
 
 # Segregated collection of methods that require the BlockManager internal data
 # structure

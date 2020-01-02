@@ -5,8 +5,9 @@ import numpy as np
 import pytest
 import pytz
 
+import pandas.util._testing as tm
+
 from pandas import DataFrame, Series, Timestamp
-import pandas.util.testing as tm
 
 
 class TestDataFrameToDict:

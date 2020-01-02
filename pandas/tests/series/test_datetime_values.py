@@ -8,6 +8,7 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs.timezones import maybe_get_tz
+import pandas.util._testing as tm
 
 from pandas.core.dtypes.common import is_integer_dtype, is_list_like
 
@@ -26,7 +27,6 @@ from pandas import (
 )
 from pandas.core.arrays import PeriodArray
 import pandas.core.common as com
-import pandas.util.testing as tm
 
 
 class TestSeriesDatetimeValues:

@@ -8,9 +8,9 @@ import pytest
 import pandas._config.config as cf
 
 from pandas.compat.numpy import np_datetime64_compat
+import pandas.util._testing as tm
 
 from pandas import Index, Period, Series, Timestamp, date_range
-import pandas.util.testing as tm
 
 from pandas.plotting import (
     deregister_matplotlib_converters,

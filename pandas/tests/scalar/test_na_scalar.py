@@ -2,11 +2,11 @@ import numpy as np
 import pytest
 
 from pandas._libs.missing import NA
+import pandas.util._testing as tm
 
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
-import pandas.util.testing as tm
 
 
 def test_singleton():

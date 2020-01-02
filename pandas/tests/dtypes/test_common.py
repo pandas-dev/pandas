@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 import pandas.util._test_decorators as td
+import pandas.util._testing as tm
 
 from pandas.core.dtypes.cast import astype_nansafe
 import pandas.core.dtypes.common as com
@@ -26,7 +27,6 @@ from pandas.conftest import (
     UNSIGNED_EA_INT_DTYPES,
     UNSIGNED_INT_DTYPES,
 )
-import pandas.util.testing as tm
 
 
 # EA & Actual Dtypes

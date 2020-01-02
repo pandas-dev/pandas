@@ -6,10 +6,10 @@
 import numpy as np
 
 import pandas.util._test_decorators as td
+import pandas.util._testing as tm
 
 from pandas import DataFrame, Series
 from pandas.tests.plotting.common import TestPlotBase
-import pandas.util.testing as tm
 
 
 @td.skip_if_no_mpl

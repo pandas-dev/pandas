@@ -5,6 +5,8 @@ import warnings
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -20,7 +22,6 @@ from pandas import (
     timedelta_range,
 )
 from pandas.core.arrays import PeriodArray
-import pandas.util.testing as tm
 
 import pandas.io.formats.printing as printing
 

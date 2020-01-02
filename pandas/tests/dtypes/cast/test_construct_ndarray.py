@@ -1,9 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.cast import construct_1d_ndarray_preserving_na
+import pandas.util._testing as tm
 
-import pandas.util.testing as tm
+from pandas.core.dtypes.cast import construct_1d_ndarray_preserving_na
 
 
 @pytest.mark.parametrize(

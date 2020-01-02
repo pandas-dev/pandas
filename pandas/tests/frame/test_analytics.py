@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 import pandas.util._test_decorators as td
+import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import (
@@ -22,7 +23,6 @@ from pandas import (
 )
 import pandas.core.algorithms as algorithms
 import pandas.core.nanops as nanops
-import pandas.util.testing as tm
 
 
 def assert_stat_op_calc(

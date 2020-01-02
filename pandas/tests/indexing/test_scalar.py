@@ -3,9 +3,10 @@
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 from pandas import DataFrame, Series, Timedelta, Timestamp, date_range
 from pandas.tests.indexing.common import Base
-import pandas.util.testing as tm
 
 
 class TestScalar(Base):

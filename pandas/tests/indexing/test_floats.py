@@ -1,8 +1,9 @@
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 from pandas import DataFrame, Float64Index, Index, Int64Index, RangeIndex, Series
-import pandas.util.testing as tm
 
 
 class TestFloatIndexers:

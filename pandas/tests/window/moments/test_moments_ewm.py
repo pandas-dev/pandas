@@ -2,10 +2,11 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
+import pandas.util._testing as tm
+
 import pandas as pd
 from pandas import DataFrame, Series, concat
 from pandas.tests.window.common import Base, ConsistencyBase
-import pandas.util.testing as tm
 
 
 @pytest.mark.filterwarnings("ignore:can't resolve package:ImportWarning")

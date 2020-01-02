@@ -4,9 +4,9 @@ import numpy as np
 import pytest
 
 from pandas._libs import hashtable
+import pandas.util._testing as tm
 
 from pandas import DatetimeIndex, MultiIndex
-import pandas.util.testing as tm
 
 
 @pytest.mark.parametrize("names", [None, ["first", "second"]])

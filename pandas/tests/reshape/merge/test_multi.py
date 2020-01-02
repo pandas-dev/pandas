@@ -2,11 +2,12 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
+import pandas.util._testing as tm
+
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.merge import merge
-import pandas.util.testing as tm
 
 
 @pytest.fixture

@@ -1,10 +1,11 @@
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 from pandas.core.dtypes.cast import maybe_upcast_putmask
 
 from pandas import Series
-import pandas.util.testing as tm
 
 
 @pytest.mark.parametrize("result", [Series([10, 11, 12]), [10, 11, 12], (10, 11, 12)])

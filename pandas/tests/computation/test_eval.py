@@ -11,6 +11,7 @@ import pytest
 
 from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
+import pandas.util._testing as tm
 
 from pandas.core.dtypes.common import is_bool, is_list_like, is_scalar
 
@@ -33,7 +34,6 @@ from pandas.core.computation.ops import (
     _special_case_arith_ops_syms,
     _unary_math_ops,
 )
-import pandas.util.testing as tm
 
 
 @pytest.fixture(

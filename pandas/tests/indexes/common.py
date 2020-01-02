@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import iNaT
+import pandas.util._testing as tm
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -25,7 +26,6 @@ from pandas import (
 )
 from pandas.core.indexes.base import InvalidIndexError
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
-import pandas.util.testing as tm
 
 
 class Base:

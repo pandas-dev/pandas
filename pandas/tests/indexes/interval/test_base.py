@@ -1,9 +1,10 @@
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 from pandas import IntervalIndex, Series, date_range
 from pandas.tests.indexes.common import Base
-import pandas.util.testing as tm
 
 
 class TestBase(Base):

@@ -15,9 +15,9 @@ import pytz
 import pandas._libs.json as ujson
 from pandas._libs.tslib import Timestamp
 import pandas.compat as compat
+import pandas.util._testing as tm
 
 from pandas import DataFrame, DatetimeIndex, Index, NaT, Series, date_range
-import pandas.util.testing as tm
 
 
 def _clean_dict(d):

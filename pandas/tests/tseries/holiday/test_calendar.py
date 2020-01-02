@@ -2,8 +2,9 @@ from datetime import datetime
 
 import pytest
 
+import pandas.util._testing as tm
+
 from pandas import DatetimeIndex, offsets, to_datetime
-import pandas.util.testing as tm
 
 from pandas.tseries.holiday import (
     AbstractHolidayCalendar,

@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import iNaT
+import pandas.util._testing as tm
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer
 
@@ -22,7 +23,6 @@ from pandas import (
 )
 import pandas.core.common as com
 from pandas.core.indexing import IndexingError
-import pandas.util.testing as tm
 
 from pandas.tseries.offsets import BDay
 

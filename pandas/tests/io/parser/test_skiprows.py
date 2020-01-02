@@ -10,9 +10,9 @@ import numpy as np
 import pytest
 
 from pandas.errors import EmptyDataError
+import pandas.util._testing as tm
 
 from pandas import DataFrame, Index
-import pandas.util.testing as tm
 
 
 @pytest.mark.parametrize("skiprows", [list(range(6)), 6])

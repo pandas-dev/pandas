@@ -6,12 +6,12 @@ import numpy as np
 import pytest
 
 from pandas.errors import PerformanceWarning
+import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range, read_csv
 from pandas.core.base import SpecificationError
 import pandas.core.common as com
-import pandas.util.testing as tm
 
 
 def test_repr():

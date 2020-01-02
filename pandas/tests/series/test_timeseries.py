@@ -8,6 +8,7 @@ import pytest
 from pandas._libs.tslib import iNaT
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
+import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import (
@@ -21,7 +22,6 @@ from pandas import (
     timedelta_range,
     to_datetime,
 )
-import pandas.util.testing as tm
 
 from pandas.tseries.offsets import BDay, BMonthEnd
 

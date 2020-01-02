@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.ccalendar import MONTHS
+import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import (
@@ -18,7 +19,6 @@ from pandas import (
     to_datetime,
 )
 import pandas.core.indexes.period as period
-import pandas.util.testing as tm
 
 
 class TestPeriodRepresentation:

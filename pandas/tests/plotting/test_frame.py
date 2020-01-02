@@ -12,6 +12,7 @@ from numpy.random import rand, randn
 import pytest
 
 import pandas.util._test_decorators as td
+import pandas.util._testing as tm
 
 from pandas.core.dtypes.api import is_list_like
 
@@ -19,7 +20,6 @@ import pandas as pd
 from pandas import DataFrame, MultiIndex, PeriodIndex, Series, bdate_range, date_range
 from pandas.core.arrays import integer_array
 from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
-import pandas.util.testing as tm
 
 from pandas.io.formats.printing import pprint_thing
 import pandas.plotting as plotting

@@ -4,10 +4,11 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 import pandas as pd
 from pandas import DataFrame, Series
 from pandas.core.indexes.datetimes import date_range
-import pandas.util.testing as tm
 
 dti = date_range(start=datetime(2005, 1, 1), end=datetime(2005, 1, 10), freq="Min")
 

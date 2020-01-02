@@ -7,6 +7,7 @@ import pytest
 
 from pandas._libs import lib
 from pandas._libs.tslib import iNaT
+import pandas.util._testing as tm
 
 from pandas.core.dtypes.common import is_categorical_dtype, is_datetime64tz_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -27,7 +28,6 @@ from pandas import (
     timedelta_range,
 )
 from pandas.core.arrays import period_array
-import pandas.util.testing as tm
 
 
 class TestSeriesConstructors:

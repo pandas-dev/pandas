@@ -1,9 +1,10 @@
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 from pandas import DataFrame, Index, MultiIndex, Series
 from pandas.core.indexing import IndexingError
-import pandas.util.testing as tm
 
 # ----------------------------------------------------------------------------
 # test indexing of Series with multi-level Index

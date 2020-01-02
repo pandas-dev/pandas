@@ -3,8 +3,9 @@ import json
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 from pandas import DataFrame, Index, json_normalize
-import pandas.util.testing as tm
 
 from pandas.io.json._normalize import nested_to_record
 

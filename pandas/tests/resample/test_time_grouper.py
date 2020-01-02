@@ -4,11 +4,12 @@ from operator import methodcaller
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 import pandas as pd
 from pandas import DataFrame, Series
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.indexes.datetimes import date_range
-import pandas.util.testing as tm
 
 test_series = Series(np.random.randn(1000), index=date_range("1/1/2000", periods=1000))
 

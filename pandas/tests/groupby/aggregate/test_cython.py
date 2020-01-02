@@ -5,10 +5,11 @@ test cython .agg behavior
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 import pandas as pd
 from pandas import DataFrame, Index, NaT, Series, Timedelta, Timestamp, bdate_range
 from pandas.core.groupby.groupby import DataError
-import pandas.util.testing as tm
 
 
 @pytest.mark.parametrize(

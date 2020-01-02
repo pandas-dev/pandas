@@ -1,7 +1,8 @@
 import pytest
 
+import pandas.util._testing as tm
+
 from pandas import Categorical, DataFrame, Series
-import pandas.util.testing as tm
 
 
 def _assert_series_equal_both(a, b, **kwargs):

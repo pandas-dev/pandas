@@ -1,10 +1,11 @@
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 import pandas as pd
 from pandas import Index, PeriodIndex, date_range, period_range
 import pandas.core.indexes.period as period
-import pandas.util.testing as tm
 
 
 def _permute(obj):

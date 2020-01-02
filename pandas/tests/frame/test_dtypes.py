@@ -4,6 +4,8 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 from pandas.core.dtypes.dtypes import CategoricalDtype, DatetimeTZDtype, IntervalDtype
 
 import pandas as pd
@@ -19,7 +21,6 @@ from pandas import (
     option_context,
 )
 from pandas.core.arrays import integer_array
-import pandas.util.testing as tm
 
 
 def _check_cast(df, v):

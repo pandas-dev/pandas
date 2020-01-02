@@ -3,6 +3,8 @@ import os
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 from pandas import (
     Categorical,
     DatetimeIndex,
@@ -20,7 +22,6 @@ from pandas import (
 )
 from pandas.api.types import CategoricalDtype as CDT
 from pandas.core.algorithms import quantile
-import pandas.util.testing as tm
 
 from pandas.tseries.offsets import Day, Nano
 

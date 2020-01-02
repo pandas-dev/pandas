@@ -3,10 +3,11 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 import pandas as pd
 from pandas import NaT, Series, Timestamp
 from pandas.core.internals.blocks import IntBlock
-import pandas.util.testing as tm
 
 
 class TestSeriesInternals:

@@ -7,8 +7,9 @@ from hypothesis import assume, example, given, settings, strategies as st
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 from pandas import Timedelta, Timestamp
-import pandas.util.testing as tm
 
 from pandas.tseries import offsets
 from pandas.tseries.offsets import Hour, Micro, Milli, Minute, Nano, Second

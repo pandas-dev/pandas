@@ -7,8 +7,9 @@ from string import ascii_lowercase
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 import pandas as pd
-import pandas.util.testing as tm
 
 
 @pytest.fixture

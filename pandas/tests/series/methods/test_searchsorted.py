@@ -1,8 +1,9 @@
 import numpy as np
 
+import pandas.util._testing as tm
+
 from pandas import Series, Timestamp, date_range
 from pandas.api.types import is_scalar
-import pandas.util.testing as tm
 
 
 class TestSeriesSearchSorted:

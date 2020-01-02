@@ -3,8 +3,9 @@ import warnings
 
 import numpy as np
 
+import pandas.util._testing as tm
+
 from pandas import DataFrame, MultiIndex, NaT, Series, date_range, isnull, period_range
-import pandas.util.testing as tm
 
 
 class GetNumericData:

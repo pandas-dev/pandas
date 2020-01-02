@@ -4,12 +4,12 @@ import numpy as np
 import pytest
 
 import pandas.util._test_decorators as td
+import pandas.util._testing as tm
 
 import pandas as pd
 from pandas.arrays import BooleanArray
 from pandas.core.arrays.boolean import coerce_to_array
 from pandas.tests.extension.base import BaseOpsUtil
-import pandas.util.testing as tm
 
 
 def make_data():

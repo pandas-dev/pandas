@@ -7,11 +7,11 @@ import pytest
 
 from pandas._libs.sparse import IntIndex
 import pandas.util._test_decorators as td
+import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import isna
 from pandas.core.arrays.sparse import SparseArray, SparseDtype
-import pandas.util.testing as tm
 
 
 @pytest.fixture(params=["integer", "block"])

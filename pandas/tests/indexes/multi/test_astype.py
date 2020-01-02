@@ -1,9 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.dtypes import CategoricalDtype
+import pandas.util._testing as tm
 
-import pandas.util.testing as tm
+from pandas.core.dtypes.dtypes import CategoricalDtype
 
 
 def test_astype(idx):

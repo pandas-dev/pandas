@@ -2,9 +2,9 @@ import numpy as np
 import pytest
 
 import pandas.util._test_decorators as td
+import pandas.util._testing as tm
 
 from pandas import DataFrame, Series, Timestamp, date_range
-import pandas.util.testing as tm
 
 
 @pytest.mark.parametrize("bad_raw", [None, 1, 0])

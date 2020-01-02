@@ -5,10 +5,10 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import NaT, Timestamp, iNaT
+import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import Series, Timedelta, TimedeltaIndex, timedelta_range, to_timedelta
-import pandas.util.testing as tm
 
 
 class TestTimedeltaArithmetic:

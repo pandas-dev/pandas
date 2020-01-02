@@ -1,8 +1,9 @@
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 from pandas import Series, date_range
-import pandas.util.testing as tm
 
 
 class TestSeriesPctChange:

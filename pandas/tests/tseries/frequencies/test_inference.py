@@ -6,10 +6,10 @@ import pytest
 from pandas._libs.tslibs.ccalendar import DAYS, MONTHS
 from pandas._libs.tslibs.frequencies import INVALID_FREQ_ERR_MSG
 from pandas.compat import is_platform_windows
+import pandas.util._testing as tm
 
 from pandas import DatetimeIndex, Index, Series, Timestamp, date_range, period_range
 from pandas.core.tools.datetimes import to_datetime
-import pandas.util.testing as tm
 
 import pandas.tseries.frequencies as frequencies
 import pandas.tseries.offsets as offsets

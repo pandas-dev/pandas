@@ -3,6 +3,8 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -13,7 +15,6 @@ from pandas import (
     date_range,
 )
 from pandas.core.indexes.base import InvalidIndexError
-import pandas.util.testing as tm
 
 
 def test_slice_locs_partial(idx):

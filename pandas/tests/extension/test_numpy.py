@@ -2,10 +2,10 @@ import numpy as np
 import pytest
 
 from pandas.compat.numpy import _np_version_under1p16
+import pandas.util._testing as tm
 
 import pandas as pd
 from pandas.core.arrays.numpy_ import PandasArray, PandasDtype
-import pandas.util.testing as tm
 
 from . import base
 

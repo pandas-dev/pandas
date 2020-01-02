@@ -2,11 +2,11 @@ import numpy as np
 import pytest
 
 from pandas._libs import groupby, lib, reduction as libreduction
+import pandas.util._testing as tm
 
 from pandas.core.dtypes.common import ensure_int64
 
 from pandas import Index, Series, isna
-import pandas.util.testing as tm
 
 
 def test_series_grouper():

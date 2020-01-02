@@ -12,6 +12,7 @@ import pytest
 
 from pandas.compat import is_platform_little_endian, is_platform_windows
 import pandas.util._test_decorators as td
+import pandas.util._testing as tm
 
 from pandas.core.dtypes.common import is_categorical_dtype
 
@@ -42,7 +43,6 @@ from pandas.tests.io.pytables.common import (
     safe_remove,
     tables,
 )
-import pandas.util.testing as tm
 
 from pandas.io.pytables import (
     ClosedFileError,

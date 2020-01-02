@@ -5,10 +5,11 @@ the interface tests.
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 import pandas as pd
 from pandas.arrays import PandasArray
 from pandas.core.arrays.numpy_ import PandasDtype
-import pandas.util.testing as tm
 
 
 @pytest.fixture(

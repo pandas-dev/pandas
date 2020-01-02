@@ -7,9 +7,9 @@ from dateutil.relativedelta import relativedelta
 import pytest
 
 from pandas._libs.tslibs.frequencies import INVALID_FREQ_ERR_MSG
+import pandas.util._testing as tm
 
 from pandas import Timestamp
-import pandas.util.testing as tm
 
 from pandas.tseries.frequencies import get_offset
 from pandas.tseries.offsets import FY5253, FY5253Quarter

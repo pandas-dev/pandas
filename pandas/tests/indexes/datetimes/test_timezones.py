@@ -11,6 +11,7 @@ import pytz
 
 from pandas._libs.tslibs import conversion, timezones
 import pandas.util._test_decorators as td
+import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import (
@@ -22,7 +23,6 @@ from pandas import (
     isna,
     to_datetime,
 )
-import pandas.util.testing as tm
 
 
 class FixedOffset(tzinfo):

@@ -1,8 +1,9 @@
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 from pandas import Index, IntervalIndex, Timestamp, interval_range
-import pandas.util.testing as tm
 
 
 @pytest.fixture(scope="class", params=[None, "foo"])

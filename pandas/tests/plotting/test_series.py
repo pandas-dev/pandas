@@ -11,11 +11,11 @@ from numpy.random import randn
 import pytest
 
 import pandas.util._test_decorators as td
+import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import DataFrame, Series, date_range
 from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
-import pandas.util.testing as tm
 
 import pandas.plotting as plotting
 

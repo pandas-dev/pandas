@@ -4,6 +4,8 @@ from string import ascii_letters
 
 import numpy as np
 
+import pandas.util._testing as tm
+
 from pandas import (
     Categorical,
     DataFrame,
@@ -13,7 +15,6 @@ from pandas import (
     date_range,
     period_range,
 )
-import pandas.util.testing as tm
 
 method_blacklist = {
     "object": {

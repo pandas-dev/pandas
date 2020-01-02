@@ -12,6 +12,7 @@ import pandas._config.config as cf
 
 from pandas._libs.tslib import Timestamp
 from pandas.compat.numpy import np_datetime64_compat
+import pandas.util._testing as tm
 
 from pandas.core.dtypes.common import is_unsigned_integer_dtype
 from pandas.core.dtypes.generic import ABCIndex
@@ -42,7 +43,6 @@ from pandas.core.indexes.api import (
 )
 from pandas.tests.indexes.common import Base
 from pandas.tests.indexes.conftest import indices_dict
-import pandas.util.testing as tm
 
 
 class TestIndex(Base):

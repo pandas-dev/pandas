@@ -2,8 +2,9 @@ import warnings
 
 import pytest
 
+import pandas.util._testing as tm
+
 import pandas as pd
-import pandas.util.testing as tm
 
 from .base import BaseExtensionTests
 

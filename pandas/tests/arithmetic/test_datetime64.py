@@ -14,6 +14,7 @@ from pandas._libs.tslibs.conversion import localize_pydatetime
 from pandas._libs.tslibs.offsets import shift_months
 from pandas.compat.numpy import np_datetime64_compat
 from pandas.errors import PerformanceWarning
+import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import (
@@ -33,7 +34,6 @@ from pandas.tests.arithmetic.common import (
     assert_invalid_comparison,
     get_upcast_box,
 )
-import pandas.util.testing as tm
 
 # ------------------------------------------------------------------
 # Comparisons

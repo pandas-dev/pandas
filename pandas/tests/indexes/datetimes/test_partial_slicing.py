@@ -6,6 +6,8 @@ import operator
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -17,7 +19,6 @@ from pandas import (
     date_range,
 )
 from pandas.core.indexing import IndexingError
-import pandas.util.testing as tm
 
 
 class TestSlicing:

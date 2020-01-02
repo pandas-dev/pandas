@@ -15,6 +15,7 @@ from pandas._libs import tslib
 from pandas._libs.tslibs import iNaT, parsing
 from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
+import pandas.util._testing as tm
 
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
 
@@ -32,7 +33,6 @@ from pandas import (
 )
 from pandas.core.arrays import DatetimeArray
 from pandas.core.tools import datetimes as tools
-import pandas.util.testing as tm
 
 
 class TestTimeConversionFormats:

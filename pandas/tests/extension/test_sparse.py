@@ -2,11 +2,11 @@ import numpy as np
 import pytest
 
 from pandas.errors import PerformanceWarning
+import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import SparseArray, SparseDtype
 from pandas.tests.extension import base
-import pandas.util.testing as tm
 
 
 def make_data(fill_value):

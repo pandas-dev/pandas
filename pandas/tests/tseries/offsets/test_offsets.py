@@ -21,10 +21,10 @@ from pandas._libs.tslibs.offsets import ApplyTypeError
 import pandas.compat as compat
 from pandas.compat.numpy import np_datetime64_compat
 from pandas.errors import PerformanceWarning
+import pandas.util._testing as tm
 
 from pandas.core.indexes.datetimes import DatetimeIndex, _to_M8, date_range
 from pandas.core.series import Series
-import pandas.util.testing as tm
 
 from pandas.io.pickle import read_pickle
 from pandas.tseries.frequencies import _get_offset, _offset_map

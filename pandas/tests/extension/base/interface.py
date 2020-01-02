@@ -1,10 +1,11 @@
 import numpy as np
 
+import pandas.util._testing as tm
+
 from pandas.core.dtypes.common import is_extension_array_dtype
 from pandas.core.dtypes.dtypes import ExtensionDtype
 
 import pandas as pd
-import pandas.util.testing as tm
 
 from .base import BaseExtensionTests
 

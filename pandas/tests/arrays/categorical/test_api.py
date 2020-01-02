@@ -3,10 +3,11 @@ import re
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 from pandas import Categorical, CategoricalIndex, DataFrame, Index, Series
 from pandas.core.arrays.categorical import _recode_for_categories
 from pandas.tests.arrays.categorical.common import TestCategorical
-import pandas.util.testing as tm
 
 
 class TestCategoricalAPI:

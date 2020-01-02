@@ -7,9 +7,10 @@ from multiprocessing.pool import ThreadPool
 
 import numpy as np
 
+import pandas.util._testing as tm
+
 import pandas as pd
 from pandas import DataFrame
-import pandas.util.testing as tm
 
 
 def _construct_dataframe(num_rows):

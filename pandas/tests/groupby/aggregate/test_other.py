@@ -8,6 +8,8 @@ from functools import partial
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -19,7 +21,6 @@ from pandas import (
     period_range,
 )
 from pandas.core.base import SpecificationError
-import pandas.util.testing as tm
 
 from pandas.io.formats.printing import pprint_thing
 

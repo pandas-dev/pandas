@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from pandas.errors import ParserError
+import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import (
@@ -19,7 +20,6 @@ from pandas import (
     to_datetime,
 )
 import pandas.core.common as com
-import pandas.util.testing as tm
 
 from pandas.io.common import get_handle
 

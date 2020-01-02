@@ -11,10 +11,10 @@ from pytz import timezone
 
 from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
+import pandas.util._testing as tm
 
 import pandas as pd
 from pandas import DatetimeIndex, Timestamp, bdate_range, date_range, offsets
-import pandas.util.testing as tm
 
 from pandas.tseries.offsets import (
     BDay,

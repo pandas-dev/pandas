@@ -4,9 +4,10 @@ import numpy as np
 from numpy import iinfo
 import pytest
 
+import pandas.util._testing as tm
+
 import pandas as pd
 from pandas import DataFrame, Index, Series, to_numeric
-import pandas.util.testing as tm
 
 
 @pytest.fixture(params=[None, "ignore", "raise", "coerce"])

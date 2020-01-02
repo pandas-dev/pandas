@@ -1,11 +1,12 @@
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 import pandas as pd
 from pandas import Categorical, CategoricalIndex, Index, PeriodIndex, Series
 import pandas.core.common as com
 from pandas.tests.arrays.categorical.common import TestCategorical
-import pandas.util.testing as tm
 
 
 class TestCategoricalIndexingWithFactor(TestCategorical):

@@ -3,12 +3,13 @@ from collections import OrderedDict
 import numpy as np
 import pytest
 
+import pandas.util._testing as tm
+
 from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
 from pandas import Categorical, DataFrame, Index, Series, get_dummies
 from pandas.core.arrays.sparse import SparseArray, SparseDtype
-import pandas.util.testing as tm
 
 
 class TestGetDummies:
