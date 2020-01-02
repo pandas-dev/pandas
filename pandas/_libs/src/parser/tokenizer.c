@@ -1774,6 +1774,8 @@ double precise_xstrtod(const char *str, char **endptr, char decimal,
 
 double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
                   int skip_trailing, int *error, int *maybe_int) {
+    // This is called from a nogil block in parsers.pyx
+    // so need to explicitly get GIL before Python calls
     PyGILState_STATE gstate;
     gstate = PyGILState_Ensure();
 
