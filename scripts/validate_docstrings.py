@@ -15,7 +15,6 @@ Usage::
 """
 import argparse
 import ast
-import collections
 import doctest
 import functools
 import glob
@@ -422,7 +421,7 @@ class Docstring:
 
     @property
     def doc_parameters(self):
-        parameters = collections.OrderedDict()
+        parameters = {}
         for names, type_, desc in self.doc["Parameters"]:
             for name in names.split(", "):
                 parameters[name] = (type_, "".join(desc))
@@ -510,7 +509,7 @@ class Docstring:
 
     @property
     def see_also(self):
-        result = collections.OrderedDict()
+        result = {}
         for funcs, desc in self.doc["See Also"]:
             for func, _ in funcs:
                 result[func] = "".join(desc)

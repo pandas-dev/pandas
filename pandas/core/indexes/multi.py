@@ -1,4 +1,3 @@
-from collections import OrderedDict
 import datetime
 from sys import getsizeof
 from typing import Hashable, List, Optional, Sequence, Union
@@ -1639,17 +1638,12 @@ class MultiIndex(Index):
         else:
             idx_names = self.names
 
-        # Guarantee resulting column order
+        # Guarantee resulting column order - PY36+ dict maintains insertion order
         result = DataFrame(
-            OrderedDict(
-                [
-                    (
-                        (level if lvlname is None else lvlname),
-                        self._get_level_values(level),
-                    )
-                    for lvlname, level in zip(idx_names, range(len(self.levels)))
-                ]
-            ),
+            {
+                (level if lvlname is None else lvlname): self._get_level_values(level)
+                for lvlname, level in zip(idx_names, range(len(self.levels)))
+            },
             copy=False,
         )
 

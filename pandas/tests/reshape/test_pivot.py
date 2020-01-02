@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from datetime import date, datetime, timedelta
 from itertools import product
 
@@ -1044,7 +1043,7 @@ class TestPivotTable:
         assert pivoted.columns.is_monotonic
 
     def test_pivot_complex_aggfunc(self):
-        f = OrderedDict([("D", ["std"]), ("E", ["sum"])])
+        f = {"D": ["std"], "E": ["sum"]}
         expected = self.data.groupby(["A", "B"]).agg(f).unstack("B")
         result = self.data.pivot_table(index="A", columns="B", aggfunc=f)
 

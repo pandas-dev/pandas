@@ -84,15 +84,13 @@ def validate_args(fname, args, max_fname_arg_count, compat_args):
         The maximum number of arguments that the function `fname`
         can accept, excluding those in `args`. Used for displaying
         appropriate error messages. Must be non-negative.
-    compat_args : Dict
-        An ordered dictionary of keys and their associated default values.
+    compat_args : dict
+        A dictionary of keys and their associated default values.
         In order to accommodate buggy behaviour in some versions of `numpy`,
         where a signature displayed keyword arguments but then passed those
         arguments **positionally** internally when calling downstream
-        implementations, an ordered dictionary ensures that the original
-        order of the keyword arguments is enforced. Note that if there is
-        only one key, a generic dict can be passed in as well.
-
+        implementations, a dict ensures that the original
+        order of the keyword arguments is enforced.
     Raises
     ------
     TypeError
@@ -168,10 +166,9 @@ def validate_args_and_kwargs(fname, args, kwargs, max_fname_arg_count, compat_ar
         The minimum number of arguments that the function `fname`
         requires, excluding those in `args`. Used for displaying
         appropriate error messages. Must be non-negative.
-    compat_args: OrderedDict
-        A ordered dictionary of keys that `kwargs` is allowed to
-        have and their associated default values. Note that if there
-        is only one key, a generic dict can be passed in as well.
+    compat_args: dict
+        A dictionary of keys that `kwargs` is allowed to
+        have and their associated default values.
 
     Raises
     ------
