@@ -1162,6 +1162,15 @@ class TestDataFramePlots(TestPlotBase):
         axes = df.plot(x="x", y="y", kind="scatter", subplots=True)
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
 
+    def test_raise_error_on_datetime_time_data(self):
+        # GH 8113, datetime.time type is not supported by matplotlib in scatter
+        df = pd.DataFrame(np.random.randn(10), columns=["a"])
+        df["dtime"] = pd.date_range(start="2014-01-01", freq="h", periods=10).time
+        msg = "must be a string or a number, not 'datetime.time'"
+
+        with pytest.raises(TypeError, match=msg):
+            df.plot(kind="scatter", x="dtime", y="a")
+
     def test_scatterplot_datetime_data(self):
         # GH 30391
         dates = pd.date_range(start=date(2019, 1, 1), periods=12, freq="W")

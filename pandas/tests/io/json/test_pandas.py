@@ -854,7 +854,7 @@ class TestPandasContainer:
             json = df.to_json(date_format="iso")
         result = read_json(json)
         expected = df.copy()
-        # expected.index = expected.index.tz_localize("UTC")
+        expected.index = expected.index.tz_localize("UTC")
         expected["date"] = expected["date"].dt.tz_localize("UTC")
         tm.assert_frame_equal(result, expected)
 
@@ -884,7 +884,7 @@ class TestPandasContainer:
             json = ts.to_json(date_format="iso")
         result = read_json(json, typ="series")
         expected = ts.copy()
-        # expected.index = expected.index.tz_localize("UTC")
+        expected.index = expected.index.tz_localize("UTC")
         expected = expected.dt.tz_localize("UTC")
         tm.assert_series_equal(result, expected)
 
@@ -1597,3 +1597,12 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
     def test_json_negative_indent_raises(self):
         with pytest.raises(ValueError, match="must be a nonnegative integer"):
             pd.DataFrame().to_json(indent=-1)
+
+    def test_emca_262_nan_inf_support(self):
+        # GH 12213
+        data = '["a", NaN, "NaN", Infinity, "Infinity", -Infinity, "-Infinity"]'
+        result = pd.read_json(data)
+        expected = pd.DataFrame(
+            ["a", np.nan, "NaN", np.inf, "Infinity", -np.inf, "-Infinity"]
+        )
+        tm.assert_frame_equal(result, expected)

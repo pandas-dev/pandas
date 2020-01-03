@@ -66,12 +66,11 @@ class PeriodDelegateMixin(DatetimelikeDelegateMixin):
     """
 
     _delegate_class = PeriodArray
-    _delegated_properties = PeriodArray._datetimelike_ops
-    _delegated_methods = set(PeriodArray._datetimelike_methods) | {
-        "_addsub_int_array",
-        "strftime",
-    }
-    _raw_properties = {"is_leap_year"}
+    _raw_methods = {"_format_native_types"}
+    _raw_properties = {"is_leap_year", "freq"}
+
+    _delegated_properties = PeriodArray._datetimelike_ops + list(_raw_properties)
+    _delegated_methods = set(PeriodArray._datetimelike_methods) | _raw_methods
 
 
 @delegate_names(PeriodArray, PeriodDelegateMixin._delegated_properties, typ="property")
@@ -80,8 +79,7 @@ class PeriodDelegateMixin(DatetimelikeDelegateMixin):
 )
 class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     """
-    Immutable ndarray holding ordinal values indicating regular periods in
-    time such as particular years, quarters, months, etc.
+    Immutable ndarray holding ordinal values indicating regular periods in time.
 
     Index keys are boxed to Period objects which carries the metadata (eg,
     frequency information).
@@ -89,9 +87,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     Parameters
     ----------
     data : array-like (1d int np.ndarray or PeriodArray), optional
-        Optional period-like data to construct index with
+        Optional period-like data to construct index with.
     copy : bool
-        Make a copy of input ndarray
+        Make a copy of input ndarray.
     freq : str or period object, optional
         One of pandas period strings or corresponding objects
     year : int, array, or Series, default None
@@ -102,7 +100,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     minute : int, array, or Series, default None
     second : int, array, or Series, default None
     tz : object, default None
-        Timezone for converting datetime64 data to Periods
+        Timezone for converting datetime64 data to Periods.
     dtype : str or PeriodDtype, default None
 
     Attributes
@@ -262,10 +260,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     def values(self):
         return np.asarray(self)
 
-    @property
-    def freq(self) -> DateOffset:
-        return self._data.freq
-
     def _shallow_copy(self, values=None, **kwargs):
         # TODO: simplify, figure out type of values
         if values is None:
@@ -362,10 +356,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
     # ------------------------------------------------------------------------
     # Rendering Methods
-
-    def _format_native_types(self, na_rep="NaT", quoting=None, **kwargs):
-        # just dispatch, return ndarray
-        return self._data._format_native_types(na_rep=na_rep, quoting=quoting, **kwargs)
 
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
@@ -854,7 +844,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 PeriodIndex._add_comparison_ops()
 PeriodIndex._add_numeric_methods_disabled()
 PeriodIndex._add_logical_methods_disabled()
-PeriodIndex._add_datetimelike_methods()
 
 
 def period_range(
