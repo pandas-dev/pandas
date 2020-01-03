@@ -79,8 +79,7 @@ class PeriodDelegateMixin(DatetimelikeDelegateMixin):
 )
 class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     """
-    Immutable ndarray holding ordinal values indicating regular periods in
-    time such as particular years, quarters, months, etc.
+    Immutable ndarray holding ordinal values indicating regular periods in time.
 
     Index keys are boxed to Period objects which carries the metadata (eg,
     frequency information).
@@ -88,9 +87,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     Parameters
     ----------
     data : array-like (1d int np.ndarray or PeriodArray), optional
-        Optional period-like data to construct index with
+        Optional period-like data to construct index with.
     copy : bool
-        Make a copy of input ndarray
+        Make a copy of input ndarray.
     freq : str or period object, optional
         One of pandas period strings or corresponding objects
     year : int, array, or Series, default None
@@ -101,7 +100,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     minute : int, array, or Series, default None
     second : int, array, or Series, default None
     tz : object, default None
-        Timezone for converting datetime64 data to Periods
+        Timezone for converting datetime64 data to Periods.
     dtype : str or PeriodDtype, default None
 
     Attributes

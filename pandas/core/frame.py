@@ -142,11 +142,12 @@ _shared_doc_kwargs = dict(
             Name or list of names to sort by.
 
             - if `axis` is 0 or `'index'` then `by` may contain index
-              levels and/or column labels
+              levels and/or column labels.
             - if `axis` is 1 or `'columns'` then `by` may contain column
-              levels and/or index labels
+              levels and/or index labels.
 
             .. versionchanged:: 0.23.0
+
                Allow specifying index or column level names.""",
     versionadded_to_excel="",
     optional_labels="""labels : array-like, optional
@@ -2148,9 +2149,10 @@ class DataFrame(NDFrame):
             A ``border=border`` attribute is included in the opening
             `<table>` tag. Default ``pd.options.display.html.border``.
         encoding : str, default "utf-8"
-            Set character encoding
+            Set character encoding.
 
             .. versionadded:: 1.0
+
         table_id : str, optional
             A css id is included in the opening `<table>` tag if specified.
 
@@ -7877,7 +7879,7 @@ Wild         185.0
         Parameters
         ----------
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise
+            The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
         skipna : bool, default True
             Exclude NA/null values. If an entire row/column is NA, the result
             will be NA.
@@ -7915,7 +7917,7 @@ Wild         185.0
         Parameters
         ----------
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise
+            The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
         skipna : bool, default True
             Exclude NA/null values. If an entire row/column is NA, the result
             will be NA.

@@ -232,7 +232,7 @@ class Categorical(ExtensionArray, PandasObject):
         `categories` attribute (which in turn is the `categories` argument, if
         provided).
     dtype : CategoricalDtype
-        An instance of ``CategoricalDtype`` to use for this categorical
+        An instance of ``CategoricalDtype`` to use for this categorical.
 
         .. versionadded:: 0.21.0
 
