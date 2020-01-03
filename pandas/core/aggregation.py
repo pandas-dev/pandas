@@ -27,7 +27,7 @@ def reconstruct_func(func, *args, **kwargs):
         # GH 28426 will raise error if duplicated function names are used and
         # there is no reassigned name
         raise SpecificationError(
-            "Function names must be unique if there is no new column " "names assigned"
+            "Function names must be unique if there is no new column names assigned"
         )
     elif func is None:
         # nicer error message

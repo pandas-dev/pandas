@@ -8,8 +8,8 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, concat
+from pandas.core.aggregation import _make_unique, maybe_mangle_lambdas
 from pandas.core.base import SpecificationError
-from pandas.core.groupby.generic import _make_unique, _maybe_mangle_lambdas
 from pandas.core.groupby.grouper import Grouping
 import pandas.util.testing as tm
 
@@ -633,14 +633,14 @@ def test_lambda_named_agg(func):
 
 class TestLambdaMangling:
     def test_maybe_mangle_lambdas_passthrough(self):
-        assert _maybe_mangle_lambdas("mean") == "mean"
-        assert _maybe_mangle_lambdas(lambda x: x).__name__ == "<lambda>"
+        assert maybe_mangle_lambdas("mean") == "mean"
+        assert maybe_mangle_lambdas(lambda x: x).__name__ == "<lambda>"
         # don't mangel single lambda.
-        assert _maybe_mangle_lambdas([lambda x: x])[0].__name__ == "<lambda>"
+        assert maybe_mangle_lambdas([lambda x: x])[0].__name__ == "<lambda>"
 
     def test_maybe_mangle_lambdas_listlike(self):
         aggfuncs = [lambda x: 1, lambda x: 2]
-        result = _maybe_mangle_lambdas(aggfuncs)
+        result = maybe_mangle_lambdas(aggfuncs)
         assert result[0].__name__ == "<lambda_0>"
         assert result[1].__name__ == "<lambda_1>"
         assert aggfuncs[0](None) == result[0](None)
@@ -648,13 +648,13 @@ class TestLambdaMangling:
 
     def test_maybe_mangle_lambdas(self):
         func = {"A": [lambda x: 0, lambda x: 1]}
-        result = _maybe_mangle_lambdas(func)
+        result = maybe_mangle_lambdas(func)
         assert result["A"][0].__name__ == "<lambda_0>"
         assert result["A"][1].__name__ == "<lambda_1>"
 
     def test_maybe_mangle_lambdas_args(self):
         func = {"A": [lambda x, a, b=1: (0, a, b), lambda x: 1]}
-        result = _maybe_mangle_lambdas(func)
+        result = maybe_mangle_lambdas(func)
         assert result["A"][0].__name__ == "<lambda_0>"
         assert result["A"][1].__name__ == "<lambda_1>"
 
@@ -664,7 +664,7 @@ class TestLambdaMangling:
 
     def test_maybe_mangle_lambdas_named(self):
         func = {"C": np.mean, "D": {"foo": np.mean, "bar": np.mean}}
-        result = _maybe_mangle_lambdas(func)
+        result = maybe_mangle_lambdas(func)
         assert result == func
 
     def test_basic(self):
