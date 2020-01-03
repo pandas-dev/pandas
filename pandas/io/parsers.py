@@ -685,7 +685,7 @@ read_csv = _make_parser_function("read_csv", default_sep=",")
 read_csv = Appender(
     _doc_read_csv_and_table.format(
         func_name="read_csv",
-        summary=("Read a comma-separated values (csv) file into DataFrame."),
+        summary="Read a comma-separated values (csv) file into DataFrame.",
         _default_sep="','",
     )
 )(read_csv)
