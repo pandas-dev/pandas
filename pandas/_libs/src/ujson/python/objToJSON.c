@@ -233,7 +233,7 @@ static TypeContext *createTypeContext(void) {
     TypeContext *pc;
 
     pc = PyObject_Malloc(sizeof(TypeContext));
-    if (!pc) {
+    if (pc == NULL) {
         PyErr_NoMemory();
         return NULL;
     }
@@ -295,6 +295,7 @@ static PyObject *get_values(PyObject *obj) {
     if (values && !PyArray_CheckExact(values)) {
 
         if (PyObject_HasAttrString(values, "to_numpy")) {
+	    Py_DECREF(values);
             values = PyObject_CallMethod(values, "to_numpy", NULL);
         }
 
