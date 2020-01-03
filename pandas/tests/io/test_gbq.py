@@ -145,19 +145,19 @@ def test_read_gbq_progress_bar_type_kwarg(monkeypatch, progress_bar):
         assert "progress_bar_type" not in captured_kwargs
 
 
+def generate_rand_str(length: int = 10) -> str:
+    return "".join(random.choices(string.ascii_lowercase, k=length))
+
+
 @pytest.mark.single
 class TestToGBQIntegrationWithServiceAccountKeyPath:
-    @staticmethod
-    def generate_rand_str(length: int = 10) -> str:
-        return "".join(random.choices(string.ascii_lowercase, k=length))
-
     @pytest.fixture()
     def gbq_dataset(self):
         # Setup Dataset
         _skip_if_no_project_id()
         _skip_if_no_private_key_path()
 
-        dataset_id = "pydata_pandas_bq_testing_" + self.generate_rand_str()
+        dataset_id = "pydata_pandas_bq_testing_" + generate_rand_str()
 
         self.client = _get_client()
         self.dataset = self.client.dataset(dataset_id)
@@ -165,7 +165,7 @@ class TestToGBQIntegrationWithServiceAccountKeyPath:
         # Create the dataset
         self.client.create_dataset(bigquery.Dataset(self.dataset))
 
-        table_name = self.generate_rand_str()
+        table_name = generate_rand_str()
         destination_table = f"{dataset_id}.{table_name}"
         yield destination_table
 
