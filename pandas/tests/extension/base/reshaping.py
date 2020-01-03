@@ -94,9 +94,9 @@ class BaseReshapingTests(BaseExtensionTests):
         result = pd.concat([df1["A"], df2["B"]], axis=1)
         self.assert_frame_equal(result, expected)
 
-        # non-aligned
-        # copy=False
+    def test_concat_extension_arrays_copy_false(self, data, na_value):
         # GH 20756
+        df1 = pd.DataFrame({"A": data[:3]})
         df2 = pd.DataFrame({"B": data[3:7]})
         expected = pd.DataFrame(
             {
