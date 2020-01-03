@@ -140,18 +140,19 @@ def _dt_array_cmp(cls, op):
     @unpack_zerodim_and_defer(opname)
     def wrapper(self, other):
 
-        if isinstance(other, (datetime, np.datetime64, str)):
-            if isinstance(other, (datetime, np.datetime64)):
-                # GH#18435 strings get a pass from tzawareness compat
-                self._assert_tzawareness_compat(other)
-
+        if isinstance(other, str):
             try:
-                other = _to_M8(other, tz=self.tz)
+                # GH#18435 strings get a pass from tzawareness compat
+                other = self._scalar_from_string(other)
             except ValueError:
                 # string that cannot be parsed to Timestamp
                 return invalid_comparison(self, other, op)
 
-            result = op(self.asi8, other.view("i8"))
+        if isinstance(other, (datetime, np.datetime64)):
+            other = Timestamp(other)
+            self._assert_tzawareness_compat(other)
+
+            result = op(self.asi8, other.value)
             if isna(other):
                 result.fill(nat_result)
         elif lib.is_scalar(other) or np.ndim(other) == 0:
