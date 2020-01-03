@@ -295,11 +295,15 @@ class Index(IndexOpsMixin, PandasObject):
             return CategoricalIndex(data, dtype=dtype, copy=copy, name=name, **kwargs)
 
         # interval
-        elif (
-            is_interval_dtype(data) or is_interval_dtype(dtype)
-        ) and not is_object_dtype(dtype):
-            closed = kwargs.get("closed", None)
-            return IntervalIndex(data, dtype=dtype, name=name, copy=copy, closed=closed)
+        elif is_interval_dtype(data) or is_interval_dtype(dtype):
+            closed = kwargs.pop("closed", None)
+            if is_dtype_equal(_o_dtype, dtype):
+                return IntervalIndex(
+                    data, name=name, copy=copy, closed=closed, **kwargs
+                ).astype(object)
+            return IntervalIndex(
+                data, dtype=dtype, name=name, copy=copy, closed=closed, **kwargs
+            )
 
         elif (
             is_datetime64_any_dtype(data)
@@ -329,8 +333,10 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 return TimedeltaIndex(data, copy=copy, name=name, dtype=dtype, **kwargs)
 
-        elif is_period_dtype(data) and not is_object_dtype(dtype):
-            return PeriodIndex(data, copy=copy, name=name, **kwargs)
+        elif is_period_dtype(data) or is_period_dtype(dtype):
+            if is_dtype_equal(_o_dtype, dtype):
+                return PeriodIndex(data, copy=False, name=name, **kwargs).astype(object)
+            return PeriodIndex(data, dtype=dtype, copy=copy, name=name, **kwargs)
 
         # extension dtype
         elif is_extension_array_dtype(data) or is_extension_array_dtype(dtype):
