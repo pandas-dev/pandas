@@ -8,7 +8,7 @@ from pandas._libs.tslibs import NaT, Timestamp, iNaT
 
 import pandas as pd
 from pandas import Series, Timedelta, TimedeltaIndex, timedelta_range, to_timedelta
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestTimedeltaArithmetic:

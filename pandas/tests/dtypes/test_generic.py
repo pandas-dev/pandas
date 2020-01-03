@@ -5,7 +5,7 @@ import numpy as np
 from pandas.core.dtypes import generic as gt
 
 import pandas as pd
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestABCClasses:

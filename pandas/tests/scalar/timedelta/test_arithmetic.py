@@ -9,8 +9,8 @@ import pytest
 
 import pandas as pd
 from pandas import NaT, Timedelta, Timestamp, offsets
+import pandas._testing as tm
 from pandas.core import ops
-import pandas.util.testing as tm
 
 
 class TestTimedeltaAdditionSubtraction:

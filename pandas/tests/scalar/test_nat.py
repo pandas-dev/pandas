@@ -21,9 +21,9 @@ from pandas import (
     Timestamp,
     isna,
 )
+import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 from pandas.core.ops import roperator
-import pandas.util.testing as tm
 
 
 @pytest.mark.parametrize(

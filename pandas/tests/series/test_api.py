@@ -19,8 +19,8 @@ from pandas import (
     period_range,
     timedelta_range,
 )
+import pandas._testing as tm
 from pandas.core.arrays import PeriodArray
-import pandas.util.testing as tm
 
 import pandas.io.formats.printing as printing
 

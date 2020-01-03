@@ -4,6 +4,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Series, concat
+import pandas._testing as tm
 from pandas.tests.window.common import (
     Base,
     ConsistencyBase,
@@ -11,7 +12,6 @@ from pandas.tests.window.common import (
     check_binary_ew_min_periods,
     ew_func,
 )
-import pandas.util.testing as tm
 
 
 @pytest.mark.filterwarnings("ignore:can't resolve package:ImportWarning")

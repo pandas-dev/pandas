@@ -8,9 +8,9 @@ from pandas._libs.tslibs import Timestamp
 
 import pandas as pd
 from pandas import Float64Index, Index, Int64Index, Series, UInt64Index
+import pandas._testing as tm
 from pandas.api.types import pandas_dtype
 from pandas.tests.indexes.common import Base
-import pandas.util.testing as tm
 
 
 class Numeric(Base):

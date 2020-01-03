@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize("na_values", [None, ["NaN"]])

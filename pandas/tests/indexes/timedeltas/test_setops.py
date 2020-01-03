@@ -3,7 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import Int64Index, TimedeltaIndex, timedelta_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.tseries.offsets import Hour
 

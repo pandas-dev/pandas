@@ -15,7 +15,7 @@ from pandas.errors import ParserError
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range, read_csv
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.io.common import file_path_to_url
 import pandas.io.html

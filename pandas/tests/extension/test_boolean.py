@@ -19,9 +19,9 @@ import pytest
 from pandas.compat.numpy import _np_version_under1p14
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.core.arrays.boolean import BooleanDtype
 from pandas.tests.extension import base
-import pandas.util.testing as tm
 
 
 def make_data():

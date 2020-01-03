@@ -123,7 +123,7 @@ cpdef assert_almost_equal(a, b,
     if isiterable(a):
 
         if not isiterable(b):
-            from pandas.util.testing import assert_class_equal
+            from pandas._testing import assert_class_equal
             # classes can't be the same, to raise error
             assert_class_equal(a, b, obj=obj)
 
@@ -134,12 +134,12 @@ cpdef assert_almost_equal(a, b,
         if a_is_ndarray and b_is_ndarray:
             na, nb = a.size, b.size
             if a.shape != b.shape:
-                from pandas.util.testing import raise_assert_detail
+                from pandas._testing import raise_assert_detail
                 raise_assert_detail(
                     obj, f'{obj} shapes are different', a.shape, b.shape)
 
             if check_dtype and not is_dtype_equal(a.dtype, b.dtype):
-                from pandas.util.testing import assert_attr_equal
+                from pandas._testing import assert_attr_equal
                 assert_attr_equal('dtype', a, b, obj=obj)
 
             if array_equivalent(a, b, strict_nan=True):
@@ -149,7 +149,7 @@ cpdef assert_almost_equal(a, b,
             na, nb = len(a), len(b)
 
         if na != nb:
-            from pandas.util.testing import raise_assert_detail
+            from pandas._testing import raise_assert_detail
 
             # if we have a small diff set, print it
             if abs(na - nb) < 10:
@@ -168,7 +168,7 @@ cpdef assert_almost_equal(a, b,
                 diff += 1
 
         if is_unequal:
-            from pandas.util.testing import raise_assert_detail
+            from pandas._testing import raise_assert_detail
             msg = (f"{obj} values are different "
                    f"({np.round(diff * 100.0 / na, 5)} %)")
             raise_assert_detail(obj, msg, lobj, robj)
@@ -176,7 +176,7 @@ cpdef assert_almost_equal(a, b,
         return True
 
     elif isiterable(b):
-        from pandas.util.testing import assert_class_equal
+        from pandas._testing import assert_class_equal
         # classes can't be the same, to raise error
         assert_class_equal(a, b, obj=obj)
 

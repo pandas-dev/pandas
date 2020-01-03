@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.tests.extension import base
-import pandas.util.testing as tm
 
 pytest.importorskip("pyarrow", minversion="0.12.0")
 

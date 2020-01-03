@@ -11,9 +11,9 @@ from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import Period, PeriodIndex, Series, period_range
+import pandas._testing as tm
 from pandas.core import ops
 from pandas.core.arrays import TimedeltaArray
-import pandas.util.testing as tm
 
 from pandas.tseries.frequencies import to_offset
 

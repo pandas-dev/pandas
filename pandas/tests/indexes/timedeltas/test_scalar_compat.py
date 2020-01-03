@@ -7,7 +7,7 @@ import pytest
 
 import pandas as pd
 from pandas import Index, Series, Timedelta, TimedeltaIndex, timedelta_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestVectorizedTimedelta:

@@ -5,7 +5,7 @@ from pandas.compat import PYPY
 
 import pandas as pd
 from pandas import MultiIndex
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_contains_top_level():

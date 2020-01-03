@@ -4,7 +4,7 @@ import numpy as np
 from numpy.random import randn
 
 from pandas import DataFrame, Series, bdate_range, notna
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 N, K = 100, 10
 

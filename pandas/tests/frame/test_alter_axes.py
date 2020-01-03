@@ -25,7 +25,7 @@ from pandas import (
     date_range,
     to_datetime,
 )
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestDataFrameAlterAxes:

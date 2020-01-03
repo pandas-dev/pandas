@@ -32,6 +32,7 @@ from pandas import (
     isna,
     period_range,
 )
+import pandas._testing as tm
 from pandas.core.algorithms import safe_sort
 from pandas.core.indexes.api import (
     Index,
@@ -42,7 +43,6 @@ from pandas.core.indexes.api import (
 )
 from pandas.tests.indexes.common import Base
 from pandas.tests.indexes.conftest import indices_dict
-import pandas.util.testing as tm
 
 
 class TestIndex(Base):

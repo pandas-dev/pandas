@@ -7,8 +7,8 @@ from pandas.core.dtypes.generic import ABCDateOffset
 
 import pandas as pd
 from pandas import Series, TimedeltaIndex, timedelta_range
+import pandas._testing as tm
 from pandas.tests.base.test_ops import Ops
-import pandas.util.testing as tm
 
 from pandas.tseries.offsets import Day, Hour
 

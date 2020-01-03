@@ -18,8 +18,8 @@ from pandas import (
     date_range,
     option_context,
 )
+import pandas._testing as tm
 from pandas.core.arrays import integer_array
-import pandas.util.testing as tm
 
 
 def _check_cast(df, v):

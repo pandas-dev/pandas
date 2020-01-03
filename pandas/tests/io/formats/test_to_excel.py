@@ -5,7 +5,7 @@ ExcelFormatter is tested implicitly in pandas/tests/io/test_excel.py
 
 import pytest
 
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.io.formats.css import CSSWarning
 from pandas.io.formats.excel import CSSToExcelConverter

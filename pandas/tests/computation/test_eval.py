@@ -16,6 +16,7 @@ from pandas.core.dtypes.common import is_bool, is_list_like, is_scalar
 
 import pandas as pd
 from pandas import DataFrame, Series, compat, date_range
+import pandas._testing as tm
 from pandas.core.computation import pytables
 from pandas.core.computation.check import _NUMEXPR_VERSION
 from pandas.core.computation.engines import NumExprClobberingError, _engines
@@ -33,7 +34,6 @@ from pandas.core.computation.ops import (
     _special_case_arith_ops_syms,
     _unary_math_ops,
 )
-import pandas.util.testing as tm
 
 
 @pytest.fixture(

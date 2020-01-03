@@ -30,11 +30,11 @@ from pandas import (
     Timestamp,
     compat,
 )
+import pandas._testing as tm
 from pandas.conftest import BYTES_DTYPES, STRING_DTYPES
 import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray
 import pandas.core.common as com
-import pandas.util.testing as tm
 
 
 class TestFactorize:

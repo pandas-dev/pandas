@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame, Index, MultiIndex, Series, concat, date_range
+import pandas._testing as tm
 import pandas.core.common as com
-import pandas.util.testing as tm
 
 
 @pytest.fixture

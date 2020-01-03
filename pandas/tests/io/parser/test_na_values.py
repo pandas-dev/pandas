@@ -10,7 +10,7 @@ import pytest
 from pandas._libs.parsers import STR_NA_VALUES
 
 from pandas import DataFrame, Index, MultiIndex
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_string_nas(all_parsers):

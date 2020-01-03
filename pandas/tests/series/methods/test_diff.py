@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import Series, TimedeltaIndex, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestSeriesDiff:

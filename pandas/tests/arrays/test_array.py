@@ -8,11 +8,11 @@ import pytz
 from pandas.core.dtypes.dtypes import registry
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.api.extensions import register_extension_dtype
 from pandas.api.types import is_scalar
 from pandas.core.arrays import PandasArray, integer_array, period_array
 from pandas.tests.extension.decimal import DecimalArray, DecimalDtype, to_decimal
-import pandas.util.testing as tm
 
 
 @pytest.mark.parametrize(

@@ -8,8 +8,8 @@ import pytest
 from pandas._libs import lib
 
 from pandas import DataFrame, Index, MultiIndex, Series, concat, isna, notna
+import pandas._testing as tm
 import pandas.core.strings as strings
-import pandas.util.testing as tm
 
 
 def assert_series_or_index_equal(left, right):

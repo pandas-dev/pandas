@@ -10,7 +10,7 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame, Grouper, MultiIndex, Series, date_range, to_datetime
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 # our starting frame

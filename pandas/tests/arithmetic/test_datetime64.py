@@ -26,6 +26,7 @@ from pandas import (
     Timestamp,
     date_range,
 )
+import pandas._testing as tm
 from pandas.core.indexes.datetimes import _to_M8
 from pandas.core.ops import roperator
 from pandas.tests.arithmetic.common import (
@@ -33,7 +34,6 @@ from pandas.tests.arithmetic.common import (
     assert_invalid_comparison,
     get_upcast_box,
 )
-import pandas.util.testing as tm
 
 # ------------------------------------------------------------------
 # Comparisons

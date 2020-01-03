@@ -921,23 +921,24 @@ def assert_numpy_array_equal(
     check_same=None,
     obj="numpy array",
 ):
-    """ Checks that 'np.ndarray' is equivalent
+    """
+    Check that 'np.ndarray' is equivalent.
 
     Parameters
     ----------
-    left : np.ndarray or iterable
-    right : np.ndarray or iterable
+    left, right : numpy.ndarray or iterable
+        The two arrays to be compared.
     strict_nan : bool, default False
         If True, consider NaN and None to be different.
-    check_dtype: bool, default True
-        check dtype if both a and b are np.ndarray
+    check_dtype : bool, default True
+        Check dtype if both a and b are np.ndarray.
     err_msg : str, default None
-        If provided, used as assertion message
+        If provided, used as assertion message.
     check_same : None|'copy'|'same', default None
-        Ensure left and right refer/do not refer to the same memory area
+        Ensure left and right refer/do not refer to the same memory area.
     obj : str, default 'numpy array'
         Specify object name being compared, internally used to show appropriate
-        assertion message
+        assertion message.
     """
     __tracebackhide__ = True
 
@@ -1273,7 +1274,7 @@ def assert_frame_equal(
     This example shows comparing two DataFrames that are equal
     but with columns of differing dtypes.
 
-    >>> from pandas.util.testing import assert_frame_equal
+    >>> from pandas._testing import assert_frame_equal
     >>> df1 = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
     >>> df2 = pd.DataFrame({'a': [1, 2], 'b': [3.0, 4.0]})
 
@@ -1375,9 +1376,10 @@ def assert_equal(left, right, **kwargs):
 
     Parameters
     ----------
-    left : Index, Series, DataFrame, ExtensionArray, or np.ndarray
-    right : Index, Series, DataFrame, ExtensionArray, or np.ndarray
+    left, right : Index, Series, DataFrame, ExtensionArray, or np.ndarray
+        The two items to be compared.
     **kwargs
+        All keyword arguments are passed through to the underlying assert method.
     """
     __tracebackhide__ = True
 
@@ -1401,7 +1403,7 @@ def assert_equal(left, right, **kwargs):
         assert_numpy_array_equal(left, right, **kwargs)
     elif isinstance(left, str):
         assert kwargs == {}
-        return left == right
+        assert left == right
     else:
         raise NotImplementedError(type(left))
 
@@ -2281,7 +2283,7 @@ def network(
     Tests decorated with @network will fail if it's possible to make a network
     connection to another URL (defaults to google.com)::
 
-      >>> from pandas.util.testing import network
+      >>> from pandas._testing import network
       >>> from pandas.io.common import urlopen
       >>> @network
       ... def test_network():

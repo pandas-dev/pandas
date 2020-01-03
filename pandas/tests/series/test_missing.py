@@ -21,7 +21,7 @@ from pandas import (
     date_range,
     isna,
 )
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def _simple_ts(start, end, freq="D"):

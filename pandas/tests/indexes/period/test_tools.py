@@ -17,8 +17,8 @@ from pandas import (
     period_range,
     to_datetime,
 )
+import pandas._testing as tm
 import pandas.core.indexes.period as period
-import pandas.util.testing as tm
 
 
 class TestPeriodRepresentation:

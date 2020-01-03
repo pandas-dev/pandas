@@ -577,6 +577,7 @@ Deprecations
   it is recommended to use ``json_normalize`` as :func:`pandas.json_normalize` instead (:issue:`27586`).
 - :meth:`DataFrame.to_stata`, :meth:`DataFrame.to_feather`, and :meth:`DataFrame.to_parquet` argument "fname" is deprecated, use "path" instead (:issue:`23574`)
 - The deprecated internal attributes ``_start``, ``_stop`` and ``_step`` of :class:`RangeIndex` now raise a ``FutureWarning`` instead of a ``DeprecationWarning`` (:issue:`26581`)
+- The ``pandas.util.testing`` module has been deprecated. Use the public API in ``pandas.testing`` documented at :ref:`api.general.testing` (:issue:`16232`).
 
 **Selecting Columns from a Grouped DataFrame**
 
@@ -703,7 +704,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - Ability to read pickles containing :class:`Categorical` instances created with pre-0.16 version of pandas has been removed (:issue:`27538`)
 - Removed :func:`pandas.tseries.plotting.tsplot` (:issue:`18627`)
 - Removed the previously deprecated keywords "reduce" and "broadcast" from :meth:`DataFrame.apply` (:issue:`18577`)
-- Removed the previously deprecated ``assert_raises_regex`` function in ``pandas.util.testing`` (:issue:`29174`)
+- Removed the previously deprecated ``assert_raises_regex`` function in ``pandas._testing`` (:issue:`29174`)
 - Removed the previously deprecated ``FrozenNDArray`` class in ``pandas.core.indexes.frozen`` (:issue:`29335`)
 - Removed the previously deprecated keyword "nthreads" from :func:`read_feather`, use "use_threads" instead (:issue:`23053`)
 - Removed :meth:`Index.is_lexsorted_for_tuple` (:issue:`29305`)

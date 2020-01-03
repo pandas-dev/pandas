@@ -7,7 +7,7 @@ from pandas._libs.tslibs import period as libperiod
 
 import pandas as pd
 from pandas import DatetimeIndex, Period, PeriodIndex, Series, notna, period_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestGetItem:

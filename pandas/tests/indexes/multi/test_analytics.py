@@ -5,7 +5,7 @@ from pandas.compat.numpy import _np_version_under1p17
 
 import pandas as pd
 from pandas import Index, MultiIndex, date_range, period_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_shift(idx):

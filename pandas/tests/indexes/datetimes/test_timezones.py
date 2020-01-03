@@ -22,7 +22,7 @@ from pandas import (
     isna,
     to_datetime,
 )
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class FixedOffset(tzinfo):

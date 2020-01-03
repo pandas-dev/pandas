@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import Timestamp
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_assert_numpy_array_equal_shape_mismatch():

@@ -8,8 +8,8 @@ from pandas._libs.tslibs.frequencies import INVALID_FREQ_ERR_MSG
 from pandas.compat import is_platform_windows
 
 from pandas import DatetimeIndex, Index, Series, Timestamp, date_range, period_range
+import pandas._testing as tm
 from pandas.core.tools.datetimes import to_datetime
-import pandas.util.testing as tm
 
 import pandas.tseries.frequencies as frequencies
 import pandas.tseries.offsets as offsets

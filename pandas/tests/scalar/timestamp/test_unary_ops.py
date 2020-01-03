@@ -10,7 +10,7 @@ from pandas._libs.tslibs.frequencies import INVALID_FREQ_ERR_MSG
 import pandas.util._test_decorators as td
 
 from pandas import NaT, Timestamp
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.tseries.frequencies import to_offset
 

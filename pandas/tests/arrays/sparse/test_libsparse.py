@@ -7,8 +7,8 @@ import pandas._libs.sparse as splib
 import pandas.util._test_decorators as td
 
 from pandas import Series
+import pandas._testing as tm
 from pandas.core.arrays.sparse import BlockIndex, IntIndex, _make_index
-import pandas.util.testing as tm
 
 TEST_LENGTH = 20
 

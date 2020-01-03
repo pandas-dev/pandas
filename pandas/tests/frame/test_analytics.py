@@ -20,9 +20,9 @@ from pandas import (
     to_datetime,
     to_timedelta,
 )
+import pandas._testing as tm
 import pandas.core.algorithms as algorithms
 import pandas.core.nanops as nanops
-import pandas.util.testing as tm
 
 
 def assert_stat_op_calc(

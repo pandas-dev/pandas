@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from pandas import Index, RangeIndex, Series
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestRangeIndexConstructors:

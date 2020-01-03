@@ -13,8 +13,8 @@ from pandas import (
     Timestamp,
     date_range,
 )
+import pandas._testing as tm
 from pandas.core.groupby.grouper import Grouping
-import pandas.util.testing as tm
 
 # selection
 # --------------------------------

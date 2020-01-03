@@ -1,7 +1,7 @@
 import pytest
 
 from pandas import DataFrame
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestIndexingSlow:

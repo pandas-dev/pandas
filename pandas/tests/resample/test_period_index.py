@@ -10,11 +10,11 @@ from pandas._libs.tslibs.period import IncompatibleFrequency
 
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp
+import pandas._testing as tm
 from pandas.core.indexes.base import InvalidIndexError
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import Period, PeriodIndex, period_range
 from pandas.core.resample import _get_period_range_edges
-import pandas.util.testing as tm
 
 import pandas.tseries.offsets as offsets
 

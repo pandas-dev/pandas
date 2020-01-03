@@ -11,7 +11,7 @@ import pytest
 from pandas.errors import ParserError
 
 from pandas import DataFrame
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize(

@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from pandas import CategoricalDtype, DataFrame, MultiIndex, Series, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestDataFrameToRecords:

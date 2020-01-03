@@ -13,11 +13,11 @@ from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 import pandas as pd
 from pandas import DataFrame, Index, NaT, Series
+import pandas._testing as tm
 from pandas.core.generic import NDFrame
 from pandas.core.indexers import validate_indices
 from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
 from pandas.tests.indexing.common import Base, _mklbl
-import pandas.util.testing as tm
 
 # ------------------------------------------------------------------------
 # Indexing test cases

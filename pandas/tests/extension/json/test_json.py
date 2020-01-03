@@ -4,8 +4,8 @@ import operator
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.tests.extension import base
-import pandas.util.testing as tm
 
 from .array import JSONArray, JSONDtype, make_data
 

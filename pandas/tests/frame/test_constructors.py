@@ -25,9 +25,9 @@ from pandas import (
     date_range,
     isna,
 )
+import pandas._testing as tm
 from pandas.arrays import IntervalArray, PeriodArray
 from pandas.core.construction import create_series_with_explicit_dtype
-import pandas.util.testing as tm
 
 MIXED_FLOAT_DTYPES = ["float16", "float32", "float64"]
 MIXED_INT_DTYPES = [

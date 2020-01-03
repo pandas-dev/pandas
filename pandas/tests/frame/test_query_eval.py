@@ -8,8 +8,8 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, date_range
+import pandas._testing as tm
 from pandas.core.computation.check import _NUMEXPR_INSTALLED
-import pandas.util.testing as tm
 
 PARSERS = "python", "pandas"
 ENGINES = "python", pytest.param("numexpr", marks=td.skip_if_no_ne)

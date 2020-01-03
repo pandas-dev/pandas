@@ -6,6 +6,7 @@ import pandas.util._test_decorators as td
 from pandas.core.dtypes.generic import ABCIndexClass
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.api.types import is_float, is_float_dtype, is_integer, is_scalar
 from pandas.core.arrays import IntegerArray, integer_array
 from pandas.core.arrays.integer import (
@@ -19,7 +20,6 @@ from pandas.core.arrays.integer import (
     UInt64Dtype,
 )
 from pandas.tests.extension.base import BaseOpsUtil
-import pandas.util.testing as tm
 
 
 def make_data():

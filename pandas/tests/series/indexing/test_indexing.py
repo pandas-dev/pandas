@@ -9,7 +9,7 @@ from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
 from pandas import Categorical, DataFrame, MultiIndex, Series, Timedelta, Timestamp
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.tseries.offsets import BDay
 

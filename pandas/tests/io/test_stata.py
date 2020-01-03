@@ -12,8 +12,8 @@ import pytest
 from pandas.core.dtypes.common import is_categorical_dtype
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.core.frame import DataFrame, Series
-import pandas.util.testing as tm
 
 from pandas.io.parsers import read_csv
 from pandas.io.stata import (

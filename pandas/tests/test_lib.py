@@ -4,7 +4,7 @@ import pytest
 from pandas._libs import lib, writers as libwriters
 
 from pandas import Index
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestMisc:

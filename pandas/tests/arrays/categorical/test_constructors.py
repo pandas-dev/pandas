@@ -24,7 +24,7 @@ from pandas import (
     period_range,
     timedelta_range,
 )
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestCategoricalConstructors:

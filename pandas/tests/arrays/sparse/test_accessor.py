@@ -6,7 +6,7 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestSeriesAccessor:

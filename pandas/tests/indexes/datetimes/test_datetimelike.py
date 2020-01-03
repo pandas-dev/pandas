@@ -2,7 +2,7 @@
 import pytest
 
 from pandas import DatetimeIndex, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from ..datetimelike import DatetimeLike
 

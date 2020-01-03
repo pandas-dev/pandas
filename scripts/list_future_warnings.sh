@@ -25,7 +25,7 @@
 EXCLUDE="^pandas/tests/|"  # tests validate that FutureWarnings are raised
 EXCLUDE+="^pandas/util/_decorators.py$|"  # generic deprecate function that raises warning
 EXCLUDE+="^pandas/util/_depr_module.py$|"  # generic deprecate module that raises warnings
-EXCLUDE+="^pandas/util/testing.py$|" # contains function to evaluate if warning is raised
+EXCLUDE+="^pandas._testing.py$|" # contains function to evaluate if warning is raised
 EXCLUDE+="^pandas/io/parsers.py$"  # implements generic deprecation system in io reading
 
 BASE_DIR="$(dirname $0)/.."

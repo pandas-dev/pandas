@@ -2,7 +2,7 @@ import numpy as np
 
 from pandas._libs import algos as libalgos, index as libindex
 
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestNumericEngine:

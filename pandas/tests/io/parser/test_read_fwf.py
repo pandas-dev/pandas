@@ -12,7 +12,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.io.parsers import EmptyDataError, read_csv, read_fwf
 

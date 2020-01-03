@@ -12,7 +12,7 @@ import pytest
 from pandas.errors import ParserError
 
 from pandas import DataFrame, Index, MultiIndex
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_read_with_bad_header(all_parsers):

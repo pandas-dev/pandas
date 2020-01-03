@@ -7,8 +7,8 @@ from pandas.core.dtypes.dtypes import PeriodDtype
 
 import pandas as pd
 from pandas import Index, Period, PeriodIndex, Series, date_range, offsets, period_range
+import pandas._testing as tm
 from pandas.core.arrays import PeriodArray
-import pandas.util.testing as tm
 
 
 class TestPeriodIndex:

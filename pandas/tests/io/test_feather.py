@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.io.feather_format import read_feather, to_feather  # noqa: E402 isort:skip
 

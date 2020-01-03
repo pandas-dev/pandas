@@ -17,7 +17,7 @@ from pandas._libs.tslib import Timestamp
 import pandas.compat as compat
 
 from pandas import DataFrame, DatetimeIndex, Index, NaT, Series, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def _clean_dict(d):

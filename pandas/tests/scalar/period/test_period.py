@@ -16,7 +16,7 @@ from pandas.compat.numpy import np_datetime64_compat
 
 import pandas as pd
 from pandas import NaT, Period, Timedelta, Timestamp, offsets
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestPeriodConstruction:

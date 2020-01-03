@@ -41,7 +41,7 @@ from pandas import (
     to_datetime,
     to_timedelta,
 )
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 import pandas.io.sql as sql
 from pandas.io.sql import read_sql_query, read_sql_table

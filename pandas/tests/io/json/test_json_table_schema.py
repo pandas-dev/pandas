@@ -9,7 +9,7 @@ from pandas.core.dtypes.dtypes import CategoricalDtype, DatetimeTZDtype, PeriodD
 
 import pandas as pd
 from pandas import DataFrame
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.io.json._table_schema import (
     as_json_table_type,

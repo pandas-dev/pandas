@@ -35,7 +35,7 @@ from pandas import (
     reset_option,
     set_option,
 )
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 import pandas.io.formats.format as fmt
 import pandas.io.formats.printing as printing
