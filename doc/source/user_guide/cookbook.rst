@@ -406,10 +406,10 @@ Levels
 ******
 
 `Prepending a level to a multiindex
-<http://stackoverflow.com/questions/14744068/prepend-a-level-to-a-pandas-multiindex>`__
+<https://stackoverflow.com/questions/14744068/prepend-a-level-to-a-pandas-multiindex>`__
 
 `Flatten Hierarchical columns
-<http://stackoverflow.com/questions/14507794/python-pandas-how-to-flatten-a-hierarchical-index-in-columns>`__
+<https://stackoverflow.com/questions/14507794/python-pandas-how-to-flatten-a-hierarchical-index-in-columns>`__
 
 .. _cookbook.missing_data:
 
@@ -430,13 +430,13 @@ Fill forward a reversed timeseries
    df.reindex(df.index[::-1]).ffill()
 
 `cumsum reset at NaN values
-<http://stackoverflow.com/questions/18196811/cumsum-reset-at-nan>`__
+<https://stackoverflow.com/questions/18196811/cumsum-reset-at-nan>`__
 
 Replace
 *******
 
 `Using replace with backrefs
-<http://stackoverflow.com/questions/16818871/extracting-value-and-creating-new-column-out-of-it>`__
+<https://stackoverflow.com/questions/16818871/extracting-value-and-creating-new-column-out-of-it>`__
 
 .. _cookbook.grouping:
 
@@ -446,7 +446,7 @@ Grouping
 The :ref:`grouping <groupby>` docs.
 
 `Basic grouping with apply
-<http://stackoverflow.com/questions/15322632/python-pandas-df-groupy-agg-column-reference-in-agg>`__
+<https://stackoverflow.com/questions/15322632/python-pandas-df-groupy-agg-column-reference-in-agg>`__
 
 Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to all the columns
 
@@ -462,7 +462,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
    df.groupby('animal').apply(lambda subf: subf['size'][subf['weight'].idxmax()])
 
 `Using get_group
-<http://stackoverflow.com/questions/14734533/how-to-access-pandas-groupby-dataframe-by-key>`__
+<https://stackoverflow.com/questions/14734533/how-to-access-pandas-groupby-dataframe-by-key>`__
 
 .. ipython:: python
 
@@ -470,7 +470,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
    gb.get_group('cat')
 
 `Apply to different items in a group
-<http://stackoverflow.com/questions/15262134/apply-different-functions-to-different-items-in-group-object-python-pandas>`__
+<https://stackoverflow.com/questions/15262134/apply-different-functions-to-different-items-in-group-object-python-pandas>`__
 
 .. ipython:: python
 
@@ -486,7 +486,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
    expected_df
 
 `Expanding apply
-<http://stackoverflow.com/questions/14542145/reductions-down-a-column-in-pandas>`__
+<https://stackoverflow.com/questions/14542145/reductions-down-a-column-in-pandas>`__
 
 .. ipython:: python
 
@@ -502,7 +502,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
 
 
 `Replacing some values with mean of the rest of a group
-<http://stackoverflow.com/questions/14760757/replacing-values-with-groupby-means>`__
+<https://stackoverflow.com/questions/14760757/replacing-values-with-groupby-means>`__
 
 .. ipython:: python
 
@@ -516,7 +516,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
    gb.transform(replace)
 
 `Sort groups by aggregated data
-<http://stackoverflow.com/questions/14941366/pandas-sort-by-group-aggregate-and-column>`__
+<https://stackoverflow.com/questions/14941366/pandas-sort-by-group-aggregate-and-column>`__
 
 .. ipython:: python
 
@@ -533,7 +533,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
    sorted_df
 
 `Create multiple aggregated columns
-<http://stackoverflow.com/questions/14897100/create-multiple-columns-in-pandas-aggregation-function>`__
+<https://stackoverflow.com/questions/14897100/create-multiple-columns-in-pandas-aggregation-function>`__
 
 .. ipython:: python
 
@@ -550,7 +550,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
    ts
 
 `Create a value counts column and reassign back to the DataFrame
-<http://stackoverflow.com/questions/17709270/i-want-to-create-a-column-of-value-counts-in-my-pandas-dataframe>`__
+<https://stackoverflow.com/questions/17709270/i-want-to-create-a-column-of-value-counts-in-my-pandas-dataframe>`__
 
 .. ipython:: python
 
@@ -561,7 +561,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
    df
 
 `Shift groups of the values in a column based on the index
-<http://stackoverflow.com/q/23198053/190597>`__
+<https://stackoverflow.com/q/23198053/190597>`__
 
 .. ipython:: python
 
@@ -575,7 +575,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
    df
 
 `Select row with maximum value from each group
-<http://stackoverflow.com/q/26701849/190597>`__
+<https://stackoverflow.com/q/26701849/190597>`__
 
 .. ipython:: python
 
@@ -587,7 +587,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
    df_count
 
 `Grouping like Python's itertools.groupby
-<http://stackoverflow.com/q/29142487/846892>`__
+<https://stackoverflow.com/q/29142487/846892>`__
 
 .. ipython:: python
 
@@ -599,19 +599,19 @@ Expanding data
 **************
 
 `Alignment and to-date
-<http://stackoverflow.com/questions/15489011/python-time-series-alignment-and-to-date-functions>`__
+<https://stackoverflow.com/questions/15489011/python-time-series-alignment-and-to-date-functions>`__
 
 `Rolling Computation window based on values instead of counts
-<http://stackoverflow.com/questions/14300768/pandas-rolling-computation-with-window-based-on-values-instead-of-counts>`__
+<https://stackoverflow.com/questions/14300768/pandas-rolling-computation-with-window-based-on-values-instead-of-counts>`__
 
 `Rolling Mean by Time Interval
-<http://stackoverflow.com/questions/15771472/pandas-rolling-mean-by-time-interval>`__
+<https://stackoverflow.com/questions/15771472/pandas-rolling-mean-by-time-interval>`__
 
 Splitting
 *********
 
 `Splitting a frame
-<http://stackoverflow.com/questions/13353233/best-way-to-split-a-dataframe-given-an-edge/15449992#15449992>`__
+<https://stackoverflow.com/questions/13353233/best-way-to-split-a-dataframe-given-an-edge/15449992#15449992>`__
 
 Create a list of dataframes, split using a delineation based on logic included in rows.
 
@@ -635,7 +635,7 @@ Pivot
 The :ref:`Pivot <reshaping.pivot>` docs.
 
 `Partial sums and subtotals
-<http://stackoverflow.com/questions/15570099/pandas-pivot-tables-row-subtotals/15574875#15574875>`__
+<https://stackoverflow.com/questions/15570099/pandas-pivot-tables-row-subtotals/15574875#15574875>`__
 
 .. ipython:: python
 
@@ -649,7 +649,7 @@ The :ref:`Pivot <reshaping.pivot>` docs.
    table.stack('City')
 
 `Frequency table like plyr in R
-<http://stackoverflow.com/questions/15589354/frequency-tables-in-pandas-like-plyr-in-r>`__
+<https://stackoverflow.com/questions/15589354/frequency-tables-in-pandas-like-plyr-in-r>`__
 
 .. ipython:: python
 
@@ -675,7 +675,7 @@ The :ref:`Pivot <reshaping.pivot>` docs.
                                'Grade': lambda x: sum(x) / len(x)})
 
 `Plot pandas DataFrame with year over year data
-<http://stackoverflow.com/questions/30379789/plot-pandas-data-frame-with-year-over-year-data>`__
+<https://stackoverflow.com/questions/30379789/plot-pandas-data-frame-with-year-over-year-data>`__
 
 To create year and month cross tabulation:
 
@@ -691,7 +691,7 @@ Apply
 *****
 
 `Rolling apply to organize - Turning embedded lists into a MultiIndex frame
-<http://stackoverflow.com/questions/17349981/converting-pandas-dataframe-with-categorical-values-into-binary-values>`__
+<https://stackoverflow.com/questions/17349981/converting-pandas-dataframe-with-categorical-values-into-binary-values>`__
 
 .. ipython:: python
 
@@ -707,7 +707,7 @@ Apply
    df_orgz
 
 `Rolling apply with a DataFrame returning a Series
-<http://stackoverflow.com/questions/19121854/using-rolling-apply-on-a-dataframe-object>`__
+<https://stackoverflow.com/questions/19121854/using-rolling-apply-on-a-dataframe-object>`__
 
 Rolling Apply to multiple columns where function calculates a Series before a Scalar from the Series is returned
 
@@ -727,7 +727,7 @@ Rolling Apply to multiple columns where function calculates a Series before a Sc
    s
 
 `Rolling apply with a DataFrame returning a Scalar
-<http://stackoverflow.com/questions/21040766/python-pandas-rolling-apply-two-column-input-into-function/21045831#21045831>`__
+<https://stackoverflow.com/questions/21040766/python-pandas-rolling-apply-two-column-input-into-function/21045831#21045831>`__
 
 Rolling Apply to multiple columns where function returns a Scalar (Volume Weighted Average Price)
 
@@ -753,26 +753,26 @@ Timeseries
 ----------
 
 `Between times
-<http://stackoverflow.com/questions/14539992/pandas-drop-rows-outside-of-time-range>`__
+<https://stackoverflow.com/questions/14539992/pandas-drop-rows-outside-of-time-range>`__
 
 `Using indexer between time
-<http://stackoverflow.com/questions/17559885/pandas-dataframe-mask-based-on-index>`__
+<https://stackoverflow.com/questions/17559885/pandas-dataframe-mask-based-on-index>`__
 
 `Constructing a datetime range that excludes weekends and includes only certain times
-<http://stackoverflow.com/questions/24010830/pandas-generate-sequential-timestamp-with-jump/24014440#24014440?>`__
+<https://stackoverflow.com/questions/24010830/pandas-generate-sequential-timestamp-with-jump/24014440#24014440?>`__
 
 `Vectorized Lookup
-<http://stackoverflow.com/questions/13893227/vectorized-look-up-of-values-in-pandas-dataframe>`__
+<https://stackoverflow.com/questions/13893227/vectorized-look-up-of-values-in-pandas-dataframe>`__
 
 `Aggregation and plotting time series
 <http://nipunbatra.github.io/2015/06/timeseries/>`__
 
 Turn a matrix with hours in columns and days in rows into a continuous row sequence in the form of a time series.
 `How to rearrange a Python pandas DataFrame?
-<http://stackoverflow.com/questions/15432659/how-to-rearrange-a-python-pandas-dataframe>`__
+<https://stackoverflow.com/questions/15432659/how-to-rearrange-a-python-pandas-dataframe>`__
 
 `Dealing with duplicates when reindexing a timeseries to a specified frequency
-<http://stackoverflow.com/questions/22244383/pandas-df-refill-adding-two-columns-of-different-shape>`__
+<https://stackoverflow.com/questions/22244383/pandas-df-refill-adding-two-columns-of-different-shape>`__
 
 Calculate the first day of the month for each entry in a DatetimeIndex
 
@@ -804,15 +804,15 @@ The :ref:`Resample <timeseries.resampling>` docs.
 <https://github.com/pandas-dev/pandas/issues/3791>`__
 
 `Resampling with custom periods
-<http://stackoverflow.com/questions/15408156/resampling-with-custom-periods>`__
+<https://stackoverflow.com/questions/15408156/resampling-with-custom-periods>`__
 
 `Resample intraday frame without adding new days
-<http://stackoverflow.com/questions/14898574/resample-intrday-pandas-dataframe-without-add-new-days>`__
+<https://stackoverflow.com/questions/14898574/resample-intrday-pandas-dataframe-without-add-new-days>`__
 
 `Resample minute data
-<http://stackoverflow.com/questions/14861023/resampling-minute-data>`__
+<https://stackoverflow.com/questions/14861023/resampling-minute-data>`__
 
-`Resample with groupby <http://stackoverflow.com/q/18677271/564538>`__
+`Resample with groupby <https://stackoverflow.com/q/18677271/564538>`__
 
 .. _cookbook.merge:
 
@@ -822,7 +822,7 @@ Merge
 The :ref:`Concat <merging.concatenation>` docs. The :ref:`Join <merging.join>` docs.
 
 `Append two dataframes with overlapping index (emulate R rbind)
-<http://stackoverflow.com/questions/14988480/pandas-version-of-rbind>`__
+<https://stackoverflow.com/questions/14988480/pandas-version-of-rbind>`__
 
 .. ipython:: python
 
@@ -855,16 +855,16 @@ Depending on df construction, ``ignore_index`` may be needed
             suffixes=('_L', '_R'))
 
 `How to set the index and join
-<http://stackoverflow.com/questions/14341805/pandas-merge-pd-merge-how-to-set-the-index-and-join>`__
+<https://stackoverflow.com/questions/14341805/pandas-merge-pd-merge-how-to-set-the-index-and-join>`__
 
 `KDB like asof join
-<http://stackoverflow.com/questions/12322289/kdb-like-asof-join-for-timeseries-data-in-pandas/12336039#12336039>`__
+<https://stackoverflow.com/questions/12322289/kdb-like-asof-join-for-timeseries-data-in-pandas/12336039#12336039>`__
 
 `Join with a criteria based on the values
-<http://stackoverflow.com/questions/15581829/how-to-perform-an-inner-or-outer-join-of-dataframes-with-pandas-on-non-simplisti>`__
+<https://stackoverflow.com/questions/15581829/how-to-perform-an-inner-or-outer-join-of-dataframes-with-pandas-on-non-simplisti>`__
 
 `Using searchsorted to merge based on values inside a range
-<http://stackoverflow.com/questions/25125626/pandas-merge-with-logic/2512764>`__
+<https://stackoverflow.com/questions/25125626/pandas-merge-with-logic/2512764>`__
 
 .. _cookbook.plotting:
 
@@ -874,31 +874,31 @@ Plotting
 The :ref:`Plotting <visualization>` docs.
 
 `Make Matplotlib look like R
-<http://stackoverflow.com/questions/14349055/making-matplotlib-graphs-look-like-r-by-default>`__
+<https://stackoverflow.com/questions/14349055/making-matplotlib-graphs-look-like-r-by-default>`__
 
 `Setting x-axis major and minor labels
-<http://stackoverflow.com/questions/12945971/pandas-timeseries-plot-setting-x-axis-major-and-minor-ticks-and-labels>`__
+<https://stackoverflow.com/questions/12945971/pandas-timeseries-plot-setting-x-axis-major-and-minor-ticks-and-labels>`__
 
 `Plotting multiple charts in an ipython notebook
-<http://stackoverflow.com/questions/16392921/make-more-than-one-chart-in-same-ipython-notebook-cell>`__
+<https://stackoverflow.com/questions/16392921/make-more-than-one-chart-in-same-ipython-notebook-cell>`__
 
 `Creating a multi-line plot
-<http://stackoverflow.com/questions/16568964/make-a-multiline-plot-from-csv-file-in-matplotlib>`__
+<https://stackoverflow.com/questions/16568964/make-a-multiline-plot-from-csv-file-in-matplotlib>`__
 
 `Plotting a heatmap
-<http://stackoverflow.com/questions/17050202/plot-timeseries-of-histograms-in-python>`__
+<https://stackoverflow.com/questions/17050202/plot-timeseries-of-histograms-in-python>`__
 
 `Annotate a time-series plot
-<http://stackoverflow.com/questions/11067368/annotate-time-series-plot-in-matplotlib>`__
+<https://stackoverflow.com/questions/11067368/annotate-time-series-plot-in-matplotlib>`__
 
 `Annotate a time-series plot #2
-<http://stackoverflow.com/questions/17891493/annotating-points-from-a-pandas-dataframe-in-matplotlib-plot>`__
+<https://stackoverflow.com/questions/17891493/annotating-points-from-a-pandas-dataframe-in-matplotlib-plot>`__
 
 `Generate Embedded plots in excel files using Pandas, Vincent and xlsxwriter
 <https://pandas-xlsxwriter-charts.readthedocs.io/>`__
 
 `Boxplot for each quartile of a stratifying variable
-<http://stackoverflow.com/questions/23232989/boxplot-stratified-by-column-in-python-pandas>`__
+<https://stackoverflow.com/questions/23232989/boxplot-stratified-by-column-in-python-pandas>`__
 
 .. ipython:: python
 
@@ -918,7 +918,7 @@ Data In/Out
 -----------
 
 `Performance comparison of SQL vs HDF5
-<http://stackoverflow.com/questions/16628329/hdf5-and-sqlite-concurrency-compression-i-o-performance>`__
+<https://stackoverflow.com/questions/16628329/hdf5-and-sqlite-concurrency-compression-i-o-performance>`__
 
 .. _cookbook.csv:
 
@@ -930,25 +930,25 @@ The :ref:`CSV <io.read_csv_table>` docs
 `read_csv in action <http://wesmckinney.com/blog/update-on-upcoming-pandas-v0-10-new-file-parser-other-performance-wins/>`__
 
 `appending to a csv
-<http://stackoverflow.com/questions/17134942/pandas-dataframe-output-end-of-csv>`__
+<https://stackoverflow.com/questions/17134942/pandas-dataframe-output-end-of-csv>`__
 
 `Reading a csv chunk-by-chunk
-<http://stackoverflow.com/questions/11622652/large-persistent-dataframe-in-pandas/12193309#12193309>`__
+<https://stackoverflow.com/questions/11622652/large-persistent-dataframe-in-pandas/12193309#12193309>`__
 
 `Reading only certain rows of a csv chunk-by-chunk
-<http://stackoverflow.com/questions/19674212/pandas-data-frame-select-rows-and-clear-memory>`__
+<https://stackoverflow.com/questions/19674212/pandas-data-frame-select-rows-and-clear-memory>`__
 
 `Reading the first few lines of a frame
-<http://stackoverflow.com/questions/15008970/way-to-read-first-few-lines-for-pandas-dataframe>`__
+<https://stackoverflow.com/questions/15008970/way-to-read-first-few-lines-for-pandas-dataframe>`__
 
 Reading a file that is compressed but not by ``gzip/bz2`` (the native compressed formats which ``read_csv`` understands).
 This example shows a ``WinZipped`` file, but is a general application of opening the file within a context manager and
 using that handle to read.
 `See here
-<http://stackoverflow.com/questions/17789907/pandas-convert-winzipped-csv-file-to-data-frame>`__
+<https://stackoverflow.com/questions/17789907/pandas-convert-winzipped-csv-file-to-data-frame>`__
 
 `Inferring dtypes from a file
-<http://stackoverflow.com/questions/15555005/get-inferred-dataframe-types-iteratively-using-chunksize>`__
+<https://stackoverflow.com/questions/15555005/get-inferred-dataframe-types-iteratively-using-chunksize>`__
 
 `Dealing with bad lines
 <http://github.com/pandas-dev/pandas/issues/2886>`__
@@ -960,7 +960,7 @@ using that handle to read.
 <http://nipunbatra.github.io/2013/06/pandas-reading-csv-with-unix-timestamps-and-converting-to-local-timezone/>`__
 
 `Write a multi-row index CSV without writing duplicates
-<http://stackoverflow.com/questions/17349574/pandas-write-multiindex-rows-with-to-csv>`__
+<https://stackoverflow.com/questions/17349574/pandas-write-multiindex-rows-with-to-csv>`__
 
 .. _cookbook.csv.multiple_files:
 
@@ -1069,7 +1069,7 @@ SQL
 The :ref:`SQL <io.sql>` docs
 
 `Reading from databases with SQL
-<http://stackoverflow.com/questions/10065051/python-pandas-and-databases-like-mysql>`__
+<https://stackoverflow.com/questions/10065051/python-pandas-and-databases-like-mysql>`__
 
 .. _cookbook.excel:
 
@@ -1079,7 +1079,7 @@ Excel
 The :ref:`Excel <io.excel>` docs
 
 `Reading from a filelike handle
-<http://stackoverflow.com/questions/15588713/sheets-of-excel-workbook-from-a-url-into-a-pandas-dataframe>`__
+<https://stackoverflow.com/questions/15588713/sheets-of-excel-workbook-from-a-url-into-a-pandas-dataframe>`__
 
 `Modifying formatting in XlsxWriter output
 <http://pbpython.com/improve-pandas-excel-output.html>`__
@@ -1090,7 +1090,7 @@ HTML
 ****
 
 `Reading HTML tables from a server that cannot handle the default request
-header <http://stackoverflow.com/a/18939272/564538>`__
+header <https://stackoverflow.com/a/18939272/564538>`__
 
 .. _cookbook.hdf:
 
@@ -1100,54 +1100,54 @@ HDFStore
 The :ref:`HDFStores <io.hdf5>` docs
 
 `Simple queries with a Timestamp Index
-<http://stackoverflow.com/questions/13926089/selecting-columns-from-pandas-hdfstore-table>`__
+<https://stackoverflow.com/questions/13926089/selecting-columns-from-pandas-hdfstore-table>`__
 
 `Managing heterogeneous data using a linked multiple table hierarchy
 <http://github.com/pandas-dev/pandas/issues/3032>`__
 
 `Merging on-disk tables with millions of rows
-<http://stackoverflow.com/questions/14614512/merging-two-tables-with-millions-of-rows-in-python/14617925#14617925>`__
+<https://stackoverflow.com/questions/14614512/merging-two-tables-with-millions-of-rows-in-python/14617925#14617925>`__
 
 `Avoiding inconsistencies when writing to a store from multiple processes/threads
-<http://stackoverflow.com/a/29014295/2858145>`__
+<https://stackoverflow.com/a/29014295/2858145>`__
 
 De-duplicating a large store by chunks, essentially a recursive reduction operation. Shows a function for taking in data from
 csv file and creating a store by chunks, with date parsing as well.
 `See here
-<http://stackoverflow.com/questions/16110252/need-to-compare-very-large-files-around-1-5gb-in-python/16110391#16110391>`__
+<https://stackoverflow.com/questions/16110252/need-to-compare-very-large-files-around-1-5gb-in-python/16110391#16110391>`__
 
 `Creating a store chunk-by-chunk from a csv file
-<http://stackoverflow.com/questions/20428355/appending-column-to-frame-of-hdf-file-in-pandas/20428786#20428786>`__
+<https://stackoverflow.com/questions/20428355/appending-column-to-frame-of-hdf-file-in-pandas/20428786#20428786>`__
 
 `Appending to a store, while creating a unique index
-<http://stackoverflow.com/questions/16997048/how-does-one-append-large-amounts-of-data-to-a-pandas-hdfstore-and-get-a-natural/16999397#16999397>`__
+<https://stackoverflow.com/questions/16997048/how-does-one-append-large-amounts-of-data-to-a-pandas-hdfstore-and-get-a-natural/16999397#16999397>`__
 
 `Large Data work flows
-<http://stackoverflow.com/questions/14262433/large-data-work-flows-using-pandas>`__
+<https://stackoverflow.com/questions/14262433/large-data-work-flows-using-pandas>`__
 
 `Reading in a sequence of files, then providing a global unique index to a store while appending
-<http://stackoverflow.com/questions/16997048/how-does-one-append-large-amounts-of-data-to-a-pandas-hdfstore-and-get-a-natural>`__
+<https://stackoverflow.com/questions/16997048/how-does-one-append-large-amounts-of-data-to-a-pandas-hdfstore-and-get-a-natural>`__
 
 `Groupby on a HDFStore with low group density
-<http://stackoverflow.com/questions/15798209/pandas-group-by-query-on-large-data-in-hdfstore>`__
+<https://stackoverflow.com/questions/15798209/pandas-group-by-query-on-large-data-in-hdfstore>`__
 
 `Groupby on a HDFStore with high group density
-<http://stackoverflow.com/questions/25459982/trouble-with-grouby-on-millions-of-keys-on-a-chunked-file-in-python-pandas/25471765#25471765>`__
+<https://stackoverflow.com/questions/25459982/trouble-with-grouby-on-millions-of-keys-on-a-chunked-file-in-python-pandas/25471765#25471765>`__
 
 `Hierarchical queries on a HDFStore
-<http://stackoverflow.com/questions/22777284/improve-query-performance-from-a-large-hdfstore-table-with-pandas/22820780#22820780>`__
+<https://stackoverflow.com/questions/22777284/improve-query-performance-from-a-large-hdfstore-table-with-pandas/22820780#22820780>`__
 
 `Counting with a HDFStore
-<http://stackoverflow.com/questions/20497897/converting-dict-of-dicts-into-pandas-dataframe-memory-issues>`__
+<https://stackoverflow.com/questions/20497897/converting-dict-of-dicts-into-pandas-dataframe-memory-issues>`__
 
 `Troubleshoot HDFStore exceptions
-<http://stackoverflow.com/questions/15488809/how-to-trouble-shoot-hdfstore-exception-cannot-find-the-correct-atom-type>`__
+<https://stackoverflow.com/questions/15488809/how-to-trouble-shoot-hdfstore-exception-cannot-find-the-correct-atom-type>`__
 
 `Setting min_itemsize with strings
-<http://stackoverflow.com/questions/15988871/hdfstore-appendstring-dataframe-fails-when-string-column-contents-are-longer>`__
+<https://stackoverflow.com/questions/15988871/hdfstore-appendstring-dataframe-fails-when-string-column-contents-are-longer>`__
 
 `Using ptrepack to create a completely-sorted-index on a store
-<http://stackoverflow.com/questions/17893370/ptrepack-sortby-needs-full-index>`__
+<https://stackoverflow.com/questions/17893370/ptrepack-sortby-needs-full-index>`__
 
 Storing Attributes to a group node
 
@@ -1305,7 +1305,7 @@ The :ref:`Timedeltas <timedeltas.timedeltas>` docs.
    datetime.timedelta(minutes=5) + s
 
 `Adding and subtracting deltas and dates
-<http://stackoverflow.com/questions/16385785/add-days-to-dates-in-dataframe>`__
+<https://stackoverflow.com/questions/16385785/add-days-to-dates-in-dataframe>`__
 
 .. ipython:: python
 
@@ -1322,7 +1322,7 @@ The :ref:`Timedeltas <timedeltas.timedeltas>` docs.
    df.dtypes
 
 `Another example
-<http://stackoverflow.com/questions/15683588/iterating-through-a-pandas-dataframe>`__
+<https://stackoverflow.com/questions/15683588/iterating-through-a-pandas-dataframe>`__
 
 Values can be set to NaT using np.nan, similar to datetime
 

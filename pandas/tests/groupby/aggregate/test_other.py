@@ -26,7 +26,7 @@ from pandas.io.formats.printing import pprint_thing
 
 def test_agg_api():
     # GH 6337
-    # http://stackoverflow.com/questions/21706030/pandas-groupby-agg-function-column-dtype-error
+    # https://stackoverflow.com/questions/21706030/pandas-groupby-agg-function-column-dtype-error
     # different api for agg when passed custom function with mixed frame
 
     df = DataFrame(
