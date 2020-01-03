@@ -15,10 +15,10 @@ RUN apt-get update \
     # Verify git, process tools, lsb-release (common in install instructions for CLIs) installed
     && apt-get -y install git iproute2 procps iproute2 lsb-release \
     #
-    # Install C compilers (gcc not enough, so just went with build-essential which admittedly might be overkill), 
+    # Install C compilers (gcc not enough, so just went with build-essential which admittedly might be overkill),
     # needed to build pandas C extensions
     && apt-get -y install build-essential \
-    # 
+    #
     # cleanup
     && apt-get autoremove -y \
     && apt-get clean -y \
@@ -28,15 +28,15 @@ RUN apt-get update \
 ENV DEBIAN_FRONTEND=dialog
 
 # Clone pandas repo
-RUN mkdir "$pandas_home" \      
+RUN mkdir "$pandas_home" \
     && git clone "https://github.com/$gh_username/pandas.git" "$pandas_home" \
     && cd "$pandas_home" \
     && git remote add upstream "https://github.com/$gh_username/pandas.git"
 
 # Because it is surprisingly difficult to activate a conda environment inside a DockerFile
-# (from personal experience and per https://github.com/ContinuumIO/docker-images/issues/89), 
+# (from personal experience and per https://github.com/ContinuumIO/docker-images/issues/89),
 # we just update the base/root one from the 'environment.yml' file instead of creating a new one.
-# 
+#
 # Set up environment
 RUN conda env update -n base -f "$pandas_home/environment.yml"
 
@@ -47,4 +47,3 @@ RUN cd "$pandas_home" \
 
 # Install pylint for VS Code
 RUN /opt/conda/bin/pip install pylint
-        

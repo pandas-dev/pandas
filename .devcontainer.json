@@ -5,9 +5,9 @@
 	"context": ".",
 	"dockerFile": "Dockerfile",
 
-	// Use 'settings' to set *default* container specific settings.json values on container create. 
+	// Use 'settings' to set *default* container specific settings.json values on container create.
 	// You can edit these settings after create using File > Preferences > Settings > Remote.
-	"settings": { 
+	"settings": {
 		"terminal.integrated.shell.linux": "/bin/bash",
 		"python.pythonPath": "/opt/conda/bin/python",
 		"python.linting.enabled": true,
