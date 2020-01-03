@@ -22,7 +22,11 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCMultiIndex, ABCSeries
 from pandas.core.dtypes.missing import _infer_fill_value, isna
 
 import pandas.core.common as com
-from pandas.core.indexers import is_list_like_indexer, length_of_indexer
+from pandas.core.indexers import (
+    check_bool_array_indexer,
+    is_list_like_indexer,
+    length_of_indexer,
+)
 from pandas.core.indexes.api import Index, InvalidIndexError
 
 
@@ -2309,13 +2313,7 @@ def check_bool_indexer(index: Index, key) -> np.ndarray:
     else:
         if is_sparse(result):
             result = result.to_dense()
-        result = np.asarray(result, dtype=bool)
-
-        # GH26658
-        if len(result) != len(index):
-            raise IndexError(
-                f"Item wrong length {len(result)} instead of {len(index)}."
-            )
+        result = check_bool_array_indexer(index, result)
 
     return result
 

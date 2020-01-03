@@ -738,6 +738,9 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     # --------
 
     def __getitem__(self, key):
+        # avoid mypy issues when importing at the top-level
+        from pandas.core.indexing import check_bool_indexer
+
         if isinstance(key, tuple):
             if len(key) > 1:
                 raise IndexError("too many indices for array.")
@@ -766,7 +769,9 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                 else:
                     key = np.asarray(key)
 
-            if com.is_bool_indexer(key) and len(self) == len(key):
+            if com.is_bool_indexer(key):
+                key = check_bool_indexer(self, key)
+
                 return self.take(np.arange(len(key), dtype=np.int32)[key])
             elif hasattr(key, "__len__"):
                 return self.take(key)

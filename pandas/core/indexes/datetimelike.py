@@ -2,7 +2,7 @@
 Base and utility classes for tseries type pandas objects.
 """
 import operator
-from typing import List, Set
+from typing import List, Optional, Set
 
 import numpy as np
 
@@ -40,28 +40,9 @@ from pandas.core.tools.timedeltas import to_timedelta
 
 from pandas.tseries.frequencies import DateOffset, to_offset
 
+from .extension import inherit_names
+
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
-
-
-def ea_passthrough(array_method):
-    """
-    Make an alias for a method of the underlying ExtensionArray.
-
-    Parameters
-    ----------
-    array_method : method on an Array class
-
-    Returns
-    -------
-    method
-    """
-
-    def method(self, *args, **kwargs):
-        return array_method(self._data, *args, **kwargs)
-
-    method.__name__ = array_method.__name__
-    method.__doc__ = array_method.__doc__
-    return method
 
 
 def _make_wrapped_arith_op(opname):
@@ -100,47 +81,33 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
     return wrapper
 
 
+@inherit_names(
+    ["inferred_freq", "_isnan", "_resolution", "resolution"],
+    DatetimeLikeArrayMixin,
+    cache=True,
+)
+@inherit_names(
+    ["__iter__", "mean", "freq", "freqstr", "_ndarray_values", "asi8", "_box_values"],
+    DatetimeLikeArrayMixin,
+)
 class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     """
     Common ops mixin to support a unified interface datetimelike Index.
     """
 
     _data: ExtensionArray
+    freq: Optional[DateOffset]
+    freqstr: Optional[str]
+    _resolution: int
+    _bool_ops: List[str] = []
+    _field_ops: List[str] = []
 
-    # DatetimeLikeArrayMixin assumes subclasses are mutable, so these are
-    # properties there.  They can be made into cache_readonly for Index
-    # subclasses bc they are immutable
-    inferred_freq = cache_readonly(
-        DatetimeLikeArrayMixin.inferred_freq.fget  # type: ignore
-    )
-    _isnan = cache_readonly(DatetimeLikeArrayMixin._isnan.fget)  # type: ignore
     hasnans = cache_readonly(DatetimeLikeArrayMixin._hasnans.fget)  # type: ignore
     _hasnans = hasnans  # for index / array -agnostic code
-    _resolution = cache_readonly(
-        DatetimeLikeArrayMixin._resolution.fget  # type: ignore
-    )
-    resolution = cache_readonly(DatetimeLikeArrayMixin.resolution.fget)  # type: ignore
-
-    __iter__ = ea_passthrough(DatetimeLikeArrayMixin.__iter__)
-    mean = ea_passthrough(DatetimeLikeArrayMixin.mean)
 
     @property
     def is_all_dates(self) -> bool:
         return True
-
-    @property
-    def freq(self):
-        """
-        Return the frequency object if it is set, otherwise None.
-        """
-        return self._data.freq
-
-    @property
-    def freqstr(self):
-        """
-        Return the frequency object as a string if it is set, otherwise None.
-        """
-        return self._data.freqstr
 
     def unique(self, level=None):
         if level is not None:
@@ -172,10 +139,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         wrapper.__name__ = f"__{op.__name__}__"
         return wrapper
 
-    @property
-    def _ndarray_values(self) -> np.ndarray:
-        return self._data._ndarray_values
-
     # ------------------------------------------------------------------------
     # Abstract data attributes
 
@@ -183,11 +146,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     def values(self):
         # Note: PeriodArray overrides this to return an ndarray of objects.
         return self._data._data
-
-    @property  # type: ignore # https://github.com/python/mypy/issues/1362
-    @Appender(DatetimeLikeArrayMixin.asi8.__doc__)
-    def asi8(self):
-        return self._data.asi8
 
     def __array_wrap__(self, result, context=None):
         """
@@ -247,9 +205,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             )
             return type(self)._simple_new(result, name=self.name)
         return arg
-
-    def _box_values(self, values):
-        return self._data._box_values(values)
 
     @Appender(_index_shared_docs["contains"] % _index_doc_kwargs)
     def __contains__(self, key):
@@ -512,39 +467,10 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
         return super()._convert_scalar_indexer(key, kind=kind)
 
-    @classmethod
-    def _add_datetimelike_methods(cls):
-        """
-        Add in the datetimelike methods (as we may have to override the
-        superclass).
-        """
-
-        def __add__(self, other):
-            # dispatch to ExtensionArray implementation
-            result = self._data.__add__(maybe_unwrap_index(other))
-            return wrap_arithmetic_op(self, other, result)
-
-        cls.__add__ = __add__
-
-        def __radd__(self, other):
-            # alias for __add__
-            return self.__add__(other)
-
-        cls.__radd__ = __radd__
-
-        def __sub__(self, other):
-            # dispatch to ExtensionArray implementation
-            result = self._data.__sub__(maybe_unwrap_index(other))
-            return wrap_arithmetic_op(self, other, result)
-
-        cls.__sub__ = __sub__
-
-        def __rsub__(self, other):
-            result = self._data.__rsub__(maybe_unwrap_index(other))
-            return wrap_arithmetic_op(self, other, result)
-
-        cls.__rsub__ = __rsub__
-
+    __add__ = _make_wrapped_arith_op("__add__")
+    __radd__ = _make_wrapped_arith_op("__radd__")
+    __sub__ = _make_wrapped_arith_op("__sub__")
+    __rsub__ = _make_wrapped_arith_op("__rsub__")
     __pow__ = _make_wrapped_arith_op("__pow__")
     __rpow__ = _make_wrapped_arith_op("__rpow__")
     __mul__ = _make_wrapped_arith_op("__mul__")
