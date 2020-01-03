@@ -577,6 +577,37 @@ Deprecations
 - :meth:`DataFrame.to_stata`, :meth:`DataFrame.to_feather`, and :meth:`DataFrame.to_parquet` argument "fname" is deprecated, use "path" instead (:issue:`23574`)
 - The deprecated internal attributes ``_start``, ``_stop`` and ``_step`` of :class:`RangeIndex` now raise a ``FutureWarning`` instead of a ``DeprecationWarning`` (:issue:`26581`)
 
+**Selecting Columns from a Grouped DataFrame**
+
+When selecting columns from a :class:`DataFrameGroupBy` object, passing individual keys (or a tuple of keys) inside single brackets is deprecated,
+a list of items should be used instead. (:issue:`23566`) For example:
+
+.. code-block:: ipython
+
+    df = pd.DataFrame({
+        "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
+        "B": np.random.randn(8),
+        "C": np.random.randn(8),
+    })
+    g = df.groupby('A')
+
+    # single key, returns SeriesGroupBy
+    g['B']
+
+    # tuple of single key, returns SeriesGroupBy
+    g[('B',)]
+
+    # tuple of multiple keys, returns DataFrameGroupBy, raises FutureWarning
+    g[('B', 'C')]
+
+    # multiple keys passed directly, returns DataFrameGroupBy, raises FutureWarning
+    # (implicitly converts the passed strings into a single tuple)
+    g['B', 'C']
+
+    # proper way, returns DataFrameGroupBy
+    g[['B', 'C']]
+
+
 .. _whatsnew_1000.prior_deprecations:
 
 
