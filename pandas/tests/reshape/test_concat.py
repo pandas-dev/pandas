@@ -27,9 +27,9 @@ from pandas import (
     isna,
     read_csv,
 )
+import pandas._testing as tm
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.tests.extension.decimal import to_decimal
-import pandas.util.testing as tm
 
 
 @pytest.fixture(params=[True, False])

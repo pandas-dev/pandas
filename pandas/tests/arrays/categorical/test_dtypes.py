@@ -4,7 +4,7 @@ import pytest
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 from pandas import Categorical, CategoricalIndex, Index, Series, Timestamp
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestCategoricalDtypes:

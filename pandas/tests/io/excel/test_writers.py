@@ -10,7 +10,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, get_option, set_option
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.io.excel import (
     ExcelFile,

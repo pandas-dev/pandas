@@ -1519,7 +1519,7 @@ rows will skip the intervening rows.
 
 .. ipython:: python
 
-   from pandas.util.testing import makeCustomDataframe as mkdf
+   from pandas._testing import makeCustomDataframe as mkdf
    df = mkdf(5, 3, r_idx_nlevels=2, c_idx_nlevels=4)
    df.to_csv('mi.csv')
    print(open('mi.csv').read())

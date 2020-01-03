@@ -8,7 +8,7 @@ from io import StringIO
 import pytest
 
 from pandas import DataFrame, Index, MultiIndex
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize("with_header", [True, False])

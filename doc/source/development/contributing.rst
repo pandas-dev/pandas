@@ -569,8 +569,7 @@ do not make sudden changes to the code that could have the potential to break
 a lot of user code as a result, that is, we need it to be as *backwards compatible*
 as possible to avoid mass breakages.
 
-Additional standards are outlined on the `code style wiki
-page <https://github.com/pandas-dev/pandas/wiki/Code-Style-and-Conventions>`_.
+Additional standards are outlined on the `pandas code style guide <code_style>`_
 
 Optional dependencies
 ---------------------
@@ -957,7 +956,7 @@ inspiration.  If your test requires working with files or
 network connectivity, there is more information on the `testing page
 <https://github.com/pandas-dev/pandas/wiki/Testing>`_ of the wiki.
 
-The ``pandas.util.testing`` module has many special ``assert`` functions that
+The ``pandas._testing`` module has many special ``assert`` functions that
 make it easier to make statements about whether Series or DataFrame objects are
 equivalent. The easiest way to verify that your code is correct is to
 explicitly construct the result you expect, then compare the actual result to
@@ -1143,7 +1142,7 @@ If your change involves checking that a warning is actually emitted, use
 
 .. code-block:: python
 
-   import pandas.util.testing as tm
+   import pandas._testing as tm
 
 
    df = pd.DataFrame()
