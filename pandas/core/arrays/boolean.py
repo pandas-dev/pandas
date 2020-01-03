@@ -29,6 +29,8 @@ from pandas.core.dtypes.missing import isna, notna
 from pandas.core import nanops, ops
 from pandas.core.algorithms import take
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
+import pandas.core.common as com
+from pandas.core.indexers import check_bool_array_indexer
 
 if TYPE_CHECKING:
     from pandas._typing import Scalar
@@ -307,11 +309,22 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
     def _formatter(self, boxed=False):
         return str
 
+    @property
+    def _hasna(self) -> bool:
+        # Note: this is expensive right now! The hope is that we can
+        # make this faster by having an optional mask, but not have to change
+        # source code using it..
+        return self._mask.any()
+
     def __getitem__(self, item):
         if is_integer(item):
             if self._mask[item]:
                 return self.dtype.na_value
             return self._data[item]
+
+        elif com.is_bool_indexer(item):
+            item = check_bool_array_indexer(self, item)
+
         return type(self)(self._data[item], self._mask[item])
 
     def to_numpy(self, dtype=None, copy=False, na_value: "Scalar" = libmissing.NA):
@@ -340,7 +353,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
         """
         if dtype is None:
             dtype = object
-        if self.isna().any():
+        if self._hasna:
             if is_bool_dtype(dtype) and na_value is libmissing.NA:
                 raise ValueError(
                     "cannot convert to bool numpy array in presence of missing values"
@@ -516,7 +529,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
 
         if is_bool_dtype(dtype):
             # astype_nansafe converts np.nan to True
-            if self.isna().any():
+            if self._hasna:
                 raise ValueError("cannot convert float NaN to bool")
             else:
                 return self._data.astype(dtype, copy=copy)
@@ -528,7 +541,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
             )
         # for integer, error if there are missing values
         if is_integer_dtype(dtype):
-            if self.isna().any():
+            if self._hasna:
                 raise ValueError("cannot convert NA to integer")
         # for float dtype, ensure we use np.nan before casting (numpy cannot
         # deal with pd.NA)
@@ -537,7 +550,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
             na_value = np.nan
         # coerce
         data = self.to_numpy(na_value=na_value)
-        return astype_nansafe(data, dtype, copy=None)
+        return astype_nansafe(data, dtype, copy=False)
 
     def value_counts(self, dropna=True):
         """
@@ -743,7 +756,6 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
     @classmethod
     def _create_logical_method(cls, op):
         def logical_method(self, other):
-
             if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
                 # Rely on pandas to unbox and dispatch to us.
                 return NotImplemented
@@ -768,9 +780,8 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
 
             if other_is_scalar and not (other is libmissing.NA or lib.is_bool(other)):
                 raise TypeError(
-                    "'other' should be pandas.NA or a bool. Got {} instead.".format(
-                        type(other).__name__
-                    )
+                    "'other' should be pandas.NA or a bool. "
+                    f"Got {type(other).__name__} instead."
                 )
 
             if not other_is_scalar and len(self) != len(other):
@@ -785,14 +796,17 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
 
             return BooleanArray(result, mask)
 
-        name = "__{name}__".format(name=op.__name__)
+        name = f"__{op.__name__}__"
         return set_function_name(logical_method, name, cls)
 
     @classmethod
     def _create_comparison_method(cls, op):
         def cmp_method(self, other):
+            from pandas.arrays import IntegerArray
 
-            if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
+            if isinstance(
+                other, (ABCDataFrame, ABCSeries, ABCIndexClass, IntegerArray)
+            ):
                 # Rely on pandas to unbox and dispatch to us.
                 return NotImplemented
 
@@ -832,7 +846,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
 
             return BooleanArray(result, mask, copy=False)
 
-        name = "__{name}__".format(name=op.__name__)
+        name = f"__{op.__name__}"
         return set_function_name(cmp_method, name, cls)
 
     def _reduce(self, name, skipna=True, **kwargs):
@@ -935,7 +949,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
 
             return self._maybe_mask_result(result, mask, other, op_name)
 
-        name = "__{name}__".format(name=op_name)
+        name = f"__{op_name}__"
         return set_function_name(boolean_arithmetic_method, name, cls)
 
 

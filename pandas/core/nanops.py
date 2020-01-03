@@ -831,7 +831,7 @@ def _nanminmax(meth, fill_value_typ):
             try:
                 result = getattr(values, meth)(axis, dtype=dtype_max)
                 result.fill(np.nan)
-            except (AttributeError, TypeError, ValueError, np.core._internal.AxisError):
+            except (AttributeError, TypeError, ValueError):
                 result = np.nan
         else:
             result = getattr(values, meth)(axis)
@@ -1337,7 +1337,7 @@ nanne = make_nancomp(operator.ne)
 
 def _nanpercentile_1d(values, mask, q, na_value, interpolation):
     """
-    Wraper for np.percentile that skips missing values, specialized to
+    Wrapper for np.percentile that skips missing values, specialized to
     1-dimensional case.
 
     Parameters
@@ -1368,7 +1368,7 @@ def _nanpercentile_1d(values, mask, q, na_value, interpolation):
 
 def nanpercentile(values, q, axis, na_value, mask, ndim, interpolation):
     """
-    Wraper for np.percentile that skips missing values.
+    Wrapper for np.percentile that skips missing values.
 
     Parameters
     ----------

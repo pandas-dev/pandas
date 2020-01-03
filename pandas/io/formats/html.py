@@ -2,7 +2,6 @@
 Module for formatting output data in HTML.
 """
 
-from collections import OrderedDict
 from textwrap import dedent
 from typing import IO, Any, Dict, Iterable, List, Mapping, Optional, Tuple, Union, cast
 
@@ -109,12 +108,12 @@ class HTMLFormatter(TableFormatter):
         ----------
         s : object
             The data to be written inside the cell.
-        header : boolean, default False
+        header : bool, default False
             Set to True if the <th> is for use inside <thead>.  This will
             cause min-width to be set if there is one.
         indent : int, default 0
             The indentation level of the cell.
-        tags : string, default None
+        tags : str, default None
             Tags to include in the cell.
 
         Returns
@@ -138,10 +137,9 @@ class HTMLFormatter(TableFormatter):
         else:
             start_tag = "<{kind}>".format(kind=kind)
 
-        esc: Union[OrderedDict[str, str], Dict]
         if self.escape:
             # escape & first to prevent double escaping of &
-            esc = OrderedDict([("&", r"&amp;"), ("<", r"&lt;"), (">", r"&gt;")])
+            esc = {"&": r"&amp;", "<": r"&lt;", ">": r"&gt;"}
         else:
             esc = {}
 

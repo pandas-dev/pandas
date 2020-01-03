@@ -340,13 +340,39 @@ class BlockManager(PandasObject):
                 f"tot_items: {tot_items}"
             )
 
-    def apply(self, f: str, filter=None, **kwargs):
+    def reduce(self, func, *args, **kwargs):
+        # If 2D, we assume that we're operating column-wise
+        if self.ndim == 1:
+            # we'll be returning a scalar
+            blk = self.blocks[0]
+            return func(blk.values, *args, **kwargs)
+
+        res = {}
+        for blk in self.blocks:
+            bres = func(blk.values, *args, **kwargs)
+
+            if np.ndim(bres) == 0:
+                # EA
+                assert blk.shape[0] == 1
+                new_res = zip(blk.mgr_locs.as_array, [bres])
+            else:
+                assert bres.ndim == 1, bres.shape
+                assert blk.shape[0] == len(bres), (blk.shape, bres.shape, args, kwargs)
+                new_res = zip(blk.mgr_locs.as_array, bres)
+
+            nr = dict(new_res)
+            assert not any(key in res for key in nr)
+            res.update(nr)
+
+        return res
+
+    def apply(self, f, filter=None, **kwargs):
         """
         Iterate over the blocks, collect and create a new BlockManager.
 
         Parameters
         ----------
-        f : str
+        f : str or callable
             Name of the Block method to apply.
         filter : list, if supplied, only call the block if the filter is in
                  the block
@@ -411,7 +437,10 @@ class BlockManager(PandasObject):
                     axis = obj._info_axis_number
                     kwargs[k] = obj.reindex(b_items, axis=axis, copy=align_copy)
 
-            applied = getattr(b, f)(**kwargs)
+            if callable(f):
+                applied = b.apply(f, **kwargs)
+            else:
+                applied = getattr(b, f)(**kwargs)
             result_blocks = _extend_blocks(applied, result_blocks)
 
         if len(result_blocks) == 0:
@@ -741,16 +770,17 @@ class BlockManager(PandasObject):
 
         Parameters
         ----------
-        deep : boolean o rstring, default True
+        deep : bool or string, default True
             If False, return shallow copy (do not copy data)
             If 'all', copy data and a deep copy of the index
 
         Returns
         -------
-        copy : BlockManager
+        BlockManager
         """
         # this preserves the notion of view copying of axes
         if deep:
+            # hit in e.g. tests.io.json.test_pandas
 
             def copy_func(ax):
                 if deep == "all":
@@ -761,6 +791,7 @@ class BlockManager(PandasObject):
             new_axes = [copy_func(ax) for ax in self.axes]
         else:
             new_axes = list(self.axes)
+
         res = self.apply("copy", deep=deep)
         res.axes = new_axes
         return res
