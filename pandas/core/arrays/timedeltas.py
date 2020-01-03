@@ -82,12 +82,15 @@ def _td_array_cmp(cls, op):
     @unpack_zerodim_and_defer(opname)
     def wrapper(self, other):
 
-        if _is_convertible_to_td(other) or other is NaT:
+        if isinstance(other, str):
             try:
-                other = Timedelta(other)
+                other = self._scalar_from_string(other)
             except ValueError:
                 # failed to parse as timedelta
                 return invalid_comparison(self, other, op)
+
+        if _is_convertible_to_td(other) or other is NaT:
+            other = Timedelta(other)
 
             result = op(self.view("i8"), other.value)
             if isna(other):
