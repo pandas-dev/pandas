@@ -376,15 +376,6 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         return type(self)(self._data[item], self._mask[item])
 
-    def __eq__(self, other):
-        return (
-            isinstance(other, IntegerArray)
-            and hasattr(other, "_data")
-            and self._data == other._data
-            and hasattr(other, "_mask")
-            and self._mask == other._mask
-        )
-
     def _coerce_to_ndarray(self, dtype=None, na_value=lib._no_default):
         """
         coerce to an ndarary of object dtype

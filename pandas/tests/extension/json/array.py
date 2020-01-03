@@ -110,13 +110,6 @@ class JSONArray(ExtensionArray):
                     assert isinstance(v, self.dtype.type)
                     self.data[k] = v
 
-    def __eq__(self, other):
-        return (
-            isinstance(other, JSONArray)
-            and hasattr(other, "data")
-            and self.data == other.data
-        )
-
     def __len__(self) -> int:
         return len(self.data)
 

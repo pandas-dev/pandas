@@ -105,7 +105,6 @@ class ExtensionArray:
     * _from_sequence
     * _from_factorized
     * __getitem__
-    * __eq__
     * __len__
     * dtype
     * nbytes
@@ -358,15 +357,19 @@ class ExtensionArray:
 
         Parameters
         ----------
-        other: ExtensionArray
-            The array to compare to this array.
+        other: Any
+            The object to compare to this array.
 
         Returns
         -------
         bool
         """
 
-        raise AbstractMethodError(self)
+        return (
+            type(self) == type(other)
+            and (self.isna() == other.isna()).all()
+            and np.all(np.array(self) == np.array(other))
+        )
 
     def __ne__(self, other: Any) -> bool:
         """
@@ -374,8 +377,8 @@ class ExtensionArray:
 
         Parameters
         ----------
-        other: ExtensionArray
-            The array to compare to this array.
+        other: Any
+            The object to compare to this array.
 
         Returns
         -------
@@ -706,8 +709,10 @@ class ExtensionArray:
             Whether the arrays are equivalent.
 
         """
-        return isinstance(other, self.__class__) and (
-            ((self == other) | (self.isna() == other.isna())).all()
+        return (
+            type(self) == type(other)
+            and (((self == other) | (self.isna() == other.isna())).all())
+            and len(self) == len(other)
         )
 
     def _values_for_factorize(self) -> Tuple[np.ndarray, Any]:

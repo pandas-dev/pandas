@@ -362,6 +362,7 @@ class BaseMethodsTests(BaseExtensionTests):
     def test_equals(self, data, na_value):
         cls = type(data)
         ser = pd.Series(cls._from_sequence(data, dtype=data.dtype))
+        smaller_ser = pd.Series(cls._from_sequence(data[:5], dtype=data.dtype))
         na_ser = pd.Series(cls._from_sequence([na_value], dtype=data.dtype))
 
         assert data.equals(data)
@@ -371,5 +372,7 @@ class BaseMethodsTests(BaseExtensionTests):
         assert not data.equals(na_value)
         assert not na_ser.equals(ser)
         assert not ser.equals(na_ser)
+        assert not ser.equals(smaller_ser)
+        assert not ser.equals(np.asarray(data))
         assert not ser.equals(0)
         assert not na_ser.equals(0)
