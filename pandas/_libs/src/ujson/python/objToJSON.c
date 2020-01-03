@@ -295,7 +295,7 @@ static PyObject *get_values(PyObject *obj) {
     if (values && !PyArray_CheckExact(values)) {
 
         if (PyObject_HasAttrString(values, "to_numpy")) {
-	    Py_DECREF(values);
+            Py_DECREF(values);
             values = PyObject_CallMethod(values, "to_numpy", NULL);
         }
 
@@ -375,8 +375,8 @@ static PyObject *get_sub_attr(PyObject *obj, char *attr, char *subAttr) {
     PyObject *tmp = PyObject_GetAttrString(obj, attr);
     PyObject *ret;
 
-    if (tmp == 0) {
-        return 0;
+    if (tmp == NULL) {
+        return NULL;
     }
     ret = PyObject_GetAttrString(tmp, subAttr);
     Py_DECREF(tmp);
@@ -386,29 +386,26 @@ static PyObject *get_sub_attr(PyObject *obj, char *attr, char *subAttr) {
 
 static int is_simple_frame(PyObject *obj) {
     PyObject *check = get_sub_attr(obj, "_data", "is_mixed_type");
-    int ret = (check == Py_False);
-
-    if (!check) {
+    if (check == NULL) {
+        PyErr_Clear();
         return 0;
     }
 
     Py_DECREF(check);
+    int ret = (check == Py_False);
     return ret;
 }
 
+/* Returns -1 on failure */
 static Py_ssize_t get_attr_length(PyObject *obj, char *attr) {
     PyObject *tmp = PyObject_GetAttrString(obj, attr);
     Py_ssize_t ret;
 
-    if (tmp == 0) {
-        return 0;
+    if (tmp == NULL) {
+        return -1;
     }
     ret = PyObject_Length(tmp);
     Py_DECREF(tmp);
-
-    if (ret == -1) {
-        return 0;
-    }
 
     return ret;
 }
@@ -924,7 +921,8 @@ void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
     blkCtxt->transpose = GET_TC(tc)->transpose;
     blkCtxt->ncols = get_attr_length(obj, "columns");
 
-    if (blkCtxt->ncols == 0) {
+    if (blkCtxt->ncols == -1) {
+        // TODO: ensure error is propogated
         blkCtxt->npyCtxts = NULL;
         blkCtxt->cindices = NULL;
 
