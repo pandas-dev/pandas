@@ -19,20 +19,20 @@ def _try_import():
 
 
 def read_gbq(
-        query: str,
-        project_id: Optional[str] = None,
-        index_col: Optional[str] = None,
-        col_order: Optional[List[str]] = None,
-        reauth: bool = False,
-        auth_local_webserver: bool = False,
-        dialect: Optional[str] = None,
-        location: Optional[str] = None,
-        configuration: Optional[Dict] = None,
+    query: str,
+    project_id: Optional[str] = None,
+    index_col: Optional[str] = None,
+    col_order: Optional[List[str]] = None,
+    reauth: bool = False,
+    auth_local_webserver: bool = False,
+    dialect: Optional[str] = None,
+    location: Optional[str] = None,
+    configuration: Optional[Dict] = None,
     credentials=None,
-        use_bqstorage_api: Optional[bool] = None,
+    use_bqstorage_api: Optional[bool] = None,
     private_key=None,
     verbose=None,
-        progress_bar_type: Optional[str] = None,
+    progress_bar_type: Optional[str] = None,
 ) -> "DataFrame":
     """
     Load data from Google BigQuery.
@@ -188,16 +188,16 @@ def read_gbq(
 
 
 def to_gbq(
-        dataframe: "DataFrame",
-        destination_table: str,
-        project_id: Optional[str] = None,
-        chunksize: Optional[int] = None,
-        reauth: bool = False,
-        if_exists: str = "fail",
-        auth_local_webserver: bool = False,
-        table_schema: Optional[List[Dict[str, str]]] = None,
-        location: Optional[str] = None,
-        progress_bar: bool = True,
+    dataframe: "DataFrame",
+    destination_table: str,
+    project_id: Optional[str] = None,
+    chunksize: Optional[int] = None,
+    reauth: bool = False,
+    if_exists: str = "fail",
+    auth_local_webserver: bool = False,
+    table_schema: Optional[List[Dict[str, str]]] = None,
+    location: Optional[str] = None,
+    progress_bar: bool = True,
     credentials=None,
     verbose=None,
     private_key=None,
