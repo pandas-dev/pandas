@@ -3275,7 +3275,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # Indexing Methods
 
     def take(
-        self: FrameOrSeries, indices, axis=0, is_copy: bool_t = None, **kwargs
+        self: FrameOrSeries, indices, axis=0, is_copy: Optional[bool_t] = None, **kwargs
     ) -> FrameOrSeries:
         """
         Return the elements in the given *positional* indices along an axis.
