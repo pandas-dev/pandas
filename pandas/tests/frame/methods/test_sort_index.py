@@ -233,22 +233,23 @@ class TestDataFrameSortIndex:
     @pytest.mark.parametrize(
         "original_dict, sorted_dict, ascending, ignore_index, output_index",
         [
-            ({"A": [1, 2, 3]}, {"A": [3, 2, 1]}, False, True, [0, 1, 2]),
-            ({"A": [1, 2, 3]}, {"A": [1, 2, 3]}, True, True, [0, 1, 2]),
-            ({"A": [1, 2, 3]}, {"A": [3, 2, 1]}, False, False, [2, 1, 0]),
-            ({"A": [1, 2, 3]}, {"A": [1, 2, 3]}, True, False, [0, 1, 2]),
+            ({"A": [1, 2, 3]}, {"A": [2, 3, 1]}, False, True, [0, 1, 2]),
+            ({"A": [1, 2, 3]}, {"A": [1, 3, 2]}, True, True, [0, 1, 2]),
+            ({"A": [1, 2, 3]}, {"A": [2, 3, 1]}, False, False, [5, 3, 2]),
+            ({"A": [1, 2, 3]}, {"A": [1, 3, 2]}, True, False, [2, 3, 5]),
         ],
     )
     def test_sort_index_ignore_index(
         self, original_dict, sorted_dict, ascending, ignore_index, output_index
     ):
         # GH 30114
-        df = DataFrame(original_dict)
+        original_index = [2, 5, 3]
+        df = DataFrame(original_dict, index=original_index)
         expected_df = DataFrame(sorted_dict, index=output_index)
 
         sorted_df = df.sort_index(ascending=ascending, ignore_index=ignore_index)
         tm.assert_frame_equal(sorted_df, expected_df)
-        tm.assert_frame_equal(df, DataFrame(original_dict))
+        tm.assert_frame_equal(df, DataFrame(original_dict, index=original_index))
 
         # Test when inplace is True
         copied_df = df.copy()
@@ -256,7 +257,7 @@ class TestDataFrameSortIndex:
             ascending=ascending, ignore_index=ignore_index, inplace=True
         )
         tm.assert_frame_equal(copied_df, expected_df)
-        tm.assert_frame_equal(df, DataFrame(original_dict))
+        tm.assert_frame_equal(df, DataFrame(original_dict, index=original_index))
 
     @pytest.mark.parametrize(
         "original_dict, sorted_dict, ascending, ignore_index, output_index",
