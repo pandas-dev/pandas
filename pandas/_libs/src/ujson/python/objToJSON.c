@@ -156,24 +156,72 @@ void *initObjToJSON(void) {
         (PyTypeObject *)PyObject_GetAttrString(mod_decimal, "Decimal");
     Py_DECREF(mod_decimal);
 
+    if (type_decimal == NULL) {
+        return NULL;
+    }
+
     PyDateTime_IMPORT;
 
     mod_pandas = PyImport_ImportModule("pandas");
-    if (mod_pandas) {
-        cls_dataframe =
-            (PyTypeObject *)PyObject_GetAttrString(mod_pandas, "DataFrame");
-        cls_index = (PyTypeObject *)PyObject_GetAttrString(mod_pandas, "Index");
-        cls_series =
-            (PyTypeObject *)PyObject_GetAttrString(mod_pandas, "Series");
-        cls_timedelta = PyObject_GetAttrString(mod_pandas, "Timedelta");
-        Py_DECREF(mod_pandas);
+    if (mod_pandas == NULL) {
+        Py_DECREF(type_decimal);
+        return NULL;
     }
 
+    cls_dataframe =
+        (PyTypeObject *)PyObject_GetAttrString(mod_pandas, "DataFrame");
+    if (cls_dataframe == NULL) {
+        Py_DECREF(type_decimal);
+        Py_DECREF(mod_pandas);
+        return NULL;
+    }
+
+    cls_index = (PyTypeObject *)PyObject_GetAttrString(mod_pandas, "Index");
+    if (cls_index == NULL) {
+        Py_DECREF(cls_dataframe);
+        Py_DECREF(type_decimal);
+        Py_DECREF(mod_pandas);
+        return NULL;
+    }
+
+    cls_series = (PyTypeObject *)PyObject_GetAttrString(mod_pandas, "Series");
+    if (cls_series == NULL) {
+        Py_DECREF(cls_index);
+        Py_DECREF(cls_dataframe);
+        Py_DECREF(type_decimal);
+        Py_DECREF(mod_pandas);
+        return NULL;
+    }
+
+    cls_timedelta = PyObject_GetAttrString(mod_pandas, "Timedelta");
+    if (cls_timedelta == NULL) {
+        Py_DECREF(cls_series);
+        Py_DECREF(cls_index);
+        Py_DECREF(cls_dataframe);
+        Py_DECREF(type_decimal);
+        Py_DECREF(mod_pandas);
+        return NULL;
+    }
+
+    Py_DECREF(mod_pandas);
+
     mod_nattype = PyImport_ImportModule("pandas._libs.tslibs.nattype");
-    if (mod_nattype) {
-        cls_nat =
-            (PyTypeObject *)PyObject_GetAttrString(mod_nattype, "NaTType");
-        Py_DECREF(mod_nattype);
+    if (mod_nattype == NULL) {
+        Py_DECREF(cls_series);
+        Py_DECREF(cls_index);
+        Py_DECREF(cls_dataframe);
+        Py_DECREF(type_decimal);
+        return NULL;
+    }
+
+    cls_nat = (PyTypeObject *)PyObject_GetAttrString(mod_nattype, "NaTType");
+    Py_DECREF(mod_nattype);
+    if (cls_nat == NULL) {
+        Py_DECREF(cls_series);
+        Py_DECREF(cls_index);
+        Py_DECREF(cls_dataframe);
+        Py_DECREF(type_decimal);
+        return NULL;
     }
 
     /* Initialise numpy API and use 2/3 compatible return */
@@ -435,8 +483,8 @@ static char *int64ToIso(int64_t value, NPY_DATETIMEUNIT base, size_t *len) {
 }
 
 /* JSON callback. returns a char* and mutates the pointer to *len */
-static char *NpyDateTimeToIsoCallback(JSOBJ Py_UNUSED(unused), JSONTypeContext *tc,
-                                      size_t *len) {
+static char *NpyDateTimeToIsoCallback(JSOBJ Py_UNUSED(unused),
+                                      JSONTypeContext *tc, size_t *len) {
     NPY_DATETIMEUNIT base = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
     return int64ToIso(GET_TC(tc)->longValue, base, len);
 }
