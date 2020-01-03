@@ -3029,7 +3029,6 @@ class MultiIndex(Index):
                 return indexer
             return indexer & idxr
 
-        need_sort = False
         for i, k in enumerate(seq):
 
             if com.is_bool_indexer(k):
@@ -3040,13 +3039,6 @@ class MultiIndex(Index):
             elif is_list_like(k):
                 # a collection of labels to include from this level (these
                 # are or'd)
-                # Find out if the list_like label are sorted as the levels or not
-                if not need_sort:
-                    k_codes = self.levels[i].get_indexer(k)
-                    k_codes = k_codes[k_codes >= 0]  # Filter absent keys
-                    # True if the given codes are not ordered
-                    need_sort = (k_codes[:-1] > k_codes[1:]).any()
-
                 indexers = None
                 for x in k:
                     try:
@@ -3054,7 +3046,6 @@ class MultiIndex(Index):
                             self._get_level_indexer(x, level=i, indexer=indexer)
                         )
                         indexers = idxrs if indexers is None else indexers | idxrs
-
                     except KeyError:
 
                         # ignore not founds
@@ -3092,8 +3083,7 @@ class MultiIndex(Index):
         if indexer is None:
             return Int64Index([])._ndarray_values
 
-        if need_sort:
-            indexer = self._reorder_indexer(seq, indexer)
+        indexer = self._reorder_indexer(seq, indexer)
 
         return indexer._ndarray_values
 
@@ -3113,8 +3103,21 @@ class MultiIndex(Index):
         -------
         indexer : a sorted Int64Index indexer of self ordered as seq
         """
+        # Find out if the list_like label are sorted as the levels or not
+        need_sort = False
+        for i, k in enumerate(seq):
+            if is_list_like(k):
+                if not need_sort:
+                    k_codes = self.levels[i].get_indexer(k)
+                    k_codes = k_codes[k_codes >= 0]  # Filter absent keys
+                    # True if the given codes are not ordered
+                    need_sort = (k_codes[:-1] > k_codes[1:]).any()
+        # Bail out if no need to sort
+        if not need_sort:
+            return indexer
+
         n = len(self)
-        keys = tuple()
+        keys: Tuple[np.ndarray, ...] = tuple()
         # For each level of the sequence in seq, map the level codes with the
         # order they appears in a list-like sequence
         # This mapping is then use to reorder the indexer
