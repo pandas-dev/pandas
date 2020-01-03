@@ -118,8 +118,6 @@ def _coerce_method(converter):
 # ----------------------------------------------------------------------
 # Series class
 
-bool_t = bool  # Need alias because NDFrame has def bool:
-
 
 class Series(base.IndexOpsMixin, generic.NDFrame):
     """
@@ -2965,7 +2963,7 @@ Name: Max Speed, dtype: float64
         kind="quicksort",
         na_position="last",
         sort_remaining=True,
-        ignore_index: bool_t = False,
+        ignore_index: bool = False,
     ):
         """
         Sort Series by index labels.
