@@ -547,17 +547,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         right.values[key] = value_right
         self._right = right
 
-    def __eq__(self, other):
-        return (
-            isinstance(other, IntervalArray)
-            and hasattr(other, "_left")
-            and np.array_equal(self._left, other._left)
-            and hasattr(other, "_right")
-            and np.array_equal(self._right, other._right)
-            and hasattr(other, "_closed")
-            and self._closed == other._closed
-        )
-
     def fillna(self, value=None, method=None, limit=None):
         """
         Fill NA/NaN values using the specified method.
