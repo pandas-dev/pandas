@@ -3113,7 +3113,8 @@ class MultiIndex(Index):
                     # True if the given codes are not ordered
                     need_sort = (k_codes[:-1] > k_codes[1:]).any()
         # Bail out if no need to sort
-        if not need_sort:
+        # This is only true for a lexsorted index
+        if not need_sort and self.is_lexsorted():
             return indexer
 
         n = len(self)
