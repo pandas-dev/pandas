@@ -5,7 +5,7 @@ import pytest
 
 from pandas.compat._optional import VERSIONS, import_optional_dependency
 
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_import_optional():

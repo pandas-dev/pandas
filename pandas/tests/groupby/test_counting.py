@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame, MultiIndex, Period, Series, Timedelta, Timestamp
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestCounting:

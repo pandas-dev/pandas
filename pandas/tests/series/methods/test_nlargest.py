@@ -9,7 +9,7 @@ import pytest
 
 import pandas as pd
 from pandas import Series
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 main_dtypes = [
     "datetime",

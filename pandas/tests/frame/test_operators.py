@@ -6,9 +6,9 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series
+import pandas._testing as tm
 import pandas.core.common as com
 from pandas.tests.frame.common import _check_mixed_float
-import pandas.util.testing as tm
 
 
 class TestDataFrameUnaryOperators:
