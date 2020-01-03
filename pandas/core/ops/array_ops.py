@@ -246,7 +246,7 @@ def comparison_op(
         res_values = comp_method_OBJECT_ARRAY(op, lvalues, rvalues)
 
     else:
-        op_name = f"__{op.__name__}"
+        op_name = f"__{op.__name__}__"
         method = getattr(lvalues, op_name)
         with np.errstate(all="ignore"):
             res_values = method(rvalues)
