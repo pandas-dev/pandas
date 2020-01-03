@@ -1,5 +1,5 @@
 from collections import OrderedDict, abc
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 import functools
 import itertools
 
@@ -2423,6 +2423,14 @@ class TestDataFrameConstructors:
         # GH11363
         expected = DataFrame(Series(extension_arr))
         result = DataFrame(extension_arr)
+        tm.assert_frame_equal(result, expected)
+
+    def test_datetime_date_tuple_columns_from_dict(self):
+        # GH 10863
+        v = date.today()
+        tup = v, v
+        result = DataFrame({tup: Series(range(3), index=range(3))}, columns=[tup])
+        expected = DataFrame([0, 1, 2], columns=pd.Index(pd.Series([tup])))
         tm.assert_frame_equal(result, expected)
 
 
