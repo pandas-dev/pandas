@@ -470,7 +470,7 @@ Current behavior
    KeyError in the future, you can use .reindex() as an alternative.
 
    See the documentation here:
-   http://pandas.pydata.org/pandas-docs/stable/indexing.html#deprecate-loc-reindex-listlike
+   https://pandas.pydata.org/pandas-docs/stable/indexing.html#deprecate-loc-reindex-listlike
 
    Out[4]:
    1    2.0
