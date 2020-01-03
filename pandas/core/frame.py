@@ -97,6 +97,7 @@ from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import algorithms, common as com, nanops, ops
 from pandas.core.accessor import CachedAccessor
+from pandas.core.aggregation import reconstruct_func
 from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin as DatetimeLikeArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
@@ -6621,7 +6622,7 @@ Wild         185.0
     def aggregate(self, func=None, axis=0, *args, **kwargs):
         axis = self._get_axis_number(axis)
 
-        relabeling, func, columns, order = self._reconstruct_func(func, *args, **kwargs)
+        relabeling, func, columns, order = reconstruct_func(func, *args, **kwargs)
         if relabeling:
             kwargs = {}
 

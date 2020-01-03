@@ -294,42 +294,6 @@ class SelectionMixin:
             f"'{arg}' is not a valid function for '{type(self).__name__}' object"
         )
 
-    def _reconstruct_func(self, func, *args, **kwargs):
-        """
-        This is the internal function to reconstruct func given if there is relabeling
-        or not. And also normalize the keyword to get new order of columns;
-
-        If relabeling is True, will return relabeling, reconstructed func, column
-        names, and the reconstructed order of columns.
-        If relabeling is False, the columns and order will be None.
-        """
-        from pandas.core.groupby.generic import (
-            _is_multi_agg_with_relabel,
-            _maybe_mangle_lambdas,
-            _normalize_keyword_aggregation,
-        )
-
-        relabeling = func is None and _is_multi_agg_with_relabel(**kwargs)
-        if relabeling:
-            func, columns, order = _normalize_keyword_aggregation(kwargs)
-
-        elif isinstance(func, list) and len(func) > len(set(func)):
-
-            # GH 28426 will raise error if duplicated function names are used and
-            # there is no reassigned name
-            raise SpecificationError(
-                "Function names must be unique if there is no new column "
-                "names assigned"
-            )
-        elif func is None:
-            # nicer error message
-            raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
-
-        func = _maybe_mangle_lambdas(func)
-        if relabeling:
-            return relabeling, func, columns, order
-        return relabeling, func, None, None
-
     def _aggregate(self, arg, *args, **kwargs):
         """
         provide an implementation for the aggregators
