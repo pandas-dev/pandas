@@ -789,7 +789,7 @@ def coerce_to_dtypes(result, dtypes):
     return [conv(r, dtype) for r, dtype in zip(result, dtypes)]
 
 
-def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
+def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = True):
     """
     Cast the elements of an array to a given dtype a nan-safe manner.
 

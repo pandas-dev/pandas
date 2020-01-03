@@ -5499,7 +5499,7 @@ class NDFrame(PandasObject, SelectionMixin):
         }
 
     def astype(
-            self: FrameOrSeries, dtype, copy: bool_t = True, errors: str = "raise", skipna=True
+            self: FrameOrSeries, dtype, copy: bool_t = True, errors: str = "raise"
     ) -> FrameOrSeries:
         """
         Cast a pandas object to a specified dtype ``dtype``.
@@ -5522,8 +5522,6 @@ class NDFrame(PandasObject, SelectionMixin):
             - ``ignore`` : suppress exceptions. On error return original object.
 
             .. versionadded:: 0.20.0
-        skipna : bool, default True
-            Exclude NA/null values in type conversion.
 
         Returns
         -------
@@ -5604,10 +5602,8 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         if isna(self.values).any():
             msg = (
-                "The 'skipna' parameter is added and set True by default "
-                "which preserves the missing value indicator in type conversion. "
-                "The type conversion in which the missing value indicator loses "
-                "its meaning will be deprecated in the future version."
+                "The meaning of the missing value indicator is preserved "
+                "by default in the future version."
             )
             warnings.warn(msg, FutureWarning, stacklevel=2)
 
@@ -5619,7 +5615,7 @@ class NDFrame(PandasObject, SelectionMixin):
                         "the key in Series dtype mappings."
                     )
                 new_type = dtype[self.name]
-                return self.astype(new_type, copy, errors, skipna)
+                return self.astype(new_type, copy, errors)
 
             for col_name in dtype.keys():
                 if col_name not in self:
@@ -5635,7 +5631,6 @@ class NDFrame(PandasObject, SelectionMixin):
                             dtype=dtype[col_name],
                             copy=copy,
                             errors=errors,
-                            skipna=skipna,
                         )
                     )
                 else:
@@ -5652,7 +5647,7 @@ class NDFrame(PandasObject, SelectionMixin):
         else:
             # else, only a single dtype is given
             new_data = self._data.astype(
-                dtype=dtype, copy=copy, errors=errors, skipna=skipna
+                dtype=dtype, copy=copy, errors=errors
             )
             return self._constructor(new_data).__finalize__(self)
 
