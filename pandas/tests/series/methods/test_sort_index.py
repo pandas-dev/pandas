@@ -159,10 +159,10 @@ class TestSeriesSortIndex:
         }
 
         if inplace:
-            result_df = ser.copy()
-            result_df.sort_index(**kwargs)
+            result_ser = ser.copy()
+            result_ser.sort_index(**kwargs)
         else:
-            result_df = ser.sort_index(**kwargs)
+            result_ser = ser.sort_index(**kwargs)
 
-        tm.assert_series_equal(result_df, expected)
+        tm.assert_series_equal(result_ser, expected)
         tm.assert_series_equal(ser, Series(original_list))
