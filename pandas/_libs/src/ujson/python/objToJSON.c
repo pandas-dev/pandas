@@ -280,6 +280,7 @@ static int scaleNanosecToUnit(npy_int64 *value, NPY_DATETIMEUNIT unit) {
         *value /= 1000000000LL;
         break;
     default:
+        PyErr_Format(PyExc_ValueError, "Unknown NPY_DATETIMEUNIT '%d'", unit);
         return -1;
     }
     return 0;
@@ -491,7 +492,9 @@ static char *NpyDateTimeToIsoCallback(JSOBJ Py_UNUSED(unused),
 }
 
 static npy_datetime NpyDateTimeToEpoch(npy_datetime dt, NPY_DATETIMEUNIT base) {
-    scaleNanosecToUnit(&dt, base);
+    if (scaleNanosecToUnit(&dt, base) == -1) {
+        return -1;
+    }
     return dt;
 }
 
@@ -1659,9 +1662,8 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
             if (enc->datetimeIso) {
                 cLabel = int64ToIso(longVal, base, &len);
             } else {
-                if (!scaleNanosecToUnit(&longVal, base)) {
-                    // TODO: This gets hit but somehow doesn't cause errors
-                    // need to clean up (elsewhere in module as well)
+                if (scaleNanosecToUnit(&longVal, base) == -1) {
+                    // TODO: error handler
                 }
                 cLabel = PyObject_Malloc(21); // 21 chars for int64
                 sprintf(cLabel, "%" NPY_INT64_FMT, longVal);
@@ -1910,7 +1912,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         }
 
         unit = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
-        if (scaleNanosecToUnit(&value, unit) != 0) {
+        if (scaleNanosecToUnit(&value, unit) == -1) {
             // TODO: Add some kind of error handling here
         }
 
