@@ -230,12 +230,12 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         The datetime data.
 
         For DatetimeArray `values` (or a Series or Index boxing one),
-        `dtype` and `freq` will be extracted from `values`, with
-        precedence given to
+        `dtype` and `freq` will be extracted from `values`.
 
     dtype : numpy.dtype or DatetimeTZDtype
         Note that the only NumPy dtype allowed is 'datetime64[ns]'.
     freq : str or Offset, optional
+        The frequency.
     copy : bool, default False
         Whether to copy the underlying array of values.
 

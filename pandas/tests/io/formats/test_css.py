@@ -101,29 +101,25 @@ def test_css_side_shorthands(shorthand, expansions):
     top, right, bottom, left = expansions
 
     assert_resolves(
-        "{shorthand}: 1pt".format(shorthand=shorthand),
-        {top: "1pt", right: "1pt", bottom: "1pt", left: "1pt"},
+        f"{shorthand}: 1pt", {top: "1pt", right: "1pt", bottom: "1pt", left: "1pt"},
     )
 
     assert_resolves(
-        "{shorthand}: 1pt 4pt".format(shorthand=shorthand),
-        {top: "1pt", right: "4pt", bottom: "1pt", left: "4pt"},
+        f"{shorthand}: 1pt 4pt", {top: "1pt", right: "4pt", bottom: "1pt", left: "4pt"},
     )
 
     assert_resolves(
-        "{shorthand}: 1pt 4pt 2pt".format(shorthand=shorthand),
+        f"{shorthand}: 1pt 4pt 2pt",
         {top: "1pt", right: "4pt", bottom: "2pt", left: "4pt"},
     )
 
     assert_resolves(
-        "{shorthand}: 1pt 4pt 2pt 0pt".format(shorthand=shorthand),
+        f"{shorthand}: 1pt 4pt 2pt 0pt",
         {top: "1pt", right: "4pt", bottom: "2pt", left: "0pt"},
     )
 
     with tm.assert_produces_warning(CSSWarning):
-        assert_resolves(
-            "{shorthand}: 1pt 1pt 1pt 1pt 1pt".format(shorthand=shorthand), {}
-        )
+        assert_resolves(f"{shorthand}: 1pt 1pt 1pt 1pt 1pt", {})
 
 
 @pytest.mark.parametrize(
@@ -174,10 +170,10 @@ def test_css_none_absent(style, equiv):
     "size,resolved",
     [
         ("xx-small", "6pt"),
-        ("x-small", "{pt:f}pt".format(pt=7.5)),
-        ("small", "{pt:f}pt".format(pt=9.6)),
+        ("x-small", f"{7.5:f}pt"),
+        ("small", f"{9.6:f}pt"),
         ("medium", "12pt"),
-        ("large", "{pt:f}pt".format(pt=13.5)),
+        ("large", f"{13.5:f}pt"),
         ("x-large", "18pt"),
         ("xx-large", "24pt"),
         ("8px", "6pt"),
@@ -196,9 +192,7 @@ def test_css_absolute_font_size(size, relative_to, resolved):
     else:
         inherited = {"font-size": relative_to}
     assert_resolves(
-        "font-size: {size}".format(size=size),
-        {"font-size": resolved},
-        inherited=inherited,
+        f"font-size: {size}", {"font-size": resolved}, inherited=inherited,
     )
 
 
@@ -224,7 +218,7 @@ def test_css_absolute_font_size(size, relative_to, resolved):
         ("inherit", "16pt", "16pt"),
         ("smaller", None, "10pt"),
         ("smaller", "18pt", "15pt"),
-        ("larger", None, "{pt:f}pt".format(pt=14.4)),
+        ("larger", None, f"{14.4:f}pt"),
         ("larger", "15pt", "18pt"),
     ],
 )
@@ -234,7 +228,5 @@ def test_css_relative_font_size(size, relative_to, resolved):
     else:
         inherited = {"font-size": relative_to}
     assert_resolves(
-        "font-size: {size}".format(size=size),
-        {"font-size": resolved},
-        inherited=inherited,
+        f"font-size: {size}", {"font-size": resolved}, inherited=inherited,
     )

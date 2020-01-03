@@ -18,6 +18,7 @@ from typing import (
 import numpy as np
 
 import pandas._libs.lib as lib
+from pandas._typing import T
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -99,6 +100,14 @@ class PandasObject(DirNamesMixin):
         # no memory_usage attribute, so fall back to
         # object's 'sizeof'
         return super().__sizeof__()
+
+    def _ensure_type(self: T, obj) -> T:
+        """Ensure that an object has same type as self.
+
+        Used by type checkers.
+        """
+        assert isinstance(obj, type(self)), type(obj)
+        return obj
 
 
 class NoNewAttributesMixin:
