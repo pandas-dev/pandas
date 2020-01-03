@@ -273,7 +273,7 @@ class TestChaining:
         str(df)
 
         # from SO:
-        # http://stackoverflow.com/questions/24054495/potential-bug-setting-value-for-undefined-column-using-iloc
+        # https://stackoverflow.com/questions/24054495/potential-bug-setting-value-for-undefined-column-using-iloc
         df = DataFrame(np.arange(0, 9), columns=["count"])
         df["group"] = "b"
 
