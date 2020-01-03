@@ -415,7 +415,7 @@ def test_to_numpy_dtype(as_series):
         ),
     ],
 )
-@pytest.mark.parametrize("container", [pd.Series, pd.Index])
+@pytest.mark.parametrize("container", [pd.Series, pd.Index])  # type: ignore
 def test_to_numpy_na_value_numpy_dtype(container, values, dtype, na_value, expected):
     s = container(values)
     result = s.to_numpy(dtype=dtype, na_value=na_value)
