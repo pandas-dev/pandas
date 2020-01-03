@@ -365,6 +365,11 @@ class TestDataFrameMisc:
         tm.assert_numpy_array_equal(result, expected)
         tm.assert_frame_equal(df, original)
 
+        result = df.to_numpy(dtype="int", na_value=0)
+        expected = np.array([[1, 0, 3]]).T
+        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_frame_equal(df, original)
+
     def test_to_numpy_na_value_heterogenous(self):
         df = pd.DataFrame({"A": [1, None, 3], "B": ["a", None, "c"]})
         original = df.copy()

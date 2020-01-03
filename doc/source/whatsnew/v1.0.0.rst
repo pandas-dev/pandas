@@ -197,7 +197,7 @@ Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - :meth:`DataFrame.to_string` added the ``max_colwidth`` parameter to control when wide columns are truncated (:issue:`9784`)
-- Added the ``na_value`` argument to :meth:`Series.to_numpy` and :meth:`Index.to_numpy` to control the value used for missing data (:issue:`30322`)
+- Added the ``na_value`` argument to :meth:`Series.to_numpy`, :meth:`Index.to_numpy` and :meth:`DataFrame.to_numpy` to control the value used for missing data (:issue:`30322`)
 - :meth:`MultiIndex.from_product` infers level names from inputs if not explicitly provided (:issue:`27292`)
 - :meth:`DataFrame.to_latex` now accepts ``caption`` and ``label`` arguments (:issue:`25436`)
 - The :ref:`integer dtype <integer_na>` with support for missing values and the
