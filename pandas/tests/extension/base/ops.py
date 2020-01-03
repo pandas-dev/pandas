@@ -132,10 +132,8 @@ class BaseComparisonOpsTests(BaseOpsUtil):
     def _compare_other(self, s, data, op_name, other):
         op = self.get_op_from_name(op_name)
         if op_name == "__eq__":
-            assert getattr(data, op_name)(other) is NotImplemented
             assert not op(s, other).all()
         elif op_name == "__ne__":
-            assert getattr(data, op_name)(other) is NotImplemented
             assert op(s, other).all()
 
         else:
@@ -158,13 +156,3 @@ class BaseComparisonOpsTests(BaseOpsUtil):
         s = pd.Series(data)
         other = pd.Series([data[0]] * len(data))
         self._compare_other(s, data, op_name, other)
-
-    def test_direct_arith_with_series_returns_not_implemented(self, data):
-        # EAs should return NotImplemented for ops with Series.
-        # Pandas takes care of unboxing the series and calling the EA's op.
-        other = pd.Series(data)
-        if hasattr(data, "__eq__"):
-            result = data.__eq__(other)
-            assert result is NotImplemented
-        else:
-            raise pytest.skip(f"{type(data).__name__} does not implement __eq__")

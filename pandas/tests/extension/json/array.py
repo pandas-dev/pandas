@@ -117,9 +117,6 @@ class JSONArray(ExtensionArray):
             and self.data == other.data
         )
 
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
     def __len__(self) -> int:
         return len(self.data)
 

@@ -548,19 +548,15 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         self._right = right
 
     def __eq__(self, other):
-        if not isinstance(other, IntervalArray):
-            return NotImplementedError
         return (
-            hasattr(other, "_left")
-            and self._left == other._left
+            isinstance(other, IntervalArray)
+            and hasattr(other, "_left")
+            and np.array_equal(self._left, other._left)
             and hasattr(other, "_right")
-            and self._right == other._right
+            and np.array_equal(self._right, other._right)
             and hasattr(other, "_closed")
             and self._closed == other._closed
         )
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
 
     def fillna(self, value=None, method=None, limit=None):
         """

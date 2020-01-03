@@ -105,6 +105,7 @@ class ExtensionArray:
     * _from_sequence
     * _from_factorized
     * __getitem__
+    * __eq__
     * __len__
     * dtype
     * nbytes
@@ -381,7 +382,7 @@ class ExtensionArray:
         bool
         """
 
-        raise AbstractMethodError(self)
+        return ~(self == other)
 
     # ------------------------------------------------------------------------
     # Required attributes
@@ -705,7 +706,9 @@ class ExtensionArray:
             Whether the arrays are equivalent.
 
         """
-        return ((self == other) | (self.isna() == other.isna())).all()
+        return isinstance(other, self.__class__) and (
+            ((self == other) | (self.isna() == other.isna())).all()
+        )
 
     def _values_for_factorize(self) -> Tuple[np.ndarray, Any]:
         """

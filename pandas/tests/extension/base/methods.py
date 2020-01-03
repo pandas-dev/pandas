@@ -358,3 +358,18 @@ class BaseMethodsTests(BaseExtensionTests):
                 np.repeat(data, repeats, **kwargs)
             else:
                 data.repeat(repeats, **kwargs)
+
+    def test_equals(self, data, na_value):
+        cls = type(data)
+        ser = pd.Series(cls._from_sequence(data, dtype=data.dtype))
+        na_ser = pd.Series(cls._from_sequence([na_value], dtype=data.dtype))
+
+        assert data.equals(data)
+        assert ser.equals(ser)
+        assert na_ser.equals(na_ser)
+
+        assert not data.equals(na_value)
+        assert not na_ser.equals(ser)
+        assert not ser.equals(na_ser)
+        assert not ser.equals(0)
+        assert not na_ser.equals(0)

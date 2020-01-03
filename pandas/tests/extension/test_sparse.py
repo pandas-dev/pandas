@@ -302,6 +302,10 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         with tm.assert_produces_warning(PerformanceWarning):
             super().test_searchsorted(data_for_sorting, as_series)
 
+    def test_equals(self, data, na_value):
+        self._check_unsupported(data)
+        super().test_equals(data, na_value)
+
 
 class TestCasting(BaseSparseTests, base.BaseCastingTests):
     pass
