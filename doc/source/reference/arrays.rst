@@ -12,7 +12,8 @@ For most data types, pandas uses NumPy arrays as the concrete
 objects contained with a :class:`Index`, :class:`Series`, or
 :class:`DataFrame`.
 
-For some data types, pandas extends NumPy's type system.
+For some data types, pandas extends NumPy's type system. String aliases for these types
+can be found at :ref:`basics.dtypes`.
 
 =================== ========================= ================== =============================
 Kind of Data        Pandas Data Type          Scalar             Array
