@@ -24,7 +24,7 @@ class TestStyler:
         self.g = lambda x: x
 
         def h(x, foo="bar"):
-            return pd.Series("color: {foo}".format(foo=foo), index=x.index, name=x.name)
+            return pd.Series(f"color: {foo}", index=x.index, name=x.name)
 
         self.h = h
         self.styler = Styler(self.df)
@@ -278,7 +278,7 @@ class TestStyler:
 
     def test_apply_axis(self):
         df = pd.DataFrame({"A": [0, 0], "B": [1, 1]})
-        f = lambda x: ["val: {max}".format(max=x.max()) for v in x]
+        f = lambda x: [f"val: {x.max()}" for v in x]
         result = df.style.apply(f, axis=1)
         assert len(result._todo) == 1
         assert len(result.ctx) == 0
@@ -362,7 +362,7 @@ class TestStyler:
             strings, black otherwise.
             """
             color = "red" if val < 0 else "black"
-            return "color: {color}".format(color=color)
+            return f"color: {color}"
 
         dic = {
             ("a", "d"): [-1.12, 2.11],
@@ -1215,13 +1215,9 @@ class TestStyler:
 
     def test_export(self):
         f = lambda x: "color: red" if x > 0 else "color: blue"
-        g = (
-            lambda x, y, z: "color: {z}".format(z=z)
-            if x > 0
-            else "color: {z}".format(z=z)
-        )
+        g = lambda x, z: f"color: {z}" if x > 0 else f"color: {z}"
         style1 = self.styler
-        style1.applymap(f).applymap(g, y="a", z="b").highlight_max()
+        style1.applymap(f).applymap(g, z="b").highlight_max()
         result = style1.export()
         style2 = self.df.style
         style2.use(result)
@@ -1645,9 +1641,7 @@ class TestStyler:
 
     def test_pipe(self):
         def set_caption_from_template(styler, a, b):
-            return styler.set_caption(
-                "Dataframe with a = {a} and b = {b}".format(a=a, b=b)
-            )
+            return styler.set_caption(f"Dataframe with a = {a} and b = {b}")
 
         styler = self.df.style.pipe(set_caption_from_template, "A", b="B")
         assert "Dataframe with a = A and b = B" in styler.render()
