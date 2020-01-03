@@ -1979,7 +1979,7 @@ class TestPivotTable:
         expected = pd.DataFrame()
         tm.assert_frame_equal(result, expected)
 
-    def test_pivot_table_no_column(self):
+    def test_pivot_table_no_column_raises(self):
         # GH 10326
         def agg(l):
             return np.mean(l)
