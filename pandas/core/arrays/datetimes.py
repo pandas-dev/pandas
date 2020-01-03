@@ -165,9 +165,7 @@ def _dt_array_cmp(cls, op):
                     other = type(self)._from_sequence(other)
                 except ValueError:
                     other = np.array(other, dtype=np.object_)
-            elif not isinstance(
-                other, (np.ndarray, ABCIndexClass, ABCSeries, DatetimeArray)
-            ):
+            elif not isinstance(other, (np.ndarray, DatetimeArray)):
                 # Following Timestamp convention, __eq__ is all-False
                 # and __ne__ is all True, others raise TypeError.
                 return invalid_comparison(self, other, op)
@@ -186,8 +184,6 @@ def _dt_array_cmp(cls, op):
                 return invalid_comparison(self, other, op)
             else:
                 self._assert_tzawareness_compat(other)
-                if isinstance(other, (ABCIndexClass, ABCSeries)):
-                    other = other.array
 
                 if (
                     is_datetime64_dtype(other)
