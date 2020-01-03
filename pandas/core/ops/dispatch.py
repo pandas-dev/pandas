@@ -210,10 +210,10 @@ def maybe_dispatch_ufunc_to_dunder_op(
 
     if method == "__call__" and op_name in special and kwargs.get("out") is None:
         if isinstance(inputs[0], type(self)):
-            name = "__{}__".format(op_name)
+            name = f"__{op_name}__"
             return getattr(self, name, not_implemented)(inputs[1])
         else:
-            name = flipped.get(op_name, "__r{}__".format(op_name))
+            name = flipped.get(op_name, f"__r{op_name}__")
             return getattr(self, name, not_implemented)(inputs[0])
     else:
         return NotImplemented
