@@ -5,6 +5,7 @@ the parsers defined in parsers.py
 """
 from io import StringIO
 
+import numpy as np
 import pytest
 
 from pandas import DataFrame, Index, MultiIndex
@@ -171,4 +172,15 @@ def test_multi_index_naming_not_all_at_beginning(all_parsers):
             levels=[["a", "b"], [1, 2, 3, 4]], codes=[[0, 0, 1, 1], [0, 1, 2, 3]]
         ),
     )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_no_multi_index_level_names_empty(all_parsers):
+    # GH 10984
+    parser = all_parsers
+    midx = MultiIndex.from_tuples([("A", 1, 2), ("A", 1, 2), ("B", 1, 2)])
+    expected = DataFrame(np.random.randn(3, 3), index=midx, columns=["x", "y", "z"])
+    with tm.ensure_clean() as path:
+        expected.to_csv(path)
+        result = parser.read_csv(path, index_col=[0, 1, 2])
     tm.assert_frame_equal(result, expected)
