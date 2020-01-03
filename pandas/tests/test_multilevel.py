@@ -2534,3 +2534,37 @@ class TestSorted(Base):
         result = s.sort_index(level=["third", "first"], ascending=[False, True])
         expected = s.iloc[[0, 4, 1, 5, 2, 6, 3, 7]]
         tm.assert_series_equal(result, expected)
+
+
+def test_multiindex_loc_order():
+    # GH 22797
+    # Try to respect order of keys given for MultiIndex.loc
+    df = pd.DataFrame(
+        np.arange(12).reshape((4, 3)),
+        index=[["a", "a", "b", "b"], [1, 2, 1, 2]],
+        columns=[["Ohio", "Ohio", "Colorado"], ["Green", "Red", "Green"]],
+    )
+
+    res = df.loc[["b", "a"], :]
+    exp_index = pd.MultiIndex.from_arrays([["b", "b", "a", "a"], [1, 2, 1, 2]])
+    tm.assert_index_equal(res.index, exp_index)
+
+    res = df.loc[["a", "b"], :]
+    exp_index = pd.MultiIndex.from_arrays([["a", "a", "b", "b"], [1, 2, 1, 2]])
+    tm.assert_index_equal(res.index, exp_index)
+
+    res = df.loc[(["a", "b"], [1, 2]), :]
+    exp_index = pd.MultiIndex.from_arrays([["a", "a", "b", "b"], [1, 2, 1, 2]])
+    tm.assert_index_equal(res.index, exp_index)
+
+    res = df.loc[(["a", "b"], [2, 1]), :]
+    exp_index = pd.MultiIndex.from_arrays([["a", "a", "b", "b"], [2, 1, 2, 1]])
+    tm.assert_index_equal(res.index, exp_index)
+
+    res = df.loc[(["b", "a"], [2, 1]), :]
+    exp_index = pd.MultiIndex.from_arrays([["b", "b", "a", "a"], [2, 1, 2, 1]])
+    tm.assert_index_equal(res.index, exp_index)
+
+    res = df.loc[(["b", "a"], [1, 2]), :]
+    exp_index = pd.MultiIndex.from_arrays([["b", "b", "a", "a"], [1, 2, 1, 2]])
+    tm.assert_index_equal(res.index, exp_index)

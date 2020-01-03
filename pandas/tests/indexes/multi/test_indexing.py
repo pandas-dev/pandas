@@ -438,7 +438,6 @@ def test_timestamp_multiindex_indexer():
     )
     should_be = pd.Series(data=np.arange(24, len(qidx) + 24), index=qidx, name="foo")
     tm.assert_series_equal(result, should_be)
-<<<<<<< HEAD
 
 
 def test_get_loc_with_values_including_missing_values():
@@ -527,37 +526,3 @@ def test_slice_locs_with_missing_value(index_arr, expected, start_idx, end_idx):
     idx = MultiIndex.from_arrays(index_arr)
     result = idx.slice_locs(start=start_idx, end=end_idx)
     assert result == expected
-
-
-def test_multiindex_loc_order():
-    # GH 22797
-    # Try to respect order of keys given for MultiIndex.loc
-    df = pd.DataFrame(
-        np.arange(12).reshape((4, 3)),
-        index=[["a", "a", "b", "b"], [1, 2, 1, 2]],
-        columns=[["Ohio", "Ohio", "Colorado"], ["Green", "Red", "Green"]],
-    )
-
-    res = df.loc[["b", "a"], :]
-    exp_index = pd.MultiIndex.from_arrays([["b", "b", "a", "a"], [1, 2, 1, 2]])
-    tm.assert_index_equal(res.index, exp_index)
-
-    res = df.loc[["a", "b"], :]
-    exp_index = pd.MultiIndex.from_arrays([["a", "a", "b", "b"], [1, 2, 1, 2]])
-    tm.assert_index_equal(res.index, exp_index)
-
-    res = df.loc[(["a", "b"], [1, 2]), :]
-    exp_index = pd.MultiIndex.from_arrays([["a", "a", "b", "b"], [1, 2, 1, 2]])
-    tm.assert_index_equal(res.index, exp_index)
-
-    res = df.loc[(["a", "b"], [2, 1]), :]
-    exp_index = pd.MultiIndex.from_arrays([["a", "a", "b", "b"], [2, 1, 2, 1]])
-    tm.assert_index_equal(res.index, exp_index)
-
-    res = df.loc[(["b", "a"], [2, 1]), :]
-    exp_index = pd.MultiIndex.from_arrays([["b", "b", "a", "a"], [2, 1, 2, 1]])
-    tm.assert_index_equal(res.index, exp_index)
-
-    res = df.loc[(["b", "a"], [1, 2]), :]
-    exp_index = pd.MultiIndex.from_arrays([["b", "b", "a", "a"], [1, 2, 1, 2]])
-    tm.assert_index_equal(res.index, exp_index)
