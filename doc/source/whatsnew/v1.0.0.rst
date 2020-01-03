@@ -931,6 +931,7 @@ I/O
 - Bug in :class:`PythonParser` where str and bytes were being mixed when dealing with the decimal field (:issue:`29650`)
 - :meth:`read_gbq` now accepts ``progress_bar_type`` to display progress bar while the data downloads. (:issue:`29857`)
 - Bug in :func:`pandas.io.json.json_normalize` where a missing value in the location specified by `record_path` would raise a ``TypeError`` (:issue:`30148`)
+- :func:`read_excel` now accepts binary data (:issue:`15914`)
 
 Plotting
 ^^^^^^^^
