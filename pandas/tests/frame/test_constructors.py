@@ -479,11 +479,11 @@ class TestDataFrameConstructors:
             DataFrame(np.zeros((3, 3, 3)), columns=["A", "B", "C"], index=[1])
 
         # wrong size axis labels
-        msg = "Shape of passed values " r"is \(2, 3\), indices " r"imply \(1, 3\)"
+        msg = r"Shape of passed values is \(2, 3\), indices imply \(1, 3\)"
         with pytest.raises(ValueError, match=msg):
             DataFrame(np.random.rand(2, 3), columns=["A", "B", "C"], index=[1])
 
-        msg = "Shape of passed values " r"is \(2, 3\), indices " r"imply \(2, 2\)"
+        msg = r"Shape of passed values is \(2, 3\), indices imply \(2, 2\)"
         with pytest.raises(ValueError, match=msg):
             DataFrame(np.random.rand(2, 3), columns=["A", "B"], index=[1, 2])
 
@@ -511,17 +511,17 @@ class TestDataFrameConstructors:
         result = df2.loc[1, 0]
         tm.assert_frame_equal(result, df1 + 10)
 
-    def test_constructor_subclass_dict(self, float_frame):
+    def test_constructor_subclass_dict(self, float_frame, dict_subclass):
         # Test for passing dict subclass to constructor
         data = {
-            "col1": tm.TestSubDict((x, 10.0 * x) for x in range(10)),
-            "col2": tm.TestSubDict((x, 20.0 * x) for x in range(10)),
+            "col1": dict_subclass((x, 10.0 * x) for x in range(10)),
+            "col2": dict_subclass((x, 20.0 * x) for x in range(10)),
         }
         df = DataFrame(data)
         refdf = DataFrame({col: dict(val.items()) for col, val in data.items()})
         tm.assert_frame_equal(refdf, df)
 
-        data = tm.TestSubDict(data.items())
+        data = dict_subclass(data.items())
         df = DataFrame(data)
         tm.assert_frame_equal(refdf, df)
 
@@ -2551,3 +2551,11 @@ class TestDataFrameConstructorWithDatetimeTZ:
             "datetime64[ns, CET]",
         ]
         assert (res.dtypes == expected_dtypes).all()
+
+    def test_from_2d_ndarray_with_dtype(self):
+        # GH#12513
+        array_dim2 = np.arange(10).reshape((5, 2))
+        df = pd.DataFrame(array_dim2, dtype="datetime64[ns, UTC]")
+
+        expected = pd.DataFrame(array_dim2).astype("datetime64[ns, UTC]")
+        tm.assert_frame_equal(df, expected)

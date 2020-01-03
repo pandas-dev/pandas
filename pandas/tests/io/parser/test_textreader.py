@@ -179,7 +179,7 @@ class TestTextReader:
         assert_array_dicts_equal(recs, expected)
 
     def test_escapechar(self):
-        data = '\\"hello world"\n' '\\"hello world"\n' '\\"hello world"'
+        data = '\\"hello world"\n\\"hello world"\n\\"hello world"'
 
         reader = TextReader(StringIO(data), delimiter=",", header=None, escapechar="\\")
         result = reader.read()

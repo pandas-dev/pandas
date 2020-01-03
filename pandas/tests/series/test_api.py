@@ -112,10 +112,6 @@ class TestSeriesMisc:
             unpickled = pd.read_pickle(path)
             return unpickled
 
-    def test_argsort_preserve_name(self, datetime_series):
-        result = datetime_series.argsort()
-        assert result.name == datetime_series.name
-
     def test_sort_index_name(self, datetime_series):
         result = datetime_series.sort_index(ascending=False)
         assert result.name == datetime_series.name
@@ -130,8 +126,8 @@ class TestSeriesMisc:
         expected = Series([1, 2, np.nan, 0], index=["b", "c", "d", "a"])
         tm.assert_series_equal(result, expected)
 
-    def test_constructor_subclass_dict(self):
-        data = tm.TestSubDict((x, 10.0 * x) for x in range(10))
+    def test_constructor_subclass_dict(self, dict_subclass):
+        data = dict_subclass((x, 10.0 * x) for x in range(10))
         series = Series(data)
         expected = Series(dict(data.items()))
         tm.assert_series_equal(series, expected)
@@ -314,7 +310,7 @@ class TestSeriesMisc:
         for idx, val in string_series.iteritems():
             assert val == string_series[idx]
 
-        # assert is lazy (genrators don't define reverse, lists do)
+        # assert is lazy (generators don't define reverse, lists do)
         assert not hasattr(string_series.iteritems(), "reverse")
 
     def test_items_datetimes(self, datetime_series):
@@ -325,7 +321,7 @@ class TestSeriesMisc:
         for idx, val in string_series.items():
             assert val == string_series[idx]
 
-        # assert is lazy (genrators don't define reverse, lists do)
+        # assert is lazy (generators don't define reverse, lists do)
         assert not hasattr(string_series.items(), "reverse")
 
     def test_raise_on_info(self):
@@ -468,30 +464,6 @@ class TestSeriesMisc:
         # ravel
         s = Series(np.random.randn(10))
         tm.assert_almost_equal(s.ravel(order="F"), s.values.ravel(order="F"))
-
-        # compress
-        # GH 6658
-        s = Series([0, 1.0, -1], index=list("abc"))
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = np.compress(s > 0, s)
-        tm.assert_series_equal(result, Series([1.0], index=["b"]))
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = np.compress(s < -1, s)
-        # result empty Index(dtype=object) as the same as original
-        exp = Series([], dtype="float64", index=Index([], dtype="object"))
-        tm.assert_series_equal(result, exp)
-
-        s = Series([0, 1.0, -1], index=[0.1, 0.2, 0.3])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = np.compress(s > 0, s)
-        tm.assert_series_equal(result, Series([1.0], index=[0.2]))
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = np.compress(s < -1, s)
-        # result empty Float64Index as the same as original
-        exp = Series([], dtype="float64", index=Index([], dtype="float64"))
-        tm.assert_series_equal(result, exp)
 
     def test_str_accessor_updates_on_inplace(self):
         s = pd.Series(list("abc"))

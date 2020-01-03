@@ -408,6 +408,9 @@ class TestPeriodDtype(Base):
         with pytest.raises(TypeError):
             PeriodDtype.construct_from_string("datetime64[ns, US/Eastern]")
 
+        with pytest.raises(TypeError, match="list"):
+            PeriodDtype.construct_from_string([1, 2, 3])
+
     def test_is_dtype(self):
         assert PeriodDtype.is_dtype(self.dtype)
         assert PeriodDtype.is_dtype("period[D]")
@@ -684,6 +687,10 @@ class TestIntervalDtype(Base):
         IntervalDtype.reset_cache()
         tm.round_trip_pickle(dtype)
         assert len(IntervalDtype._cache) == 0
+
+    def test_not_string(self):
+        # GH30568: though IntervalDtype has object kind, it cannot be string
+        assert not is_string_dtype(IntervalDtype())
 
 
 class TestCategoricalDtypeParametrized:

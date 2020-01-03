@@ -229,3 +229,85 @@ class TestDataFrameSortIndex:
         )
         result = result.columns.levels[1].categories
         tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "original_dict, sorted_dict, ascending, ignore_index, output_index",
+        [
+            ({"A": [1, 2, 3]}, {"A": [2, 3, 1]}, False, True, [0, 1, 2]),
+            ({"A": [1, 2, 3]}, {"A": [1, 3, 2]}, True, True, [0, 1, 2]),
+            ({"A": [1, 2, 3]}, {"A": [2, 3, 1]}, False, False, [5, 3, 2]),
+            ({"A": [1, 2, 3]}, {"A": [1, 3, 2]}, True, False, [2, 3, 5]),
+        ],
+    )
+    def test_sort_index_ignore_index(
+        self, original_dict, sorted_dict, ascending, ignore_index, output_index
+    ):
+        # GH 30114
+        original_index = [2, 5, 3]
+        df = DataFrame(original_dict, index=original_index)
+        expected_df = DataFrame(sorted_dict, index=output_index)
+
+        sorted_df = df.sort_index(ascending=ascending, ignore_index=ignore_index)
+        tm.assert_frame_equal(sorted_df, expected_df)
+        tm.assert_frame_equal(df, DataFrame(original_dict, index=original_index))
+
+        # Test when inplace is True
+        copied_df = df.copy()
+        copied_df.sort_index(
+            ascending=ascending, ignore_index=ignore_index, inplace=True
+        )
+        tm.assert_frame_equal(copied_df, expected_df)
+        tm.assert_frame_equal(df, DataFrame(original_dict, index=original_index))
+
+    @pytest.mark.parametrize(
+        "original_dict, sorted_dict, ascending, ignore_index, output_index",
+        [
+            (
+                {"M1": [1, 2], "M2": [3, 4]},
+                {"M1": [1, 2], "M2": [3, 4]},
+                True,
+                True,
+                [0, 1],
+            ),
+            (
+                {"M1": [1, 2], "M2": [3, 4]},
+                {"M1": [2, 1], "M2": [4, 3]},
+                False,
+                True,
+                [0, 1],
+            ),
+            (
+                {"M1": [1, 2], "M2": [3, 4]},
+                {"M1": [1, 2], "M2": [3, 4]},
+                True,
+                False,
+                MultiIndex.from_tuples([[2, 1], [3, 4]], names=list("AB")),
+            ),
+            (
+                {"M1": [1, 2], "M2": [3, 4]},
+                {"M1": [2, 1], "M2": [4, 3]},
+                False,
+                False,
+                MultiIndex.from_tuples([[3, 4], [2, 1]], names=list("AB")),
+            ),
+        ],
+    )
+    def test_sort_index_ignore_index_multi_index(
+        self, original_dict, sorted_dict, ascending, ignore_index, output_index
+    ):
+        # GH 30114, this is to test ignore_index on MulitIndex of index
+        mi = MultiIndex.from_tuples([[2, 1], [3, 4]], names=list("AB"))
+        df = DataFrame(original_dict, index=mi)
+        expected_df = DataFrame(sorted_dict, index=output_index)
+
+        sorted_df = df.sort_index(ascending=ascending, ignore_index=ignore_index)
+        tm.assert_frame_equal(sorted_df, expected_df)
+        tm.assert_frame_equal(df, DataFrame(original_dict, index=mi))
+
+        # Test when inplace is True
+        copied_df = df.copy()
+        copied_df.sort_index(
+            ascending=ascending, ignore_index=ignore_index, inplace=True
+        )
+        tm.assert_frame_equal(copied_df, expected_df)
+        tm.assert_frame_equal(df, DataFrame(original_dict, index=mi))

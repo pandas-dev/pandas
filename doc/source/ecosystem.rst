@@ -327,6 +327,21 @@ PyTables, h5py, and pymongo to move data between non pandas formats. Its graph
 based approach is also extensible by end users for custom formats that may be
 too specific for the core of odo.
 
+`Pandarallel <https://github.com/nalepae/pandarallel>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Pandarallel provides a simple way to parallelize your pandas operations on all your CPUs by changing only one line of code.
+If also displays progress bars.
+
+.. code:: python
+
+    from pandarallel import pandarallel
+
+    pandarallel.initialize(progress_bar=True)
+
+    # df.apply(func)
+    df.parallel_apply(func)
+
 `Ray <https://ray.readthedocs.io/en/latest/pandas_on_ray.html>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -380,4 +395,3 @@ Library        Accessor   Classes
 
 .. _cyberpandas: https://cyberpandas.readthedocs.io/en/latest
 .. _pdvega: https://altair-viz.github.io/pdvega/
-

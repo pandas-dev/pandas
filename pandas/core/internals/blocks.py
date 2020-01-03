@@ -242,7 +242,7 @@ class Block(PandasObject):
         """
         return self.dtype
 
-    def make_block(self, values, placement=None):
+    def make_block(self, values, placement=None) -> "Block":
         """
         Create a new block, with type inference propagate any values that are
         not specified
@@ -368,6 +368,17 @@ class Block(PandasObject):
         """
         with np.errstate(all="ignore"):
             result = func(self.values, **kwargs)
+
+        if is_extension_array_dtype(result) and result.ndim > 1:
+            # if we get a 2D ExtensionArray, we need to split it into 1D pieces
+            nbs = []
+            for i, loc in enumerate(self.mgr_locs):
+                vals = result[i]
+                nv = _block_shape(vals, ndim=self.ndim)
+                block = self.make_block(values=nv, placement=[loc])
+                nbs.append(block)
+            return nbs
+
         if not isinstance(result, Block):
             result = self.make_block(values=_block_shape(result, ndim=self.ndim))
 
@@ -646,9 +657,9 @@ class Block(PandasObject):
         if slicer is not None:
             values = values[:, slicer]
         mask = isna(values)
+        itemsize = writers.word_len(na_rep)
 
-        if not self.is_object and not quoting:
-            itemsize = writers.word_len(na_rep)
+        if not self.is_object and not quoting and itemsize:
             values = values.astype(f"<U{itemsize}")
         else:
             values = np.array(values, dtype="object")
@@ -932,15 +943,20 @@ class Block(PandasObject):
                 and np.any(mask[mask])
                 and getattr(new, "ndim", 1) == 1
             ):
-
-                if not (
-                    mask.shape[-1] == len(new)
-                    or mask[mask].shape[-1] == len(new)
-                    or len(new) == 1
-                ):
+                if mask[mask].shape[-1] == len(new):
+                    # GH 30567
+                    # If length of ``new`` is less than the length of ``new_values``,
+                    # `np.putmask` would first repeat the ``new`` array and then
+                    # assign the masked values hence produces incorrect result.
+                    # `np.place` on the other hand uses the ``new`` values at it is
+                    # to place in the masked locations of ``new_values``
+                    np.place(new_values, mask, new)
+                elif mask.shape[-1] == len(new) or len(new) == 1:
+                    np.putmask(new_values, mask, new)
+                else:
                     raise ValueError("cannot assign mismatch length to masked array")
-
-            np.putmask(new_values, mask, new)
+            else:
+                np.putmask(new_values, mask, new)
 
         # maybe upcast me
         elif mask.any():
@@ -1449,7 +1465,7 @@ class Block(PandasObject):
         -------
         Block
         """
-        # We should always have ndim == 2 becase Series dispatches to DataFrame
+        # We should always have ndim == 2 because Series dispatches to DataFrame
         assert self.ndim == 2
 
         values = self.get_values()
@@ -1762,11 +1778,11 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         mask = isna(values)
 
         try:
-            values = values.astype(str)
             values[mask] = na_rep
         except Exception:
             # eg SparseArray does not support setitem, needs to be converted to ndarray
             return super().to_native_types(slicer, na_rep, quoting, **kwargs)
+        values = values.astype(str)
 
         # we are expected to return a 2-d ndarray
         return values.reshape(1, len(values))
@@ -2432,7 +2448,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
             # Deprecation GH#24694, GH#19233
             raise TypeError(
                 "Passing integers to fillna for timedelta64[ns] dtype is no "
-                "longer supporetd.  To obtain the old behavior, pass "
+                "longer supported.  To obtain the old behavior, pass "
                 "`pd.Timedelta(seconds=n)` instead."
             )
         return super().fillna(value, **kwargs)
@@ -2971,7 +2987,7 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None):
 
 
 def _extend_blocks(result, blocks=None):
-    """ return a new extended blocks, givin the result """
+    """ return a new extended blocks, given the result """
     from pandas.core.internals import BlockManager
 
     if blocks is None:

@@ -411,7 +411,9 @@ def test_pickle_buffer_roundtrip():
 # ---------------------
 
 
-@pytest.mark.parametrize("mockurl", ["http://url.com", "ftp://test.com"])
+@pytest.mark.parametrize(
+    "mockurl", ["http://url.com", "ftp://test.com", "http://gzip.com"]
+)
 def test_pickle_generalurl_read(monkeypatch, mockurl):
     def python_pickler(obj, path):
         with open(path, "wb") as fh:
@@ -420,7 +422,10 @@ def test_pickle_generalurl_read(monkeypatch, mockurl):
     class MockReadResponse:
         def __init__(self, path):
             self.file = open(path, "rb")
-            self.headers = {"Content-Encoding": None}
+            if "gzip" in path:
+                self.headers = {"Content-Encoding": "gzip"}
+            else:
+                self.headers = {"Content-Encoding": None}
 
         def read(self):
             return self.file.read()

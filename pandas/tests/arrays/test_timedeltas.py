@@ -12,8 +12,8 @@ class TestTimedeltaArrayConstructor:
         arr = np.array([0, 1, 2, 3], dtype="m8[h]").astype("m8[ns]")
 
         with pytest.raises(ValueError, match="Only 1-dimensional"):
-            # 2-dim
-            TimedeltaArray(arr.reshape(2, 2))
+            # 3-dim, we allow 2D to sneak in for ops purposes GH#29853
+            TimedeltaArray(arr.reshape(2, 2, 1))
 
         with pytest.raises(ValueError, match="Only 1-dimensional"):
             # 0-dim
@@ -41,13 +41,12 @@ class TestTimedeltaArrayConstructor:
     def test_incorrect_dtype_raises(self):
         # TODO: why TypeError for 'category' but ValueError for i8?
         with pytest.raises(
-            ValueError, match=r"category cannot be converted " r"to timedelta64\[ns\]"
+            ValueError, match=r"category cannot be converted to timedelta64\[ns\]"
         ):
             TimedeltaArray(np.array([1, 2, 3], dtype="i8"), dtype="category")
 
         with pytest.raises(
-            ValueError,
-            match=r"dtype int64 cannot be converted " r"to timedelta64\[ns\]",
+            ValueError, match=r"dtype int64 cannot be converted to timedelta64\[ns\]",
         ):
             TimedeltaArray(np.array([1, 2, 3], dtype="i8"), dtype=np.dtype("int64"))
 

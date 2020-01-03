@@ -241,12 +241,6 @@ class MPLPlot:
         if fillna is not None:
             data = data.fillna(fillna)
 
-        # TODO: unused?
-        # if self.sort_columns:
-        #     columns = com.try_sort(data.columns)
-        # else:
-        #     columns = data.columns
-
         for col, values in data.items():
             if keep_index is True:
                 yield col, values
@@ -400,6 +394,10 @@ class MPLPlot:
             # TODO: change after solving issue 27881
             include_type = [np.number]
             exclude_type = ["timedelta"]
+
+        # GH 18755, include object and category type for scatter plot
+        if self._kind == "scatter":
+            include_type.extend(["object", "category"])
 
         numeric_data = data.select_dtypes(include=include_type, exclude=exclude_type)
 
@@ -872,10 +870,13 @@ class PlanePlot(MPLPlot):
             x = self.data.columns[x]
         if is_integer(y) and not self.data.columns.holds_integer():
             y = self.data.columns[y]
-        if len(self.data[x]._get_numeric_data()) == 0:
-            raise ValueError(self._kind + " requires x column to be numeric")
-        if len(self.data[y]._get_numeric_data()) == 0:
-            raise ValueError(self._kind + " requires y column to be numeric")
+
+        # Scatter plot allows to plot objects data
+        if self._kind == "hexbin":
+            if len(self.data[x]._get_numeric_data()) == 0:
+                raise ValueError(self._kind + " requires x column to be numeric")
+            if len(self.data[y]._get_numeric_data()) == 0:
+                raise ValueError(self._kind + " requires y column to be numeric")
 
         self.x = x
         self.y = y
