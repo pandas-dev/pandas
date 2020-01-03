@@ -264,7 +264,7 @@ static TypeContext *createTypeContext(void) {
  *
  * Scales an integer value representing time in nanoseconds to provided unit.
  *
- * Mutates the provided value directly. Returns 0 on success, non-zero on error.
+ * Mutates the provided value directly. Returns 0 on success, -1 on error.
  */
 static int scaleNanosecToUnit(npy_int64 *value, NPY_DATETIMEUNIT unit) {
     switch (unit) {
@@ -282,7 +282,6 @@ static int scaleNanosecToUnit(npy_int64 *value, NPY_DATETIMEUNIT unit) {
     default:
         return -1;
     }
-
     return 0;
 }
 
@@ -410,11 +409,16 @@ static Py_ssize_t get_attr_length(PyObject *obj, char *attr) {
     return ret;
 }
 
+/* Returns -1 on failure; to disambiguate check PyErr_Occurred */
 static npy_int64 get_long_attr(PyObject *o, const char *attr) {
     npy_int64 long_val;
     PyObject *value = PyObject_GetAttrString(o, attr);
-    long_val =
-        (PyLong_Check(value) ? PyLong_AsLongLong(value) : PyLong_AsLong(value));
+
+    if (value == NULL) {
+        return -1;
+    }
+
+    long_val = PyLong_AsLongLong(value);
     Py_DECREF(value);
     return long_val;
 }
@@ -431,8 +435,8 @@ static PyObject *get_item(PyObject *obj, Py_ssize_t i) {
     PyObject *tmp = PyLong_FromSsize_t(i);
     PyObject *ret;
 
-    if (tmp == 0) {
-        return 0;
+    if (tmp == NULL) {
+        return NULL;
     }
     ret = PyObject_GetItem(obj, tmp);
     Py_DECREF(tmp);
@@ -468,10 +472,9 @@ static char *int64ToIso(int64_t value, NPY_DATETIMEUNIT base, size_t *len) {
     }
 
     ret_code = make_iso_8601_datetime(&dts, result, *len, base);
-    if (ret_code != 0) {
-        PyErr_SetString(PyExc_ValueError,
-                        "Could not convert datetime value to string");
+    if (ret_code == -1) {
         PyObject_Free(result);
+        return NULL;
     }
 
     // Note that get_datetime_iso_8601_strlen just gives a generic size
@@ -499,22 +502,20 @@ static char *PyDateTimeToIso(PyDateTime_Date *obj, NPY_DATETIMEUNIT base,
     int ret;
 
     ret = convert_pydatetime_to_datetimestruct(obj, &dts);
-    if (ret != 0) {
-        if (!PyErr_Occurred()) {
-            PyErr_SetString(PyExc_ValueError,
-                            "Could not convert PyDateTime to numpy datetime");
-        }
+    if (ret == -1) {
         return NULL;
     }
 
     *len = (size_t)get_datetime_iso_8601_strlen(0, base);
-    char *result = PyObject_Malloc(*len);
-    ret = make_iso_8601_datetime(&dts, result, *len, base);
 
-    if (ret != 0) {
-        PRINTMARK();
-        PyErr_SetString(PyExc_ValueError,
-                        "Could not convert datetime value to string");
+    char *result = PyObject_Malloc(*len);
+    if (result == NULL) {
+        PyErr_NoMemory();
+        return NULL;
+    }
+
+    ret = make_iso_8601_datetime(&dts, result, *len, base);
+    if (ret == -1) {
         PyObject_Free(result);
         return NULL;
     }
@@ -538,27 +539,33 @@ static char *PyDateTimeToIsoCallback(JSOBJ obj, JSONTypeContext *tc,
     return PyDateTimeToIso(obj, base, len);
 }
 
+/* Returns -1 on failure along with PyErr being set */
 static npy_datetime PyDateTimeToEpoch(PyObject *obj, NPY_DATETIMEUNIT base) {
     npy_datetimestruct dts;
     int ret;
 
-    if (!PyDateTime_Check(obj)) {
-        // TODO: raise TypeError
+    // TODO: we actually pass datetime.date objects through here, though
+    // relevant functions suggest datetime.datetime at least
+    if (!PyDate_Check(obj)) {
+        PyErr_SetString(PyExc_TypeError, "Expected datetime object");
+        return -1;
     }
     PyDateTime_Date *dt = (PyDateTime_Date *)obj;
 
     ret = convert_pydatetime_to_datetimestruct(dt, &dts);
-    if (ret != 0) {
+    if (ret == -1) {
         if (!PyErr_Occurred()) {
-            PyErr_SetString(PyExc_ValueError,
-                            "Could not convert PyDateTime to numpy datetime");
+            PyErr_Format(PyExc_ValueError,
+                         "Could not convert %R to npy_datetime", obj);
+            return -1;
         }
-        // TODO: is setting errMsg required?
-        //((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
-        // return NULL;
     }
 
     npy_datetime npy_dt = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts);
+    if ((npy_dt == -1) && (PyErr_Occurred())) {
+        return -1;
+    }
+
     return NpyDateTimeToEpoch(npy_dt, base);
 }
 
@@ -1892,8 +1899,13 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         if (PyObject_HasAttrString(obj, "value")) {
             PRINTMARK();
             value = get_long_attr(obj, "value");
+
+            if ((value == -1) && PyErr_Occurred()) {
+                // TODO: Add error handler
+            }
         } else {
             PRINTMARK();
+            // total_seconds returns float, so potentially lossy
             value = total_seconds(obj) * 1000000000LL; // nanoseconds per second
         }
 

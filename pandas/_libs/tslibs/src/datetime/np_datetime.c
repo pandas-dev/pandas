@@ -318,8 +318,7 @@ int cmp_npy_datetimestruct(const npy_datetimestruct *a,
  * datetime duck typing. The tzinfo time zone conversion would require
  * this style of access anyway.
  *
- * Returns -1 on error, 0 on success, and 1 (with no error set)
- * if obj doesn't have the needed date or datetime attributes.
+ * Returns -1 on error, 0 on success
  */
 int convert_pydatetime_to_datetimestruct(PyDateTime_Date *dtobj,
                                          npy_datetimestruct *out) {
