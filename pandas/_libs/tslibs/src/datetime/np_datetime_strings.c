@@ -905,3 +905,31 @@ string_too_short:
                  outlen);
     return -1;
 }
+
+
+char *make_iso_8601_timedelta(pandas_timedeltastruct *tds, size_t *outlen) {
+  char *begin;
+  asprintf(&begin, "P%" NPY_INT64_FMT "DT%" NPY_INT32_FMT "H%" NPY_INT32_FMT "M%" NPY_INT32_FMT,
+	   tds->days, tds->hrs, tds->min, tds->sec);
+
+  char *append;
+  if (tds->ns != 0) {
+    asprintf(&append, ".%03" NPY_INT32_FMT "%03" NPY_INT32_FMT "%03" NPY_INT32_FMT "S", tds->ms, tds->us, tds->ns);
+  } else if (tds->us != 0) {
+    asprintf(&append, ".%03" NPY_INT32_FMT "%03" NPY_INT32_FMT "S", tds->ms, tds->us);
+  } else if (tds->ms != 0) {
+    asprintf(&append, ".%03" NPY_INT32_FMT "S", tds->ms);
+  } else {
+    asprintf(&append, "%s", "S");
+  }
+
+  *outlen = strlen(begin) + strlen(append);
+
+  // TODO: we are using builtin malloc calls here but freeing in JSON
+  // with PyObject_Free; that is not ideal
+  char *result = realloc(begin, *outlen);
+  strcat(result, append);
+  free(append);
+
+  return result;
+}

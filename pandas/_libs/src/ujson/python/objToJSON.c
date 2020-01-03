@@ -1568,9 +1568,25 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
             break;
         }
 
-        // TODO: vectorized timedelta solution
         if (enc->datetimeIso &&
             (type_num == NPY_TIMEDELTA || PyDelta_Check(item))) {
+	  if (type_num == NPY_TIMEDELTA) {
+            npy_int64 longVal;
+            PyArray_VectorUnaryFunc *castfunc =
+                PyArray_GetCastFunc(PyArray_DescrFromType(type_num), NPY_INT64);
+            if (!castfunc) {
+                PyErr_Format(PyExc_ValueError,
+                             "Cannot cast numpy dtype %d to long",
+                             enc->npyType);
+            }
+            castfunc(dataptr, &longVal, 1, NULL, NULL);
+	    pandas_timedeltastruct tds;
+	    pandas_timedelta_to_timedeltastruct(longVal, NPY_FR_ns, &tds);
+	    cLabel = make_iso_8601_timedelta(&tds, &len);
+	    if (cLabel == NULL) {
+	      // Error occurred
+	    }
+	  } else {  // Timedelta-like objects
             PyObject *td = PyObject_CallFunction(cls_timedelta, "(O)", item);
             if (td == NULL) {
                 Py_DECREF(item);
@@ -1591,6 +1607,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
             cLabel = (char *)PyUnicode_AsUTF8(iso);
             Py_DECREF(iso);
             len = strlen(cLabel);
+	  }
         } else if (PyTypeNum_ISDATETIME(type_num)) {
             NPY_DATETIMEUNIT base = enc->datetimeUnit;
             npy_int64 longVal;
