@@ -6,9 +6,9 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, Series, isna
+import pandas._testing as tm
 from pandas.conftest import _get_cython_table_params
 from pandas.core.base import SpecificationError
-import pandas.util.testing as tm
 
 
 class TestSeriesApply:

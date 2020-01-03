@@ -16,8 +16,8 @@ from pandas import (
     Timestamp,
     conftest,
 )
+import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
-import pandas.util.testing as tm
 
 
 class TestCategoricalIndex:

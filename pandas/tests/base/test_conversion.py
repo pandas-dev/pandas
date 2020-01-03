@@ -6,8 +6,8 @@ from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
 from pandas import CategoricalIndex, Series, Timedelta, Timestamp
+import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray, PandasArray, TimedeltaArray
-import pandas.util.testing as tm
 
 
 class TestToIterable:

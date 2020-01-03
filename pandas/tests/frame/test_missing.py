@@ -8,8 +8,8 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import Categorical, DataFrame, Series, Timestamp, date_range
+import pandas._testing as tm
 from pandas.tests.frame.common import _check_mixed_float
-import pandas.util.testing as tm
 
 
 class TestDataFrameMissingData:

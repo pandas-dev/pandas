@@ -9,9 +9,11 @@ import pytest
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, concat
 from pandas.core.aggregation import _make_unique, maybe_mangle_lambdas
+
+import pandas._testing as tm
+
 from pandas.core.base import SpecificationError
 from pandas.core.groupby.grouper import Grouping
-import pandas.util.testing as tm
 
 
 def test_agg_regression1(tsframe):
