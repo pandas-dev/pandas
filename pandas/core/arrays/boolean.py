@@ -342,7 +342,9 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
             Whether to ensure that the returned value is a not a view on
             the array. Note that ``copy=False`` does not *ensure* that
             ``to_numpy()`` is no-copy. Rather, ``copy=True`` ensure that
-            a copy is made, even if not strictly necessary.
+            a copy is made, even if not strictly necessary. This is typically
+            only possible when no missing values are present and `dtype`
+            is a boolean dtype.
         na_value : scalar, optional
              Scalar missing value indicator to use in numpy array. Defaults
              to the native missing value indicator of this array (pd.NA).
