@@ -1,6 +1,6 @@
 from collections import defaultdict
 from functools import partial
-from typing import Any, Sequence
+from typing import Any, DefaultDict, Sequence
 
 from pandas.core.dtypes.common import is_dict_like, is_list_like
 
@@ -98,7 +98,7 @@ def normalize_keyword_aggregation(kwargs):
     # TODO: aggspec type: typing.Dict[str, List[AggScalar]]
     # May be hitting https://github.com/python/mypy/issues/5958
     # saying it doesn't have an attribute __name__
-    aggspec = defaultdict(list)
+    aggspec: DefaultDict = defaultdict(list)
     order = []
     columns, pairs = list(zip(*kwargs.items()))
 
