@@ -460,17 +460,6 @@ class IntervalIndex(IntervalMixin, Index, accessor.PandasDelegate):
         d.update(self._get_attributes_dict())
         return _new_IntervalIndex, (type(self), d), None
 
-    @Appender(_index_shared_docs["copy"])
-    def copy(self, deep=False, name=None):
-        array = self._data
-        if deep:
-            array = array.copy()
-        attributes = self._get_attributes_dict()
-        if name is not None:
-            attributes.update(name=name)
-
-        return self._simple_new(array, **attributes)
-
     @Appender(_index_shared_docs["astype"])
     def astype(self, dtype, copy=True):
         with rewrite_exception("IntervalArray", type(self).__name__):
