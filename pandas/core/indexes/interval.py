@@ -205,10 +205,11 @@ class SetopCheck:
         "__array__",
         "overlaps",
         "contains",
-        "__len__",
-        "set_closed",
         "__eq__",
+        "__len__",
         "__ne__",
+        "set_closed",
+        "to_tuples",
     ],
     typ="method",
     overwrite=True,
@@ -407,25 +408,6 @@ class IntervalIndex(IntervalMixin, Index, accessor.PandasDelegate):
             return True
         except KeyError:
             return False
-
-    @Appender(
-        _interval_shared_docs["to_tuples"]
-        % dict(
-            return_type="Index",
-            examples="""
-        Examples
-        --------
-        >>> idx = pd.IntervalIndex.from_arrays([0, np.nan, 2], [1, np.nan, 3])
-        >>> idx.to_tuples()
-        Index([(0.0, 1.0), (nan, nan), (2.0, 3.0)], dtype='object')
-        >>> idx.to_tuples(na_tuple=False)
-        Index([(0.0, 1.0), nan, (2.0, 3.0)], dtype='object')
-        """,
-        )
-    )
-    def to_tuples(self, na_tuple=True):
-        tuples = self._data.to_tuples(na_tuple=na_tuple)
-        return Index(tuples)
 
     @cache_readonly
     def _multiindex(self):
@@ -1019,8 +1001,7 @@ class IntervalIndex(IntervalMixin, Index, accessor.PandasDelegate):
         result = self._data.take(
             indices, axis=axis, allow_fill=allow_fill, fill_value=fill_value, **kwargs
         )
-        attributes = self._get_attributes_dict()
-        return self._simple_new(result, **attributes)
+        return self._shallow_copy(result)
 
     def __getitem__(self, value):
         result = self._data[value]
@@ -1221,7 +1202,9 @@ class IntervalIndex(IntervalMixin, Index, accessor.PandasDelegate):
         res = method(*args, **kwargs)
         if is_scalar(res) or name in self._raw_inherit:
             return res
-        return type(self)(res, name=self.name)
+        if isinstance(res, IntervalArray):
+            return type(self)._simple_new(res, name=self.name)
+        return Index(res)
 
 
 IntervalIndex._add_logical_methods_disabled()
