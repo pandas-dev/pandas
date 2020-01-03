@@ -260,10 +260,10 @@ For backwards compatibility, you can still *access* the names via the levels.
    mi.levels[0].name
 
 However, it is no longer possible to *update* the names of the ``MultiIndex``
-via the name of the level. The following will **silently** fail to update the
-name of the ``MultiIndex``
+via the level.
 
 .. ipython:: python
+   :okexcept:
 
    mi.levels[0].name = "new name"
    mi.names
@@ -577,6 +577,37 @@ Deprecations
 - :meth:`DataFrame.to_stata`, :meth:`DataFrame.to_feather`, and :meth:`DataFrame.to_parquet` argument "fname" is deprecated, use "path" instead (:issue:`23574`)
 - The deprecated internal attributes ``_start``, ``_stop`` and ``_step`` of :class:`RangeIndex` now raise a ``FutureWarning`` instead of a ``DeprecationWarning`` (:issue:`26581`)
 
+**Selecting Columns from a Grouped DataFrame**
+
+When selecting columns from a :class:`DataFrameGroupBy` object, passing individual keys (or a tuple of keys) inside single brackets is deprecated,
+a list of items should be used instead. (:issue:`23566`) For example:
+
+.. code-block:: ipython
+
+    df = pd.DataFrame({
+        "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
+        "B": np.random.randn(8),
+        "C": np.random.randn(8),
+    })
+    g = df.groupby('A')
+
+    # single key, returns SeriesGroupBy
+    g['B']
+
+    # tuple of single key, returns SeriesGroupBy
+    g[('B',)]
+
+    # tuple of multiple keys, returns DataFrameGroupBy, raises FutureWarning
+    g[('B', 'C')]
+
+    # multiple keys passed directly, returns DataFrameGroupBy, raises FutureWarning
+    # (implicitly converts the passed strings into a single tuple)
+    g['B', 'C']
+
+    # proper way, returns DataFrameGroupBy
+    g[['B', 'C']]
+
+
 .. _whatsnew_1000.prior_deprecations:
 
 
@@ -789,6 +820,7 @@ Datetimelike
 - Bug in :func:`pandas._config.localization.get_locales` where the ``locales -a`` encodes the locales list as windows-1252 (:issue:`23638`, :issue:`24760`, :issue:`27368`)
 - Bug in :meth:`Series.var` failing to raise ``TypeError`` when called with ``timedelta64[ns]`` dtype (:issue:`28289`)
 - Bug in :meth:`DatetimeIndex.strftime` and :meth:`Series.dt.strftime` where ``NaT`` was converted to the string ``'NaT'`` instead of ``np.nan`` (:issue:`29578`)
+- Bug in masking datetime-like arrays with a boolean mask of an incorrect length not raising an ``IndexError`` (:issue:`30308`)
 - Bug in :attr:`Timestamp.resolution` being a property instead of a class attribute (:issue:`29910`)
 - Bug in :func:`pandas.to_datetime` when called with ``None`` raising ``TypeError`` instead of returning ``NaT`` (:issue:`30011`)
 - Bug in :func:`pandas.to_datetime` failing for `deques` when using ``cache=True`` (the default) (:issue:`29403`)

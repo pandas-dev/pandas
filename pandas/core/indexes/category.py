@@ -278,6 +278,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             setattr(result, k, v)
 
         result._reset_identity()
+        result._no_setting_name = False
         return result
 
     # --------------------------------------------------------------------
