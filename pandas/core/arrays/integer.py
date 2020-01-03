@@ -26,6 +26,8 @@ from pandas.core.dtypes.missing import isna, notna
 from pandas.core import nanops, ops
 from pandas.core.algorithms import take
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
+import pandas.core.common as com
+from pandas.core.indexers import check_bool_array_indexer
 from pandas.core.ops import invalid_comparison
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.tools.numeric import to_numeric
@@ -368,6 +370,10 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             if self._mask[item]:
                 return self.dtype.na_value
             return self._data[item]
+
+        elif com.is_bool_indexer(item):
+            item = check_bool_array_indexer(self, item)
+
         return type(self)(self._data[item], self._mask[item])
 
     def _coerce_to_ndarray(self, dtype=None, na_value=lib._no_default):

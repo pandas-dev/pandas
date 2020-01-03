@@ -379,6 +379,43 @@ class TestEwmMomentsConsistency(ConsistencyBase):
             return result
 
         com = 3.0
+        self._test_moments_consistency_mock_mean(
+            mean=lambda x: x.ewm(
+                com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+            ).mean(),
+            mock_mean=lambda x: _ewma(
+                x, com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+            ),
+        )
+
+        self._test_moments_consistency_is_constant(
+            min_periods=min_periods,
+            count=lambda x: x.expanding().count(),
+            mean=lambda x: x.ewm(
+                com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+            ).mean(),
+            corr=lambda x, y: x.ewm(
+                com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+            ).corr(y),
+        )
+
+        self._test_moments_consistency_var_debiasing_factors(
+            var_unbiased=lambda x: (
+                x.ewm(
+                    com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+                ).var(bias=False)
+            ),
+            var_biased=lambda x: (
+                x.ewm(
+                    com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+                ).var(bias=True)
+            ),
+            var_debiasing_factors=lambda x: (
+                _variance_debiasing_factors(
+                    x, com=com, adjust=adjust, ignore_na=ignore_na
+                )
+            ),
+        )
         # test consistency between different ewm* moments
         self._test_moments_consistency(
             min_periods=min_periods,
@@ -386,9 +423,6 @@ class TestEwmMomentsConsistency(ConsistencyBase):
             mean=lambda x: x.ewm(
                 com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
             ).mean(),
-            mock_mean=lambda x: _ewma(
-                x, com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
-            ),
             corr=lambda x, y: x.ewm(
                 com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
             ).corr(y),
@@ -419,10 +453,5 @@ class TestEwmMomentsConsistency(ConsistencyBase):
                 x.ewm(
                     com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
                 ).cov(y, bias=True)
-            ),
-            var_debiasing_factors=lambda x: (
-                _variance_debiasing_factors(
-                    x, com=com, adjust=adjust, ignore_na=ignore_na
-                )
             ),
         )

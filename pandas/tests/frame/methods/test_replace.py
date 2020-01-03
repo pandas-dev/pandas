@@ -1,7 +1,7 @@
 from datetime import datetime
 from io import StringIO
 import re
-from typing import Dict
+from typing import Dict, List, Union
 
 import numpy as np
 import pytest
@@ -12,12 +12,12 @@ import pandas.util.testing as tm
 
 
 @pytest.fixture
-def mix_ab() -> Dict[str, list]:
+def mix_ab() -> Dict[str, List[Union[int, str]]]:
     return {"a": list(range(4)), "b": list("ab..")}
 
 
 @pytest.fixture
-def mix_abc() -> Dict[str, list]:
+def mix_abc() -> Dict[str, List[Union[float, str]]]:
     return {"a": list(range(4)), "b": list("ab.."), "c": ["a", "b", np.nan, "d"]}
 
 
