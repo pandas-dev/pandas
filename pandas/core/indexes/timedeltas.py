@@ -507,7 +507,6 @@ class TimedeltaIndex(
 
 TimedeltaIndex._add_comparison_ops()
 TimedeltaIndex._add_logical_methods_disabled()
-TimedeltaIndex._add_datetimelike_methods()
 
 
 def timedelta_range(
