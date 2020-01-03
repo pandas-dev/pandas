@@ -68,6 +68,10 @@ def _get_client():
     return bigquery.Client(project=project_id, credentials=credentials)
 
 
+def generate_rand_str(length: int = 10) -> str:
+    return "".join(random.choices(string.ascii_lowercase, k=length))
+
+
 def make_mixed_dataframe_v2(test_size):
     # create df to test for all BQ datatypes except RECORD
     bools = np.random.randint(2, size=(1, test_size)).astype(bool)
@@ -143,10 +147,6 @@ def test_read_gbq_progress_bar_type_kwarg(monkeypatch, progress_bar):
         assert "progress_bar_type" in captured_kwargs
     else:
         assert "progress_bar_type" not in captured_kwargs
-
-
-def generate_rand_str(length: int = 10) -> str:
-    return "".join(random.choices(string.ascii_lowercase, k=length))
 
 
 @pytest.mark.single
