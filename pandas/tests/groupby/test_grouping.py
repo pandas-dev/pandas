@@ -71,14 +71,12 @@ class TestSelection:
         )
 
         result = df.groupby("A")[["C", "D"]].mean()
-        result2 = df.groupby("A")["C", "D"].mean()
-        result3 = df.groupby("A")[df.columns[2:4]].mean()
+        result2 = df.groupby("A")[df.columns[2:4]].mean()
 
         expected = df.loc[:, ["A", "C", "D"]].groupby("A").mean()
 
         tm.assert_frame_equal(result, expected)
         tm.assert_frame_equal(result2, expected)
-        tm.assert_frame_equal(result3, expected)
 
     def test_getitem_numeric_column_names(self):
         # GH #13731
@@ -91,14 +89,40 @@ class TestSelection:
             }
         )
         result = df.groupby(0)[df.columns[1:3]].mean()
-        result2 = df.groupby(0)[2, 4].mean()
-        result3 = df.groupby(0)[[2, 4]].mean()
+        result2 = df.groupby(0)[[2, 4]].mean()
 
         expected = df.loc[:, [0, 2, 4]].groupby(0).mean()
 
         tm.assert_frame_equal(result, expected)
         tm.assert_frame_equal(result2, expected)
-        tm.assert_frame_equal(result3, expected)
+
+        # per GH 23566 this should raise a FutureWarning
+        with tm.assert_produces_warning(FutureWarning):
+            df.groupby(0)[2, 4].mean()
+
+    def test_getitem_single_list_of_columns(self, df):
+        # per GH 23566 this should raise a FutureWarning
+        with tm.assert_produces_warning(FutureWarning):
+            df.groupby("A")["C", "D"].mean()
+
+    def test_getitem_single_column(self):
+        df = DataFrame(
+            {
+                "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
+                "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
+                "C": np.random.randn(8),
+                "D": np.random.randn(8),
+                "E": np.random.randn(8),
+            }
+        )
+
+        result = df.groupby("A")["C"].mean()
+
+        as_frame = df.loc[:, ["A", "C"]].groupby("A").mean()
+        as_series = as_frame.iloc[:, 0]
+        expected = as_series
+
+        tm.assert_series_equal(result, expected)
 
 
 # grouping

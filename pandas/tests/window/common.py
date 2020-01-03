@@ -353,3 +353,34 @@ class ConsistencyBase(Base):
         result.index = result.index.droplevel(1)
         expected = get_result(self.frame[1], self.frame[5])
         tm.assert_series_equal(result, expected, check_names=False)
+
+
+def ew_func(A, B, com, name, **kwargs):
+    return getattr(A.ewm(com, **kwargs), name)(B)
+
+
+def check_binary_ew(name, A, B):
+
+    result = ew_func(A=A, B=B, com=20, name=name, min_periods=5)
+    assert np.isnan(result.values[:14]).all()
+    assert not np.isnan(result.values[14:]).any()
+
+
+def check_binary_ew_min_periods(name, min_periods, A, B):
+    # GH 7898
+    result = ew_func(A, B, 20, name=name, min_periods=min_periods)
+    # binary functions (ewmcov, ewmcorr) with bias=False require at
+    # least two values
+    assert np.isnan(result.values[:11]).all()
+    assert not np.isnan(result.values[11:]).any()
+
+    # check series of length 0
+    empty = Series([], dtype=np.float64)
+    result = ew_func(empty, empty, 50, name=name, min_periods=min_periods)
+    tm.assert_series_equal(result, empty)
+
+    # check series of length 1
+    result = ew_func(
+        Series([1.0]), Series([1.0]), 50, name=name, min_periods=min_periods
+    )
+    tm.assert_series_equal(result, Series([np.NaN]))

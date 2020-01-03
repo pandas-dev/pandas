@@ -135,3 +135,34 @@ class TestSeriesSortIndex:
             [3, 2, 1, np.nan], IntervalIndex.from_arrays([3, 2, 1, 0], [4, 3, 2, 1])
         )
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "original_list, sorted_list, ascending, ignore_index, output_index",
+        [
+            ([2, 3, 6, 1], [2, 3, 6, 1], True, True, [0, 1, 2, 3]),
+            ([2, 3, 6, 1], [2, 3, 6, 1], True, False, [0, 1, 2, 3]),
+            ([2, 3, 6, 1], [1, 6, 3, 2], False, True, [0, 1, 2, 3]),
+            ([2, 3, 6, 1], [1, 6, 3, 2], False, False, [3, 2, 1, 0]),
+        ],
+    )
+    def test_sort_index_ignore_index(
+        self, original_list, sorted_list, ascending, ignore_index, output_index
+    ):
+        # GH 30114
+        ser = Series(original_list)
+        expected = Series(sorted_list, index=output_index)
+
+        # Test when inplace is False
+        sorted_sr = ser.sort_index(ascending=ascending, ignore_index=ignore_index)
+        tm.assert_series_equal(sorted_sr, expected)
+
+        tm.assert_series_equal(ser, Series(original_list))
+
+        # Test when inplace is True
+        copied_sr = ser.copy()
+        copied_sr.sort_index(
+            ascending=ascending, ignore_index=ignore_index, inplace=True
+        )
+        tm.assert_series_equal(copied_sr, expected)
+
+        tm.assert_series_equal(ser, Series(original_list))

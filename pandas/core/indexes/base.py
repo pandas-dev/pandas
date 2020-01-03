@@ -240,6 +240,10 @@ class Index(IndexOpsMixin, PandasObject):
     _data: Union[ExtensionArray, np.ndarray]
     _id = None
     _name: Optional[Hashable] = None
+    # MultiIndex.levels previously allowed setting the index name. We
+    # don't allow this anymore, and raise if it happens rather than
+    # failing silently.
+    _no_setting_name: bool = False
     _comparables = ["name"]
     _attributes = ["name"]
     _is_numeric_dtype = False
@@ -291,11 +295,15 @@ class Index(IndexOpsMixin, PandasObject):
             return CategoricalIndex(data, dtype=dtype, copy=copy, name=name, **kwargs)
 
         # interval
-        elif (
-            is_interval_dtype(data) or is_interval_dtype(dtype)
-        ) and not is_object_dtype(dtype):
-            closed = kwargs.get("closed", None)
-            return IntervalIndex(data, dtype=dtype, name=name, copy=copy, closed=closed)
+        elif is_interval_dtype(data) or is_interval_dtype(dtype):
+            closed = kwargs.pop("closed", None)
+            if is_dtype_equal(_o_dtype, dtype):
+                return IntervalIndex(
+                    data, name=name, copy=copy, closed=closed, **kwargs
+                ).astype(object)
+            return IntervalIndex(
+                data, dtype=dtype, name=name, copy=copy, closed=closed, **kwargs
+            )
 
         elif (
             is_datetime64_any_dtype(data)
@@ -325,8 +333,10 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 return TimedeltaIndex(data, copy=copy, name=name, dtype=dtype, **kwargs)
 
-        elif is_period_dtype(data) and not is_object_dtype(dtype):
-            return PeriodIndex(data, copy=copy, name=name, **kwargs)
+        elif is_period_dtype(data) or is_period_dtype(dtype):
+            if is_dtype_equal(_o_dtype, dtype):
+                return PeriodIndex(data, copy=False, name=name, **kwargs).astype(object)
+            return PeriodIndex(data, dtype=dtype, copy=copy, name=name, **kwargs)
 
         # extension dtype
         elif is_extension_array_dtype(data) or is_extension_array_dtype(dtype):
@@ -1150,6 +1160,12 @@ class Index(IndexOpsMixin, PandasObject):
 
     @name.setter
     def name(self, value):
+        if self._no_setting_name:
+            # Used in MultiIndex.levels to avoid silently ignoring name updates.
+            raise RuntimeError(
+                "Cannot set name on a level of a MultiIndex. Use "
+                "'MultiIndex.set_names' instead."
+            )
         maybe_extract_name(value, None, type(self))
         self._name = value
 
