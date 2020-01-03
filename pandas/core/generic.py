@@ -5026,7 +5026,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             )
 
         locs = rs.choice(axis_length, size=n, replace=replace, p=weights)
-        return self.take(locs,  is_copy=False, axis=axis)
+        return self.take(locs, axis=axis, is_copy=False)
 
     _shared_docs[
         "pipe"
