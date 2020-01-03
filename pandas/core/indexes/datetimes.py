@@ -388,18 +388,12 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
     # --------------------------------------------------------------------
     # Set Operation Methods
 
-    def _union(self, other, sort):
+    def _union(self, other: "DatetimeIndex", sort):
         if not len(other) or self.equals(other) or not len(self):
             return super()._union(other, sort=sort)
 
-        if len(other) == 0 or self.equals(other) or len(self) == 0:
-            return super().union(other, sort=sort)
-
-        if not isinstance(other, DatetimeIndex):
-            try:
-                other = DatetimeIndex(other)
-            except TypeError:
-                pass
+        # We are called by `union`, which is responsible for this validation
+        assert isinstance(other, DatetimeIndex)
 
         this, other = self._maybe_utc_convert(other)
 
@@ -948,20 +942,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
                     return indexer
             else:
                 raise
-
-    # --------------------------------------------------------------------
-    # Wrapping DatetimeArray
-
-    def __getitem__(self, key):
-        result = self._data.__getitem__(key)
-        if is_scalar(result):
-            return result
-        elif result.ndim > 1:
-            # To support MPL which performs slicing with 2 dim
-            # even though it only has 1 dim by definition
-            assert isinstance(result, np.ndarray), result
-            return result
-        return type(self)(result, name=self.name)
 
     # --------------------------------------------------------------------
 

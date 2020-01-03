@@ -58,7 +58,7 @@ from pandas.core.ops import get_op_result_name
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import DateOffset
 
-from .extension import inherit_names
+from .extension import ExtensionIndex, inherit_names
 
 _VALID_CLOSED = {"left", "right", "both", "neither"}
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -213,7 +213,7 @@ class SetopCheck:
     overwrite=True,
 )
 @inherit_names(["is_non_overlapping_monotonic", "mid"], IntervalArray, cache=True)
-class IntervalIndex(IntervalMixin, Index, accessor.PandasDelegate):
+class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
     _typ = "intervalindex"
     _comparables = ["name"]
     _attributes = ["name", "closed"]
@@ -430,7 +430,7 @@ class IntervalIndex(IntervalMixin, Index, accessor.PandasDelegate):
             new_values = self.values.astype(dtype, copy=copy)
         if is_interval_dtype(new_values):
             return self._shallow_copy(new_values.left, new_values.right)
-        return super().astype(dtype, copy=copy)
+        return Index.astype(self, dtype, copy=copy)
 
     @property
     def inferred_type(self) -> str:
@@ -664,7 +664,7 @@ class IntervalIndex(IntervalMixin, Index, accessor.PandasDelegate):
 
         return key_i8
 
-    def _check_method(self, method):
+    def _check_method(self, method):  # TODO: Doesnt need to be a method
         if method is None:
             return
 
@@ -993,14 +993,6 @@ class IntervalIndex(IntervalMixin, Index, accessor.PandasDelegate):
             indices, axis=axis, allow_fill=allow_fill, fill_value=fill_value, **kwargs
         )
         return self._shallow_copy(result)
-
-    def __getitem__(self, value):
-        result = self._data[value]
-        if isinstance(result, IntervalArray):
-            return self._shallow_copy(result)
-        else:
-            # scalar
-            return result
 
     # --------------------------------------------------------------------
     # Rendering Methods

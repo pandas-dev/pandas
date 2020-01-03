@@ -32,6 +32,8 @@ from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_na
 import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name
 
+from .extension import ExtensionIndex
+
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(dict(target_klass="CategoricalIndex"))
 
@@ -65,7 +67,7 @@ _index_doc_kwargs.update(dict(target_klass="CategoricalIndex"))
     typ="method",
     overwrite=True,
 )
-class CategoricalIndex(Index, accessor.PandasDelegate):
+class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
     """
     Index based on an underlying :class:`Categorical`.
 
@@ -268,14 +270,12 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         return data
 
     @classmethod
-    def _simple_new(cls, values, name=None, dtype=None, **kwargs):
+    def _simple_new(cls, values, name=None, dtype=None):
         result = object.__new__(cls)
 
         values = cls._create_categorical(values, dtype=dtype)
         result._data = values
         result.name = name
-        for k, v in kwargs.items():
-            setattr(result, k, v)
 
         result._reset_identity()
         result._no_setting_name = False
@@ -415,7 +415,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             if dtype == self.dtype:
                 return self.copy() if copy else self
 
-        return super().astype(dtype=dtype, copy=copy)
+        return Index.astype(self, dtype=dtype, copy=copy)
 
     @cache_readonly
     def _isnan(self):

@@ -226,15 +226,6 @@ class TimedeltaIndex(
         return _get_format_timedelta64(self, box=True)
 
     # -------------------------------------------------------------------
-    # Wrapping TimedeltaArray
-
-    def __getitem__(self, key):
-        result = self._data.__getitem__(key)
-        if is_scalar(result):
-            return result
-        return type(self)(result, name=self.name)
-
-    # -------------------------------------------------------------------
 
     @Appender(_index_shared_docs["astype"])
     def astype(self, dtype, copy=True):
@@ -249,15 +240,13 @@ class TimedeltaIndex(
             return Index(result.astype("i8"), name=self.name)
         return DatetimeIndexOpsMixin.astype(self, dtype, copy=copy)
 
-    def _union(self, other, sort):
+    def _union(self, other: "TimedeltaIndex", sort):
         if len(other) == 0 or self.equals(other) or len(self) == 0:
             return super()._union(other, sort=sort)
 
-        if not isinstance(other, TimedeltaIndex):
-            try:
-                other = TimedeltaIndex(other)
-            except (TypeError, ValueError):
-                pass
+        # We are called by `union`, which is responsible for this validation
+        assert isinstance(other, TimedeltaIndex)
+
         this, other = self, other
 
         if this._can_fast_union(other):

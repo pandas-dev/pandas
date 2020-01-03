@@ -40,7 +40,7 @@ from pandas.core.tools.timedeltas import to_timedelta
 
 from pandas.tseries.frequencies import DateOffset, to_offset
 
-from .extension import inherit_names
+from .extension import ExtensionIndex, inherit_names
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
@@ -90,7 +90,7 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
     ["__iter__", "mean", "freq", "freqstr", "_ndarray_values", "asi8", "_box_values"],
     DatetimeLikeArrayMixin,
 )
-class DatetimeIndexOpsMixin(ExtensionOpsMixin):
+class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
     """
     Common ops mixin to support a unified interface datetimelike Index.
     """
@@ -108,17 +108,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     @property
     def is_all_dates(self) -> bool:
         return True
-
-    def unique(self, level=None):
-        if level is not None:
-            self._validate_index_level(level)
-
-        result = self._data.unique()
-
-        # Note: if `self` is already unique, then self.unique() should share
-        #  a `freq` with self.  If not already unique, then self.freq must be
-        #  None, so again sharing freq is correct.
-        return self._shallow_copy(result._data)
 
     @classmethod
     def _create_comparison_method(cls, op):
@@ -185,12 +174,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         if not is_dtype_equal(self.dtype, other.dtype):
             # have different timezone
             return False
-
-        elif is_period_dtype(self):
-            if not is_period_dtype(other):
-                return False
-            if self.freq != other.freq:
-                return False
 
         return np.array_equal(self.asi8, other.asi8)
 
@@ -573,18 +556,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             attribs["freq"] = None
 
         return self._simple_new(new_data, **attribs)
-
-    @Appender(_index_shared_docs["astype"])
-    def astype(self, dtype, copy=True):
-        if is_dtype_equal(self.dtype, dtype) and copy is False:
-            # Ensure that self.astype(self.dtype) is self
-            return self
-
-        new_values = self._data.astype(dtype, copy=copy)
-
-        # pass copy=False because any copying will be done in the
-        #  _data.astype call above
-        return Index(new_values, dtype=new_values.dtype, name=self.name, copy=False)
 
     def shift(self, periods=1, freq=None):
         """

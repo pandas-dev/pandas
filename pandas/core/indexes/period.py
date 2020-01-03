@@ -599,15 +599,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         indexer, missing = self._int64index.get_indexer_non_unique(target)
         return ensure_platform_int(indexer), missing
 
-    def _get_unique_index(self, dropna=False):
-        """
-        wrap Index._get_unique_index to handle NaT
-        """
-        res = super()._get_unique_index(dropna=dropna)
-        if dropna:
-            res = res.dropna()
-        return res
-
     def get_loc(self, key, method=None, tolerance=None):
         """
         Get integer location for requested label
