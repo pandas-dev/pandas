@@ -149,12 +149,12 @@ to build the documentation locally before pushing your changes.
 Using a Docker Container
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Instead of manually setting up a development environment, you can use Docker to 
+Instead of manually setting up a development environment, you can use Docker to
 automatically create the environment with just several commands. Pandas provides a `DockerFile`
 in the root directory to build a Docker image with a full pandas development environment.
 
-Even easier, you can use the DockerFile to launch a remote session with Visual Studio Code, 
-a popular free IDE, using the `.devcontainer.json` file. 
+Even easier, you can use the DockerFile to launch a remote session with Visual Studio Code,
+a popular free IDE, using the `.devcontainer.json` file.
 See https://code.visualstudio.com/docs/remote/containers for details.
 
 .. _contributing.dev_c:
