@@ -222,11 +222,10 @@ class TestDataFrame(Generic):
 
         # idempotency
         # categoricals are not preserved
-        # datetimes w/tz are not preserved
+        # datetimes w/tz are preserved
         # column names are lost
         expected = df.copy()
         expected["f"] = expected["f"].astype(object)
-        expected["h"] = expected["h"].astype("datetime64[ns]")
         expected.columns.name = None
         tm.assert_frame_equal(
             result.to_dataframe(),
@@ -271,7 +270,6 @@ class TestDataFrame(Generic):
         result = result.to_dataframe()
         expected = df.copy()
         expected["f"] = expected["f"].astype(object)
-        expected["h"] = expected["h"].astype("datetime64[ns]")
         expected.columns.name = None
         tm.assert_frame_equal(result, expected, check_index_type=False)
 

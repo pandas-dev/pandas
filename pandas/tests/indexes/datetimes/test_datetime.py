@@ -393,15 +393,13 @@ class TestDatetimeIndex:
         # This shouldn't produce a warning.
         idx = pd.date_range("2000", periods=2)
         # M8[ns] by default
-        with tm.assert_produces_warning(None):
-            result = np.asarray(idx)
+        result = np.asarray(idx)
 
         expected = np.array(["2000-01-01", "2000-01-02"], dtype="M8[ns]")
         tm.assert_numpy_array_equal(result, expected)
 
         # optionally, object
-        with tm.assert_produces_warning(None):
-            result = np.asarray(idx, dtype=object)
+        result = np.asarray(idx, dtype=object)
 
         expected = np.array([pd.Timestamp("2000-01-01"), pd.Timestamp("2000-01-02")])
         tm.assert_numpy_array_equal(result, expected)
@@ -410,15 +408,12 @@ class TestDatetimeIndex:
         tz = "US/Central"
         idx = pd.date_range("2000", periods=2, tz=tz)
         expected = np.array(["2000-01-01T06", "2000-01-02T06"], dtype="M8[ns]")
-        # We warn by default and return an ndarray[M8[ns]]
-        with tm.assert_produces_warning(FutureWarning):
-            result = np.asarray(idx)
+        result = np.asarray(idx, dtype="datetime64[ns]")
 
         tm.assert_numpy_array_equal(result, expected)
 
         # Old behavior with no warning
-        with tm.assert_produces_warning(None):
-            result = np.asarray(idx, dtype="M8[ns]")
+        result = np.asarray(idx, dtype="M8[ns]")
 
         tm.assert_numpy_array_equal(result, expected)
 
@@ -426,8 +421,7 @@ class TestDatetimeIndex:
         expected = np.array(
             [pd.Timestamp("2000-01-01", tz=tz), pd.Timestamp("2000-01-02", tz=tz)]
         )
-        with tm.assert_produces_warning(None):
-            result = np.asarray(idx, dtype=object)
+        result = np.asarray(idx, dtype=object)
 
         tm.assert_numpy_array_equal(result, expected)
 

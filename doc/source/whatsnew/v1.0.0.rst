@@ -691,6 +691,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - Removed the previously deprecated keyword "data" from :func:`parallel_coordinates`, use "frame" instead (:issue:`6956`)
 - Removed the previously deprecated keyword "colors" from :func:`parallel_coordinates`, use "color" instead (:issue:`6956`)
 - Removed the previously deprecated keywords "verbose" and "private_key" from :func:`read_gbq` (:issue:`30200`)
+- Calling ``np.array`` and ``np.asarray`` on tz-aware :class:`Series` and :class:`DatetimeIndex` will now return an object array of tz-aware :class:`Timestamp` (:issue:`24596`)
 -
 
 .. _whatsnew_1000.performance:
