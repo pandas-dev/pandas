@@ -7,7 +7,7 @@ from pandas._libs.tslibs import period as libperiod
 
 import pandas as pd
 from pandas import DatetimeIndex, Period, PeriodIndex, Series, notna, period_range
-from pandas.util import testing as tm
+import pandas.util.testing as tm
 
 
 class TestGetItem:
@@ -679,7 +679,7 @@ class TestIndexing:
     def test_period_index_indexer(self):
         # GH4125
         idx = pd.period_range("2002-01", "2003-12", freq="M")
-        df = pd.DataFrame(pd.np.random.randn(24, 10), index=idx)
+        df = pd.DataFrame(np.random.randn(24, 10), index=idx)
         tm.assert_frame_equal(df, df.loc[idx])
         tm.assert_frame_equal(df, df.loc[list(idx)])
         tm.assert_frame_equal(df, df.loc[list(idx)])

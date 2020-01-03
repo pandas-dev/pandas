@@ -9,19 +9,17 @@ import itertools
 import pprint
 import struct
 import sys
+from typing import List
 
 import numpy as np
 
 from pandas._libs.tslibs import Timestamp
 from pandas.compat.chainmap import DeepChainMap
 
-from pandas.core.base import StringMixin
-import pandas.core.computation as compu
 
-
-def _ensure_scope(
-    level, global_dict=None, local_dict=None, resolvers=(), target=None, **kwargs
-):
+def ensure_scope(
+    level: int, global_dict=None, local_dict=None, resolvers=(), target=None, **kwargs
+) -> "Scope":
     """Ensure that we are grabbing the correct scope."""
     return Scope(
         level + 1,
@@ -32,7 +30,7 @@ def _ensure_scope(
     )
 
 
-def _replacer(x):
+def _replacer(x) -> str:
     """Replace a number with its hexadecimal representation. Used to tag
     temporary variables with their calling scope's id.
     """
@@ -47,11 +45,11 @@ def _replacer(x):
     return hex(hexin)
 
 
-def _raw_hex_id(obj):
+def _raw_hex_id(obj) -> str:
     """Return the padded hexadecimal id of ``obj``."""
     # interpret as a pointer since that's what really what id returns
     packed = struct.pack("@P", id(obj))
-    return "".join(map(_replacer, packed))
+    return "".join(_replacer(x) for x in packed)
 
 
 _DEFAULT_GLOBALS = {
@@ -66,8 +64,9 @@ _DEFAULT_GLOBALS = {
 }
 
 
-def _get_pretty_string(obj):
-    """Return a prettier version of obj
+def _get_pretty_string(obj) -> str:
+    """
+    Return a prettier version of obj.
 
     Parameters
     ----------
@@ -76,7 +75,7 @@ def _get_pretty_string(obj):
 
     Returns
     -------
-    s : str
+    str
         Pretty print object repr
     """
     sio = StringIO()
@@ -84,9 +83,9 @@ def _get_pretty_string(obj):
     return sio.getvalue()
 
 
-class Scope(StringMixin):
-
-    """Object to hold scope, with a few bells to deal with some custom syntax
+class Scope:
+    """
+    Object to hold scope, with a few bells to deal with some custom syntax
     and contexts added by pandas.
 
     Parameters
@@ -105,7 +104,7 @@ class Scope(StringMixin):
     temps : dict
     """
 
-    __slots__ = "level", "scope", "target", "temps"
+    __slots__ = ["level", "scope", "target", "resolvers", "temps"]
 
     def __init__(
         self, level, global_dict=None, local_dict=None, resolvers=(), target=None
@@ -121,7 +120,7 @@ class Scope(StringMixin):
             self.scope.update(local_dict.scope)
             if local_dict.target is not None:
                 self.target = local_dict.target
-            self.update(local_dict.level)
+            self._update(local_dict.level)
 
         frame = sys._getframe(self.level)
 
@@ -141,17 +140,16 @@ class Scope(StringMixin):
         self.resolvers = DeepChainMap(*resolvers)
         self.temps = {}
 
-    def __str__(self):
+    def __repr__(self) -> str:
         scope_keys = _get_pretty_string(list(self.scope.keys()))
         res_keys = _get_pretty_string(list(self.resolvers.keys()))
-        unicode_str = "{name}(scope={scope_keys}, resolvers={res_keys})"
-        return unicode_str.format(
-            name=type(self).__name__, scope_keys=scope_keys, res_keys=res_keys
-        )
+        unicode_str = f"{type(self).__name__}(scope={scope_keys}, resolvers={res_keys})"
+        return unicode_str
 
     @property
-    def has_resolvers(self):
-        """Return whether we have any extra scope.
+    def has_resolvers(self) -> bool:
+        """
+        Return whether we have any extra scope.
 
         For example, DataFrames pass Their columns as resolvers during calls to
         ``DataFrame.eval()`` and ``DataFrame.query()``.
@@ -162,8 +160,9 @@ class Scope(StringMixin):
         """
         return bool(len(self.resolvers))
 
-    def resolve(self, key, is_local):
-        """Resolve a variable name in a possibly local context
+    def resolve(self, key: str, is_local: bool):
+        """
+        Resolve a variable name in a possibly local context.
 
         Parameters
         ----------
@@ -198,10 +197,14 @@ class Scope(StringMixin):
                 # e.g., df[df > 0]
                 return self.temps[key]
             except KeyError:
-                raise compu.ops.UndefinedVariableError(key, is_local)
+                # runtime import because ops imports from scope
+                from pandas.core.computation.ops import UndefinedVariableError
 
-    def swapkey(self, old_key, new_key, new_value=None):
-        """Replace a variable name, with a potentially new value.
+                raise UndefinedVariableError(key, is_local)
+
+    def swapkey(self, old_key: str, new_key: str, new_value=None):
+        """
+        Replace a variable name, with a potentially new value.
 
         Parameters
         ----------
@@ -224,8 +227,9 @@ class Scope(StringMixin):
                 mapping[new_key] = new_value
                 return
 
-    def _get_vars(self, stack, scopes):
-        """Get specifically scoped variables from a list of stack frames.
+    def _get_vars(self, stack, scopes: List[str]):
+        """
+        Get specifically scoped variables from a list of stack frames.
 
         Parameters
         ----------
@@ -246,12 +250,13 @@ class Scope(StringMixin):
                 # scope after the loop
                 del frame
 
-    def update(self, level):
-        """Update the current scope by going back `level` levels.
+    def _update(self, level: int):
+        """
+        Update the current scope by going back `level` levels.
 
         Parameters
         ----------
-        level : int or None, optional, default None
+        level : int
         """
         sl = level + 1
 
@@ -265,8 +270,9 @@ class Scope(StringMixin):
         finally:
             del stack[:], stack
 
-    def add_tmp(self, value):
-        """Add a temporary variable to the scope.
+    def add_tmp(self, value) -> str:
+        """
+        Add a temporary variable to the scope.
 
         Parameters
         ----------
@@ -275,12 +281,10 @@ class Scope(StringMixin):
 
         Returns
         -------
-        name : basestring
+        str
             The name of the temporary variable created.
         """
-        name = "{name}_{num}_{hex_id}".format(
-            name=type(value).__name__, num=self.ntemps, hex_id=_raw_hex_id(self)
-        )
+        name = f"{type(value).__name__}_{self.ntemps}_{_raw_hex_id(self)}"
 
         # add to inner most scope
         assert name not in self.temps
@@ -291,13 +295,14 @@ class Scope(StringMixin):
         return name
 
     @property
-    def ntemps(self):
+    def ntemps(self) -> int:
         """The number of temporary variables in this scope"""
         return len(self.temps)
 
     @property
     def full_scope(self):
-        """Return the full scope for use with passing to engines transparently
+        """
+        Return the full scope for use with passing to engines transparently
         as a mapping.
 
         Returns

@@ -1,4 +1,4 @@
-from cpython cimport Py_EQ, Py_NE, Py_GE, Py_GT, Py_LT, Py_LE
+from cpython.object cimport Py_EQ, Py_NE, Py_GE, Py_GT, Py_LT, Py_LE
 
 from cpython.datetime cimport (datetime, date,
                                PyDateTime_IMPORT,
@@ -112,11 +112,9 @@ cdef inline check_dts_bounds(npy_datetimestruct *dts):
         error = True
 
     if error:
-        fmt = '%d-%.2d-%.2d %.2d:%.2d:%.2d' % (dts.year, dts.month,
-                                               dts.day, dts.hour,
-                                               dts.min, dts.sec)
-        raise OutOfBoundsDatetime(
-            'Out of bounds nanosecond timestamp: {fmt}'.format(fmt=fmt))
+        fmt = (f'{dts.year}-{dts.month:02d}-{dts.day:02d} '
+               f'{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}')
+        raise OutOfBoundsDatetime(f'Out of bounds nanosecond timestamp: {fmt}')
 
 
 # ----------------------------------------------------------------------
@@ -169,7 +167,7 @@ cdef inline int64_t pydate_to_dt64(date val, npy_datetimestruct *dts):
     return dtstruct_to_dt64(dts)
 
 
-cdef inline int _string_to_dts(object val, npy_datetimestruct* dts,
+cdef inline int _string_to_dts(str val, npy_datetimestruct* dts,
                                int* out_local, int* out_tzoffset,
                                bint want_exc) except? -1:
     cdef:

@@ -36,7 +36,6 @@ from pandas._libs.tslibs.tzconversion import (
 # Constants
 _zero_time = datetime_time(0, 0)
 _no_input = object()
-PY36 = sys.version_info >= (3, 6)
 
 # ----------------------------------------------------------------------
 
@@ -90,23 +89,23 @@ class RoundTo:
            https://en.wikipedia.org/wiki/Rounding#Round_half_to_even
     """
     @property
-    def MINUS_INFTY(self):
+    def MINUS_INFTY(self) -> int:
         return 0
 
     @property
-    def PLUS_INFTY(self):
+    def PLUS_INFTY(self) -> int:
         return 1
 
     @property
-    def NEAREST_HALF_EVEN(self):
+    def NEAREST_HALF_EVEN(self) -> int:
         return 2
 
     @property
-    def NEAREST_HALF_PLUS_INFTY(self):
+    def NEAREST_HALF_PLUS_INFTY(self) -> int:
         return 3
 
     @property
-    def NEAREST_HALF_MINUS_INFTY(self):
+    def NEAREST_HALF_MINUS_INFTY(self) -> int:
         return 4
 
 
@@ -194,13 +193,10 @@ class Timestamp(_Timestamp):
         valid values are 'D', 'h', 'm', 's', 'ms', 'us', and 'ns'. For
         example, 's' means seconds and 'ms' means milliseconds.
     year, month, day : int
-        .. versionadded:: 0.19.0
     hour, minute, second, microsecond : int, optional, default 0
-        .. versionadded:: 0.19.0
     nanosecond : int, optional, default 0
         .. versionadded:: 0.23.0
     tzinfo : datetime.tzinfo, optional, default None
-        .. versionadded:: 0.19.0
 
     Notes
     -----
@@ -245,17 +241,17 @@ class Timestamp(_Timestamp):
         """
         Timestamp.fromordinal(ordinal, freq=None, tz=None)
 
-        passed an ordinal, translate and convert to a ts
-        note: by definition there cannot be any tz info on the ordinal itself
+        Passed an ordinal, translate and convert to a ts.
+        Note: by definition there cannot be any tz info on the ordinal itself.
 
         Parameters
         ----------
         ordinal : int
-            date corresponding to a proleptic Gregorian ordinal
+            Date corresponding to a proleptic Gregorian ordinal.
         freq : str, DateOffset
-            Offset which Timestamp will have
+            Offset to apply to the Timestamp.
         tz : str, pytz.timezone, dateutil.tz.tzfile or None
-            Time zone for time which Timestamp will have.
+            Time zone for the Timestamp.
         """
         return cls(datetime.fromordinal(ordinal),
                    freq=freq, tz=tz)
@@ -271,7 +267,7 @@ class Timestamp(_Timestamp):
         Parameters
         ----------
         tz : str or timezone object, default None
-            Timezone to localize to
+            Timezone to localize to.
         """
         if isinstance(tz, str):
             tz = maybe_get_tz(tz)
@@ -289,7 +285,7 @@ class Timestamp(_Timestamp):
         Parameters
         ----------
         tz : str or timezone object, default None
-            Timezone to localize to
+            Timezone to localize to.
         """
         return cls.now(tz)
 
@@ -328,7 +324,7 @@ class Timestamp(_Timestamp):
 
         Function is not implemented. Use pd.to_datetime().
         """
-        raise NotImplementedError("Timestamp.strptime() is not implmented."
+        raise NotImplementedError("Timestamp.strptime() is not implemented."
                                   "Use to_datetime() to parse date strings.")
 
     @classmethod
@@ -336,15 +332,26 @@ class Timestamp(_Timestamp):
         """
         Timestamp.combine(date, time)
 
-        date, time -> datetime with same date and time fields
+        date, time -> datetime with same date and time fields.
         """
         return cls(datetime.combine(date, time))
 
-    def __new__(cls, object ts_input=_no_input,
-                object freq=None, tz=None, unit=None,
-                year=None, month=None, day=None,
-                hour=None, minute=None, second=None, microsecond=None,
-                nanosecond=None, tzinfo=None):
+    def __new__(
+        cls,
+        object ts_input=_no_input,
+        object freq=None,
+        tz=None,
+        unit=None,
+        year=None,
+        month=None,
+        day=None,
+        hour=None,
+        minute=None,
+        second=None,
+        microsecond=None,
+        nanosecond=None,
+        tzinfo=None
+    ):
         # The parameter list folds together legacy parameter names (the first
         # four) and positional and keyword parameter names from pydatetime.
         #
@@ -374,8 +381,8 @@ class Timestamp(_Timestamp):
         if tzinfo is not None:
             if not PyTZInfo_Check(tzinfo):
                 # tzinfo must be a datetime.tzinfo object, GH#17690
-                raise TypeError('tzinfo must be a datetime.tzinfo object, '
-                                'not %s' % type(tzinfo))
+                raise TypeError(f'tzinfo must be a datetime.tzinfo object, '
+                                f'not {type(tzinfo)}')
             elif tz is not None:
                 raise ValueError('Can provide at most one of tz, tzinfo')
 
@@ -405,9 +412,8 @@ class Timestamp(_Timestamp):
             freq = None
 
         if getattr(ts_input, 'tzinfo', None) is not None and tz is not None:
-            warnings.warn("Passing a datetime or Timestamp with tzinfo and the"
-                          " tz parameter will raise in the future. Use"
-                          " tz_convert instead.", FutureWarning)
+            raise ValueError("Cannot pass a datetime or Timestamp with tzinfo with "
+                             "the tz parameter. Use tz_convert instead.")
 
         ts = convert_to_tsobject(ts_input, tz, unit, 0, 0, nanosecond or 0)
 
@@ -441,31 +447,34 @@ class Timestamp(_Timestamp):
 
     def round(self, freq, ambiguous='raise', nonexistent='raise'):
         """
-        Round the Timestamp to the specified resolution
+        Round the Timestamp to the specified resolution.
 
         Parameters
         ----------
-        freq : a freq string indicating the rounding resolution
-        ambiguous : bool, 'NaT', default 'raise'
-            - bool contains flags to determine if time is dst or not (note
-              that this flag is only applicable for ambiguous fall dst dates)
-            - 'NaT' will return NaT for an ambiguous time
-            - 'raise' will raise an AmbiguousTimeError for an ambiguous time
+        freq : str
+            Frequency string indicating the rounding resolution.
+        ambiguous : bool or {'raise', 'NaT'}, default 'raise'
+            The behavior is as follows:
+
+            * bool contains flags to determine if time is dst or not (note
+              that this flag is only applicable for ambiguous fall dst dates).
+            * 'NaT' will return NaT for an ambiguous time.
+            * 'raise' will raise an AmbiguousTimeError for an ambiguous time.
 
             .. versionadded:: 0.24.0
-        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta, \
-default 'raise'
+        nonexistent : {'raise', 'shift_forward', 'shift_backward, 'NaT', \
+timedelta}, default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
-            - 'shift_forward' will shift the nonexistent time forward to the
-              closest existing time
-            - 'shift_backward' will shift the nonexistent time backward to the
-              closest existing time
-            - 'NaT' will return NaT where there are nonexistent times
-            - timedelta objects will shift nonexistent times by the timedelta
-            - 'raise' will raise an NonExistentTimeError if there are
-              nonexistent times
+            * 'shift_forward' will shift the nonexistent time forward to the
+              closest existing time.
+            * 'shift_backward' will shift the nonexistent time backward to the
+              closest existing time.
+            * 'NaT' will return NaT where there are nonexistent times.
+            * timedelta objects will shift nonexistent times by the timedelta.
+            * 'raise' will raise an NonExistentTimeError if there are
+              nonexistent times.
 
             .. versionadded:: 0.24.0
 
@@ -483,80 +492,86 @@ default 'raise'
 
     def floor(self, freq, ambiguous='raise', nonexistent='raise'):
         """
-        return a new Timestamp floored to this resolution
+        return a new Timestamp floored to this resolution.
 
         Parameters
         ----------
-        freq : a freq string indicating the flooring resolution
-        ambiguous : bool, 'NaT', default 'raise'
-            - bool contains flags to determine if time is dst or not (note
-              that this flag is only applicable for ambiguous fall dst dates)
-            - 'NaT' will return NaT for an ambiguous time
-            - 'raise' will raise an AmbiguousTimeError for an ambiguous time
+        freq : str
+            Frequency string indicating the flooring resolution.
+        ambiguous : bool or {'raise', 'NaT'}, default 'raise'
+            The behavior is as follows:
+
+            * bool contains flags to determine if time is dst or not (note
+              that this flag is only applicable for ambiguous fall dst dates).
+            * 'NaT' will return NaT for an ambiguous time.
+            * 'raise' will raise an AmbiguousTimeError for an ambiguous time.
 
             .. versionadded:: 0.24.0
-        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta, \
-default 'raise'
+        nonexistent : {'raise', 'shift_forward', 'shift_backward, 'NaT', \
+timedelta}, default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
-            - 'shift_forward' will shift the nonexistent time forward to the
-              closest existing time
-            - 'shift_backward' will shift the nonexistent time backward to the
-              closest existing time
-            - 'NaT' will return NaT where there are nonexistent times
-            - timedelta objects will shift nonexistent times by the timedelta
-            - 'raise' will raise an NonExistentTimeError if there are
-              nonexistent times
+            * 'shift_forward' will shift the nonexistent time forward to the
+              closest existing time.
+            * 'shift_backward' will shift the nonexistent time backward to the
+              closest existing time.
+            * 'NaT' will return NaT where there are nonexistent times.
+            * timedelta objects will shift nonexistent times by the timedelta.
+            * 'raise' will raise an NonExistentTimeError if there are
+              nonexistent times.
 
             .. versionadded:: 0.24.0
 
         Raises
         ------
-        ValueError if the freq cannot be converted
+        ValueError if the freq cannot be converted.
         """
         return self._round(freq, RoundTo.MINUS_INFTY, ambiguous, nonexistent)
 
     def ceil(self, freq, ambiguous='raise', nonexistent='raise'):
         """
-        return a new Timestamp ceiled to this resolution
+        return a new Timestamp ceiled to this resolution.
 
         Parameters
         ----------
-        freq : a freq string indicating the ceiling resolution
-        ambiguous : bool, 'NaT', default 'raise'
-            - bool contains flags to determine if time is dst or not (note
-              that this flag is only applicable for ambiguous fall dst dates)
-            - 'NaT' will return NaT for an ambiguous time
-            - 'raise' will raise an AmbiguousTimeError for an ambiguous time
+        freq : str
+            Frequency string indicating the ceiling resolution.
+        ambiguous : bool or {'raise', 'NaT'}, default 'raise'
+            The behavior is as follows:
+
+            * bool contains flags to determine if time is dst or not (note
+              that this flag is only applicable for ambiguous fall dst dates).
+            * 'NaT' will return NaT for an ambiguous time.
+            * 'raise' will raise an AmbiguousTimeError for an ambiguous time.
 
             .. versionadded:: 0.24.0
-        nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta, \
-default 'raise'
+        nonexistent : {'raise', 'shift_forward', 'shift_backward, 'NaT', \
+timedelta}, default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
-            - 'shift_forward' will shift the nonexistent time forward to the
-              closest existing time
-            - 'shift_backward' will shift the nonexistent time backward to the
-              closest existing time
-            - 'NaT' will return NaT where there are nonexistent times
-            - timedelta objects will shift nonexistent times by the timedelta
-            - 'raise' will raise an NonExistentTimeError if there are
-              nonexistent times
+            * 'shift_forward' will shift the nonexistent time forward to the
+              closest existing time.
+            * 'shift_backward' will shift the nonexistent time backward to the
+              closest existing time.
+            * 'NaT' will return NaT where there are nonexistent times.
+            * timedelta objects will shift nonexistent times by the timedelta.
+            * 'raise' will raise an NonExistentTimeError if there are
+              nonexistent times.
 
             .. versionadded:: 0.24.0
 
         Raises
         ------
-        ValueError if the freq cannot be converted
+        ValueError if the freq cannot be converted.
         """
         return self._round(freq, RoundTo.PLUS_INFTY, ambiguous, nonexistent)
 
     @property
     def tz(self):
         """
-        Alias for tzinfo
+        Alias for tzinfo.
         """
         return self.tzinfo
 
@@ -595,18 +610,18 @@ default 'raise'
     @property
     def dayofweek(self):
         """
-        Return day of whe week.
+        Return day of the week.
         """
         return self.weekday()
 
-    def day_name(self, locale=None):
+    def day_name(self, locale=None) -> str:
         """
         Return the day name of the Timestamp with specified locale.
 
         Parameters
         ----------
         locale : string, default None (English locale)
-            locale determining the language in which to return the day name
+            Locale determining the language in which to return the day name.
 
         Returns
         -------
@@ -616,14 +631,14 @@ default 'raise'
         """
         return self._get_date_name_field('day_name', locale)
 
-    def month_name(self, locale=None):
+    def month_name(self, locale=None) -> str:
         """
         Return the month name of the Timestamp with specified locale.
 
         Parameters
         ----------
         locale : string, default None (English locale)
-            locale determining the language in which to return the month name
+            Locale determining the language in which to return the month name.
 
         Returns
         -------
@@ -634,17 +649,6 @@ default 'raise'
         return self._get_date_name_field('month_name', locale)
 
     @property
-    def weekday_name(self):
-        """
-        .. deprecated:: 0.23.0
-            Use ``Timestamp.day_name()`` instead
-        """
-        warnings.warn("`weekday_name` is deprecated and will be removed in a "
-                      "future version. Use `day_name` instead",
-                      FutureWarning)
-        return self.day_name()
-
-    @property
     def dayofyear(self):
         """
         Return the day of the year.
@@ -652,7 +656,7 @@ default 'raise'
         return ccalendar.get_day_of_year(self.year, self.month, self.day)
 
     @property
-    def week(self):
+    def week(self) -> int:
         """
         Return the week number of the year.
         """
@@ -661,7 +665,7 @@ default 'raise'
     weekofyear = week
 
     @property
-    def quarter(self):
+    def quarter(self) -> int:
         """
         Return the quarter of the year.
         """
@@ -684,7 +688,7 @@ default 'raise'
         return getattr(self.freq, 'freqstr', self.freq)
 
     @property
-    def is_month_start(self):
+    def is_month_start(self) -> bool:
         """
         Return True if date is first day of month.
         """
@@ -694,7 +698,7 @@ default 'raise'
         return self._get_start_end_field('is_month_start')
 
     @property
-    def is_month_end(self):
+    def is_month_end(self) -> bool:
         """
         Return True if date is last day of month.
         """
@@ -704,7 +708,7 @@ default 'raise'
         return self._get_start_end_field('is_month_end')
 
     @property
-    def is_quarter_start(self):
+    def is_quarter_start(self) -> bool:
         """
         Return True if date is first day of the quarter.
         """
@@ -714,7 +718,7 @@ default 'raise'
         return self._get_start_end_field('is_quarter_start')
 
     @property
-    def is_quarter_end(self):
+    def is_quarter_end(self) -> bool:
         """
         Return True if date is last day of the quarter.
         """
@@ -724,7 +728,7 @@ default 'raise'
         return self._get_start_end_field('is_quarter_end')
 
     @property
-    def is_year_start(self):
+    def is_year_start(self) -> bool:
         """
         Return True if date is first day of the year.
         """
@@ -734,7 +738,7 @@ default 'raise'
         return self._get_start_end_field('is_year_start')
 
     @property
-    def is_year_end(self):
+    def is_year_end(self) -> bool:
         """
         Return True if date is last day of the year.
         """
@@ -744,23 +748,13 @@ default 'raise'
         return self._get_start_end_field('is_year_end')
 
     @property
-    def is_leap_year(self):
+    def is_leap_year(self) -> bool:
         """
         Return True if year is a leap year.
         """
         return bool(ccalendar.is_leapyear(self.year))
 
-    @property
-    def resolution(self):
-        """
-        Return resolution describing the smallest difference between two
-        times that can be represented by Timestamp object_state
-        """
-        # GH#21336, GH#21365
-        return Timedelta(nanoseconds=1)
-
-    def tz_localize(self, tz, ambiguous='raise', nonexistent='raise',
-                    errors=None):
+    def tz_localize(self, tz, ambiguous='raise', nonexistent='raise'):
         """
         Convert naive Timestamp to local time zone, or remove
         timezone from tz-aware Timestamp.
@@ -779,35 +773,30 @@ default 'raise'
             `ambiguous` parameter dictates how ambiguous times should be
             handled.
 
-            - bool contains flags to determine if time is dst or not (note
-              that this flag is only applicable for ambiguous fall dst dates)
-            - 'NaT' will return NaT for an ambiguous time
-            - 'raise' will raise an AmbiguousTimeError for an ambiguous time
+            The behavior is as follows:
+
+            * bool contains flags to determine if time is dst or not (note
+              that this flag is only applicable for ambiguous fall dst dates).
+            * 'NaT' will return NaT for an ambiguous time.
+            * 'raise' will raise an AmbiguousTimeError for an ambiguous time.
 
         nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta, \
 default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
-            - 'shift_forward' will shift the nonexistent time forward to the
-              closest existing time
-            - 'shift_backward' will shift the nonexistent time backward to the
-              closest existing time
-            - 'NaT' will return NaT where there are nonexistent times
-            - timedelta objects will shift nonexistent times by the timedelta
-            - 'raise' will raise an NonExistentTimeError if there are
-              nonexistent times
+            The behavior is as follows:
+
+            * 'shift_forward' will shift the nonexistent time forward to the
+              closest existing time.
+            * 'shift_backward' will shift the nonexistent time backward to the
+              closest existing time.
+            * 'NaT' will return NaT where there are nonexistent times.
+            * timedelta objects will shift nonexistent times by the timedelta.
+            * 'raise' will raise an NonExistentTimeError if there are
+              nonexistent times.
 
             .. versionadded:: 0.24.0
-
-        errors : 'raise', 'coerce', default None
-            - 'raise' will raise a NonExistentTimeError if a timestamp is not
-               valid in the specified timezone (e.g. due to a transition from
-               or to DST time). Use ``nonexistent='raise'`` instead.
-            - 'coerce' will return NaT if the timestamp can not be converted
-              into the specified timezone. Use ``nonexistent='NaT'`` instead.
-
-              .. deprecated:: 0.24.0
 
         Returns
         -------
@@ -820,19 +809,6 @@ default 'raise'
         """
         if ambiguous == 'infer':
             raise ValueError('Cannot infer offset with only one time.')
-
-        if errors is not None:
-            warnings.warn("The errors argument is deprecated and will be "
-                          "removed in a future release. Use "
-                          "nonexistent='NaT' or nonexistent='raise' "
-                          "instead.", FutureWarning)
-            if errors == 'coerce':
-                nonexistent = 'NaT'
-            elif errors == 'raise':
-                nonexistent = 'raise'
-            else:
-                raise ValueError("The errors argument must be either 'coerce' "
-                                 "or 'raise'.")
 
         nonexistent_options = ('raise', 'NaT', 'shift_forward',
                                'shift_backward')
@@ -893,7 +869,7 @@ default 'raise'
                 hour=None, minute=None, second=None, microsecond=None,
                 nanosecond=None, tzinfo=object, fold=0):
         """
-        implements datetime.replace, handles nanoseconds
+        implements datetime.replace, handles nanoseconds.
 
         Parameters
         ----------
@@ -934,8 +910,8 @@ default 'raise'
         def validate(k, v):
             """ validate integers """
             if not is_integer_object(v):
-                raise ValueError("value must be an integer, received "
-                                 "{v} for {k}".format(v=type(v), k=k))
+                raise ValueError(f"value must be an integer, received "
+                                 f"{type(v)} for {k}")
             return v
 
         if year is not None:
@@ -969,9 +945,8 @@ default 'raise'
         else:
             kwargs = {'year': dts.year, 'month': dts.month, 'day': dts.day,
                       'hour': dts.hour, 'minute': dts.min, 'second': dts.sec,
-                      'microsecond': dts.us, 'tzinfo': _tzinfo}
-            if PY36:
-                kwargs['fold'] = fold
+                      'microsecond': dts.us, 'tzinfo': _tzinfo,
+                      'fold': fold}
             ts_input = datetime(**kwargs)
 
         ts = convert_datetime_to_tsobject(ts_input, _tzinfo)
@@ -992,13 +967,13 @@ default 'raise'
             base1, base2 = base, ""
 
         if self.microsecond != 0:
-            base1 += "%.3d" % self.nanosecond
+            base1 += f"{self.nanosecond:03d}"
         else:
-            base1 += ".%.9d" % self.nanosecond
+            base1 += f".{self.nanosecond:09d}"
 
         return base1 + base2
 
-    def _has_time_component(self):
+    def _has_time_component(self) -> bool:
         """
         Returns if the Timestamp has a time component
         in addition to the date part
@@ -1062,3 +1037,4 @@ cdef int64_t _NS_LOWER_BOUND = -9223372036854775000
 # Resolution is in nanoseconds
 Timestamp.min = Timestamp(_NS_LOWER_BOUND)
 Timestamp.max = Timestamp(_NS_UPPER_BOUND)
+Timestamp.resolution = Timedelta(nanoseconds=1)  # GH#21336, GH#21365
