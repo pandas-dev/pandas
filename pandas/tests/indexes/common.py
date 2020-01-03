@@ -23,9 +23,9 @@ from pandas import (
     UInt64Index,
     isna,
 )
+import pandas._testing as tm
 from pandas.core.indexes.base import InvalidIndexError
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
-import pandas.util.testing as tm
 
 
 class Base:

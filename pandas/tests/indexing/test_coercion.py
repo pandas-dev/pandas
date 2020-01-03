@@ -7,7 +7,7 @@ import pytest
 import pandas.compat as compat
 
 import pandas as pd
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 ###############################################################
 # Index / Series common tests which may trigger dtype coercions

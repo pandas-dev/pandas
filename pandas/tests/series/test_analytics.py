@@ -7,7 +7,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestSeriesAnalytics:

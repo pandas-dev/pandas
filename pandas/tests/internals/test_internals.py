@@ -19,10 +19,10 @@ from pandas import (
     Series,
     SparseArray,
 )
+import pandas._testing as tm
 import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray, TimedeltaArray
 from pandas.core.internals import BlockManager, SingleBlockManager, make_block
-import pandas.util.testing as tm
 
 
 @pytest.fixture

@@ -15,9 +15,9 @@ from pandas import (
     concat,
     date_range,
 )
+import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 from pandas.core.reshape.pivot import crosstab, pivot_table
-import pandas.util.testing as tm
 
 
 @pytest.fixture(params=[True, False])

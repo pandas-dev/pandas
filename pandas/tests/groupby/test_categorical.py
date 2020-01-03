@@ -15,7 +15,7 @@ from pandas import (
     Series,
     qcut,
 )
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def cartesian_product_for_groupers(result, args, names):
