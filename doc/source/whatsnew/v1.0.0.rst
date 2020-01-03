@@ -260,10 +260,10 @@ For backwards compatibility, you can still *access* the names via the levels.
    mi.levels[0].name
 
 However, it is no longer possible to *update* the names of the ``MultiIndex``
-via the name of the level. The following will **silently** fail to update the
-name of the ``MultiIndex``
+via the level.
 
 .. ipython:: python
+   :okexcept:
 
    mi.levels[0].name = "new name"
    mi.names
