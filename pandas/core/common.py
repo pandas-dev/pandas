@@ -9,11 +9,12 @@ from collections import abc
 from datetime import datetime, timedelta
 from functools import partial
 import inspect
-from typing import Any, Iterable, Union
+from typing import Any, Collection, Iterable, Union
 
 import numpy as np
 
 from pandas._libs import lib, tslibs
+from pandas._typing import T
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -110,14 +111,20 @@ def is_bool_indexer(key: Any) -> bool:
     Returns
     -------
     bool
+        Whether `key` is a valid boolean indexer.
 
     Raises
     ------
     ValueError
         When the array is an object-dtype ndarray or ExtensionArray
         and contains missing values.
+
+    See Also
+    --------
+    check_bool_array_indexer : Check that `key`
+        is a valid mask for an array, and convert to an ndarray.
     """
-    na_msg = "cannot index with vector containing NA / NaN values"
+    na_msg = "cannot mask with array containing NA / NaN values"
     if isinstance(key, (ABCSeries, np.ndarray, ABCIndex)) or (
         is_array_like(key) and is_extension_array_dtype(key.dtype)
     ):
@@ -270,7 +277,7 @@ def maybe_make_list(obj):
     return obj
 
 
-def maybe_iterable_to_list(obj: Union[Iterable, Any]) -> Union[list, Any]:
+def maybe_iterable_to_list(obj: Union[Iterable[T], T]) -> Union[Collection[T], T]:
     """
     If obj is Iterable but not list-like, consume into list.
     """

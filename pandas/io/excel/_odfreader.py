@@ -1,9 +1,9 @@
 from typing import List
 
+from pandas._typing import FilePathOrBuffer, Scalar
 from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
-from pandas._typing import FilePathOrBuffer, Scalar
 
 from pandas.io.excel._base import _BaseExcelReader
 
@@ -178,4 +178,4 @@ class _ODFReader(_BaseExcelReader):
         elif cell_type == "time":
             return pd.to_datetime(str(cell)).time()
         else:
-            raise ValueError("Unrecognized type {}".format(cell_type))
+            raise ValueError(f"Unrecognized type {cell_type}")

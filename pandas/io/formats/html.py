@@ -2,7 +2,6 @@
 Module for formatting output data in HTML.
 """
 
-from collections import OrderedDict
 from textwrap import dedent
 from typing import IO, Any, Dict, Iterable, List, Mapping, Optional, Tuple, Union, cast
 
@@ -12,7 +11,7 @@ from pandas.core.dtypes.generic import ABCMultiIndex
 
 from pandas import option_context
 
-from pandas.io.common import _is_url
+from pandas.io.common import is_url
 from pandas.io.formats.format import (
     DataFrameFormatter,
     TableFormatter,
@@ -109,12 +108,12 @@ class HTMLFormatter(TableFormatter):
         ----------
         s : object
             The data to be written inside the cell.
-        header : boolean, default False
+        header : bool, default False
             Set to True if the <th> is for use inside <thead>.  This will
             cause min-width to be set if there is one.
         indent : int, default 0
             The indentation level of the cell.
-        tags : string, default None
+        tags : str, default None
             Tags to include in the cell.
 
         Returns
@@ -138,16 +137,15 @@ class HTMLFormatter(TableFormatter):
         else:
             start_tag = "<{kind}>".format(kind=kind)
 
-        esc: Union[OrderedDict[str, str], Dict]
         if self.escape:
             # escape & first to prevent double escaping of &
-            esc = OrderedDict([("&", r"&amp;"), ("<", r"&lt;"), (">", r"&gt;")])
+            esc = {"&": r"&amp;", "<": r"&lt;", ">": r"&gt;"}
         else:
             esc = {}
 
         rs = pprint_thing(s, escape_chars=esc).strip()
 
-        if self.render_links and _is_url(rs):
+        if self.render_links and is_url(rs):
             rs_unescaped = pprint_thing(s, escape_chars={}).strip()
             start_tag += '<a href="{url}" target="_blank">'.format(url=rs_unescaped)
             end_a = "</a>"

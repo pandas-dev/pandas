@@ -15,6 +15,7 @@ from pandas._libs.tslibs.parsing import (  # noqa
     parse_time_string,
 )
 from pandas._libs.tslibs.strptime import array_strptime
+from pandas._typing import ArrayLike
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -37,7 +38,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import notna
 
-from pandas._typing import ArrayLike
+from pandas.arrays import IntegerArray
 from pandas.core import algorithms
 from pandas.core.algorithms import unique
 
@@ -316,8 +317,21 @@ def _convert_listlike_datetimes(
     elif unit is not None:
         if format is not None:
             raise ValueError("cannot specify both format and unit")
-        arg = getattr(arg, "values", arg)
-        result, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit, errors=errors)
+        arg = getattr(arg, "_values", arg)
+
+        # GH 30050 pass an ndarray to tslib.array_with_unit_to_datetime
+        # because it expects an ndarray argument
+        if isinstance(arg, IntegerArray):
+            # Explicitly pass NaT mask to array_with_unit_to_datetime
+            mask = arg.isna()
+            arg = arg._ndarray_values
+        else:
+            mask = None
+
+        result, tz_parsed = tslib.array_with_unit_to_datetime(
+            arg, mask, unit, errors=errors
+        )
+
         if errors == "ignore":
             from pandas import Index
 
@@ -475,8 +489,7 @@ def _adjust_to_origin(arg, origin, unit):
         j_min = Timestamp.min.to_julian_date() - j0
         if np.any(arg > j_max) or np.any(arg < j_min):
             raise tslibs.OutOfBoundsDatetime(
-                "{original} is Out of Bounds for "
-                "origin='julian'".format(original=original)
+                f"{original} is Out of Bounds for origin='julian'"
             )
     else:
         # arg must be numeric
@@ -485,27 +498,20 @@ def _adjust_to_origin(arg, origin, unit):
             or is_numeric_dtype(np.asarray(arg))
         ):
             raise ValueError(
-                "'{arg}' is not compatible with origin='{origin}'; "
-                "it must be numeric with a unit specified ".format(
-                    arg=arg, origin=origin
-                )
+                f"'{arg}' is not compatible with origin='{origin}'; "
+                "it must be numeric with a unit specified"
             )
 
         # we are going to offset back to unix / epoch time
         try:
             offset = Timestamp(origin)
         except tslibs.OutOfBoundsDatetime:
-            raise tslibs.OutOfBoundsDatetime(
-                "origin {origin} is Out of Bounds".format(origin=origin)
-            )
+            raise tslibs.OutOfBoundsDatetime(f"origin {origin} is Out of Bounds")
         except ValueError:
-            raise ValueError(
-                "origin {origin} cannot be converted "
-                "to a Timestamp".format(origin=origin)
-            )
+            raise ValueError(f"origin {origin} cannot be converted to a Timestamp")
 
         if offset.tz is not None:
-            raise ValueError("origin offset {} must be tz-naive".format(offset))
+            raise ValueError(f"origin offset {offset} must be tz-naive")
         offset -= Timestamp(0)
 
         # convert the offset to the unit of the arg
@@ -808,19 +814,19 @@ def _assemble_from_unit_mappings(arg, errors, tz):
     required = ["year", "month", "day"]
     req = sorted(set(required) - set(unit_rev.keys()))
     if len(req):
+        required = ",".join(req)
         raise ValueError(
             "to assemble mappings requires at least that "
-            "[year, month, day] be specified: [{required}] "
-            "is missing".format(required=",".join(req))
+            f"[year, month, day] be specified: [{required}] "
+            "is missing"
         )
 
     # keys we don't recognize
     excess = sorted(set(unit_rev.keys()) - set(_unit_map.values()))
     if len(excess):
+        excess = ",".join(excess)
         raise ValueError(
-            "extra keys have been passed "
-            "to the datetime assemblage: "
-            "[{excess}]".format(excess=",".join(excess))
+            f"extra keys have been passed to the datetime assemblage: [{excess}]"
         )
 
     def coerce(values):
@@ -983,9 +989,9 @@ def to_time(arg, format=None, infer_time_format=False, errors="raise"):
                 except (ValueError, TypeError):
                     if errors == "raise":
                         msg = (
-                            "Cannot convert {element} to a time with given "
-                            "format {format}"
-                        ).format(element=element, format=format)
+                            f"Cannot convert {element} to a time with given "
+                            f"format {format}"
+                        )
                         raise ValueError(msg)
                     elif errors == "ignore":
                         return arg
@@ -1011,9 +1017,7 @@ def to_time(arg, format=None, infer_time_format=False, errors="raise"):
                 if time_object is not None:
                     times.append(time_object)
                 elif errors == "raise":
-                    raise ValueError(
-                        "Cannot convert arg {arg} to a time".format(arg=arg)
-                    )
+                    raise ValueError(f"Cannot convert arg {arg} to a time")
                 elif errors == "ignore":
                     return arg
                 else:
