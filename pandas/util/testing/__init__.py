@@ -38,7 +38,6 @@ _removals = [
     "assert_dict_equal",
     "assert_is_sorted",
     "assert_is_valid_plot_return_object",
-    "assert_period_array_equal",
     "assert_produces_warning",
     "bdate_range",
     "box_expected",
