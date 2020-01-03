@@ -290,13 +290,42 @@ New repr for :class:`~pandas.arrays.IntervalArray`
                  closed='right',
                  dtype='interval[int64]')
 
-
 *pandas 1.0.0*
 
 .. ipython:: python
 
    pd.arrays.IntervalArray.from_tuples([(0, 1), (2, 3)])
 
+Extended verbose info output for :class:`~pandas.DataFrame`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- :meth:`Dataframe.info` now shows line numbers for the columns summary (:issue:`17304`)
+
+*pandas 0.25.x*
+
+.. code-block:: python
+
+   >>> df = pd.DataFrame({"int_col": [1, 2, 3],
+   ...                    "text_col": ["a", "b", "c"],
+   ...                    "float_col": [0.0, 0.1, 0.2]})
+   >>> df.info(verbose=True)
+   <class 'pandas.core.frame.DataFrame'>
+   RangeIndex: 3 entries, 0 to 2
+   Data columns (total 3 columns):
+   int_col      3 non-null int64
+   text_col     3 non-null object
+   float_col    3 non-null float64
+   dtypes: float64(1), int64(1), object(1)
+   memory usage: 152.0+ bytes
+
+*pandas 1.0.0*
+
+.. ipython:: python
+
+   df = pd.DataFrame({"int_col": [1, 2, 3],
+                      "text_col": ["a", "b", "c"],
+                      "float_col": [0.0, 0.1, 0.2]})
+   df.info(verbose=True)
 
 :meth:`pandas.array` inference changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
