@@ -12,7 +12,7 @@ from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, isna
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 AGG_FUNCTIONS = [
     "sum",

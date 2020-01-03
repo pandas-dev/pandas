@@ -139,8 +139,8 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # Checks for test suite
-    # Check for imports from pandas.util.testing instead of `import pandas.util.testing as tm`
-    invgrep -R --include="*.py*" -E "from pandas.util.testing import" pandas/tests
+    # Check for imports from pandas._testing instead of `import pandas._testing as tm`
+    invgrep -R --include="*.py*" -E "from pandas._testing import" pandas/tests
     RET=$(($RET + $?)) ; echo $MSG "DONE"
     invgrep -R --include="*.py*" -E "from pandas.util import testing as tm" pandas/tests
     RET=$(($RET + $?)) ; echo $MSG "DONE"

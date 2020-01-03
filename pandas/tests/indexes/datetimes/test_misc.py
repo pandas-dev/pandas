@@ -8,7 +8,7 @@ import pytest
 
 import pandas as pd
 from pandas import DatetimeIndex, Index, Timestamp, date_range, offsets
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestTimeSeries:

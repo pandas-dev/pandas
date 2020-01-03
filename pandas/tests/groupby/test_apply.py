@@ -6,7 +6,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, bdate_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_apply_issues():

@@ -26,8 +26,8 @@ from pandas import (
     period_range,
     timedelta_range,
 )
+import pandas._testing as tm
 from pandas.core.arrays import period_array
-import pandas.util.testing as tm
 
 
 class TestSeriesConstructors:
