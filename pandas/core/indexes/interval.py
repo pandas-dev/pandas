@@ -201,7 +201,15 @@ class SetopCheck:
 )
 @accessor.delegate_names(
     delegate=IntervalArray,
-    accessors=["__array__", "overlaps", "contains", "__len__", "set_closed"],
+    accessors=[
+        "__array__",
+        "overlaps",
+        "contains",
+        "__len__",
+        "set_closed",
+        "__eq__",
+        "__ne__",
+    ],
     typ="method",
     overwrite=True,
 )
@@ -217,7 +225,14 @@ class IntervalIndex(IntervalMixin, Index, accessor.PandasDelegate):
     # Immutable, so we are able to cache computations like isna in '_mask'
     _mask = None
 
-    _raw_inherit = {"_ndarray_values", "__array__", "overlaps", "contains"}
+    _raw_inherit = {
+        "_ndarray_values",
+        "__array__",
+        "overlaps",
+        "contains",
+        "__eq__",
+        "__ne__",
+    }
 
     # --------------------------------------------------------------------
     # Constructors

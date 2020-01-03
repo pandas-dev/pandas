@@ -17,6 +17,8 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_interval,
     is_interval_dtype,
+    is_list_like,
+    is_object_dtype,
     is_scalar,
     is_string_dtype,
     is_timedelta64_dtype,
@@ -37,6 +39,7 @@ from pandas.core.algorithms import take, value_counts
 from pandas.core.arrays.base import ExtensionArray, _extension_array_shared_docs
 from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
+from pandas.core.construction import array
 from pandas.core.indexes.base import ensure_index
 
 _VALID_CLOSED = {"left", "right", "both", "neither"}
@@ -546,6 +549,58 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             right = right.astype("float")
         right.values[key] = value_right
         self._right = right
+
+    def __eq__(self, other):
+        # ensure pandas array for list-like and eliminate non-interval scalars
+        if is_list_like(other):
+            if len(self) != len(other):
+                raise ValueError("Lengths must match to compare")
+            other = array(other)
+        elif not isinstance(other, Interval):
+            # non-interval scalar -> no matches
+            return np.zeros(len(self), dtype=bool)
+
+        # determine the dtype of the elements we want to compare
+        if isinstance(other, Interval):
+            other_dtype = "interval"
+        elif not is_categorical_dtype(other):
+            other_dtype = other.dtype
+        else:
+            # for categorical defer to categories for dtype
+            other_dtype = other.categories.dtype
+
+            # extract intervals if we have interval categories with matching closed
+            if is_interval_dtype(other_dtype):
+                if self.closed != other.categories.closed:
+                    return np.zeros(len(self), dtype=bool)
+                other = other.categories.take(other.codes)
+
+        # interval-like -> need same closed and matching endpoints
+        if is_interval_dtype(other_dtype):
+            if self.closed != other.closed:
+                return np.zeros(len(self), dtype=bool)
+            return (self.left == other.left) & (self.right == other.right)
+
+        # non-interval/non-object dtype -> no matches
+        if not is_object_dtype(other_dtype):
+            return np.zeros(len(self), dtype=bool)
+
+        # object dtype -> iteratively check for intervals
+        result = np.zeros(len(self), dtype=bool)
+        for i, obj in enumerate(other):
+            # need object to be an Interval with same closed and endpoints
+            if (
+                isinstance(obj, Interval)
+                and self.closed == obj.closed
+                and self.left[i] == obj.left
+                and self.right[i] == obj.right
+            ):
+                result[i] = True
+
+        return result
+
+    def __ne__(self, other):
+        return ~self.__eq__(other)
 
     def fillna(self, value=None, method=None, limit=None):
         """
