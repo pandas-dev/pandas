@@ -69,7 +69,9 @@ class TestFrameAccessor:
             {
                 "A": pd.arrays.SparseArray([1, 0], dtype=pd.SparseDtype("int64", 0)),
                 "B": pd.arrays.SparseArray([1, 0], dtype=pd.SparseDtype("int64", 1)),
-                "C": pd.arrays.SparseArray([1.0, 0.0], dtype=pd.SparseDtype("float64", 0.0)),
+                "C": pd.arrays.SparseArray(
+                    [1.0, 0.0], dtype=pd.SparseDtype("float64", 0.0)
+                ),
             },
             index=["b", "a"],
         )

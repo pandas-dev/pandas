@@ -416,7 +416,8 @@ def test_with_zerodim_ndarray():
 
 @pytest.mark.parametrize("ufunc", [np.abs, np.exp])
 @pytest.mark.parametrize(
-    "arr", [pd.arrays.SparseArray([0, 0, -1, 1]), pd.arrays.SparseArray([None, None, -1, 1])]
+    "arr",
+    [pd.arrays.SparseArray([0, 0, -1, 1]), pd.arrays.SparseArray([None, None, -1, 1])],
 )
 def test_ufuncs(ufunc, arr):
     result = ufunc(arr)
