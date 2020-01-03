@@ -1,6 +1,6 @@
-from collections import abc, defaultdict
+from collections import defaultdict
 from functools import partial
-from typing import Any, List, Sequence
+from typing import Any, Sequence
 
 from pandas.core.dtypes.common import is_dict_like, is_list_like
 
@@ -9,7 +9,7 @@ import pandas.core.common as com
 from pandas.core.indexes.api import Index
 
 
-def reconstruct_func(self, func, *args, **kwargs):
+def reconstruct_func(func, *args, **kwargs):
     """
     This is the internal function to reconstruct func given if there is relabeling
     or not. And also normalize the keyword to get new order of columns;
