@@ -222,6 +222,7 @@ Other enhancements
 - DataFrame constructor preserve `ExtensionArray` dtype with `ExtensionArray` (:issue:`11363`)
 - :meth:`DataFrame.sort_values` and :meth:`Series.sort_values` have gained ``ignore_index`` keyword to be able to reset index after sorting (:issue:`30114`)
 - :meth:`DataFrame.to_markdown` and :meth:`Series.to_markdown` added (:issue:`11052`)
+- :meth:`DataFrame.sort_index` and :meth:`Series.sort_index` have gained ``ignore_index`` keyword to reset index (:issue:`30114`)
 - :meth:`DataFrame.drop_duplicates` has gained ``ignore_index`` keyword to reset index (:issue:`30114`)
 - Added new writer for exporting Stata dta files in version 118, ``StataWriter118``.  This format supports exporting strings containing Unicode characters (:issue:`23573`)
 - :meth:`Series.map` now accepts ``collections.abc.Mapping`` subclasses as a mapper (:issue:`29733`)
