@@ -141,7 +141,7 @@ class TestMultiIndexSetItem:
             df.loc["bar"] *= 2
 
         # from SO
-        # http://stackoverflow.com/questions/24572040/pandas-access-the-level-of-multiindex-for-inplace-operation
+        # https://stackoverflow.com/questions/24572040/pandas-access-the-level-of-multiindex-for-inplace-operation
         df_orig = DataFrame.from_dict(
             {
                 "price": {
