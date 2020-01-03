@@ -2023,3 +2023,10 @@ def test_groupby_crash_on_nunique(axis):
         expected = expected.T
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_list_level():
+    # GH 9790
+    expected = pd.DataFrame(np.arange(0, 9).reshape(3, 3))
+    result = expected.groupby(level=[0]).mean()
+    tm.assert_frame_equal(result, expected)

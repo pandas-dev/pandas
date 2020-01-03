@@ -1965,6 +1965,31 @@ class TestPivotTable:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_pivot_table_empty_aggfunc(self):
+        # GH 9186
+        df = pd.DataFrame(
+            {
+                "A": [2, 2, 3, 3, 2],
+                "id": [5, 6, 7, 8, 9],
+                "C": ["p", "q", "q", "p", "q"],
+                "D": [None, None, None, None, None],
+            }
+        )
+        result = df.pivot_table(index="A", columns="D", values="id", aggfunc=np.size)
+        expected = pd.DataFrame()
+        tm.assert_frame_equal(result, expected)
+
+    def test_pivot_table_no_column_raises(self):
+        # GH 10326
+        def agg(l):
+            return np.mean(l)
+
+        foo = pd.DataFrame(
+            {"X": [0, 0, 1, 1], "Y": [0, 1, 0, 1], "Z": [10, 20, 30, 40]}
+        )
+        with pytest.raises(KeyError, match="notpresent"):
+            foo.pivot_table("notpresent", "X", "Y", aggfunc=agg)
+
 
 class TestCrosstab:
     def setup_method(self, method):

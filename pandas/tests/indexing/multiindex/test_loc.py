@@ -437,3 +437,34 @@ def test_loc_nan_multiindex():
         columns=Index(["d1", "d2", "d3", "d4"], dtype="object"),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_loc_period_string_indexing():
+    # GH 9892
+    a = pd.period_range("2013Q1", "2013Q4", freq="Q")
+    i = (1111, 2222, 3333)
+    idx = pd.MultiIndex.from_product((a, i), names=("Periode", "CVR"))
+    df = pd.DataFrame(
+        index=idx,
+        columns=(
+            "OMS",
+            "OMK",
+            "RES",
+            "DRIFT_IND",
+            "OEVRIG_IND",
+            "FIN_IND",
+            "VARE_UD",
+            "LOEN_UD",
+            "FIN_UD",
+        ),
+    )
+    result = df.loc[("2013Q1", 1111), "OMS"]
+    expected = pd.Series(
+        [np.nan],
+        dtype=object,
+        name="OMS",
+        index=pd.MultiIndex.from_tuples(
+            [(pd.Period("2013Q1"), 1111)], names=["Periode", "CVR"]
+        ),
+    )
+    tm.assert_series_equal(result, expected)
