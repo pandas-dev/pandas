@@ -421,12 +421,10 @@ class TestDataFrameFormatting:
     def test_repr_max_columns_max_rows(self):
         term_width, term_height = get_terminal_size()
         if term_width < 10 or term_height < 10:
-            pytest.skip(
-                "terminal size too small, {0} x {1}".format(term_width, term_height)
-            )
+            pytest.skip(f"terminal size too small, {term_width} x {term_height}")
 
         def mkframe(n):
-            index = ["{i:05d}".format(i=i) for i in range(n)]
+            index = [f"{i:05d}" for i in range(n)]
             return DataFrame(0, index, index)
 
         df6 = mkframe(6)
@@ -667,9 +665,9 @@ class TestDataFrameFormatting:
         )
 
         formatters = [
-            ("int", lambda x: "0x{x:x}".format(x=x)),
-            ("float", lambda x: "[{x: 4.1f}]".format(x=x)),
-            ("object", lambda x: "-{x!s}-".format(x=x)),
+            ("int", lambda x: f"0x{x:x}"),
+            ("float", lambda x: f"[{x: 4.1f}]"),
+            ("object", lambda x: f"-{x!s}-"),
         ]
         result = df.to_string(formatters=dict(formatters))
         result2 = df.to_string(formatters=list(zip(*formatters))[1])
@@ -711,7 +709,7 @@ class TestDataFrameFormatting:
 
     def test_to_string_with_formatters_unicode(self):
         df = DataFrame({"c/\u03c3": [1, 2, 3]})
-        result = df.to_string(formatters={"c/\u03c3": lambda x: "{x}".format(x=x)})
+        result = df.to_string(formatters={"c/\u03c3": str})
         assert result == "  c/\u03c3\n" + "0   1\n1   2\n2   3"
 
     def test_east_asian_unicode_false(self):
@@ -1240,7 +1238,7 @@ class TestDataFrameFormatting:
             set_option("display.expand_frame_repr", False)
             rep_str = repr(df)
 
-            assert "10 rows x {c} columns".format(c=max_cols - 1) in rep_str
+            assert f"10 rows x {max_cols - 1} columns" in rep_str
             set_option("display.expand_frame_repr", True)
             wide_repr = repr(df)
             assert rep_str != wide_repr
@@ -1351,7 +1349,7 @@ class TestDataFrameFormatting:
         n = 1000
         s = Series(
             np.random.randint(-50, 50, n),
-            index=["s{x:04d}".format(x=x) for x in range(n)],
+            index=[f"s{x:04d}" for x in range(n)],
             dtype="int64",
         )
 
@@ -1477,9 +1475,7 @@ class TestDataFrameFormatting:
         expected = ["A"]
         assert header == expected
 
-        biggie.to_string(
-            columns=["B", "A"], formatters={"A": lambda x: "{x:.1f}".format(x=x)}
-        )
+        biggie.to_string(columns=["B", "A"], formatters={"A": lambda x: f"{x:.1f}"})
 
         biggie.to_string(columns=["B", "A"], float_format=str)
         biggie.to_string(columns=["B", "A"], col_space=12, float_format=str)
@@ -1610,7 +1606,7 @@ class TestDataFrameFormatting:
 
         result = df.to_string()
         # sadness per above
-        if "{x:.4g}".format(x=1.7e8) == "1.7e+008":
+        if _three_digit_exp():
             expected = (
                 "               a\n"
                 "0  1.500000e+000\n"
@@ -1922,7 +1918,7 @@ c  10  11  12  13  14\
             long_repr = df._repr_html_()
             assert ".." in long_repr
             assert str(41 + max_rows // 2) not in long_repr
-            assert "{h} rows ".format(h=h) in long_repr
+            assert f"{h} rows " in long_repr
             assert "2 columns" in long_repr
 
     def test_repr_html_float(self):
@@ -1939,7 +1935,7 @@ c  10  11  12  13  14\
             ).set_index("idx")
             reg_repr = df._repr_html_()
             assert ".." not in reg_repr
-            assert "<td>{val}</td>".format(val=str(40 + h)) in reg_repr
+            assert f"<td>{40 + h}</td>" in reg_repr
 
             h = max_rows + 1
             df = DataFrame(
@@ -1951,8 +1947,8 @@ c  10  11  12  13  14\
             ).set_index("idx")
             long_repr = df._repr_html_()
             assert ".." in long_repr
-            assert "<td>{val}</td>".format(val="31") not in long_repr
-            assert "{h} rows ".format(h=h) in long_repr
+            assert "<td>31</td>" not in long_repr
+            assert f"{h} rows " in long_repr
             assert "2 columns" in long_repr
 
     def test_repr_html_long_multiindex(self):
@@ -2181,9 +2177,7 @@ class TestSeriesFormatting:
         cp.name = "foo"
         result = cp.to_string(length=True, name=True, dtype=True)
         last_line = result.split("\n")[-1].strip()
-        assert last_line == (
-            "Freq: B, Name: foo, Length: {cp}, dtype: float64".format(cp=len(cp))
-        )
+        assert last_line == (f"Freq: B, Name: foo, Length: {len(cp)}, dtype: float64")
 
     def test_freq_name_separation(self):
         s = Series(
@@ -2782,7 +2776,7 @@ class TestSeriesFormatting:
 
     def test_to_string_float_format(self):
         s = pd.Series(range(10), dtype="float64")
-        res = s.to_string(float_format=lambda x: "{0:2.1f}".format(x), max_rows=2)
+        res = s.to_string(float_format=lambda x: f"{x:2.1f}", max_rows=2)
         exp = "0   0.0\n     ..\n9   9.0"
         assert res == exp
 
@@ -2807,7 +2801,7 @@ class TestSeriesFormatting:
 
 
 def _three_digit_exp():
-    return "{x:.4g}".format(x=1.7e8) == "1.7e+008"
+    return f"{1.7e8:.4g}" == "1.7e+008"
 
 
 class TestFloatArrayFormatter:

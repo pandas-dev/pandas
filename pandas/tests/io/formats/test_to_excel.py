@@ -270,13 +270,13 @@ def test_css_to_excel_inherited(css, inherited, expected):
 def test_css_to_excel_good_colors(input_color, output_color):
     # see gh-18392
     css = (
-        "border-top-color: {color}; "
-        "border-right-color: {color}; "
-        "border-bottom-color: {color}; "
-        "border-left-color: {color}; "
-        "background-color: {color}; "
-        "color: {color}"
-    ).format(color=input_color)
+        f"border-top-color: {input_color}; "
+        f"border-right-color: {input_color}; "
+        f"border-bottom-color: {input_color}; "
+        f"border-left-color: {input_color}; "
+        f"background-color: {input_color}; "
+        f"color: {input_color}"
+    )
 
     expected = dict()
 
@@ -297,13 +297,13 @@ def test_css_to_excel_good_colors(input_color, output_color):
 def test_css_to_excel_bad_colors(input_color):
     # see gh-18392
     css = (
-        "border-top-color: {color}; "
-        "border-right-color: {color}; "
-        "border-bottom-color: {color}; "
-        "border-left-color: {color}; "
-        "background-color: {color}; "
-        "color: {color}"
-    ).format(color=input_color)
+        f"border-top-color: {input_color}; "
+        f"border-right-color: {input_color}; "
+        f"border-bottom-color: {input_color}; "
+        f"border-left-color: {input_color}; "
+        f"background-color: {input_color}; "
+        f"color: {input_color}"
+    )
 
     expected = dict()
 
