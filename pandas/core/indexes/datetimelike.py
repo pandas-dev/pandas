@@ -274,11 +274,11 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             return self[maybe_slice]
 
         taken = self._assert_take_fillable(
-            self.asi8,
+            self._data,
             indices,
             allow_fill=allow_fill,
             fill_value=fill_value,
-            na_value=iNaT,
+            na_value=NaT,
         )
 
         # keep freq in PeriodArray/Index, reset otherwise
