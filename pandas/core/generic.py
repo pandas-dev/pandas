@@ -3353,6 +3353,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         1  monkey  mammal        NaN
         3    lion  mammal       80.5
         """
+        if is_copy is not None:
+            warnings.warn(
+                "is_copy is deprecated and will be removed in a future version. "
+                "take will always return a copy in the future.",
+                FutureWarning,
+                stacklevel=2,
+            )
+        else:
+            is_copy = True
+
         nv.validate_take(tuple(), kwargs)
 
         self._consolidate_inplace()
@@ -3363,17 +3373,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         result = self._constructor(new_data).__finalize__(self)
 
         # Maybe set copy if we didn't actually change the index.
-        if is_copy is not None:
-            warnings.warn(
-                "is_copy is deprecated and will be removed in a future version. "
-                "take will always return a copy in the future.",
-                FutureWarning,
-                stacklevel=2,
-            )
+        if is_copy:
             if not result._get_axis(axis).equals(self._get_axis(axis)):
                 result._set_is_copy(self)
-        else:
-            is_copy = True
 
         return result
 
@@ -5024,7 +5026,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             )
 
         locs = rs.choice(axis_length, size=n, replace=replace, p=weights)
-        return self.take(locs, axis=axis)
+        return self.take(locs,  is_copy=False, axis=axis)
 
     _shared_docs[
         "pipe"
@@ -7021,7 +7023,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         # mask the missing
         missing = locs == -1
-        data = self.take(locs)
+        data = self.take(locs, is_copy=False)
         data.index = where
         data.loc[missing] = np.nan
         return data if is_list else data.iloc[-1]
