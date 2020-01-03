@@ -818,8 +818,8 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             other = other.astype("O")
             return this.intersection(other, sort=sort)
 
-        i8self = Index(self.asi8)
-        i8other = Index(other.asi8)
+        i8self = Int64Index._simple_new(self.asi8)
+        i8other = Int64Index._simple_new(other.asi8)
         i8result = i8self.intersection(i8other, sort=sort)
 
         result = self._shallow_copy(np.asarray(i8result, dtype=np.int64), name=res_name)
