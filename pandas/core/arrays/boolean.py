@@ -327,11 +327,13 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
 
         return type(self)(self._data[item], self._mask[item])
 
-    def to_numpy(self, dtype=None, copy=False, na_value: "Scalar" = libmissing.NA):
+    def to_numpy(
+        self, dtype=None, copy=False, na_value: "Scalar" = lib._no_default, **kwargs
+    ):
         """
-        Convert to a numpy array.
+        Convert to a NumPy Array.
 
-        By default converts to a numpy object array. Specify the `dtype` and
+        By default converts to an object-dtype NumPy array. Specify the `dtype` and
         `na_value` keywords to customize the conversion.
 
         Parameters
@@ -351,8 +353,43 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
 
         Returns
         -------
-        np.ndarray
+        numpy.ndarray
+
+        Examples
+        --------
+        An object-dtype is the default result
+
+        >>> a = pd.array([True, False], dtype="boolean")
+        >>> a.to_numpy()
+        array([True, False], dtype=object)
+
+        When no missing values are present, a boolean dtype can be used.
+
+        >>> a.to_numpy(dtype="bool")
+        array([ True, False])
+
+        However, requesting a bool dtype will raise a ValueError if
+        missing values are present and the default missing value :attr:`NA`
+        is used.
+
+        >>> a = pd.array([True, False, pd.NA], dtype="boolean")
+        >>> a
+        <BooleanArray>
+        [True, False, NA]
+        Length: 3, dtype: boolean
+
+        >>> a.to_numpy(dtype="bool")
+        Traceback (most recent call last):
+        ...
+        ValueError: cannot convert to bool numpy array in presence of missing values
+
+        Specify a valid `na_value` instead
+
+        >>> a.to_numpy(dtype="bool", na_value=False)
+        array([ True, False, False])
         """
+        if na_value is lib._no_default:
+            na_value = libmissing.NA
         if dtype is None:
             dtype = object
         if self._hasna:

@@ -10,6 +10,7 @@ from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
+from pandas._libs import lib
 from pandas._typing import ArrayLike
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
@@ -349,6 +350,14 @@ class ExtensionArray:
         # calls to ``__getitem__``, which may be slower than necessary.
         for i in range(len(self)):
             yield self[i]
+
+    def to_numpy(self, dtype=None, copy=False, na_value=lib._no_default, **kwargs):
+        result = np.asarray(self, dtype=dtype)
+        if copy:
+            result = result.copy()
+        if na_value is not lib._no_default:
+            result[self.isna()] = na_value
+        return result
 
     # ------------------------------------------------------------------------
     # Required attributes
