@@ -634,9 +634,11 @@ def factorize(
         uniques, codes = safe_sort(
             uniques, codes, na_sentinel=na_sentinel, assume_unique=True, verify=False
         )
-    if not dropna and (codes == na_sentinel).any():
+
+    code_is_na = codes == na_sentinel
+    if not dropna and code_is_na.any():
         uniques = np.append(uniques, [None])
-        codes = np.where(codes == na_sentinel, len(uniques) - 1, codes)
+        codes = np.where(code_is_na, len(uniques) - 1, codes)
 
     uniques = _reconstruct_data(uniques, dtype, original)
 
