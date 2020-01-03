@@ -820,6 +820,7 @@ Datetimelike
 - Bug in :func:`pandas._config.localization.get_locales` where the ``locales -a`` encodes the locales list as windows-1252 (:issue:`23638`, :issue:`24760`, :issue:`27368`)
 - Bug in :meth:`Series.var` failing to raise ``TypeError`` when called with ``timedelta64[ns]`` dtype (:issue:`28289`)
 - Bug in :meth:`DatetimeIndex.strftime` and :meth:`Series.dt.strftime` where ``NaT`` was converted to the string ``'NaT'`` instead of ``np.nan`` (:issue:`29578`)
+- Bug in masking datetime-like arrays with a boolean mask of an incorrect length not raising an ``IndexError`` (:issue:`30308`)
 - Bug in :attr:`Timestamp.resolution` being a property instead of a class attribute (:issue:`29910`)
 - Bug in :func:`pandas.to_datetime` when called with ``None`` raising ``TypeError`` instead of returning ``NaT`` (:issue:`30011`)
 - Bug in :func:`pandas.to_datetime` failing for `deques` when using ``cache=True`` (the default) (:issue:`29403`)

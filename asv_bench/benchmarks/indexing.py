@@ -131,6 +131,7 @@ class DataFrameStringIndexing:
         self.col_scalar = columns[10]
         self.bool_indexer = self.df[self.col_scalar] > 0
         self.bool_obj_indexer = self.bool_indexer.astype(object)
+        self.boolean_indexer = (self.df[self.col_scalar] > 0).astype("boolean")
 
     def time_loc(self):
         self.df.loc[self.idx_scalar, self.col_scalar]
@@ -143,6 +144,9 @@ class DataFrameStringIndexing:
 
     def time_boolean_rows_object(self):
         self.df[self.bool_obj_indexer]
+
+    def time_boolean_rows_boolean(self):
+        self.df[self.boolean_indexer]
 
 
 class DataFrameNumericIndexing:

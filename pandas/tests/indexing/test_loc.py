@@ -371,6 +371,9 @@ class TestLoc(Base):
         result = df.loc[mask.values]
         tm.assert_frame_equal(result, expected)
 
+        result = df.loc[pd.array(mask, dtype="boolean")]
+        tm.assert_frame_equal(result, expected)
+
     def test_loc_general(self):
 
         df = DataFrame(
