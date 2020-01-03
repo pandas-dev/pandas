@@ -732,7 +732,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             indices,
             allow_fill=allow_fill,
             fill_value=fill_value,
-            na_value=self._data.dtype.na_value
+            na_value=self._data.dtype.na_value,
         )
         return self._shallow_copy(taken)
 
