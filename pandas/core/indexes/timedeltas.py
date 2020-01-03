@@ -31,6 +31,7 @@ from pandas.core.indexes.datetimelike import (
     DatetimelikeDelegateMixin,
     DatetimeTimedeltaMixin,
 )
+from pandas.core.indexes.extension import inherit_names
 
 from pandas.tseries.frequencies import to_offset
 
@@ -52,6 +53,17 @@ class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
     )
 
 
+@inherit_names(
+    [
+        "_bool_ops",
+        "_object_ops",
+        "_field_ops",
+        "_datetimelike_ops",
+        "_datetimelike_methods",
+        "_other_ops",
+    ],
+    TimedeltaArray,
+)
 @delegate_names(
     TimedeltaArray, TimedeltaDelegateMixin._delegated_properties, typ="property"
 )
@@ -124,15 +136,6 @@ class TimedeltaIndex(
     _attributes = ["name", "freq"]
     _is_numeric_dtype = True
     _infer_as_myclass = True
-
-    _freq = None
-
-    _bool_ops = TimedeltaArray._bool_ops
-    _object_ops = TimedeltaArray._object_ops
-    _field_ops = TimedeltaArray._field_ops
-    _datetimelike_ops = TimedeltaArray._datetimelike_ops
-    _datetimelike_methods = TimedeltaArray._datetimelike_methods
-    _other_ops = TimedeltaArray._other_ops
 
     # -------------------------------------------------------------------
     # Constructors
