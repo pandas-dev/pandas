@@ -119,16 +119,11 @@ class TestSeriesDtypes:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", [str, np.str_])
-    @pytest.mark.parametrize(
-        "series",
-        [
-            Series([string.digits * 10, tm.rands(63), tm.rands(64), tm.rands(1000)]),
-            Series([string.digits * 10, tm.rands(63), tm.rands(64), np.nan, 1.0]),
-        ],
-    )
     def test_astype_str_map(self, dtype, series):
         # see gh-4405
-        result = series.astype(dtype, skipna=False)
+        series = Series([string.digits * 10, tm.rands(63),
+                         tm.rands(64), tm.rands(1000)])
+        result = series.astype(dtype)
         expected = series.map(str)
         tm.assert_series_equal(result, expected)
 
@@ -152,14 +147,12 @@ class TestSeriesDtypes:
         expected = Series([str("1 days 00:00:00.000000000")])
         tm.assert_series_equal(s, expected)
 
-    @pytest.mark.parametrize(
-        "skipna, expected",
-        [(True, Series(["1", "a", np.nan])), (False, Series(["1", "a", "nan"]))],
-    )
     def test_astype_str(self, skipna, expected):
         # GH 25353
+        pytest.set_trace()
         ser = Series([1, "a", np.nan])
         result = ser.astype(str, skipna=skipna)
+        expected = Series(["1", "a", np.nan])
         tm.assert_series_equal(result, expected)
 
     def test_deprecate_astype_str(self):
