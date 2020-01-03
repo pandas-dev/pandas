@@ -1185,6 +1185,13 @@ class TestAsOfMerge:
         with pytest.raises(MergeError, match=msg):
             merge_asof(left, right, on="a")
 
+    def test_merge_groupby_multiple_column_with_categorical_column(self):
+        # GH 16454
+        df = pd.DataFrame({"x": [0], "y": [0], "z": pd.Categorical([0])})
+        result = merge_asof(df, df, on="x", by=["y", "z"])
+        expected = pd.DataFrame({"x": [0], "y": [0], "z": pd.Categorical([0])})
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize(
         "func", [lambda x: x, lambda x: to_datetime(x)], ids=["numeric", "datetime"]
     )
