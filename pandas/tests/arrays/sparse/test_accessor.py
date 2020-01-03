@@ -67,9 +67,10 @@ class TestFrameAccessor:
     def test_to_dense(self):
         df = pd.DataFrame(
             {
-                "A": pd.SparseArray([1, 0], dtype=pd.SparseDtype("int64", 0)),
-                "B": pd.SparseArray([1, 0], dtype=pd.SparseDtype("int64", 1)),
-                "C": pd.SparseArray([1.0, 0.0], dtype=pd.SparseDtype("float64", 0.0)),
+                "A": pd.arrays.SparseArray([1, 0], dtype=pd.SparseDtype("int64", 0)),
+                "B": pd.arrays.SparseArray([1, 0], dtype=pd.SparseDtype("int64", 1)),
+                "C": pd.arrays.SparseArray([1.0, 0.0],
+                                           dtype=pd.SparseDtype("float64", 0.0)),
             },
             index=["b", "a"],
         )
@@ -82,8 +83,8 @@ class TestFrameAccessor:
     def test_density(self):
         df = pd.DataFrame(
             {
-                "A": pd.SparseArray([1, 0, 2, 1], fill_value=0),
-                "B": pd.SparseArray([0, 1, 1, 1], fill_value=0),
+                "A": pd.arrays.SparseArray([1, 0, 2, 1], fill_value=0),
+                "B": pd.arrays.SparseArray([0, 1, 1, 1], fill_value=0),
             }
         )
         res = df.sparse.density
@@ -100,7 +101,7 @@ class TestFrameAccessor:
         result = pd.Series.sparse.from_coo(A, dense_index=dense_index)
         index = pd.MultiIndex.from_tuples([(0, 0), (1, 1), (2, 2)])
         expected = pd.Series(
-            pd.SparseArray(np.array([1, 1, 1], dtype=dtype)), index=index
+            pd.arrays.SparseArray(np.array([1, 1, 1], dtype=dtype)), index=index
         )
         if dense_index:
             expected = expected.reindex(pd.MultiIndex.from_product(index.levels))

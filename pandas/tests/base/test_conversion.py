@@ -271,7 +271,7 @@ def test_numpy_array_all_dtypes(any_numpy_dtype):
         (pd.core.arrays.period_array(["2000", "2001"], freq="D"), "_data"),
         (pd.core.arrays.integer_array([0, np.nan]), "_data"),
         (pd.core.arrays.IntervalArray.from_breaks([0, 1]), "_left"),
-        (pd.SparseArray([0, 1]), "_sparse_values"),
+        (pd.arrays.SparseArray([0, 1]), "_sparse_values"),
         (DatetimeArray(np.array([1, 2], dtype="datetime64[ns]")), "_data"),
         # tz-aware Datetime
         (
@@ -321,7 +321,7 @@ def test_array_multiindex_raises():
             pd.core.arrays.IntervalArray.from_breaks([0, 1, 2]),
             np.array([pd.Interval(0, 1), pd.Interval(1, 2)], dtype=object),
         ),
-        (pd.SparseArray([0, 1]), np.array([0, 1], dtype=np.int64)),
+        (pd.arrays.SparseArray([0, 1]), np.array([0, 1], dtype=np.int64)),
         # tz-naive datetime
         (
             DatetimeArray(np.array(["2000", "2001"], dtype="M8[ns]")),

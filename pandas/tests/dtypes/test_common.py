@@ -182,7 +182,7 @@ def test_is_object():
     "check_scipy", [False, pytest.param(True, marks=td.skip_if_no_scipy)]
 )
 def test_is_sparse(check_scipy):
-    assert com.is_sparse(pd.SparseArray([1, 2, 3]))
+    assert com.is_sparse(pd.arrays.SparseArray([1, 2, 3]))
 
     assert not com.is_sparse(np.array([1, 2, 3]))
 
@@ -198,7 +198,7 @@ def test_is_scipy_sparse():
 
     assert com.is_scipy_sparse(bsr_matrix([1, 2, 3]))
 
-    assert not com.is_scipy_sparse(pd.SparseArray([1, 2, 3]))
+    assert not com.is_scipy_sparse(pd.arrays.SparseArray([1, 2, 3]))
 
 
 def test_is_categorical():
@@ -576,7 +576,7 @@ def test_is_extension_type(check_scipy):
     cat = pd.Categorical([1, 2, 3])
     assert com.is_extension_type(cat)
     assert com.is_extension_type(pd.Series(cat))
-    assert com.is_extension_type(pd.SparseArray([1, 2, 3]))
+    assert com.is_extension_type(pd.arrays.SparseArray([1, 2, 3]))
     assert com.is_extension_type(pd.DatetimeIndex(["2000"], tz="US/Eastern"))
 
     dtype = DatetimeTZDtype("ns", tz="US/Eastern")
@@ -605,7 +605,7 @@ def test_is_extension_array_dtype(check_scipy):
     cat = pd.Categorical([1, 2, 3])
     assert com.is_extension_array_dtype(cat)
     assert com.is_extension_array_dtype(pd.Series(cat))
-    assert com.is_extension_array_dtype(pd.SparseArray([1, 2, 3]))
+    assert com.is_extension_array_dtype(pd.arrays.SparseArray([1, 2, 3]))
     assert com.is_extension_array_dtype(pd.DatetimeIndex(["2000"], tz="US/Eastern"))
 
     dtype = DatetimeTZDtype("ns", tz="US/Eastern")

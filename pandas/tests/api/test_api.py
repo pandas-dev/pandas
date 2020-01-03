@@ -67,7 +67,6 @@ class TestPDApi(Base):
         "RangeIndex",
         "UInt64Index",
         "Series",
-        "SparseArray",
         "SparseDtype",
         "StringDtype",
         "Timedelta",
@@ -91,7 +90,7 @@ class TestPDApi(Base):
         "NamedAgg",
     ]
     if not compat.PY37:
-        classes.extend(["Panel", "SparseSeries", "SparseDataFrame"])
+        classes.extend(["Panel", "SparseSeries", "SparseDataFrame", "SparseArray"])
         deprecated_modules.extend(["np", "datetime"])
 
     # these are already deprecated; awaiting removal

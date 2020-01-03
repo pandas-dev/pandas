@@ -17,10 +17,9 @@ from pandas import (
     Index,
     MultiIndex,
     Series,
-    SparseArray,
 )
 import pandas.core.algorithms as algos
-from pandas.core.arrays import DatetimeArray, TimedeltaArray
+from pandas.core.arrays import DatetimeArray, TimedeltaArray, SparseArray
 from pandas.core.internals import BlockManager, SingleBlockManager, make_block
 import pandas.util.testing as tm
 
