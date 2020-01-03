@@ -352,7 +352,7 @@ class ExtensionArray:
         for i in range(len(self)):
             yield self[i]
 
-    def __eq__(self, other: ABCExtensionArray) -> bool:
+    def __eq__(self, other: Any) -> bool:
         """
         Whether the two arrays are equivalent.
 
@@ -368,7 +368,7 @@ class ExtensionArray:
 
         raise AbstractMethodError(self)
 
-    def __ne__(self, other: ABCExtensionArray) -> bool:
+    def __ne__(self, other: Any) -> bool:
         """
         Whether the two arrays are not equivalent.
 
