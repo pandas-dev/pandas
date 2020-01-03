@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.core.indexes.api import Index, MultiIndex
-import pandas.util.testing as tm
 
 indices_dict = {
     "unicode": tm.makeUnicodeIndex(100),

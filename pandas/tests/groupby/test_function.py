@@ -20,8 +20,9 @@ from pandas import (
     date_range,
     isna,
 )
+import pandas._testing as tm
 import pandas.core.nanops as nanops
-from pandas.util import _test_decorators as td, testing as tm
+from pandas.util import _test_decorators as td
 
 
 @pytest.mark.parametrize("agg_func", ["any", "all"])

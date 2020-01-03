@@ -18,8 +18,8 @@ from pandas import (
     date_range,
     period_range,
 )
+import pandas._testing as tm
 from pandas.core.base import SpecificationError
-import pandas.util.testing as tm
 
 from pandas.io.formats.printing import pprint_thing
 
