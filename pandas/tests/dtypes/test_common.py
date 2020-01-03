@@ -18,6 +18,7 @@ from pandas.core.dtypes.dtypes import (
 from pandas.core.dtypes.missing import isna
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.conftest import (
     ALL_EA_INT_DTYPES,
     ALL_INT_DTYPES,
@@ -26,7 +27,6 @@ from pandas.conftest import (
     UNSIGNED_EA_INT_DTYPES,
     UNSIGNED_INT_DTYPES,
 )
-import pandas.util.testing as tm
 
 
 # EA & Actual Dtypes

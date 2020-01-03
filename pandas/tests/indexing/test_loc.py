@@ -7,9 +7,9 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp, date_range
+import pandas._testing as tm
 from pandas.api.types import is_scalar
 from pandas.tests.indexing.common import Base
-import pandas.util.testing as tm
 
 
 class TestLoc(Base):

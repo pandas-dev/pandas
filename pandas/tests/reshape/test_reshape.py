@@ -7,8 +7,8 @@ from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
 from pandas import Categorical, DataFrame, Index, Series, get_dummies
+import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray, SparseDtype
-import pandas.util.testing as tm
 
 
 class TestGetDummies:

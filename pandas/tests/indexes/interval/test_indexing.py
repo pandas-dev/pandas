@@ -11,8 +11,8 @@ from pandas import (
     date_range,
     timedelta_range,
 )
+import pandas._testing as tm
 from pandas.core.indexes.base import InvalidIndexError
-import pandas.util.testing as tm
 
 
 class TestGetLoc:

@@ -138,6 +138,7 @@ from pandas.core.reshape.api import (
     qcut,
 )
 
+import pandas.api
 from pandas.util._print_versions import show_versions
 
 from pandas.io.api import (

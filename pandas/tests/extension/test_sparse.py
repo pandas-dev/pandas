@@ -6,8 +6,8 @@ from pandas.errors import PerformanceWarning
 import pandas as pd
 from pandas import SparseDtype
 from pandas.arrays import SparseArray
+import pandas._testing as tm
 from pandas.tests.extension import base
-import pandas.util.testing as tm
 
 
 def make_data(fill_value):

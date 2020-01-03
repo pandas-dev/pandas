@@ -6,9 +6,9 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Series
+import pandas._testing as tm
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.indexes.datetimes import date_range
-import pandas.util.testing as tm
 
 test_series = Series(np.random.randn(1000), index=date_range("1/1/2000", periods=1000))
 
