@@ -240,6 +240,10 @@ class Index(IndexOpsMixin, PandasObject):
     _data: Union[ExtensionArray, np.ndarray]
     _id = None
     _name: Optional[Hashable] = None
+    # MultiIndex.levels previously allowed setting the index name. We
+    # don't allow this anymore, and raise if it happens rather than
+    # failing silently.
+    _no_setting_name: bool = False
     _comparables = ["name"]
     _attributes = ["name"]
     _is_numeric_dtype = False
@@ -1150,6 +1154,12 @@ class Index(IndexOpsMixin, PandasObject):
 
     @name.setter
     def name(self, value):
+        if self._no_setting_name:
+            # Used in MultiIndex.levels to avoid silently ignoring name updates.
+            raise RuntimeError(
+                "Cannot set name on a level of a MultiIndex. Use "
+                "'MultiIndex.set_names' instead."
+            )
         maybe_extract_name(value, None, type(self))
         self._name = value
 

@@ -261,6 +261,7 @@ class IntervalIndex(IntervalMixin, Index, accessor.PandasDelegate):
         result = IntervalMixin.__new__(cls)
         result._data = array
         result.name = name
+        result._no_setting_name = False
         result._reset_identity()
         return result
 
