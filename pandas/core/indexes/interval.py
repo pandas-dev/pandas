@@ -58,6 +58,8 @@ from pandas.core.ops import get_op_result_name
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import DateOffset
 
+from .extension import inherit_names
+
 _VALID_CLOSED = {"left", "right", "both", "neither"}
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
@@ -199,10 +201,11 @@ class SetopCheck:
 )
 @accessor.delegate_names(
     delegate=IntervalArray,
-    accessors=["__array__", "overlaps", "contains"],
+    accessors=["__array__", "overlaps", "contains", "__len__", "set_closed"],
     typ="method",
     overwrite=True,
 )
+@inherit_names(["is_non_overlapping_monotonic", "mid"], IntervalArray, cache=True)
 class IntervalIndex(IntervalMixin, Index, accessor.PandasDelegate):
     _typ = "intervalindex"
     _comparables = ["name"]
@@ -412,34 +415,6 @@ class IntervalIndex(IntervalMixin, Index, accessor.PandasDelegate):
     def _multiindex(self):
         return MultiIndex.from_arrays([self.left, self.right], names=["left", "right"])
 
-    @Appender(
-        _interval_shared_docs["set_closed"]
-        % dict(
-            klass="IntervalIndex",
-            examples=textwrap.dedent(
-                """\
-        Examples
-        --------
-        >>> index = pd.interval_range(0, 3)
-        >>> index
-        IntervalIndex([(0, 1], (1, 2], (2, 3]],
-                      closed='right',
-                      dtype='interval[int64]')
-        >>> index.set_closed('both')
-        IntervalIndex([[0, 1], [1, 2], [2, 3]],
-                      closed='both',
-                      dtype='interval[int64]')
-        """
-            ),
-        )
-    )
-    def set_closed(self, closed):
-        array = self._data.set_closed(closed)
-        return self._simple_new(array, self.name)  # TODO: can we use _shallow_copy?
-
-    def __len__(self) -> int:
-        return len(self.left)
-
     @cache_readonly
     def values(self):
         """
@@ -478,13 +453,6 @@ class IntervalIndex(IntervalMixin, Index, accessor.PandasDelegate):
         # we don't use an explicit engine
         # so return the bytes here
         return self.left.memory_usage(deep=deep) + self.right.memory_usage(deep=deep)
-
-    @cache_readonly
-    def mid(self):
-        """
-        Return the midpoint of each Interval in the IntervalIndex as an Index.
-        """
-        return self._data.mid
 
     @cache_readonly
     def is_monotonic(self) -> bool:
@@ -533,11 +501,6 @@ class IntervalIndex(IntervalMixin, Index, accessor.PandasDelegate):
             seen_pairs.add(pair)
 
         return True
-
-    @cache_readonly
-    @Appender(_interval_shared_docs["is_non_overlapping_monotonic"] % _index_doc_kwargs)
-    def is_non_overlapping_monotonic(self):
-        return self._data.is_non_overlapping_monotonic
 
     @property
     def is_overlapping(self):
