@@ -89,6 +89,7 @@ class DatetimeDelegateMixin(DatetimelikeDelegateMixin):
     _delegate_class = DatetimeArray
 
 
+@inherit_names(["_timezone", "is_normalized", "_resolution"], DatetimeArray, cache=True)
 @inherit_names(
     [
         "_bool_ops",
@@ -99,7 +100,6 @@ class DatetimeDelegateMixin(DatetimelikeDelegateMixin):
     ],
     DatetimeArray,
 )
-@inherit_names(["_timezone", "is_normalized", "_resolution"], DatetimeArray, cache=True)
 @delegate_names(
     DatetimeArray, DatetimeDelegateMixin._delegated_properties, typ="property"
 )
