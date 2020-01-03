@@ -988,3 +988,13 @@ class TestExcelFileRead:
         with pd.ExcelFile("test1" + read_ext) as xl:
             with pytest.raises(ValueError, match=msg):
                 pd.read_excel(xl, engine="foo")
+
+    def test_excel_read_binary(self, engine, read_ext):
+        # GH 15914
+        expected = pd.read_excel("test1" + read_ext, engine=engine)
+
+        with open("test1" + read_ext, "rb") as f:
+            data = f.read()
+
+        actual = pd.read_excel(data, engine=engine)
+        tm.assert_frame_equal(expected, actual)
