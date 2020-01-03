@@ -68,6 +68,10 @@ def _get_client():
     return bigquery.Client(project=project_id, credentials=credentials)
 
 
+def generate_rand_str(length: int = 10) -> str:
+    return "".join(random.choices(string.ascii_lowercase, k=length))
+
+
 def make_mixed_dataframe_v2(test_size):
     # create df to test for all BQ datatypes except RECORD
     bools = np.random.randint(2, size=(1, test_size)).astype(bool)
@@ -153,19 +157,15 @@ class TestToGBQIntegrationWithServiceAccountKeyPath:
         _skip_if_no_project_id()
         _skip_if_no_private_key_path()
 
-        dataset_id = "pydata_pandas_bq_testing_py31"
+        dataset_id = "pydata_pandas_bq_testing_" + generate_rand_str()
 
         self.client = _get_client()
         self.dataset = self.client.dataset(dataset_id)
-        try:
-            # Clean-up previous test runs.
-            self.client.delete_dataset(self.dataset, delete_contents=True)
-        except api_exceptions.NotFound:
-            pass  # It's OK if the dataset doesn't already exist.
 
+        # Create the dataset
         self.client.create_dataset(bigquery.Dataset(self.dataset))
 
-        table_name = "".join(random.choices(string.ascii_lowercase, k=10))
+        table_name = generate_rand_str()
         destination_table = f"{dataset_id}.{table_name}"
         yield destination_table
 
