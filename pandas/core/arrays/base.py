@@ -78,6 +78,7 @@ class ExtensionArray:
     dropna
     factorize
     fillna
+    equals
     isna
     ravel
     repeat
@@ -349,6 +350,38 @@ class ExtensionArray:
         # calls to ``__getitem__``, which may be slower than necessary.
         for i in range(len(self)):
             yield self[i]
+
+    def __eq__(self, other: ABCExtensionArray) -> bool:
+        """
+        Whether the two arrays are equivalent.
+
+        Parameters
+        ----------
+        other: ExtensionArray
+            The array to compare to this array.
+
+        Returns
+        -------
+        bool
+        """
+
+        raise AbstractMethodError(self)
+
+    def __ne__(self, other: ABCExtensionArray) -> bool:
+        """
+        Whether the two arrays are not equivalent.
+
+        Parameters
+        ----------
+        other: ExtensionArray
+            The array to compare to this array.
+
+        Returns
+        -------
+        bool
+        """
+
+        raise AbstractMethodError(self)
 
     # ------------------------------------------------------------------------
     # Required attributes
@@ -656,6 +689,23 @@ class ExtensionArray:
         # 3. Missing values.
         arr = self.astype(object)
         return arr.searchsorted(value, side=side, sorter=sorter)
+
+    def equals(self, other: ABCExtensionArray) -> bool:
+        """
+        Return if another array is equivalent to this array.
+
+        Parameters
+        ----------
+        other: ExtensionArray
+            Array to compare to this Array.
+
+        Returns
+        -------
+        boolean
+            Whether the arrays are equivalent.
+
+        """
+        return ((self == other) | (self.isna() == other.isna())).all()
 
     def _values_for_factorize(self) -> Tuple[np.ndarray, Any]:
         """

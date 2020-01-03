@@ -2071,6 +2071,19 @@ class Categorical(ExtensionArray, PandasObject):
         lindexer = self._maybe_coerce_indexer(lindexer)
         self._codes[key] = lindexer
 
+    def __eq__(self, other):
+        if not isinstance(other, Categorical):
+            return NotImplemented
+        return (
+            hasattr(other, "_codes")
+            and self._codes == other._codes
+            and hasattr(other, "_dtype")
+            and self._dtype == other._dtype
+        )
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def _reverse_indexer(self) -> Dict[Hashable, np.ndarray]:
         """
         Compute the inverse of a categorical, returning
