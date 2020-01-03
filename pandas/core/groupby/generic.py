@@ -1223,6 +1223,7 @@ class DataFrameGroupBy(GroupBy):
                 # this is to silence a DeprecationWarning
                 # TODO: Remove when default dtype of empty Series is object
                 kwargs = v._construct_axes_dict()
+                backup: NDFrame
                 if v._constructor is Series:
                     backup = create_series_with_explicit_dtype(
                         dtype_if_empty=object, **kwargs

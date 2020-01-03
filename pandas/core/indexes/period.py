@@ -152,7 +152,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     # days_in_month
     # daysinmonth
     # end_time
-    # freq
+    freq: DateOffset
     # freqstr
     hour: Any
     # is_leap_year
