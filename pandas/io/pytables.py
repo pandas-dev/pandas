@@ -27,7 +27,7 @@ from pandas._config import config, get_option
 
 from pandas._libs import lib, writers as libwriters
 from pandas._libs.tslibs import timezones
-from pandas._typing import ArrayLike, SameFrameOrSeries
+from pandas._typing import ArrayLike, FrameOrSeries
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import cache_readonly
@@ -231,7 +231,7 @@ def _tables():
 def to_hdf(
     path_or_buf,
     key: str,
-    value: SameFrameOrSeries,
+    value: FrameOrSeries,
     mode: str = "a",
     complevel: Optional[int] = None,
     complib: Optional[str] = None,
@@ -986,7 +986,7 @@ class HDFStore:
     def put(
         self,
         key: str,
-        value: SameFrameOrSeries,
+        value: FrameOrSeries,
         format=None,
         index=True,
         append=False,
@@ -1102,7 +1102,7 @@ class HDFStore:
     def append(
         self,
         key: str,
-        value: SameFrameOrSeries,
+        value: FrameOrSeries,
         format=None,
         axes=None,
         index=True,
@@ -1537,7 +1537,7 @@ class HDFStore:
         self,
         group,
         format=None,
-        value: Optional[SameFrameOrSeries] = None,
+        value: Optional[FrameOrSeries] = None,
         encoding: str = "UTF-8",
         errors: str = "strict",
     ) -> Union["GenericFixed", "Table"]:
@@ -1630,7 +1630,7 @@ class HDFStore:
     def _write_to_group(
         self,
         key: str,
-        value: SameFrameOrSeries,
+        value: FrameOrSeries,
         format,
         axes=None,
         index=True,

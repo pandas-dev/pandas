@@ -43,17 +43,17 @@ Scalar = Union[PythonScalar, PandasScalar]
 Dtype = Union[str, np.dtype, "ExtensionDtype"]
 FilePathOrBuffer = Union[str, Path, IO[AnyStr]]
 
-# FrameOrSeries means either a DataFrame or a Series. E.g.
-# `def func(a: FrameOrSeries) -> FrameOrSeries: ...` means that if a Series is passed
-# in, either a Series or DataFrame is returned, and if a DataFrame is passed in, either
-# a DataFrame or a Series is returned.
-FrameOrSeries = Union["DataFrame", "Series"]
+# FrameOrSeriesUnion  means either a DataFrame or a Series. E.g.
+# `def func(a: FrameOrSeriesUnion) -> FrameOrSeriesUnion: ...` means that if a Series
+# is passed in, either a Series or DataFrame is returned, and if a DataFrame is passed
+# in, either a DataFrame or a Series is returned.
+FrameOrSeriesUnion = Union["DataFrame", "Series"]
 
-# SameFrameOrSeries is stricter and ensures that the same subclass of NDFrame always is
-# used. E.g. `def func(a: SameFrameOrSeries) -> SameFrameOrSeries: ...` means that if a
+# FrameOrSeries is stricter and ensures that the same subclass of NDFrame always is
+# used. E.g. `def func(a: FrameOrSeries) -> FrameOrSeries: ...` means that if a
 # Series is passed into a function, a Series is always returned and if a DataFrame is
 # passed in, a DataFrame is always returned.
-SameFrameOrSeries = TypeVar("SameFrameOrSeries", bound="NDFrame")
+FrameOrSeries = TypeVar("FrameOrSeries", bound="NDFrame")
 
 Axis = Union[str, int]
 Ordered = Optional[bool]

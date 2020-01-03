@@ -33,7 +33,7 @@ from pandas._config.config import option_context
 
 from pandas._libs import Timestamp
 import pandas._libs.groupby as libgroupby
-from pandas._typing import SameFrameOrSeries, Scalar
+from pandas._typing import FrameOrSeries, Scalar
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -2439,8 +2439,8 @@ class GroupBy(_GroupBy):
         return self._selected_obj[mask]
 
     def _reindex_output(
-        self, output: SameFrameOrSeries, fill_value: Scalar = np.NaN
-    ) -> SameFrameOrSeries:
+        self, output: FrameOrSeries, fill_value: Scalar = np.NaN
+    ) -> FrameOrSeries:
         """
         If we have categorical groupers, then we might want to make sure that
         we have a fully re-indexed output to the levels. This means expanding

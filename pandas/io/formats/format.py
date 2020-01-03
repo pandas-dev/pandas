@@ -260,7 +260,6 @@ class SeriesFormatter:
         self._chk_truncate()
 
     def _chk_truncate(self) -> None:
-        from pandas.core.series import Series
         from pandas.core.reshape.concat import concat
 
         self.tr_row_num: Optional[int]
@@ -282,9 +281,9 @@ class SeriesFormatter:
                 series = series.iloc[:max_rows]
             else:
                 row_num = max_rows // 2
-                concatted = concat((series.iloc[:row_num], series.iloc[-row_num:]))
-                assert isinstance(concatted, Series)
-                series = concatted
+                series = series._ensure_type(
+                    concat((series.iloc[:row_num], series.iloc[-row_num:]))
+                )
             self.tr_row_num = row_num
         else:
             self.tr_row_num = None

@@ -6,7 +6,7 @@ from typing import Hashable, List, Mapping, Optional, Sequence, Union, overload
 
 import numpy as np
 
-from pandas._typing import FrameOrSeries
+from pandas._typing import FrameOrSeriesUnion
 
 from pandas import DataFrame, Index, MultiIndex, Series
 from pandas.core.arrays.categorical import (
@@ -46,7 +46,9 @@ def concat(
 
 @overload
 def concat(
-    objs: Union[Sequence[FrameOrSeries], Mapping[Optional[Hashable], FrameOrSeries]],
+    objs: Union[
+        Sequence[FrameOrSeriesUnion], Mapping[Optional[Hashable], FrameOrSeriesUnion]
+    ],
     axis=0,
     join: str = "outer",
     ignore_index: bool = False,
@@ -56,12 +58,14 @@ def concat(
     verify_integrity: bool = False,
     sort: bool = False,
     copy: bool = True,
-) -> FrameOrSeries:
+) -> FrameOrSeriesUnion:
     ...
 
 
 def concat(
-    objs: Union[Sequence[FrameOrSeries], Mapping[Optional[Hashable], FrameOrSeries]],
+    objs: Union[
+        Sequence[FrameOrSeriesUnion], Mapping[Optional[Hashable], FrameOrSeriesUnion]
+    ],
     axis=0,
     join="outer",
     ignore_index: bool = False,
@@ -71,7 +75,7 @@ def concat(
     verify_integrity: bool = False,
     sort: bool = False,
     copy: bool = True,
-) -> FrameOrSeries:
+) -> FrameOrSeriesUnion:
     """
     Concatenate pandas objects along a particular axis with optional set logic
     along the other axes.
