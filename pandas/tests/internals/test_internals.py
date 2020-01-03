@@ -20,7 +20,7 @@ from pandas import (
 )
 import pandas._testing as tm
 import pandas.core.algorithms as algos
-from pandas.core.arrays import DatetimeArray, TimedeltaArray, SparseArray
+from pandas.core.arrays import DatetimeArray, SparseArray, TimedeltaArray
 from pandas.core.internals import BlockManager, SingleBlockManager, make_block
 
 

@@ -1198,6 +1198,7 @@ Sparse data structures now gained enhanced support of ``int64`` and ``bool`` ``d
 Previously, sparse data were ``float64`` dtype by default, even if all inputs were of ``int`` or ``bool`` dtype. You had to specify ``dtype`` explicitly to create sparse data with ``int64`` dtype. Also, ``fill_value`` had to be specified explicitly because the default was ``np.nan`` which doesn't appear in ``int64`` or ``bool`` data.
 
 .. code-block:: ipython
+   :okwarning:
 
    In [1]: pd.SparseArray([1, 2, 0, 0])
    Out[1]:
@@ -1225,6 +1226,7 @@ Previously, sparse data were ``float64`` dtype by default, even if all inputs we
 As of v0.19.0, sparse data keeps the input dtype, and uses more appropriate ``fill_value`` defaults (``0`` for ``int64`` dtype, ``False`` for ``bool`` dtype).
 
 .. ipython:: python
+   :okwarning:
 
    pd.SparseArray([1, 2, 0, 0], dtype=np.int64)
    pd.SparseArray([True, False, False, False])

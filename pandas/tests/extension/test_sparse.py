@@ -5,8 +5,8 @@ from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import SparseDtype
-from pandas.arrays import SparseArray
 import pandas._testing as tm
+from pandas.arrays import SparseArray
 from pandas.tests.extension import base
 
 

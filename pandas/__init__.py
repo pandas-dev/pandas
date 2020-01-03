@@ -255,9 +255,9 @@ if pandas.compat.PY37:
                 FutureWarning,
                 stacklevel=2,
             )
-            from pandas.core.arrays.sparse import SparseArray
+            from pandas.core.arrays.sparse import SparseArray as _SparseArray
 
-            return SparseArray
+            return _SparseArray
 
         raise AttributeError(f"module 'pandas' has no attribute '{name}'")
 
