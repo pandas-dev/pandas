@@ -1363,6 +1363,7 @@ some common prefixes along with general guidelines for when to use them:
 * TST: Additions/updates to tests
 * BLD: Updates to the build process/scripts
 * PERF: Performance improvement
+* TYP: Type annotations
 * CLN: Code cleanup
 
 The following defines how a commit message should be structured.  Please reference the
