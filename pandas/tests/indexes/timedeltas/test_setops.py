@@ -22,6 +22,22 @@ class TestTimedeltaIndex:
         i1.union(i2)  # Works
         i2.union(i1)  # Fails with "AttributeError: can't set attribute"
 
+    def test_union_sort_false(self):
+        tdi = timedelta_range("1day", periods=5)
+
+        left = tdi[3:]
+        right = tdi[:3]
+
+        # Check that we are testing the desired code path
+        assert left._can_fast_union(right)
+
+        result = left.union(right)
+        tm.assert_index_equal(result, tdi)
+
+        result = left.union(right, sort=False)
+        expected = pd.TimedeltaIndex(["4 Days", "5 Days", "1 Days", "2 Day", "3 Days"])
+        tm.assert_index_equal(result, expected)
+
     def test_union_coverage(self):
 
         idx = TimedeltaIndex(["3d", "1d", "2d"])
