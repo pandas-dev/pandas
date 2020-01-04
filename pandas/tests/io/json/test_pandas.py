@@ -39,6 +39,7 @@ def assert_json_roundtrip_equal(result, expected, orient):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:the 'numpy' keyword is deprecated:FutureWarning")
 class TestPandasContainer:
     @pytest.fixture(scope="function", autouse=True)
     def setup(self, datapath):
