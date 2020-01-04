@@ -89,6 +89,25 @@ def test_first_last_nth_dtypes(df_mixed_floats):
     assert f.dtype == "int64"
 
 
+def test_first_strings_timestamps():
+    # GH 11244
+    test = pd.DataFrame(
+        {
+            pd.Timestamp("2012-01-01 00:00:00"): ["a", "b"],
+            pd.Timestamp("2012-01-02 00:00:00"): ["c", "d"],
+            "name": ["e", "e"],
+            "aaaa": ["f", "g"],
+        }
+    )
+    result = test.groupby("name").first()
+    expected = DataFrame(
+        [["a", "c", "f"]],
+        columns=Index([Timestamp("2012-01-01"), Timestamp("2012-01-02"), "aaaa"]),
+        index=Index(["e"], name="name"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_nth():
     df = DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=["A", "B"])
     g = df.groupby("A")
