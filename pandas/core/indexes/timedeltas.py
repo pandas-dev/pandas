@@ -248,15 +248,13 @@ class TimedeltaIndex(
             return Index(result.astype("i8"), name=self.name)
         return DatetimeIndexOpsMixin.astype(self, dtype, copy=copy)
 
-    def _union(self, other, sort):
+    def _union(self, other: "TimedeltaIndex", sort):
         if len(other) == 0 or self.equals(other) or len(self) == 0:
             return super()._union(other, sort=sort)
 
-        if not isinstance(other, TimedeltaIndex):
-            try:
-                other = TimedeltaIndex(other)
-            except (TypeError, ValueError):
-                pass
+        # We are called by `union`, which is responsible for this validation
+        assert isinstance(other, TimedeltaIndex)
+
         this, other = self, other
 
         if this._can_fast_union(other):
@@ -309,7 +307,7 @@ class TimedeltaIndex(
             return self.get_value_maybe_box(series, key)
 
         try:
-            return com.maybe_box(self, Index.get_value(self, series, key), series, key)
+            value = Index.get_value(self, series, key)
         except KeyError:
             try:
                 loc = self._get_string_slice(key)
@@ -321,10 +319,10 @@ class TimedeltaIndex(
                 return self.get_value_maybe_box(series, key)
             except (TypeError, ValueError, KeyError):
                 raise KeyError(key)
+        else:
+            return com.maybe_box(self, value, series, key)
 
-    def get_value_maybe_box(self, series, key):
-        if not isinstance(key, Timedelta):
-            key = Timedelta(key)
+    def get_value_maybe_box(self, series, key: Timedelta):
         values = self._engine.get_value(com.values_from_object(series), key)
         return com.maybe_box(self, values, series, key)
 
