@@ -58,7 +58,7 @@ from pandas.core.ops import get_op_result_name
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import DateOffset
 
-from .extension import inherit_names
+from .extension import ExtensionIndex, inherit_names
 
 _VALID_CLOSED = {"left", "right", "both", "neither"}
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -213,7 +213,7 @@ class SetopCheck:
     overwrite=True,
 )
 @inherit_names(["is_non_overlapping_monotonic", "mid"], IntervalArray, cache=True)
-class IntervalIndex(IntervalMixin, Index, accessor.PandasDelegate):
+class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
     _typ = "intervalindex"
     _comparables = ["name"]
     _attributes = ["name", "closed"]
