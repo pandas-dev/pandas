@@ -11,6 +11,7 @@ import numpy as np
 import pytest
 from pytz import FixedOffset, utc
 
+from pandas.compat._optional import import_optional_dependency
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -930,3 +931,13 @@ def non_mapping_dict_subclass():
             return self._data.__len__()
 
     return TestNonDictMapping
+
+
+def async_mark():
+    try:
+        import_optional_dependency("pytest_asyncio")
+        async_mark = pytest.mark.asyncio
+    except ImportError:
+        async_mark = pytest.mark.skip(reason="Missing dependency pytest-asyncio")
+
+    return async_mark

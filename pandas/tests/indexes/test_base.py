@@ -33,6 +33,7 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
+from pandas.conftest import async_mark
 from pandas.core.algorithms import safe_sort
 from pandas.core.indexes.api import (
     Index,
@@ -2397,13 +2398,14 @@ Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
         with pytest.raises(AttributeError, match="Can't set attribute"):
             index.is_unique = False
 
-    def test_tab_complete_warning(self, ip):
+    @async_mark()
+    async def test_tab_complete_warning(self, ip):
         # https://github.com/pandas-dev/pandas/issues/16409
         pytest.importorskip("IPython", minversion="6.0.0")
         from IPython.core.completer import provisionalcompleter
 
         code = "import pandas as pd; idx = pd.Index([1, 2])"
-        ip.run_code(code)
+        await ip.run_code(code)
         with tm.assert_produces_warning(None):
             with provisionalcompleter("ignore"):
                 list(ip.Completer.completions("idx.", 4))
