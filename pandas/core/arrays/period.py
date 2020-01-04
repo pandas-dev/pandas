@@ -29,6 +29,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_float_dtype,
     is_list_like,
+    is_object_dtype,
     is_period_dtype,
     pandas_dtype,
 )
@@ -41,6 +42,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas.core import ops
 import pandas.core.algorithms as algos
 from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
@@ -92,21 +94,43 @@ def _period_array_cmp(cls, op):
             self._check_compatible_with(other)
 
             result = ordinal_op(other.ordinal)
-        elif isinstance(other, cls):
-            self._check_compatible_with(other)
 
-            result = ordinal_op(other.asi8)
-
-            mask = self._isnan | other._isnan
-            if mask.any():
-                result[mask] = nat_result
-
-            return result
         elif other is NaT:
             result = np.empty(len(self.asi8), dtype=bool)
             result.fill(nat_result)
-        else:
+
+        elif not is_list_like(other):
             return invalid_comparison(self, other, op)
+
+        else:
+            if isinstance(other, list):
+                # TODO: could use pd.Index to do inference?
+                other = np.array(other)
+
+            if not isinstance(other, (np.ndarray, cls)):
+                return invalid_comparison(self, other, op)
+
+            if is_object_dtype(other):
+                with np.errstate(all="ignore"):
+                    result = ops.comp_method_OBJECT_ARRAY(
+                        op, self.astype(object), other
+                    )
+                o_mask = isna(other)
+
+            elif not is_period_dtype(other):
+                # e.g. is_timedelta64_dtype(other)
+                return invalid_comparison(self, other, op)
+
+            else:
+                assert isinstance(other, cls), type(other)
+
+                self._check_compatible_with(other)
+
+                result = ordinal_op(other.asi8)
+                o_mask = other._isnan
+
+            if o_mask.any():
+                result[o_mask] = nat_result
 
         if self._hasnans:
             result[self._isnan] = nat_result
