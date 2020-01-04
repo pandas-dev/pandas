@@ -307,4 +307,4 @@ class TestDataFrame(Generic):
             columns=["timenow", "Live"],
         )
 
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
