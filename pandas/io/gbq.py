@@ -1,5 +1,5 @@
 """ Google BigQuery support """
-from typing import TYPE_CHECKING, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
 from pandas.compat._optional import import_optional_dependency
 
@@ -27,7 +27,7 @@ def read_gbq(
     auth_local_webserver: bool = False,
     dialect: Optional[str] = None,
     location: Optional[str] = None,
-    configuration: Optional[Dict] = None,
+    configuration: Optional[Dict[str, Any]] = None,
     credentials=None,
     use_bqstorage_api: Optional[bool] = None,
     private_key=None,
