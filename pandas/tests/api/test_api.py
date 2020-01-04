@@ -2,7 +2,7 @@ from typing import List
 
 import pandas as pd
 from pandas import api, compat
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class Base:
@@ -193,6 +193,7 @@ class TestPDApi(Base):
         "_np_version_under1p16",
         "_np_version_under1p17",
         "_np_version_under1p18",
+        "_testing",
         "_tslib",
         "_typing",
         "_version",
@@ -266,9 +267,36 @@ class TestApi(Base):
 
 
 class TestTesting(Base):
-    funcs = ["assert_frame_equal", "assert_series_equal", "assert_index_equal"]
+    funcs = [
+        "assert_frame_equal",
+        "assert_series_equal",
+        "assert_index_equal",
+        "assert_equal",
+        "assert_almost_equal",
+        "assert_categorical_equal",
+        "assert_datetime_array_equal",
+        "assert_extension_array_equal",
+        "assert_interval_array_equal",
+        "assert_numpy_array_equal",
+        "assert_period_array_equal",
+        "assert_sp_array_equal",
+        "assert_timedelta_array_equal",
+    ]
 
     def test_testing(self):
         from pandas import testing
 
         self.check(testing, self.funcs)
+
+    def test_util_testing_deprecated(self):
+        s = pd.Series([], dtype="object")
+        with tm.assert_produces_warning(FutureWarning) as m:
+            import pandas.util.testing as tm2
+
+            tm2.assert_series_equal(s, s)
+
+        assert "pandas.testing.assert_series_equal" in str(m[0].message)
+
+        with tm.assert_produces_warning(FutureWarning) as m:
+            tm2.DataFrame
+        assert "removed" in str(m[0].message)

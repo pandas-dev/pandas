@@ -8,8 +8,8 @@ from pandas._libs.tslib import iNaT
 import pandas.util._test_decorators as td
 
 from pandas import NaT, Series, Timestamp, date_range
+import pandas._testing as tm
 from pandas.api.types import CategoricalDtype
-import pandas.util.testing as tm
 
 
 class TestSeriesRank:
