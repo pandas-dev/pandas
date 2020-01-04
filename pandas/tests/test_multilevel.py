@@ -2022,18 +2022,6 @@ Thur,Lunch,Yes,51.51,17"""
         result = df.a.b.dtypes
         tm.assert_series_equal(result, expected)
 
-    def test_reset_index_nat(self):
-        # GH 11479
-        idx = np.arange(0, 10)
-        tstamp = pd.date_range("201507010000", freq="h", periods=10).values
-        strings = list("abcdefghij")
-        df = DataFrame({"id": idx, "tstamp": tstamp, "a": strings})
-        df.loc[3, "tstamp"] = pd.NaT
-        result = df.set_index(["id", "tstamp"]).reset_index("id")
-        expected = DataFrame(
-            {"id": idx, "a": strings}, index=Index(df["tstamp"], name="tstamp")
-        )
-
 
 class TestSorted(Base):
     """ everything you wanted to test about sorting """
