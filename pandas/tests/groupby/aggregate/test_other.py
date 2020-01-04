@@ -473,7 +473,7 @@ def test_agg_timezone_round_trip():
     assert result3 == ts
 
     dates = [
-        pd.Timestamp("2016-01-0{i:d} 12:00:00".format(i=i), tz="US/Pacific")
+        pd.Timestamp(f"2016-01-0{i:d} 12:00:00", tz="US/Pacific")
         for i in range(1, 5)
     ]
     df = pd.DataFrame({"A": ["a", "b"] * 2, "B": dates})
@@ -492,7 +492,6 @@ def test_agg_timezone_round_trip():
 
     # GH#27110 applying iloc should return a DataFrame
     assert ts == grouped.apply(lambda x: x.iloc[-1]).iloc[0, 0]
-
 
 def test_sum_uint64_overflow():
     # see gh-14758
