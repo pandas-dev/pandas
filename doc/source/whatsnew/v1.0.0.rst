@@ -925,6 +925,7 @@ Performance improvements
   The improvement is not present if checking if the :class:`Categorical` is less than or less than or equal than the scalar (:issue:`29820`)
 - Performance improvement in :meth:`Index.equals` and  :meth:`MultiIndex.equals` (:issue:`29134`)
 - Performance improvement in :func:`~pandas.api.types.infer_dtype` when ``skipna`` is ``True`` (:issue:`28814`)
+- Performance improvement in :class:`Timestamp` constructor (:issue:`30543`)
 
 .. ---------------------------------------------------------------------------
 

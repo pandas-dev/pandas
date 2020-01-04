@@ -391,7 +391,10 @@ class Timestamp(_Timestamp):
             # User passed tzinfo instead of tz; avoid silently ignoring
             tz, tzinfo = tzinfo, None
 
-        if isinstance(ts_input, str):
+        if isinstance(ts_input, Timestamp) and tz is None:
+            # GH 30543 if pd.Timestamp already passed, return it
+            return ts_input
+        elif isinstance(ts_input, str):
             # User passed a date string to parse.
             # Check that the user didn't also pass a date attribute kwarg.
             if any(arg is not None for arg in _date_attributes):
