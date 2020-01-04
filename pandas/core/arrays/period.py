@@ -45,6 +45,7 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
 from pandas.core.ops.common import unpack_zerodim_and_defer
+from pandas.core.ops.invalid import invalid_comparison
 
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import DateOffset, Tick, _delta_to_tick
@@ -75,6 +76,18 @@ def _period_array_cmp(cls, op):
         if is_list_like(other) and len(other) != len(self):
             raise ValueError("Lengths must match")
 
+        if isinstance(other, str):
+            try:
+                other = self._scalar_from_string(other)
+            except ValueError:
+                # string that can't be parsed as Period
+                return invalid_comparison(self, other, op)
+        elif isinstance(other, int):
+            # TODO: sure we want to allow this?  we dont for DTA/TDA
+            #  2 tests rely on this
+            other = Period(other, freq=self.freq)
+            result = ordinal_op(other.ordinal)
+
         if isinstance(other, Period):
             self._check_compatible_with(other)
 
@@ -93,8 +106,7 @@ def _period_array_cmp(cls, op):
             result = np.empty(len(self.asi8), dtype=bool)
             result.fill(nat_result)
         else:
-            other = Period(other, freq=self.freq)
-            result = ordinal_op(other.ordinal)
+            return invalid_comparison(self, other, op)
 
         if self._hasnans:
             result[self._isnan] = nat_result

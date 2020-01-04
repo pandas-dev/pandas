@@ -8,7 +8,7 @@ import pandas._libs.index as _index
 
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex, NaT, Series, Timestamp, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 """

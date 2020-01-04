@@ -10,7 +10,7 @@ import pytest
 from pandas._libs.tslib import Timestamp
 
 from pandas import DataFrame, Index
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 _msg_validate_usecols_arg = (
     "'usecols' must either be list-like "

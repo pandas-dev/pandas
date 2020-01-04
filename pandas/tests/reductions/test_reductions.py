@@ -21,8 +21,8 @@ from pandas import (
     timedelta_range,
     to_timedelta,
 )
+import pandas._testing as tm
 from pandas.core import nanops
-import pandas.util.testing as tm
 
 
 def get_objs():

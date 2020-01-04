@@ -3653,7 +3653,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 "A value is trying to be set on a copy of a slice from a "
                 "DataFrame\n\n"
                 "See the caveats in the documentation: "
-                "http://pandas.pydata.org/pandas-docs/stable/user_guide/"
+                "https://pandas.pydata.org/pandas-docs/stable/user_guide/"
                 "indexing.html#returning-a-view-versus-a-copy"
             )
 
@@ -3664,7 +3664,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 "DataFrame.\n"
                 "Try using .loc[row_indexer,col_indexer] = value "
                 "instead\n\nSee the caveats in the documentation: "
-                "http://pandas.pydata.org/pandas-docs/stable/user_guide/"
+                "https://pandas.pydata.org/pandas-docs/stable/user_guide/"
                 "indexing.html#returning-a-view-versus-a-copy"
             )
 
@@ -4185,6 +4185,7 @@ class NDFrame(PandasObject, SelectionMixin):
         kind: str = "quicksort",
         na_position: str = "last",
         sort_remaining: bool_t = True,
+        ignore_index: bool_t = False,
     ):
         """
         Sort object by labels (along an axis).
@@ -4211,6 +4212,10 @@ class NDFrame(PandasObject, SelectionMixin):
         sort_remaining : bool, default True
             If True and sorting by level and index is multilevel, sort by other
             levels too (in order) after sorting by specified level.
+        ignore_index : bool, default False
+            If True, the resulting axis will be labeled 0, 1, …, n - 1.
+
+            .. versionadded:: 1.0.0
 
         Returns
         -------
@@ -7380,7 +7385,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Notes
         -----
         See the `user guide
-        <http://pandas.pydata.org/pandas-docs/stable/groupby.html>`_ for more.
+        <https://pandas.pydata.org/pandas-docs/stable/groupby.html>`_ for more.
         """
 
     def asfreq(
@@ -7429,7 +7434,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Notes
         -----
         To learn more about the frequency strings, please see `this link
-        <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
+        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
 
         Examples
         --------
@@ -7708,7 +7713,7 @@ class NDFrame(PandasObject, SelectionMixin):
         for more.
 
         To learn more about the offset strings, please see `this link
-        <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects>`__.
+        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects>`__.
 
         Examples
         --------
