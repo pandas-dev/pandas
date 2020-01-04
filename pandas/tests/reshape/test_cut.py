@@ -19,9 +19,9 @@ from pandas import (
     timedelta_range,
     to_datetime,
 )
+import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 import pandas.core.reshape.tile as tmod
-import pandas.util.testing as tm
 
 
 def test_simple():

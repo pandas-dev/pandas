@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from functools import partial
 from operator import attrgetter
 
@@ -10,17 +10,9 @@ import pytz
 from pandas._libs.tslibs import OutOfBoundsDatetime, conversion
 
 import pandas as pd
-from pandas import (
-    DatetimeIndex,
-    Index,
-    Timestamp,
-    date_range,
-    datetime,
-    offsets,
-    to_datetime,
-)
+from pandas import DatetimeIndex, Index, Timestamp, date_range, offsets, to_datetime
+import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray, period_array
-import pandas.util.testing as tm
 
 
 class TestDatetimeIndex:
@@ -711,7 +703,6 @@ class TestDatetimeIndex:
         expected = DatetimeIndex([ts[0].to_pydatetime(), ts[1].to_pydatetime()])
         tm.assert_index_equal(result, expected)
 
-    # TODO(GH-24559): Remove the xfail for the tz-aware case.
     @pytest.mark.parametrize("klass", [Index, DatetimeIndex])
     @pytest.mark.parametrize("box", [np.array, partial(np.array, dtype=object), list])
     @pytest.mark.parametrize(
@@ -725,15 +716,10 @@ class TestDatetimeIndex:
         expected = klass([ts])
         assert result == expected
 
-    # This is the desired future behavior
-    # Note: this xfail is not strict because the test passes with
-    #  None or any of the UTC variants for tz_naive_fixture
-    @pytest.mark.xfail(reason="Future behavior", strict=False)
-    @pytest.mark.filterwarnings("ignore:\\n    Passing:FutureWarning")
     def test_construction_int_rountrip(self, tz_naive_fixture):
-        # GH 12619
-        # TODO(GH-24559): Remove xfail
+        # GH 12619, GH#24559
         tz = tz_naive_fixture
+
         result = 1293858000000000000
         expected = DatetimeIndex([result], tz=tz).asi8[0]
         assert result == expected

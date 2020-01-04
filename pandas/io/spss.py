@@ -3,7 +3,8 @@ from typing import Optional, Sequence, Union
 
 from pandas.compat._optional import import_optional_dependency
 
-from pandas.api.types import is_list_like
+from pandas.core.dtypes.inference import is_list_like
+
 from pandas.core.api import DataFrame
 
 

@@ -33,6 +33,7 @@ from pandas import (
     isna,
     timedelta_range,
 )
+import pandas._testing as tm
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
     create_tempfile,
@@ -42,7 +43,6 @@ from pandas.tests.io.pytables.common import (
     safe_remove,
     tables,
 )
-import pandas.util.testing as tm
 
 from pandas.io.pytables import (
     ClosedFileError,
@@ -1273,7 +1273,7 @@ class TestHDFStore:
             with pytest.raises(ValueError):
                 store.append("df", df)
 
-            # store multile additional fields in different blocks
+            # store multiple additional fields in different blocks
             df["float_3"] = Series([1.0] * len(df), dtype="float64")
             with pytest.raises(ValueError):
                 store.append("df", df)
@@ -3214,7 +3214,7 @@ class TestHDFStore:
             tm.assert_frame_equal(result, expected)
 
             result = store.select(
-                "df", "(index>df.index[3] & " 'index<=df.index[6]) | string="bar"'
+                "df", '(index>df.index[3] & index<=df.index[6]) | string="bar"'
             )
             expected = df.loc[
                 ((df.index > df.index[3]) & (df.index <= df.index[6]))

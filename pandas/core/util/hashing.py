@@ -85,11 +85,12 @@ def hash_pandas_object(
     if isinstance(obj, ABCMultiIndex):
         return Series(hash_tuples(obj, encoding, hash_key), dtype="uint64", copy=False)
 
-    if isinstance(obj, ABCIndexClass):
+    elif isinstance(obj, ABCIndexClass):
         h = hash_array(obj.values, encoding, hash_key, categorize).astype(
             "uint64", copy=False
         )
         h = Series(h, index=obj, dtype="uint64", copy=False)
+
     elif isinstance(obj, ABCSeries):
         h = hash_array(obj.values, encoding, hash_key, categorize).astype(
             "uint64", copy=False

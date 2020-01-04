@@ -1,5 +1,5 @@
 import operator
-from typing import Any
+from typing import Any, List
 
 import numpy as np
 
@@ -10,7 +10,7 @@ from pandas._libs.hashtable import duplicated_int64
 from pandas._typing import AnyArrayLike
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender, Substitution, cache_readonly
+from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -26,10 +26,9 @@ from pandas.core.dtypes.missing import isna
 from pandas.core import accessor
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays.categorical import Categorical, _recode_for_categories, contains
-from pandas.core.base import _shared_docs
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.base import Index, _index_shared_docs
+from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
 import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name
 
@@ -37,6 +36,12 @@ _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(dict(target_klass="CategoricalIndex"))
 
 
+@accessor.delegate_names(
+    delegate=Categorical,
+    accessors=["codes", "categories", "ordered"],
+    typ="property",
+    overwrite=True,
+)
 @accessor.delegate_names(
     delegate=Categorical,
     accessors=[
@@ -50,6 +55,12 @@ _index_doc_kwargs.update(dict(target_klass="CategoricalIndex"))
         "as_unordered",
         "min",
         "max",
+        "is_dtype_equal",
+        "tolist",
+        "_internal_get_values",
+        "_reverse_indexer",
+        "searchsorted",
+        "argsort",
     ],
     typ="method",
     overwrite=True,
@@ -121,7 +132,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     Notes
     -----
     See the `user guide
-    <http://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html#categoricalindex>`_
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html#categoricalindex>`_
     for more.
 
     Examples
@@ -146,6 +157,20 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     """
 
     _typ = "categoricalindex"
+
+    _raw_inherit = {
+        "argsort",
+        "_internal_get_values",
+        "tolist",
+        "codes",
+        "categories",
+        "ordered",
+        "_reverse_indexer",
+        "searchsorted",
+    }
+
+    codes: np.ndarray
+    categories: Index
 
     @property
     def _engine_type(self):
@@ -175,8 +200,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         dtype = CategoricalDtype._from_values_or_dtype(data, categories, ordered, dtype)
 
-        if name is None and hasattr(data, "name"):
-            name = data.name
+        name = maybe_extract_name(name, data, cls)
 
         if not is_categorical_dtype(data):
             # don't allow scalars
@@ -254,6 +278,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             setattr(result, k, v)
 
         result._reset_identity()
+        result._no_setting_name = False
         return result
 
     # --------------------------------------------------------------------
@@ -362,37 +387,9 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         """ return the underlying data, which is a Categorical """
         return self._data
 
-    @property
-    def itemsize(self):
-        # Size of the items in categories, not codes.
-        return self.values.itemsize
-
     def _wrap_setop_result(self, other, result):
         name = get_op_result_name(self, other)
         return self._shallow_copy(result, name=name)
-
-    def _internal_get_values(self):
-        # override base Index version to get the numpy array representation of
-        # the underlying Categorical
-        return self._data._internal_get_values()
-
-    def tolist(self):
-        return self._data.tolist()
-
-    @property
-    def codes(self):
-        return self._data.codes
-
-    @property
-    def categories(self):
-        return self._data.categories
-
-    @property
-    def ordered(self):
-        return self._data.ordered
-
-    def _reverse_indexer(self):
-        return self._data._reverse_indexer()
 
     @Appender(_index_shared_docs["contains"] % _index_doc_kwargs)
     def __contains__(self, key) -> bool:
@@ -429,9 +426,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def fillna(self, value, downcast=None):
         self._assert_can_do_op(value)
         return CategoricalIndex(self._data.fillna(value), name=self.name)
-
-    def argsort(self, *args, **kwargs):
-        return self.values.argsort(*args, **kwargs)
 
     @cache_readonly
     def _engine(self):
@@ -540,11 +534,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         # we might be a positional inexer
         return super().get_value(series, key)
 
-    @Substitution(klass="CategoricalIndex")
-    @Appender(_shared_docs["searchsorted"])
-    def searchsorted(self, value, side="left", sorter=None):
-        return self._data.searchsorted(value, side=side, sorter=sorter)
-
     @Appender(_index_shared_docs["where"])
     def where(self, cond, other=None):
         # TODO: Investigate an alternative implementation with
@@ -584,6 +573,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         target = ibase.ensure_index(target)
 
+        missing: List[int]
         if self.equals(target):
             indexer = None
             missing = []
@@ -746,9 +736,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         )
         return self._create_from_codes(taken)
 
-    def is_dtype_equal(self, other):
-        return self._data.is_dtype_equal(other)
-
     take_nd = take
 
     @Appender(_index_shared_docs["_maybe_cast_slice_bound"])
@@ -882,10 +869,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         result.name = name
         return result
 
-    def _codes_for_groupby(self, sort, observed):
-        """ Return a Categorical adjusted for groupby """
-        return self.values._codes_for_groupby(sort, observed)
-
     @classmethod
     def _add_comparison_methods(cls):
         """ add in comparison methods """
@@ -911,13 +894,18 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         cls.__le__ = _make_compare(operator.le)
         cls.__ge__ = _make_compare(operator.ge)
 
+    def _delegate_property_get(self, name, *args, **kwargs):
+        """ method delegation to the ._values """
+        prop = getattr(self._values, name)
+        return prop  # no wrapping for now
+
     def _delegate_method(self, name, *args, **kwargs):
         """ method delegation to the ._values """
         method = getattr(self._values, name)
         if "inplace" in kwargs:
             raise ValueError("cannot use inplace with CategoricalIndex")
         res = method(*args, **kwargs)
-        if is_scalar(res):
+        if is_scalar(res) or name in self._raw_inherit:
             return res
         return CategoricalIndex(res, name=self.name)
 
