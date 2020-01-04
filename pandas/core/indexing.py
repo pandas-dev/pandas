@@ -30,17 +30,6 @@ from pandas.core.indexers import (
 from pandas.core.indexes.api import Index, InvalidIndexError
 
 
-# the supported indexers
-def get_indexers_list():
-
-    return [
-        ("iloc", _iLocIndexer),
-        ("loc", _LocIndexer),
-        ("at", _AtIndexer),
-        ("iat", _iAtIndexer),
-    ]
-
-
 # "null slice"
 _NS = slice(None, None)
 

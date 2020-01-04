@@ -3179,12 +3179,25 @@ class NDFrame(PandasObject, SelectionMixin):
     # ----------------------------------------------------------------------
     # Fancy Indexing
 
-    @classmethod
-    def _create_indexer(cls, name: str, indexer) -> None:
-        """Create an indexer like _name in the class."""
-        if getattr(cls, name, None) is None:
-            _indexer = functools.partial(indexer, name)
-            setattr(cls, name, property(_indexer, doc=indexer.__doc__))
+    @property
+    @Appender(indexing._iLocIndexer.__doc__)
+    def iloc(self) -> "indexing._iLocIndexer":
+        return indexing._iLocIndexer(name="iloc", obj=self)
+
+    @property
+    @Appender(indexing._LocIndexer.__doc__)
+    def loc(self) -> "indexing._LocIndexer":
+        return indexing._LocIndexer(name="loc", obj=self)
+
+    @property
+    @Appender(indexing._AtIndexer.__doc__)
+    def at(self) -> "indexing._AtIndexer":
+        return indexing._AtIndexer(name="at", obj=self)
+
+    @property
+    @Appender(indexing._iAtIndexer.__doc__)
+    def iat(self) -> "indexing._iAtIndexer":
+        return indexing._iAtIndexer(name="iat", obj=self)
 
     # ----------------------------------------------------------------------
     # Lookup Caching
@@ -11176,8 +11189,3 @@ def _make_logical_function(
         )
 
     return set_function_name(logical_func, name, cls)
-
-
-# install the indexes
-for _name, _indexer in indexing.get_indexers_list():
-    NDFrame._create_indexer(_name, _indexer)
