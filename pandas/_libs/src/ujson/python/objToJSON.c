@@ -241,65 +241,39 @@ static int scaleNanosecToUnit(npy_int64 *value, NPY_DATETIMEUNIT unit) {
 static PyObject *get_values(PyObject *obj) {
     PyObject *values = NULL;
 
-    values = PyObject_GetAttrString(obj, "values");
     PRINTMARK();
 
-    if (values && !PyArray_CheckExact(values)) {
-
-        if (PyObject_HasAttrString(values, "to_numpy")) {
-            values = PyObject_CallMethod(values, "to_numpy", NULL);
-        }
-
-        if (PyObject_HasAttrString(values, "values")) {
-            PyObject *subvals = get_values(values);
-            PyErr_Clear();
-            PRINTMARK();
-            // subvals are sometimes missing a dimension
-            if (subvals) {
-                PyArrayObject *reshape = (PyArrayObject *)subvals;
-                PyObject *shape = PyObject_GetAttrString(obj, "shape");
-                PyArray_Dims dims;
-                PRINTMARK();
-
-                if (!shape || !PyArray_IntpConverter(shape, &dims)) {
-                    subvals = NULL;
-                } else {
-                    subvals = PyArray_Newshape(reshape, &dims, NPY_ANYORDER);
-                    PyDimMem_FREE(dims.ptr);
-                }
-                Py_DECREF(reshape);
-                Py_XDECREF(shape);
-            }
-            Py_DECREF(values);
-            values = subvals;
-        } else {
-            PRINTMARK();
-            Py_DECREF(values);
-            values = NULL;
-        }
-    }
-
-    if (!values && PyObject_HasAttrString(obj, "_internal_get_values")) {
+    if (PyObject_HasAttrString(obj, "_internal_get_values")) {
         PRINTMARK();
         values = PyObject_CallMethod(obj, "_internal_get_values", NULL);
-        if (values && !PyArray_CheckExact(values)) {
+
+        if (values == NULL) {
+            // Clear so we can subsequently try another method
+            PyErr_Clear();
+        } else if (!PyArray_CheckExact(values)) {
+            // Didn't get a numpy array, so keep trying
             PRINTMARK();
             Py_DECREF(values);
             values = NULL;
         }
     }
 
-    if (!values && PyObject_HasAttrString(obj, "get_block_values")) {
+    if ((values == NULL) && PyObject_HasAttrString(obj, "get_block_values")) {
         PRINTMARK();
         values = PyObject_CallMethod(obj, "get_block_values", NULL);
-        if (values && !PyArray_CheckExact(values)) {
+
+        if (values == NULL) {
+            // Clear so we can subsequently try another method
+            PyErr_Clear();
+        } else if (!PyArray_CheckExact(values)) {
+            // Didn't get a numpy array, so keep trying
             PRINTMARK();
             Py_DECREF(values);
             values = NULL;
         }
     }
 
-    if (!values) {
+    if (values == NULL) {
         PyObject *typeRepr = PyObject_Repr((PyObject *)Py_TYPE(obj));
         PyObject *repr;
         PRINTMARK();
@@ -435,8 +409,8 @@ static char *int64ToIso(int64_t value, NPY_DATETIMEUNIT base, size_t *len) {
 }
 
 /* JSON callback. returns a char* and mutates the pointer to *len */
-static char *NpyDateTimeToIsoCallback(JSOBJ Py_UNUSED(unused), JSONTypeContext *tc,
-                                      size_t *len) {
+static char *NpyDateTimeToIsoCallback(JSOBJ Py_UNUSED(unused),
+                                      JSONTypeContext *tc, size_t *len) {
     NPY_DATETIMEUNIT base = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
     return int64ToIso(GET_TC(tc)->longValue, base, len);
 }
