@@ -252,19 +252,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         url = "https://github.com/pandas-dev/pandas/issues/11704"
         raise NotImplementedError(f"See issue #11704 {url}")
 
-    def _get_index(self) -> Optional[np.ndarray]:
-        """
-        Return integer representations as an ndarray if index is frequency.
-
-        Returns
-        -------
-        None or ndarray
-        """
-
-        if self.is_freq_type:
-            return self._on.asi8
-        return None
-
     def _prep_values(self, values: Optional[np.ndarray] = None) -> np.ndarray:
         """Convert input to numpy arrays for Cython routines"""
         if values is None:
@@ -424,17 +411,15 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             return self._get_roll_func(f"{func}_variable")
         return partial(self._get_roll_func(f"{func}_fixed"), win=self._get_window())
 
-    def _get_window_indexer(
-        self, index_as_array: Optional[np.ndarray], window: int
-    ) -> BaseIndexer:
+    def _get_window_indexer(self, window: int) -> BaseIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
         """
         if isinstance(self.window, BaseIndexer):
             return self.window
         if self.is_freq_type:
-            return VariableWindowIndexer(index_array=index_as_array, window_size=window)
-        return FixedWindowIndexer(index_array=index_as_array, window_size=window)
+            return VariableWindowIndexer(index_array=self._on.asi8, window_size=window)
+        return FixedWindowIndexer(window_size=window)
 
     def _apply(
         self,
@@ -476,8 +461,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
         blocks, obj = self._create_blocks()
         block_list = list(blocks)
-        index_as_array = self._get_index()
-        window_indexer = self._get_window_indexer(index_as_array, window)
+        window_indexer = self._get_window_indexer(window)
 
         results = []
         exclude: List[Scalar] = []
@@ -1211,8 +1195,6 @@ class _Rolling_and_Expanding(_Rolling):
     def count(self):
 
         blocks, obj = self._create_blocks()
-        # Validate the index
-        self._get_index()
 
         window = self._get_window()
         window = min(window, len(obj)) if not self.center else window
