@@ -728,13 +728,13 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         nv.validate_take(tuple(), kwargs)
         indices = ensure_platform_int(indices)
         taken = self._assert_take_fillable(
-            self.codes,
+            self._data,
             indices,
             allow_fill=allow_fill,
             fill_value=fill_value,
-            na_value=-1,
+            na_value=self._data.dtype.na_value,
         )
-        return self._create_from_codes(taken)
+        return self._shallow_copy(taken)
 
     take_nd = take
 
