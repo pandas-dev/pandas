@@ -36,18 +36,6 @@ class HistPlot(LinePlot):
                     bins_list.append(self._caculcate_bins(group))
                 self.bins = bins_list
 
-            # create common bin edge
-            values = self.data._convert(datetime=True)._get_numeric_data()
-            values = np.ravel(values)
-            values = values[~isna(values)]
-
-            _, self.bins = np.histogram(
-                values,
-                bins=self.bins,
-                range=self.kwds.get("range", None),
-                weights=self.kwds.get("weights", None),
-            )
-
         if is_list_like(self.bottom):
             self.bottom = np.array(self.bottom)
 
