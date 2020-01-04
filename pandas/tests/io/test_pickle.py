@@ -401,8 +401,10 @@ def test_unicode_decode_error():
 def test_pickle_buffer_roundtrip():
     with tm.ensure_clean() as path:
         df = tm.makeDataFrame()
-        df.to_pickle(open(path, "wb"))
-        result = pd.read_pickle(open(path, "rb"))
+        with open(path, "wb") as fh:
+            df.to_pickle(fh)
+        with open(path, "rb") as fh:
+            result = pd.read_pickle(fh)
         tm.assert_frame_equal(df, result)
 
 

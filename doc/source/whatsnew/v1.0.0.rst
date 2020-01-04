@@ -227,7 +227,7 @@ Other enhancements
 - Added new writer for exporting Stata dta files in version 118, ``StataWriter118``.  This format supports exporting strings containing Unicode characters (:issue:`23573`)
 - :meth:`Series.map` now accepts ``collections.abc.Mapping`` subclasses as a mapper (:issue:`29733`)
 - The ``pandas.datetime`` class is now deprecated. Import from ``datetime`` instead (:issue:`30296`)
-
+- :func: 'to_pickle' and :func: 'read_pickle' now accept URL (:issue:'30163')
 
 
 Build Changes
@@ -934,7 +934,6 @@ I/O
 - :meth:`read_gbq` now accepts ``progress_bar_type`` to display progress bar while the data downloads. (:issue:`29857`)
 - Bug in :func:`pandas.io.json.json_normalize` where a missing value in the location specified by `record_path` would raise a ``TypeError`` (:issue:`30148`)
 - :func:`read_excel` now accepts binary data (:issue:`15914`)
-- Bug in :func: 'to_pickle' and :func: 'read_pickle' where not accepting URL (:issue:'30163')
 
 Plotting
 ^^^^^^^^
