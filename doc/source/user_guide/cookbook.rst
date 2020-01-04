@@ -795,7 +795,7 @@ The :ref:`Resample <timeseries.resampling>` docs.
 <https://stackoverflow.com/questions/33637312/pandas-grouper-by-frequency-with-completeness-requirement>`__
 
 `Valid frequency arguments to Grouper
-<http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__
+<https://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__
 
 `Grouping using a MultiIndex
 <https://stackoverflow.com/questions/41483763/pandas-timegrouper-on-multiindex>`__

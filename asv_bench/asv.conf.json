@@ -7,7 +7,7 @@
     "project": "pandas",
 
     // The project's homepage
-    "project_url": "http://pandas.pydata.org/",
+    "project_url": "https://pandas.pydata.org/",
 
     // The URL of the source code repository for the project being
     // benchmarked

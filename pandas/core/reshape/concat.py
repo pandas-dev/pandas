@@ -109,7 +109,7 @@ def concat(
 
     A walkthrough of how this method fits in with other tools for combining
     pandas objects can be found `here
-    <http://pandas.pydata.org/pandas-docs/stable/user_guide/merging.html>`__.
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/merging.html>`__.
 
     Examples
     --------

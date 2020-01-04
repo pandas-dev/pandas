@@ -2629,7 +2629,7 @@ that contain URLs.
 
    url_df = pd.DataFrame({
        'name': ['Python', 'Pandas'],
-       'url': ['https://www.python.org/', 'http://pandas.pydata.org']})
+       'url': ['https://www.python.org/', 'https://pandas.pydata.org']})
    print(url_df.to_html(render_links=True))
 
 .. ipython:: python

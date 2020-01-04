@@ -132,7 +132,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     Notes
     -----
     See the `user guide
-    <http://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html#categoricalindex>`_
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html#categoricalindex>`_
     for more.
 
     Examples
