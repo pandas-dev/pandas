@@ -5576,7 +5576,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         if is_dict_like(dtype):
             if self.ndim == 1:  # i.e. Series
-                if len(dtype) > 1 or self.name not in dtype:
+                if len(dtype) > 1 or self.name not in dtype and errors == "raise":
                     raise KeyError(
                         "Only the Series name can be used for "
                         "the key in Series dtype mappings."
@@ -5585,7 +5585,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 return self.astype(new_type, copy, errors)
 
             for col_name in dtype.keys():
-                if col_name not in self:
+                if col_name not in self and errors == "raise":
                     raise KeyError(
                         "Only a column name can be used for the "
                         "key in a dtype mappings argument."
