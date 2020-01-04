@@ -119,7 +119,7 @@ class TestSeriesDtypes:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", [str, np.str_])
-    def test_astype_str_map(self, dtype, series):
+    def test_astype_str_map(self, dtype):
         # see gh-4405
         series = Series([string.digits * 10, tm.rands(63),
                          tm.rands(64), tm.rands(1000)])
@@ -147,11 +147,10 @@ class TestSeriesDtypes:
         expected = Series([str("1 days 00:00:00.000000000")])
         tm.assert_series_equal(s, expected)
 
-    def test_astype_str(self, skipna, expected):
+    def test_astype_str(self):
         # GH 25353
-        pytest.set_trace()
         ser = Series([1, "a", np.nan])
-        result = ser.astype(str, skipna=skipna)
+        result = ser.astype(str)
         expected = Series(["1", "a", np.nan])
         tm.assert_series_equal(result, expected)
 
