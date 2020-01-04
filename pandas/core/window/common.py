@@ -250,14 +250,10 @@ def _get_center_of_mass(comass, span, halflife, alpha):
     return float(comass)
 
 
-def _offset(window, center):
+def _calculate_center_offset(window):
     if not is_integer(window):
         window = len(window)
-    offset = (window - 1) / 2.0 if center else 0
-    try:
-        return int(offset)
-    except TypeError:
-        return offset.astype(int)
+    return int((window - 1) / 2.0)
 
 
 def _require_min_periods(p):

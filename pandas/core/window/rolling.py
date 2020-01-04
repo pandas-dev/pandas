@@ -40,9 +40,9 @@ import pandas.core.common as com
 from pandas.core.indexes.api import Index, ensure_index
 from pandas.core.window.common import (
     WindowGroupByMixin,
+    _calculate_center_offset,
     _doc_template,
     _flex_binary_moment,
-    _offset,
     _shared_docs,
     _zsqrt,
     calculate_min_periods,
@@ -358,14 +358,11 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         if self.axis > result.ndim - 1:
             raise ValueError("Requested axis is larger then no. of argument dimensions")
 
-        offset = _offset(window, True)
+        offset = _calculate_center_offset(window)
         if offset > 0:
-            if isinstance(result, (ABCSeries, ABCDataFrame)):
-                result = result.slice_shift(-offset, axis=self.axis)
-            else:
-                lead_indexer = [slice(None)] * result.ndim
-                lead_indexer[self.axis] = slice(offset, None)
-                result = np.copy(result[tuple(lead_indexer)])
+            lead_indexer = [slice(None)] * result.ndim
+            lead_indexer[self.axis] = slice(offset, None)
+            result = np.copy(result[tuple(lead_indexer)])
         return result
 
     def _get_roll_func(self, func_name: str) -> Callable:
@@ -469,7 +466,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                 continue
 
             # calculation function
-            offset = _offset(window, center) if center else 0
+            offset = _calculate_center_offset(window) if center else 0
             additional_nans = np.array([np.nan] * offset)
 
             if not is_weighted:
@@ -1276,7 +1273,7 @@ class _Rolling_and_Expanding(_Rolling):
         kwargs.pop("_level", None)
         kwargs.pop("floor", None)
         window = self._get_window()
-        offset = _offset(window, self.center)
+        offset = _calculate_center_offset(window) if self.center else 0
         if not is_bool(raw):
             raise ValueError("raw parameter must be `True` or `False`")
 
