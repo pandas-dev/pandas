@@ -90,7 +90,7 @@ class HistPlot(LinePlot):
         xlabelsize=None,
         ylabelsize=None,
         yrot=None,
-        **kwds
+        **kwds,
     ):
         if "figure" in kwds:
             raise ValueError(

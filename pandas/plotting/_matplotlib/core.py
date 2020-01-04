@@ -106,7 +106,7 @@ class MPLPlot:
         layout=None,
         include_bool=False,
         column=None,
-        **kwds
+        **kwds,
     ):
 
         import matplotlib.pyplot as plt
