@@ -248,7 +248,7 @@ class MPLPlot:
         if fillna is not None:
             data = data.fillna(fillna)
 
-        if not isinstance(data.columns, ABCMultiIndex):
+        if self.by is None:
             for col, values in data.items():
                 if keep_index is True:
                     yield col, values
@@ -258,10 +258,11 @@ class MPLPlot:
             cols = data.columns.get_level_values(0).unique()
 
             for col in cols:
+                mask = data.columns.get_level_values(0) == col
                 if keep_index is True:
-                    yield col, data[col]
+                    yield col, data.loc[:, mask]
                 else:
-                    yield col, data[col].values
+                    yield col, data.loc[:, mask].values
 
     @property
     def nseries(self):
@@ -420,6 +421,8 @@ class MPLPlot:
                 data_list = []
                 for key, group in grouped:
                     columns = MultiIndex.from_product([[key], self.column])
+                    #                    columns = MultiIndex([tuple([c for c in col]) for col in columns])
+
                     group = group[self.column]
                     group.columns = columns
                     data_list.append(group)
