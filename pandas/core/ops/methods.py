@@ -102,7 +102,8 @@ def add_special_arithmetic_methods(cls):
 
             return self
 
-        f.__name__ = "__i{name}__".format(name=method.__name__.strip("__"))
+        name = method.__name__.strip("__")
+        f.__name__ = f"__i{name}__"
         return f
 
     new_methods.update(
@@ -214,7 +215,7 @@ def _create_methods(cls, arith_method, comp_method, bool_method, special):
         )
 
     if special:
-        dunderize = lambda x: "__{name}__".format(name=x.strip("_"))
+        dunderize = lambda x: f"__{x.strip('_')}__"
     else:
         dunderize = lambda x: x
     new_methods = {dunderize(k): v for k, v in new_methods.items()}

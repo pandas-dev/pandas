@@ -9,7 +9,7 @@ import numpy as np  # noqa
 import pytest
 
 from pandas import DataFrame, Series
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def import_module(name):

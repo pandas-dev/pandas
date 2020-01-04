@@ -18,7 +18,7 @@ from pandas._libs.tslib import Timestamp
 from pandas.errors import DtypeWarning, EmptyDataError, ParserError
 
 from pandas import DataFrame, Index, MultiIndex, Series, compat, concat
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.io.parsers import CParserWrapper, TextFileReader, TextParser
 
@@ -1131,7 +1131,7 @@ def test_trailing_delimiters(all_parsers):
 
 
 def test_escapechar(all_parsers):
-    # http://stackoverflow.com/questions/13824840/feature-request-for-
+    # https://stackoverflow.com/questions/13824840/feature-request-for-
     # pandas-read-csv
     data = '''SEARCH_TERM,ACTUAL_URL
 "bra tv bord","http://www.ikea.com/se/sv/catalog/categories/departments/living_room/10475/?se%7cps%7cnonbranded%7cvardagsrum%7cgoogle%7ctv_bord"

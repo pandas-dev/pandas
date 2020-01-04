@@ -9,7 +9,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from .test_generic import Generic
 

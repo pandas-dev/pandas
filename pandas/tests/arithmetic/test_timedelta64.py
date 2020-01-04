@@ -18,12 +18,12 @@ from pandas import (
     Timestamp,
     timedelta_range,
 )
+import pandas._testing as tm
 from pandas.tests.arithmetic.common import (
     assert_invalid_addsub_type,
     assert_invalid_comparison,
     get_upcast_box,
 )
-import pandas.util.testing as tm
 
 # ------------------------------------------------------------------
 # Timedelta64[ns] dtype Comparisons
