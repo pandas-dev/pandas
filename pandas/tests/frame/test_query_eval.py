@@ -1048,13 +1048,34 @@ class TestDataFrameEvalWithFrame:
 class TestDataFrameQueryBacktickQuoting:
     @pytest.fixture(scope="class")
     def df(self):
+        """
+        Yields a dataframe with strings that may or may not need escaping
+        by backticks. The last two columns cannot be escaped by backticks
+        and should raise a ValueError.
+        """
         yield DataFrame(
             {
                 "A": [1, 2, 3],
                 "B B": [3, 2, 1],
                 "C C": [4, 5, 6],
+                "C  C": [7, 4, 3],
                 "C_C": [8, 9, 10],
                 "D_D D": [11, 1, 101],
+                "E.E": [6, 3, 5],
+                "F-F": [8, 1, 10],
+                "1e1": [2, 4, 8],
+                "def": [10, 11, 2],
+                "A (x)": [4, 1, 3],
+                "B(x)": [1, 1, 5],
+                "B (x)": [2, 7, 4],
+                "  &^ :!€$?(} >    <++*''  ": [2, 5, 6],
+                "": [10, 11, 1],
+                " A": [4, 7, 9],
+                "  ": [1, 2, 1],
+                "it's": [6, 3, 1],
+                "that's": [9, 1, 8],
+                "☺": [8, 7, 6],
+                "foo#bar": [2, 4, 5],
             }
         )
 
@@ -1093,7 +1114,64 @@ class TestDataFrameQueryBacktickQuoting:
         expect = df["A"] + df["D_D D"]
         tm.assert_series_equal(res, expect)
 
-    def backtick_quote_name_with_no_spaces(self, df):
+    def test_backtick_quote_name_with_no_spaces(self, df):
         res = df.eval("A + `C_C`")
         expect = df["A"] + df["C_C"]
         tm.assert_series_equal(res, expect)
+
+    def test_special_characters(self, df):
+        res = df.eval("`E.E` + `F-F` - A")
+        expect = df["E.E"] + df["F-F"] - df["A"]
+        tm.assert_series_equal(res, expect)
+
+    def test_start_with_digit(self, df):
+        res = df.eval("A + `1e1`")
+        expect = df["A"] + df["1e1"]
+        tm.assert_series_equal(res, expect)
+
+    def test_keyword(self, df):
+        res = df.eval("A + `def`")
+        expect = df["A"] + df["def"]
+        tm.assert_series_equal(res, expect)
+
+    def test_unneeded_quoting(self, df):
+        res = df.query("`A` > 2")
+        expect = df[df["A"] > 2]
+        tm.assert_frame_equal(res, expect)
+
+    def test_parenthesis(self, df):
+        res = df.query("`A (x)` > 2")
+        expect = df[df["A (x)"] > 2]
+        tm.assert_frame_equal(res, expect)
+
+    def test_empty_string(self, df):
+        res = df.query("`` > 5")
+        expect = df[df[""] > 5]
+        tm.assert_frame_equal(res, expect)
+
+    def test_multiple_spaces(self, df):
+        res = df.query("`C  C` > 5")
+        expect = df[df["C  C"] > 5]
+        tm.assert_frame_equal(res, expect)
+
+    def test_start_with_spaces(self, df):
+        res = df.eval("` A` + `  `")
+        expect = df[" A"] + df["  "]
+        tm.assert_series_equal(res, expect)
+
+    def test_lots_of_operators_string(self, df):
+        res = df.query("`  &^ :!€$?(} >    <++*''  ` > 4")
+        expect = df[df["  &^ :!€$?(} >    <++*''  "] > 4]
+        tm.assert_frame_equal(res, expect)
+
+    def test_failing_quote(self, df):
+        with pytest.raises(SyntaxError):
+            df.query("`it's` > `that's`")
+
+    def test_failing_character_outside_range(self, df):
+        with pytest.raises(SyntaxError):
+            df.query("`☺` > 4")
+
+    def test_failing_hashtag(self, df):
+        with pytest.raises(SyntaxError):
+            df.query("`foo#bar` > 4")
