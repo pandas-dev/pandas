@@ -25,7 +25,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 
-from pandas.core import algorithms, ops
+from pandas.core import algorithms
 from pandas.core.accessor import PandasDelegate
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
 from pandas.core.arrays.datetimelike import (
@@ -40,19 +40,9 @@ from pandas.core.tools.timedeltas import to_timedelta
 
 from pandas.tseries.frequencies import DateOffset, to_offset
 
-from .extension import inherit_names
+from .extension import inherit_names, make_wrapped_arith_op, make_wrapped_comparison_op
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
-
-
-def _make_wrapped_arith_op(opname):
-    def method(self, other):
-        meth = getattr(self._data, opname)
-        result = meth(maybe_unwrap_index(other))
-        return wrap_arithmetic_op(self, other, result)
-
-    method.__name__ = opname
-    return method
 
 
 def _join_i8_wrapper(joinf, with_indexers: bool = True):
@@ -125,19 +115,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         """
         Create a comparison method that dispatches to ``cls.values``.
         """
-
-        def wrapper(self, other):
-            if isinstance(other, ABCSeries):
-                # the arrays defer to Series for comparison ops but the indexes
-                #  don't, so we have to unwrap here.
-                other = other._values
-
-            result = op(self._data, maybe_unwrap_index(other))
-            return result
-
-        wrapper.__doc__ = op.__doc__
-        wrapper.__name__ = f"__{op.__name__}__"
-        return wrapper
+        return make_wrapped_comparison_op(f"__{op.__name__}__")
 
     # ------------------------------------------------------------------------
     # Abstract data attributes
@@ -467,22 +445,22 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
         return super()._convert_scalar_indexer(key, kind=kind)
 
-    __add__ = _make_wrapped_arith_op("__add__")
-    __radd__ = _make_wrapped_arith_op("__radd__")
-    __sub__ = _make_wrapped_arith_op("__sub__")
-    __rsub__ = _make_wrapped_arith_op("__rsub__")
-    __pow__ = _make_wrapped_arith_op("__pow__")
-    __rpow__ = _make_wrapped_arith_op("__rpow__")
-    __mul__ = _make_wrapped_arith_op("__mul__")
-    __rmul__ = _make_wrapped_arith_op("__rmul__")
-    __floordiv__ = _make_wrapped_arith_op("__floordiv__")
-    __rfloordiv__ = _make_wrapped_arith_op("__rfloordiv__")
-    __mod__ = _make_wrapped_arith_op("__mod__")
-    __rmod__ = _make_wrapped_arith_op("__rmod__")
-    __divmod__ = _make_wrapped_arith_op("__divmod__")
-    __rdivmod__ = _make_wrapped_arith_op("__rdivmod__")
-    __truediv__ = _make_wrapped_arith_op("__truediv__")
-    __rtruediv__ = _make_wrapped_arith_op("__rtruediv__")
+    __add__ = make_wrapped_arith_op("__add__")
+    __radd__ = make_wrapped_arith_op("__radd__")
+    __sub__ = make_wrapped_arith_op("__sub__")
+    __rsub__ = make_wrapped_arith_op("__rsub__")
+    __pow__ = make_wrapped_arith_op("__pow__")
+    __rpow__ = make_wrapped_arith_op("__rpow__")
+    __mul__ = make_wrapped_arith_op("__mul__")
+    __rmul__ = make_wrapped_arith_op("__rmul__")
+    __floordiv__ = make_wrapped_arith_op("__floordiv__")
+    __rfloordiv__ = make_wrapped_arith_op("__rfloordiv__")
+    __mod__ = make_wrapped_arith_op("__mod__")
+    __rmod__ = make_wrapped_arith_op("__rmod__")
+    __divmod__ = make_wrapped_arith_op("__divmod__")
+    __rdivmod__ = make_wrapped_arith_op("__rdivmod__")
+    __truediv__ = make_wrapped_arith_op("__truediv__")
+    __rtruediv__ = make_wrapped_arith_op("__rtruediv__")
 
     def isin(self, values, level=None):
         """
@@ -864,46 +842,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             return self._simple_new(joined, name, **kwargs)
 
 
-def wrap_arithmetic_op(self, other, result):
-    if result is NotImplemented:
-        return NotImplemented
-
-    if isinstance(result, tuple):
-        # divmod, rdivmod
-        assert len(result) == 2
-        return (
-            wrap_arithmetic_op(self, other, result[0]),
-            wrap_arithmetic_op(self, other, result[1]),
-        )
-
-    if not isinstance(result, Index):
-        # Index.__new__ will choose appropriate subclass for dtype
-        result = Index(result)
-
-    res_name = ops.get_op_result_name(self, other)
-    result.name = res_name
-    return result
-
-
-def maybe_unwrap_index(obj):
-    """
-    If operating against another Index object, we need to unwrap the underlying
-    data before deferring to the DatetimeArray/TimedeltaArray/PeriodArray
-    implementation, otherwise we will incorrectly return NotImplemented.
-
-    Parameters
-    ----------
-    obj : object
-
-    Returns
-    -------
-    unwrapped object
-    """
-    if isinstance(obj, ABCIndexClass):
-        return obj._data
-    return obj
-
-
 class DatetimelikeDelegateMixin(PandasDelegate):
     """
     Delegation mechanism, specific for Datetime, Timedelta, and Period types.
@@ -911,8 +849,6 @@ class DatetimelikeDelegateMixin(PandasDelegate):
     Functionality is delegated from the Index class to an Array class. A
     few things can be customized
 
-    * _delegate_class : type
-        The class being delegated to.
     * _delegated_methods, delegated_properties : List
         The list of property / method names being delagated.
     * raw_methods : Set
@@ -928,10 +864,6 @@ class DatetimelikeDelegateMixin(PandasDelegate):
     # raw_properties : dispatch properties that shouldn't be boxed in an Index
     _raw_properties: Set[str] = set()
     _data: ExtensionArray
-
-    @property
-    def _delegate_class(self):
-        raise AbstractMethodError
 
     def _delegate_property_get(self, name, *args, **kwargs):
         result = getattr(self._data, name)
