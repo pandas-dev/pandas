@@ -1076,6 +1076,7 @@ class TestDataFrameQueryBacktickQuoting:
                 "that's": [9, 1, 8],
                 "☺": [8, 7, 6],
                 "foo#bar": [2, 4, 5],
+                1: [5, 7, 9],
             }
         )
 
