@@ -2313,10 +2313,3 @@ def test_nullable_integer_to_datetime():
     tm.assert_series_equal(res, expected)
     # Check that ser isn't mutated
     tm.assert_series_equal(ser, ser_copy)
-
-
-def test_timestamp_constructor_identity():
-    # Test for #30543
-    expected = pd.Timestamp("2017-01-01T12")
-    result = pd.Timestamp(expected)
-    assert result is expected
