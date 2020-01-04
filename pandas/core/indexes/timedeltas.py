@@ -353,7 +353,6 @@ class TimedeltaIndex(
             key = Timedelta(key)
             return Index.get_loc(self, key, method, tolerance)
 
-        return Index.get_loc(self, key, method, tolerance)
         try:
             return Index.get_loc(self, key, method, tolerance)
         except (KeyError, ValueError, TypeError):
@@ -364,9 +363,7 @@ class TimedeltaIndex(
 
             try:
                 stamp = Timedelta(key)
-                result = Index.get_loc(self, stamp, method, tolerance)
-                assert False, (key, stamp, result)
-                return result
+                return Index.get_loc(self, stamp, method, tolerance)
             except (KeyError, ValueError):
                 raise KeyError(key)
 
@@ -398,8 +395,7 @@ class TimedeltaIndex(
 
         return label
 
-    def _get_string_slice(self, key: str):
-        # FIXME: we should never get integer or float or NaT here
+    def _get_string_slice(self, key):
         if is_integer(key) or is_float(key) or key is NaT:
             self._invalid_indexer("slice", key)
         loc = self._partial_td_slice(key)
