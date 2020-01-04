@@ -164,12 +164,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             # have different timezone
             return False
 
-        elif is_period_dtype(self):
-            if not is_period_dtype(other):
-                return False
-            if self.freq != other.freq:
-                return False
-
         return np.array_equal(self.asi8, other.asi8)
 
     def _ensure_localized(

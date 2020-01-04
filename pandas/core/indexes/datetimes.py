@@ -387,18 +387,12 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
     # --------------------------------------------------------------------
     # Set Operation Methods
 
-    def _union(self, other, sort):
+    def _union(self, other: "DatetimeIndex", sort):
         if not len(other) or self.equals(other) or not len(self):
             return super()._union(other, sort=sort)
 
-        if len(other) == 0 or self.equals(other) or len(self) == 0:
-            return super().union(other, sort=sort)
-
-        if not isinstance(other, DatetimeIndex):
-            try:
-                other = DatetimeIndex(other)
-            except TypeError:
-                pass
+        # We are called by `union`, which is responsible for this validation
+        assert isinstance(other, DatetimeIndex)
 
         this, other = self._maybe_utc_convert(other)
 
@@ -407,9 +401,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
         else:
             result = Index._union(this, other, sort=sort)
             if isinstance(result, DatetimeIndex):
-                # TODO: we shouldn't be setting attributes like this;
-                #  in all the tests this equality already holds
-                result._data._dtype = this.dtype
+                assert result._data.dtype == this.dtype
                 if result.freq is None and (
                     this.freq is not None or other.freq is not None
                 ):
