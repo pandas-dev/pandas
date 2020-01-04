@@ -2408,14 +2408,8 @@ class Index(IndexOpsMixin, PandasObject):
             return this.intersection(other, sort=sort)
 
         # TODO(EA): setops-refactor, clean all this up
-        if is_period_dtype(self):
-            lvals = self._ndarray_values
-        else:
-            lvals = self._values
-        if is_period_dtype(other):
-            rvals = other._ndarray_values
-        else:
-            rvals = other._values
+        lvals = self._values
+        rvals = other._values
 
         if self.is_monotonic and other.is_monotonic:
             try:
@@ -2434,18 +2428,13 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = indexer[indexer != -1]
 
         taken = other.take(indexer)
+        res_name = get_op_result_name(self, other)
 
         if sort is None:
             taken = algos.safe_sort(taken.values)
-            if self.name != other.name:
-                name = None
-            else:
-                name = self.name
-            return self._shallow_copy(taken, name=name)
+            return self._shallow_copy(taken, name=res_name)
 
-        if self.name != other.name:
-            taken.name = None
-
+        taken.name = res_name
         return taken
 
     def difference(self, other, sort=None):

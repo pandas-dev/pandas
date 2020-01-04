@@ -721,12 +721,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             # this point, depending on the values.
 
             result._set_freq(None)
-            if hasattr(self, "tz"):
-                result = self._shallow_copy(
-                    result._values, name=result.name, tz=result.tz, freq=None
-                )
-            else:
-                result = self._shallow_copy(result._values, name=result.name, freq=None)
+            result = self._shallow_copy(
+                result._data, name=result.name, dtype=result.dtype, freq=None
+            )
             if result.freq is None:
                 result._set_freq("infer")
             return result
