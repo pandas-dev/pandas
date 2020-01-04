@@ -1,10 +1,11 @@
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs import IncompatibleFrequency
+
 import pandas as pd
 from pandas import Index, PeriodIndex, date_range, period_range
 import pandas._testing as tm
-import pandas.core.indexes.period as period
 
 
 def _permute(obj):
@@ -177,11 +178,11 @@ class TestPeriodIndex:
         # raise if different frequencies
         index = period_range("1/1/2000", "1/20/2000", freq="D")
         index2 = period_range("1/1/2000", "1/20/2000", freq="W-WED")
-        with pytest.raises(period.IncompatibleFrequency):
+        with pytest.raises(IncompatibleFrequency):
             index.union(index2, sort=sort)
 
         index3 = period_range("1/1/2000", "1/20/2000", freq="2D")
-        with pytest.raises(period.IncompatibleFrequency):
+        with pytest.raises(IncompatibleFrequency):
             index.join(index3)
 
     def test_union_dataframe_index(self):
@@ -213,11 +214,11 @@ class TestPeriodIndex:
         # raise if different frequencies
         index = period_range("1/1/2000", "1/20/2000", freq="D")
         index2 = period_range("1/1/2000", "1/20/2000", freq="W-WED")
-        with pytest.raises(period.IncompatibleFrequency):
+        with pytest.raises(IncompatibleFrequency):
             index.intersection(index2, sort=sort)
 
         index3 = period_range("1/1/2000", "1/20/2000", freq="2D")
-        with pytest.raises(period.IncompatibleFrequency):
+        with pytest.raises(IncompatibleFrequency):
             index.intersection(index3, sort=sort)
 
     @pytest.mark.parametrize("sort", [None, False])
