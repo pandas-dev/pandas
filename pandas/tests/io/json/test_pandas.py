@@ -12,7 +12,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex, Series, Timestamp, read_json
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 _seriesd = tm.getSeriesData()
 _tsd = tm.getTimeSeriesData()

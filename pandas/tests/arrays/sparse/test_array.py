@@ -10,8 +10,8 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import isna
+import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray, SparseDtype
-import pandas.util.testing as tm
 
 
 @pytest.fixture(params=["integer", "block"])

@@ -18,8 +18,8 @@ from pandas import (
     concat,
     date_range,
 )
+import pandas._testing as tm
 from pandas.core.groupby.groupby import DataError
-import pandas.util.testing as tm
 
 
 def assert_fp_equal(a, b):
@@ -319,7 +319,7 @@ def test_dispatch_transform(tsframe):
 
 def test_transform_select_columns(df):
     f = lambda x: x.mean()
-    result = df.groupby("A")["C", "D"].transform(f)
+    result = df.groupby("A")[["C", "D"]].transform(f)
 
     selection = df[["C", "D"]]
     expected = selection.groupby(df["A"]).transform(f)

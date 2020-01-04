@@ -5,8 +5,8 @@ import pytest
 
 import pandas as pd
 from pandas import Series
+import pandas._testing as tm
 from pandas.core.indexes.period import IncompatibleFrequency
-import pandas.util.testing as tm
 
 
 def _permute(obj):

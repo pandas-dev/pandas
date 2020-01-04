@@ -212,7 +212,7 @@ def _use_inf_as_na(key):
     This approach to setting global module values is discussed and
     approved here:
 
-    * http://stackoverflow.com/questions/4859217/
+    * https://stackoverflow.com/questions/4859217/
       programmatically-creating-variables-in-python/4859312#4859312
     """
     flag = get_option(key)

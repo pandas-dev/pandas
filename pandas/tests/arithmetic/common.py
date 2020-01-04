@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame, Index, Series
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def assert_invalid_addsub_type(left, right, msg=None):

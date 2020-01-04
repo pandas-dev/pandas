@@ -31,6 +31,7 @@ from pandas.core.indexes.datetimelike import (
     DatetimelikeDelegateMixin,
     DatetimeTimedeltaMixin,
 )
+from pandas.core.indexes.extension import inherit_names
 
 from pandas.tseries.frequencies import to_offset
 
@@ -40,7 +41,6 @@ class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
     # Some are "raw" methods, the result is not re-boxed in an Index
     # We also have a few "extra" attrs, which may or may not be raw,
     # which we don't want to expose in the .dt accessor.
-    _delegate_class = TimedeltaArray
     _raw_properties = {"components", "_box_func"}
     _raw_methods = {"to_pytimedelta", "sum", "std", "median", "_format_native_types"}
 
@@ -52,6 +52,17 @@ class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
     )
 
 
+@inherit_names(
+    [
+        "_bool_ops",
+        "_object_ops",
+        "_field_ops",
+        "_datetimelike_ops",
+        "_datetimelike_methods",
+        "_other_ops",
+    ],
+    TimedeltaArray,
+)
 @delegate_names(
     TimedeltaArray, TimedeltaDelegateMixin._delegated_properties, typ="property"
 )
@@ -113,7 +124,7 @@ class TimedeltaIndex(
     Notes
     -----
     To learn more about the frequency strings, please see `this link
-    <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
     """
 
     _typ = "timedeltaindex"
@@ -124,15 +135,6 @@ class TimedeltaIndex(
     _attributes = ["name", "freq"]
     _is_numeric_dtype = True
     _infer_as_myclass = True
-
-    _freq = None
-
-    _bool_ops = TimedeltaArray._bool_ops
-    _object_ops = TimedeltaArray._object_ops
-    _field_ops = TimedeltaArray._field_ops
-    _datetimelike_ops = TimedeltaArray._datetimelike_ops
-    _datetimelike_methods = TimedeltaArray._datetimelike_methods
-    _other_ops = TimedeltaArray._other_ops
 
     # -------------------------------------------------------------------
     # Constructors
@@ -544,7 +546,7 @@ def timedelta_range(
     ``start`` and ``end`` (closed on both sides).
 
     To learn more about the frequency strings, please see `this link
-    <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
 
     Examples
     --------
