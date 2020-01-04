@@ -24,7 +24,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
     is_scalar,
-    is_timedelta64_dtype,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.generic import (
@@ -291,17 +290,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         index = obj.index
 
         if isinstance(result, np.ndarray):
-
-            # coerce if necessary
-            if block is not None:
-                if is_timedelta64_dtype(block.values.dtype):
-                    # TODO: do we know what result.dtype is at this point?
-                    #  i.e. can we just do an astype?
-                    from pandas import to_timedelta
-
-                    result = to_timedelta(result.ravel(), unit="ns").values.reshape(
-                        result.shape
-                    )
 
             if result.ndim == 1:
                 from pandas import Series
