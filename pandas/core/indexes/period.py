@@ -565,15 +565,12 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
         target = ensure_index(target)
 
-        if hasattr(target, "freq") and target.freq != self.freq:
-            msg = DIFFERENT_FREQ.format(
-                cls=type(self).__name__,
-                own_freq=self.freqstr,
-                other_freq=target.freqstr,
-            )
-            raise IncompatibleFrequency(msg)
-
         if isinstance(target, PeriodIndex):
+            if target.freq != self.freq:
+                # No matches
+                no_matches = -1 * np.ones(self.shape, dtype=np.intp)
+                return no_matches
+
             target = target.asi8
             self_index = self._int64index
         else:
@@ -588,14 +585,11 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         target = ensure_index(target)
 
         if isinstance(target, PeriodIndex):
+            if target.freq != self.freq:
+                no_matches = -1 * np.ones(self.shape, dtype=np.intp)
+                return no_matches, no_matches
+
             target = target.asi8
-            if hasattr(target, "freq") and target.freq != self.freq:
-                msg = DIFFERENT_FREQ.format(
-                    cls=type(self).__name__,
-                    own_freq=self.freqstr,
-                    other_freq=target.freqstr,
-                )
-                raise IncompatibleFrequency(msg)
 
         indexer, missing = self._int64index.get_indexer_non_unique(target)
         return ensure_platform_int(indexer), missing
