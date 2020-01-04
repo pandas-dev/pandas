@@ -41,7 +41,6 @@ class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
     # Some are "raw" methods, the result is not re-boxed in an Index
     # We also have a few "extra" attrs, which may or may not be raw,
     # which we don't want to expose in the .dt accessor.
-    _delegate_class = TimedeltaArray
     _raw_properties = {"components", "_box_func"}
     _raw_methods = {"to_pytimedelta", "sum", "std", "median", "_format_native_types"}
 
@@ -125,7 +124,7 @@ class TimedeltaIndex(
     Notes
     -----
     To learn more about the frequency strings, please see `this link
-    <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
     """
 
     _typ = "timedeltaindex"
@@ -549,7 +548,7 @@ def timedelta_range(
     ``start`` and ``end`` (closed on both sides).
 
     To learn more about the frequency strings, please see `this link
-    <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
 
     Examples
     --------
