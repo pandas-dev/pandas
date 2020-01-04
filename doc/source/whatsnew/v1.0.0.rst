@@ -1016,6 +1016,7 @@ Other
 - Bug in :meth:`Series.diff` where a boolean series would incorrectly raise a ``TypeError`` (:issue:`17294`)
 - :meth:`Series.append` will no longer raise a ``TypeError`` when passed a tuple of ``Series`` (:issue:`28410`)
 - Fix corrupted error message when calling ``pandas.libs._json.encode()`` on a 0d array (:issue:`18878`)
+- Backtick quoting in :meth:`DataFrame.query` and :meth:`DataFrame.eval` can now also be used to use invalid identifiers like names that start with a digit, are python keywords, or are using single character operators. (:issue:`27017`)
 - Bug in ``pd.core.util.hashing.hash_pandas_object`` where arrays containing tuples were incorrectly treated as non-hashable (:issue:`28969`)
 - Bug in :meth:`DataFrame.append` that raised ``IndexError`` when appending with empty list (:issue:`28769`)
 - Fix :class:`AbstractHolidayCalendar` to return correct results for

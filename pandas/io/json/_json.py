@@ -479,7 +479,7 @@ def read_json(
     chunksize : int, optional
         Return JsonReader object for iteration.
         See the `line-delimited json docs
-        <http://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#line-delimited-json>`_
+        <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#line-delimited-json>`_
         for more information on ``chunksize``.
         This can only be passed if `lines=True`.
         If this is None, the file will be read into memory all at once.
