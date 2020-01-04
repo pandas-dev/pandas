@@ -619,10 +619,7 @@ def assert_index_equal(
         # accept level number only
         unique = index.levels[level]
         level_codes = index.codes[level]
-        if is_extension_array_dtype(unique):
-            filled = unique.take(level_codes, fill_value=unique._na_value)
-        else:
-            filled = take_1d(unique.values, level_codes, fill_value=unique._na_value)
+        filled = take_1d(unique._values, level_codes, fill_value=unique._na_value)
         values = unique._shallow_copy(filled, name=index.names[level])
         return values
 
