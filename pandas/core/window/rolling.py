@@ -44,7 +44,6 @@ from pandas.core.window.common import (
     _flex_binary_moment,
     _offset,
     _shared_docs,
-    _use_window,
     _zsqrt,
     calculate_min_periods,
 )
@@ -1023,12 +1022,12 @@ class Window(_Window):
             # GH #15662. `False` makes symmetric window, rather than periodic.
             return sig.get_window(win_type, window, False).astype(float)
 
-    def _get_weighted_roll_func(
-        self, cfunc: Callable, check_minp: Callable, **kwargs
-    ) -> Callable:
-        def func(arg, window, min_periods=None, closed=None):
-            minp = check_minp(min_periods, len(window))
-            return cfunc(arg, window, minp, **kwargs)
+    @staticmethod
+    def _get_weighted_roll_func(cfunc: Callable) -> Callable:
+        def func(arg, window, min_periods=None):
+            if min_periods is None:
+                min_periods = len(window)
+            return cfunc(arg, window, min_periods)
 
         return func
 
@@ -1099,7 +1098,7 @@ class Window(_Window):
     def sum(self, *args, **kwargs):
         nv.validate_window_func("sum", args, kwargs)
         window_func = self._get_roll_func("roll_weighted_sum")
-        window_func = self._get_weighted_roll_func(window_func, _use_window)
+        window_func = self._get_weighted_roll_func(window_func)
         return self._apply(
             window_func, center=self.center, is_weighted=True, name="sum", **kwargs
         )
@@ -1109,7 +1108,7 @@ class Window(_Window):
     def mean(self, *args, **kwargs):
         nv.validate_window_func("mean", args, kwargs)
         window_func = self._get_roll_func("roll_weighted_mean")
-        window_func = self._get_weighted_roll_func(window_func, _use_window)
+        window_func = self._get_weighted_roll_func(window_func)
         return self._apply(
             window_func, center=self.center, is_weighted=True, name="mean", **kwargs
         )
@@ -1119,7 +1118,7 @@ class Window(_Window):
     def var(self, ddof=1, *args, **kwargs):
         nv.validate_window_func("var", args, kwargs)
         window_func = partial(self._get_roll_func("roll_weighted_var"), ddof=ddof)
-        window_func = self._get_weighted_roll_func(window_func, _use_window)
+        window_func = self._get_weighted_roll_func(window_func)
         kwargs.pop("name", None)
         return self._apply(
             window_func, center=self.center, is_weighted=True, name="var", **kwargs

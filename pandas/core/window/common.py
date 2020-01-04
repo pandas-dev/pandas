@@ -270,13 +270,6 @@ def _require_min_periods(p):
     return _check_func
 
 
-def _use_window(minp, window):
-    if minp is None:
-        return window
-    else:
-        return minp
-
-
 def calculate_min_periods(
     window: int,
     min_periods: Optional[int],
