@@ -18,9 +18,9 @@ from pandas import (
     qcut,
     timedelta_range,
 )
-import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 from pandas.core.algorithms import quantile
+import pandas.util.testing as tm
 
 from pandas.tseries.offsets import Day, Nano
 
@@ -128,36 +128,6 @@ def test_qcut_return_intervals():
     )
     exp = Series(exp_levels.take([0, 0, 0, 1, 1, 1, 2, 2, 2])).astype(CDT(ordered=True))
     tm.assert_series_equal(res, exp)
-
-
-def test_qcut_labels_true():
-    # GH 13318
-    values = range(5)
-    msg = "User desired bin labels must be passed in as an argument, not just `True`"
-    with pytest.raises(ValueError, match=msg):
-        qcut(values, 4, labels=True)
-
-
-@pytest.mark.parametrize("kwargs", [["a", "b", "c"], list(range(3))])
-def test_qcut_wrong_length_labels(kwargs):
-    # GH 13318
-    values = range(10)
-    msg = "Bin labels must be one fewer than the number of bin edges"
-    with pytest.raises(ValueError, match=msg):
-        qcut(values, 4, labels=kwargs)
-
-
-@pytest.mark.parametrize(
-    "kwargs, expected",
-    [
-        (["a", "b", "c"], Categorical(["a", "b", "c"], ordered=True)),
-        (list(range(3)), Categorical([0, 1, 2], ordered=True)),
-    ],
-)
-def test_qcut_list_like_labels(kwargs, expected):
-    # GH 13318
-    values = range(10)
-    qcut(values, 3, labels=kwargs)
 
 
 @pytest.mark.parametrize(

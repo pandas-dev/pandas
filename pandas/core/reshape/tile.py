@@ -397,7 +397,7 @@ def _bins_to_cuts(
             labels = _format_labels(
                 bins, precision, right=right, include_lowest=include_lowest, dtype=dtype
             )
-        elif labels:
+        elif labels is True:
             raise ValueError(
                 "User desired bin labels must be passed in as an argument, "
                 "not just `True`"
@@ -407,8 +407,6 @@ def _bins_to_cuts(
                 raise ValueError(
                     "Bin labels must be one fewer than the number of bin edges"
                 )
-            else:
-                labels = Categorical(labels, categories=labels, ordered=True)
         if not is_categorical_dtype(labels):
             labels = Categorical(labels, categories=labels, ordered=True)
 
