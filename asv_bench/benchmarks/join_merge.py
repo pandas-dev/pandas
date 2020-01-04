@@ -3,7 +3,7 @@ import string
 import numpy as np
 
 from pandas import DataFrame, MultiIndex, Series, concat, date_range, merge, merge_asof
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 try:
     from pandas import merge_ordered

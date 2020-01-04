@@ -2,13 +2,13 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame, MultiIndex, Series
+import pandas._testing as tm
 import pandas.core.common as com
-import pandas.util.testing as tm
 
 
 def test_detect_chained_assignment():
     # Inplace ops, originally from:
-    # http://stackoverflow.com/questions/20508968/series-fillna-in-a-multiindex-dataframe-does-not-fill-is-this-a-bug
+    # https://stackoverflow.com/questions/20508968/series-fillna-in-a-multiindex-dataframe-does-not-fill-is-this-a-bug
     a = [12, 23]
     b = [123, None]
     c = [1234, 2345]

@@ -19,7 +19,7 @@ from pandas import (
     option_context,
     period_range,
 )
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 import pandas.io.formats.format as fmt
 

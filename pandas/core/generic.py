@@ -424,7 +424,7 @@ class NDFrame(PandasObject, SelectionMixin):
             return m - axis
         return axis
 
-    def _get_axis_resolvers(self, axis):
+    def _get_axis_resolvers(self, axis: str) -> Dict[str, ABCSeries]:
         # index or columns
         axis_index = getattr(self, axis)
         d = dict()
@@ -454,22 +454,31 @@ class NDFrame(PandasObject, SelectionMixin):
         d[axis] = dindex
         return d
 
-    def _get_index_resolvers(self):
-        d = {}
+    def _get_index_resolvers(self) -> Dict[str, ABCSeries]:
+        from pandas.core.computation.parsing import clean_column_name
+
+        d: Dict[str, ABCSeries] = {}
         for axis_name in self._AXIS_ORDERS:
             d.update(self._get_axis_resolvers(axis_name))
-        return d
 
-    def _get_space_character_free_column_resolvers(self):
-        """Return the space character free column resolvers of a dataframe.
+        return {clean_column_name(k): v for k, v in d.items() if not isinstance(k, int)}
 
-        Column names with spaces are 'cleaned up' so that they can be referred
-        to by backtick quoting.
+    def _get_cleaned_column_resolvers(self) -> Dict[str, ABCSeries]:
+        """
+        Return the special character free column resolvers of a dataframe.
+
+        Column names with special characters are 'cleaned up' so that they can
+        be referred to by backtick quoting.
         Used in :meth:`DataFrame.eval`.
         """
-        from pandas.core.computation.common import _remove_spaces_column_name
+        from pandas.core.computation.parsing import clean_column_name
 
-        return {_remove_spaces_column_name(k): v for k, v in self.items()}
+        if isinstance(self, ABCSeries):
+            return {clean_column_name(self.name): self}
+
+        return {
+            clean_column_name(k): v for k, v in self.items() if not isinstance(k, int)
+        }
 
     @property
     def _info_axis(self):
@@ -3653,7 +3662,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 "A value is trying to be set on a copy of a slice from a "
                 "DataFrame\n\n"
                 "See the caveats in the documentation: "
-                "http://pandas.pydata.org/pandas-docs/stable/user_guide/"
+                "https://pandas.pydata.org/pandas-docs/stable/user_guide/"
                 "indexing.html#returning-a-view-versus-a-copy"
             )
 
@@ -3664,7 +3673,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 "DataFrame.\n"
                 "Try using .loc[row_indexer,col_indexer] = value "
                 "instead\n\nSee the caveats in the documentation: "
-                "http://pandas.pydata.org/pandas-docs/stable/user_guide/"
+                "https://pandas.pydata.org/pandas-docs/stable/user_guide/"
                 "indexing.html#returning-a-view-versus-a-copy"
             )
 
@@ -7376,7 +7385,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Notes
         -----
         See the `user guide
-        <http://pandas.pydata.org/pandas-docs/stable/groupby.html>`_ for more.
+        <https://pandas.pydata.org/pandas-docs/stable/groupby.html>`_ for more.
         """
 
     def asfreq(
@@ -7425,7 +7434,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Notes
         -----
         To learn more about the frequency strings, please see `this link
-        <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
+        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
 
         Examples
         --------
@@ -7704,7 +7713,7 @@ class NDFrame(PandasObject, SelectionMixin):
         for more.
 
         To learn more about the offset strings, please see `this link
-        <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects>`__.
+        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects>`__.
 
         Examples
         --------
