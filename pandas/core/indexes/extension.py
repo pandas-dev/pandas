@@ -5,6 +5,12 @@ from typing import List
 
 from pandas.util._decorators import cache_readonly
 
+from pandas.core.dtypes.generic import ABCSeries
+
+from pandas.core.ops import get_op_result_name
+
+from .base import Index
+
 
 def inherit_from_data(name: str, delegate, cache: bool = False):
     """
@@ -76,3 +82,73 @@ def inherit_names(names: List[str], delegate, cache: bool = False):
         return cls
 
     return wrapper
+
+
+def make_wrapped_comparison_op(opname):
+    """
+    Create a comparison method that dispatches to ``._data``.
+    """
+
+    def wrapper(self, other):
+        if isinstance(other, ABCSeries):
+            # the arrays defer to Series for comparison ops but the indexes
+            #  don't, so we have to unwrap here.
+            other = other._values
+
+        other = _maybe_unwrap_index(other)
+
+        op = getattr(self._data, opname)
+        return op(other)
+
+    wrapper.__name__ = opname
+    return wrapper
+
+
+def make_wrapped_arith_op(opname):
+    def method(self, other):
+        meth = getattr(self._data, opname)
+        result = meth(_maybe_unwrap_index(other))
+        return _wrap_arithmetic_op(self, other, result)
+
+    method.__name__ = opname
+    return method
+
+
+def _wrap_arithmetic_op(self, other, result):
+    if result is NotImplemented:
+        return NotImplemented
+
+    if isinstance(result, tuple):
+        # divmod, rdivmod
+        assert len(result) == 2
+        return (
+            _wrap_arithmetic_op(self, other, result[0]),
+            _wrap_arithmetic_op(self, other, result[1]),
+        )
+
+    if not isinstance(result, Index):
+        # Index.__new__ will choose appropriate subclass for dtype
+        result = Index(result)
+
+    res_name = get_op_result_name(self, other)
+    result.name = res_name
+    return result
+
+
+def _maybe_unwrap_index(obj):
+    """
+    If operating against another Index object, we need to unwrap the underlying
+    data before deferring to the DatetimeArray/TimedeltaArray/PeriodArray
+    implementation, otherwise we will incorrectly return NotImplemented.
+
+    Parameters
+    ----------
+    obj : object
+
+    Returns
+    -------
+    unwrapped object
+    """
+    if isinstance(obj, Index):
+        return obj._data
+    return obj

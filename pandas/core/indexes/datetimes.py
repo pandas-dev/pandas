@@ -86,7 +86,6 @@ class DatetimeDelegateMixin(DatetimelikeDelegateMixin):
         | set(_extra_raw_properties)
     )
     _raw_methods = set(_extra_raw_methods)
-    _delegate_class = DatetimeArray
 
 
 @inherit_names(["_timezone", "is_normalized", "_resolution"], DatetimeArray, cache=True)

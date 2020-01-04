@@ -66,7 +66,6 @@ class PeriodDelegateMixin(DatetimelikeDelegateMixin):
     Delegate from PeriodIndex to PeriodArray.
     """
 
-    _delegate_class = PeriodArray
     _raw_methods = {"_format_native_types"}
     _raw_properties = {"is_leap_year", "freq"}
 
