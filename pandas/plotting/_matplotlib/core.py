@@ -268,14 +268,10 @@ class MPLPlot:
     def nseries(self):
         if self.data.ndim == 1:
             return 1
+        elif self.by is None:
+            return self.data.shape[1]
         else:
-
-            # If MultiIndex column, only return the first level which
-            # corresponds to by argument
-            if not isinstance(self.data.columns, ABCMultiIndex):
-                return self.data.shape[1]
-            else:
-                return len(set(self.data.columns.get_level_values(0)))
+            return len(set(self.data.columns.get_level_values(0)))
 
     def draw(self):
         self.plt.draw_if_interactive()
