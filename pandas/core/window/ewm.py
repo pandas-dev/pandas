@@ -2,7 +2,7 @@ from textwrap import dedent
 
 import numpy as np
 
-import pandas._libs.window as libwindow
+import pandas._libs.window.aggregations as window_aggregations
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
 
@@ -89,7 +89,7 @@ class EWM(_Rolling):
     (if adjust is True), and 1-alpha and alpha (if adjust is False).
 
     More details can be found at
-    http://pandas.pydata.org/pandas-docs/stable/user_guide/computation.html#exponentially-weighted-windows
+    https://pandas.pydata.org/pandas-docs/stable/user_guide/computation.html#exponentially-weighted-windows
 
     Examples
     --------
@@ -228,11 +228,10 @@ class EWM(_Rolling):
 
             # if we have a string function name, wrap it
             if isinstance(func, str):
-                cfunc = getattr(libwindow, func, None)
+                cfunc = getattr(window_aggregations, func, None)
                 if cfunc is None:
                     raise ValueError(
-                        "we do not support this function "
-                        "in libwindow.{func}".format(func=func)
+                        f"we do not support this function in window_aggregations.{func}"
                     )
 
                 def func(arg):
@@ -284,7 +283,7 @@ class EWM(_Rolling):
         nv.validate_window_func("var", args, kwargs)
 
         def f(arg):
-            return libwindow.ewmcov(
+            return window_aggregations.ewmcov(
                 arg,
                 arg,
                 self.com,
@@ -315,7 +314,7 @@ class EWM(_Rolling):
             inputs. In the case of missing elements, only complete pairwise
             observations will be used.
         bias : bool, default False
-            Use a standard estimation bias correction
+            Use a standard estimation bias correction.
         **kwargs
            Keyword arguments to be passed into func.
         """
@@ -328,7 +327,7 @@ class EWM(_Rolling):
         def _get_cov(X, Y):
             X = self._shallow_copy(X)
             Y = self._shallow_copy(Y)
-            cov = libwindow.ewmcov(
+            cov = window_aggregations.ewmcov(
                 X._prep_values(),
                 Y._prep_values(),
                 self.com,
@@ -375,7 +374,7 @@ class EWM(_Rolling):
             Y = self._shallow_copy(Y)
 
             def _cov(x, y):
-                return libwindow.ewmcov(
+                return window_aggregations.ewmcov(
                     x,
                     y,
                     self.com,

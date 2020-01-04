@@ -14,7 +14,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DatetimeIndex, Timestamp, bdate_range, date_range, offsets
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.tseries.offsets import (
     BDay,
@@ -798,7 +798,7 @@ class TestBusinessDateRange:
         # GH #456
         rng1 = bdate_range("12/5/2011", "12/5/2011")
         rng2 = bdate_range("12/2/2011", "12/5/2011")
-        rng2.freq = BDay()
+        rng2._data.freq = BDay()  # TODO: shouldn't this already be set?
 
         result = rng1.union(rng2)
         assert isinstance(result, DatetimeIndex)
@@ -855,7 +855,7 @@ class TestCustomDateRange:
         # GH #456
         rng1 = bdate_range("12/5/2011", "12/5/2011", freq="C")
         rng2 = bdate_range("12/2/2011", "12/5/2011", freq="C")
-        rng2.freq = CDay()
+        rng2._data.freq = CDay()  # TODO: shouldn't this already be set?
 
         result = rng1.union(rng2)
         assert isinstance(result, DatetimeIndex)

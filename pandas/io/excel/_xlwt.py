@@ -77,7 +77,9 @@ class _XlwtWriter(ExcelWriter):
                 wks.write(startrow + cell.row, startcol + cell.col, val, style)
 
     @classmethod
-    def _style_to_xlwt(cls, item, firstlevel=True, field_sep=",", line_sep=";"):
+    def _style_to_xlwt(
+        cls, item, firstlevel: bool = True, field_sep=",", line_sep=";"
+    ) -> str:
         """helper which recursively generate an xlwt easy style string
         for example:
 
@@ -95,20 +97,20 @@ class _XlwtWriter(ExcelWriter):
         if hasattr(item, "items"):
             if firstlevel:
                 it = [
-                    "{key}: {val}".format(key=key, val=cls._style_to_xlwt(value, False))
+                    f"{key}: {cls._style_to_xlwt(value, False)}"
                     for key, value in item.items()
                 ]
-                out = "{sep} ".format(sep=(line_sep).join(it))
+                out = f"{(line_sep).join(it)} "
                 return out
             else:
                 it = [
-                    "{key} {val}".format(key=key, val=cls._style_to_xlwt(value, False))
+                    f"{key} {cls._style_to_xlwt(value, False)}"
                     for key, value in item.items()
                 ]
-                out = "{sep} ".format(sep=(field_sep).join(it))
+                out = f"{(field_sep).join(it)} "
                 return out
         else:
-            item = "{item}".format(item=item)
+            item = f"{item}"
             item = item.replace("True", "on")
             item = item.replace("False", "off")
             return item
@@ -117,6 +119,7 @@ class _XlwtWriter(ExcelWriter):
     def _convert_to_style(cls, style_dict, num_format_str=None):
         """
         converts a style_dict to an xlwt style object
+
         Parameters
         ----------
         style_dict : style dictionary to convert

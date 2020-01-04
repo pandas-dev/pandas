@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame, MultiIndex, Period, Series, Timedelta, Timestamp
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestCounting:
@@ -20,7 +20,7 @@ class TestCounting:
 
     def test_cumcount_empty(self):
         ge = DataFrame().groupby(level=0)
-        se = Series().groupby(level=0)
+        se = Series(dtype=object).groupby(level=0)
 
         # edge case, as this is usually considered float
         e = Series(dtype="int64")
@@ -95,7 +95,7 @@ class TestCounting:
 
     def test_ngroup_empty(self):
         ge = DataFrame().groupby(level=0)
-        se = Series().groupby(level=0)
+        se = Series(dtype=object).groupby(level=0)
 
         # edge case, as this is usually considered float
         e = Series(dtype="int64")

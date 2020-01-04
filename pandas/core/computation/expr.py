@@ -7,11 +7,10 @@ from io import StringIO
 import itertools as it
 import operator
 import tokenize
-from typing import Type
+from typing import Optional, Type
 
 import numpy as np
 
-import pandas as pd
 import pandas.core.common as com
 from pandas.core.computation.common import (
     _BACKTICK_QUOTED_STRING,
@@ -40,7 +39,7 @@ from pandas.core.computation.scope import Scope
 import pandas.io.formats.printing as printing
 
 
-def tokenize_string(source):
+def tokenize_string(source: str):
     """
     Tokenize a Python source code string.
 
@@ -171,7 +170,7 @@ def _compose(*funcs):
 
 
 def _preparse(
-    source,
+    source: str,
     f=_compose(
         _replace_locals,
         _replace_booleans,
@@ -283,10 +282,9 @@ _unsupported_nodes = (
 # and we don't want `stmt` and friends in their so get only the class whose
 # names are capitalized
 _base_supported_nodes = (_all_node_names - _unsupported_nodes) | _hacked_nodes
-_msg = "cannot both support and not support {intersection}".format(
-    intersection=_unsupported_nodes & _base_supported_nodes
-)
-assert not _unsupported_nodes & _base_supported_nodes, _msg
+intersection = _unsupported_nodes & _base_supported_nodes
+_msg = f"cannot both support and not support {intersection}"
+assert not intersection, _msg
 
 
 def _node_not_implemented(node_name, cls):
@@ -295,9 +293,7 @@ def _node_not_implemented(node_name, cls):
     """
 
     def f(self, *args, **kwargs):
-        raise NotImplementedError(
-            "{name!r} nodes are not implemented".format(name=node_name)
-        )
+        raise NotImplementedError(f"{repr(node_name)} nodes are not implemented")
 
     return f
 
@@ -315,7 +311,7 @@ def disallow(nodes):
         cls.unsupported_nodes = ()
         for node in nodes:
             new_method = _node_not_implemented(node, cls)
-            name = "visit_{node}".format(node=node)
+            name = f"visit_{node}"
             cls.unsupported_nodes += (name,)
             setattr(cls, name, new_method)
         return cls
@@ -352,13 +348,13 @@ def add_ops(op_classes):
 
     def f(cls):
         for op_attr_name, op_class in op_classes.items():
-            ops = getattr(cls, "{name}_ops".format(name=op_attr_name))
-            ops_map = getattr(cls, "{name}_op_nodes_map".format(name=op_attr_name))
+            ops = getattr(cls, f"{op_attr_name}_ops")
+            ops_map = getattr(cls, f"{op_attr_name}_op_nodes_map")
             for op in ops:
                 op_node = ops_map[op]
                 if op_node is not None:
                     made_op = _op_maker(op_class, op)
-                    setattr(cls, "visit_{node}".format(node=op_node), made_op)
+                    setattr(cls, f"visit_{op_node}", made_op)
         return cls
 
     return f
@@ -379,7 +375,7 @@ class BaseExprVisitor(ast.NodeVisitor):
     preparser : callable
     """
 
-    const_type = Constant  # type: Type[Term]
+    const_type: Type[Term] = Constant
     term_type = Term
 
     binary_ops = _cmp_ops_syms + _bool_ops_syms + _arith_ops_syms
@@ -436,7 +432,7 @@ class BaseExprVisitor(ast.NodeVisitor):
                     e.msg = "Python keyword not valid identifier in numexpr query"
                 raise e
 
-        method = "visit_" + node.__class__.__name__
+        method = "visit_" + type(node).__name__
         visitor = getattr(self, method)
         return visitor(node, **kwargs)
 
@@ -532,8 +528,8 @@ class BaseExprVisitor(ast.NodeVisitor):
 
         if res.has_invalid_return_type:
             raise TypeError(
-                "unsupported operand type(s) for {op}:"
-                " '{lhs}' and '{rhs}'".format(op=res.op, lhs=lhs.type, rhs=rhs.type)
+                f"unsupported operand type(s) for {res.op}:"
+                f" '{lhs.type}' and '{rhs.type}'"
             )
 
         if self.engine != "pytables":
@@ -565,8 +561,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         return self._maybe_evaluate_binop(op, op_class, left, right)
 
     def visit_Div(self, node, **kwargs):
-        truediv = self.env.scope["truediv"]
-        return lambda lhs, rhs: Div(lhs, rhs, truediv)
+        return lambda lhs, rhs: Div(lhs, rhs)
 
     def visit_UnaryOp(self, node, **kwargs):
         op = self.visit(node.op)
@@ -600,6 +595,8 @@ class BaseExprVisitor(ast.NodeVisitor):
         return self.visit(node.value)
 
     def visit_Subscript(self, node, **kwargs):
+        import pandas as pd
+
         value = self.visit(node.value)
         slobj = self.visit(node.slice)
         result = pd.eval(
@@ -679,7 +676,7 @@ class BaseExprVisitor(ast.NodeVisitor):
                 if isinstance(value, ast.Name) and value.id == attr:
                     return resolved
 
-        raise ValueError("Invalid Attribute context {name}".format(name=ctx.__name__))
+        raise ValueError(f"Invalid Attribute context {ctx.__name__}")
 
     def visit_Call(self, node, side=None, **kwargs):
 
@@ -699,7 +696,7 @@ class BaseExprVisitor(ast.NodeVisitor):
                     raise
 
         if res is None:
-            raise ValueError("Invalid function call {func}".format(func=node.func.id))
+            raise ValueError(f"Invalid function call {node.func.id}")
         if hasattr(res, "value"):
             res = res.value
 
@@ -709,8 +706,7 @@ class BaseExprVisitor(ast.NodeVisitor):
 
             if node.keywords:
                 raise TypeError(
-                    'Function "{name}" does not support keyword '
-                    "arguments".format(name=res.name)
+                    f'Function "{res.name}" does not support keyword arguments'
                 )
 
             return res(*new_args, **kwargs)
@@ -721,10 +717,7 @@ class BaseExprVisitor(ast.NodeVisitor):
 
             for key in node.keywords:
                 if not isinstance(key, ast.keyword):
-                    raise ValueError(
-                        "keyword error in function call "
-                        "'{func}'".format(func=node.func.id)
-                    )
+                    raise ValueError(f"keyword error in function call '{node.func.id}'")
 
                 if key.arg:
                     kwargs[key.arg] = self.visit(key.value).value
@@ -812,18 +805,25 @@ class Expr:
     engine : str, optional, default 'numexpr'
     parser : str, optional, default 'pandas'
     env : Scope, optional, default None
-    truediv : bool, optional, default True
     level : int, optional, default 2
     """
 
+    env: Scope
+    engine: str
+    parser: str
+
     def __init__(
-        self, expr, engine="numexpr", parser="pandas", env=None, truediv=True, level=0
+        self,
+        expr,
+        engine: str = "numexpr",
+        parser: str = "pandas",
+        env: Optional[Scope] = None,
+        level: int = 0,
     ):
         self.expr = expr
         self.env = env or Scope(level=level + 1)
         self.engine = engine
         self.parser = parser
-        self.env.scope["truediv"] = truediv
         self._visitor = _parsers[parser](self.env, self.engine, self.parser)
         self.terms = self.parse()
 

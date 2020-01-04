@@ -4,7 +4,6 @@ from typing import Any, Callable, List, Optional, Sequence, Union
 
 import numpy as np
 
-from pandas._libs import lib
 from pandas._libs.tslibs import (
     NaT,
     NaTType,
@@ -35,7 +34,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import (
-    ABCDataFrame,
     ABCIndexClass,
     ABCPeriodArray,
     ABCPeriodIndex,
@@ -46,6 +44,8 @@ from pandas.core.dtypes.missing import isna, notna
 import pandas.core.algorithms as algos
 from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
+from pandas.core.ops.common import unpack_zerodim_and_defer
+from pandas.core.ops.invalid import invalid_comparison
 
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import DateOffset, Tick, _delta_to_tick
@@ -66,18 +66,27 @@ def _period_array_cmp(cls, op):
     """
     Wrap comparison operations to convert Period-like to PeriodDtype
     """
-    opname = "__{name}__".format(name=op.__name__)
+    opname = f"__{op.__name__}__"
     nat_result = opname == "__ne__"
 
+    @unpack_zerodim_and_defer(opname)
     def wrapper(self, other):
         ordinal_op = getattr(self.asi8, opname)
 
-        other = lib.item_from_zerodim(other)
-        if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
-            return NotImplemented
-
         if is_list_like(other) and len(other) != len(self):
             raise ValueError("Lengths must match")
+
+        if isinstance(other, str):
+            try:
+                other = self._scalar_from_string(other)
+            except ValueError:
+                # string that can't be parsed as Period
+                return invalid_comparison(self, other, op)
+        elif isinstance(other, int):
+            # TODO: sure we want to allow this?  we dont for DTA/TDA
+            #  2 tests rely on this
+            other = Period(other, freq=self.freq)
+            result = ordinal_op(other.ordinal)
 
         if isinstance(other, Period):
             self._check_compatible_with(other)
@@ -97,8 +106,7 @@ def _period_array_cmp(cls, op):
             result = np.empty(len(self.asi8), dtype=bool)
             result.fill(nat_result)
         else:
-            other = Period(other, freq=self.freq)
-            result = ordinal_op(other.ordinal)
+            return invalid_comparison(self, other, op)
 
         if self._hasnans:
             result[self._isnan] = nat_result
@@ -165,7 +173,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     _scalar_type = Period
 
     # Names others delegate to us
-    _other_ops = []  # type: List[str]
+    _other_ops: List[str] = []
     _bool_ops = ["is_leap_year"]
     _object_ops = ["start_time", "end_time", "freq"]
     _field_ops = [
@@ -306,9 +314,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
                 self._check_compatible_with(value)
             return value.ordinal
         else:
-            raise ValueError(
-                "'value' should be a Period. Got '{val}' instead.".format(val=value)
-            )
+            raise ValueError(f"'value' should be a Period. Got '{value}' instead.")
 
     def _scalar_from_string(self, value: str) -> Period:
         return Period(value, freq=self.freq)
@@ -446,8 +452,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         ----------
         freq : str or DateOffset, optional
             Target frequency. The default is 'D' for week or longer,
-            'S' otherwise
+            'S' otherwise.
         how : {'s', 'e', 'start', 'end'}
+            Whether to use the start or end of the time period being converted.
 
         Returns
         -------
@@ -482,11 +489,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     # --------------------------------------------------------------------
     # Array-like / EA-Interface Methods
 
-    def _formatter(self, boxed=False):
-        if boxed:
-            return str
-        return "'{}'".format
-
     @Appender(dtl.DatetimeLikeArrayMixin._validate_fill_value.__doc__)
     def _validate_fill_value(self, fill_value):
         if isna(fill_value):
@@ -495,11 +497,11 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
             self._check_compatible_with(fill_value)
             fill_value = fill_value.ordinal
         else:
-            raise ValueError(
-                "'fill_value' should be a Period. "
-                "Got '{got}'.".format(got=fill_value)
-            )
+            raise ValueError(f"'fill_value' should be a Period. Got '{fill_value}'.")
         return fill_value
+
+    def _values_for_argsort(self):
+        return self._data
 
     # --------------------------------------------------------------------
 
@@ -521,7 +523,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         if freq is not None:
             raise TypeError(
                 "`freq` argument is not supported for "
-                "{cls}._time_shift".format(cls=type(self).__name__)
+                f"{type(self).__name__}._time_shift"
             )
         values = self.asi8 + periods * self.freq.n
         if self._hasnans:
@@ -539,17 +541,20 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         Parameters
         ----------
         freq : str
-            a frequency
+            A frequency.
         how : str {'E', 'S'}
-            'E', 'END', or 'FINISH' for end,
-            'S', 'START', or 'BEGIN' for start.
             Whether the elements should be aligned to the end
-            or start within pa period. January 31st ('END') vs.
-            January 1st ('START') for example.
+            or start within pa period.
+
+            * 'E', 'END', or 'FINISH' for end,
+            * 'S', 'START', or 'BEGIN' for start.
+
+            January 31st ('END') vs. January 1st ('START') for example.
 
         Returns
         -------
-        new : Period Array/Index with the new frequency
+        Period Array/Index
+            Constructed with the new frequency.
 
         Examples
         --------
@@ -591,6 +596,11 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     # ------------------------------------------------------------------
     # Rendering Methods
 
+    def _formatter(self, boxed=False):
+        if boxed:
+            return str
+        return "'{}'".format
+
     def _format_native_types(self, na_rep="NaT", date_format=None, **kwargs):
         """
         actually format my specific types
@@ -600,7 +610,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         if date_format:
             formatter = lambda dt: dt.strftime(date_format)
         else:
-            formatter = lambda dt: "%s" % dt
+            formatter = lambda dt: str(dt)
 
         if self._hasnans:
             mask = self._isnan
@@ -621,14 +631,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         if is_period_dtype(dtype):
             return self.asfreq(dtype.freq)
         return super().astype(dtype, copy=copy)
-
-    @property
-    def flags(self):
-        # TODO: remove
-        # We need this since reduction.SeriesBinGrouper uses values.flags
-        # Ideally, we wouldn't be passing objects down there in the first
-        # place.
-        return self._data.flags
 
     # ------------------------------------------------------------------
     # Arithmetic Methods
@@ -651,12 +653,23 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
         return new_data
 
-    @Appender(dtl.DatetimeLikeArrayMixin._addsub_int_array.__doc__)
     def _addsub_int_array(
-        self,
-        other: Union[ABCPeriodArray, ABCSeries, ABCPeriodIndex, np.ndarray],
-        op: Callable[[Any], Any],
-    ) -> ABCPeriodArray:
+        self, other: np.ndarray, op: Callable[[Any], Any],
+    ) -> "PeriodArray":
+        """
+        Add or subtract array of integers; equivalent to applying
+        `_time_shift` pointwise.
+
+        Parameters
+        ----------
+        other : np.ndarray[integer-dtype]
+        op : {operator.add, operator.sub}
+
+        Returns
+        -------
+        result : PeriodArray
+        """
+
         assert op in [operator.add, operator.sub]
         if op is operator.sub:
             other = -other
@@ -791,9 +804,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
         _raise_on_incompatible(self, other)
 
-    def _values_for_argsort(self):
-        return self._data
-
 
 PeriodArray._add_comparison_ops()
 
@@ -898,9 +908,9 @@ def period_array(
 
     data = np.asarray(data)
 
+    dtype: Optional[PeriodDtype]
     if freq:
-        # typed Optional here because the else block below assigns None
-        dtype = PeriodDtype(freq)  # type: Optional[PeriodDtype]
+        dtype = PeriodDtype(freq)
     else:
         dtype = None
 
@@ -966,7 +976,7 @@ def dt64arr_to_periodarr(data, freq, tz=None):
 
     """
     if data.dtype != np.dtype("M8[ns]"):
-        raise ValueError("Wrong dtype: {dtype}".format(dtype=data.dtype))
+        raise ValueError(f"Wrong dtype: {data.dtype}")
 
     if freq is None:
         if isinstance(data, ABCIndexClass):

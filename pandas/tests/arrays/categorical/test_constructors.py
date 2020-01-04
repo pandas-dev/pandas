@@ -16,6 +16,7 @@ from pandas import (
     Index,
     Interval,
     IntervalIndex,
+    MultiIndex,
     NaT,
     Series,
     Timestamp,
@@ -23,7 +24,7 @@ from pandas import (
     period_range,
     timedelta_range,
 )
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestCategoricalConstructors:
@@ -276,23 +277,19 @@ class TestCategoricalConstructors:
     def test_constructor_with_generator(self):
         # This was raising an Error in isna(single_val).any() because isna
         # returned a scalar for a generator
-        xrange = range
 
         exp = Categorical([0, 1, 2])
         cat = Categorical((x for x in [0, 1, 2]))
         tm.assert_categorical_equal(cat, exp)
-        cat = Categorical(xrange(3))
+        cat = Categorical(range(3))
         tm.assert_categorical_equal(cat, exp)
-
-        # This uses xrange internally
-        from pandas.core.index import MultiIndex
 
         MultiIndex.from_product([range(5), ["a", "b", "c"]])
 
         # check that categories accept generators and sequences
         cat = Categorical([0, 1, 2], categories=(x for x in [0, 1, 2]))
         tm.assert_categorical_equal(cat, exp)
-        cat = Categorical([0, 1, 2], categories=xrange(3))
+        cat = Categorical([0, 1, 2], categories=range(3))
         tm.assert_categorical_equal(cat, exp)
 
     @pytest.mark.parametrize(
@@ -311,7 +308,7 @@ class TestCategoricalConstructors:
         c = Categorical(s)
 
         expected = type(dtl)(s)
-        expected.freq = None
+        expected._data.freq = None
 
         tm.assert_index_equal(c.categories, expected)
         tm.assert_numpy_array_equal(c.codes, np.arange(5, dtype="int8"))
@@ -322,7 +319,7 @@ class TestCategoricalConstructors:
         c = Categorical(s2)
 
         expected = type(dtl)(s2.dropna())
-        expected.freq = None
+        expected._data.freq = None
 
         tm.assert_index_equal(c.categories, expected)
 
@@ -529,13 +526,11 @@ class TestCategoricalConstructors:
         # empty codes should not raise for floats
         Categorical.from_codes([], dtype.categories)
 
-        with tm.assert_produces_warning(FutureWarning):
-            cat = Categorical.from_codes(codes, dtype.categories)
-        tm.assert_numpy_array_equal(cat.codes, np.array([1, 2, 0], dtype="i1"))
+        with pytest.raises(ValueError, match="codes need to be array-like integers"):
+            Categorical.from_codes(codes, dtype.categories)
 
-        with tm.assert_produces_warning(FutureWarning):
-            cat = Categorical.from_codes(codes, dtype=dtype)
-        tm.assert_numpy_array_equal(cat.codes, np.array([1, 2, 0], dtype="i1"))
+        with pytest.raises(ValueError, match="codes need to be array-like integers"):
+            Categorical.from_codes(codes, dtype=dtype)
 
         codes = [1.1, 2.0, 0]  # non-integer
         with pytest.raises(ValueError, match="codes need to be array-like integers"):

@@ -10,8 +10,8 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import isna
+import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray, SparseDtype
-import pandas.util.testing as tm
 
 
 @pytest.fixture(params=["integer", "block"])
@@ -307,11 +307,12 @@ class TestSparseArray:
         with pytest.raises(ValueError, match=msg):
             sparse.take(np.array([1, 0, -5]), allow_fill=True)
 
-        with pytest.raises(IndexError):
+        msg = "out of bounds value in 'indices'"
+        with pytest.raises(IndexError, match=msg):
             sparse.take(np.array([1, -6]))
-        with pytest.raises(IndexError):
+        with pytest.raises(IndexError, match=msg):
             sparse.take(np.array([1, 5]))
-        with pytest.raises(IndexError):
+        with pytest.raises(IndexError, match=msg):
             sparse.take(np.array([1, 5]), allow_fill=True)
 
     def test_take_filling_fill_value(self):
@@ -340,11 +341,12 @@ class TestSparseArray:
         with pytest.raises(ValueError, match=msg):
             sparse.take(np.array([1, 0, -5]), allow_fill=True)
 
-        with pytest.raises(IndexError):
+        msg = "out of bounds value in 'indices'"
+        with pytest.raises(IndexError, match=msg):
             sparse.take(np.array([1, -6]))
-        with pytest.raises(IndexError):
+        with pytest.raises(IndexError, match=msg):
             sparse.take(np.array([1, 5]))
-        with pytest.raises(IndexError):
+        with pytest.raises(IndexError, match=msg):
             sparse.take(np.array([1, 5]), fill_value=True)
 
     def test_take_filling_all_nan(self):
@@ -358,11 +360,12 @@ class TestSparseArray:
         expected = SparseArray([np.nan, np.nan, np.nan], kind="block")
         tm.assert_sp_array_equal(result, expected)
 
-        with pytest.raises(IndexError):
+        msg = "out of bounds value in 'indices'"
+        with pytest.raises(IndexError, match=msg):
             sparse.take(np.array([1, -6]))
-        with pytest.raises(IndexError):
+        with pytest.raises(IndexError, match=msg):
             sparse.take(np.array([1, 5]))
-        with pytest.raises(IndexError):
+        with pytest.raises(IndexError, match=msg):
             sparse.take(np.array([1, 5]), fill_value=True)
 
     def test_set_item(self):
@@ -617,8 +620,7 @@ class TestSparseArray:
         res = arr.to_dense()
         tm.assert_numpy_array_equal(res, vals)
 
-        with tm.assert_produces_warning(FutureWarning):
-            res2 = arr.get_values()
+        res2 = arr._internal_get_values()
 
         tm.assert_numpy_array_equal(res2, vals)
 
@@ -658,19 +660,24 @@ class TestSparseArray:
         dense = np.array([np.nan, 0, 3, 4, 0, 5, np.nan, np.nan, 0])
 
         sparse = SparseArray(dense)
-        res = sparse[4:,]  # noqa: E231
+        res = sparse[
+            4:,
+        ]  # noqa: E231
         exp = SparseArray(dense[4:,])  # noqa: E231
         tm.assert_sp_array_equal(res, exp)
 
         sparse = SparseArray(dense, fill_value=0)
-        res = sparse[4:,]  # noqa: E231
+        res = sparse[
+            4:,
+        ]  # noqa: E231
         exp = SparseArray(dense[4:,], fill_value=0)  # noqa: E231
         tm.assert_sp_array_equal(res, exp)
 
-        with pytest.raises(IndexError):
+        msg = "too many indices for array"
+        with pytest.raises(IndexError, match=msg):
             sparse[4:, :]
 
-        with pytest.raises(IndexError):
+        with pytest.raises(IndexError, match=msg):
             # check numpy compat
             dense[4:, :]
 
@@ -823,11 +830,11 @@ class TestSparseArray:
         # Tests regression #21172.
         sa = pd.SparseArray([float("nan"), float("nan"), 1, 0, 0, 2, 0, 0, 0, 3, 0, 0])
         expected = np.array([2, 5, 9], dtype=np.int32)
-        result, = sa.nonzero()
+        (result,) = sa.nonzero()
         tm.assert_numpy_array_equal(expected, result)
 
         sa = pd.SparseArray([0, 0, 1, 0, 0, 2, 0, 0, 0, 3, 0, 0])
-        result, = sa.nonzero()
+        (result,) = sa.nonzero()
         tm.assert_numpy_array_equal(expected, result)
 
 
@@ -1003,7 +1010,7 @@ class TestSparseArrayAnalytics:
                 np.cumsum(SparseArray(data), out=out)
         else:
             axis = 1  # SparseArray currently 1-D, so only axis = 0 is valid.
-            msg = "axis\\(={axis}\\) out of bounds".format(axis=axis)
+            msg = re.escape(f"axis(={axis}) out of bounds")
             with pytest.raises(ValueError, match=msg):
                 SparseArray(data).cumsum(axis=axis)
 
@@ -1240,12 +1247,3 @@ def test_map_missing():
 
     result = arr.map({0: 10, 1: 11})
     tm.assert_sp_array_equal(result, expected)
-
-
-def test_deprecated_values():
-    arr = SparseArray([0, 1, 2])
-
-    with tm.assert_produces_warning(FutureWarning):
-        result = arr.values
-
-    tm.assert_numpy_array_equal(result, arr.to_dense())

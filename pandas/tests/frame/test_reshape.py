@@ -6,7 +6,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Period, Series, Timedelta, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestDataFrameReshape:
@@ -699,7 +699,7 @@ class TestDataFrameReshape:
             for i, j in zip(rows, cols):
                 left = sorted(df.iloc[i, j].split("."))
                 right = mk_list(df.index[i]) + mk_list(df.columns[j])
-                right = sorted(list(map(cast, right)))
+                right = sorted(map(cast, right))
                 assert left == right
 
         df = DataFrame(

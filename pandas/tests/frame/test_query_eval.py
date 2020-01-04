@@ -8,8 +8,8 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, date_range
+import pandas._testing as tm
 from pandas.core.computation.check import _NUMEXPR_INSTALLED
-import pandas.util.testing as tm
 
 PARSERS = "python", "pandas"
 ENGINES = "python", pytest.param("numexpr", marks=td.skip_if_no_ne)
@@ -27,7 +27,7 @@ def engine(request):
 
 def skip_if_no_pandas_parser(parser):
     if parser != "pandas":
-        pytest.skip("cannot evaluate with parser {0!r}".format(parser))
+        pytest.skip(f"cannot evaluate with parser {repr(parser)}")
 
 
 class TestCompat:
@@ -479,11 +479,13 @@ class TestDataFrameQueryNumExprPandas:
         tm.assert_frame_equal(res, expected)
 
         # no local variable c
-        with pytest.raises(UndefinedVariableError):
+        with pytest.raises(
+            UndefinedVariableError, match="local variable 'c' is not defined"
+        ):
             df.query("@a > b > @c", engine=engine, parser=parser)
 
         # no column named 'c'
-        with pytest.raises(UndefinedVariableError):
+        with pytest.raises(UndefinedVariableError, match="name 'c' is not defined"):
             df.query("@a > b > c", engine=engine, parser=parser)
 
     def test_query_doesnt_pickup_local(self):
@@ -494,7 +496,7 @@ class TestDataFrameQueryNumExprPandas:
         df = DataFrame(np.random.randint(m, size=(n, 3)), columns=list("abc"))
 
         # we don't pick up the local 'sin'
-        with pytest.raises(UndefinedVariableError):
+        with pytest.raises(UndefinedVariableError, match="name 'sin' is not defined"):
             df.query("sin > 5", engine=engine, parser=parser)
 
     def test_query_builtin(self):
@@ -588,7 +590,7 @@ class TestDataFrameQueryNumExprPandas:
         df = DataFrame(np.random.randn(5, 3))
 
         # can't reference ourself b/c we're a local so @ is necessary
-        with pytest.raises(UndefinedVariableError):
+        with pytest.raises(UndefinedVariableError, match="name 'df' is not defined"):
             df.query("df > 0", engine=self.engine, parser=self.parser)
 
     def test_local_syntax(self):
@@ -651,9 +653,9 @@ class TestDataFrameQueryNumExprPandas:
         skip_if_no_pandas_parser(parser)
 
         df = DataFrame(np.random.rand(10, 2), columns=list("ab"))
-        msg = "local variable 'c' is not defined"
-
-        with pytest.raises(UndefinedVariableError, match=msg):
+        with pytest.raises(
+            UndefinedVariableError, match="local variable 'c' is not defined"
+        ):
             df.query("a == @c", engine=engine, parser=parser)
 
     def test_index_resolvers_come_after_columns_with_the_same_name(self):
@@ -784,7 +786,7 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         with pytest.raises(SyntaxError):
             df.query("(@df>0) & (@df2>0)", engine=engine, parser=parser)
 
-        with pytest.raises(UndefinedVariableError):
+        with pytest.raises(UndefinedVariableError, match="name 'df' is not defined"):
             df.query("(df>0) & (df2>0)", engine=engine, parser=parser)
 
         expected = df[(df > 0) & (df2 > 0)]
@@ -991,7 +993,7 @@ class TestDataFrameQueryStrings:
         ops = {"<": operator.lt, ">": operator.gt, "<=": operator.le, ">=": operator.ge}
 
         for op, func in ops.items():
-            res = df.query('X %s "d"' % op, engine=engine, parser=parser)
+            res = df.query(f'X {op} "d"', engine=engine, parser=parser)
             expected = df[func(df.X, "d")]
             tm.assert_frame_equal(res, expected)
 

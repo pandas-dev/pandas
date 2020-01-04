@@ -63,11 +63,6 @@ from pandas.errors import (ParserError, DtypeWarning,
 
 lzma = _import_lzma()
 
-# Import CParserError as alias of ParserError for backwards compatibility.
-# Ultimately, we want to remove this import. See gh-12665 and gh-14479.
-CParserError = ParserError
-
-
 cdef:
     float64_t INF = <float64_t>np.inf
     float64_t NEGINF = -INF
@@ -176,12 +171,9 @@ cdef extern from "parser/tokenizer.h":
         int64_t skip_first_N_rows
         int64_t skipfooter
         # pick one, depending on whether the converter requires GIL
-        float64_t (*double_converter_nogil)(const char *, char **,
-                                            char, char, char,
-                                            int, int *, int *) nogil
-        float64_t (*double_converter_withgil)(const char *, char **,
-                                              char, char, char,
-                                              int, int *, int *)
+        float64_t (*double_converter)(const char *, char **,
+                                      char, char, char,
+                                      int, int *, int *) nogil
 
         #  error handling
         char *warn_msg
@@ -474,16 +466,11 @@ cdef class TextReader:
 
         if float_precision == "round_trip":
             # see gh-15140
-            #
-            # Our current roundtrip implementation requires the GIL.
-            self.parser.double_converter_nogil = NULL
-            self.parser.double_converter_withgil = round_trip
+            self.parser.double_converter = round_trip
         elif float_precision == "high":
-            self.parser.double_converter_withgil = NULL
-            self.parser.double_converter_nogil = precise_xstrtod
+            self.parser.double_converter = precise_xstrtod
         else:
-            self.parser.double_converter_withgil = NULL
-            self.parser.double_converter_nogil = xstrtod
+            self.parser.double_converter = xstrtod
 
         if isinstance(dtype, dict):
             dtype = {k: pandas_dtype(dtype[k])
@@ -662,7 +649,7 @@ cdef class TextReader:
 
         if isinstance(source, str):
             encoding = sys.getfilesystemencoding() or "utf-8"
-
+            usource = source
             source = source.encode(encoding)
 
             if self.memory_map:
@@ -682,10 +669,11 @@ cdef class TextReader:
 
             if ptr == NULL:
                 if not os.path.exists(source):
+
                     raise FileNotFoundError(
                         ENOENT,
-                        f'File {source} does not exist',
-                        source)
+                        f'File {usource} does not exist',
+                        usource)
                 raise IOError('Initializing from file failed')
 
             self.parser.source = ptr
@@ -842,11 +830,6 @@ cdef class TextReader:
                 field_count = max(field_count, len(self.names))
 
             passed_count = len(header[0])
-
-            # if passed_count > field_count:
-            #     raise ParserError('Column names have %d fields, '
-            #                        'data has %d fields'
-            #                        % (passed_count, field_count))
 
             if (self.has_usecols and self.allow_leading_cols and
                     not callable(self.usecols)):
@@ -1376,7 +1359,26 @@ def _ensure_encoded(list lst):
 # common NA values
 # no longer excluding inf representations
 # '1.#INF','-1.#INF', '1.#INF000000',
-_NA_VALUES = _ensure_encoded(list(icom._NA_VALUES))
+STR_NA_VALUES = {
+    "-1.#IND",
+    "1.#QNAN",
+    "1.#IND",
+    "-1.#QNAN",
+    "#N/A N/A",
+    "#N/A",
+    "N/A",
+    "n/a",
+    "NA",
+    "#NA",
+    "NULL",
+    "null",
+    "NaN",
+    "-NaN",
+    "nan",
+    "-nan",
+    "",
+}
+_NA_VALUES = _ensure_encoded(list(STR_NA_VALUES))
 
 
 def _maybe_upcast(arr):
@@ -1409,59 +1411,6 @@ cdef inline StringPath _string_path(char *encoding):
 
 # ----------------------------------------------------------------------
 # Type conversions / inference support code
-
-
-cdef _string_box_factorize(parser_t *parser, int64_t col,
-                           int64_t line_start, int64_t line_end,
-                           bint na_filter, kh_str_starts_t *na_hashset):
-    cdef:
-        int error, na_count = 0
-        Py_ssize_t i, lines
-        coliter_t it
-        const char *word = NULL
-        ndarray[object] result
-
-        int ret = 0
-        kh_strbox_t *table
-
-        object pyval
-
-        object NA = na_values[np.object_]
-        khiter_t k
-
-    table = kh_init_strbox()
-    lines = line_end - line_start
-    result = np.empty(lines, dtype=np.object_)
-    coliter_setup(&it, parser, col, line_start)
-
-    for i in range(lines):
-        COLITER_NEXT(it, word)
-
-        if na_filter:
-            if kh_get_str_starts_item(na_hashset, word):
-                # in the hash table
-                na_count += 1
-                result[i] = NA
-                continue
-
-        k = kh_get_strbox(table, word)
-
-        # in the hash table
-        if k != table.n_buckets:
-            # this increments the refcount, but need to test
-            pyval = <object>table.vals[k]
-        else:
-            # box it. new ref?
-            pyval = PyBytes_FromString(word)
-
-            k = kh_put_strbox(table, word, &ret)
-            table.vals[k] = <PyObject*>pyval
-
-        result[i] = pyval
-
-    kh_destroy_strbox(table)
-
-    return result, na_count
 
 
 cdef _string_box_utf8(parser_t *parser, int64_t col,
@@ -1706,22 +1655,12 @@ cdef _try_double(parser_t *parser, int64_t col,
     result = np.empty(lines, dtype=np.float64)
     data = <float64_t *>result.data
     na_fset = kset_float64_from_list(na_flist)
-    if parser.double_converter_nogil != NULL:  # if it can run without the GIL
-        with nogil:
-            error = _try_double_nogil(parser, parser.double_converter_nogil,
-                                      col, line_start, line_end,
-                                      na_filter, na_hashset, use_na_flist,
-                                      na_fset, NA, data, &na_count)
-    else:
-        assert parser.double_converter_withgil != NULL
-        error = _try_double_nogil(parser,
-                                  <float64_t (*)(const char *, char **,
-                                                 char, char, char,
-                                                 int, int *, int *)
-                                  nogil>parser.double_converter_withgil,
+    with nogil:
+        error = _try_double_nogil(parser, parser.double_converter,
                                   col, line_start, line_end,
                                   na_filter, na_hashset, use_na_flist,
                                   na_fset, NA, data, &na_count)
+
     kh_destroy_float64(na_fset)
     if error != 0:
         return None, None

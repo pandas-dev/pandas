@@ -1,7 +1,7 @@
 import numpy as np
 
 from pandas import DataFrame, date_range, read_pickle
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from ..pandas_vb_common import BaseIO
 
@@ -13,7 +13,7 @@ class Pickle(BaseIO):
         C = 5
         self.df = DataFrame(
             np.random.randn(N, C),
-            columns=["float{}".format(i) for i in range(C)],
+            columns=[f"float{i}" for i in range(C)],
             index=date_range("20000101", periods=N, freq="H"),
         )
         self.df["object"] = tm.makeStringIndex(N)

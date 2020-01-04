@@ -24,6 +24,27 @@ and `good first issue
 where you could start out. Once you've found an interesting issue, you can
 return here to get your development environment setup.
 
+When you start working on an issue, it's a good idea to assign the issue to yourself,
+so nobody else duplicates the work on it. GitHub restricts assigning issues to maintainers
+of the project only. In most projects, and until recently in pandas, contributors added a
+comment letting others know they are working on an issue. While this is ok, you need to
+check each issue individually, and it's not possible to find the unassigned ones.
+
+For this reason, we implemented a workaround consisting of adding a comment with the exact
+text `take`. When you do it, a GitHub action will automatically assign you the issue
+(this will take seconds, and may require refreshint the page to see it).
+By doing this, it's possible to filter the list of issues and find only the unassigned ones.
+
+So, a good way to find an issue to start contributing to pandas is to check the list of
+`unassigned good first issues <https://github.com/pandas-dev/pandas/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22+no%3Aassignee>`_
+and assign yourself one you like by writing a comment with the exact text `take`.
+
+If for whatever reason you are not able to continue working with the issue, please try to
+unassign it, so other people know it's available again. You can check the list of
+assigned issues, since people may not be working in them anymore. If you want to work on one
+that is assigned, feel free to kindly ask the current assignee if you can take it
+(please allow at least a week of inactivity before considering work in the issue discontinued).
+
 Feel free to ask questions on the `mailing list
 <https://groups.google.com/forum/?fromgroups#!forum/pydata>`_ or on `Gitter`_.
 
@@ -413,7 +434,7 @@ The utility script ``scripts/validate_docstrings.py`` can be used to get a csv
 summary of the API documentation. And also validate common errors in the docstring
 of a specific class, function or method. The summary also compares the list of
 methods documented in ``doc/source/api.rst`` (which is used to generate
-the `API Reference <http://pandas.pydata.org/pandas-docs/stable/api.html>`_ page)
+the `API Reference <https://pandas.pydata.org/pandas-docs/stable/api.html>`_ page)
 and the actual public methods.
 This will identify methods documented in ``doc/source/api.rst`` that are not actually
 class methods, and existing methods that are not documented in ``doc/source/api.rst``.
@@ -548,8 +569,7 @@ do not make sudden changes to the code that could have the potential to break
 a lot of user code as a result, that is, we need it to be as *backwards compatible*
 as possible to avoid mass breakages.
 
-Additional standards are outlined on the `code style wiki
-page <https://github.com/pandas-dev/pandas/wiki/Code-Style-and-Conventions>`_.
+Additional standards are outlined on the `pandas code style guide <code_style>`_
 
 Optional dependencies
 ---------------------
@@ -632,6 +652,9 @@ submitting code to run the check yourself::
 
 to auto-format your code. Additionally, many editors have plugins that will
 apply ``black`` as you edit files.
+
+You should use a ``black`` version >= 19.10b0 as previous versions are not compatible
+with the pandas codebase.
 
 Optionally, you may wish to setup `pre-commit hooks <https://pre-commit.com/>`_
 to automatically run ``black`` and ``flake8`` when you make a git commit. This
@@ -780,7 +803,7 @@ Types imports should follow the ``from typing import ...`` convention. So rather
 
    import typing
 
-   primes = []  # type: typing.List[int]
+   primes: typing.List[int] = []
 
 You should write
 
@@ -788,19 +811,19 @@ You should write
 
    from typing import List, Optional, Union
 
-   primes = []  # type: List[int]
+   primes: List[int] = []
 
 ``Optional`` should be used where applicable, so instead of
 
 .. code-block:: python
 
-   maybe_primes = []  # type: List[Union[int, None]]
+   maybe_primes: List[Union[int, None]] = []
 
 You should write
 
 .. code-block:: python
 
-   maybe_primes = []  # type: List[Optional[int]]
+   maybe_primes: List[Optional[int]] = []
 
 In some cases in the code base classes may define class variables that shadow builtins. This causes an issue as described in `Mypy 1775 <https://github.com/python/mypy/issues/1775#issuecomment-310969854>`_. The defensive solution here is to create an unambiguous alias of the builtin and use that without your annotation. For example, if you come across a definition like
 
@@ -816,7 +839,7 @@ The appropriate way to annotate this would be as follows
    str_type = str
 
    class SomeClass2:
-       str = None  # type: str_type
+       str: str_type = None
 
 In some cases you may be tempted to use ``cast`` from the typing module when you know better than the analyzer. This occurs particularly when using custom inference functions. For example
 
@@ -922,7 +945,7 @@ extensions in `numpy.testing
 
 .. note::
 
-   The earliest supported pytest version is 4.0.2.
+   The earliest supported pytest version is 5.0.1.
 
 Writing tests
 ~~~~~~~~~~~~~
@@ -933,7 +956,7 @@ inspiration.  If your test requires working with files or
 network connectivity, there is more information on the `testing page
 <https://github.com/pandas-dev/pandas/wiki/Testing>`_ of the wiki.
 
-The ``pandas.util.testing`` module has many special ``assert`` functions that
+The ``pandas._testing`` module has many special ``assert`` functions that
 make it easier to make statements about whether Series or DataFrame objects are
 equivalent. The easiest way to verify that your code is correct is to
 explicitly construct the result you expect, then compare the actual result to
@@ -1119,7 +1142,7 @@ If your change involves checking that a warning is actually emitted, use
 
 .. code-block:: python
 
-   import pandas.util.testing as tm
+   import pandas._testing as tm
 
 
    df = pd.DataFrame()

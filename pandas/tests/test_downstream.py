@@ -8,29 +8,18 @@ import sys
 import numpy as np  # noqa
 import pytest
 
-from pandas.compat import PY36
-
 from pandas import DataFrame, Series
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def import_module(name):
     # we *only* want to skip if the module is truly not available
     # and NOT just an actual import error because of pandas changes
 
-    if PY36:
-        try:
-            return importlib.import_module(name)
-        except ModuleNotFoundError:  # noqa
-            pytest.skip("skipping as {} not available".format(name))
-
-    else:
-        try:
-            return importlib.import_module(name)
-        except ImportError as e:
-            if "No module named" in str(e) and name in str(e):
-                pytest.skip("skipping as {} not available".format(name))
-            raise
+    try:
+        return importlib.import_module(name)
+    except ModuleNotFoundError:  # noqa
+        pytest.skip("skipping as {} not available".format(name))
 
 
 @pytest.fixture
@@ -66,6 +55,10 @@ def test_oo_optimizable():
 @tm.network
 # Cython import warning
 @pytest.mark.filterwarnings("ignore:can't:ImportWarning")
+@pytest.mark.filterwarnings(
+    # patsy needs to update their imports
+    "ignore:Using or importing the ABCs from 'collections:DeprecationWarning"
+)
 def test_statsmodels():
 
     statsmodels = import_module("statsmodels")  # noqa
@@ -113,10 +106,7 @@ def test_pandas_datareader():
 
 
 # importing from pandas, Cython import warning
-@pytest.mark.filterwarnings("ignore:The 'warn':DeprecationWarning")
-@pytest.mark.filterwarnings("ignore:pandas.util:DeprecationWarning")
 @pytest.mark.filterwarnings("ignore:can't resolve:ImportWarning")
-@pytest.mark.skip(reason="gh-25778: geopandas stack issue")
 def test_geopandas():
 
     geopandas = import_module("geopandas")  # noqa

@@ -10,6 +10,13 @@ from pandas._libs import algos as libalgos, groupby as libgroupby, hashtable as 
 from pandas.compat.numpy import np_array_datetime64_compat
 import pandas.util._test_decorators as td
 
+from pandas.core.dtypes.common import (
+    is_bool_dtype,
+    is_complex_dtype,
+    is_float_dtype,
+    is_integer_dtype,
+    is_object_dtype,
+)
 from pandas.core.dtypes.dtypes import CategoricalDtype as CDT
 
 import pandas as pd
@@ -23,10 +30,11 @@ from pandas import (
     Timestamp,
     compat,
 )
+import pandas._testing as tm
+from pandas.conftest import BYTES_DTYPES, STRING_DTYPES
 import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray
 import pandas.core.common as com
-import pandas.util.testing as tm
 
 
 class TestFactorize:
@@ -215,10 +223,10 @@ class TestFactorize:
         tm.assert_numpy_array_equal(uniques, expected_uniques)
 
     def test_int64_factorize(self, writable):
-        data = np.array([2 ** 63 - 1, -2 ** 63, 2 ** 63 - 1], dtype=np.int64)
+        data = np.array([2 ** 63 - 1, -(2 ** 63), 2 ** 63 - 1], dtype=np.int64)
         data.setflags(write=writable)
         expected_codes = np.array([0, 1, 0], dtype=np.intp)
-        expected_uniques = np.array([2 ** 63 - 1, -2 ** 63], dtype=np.int64)
+        expected_uniques = np.array([2 ** 63 - 1, -(2 ** 63)], dtype=np.int64)
 
         codes, uniques = algos.factorize(data)
         tm.assert_numpy_array_equal(codes, expected_codes)
@@ -248,7 +256,7 @@ class TestFactorize:
         # gh 19727 - check warning is raised for deprecated keyword, order.
         # Test not valid once order keyword is removed.
         data = np.array([2 ** 63, 1, 2 ** 63], dtype=np.uint64)
-        with tm.assert_produces_warning(expected_warning=FutureWarning):
+        with pytest.raises(TypeError, match="got an unexpected keyword"):
             algos.factorize(data, order=True)
         with tm.assert_produces_warning(False):
             algos.factorize(data)
@@ -257,7 +265,7 @@ class TestFactorize:
         "data",
         [
             np.array([0, 1, 0], dtype="u8"),
-            np.array([-2 ** 63, 1, -2 ** 63], dtype="i8"),
+            np.array([-(2 ** 63), 1, -(2 ** 63)], dtype="i8"),
             np.array(["__nan__", "foo", "__nan__"], dtype="object"),
         ],
     )
@@ -274,8 +282,8 @@ class TestFactorize:
         [
             (np.array([0, 1, 0, 2], dtype="u8"), 0),
             (np.array([1, 0, 1, 2], dtype="u8"), 1),
-            (np.array([-2 ** 63, 1, -2 ** 63, 0], dtype="i8"), -2 ** 63),
-            (np.array([1, -2 ** 63, 1, 0], dtype="i8"), 1),
+            (np.array([-(2 ** 63), 1, -(2 ** 63), 0], dtype="i8"), -(2 ** 63)),
+            (np.array([1, -(2 ** 63), 1, 0], dtype="i8"), 1),
             (np.array(["a", "", "a", "b"], dtype=object), "a"),
             (np.array([(), ("a", 1), (), ("a", 2)], dtype=object), ()),
             (np.array([("a", 1), (), ("a", 1), ("a", 2)], dtype=object), ("a", 1)),
@@ -351,6 +359,35 @@ class TestUnique:
         result.sort()
 
         tm.assert_almost_equal(result, expected)
+
+    def test_dtype_preservation(self, any_numpy_dtype):
+        # GH 15442
+        if any_numpy_dtype in (BYTES_DTYPES + STRING_DTYPES):
+            pytest.skip("skip string dtype")
+        elif is_integer_dtype(any_numpy_dtype):
+            data = [1, 2, 2]
+            uniques = [1, 2]
+        elif is_float_dtype(any_numpy_dtype):
+            data = [1, 2, 2]
+            uniques = [1.0, 2.0]
+        elif is_complex_dtype(any_numpy_dtype):
+            data = [complex(1, 0), complex(2, 0), complex(2, 0)]
+            uniques = [complex(1, 0), complex(2, 0)]
+        elif is_bool_dtype(any_numpy_dtype):
+            data = [True, True, False]
+            uniques = [True, False]
+        elif is_object_dtype(any_numpy_dtype):
+            data = ["A", "B", "B"]
+            uniques = ["A", "B"]
+        else:
+            # datetime64[ns]/M8[ns]/timedelta64[ns]/m8[ns] tested elsewhere
+            data = [1, 2, 2]
+            uniques = [1, 2]
+
+        result = Series(data, dtype=any_numpy_dtype).unique()
+        expected = np.array(uniques, dtype=any_numpy_dtype)
+
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_datetime64_dtype_array_returned(self):
         # GH 9431
@@ -730,7 +767,7 @@ class TestIsin:
         # with similar behavior, then we at least should
         # fall back to usual python's behavior: "a in [a] == True"
         class LikeNan:
-            def __eq__(self, other):
+            def __eq__(self, other) -> bool:
                 return False
 
             def __hash__(self):
@@ -775,7 +812,7 @@ class TestIsin:
         result = algos.isin(comps, values)
         tm.assert_numpy_array_equal(expected, result)
 
-    @pytest.mark.parametrize("empty", [[], Series(), np.array([])])
+    @pytest.mark.parametrize("empty", [[], Series(dtype=object), np.array([])])
     def test_empty(self, empty):
         # see gh-16991
         vals = Index(["a", "b"])
@@ -1365,6 +1402,19 @@ class TestGroupVarFloat32(GroupVarTestMixin):
 
 
 class TestHashTable:
+    def test_string_hashtable_set_item_signature(self):
+        # GH#30419 fix typing in StringHashTable.set_item to prevent segfault
+        tbl = ht.StringHashTable()
+
+        tbl.set_item("key", 1)
+        assert tbl.get_item("key") == 1
+
+        with pytest.raises(TypeError, match="'key' has incorrect type"):
+            # key arg typed as string, not object
+            tbl.set_item(4, 6)
+        with pytest.raises(TypeError, match="'val' has incorrect type"):
+            tbl.get_item(4)
+
     def test_lookup_nan(self, writable):
         xs = np.array([2.718, 3.14, np.nan, -7, 5, 2, 3])
         # GH 21688 ensure we can deal with readonly memory views

@@ -2,7 +2,6 @@ import datetime
 from io import StringIO
 import itertools
 from itertools import product
-from warnings import catch_warnings, simplefilter
 
 import numpy as np
 from numpy.random import randn
@@ -12,9 +11,8 @@ import pytz
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp, isna
-from pandas.core.index import Index, MultiIndex
-import pandas.util.testing as tm
+from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, isna
+import pandas._testing as tm
 
 AGG_FUNCTIONS = [
     "sum",
@@ -121,7 +119,8 @@ class TestMultiLevel(Base):
                     (1.2, tz.localize(datetime.datetime(2011, 1, 2)), "B"),
                     (1.3, tz.localize(datetime.datetime(2011, 1, 3)), "C"),
                 ]
-                + expected_tuples
+                + expected_tuples,
+                dtype=object,
             ),
             None,
         )
@@ -209,22 +208,12 @@ class TestMultiLevel(Base):
         reindexed = self.frame.loc[[("foo", "one"), ("bar", "one")]]
         tm.assert_frame_equal(reindexed, expected)
 
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            reindexed = self.frame.ix[[("foo", "one"), ("bar", "one")]]
-        tm.assert_frame_equal(reindexed, expected)
-
     def test_reindex_preserve_levels(self):
         new_index = self.ymd.index[::10]
         chunk = self.ymd.reindex(new_index)
         assert chunk.index is new_index
 
         chunk = self.ymd.loc[new_index]
-        assert chunk.index is new_index
-
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            chunk = self.ymd.ix[new_index]
         assert chunk.index is new_index
 
         ymdT = self.ymd.T
@@ -257,7 +246,7 @@ class TestMultiLevel(Base):
         assert lines[2].startswith("a 0 foo")
 
     def test_delevel_infer_dtype(self):
-        tuples = [tuple for tuple in product(["foo", "bar"], [10, 20], [1.0, 1.1])]
+        tuples = list(product(["foo", "bar"], [10, 20], [1.0, 1.1]))
         index = MultiIndex.from_tuples(tuples, names=["prm0", "prm1", "prm2"])
         df = DataFrame(np.random.randn(8, 3), columns=["A", "B", "C"], index=index)
         deleveled = df.reset_index()
@@ -363,19 +352,19 @@ class TestMultiLevel(Base):
         [
             (
                 [[1, 1, None, None, 30.0, None], [2, 2, None, None, 30.0, None]],
-                [u"ix1", u"ix2", u"col1", u"col2", u"col3", u"col4"],
+                ["ix1", "ix2", "col1", "col2", "col3", "col4"],
                 2,
                 [None, None, 30.0, None],
             ),
             (
                 [[1, 1, None, None, 30.0], [2, 2, None, None, 30.0]],
-                [u"ix1", u"ix2", u"col1", u"col2", u"col3"],
+                ["ix1", "ix2", "col1", "col2", "col3"],
                 2,
                 [None, None, 30.0],
             ),
             (
                 [[1, 1, None, None, 30.0], [2, None, None, None, 30.0]],
-                [u"ix1", u"ix2", u"col1", u"col2", u"col3"],
+                ["ix1", "ix2", "col1", "col2", "col3"],
                 None,
                 [None, None, 30.0],
             ),
@@ -389,7 +378,7 @@ class TestMultiLevel(Base):
         # make sure DataFrame.unstack() works when its run on a subset of the DataFrame
         # and the Index levels contain values that are not present in the subset
         result = pd.DataFrame(result_rows, columns=result_columns).set_index(
-            [u"ix1", "ix2"]
+            ["ix1", "ix2"]
         )
         result = result.iloc[1:2].unstack("ix2")
         expected = pd.DataFrame(
@@ -582,6 +571,17 @@ Thur,Lunch,Yes,51.51,17"""
             s = df.iloc[:, 0]
             with pytest.raises(KeyError, match="does not match index name"):
                 getattr(s, method)("mistake")
+
+    def test_unused_level_raises(self):
+        # GH 20410
+        mi = MultiIndex(
+            levels=[["a_lot", "onlyone", "notevenone"], [1970, ""]],
+            codes=[[1, 0], [1, 0]],
+        )
+        df = DataFrame(-1, index=range(3), columns=mi)
+
+        with pytest.raises(KeyError, match="notevenone"):
+            df["notevenone"]
 
     def test_unstack_level_name(self):
         result = self.frame.unstack("second")
@@ -1527,7 +1527,7 @@ Thur,Lunch,Yes,51.51,17"""
         s2 = Series(
             [1, 2, 3, 4], index=MultiIndex.from_tuples([(1, 2), (1, 3), (3, 2), (3, 4)])
         )
-        s3 = Series()
+        s3 = Series(dtype=object)
 
         # it works!
         DataFrame({"foo": s1, "bar": s2, "baz": s3})
@@ -1988,6 +1988,15 @@ Thur,Lunch,Yes,51.51,17"""
         data = ["a", "b", "c", "d"]
         m_df = Series(data, index=m_idx)
         assert m_df.repeat(3).shape == (3 * len(data),)
+
+    def test_subsets_multiindex_dtype(self):
+        # GH 20757
+        data = [["x", 1]]
+        columns = [("a", "b", np.nan), ("a", "c", 0.0)]
+        df = DataFrame(data, columns=pd.MultiIndex.from_tuples(columns))
+        expected = df.dtypes.a.b
+        result = df.a.b.dtypes
+        tm.assert_series_equal(result, expected)
 
 
 class TestSorted(Base):
