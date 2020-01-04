@@ -40,12 +40,13 @@ import pandas.core.common as com
 from pandas.core.indexes.api import Index, ensure_index
 from pandas.core.window.common import (
     WindowGroupByMixin,
-    _calculate_center_offset,
     _doc_template,
     _flex_binary_moment,
     _shared_docs,
     _zsqrt,
+    calculate_center_offset,
     calculate_min_periods,
+    get_weighted_roll_func,
 )
 from pandas.core.window.indexers import (
     BaseIndexer,
@@ -358,7 +359,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         if self.axis > result.ndim - 1:
             raise ValueError("Requested axis is larger then no. of argument dimensions")
 
-        offset = _calculate_center_offset(window)
+        offset = calculate_center_offset(window)
         if offset > 0:
             lead_indexer = [slice(None)] * result.ndim
             lead_indexer[self.axis] = slice(offset, None)
@@ -466,7 +467,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                 continue
 
             # calculation function
-            offset = _calculate_center_offset(window) if center else 0
+            offset = calculate_center_offset(window) if center else 0
             additional_nans = np.array([np.nan] * offset)
 
             if not is_weighted:
@@ -1019,15 +1020,6 @@ class Window(_Window):
             # GH #15662. `False` makes symmetric window, rather than periodic.
             return sig.get_window(win_type, window, False).astype(float)
 
-    @staticmethod
-    def _get_weighted_roll_func(cfunc: Callable) -> Callable:
-        def func(arg, window, min_periods=None):
-            if min_periods is None:
-                min_periods = len(window)
-            return cfunc(arg, window, min_periods)
-
-        return func
-
     _agg_see_also_doc = dedent(
         """
     See Also
@@ -1095,7 +1087,7 @@ class Window(_Window):
     def sum(self, *args, **kwargs):
         nv.validate_window_func("sum", args, kwargs)
         window_func = self._get_roll_func("roll_weighted_sum")
-        window_func = self._get_weighted_roll_func(window_func)
+        window_func = get_weighted_roll_func(window_func)
         return self._apply(
             window_func, center=self.center, is_weighted=True, name="sum", **kwargs
         )
@@ -1105,7 +1097,7 @@ class Window(_Window):
     def mean(self, *args, **kwargs):
         nv.validate_window_func("mean", args, kwargs)
         window_func = self._get_roll_func("roll_weighted_mean")
-        window_func = self._get_weighted_roll_func(window_func)
+        window_func = get_weighted_roll_func(window_func)
         return self._apply(
             window_func, center=self.center, is_weighted=True, name="mean", **kwargs
         )
@@ -1115,7 +1107,7 @@ class Window(_Window):
     def var(self, ddof=1, *args, **kwargs):
         nv.validate_window_func("var", args, kwargs)
         window_func = partial(self._get_roll_func("roll_weighted_var"), ddof=ddof)
-        window_func = self._get_weighted_roll_func(window_func)
+        window_func = get_weighted_roll_func(window_func)
         kwargs.pop("name", None)
         return self._apply(
             window_func, center=self.center, is_weighted=True, name="var", **kwargs
@@ -1273,7 +1265,7 @@ class _Rolling_and_Expanding(_Rolling):
         kwargs.pop("_level", None)
         kwargs.pop("floor", None)
         window = self._get_window()
-        offset = _calculate_center_offset(window) if self.center else 0
+        offset = calculate_center_offset(window) if self.center else 0
         if not is_bool(raw):
             raise ValueError("raw parameter must be `True` or `False`")
 

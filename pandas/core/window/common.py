@@ -250,7 +250,7 @@ def _get_center_of_mass(comass, span, halflife, alpha):
     return float(comass)
 
 
-def _calculate_center_offset(window):
+def calculate_center_offset(window):
     if not is_integer(window):
         window = len(window)
     return int((window - 1) / 2.0)
@@ -315,3 +315,12 @@ def _prep_binary(arg1, arg2):
     Y = arg2 + 0 * arg1
 
     return X, Y
+
+
+def get_weighted_roll_func(cfunc: Callable) -> Callable:
+    def func(arg, window, min_periods=None):
+        if min_periods is None:
+            min_periods = len(window)
+        return cfunc(arg, window, min_periods)
+
+    return func
