@@ -7,7 +7,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, option_context
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 import pandas.io.formats.format as fmt
 
@@ -688,7 +688,7 @@ def test_to_html_float_format_no_fixed_width(value, float_format, expected, data
 def test_to_html_render_links(render_links, expected, datapath):
     # GH 2679
     data = [
-        [0, "http://pandas.pydata.org/?q1=a&q2=b", "pydata.org"],
+        [0, "https://pandas.pydata.org/?q1=a&q2=b", "pydata.org"],
         [0, "www.pydata.org", "pydata.org"],
     ]
     df = DataFrame(data, columns=["foo", "bar", None])

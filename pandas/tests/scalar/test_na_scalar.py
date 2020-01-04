@@ -6,7 +6,7 @@ from pandas._libs.missing import NA
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_singleton():

@@ -52,8 +52,8 @@ from pandas import (
     Timestamp,
     isna,
 )
+import pandas._testing as tm
 from pandas.core.arrays import IntegerArray
-import pandas.util.testing as tm
 
 
 @pytest.fixture(params=[True, False], ids=str)

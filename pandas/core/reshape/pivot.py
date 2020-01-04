@@ -148,9 +148,7 @@ def pivot_table(
         table = table.sort_index(axis=1)
 
     if fill_value is not None:
-        filled = table.fillna(value=fill_value, downcast="infer")
-        assert filled is not None  # needed for mypy
-        table = filled
+        table = table._ensure_type(table.fillna(fill_value, downcast="infer"))
 
     if margins:
         if dropna:
