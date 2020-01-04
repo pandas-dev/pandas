@@ -107,6 +107,11 @@ def _make_comparison_op(op, cls):
         if is_object_dtype(self) and isinstance(other, ABCCategorical):
             left = type(other)(self._values, dtype=other.dtype)
             return op(left, other)
+        elif is_object_dtype(self) and isinstance(other, ExtensionArray):
+            # e.g. PeriodArray
+            with np.errstate(all="ignore"):
+                result = op(self.values, other)
+
         elif is_object_dtype(self) and not isinstance(self, ABCMultiIndex):
             # don't pass MultiIndex
             with np.errstate(all="ignore"):
