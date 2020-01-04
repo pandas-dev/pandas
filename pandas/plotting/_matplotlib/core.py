@@ -24,7 +24,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas.core.common as com
-from pandas.core.index import MultiIndex
+from pandas import MultiIndex
 from pandas.core.reshape.concat import concat
 
 from pandas.io.formats.printing import pprint_thing
