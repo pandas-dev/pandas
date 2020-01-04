@@ -201,6 +201,13 @@ class TestTimedeltaIndex(DatetimeLike):
         result = a.append(c)
         assert (result["B"] == td).all()
 
+    def test_delete_doesnt_infer_freq(self):
+        # GH#30655 behavior matches DatetimeIndex
+
+        tdi = pd.TimedeltaIndex(["1 Day", "2 Days", None, "3 Days", "4 Days"])
+        result = tdi.delete(2)
+        assert result.freq is None
+
     def test_fields(self):
         rng = timedelta_range("1 days, 10:11:12.100123456", periods=2, freq="s")
         tm.assert_index_equal(rng.days, Index([1, 1], dtype="int64"))

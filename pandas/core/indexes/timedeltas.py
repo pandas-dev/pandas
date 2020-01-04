@@ -493,7 +493,7 @@ class TimedeltaIndex(
         """
         new_tds = np.delete(self.asi8, loc)
 
-        freq = "infer"
+        freq = None
         if is_integer(loc):
             if loc in (0, -len(self), -1, len(self) - 1):
                 freq = self.freq
@@ -504,7 +504,7 @@ class TimedeltaIndex(
                 if loc.start in (0, None) or loc.stop in (len(self), None):
                     freq = self.freq
 
-        return TimedeltaIndex(new_tds, name=self.name, freq=freq)
+        return self._shallow_copy(new_tds, freq=freq)
 
 
 TimedeltaIndex._add_comparison_ops()
