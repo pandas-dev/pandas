@@ -404,7 +404,7 @@ def test_all_methods_categorized(mframe):
 
     # new public method?
     if new_names:
-        msg = """
+        msg = f"""
 There are uncatgeorized methods defined on the Grouper class:
 {names}.
 
@@ -418,19 +418,19 @@ following three lists defined in pandas.core.groupby.base:
 see the comments in pandas/core/groupby/base.py for guidance on
 how to fix this test.
         """
-        raise AssertionError(msg.format(names=names))
+        raise AssertionError(msg)
 
     # removed a public method?
     all_categorized = reduction_kernels | transformation_kernels | groupby_other_methods
     print(names)
     print(all_categorized)
     if not (names == all_categorized):
-        msg = """
+        msg = f"""
 Some methods which are supposed to be on the Grouper class
 are missing:
-{names}.
+{all_categorized - names}.
 
 They're still defined in one of the lists that live in pandas/core/groupby/base.py.
 If you removed a method, you should update them
 """
-        raise AssertionError(msg.format(names=all_categorized - names))
+        raise AssertionError(msg)

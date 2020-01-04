@@ -935,7 +935,7 @@ def test_mutate_groups():
             + ["c"] * 2
             + ["d"] * 2
             + ["e"] * 2,
-            "cat3": ["g{}".format(x) for x in range(1, 15)],
+            "cat3": [f"g{x}" for x in range(1, 15)],
             "val": np.random.randint(100, size=14),
         }
     )
