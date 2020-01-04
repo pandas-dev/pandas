@@ -401,9 +401,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
         else:
             result = Index._union(this, other, sort=sort)
             if isinstance(result, DatetimeIndex):
-                # TODO: we shouldn't be setting attributes like this;
-                #  in all the tests this equality already holds
-                result._data._dtype = this.dtype
+                assert result._data.dtype == this.dtype
                 if result.freq is None and (
                     this.freq is not None or other.freq is not None
                 ):
