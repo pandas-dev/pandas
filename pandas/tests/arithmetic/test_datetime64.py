@@ -26,7 +26,7 @@ from pandas import (
     Timestamp,
     date_range,
 )
-import pandas.core.arrays.datetimelike as dtl
+import pandas._testing as tm
 from pandas.core.indexes.datetimes import _to_M8
 from pandas.core.ops import roperator
 from pandas.tests.arithmetic.common import (
@@ -34,7 +34,6 @@ from pandas.tests.arithmetic.common import (
     assert_invalid_comparison,
     get_upcast_box,
 )
-import pandas.util.testing as tm
 
 # ------------------------------------------------------------------
 # Comparisons
@@ -1332,7 +1331,7 @@ class TestDatetime64DateOffsetArithmetic:
         s = tm.box_expected(s, box_with_array)
 
         warn = None if box_with_array is pd.DataFrame else PerformanceWarning
-        with tm.assert_produces_warning(warn, clear=[dtl]):
+        with tm.assert_produces_warning(warn):
             other = pd.Index([pd.offsets.DateOffset(years=1), pd.offsets.MonthEnd()])
             other = tm.box_expected(other, box_with_array)
             result = s + other
@@ -1361,7 +1360,7 @@ class TestDatetime64DateOffsetArithmetic:
         other = np.array([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)])
 
         warn = None if box_with_array is pd.DataFrame else PerformanceWarning
-        with tm.assert_produces_warning(warn, clear=[dtl]):
+        with tm.assert_produces_warning(warn):
             res = dtarr + other
         expected = DatetimeIndex(
             [dti[n] + other[n] for n in range(len(dti))], name=dti.name, freq="infer"
@@ -1369,11 +1368,11 @@ class TestDatetime64DateOffsetArithmetic:
         expected = tm.box_expected(expected, box_with_array)
         tm.assert_equal(res, expected)
 
-        with tm.assert_produces_warning(warn, clear=[dtl]):
+        with tm.assert_produces_warning(warn):
             res2 = other + dtarr
         tm.assert_equal(res2, expected)
 
-        with tm.assert_produces_warning(warn, clear=[dtl]):
+        with tm.assert_produces_warning(warn):
             res = dtarr - other
         expected = DatetimeIndex(
             [dti[n] - other[n] for n in range(len(dti))], name=dti.name, freq="infer"
@@ -2298,7 +2297,7 @@ class TestDatetimeIndexArithmetic:
 
         xbox = get_upcast_box(box, other)
 
-        with tm.assert_produces_warning(PerformanceWarning, clear=[dtl]):
+        with tm.assert_produces_warning(PerformanceWarning):
             res = op(dti, other)
 
         expected = DatetimeIndex(
@@ -2306,6 +2305,32 @@ class TestDatetimeIndexArithmetic:
         )
         expected = tm.box_expected(expected, xbox)
         tm.assert_equal(res, expected)
+
+    @pytest.mark.parametrize("other_box", [pd.Index, np.array])
+    def test_dti_addsub_object_arraylike(
+        self, tz_naive_fixture, box_with_array, other_box
+    ):
+        tz = tz_naive_fixture
+
+        dti = pd.date_range("2017-01-01", periods=2, tz=tz)
+        dtarr = tm.box_expected(dti, box_with_array)
+        other = other_box([pd.offsets.MonthEnd(), pd.Timedelta(days=4)])
+        xbox = get_upcast_box(box_with_array, other)
+
+        expected = pd.DatetimeIndex(["2017-01-31", "2017-01-06"], tz=tz_naive_fixture)
+        expected = tm.box_expected(expected, xbox)
+
+        warn = None if box_with_array is pd.DataFrame else PerformanceWarning
+        with tm.assert_produces_warning(warn):
+            result = dtarr + other
+        tm.assert_equal(result, expected)
+
+        expected = pd.DatetimeIndex(["2016-12-31", "2016-12-29"], tz=tz_naive_fixture)
+        expected = tm.box_expected(expected, xbox)
+
+        with tm.assert_produces_warning(warn):
+            result = dtarr - other
+        tm.assert_equal(result, expected)
 
 
 @pytest.mark.parametrize("years", [-1, 0, 1])

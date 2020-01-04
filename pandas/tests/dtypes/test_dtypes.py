@@ -27,8 +27,8 @@ from pandas.core.dtypes.dtypes import (
 
 import pandas as pd
 from pandas import Categorical, CategoricalIndex, IntervalIndex, Series, date_range
+import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseDtype
-import pandas.util.testing as tm
 
 
 class Base:
@@ -407,6 +407,9 @@ class TestPeriodDtype(Base):
             PeriodDtype.construct_from_string("datetime64[ns]")
         with pytest.raises(TypeError):
             PeriodDtype.construct_from_string("datetime64[ns, US/Eastern]")
+
+        with pytest.raises(TypeError, match="list"):
+            PeriodDtype.construct_from_string([1, 2, 3])
 
     def test_is_dtype(self):
         assert PeriodDtype.is_dtype(self.dtype)

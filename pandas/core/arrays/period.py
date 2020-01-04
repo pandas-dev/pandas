@@ -45,6 +45,7 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
 from pandas.core.ops.common import unpack_zerodim_and_defer
+from pandas.core.ops.invalid import invalid_comparison
 
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import DateOffset, Tick, _delta_to_tick
@@ -75,6 +76,18 @@ def _period_array_cmp(cls, op):
         if is_list_like(other) and len(other) != len(self):
             raise ValueError("Lengths must match")
 
+        if isinstance(other, str):
+            try:
+                other = self._scalar_from_string(other)
+            except ValueError:
+                # string that can't be parsed as Period
+                return invalid_comparison(self, other, op)
+        elif isinstance(other, int):
+            # TODO: sure we want to allow this?  we dont for DTA/TDA
+            #  2 tests rely on this
+            other = Period(other, freq=self.freq)
+            result = ordinal_op(other.ordinal)
+
         if isinstance(other, Period):
             self._check_compatible_with(other)
 
@@ -93,8 +106,7 @@ def _period_array_cmp(cls, op):
             result = np.empty(len(self.asi8), dtype=bool)
             result.fill(nat_result)
         else:
-            other = Period(other, freq=self.freq)
-            result = ordinal_op(other.ordinal)
+            return invalid_comparison(self, other, op)
 
         if self._hasnans:
             result[self._isnan] = nat_result
@@ -440,8 +452,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         ----------
         freq : str or DateOffset, optional
             Target frequency. The default is 'D' for week or longer,
-            'S' otherwise
+            'S' otherwise.
         how : {'s', 'e', 'start', 'end'}
+            Whether to use the start or end of the time period being converted.
 
         Returns
         -------
@@ -476,11 +489,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     # --------------------------------------------------------------------
     # Array-like / EA-Interface Methods
 
-    def _formatter(self, boxed=False):
-        if boxed:
-            return str
-        return "'{}'".format
-
     @Appender(dtl.DatetimeLikeArrayMixin._validate_fill_value.__doc__)
     def _validate_fill_value(self, fill_value):
         if isna(fill_value):
@@ -491,6 +499,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         else:
             raise ValueError(f"'fill_value' should be a Period. Got '{fill_value}'.")
         return fill_value
+
+    def _values_for_argsort(self):
+        return self._data
 
     # --------------------------------------------------------------------
 
@@ -530,17 +541,20 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         Parameters
         ----------
         freq : str
-            a frequency
+            A frequency.
         how : str {'E', 'S'}
-            'E', 'END', or 'FINISH' for end,
-            'S', 'START', or 'BEGIN' for start.
             Whether the elements should be aligned to the end
-            or start within pa period. January 31st ('END') vs.
-            January 1st ('START') for example.
+            or start within pa period.
+
+            * 'E', 'END', or 'FINISH' for end,
+            * 'S', 'START', or 'BEGIN' for start.
+
+            January 31st ('END') vs. January 1st ('START') for example.
 
         Returns
         -------
-        new : Period Array/Index with the new frequency
+        Period Array/Index
+            Constructed with the new frequency.
 
         Examples
         --------
@@ -581,6 +595,11 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
     # ------------------------------------------------------------------
     # Rendering Methods
+
+    def _formatter(self, boxed=False):
+        if boxed:
+            return str
+        return "'{}'".format
 
     def _format_native_types(self, na_rep="NaT", date_format=None, **kwargs):
         """
@@ -634,12 +653,23 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
         return new_data
 
-    @Appender(dtl.DatetimeLikeArrayMixin._addsub_int_array.__doc__)
     def _addsub_int_array(
-        self,
-        other: Union[ABCPeriodArray, ABCSeries, ABCPeriodIndex, np.ndarray],
-        op: Callable[[Any], Any],
-    ) -> ABCPeriodArray:
+        self, other: np.ndarray, op: Callable[[Any], Any],
+    ) -> "PeriodArray":
+        """
+        Add or subtract array of integers; equivalent to applying
+        `_time_shift` pointwise.
+
+        Parameters
+        ----------
+        other : np.ndarray[integer-dtype]
+        op : {operator.add, operator.sub}
+
+        Returns
+        -------
+        result : PeriodArray
+        """
+
         assert op in [operator.add, operator.sub]
         if op is operator.sub:
             other = -other
@@ -773,9 +803,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
             return delta
 
         _raise_on_incompatible(self, other)
-
-    def _values_for_argsort(self):
-        return self._data
 
 
 PeriodArray._add_comparison_ops()

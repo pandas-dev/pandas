@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List
 
 import numpy as np
@@ -5,6 +6,7 @@ import pytest
 
 import pandas.util._test_decorators as td
 
+from pandas.core.dtypes.cast import astype_nansafe
 import pandas.core.dtypes.common as com
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
@@ -13,8 +15,10 @@ from pandas.core.dtypes.dtypes import (
     IntervalDtype,
     PeriodDtype,
 )
+from pandas.core.dtypes.missing import isna
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.conftest import (
     ALL_EA_INT_DTYPES,
     ALL_INT_DTYPES,
@@ -23,7 +27,6 @@ from pandas.conftest import (
     UNSIGNED_EA_INT_DTYPES,
     UNSIGNED_INT_DTYPES,
 )
-import pandas.util.testing as tm
 
 
 # EA & Actual Dtypes
@@ -488,7 +491,7 @@ def test_is_numeric_v_string_like():
 
 
 def test_is_datetimelike_v_numeric():
-    dt = np.datetime64(pd.datetime(2017, 1, 1))
+    dt = np.datetime64(datetime(2017, 1, 1))
 
     assert not com.is_datetimelike_v_numeric(1, 1)
     assert not com.is_datetimelike_v_numeric(dt, dt)
@@ -625,18 +628,6 @@ def test_is_complex_dtype():
     assert com.is_complex_dtype(np.array([1 + 1j, 5]))
 
 
-def test_is_offsetlike():
-    assert com.is_offsetlike(np.array([pd.DateOffset(month=3), pd.offsets.Nano()]))
-    assert com.is_offsetlike(pd.offsets.MonthEnd())
-    assert com.is_offsetlike(pd.Index([pd.DateOffset(second=1)]))
-
-    assert not com.is_offsetlike(pd.Timedelta(1))
-    assert not com.is_offsetlike(np.array([1 + 1j, 5]))
-
-    # mixed case
-    assert not com.is_offsetlike(np.array([pd.DateOffset(), pd.Timestamp(0)]))
-
-
 @pytest.mark.parametrize(
     "input_param,result",
     [
@@ -721,3 +712,42 @@ def test__get_dtype_fails(input_param, expected_error_message):
 )
 def test__is_dtype_type(input_param, result):
     assert com._is_dtype_type(input_param, lambda tipo: tipo == result)
+
+
+@pytest.mark.parametrize("val", [np.datetime64("NaT"), np.timedelta64("NaT")])
+@pytest.mark.parametrize("typ", [np.int64])
+def test_astype_nansafe(val, typ):
+    arr = np.array([val])
+
+    msg = "Cannot convert NaT values to integer"
+    with pytest.raises(ValueError, match=msg):
+        astype_nansafe(arr, dtype=typ)
+
+
+@pytest.mark.parametrize("from_type", [np.datetime64, np.timedelta64])
+@pytest.mark.parametrize(
+    "to_type",
+    [
+        np.uint8,
+        np.uint16,
+        np.uint32,
+        np.int8,
+        np.int16,
+        np.int32,
+        np.float16,
+        np.float32,
+    ],
+)
+def test_astype_datetime64_bad_dtype_raises(from_type, to_type):
+    arr = np.array([from_type("2018")])
+
+    with pytest.raises(TypeError, match="cannot astype"):
+        astype_nansafe(arr, dtype=to_type)
+
+
+@pytest.mark.parametrize("from_type", [np.datetime64, np.timedelta64])
+def test_astype_object_preserves_datetime_na(from_type):
+    arr = np.array([from_type("NaT")])
+    result = astype_nansafe(arr, dtype="object")
+
+    assert isna(result)[0]

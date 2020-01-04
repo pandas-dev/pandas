@@ -8,7 +8,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import MultiIndex, Series, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from .test_generic import Generic
 
@@ -205,7 +205,7 @@ class TestSeries(Generic):
     def test_to_xarray_index_types(self, index):
         from xarray import DataArray
 
-        index = getattr(tm, "make{}".format(index))
+        index = getattr(tm, f"make{index}")
         s = Series(range(6), index=index(6))
         s.index.name = "foo"
         result = s.to_xarray()

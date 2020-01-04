@@ -109,6 +109,7 @@ See the :ref:`overview` for more detail about what's in the library.
 * :doc:`development/index`
 
   * :doc:`development/contributing`
+  * :doc:`development/code_style`
   * :doc:`development/internals`
   * :doc:`development/extending`
   * :doc:`development/developer`
