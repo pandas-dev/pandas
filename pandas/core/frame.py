@@ -3066,17 +3066,26 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         expr : str
-            The query string to evaluate.  You can refer to variables
+            The query string to evaluate.
+
+            You can refer to variables
             in the environment by prefixing them with an '@' character like
             ``@a + b``.
 
-            .. versionadded:: 0.25.0
-
-            You can refer to column names that contain spaces by surrounding
-            them in backticks.
+            You can refer to column names that contain spaces or operators by
+            surrounding them in backticks. This way you can also escape
+            names that start with a digit, or those that  are a Python keyword.
+            Basically when it is not valid Python identifier. See notes down
+            for more details.
 
             For example, if one of your columns is called ``a a`` and you want
             to sum it with ``b``, your query should be ```a a` + b``.
+
+            .. versionadded:: 0.25.0
+                Backtick quoting introduced.
+
+            .. versionadded:: 1.0.0
+                Expanding functionality of backtick quoting for more than only spaces.
 
         inplace : bool
             Whether the query should modify the data in place or return
@@ -3131,6 +3140,32 @@ class DataFrame(NDFrame):
 
         For further details and examples see the ``query`` documentation in
         :ref:`indexing <indexing.query>`.
+
+        *Backtick quoted variables*
+
+        Backtick quoted variables are parsed as literal Python code and
+        are converted internally to a Python valid identifier.
+        This can lead to the following problems.
+
+        During parsing a number of disallowed characters inside the backtick
+        quoted string are replaced by strings that are allowed as a Python identifier.
+        These characters include all operators in Python, the space character, the
+        question mark, the exclamation mark, the dollar sign, and the euro sign.
+        For other characters that fall outside the ASCII range (U+0001..U+007F)
+        and those that are not further specified in PEP 3131,
+        the query parser will raise an error.
+        This excludes whitespace different than the space character,
+        but also the hashtag (as it is used for comments) and the backtick
+        itself (backtick can also not be escaped).
+
+        In a special case, quotes that make a pair around a backtick can
+        confuse the parser.
+        For example, ```it's` > `that's``` will raise an error,
+        as it forms a quoted string (``'s > `that'``) with a backtick inside.
+
+        See also the Python documentation about lexical analysis
+        (https://docs.python.org/3/reference/lexical_analysis.html)
+        in combination with the source code in :mod:`pandas.core.computation.parsing`.
 
         Examples
         --------
@@ -3281,11 +3316,12 @@ class DataFrame(NDFrame):
         kwargs["level"] = kwargs.pop("level", 0) + 1
         if resolvers is None:
             index_resolvers = self._get_index_resolvers()
-            column_resolvers = self._get_space_character_free_column_resolvers()
+            column_resolvers = self._get_cleaned_column_resolvers()
             resolvers = column_resolvers, index_resolvers
         if "target" not in kwargs:
             kwargs["target"] = self
         kwargs["resolvers"] = kwargs.get("resolvers", ()) + tuple(resolvers)
+
         return _eval(expr, inplace=inplace, **kwargs)
 
     def select_dtypes(self, include=None, exclude=None):
