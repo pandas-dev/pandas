@@ -841,6 +841,25 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
                 kwargs["tz"] = getattr(other, "tz", None)
             return self._simple_new(joined, name, **kwargs)
 
+    # --------------------------------------------------------------------
+    # List-like Methods
+
+    def delete(self, loc):
+        new_i8s = np.delete(self.asi8, loc)
+
+        freq = None
+        if is_integer(loc):
+            if loc in (0, -len(self), -1, len(self) - 1):
+                freq = self.freq
+        else:
+            if is_list_like(loc):
+                loc = lib.maybe_indices_to_slice(ensure_int64(np.array(loc)), len(self))
+            if isinstance(loc, slice) and loc.step in (1, None):
+                if loc.start in (0, None) or loc.stop in (len(self), None):
+                    freq = self.freq
+
+        return self._shallow_copy(new_i8s, freq=freq)
+
 
 class DatetimelikeDelegateMixin(PandasDelegate):
     """
