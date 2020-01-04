@@ -1608,7 +1608,6 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         )
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:the 'numpy' keyword:FutureWarning")
     def test_deprecate_numpy_argument_read_json(self):
         # GH 28512
         expected = DataFrame([1, 2, 3])
