@@ -6,8 +6,8 @@ import pytest
 
 import pandas as pd
 from pandas import Categorical, DataFrame, Series, date_range
+import pandas._testing as tm
 from pandas.tests.arrays.categorical.common import TestCategorical
-import pandas.util.testing as tm
 
 
 class TestCategoricalOpsWithFactor(TestCategorical):
