@@ -16,3 +16,15 @@ repos:
     -   id: isort
         language: python_venv
         exclude: ^pandas/__init__\.py$|^pandas/core/api\.py$
+-   repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v0.730
+    hooks:
+     -  id: mypy
+        # We run mypy over all files because of:
+        #  * changes in type definitions may affect non-touched files.
+        #  * Running it with `mypy pandas` and the filenames will lead to
+        #    spurious duplicate module errors,
+        #    see also https://github.com/pre-commit/mirrors-mypy/issues/5
+        pass_filenames: false
+        args:
+        - pandas
