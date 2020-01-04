@@ -62,6 +62,8 @@ class BooleanDtype(ExtensionDtype):
     BooleanDtype
     """
 
+    name = "boolean"
+
     @property
     def na_value(self) -> "Scalar":
         """
@@ -80,19 +82,6 @@ class BooleanDtype(ExtensionDtype):
     @property
     def kind(self) -> str:
         return "b"
-
-    @property
-    def name(self) -> str:
-        """
-        The alias for BooleanDtype is ``'boolean'``.
-        """
-        return "boolean"
-
-    @classmethod
-    def construct_from_string(cls, string: str) -> ExtensionDtype:
-        if string == "boolean":
-            return cls()
-        return super().construct_from_string(string)
 
     @classmethod
     def construct_array_type(cls) -> "Type[BooleanArray]":

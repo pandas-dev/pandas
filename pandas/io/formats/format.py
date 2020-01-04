@@ -231,7 +231,7 @@ class SeriesFormatter:
         self,
         series: "Series",
         buf: Optional[IO[str]] = None,
-        length: bool = True,
+        length: Union[bool, str] = True,
         header: bool = True,
         index: bool = True,
         na_rep: str = "NaN",
@@ -450,7 +450,7 @@ def _get_adjustment() -> TextAdjustment:
 
 class TableFormatter:
 
-    show_dimensions: bool
+    show_dimensions: Union[bool, str]
     is_truncated: bool
     formatters: formatters_type
     columns: Index
@@ -554,7 +554,7 @@ class DataFrameFormatter(TableFormatter):
         max_rows: Optional[int] = None,
         min_rows: Optional[int] = None,
         max_cols: Optional[int] = None,
-        show_dimensions: bool = False,
+        show_dimensions: Union[bool, str] = False,
         decimal: str = ".",
         table_id: Optional[str] = None,
         render_links: bool = False,
@@ -1276,7 +1276,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
     """
 
     def __init__(self, *args, **kwargs):
-        GenericArrayFormatter.__init__(self, *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         # float_format is expected to be a string
         # formatter should be used to pass a function
