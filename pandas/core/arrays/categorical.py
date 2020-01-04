@@ -1460,7 +1460,7 @@ class Categorical(ExtensionArray, PandasObject):
             ix = np.append(ix, -1)
 
         index = self._constructor(ix, dtype=self.dtype, fastpath=True)
-        return index, count
+        return index, count.astype(np.int64)
 
     def _internal_get_values(self):
         """
