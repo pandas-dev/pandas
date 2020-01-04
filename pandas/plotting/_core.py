@@ -1131,7 +1131,7 @@ class PlotAccessor(PandasObject):
         """
         return self(kind="box", by=by, **kwargs)
 
-    def hist(self, by=None, bins=10, **kwargs):
+    def hist(self, column=None, by=None, bins=10, **kwargs):
         """
         Draw one histogram of the DataFrame's columns.
 
@@ -1142,6 +1142,8 @@ class PlotAccessor(PandasObject):
 
         Parameters
         ----------
+        column: str or sequence, optional
+            If passed, will be used to limit data to a subset of columns.
         by : str or sequence, optional
             Column in the DataFrame to group by.
         bins : int, default 10
@@ -1176,7 +1178,7 @@ class PlotAccessor(PandasObject):
             >>> df['two'] = df['one'] + np.random.randint(1, 7, 6000)
             >>> ax = df.plot.hist(bins=12, alpha=0.5)
         """
-        return self(kind="hist", by=by, bins=bins, **kwargs)
+        return self(kind="hist", column=column, by=by, bins=bins, **kwargs)
 
     def kde(self, bw_method=None, ind=None, **kwargs):
         """
