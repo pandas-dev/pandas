@@ -5,22 +5,23 @@ import pytest
 
 from pandas.compat import PYPY
 
-from pandas import Categorical, Index, Series
+from pandas import Categorical, Index, NaT, Series, date_range
+import pandas._testing as tm
 from pandas.api.types import is_scalar
-import pandas.util.testing as tm
 
 
 class TestCategoricalAnalytics:
-    def test_min_max(self):
-
+    @pytest.mark.parametrize("aggregation", ["min", "max"])
+    def test_min_max_not_ordered_raises(self, aggregation):
         # unordered cats have no min/max
         cat = Categorical(["a", "b", "c", "d"], ordered=False)
         msg = "Categorical is not ordered for operation {}"
-        with pytest.raises(TypeError, match=msg.format("min")):
-            cat.min()
-        with pytest.raises(TypeError, match=msg.format("max")):
-            cat.max()
+        agg_func = getattr(cat, aggregation)
 
+        with pytest.raises(TypeError, match=msg.format(aggregation)):
+            agg_func()
+
+    def test_min_max_ordered(self):
         cat = Categorical(["a", "b", "c", "d"], ordered=True)
         _min = cat.min()
         _max = cat.max()
@@ -35,31 +36,66 @@ class TestCategoricalAnalytics:
         assert _min == "d"
         assert _max == "a"
 
+    @pytest.mark.parametrize(
+        "categories,expected",
+        [
+            (list("ABC"), np.NaN),
+            ([1, 2, 3], np.NaN),
+            pytest.param(
+                Series(date_range("2020-01-01", periods=3), dtype="category"),
+                NaT,
+                marks=pytest.mark.xfail(
+                    reason="https://github.com/pandas-dev/pandas/issues/29962"
+                ),
+            ),
+        ],
+    )
+    @pytest.mark.parametrize("aggregation", ["min", "max"])
+    def test_min_max_ordered_empty(self, categories, expected, aggregation):
+        # GH 30227
+        cat = Categorical([], categories=list("ABC"), ordered=True)
+
+        agg_func = getattr(cat, aggregation)
+        result = agg_func()
+        assert result is expected
+
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_min_max_with_nan(self, skipna):
+        # GH 25303
         cat = Categorical(
             [np.nan, "b", "c", np.nan], categories=["d", "c", "b", "a"], ordered=True
         )
-        _min = cat.min()
-        _max = cat.max()
-        assert np.isnan(_min)
-        assert _max == "b"
+        _min = cat.min(skipna=skipna)
+        _max = cat.max(skipna=skipna)
 
-        _min = cat.min(numeric_only=True)
-        assert _min == "c"
-        _max = cat.max(numeric_only=True)
-        assert _max == "b"
+        if skipna is False:
+            assert np.isnan(_min)
+            assert np.isnan(_max)
+        else:
+            assert _min == "c"
+            assert _max == "b"
 
         cat = Categorical(
             [np.nan, 1, 2, np.nan], categories=[5, 4, 3, 2, 1], ordered=True
         )
-        _min = cat.min()
-        _max = cat.max()
-        assert np.isnan(_min)
-        assert _max == 1
+        _min = cat.min(skipna=skipna)
+        _max = cat.max(skipna=skipna)
 
-        _min = cat.min(numeric_only=True)
-        assert _min == 2
-        _max = cat.max(numeric_only=True)
-        assert _max == 1
+        if skipna is False:
+            assert np.isnan(_min)
+            assert np.isnan(_max)
+        else:
+            assert _min == 2
+            assert _max == 1
+
+    @pytest.mark.parametrize("method", ["min", "max"])
+    def test_deprecate_numeric_only_min_max(self, method):
+        # GH 25303
+        cat = Categorical(
+            [np.nan, 1, 2, np.nan], categories=[5, 4, 3, 2, 1], ordered=True
+        )
+        with tm.assert_produces_warning(expected_warning=FutureWarning):
+            getattr(cat, method)(numeric_only=True)
 
     @pytest.mark.parametrize(
         "values,categories,exp_mode",
@@ -78,65 +114,51 @@ class TestCategoricalAnalytics:
         exp = Categorical(exp_mode, categories=categories, ordered=True)
         tm.assert_categorical_equal(res, exp)
 
-    def test_searchsorted(self):
+    def test_searchsorted(self, ordered_fixture):
         # https://github.com/pandas-dev/pandas/issues/8420
         # https://github.com/pandas-dev/pandas/issues/14522
 
-        c1 = Categorical(
+        cat = Categorical(
             ["cheese", "milk", "apple", "bread", "bread"],
             categories=["cheese", "milk", "apple", "bread"],
-            ordered=True,
+            ordered=ordered_fixture,
         )
-        s1 = Series(c1)
-        c2 = Categorical(
-            ["cheese", "milk", "apple", "bread", "bread"],
-            categories=["cheese", "milk", "apple", "bread"],
-            ordered=False,
-        )
-        s2 = Series(c2)
+        ser = Series(cat)
 
         # Searching for single item argument, side='left' (default)
-        res_cat = c1.searchsorted("apple")
+        res_cat = cat.searchsorted("apple")
         assert res_cat == 2
         assert is_scalar(res_cat)
 
-        res_ser = s1.searchsorted("apple")
+        res_ser = ser.searchsorted("apple")
         assert res_ser == 2
         assert is_scalar(res_ser)
 
         # Searching for single item array, side='left' (default)
-        res_cat = c1.searchsorted(["bread"])
-        res_ser = s1.searchsorted(["bread"])
+        res_cat = cat.searchsorted(["bread"])
+        res_ser = ser.searchsorted(["bread"])
         exp = np.array([3], dtype=np.intp)
         tm.assert_numpy_array_equal(res_cat, exp)
         tm.assert_numpy_array_equal(res_ser, exp)
 
         # Searching for several items array, side='right'
-        res_cat = c1.searchsorted(["apple", "bread"], side="right")
-        res_ser = s1.searchsorted(["apple", "bread"], side="right")
+        res_cat = cat.searchsorted(["apple", "bread"], side="right")
+        res_ser = ser.searchsorted(["apple", "bread"], side="right")
         exp = np.array([3, 5], dtype=np.intp)
         tm.assert_numpy_array_equal(res_cat, exp)
         tm.assert_numpy_array_equal(res_ser, exp)
 
         # Searching for a single value that is not from the Categorical
-        msg = r"Value\(s\) to be inserted must be in categories"
-        with pytest.raises(KeyError, match=msg):
-            c1.searchsorted("cucumber")
-        with pytest.raises(KeyError, match=msg):
-            s1.searchsorted("cucumber")
+        with pytest.raises(KeyError, match="cucumber"):
+            cat.searchsorted("cucumber")
+        with pytest.raises(KeyError, match="cucumber"):
+            ser.searchsorted("cucumber")
 
         # Searching for multiple values one of each is not from the Categorical
-        with pytest.raises(KeyError, match=msg):
-            c1.searchsorted(["bread", "cucumber"])
-        with pytest.raises(KeyError, match=msg):
-            s1.searchsorted(["bread", "cucumber"])
-
-        # searchsorted call for unordered Categorical
-        msg = "Categorical not ordered"
-        with pytest.raises(ValueError, match=msg):
-            c2.searchsorted("apple")
-        with pytest.raises(ValueError, match=msg):
-            s2.searchsorted("apple")
+        with pytest.raises(KeyError, match="cucumber"):
+            cat.searchsorted(["bread", "cucumber"])
+        with pytest.raises(KeyError, match="cucumber"):
+            ser.searchsorted(["bread", "cucumber"])
 
     def test_unique(self):
         # categories are reordered based on value when ordered=False
@@ -273,40 +295,42 @@ class TestCategoricalAnalytics:
         # GH 12766: Return an index not an array
         tm.assert_index_equal(result, Index(np.array([1] * 5, dtype=np.int64)))
 
-    def test_validate_inplace(self):
+    @pytest.mark.parametrize("value", [1, "True", [1, 2, 3], 5.0])
+    def test_validate_inplace_raises(self, value):
         cat = Categorical(["A", "B", "B", "C", "A"])
-        invalid_values = [1, "True", [1, 2, 3], 5.0]
+        msg = (
+            'For argument "inplace" expected type bool, '
+            f"received type {type(value).__name__}"
+        )
+        with pytest.raises(ValueError, match=msg):
+            cat.set_ordered(value=True, inplace=value)
 
-        for value in invalid_values:
-            with pytest.raises(ValueError):
-                cat.set_ordered(value=True, inplace=value)
+        with pytest.raises(ValueError, match=msg):
+            cat.as_ordered(inplace=value)
 
-            with pytest.raises(ValueError):
-                cat.as_ordered(inplace=value)
+        with pytest.raises(ValueError, match=msg):
+            cat.as_unordered(inplace=value)
 
-            with pytest.raises(ValueError):
-                cat.as_unordered(inplace=value)
+        with pytest.raises(ValueError, match=msg):
+            cat.set_categories(["X", "Y", "Z"], rename=True, inplace=value)
 
-            with pytest.raises(ValueError):
-                cat.set_categories(["X", "Y", "Z"], rename=True, inplace=value)
+        with pytest.raises(ValueError, match=msg):
+            cat.rename_categories(["X", "Y", "Z"], inplace=value)
 
-            with pytest.raises(ValueError):
-                cat.rename_categories(["X", "Y", "Z"], inplace=value)
+        with pytest.raises(ValueError, match=msg):
+            cat.reorder_categories(["X", "Y", "Z"], ordered=True, inplace=value)
 
-            with pytest.raises(ValueError):
-                cat.reorder_categories(["X", "Y", "Z"], ordered=True, inplace=value)
+        with pytest.raises(ValueError, match=msg):
+            cat.add_categories(new_categories=["D", "E", "F"], inplace=value)
 
-            with pytest.raises(ValueError):
-                cat.add_categories(new_categories=["D", "E", "F"], inplace=value)
+        with pytest.raises(ValueError, match=msg):
+            cat.remove_categories(removals=["D", "E", "F"], inplace=value)
 
-            with pytest.raises(ValueError):
-                cat.remove_categories(removals=["D", "E", "F"], inplace=value)
+        with pytest.raises(ValueError, match=msg):
+            cat.remove_unused_categories(inplace=value)
 
-            with pytest.raises(ValueError):
-                cat.remove_unused_categories(inplace=value)
-
-            with pytest.raises(ValueError):
-                cat.sort_values(inplace=value)
+        with pytest.raises(ValueError, match=msg):
+            cat.sort_values(inplace=value)
 
     def test_isna(self):
         exp = np.array([False, False, True])

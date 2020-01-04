@@ -1,11 +1,9 @@
-from collections import OrderedDict
-
 import numpy as np
 import pytest
 
 import pandas as pd
 from pandas import DataFrame, MultiIndex, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_tolist(idx):
@@ -107,14 +105,12 @@ def test_to_frame_dtype_fidelity():
     original_dtypes = {name: mi.levels[i].dtype for i, name in enumerate(mi.names)}
 
     expected_df = pd.DataFrame(
-        OrderedDict(
-            [
-                ("dates", pd.date_range("19910905", periods=6, tz="US/Eastern")),
-                ("a", [1, 1, 1, 2, 2, 2]),
-                ("b", pd.Categorical(["a", "a", "b", "b", "c", "c"], ordered=True)),
-                ("c", ["x", "x", "y", "z", "x", "y"]),
-            ]
-        )
+        {
+            "dates": pd.date_range("19910905", periods=6, tz="US/Eastern"),
+            "a": [1, 1, 1, 2, 2, 2],
+            "b": pd.Categorical(["a", "a", "b", "b", "c", "c"], ordered=True),
+            "c": ["x", "x", "y", "z", "x", "y"],
+        }
     )
     df = mi.to_frame(index=False)
     df_dtypes = df.dtypes.to_dict()
@@ -133,59 +129,8 @@ def test_to_frame_resulting_column_order():
     assert result == expected
 
 
-def test_to_hierarchical():
-    index = MultiIndex.from_tuples([(1, "one"), (1, "two"), (2, "one"), (2, "two")])
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        result = index.to_hierarchical(3)
-    expected = MultiIndex(
-        levels=[[1, 2], ["one", "two"]],
-        codes=[
-            [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
-            [0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1],
-        ],
-    )
-    tm.assert_index_equal(result, expected)
-    assert result.names == index.names
-
-    # K > 1
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        result = index.to_hierarchical(3, 2)
-    expected = MultiIndex(
-        levels=[[1, 2], ["one", "two"]],
-        codes=[
-            [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-            [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
-        ],
-    )
-    tm.assert_index_equal(result, expected)
-    assert result.names == index.names
-
-    # non-sorted
-    index = MultiIndex.from_tuples(
-        [(2, "c"), (1, "b"), (2, "a"), (2, "b")], names=["N1", "N2"]
-    )
-
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        result = index.to_hierarchical(2)
-    expected = MultiIndex.from_tuples(
-        [
-            (2, "c"),
-            (2, "c"),
-            (1, "b"),
-            (1, "b"),
-            (2, "a"),
-            (2, "a"),
-            (2, "b"),
-            (2, "b"),
-        ],
-        names=["N1", "N2"],
-    )
-    tm.assert_index_equal(result, expected)
-    assert result.names == index.names
-
-
 def test_roundtrip_pickle_with_tz():
-    return
+    return  # FIXME: this can't be right?
 
     # GH 8367
     # round-trip of timezone
@@ -198,7 +143,7 @@ def test_roundtrip_pickle_with_tz():
 
 
 def test_pickle(indices):
-    return
+    return  # FIXME: this can't be right?
 
     unpickled = tm.round_trip_pickle(indices)
     assert indices.equals(unpickled)

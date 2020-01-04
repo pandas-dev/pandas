@@ -14,8 +14,8 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, Series, date_range
+import pandas._testing as tm
 from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
-import pandas.util.testing as tm
 
 import pandas.plotting as plotting
 
@@ -166,6 +166,15 @@ class TestSeriesPlots(TestPlotBase):
         assert ax.get_legend() is None  # Hasn't been drawn
         ax.legend()  # draw it
         self._check_legend_labels(ax, labels=["LABEL"])
+
+    def test_boolean(self):
+        # GH 23719
+        s = Series([False, False, True])
+        _check_plot_works(s.plot, include_bool=True)
+
+        msg = "no numeric data to plot"
+        with pytest.raises(TypeError, match=msg):
+            _check_plot_works(s.plot)
 
     def test_line_area_nan_series(self):
         values = [1, 2, np.nan, 3]
@@ -321,7 +330,7 @@ class TestSeriesPlots(TestPlotBase):
         ax = _check_plot_works(
             series.plot.pie, colors=color_args, autopct="%.2f", fontsize=7
         )
-        pcts = ["{0:.2f}".format(s * 100) for s in series.values / float(series.sum())]
+        pcts = [f"{s*100:.2f}" for s in series.values / float(series.sum())]
         expected_texts = list(chain.from_iterable(zip(series.index, pcts)))
         self._check_text_labels(ax.texts, expected_texts)
         for t in ax.texts:
@@ -856,11 +865,18 @@ class TestSeriesPlots(TestPlotBase):
 
     def test_xticklabels(self):
         # GH11529
-        s = Series(np.arange(10), index=["P{i:02d}".format(i=i) for i in range(10)])
+        s = Series(np.arange(10), index=[f"P{i:02d}" for i in range(10)])
         _, ax = self.plt.subplots()
         ax = s.plot(xticks=[0, 3, 5, 9], ax=ax)
-        exp = ["P{i:02d}".format(i=i) for i in [0, 3, 5, 9]]
+        exp = [f"P{i:02d}" for i in [0, 3, 5, 9]]
         self._check_text_labels(ax.get_xticklabels(), exp)
+
+    def test_xtick_barPlot(self):
+        # GH28172
+        s = pd.Series(range(10), index=[f"P{i:02d}" for i in range(10)])
+        ax = s.plot.bar(xticks=range(0, 11, 2))
+        exp = np.array(list(range(0, 11, 2)))
+        tm.assert_numpy_array_equal(exp, ax.get_xticks())
 
     def test_custom_business_day_freq(self):
         # GH7222
@@ -888,3 +904,35 @@ class TestSeriesPlots(TestPlotBase):
         _, ax = self.plt.subplots()
         after = ax.xaxis.get_ticklocs()
         tm.assert_numpy_array_equal(before, after)
+
+    @pytest.mark.parametrize("kind", ["line", "area"])
+    def test_plot_xlim_for_series(self, kind):
+        # test if xlim is also correctly plotted in Series for line and area
+        # GH 27686
+        s = Series([2, 3])
+        _, ax = self.plt.subplots()
+        s.plot(kind=kind, ax=ax)
+        xlims = ax.get_xlim()
+
+        assert xlims[0] < 0
+        assert xlims[1] > 1
+
+    def test_plot_no_rows(self):
+        # GH 27758
+        df = pd.Series(dtype=int)
+        assert df.empty
+        ax = df.plot()
+        assert len(ax.get_lines()) == 1
+        line = ax.get_lines()[0]
+        assert len(line.get_xdata()) == 0
+        assert len(line.get_ydata()) == 0
+
+    def test_plot_no_numeric_data(self):
+        df = pd.Series(["a", "b", "c"])
+        with pytest.raises(TypeError):
+            df.plot()
+
+    def test_style_single_ok(self):
+        s = pd.Series([1, 2])
+        ax = s.plot(style="s", color="C3")
+        assert ax.lines[0].get_color() == ["C3"]

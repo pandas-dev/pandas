@@ -2,14 +2,15 @@ from datetime import datetime
 
 import pytest
 
-from pandas import DatetimeIndex
-import pandas.util.testing as tm
+from pandas import DatetimeIndex, offsets, to_datetime
+import pandas._testing as tm
 
 from pandas.tseries.holiday import (
     AbstractHolidayCalendar,
     Holiday,
     Timestamp,
     USFederalHolidayCalendar,
+    USLaborDay,
     USThanksgivingDay,
     get_calendar,
 )
@@ -81,3 +82,19 @@ def test_calendar_observance_dates():
 def test_rule_from_name():
     us_fed_cal = get_calendar("USFederalHolidayCalendar")
     assert us_fed_cal.rule_from_name("Thanksgiving") == USThanksgivingDay
+
+
+def test_calendar_2031():
+    # See gh-27790
+    #
+    # Labor Day 2031 is on September 1. Saturday before is August 30.
+    # Next working day after August 30 ought to be Tuesday, September 2.
+
+    class testCalendar(AbstractHolidayCalendar):
+        rules = [USLaborDay]
+
+    cal = testCalendar()
+    workDay = offsets.CustomBusinessDay(calendar=cal)
+    Sat_before_Labor_Day_2031 = to_datetime("2031-08-30")
+    next_working_day = Sat_before_Labor_Day_2031 + 0 * workDay
+    assert next_working_day == to_datetime("2031-09-02")

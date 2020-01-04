@@ -1,6 +1,7 @@
 import cython
 
 import time
+from typing import Any
 from cpython.datetime cimport (PyDateTime_IMPORT,
                                PyDateTime_Check,
                                PyDelta_Check,
@@ -66,16 +67,16 @@ need_suffix = ['QS', 'BQ', 'BQS', 'YS', 'AS', 'BY', 'BA', 'BYS', 'BAS']
 
 for __prefix in need_suffix:
     for _m in MONTHS:
-        key = '%s-%s' % (__prefix, _m)
+        key = f'{__prefix}-{_m}'
         _offset_to_period_map[key] = _offset_to_period_map[__prefix]
 
 for __prefix in ['A', 'Q']:
     for _m in MONTHS:
-        _alias = '%s-%s' % (__prefix, _m)
+        _alias = f'{__prefix}-{_m}'
         _offset_to_period_map[_alias] = _alias
 
 for _d in DAYS:
-    _offset_to_period_map['W-%s' % _d] = 'W-%s' % _d
+    _offset_to_period_map[f'W-{_d}'] = f'W-{_d}'
 
 
 # ---------------------------------------------------------------------
@@ -328,7 +329,7 @@ class _BaseOffset:
     def __setattr__(self, name, value):
         raise AttributeError("DateOffset objects are immutable.")
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         if isinstance(other, str):
             try:
                 # GH#23524 if to_offset fails, we are dealing with an
@@ -363,7 +364,7 @@ class _BaseOffset:
         attrs = [(k, v) for k, v in all_paras.items()
                  if (k not in exclude) and (k[0] != '_')]
         attrs = sorted(set(attrs))
-        params = tuple([str(self.__class__)] + attrs)
+        params = tuple([str(type(self))] + attrs)
         return params
 
     @property
@@ -422,7 +423,7 @@ class _BaseOffset:
         # that allows us to use methods that can go in a `cdef class`
         return self * 1
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         className = getattr(self, '_outputName', type(self).__name__)
 
         if abs(self.n) != 1:
@@ -432,9 +433,9 @@ class _BaseOffset:
 
         n_str = ""
         if self.n != 1:
-            n_str = "%s * " % self.n
+            n_str = f"{self.n} * "
 
-        out = '<%s' % n_str + className + plural + self._repr_attrs() + '>'
+        out = f'<{n_str}{className}{plural}{self._repr_attrs()}>'
         return out
 
     def _get_offset_day(self, datetime other):
@@ -460,16 +461,13 @@ class _BaseOffset:
         ValueError if n != int(n)
         """
         if util.is_timedelta64_object(n):
-            raise TypeError('`n` argument must be an integer, '
-                            'got {ntype}'.format(ntype=type(n)))
+            raise TypeError(f'`n` argument must be an integer, got {type(n)}')
         try:
             nint = int(n)
         except (ValueError, TypeError):
-            raise TypeError('`n` argument must be an integer, '
-                            'got {ntype}'.format(ntype=type(n)))
+            raise TypeError(f'`n` argument must be an integer, got {type(n)}')
         if n != nint:
-            raise ValueError('`n` argument must be an integer, '
-                             'got {n}'.format(n=n))
+            raise ValueError(f'`n` argument must be an integer, got {n}')
         return nint
 
     def __setstate__(self, state):
@@ -935,7 +933,7 @@ def shift_month(stamp: datetime, months: int,
 
 cpdef int get_day_of_month(datetime other, day_opt) except? -1:
     """
-    Find the day in `other`'s month that satisfies a DateOffset's onOffset
+    Find the day in `other`'s month that satisfies a DateOffset's is_on_offset
     policy, as described by the `day_opt` argument.
 
     Parameters

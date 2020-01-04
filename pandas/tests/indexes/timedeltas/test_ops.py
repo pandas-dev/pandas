@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import numpy as np
 import pytest
 
@@ -5,8 +7,8 @@ from pandas.core.dtypes.generic import ABCDateOffset
 
 import pandas as pd
 from pandas import Series, TimedeltaIndex, timedelta_range
-from pandas.tests.test_base import Ops
-import pandas.util.testing as tm
+import pandas._testing as tm
+from pandas.tests.base.test_ops import Ops
 
 from pandas.tseries.offsets import Day, Hour
 
@@ -266,6 +268,17 @@ class TestTimedeltaIndexOps(Ops):
         assert not idx.equals(list(idx2))
         assert not idx.equals(pd.Series(idx2))
 
+        # Check that we dont raise OverflowError on comparisons outside the
+        #  implementation range
+        oob = pd.Index([timedelta(days=10 ** 6)] * 3, dtype=object)
+        assert not idx.equals(oob)
+        assert not idx2.equals(oob)
+
+        # FIXME: oob.apply(np.timedelta64) incorrectly overflows
+        oob2 = pd.Index([np.timedelta64(x) for x in oob], dtype=object)
+        assert not idx.equals(oob2)
+        assert not idx2.equals(oob2)
+
     @pytest.mark.parametrize("values", [["0 days", "2 days", "4 days"], []])
     @pytest.mark.parametrize("freq", ["2D", Day(2), "48H", Hour(48)])
     def test_freq_setter(self, values, freq):
@@ -273,12 +286,12 @@ class TestTimedeltaIndexOps(Ops):
         idx = TimedeltaIndex(values)
 
         # can set to an offset, converting from string if necessary
-        idx.freq = freq
+        idx._data.freq = freq
         assert idx.freq == freq
         assert isinstance(idx.freq, ABCDateOffset)
 
         # can reset to None
-        idx.freq = None
+        idx._data.freq = None
         assert idx.freq is None
 
     def test_freq_setter_errors(self):
@@ -291,13 +304,13 @@ class TestTimedeltaIndexOps(Ops):
             "passed frequency 5D"
         )
         with pytest.raises(ValueError, match=msg):
-            idx.freq = "5D"
+            idx._data.freq = "5D"
 
         # setting with a non-fixed frequency
         msg = r"<2 \* BusinessDays> is a non-fixed frequency"
         with pytest.raises(ValueError, match=msg):
-            idx.freq = "2B"
+            idx._data.freq = "2B"
 
         # setting with non-freq string
         with pytest.raises(ValueError, match="Invalid frequency"):
-            idx.freq = "foo"
+            idx._data.freq = "foo"

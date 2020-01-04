@@ -6,7 +6,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, Series, to_numeric
-from pandas.util import testing as tm
+import pandas._testing as tm
 
 
 @pytest.fixture(params=[None, "ignore", "raise", "coerce"])
@@ -565,6 +565,24 @@ def test_downcast_limits(dtype, downcast, min_max):
     # see gh-14404: test the limits of each downcast.
     series = to_numeric(Series(min_max), downcast=downcast)
     assert series.dtype == dtype
+
+
+@pytest.mark.parametrize(
+    "ser,expected",
+    [
+        (
+            pd.Series([0, 9223372036854775808]),
+            pd.Series([0, 9223372036854775808], dtype=np.uint64),
+        )
+    ],
+)
+def test_downcast_uint64(ser, expected):
+    # see gh-14422:
+    # BUG: to_numeric doesn't work uint64 numbers
+
+    result = pd.to_numeric(ser, downcast="unsigned")
+
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(

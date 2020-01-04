@@ -4,7 +4,7 @@ from pandas.core.dtypes.common import is_extension_array_dtype
 from pandas.core.dtypes.dtypes import ExtensionDtype
 
 import pandas as pd
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from .base import BaseExtensionTests
 
@@ -75,3 +75,18 @@ class BaseInterfaceTests(BaseExtensionTests):
 
         data[1] = data[0]
         assert result[1] != result[0]
+
+    def test_view(self, data):
+        # view with no dtype should return a shallow copy, *not* the same
+        #  object
+        assert data[1] != data[0]
+
+        result = data.view()
+        assert result is not data
+        assert type(result) == type(data)
+
+        result[1] = result[0]
+        assert data[1] == data[0]
+
+        # check specifically that the `dtype` kwarg is accepted
+        data.view(dtype=None)

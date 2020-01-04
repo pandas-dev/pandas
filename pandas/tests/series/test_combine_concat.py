@@ -1,59 +1,14 @@
 from datetime import datetime
 
 import numpy as np
-from numpy import nan
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, DatetimeIndex, Series, date_range
-import pandas.util.testing as tm
-from pandas.util.testing import assert_frame_equal, assert_series_equal
+from pandas import DataFrame, Series
+import pandas._testing as tm
 
 
 class TestSeriesCombine:
-    def test_append(self, datetime_series, string_series, object_series):
-        appendedSeries = string_series.append(object_series)
-        for idx, value in appendedSeries.items():
-            if idx in string_series.index:
-                assert value == string_series[idx]
-            elif idx in object_series.index:
-                assert value == object_series[idx]
-            else:
-                raise AssertionError("orphaned index!")
-
-        msg = "Indexes have overlapping values:"
-        with pytest.raises(ValueError, match=msg):
-            datetime_series.append(datetime_series, verify_integrity=True)
-
-    def test_append_many(self, datetime_series):
-        pieces = [datetime_series[:5], datetime_series[5:10], datetime_series[10:]]
-
-        result = pieces[0].append(pieces[1:])
-        assert_series_equal(result, datetime_series)
-
-    def test_append_duplicates(self):
-        # GH 13677
-        s1 = pd.Series([1, 2, 3])
-        s2 = pd.Series([4, 5, 6])
-        exp = pd.Series([1, 2, 3, 4, 5, 6], index=[0, 1, 2, 0, 1, 2])
-        tm.assert_series_equal(s1.append(s2), exp)
-        tm.assert_series_equal(pd.concat([s1, s2]), exp)
-
-        # the result must have RangeIndex
-        exp = pd.Series([1, 2, 3, 4, 5, 6])
-        tm.assert_series_equal(
-            s1.append(s2, ignore_index=True), exp, check_index_type=True
-        )
-        tm.assert_series_equal(
-            pd.concat([s1, s2], ignore_index=True), exp, check_index_type=True
-        )
-
-        msg = "Indexes have overlapping values:"
-        with pytest.raises(ValueError, match=msg):
-            s1.append(s2, verify_integrity=True)
-        with pytest.raises(ValueError, match=msg):
-            pd.concat([s1, s2], verify_integrity=True)
-
     def test_combine_scalar(self):
         # GH 21248
         # Note - combine() with another Series is tested elsewhere because
@@ -98,17 +53,18 @@ class TestSeriesCombine:
 
         # corner case
         s = Series([1.0, 2, 3], index=[0, 1, 2])
-        result = s.combine_first(Series([], index=[]))
+        empty = Series([], index=[], dtype=object)
+        result = s.combine_first(empty)
         s.index = s.index.astype("O")
-        assert_series_equal(s, result)
+        tm.assert_series_equal(s, result)
 
     def test_update(self):
-        s = Series([1.5, nan, 3.0, 4.0, nan])
-        s2 = Series([nan, 3.5, nan, 5.0])
+        s = Series([1.5, np.nan, 3.0, 4.0, np.nan])
+        s2 = Series([np.nan, 3.5, np.nan, 5.0])
         s.update(s2)
 
         expected = Series([1.5, 3.5, 3.0, 5.0, np.nan])
-        assert_series_equal(s, expected)
+        tm.assert_series_equal(s, expected)
 
         # GH 3217
         df = DataFrame([{"a": 1}, {"a": 3, "b": 2}])
@@ -118,7 +74,7 @@ class TestSeriesCombine:
         expected = DataFrame(
             [[1, np.nan, "foo"], [3, 2.0, np.nan]], columns=["a", "b", "c"]
         )
-        assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize(
         "other, dtype, expected",
@@ -151,7 +107,7 @@ class TestSeriesCombine:
         other = Series(other, index=[1, 3])
         s.update(other)
 
-        assert_series_equal(s, expected)
+        tm.assert_series_equal(s, expected)
 
     def test_concat_empty_series_dtypes_roundtrips(self):
 
@@ -216,10 +172,8 @@ class TestSeriesCombine:
             tz=tz_naive_fixture,
         )
         exp = pd.Series(exp_vals, name="ser1")
-        assert_series_equal(exp, result)
+        tm.assert_series_equal(exp, result)
 
-    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-    @pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
     def test_concat_empty_series_dtypes(self):
 
         # booleans
@@ -276,35 +230,26 @@ class TestSeriesCombine:
         # sparse
         # TODO: move?
         result = pd.concat(
-            [Series(dtype="float64").to_sparse(), Series(dtype="float64").to_sparse()]
+            [
+                Series(dtype="float64").astype("Sparse"),
+                Series(dtype="float64").astype("Sparse"),
+            ]
         )
         assert result.dtype == "Sparse[float64]"
 
-        # GH 26705 - Assert .ftype is deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            assert result.ftype == "float64:sparse"
-
         result = pd.concat(
-            [Series(dtype="float64").to_sparse(), Series(dtype="float64")]
+            [Series(dtype="float64").astype("Sparse"), Series(dtype="float64")]
         )
         # TODO: release-note: concat sparse dtype
-        expected = pd.core.sparse.api.SparseDtype(np.float64)
+        expected = pd.SparseDtype(np.float64)
         assert result.dtype == expected
-
-        # GH 26705 - Assert .ftype is deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            assert result.ftype == "float64:sparse"
 
         result = pd.concat(
-            [Series(dtype="float64").to_sparse(), Series(dtype="object")]
+            [Series(dtype="float64").astype("Sparse"), Series(dtype="object")]
         )
         # TODO: release-note: concat sparse dtype
-        expected = pd.core.sparse.api.SparseDtype("object")
+        expected = pd.SparseDtype("object")
         assert result.dtype == expected
-
-        # GH 26705 - Assert .ftype is deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            assert result.ftype == "object:sparse"
 
     def test_combine_first_dt64(self):
         from pandas.core.tools.datetimes import to_datetime
@@ -313,106 +258,10 @@ class TestSeriesCombine:
         s1 = to_datetime(Series([np.NaN, "2011"]))
         rs = s0.combine_first(s1)
         xp = to_datetime(Series(["2010", "2011"]))
-        assert_series_equal(rs, xp)
+        tm.assert_series_equal(rs, xp)
 
         s0 = to_datetime(Series(["2010", np.NaN]))
         s1 = Series([np.NaN, "2011"])
         rs = s0.combine_first(s1)
         xp = Series([datetime(2010, 1, 1), "2011"])
-        assert_series_equal(rs, xp)
-
-
-class TestTimeseries:
-    def test_append_concat(self):
-        rng = date_range("5/8/2012 1:45", periods=10, freq="5T")
-        ts = Series(np.random.randn(len(rng)), rng)
-        df = DataFrame(np.random.randn(len(rng), 4), index=rng)
-
-        result = ts.append(ts)
-        result_df = df.append(df)
-        ex_index = DatetimeIndex(np.tile(rng.values, 2))
-        tm.assert_index_equal(result.index, ex_index)
-        tm.assert_index_equal(result_df.index, ex_index)
-
-        appended = rng.append(rng)
-        tm.assert_index_equal(appended, ex_index)
-
-        appended = rng.append([rng, rng])
-        ex_index = DatetimeIndex(np.tile(rng.values, 3))
-        tm.assert_index_equal(appended, ex_index)
-
-        # different index names
-        rng1 = rng.copy()
-        rng2 = rng.copy()
-        rng1.name = "foo"
-        rng2.name = "bar"
-        assert rng1.append(rng1).name == "foo"
-        assert rng1.append(rng2).name is None
-
-    def test_append_concat_tz(self):
-        # see gh-2938
-        rng = date_range("5/8/2012 1:45", periods=10, freq="5T", tz="US/Eastern")
-        rng2 = date_range("5/8/2012 2:35", periods=10, freq="5T", tz="US/Eastern")
-        rng3 = date_range("5/8/2012 1:45", periods=20, freq="5T", tz="US/Eastern")
-        ts = Series(np.random.randn(len(rng)), rng)
-        df = DataFrame(np.random.randn(len(rng), 4), index=rng)
-        ts2 = Series(np.random.randn(len(rng2)), rng2)
-        df2 = DataFrame(np.random.randn(len(rng2), 4), index=rng2)
-
-        result = ts.append(ts2)
-        result_df = df.append(df2)
-        tm.assert_index_equal(result.index, rng3)
-        tm.assert_index_equal(result_df.index, rng3)
-
-        appended = rng.append(rng2)
-        tm.assert_index_equal(appended, rng3)
-
-    def test_append_concat_tz_explicit_pytz(self):
-        # see gh-2938
-        from pytz import timezone as timezone
-
-        rng = date_range(
-            "5/8/2012 1:45", periods=10, freq="5T", tz=timezone("US/Eastern")
-        )
-        rng2 = date_range(
-            "5/8/2012 2:35", periods=10, freq="5T", tz=timezone("US/Eastern")
-        )
-        rng3 = date_range(
-            "5/8/2012 1:45", periods=20, freq="5T", tz=timezone("US/Eastern")
-        )
-        ts = Series(np.random.randn(len(rng)), rng)
-        df = DataFrame(np.random.randn(len(rng), 4), index=rng)
-        ts2 = Series(np.random.randn(len(rng2)), rng2)
-        df2 = DataFrame(np.random.randn(len(rng2), 4), index=rng2)
-
-        result = ts.append(ts2)
-        result_df = df.append(df2)
-        tm.assert_index_equal(result.index, rng3)
-        tm.assert_index_equal(result_df.index, rng3)
-
-        appended = rng.append(rng2)
-        tm.assert_index_equal(appended, rng3)
-
-    def test_append_concat_tz_dateutil(self):
-        # see gh-2938
-        rng = date_range(
-            "5/8/2012 1:45", periods=10, freq="5T", tz="dateutil/US/Eastern"
-        )
-        rng2 = date_range(
-            "5/8/2012 2:35", periods=10, freq="5T", tz="dateutil/US/Eastern"
-        )
-        rng3 = date_range(
-            "5/8/2012 1:45", periods=20, freq="5T", tz="dateutil/US/Eastern"
-        )
-        ts = Series(np.random.randn(len(rng)), rng)
-        df = DataFrame(np.random.randn(len(rng), 4), index=rng)
-        ts2 = Series(np.random.randn(len(rng2)), rng2)
-        df2 = DataFrame(np.random.randn(len(rng2), 4), index=rng2)
-
-        result = ts.append(ts2)
-        result_df = df.append(df2)
-        tm.assert_index_equal(result.index, rng3)
-        tm.assert_index_equal(result_df.index, rng3)
-
-        appended = rng.append(rng2)
-        tm.assert_index_equal(appended, rng3)
+        tm.assert_series_equal(rs, xp)

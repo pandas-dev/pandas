@@ -1,13 +1,11 @@
 from datetime import datetime
 
 import numpy as np
-from numpy import nan
 import pytest
 
 import pandas as pd
 from pandas import Categorical, Series, date_range, isna
-import pandas.util.testing as tm
-from pandas.util.testing import assert_series_equal
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize(
@@ -20,9 +18,9 @@ from pandas.util.testing import assert_series_equal
     ],
 )
 @pytest.mark.parametrize("fill", [None, -1])
-def test_align(test_data, first_slice, second_slice, join_type, fill):
-    a = test_data.ts[slice(*first_slice)]
-    b = test_data.ts[slice(*second_slice)]
+def test_align(datetime_series, first_slice, second_slice, join_type, fill):
+    a = datetime_series[slice(*first_slice)]
+    b = datetime_series[slice(*second_slice)]
 
     aa, ab = a.align(b, join=join_type, fill_value=fill)
 
@@ -42,8 +40,8 @@ def test_align(test_data, first_slice, second_slice, join_type, fill):
         ea = ea.fillna(fill)
         eb = eb.fillna(fill)
 
-    assert_series_equal(aa, ea)
-    assert_series_equal(ab, eb)
+    tm.assert_series_equal(aa, ea)
+    tm.assert_series_equal(ab, eb)
     assert aa.name == "ts"
     assert ea.name == "ts"
     assert ab.name == "ts"
@@ -62,10 +60,10 @@ def test_align(test_data, first_slice, second_slice, join_type, fill):
 @pytest.mark.parametrize("method", ["pad", "bfill"])
 @pytest.mark.parametrize("limit", [None, 1])
 def test_align_fill_method(
-    test_data, first_slice, second_slice, join_type, method, limit
+    datetime_series, first_slice, second_slice, join_type, method, limit
 ):
-    a = test_data.ts[slice(*first_slice)]
-    b = test_data.ts[slice(*second_slice)]
+    a = datetime_series[slice(*first_slice)]
+    b = datetime_series[slice(*second_slice)]
 
     aa, ab = a.align(b, join=join_type, method=method, limit=limit)
 
@@ -76,48 +74,48 @@ def test_align_fill_method(
     ea = ea.fillna(method=method, limit=limit)
     eb = eb.fillna(method=method, limit=limit)
 
-    assert_series_equal(aa, ea)
-    assert_series_equal(ab, eb)
+    tm.assert_series_equal(aa, ea)
+    tm.assert_series_equal(ab, eb)
 
 
-def test_align_nocopy(test_data):
-    b = test_data.ts[:5].copy()
+def test_align_nocopy(datetime_series):
+    b = datetime_series[:5].copy()
 
     # do copy
-    a = test_data.ts.copy()
+    a = datetime_series.copy()
     ra, _ = a.align(b, join="left")
     ra[:5] = 5
     assert not (a[:5] == 5).any()
 
     # do not copy
-    a = test_data.ts.copy()
+    a = datetime_series.copy()
     ra, _ = a.align(b, join="left", copy=False)
     ra[:5] = 5
     assert (a[:5] == 5).all()
 
     # do copy
-    a = test_data.ts.copy()
-    b = test_data.ts[:5].copy()
+    a = datetime_series.copy()
+    b = datetime_series[:5].copy()
     _, rb = a.align(b, join="right")
     rb[:3] = 5
     assert not (b[:3] == 5).any()
 
     # do not copy
-    a = test_data.ts.copy()
-    b = test_data.ts[:5].copy()
+    a = datetime_series.copy()
+    b = datetime_series[:5].copy()
     _, rb = a.align(b, join="right", copy=False)
     rb[:2] = 5
     assert (b[:2] == 5).all()
 
 
-def test_align_same_index(test_data):
-    a, b = test_data.ts.align(test_data.ts, copy=False)
-    assert a.index is test_data.ts.index
-    assert b.index is test_data.ts.index
+def test_align_same_index(datetime_series):
+    a, b = datetime_series.align(datetime_series, copy=False)
+    assert a.index is datetime_series.index
+    assert b.index is datetime_series.index
 
-    a, b = test_data.ts.align(test_data.ts, copy=True)
-    assert a.index is not test_data.ts.index
-    assert b.index is not test_data.ts.index
+    a, b = datetime_series.align(datetime_series, copy=True)
+    assert a.index is not datetime_series.index
+    assert b.index is not datetime_series.index
 
 
 def test_align_multiindex():
@@ -155,55 +153,55 @@ def test_align_multiindex():
     tm.assert_series_equal(expr, res2l)
 
 
-def test_reindex(test_data):
-    identity = test_data.series.reindex(test_data.series.index)
+def test_reindex(datetime_series, string_series):
+    identity = string_series.reindex(string_series.index)
 
     # __array_interface__ is not defined for older numpies
     # and on some pythons
     try:
-        assert np.may_share_memory(test_data.series.index, identity.index)
+        assert np.may_share_memory(string_series.index, identity.index)
     except AttributeError:
         pass
 
-    assert identity.index.is_(test_data.series.index)
-    assert identity.index.identical(test_data.series.index)
+    assert identity.index.is_(string_series.index)
+    assert identity.index.identical(string_series.index)
 
-    subIndex = test_data.series.index[10:20]
-    subSeries = test_data.series.reindex(subIndex)
+    subIndex = string_series.index[10:20]
+    subSeries = string_series.reindex(subIndex)
 
     for idx, val in subSeries.items():
-        assert val == test_data.series[idx]
+        assert val == string_series[idx]
 
-    subIndex2 = test_data.ts.index[10:20]
-    subTS = test_data.ts.reindex(subIndex2)
+    subIndex2 = datetime_series.index[10:20]
+    subTS = datetime_series.reindex(subIndex2)
 
     for idx, val in subTS.items():
-        assert val == test_data.ts[idx]
-    stuffSeries = test_data.ts.reindex(subIndex)
+        assert val == datetime_series[idx]
+    stuffSeries = datetime_series.reindex(subIndex)
 
     assert np.isnan(stuffSeries).all()
 
     # This is extremely important for the Cython code to not screw up
-    nonContigIndex = test_data.ts.index[::2]
-    subNonContig = test_data.ts.reindex(nonContigIndex)
+    nonContigIndex = datetime_series.index[::2]
+    subNonContig = datetime_series.reindex(nonContigIndex)
     for idx, val in subNonContig.items():
-        assert val == test_data.ts[idx]
+        assert val == datetime_series[idx]
 
     # return a copy the same index here
-    result = test_data.ts.reindex()
-    assert not (result is test_data.ts)
+    result = datetime_series.reindex()
+    assert not (result is datetime_series)
 
 
 def test_reindex_nan():
-    ts = Series([2, 3, 5, 7], index=[1, 4, nan, 8])
+    ts = Series([2, 3, 5, 7], index=[1, 4, np.nan, 8])
 
-    i, j = [nan, 1, nan, 8, 4, nan], [2, 0, 2, 3, 1, 2]
-    assert_series_equal(ts.reindex(i), ts.iloc[j])
+    i, j = [np.nan, 1, np.nan, 8, 4, np.nan], [2, 0, 2, 3, 1, 2]
+    tm.assert_series_equal(ts.reindex(i), ts.iloc[j])
 
     ts.index = ts.index.astype("object")
 
     # reindex coerces index.dtype to float, loc/iloc doesn't
-    assert_series_equal(ts.reindex(i), ts.iloc[j], check_index_type=False)
+    tm.assert_series_equal(ts.reindex(i), ts.iloc[j], check_index_type=False)
 
 
 def test_reindex_series_add_nat():
@@ -230,25 +228,26 @@ def test_reindex_with_datetimes():
     tm.assert_series_equal(result, expected)
 
 
-def test_reindex_corner(test_data):
+def test_reindex_corner(datetime_series):
     # (don't forget to fix this) I think it's fixed
-    test_data.empty.reindex(test_data.ts.index, method="pad")  # it works
+    empty = Series(dtype=object)
+    empty.reindex(datetime_series.index, method="pad")  # it works
 
     # corner case: pad empty series
-    reindexed = test_data.empty.reindex(test_data.ts.index, method="pad")
+    reindexed = empty.reindex(datetime_series.index, method="pad")
 
     # pass non-Index
-    reindexed = test_data.ts.reindex(list(test_data.ts.index))
-    assert_series_equal(test_data.ts, reindexed)
+    reindexed = datetime_series.reindex(list(datetime_series.index))
+    tm.assert_series_equal(datetime_series, reindexed)
 
     # bad fill method
-    ts = test_data.ts[::2]
+    ts = datetime_series[::2]
     msg = (
         r"Invalid fill method\. Expecting pad \(ffill\), backfill"
         r" \(bfill\) or nearest\. Got foo"
     )
     with pytest.raises(ValueError, match=msg):
-        ts.reindex(test_data.ts.index, method="foo")
+        ts.reindex(datetime_series.index, method="foo")
 
 
 def test_reindex_pad():
@@ -257,10 +256,10 @@ def test_reindex_pad():
 
     reindexed = s2.reindex(s.index, method="pad")
     reindexed2 = s2.reindex(s.index, method="ffill")
-    assert_series_equal(reindexed, reindexed2)
+    tm.assert_series_equal(reindexed, reindexed2)
 
     expected = Series([0, 0, 2, 2, 4, 4, 6, 6, 8, 8], index=np.arange(10))
-    assert_series_equal(reindexed, expected)
+    tm.assert_series_equal(reindexed, expected)
 
     # GH4604
     s = Series([1, 2, 3, 4, 5], index=["a", "b", "c", "d", "e"])
@@ -269,27 +268,27 @@ def test_reindex_pad():
 
     # this changes dtype because the ffill happens after
     result = s.reindex(new_index).ffill()
-    assert_series_equal(result, expected.astype("float64"))
+    tm.assert_series_equal(result, expected.astype("float64"))
 
     result = s.reindex(new_index).ffill(downcast="infer")
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     expected = Series([1, 5, 3, 5], index=new_index)
     result = s.reindex(new_index, method="ffill")
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     # inference of new dtype
     s = Series([True, False, False, True], index=list("abcd"))
     new_index = "agc"
     result = s.reindex(list(new_index)).ffill()
     expected = Series([True, True, False], index=list(new_index))
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     # GH4618 shifted series downcasting
     s = Series(False, index=range(0, 5))
     result = s.shift(1).fillna(method="bfill")
     expected = Series(False, index=range(0, 5))
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_reindex_nearest():
@@ -297,35 +296,35 @@ def test_reindex_nearest():
     target = [0.1, 0.9, 1.5, 2.0]
     actual = s.reindex(target, method="nearest")
     expected = Series(np.around(target).astype("int64"), target)
-    assert_series_equal(expected, actual)
+    tm.assert_series_equal(expected, actual)
 
     actual = s.reindex_like(actual, method="nearest")
-    assert_series_equal(expected, actual)
+    tm.assert_series_equal(expected, actual)
 
     actual = s.reindex_like(actual, method="nearest", tolerance=1)
-    assert_series_equal(expected, actual)
+    tm.assert_series_equal(expected, actual)
     actual = s.reindex_like(actual, method="nearest", tolerance=[1, 2, 3, 4])
-    assert_series_equal(expected, actual)
+    tm.assert_series_equal(expected, actual)
 
     actual = s.reindex(target, method="nearest", tolerance=0.2)
     expected = Series([0, 1, np.nan, 2], target)
-    assert_series_equal(expected, actual)
+    tm.assert_series_equal(expected, actual)
 
     actual = s.reindex(target, method="nearest", tolerance=[0.3, 0.01, 0.4, 3])
     expected = Series([0, np.nan, np.nan, 2], target)
-    assert_series_equal(expected, actual)
+    tm.assert_series_equal(expected, actual)
 
 
 def test_reindex_backfill():
     pass
 
 
-def test_reindex_int(test_data):
-    ts = test_data.ts[::2]
+def test_reindex_int(datetime_series):
+    ts = datetime_series[::2]
     int_ts = Series(np.zeros(len(ts), dtype=int), index=ts.index)
 
     # this should work fine
-    reindexed_int = int_ts.reindex(test_data.ts.index)
+    reindexed_int = int_ts.reindex(datetime_series.index)
 
     # if NaNs introduced
     assert reindexed_int.dtype == np.float_
@@ -335,13 +334,13 @@ def test_reindex_int(test_data):
     assert reindexed_int.dtype == np.int_
 
 
-def test_reindex_bool(test_data):
+def test_reindex_bool(datetime_series):
     # A series other than float, int, string, or object
-    ts = test_data.ts[::2]
+    ts = datetime_series[::2]
     bool_ts = Series(np.zeros(len(ts), dtype=bool), index=ts.index)
 
     # this should work fine
-    reindexed_bool = bool_ts.reindex(test_data.ts.index)
+    reindexed_bool = bool_ts.reindex(datetime_series.index)
 
     # if NaNs introduced
     assert reindexed_bool.dtype == np.object_
@@ -351,11 +350,11 @@ def test_reindex_bool(test_data):
     assert reindexed_bool.dtype == np.bool_
 
 
-def test_reindex_bool_pad(test_data):
+def test_reindex_bool_pad(datetime_series):
     # fail
-    ts = test_data.ts[5:]
+    ts = datetime_series[5:]
     bool_ts = Series(np.zeros(len(ts), dtype=bool), index=ts.index)
-    filled_bool = bool_ts.reindex(test_data.ts.index, method="pad")
+    filled_bool = bool_ts.reindex(datetime_series.index, method="pad")
     assert isna(filled_bool[:5]).all()
 
 
@@ -383,10 +382,10 @@ def test_reindex_categorical():
     tm.assert_series_equal(result, expected)
 
 
-def test_reindex_like(test_data):
-    other = test_data.ts[::2]
-    assert_series_equal(
-        test_data.ts.reindex(other.index), test_data.ts.reindex_like(other)
+def test_reindex_like(datetime_series):
+    other = datetime_series[::2]
+    tm.assert_series_equal(
+        datetime_series.reindex(other.index), datetime_series.reindex_like(other)
     )
 
     # GH 7179
@@ -399,7 +398,7 @@ def test_reindex_like(test_data):
 
     result = series1.reindex_like(series2, method="pad")
     expected = Series([5, np.nan], index=[day1, day3])
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_reindex_fill_value():
@@ -408,11 +407,11 @@ def test_reindex_fill_value():
     floats = Series([1.0, 2.0, 3.0])
     result = floats.reindex([1, 2, 3])
     expected = Series([2.0, 3.0, np.nan], index=[1, 2, 3])
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     result = floats.reindex([1, 2, 3], fill_value=0)
     expected = Series([2.0, 3.0, 0], index=[1, 2, 3])
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     # -----------------------------------------------------------
     # ints
@@ -420,13 +419,13 @@ def test_reindex_fill_value():
 
     result = ints.reindex([1, 2, 3])
     expected = Series([2.0, 3.0, np.nan], index=[1, 2, 3])
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     # don't upcast
     result = ints.reindex([1, 2, 3], fill_value=0)
     expected = Series([2, 3, 0], index=[1, 2, 3])
     assert issubclass(result.dtype.type, np.integer)
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     # -----------------------------------------------------------
     # objects
@@ -434,11 +433,11 @@ def test_reindex_fill_value():
 
     result = objects.reindex([1, 2, 3])
     expected = Series([2, 3, np.nan], index=[1, 2, 3], dtype=object)
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     result = objects.reindex([1, 2, 3], fill_value="foo")
     expected = Series([2, 3, "foo"], index=[1, 2, 3], dtype=object)
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     # ------------------------------------------------------------
     # bools
@@ -446,11 +445,11 @@ def test_reindex_fill_value():
 
     result = bools.reindex([1, 2, 3])
     expected = Series([False, True, np.nan], index=[1, 2, 3], dtype=object)
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     result = bools.reindex([1, 2, 3], fill_value=False)
     expected = Series([False, True, False], index=[1, 2, 3])
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_reindex_datetimeindexes_tz_naive_and_aware():
@@ -474,7 +473,7 @@ def test_rename():
     s = Series(range(1, 6), index=pd.Index(range(2, 7), name="IntIndex"))
     result = s.rename(str)
     expected = s.rename(lambda i: str(i))
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     assert result.name == expected.name
 
@@ -540,8 +539,9 @@ def test_drop_with_ignore_errors():
 def test_drop_empty_list(index, drop_labels):
     # GH 21494
     expected_index = [i for i in index if i not in drop_labels]
-    series = pd.Series(index=index).drop(drop_labels)
-    tm.assert_series_equal(series, pd.Series(index=expected_index))
+    series = pd.Series(index=index, dtype=object).drop(drop_labels)
+    expected = pd.Series(index=expected_index, dtype=object)
+    tm.assert_series_equal(series, expected)
 
 
 @pytest.mark.parametrize(
@@ -555,4 +555,5 @@ def test_drop_empty_list(index, drop_labels):
 def test_drop_non_empty_list(data, index, drop_labels):
     # GH 21494 and GH 16877
     with pytest.raises(KeyError, match="not found in axis"):
-        pd.Series(data=data, index=index).drop(drop_labels)
+        dtype = object if data is None else None
+        pd.Series(data=data, index=index, dtype=dtype).drop(drop_labels)

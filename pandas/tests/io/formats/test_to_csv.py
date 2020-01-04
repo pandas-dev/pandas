@@ -1,3 +1,4 @@
+import io
 import os
 import sys
 
@@ -6,12 +7,12 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, compat
-from pandas.util import testing as tm
+import pandas._testing as tm
 
 
 class TestToCSV:
     @pytest.mark.xfail(
-        (3, 6, 5) > sys.version_info >= (3, 5),
+        (3, 6, 5) > sys.version_info,
         reason=("Python csv library bug (see https://bugs.python.org/issue32255)"),
     )
     def test_to_csv_with_single_column(self):
@@ -204,6 +205,14 @@ $1$,$2$
         assert df.set_index("a").to_csv(na_rep="_") == expected
         assert df.set_index(["a", "b"]).to_csv(na_rep="_") == expected
 
+        # GH 29975
+        # Make sure full na_rep shows up when a dtype is provided
+        csv = pd.Series(["a", pd.NA, "c"]).to_csv(na_rep="ZZZZZ")
+        expected = tm.convert_rows_list_to_csv_str([",0", "0,a", "1,ZZZZZ", "2,c"])
+        assert expected == csv
+        csv = pd.Series(["a", pd.NA, "c"], dtype="string").to_csv(na_rep="ZZZZZ")
+        assert expected == csv
+
     def test_to_csv_date_format(self):
         # GH 10209
         df_sec = DataFrame({"A": pd.date_range("20130101", periods=5, freq="s")})
@@ -340,7 +349,6 @@ $1$,$2$
             with open(path, "r") as f:
                 assert f.read() == expected_ascii
 
-    @pytest.mark.xfail(strict=False)
     def test_to_csv_string_array_utf8(self):
         # GH 10813
         str_array = [{"names": ["foo", "bar"]}, {"names": ["baz", "qux"]}]
@@ -377,16 +385,14 @@ $1$,$2$
                 assert f.read() == expected_noarg
         with tm.ensure_clean("lf_test.csv") as path:
             # case 2: LF as line terminator
-            expected_lf = b"int,str_lf\n" b"1,abc\n" b'2,"d\nef"\n' b'3,"g\nh\n\ni"\n'
+            expected_lf = b'int,str_lf\n1,abc\n2,"d\nef"\n3,"g\nh\n\ni"\n'
             df.to_csv(path, line_terminator="\n", index=False)
             with open(path, "rb") as f:
                 assert f.read() == expected_lf
         with tm.ensure_clean("lf_test.csv") as path:
             # case 3: CRLF as line terminator
             # 'line_terminator' should not change inner element
-            expected_crlf = (
-                b"int,str_lf\r\n" b"1,abc\r\n" b'2,"d\nef"\r\n' b'3,"g\nh\n\ni"\r\n'
-            )
+            expected_crlf = b'int,str_lf\r\n1,abc\r\n2,"d\nef"\r\n3,"g\nh\n\ni"\r\n'
             df.to_csv(path, line_terminator="\r\n", index=False)
             with open(path, "rb") as f:
                 assert f.read() == expected_crlf
@@ -413,9 +419,7 @@ $1$,$2$
                 assert f.read() == expected_noarg
         with tm.ensure_clean("crlf_test.csv") as path:
             # case 2: LF as line terminator
-            expected_lf = (
-                b"int,str_crlf\n" b"1,abc\n" b'2,"d\r\nef"\n' b'3,"g\r\nh\r\n\r\ni"\n'
-            )
+            expected_lf = b'int,str_crlf\n1,abc\n2,"d\r\nef"\n3,"g\r\nh\r\n\r\ni"\n'
             df.to_csv(path, line_terminator="\n", index=False)
             with open(path, "rb") as f:
                 assert f.read() == expected_lf
@@ -491,10 +495,7 @@ z
         compression = compression_only
 
         if compression == "zip":
-            pytest.skip(
-                "{compression} is not supported "
-                "for to_csv".format(compression=compression)
-            )
+            pytest.skip(f"{compression} is not supported for to_csv")
 
         # We'll complete file extension subsequently.
         filename = "test."
@@ -515,3 +516,70 @@ z
             df.to_csv(path, compression=to_compression)
             result = pd.read_csv(path, index_col=0, compression=read_compression)
             tm.assert_frame_equal(result, df)
+
+    def test_to_csv_compression_dict(self, compression_only):
+        # GH 26023
+        method = compression_only
+        df = DataFrame({"ABC": [1]})
+        filename = "to_csv_compress_as_dict."
+        filename += "gz" if method == "gzip" else method
+        with tm.ensure_clean(filename) as path:
+            df.to_csv(path, compression={"method": method})
+            read_df = pd.read_csv(path, index_col=0)
+            tm.assert_frame_equal(read_df, df)
+
+    def test_to_csv_compression_dict_no_method_raises(self):
+        # GH 26023
+        df = DataFrame({"ABC": [1]})
+        compression = {"some_option": True}
+        msg = "must have key 'method'"
+
+        with tm.ensure_clean("out.zip") as path:
+            with pytest.raises(ValueError, match=msg):
+                df.to_csv(path, compression=compression)
+
+    @pytest.mark.parametrize("compression", ["zip", "infer"])
+    @pytest.mark.parametrize(
+        "archive_name", [None, "test_to_csv.csv", "test_to_csv.zip"]
+    )
+    def test_to_csv_zip_arguments(self, compression, archive_name):
+        # GH 26023
+        from zipfile import ZipFile
+
+        df = DataFrame({"ABC": [1]})
+        with tm.ensure_clean("to_csv_archive_name.zip") as path:
+            df.to_csv(
+                path, compression={"method": compression, "archive_name": archive_name}
+            )
+            zp = ZipFile(path)
+            expected_arcname = path if archive_name is None else archive_name
+            expected_arcname = os.path.basename(expected_arcname)
+            assert len(zp.filelist) == 1
+            archived_file = os.path.basename(zp.filelist[0].filename)
+            assert archived_file == expected_arcname
+
+    @pytest.mark.parametrize("df_new_type", ["Int64"])
+    def test_to_csv_na_rep_long_string(self, df_new_type):
+        # see gh-25099
+        df = pd.DataFrame({"c": [float("nan")] * 3})
+        df = df.astype(df_new_type)
+        expected_rows = ["c", "mynull", "mynull", "mynull"]
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+
+        result = df.to_csv(index=False, na_rep="mynull", encoding="ascii")
+
+        assert expected == result
+
+    def test_to_csv_timedelta_precision(self):
+        # GH 6783
+        s = pd.Series([1, 1]).astype("timedelta64[ns]")
+        buf = io.StringIO()
+        s.to_csv(buf)
+        result = buf.getvalue()
+        expected_rows = [
+            ",0",
+            "0,0 days 00:00:00.000000001",
+            "1,0 days 00:00:00.000000001",
+        ]
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+        assert result == expected

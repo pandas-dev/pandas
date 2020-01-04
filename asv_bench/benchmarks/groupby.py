@@ -13,8 +13,7 @@ from pandas import (
     date_range,
     period_range,
 )
-import pandas.util.testing as tm
-
+import pandas._testing as tm
 
 method_blacklist = {
     "object": {
@@ -626,4 +625,4 @@ class TransformNaN:
         self.df_nans.groupby("key").transform("first")
 
 
-from .pandas_vb_common import setup  # noqa: F401
+from .pandas_vb_common import setup  # noqa: F401 isort:skip
