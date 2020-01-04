@@ -1,15 +1,10 @@
+import warnings
+
 import numpy as np
 import pytest
 
 from pandas import DataFrame, Series, Timestamp, date_range, to_datetime
-
 import pandas._testing as tm
-
-import pandas.util.testing as tm
-import warnings
-
-warnings.simplefilter("error")
-
 
 
 @pytest.fixture
