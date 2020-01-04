@@ -1444,7 +1444,7 @@ class Categorical(ExtensionArray, PandasObject):
         Series.value_counts
         """
 
-        code = self._values_for_factorize()[0]
+        code = self._codes
         mask = 0 <= code
         clean = mask.all()
 
