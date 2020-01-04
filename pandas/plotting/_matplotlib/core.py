@@ -113,6 +113,8 @@ class MPLPlot:
 
         self.data = data
         self.by = by
+        if isinstance(column, str):
+            column = [column]
         self.column = column
 
         self.kind = kind
@@ -403,16 +405,12 @@ class MPLPlot:
             self.subplots = True
             grouped = data.groupby(self.by)
 
-            if self.column is not None:
-                grouped = grouped[self.column]
-
             if len(self.column) == 1:
                 # recreate data according to groupby object
                 data_dict = {}
                 for key, group in grouped:
-                    data_dict[key] = group
+                    data_dict[key] = group[self.column[0]]
                 data = DataFrame(data_dict)
-
             else:
                 data_list = []
                 for key, group in grouped:
