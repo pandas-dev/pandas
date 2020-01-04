@@ -36,6 +36,7 @@ moto
 pytest>=5.0.1
 pytest-cov
 pytest-xdist>=1.21
+pytest-asyncio
 seaborn
 statsmodels
 ipywidgets

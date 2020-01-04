@@ -32,6 +32,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import is_platform_32bit, is_platform_windows
+from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import _np_version
 
 from pandas.core.computation.expressions import _NUMEXPR_INSTALLED, _USE_NUMEXPR
@@ -251,3 +252,13 @@ def check_file_leaks(func) -> Callable:
         assert flist2 == flist
 
     return new_func
+
+
+def async_mark():
+    try:
+        import_optional_dependency("pytest_asyncio")
+        async_mark = pytest.mark.asyncio
+    except ImportError:
+        async_mark = pytest.mark.skip(reason="Missing dependency pytest-asyncio")
+
+    return async_mark
