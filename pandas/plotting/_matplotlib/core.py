@@ -405,21 +405,14 @@ class MPLPlot:
             self.subplots = True
             grouped = data.groupby(self.by)
 
-            if len(self.column) == 1:
-                # recreate data according to groupby object
-                data_dict = {}
-                for key, group in grouped:
-                    data_dict[key] = group[self.column[0]]
-                data = DataFrame(data_dict)
-            else:
-                data_list = []
-                for key, group in grouped:
-                    columns = MultiIndex.from_product([[key], self.column])
-                    group = group[self.column]
-                    group.columns = columns
-                    data_list.append(group)
+            data_list = []
+            for key, group in grouped:
+                columns = MultiIndex.from_product([[key], self.column])
+                group = group[self.column]
+                group.columns = columns
+                data_list.append(group)
 
-                data = concat(data_list, axis=1)
+            data = concat(data_list, axis=1)
 
         # GH16953, _convert is needed as fallback, for ``Series``
         # with ``dtype == object``
