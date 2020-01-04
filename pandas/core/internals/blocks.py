@@ -531,9 +531,7 @@ class Block(PandasObject):
 
         return self.split_and_operate(None, f, False)
 
-    def astype(
-        self, dtype, copy: bool = False, errors: str = "raise"
-    ):
+    def astype(self, dtype, copy: bool = False, errors: str = "raise"):
         return self._astype(dtype, copy=copy, errors=errors)
 
     def _astype(self, dtype, copy=False, errors="raise"):

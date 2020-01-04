@@ -5499,7 +5499,7 @@ class NDFrame(PandasObject, SelectionMixin):
         }
 
     def astype(
-            self: FrameOrSeries, dtype, copy: bool_t = True, errors: str = "raise"
+        self: FrameOrSeries, dtype, copy: bool_t = True, errors: str = "raise"
     ) -> FrameOrSeries:
         """
         Cast a pandas object to a specified dtype ``dtype``.
@@ -5627,11 +5627,7 @@ class NDFrame(PandasObject, SelectionMixin):
             for col_name, col in self.items():
                 if col_name in dtype:
                     results.append(
-                        col.astype(
-                            dtype=dtype[col_name],
-                            copy=copy,
-                            errors=errors,
-                        )
+                        col.astype(dtype=dtype[col_name], copy=copy, errors=errors,)
                     )
                 else:
                     results.append(col.copy() if copy else col)
@@ -5646,9 +5642,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         else:
             # else, only a single dtype is given
-            new_data = self._data.astype(
-                dtype=dtype, copy=copy, errors=errors
-            )
+            new_data = self._data.astype(dtype=dtype, copy=copy, errors=errors)
             return self._constructor(new_data).__finalize__(self)
 
         # GH 19920: retain column metadata after concat

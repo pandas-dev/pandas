@@ -121,8 +121,9 @@ class TestSeriesDtypes:
     @pytest.mark.parametrize("dtype", [str, np.str_])
     def test_astype_str_map(self, dtype):
         # see gh-4405
-        series = Series([string.digits * 10, tm.rands(63),
-                         tm.rands(64), tm.rands(1000)])
+        series = Series(
+            [string.digits * 10, tm.rands(63), tm.rands(64), tm.rands(1000)]
+        )
         result = series.astype(dtype)
         expected = series.map(str)
         tm.assert_series_equal(result, expected)
