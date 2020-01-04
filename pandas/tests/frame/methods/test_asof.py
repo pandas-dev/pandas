@@ -2,7 +2,14 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame, Series, Timestamp, date_range, to_datetime
+
 import pandas._testing as tm
+
+import pandas.util.testing as tm
+import warnings
+
+warnings.simplefilter("error")
+
 
 
 @pytest.fixture
@@ -24,14 +31,18 @@ class TestFrameAsof:
         df.loc[15:30, "A"] = np.nan
         dates = date_range("1/1/1990", periods=N * 3, freq="25s")
 
-        result = df.asof(dates)
-        assert result.notna().all(1).all()
-        lb = df.index[14]
-        ub = df.index[30]
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", FutureWarning)
 
-        dates = list(dates)
-        result = df.asof(dates)
-        assert result.notna().all(1).all()
+            result = df.asof(dates)
+            assert result.notna().all(1).all()
+            lb = df.index[14]
+            ub = df.index[30]
+
+            dates = list(dates)
+
+            result = df.asof(dates)
+            assert result.notna().all(1).all()
 
         mask = (result.index >= lb) & (result.index < ub)
         rs = result[mask]
@@ -43,40 +54,46 @@ class TestFrameAsof:
         df.loc[4:8, "A"] = np.nan
         dates = date_range("1/1/1990", periods=N * 3, freq="25s")
 
-        # with a subset of A should be the same
-        result = df.asof(dates, subset="A")
-        expected = df.asof(dates)
-        tm.assert_frame_equal(result, expected)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", FutureWarning)
 
-        # same with A/B
-        result = df.asof(dates, subset=["A", "B"])
-        expected = df.asof(dates)
-        tm.assert_frame_equal(result, expected)
+            # with a subset of A should be the same
+            result = df.asof(dates, subset="A")
+            expected = df.asof(dates)
+            tm.assert_frame_equal(result, expected)
 
-        # B gives df.asof
-        result = df.asof(dates, subset="B")
-        expected = df.resample("25s", closed="right").ffill().reindex(dates)
-        expected.iloc[20:] = 9
+            # same with A/B
+            result = df.asof(dates, subset=["A", "B"])
+            expected = df.asof(dates)
+            tm.assert_frame_equal(result, expected)
 
-        tm.assert_frame_equal(result, expected)
+            # B gives df.asof
+            result = df.asof(dates, subset="B")
+            expected = df.resample("25s", closed="right").ffill().reindex(dates)
+            expected.iloc[20:] = 9
+
+            tm.assert_frame_equal(result, expected)
 
     def test_missing(self, date_range_frame):
         # GH 15118
         # no match found - `where` value before earliest date in index
         N = 10
         df = date_range_frame.iloc[:N].copy()
-        result = df.asof("1989-12-31")
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", FutureWarning)
 
-        expected = Series(
-            index=["A", "B"], name=Timestamp("1989-12-31"), dtype=np.float64
-        )
-        tm.assert_series_equal(result, expected)
+            result = df.asof("1989-12-31")
 
-        result = df.asof(to_datetime(["1989-12-31"]))
-        expected = DataFrame(
-            index=to_datetime(["1989-12-31"]), columns=["A", "B"], dtype="float64"
-        )
-        tm.assert_frame_equal(result, expected)
+            expected = Series(
+                index=["A", "B"], name=Timestamp("1989-12-31"), dtype=np.float64
+            )
+            tm.assert_series_equal(result, expected)
+
+            result = df.asof(to_datetime(["1989-12-31"]))
+            expected = DataFrame(
+                index=to_datetime(["1989-12-31"]), columns=["A", "B"], dtype="float64"
+            )
+            tm.assert_frame_equal(result, expected)
 
     def test_all_nans(self, date_range_frame):
         # GH 15713
@@ -132,5 +149,8 @@ class TestFrameAsof:
                 Timestamp("2018-01-01 22:35:10.550+00:00"),
             ],
         )
-        result = df.asof(stamp)
-        tm.assert_series_equal(result, expected)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", FutureWarning)
+
+            result = df.asof(stamp)
+            tm.assert_series_equal(result, expected)
