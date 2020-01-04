@@ -29,6 +29,7 @@ from pandas.core.arrays.categorical import Categorical, _recode_for_categories, 
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
+from pandas.core.indexes.extension import make_wrapped_comparison_op
 import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name
 
@@ -134,7 +135,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
     Notes
     -----
     See the `user guide
-    <http://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html#categoricalindex>`_
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html#categoricalindex>`_
     for more.
 
     Examples
@@ -728,13 +729,13 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         nv.validate_take(tuple(), kwargs)
         indices = ensure_platform_int(indices)
         taken = self._assert_take_fillable(
-            self.codes,
+            self._data,
             indices,
             allow_fill=allow_fill,
             fill_value=fill_value,
-            na_value=-1,
+            na_value=self._data.dtype.na_value,
         )
-        return self._create_from_codes(taken)
+        return self._shallow_copy(taken)
 
     take_nd = take
 
@@ -876,14 +877,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         def _make_compare(op):
             opname = f"__{op.__name__}__"
 
-            def _evaluate_compare(self, other):
-                with np.errstate(all="ignore"):
-                    result = op(self.array, other)
-                if isinstance(result, ABCSeries):
-                    # Dispatch to pd.Categorical returned NotImplemented
-                    # and we got a Series back; down-cast to ndarray
-                    result = result._values
-                return result
+            _evaluate_compare = make_wrapped_comparison_op(opname)
 
             return compat.set_function_name(_evaluate_compare, opname, cls)
 
