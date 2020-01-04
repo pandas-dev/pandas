@@ -539,11 +539,9 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
         data = self._coerce_to_ndarray(na_value=na_value)
         return astype_nansafe(data, dtype, copy=False)
 
-    def value_counts(self, dropna=True):
+    def _value_counts(self, dropna=True):
         """
-        Returns a Series containing counts of each category.
-
-        Every category will have an entry, even those with a count of 0.
+        Return a tuple describing the counts for each value.
 
         Parameters
         ----------
@@ -552,15 +550,14 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
 
         Returns
         -------
-        counts : Series
+        index : BooleanArray
+        values : ndarray[int64]
 
         See Also
         --------
         Series.value_counts
-
         """
-
-        from pandas import Index, Series
+        from pandas import Index
 
         # compute counts on the data with no nans
         data = self._data[~self._mask]
@@ -582,8 +579,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
             index = Index(
                 np.concatenate([index, np.array([np.nan], dtype=object)]), dtype=object
             )
-
-        return Series(array, index=index)
+        return index, array
 
     def _values_for_argsort(self) -> np.ndarray:
         """

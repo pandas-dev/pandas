@@ -34,7 +34,7 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries, ABCSparseArray
+from pandas.core.dtypes.generic import ABCSeries, ABCSparseArray
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 import pandas.core.algorithms as algos
@@ -696,20 +696,19 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         uniques = SparseArray(uniques, dtype=self.dtype)
         return codes, uniques
 
-    def value_counts(self, dropna=True):
+    def _value_counts(self, dropna=True):
         """
-        Returns a Series containing counts of unique values.
+        Return an array of unique values and an array of their counts.
 
         Parameters
         ----------
-        dropna : boolean, default True
-            Don't include counts of NaN, even if NaN is in sp_values.
+        dropna : bool, default True
 
         Returns
         -------
-        counts : Series
+        ndarray
+        ndarray[int64]
         """
-        from pandas import Index, Series
 
         keys, counts = algos._value_counts_arraylike(self.sp_values, dropna=dropna)
         fcounts = self.sp_index.ngaps
@@ -728,10 +727,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                     keys = np.insert(keys, 0, self.fill_value)
                     counts = np.insert(counts, 0, fcounts)
 
-        if not isinstance(keys, ABCIndexClass):
-            keys = Index(keys)
-        result = Series(counts, index=keys)
-        return result
+        return keys, counts
 
     # --------
     # Indexing

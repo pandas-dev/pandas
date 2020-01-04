@@ -800,6 +800,14 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         return self._shallow_copy(left_take, right_take)
 
+    def _value_counts(self, dropna=True):
+        # TODO: implement this is a non-naive way!
+
+        arg = self._values_for_factorize()[0]
+        result = value_counts(arg, dropna=dropna)
+        return result.index, result.values
+
+    '''
     def value_counts(self, dropna=True):
         """
         Returns a Series containing counts of each interval.
@@ -819,6 +827,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         # TODO: implement this is a non-naive way!
         return value_counts(np.asarray(self), dropna=dropna)
+    '''
 
     # Formatting
 

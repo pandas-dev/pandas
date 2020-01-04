@@ -679,33 +679,33 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         values = self._data.repeat(repeats)
         return type(self)(values.view("i8"), dtype=self.dtype)
 
-    def value_counts(self, dropna=False):
+    def _value_counts(self, dropna: bool = False):
         """
-        Return a Series containing counts of unique values.
+        Return an array of unique values and an array of their counts.
 
         Parameters
         ----------
-        dropna : bool, default True
-            Don't include counts of NaT values.
+        dropna : bool, default False
 
         Returns
         -------
-        Series
+        ExtensionArray
+        ndarray[int64]
         """
-        from pandas import Series, Index
-
         if dropna:
-            values = self[~self.isna()]._data
+            values = self[~self.isna()]
         else:
-            values = self._data
+            values = self
 
-        cls = type(self)
+        arg = values._values_for_factorize()[0]
 
-        result = value_counts(values, sort=False, dropna=dropna)
-        index = Index(
-            cls(result.index.view("i8"), dtype=self.dtype), name=result.index.name
-        )
-        return Series(result.values, index=index, name=result.name)
+        result = value_counts(arg, sort=False, dropna=False)
+
+        freq = self.freq if is_period_dtype(self) else None
+        new_index = type(self)(result.index, dtype=self.dtype, freq=freq)
+        counts = result.values
+
+        return new_index, counts
 
     def map(self, mapper):
         # TODO(GH-23179): Add ExtensionArray.map

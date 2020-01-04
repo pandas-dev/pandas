@@ -705,8 +705,9 @@ def value_counts(
         if is_extension_array_dtype(values):
 
             # handle Categorical and sparse,
-            result = Series(values)._values.value_counts(dropna=dropna)
-            result.name = name
+            arr = extract_array(values)
+            index, counts = arr._value_counts(dropna=dropna)
+            result = Series(counts, index=index, name=name)
             counts = result.values
 
         else:

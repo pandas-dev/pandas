@@ -1423,9 +1423,9 @@ class Categorical(ExtensionArray, PandasObject):
 
         return result
 
-    def value_counts(self, dropna=True):
+    def _value_counts(self, dropna=True):
         """
-        Return a Series containing counts of each category.
+        Return a tuple describing the counts of each category.
 
         Every category will have an entry, even those with a count of 0.
 
@@ -1436,17 +1436,21 @@ class Categorical(ExtensionArray, PandasObject):
 
         Returns
         -------
-        counts : Series
+        index : Categorical
+        values : ndarray[int64]
 
         See Also
         --------
         Series.value_counts
         """
-        from pandas import Series, CategoricalIndex
 
-        code, cat = self._codes, self.categories
-        ncat, mask = len(cat), 0 <= code
-        ix, clean = np.arange(ncat), mask.all()
+        code = self._values_for_factorize()[0]
+        mask = 0 <= code
+        clean = mask.all()
+
+        cat = self.categories
+        ncat = len(cat)
+        ix = np.arange(ncat)
 
         if dropna or clean:
             obs = code if clean else code[mask]
@@ -1455,9 +1459,8 @@ class Categorical(ExtensionArray, PandasObject):
             count = np.bincount(np.where(mask, code, ncat))
             ix = np.append(ix, -1)
 
-        ix = self._constructor(ix, dtype=self.dtype, fastpath=True)
-
-        return Series(count, index=CategoricalIndex(ix), dtype="int64")
+        index = self._constructor(ix, dtype=self.dtype, fastpath=True)
+        return index, count
 
     def _internal_get_values(self):
         """
@@ -2323,7 +2326,11 @@ class Categorical(ExtensionArray, PandasObject):
         description: `DataFrame`
             A dataframe with frequency and counts by category.
         """
-        counts = self.value_counts(dropna=False)
+        from pandas import Series
+
+        index, values = self._value_counts(dropna=False)
+        counts = Series(values, index=index)
+
         freqs = counts / float(counts.sum())
 
         from pandas.core.reshape.concat import concat

@@ -578,11 +578,9 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         """
         return self._data
 
-    def value_counts(self, dropna=True):
+    def _value_counts(self, dropna=True):
         """
-        Returns a Series containing counts of each category.
-
-        Every category will have an entry, even those with a count of 0.
+        Return a tuple describing the counts for each value.
 
         Parameters
         ----------
@@ -591,15 +589,15 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         Returns
         -------
-        counts : Series
+        index : IntegerArray
+        values : ndarray[int64]
 
         See Also
         --------
         Series.value_counts
-
         """
 
-        from pandas import Index, Series
+        from pandas import Index
 
         # compute counts on the data with no nans
         data = self._data[~self._mask]
@@ -624,8 +622,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
                 ),
                 dtype=object,
             )
-
-        return Series(array, index=index)
+        return index, array
 
     def _values_for_factorize(self) -> Tuple[np.ndarray, Any]:
         # TODO: https://github.com/pandas-dev/pandas/issues/30037

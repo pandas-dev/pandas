@@ -261,10 +261,11 @@ class StringArray(PandasArray):
     def _reduce(self, name, skipna=True, **kwargs):
         raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
 
-    def value_counts(self, dropna=False):
+    def _value_counts(self, dropna=False):
         from pandas import value_counts
 
-        return value_counts(self._ndarray, dropna=dropna)
+        result = value_counts(self._ndarray, dropna=dropna)
+        return result.index, result.values
 
     # Overrride parent because we have different return types.
     @classmethod
