@@ -144,7 +144,7 @@ def _single_replace(self, to_replace, method, inplace, limit):
 bool_t = bool  # Need alias because NDFrame has def bool:
 
 
-class NDFrame(PandasObject, SelectionMixin):
+class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     """
     N-dimensional analogue of DataFrame. Store multi-dimensional in a
     size-mutable, labeled data structure
@@ -3190,7 +3190,10 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @classmethod
     def _create_indexer(cls, name: str, indexer) -> None:
-        """Create an indexer like _name in the class."""
+        """Create an indexer like _name in the class.
+
+        Kept for compatibility with geopandas. To be removed in the future. See GH27258
+        """
         if getattr(cls, name, None) is None:
             _indexer = functools.partial(indexer, name)
             setattr(cls, name, property(_indexer, doc=indexer.__doc__))
@@ -11185,8 +11188,3 @@ def _make_logical_function(
         )
 
     return set_function_name(logical_func, name, cls)
-
-
-# install the indexes
-for _name, _indexer in indexing.get_indexers_list():
-    NDFrame._create_indexer(_name, _indexer)
