@@ -1,7 +1,8 @@
 import pytest
 
+from pandas.util._test_decorators import async_mark
+
 import pandas._testing as tm
-from pandas.conftest import async_mark
 
 
 class TestCategoricalWarnings:

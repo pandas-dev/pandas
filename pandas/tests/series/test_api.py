@@ -5,6 +5,8 @@ import warnings
 import numpy as np
 import pytest
 
+from pandas.util._test_decorators import async_mark
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -20,7 +22,6 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.conftest import async_mark
 from pandas.core.arrays import PeriodArray
 
 import pandas.io.formats.printing as printing
