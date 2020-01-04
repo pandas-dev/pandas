@@ -9,14 +9,7 @@ from pandas._libs import NaT, Timestamp, index as libindex, lib, tslib as libts
 from pandas._libs.tslibs import ccalendar, fields, parsing, timezones
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
-from pandas.core.dtypes.common import (
-    _NS_DTYPE,
-    ensure_int64,
-    is_float,
-    is_integer,
-    is_list_like,
-    is_scalar,
-)
+from pandas.core.dtypes.common import _NS_DTYPE, is_float, is_integer, is_scalar
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
@@ -1022,34 +1015,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
             if isinstance(item, str):
                 return self.astype(object).insert(loc, item)
             raise TypeError("cannot insert DatetimeIndex with incompatible label")
-
-    def delete(self, loc):
-        """
-        Make a new DatetimeIndex with passed location(s) deleted.
-
-        Parameters
-        ----------
-        loc: int, slice or array of ints
-            Indicate which sub-arrays to remove.
-
-        Returns
-        -------
-        new_index : DatetimeIndex
-        """
-        new_dates = np.delete(self.asi8, loc)
-
-        freq = None
-        if is_integer(loc):
-            if loc in (0, -len(self), -1, len(self) - 1):
-                freq = self.freq
-        else:
-            if is_list_like(loc):
-                loc = lib.maybe_indices_to_slice(ensure_int64(np.array(loc)), len(self))
-            if isinstance(loc, slice) and loc.step in (1, None):
-                if loc.start in (0, None) or loc.stop in (len(self), None):
-                    freq = self.freq
-
-        return self._shallow_copy(new_dates, freq=freq)
 
     def indexer_at_time(self, time, asof=False):
         """

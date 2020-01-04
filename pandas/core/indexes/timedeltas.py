@@ -3,12 +3,11 @@ from datetime import datetime
 
 import numpy as np
 
-from pandas._libs import NaT, Timedelta, index as libindex, lib
+from pandas._libs import NaT, Timedelta, index as libindex
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.common import (
     _TD_DTYPE,
-    ensure_int64,
     is_float,
     is_integer,
     is_list_like,
@@ -475,34 +474,6 @@ class TimedeltaIndex(
             if isinstance(item, str):
                 return self.astype(object).insert(loc, item)
             raise TypeError("cannot insert TimedeltaIndex with incompatible label")
-
-    def delete(self, loc):
-        """
-        Make a new TimedeltaIndex with passed location(s) deleted.
-
-        Parameters
-        ----------
-        loc: int, slice or array of ints
-            Indicate which sub-arrays to remove.
-
-        Returns
-        -------
-        new_index : TimedeltaIndex
-        """
-        new_tds = np.delete(self.asi8, loc)
-
-        freq = None
-        if is_integer(loc):
-            if loc in (0, -len(self), -1, len(self) - 1):
-                freq = self.freq
-        else:
-            if is_list_like(loc):
-                loc = lib.maybe_indices_to_slice(ensure_int64(np.array(loc)), len(self))
-            if isinstance(loc, slice) and loc.step in (1, None):
-                if loc.start in (0, None) or loc.stop in (len(self), None):
-                    freq = self.freq
-
-        return self._shallow_copy(new_tds, freq=freq)
 
 
 TimedeltaIndex._add_comparison_ops()
