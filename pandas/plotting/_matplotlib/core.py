@@ -421,8 +421,6 @@ class MPLPlot:
                 data_list = []
                 for key, group in grouped:
                     columns = MultiIndex.from_product([[key], self.column])
-                    #                    columns = MultiIndex([tuple([c for c in col]) for col in columns])
-
                     group = group[self.column]
                     group.columns = columns
                     data_list.append(group)
