@@ -272,19 +272,13 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             values = self._data
 
         if isinstance(values, type(self)):
-            values = values._values
+            values = values._data
 
         if not isinstance(values, PeriodArray):
             if isinstance(values, np.ndarray) and is_integer_dtype(values.dtype):
                 values = PeriodArray(values, freq=self.freq)
             else:
-                # in particular, I would like to avoid period_array here.
-                # Some people seem to be calling use with unexpected types
-                # Index.difference -> ndarray[Period]
-                # DatetimelikeIndexOpsMixin.repeat -> ndarray[ordinal]
-                # I think that once all of Datetime* are EAs, we can simplify
-                # this quite a bit.
-                values = period_array(values, freq=self.freq)
+                raise TypeError(type(values), getattr(values, "dtype", None))
 
         # We don't allow changing `freq` in _shallow_copy.
         validate_dtype_freq(self.dtype, kwargs.get("freq"))
