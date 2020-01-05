@@ -394,9 +394,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
             result = Index._union(this, other, sort=sort)
             if isinstance(result, DatetimeIndex):
                 assert result._data.dtype == this.dtype
-                if result.freq is None and (
-                    this.freq is not None or other.freq is not None
-                ):
+                if result.freq is None:
                     result._set_freq("infer")
             return result
 
