@@ -4,7 +4,7 @@
 from functools import reduce
 import itertools
 import re
-from typing import Callable, Dict, List, Optional, Sequence, Union
+from typing import Callable, Dict, Hashable, List, Optional, Sequence, Union
 import warnings
 
 import numpy as np
@@ -371,10 +371,10 @@ class ExcelFormatter:
         df,
         na_rep: str = "",
         float_format: Optional[str] = None,
-        cols: Optional[Sequence] = None,
-        header: Union[bool, List[str]] = True,
+        cols: Optional[Sequence[Hashable]] = None,
+        header: Union[Sequence[Hashable], bool] = True,
         index: bool = True,
-        index_label: Union[str, Sequence, None] = None,
+        index_label: Optional[Union[Hashable, Sequence[Hashable]]] = None,
         merge_cells: bool = False,
         inf_rep: str = "inf",
         style_converter: Optional[Callable] = None,
