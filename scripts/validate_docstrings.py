@@ -825,9 +825,7 @@ def get_validation_data(doc):
                     "EX03",
                     error_code=err.error_code,
                     error_message=err.message,
-                    times_happening=f" ({err.count} times)"
-                    if err.count > 1
-                    else "",
+                    times_happening=f" ({err.count} times)" if err.count > 1 else "",
                 )
             )
         examples_source_code = "".join(doc.examples_source_code)
