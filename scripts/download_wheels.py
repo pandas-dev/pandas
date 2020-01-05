@@ -26,7 +26,7 @@ def fetch(version):
     files = [
         x
         for x in root.xpath("//a/text()")
-        if x.startswith("pandas-{}".format(version)) and not dest.joinpath(x).exists()
+        if x.startswith(f"pandas-{version}") and not dest.joinpath(x).exists()
     ]
 
     N = len(files)
@@ -36,7 +36,7 @@ def fetch(version):
         link = urllib.request.urljoin(base, filename)
         urllib.request.urlretrieve(link, out)
         print(
-            "Downloaded {link} to {out} [{i}/{N}]".format(link=link, out=out, i=i, N=N)
+            f"Downloaded {link} to {out} [{i}/{N}]"
         )
 
 
