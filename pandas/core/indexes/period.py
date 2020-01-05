@@ -5,7 +5,7 @@ import numpy as np
 
 from pandas._libs import index as libindex
 from pandas._libs.tslibs import NaT, frequencies as libfrequencies, iNaT, resolution
-from pandas._libs.tslibs.period import DIFFERENT_FREQ, IncompatibleFrequency, Period
+from pandas._libs.tslibs.period import Period
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -17,11 +17,17 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer,
     is_integer_dtype,
+    is_object_dtype,
     pandas_dtype,
 )
 
 from pandas.core.accessor import delegate_names
-from pandas.core.arrays.period import PeriodArray, period_array, validate_dtype_freq
+from pandas.core.arrays.period import (
+    PeriodArray,
+    period_array,
+    raise_on_incompatible,
+    validate_dtype_freq,
+)
 from pandas.core.base import _shared_docs
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
@@ -338,10 +344,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             if base == self.freq.rule_code:
                 return other.n
 
-            msg = DIFFERENT_FREQ.format(
-                cls=type(self).__name__, own_freq=self.freqstr, other_freq=other.freqstr
-            )
-            raise IncompatibleFrequency(msg)
+            raise raise_on_incompatible(self, other)
         elif is_integer(other):
             # integer is passed to .shift via
             # _add_datetimelike_methods basically
@@ -349,10 +352,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             return other
 
         # raise when input doesn't have freq
-        msg = DIFFERENT_FREQ.format(
-            cls=type(self).__name__, own_freq=self.freqstr, other_freq=None
-        )
-        raise IncompatibleFrequency(msg)
+        raise raise_on_incompatible(self, None)
 
     # ------------------------------------------------------------------------
     # Rendering Methods
@@ -486,12 +486,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     def searchsorted(self, value, side="left", sorter=None):
         if isinstance(value, Period):
             if value.freq != self.freq:
-                msg = DIFFERENT_FREQ.format(
-                    cls=type(self).__name__,
-                    own_freq=self.freqstr,
-                    other_freq=value.freqstr,
-                )
-                raise IncompatibleFrequency(msg)
+                raise raise_on_incompatible(self, value)
             value = value.ordinal
         elif isinstance(value, str):
             try:
@@ -776,10 +771,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         # *Can't* use PeriodIndexes of different freqs
         # *Can* use PeriodIndex/DatetimeIndex
         if isinstance(other, PeriodIndex) and self.freq != other.freq:
-            msg = DIFFERENT_FREQ.format(
-                cls=type(self).__name__, own_freq=self.freqstr, other_freq=other.freqstr
-            )
-            raise IncompatibleFrequency(msg)
+            raise raise_on_incompatible(self, other)
 
     def _wrap_setop_result(self, other, result):
         name = get_op_result_name(self, other)
@@ -805,6 +797,29 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         i8self = Int64Index._simple_new(self.asi8)
         i8other = Int64Index._simple_new(other.asi8)
         i8result = i8self.intersection(i8other, sort=sort)
+
+        result = self._shallow_copy(np.asarray(i8result, dtype=np.int64), name=res_name)
+        return result
+
+    def difference(self, other, sort=None):
+        self._validate_sort_keyword(sort)
+        self._assert_can_do_setop(other)
+        res_name = get_op_result_name(self, other)
+        other = ensure_index(other)
+
+        if self.equals(other):
+            # pass an empty PeriodArray with the appropriate dtype
+            return self._shallow_copy(self._data[:0])
+
+        if is_object_dtype(other):
+            return self.astype(object).difference(other).astype(self.dtype)
+
+        elif not is_dtype_equal(self.dtype, other.dtype):
+            return self
+
+        i8self = Int64Index._simple_new(self.asi8)
+        i8other = Int64Index._simple_new(other.asi8)
+        i8result = i8self.difference(i8other, sort=sort)
 
         result = self._shallow_copy(np.asarray(i8result, dtype=np.int64), name=res_name)
         return result
