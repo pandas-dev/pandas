@@ -1492,7 +1492,7 @@ def assert_sp_array_equal(
         block indices.
     """
 
-    _check_isinstance(left, right, pd.SparseArray)
+    _check_isinstance(left, right, pd.arrays.SparseArray)
 
     assert_numpy_array_equal(left.sp_values, right.sp_values, check_dtype=check_dtype)
 
