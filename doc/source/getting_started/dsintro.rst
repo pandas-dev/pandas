@@ -676,10 +676,10 @@ similar to an ndarray:
    # only show the first 5 rows
    df[:5].T
 
+.. _dsintro.numpy_interop:
+
 DataFrame interoperability with NumPy functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. _dsintro.numpy_interop:
 
 Elementwise NumPy ufuncs (log, exp, sqrt, ...) and various other NumPy functions
 can be used with no issues on Series and DataFrame, assuming the data within

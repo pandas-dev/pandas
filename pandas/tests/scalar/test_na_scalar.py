@@ -58,12 +58,6 @@ def test_comparison_ops():
         assert (NA >= other) is NA
         assert (NA < other) is NA
         assert (NA <= other) is NA
-
-        if isinstance(other, (np.int64, np.bool_)):
-            # for numpy scalars we get a deprecation warning and False as result
-            # for equality or error for larger/lesser than
-            continue
-
         assert (other == NA) is NA
         assert (other != NA) is NA
         assert (other > NA) is NA
@@ -87,9 +81,17 @@ def test_comparison_ops():
         np.float_(-0),
     ],
 )
-def test_pow_special(value):
+@pytest.mark.parametrize("asarray", [True, False])
+def test_pow_special(value, asarray):
+    if asarray:
+        value = np.array([value])
     result = pd.NA ** value
-    assert isinstance(result, type(value))
+
+    if asarray:
+        result = result[0]
+    else:
+        # this assertion isn't possible for ndarray.
+        assert isinstance(result, type(value))
     assert result == 1
 
 
@@ -108,11 +110,19 @@ def test_pow_special(value):
         np.float_(-1),
     ],
 )
-def test_rpow_special(value):
+@pytest.mark.parametrize("asarray", [True, False])
+def test_rpow_special(value, asarray):
+    if asarray:
+        value = np.array([value])
     result = value ** pd.NA
-    assert result == value
-    if not isinstance(value, (np.float_, np.bool_, np.int_)):
+
+    if asarray:
+        result = result[0]
+    elif not isinstance(value, (np.float_, np.bool_, np.int_)):
+        # this assertion isn't possible with asarray=True
         assert isinstance(result, type(value))
+
+    assert result == value
 
 
 def test_unary_ops():
@@ -162,6 +172,19 @@ def test_logical_not():
     assert ~NA is NA
 
 
+@pytest.mark.parametrize(
+    "shape", [(3,), (3, 3), (1, 2, 3)],
+)
+def test_arithmetic_ndarray(shape, all_arithmetic_functions):
+    op = all_arithmetic_functions
+    a = np.zeros(shape)
+    if op.__name__ == "pow":
+        a += 5
+    result = op(pd.NA, a)
+    expected = np.full(a.shape, pd.NA, dtype=object)
+    tm.assert_numpy_array_equal(result, expected)
+
+
 def test_is_scalar():
     assert is_scalar(NA) is True
 
@@ -175,6 +198,55 @@ def test_series_isna():
     s = pd.Series([1, NA], dtype=object)
     expected = pd.Series([False, True])
     tm.assert_series_equal(s.isna(), expected)
+
+
+def test_ufunc():
+    assert np.log(pd.NA) is pd.NA
+    assert np.add(pd.NA, 1) is pd.NA
+    result = np.divmod(pd.NA, 1)
+    assert result[0] is pd.NA and result[1] is pd.NA
+
+    result = np.frexp(pd.NA)
+    assert result[0] is pd.NA and result[1] is pd.NA
+
+
+def test_ufunc_raises():
+    with pytest.raises(ValueError, match="ufunc method 'at'"):
+        np.log.at(pd.NA, 0)
+
+
+def test_binary_input_not_dunder():
+    a = np.array([1, 2, 3])
+    expected = np.array([pd.NA, pd.NA, pd.NA], dtype=object)
+    result = np.logaddexp(a, pd.NA)
+    tm.assert_numpy_array_equal(result, expected)
+
+    result = np.logaddexp(pd.NA, a)
+    tm.assert_numpy_array_equal(result, expected)
+
+    # all NA, multiple inputs
+    assert np.logaddexp(pd.NA, pd.NA) is pd.NA
+
+    result = np.modf(pd.NA, pd.NA)
+    assert len(result) == 2
+    assert all(x is pd.NA for x in result)
+
+
+def test_divmod_ufunc():
+    # binary in, binary out.
+    a = np.array([1, 2, 3])
+    expected = np.array([pd.NA, pd.NA, pd.NA], dtype=object)
+
+    result = np.divmod(a, pd.NA)
+    assert isinstance(result, tuple)
+    for arr in result:
+        tm.assert_numpy_array_equal(arr, expected)
+        tm.assert_numpy_array_equal(arr, expected)
+
+    result = np.divmod(pd.NA, a)
+    for arr in result:
+        tm.assert_numpy_array_equal(arr, expected)
+        tm.assert_numpy_array_equal(arr, expected)
 
 
 def test_integer_hash_collision_dict():
