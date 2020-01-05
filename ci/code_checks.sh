@@ -108,6 +108,14 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     fi
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Check for wrong space in a string' ; echo $MSG
+    if [[ "$GITHUB_ACTIONS" == "true" ]]; then
+        $BASE_DIR/scripts/validate_spaces_over_concatned_strings.py --format="[error]{source_path}:{line_number}:{msg}" .
+    else
+        $BASE_DIR/scripts/validate_spaces_over_concatned_strings.py .
+    fi
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     echo "isort --version-number"
     isort --version-number
 
