@@ -1,5 +1,6 @@
 import operator
 from typing import Any, List
+import warnings
 
 import numpy as np
 
@@ -723,6 +724,11 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
     def take_nd(self, *args, **kwargs):
         """Alias for `take`"""
+        warnings.warn(
+            "CategoricalIndex.take_nd is deprecated, use CategoricalIndex.take instead",
+            FutureWarning,
+            stacklevel=2,
+        )
         return self.take(*args, **kwargs)
 
     @Appender(_index_shared_docs["_maybe_cast_slice_bound"])
