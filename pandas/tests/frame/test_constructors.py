@@ -8,7 +8,8 @@ import numpy.ma as ma
 import numpy.ma.mrecords as mrecords
 import pytest
 
-from pandas.compat import PY36, PY37, is_platform_little_endian
+from pandas.compat import PY37, is_platform_little_endian
+
 from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
