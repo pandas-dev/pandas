@@ -20,7 +20,7 @@ from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
 from pandas import NaT, Period, Timedelta, Timestamp
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.tseries import offsets
 

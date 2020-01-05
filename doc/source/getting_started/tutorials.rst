@@ -15,7 +15,7 @@ pandas' own :ref:`10 Minutes to pandas<10min>`.
 
 More complex recipes are in the :ref:`Cookbook<cookbook>`.
 
-A handy pandas `cheat sheet <http://pandas.pydata.org/Pandas_Cheat_Sheet.pdf>`_.
+A handy pandas `cheat sheet <https://pandas.pydata.org/Pandas_Cheat_Sheet.pdf>`_.
 
 Community guides
 ================

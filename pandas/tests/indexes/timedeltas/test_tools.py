@@ -5,7 +5,7 @@ import pytest
 
 import pandas as pd
 from pandas import Series, TimedeltaIndex, isna, to_timedelta
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestTimedeltas:
