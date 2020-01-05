@@ -483,7 +483,7 @@ def nansum(
     skipna: bool = True,
     min_count: int = 0,
     mask: Optional[np.ndarray] = None,
-) -> Dtype:
+) -> float:
     """
     Sum the elements along an axis ignoring NaNs
 
@@ -1137,7 +1137,7 @@ def nanprod(
     skipna: bool = True,
     min_count: int = 0,
     mask: Optional[np.ndarray] = None,
-) -> Dtype:
+) -> float:
     """
     Parameters
     ----------
@@ -1243,7 +1243,7 @@ def _maybe_null_out(
     mask: Optional[np.ndarray],
     shape: Tuple,
     min_count: int = 1,
-) -> Dtype:
+) -> float:
     """
     Returns
     -------
