@@ -884,6 +884,7 @@ Interval
 - Bug in :meth:`IntervalIndex.get_indexer` where a :class:`Categorical` or :class:`CategoricalIndex` ``target`` would incorrectly raise a ``TypeError`` (:issue:`30063`)
 - Bug in ``pandas.core.dtypes.cast.infer_dtype_from_scalar`` where passing ``pandas_dtype=True`` did not infer :class:`IntervalDtype` (:issue:`30337`)
 - Bug in :class:`IntervalDtype` where the ``kind`` attribute was incorrectly set as ``None`` instead of ``"O"`` (:issue:`30568`)
+- Bug in :class:`IntervalIndex`, :class:`~arrays.IntervalArray`, and :class:`Series` with interval data where equality comparisons were incorrect (:issue:`24112`)
 
 Indexing
 ^^^^^^^^

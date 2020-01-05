@@ -205,7 +205,9 @@ class SetopCheck:
         "__array__",
         "overlaps",
         "contains",
+        "__eq__",
         "__len__",
+        "__ne__",
         "set_closed",
         "to_tuples",
     ],
@@ -224,7 +226,14 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
     # Immutable, so we are able to cache computations like isna in '_mask'
     _mask = None
 
-    _raw_inherit = {"_ndarray_values", "__array__", "overlaps", "contains"}
+    _raw_inherit = {
+        "_ndarray_values",
+        "__array__",
+        "overlaps",
+        "contains",
+        "__eq__",
+        "__ne__",
+    }
 
     # --------------------------------------------------------------------
     # Constructors
