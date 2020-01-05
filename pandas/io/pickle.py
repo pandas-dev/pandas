@@ -24,8 +24,10 @@ def to_pickle(
         Any python object.
     filepath_or_buffer : str, path object or file-like object
         File path, URL, or buffer where the pickled object will be stored.
+
         .. versionchanged:: 1.0.0
            Accept URL. URL has to be of S3 or GCS.
+
     compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
         If 'infer' and 'path_or_url' is path-like, then detect compression from
         the following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise no
@@ -110,8 +112,10 @@ def read_pickle(
     ----------
     filepath_or_buffer : str, path object or file-like object
         File path, URL, or buffer where the pickled object will be loaded from.
+
         .. versionchanged:: 1.0.0
            Accept URL. URL is not limited to S3 and GCS.
+
     compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
         If 'infer' and 'path_or_url' is path-like, then detect compression from
         the following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise no
