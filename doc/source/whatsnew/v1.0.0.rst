@@ -834,6 +834,7 @@ Datetimelike
 - Bug in :meth:`Series.cummin` and :meth:`Series.cummax` with timezone-aware dtype incorrectly dropping its timezone (:issue:`15553`)
 - Bug in :class:`DatetimeArray`, :class:`TimedeltaArray`, and :class:`PeriodArray` where inplace addition and subtraction did not actually operate inplace (:issue:`24115`)
 - Bug in :func:`pandas.to_datetime` when called with ``Series`` storing ``IntegerArray`` raising ``TypeError`` instead of returning ``Series`` (:issue:`30050`)
+- Bug in :func:`date_range` with custom business hours as ``freq`` and given number of ``periods`` (:issue:`30593`)
 
 Timedelta
 ^^^^^^^^^
