@@ -938,7 +938,7 @@ def main(func_name, prefix, errors, output_format, ignore_deprecated):
         full_line = char * width
         side_len = (width - len(title) - 2) // 2
         adj = "" if len(title) % 2 == 0 else " "
-        title_line = f"{char * side_len} {title}{adj} {side}"
+        title_line = f"{char * side_len} {title}{adj} {char * side_len}"
 
         return f"\n{full_line}\n{title_line}\n{full_line}\n\n"
 

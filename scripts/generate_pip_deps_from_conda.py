@@ -128,11 +128,11 @@ if __name__ == "__main__":
     if res:
         msg = (
             f"`requirements-dev.txt` has to be generated with `{sys.argv[0]}` after "
-            f"`environment.yml` is modified.\n"
+            "`environment.yml` is modified.\n"
         )
         if args.azure:
             msg = (
-                f"##vso[task.logissue type=error;"
+                "##vso[task.logissue type=error;"
                 f"sourcepath=requirements-dev.txt]{msg}"
             )
         sys.stderr.write(msg)
