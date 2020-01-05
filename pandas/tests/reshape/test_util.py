@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 from pandas import Index, date_range
+import pandas._testing as tm
 from pandas.core.reshape.util import cartesian_product
-import pandas.util.testing as tm
 
 
 class TestCartesianProduct:
