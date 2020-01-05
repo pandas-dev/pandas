@@ -240,16 +240,13 @@ class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
         if isinstance(maybe_slice, slice):
             return self[maybe_slice]
 
-        taken = self._assert_take_fillable(
-            self._data,
-            indices,
-            allow_fill=allow_fill,
-            fill_value=fill_value,
-            na_value=NaT,
+        taken = ExtensionIndex.take(
+            self, indices, axis, allow_fill, fill_value, **kwargs
         )
 
         # keep freq in PeriodArray/Index, reset otherwise
         freq = self.freq if is_period_dtype(self) else None
+        assert taken.freq == freq, (taken.freq, freq, taken)
         return self._shallow_copy(taken, freq=freq)
 
     _can_hold_na = True

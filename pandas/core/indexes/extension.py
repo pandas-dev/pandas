@@ -5,9 +5,10 @@ from typing import List
 
 import numpy as np
 
+from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, cache_readonly
 
-from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.common import ensure_platform_int, is_dtype_equal
 from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.arrays import ExtensionArray
@@ -159,6 +160,10 @@ def _maybe_unwrap_index(obj):
 
 
 class ExtensionIndex(Index):
+    """
+    Index subclass for indexes backed by ExtensionArray.
+    """
+
     _data: ExtensionArray
 
     def __getitem__(self, key):
@@ -211,3 +216,16 @@ class ExtensionIndex(Index):
 
         result = self._data.unique()
         return self._shallow_copy(result)
+
+    def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
+        nv.validate_take(tuple(), kwargs)
+        indices = ensure_platform_int(indices)
+
+        taken = self._assert_take_fillable(
+            self._data,
+            indices,
+            allow_fill=allow_fill,
+            fill_value=fill_value,
+            na_value=self._na_value,
+        )
+        return type(self)(taken, name=self.name)
