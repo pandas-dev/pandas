@@ -149,7 +149,7 @@ def _single_replace(self, to_replace, method, inplace, limit):
 bool_t = bool  # Need alias because NDFrame has def bool:
 
 
-class NDFrame(PandasObject, SelectionMixin):
+class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     """
     N-dimensional analogue of DataFrame. Store multi-dimensional in a
     size-mutable, labeled data structure
@@ -460,21 +460,30 @@ class NDFrame(PandasObject, SelectionMixin):
         return d
 
     def _get_index_resolvers(self) -> Dict[str, Union["Series", MultiIndex]]:
+        from pandas.core.computation.parsing import clean_column_name
+
         d: Dict[str, Union["Series", MultiIndex]] = {}
         for axis_name in self._AXIS_ORDERS:
             d.update(self._get_axis_resolvers(axis_name))
-        return d
 
-    def _get_space_character_free_column_resolvers(self):
-        """Return the space character free column resolvers of a dataframe.
+        return {clean_column_name(k): v for k, v in d.items() if not isinstance(k, int)}
 
-        Column names with spaces are 'cleaned up' so that they can be referred
-        to by backtick quoting.
+    def _get_cleaned_column_resolvers(self) -> Dict[str, ABCSeries]:
+        """
+        Return the special character free column resolvers of a dataframe.
+
+        Column names with special characters are 'cleaned up' so that they can
+        be referred to by backtick quoting.
         Used in :meth:`DataFrame.eval`.
         """
-        from pandas.core.computation.common import _remove_spaces_column_name
+        from pandas.core.computation.parsing import clean_column_name
 
-        return {_remove_spaces_column_name(k): v for k, v in self.items()}
+        if isinstance(self, ABCSeries):
+            return {clean_column_name(self.name): self}
+
+        return {
+            clean_column_name(k): v for k, v in self.items() if not isinstance(k, int)
+        }
 
     @property
     def _info_axis(self):
@@ -3186,7 +3195,10 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @classmethod
     def _create_indexer(cls, name: str, indexer) -> None:
-        """Create an indexer like _name in the class."""
+        """Create an indexer like _name in the class.
+
+        Kept for compatibility with geopandas. To be removed in the future. See GH27258
+        """
         if getattr(cls, name, None) is None:
             _indexer = functools.partial(indexer, name)
             setattr(cls, name, property(_indexer, doc=indexer.__doc__))
@@ -3658,7 +3670,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 "A value is trying to be set on a copy of a slice from a "
                 "DataFrame\n\n"
                 "See the caveats in the documentation: "
-                "http://pandas.pydata.org/pandas-docs/stable/user_guide/"
+                "https://pandas.pydata.org/pandas-docs/stable/user_guide/"
                 "indexing.html#returning-a-view-versus-a-copy"
             )
 
@@ -3669,7 +3681,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 "DataFrame.\n"
                 "Try using .loc[row_indexer,col_indexer] = value "
                 "instead\n\nSee the caveats in the documentation: "
-                "http://pandas.pydata.org/pandas-docs/stable/user_guide/"
+                "https://pandas.pydata.org/pandas-docs/stable/user_guide/"
                 "indexing.html#returning-a-view-versus-a-copy"
             )
 
@@ -7385,7 +7397,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Notes
         -----
         See the `user guide
-        <http://pandas.pydata.org/pandas-docs/stable/groupby.html>`_ for more.
+        <https://pandas.pydata.org/pandas-docs/stable/groupby.html>`_ for more.
         """
 
     def asfreq(
@@ -7434,7 +7446,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Notes
         -----
         To learn more about the frequency strings, please see `this link
-        <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
+        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
 
         Examples
         --------
@@ -7713,7 +7725,7 @@ class NDFrame(PandasObject, SelectionMixin):
         for more.
 
         To learn more about the offset strings, please see `this link
-        <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects>`__.
+        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects>`__.
 
         Examples
         --------
@@ -11191,8 +11203,3 @@ def _make_logical_function(
         )
 
     return set_function_name(logical_func, name, cls)
-
-
-# install the indexes
-for _name, _indexer in indexing.get_indexers_list():
-    NDFrame._create_indexer(_name, _indexer)

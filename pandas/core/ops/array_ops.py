@@ -246,7 +246,7 @@ def comparison_op(
         res_values = comp_method_OBJECT_ARRAY(op, lvalues, rvalues)
 
     else:
-        op_name = "__{op}__".format(op=op.__name__)
+        op_name = f"__{op.__name__}__"
         method = getattr(lvalues, op_name)
         with np.errstate(all="ignore"):
             res_values = method(rvalues)
@@ -254,9 +254,8 @@ def comparison_op(
         if res_values is NotImplemented:
             res_values = invalid_comparison(lvalues, rvalues, op)
         if is_scalar(res_values):
-            raise TypeError(
-                "Could not compare {typ} type with Series".format(typ=type(rvalues))
-            )
+            typ = type(rvalues)
+            raise TypeError(f"Could not compare {typ} type with Series")
 
     return res_values
 
@@ -293,11 +292,10 @@ def na_logical_op(x: np.ndarray, y, op):
                 OverflowError,
                 NotImplementedError,
             ):
+                typ = type(y).__name__
                 raise TypeError(
-                    "Cannot perform '{op}' with a dtyped [{dtype}] array "
-                    "and scalar of type [{typ}]".format(
-                        op=op.__name__, dtype=x.dtype, typ=type(y).__name__
-                    )
+                    f"Cannot perform '{op.__name__}' with a dtyped [{x.dtype}] array "
+                    f"and scalar of type [{typ}]"
                 )
 
     return result

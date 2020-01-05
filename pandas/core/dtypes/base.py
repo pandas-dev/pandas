@@ -239,7 +239,8 @@ class ExtensionDtype:
 
         # error: Non-overlapping equality check (left operand type: "str", right
         #  operand type: "Callable[[ExtensionDtype], str]")  [comparison-overlap]
-        if string != cls.name:  # type: ignore
+        assert isinstance(cls.name, str), (cls, type(cls.name))
+        if string != cls.name:
             raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
         return cls()
 
