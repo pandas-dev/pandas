@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize("ordered", [True, False])
@@ -177,3 +177,7 @@ class TestTake:
         cat = pd.Categorical(["a", "b", "c"])
         with tm.assert_produces_warning(FutureWarning):
             cat.take_nd([0, 1])
+
+        ci = pd.Index(cat)
+        with tm.assert_produces_warning(FutureWarning):
+            ci.take_nd([0, 1])

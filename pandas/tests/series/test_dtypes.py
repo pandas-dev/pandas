@@ -20,7 +20,7 @@ from pandas import (
     Timestamp,
     date_range,
 )
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestSeriesDtypes:
@@ -464,13 +464,6 @@ class TestSeriesDtypes:
 
         assert actual.dtype == "object"
         tm.assert_series_equal(actual, expected)
-
-    def test_is_homogeneous_type(self):
-        with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
-            empty = Series()
-        assert empty._is_homogeneous_type
-        assert Series([1, 2])._is_homogeneous_type
-        assert Series(pd.Categorical([1, 2]))._is_homogeneous_type
 
     @pytest.mark.parametrize(
         "data",

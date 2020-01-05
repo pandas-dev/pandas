@@ -11,11 +11,13 @@ from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import Period, PeriodIndex, Series, period_range
+import pandas._testing as tm
 from pandas.core import ops
 from pandas.core.arrays import TimedeltaArray
-import pandas.util.testing as tm
 
 from pandas.tseries.frequencies import to_offset
+
+from .common import assert_invalid_comparison
 
 # ------------------------------------------------------------------
 # Comparisons
@@ -37,6 +39,88 @@ class TestPeriodArrayLikeComparisons:
         result = pi <= other
         expected = np.array([True, False, False, False])
         expected = tm.box_expected(expected, xbox)
+        tm.assert_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "scalar", ["foo", pd.Timestamp.now(), pd.Timedelta(days=4)]
+    )
+    def test_compare_invalid_scalar(self, box_with_array, scalar):
+        # comparison with scalar that cannot be interpreted as a Period
+        pi = pd.period_range("2000", periods=4)
+        parr = tm.box_expected(pi, box_with_array)
+        assert_invalid_comparison(parr, scalar, box_with_array)
+
+    @pytest.mark.parametrize(
+        "other",
+        [
+            pd.date_range("2000", periods=4).array,
+            pd.timedelta_range("1D", periods=4).array,
+            np.arange(4),
+            np.arange(4).astype(np.float64),
+            list(range(4)),
+        ],
+    )
+    def test_compare_invalid_listlike(self, box_with_array, other):
+        pi = pd.period_range("2000", periods=4)
+        parr = tm.box_expected(pi, box_with_array)
+        assert_invalid_comparison(parr, other, box_with_array)
+
+    @pytest.mark.parametrize("other_box", [list, np.array, lambda x: x.astype(object)])
+    def test_compare_object_dtype(self, box_with_array, other_box):
+        pi = pd.period_range("2000", periods=5)
+        parr = tm.box_expected(pi, box_with_array)
+
+        xbox = np.ndarray if box_with_array is pd.Index else box_with_array
+
+        other = other_box(pi)
+
+        expected = np.array([True, True, True, True, True])
+        expected = tm.box_expected(expected, xbox)
+
+        result = parr == other
+        tm.assert_equal(result, expected)
+        result = parr <= other
+        tm.assert_equal(result, expected)
+        result = parr >= other
+        tm.assert_equal(result, expected)
+
+        result = parr != other
+        tm.assert_equal(result, ~expected)
+        result = parr < other
+        tm.assert_equal(result, ~expected)
+        result = parr > other
+        tm.assert_equal(result, ~expected)
+
+        other = other_box(pi[::-1])
+
+        expected = np.array([False, False, True, False, False])
+        expected = tm.box_expected(expected, xbox)
+        result = parr == other
+        tm.assert_equal(result, expected)
+
+        expected = np.array([True, True, True, False, False])
+        expected = tm.box_expected(expected, xbox)
+        result = parr <= other
+        tm.assert_equal(result, expected)
+
+        expected = np.array([False, False, True, True, True])
+        expected = tm.box_expected(expected, xbox)
+        result = parr >= other
+        tm.assert_equal(result, expected)
+
+        expected = np.array([True, True, False, True, True])
+        expected = tm.box_expected(expected, xbox)
+        result = parr != other
+        tm.assert_equal(result, expected)
+
+        expected = np.array([True, True, False, False, False])
+        expected = tm.box_expected(expected, xbox)
+        result = parr < other
+        tm.assert_equal(result, expected)
+
+        expected = np.array([False, False, False, True, True])
+        expected = tm.box_expected(expected, xbox)
+        result = parr > other
         tm.assert_equal(result, expected)
 
 
@@ -1035,6 +1119,26 @@ class TestPeriodIndexArithmetic:
         result = parr - pi
         expected = pi - pi
         tm.assert_index_equal(result, expected)
+
+    def test_parr_add_sub_object_array(self):
+        pi = pd.period_range("2000-12-31", periods=3, freq="D")
+        parr = pi.array
+
+        other = np.array([pd.Timedelta(days=1), pd.offsets.Day(2), 3])
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            result = parr + other
+
+        expected = pd.PeriodIndex(
+            ["2001-01-01", "2001-01-03", "2001-01-05"], freq="D"
+        ).array
+        tm.assert_equal(result, expected)
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            result = parr - other
+
+        expected = pd.PeriodIndex(["2000-12-30"] * 3, freq="D").array
+        tm.assert_equal(result, expected)
 
 
 class TestPeriodSeriesArithmetic:

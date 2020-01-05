@@ -13,7 +13,7 @@ dependencies:
   - pytest-azurepipelines
 
   # pandas dependencies
-  - beautifulsoup4==4.6.0
+  - beautifulsoup4=4.6.0
   - bottleneck=1.2.*
   - lxml
   - matplotlib=2.2.2

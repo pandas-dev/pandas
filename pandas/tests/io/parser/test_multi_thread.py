@@ -9,7 +9,7 @@ import numpy as np
 
 import pandas as pd
 from pandas import DataFrame
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def _construct_dataframe(num_rows):

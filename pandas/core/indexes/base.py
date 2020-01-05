@@ -1,7 +1,7 @@
 from datetime import datetime
 import operator
 from textwrap import dedent
-from typing import FrozenSet, Hashable, Optional, Union
+from typing import Dict, FrozenSet, Hashable, Optional, Union
 import warnings
 
 import numpy as np
@@ -107,6 +107,11 @@ def _make_comparison_op(op, cls):
         if is_object_dtype(self) and isinstance(other, ABCCategorical):
             left = type(other)(self._values, dtype=other.dtype)
             return op(left, other)
+        elif is_object_dtype(self) and isinstance(other, ExtensionArray):
+            # e.g. PeriodArray
+            with np.errstate(all="ignore"):
+                result = op(self.values, other)
+
         elif is_object_dtype(self) and not isinstance(self, ABCMultiIndex):
             # don't pass MultiIndex
             with np.errstate(all="ignore"):
@@ -240,6 +245,10 @@ class Index(IndexOpsMixin, PandasObject):
     _data: Union[ExtensionArray, np.ndarray]
     _id = None
     _name: Optional[Hashable] = None
+    # MultiIndex.levels previously allowed setting the index name. We
+    # don't allow this anymore, and raise if it happens rather than
+    # failing silently.
+    _no_setting_name: bool = False
     _comparables = ["name"]
     _attributes = ["name"]
     _is_numeric_dtype = False
@@ -291,11 +300,15 @@ class Index(IndexOpsMixin, PandasObject):
             return CategoricalIndex(data, dtype=dtype, copy=copy, name=name, **kwargs)
 
         # interval
-        elif (
-            is_interval_dtype(data) or is_interval_dtype(dtype)
-        ) and not is_object_dtype(dtype):
-            closed = kwargs.get("closed", None)
-            return IntervalIndex(data, dtype=dtype, name=name, copy=copy, closed=closed)
+        elif is_interval_dtype(data) or is_interval_dtype(dtype):
+            closed = kwargs.pop("closed", None)
+            if is_dtype_equal(_o_dtype, dtype):
+                return IntervalIndex(
+                    data, name=name, copy=copy, closed=closed, **kwargs
+                ).astype(object)
+            return IntervalIndex(
+                data, dtype=dtype, name=name, copy=copy, closed=closed, **kwargs
+            )
 
         elif (
             is_datetime64_any_dtype(data)
@@ -325,8 +338,10 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 return TimedeltaIndex(data, copy=copy, name=name, dtype=dtype, **kwargs)
 
-        elif is_period_dtype(data) and not is_object_dtype(dtype):
-            return PeriodIndex(data, copy=copy, name=name, **kwargs)
+        elif is_period_dtype(data) or is_period_dtype(dtype):
+            if is_dtype_equal(_o_dtype, dtype):
+                return PeriodIndex(data, copy=False, name=name, **kwargs).astype(object)
+            return PeriodIndex(data, dtype=dtype, copy=copy, name=name, **kwargs)
 
         # extension dtype
         elif is_extension_array_dtype(data) or is_extension_array_dtype(dtype):
@@ -349,41 +364,8 @@ class Index(IndexOpsMixin, PandasObject):
                 # they are actually ints, e.g. '0' and 0.0
                 # should not be coerced
                 # GH 11836
-                if is_integer_dtype(dtype):
-                    inferred = lib.infer_dtype(data, skipna=False)
-                    if inferred == "integer":
-                        data = maybe_cast_to_integer_array(data, dtype, copy=copy)
-                    elif inferred in ["floating", "mixed-integer-float"]:
-                        if isna(data).any():
-                            raise ValueError("cannot convert float NaN to integer")
-
-                        if inferred == "mixed-integer-float":
-                            data = maybe_cast_to_integer_array(data, dtype)
-
-                        # If we are actually all equal to integers,
-                        # then coerce to integer.
-                        try:
-                            return cls._try_convert_to_int_index(
-                                data, copy, name, dtype
-                            )
-                        except ValueError:
-                            pass
-
-                        # Return an actual float index.
-                        return Float64Index(data, copy=copy, name=name)
-
-                    elif inferred == "string":
-                        pass
-                    else:
-                        data = data.astype(dtype)
-                elif is_float_dtype(dtype):
-                    inferred = lib.infer_dtype(data, skipna=False)
-                    if inferred == "string":
-                        pass
-                    else:
-                        data = data.astype(dtype)
-                else:
-                    data = np.array(data, dtype=dtype, copy=copy)
+                data = _maybe_cast_with_dtype(data, dtype, copy)
+                dtype = data.dtype  # TODO: maybe not for object?
 
             # maybe coerce to a sub-class
             if is_signed_integer_dtype(data.dtype):
@@ -403,43 +385,12 @@ class Index(IndexOpsMixin, PandasObject):
                 subarr = subarr.copy()
 
             if dtype is None:
-                inferred = lib.infer_dtype(subarr, skipna=False)
-                if inferred == "integer":
-                    try:
-                        return cls._try_convert_to_int_index(subarr, copy, name, dtype)
-                    except ValueError:
-                        pass
+                new_data, new_dtype = _maybe_cast_data_without_dtype(subarr)
+                if new_dtype is not None:
+                    return cls(
+                        new_data, dtype=new_dtype, copy=False, name=name, **kwargs
+                    )
 
-                    return Index(subarr, copy=copy, dtype=object, name=name)
-                elif inferred in ["floating", "mixed-integer-float", "integer-na"]:
-                    # TODO: Returns IntegerArray for integer-na case in the future
-                    return Float64Index(subarr, copy=copy, name=name)
-                elif inferred == "interval":
-                    try:
-                        return IntervalIndex(subarr, name=name, copy=copy)
-                    except ValueError:
-                        # GH27172: mixed closed Intervals --> object dtype
-                        pass
-                elif inferred == "boolean":
-                    # don't support boolean explicitly ATM
-                    pass
-                elif inferred != "string":
-                    if inferred.startswith("datetime"):
-                        try:
-                            return DatetimeIndex(subarr, copy=copy, name=name, **kwargs)
-                        except (ValueError, OutOfBoundsDatetime):
-                            # GH 27011
-                            # If we have mixed timezones, just send it
-                            # down the base constructor
-                            pass
-
-                    elif inferred.startswith("timedelta"):
-                        return TimedeltaIndex(subarr, copy=copy, name=name, **kwargs)
-                    elif inferred == "period":
-                        try:
-                            return PeriodIndex(subarr, name=name, **kwargs)
-                        except IncompatibleFrequency:
-                            pass
             if kwargs:
                 raise TypeError(f"Unexpected keyword arguments {repr(set(kwargs))}")
             return cls._simple_new(subarr, name, **kwargs)
@@ -1214,6 +1165,12 @@ class Index(IndexOpsMixin, PandasObject):
 
     @name.setter
     def name(self, value):
+        if self._no_setting_name:
+            # Used in MultiIndex.levels to avoid silently ignoring name updates.
+            raise RuntimeError(
+                "Cannot set name on a level of a MultiIndex. Use "
+                "'MultiIndex.set_names' instead."
+            )
         maybe_extract_name(value, None, type(self))
         self._name = value
 
@@ -2456,14 +2413,8 @@ class Index(IndexOpsMixin, PandasObject):
             return this.intersection(other, sort=sort)
 
         # TODO(EA): setops-refactor, clean all this up
-        if is_period_dtype(self):
-            lvals = self._ndarray_values
-        else:
-            lvals = self._values
-        if is_period_dtype(other):
-            rvals = other._ndarray_values
-        else:
-            rvals = other._values
+        lvals = self._values
+        rvals = other._values
 
         if self.is_monotonic and other.is_monotonic:
             try:
@@ -2482,18 +2433,13 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = indexer[indexer != -1]
 
         taken = other.take(indexer)
+        res_name = get_op_result_name(self, other)
 
         if sort is None:
             taken = algos.safe_sort(taken.values)
-            if self.name != other.name:
-                name = None
-            else:
-                name = self.name
-            return self._shallow_copy(taken, name=name)
+            return self._shallow_copy(taken, name=res_name)
 
-        if self.name != other.name:
-            taken.name = None
-
+        taken.name = res_name
         return taken
 
     def difference(self, other, sort=None):
@@ -3432,8 +3378,13 @@ class Index(IndexOpsMixin, PandasObject):
             ldrop_names = list(self_names - overlap)
             rdrop_names = list(other_names - overlap)
 
-            self_jnlevels = self.droplevel(ldrop_names)
-            other_jnlevels = other.droplevel(rdrop_names)
+            # if only the order differs
+            if not len(ldrop_names + rdrop_names):
+                self_jnlevels = self
+                other_jnlevels = other.reorder_levels(self.names)
+            else:
+                self_jnlevels = self.droplevel(ldrop_names)
+                other_jnlevels = other.droplevel(rdrop_names)
 
             # Join left and right
             # Join on same leveled multi-index frames is supported
@@ -3839,50 +3790,6 @@ class Index(IndexOpsMixin, PandasObject):
         return self._shallow_copy_with_infer(values, dtype=dtype)
 
     # construction helpers
-    @classmethod
-    def _try_convert_to_int_index(cls, data, copy, name, dtype):
-        """
-        Attempt to convert an array of data into an integer index.
-
-        Parameters
-        ----------
-        data : The data to convert.
-        copy : Whether to copy the data or not.
-        name : The name of the index returned.
-
-        Returns
-        -------
-        int_index : data converted to either an Int64Index or a
-                    UInt64Index
-
-        Raises
-        ------
-        ValueError if the conversion was not successful.
-        """
-
-        from .numeric import Int64Index, UInt64Index
-
-        if not is_unsigned_integer_dtype(dtype):
-            # skip int64 conversion attempt if uint-like dtype is passed, as
-            # this could return Int64Index when UInt64Index is what's desired
-            try:
-                res = data.astype("i8", copy=False)
-                if (res == data).all():
-                    return Int64Index(res, copy=copy, name=name)
-            except (OverflowError, TypeError, ValueError):
-                pass
-
-        # Conversion to int64 failed (possibly due to overflow) or was skipped,
-        # so let's try now with uint64.
-        try:
-            res = data.astype("u8", copy=False)
-            if (res == data).all():
-                return UInt64Index(res, copy=copy, name=name)
-        except (OverflowError, TypeError, ValueError):
-            pass
-
-        raise ValueError
-
     @classmethod
     def _scalar_data_error(cls, data):
         # We return the TypeError so that we can raise it from the constructor
@@ -4594,7 +4501,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return self.astype("object"), other.astype("object")
         return self, other
 
-    def groupby(self, values):
+    def groupby(self, values) -> Dict[Hashable, np.ndarray]:
         """
         Group the index labels by a given array of values.
 
@@ -4605,7 +4512,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        groups : dict
+        dict
             {group name -> group labels}
         """
 
@@ -5486,3 +5393,172 @@ def maybe_extract_name(name, obj, cls) -> Optional[Hashable]:
         raise TypeError(f"{cls.__name__}.name must be a hashable type")
 
     return name
+
+
+def _maybe_cast_with_dtype(data: np.ndarray, dtype: np.dtype, copy: bool) -> np.ndarray:
+    """
+    If a dtype is passed, cast to the closest matching dtype that is supported
+    by Index.
+
+    Parameters
+    ----------
+    data : np.ndarray
+    dtype : np.dtype
+    copy : bool
+
+    Returns
+    -------
+    np.ndarray
+    """
+    # we need to avoid having numpy coerce
+    # things that look like ints/floats to ints unless
+    # they are actually ints, e.g. '0' and 0.0
+    # should not be coerced
+    # GH 11836
+    if is_integer_dtype(dtype):
+        inferred = lib.infer_dtype(data, skipna=False)
+        if inferred == "integer":
+            data = maybe_cast_to_integer_array(data, dtype, copy=copy)
+        elif inferred in ["floating", "mixed-integer-float"]:
+            if isna(data).any():
+                raise ValueError("cannot convert float NaN to integer")
+
+            if inferred == "mixed-integer-float":
+                data = maybe_cast_to_integer_array(data, dtype)
+
+            # If we are actually all equal to integers,
+            # then coerce to integer.
+            try:
+                data = _try_convert_to_int_array(data, copy, dtype)
+            except ValueError:
+                data = np.array(data, dtype=np.float64, copy=copy)
+
+        elif inferred == "string":
+            pass
+        else:
+            data = data.astype(dtype)
+    elif is_float_dtype(dtype):
+        inferred = lib.infer_dtype(data, skipna=False)
+        if inferred == "string":
+            pass
+        else:
+            data = data.astype(dtype)
+    else:
+        data = np.array(data, dtype=dtype, copy=copy)
+
+    return data
+
+
+def _maybe_cast_data_without_dtype(subarr):
+    """
+    If we have an arraylike input but no passed dtype, try to infer
+    a supported dtype.
+
+    Parameters
+    ----------
+    subarr : np.ndarray, Index, or Series
+
+    Returns
+    -------
+    converted : np.ndarray or ExtensionArray
+    dtype : np.dtype or ExtensionDtype
+    """
+    # Runtime import needed bc IntervalArray imports Index
+    from pandas.core.arrays import (
+        IntervalArray,
+        PeriodArray,
+        DatetimeArray,
+        TimedeltaArray,
+    )
+
+    inferred = lib.infer_dtype(subarr, skipna=False)
+
+    if inferred == "integer":
+        try:
+            data = _try_convert_to_int_array(subarr, False, None)
+            return data, data.dtype
+        except ValueError:
+            pass
+
+        return subarr, object
+
+    elif inferred in ["floating", "mixed-integer-float", "integer-na"]:
+        # TODO: Returns IntegerArray for integer-na case in the future
+        return subarr, np.float64
+
+    elif inferred == "interval":
+        try:
+            data = IntervalArray._from_sequence(subarr, copy=False)
+            return data, data.dtype
+        except ValueError:
+            # GH27172: mixed closed Intervals --> object dtype
+            pass
+    elif inferred == "boolean":
+        # don't support boolean explicitly ATM
+        pass
+    elif inferred != "string":
+        if inferred.startswith("datetime"):
+            try:
+                data = DatetimeArray._from_sequence(subarr, copy=False)
+                return data, data.dtype
+            except (ValueError, OutOfBoundsDatetime):
+                # GH 27011
+                # If we have mixed timezones, just send it
+                # down the base constructor
+                pass
+
+        elif inferred.startswith("timedelta"):
+            data = TimedeltaArray._from_sequence(subarr, copy=False)
+            return data, data.dtype
+        elif inferred == "period":
+            try:
+                data = PeriodArray._from_sequence(subarr)
+                return data, data.dtype
+            except IncompatibleFrequency:
+                pass
+
+    return subarr, subarr.dtype
+
+
+def _try_convert_to_int_array(
+    data: np.ndarray, copy: bool, dtype: np.dtype
+) -> np.ndarray:
+    """
+    Attempt to convert an array of data into an integer array.
+
+    Parameters
+    ----------
+    data : The data to convert.
+    copy : bool
+        Whether to copy the data or not.
+    dtype : np.dtype
+
+    Returns
+    -------
+    int_array : data converted to either an ndarray[int64] or ndarray[uint64]
+
+    Raises
+    ------
+    ValueError if the conversion was not successful.
+    """
+
+    if not is_unsigned_integer_dtype(dtype):
+        # skip int64 conversion attempt if uint-like dtype is passed, as
+        # this could return Int64Index when UInt64Index is what's desired
+        try:
+            res = data.astype("i8", copy=False)
+            if (res == data).all():
+                return res  # TODO: might still need to copy
+        except (OverflowError, TypeError, ValueError):
+            pass
+
+    # Conversion to int64 failed (possibly due to overflow) or was skipped,
+    # so let's try now with uint64.
+    try:
+        res = data.astype("u8", copy=False)
+        if (res == data).all():
+            return res  # TODO: might still need to copy
+    except (OverflowError, TypeError, ValueError):
+        pass
+
+    raise ValueError
