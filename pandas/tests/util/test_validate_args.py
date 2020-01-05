@@ -22,7 +22,6 @@ def test_bad_arg_length_max_value_single():
     msg = (
         fr"{_fname}\(\) takes at most {max_length} "
         fr"argument \({actual_length} given\)"
-        )        
     )
 
     with pytest.raises(TypeError, match=msg):
@@ -39,7 +38,6 @@ def test_bad_arg_length_max_value_multiple():
     msg = (
         fr"{_fname}\(\) takes at most {max_length} "
         fr"arguments \({actual_length} given\)"
-        )
     )
 
     with pytest.raises(TypeError, match=msg):
