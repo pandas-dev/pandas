@@ -975,7 +975,9 @@ b  2""",
             # so we resort to this
             # GH 14776, 30667
             if ax.has_duplicates:
-                indexer = algorithms.unique1d(result.index.get_indexer_non_unique(ax.values))
+                indexer = algorithms.unique1d(
+                    result.index.get_indexer_non_unique(ax.values)
+                )
                 result = result.take(indexer, axis=self.axis)
             else:
                 result = result.reindex(ax, axis=self.axis)
