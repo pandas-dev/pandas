@@ -755,7 +755,7 @@ def get_dummies(
     sparse=False,
     drop_first=False,
     dtype=None,
-):
+) -> "DataFrame":
     """
     Convert categorical variable into dummy/indicator variables.
 
@@ -900,7 +900,7 @@ def get_dummies(
         with_dummies: List[Optional[DataFrame]]
         if data_to_encode.shape == data.shape:
             # Encoding the entire df, do not prepend any dropped columns
-            with_dummies = []
+            with_dummies: List[DataFrame] = []
         elif columns is not None:
             # Encoding only cols specified in columns. Get all cols not in
             # columns to prepend to result.

@@ -41,7 +41,7 @@ def pivot_table(
     columns = _convert_by(columns)
 
     if isinstance(aggfunc, list):
-        pieces = []
+        pieces: List[DataFrame] = []
         keys = []
         for func in aggfunc:
             table = pivot_table(
@@ -460,7 +460,7 @@ def crosstab(
     margins_name: str = "All",
     dropna: bool = True,
     normalize: Union[bool, Axis] = False,
-):
+) -> "DataFrame":
     """
     Compute a simple cross tabulation of two (or more) factors. By default
     computes a frequency table of the factors unless an array of values and an

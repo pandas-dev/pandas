@@ -281,7 +281,9 @@ class SeriesFormatter:
                 series = series.iloc[:max_rows]
             else:
                 row_num = max_rows // 2
-                series = concat((series.iloc[:row_num], series.iloc[-row_num:]))
+                series = series._ensure_type(
+                    concat((series.iloc[:row_num], series.iloc[-row_num:]))
+                )
             self.tr_row_num = row_num
         else:
             self.tr_row_num = None
