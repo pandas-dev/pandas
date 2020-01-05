@@ -105,7 +105,7 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
     if isinstance(arg1, (np.ndarray, ABCSeries)) and isinstance(
         arg2, (np.ndarray, ABCSeries)
     ):
-        X, Y = _prep_binary(arg1, arg2)
+        X, Y = prep_binary(arg1, arg2)
         return f(X, Y)
 
     elif isinstance(arg1, ABCDataFrame):
@@ -152,7 +152,7 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
                             results[i][j] = results[j][i]
                         else:
                             results[i][j] = f(
-                                *_prep_binary(arg1.iloc[:, i], arg2.iloc[:, j])
+                                *prep_binary(arg1.iloc[:, i], arg2.iloc[:, j])
                             )
 
                 from pandas import concat
@@ -213,7 +213,7 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
                 raise ValueError("'pairwise' is not True/False")
         else:
             results = {
-                i: f(*_prep_binary(arg1.iloc[:, i], arg2))
+                i: f(*prep_binary(arg1.iloc[:, i], arg2))
                 for i, col in enumerate(arg1.columns)
             }
             return dataframe_from_int_dict(results, arg1)
@@ -291,7 +291,7 @@ def calculate_min_periods(
     return max(min_periods, floor)
 
 
-def _zsqrt(x):
+def zsqrt(x):
     with np.errstate(all="ignore"):
         result = np.sqrt(x)
         mask = x < 0
@@ -306,7 +306,7 @@ def _zsqrt(x):
     return result
 
 
-def _prep_binary(arg1, arg2):
+def prep_binary(arg1, arg2):
     if not isinstance(arg2, type(arg1)):
         raise Exception("Input arrays must be of the same type!")
 

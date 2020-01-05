@@ -43,10 +43,10 @@ from pandas.core.window.common import (
     _doc_template,
     _flex_binary_moment,
     _shared_docs,
-    _zsqrt,
     calculate_center_offset,
     calculate_min_periods,
     get_weighted_roll_func,
+    zsqrt,
 )
 from pandas.core.window.indexers import (
     BaseIndexer,
@@ -1117,7 +1117,7 @@ class Window(_Window):
     @Appender(_shared_docs["std"])
     def std(self, ddof=1, *args, **kwargs):
         nv.validate_window_func("std", args, kwargs)
-        return _zsqrt(self.var(ddof=ddof, name="std", **kwargs))
+        return zsqrt(self.var(ddof=ddof, name="std", **kwargs))
 
 
 class _Rolling(_Window):
@@ -1436,7 +1436,7 @@ class _Rolling_and_Expanding(_Rolling):
         window_func = self._get_cython_func_type("roll_var")
 
         def zsqrt_func(values, begin, end, min_periods):
-            return _zsqrt(window_func(values, begin, end, min_periods, ddof=ddof))
+            return zsqrt(window_func(values, begin, end, min_periods, ddof=ddof))
 
         # ddof passed again for compat with groupby.rolling
         return self._apply(
