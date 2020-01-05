@@ -5,8 +5,8 @@ from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import SparseArray, SparseDtype
+import pandas._testing as tm
 from pandas.tests.extension import base
-import pandas.util.testing as tm
 
 
 def make_data(fill_value):
@@ -131,6 +131,10 @@ class TestReshaping(BaseSparseTests, base.BaseReshapingTests):
     def test_concat_columns(self, data, na_value):
         self._check_unsupported(data)
         super().test_concat_columns(data, na_value)
+
+    def test_concat_extension_arrays_copy_false(self, data, na_value):
+        self._check_unsupported(data)
+        super().test_concat_extension_arrays_copy_false(data, na_value)
 
     def test_align(self, data, na_value):
         self._check_unsupported(data)

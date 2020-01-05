@@ -29,6 +29,8 @@ from pandas.core.dtypes.missing import isna, notna
 from pandas.core import nanops, ops
 from pandas.core.algorithms import take
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
+import pandas.core.common as com
+from pandas.core.indexers import check_bool_array_indexer
 
 if TYPE_CHECKING:
     from pandas._typing import Scalar
@@ -60,6 +62,8 @@ class BooleanDtype(ExtensionDtype):
     BooleanDtype
     """
 
+    name = "boolean"
+
     @property
     def na_value(self) -> "Scalar":
         """
@@ -78,19 +82,6 @@ class BooleanDtype(ExtensionDtype):
     @property
     def kind(self) -> str:
         return "b"
-
-    @property
-    def name(self) -> str:
-        """
-        The alias for BooleanDtype is ``'boolean'``.
-        """
-        return "boolean"
-
-    @classmethod
-    def construct_from_string(cls, string: str) -> ExtensionDtype:
-        if string == "boolean":
-            return cls()
-        return super().construct_from_string(string)
 
     @classmethod
     def construct_array_type(cls) -> "Type[BooleanArray]":
@@ -307,11 +298,22 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
     def _formatter(self, boxed=False):
         return str
 
+    @property
+    def _hasna(self) -> bool:
+        # Note: this is expensive right now! The hope is that we can
+        # make this faster by having an optional mask, but not have to change
+        # source code using it..
+        return self._mask.any()
+
     def __getitem__(self, item):
         if is_integer(item):
             if self._mask[item]:
                 return self.dtype.na_value
             return self._data[item]
+
+        elif com.is_bool_indexer(item):
+            item = check_bool_array_indexer(self, item)
+
         return type(self)(self._data[item], self._mask[item])
 
     def _coerce_to_ndarray(self, dtype=None, na_value: "Scalar" = libmissing.NA):
@@ -329,7 +331,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
         if dtype is None:
             dtype = object
         if is_bool_dtype(dtype):
-            if not self.isna().any():
+            if not self._hasna:
                 return self._data
             else:
                 raise ValueError(
@@ -503,7 +505,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
 
         if is_bool_dtype(dtype):
             # astype_nansafe converts np.nan to True
-            if self.isna().any():
+            if self._hasna:
                 raise ValueError("cannot convert float NaN to bool")
             else:
                 return self._data.astype(dtype, copy=copy)
@@ -515,7 +517,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
             )
         # for integer, error if there are missing values
         if is_integer_dtype(dtype):
-            if self.isna().any():
+            if self._hasna:
                 raise ValueError("cannot convert NA to integer")
         # for float dtype, ensure we use np.nan before casting (numpy cannot
         # deal with pd.NA)

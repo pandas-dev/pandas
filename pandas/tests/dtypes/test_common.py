@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List
 
 import numpy as np
@@ -17,6 +18,7 @@ from pandas.core.dtypes.dtypes import (
 from pandas.core.dtypes.missing import isna
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.conftest import (
     ALL_EA_INT_DTYPES,
     ALL_INT_DTYPES,
@@ -25,7 +27,6 @@ from pandas.conftest import (
     UNSIGNED_EA_INT_DTYPES,
     UNSIGNED_INT_DTYPES,
 )
-import pandas.util.testing as tm
 
 
 # EA & Actual Dtypes
@@ -490,7 +491,7 @@ def test_is_numeric_v_string_like():
 
 
 def test_is_datetimelike_v_numeric():
-    dt = np.datetime64(pd.datetime(2017, 1, 1))
+    dt = np.datetime64(datetime(2017, 1, 1))
 
     assert not com.is_datetimelike_v_numeric(1, 1)
     assert not com.is_datetimelike_v_numeric(dt, dt)

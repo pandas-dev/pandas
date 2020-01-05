@@ -89,7 +89,7 @@ class EWM(_Rolling):
     (if adjust is True), and 1-alpha and alpha (if adjust is False).
 
     More details can be found at
-    http://pandas.pydata.org/pandas-docs/stable/user_guide/computation.html#exponentially-weighted-windows
+    https://pandas.pydata.org/pandas-docs/stable/user_guide/computation.html#exponentially-weighted-windows
 
     Examples
     --------
@@ -314,7 +314,7 @@ class EWM(_Rolling):
             inputs. In the case of missing elements, only complete pairwise
             observations will be used.
         bias : bool, default False
-            Use a standard estimation bias correction
+            Use a standard estimation bias correction.
         **kwargs
            Keyword arguments to be passed into func.
         """

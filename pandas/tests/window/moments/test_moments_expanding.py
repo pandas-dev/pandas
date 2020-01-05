@@ -5,8 +5,8 @@ from numpy.random import randn
 import pytest
 
 from pandas import DataFrame, Index, MultiIndex, Series, isna, notna
+import pandas._testing as tm
 from pandas.tests.window.common import ConsistencyBase
-import pandas.util.testing as tm
 
 
 class TestExpandingMomentsConsistency(ConsistencyBase):
