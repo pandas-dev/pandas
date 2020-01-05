@@ -986,7 +986,7 @@ def main(func_name, prefix, errors, output_format, ignore_deprecated):
         sys.stderr.write(f"{result['docstring']}\n")
         sys.stderr.write(header("Validation"))
         if result["errors"]:
-            sys.stderr.write(f"{len(result["errors"])} Errors found:\n")
+            sys.stderr.write(f"{len(result['errors'])} Errors found:\n")
             for err_code, err_desc in result["errors"]:
                 # Failing examples are printed at the end
                 if err_code == "EX02":
@@ -994,7 +994,7 @@ def main(func_name, prefix, errors, output_format, ignore_deprecated):
                     continue
                 sys.stderr.write(f"\t{err_desc}\n")
         if result["warnings"]:
-            sys.stderr.write(f"{len(result["warnings"])} Warnings found:\n")
+            sys.stderr.write(f"{len(result['warnings'])} Warnings found:\n")
             for wrn_code, wrn_desc in result["warnings"]:
                 sys.stderr.write(f"\t{wrn_desc}\n")
 
