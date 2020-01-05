@@ -164,12 +164,6 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
             # have different timezone
             return False
 
-        elif is_period_dtype(self):
-            if not is_period_dtype(other):
-                return False
-            if self.freq != other.freq:
-                return False
-
         return np.array_equal(self.asi8, other.asi8)
 
     def _ensure_localized(
@@ -596,6 +590,27 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         """
         result = self._data._time_shift(periods, freq=freq)
         return type(self)(result, name=self.name)
+
+    # --------------------------------------------------------------------
+    # List-like Methods
+
+    def delete(self, loc):
+        new_i8s = np.delete(self.asi8, loc)
+
+        freq = None
+        if is_period_dtype(self):
+            freq = self.freq
+        elif is_integer(loc):
+            if loc in (0, -len(self), -1, len(self) - 1):
+                freq = self.freq
+        else:
+            if is_list_like(loc):
+                loc = lib.maybe_indices_to_slice(ensure_int64(np.array(loc)), len(self))
+            if isinstance(loc, slice) and loc.step in (1, None):
+                if loc.start in (0, None) or loc.stop in (len(self), None):
+                    freq = self.freq
+
+        return self._shallow_copy(new_i8s, freq=freq)
 
 
 class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
