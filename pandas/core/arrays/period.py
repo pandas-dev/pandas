@@ -104,6 +104,7 @@ def _period_array_cmp(cls, op):
 
         else:
             if isinstance(other, list):
+                # TODO: could use pd.Index to do inference?
                 other = np.array(other)
 
             if not isinstance(other, (np.ndarray, cls)):
@@ -238,12 +239,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
         if isinstance(values, type(self)):
             if freq is not None and freq != values.freq:
-                msg = DIFFERENT_FREQ.format(
-                    cls=type(self).__name__,
-                    own_freq=values.freq.freqstr,
-                    other_freq=freq.freqstr,
-                )
-                raise IncompatibleFrequency(msg)
+                raise raise_on_incompatible(values, freq)
             values, freq = values._data, values.freq
 
         values = np.array(values, dtype="int64", copy=copy)
@@ -346,7 +342,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         if other is NaT:
             return
         if self.freqstr != other.freqstr:
-            _raise_on_incompatible(self, other)
+            raise raise_on_incompatible(self, other)
 
     # --------------------------------------------------------------------
     # Data / Attributes
@@ -705,7 +701,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         assert not isinstance(other, Tick)
         base = libfrequencies.get_base_alias(other.rule_code)
         if base != self.freq.rule_code:
-            _raise_on_incompatible(self, other)
+            raise raise_on_incompatible(self, other)
 
         # Note: when calling parent class's _add_timedeltalike_scalar,
         #  it will call delta_to_nanoseconds(delta).  Because delta here
@@ -773,7 +769,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         """
         if not isinstance(self.freq, Tick):
             # We cannot add timedelta-like to non-tick PeriodArray
-            _raise_on_incompatible(self, other)
+            raise raise_on_incompatible(self, other)
 
         new_ordinals = super()._add_delta(other)
         return type(self)(new_ordinals, freq=self.freq)
@@ -825,13 +821,13 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
             # by which will be added to self.
             return delta
 
-        _raise_on_incompatible(self, other)
+        raise raise_on_incompatible(self, other)
 
 
 PeriodArray._add_comparison_ops()
 
 
-def _raise_on_incompatible(left, right):
+def raise_on_incompatible(left, right):
     """
     Helper function to render a consistent error message when raising
     IncompatibleFrequency.
@@ -839,14 +835,15 @@ def _raise_on_incompatible(left, right):
     Parameters
     ----------
     left : PeriodArray
-    right : DateOffset, Period, ndarray, or timedelta-like
+    right : None, DateOffset, Period, ndarray, or timedelta-like
 
-    Raises
+    Returns
     ------
     IncompatibleFrequency
+        Exception to be raised by the caller.
     """
     # GH#24283 error message format depends on whether right is scalar
-    if isinstance(right, np.ndarray):
+    if isinstance(right, np.ndarray) or right is None:
         other_freq = None
     elif isinstance(right, (ABCPeriodIndex, PeriodArray, Period, DateOffset)):
         other_freq = right.freqstr
@@ -856,7 +853,7 @@ def _raise_on_incompatible(left, right):
     msg = DIFFERENT_FREQ.format(
         cls=type(left).__name__, own_freq=left.freqstr, other_freq=other_freq
     )
-    raise IncompatibleFrequency(msg)
+    return IncompatibleFrequency(msg)
 
 
 # -------------------------------------------------------------------
