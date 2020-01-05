@@ -161,11 +161,9 @@ def _dt_array_cmp(cls, op):
             raise ValueError("Lengths must match")
         else:
             if isinstance(other, list):
-                try:
-                    other = type(self)._from_sequence(other)
-                except ValueError:
-                    other = np.array(other, dtype=np.object_)
-            elif not isinstance(other, (np.ndarray, DatetimeArray)):
+                other = np.array(other)
+
+            if not isinstance(other, (np.ndarray, cls)):
                 # Following Timestamp convention, __eq__ is all-False
                 # and __ne__ is all True, others raise TypeError.
                 return invalid_comparison(self, other, op)
@@ -179,20 +177,14 @@ def _dt_array_cmp(cls, op):
                         op, self.astype(object), other
                     )
                 o_mask = isna(other)
+
             elif not (is_datetime64_dtype(other) or is_datetime64tz_dtype(other)):
                 # e.g. is_timedelta64_dtype(other)
                 return invalid_comparison(self, other, op)
+
             else:
                 self._assert_tzawareness_compat(other)
-
-                if (
-                    is_datetime64_dtype(other)
-                    and not is_datetime64_ns_dtype(other)
-                    or not hasattr(other, "asi8")
-                ):
-                    # e.g. other.dtype == 'datetime64[s]'
-                    # or an object-dtype ndarray
-                    other = type(self)._from_sequence(other)
+                other = type(self)._from_sequence(other)
 
                 result = op(self.view("i8"), other.view("i8"))
                 o_mask = other._isnan
