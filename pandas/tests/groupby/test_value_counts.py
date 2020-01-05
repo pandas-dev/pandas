@@ -47,7 +47,7 @@ for seed_nans in [True, False]:
         keys = "1st", "2nd", ["1st", "2nd"]
         for k, b in product(keys, bins):
             binned.append((df, k, b, n, m))
-            ids.append("{}-{}-{}".format(k, n, m))
+            ids.append(f"{k}-{n}-{m}")
 
 
 @pytest.mark.slow

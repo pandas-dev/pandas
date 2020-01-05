@@ -3,12 +3,11 @@ from datetime import datetime
 
 import numpy as np
 
-from pandas._libs import NaT, Timedelta, index as libindex, lib
+from pandas._libs import NaT, Timedelta, index as libindex
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.common import (
     _TD_DTYPE,
-    ensure_int64,
     is_float,
     is_integer,
     is_list_like,
@@ -41,7 +40,6 @@ class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
     # Some are "raw" methods, the result is not re-boxed in an Index
     # We also have a few "extra" attrs, which may or may not be raw,
     # which we don't want to expose in the .dt accessor.
-    _delegate_class = TimedeltaArray
     _raw_properties = {"components", "_box_func"}
     _raw_methods = {"to_pytimedelta", "sum", "std", "median", "_format_native_types"}
 
@@ -249,19 +247,17 @@ class TimedeltaIndex(
             return Index(result.astype("i8"), name=self.name)
         return DatetimeIndexOpsMixin.astype(self, dtype, copy=copy)
 
-    def _union(self, other, sort):
+    def _union(self, other: "TimedeltaIndex", sort):
         if len(other) == 0 or self.equals(other) or len(self) == 0:
             return super()._union(other, sort=sort)
 
-        if not isinstance(other, TimedeltaIndex):
-            try:
-                other = TimedeltaIndex(other)
-            except (TypeError, ValueError):
-                pass
+        # We are called by `union`, which is responsible for this validation
+        assert isinstance(other, TimedeltaIndex)
+
         this, other = self, other
 
         if this._can_fast_union(other):
-            return this._fast_union(other)
+            return this._fast_union(other, sort=sort)
         else:
             result = Index._union(this, other, sort=sort)
             if isinstance(result, TimedeltaIndex):
@@ -269,7 +265,7 @@ class TimedeltaIndex(
                     result._set_freq("infer")
             return result
 
-    def _fast_union(self, other):
+    def _fast_union(self, other, sort=None):
         if len(other) == 0:
             return self.view(type(self))
 
@@ -279,6 +275,15 @@ class TimedeltaIndex(
         # to make our life easier, "sort" the two ranges
         if self[0] <= other[0]:
             left, right = self, other
+        elif sort is False:
+            # TDIs are not in the "correct" order and we don't want
+            #  to sort but want to remove overlaps
+            left, right = self, other
+            left_start = left[0]
+            loc = right.searchsorted(left_start, side="left")
+            right_chunk = right.values[:loc]
+            dates = concat_compat((left.values, right_chunk))
+            return self._shallow_copy(dates)
         else:
             left, right = other, self
 
@@ -310,7 +315,7 @@ class TimedeltaIndex(
             return self.get_value_maybe_box(series, key)
 
         try:
-            return com.maybe_box(self, Index.get_value(self, series, key), series, key)
+            value = Index.get_value(self, series, key)
         except KeyError:
             try:
                 loc = self._get_string_slice(key)
@@ -322,10 +327,10 @@ class TimedeltaIndex(
                 return self.get_value_maybe_box(series, key)
             except (TypeError, ValueError, KeyError):
                 raise KeyError(key)
+        else:
+            return com.maybe_box(self, value, series, key)
 
-    def get_value_maybe_box(self, series, key):
-        if not isinstance(key, Timedelta):
-            key = Timedelta(key)
+    def get_value_maybe_box(self, series, key: Timedelta):
         values = self._engine.get_value(com.values_from_object(series), key)
         return com.maybe_box(self, values, series, key)
 
@@ -478,34 +483,6 @@ class TimedeltaIndex(
             if isinstance(item, str):
                 return self.astype(object).insert(loc, item)
             raise TypeError("cannot insert TimedeltaIndex with incompatible label")
-
-    def delete(self, loc):
-        """
-        Make a new TimedeltaIndex with passed location(s) deleted.
-
-        Parameters
-        ----------
-        loc: int, slice or array of ints
-            Indicate which sub-arrays to remove.
-
-        Returns
-        -------
-        new_index : TimedeltaIndex
-        """
-        new_tds = np.delete(self.asi8, loc)
-
-        freq = "infer"
-        if is_integer(loc):
-            if loc in (0, -len(self), -1, len(self) - 1):
-                freq = self.freq
-        else:
-            if is_list_like(loc):
-                loc = lib.maybe_indices_to_slice(ensure_int64(np.array(loc)), len(self))
-            if isinstance(loc, slice) and loc.step in (1, None):
-                if loc.start in (0, None) or loc.stop in (len(self), None):
-                    freq = self.freq
-
-        return TimedeltaIndex(new_tds, name=self.name, freq=freq)
 
 
 TimedeltaIndex._add_comparison_ops()

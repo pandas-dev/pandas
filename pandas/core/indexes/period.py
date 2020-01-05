@@ -5,13 +5,14 @@ import numpy as np
 
 from pandas._libs import index as libindex
 from pandas._libs.tslibs import NaT, frequencies as libfrequencies, iNaT, resolution
-from pandas._libs.tslibs.period import DIFFERENT_FREQ, IncompatibleFrequency, Period
+from pandas._libs.tslibs.period import Period
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_bool_dtype,
     is_datetime64_any_dtype,
+    is_dtype_equal,
     is_float,
     is_float_dtype,
     is_integer,
@@ -20,7 +21,12 @@ from pandas.core.dtypes.common import (
 )
 
 from pandas.core.accessor import delegate_names
-from pandas.core.arrays.period import PeriodArray, period_array, validate_dtype_freq
+from pandas.core.arrays.period import (
+    PeriodArray,
+    period_array,
+    raise_on_incompatible,
+    validate_dtype_freq,
+)
 from pandas.core.base import _shared_docs
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
@@ -65,7 +71,6 @@ class PeriodDelegateMixin(DatetimelikeDelegateMixin):
     Delegate from PeriodIndex to PeriodArray.
     """
 
-    _delegate_class = PeriodArray
     _raw_methods = {"_format_native_types"}
     _raw_properties = {"is_leap_year", "freq"}
 
@@ -338,10 +343,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             if base == self.freq.rule_code:
                 return other.n
 
-            msg = DIFFERENT_FREQ.format(
-                cls=type(self).__name__, own_freq=self.freqstr, other_freq=other.freqstr
-            )
-            raise IncompatibleFrequency(msg)
+            raise raise_on_incompatible(self, other)
         elif is_integer(other):
             # integer is passed to .shift via
             # _add_datetimelike_methods basically
@@ -349,10 +351,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             return other
 
         # raise when input doesn't have freq
-        msg = DIFFERENT_FREQ.format(
-            cls=type(self).__name__, own_freq=self.freqstr, other_freq=None
-        )
-        raise IncompatibleFrequency(msg)
+        raise raise_on_incompatible(self, None)
 
     # ------------------------------------------------------------------------
     # Rendering Methods
@@ -486,12 +485,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     def searchsorted(self, value, side="left", sorter=None):
         if isinstance(value, Period):
             if value.freq != self.freq:
-                msg = DIFFERENT_FREQ.format(
-                    cls=type(self).__name__,
-                    own_freq=self.freqstr,
-                    other_freq=value.freqstr,
-                )
-                raise IncompatibleFrequency(msg)
+                raise raise_on_incompatible(self, value)
             value = value.ordinal
         elif isinstance(value, str):
             try:
@@ -564,15 +558,12 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
         target = ensure_index(target)
 
-        if hasattr(target, "freq") and target.freq != self.freq:
-            msg = DIFFERENT_FREQ.format(
-                cls=type(self).__name__,
-                own_freq=self.freqstr,
-                other_freq=target.freqstr,
-            )
-            raise IncompatibleFrequency(msg)
-
         if isinstance(target, PeriodIndex):
+            if target.freq != self.freq:
+                # No matches
+                no_matches = -1 * np.ones(self.shape, dtype=np.intp)
+                return no_matches
+
             target = target.asi8
             self_index = self._int64index
         else:
@@ -587,14 +578,11 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         target = ensure_index(target)
 
         if isinstance(target, PeriodIndex):
+            if target.freq != self.freq:
+                no_matches = -1 * np.ones(self.shape, dtype=np.intp)
+                return no_matches, no_matches
+
             target = target.asi8
-            if hasattr(target, "freq") and target.freq != self.freq:
-                msg = DIFFERENT_FREQ.format(
-                    cls=type(self).__name__,
-                    own_freq=self.freqstr,
-                    other_freq=target.freqstr,
-                )
-                raise IncompatibleFrequency(msg)
 
         indexer, missing = self._int64index.get_indexer_non_unique(target)
         return ensure_platform_int(indexer), missing
@@ -782,22 +770,46 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             return self._apply_meta(result), lidx, ridx
         return self._apply_meta(result)
 
+    # ------------------------------------------------------------------------
+    # Set Operation Methods
+
     def _assert_can_do_setop(self, other):
         super()._assert_can_do_setop(other)
 
         # *Can't* use PeriodIndexes of different freqs
         # *Can* use PeriodIndex/DatetimeIndex
         if isinstance(other, PeriodIndex) and self.freq != other.freq:
-            msg = DIFFERENT_FREQ.format(
-                cls=type(self).__name__, own_freq=self.freqstr, other_freq=other.freqstr
-            )
-            raise IncompatibleFrequency(msg)
+            raise raise_on_incompatible(self, other)
 
     def _wrap_setop_result(self, other, result):
         name = get_op_result_name(self, other)
         result = self._apply_meta(result)
         result.name = name
         return result
+
+    def intersection(self, other, sort=False):
+        self._validate_sort_keyword(sort)
+        self._assert_can_do_setop(other)
+        res_name = get_op_result_name(self, other)
+        other = ensure_index(other)
+
+        if self.equals(other):
+            return self._get_reconciled_name_object(other)
+
+        if not is_dtype_equal(self.dtype, other.dtype):
+            # TODO: fastpath for if we have a different PeriodDtype
+            this = self.astype("O")
+            other = other.astype("O")
+            return this.intersection(other, sort=sort)
+
+        i8self = Int64Index._simple_new(self.asi8)
+        i8other = Int64Index._simple_new(other.asi8)
+        i8result = i8self.intersection(i8other, sort=sort)
+
+        result = self._shallow_copy(np.asarray(i8result, dtype=np.int64), name=res_name)
+        return result
+
+    # ------------------------------------------------------------------------
 
     def _apply_meta(self, rawarr):
         if not isinstance(rawarr, PeriodIndex):
