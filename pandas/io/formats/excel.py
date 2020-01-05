@@ -4,7 +4,7 @@
 from functools import reduce
 import itertools
 import re
-from typing import Callable, Dict, Hashable, List, Optional, Sequence, Union
+from typing import Callable, Dict, Hashable, Optional, Sequence, Union
 import warnings
 
 import numpy as np
