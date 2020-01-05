@@ -10,7 +10,6 @@ from pandas._libs import index as libindex
 from pandas._libs.hashtable import duplicated_int64
 from pandas._typing import AnyArrayLike
 import pandas.compat as compat
-from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -30,7 +29,7 @@ from pandas.core.arrays.categorical import Categorical, _recode_for_categories, 
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
-from pandas.core.indexes.extension import make_wrapped_comparison_op
+from pandas.core.indexes.extension import ExtensionIndex, make_wrapped_comparison_op
 import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name
 
@@ -67,7 +66,7 @@ _index_doc_kwargs.update(dict(target_klass="CategoricalIndex"))
     typ="method",
     overwrite=True,
 )
-class CategoricalIndex(Index, accessor.PandasDelegate):
+class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
     """
     Index based on an underlying :class:`Categorical`.
 
@@ -723,20 +722,8 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def _convert_index_indexer(self, keyarr):
         return self._shallow_copy(keyarr)
 
-    @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
-    def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
-        nv.validate_take(tuple(), kwargs)
-        indices = ensure_platform_int(indices)
-        taken = self._assert_take_fillable(
-            self._data,
-            indices,
-            allow_fill=allow_fill,
-            fill_value=fill_value,
-            na_value=self._data.dtype.na_value,
-        )
-        return self._shallow_copy(taken)
-
     def take_nd(self, *args, **kwargs):
+        """Alias for `take`"""
         warnings.warn(
             "CategoricalIndex.take_nd is deprecated, use CategoricalIndex.take instead",
             FutureWarning,
