@@ -899,9 +899,9 @@ class BusinessHourMixin(BusinessMixin):
                 if isinstance(self, _CustomMixin):  # GH 30593
                     skip_bd = CustomBusinessDay(
                         n=bd,
-                        weekmask=getattr(self, "weekmask"),
-                        holidays=getattr(self, "holidays"),
-                        calendar=getattr(self, "calendar"),
+                        weekmask=self.weekmask,
+                        holidays=self.holidays,
+                        calendar=self.calendar,
                     )
                 else:
                     skip_bd = BusinessDay(n=bd)
