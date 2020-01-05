@@ -17,6 +17,7 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer,
     is_integer_dtype,
+    is_object_dtype,
     pandas_dtype,
 )
 
@@ -588,13 +589,13 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         return ensure_platform_int(indexer), missing
 
     def _get_unique_index(self, dropna=False):
-        """
-        wrap Index._get_unique_index to handle NaT
-        """
-        res = super()._get_unique_index(dropna=dropna)
-        if dropna:
-            res = res.dropna()
-        return res
+        if self.is_unique and not dropna:
+            return self
+
+        result = self._data.unique()
+        if dropna and self.hasnans:
+            result = result[~result.isna()]
+        return self._shallow_copy(result)
 
     def get_loc(self, key, method=None, tolerance=None):
         """
@@ -805,6 +806,29 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         i8self = Int64Index._simple_new(self.asi8)
         i8other = Int64Index._simple_new(other.asi8)
         i8result = i8self.intersection(i8other, sort=sort)
+
+        result = self._shallow_copy(np.asarray(i8result, dtype=np.int64), name=res_name)
+        return result
+
+    def difference(self, other, sort=None):
+        self._validate_sort_keyword(sort)
+        self._assert_can_do_setop(other)
+        res_name = get_op_result_name(self, other)
+        other = ensure_index(other)
+
+        if self.equals(other):
+            # pass an empty PeriodArray with the appropriate dtype
+            return self._shallow_copy(self._data[:0])
+
+        if is_object_dtype(other):
+            return self.astype(object).difference(other).astype(self.dtype)
+
+        elif not is_dtype_equal(self.dtype, other.dtype):
+            return self
+
+        i8self = Int64Index._simple_new(self.asi8)
+        i8other = Int64Index._simple_new(other.asi8)
+        i8result = i8self.difference(i8other, sort=sort)
 
         result = self._shallow_copy(np.asarray(i8result, dtype=np.int64), name=res_name)
         return result
