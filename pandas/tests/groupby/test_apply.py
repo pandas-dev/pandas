@@ -265,7 +265,7 @@ def test_apply_concat_preserve_names(three_group):
         result = group.describe()
 
         # names are different
-        result.index.name = "stat_{:d}".format(len(group))
+        result.index.name = f"stat_{len(group):d}"
 
         result = result[: len(group)]
         # weirdo
