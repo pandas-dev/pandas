@@ -568,7 +568,7 @@ Deprecations
 - :func:`eval` keyword argument "truediv" is deprecated and will be removed in a future version (:issue:`29812`)
 - :meth:`DateOffset.isAnchored` and :meth:`DatetOffset.onOffset` are deprecated and will be removed in a future version, use :meth:`DateOffset.is_anchored` and :meth:`DateOffset.is_on_offset` instead (:issue:`30340`)
 - ``pandas.tseries.frequencies.get_offset`` is deprecated and will be removed in a future version, use ``pandas.tseries.frequencies.to_offset`` instead (:issue:`4205`)
-- :meth:`Categorical.take_nd` is deprecated, use :meth:`Categorical.take` instead (:issue:`27745`)
+- :meth:`Categorical.take_nd` and :meth:`CategoricalIndex.take_nd` are deprecated, use :meth:`Categorical.take` and :meth:`CategoricalIndex.take` instead (:issue:`27745`)
 - The parameter ``numeric_only`` of :meth:`Categorical.min` and :meth:`Categorical.max` is deprecated and replaced with ``skipna`` (:issue:`25303`)
 - The parameter ``label`` in :func:`lreshape` has been deprecated and will be removed in a future version (:issue:`29742`)
 - ``pandas.core.index`` has been deprecated and will be removed in a future version, the public classes are available in the top-level namespace (:issue:`19711`)
