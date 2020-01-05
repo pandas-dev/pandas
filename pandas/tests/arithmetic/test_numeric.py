@@ -12,8 +12,8 @@ import pytest
 
 import pandas as pd
 from pandas import Index, Series, Timedelta, TimedeltaIndex
+import pandas._testing as tm
 from pandas.core import ops
-import pandas.util.testing as tm
 
 
 def adjust_negative_zero(zero, expected):

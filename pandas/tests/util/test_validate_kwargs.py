@@ -1,5 +1,3 @@
-from collections import OrderedDict
-
 import pytest
 
 from pandas.util._validators import validate_bool_kwarg, validate_kwargs
@@ -11,9 +9,7 @@ def test_bad_kwarg():
     good_arg = "f"
     bad_arg = good_arg + "o"
 
-    compat_args = OrderedDict()
-    compat_args[good_arg] = "foo"
-    compat_args[bad_arg + "o"] = "bar"
+    compat_args = {good_arg: "foo", bad_arg + "o": "bar"}
     kwargs = {good_arg: "foo", bad_arg: "bar"}
 
     msg = fr"{_fname}\(\) got an unexpected keyword argument '{bad_arg}'"
@@ -30,10 +26,7 @@ def test_not_all_none(i):
         r"in the pandas implementation of {func}\(\)".format(arg=bad_arg, func=_fname)
     )
 
-    compat_args = OrderedDict()
-    compat_args["foo"] = 1
-    compat_args["bar"] = "s"
-    compat_args["baz"] = None
+    compat_args = {"foo": 1, "bar": "s", "baz": None}
 
     kwarg_keys = ("foo", "bar", "baz")
     kwarg_vals = (2, "s", None)
@@ -46,10 +39,7 @@ def test_not_all_none(i):
 
 def test_validation():
     # No exceptions should be raised.
-    compat_args = OrderedDict()
-    compat_args["f"] = None
-    compat_args["b"] = 1
-    compat_args["ba"] = "s"
+    compat_args = {"f": None, "b": 1, "ba": "s"}
 
     kwargs = dict(f=None, b=1)
     validate_kwargs(_fname, kwargs, compat_args)

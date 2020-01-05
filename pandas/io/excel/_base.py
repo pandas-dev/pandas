@@ -40,7 +40,7 @@ Support an option to read a single sheet or a list of sheets.
 
 Parameters
 ----------
-io : str, ExcelFile, xlrd.Book, path object or file-like object
+io : str, bytes, ExcelFile, xlrd.Book, path object, or file-like object
     Any valid string path is acceptable. The string could be a URL. Valid
     URL schemes include http, ftp, s3, and file. For file URLs, a host is
     expected. A local file could be: ``file://localhost/path/to/table.xlsx``.
@@ -350,6 +350,8 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
             self.book = self.load_workbook(filepath_or_buffer)
         elif isinstance(filepath_or_buffer, str):
             self.book = self.load_workbook(filepath_or_buffer)
+        elif isinstance(filepath_or_buffer, bytes):
+            self.book = self.load_workbook(BytesIO(filepath_or_buffer))
         else:
             raise ValueError(
                 "Must explicitly set engine if not passing in buffer or path for io."
@@ -526,8 +528,10 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
 
 class ExcelWriter(metaclass=abc.ABCMeta):
     """
-    Class for writing DataFrame objects into excel sheets, default is to use
-    xlwt for xls, openpyxl for xlsx.  See DataFrame.to_excel for typical usage.
+    Class for writing DataFrame objects into excel sheets.
+
+    Default is to use xlwt for xls, openpyxl for xlsx.
+    See DataFrame.to_excel for typical usage.
 
     Parameters
     ----------
@@ -541,7 +545,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         Format string for dates written into Excel files (e.g. 'YYYY-MM-DD').
     datetime_format : str, default None
         Format string for datetime objects written into Excel files.
-        (e.g. 'YYYY-MM-DD HH:MM:SS')
+        (e.g. 'YYYY-MM-DD HH:MM:SS').
     mode : {'w', 'a'}, default 'w'
         File mode to use (write or append).
 

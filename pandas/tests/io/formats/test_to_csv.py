@@ -7,7 +7,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, compat
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestToCSV:
@@ -495,10 +495,7 @@ z
         compression = compression_only
 
         if compression == "zip":
-            pytest.skip(
-                "{compression} is not supported "
-                "for to_csv".format(compression=compression)
-            )
+            pytest.skip(f"{compression} is not supported for to_csv")
 
         # We'll complete file extension subsequently.
         filename = "test."
