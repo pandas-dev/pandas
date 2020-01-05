@@ -1,4 +1,4 @@
-from typing import ChainMap, MutableMapping, TypeVar, cast
+from typing import ChainMap, List, MutableMapping, TypeVar
 
 from pandas._typing import T
 
@@ -7,18 +7,23 @@ _VT = TypeVar("_VT")
 
 
 class DeepChainMap(ChainMap[_KT, _VT]):
-    """Variant of ChainMap that allows direct updates to inner scopes.
+    """
+    Variant of ChainMap that allows direct updates to inner scopes.
 
     Only works when all passed mapping are mutable.
     """
 
+    # error: Incompatible types in assignment (expression has type
+    #  "List[MutableMapping[_KT, _VT]]", base class "ChainMap" defined the type
+    #  as "List[Mapping[_KT, _VT]]")  [assignment]
+    maps: List[MutableMapping[_KT, _VT]]  # type: ignore
+
     def __setitem__(self, key: _KT, value: _VT) -> None:
         for mapping in self.maps:
-            mutable_mapping = cast(MutableMapping[_KT, _VT], mapping)
-            if key in mutable_mapping:
-                mutable_mapping[key] = value
+            if key in mapping:
+                mapping[key] = value
                 return
-        cast(MutableMapping[_KT, _VT], self.maps[0])[key] = value
+        self.maps[0][key] = value
 
     def __delitem__(self, key: _KT) -> None:
         """
@@ -28,9 +33,8 @@ class DeepChainMap(ChainMap[_KT, _VT]):
             If `key` doesn't exist.
         """
         for mapping in self.maps:
-            mutable_mapping = cast(MutableMapping[_KT, _VT], mapping)
             if key in mapping:
-                del mutable_mapping[key]
+                del mapping[key]
                 return
         raise KeyError(key)
 

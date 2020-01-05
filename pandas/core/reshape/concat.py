@@ -2,7 +2,7 @@
 concat routines
 """
 
-from typing import Hashable, List, Mapping, Optional, Sequence, Union, overload
+from typing import Hashable, Iterable, List, Mapping, Optional, Union, overload
 
 import numpy as np
 
@@ -30,7 +30,7 @@ from pandas.core.internals import concatenate_block_managers
 
 @overload
 def concat(
-    objs: Union[Sequence["DataFrame"], Mapping[Optional[Hashable], "DataFrame"]],
+    objs: Union[Iterable["DataFrame"], Mapping[Optional[Hashable], "DataFrame"]],
     axis=0,
     join: str = "outer",
     ignore_index: bool = False,
@@ -47,7 +47,7 @@ def concat(
 @overload
 def concat(
     objs: Union[
-        Sequence[FrameOrSeriesUnion], Mapping[Optional[Hashable], FrameOrSeriesUnion]
+        Iterable[FrameOrSeriesUnion], Mapping[Optional[Hashable], FrameOrSeriesUnion]
     ],
     axis=0,
     join: str = "outer",
@@ -64,7 +64,7 @@ def concat(
 
 def concat(
     objs: Union[
-        Sequence[FrameOrSeriesUnion], Mapping[Optional[Hashable], FrameOrSeriesUnion]
+        Iterable[FrameOrSeriesUnion], Mapping[Optional[Hashable], FrameOrSeriesUnion]
     ],
     axis=0,
     join="outer",

@@ -1,6 +1,6 @@
 from functools import partial
 import itertools
-from typing import List, Optional, Union
+from typing import List, Union
 
 import numpy as np
 
@@ -897,10 +897,10 @@ def get_dummies(
         elif isinstance(prefix_sep, dict):
             prefix_sep = [prefix_sep[col] for col in data_to_encode.columns]
 
-        with_dummies: List[Optional[DataFrame]]
+        with_dummies: List[DataFrame]
         if data_to_encode.shape == data.shape:
             # Encoding the entire df, do not prepend any dropped columns
-            with_dummies: List[DataFrame] = []
+            with_dummies = []
         elif columns is not None:
             # Encoding only cols specified in columns. Get all cols not in
             # columns to prepend to result.
