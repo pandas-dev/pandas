@@ -394,7 +394,7 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
         """
         if self.rules is None:
             raise Exception(
-                f"Holiday Calendar {self.name} does not have any " 
+                f"Holiday Calendar {self.name} does not have any "
                 f"rules specified"
             )
 
