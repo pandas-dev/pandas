@@ -2,9 +2,11 @@
 concat routines
 """
 
-from typing import Hashable, List, Optional
+from typing import Hashable, List, Mapping, Optional, Sequence, Union, overload
 
 import numpy as np
+
+from pandas._typing import FrameOrSeriesUnion
 
 from pandas import DataFrame, Index, MultiIndex, Series
 from pandas.core.arrays.categorical import (
@@ -26,8 +28,9 @@ from pandas.core.internals import concatenate_block_managers
 # Concatenate DataFrame objects
 
 
+@overload
 def concat(
-    objs,
+    objs: Union[Sequence["DataFrame"], Mapping[Optional[Hashable], "DataFrame"]],
     axis=0,
     join: str = "outer",
     ignore_index: bool = False,
@@ -37,7 +40,42 @@ def concat(
     verify_integrity: bool = False,
     sort: bool = False,
     copy: bool = True,
-):
+) -> "DataFrame":
+    ...
+
+
+@overload
+def concat(
+    objs: Union[
+        Sequence[FrameOrSeriesUnion], Mapping[Optional[Hashable], FrameOrSeriesUnion]
+    ],
+    axis=0,
+    join: str = "outer",
+    ignore_index: bool = False,
+    keys=None,
+    levels=None,
+    names=None,
+    verify_integrity: bool = False,
+    sort: bool = False,
+    copy: bool = True,
+) -> FrameOrSeriesUnion:
+    ...
+
+
+def concat(
+    objs: Union[
+        Sequence[FrameOrSeriesUnion], Mapping[Optional[Hashable], FrameOrSeriesUnion]
+    ],
+    axis=0,
+    join="outer",
+    ignore_index: bool = False,
+    keys=None,
+    levels=None,
+    names=None,
+    verify_integrity: bool = False,
+    sort: bool = False,
+    copy: bool = True,
+) -> FrameOrSeriesUnion:
     """
     Concatenate pandas objects along a particular axis with optional set logic
     along the other axes.

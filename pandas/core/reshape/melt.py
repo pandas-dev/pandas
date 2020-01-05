@@ -192,7 +192,9 @@ def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> DataFr
     return data._constructor(mdata, columns=id_cols + pivot_cols)
 
 
-def wide_to_long(df: DataFrame, stubnames, i, j, sep: str = "", suffix: str = r"\d+"):
+def wide_to_long(
+    df: DataFrame, stubnames, i, j, sep: str = "", suffix: str = r"\d+"
+) -> DataFrame:
     r"""
     Wide panel to long format. Less flexible but more user-friendly than melt.
 
