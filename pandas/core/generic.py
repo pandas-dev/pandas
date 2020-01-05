@@ -7023,7 +7023,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         # mask the missing
         missing = locs == -1
-        data = self.take(locs, is_copy=False)
+        d = self.take(locs)
+        data = d.copy()
         data.index = where
         data.loc[missing] = np.nan
         return data if is_list else data.iloc[-1]
