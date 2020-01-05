@@ -195,7 +195,7 @@ class Holiday:
         if self.observance is not None:
             info += f"observance={self.observance}"
 
-        repr = f"Holiday: {self.name} ({self.info})"
+        repr = f"Holiday: {self.name} ({info})"
         return repr
 
     def dates(self, start_date, end_date, return_name=False):
@@ -394,7 +394,8 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
         """
         if self.rules is None:
             raise Exception(
-                f"Holiday Calendar {self.name} does not have any " f"rules specified"
+                f"Holiday Calendar {self.name} does not have any " 
+                f"rules specified"
             )
 
         if start is None:

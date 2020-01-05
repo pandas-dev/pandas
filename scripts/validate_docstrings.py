@@ -983,7 +983,7 @@ def main(func_name, prefix, errors, output_format, ignore_deprecated):
     else:
         result = validate_one(func_name)
         sys.stderr.write(header(f"Docstring ({func_name})"))
-        sys.stderr.write(f"{result["docstring"]}\n")
+        sys.stderr.write(f"{result['docstring']}\n")
         sys.stderr.write(header("Validation"))
         if result["errors"]:
             sys.stderr.write(f"{len(result["errors"])} Errors found:\n")
