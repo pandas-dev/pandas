@@ -19,8 +19,8 @@ from pandas import (
     period_range,
     timedelta_range,
 )
+import pandas._testing as tm
 from pandas.core.arrays import IntervalArray
-import pandas.util.testing as tm
 
 
 @pytest.fixture(
