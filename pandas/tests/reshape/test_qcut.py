@@ -148,16 +148,17 @@ def test_qcut_wrong_length_labels(kwargs):
 
 
 @pytest.mark.parametrize(
-    "kwargs, expected",
+    "labels, expected",
     [
         (["a", "b", "c"], Categorical(["a", "b", "c"], ordered=True)),
         (list(range(3)), Categorical([0, 1, 2], ordered=True)),
     ],
 )
-def test_qcut_list_like_labels(kwargs, expected):
+def test_qcut_list_like_labels(labels, expected):
     # GH 13318
-    values = range(10)
-    qcut(values, 3, labels=kwargs)
+    values = range(3)
+    result = qcut(values, 3, labels=labels)
+    tm.assert_categorical_equal(result, expected)
 
 
 @pytest.mark.parametrize(
