@@ -2104,8 +2104,8 @@ class DataFrame(NDFrame):
         col_space_type="str or int",
         col_space="The minimum width of each column in CSS length "
         "units.  An int is assumed to be px units.\n\n"
-        "            .. versionadded:: 0.25.0\n"
-        "                Ability to use str",
+        "\t\t\t.. versionadded:: 0.25.0\n"
+        "\t\t\t\tAbility to use str",
     )
     @Substitution(shared_params=fmt.common_docstring, returns=fmt.return_docstring)
     def to_html(
@@ -7000,8 +7000,8 @@ Wild         185.0
                 other = Series(other)
             if other.name is None and not ignore_index:
                 raise TypeError(
-                    "Can only append a Series if ignore_index=True"
-                    " or if the Series has a name"
+                    "Can only append a Series if ignore_index=True "
+                    "or if the Series has a name"
                 )
 
             index = Index([other.name], name=self.index.name)
