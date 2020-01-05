@@ -1,5 +1,6 @@
 import operator
 from typing import Any, List
+import warnings
 
 import numpy as np
 
@@ -29,6 +30,7 @@ from pandas.core.arrays.categorical import Categorical, _recode_for_categories, 
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
+from pandas.core.indexes.extension import make_wrapped_comparison_op
 import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name
 
@@ -268,14 +270,12 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         return data
 
     @classmethod
-    def _simple_new(cls, values, name=None, dtype=None, **kwargs):
+    def _simple_new(cls, values, name=None, dtype=None):
         result = object.__new__(cls)
 
         values = cls._create_categorical(values, dtype=dtype)
         result._data = values
         result.name = name
-        for k, v in kwargs.items():
-            setattr(result, k, v)
 
         result._reset_identity()
         result._no_setting_name = False
@@ -728,15 +728,21 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         nv.validate_take(tuple(), kwargs)
         indices = ensure_platform_int(indices)
         taken = self._assert_take_fillable(
-            self.codes,
+            self._data,
             indices,
             allow_fill=allow_fill,
             fill_value=fill_value,
-            na_value=-1,
+            na_value=self._data.dtype.na_value,
         )
-        return self._create_from_codes(taken)
+        return self._shallow_copy(taken)
 
-    take_nd = take
+    def take_nd(self, *args, **kwargs):
+        warnings.warn(
+            "CategoricalIndex.take_nd is deprecated, use CategoricalIndex.take instead",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.take(*args, **kwargs)
 
     @Appender(_index_shared_docs["_maybe_cast_slice_bound"])
     def _maybe_cast_slice_bound(self, label, side, kind):
@@ -876,14 +882,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         def _make_compare(op):
             opname = f"__{op.__name__}__"
 
-            def _evaluate_compare(self, other):
-                with np.errstate(all="ignore"):
-                    result = op(self.array, other)
-                if isinstance(result, ABCSeries):
-                    # Dispatch to pd.Categorical returned NotImplemented
-                    # and we got a Series back; down-cast to ndarray
-                    result = result._values
-                return result
+            _evaluate_compare = make_wrapped_comparison_op(opname)
 
             return compat.set_function_name(_evaluate_compare, opname, cls)
 

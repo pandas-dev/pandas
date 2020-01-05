@@ -568,7 +568,7 @@ Deprecations
 - :func:`eval` keyword argument "truediv" is deprecated and will be removed in a future version (:issue:`29812`)
 - :meth:`DateOffset.isAnchored` and :meth:`DatetOffset.onOffset` are deprecated and will be removed in a future version, use :meth:`DateOffset.is_anchored` and :meth:`DateOffset.is_on_offset` instead (:issue:`30340`)
 - ``pandas.tseries.frequencies.get_offset`` is deprecated and will be removed in a future version, use ``pandas.tseries.frequencies.to_offset`` instead (:issue:`4205`)
-- :meth:`Categorical.take_nd` is deprecated, use :meth:`Categorical.take` instead (:issue:`27745`)
+- :meth:`Categorical.take_nd` and :meth:`CategoricalIndex.take_nd` are deprecated, use :meth:`Categorical.take` and :meth:`CategoricalIndex.take` instead (:issue:`27745`)
 - The parameter ``numeric_only`` of :meth:`Categorical.min` and :meth:`Categorical.max` is deprecated and replaced with ``skipna`` (:issue:`25303`)
 - The parameter ``label`` in :func:`lreshape` has been deprecated and will be removed in a future version (:issue:`29742`)
 - ``pandas.core.index`` has been deprecated and will be removed in a future version, the public classes are available in the top-level namespace (:issue:`19711`)
@@ -578,6 +578,7 @@ Deprecations
 - :meth:`DataFrame.to_stata`, :meth:`DataFrame.to_feather`, and :meth:`DataFrame.to_parquet` argument "fname" is deprecated, use "path" instead (:issue:`23574`)
 - The deprecated internal attributes ``_start``, ``_stop`` and ``_step`` of :class:`RangeIndex` now raise a ``FutureWarning`` instead of a ``DeprecationWarning`` (:issue:`26581`)
 - The ``pandas.util.testing`` module has been deprecated. Use the public API in ``pandas.testing`` documented at :ref:`api.general.testing` (:issue:`16232`).
+- ``pandas.SparseArray`` has been deprecated.  Use ``pandas.arrays.SparseArray`` (:class:`arrays.SparseArray`) instead. (:issue:`30642`)
 
 **Selecting Columns from a Grouped DataFrame**
 
@@ -1016,6 +1017,7 @@ Other
 - Bug in :meth:`Series.diff` where a boolean series would incorrectly raise a ``TypeError`` (:issue:`17294`)
 - :meth:`Series.append` will no longer raise a ``TypeError`` when passed a tuple of ``Series`` (:issue:`28410`)
 - Fix corrupted error message when calling ``pandas.libs._json.encode()`` on a 0d array (:issue:`18878`)
+- Backtick quoting in :meth:`DataFrame.query` and :meth:`DataFrame.eval` can now also be used to use invalid identifiers like names that start with a digit, are python keywords, or are using single character operators. (:issue:`27017`)
 - Bug in ``pd.core.util.hashing.hash_pandas_object`` where arrays containing tuples were incorrectly treated as non-hashable (:issue:`28969`)
 - Bug in :meth:`DataFrame.append` that raised ``IndexError`` when appending with empty list (:issue:`28769`)
 - Fix :class:`AbstractHolidayCalendar` to return correct results for

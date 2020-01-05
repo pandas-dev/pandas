@@ -3,10 +3,11 @@ import operator
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs import IncompatibleFrequency
+
 import pandas as pd
 from pandas import Series
 import pandas._testing as tm
-from pandas.core.indexes.period import IncompatibleFrequency
 
 
 def _permute(obj):

@@ -9,8 +9,8 @@ import pandas._testing as tm
 class TestDataFrameQuantile:
     def test_quantile_sparse(self):
         # GH#17198
-        s = pd.Series(pd.SparseArray([1, 2]))
-        s1 = pd.Series(pd.SparseArray([3, 4]))
+        s = pd.Series(pd.arrays.SparseArray([1, 2]))
+        s1 = pd.Series(pd.arrays.SparseArray([3, 4]))
         df = pd.DataFrame({0: s, 1: s1})
         result = df.quantile()
 
