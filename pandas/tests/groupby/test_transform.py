@@ -962,9 +962,7 @@ def test_groupby_transform_rename():
         if isinstance(x, pd.Series):
             return result
 
-        result = result.rename(
-            columns={c: "{}_demeaned".format(c) for c in result.columns}
-        )
+        result = result.rename(columns={c: "{c}_demeaned" for c in result.columns})
 
         return result
 

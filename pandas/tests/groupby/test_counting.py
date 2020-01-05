@@ -197,11 +197,8 @@ class TestCounting:
     @pytest.mark.parametrize(
         "datetimelike",
         [
-            [
-                Timestamp("2016-05-{i:02d} 20:09:25+00:00".format(i=i))
-                for i in range(1, 4)
-            ],
-            [Timestamp("2016-05-{i:02d} 20:09:25".format(i=i)) for i in range(1, 4)],
+            [Timestamp(f"2016-05-{i:02d} 20:09:25+00:00") for i in range(1, 4)],
+            [Timestamp(f"2016-05-{i:02d} 20:09:25") for i in range(1, 4)],
             [Timedelta(x, unit="h") for x in range(1, 4)],
             [Period(freq="2W", year=2017, month=x) for x in range(1, 4)],
         ],
