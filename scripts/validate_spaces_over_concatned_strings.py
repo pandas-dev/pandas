@@ -27,7 +27,7 @@ from typing import Generator, List, Tuple
 
 FILE_EXTENSIONS_TO_CHECK = (".py", ".pyx", ".pyx.ini", ".pxd")
 
-MSG = "String have a space at the beggining instead, at the end of the previos string."
+MSG = "String has a space at the beginning instead of the end of the previous string."
 
 
 def main(source_path: str, output_format: str) -> bool:
