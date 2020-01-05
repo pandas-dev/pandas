@@ -71,6 +71,7 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     infer_dtype_from_object,
     is_bool_dtype,
+    is_dataclass_instance,
     is_datetime64_any_dtype,
     is_datetime64tz_dtype,
     is_dict_like,
