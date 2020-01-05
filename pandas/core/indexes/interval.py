@@ -673,7 +673,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
 
         return key_i8
 
-    def _check_method(self, method):  # TODO: Doesnt need to be a method
+    def _check_method(self, method):
         if method is None:
             return
 
