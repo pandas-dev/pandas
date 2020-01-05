@@ -401,7 +401,7 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
         """
         Returns a curve with holidays between start_date and end_date
 
-        Parametersholiday
+        Parameters
         ----------
         start : starting date, datetime-like, optional
         end : ending date, datetime-like, optional

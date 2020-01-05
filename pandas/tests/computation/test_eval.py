@@ -1201,7 +1201,7 @@ class TestOperationsNumExprPandas:
         df2 = self.eval("df", local_dict={"df": df})
         tm.assert_frame_equal(df, df2)
 
-    def test_div(self):
+    def test_truediv(self):
         s = np.array([1])
         ex = "s / 1"
         d = {"s": s}  # noqa
