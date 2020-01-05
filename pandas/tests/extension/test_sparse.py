@@ -4,8 +4,9 @@ import pytest
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import SparseArray, SparseDtype
+from pandas import SparseDtype
 import pandas._testing as tm
+from pandas.arrays import SparseArray
 from pandas.tests.extension import base
 
 
@@ -235,7 +236,7 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         s2 = pd.Series(orig_data2)
         result = s1.combine(s2, lambda x1, x2: x1 <= x2)
         expected = pd.Series(
-            pd.SparseArray(
+            SparseArray(
                 [a <= b for (a, b) in zip(list(orig_data1), list(orig_data2))],
                 fill_value=False,
             )
@@ -245,7 +246,7 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         val = s1.iloc[0]
         result = s1.combine(val, lambda x1, x2: x1 <= x2)
         expected = pd.Series(
-            pd.SparseArray([a <= val for a in list(orig_data1)], fill_value=False)
+            SparseArray([a <= val for a in list(orig_data1)], fill_value=False)
         )
         self.assert_series_equal(result, expected)
 
@@ -350,7 +351,7 @@ class TestComparisonOps(BaseSparseTests, base.BaseComparisonOpsTests):
 
         with np.errstate(all="ignore"):
             expected = pd.Series(
-                pd.SparseArray(
+                SparseArray(
                     op(np.asarray(data), np.asarray(other)),
                     fill_value=result.values.fill_value,
                 )

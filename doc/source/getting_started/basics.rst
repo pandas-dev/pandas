@@ -1951,7 +1951,7 @@ documentation sections for more on each type.
 | period            | :class:`PeriodDtype`      | :class:`Period`    | :class:`arrays.PeriodArray`   | ``'period[<freq>]'``,                   | :ref:`timeseries.periods`     |
 | (time spans)      |                           |                    |                               | ``'Period[<freq>]'``                    |                               |
 +-------------------+---------------------------+--------------------+-------------------------------+-----------------------------------------+-------------------------------+
-| sparse            | :class:`SparseDtype`      | (none)             | :class:`SparseArray`          | ``'Sparse'``, ``'Sparse[int]'``,        | :ref:`sparse`                 |
+| sparse            | :class:`SparseDtype`      | (none)             | :class:`arrays.SparseArray`   | ``'Sparse'``, ``'Sparse[int]'``,        | :ref:`sparse`                 |
 |                   |                           |                    |                               | ``'Sparse[float]'``                     |                               |
 +-------------------+---------------------------+--------------------+-------------------------------+-----------------------------------------+-------------------------------+
 | intervals         | :class:`IntervalDtype`    | :class:`Interval`  | :class:`arrays.IntervalArray` | ``'interval'``, ``'Interval'``,         | :ref:`advanced.intervalindex` |

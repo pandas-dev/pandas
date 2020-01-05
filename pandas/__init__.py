@@ -115,7 +115,7 @@ from pandas.core.api import (
     DataFrame,
 )
 
-from pandas.core.arrays.sparse import SparseArray, SparseDtype
+from pandas.core.arrays.sparse import SparseDtype
 
 from pandas.tseries.api import infer_freq
 from pandas.tseries import offsets
@@ -246,6 +246,19 @@ if pandas.compat.PY37:
 
             return type(name, (), {})
 
+        elif name == "SparseArray":
+
+            warnings.warn(
+                "The pandas.SparseArray class is deprecated "
+                "and will be removed from pandas in a future version. "
+                "Use pandas.arrays.SparseArray instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            from pandas.core.arrays.sparse import SparseArray as _SparseArray
+
+            return _SparseArray
+
         raise AttributeError(f"module 'pandas' has no attribute '{name}'")
 
 
@@ -307,6 +320,9 @@ else:
                 raise AttributeError(f"module datetime has no attribute {item}")
 
     datetime = __Datetime().datetime
+
+    class SparseArray:
+        pass
 
 
 # module level doc-string

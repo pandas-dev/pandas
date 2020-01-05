@@ -741,7 +741,7 @@ implementation takes precedence and a Series is returned.
    np.maximum(ser, idx)
 
 NumPy ufuncs are safe to apply to :class:`Series` backed by non-ndarray arrays,
-for example :class:`SparseArray` (see :ref:`sparse.calculation`). If possible,
+for example :class:`arrays.SparseArray` (see :ref:`sparse.calculation`). If possible,
 the ufunc is applied without converting the underlying data to an ndarray.
 
 Console display

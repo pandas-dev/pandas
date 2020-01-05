@@ -457,9 +457,9 @@ class TestSeriesMissingData:
 
     def test_where_sparse(self):
         # GH#17198 make sure we dont get an AttributeError for sp_index
-        ser = pd.Series(pd.SparseArray([1, 2]))
+        ser = pd.Series(pd.arrays.SparseArray([1, 2]))
         result = ser.where(ser >= 2, 0)
-        expected = pd.Series(pd.SparseArray([0, 2]))
+        expected = pd.Series(pd.arrays.SparseArray([0, 2]))
         tm.assert_series_equal(result, expected)
 
     def test_datetime64tz_fillna_round_issue(self):

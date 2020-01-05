@@ -399,7 +399,7 @@ DataFrame:
 * DataFrame
 * pandas.Index
 * pandas.Categorical
-* pandas.SparseArray
+* pandas.arrays.SparseArray
 
 If the exact type is not relevant, but must be compatible with a numpy
 array, array-like can be specified. If Any type that can be iterated is
