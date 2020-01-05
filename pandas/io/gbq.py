@@ -1,5 +1,10 @@
 """ Google BigQuery support """
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
+
 from pandas.compat._optional import import_optional_dependency
+
+if TYPE_CHECKING:
+    from pandas import DataFrame
 
 
 def _try_import():
@@ -14,21 +19,21 @@ def _try_import():
 
 
 def read_gbq(
-    query,
-    project_id=None,
-    index_col=None,
-    col_order=None,
-    reauth=False,
-    auth_local_webserver=False,
-    dialect=None,
-    location=None,
-    configuration=None,
+    query: str,
+    project_id: Optional[str] = None,
+    index_col: Optional[str] = None,
+    col_order: Optional[List[str]] = None,
+    reauth: bool = False,
+    auth_local_webserver: bool = False,
+    dialect: Optional[str] = None,
+    location: Optional[str] = None,
+    configuration: Optional[Dict[str, Any]] = None,
     credentials=None,
-    use_bqstorage_api=None,
+    use_bqstorage_api: Optional[bool] = None,
     private_key=None,
     verbose=None,
-    progress_bar_type=None,
-):
+    progress_bar_type: Optional[str] = None,
+) -> "DataFrame":
     """
     Load data from Google BigQuery.
 
@@ -157,7 +162,7 @@ def read_gbq(
     """
     pandas_gbq = _try_import()
 
-    kwargs = {}
+    kwargs: Dict[str, Union[str, bool]] = {}
 
     # START: new kwargs.  Don't populate unless explicitly set.
     if use_bqstorage_api is not None:
@@ -183,20 +188,20 @@ def read_gbq(
 
 
 def to_gbq(
-    dataframe,
-    destination_table,
-    project_id=None,
-    chunksize=None,
-    reauth=False,
-    if_exists="fail",
-    auth_local_webserver=False,
-    table_schema=None,
-    location=None,
-    progress_bar=True,
+    dataframe: "DataFrame",
+    destination_table: str,
+    project_id: Optional[str] = None,
+    chunksize: Optional[int] = None,
+    reauth: bool = False,
+    if_exists: str = "fail",
+    auth_local_webserver: bool = False,
+    table_schema: Optional[List[Dict[str, str]]] = None,
+    location: Optional[str] = None,
+    progress_bar: bool = True,
     credentials=None,
     verbose=None,
     private_key=None,
-):
+) -> None:
     pandas_gbq = _try_import()
     pandas_gbq.to_gbq(
         dataframe,
