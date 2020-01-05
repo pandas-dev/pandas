@@ -1,5 +1,6 @@
 import operator
 from typing import Any, List
+import warnings
 
 import numpy as np
 
@@ -735,7 +736,13 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         )
         return self._shallow_copy(taken)
 
-    take_nd = take
+    def take_nd(self, *args, **kwargs):
+        warnings.warn(
+            "CategoricalIndex.take_nd is deprecated, use CategoricalIndex.take instead",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.take(*args, **kwargs)
 
     @Appender(_index_shared_docs["_maybe_cast_slice_bound"])
     def _maybe_cast_slice_bound(self, label, side, kind):
