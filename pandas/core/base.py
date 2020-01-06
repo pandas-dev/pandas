@@ -716,6 +716,8 @@ class IndexOpsMixin:
         period             PeriodArray
         interval           IntervalArray
         IntegerNA          IntegerArray
+        string             StringArray
+        boolean            BooleanArray
         datetime64[ns, tz] DatetimeArray
         ================== =============================
 
