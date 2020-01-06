@@ -109,7 +109,7 @@ class AttributesMixin:
         raise AbstractMethodError(self)
 
     def _check_compatible_with(
-        self, other: Union[Period, Timestamp, Timedelta, NaTType]
+        self, other: Union[Period, Timestamp, Timedelta, NaTType], setitem: bool = False
     ) -> None:
         """
         Verify that `self` and `other` are compatible.
@@ -123,6 +123,9 @@ class AttributesMixin:
         Parameters
         ----------
         other
+        setitem : bool, default False
+            For __setitem__ we may have stricter compatiblity resrictions than
+            for comparisons.
 
         Raises
         ------
@@ -500,10 +503,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
                     return
 
             value = type(self)._from_sequence(value, dtype=self.dtype)
-            self._check_compatible_with(value)
+            self._check_compatible_with(value, setitem=True)
             value = value.asi8
         elif isinstance(value, self._scalar_type):
-            self._check_compatible_with(value)
+            self._check_compatible_with(value, setitem=True)
             value = self._unbox_scalar(value)
         elif is_valid_nat_for_dtype(value, self.dtype):
             value = iNaT
@@ -588,7 +591,17 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         ------
         ValueError
         """
-        raise AbstractMethodError(self)
+        if isna(fill_value):
+            fill_value = iNaT
+        elif isinstance(fill_value, self._recognized_scalars):
+            self._check_compatible_with(fill_value)
+            fill_value = self._scalar_type(fill_value)
+            fill_value = self._unbox_scalar(fill_value)
+        else:
+            raise ValueError(
+                f"'fill_value' should be a {self._scalar_type}. Got '{fill_value}'."
+            )
+        return fill_value
 
     def take(self, indices, allow_fill=False, fill_value=None):
         if allow_fill:
