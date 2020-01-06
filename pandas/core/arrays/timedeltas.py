@@ -238,8 +238,8 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
         if not isinstance(values, np.ndarray):
             msg = (
-                f"Unexpected type '{type(values).__name__}'. 'values' must be a"
-                " TimedeltaArray ndarray, or Series or Index containing one of those."
+                f"Unexpected type '{type(values).__name__}'. 'values' must be a "
+                "TimedeltaArray ndarray, or Series or Index containing one of those."
             )
             raise ValueError(msg)
         if values.ndim not in [1, 2]:
