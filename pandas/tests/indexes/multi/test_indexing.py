@@ -291,6 +291,48 @@ class TestGetIndexer:
         assert_almost_equal(mult_idx_2.get_indexer(mult_idx_1, method='pad'),
                             [0, 0, 0, 0, 1, 2, 3, 3, 3, 3, 3, 3])
 
+    def test_get_indexer_crossing_levels(self):
+        """ tests a corner case with get_indexer() with MultiIndexes where, when we
+        need to "carry" across levels, proper tuple ordering is respected
+
+        the MultiIndexes used in this test, visually, are:
+
+        mult_idx_1:
+          0: 1 1 1 1
+          1:       2
+          2:     2 1
+          3:       2
+          4: 1 2 1 1
+          5:       2
+          6:     2 1
+          7:       2
+          8: 2 1 1 1
+          9:       2
+         10:     2 1
+         11:       2
+         12: 2 2 1 1
+         13:       2
+         14:     2 1
+         15:       2
+
+        mult_idx_2:
+          0: 1 3 2 2
+          1: 2 3 2 2
+        """
+        mult_idx_1 = pd.MultiIndex.from_product([[1, 2]] * 4)
+        mult_idx_2 = pd.MultiIndex.from_tuples([(1, 3, 2, 2), (2, 3, 2, 2)])
+
+        # show the tuple orderings, which get_indexer() should respect
+        assert mult_idx_1[7] < mult_idx_2[0] < mult_idx_1[8]
+        assert mult_idx_1[-1] < mult_idx_2[1]
+
+        tm.assert_almost_equal(mult_idx_1.get_indexer(mult_idx_2),
+                               np.array([-1, -1]))
+        tm.assert_almost_equal(mult_idx_1.get_indexer(mult_idx_2, method='bfill'),
+                               np.array([8, -1]))
+        tm.assert_almost_equal(mult_idx_1.get_indexer(mult_idx_2, method='ffill'),
+                               np.array([7, 15]))
+
     def test_get_indexer_nearest(self):
         midx = MultiIndex.from_tuples([("a", 1), ("b", 2)])
         msg = (
