@@ -13,7 +13,6 @@ from pandas._libs.tslibs.timedeltas import (
 )
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
     _NS_DTYPE,
@@ -89,10 +88,13 @@ def _td_array_cmp(cls, op):
                 # failed to parse as timedelta
                 return invalid_comparison(self, other, op)
 
-        if _is_convertible_to_td(other) or other is NaT:
-            other = Timedelta(other)
+        if isinstance(other, self._recognized_scalars) or other is NaT:
+            other = self._scalar_type(other)
+            self._check_compatible_with(other)
 
-            result = op(self.view("i8"), other.value)
+            other_i8 = self._unbox_scalar(other)
+
+            result = op(self.view("i8"), other_i8)
             if isna(other):
                 result.fill(nat_result)
 
@@ -116,12 +118,14 @@ def _td_array_cmp(cls, op):
                     )
                 o_mask = isna(other)
 
-            elif not is_timedelta64_dtype(other):
+            elif not cls._is_recognized_dtype(other.dtype):
                 # e.g. other is datetimearray
                 return invalid_comparison(self, other, op)
 
             else:
                 other = type(self)._from_sequence(other)
+
+                self._check_compatible_with(other)
 
                 result = op(self.view("i8"), other.view("i8"))
                 o_mask = other._isnan
@@ -172,6 +176,9 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
     _typ = "timedeltaarray"
     _scalar_type = Timedelta
+    _recognized_scalars = (timedelta, np.timedelta64, Tick)
+    _is_recognized_dtype = is_timedelta64_dtype
+
     __array_priority__ = 1000
     # define my properties & methods for delegation
     _other_ops: List[str] = []
@@ -230,8 +237,8 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
         if not isinstance(values, np.ndarray):
             msg = (
-                f"Unexpected type '{type(values).__name__}'. 'values' must be a"
-                " TimedeltaArray ndarray, or Series or Index containing one of those."
+                f"Unexpected type '{type(values).__name__}'. 'values' must be a "
+                "TimedeltaArray ndarray, or Series or Index containing one of those."
             )
             raise ValueError(msg)
         if values.ndim not in [1, 2]:
@@ -349,7 +356,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     def _scalar_from_string(self, value):
         return Timedelta(value)
 
-    def _check_compatible_with(self, other):
+    def _check_compatible_with(self, other, setitem: bool = False):
         # we don't have anything to validate.
         pass
 
@@ -358,16 +365,6 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
-
-    @Appender(dtl.DatetimeLikeArrayMixin._validate_fill_value.__doc__)
-    def _validate_fill_value(self, fill_value):
-        if isna(fill_value):
-            fill_value = iNaT
-        elif isinstance(fill_value, (timedelta, np.timedelta64, Tick)):
-            fill_value = Timedelta(fill_value).value
-        else:
-            raise ValueError(f"'fill_value' should be a Timedelta. Got '{fill_value}'.")
-        return fill_value
 
     def astype(self, dtype, copy=True):
         # We handle

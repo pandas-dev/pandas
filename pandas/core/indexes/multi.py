@@ -2073,9 +2073,8 @@ class MultiIndex(Index):
                 elif com.is_bool_indexer(loc):
                     if self.lexsort_depth == 0:
                         warnings.warn(
-                            "dropping on a non-lexsorted multi-index"
-                            " without a level parameter may impact "
-                            "performance.",
+                            "dropping on a non-lexsorted multi-index "
+                            "without a level parameter may impact performance.",
                             PerformanceWarning,
                             stacklevel=3,
                         )
@@ -2673,7 +2672,7 @@ class MultiIndex(Index):
         key : label or sequence of labels
         level : int/level name or list thereof, optional
         drop_level : bool, default True
-            if ``False``, the resulting index will not drop any level.
+            If ``False``, the resulting index will not drop any level.
 
         Returns
         -------

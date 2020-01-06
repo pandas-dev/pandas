@@ -1300,7 +1300,7 @@ class TestDocstringClass:
 
     @pytest.mark.parametrize("invalid_name", ["panda", "panda.DataFrame"])
     def test_raises_for_invalid_module_name(self, invalid_name):
-        msg = 'No module can be imported from "{}"'.format(invalid_name)
+        msg = f'No module can be imported from "{invalid_name}"'
         with pytest.raises(ImportError, match=msg):
             validate_docstrings.Docstring(invalid_name)
 
@@ -1310,7 +1310,7 @@ class TestDocstringClass:
     def test_raises_for_invalid_attribute_name(self, invalid_name):
         name_components = invalid_name.split(".")
         obj_name, invalid_attr_name = name_components[-2], name_components[-1]
-        msg = "'{}' has no attribute '{}'".format(obj_name, invalid_attr_name)
+        msg = f"'{obj_name}' has no attribute '{invalid_attr_name}'"
         with pytest.raises(AttributeError, match=msg):
             validate_docstrings.Docstring(invalid_name)
 

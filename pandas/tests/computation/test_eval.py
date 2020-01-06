@@ -339,8 +339,8 @@ class TestEvalNumexprPandas:
             self.check_equal(res, expected)
         else:
             msg = (
-                r"unsupported operand type\(s\) for //: 'VariableNode' and"
-                " 'VariableNode'"
+                r"unsupported operand type\(s\) for //: 'VariableNode' and "
+                "'VariableNode'"
             )
             with pytest.raises(TypeError, match=msg):
                 pd.eval(
