@@ -17,7 +17,7 @@ from pandas import (
     offsets,
     period_range,
 )
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from ..datetimelike import DatetimeLike
 
@@ -104,25 +104,6 @@ class TestPeriodIndex(DatetimeLike):
         msg = "'DatetimeIndex' object has no attribute 'millisecond'"
         with pytest.raises(AttributeError, match=msg):
             DatetimeIndex([]).millisecond
-
-    @pytest.mark.parametrize("sort", [None, False])
-    def test_difference_freq(self, sort):
-        # GH14323: difference of Period MUST preserve frequency
-        # but the ability to union results must be preserved
-
-        index = period_range("20160920", "20160925", freq="D")
-
-        other = period_range("20160921", "20160924", freq="D")
-        expected = PeriodIndex(["20160920", "20160925"], freq="D")
-        idx_diff = index.difference(other, sort)
-        tm.assert_index_equal(idx_diff, expected)
-        tm.assert_attr_equal("freq", idx_diff, expected)
-
-        other = period_range("20160922", "20160925", freq="D")
-        idx_diff = index.difference(other, sort)
-        expected = PeriodIndex(["20160920", "20160921"], freq="D")
-        tm.assert_index_equal(idx_diff, expected)
-        tm.assert_attr_equal("freq", idx_diff, expected)
 
     def test_hash_error(self):
         index = period_range("20010101", periods=10)
@@ -481,7 +462,7 @@ class TestPeriodIndex(DatetimeLike):
         ts = Series(np.random.randn(len(idx)), index=idx)
 
         result = ts[2007]
-        expected = ts[idx == 2007]
+        expected = ts[idx == "2007"]
         tm.assert_series_equal(result, expected)
 
     def test_index_unique(self):

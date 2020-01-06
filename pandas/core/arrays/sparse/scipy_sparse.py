@@ -3,8 +3,6 @@ Interaction with scipy.sparse matrices.
 
 Currently only includes to_coo helpers.
 """
-from collections import OrderedDict
-
 from pandas.core.indexes.api import Index, MultiIndex
 from pandas.core.series import Series
 
@@ -46,14 +44,13 @@ def _to_ijv(ss, row_levels=(0,), column_levels=(1,), sort_labels=False):
         # labels_to_i[:] = np.arange(labels_to_i.shape[0])
 
         def _get_label_to_i_dict(labels, sort_labels=False):
-            """ Return OrderedDict of unique labels to number.
+            """ Return dict of unique labels to number.
             Optionally sort by label.
             """
             labels = Index(map(tuple, labels)).unique().tolist()  # squish
             if sort_labels:
                 labels = sorted(labels)
-            d = OrderedDict((k, i) for i, k in enumerate(labels))
-            return d
+            return {k: i for i, k in enumerate(labels)}
 
         def _get_index_subset_to_coord_dict(index, subset, sort_labels=False):
             ilabels = list(zip(*[index._get_level_values(i) for i in subset]))

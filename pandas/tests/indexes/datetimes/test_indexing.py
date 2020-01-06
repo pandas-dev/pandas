@@ -6,7 +6,7 @@ import pytz
 
 import pandas as pd
 from pandas import DatetimeIndex, Index, Timestamp, date_range, notna
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.tseries.offsets import BDay, CDay
 

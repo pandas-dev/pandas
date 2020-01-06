@@ -1,7 +1,6 @@
-from collections import OrderedDict
 import datetime
 from sys import getsizeof
-from typing import List, Optional
+from typing import Hashable, List, Optional, Sequence, Union
 import warnings
 
 import numpy as np
@@ -206,7 +205,7 @@ class MultiIndex(Index):
     Notes
     -----
     See the `user guide
-    <http://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html>`_
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html>`_
     for more.
 
     Examples
@@ -628,6 +627,9 @@ class MultiIndex(Index):
         result = [
             x._shallow_copy(name=name) for x, name in zip(self._levels, self._names)
         ]
+        for level in result:
+            # disallow midx.levels[0].name = "foo"
+            level._no_setting_name = True
         return FrozenList(result)
 
     @property
@@ -658,31 +660,6 @@ class MultiIndex(Index):
             "MultiIndex has no single backing array. Use "
             "'MultiIndex.to_numpy()' to get a NumPy array of tuples."
         )
-
-    @property
-    def _is_homogeneous_type(self) -> bool:
-        """
-        Whether the levels of a MultiIndex all have the same dtype.
-
-        This looks at the dtypes of the levels.
-
-        See Also
-        --------
-        Index._is_homogeneous_type : Whether the object has a single
-            dtype.
-        DataFrame._is_homogeneous_type : Whether all the columns in a
-            DataFrame have the same dtype.
-
-        Examples
-        --------
-        >>> MultiIndex.from_tuples([
-        ...     ('a', 'b'), ('a', 'c')])._is_homogeneous_type
-        True
-        >>> MultiIndex.from_tuples([
-        ...     ('a', 1), ('a', 2)])._is_homogeneous_type
-        False
-        """
-        return len({x.dtype for x in self.levels}) <= 1
 
     def _set_levels(
         self, levels, level=None, copy=False, validate=True, verify_integrity=False
@@ -743,32 +720,47 @@ class MultiIndex(Index):
         Examples
         --------
         >>> idx = pd.MultiIndex.from_tuples([(1, 'one'), (1, 'two'),
-                                            (2, 'one'), (2, 'two')],
+                                            (2, 'one'), (2, 'two'),
+                                            (3, 'one'), (3, 'two')],
                                             names=['foo', 'bar'])
-        >>> idx.set_levels([['a', 'b'], [1, 2]])
+        >>> idx.set_levels([['a', 'b', 'c'], [1, 2]])
         MultiIndex([('a', 1),
                     ('a', 2),
                     ('b', 1),
-                    ('b', 2)],
+                    ('b', 2),
+                    ('c', 1),
+                    ('c', 2)],
                    names=['foo', 'bar'])
-        >>> idx.set_levels(['a', 'b'], level=0)
+        >>> idx.set_levels(['a', 'b', 'c'], level=0)
         MultiIndex([('a', 'one'),
                     ('a', 'two'),
                     ('b', 'one'),
-                    ('b', 'two')],
+                    ('b', 'two'),
+                    ('c', 'one'),
+                    ('c', 'two')],
                    names=['foo', 'bar'])
         >>> idx.set_levels(['a', 'b'], level='bar')
         MultiIndex([(1, 'a'),
                     (1, 'b'),
                     (2, 'a'),
-                    (2, 'b')],
+                    (2, 'b'),
+                    (3, 'a'),
+                    (3, 'b')],
                    names=['foo', 'bar'])
-        >>> idx.set_levels([['a', 'b'], [1, 2]], level=[0, 1])
+
+        If any of the levels passed to ``set_levels()`` exceeds the
+        existing length, all of the values from that argument will
+        be stored in the MultiIndex levels, though the values will
+        be truncated in the MultiIndex output.
+
+        >>> idx.set_levels([['a', 'b', 'c'], [1, 2, 3, 4]], level=[0, 1])
         MultiIndex([('a', 1),
                     ('a', 2),
                     ('b', 1),
                     ('b', 2)],
                    names=['foo', 'bar'])
+        >>> idx.set_levels([['a', 'b', 'c'], [1, 2, 3, 4]], level=[0, 1]).levels
+        FrozenList([['a', 'b', 'c'], [1, 2, 3, 4]])
         """
         if is_list_like(levels) and not isinstance(levels, Index):
             levels = list(levels)
@@ -1639,17 +1631,12 @@ class MultiIndex(Index):
         else:
             idx_names = self.names
 
-        # Guarantee resulting column order
+        # Guarantee resulting column order - PY36+ dict maintains insertion order
         result = DataFrame(
-            OrderedDict(
-                [
-                    (
-                        (level if lvlname is None else lvlname),
-                        self._get_level_values(level),
-                    )
-                    for lvlname, level in zip(idx_names, range(len(self.levels)))
-                ]
-            ),
+            {
+                (level if lvlname is None else lvlname): self._get_level_values(level)
+                for lvlname, level in zip(idx_names, range(len(self.levels)))
+            },
             copy=False,
         )
 
@@ -2086,9 +2073,8 @@ class MultiIndex(Index):
                 elif com.is_bool_indexer(loc):
                     if self.lexsort_depth == 0:
                         warnings.warn(
-                            "dropping on a non-lexsorted multi-index"
-                            " without a level parameter may impact "
-                            "performance.",
+                            "dropping on a non-lexsorted multi-index "
+                            "without a level parameter may impact performance.",
                             PerformanceWarning,
                             stacklevel=3,
                         )
@@ -2432,7 +2418,53 @@ class MultiIndex(Index):
 
         return target, indexer
 
-    def get_slice_bound(self, label, side, kind):
+    def get_slice_bound(
+        self, label: Union[Hashable, Sequence[Hashable]], side: str, kind: str
+    ) -> int:
+        """
+        For an ordered MultiIndex, compute slice bound
+        that corresponds to given label.
+
+        Returns leftmost (one-past-the-rightmost if `side=='right') position
+        of given label.
+
+        Parameters
+        ----------
+        label : object or tuple of objects
+        side : {'left', 'right'}
+        kind : {'loc', 'getitem'}
+
+        Returns
+        -------
+        int
+            Index of label.
+
+        Notes
+        -----
+        This method only works if level 0 index of the MultiIndex is lexsorted.
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_arrays([list('abbc'), list('gefd')])
+
+        Get the locations from the leftmost 'b' in the first level
+        until the end of the multiindex:
+
+        >>> mi.get_slice_bound('b', side="left", kind="loc")
+        1
+
+        Like above, but if you get the locations from the rightmost
+        'b' in the first level and 'f' in the second level:
+
+        >>> mi.get_slice_bound(('b','f'), side="right", kind="loc")
+        3
+
+        See Also
+        --------
+        MultiIndex.get_loc : Get location for a label or a tuple of labels.
+        MultiIndex.get_locs : Get location for a label/slice/list/mask or a
+                              sequence of such.
+        """
 
         if not isinstance(label, tuple):
             label = (label,)
@@ -2640,7 +2672,7 @@ class MultiIndex(Index):
         key : label or sequence of labels
         level : int/level name or list thereof, optional
         drop_level : bool, default True
-            if ``False``, the resulting index will not drop any level.
+            If ``False``, the resulting index will not drop any level.
 
         Returns
         -------

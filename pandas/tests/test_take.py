@@ -6,8 +6,8 @@ import pytest
 
 from pandas._libs.tslib import iNaT
 
+import pandas._testing as tm
 import pandas.core.algorithms as algos
-import pandas.util.testing as tm
 
 
 @pytest.fixture(params=[True, False])

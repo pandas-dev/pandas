@@ -6,8 +6,8 @@ from pandas._libs import join as libjoin
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, concat, merge
+import pandas._testing as tm
 from pandas.tests.reshape.merge.test_merge import NGROUPS, N, get_test_data
-import pandas.util.testing as tm
 
 a_ = np.array
 

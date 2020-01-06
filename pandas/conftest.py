@@ -1,3 +1,4 @@
+from collections import abc
 from datetime import date, time, timedelta, timezone
 from decimal import Decimal
 import operator
@@ -14,8 +15,8 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame
+import pandas._testing as tm
 from pandas.core import ops
-import pandas.util.testing as tm
 
 hypothesis.settings.register_profile(
     "ci",
@@ -894,3 +895,38 @@ def index_or_series(request):
     See GH#29725
     """
     return request.param
+
+
+@pytest.fixture
+def dict_subclass():
+    """
+    Fixture for a dictionary subclass.
+    """
+
+    class TestSubDict(dict):
+        def __init__(self, *args, **kwargs):
+            dict.__init__(self, *args, **kwargs)
+
+    return TestSubDict
+
+
+@pytest.fixture
+def non_mapping_dict_subclass():
+    """
+    Fixture for a non-mapping dictionary subclass.
+    """
+
+    class TestNonDictMapping(abc.Mapping):
+        def __init__(self, underlying_dict):
+            self._data = underlying_dict
+
+        def __getitem__(self, key):
+            return self._data.__getitem__(key)
+
+        def __iter__(self):
+            return self._data.__iter__()
+
+        def __len__(self):
+            return self._data.__len__()
+
+    return TestNonDictMapping
