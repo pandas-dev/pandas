@@ -593,7 +593,81 @@ cdef class BaseMultiIndexCodesEngine:
     def _codes_to_ints(self, codes):
         raise NotImplementedError("Implemented by subclass")
 
-    def _extract_level_codes(self, object target):
+    def _do_backfill_carrying(self, object level_codes,
+                              object level_codes_no_fill):
+        """
+        given a 2d list of level_codes, i.e. integers representing the index
+        of a target index inside `self.level_codes` for each level, which
+        were backfilled at each level, handle cases where too-large values
+        which were backfilled to 0 (and became 1 after adding 1 to handle use
+        of unsigned integers) and thus the backfilling on the level code, when
+        represented as an int, will not be correct
+
+        in particular, this involves a sort of "carrying", whereby, when a
+        value at a given level is too large, we set it to the minimum value
+        and then attempt to bump the value to the left, and, in the event that
+        we need to do this at the first index
+
+        e.g. if the highest two values in `self`'s index tuples are (8, 4, 7)
+        and (8, 4, 9), then, in order to determine that the value (8, 4, 10) is
+        too large, we would need to determine that 10 > 9, meaning we need to
+        "carry" to the middle level, at which we try to bump 4 to 5, which is
+        in turn too large, requiring us to try to bump 8 to 9, also too large,
+        meaning that the entire row representing (8, 4, 10)'s level_codes
+        should be set to -1
+
+        Parameters
+        ----------
+        level_codes : 2D array, M x N (where self has N levels)
+            per-level backfilled codes of a target index. a 0 represents NaN,
+            and the remainder of the values should be from 1, ..., L_i, where
+            L_i is the length of `self.levels[i]`
+        level_codes_no_fill: 2D-list-like, M x N
+            the same as above, but computed without backfilling
+
+        Returns
+        -------
+        level_codes : 2D integer array, also M x N
+            same as level_codes but with appropriate "carrying" operations
+            performed, where values which are too large are represented by
+            rows consisting of all 0s
+        """
+        for i, row in enumerate(level_codes):
+            need_to_carry = False
+            # go from right to left for place-value arithmetic
+            for j in range(len(row) - 1, -1, -1):
+                max_val = len(self.levels[j])
+                # the value here was too large, so backfilling returns
+                # -1, which, after adding 1, becomes 0
+                if row[j] == 0:
+                    need_to_carry = True
+
+                if need_to_carry:
+                    # if row[j] was backfilled to its value, then even
+                    # if we are "carrying," it can remain as is
+                    new_val = (
+                        row[j] + 1
+                        if row[j] == level_codes_no_fill[i][j]
+                        else row[j])
+                    if new_val > max_val or row[j] == 0:
+                        # at this point, no more room to carry, so the
+                        # entire value is too large
+                        if j == 0:
+                            for k in range(len(row)):
+                                row[k] = 0
+                        # set it to the minimum value and carry to the
+                        # next level
+                        else:
+                            row[j] = 1
+                    # done carrying, for now
+                    else:
+                        row[j] = new_val
+                        need_to_carry = False
+
+        return level_codes
+
+
+    def _extract_level_codes(self, object target, object method=None):
         """
         Map the requested list of (tuple) keys to their integer representations
         for searching in the underlying integer index.
@@ -602,6 +676,10 @@ cdef class BaseMultiIndexCodesEngine:
         ----------
         target : list-like of keys
             Each key is a tuple, with a label for each level of the index.
+        method : string (optional)
+            whether to fill missing keys with either the previous (using "pad"
+            of "ffill" or next ("bfill"/"backfill") values, in terms of the
+            ordering of the tuples and the underlying index
 
         Returns
         ------
@@ -621,95 +699,34 @@ cdef class BaseMultiIndexCodesEngine:
             in zip(self.levels, zip(*target))
         ], dtype='uint64').T + 1
 
-        # idk if truthy/falsy stuff works w/cython...
-        # also this entire block should basically be moved into its own helper function
-        # or something like that
+        # handle intricacies required to properly respect tuple ordering
+        # properties
         if method is not None:
             level_codes_no_fill = np.array([
                 lev.get_indexer(codes) for lev, codes
                 in zip(self.levels, zip(*target))
             ], dtype='uint64').T + 1
 
-            # TODO: add arithmetic for (backfill-only) "incremementing" when we hit
-            # a "0" (i.e. NaN, i.e. too large value) at level i (i.e. incremementing
-            # levels 1, ..., i-1).  this necessarily involves "place-value arithmetic"
-            # w.r.t. map(len, self.levels), i.e. the max value we can have at each
-            # level, after which we have to set it to 0 (i.e. "1") and then "carry"
-            #
-            # then, when we hit a case where we need to "carry" past level 0, we need
-            # to set the whole row to -1
-            #
-            # it will LIKELY be the case that we need to pass that past this function,
-            # but, for the moment, let's see if we can just do something with level
-            # codes
-            # 
-            # my HOPE is that the result will be something like:
-            # sum(1 << offset for offset in offsets) (or maybe offsets[:-1], not sure
-            # yet....)
-            #
-            # let's impl this now!
-            # eventually let's see if this can be pulled out into a helper function
-            if method == 'backfill':
-                for i, row in enumerate(level_codes):
-                    need_to_carry = False
-                    # go from right to left for place-value arithmetic
-                    for j in range(len(row) - 1, -1, -1):
-                        # this is AFTER backfilling, i.e. this means value was too large
-                        # subtract 1 bc all values here have 1 added to them
-                        max_val = len(self.levels[j])
-                        if row[j] == 0:
-                            need_to_carry = True
-
-                        if need_to_carry:
-                            new_val = row[j] + 1 if row[j] == level_codes_no_fill[i][j] else row[j]
-                            if new_val > max_val or row[j] == 0:
-                                # if we're at the first row, then we're done, this whole thing
-                                # is too big
-                                if j == 0:
-                                    for k in range(len(row)):
-                                        row[k] = 0
-                                # we need to keep carrying, but will not necessarily be a problem
-                                else:
-                                    row[j] = 1
-                            # done carrying, for now
-                            else:
-                                row[j] = new_val
-                                need_to_carry = False
-
-            # MOTIVATION:
-            # this is basically just backfilling/forward-filling a tuple into a list
-            # of tuples.  the ordering of tuples (i.e. x_i vs. y_i, with ties broken
-            # by y_{i+1], y_{i+1}, etc.) is such that we want to explicitly avoid
-            # considering values in levels i+1, ..., n (for an n-level MultiIndex)
-            # when the value at level i is different w/and w/o filling
-            # 
-            # - when backfilling, it'll bump the value at level i, so we want to
-            # decrease the values at levels i+1, ..., n, to their min value (i.e. "1"),
-            # since we're using an arithmetic here where 1 is 0, more or less (TODO: add
-            # caveats, formalizations, etc., to this).  this will work since, for all
-            # possible values x_1, ..., x_{i-1}, x_{i+1}, ..., x_n, it's necessarily
-            # the case that (x_1, ..., x_n) < (x_1, ..., x_{i-1}, x_{i}', 1, ..., 1),
-            # for all x_{i}' > x_i
-            #
-            # - when forward-filling (aka "padding"), it'll drop the value at level i,
-            # and so we want to increase the values at levels i+1, ..., n, to their
-            # max possible values, i.e. map(len, self.levels[i+1:])
-            #
-            #
-            # TODO: see if this can be replaced w/higher-level functions w/o
-            # sacrificing performance.  presently unclear if that can be
-            # accomplished
-            # als TODO: clean this up
+            # necessary to respect tuple ordering.  intuition is that bumping
+            # the value at level i should make the values at levels i+1, ..., n
+            # as small as possible, and vice versa
             for i, row in enumerate(level_codes):
-                # THIS is where i can apply the algorithm described earlier
                 for j, level in enumerate(row):
-                  # if it was filled from the prev/next value, then everything after
-                  # that should either be the min val, if backfill, or the max, if
-                  # using pad.  i think.  lemme mull this one over a bit more
-                  if level_codes_no_fill[i][j] == 0 and level_codes[i][j] >= 1:
+                  if level_codes_no_fill[i][j] != level_codes[i][j]:
                       for k in range(j + 1, len(row)):
-                          old_val = row[k]
-                          row[k] = 1 if method == 'backfill' else len(self.levels[k])
+                          row[k] = (
+                              1 if method == 'backfill' else
+                              len(self.levels[k]))
+                      break
+
+            # after doing per-level indexing, backfilled level codes need
+            # additional cleanup, as too-large values are 0, which will in
+            # turn be backfilled to 1 without cleanup.  This is not an issue
+            # for padded level codes because the final padding will (correctly)
+            # exclude them anyway
+            if method == 'backfill':
+                level_codes = self._do_backfill_carrying(level_codes,
+                                                         level_codes_no_fill)
 
         return self._codes_to_ints(level_codes)
 
@@ -728,25 +745,14 @@ cdef class BaseMultiIndexCodesEngine:
             indexer = (getattr(self._base, f'get_{method}_indexer')
                        (self, lab_ints, limit=limit))
 
-            # TODO: completely replace this with correctly-generalized fix
-            # with pre-processes by "adding 1" when backfilling when it finds
-            # 0s (i.e. -1 (i.e. NaN repr) + 1)
-            #
-            # HACK: because the backfilled representation of NAs at any level l
-            # will always be 2^(offset_l), as a result of adding 1 to -1 and
-            # then shifting by offset_l bits, when backfilling, we need to
-            # prevent too-large values from being treated as too small values
-            # the fix for this, therefore, is to change all too-small values to
-            # 1 larger than the max of the entity being backfilled
+            # handle the case where too-large values are backfilled to NaN, for
+            # which the integer representation from _extract_level_codes() is 0
             if method == 'backfill':
-              # inherently necessary bc NaNs are stored as a value which would
-              # otherwise be backfilled to zero
-              # any too-large values will be backfilled into the minimum index value
               for i in range(len(indexer)):
                   if lab_ints[i] == 0:
                       indexer[i] = -1
 
-            # TODO: try using argsort more to accomplish this.  does not matter for now, though
+            # restore the ordering
             new_indexer = [0] * len(indexer)
             for i, idx in enumerate(order):
               new_indexer[idx] = indexer[i]
