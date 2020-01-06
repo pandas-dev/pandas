@@ -1197,6 +1197,18 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
             expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
             tm.assert_frame_equal(result, expected)
 
+    def test_read_json_category_dtype(self):
+        json = (
+            '{"a": 0, "b": "A"}\n'
+            '{"a": 1, "b": "B"}\n'
+            '{"a": 2, "b": "B"}\n'
+            '{"a": 3, "b": "B"}\n'
+        )
+        json = StringIO(json)
+        result = read_json(json, lines=True, dtype={"a": "category"})
+        expected = DataFrame([[0, "foo"], [1, "bar"], [2, "foo"], [3, "bar"]])
+        tm.assert_frame_equal(result, expected)
+
     def test_read_jsonl_unicode_chars(self):
         # GH15132: non-ascii unicode characters
         # \u201d == RIGHT DOUBLE QUOTATION MARK
