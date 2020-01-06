@@ -172,6 +172,14 @@ class TestSeriesComparison:
         result = op(ser, tdi)
         assert result.name == names[2]
 
+        # interval dtype
+        if op in [operator.eq, operator.ne]:
+            # interval dtype comparisons not yet implemented
+            ii = pd.interval_range(start=0, periods=5, name=names[0])
+            ser = Series(ii).rename(names[1])
+            result = op(ser, ii)
+            assert result.name == names[2]
+
         # categorical
         if op in [operator.eq, operator.ne]:
             # categorical dtype comparisons raise for inequalities
