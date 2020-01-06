@@ -16,8 +16,8 @@ from pandas import (
     bdate_range,
     date_range,
 )
+import pandas._testing as tm
 from pandas.tests.base.test_ops import Ops
-import pandas.util.testing as tm
 
 from pandas.tseries.offsets import BDay, BMonthEnd, CDay, Day, Hour
 

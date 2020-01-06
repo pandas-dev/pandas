@@ -18,12 +18,12 @@ from pandas import (
     Timestamp,
     timedelta_range,
 )
+import pandas._testing as tm
 from pandas.tests.arithmetic.common import (
     assert_invalid_addsub_type,
     assert_invalid_comparison,
     get_upcast_box,
 )
-import pandas.util.testing as tm
 
 # ------------------------------------------------------------------
 # Timedelta64[ns] dtype Comparisons
@@ -75,6 +75,49 @@ class TestTimedelta64ArrayLikeComparisons:
         obj = tm.box_expected(rng, box)
 
         assert_invalid_comparison(obj, invalid, box)
+
+    @pytest.mark.parametrize(
+        "other",
+        [
+            list(range(10)),
+            np.arange(10),
+            np.arange(10).astype(np.float32),
+            np.arange(10).astype(object),
+            pd.date_range("1970-01-01", periods=10, tz="UTC").array,
+            np.array(pd.date_range("1970-01-01", periods=10)),
+            list(pd.date_range("1970-01-01", periods=10)),
+            pd.date_range("1970-01-01", periods=10).astype(object),
+            pd.period_range("1971-01-01", freq="D", periods=10).array,
+            pd.period_range("1971-01-01", freq="D", periods=10).astype(object),
+        ],
+    )
+    def test_td64arr_cmp_arraylike_invalid(self, other):
+        # We don't parametrize this over box_with_array because listlike
+        #  other plays poorly with assert_invalid_comparison reversed checks
+
+        rng = timedelta_range("1 days", periods=10)._data
+        assert_invalid_comparison(rng, other, tm.to_array)
+
+    def test_td64arr_cmp_mixed_invalid(self):
+        rng = timedelta_range("1 days", periods=5)._data
+
+        other = np.array([0, 1, 2, rng[3], pd.Timestamp.now()])
+        result = rng == other
+        expected = np.array([False, False, False, True, False])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = rng != other
+        tm.assert_numpy_array_equal(result, ~expected)
+
+        msg = "Invalid comparison between|Cannot compare type|not supported between"
+        with pytest.raises(TypeError, match=msg):
+            rng < other
+        with pytest.raises(TypeError, match=msg):
+            rng > other
+        with pytest.raises(TypeError, match=msg):
+            rng <= other
+        with pytest.raises(TypeError, match=msg):
+            rng >= other
 
 
 class TestTimedelta64ArrayComparisons:

@@ -8,8 +8,8 @@ import numpy as np
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame, Series
+import pandas._testing as tm
 from pandas.tests.plotting.common import TestPlotBase
-import pandas.util.testing as tm
 
 
 @td.skip_if_no_mpl

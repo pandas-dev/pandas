@@ -5,9 +5,9 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
+import pandas._testing as tm
 from pandas.core.util.hashing import _hash_scalar, hash_tuple, hash_tuples
 from pandas.util import hash_array, hash_pandas_object
-import pandas.util.testing as tm
 
 
 @pytest.fixture(

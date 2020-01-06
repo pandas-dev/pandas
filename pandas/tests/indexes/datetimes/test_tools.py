@@ -30,9 +30,9 @@ from pandas import (
     isna,
     to_datetime,
 )
+import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray
 from pandas.core.tools import datetimes as tools
-import pandas.util.testing as tm
 
 
 class TestTimeConversionFormats:

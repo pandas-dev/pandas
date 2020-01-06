@@ -11,10 +11,10 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range, notna
+import pandas._testing as tm
 from pandas.conftest import _get_cython_table_params
 from pandas.core.apply import frame_apply
 from pandas.core.base import SpecificationError
-import pandas.util.testing as tm
 
 
 @pytest.fixture
