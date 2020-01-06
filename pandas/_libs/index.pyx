@@ -608,13 +608,13 @@ cdef class BaseMultiIndexCodesEngine:
         int_keys : 1-dimensional array of dtype uint64 or object
             Integers representing one combination each
         """
-        level_codes = [lev.get_indexer(codes) + 1 for lev, codes
+        level_codes = [lev.get_indexer(codes, method=method) + 1 for lev, codes
                        in zip(self.levels, zip(*target))]
         return self._codes_to_ints(np.array(level_codes, dtype='uint64').T)
 
     def get_indexer(self, object target, object method=None,
                     object limit=None):
-        lab_ints = self._extract_level_codes(target)
+        lab_ints = self._extract_level_codes(target, method=method)
 
         # All methods (exact, backfill, pad) directly map to the respective
         # methods of the underlying (integers) index...
