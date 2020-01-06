@@ -357,7 +357,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     def _scalar_from_string(self, value):
         return Timedelta(value)
 
-    def _check_compatible_with(self, other):
+    def _check_compatible_with(self, other, setitem: bool = False):
         # we don't have anything to validate.
         pass
 
