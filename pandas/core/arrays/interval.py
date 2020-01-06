@@ -1,4 +1,3 @@
-from distutils.version import LooseVersion
 import json
 from operator import le, lt
 import textwrap
@@ -38,19 +37,12 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core.algorithms import take, value_counts
+from pandas.core.arrays._arrow_utils import _PYARROW_INSTALLED, _pyarrow_version_ge_015
 from pandas.core.arrays.base import ExtensionArray, _extension_array_shared_docs
 from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
 from pandas.core.construction import array
 from pandas.core.indexes.base import ensure_index
-
-try:
-    import pyarrow
-
-    _PYARROW_INSTALLED = True
-except ImportError:
-    _PYARROW_INSTALLED = False
-
 
 _VALID_CLOSED = {"left", "right", "both", "neither"}
 _interval_shared_docs = {}
@@ -1095,28 +1087,28 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         Convert myself into a pyarrow Array.
         """
-        import pyarrow as pa
+        import pyarrow
 
         try:
-            subtype = pa.from_numpy_dtype(self.dtype.subtype)
+            subtype = pyarrow.from_numpy_dtype(self.dtype.subtype)
         except TypeError:
             raise TypeError(
                 "Conversion to arrow with subtype '{}' "
                 "is not supported".format(self.dtype.subtype)
             )
         interval_type = ArrowIntervalType(subtype, self.closed)
-        storage_array = pa.StructArray.from_arrays(
+        storage_array = pyarrow.StructArray.from_arrays(
             [
-                pa.array(self.left, type=subtype, from_pandas=True),
-                pa.array(self.right, type=subtype, from_pandas=True),
+                pyarrow.array(self.left, type=subtype, from_pandas=True),
+                pyarrow.array(self.right, type=subtype, from_pandas=True),
             ],
             names=["left", "right"],
         )
         mask = self.isna()
         if mask.any():
             # if there are missing values, set validity bitmap also on the array level
-            null_bitmap = pa.array(~mask).buffers()[1]
-            storage_array = pa.StructArray.from_buffers(
+            null_bitmap = pyarrow.array(~mask).buffers()[1]
+            storage_array = pyarrow.StructArray.from_buffers(
                 storage_array.type,
                 len(storage_array),
                 [null_bitmap],
@@ -1141,7 +1133,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                     "Not supported to convert IntervalArray to '{0}' type".format(type)
                 )
 
-        return pa.ExtensionArray.from_storage(interval_type, storage_array)
+        return pyarrow.ExtensionArray.from_storage(interval_type, storage_array)
 
     _interval_shared_docs[
         "to_tuples"
@@ -1336,7 +1328,8 @@ def maybe_convert_platform_interval(values):
     return maybe_convert_platform(values)
 
 
-if _PYARROW_INSTALLED and LooseVersion(pyarrow.__version__) >= LooseVersion("0.15"):
+if _PYARROW_INSTALLED and _pyarrow_version_ge_015:
+    import pyarrow
 
     class ArrowIntervalType(pyarrow.ExtensionType):
         def __init__(self, subtype, closed):

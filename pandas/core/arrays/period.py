@@ -1,5 +1,4 @@
 from datetime import timedelta
-from distutils.version import LooseVersion
 import json
 import operator
 from typing import Any, Callable, List, Optional, Sequence, Union
@@ -47,19 +46,13 @@ from pandas.core.dtypes.missing import isna, notna
 from pandas.core import ops
 import pandas.core.algorithms as algos
 from pandas.core.arrays import datetimelike as dtl
+from pandas.core.arrays._arrow_utils import _PYARROW_INSTALLED, _pyarrow_version_ge_015
 import pandas.core.common as com
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.ops.invalid import invalid_comparison
 
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import DateOffset, Tick, _delta_to_tick
-
-try:
-    import pyarrow
-
-    _PYARROW_INSTALLED = True
-except ImportError:
-    _PYARROW_INSTALLED = False
 
 
 def _field_accessor(name, alias, docstring=None):
@@ -376,11 +369,11 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         """
         Convert myself into a pyarrow Array.
         """
-        import pyarrow as pa
+        import pyarrow
 
         if type is not None:
-            if pa.types.is_integer(type):
-                return pa.array(self._data, mask=self.isna(), type=type)
+            if pyarrow.types.is_integer(type):
+                return pyarrow.array(self._data, mask=self.isna(), type=type)
             elif isinstance(type, ArrowPeriodType):
                 # ensure we have the same freq
                 if self.freqstr != type.freq:
@@ -394,8 +387,8 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
                 )
 
         period_type = ArrowPeriodType(self.freqstr)
-        storage_array = pa.array(self._data, mask=self.isna(), type="int64")
-        return pa.ExtensionArray.from_storage(period_type, storage_array)
+        storage_array = pyarrow.array(self._data, mask=self.isna(), type="int64")
+        return pyarrow.ExtensionArray.from_storage(period_type, storage_array)
 
     # --------------------------------------------------------------------
     # Vectorized analogues of Period properties
@@ -1157,7 +1150,8 @@ def _make_field_arrays(*fields):
     return arrays
 
 
-if _PYARROW_INSTALLED and LooseVersion(pyarrow.__version__) >= LooseVersion("0.15"):
+if _PYARROW_INSTALLED and _pyarrow_version_ge_015:
+    import pyarrow
 
     class ArrowPeriodType(pyarrow.ExtensionType):
         def __init__(self, freq):

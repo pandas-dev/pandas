@@ -954,6 +954,7 @@ class PeriodDtype(PandasExtensionDtype):
         """Construct PeriodArray from pyarrow Array/ChunkedArray."""
         import pyarrow
         from pandas.core.arrays import PeriodArray
+        from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
 
         if isinstance(array, pyarrow.Array):
             chunks = [array]
@@ -962,18 +963,7 @@ class PeriodDtype(PandasExtensionDtype):
 
         results = []
         for arr in chunks:
-            buflist = arr.buffers()
-            data = np.frombuffer(buflist[-1], dtype="int64")[
-                arr.offset : arr.offset + len(arr)
-            ]
-            bitmask = buflist[0]
-            if bitmask is not None:
-                mask = pyarrow.BooleanArray.from_buffers(
-                    pyarrow.bool_(), len(arr), [None, bitmask]
-                )
-                mask = np.asarray(mask)
-            else:
-                mask = np.ones(len(arr), dtype=bool)
+            data, mask = pyarrow_array_to_numpy_and_mask(arr, dtype="int64")
             parr = PeriodArray(data.copy(), freq=self.freq, copy=False)
             parr[~mask] = NaT
             results.append(parr)
