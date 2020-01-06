@@ -910,7 +910,7 @@ Missing
 MultiIndex
 ^^^^^^^^^^
 
-- Constructior for :class:`MultiIndex` verifies that the given ``sortorder`` is compatible with the actual ``lexsort_depth``  if ``verify_integrity`` parameter is ``True`` (the default) (:issue:`28735`)
+- Constructor for :class:`MultiIndex` verifies that the given ``sortorder`` is compatible with the actual ``lexsort_depth``  if ``verify_integrity`` parameter is ``True`` (the default) (:issue:`28735`)
 - Series and MultiIndex `.drop` with `MultiIndex` raise exception if labels not in given in level (:issue:`8594`)
 -
 
