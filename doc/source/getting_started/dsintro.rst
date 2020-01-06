@@ -676,10 +676,10 @@ similar to an ndarray:
    # only show the first 5 rows
    df[:5].T
 
+.. _dsintro.numpy_interop:
+
 DataFrame interoperability with NumPy functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. _dsintro.numpy_interop:
 
 Elementwise NumPy ufuncs (log, exp, sqrt, ...) and various other NumPy functions
 can be used with no issues on Series and DataFrame, assuming the data within
@@ -741,7 +741,7 @@ implementation takes precedence and a Series is returned.
    np.maximum(ser, idx)
 
 NumPy ufuncs are safe to apply to :class:`Series` backed by non-ndarray arrays,
-for example :class:`SparseArray` (see :ref:`sparse.calculation`). If possible,
+for example :class:`arrays.SparseArray` (see :ref:`sparse.calculation`). If possible,
 the ufunc is applied without converting the underlying data to an ndarray.
 
 Console display
