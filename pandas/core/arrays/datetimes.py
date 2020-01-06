@@ -554,7 +554,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
     def _scalar_from_string(self, value):
         return Timestamp(value, tz=self.tz)
 
-    def _check_compatible_with(self, other, strict: bool = False):
+    def _check_compatible_with(self, other, setitem: bool = False):
         if other is NaT:
             return
         self._assert_tzawareness_compat(other)
