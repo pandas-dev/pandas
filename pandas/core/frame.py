@@ -6642,7 +6642,7 @@ Wild         185.0
             reordered_result = DataFrame(index=columns)
             idx = 0
             for col, fun in func.items():
-                s = result[col]
+                s = result[col].dropna()
                 s.index = reordered_indexes[idx : idx + len(fun)]
                 reordered_result[col] = s.reindex(columns)
                 idx = idx + len(fun)
