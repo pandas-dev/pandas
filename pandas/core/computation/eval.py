@@ -12,7 +12,8 @@ from pandas._libs.lib import _no_default
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.computation.engines import _engines
-from pandas.core.computation.expr import Expr, _parsers, tokenize_string
+from pandas.core.computation.expr import Expr, _parsers
+from pandas.core.computation.parsing import tokenize_string
 from pandas.core.computation.scope import ensure_scope
 
 from pandas.io.formats.printing import pprint_thing
@@ -338,8 +339,8 @@ def eval(
         if parsed_expr.assigner is None:
             if multi_line:
                 raise ValueError(
-                    "Multi-line expressions are only valid"
-                    " if all expressions contain an assignment"
+                    "Multi-line expressions are only valid "
+                    "if all expressions contain an assignment"
                 )
             elif inplace:
                 raise ValueError("Cannot operate inplace if there is no assignment")

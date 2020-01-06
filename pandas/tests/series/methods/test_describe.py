@@ -1,7 +1,7 @@
 import numpy as np
 
 from pandas import Series, Timestamp, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestSeriesDescribe:

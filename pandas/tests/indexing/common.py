@@ -7,7 +7,7 @@ import numpy as np
 from pandas.core.dtypes.common import is_scalar
 
 from pandas import DataFrame, Float64Index, MultiIndex, Series, UInt64Index, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def _mklbl(prefix, n):

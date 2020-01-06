@@ -13,11 +13,11 @@ from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 import pandas as pd
 from pandas import DataFrame, Index, NaT, Series
+import pandas._testing as tm
 from pandas.core.generic import NDFrame
 from pandas.core.indexers import validate_indices
 from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
 from pandas.tests.indexing.common import Base, _mklbl
-import pandas.util.testing as tm
 
 # ------------------------------------------------------------------------
 # Indexing test cases
@@ -83,8 +83,8 @@ class TestFancy(Base):
         msg = (
             r"Buffer has wrong number of dimensions \(expected 1,"
             r" got 3\)|"
-            "The truth value of an array with more than one element is"
-            " ambiguous|"
+            "The truth value of an array with more than one element is "
+            "ambiguous|"
             "Cannot index with multidimensional key|"
             r"Wrong number of dimensions. values.ndim != ndim \[3 != 1\]|"
             "No matching signature found|"  # TypeError
@@ -146,13 +146,13 @@ class TestFancy(Base):
         nd3 = np.random.randint(5, size=(2, 2, 2))
 
         msg = (
-            r"Buffer has wrong number of dimensions \(expected 1,"
-            r" got 3\)|"
-            "The truth value of an array with more than one element is"
-            " ambiguous|"
+            r"Buffer has wrong number of dimensions \(expected 1, "
+            r"got 3\)|"
+            "The truth value of an array with more than one element is "
+            "ambiguous|"
             "Only 1-dimensional input arrays are supported|"
-            "'pandas._libs.interval.IntervalTree' object has no attribute"
-            " 'set_value'|"  # AttributeError
+            "'pandas._libs.interval.IntervalTree' object has no attribute "
+            "'set_value'|"  # AttributeError
             "unhashable type: 'numpy.ndarray'|"  # TypeError
             "No matching signature found|"  # TypeError
             r"^\[\[\["  # pandas.core.indexing.IndexingError
@@ -1190,3 +1190,13 @@ def test_duplicate_index_mistyped_key_raises_keyerror():
 
     with pytest.raises(KeyError):
         ser.index._engine.get_loc(None)
+
+
+def test_setitem_with_bool_mask_and_values_matching_n_trues_in_length():
+    # GH 30567
+    ser = pd.Series([None] * 10)
+    mask = [False] * 3 + [True] * 5 + [False] * 2
+    ser[mask] = range(5)
+    result = ser
+    expected = pd.Series([None] * 3 + list(range(5)) + [None] * 2).astype("object")
+    tm.assert_series_equal(result, expected)

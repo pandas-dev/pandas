@@ -189,11 +189,9 @@ class BaseSetitemTests(BaseExtensionTests):
 
     def test_setitem_preserves_views(self, data):
         # GH#28150 setitem shouldn't swap the underlying data
-        assert data[-1] != data[0]  # otherwise test would not be meaningful
-
         view1 = data.view()
         view2 = data[:]
 
-        data[0] = data[-1]
-        assert view1[0] == data[-1]
-        assert view2[0] == data[-1]
+        data[0] = data[1]
+        assert view1[0] == data[1]
+        assert view2[0] == data[1]

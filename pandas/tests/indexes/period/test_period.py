@@ -17,7 +17,7 @@ from pandas import (
     offsets,
     period_range,
 )
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from ..datetimelike import DatetimeLike
 
@@ -462,7 +462,7 @@ class TestPeriodIndex(DatetimeLike):
         ts = Series(np.random.randn(len(idx)), index=idx)
 
         result = ts[2007]
-        expected = ts[idx == 2007]
+        expected = ts[idx == "2007"]
         tm.assert_series_equal(result, expected)
 
     def test_index_unique(self):

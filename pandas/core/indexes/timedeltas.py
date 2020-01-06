@@ -3,12 +3,11 @@ from datetime import datetime
 
 import numpy as np
 
-from pandas._libs import NaT, Timedelta, index as libindex, lib
+from pandas._libs import NaT, Timedelta, index as libindex
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.common import (
     _TD_DTYPE,
-    ensure_int64,
     is_float,
     is_integer,
     is_list_like,
@@ -17,7 +16,6 @@ from pandas.core.dtypes.common import (
     is_timedelta64_ns_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.accessor import delegate_names
@@ -31,6 +29,7 @@ from pandas.core.indexes.datetimelike import (
     DatetimelikeDelegateMixin,
     DatetimeTimedeltaMixin,
 )
+from pandas.core.indexes.extension import inherit_names
 
 from pandas.tseries.frequencies import to_offset
 
@@ -40,21 +39,28 @@ class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
     # Some are "raw" methods, the result is not re-boxed in an Index
     # We also have a few "extra" attrs, which may or may not be raw,
     # which we don't want to expose in the .dt accessor.
-    _delegate_class = TimedeltaArray
-    _delegated_properties = TimedeltaArray._datetimelike_ops + ["components"]
-    _delegated_methods = TimedeltaArray._datetimelike_methods + [
-        "_box_values",
-        "__neg__",
-        "__pos__",
-        "__abs__",
-        "sum",
-        "std",
-        "median",
-    ]
-    _raw_properties = {"components"}
-    _raw_methods = {"to_pytimedelta", "sum", "std", "median"}
+    _raw_properties = {"components", "_box_func"}
+    _raw_methods = {"to_pytimedelta", "sum", "std", "median", "_format_native_types"}
+
+    _delegated_properties = TimedeltaArray._datetimelike_ops + list(_raw_properties)
+    _delegated_methods = (
+        TimedeltaArray._datetimelike_methods
+        + list(_raw_methods)
+        + ["_box_values", "__neg__", "__pos__", "__abs__"]
+    )
 
 
+@inherit_names(
+    [
+        "_bool_ops",
+        "_object_ops",
+        "_field_ops",
+        "_datetimelike_ops",
+        "_datetimelike_methods",
+        "_other_ops",
+    ],
+    TimedeltaArray,
+)
 @delegate_names(
     TimedeltaArray, TimedeltaDelegateMixin._delegated_properties, typ="property"
 )
@@ -116,7 +122,7 @@ class TimedeltaIndex(
     Notes
     -----
     To learn more about the frequency strings, please see `this link
-    <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
     """
 
     _typ = "timedeltaindex"
@@ -127,15 +133,6 @@ class TimedeltaIndex(
     _attributes = ["name", "freq"]
     _is_numeric_dtype = True
     _infer_as_myclass = True
-
-    _freq = None
-
-    _bool_ops = TimedeltaArray._bool_ops
-    _object_ops = TimedeltaArray._object_ops
-    _field_ops = TimedeltaArray._field_ops
-    _datetimelike_ops = TimedeltaArray._datetimelike_ops
-    _datetimelike_methods = TimedeltaArray._datetimelike_methods
-    _other_ops = TimedeltaArray._other_ops
 
     # -------------------------------------------------------------------
     # Constructors
@@ -225,21 +222,8 @@ class TimedeltaIndex(
 
         return _get_format_timedelta64(self, box=True)
 
-    def _format_native_types(self, na_rep="NaT", date_format=None, **kwargs):
-        from pandas.io.formats.format import Timedelta64Formatter
-
-        return np.asarray(
-            Timedelta64Formatter(
-                values=self, nat_rep=na_rep, justify="all"
-            ).get_result()
-        )
-
     # -------------------------------------------------------------------
     # Wrapping TimedeltaArray
-
-    @property
-    def _box_func(self):
-        return lambda x: Timedelta(x, unit="ns")
 
     def __getitem__(self, key):
         result = self._data.__getitem__(key)
@@ -262,51 +246,6 @@ class TimedeltaIndex(
             return Index(result.astype("i8"), name=self.name)
         return DatetimeIndexOpsMixin.astype(self, dtype, copy=copy)
 
-    def _union(self, other, sort):
-        if len(other) == 0 or self.equals(other) or len(self) == 0:
-            return super()._union(other, sort=sort)
-
-        if not isinstance(other, TimedeltaIndex):
-            try:
-                other = TimedeltaIndex(other)
-            except (TypeError, ValueError):
-                pass
-        this, other = self, other
-
-        if this._can_fast_union(other):
-            return this._fast_union(other)
-        else:
-            result = Index._union(this, other, sort=sort)
-            if isinstance(result, TimedeltaIndex):
-                if result.freq is None:
-                    result._set_freq("infer")
-            return result
-
-    def _fast_union(self, other):
-        if len(other) == 0:
-            return self.view(type(self))
-
-        if len(self) == 0:
-            return other.view(type(self))
-
-        # to make our life easier, "sort" the two ranges
-        if self[0] <= other[0]:
-            left, right = self, other
-        else:
-            left, right = other, self
-
-        left_end = left[-1]
-        right_end = right[-1]
-
-        # concatenate
-        if left_end < right_end:
-            loc = right.searchsorted(left_end, side="right")
-            right_chunk = right.values[loc:]
-            dates = concat_compat((left.values, right_chunk))
-            return self._shallow_copy(dates)
-        else:
-            return left
-
     def _maybe_promote(self, other):
         if other.inferred_type == "timedelta":
             other = TimedeltaIndex(other)
@@ -323,7 +262,7 @@ class TimedeltaIndex(
             return self.get_value_maybe_box(series, key)
 
         try:
-            return com.maybe_box(self, Index.get_value(self, series, key), series, key)
+            value = Index.get_value(self, series, key)
         except KeyError:
             try:
                 loc = self._get_string_slice(key)
@@ -335,10 +274,10 @@ class TimedeltaIndex(
                 return self.get_value_maybe_box(series, key)
             except (TypeError, ValueError, KeyError):
                 raise KeyError(key)
+        else:
+            return com.maybe_box(self, value, series, key)
 
-    def get_value_maybe_box(self, series, key):
-        if not isinstance(key, Timedelta):
-            key = Timedelta(key)
+    def get_value_maybe_box(self, series, key: Timedelta):
         values = self._engine.get_value(com.values_from_object(series), key)
         return com.maybe_box(self, values, series, key)
 
@@ -492,38 +431,9 @@ class TimedeltaIndex(
                 return self.astype(object).insert(loc, item)
             raise TypeError("cannot insert TimedeltaIndex with incompatible label")
 
-    def delete(self, loc):
-        """
-        Make a new TimedeltaIndex with passed location(s) deleted.
-
-        Parameters
-        ----------
-        loc: int, slice or array of ints
-            Indicate which sub-arrays to remove.
-
-        Returns
-        -------
-        new_index : TimedeltaIndex
-        """
-        new_tds = np.delete(self.asi8, loc)
-
-        freq = "infer"
-        if is_integer(loc):
-            if loc in (0, -len(self), -1, len(self) - 1):
-                freq = self.freq
-        else:
-            if is_list_like(loc):
-                loc = lib.maybe_indices_to_slice(ensure_int64(np.array(loc)), len(self))
-            if isinstance(loc, slice) and loc.step in (1, None):
-                if loc.start in (0, None) or loc.stop in (len(self), None):
-                    freq = self.freq
-
-        return TimedeltaIndex(new_tds, name=self.name, freq=freq)
-
 
 TimedeltaIndex._add_comparison_ops()
 TimedeltaIndex._add_logical_methods_disabled()
-TimedeltaIndex._add_datetimelike_methods()
 
 
 def timedelta_range(
@@ -561,7 +471,7 @@ def timedelta_range(
     ``start`` and ``end`` (closed on both sides).
 
     To learn more about the frequency strings, please see `this link
-    <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
 
     Examples
     --------

@@ -7,7 +7,7 @@ from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 # ----------------------------------------------------------------------
 # Generic types test cases
@@ -819,6 +819,18 @@ class TestNDFrame:
             msg = "the 'mode' parameter is not supported"
             with pytest.raises(ValueError, match=msg):
                 obj.take(indices, mode="clip")
+
+    def test_depr_take_kwarg_is_copy(self):
+        # GH 27357
+        df = DataFrame({"A": [1, 2, 3]})
+        msg = (
+            "is_copy is deprecated and will be removed in a future version. "
+            "take will always return a copy in the future."
+        )
+        with tm.assert_produces_warning(FutureWarning) as w:
+            df.take([0, 1], is_copy=True)
+
+        assert w[0].message.args[0] == msg
 
     def test_equals(self):
         s1 = pd.Series([1, 2, 3], index=[0, 2, 1])

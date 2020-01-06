@@ -236,7 +236,7 @@ apply : Apply function to each group instead of to the
 Notes
 -----
 See more `here
-<http://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#piping-function-calls>`_
+<https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#piping-function-calls>`_
 
 Examples
 --------
@@ -485,8 +485,8 @@ class _GroupBy(PandasObject, SelectionMixin):
                 except KeyError:
                     # turns out it wasn't a tuple
                     msg = (
-                        "must supply a same-length tuple to get_group"
-                        " with multiple grouping keys"
+                        "must supply a same-length tuple to get_group "
+                        "with multiple grouping keys"
                     )
                     raise ValueError(msg)
 
@@ -2099,17 +2099,17 @@ class GroupBy(_GroupBy):
         Parameters
         ----------
         method : {'average', 'min', 'max', 'first', 'dense'}, default 'average'
-            * average: average rank of group
-            * min: lowest rank in group
-            * max: highest rank in group
-            * first: ranks assigned in order they appear in the array
-            * dense: like 'min', but rank always increases by 1 between groups
+            * average: average rank of group.
+            * min: lowest rank in group.
+            * max: highest rank in group.
+            * first: ranks assigned in order they appear in the array.
+            * dense: like 'min', but rank always increases by 1 between groups.
         ascending : bool, default True
             False for ranks by high (1) to low (N).
         na_option : {'keep', 'top', 'bottom'}, default 'keep'
-            * keep: leave NA values where they are
-            * top: smallest rank if ascending
-            * bottom: smallest rank if descending
+            * keep: leave NA values where they are.
+            * top: smallest rank if ascending.
+            * bottom: smallest rank if descending.
         pct : bool, default False
             Compute percentage rank of data within each group.
         axis : int, default 0
