@@ -227,6 +227,7 @@ Other enhancements
 - Added new writer for exporting Stata dta files in version 118, ``StataWriter118``.  This format supports exporting strings containing Unicode characters (:issue:`23573`)
 - :meth:`Series.map` now accepts ``collections.abc.Mapping`` subclasses as a mapper (:issue:`29733`)
 - The ``pandas.datetime`` class is now deprecated. Import from ``datetime`` instead (:issue:`30296`)
+- :meth:`Timestamp.fromisocalendar` is now compatible with python 3.8 and above (:issue:`28115`)
 
 
 
@@ -568,7 +569,7 @@ Deprecations
 - :func:`eval` keyword argument "truediv" is deprecated and will be removed in a future version (:issue:`29812`)
 - :meth:`DateOffset.isAnchored` and :meth:`DatetOffset.onOffset` are deprecated and will be removed in a future version, use :meth:`DateOffset.is_anchored` and :meth:`DateOffset.is_on_offset` instead (:issue:`30340`)
 - ``pandas.tseries.frequencies.get_offset`` is deprecated and will be removed in a future version, use ``pandas.tseries.frequencies.to_offset`` instead (:issue:`4205`)
-- :meth:`Categorical.take_nd` is deprecated, use :meth:`Categorical.take` instead (:issue:`27745`)
+- :meth:`Categorical.take_nd` and :meth:`CategoricalIndex.take_nd` are deprecated, use :meth:`Categorical.take` and :meth:`CategoricalIndex.take` instead (:issue:`27745`)
 - The parameter ``numeric_only`` of :meth:`Categorical.min` and :meth:`Categorical.max` is deprecated and replaced with ``skipna`` (:issue:`25303`)
 - The parameter ``label`` in :func:`lreshape` has been deprecated and will be removed in a future version (:issue:`29742`)
 - ``pandas.core.index`` has been deprecated and will be removed in a future version, the public classes are available in the top-level namespace (:issue:`19711`)
@@ -579,6 +580,8 @@ Deprecations
 - :meth:`DataFrame.to_stata`, :meth:`DataFrame.to_feather`, and :meth:`DataFrame.to_parquet` argument "fname" is deprecated, use "path" instead (:issue:`23574`)
 - The deprecated internal attributes ``_start``, ``_stop`` and ``_step`` of :class:`RangeIndex` now raise a ``FutureWarning`` instead of a ``DeprecationWarning`` (:issue:`26581`)
 - The ``pandas.util.testing`` module has been deprecated. Use the public API in ``pandas.testing`` documented at :ref:`api.general.testing` (:issue:`16232`).
+- ``pandas.SparseArray`` has been deprecated.  Use ``pandas.arrays.SparseArray`` (:class:`arrays.SparseArray`) instead. (:issue:`30642`)
+- The parameter ``is_copy`` of :meth:`DataFrame.take` has been deprecated and will be removed in a future version. (:issue:`27357`)
 
 **Selecting Columns from a Grouped DataFrame**
 
@@ -834,6 +837,8 @@ Datetimelike
 - Bug in :meth:`Series.cummin` and :meth:`Series.cummax` with timezone-aware dtype incorrectly dropping its timezone (:issue:`15553`)
 - Bug in :class:`DatetimeArray`, :class:`TimedeltaArray`, and :class:`PeriodArray` where inplace addition and subtraction did not actually operate inplace (:issue:`24115`)
 - Bug in :func:`pandas.to_datetime` when called with ``Series`` storing ``IntegerArray`` raising ``TypeError`` instead of returning ``Series`` (:issue:`30050`)
+- Bug in :func:`date_range` with custom business hours as ``freq`` and given number of ``periods`` (:issue:`30593`)
+- Bug in :class:`PeriodIndex` comparisons with incorrectly casting integers to :class:`Period` objects, inconsistent with the :class:`Period` comparison behavior (:issue:`30722`)
 
 Timedelta
 ^^^^^^^^^
@@ -883,7 +888,9 @@ Interval
 
 - Bug in :meth:`IntervalIndex.get_indexer` where a :class:`Categorical` or :class:`CategoricalIndex` ``target`` would incorrectly raise a ``TypeError`` (:issue:`30063`)
 - Bug in ``pandas.core.dtypes.cast.infer_dtype_from_scalar`` where passing ``pandas_dtype=True`` did not infer :class:`IntervalDtype` (:issue:`30337`)
+- Bug in :class:`Series` constructor where constructing a ``Series`` from a ``list`` of :class:`Interval` objects resulted in ``object`` dtype instead of :class:`IntervalDtype` (:issue:`23563`)
 - Bug in :class:`IntervalDtype` where the ``kind`` attribute was incorrectly set as ``None`` instead of ``"O"`` (:issue:`30568`)
+- Bug in :class:`IntervalIndex`, :class:`~arrays.IntervalArray`, and :class:`Series` with interval data where equality comparisons were incorrect (:issue:`24112`)
 
 Indexing
 ^^^^^^^^
@@ -908,7 +915,7 @@ Missing
 MultiIndex
 ^^^^^^^^^^
 
-- Constructior for :class:`MultiIndex` verifies that the given ``sortorder`` is compatible with the actual ``lexsort_depth``  if ``verify_integrity`` parameter is ``True`` (the default) (:issue:`28735`)
+- Constructor for :class:`MultiIndex` verifies that the given ``sortorder`` is compatible with the actual ``lexsort_depth``  if ``verify_integrity`` parameter is ``True`` (the default) (:issue:`28735`)
 - Series and MultiIndex `.drop` with `MultiIndex` raise exception if labels not in given in level (:issue:`8594`)
 -
 

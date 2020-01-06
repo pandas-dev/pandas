@@ -144,7 +144,7 @@ def _single_replace(self, to_replace, method, inplace, limit):
 bool_t = bool  # Need alias because NDFrame has def bool:
 
 
-class NDFrame(PandasObject, SelectionMixin):
+class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     """
     N-dimensional analogue of DataFrame. Store multi-dimensional in a
     size-mutable, labeled data structure
@@ -3190,7 +3190,10 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @classmethod
     def _create_indexer(cls, name: str, indexer) -> None:
-        """Create an indexer like _name in the class."""
+        """Create an indexer like _name in the class.
+
+        Kept for compatibility with geopandas. To be removed in the future. See GH27258
+        """
         if getattr(cls, name, None) is None:
             _indexer = functools.partial(indexer, name)
             setattr(cls, name, property(_indexer, doc=indexer.__doc__))
@@ -3272,7 +3275,7 @@ class NDFrame(PandasObject, SelectionMixin):
     # Indexing Methods
 
     def take(
-        self: FrameOrSeries, indices, axis=0, is_copy: bool_t = True, **kwargs
+        self: FrameOrSeries, indices, axis=0, is_copy: Optional[bool_t] = None, **kwargs
     ) -> FrameOrSeries:
         """
         Return the elements in the given *positional* indices along an axis.
@@ -3290,6 +3293,8 @@ class NDFrame(PandasObject, SelectionMixin):
             selecting rows, ``1`` means that we are selecting columns.
         is_copy : bool, default True
             Whether to return a copy of the original object or not.
+
+            .. deprecated:: 1.0.0
         **kwargs
             For compatibility with :meth:`numpy.take`. Has no effect on the
             output.
@@ -3348,6 +3353,16 @@ class NDFrame(PandasObject, SelectionMixin):
         1  monkey  mammal        NaN
         3    lion  mammal       80.5
         """
+        if is_copy is not None:
+            warnings.warn(
+                "is_copy is deprecated and will be removed in a future version. "
+                "take will always return a copy in the future.",
+                FutureWarning,
+                stacklevel=2,
+            )
+        else:
+            is_copy = True
+
         nv.validate_take(tuple(), kwargs)
 
         self._consolidate_inplace()
@@ -5011,7 +5026,7 @@ class NDFrame(PandasObject, SelectionMixin):
             )
 
         locs = rs.choice(axis_length, size=n, replace=replace, p=weights)
-        return self.take(locs, axis=axis, is_copy=False)
+        return self.take(locs, axis=axis)
 
     _shared_docs[
         "pipe"
@@ -6425,8 +6440,8 @@ class NDFrame(PandasObject, SelectionMixin):
             if not is_dict_like(to_replace):
                 if not is_dict_like(regex):
                     raise TypeError(
-                        'If "to_replace" and "value" are both None'
-                        ' and "to_replace" is not a list, then '
+                        'If "to_replace" and "value" are both None '
+                        'and "to_replace" is not a list, then '
                         "regex must be a mapping"
                     )
                 to_replace = regex
@@ -6440,9 +6455,8 @@ class NDFrame(PandasObject, SelectionMixin):
             if any(are_mappings):
                 if not all(are_mappings):
                     raise TypeError(
-                        "If a nested mapping is passed, all values"
-                        " of the top level mapping must be "
-                        "mappings"
+                        "If a nested mapping is passed, all values "
+                        "of the top level mapping must be mappings"
                     )
                 # passed a nested dict/Series
                 to_rep_dict = {}
@@ -7008,7 +7022,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         # mask the missing
         missing = locs == -1
-        data = self.take(locs, is_copy=False)
+        d = self.take(locs)
+        data = d.copy()
         data.index = where
         data.loc[missing] = np.nan
         return data if is_list else data.iloc[-1]
@@ -11185,8 +11200,3 @@ def _make_logical_function(
         )
 
     return set_function_name(logical_func, name, cls)
-
-
-# install the indexes
-for _name, _indexer in indexing.get_indexers_list():
-    NDFrame._create_indexer(_name, _indexer)
