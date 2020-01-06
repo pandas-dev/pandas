@@ -599,7 +599,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             fill_value = self._unbox_scalar(fill_value)
         else:
             raise ValueError(
-                f"'fill_value' should be a {self._scalar_type}. " "Got '{fill_value}'."
+                f"'fill_value' should be a {self._scalar_type}. Got '{fill_value}'."
             )
         return fill_value
 
