@@ -127,13 +127,41 @@ class TestPeriodArrayLikeComparisons:
 class TestPeriodIndexComparisons:
     # TODO: parameterize over boxes
 
-    @pytest.mark.parametrize("other", ["2017", 2017])
+    @pytest.mark.parametrize("other", ["2017", pd.Period("2017", freq="D")])
     def test_eq(self, other):
         idx = PeriodIndex(["2017", "2017", "2018"], freq="D")
         expected = np.array([True, True, False])
         result = idx == other
 
         tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "other",
+        [
+            2017,
+            [2017, 2017, 2017],
+            np.array([2017, 2017, 2017]),
+            np.array([2017, 2017, 2017], dtype=object),
+            pd.Index([2017, 2017, 2017]),
+        ],
+    )
+    def test_eq_integer_disallowed(self, other):
+        # match Period semantics by not treating integers as Periods
+
+        idx = PeriodIndex(["2017", "2017", "2018"], freq="D")
+        expected = np.array([False, False, False])
+        result = idx == other
+
+        tm.assert_numpy_array_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            idx < other
+        with pytest.raises(TypeError):
+            idx > other
+        with pytest.raises(TypeError):
+            idx <= other
+        with pytest.raises(TypeError):
+            idx >= other
 
     def test_pi_cmp_period(self):
         idx = period_range("2007-01", periods=20, freq="M")
