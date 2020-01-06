@@ -702,7 +702,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         result = value_counts(arg, sort=False, dropna=False)
 
         freq = self.freq if is_period_dtype(self) else None
-        new_index = type(self)(result.index, dtype=self.dtype, freq=freq)
+        idx = result.index
+        new_index = type(self)(idx, dtype=self.dtype, freq=freq)  # type: ignore
         counts = result.values
 
         return new_index, counts
