@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs import IncompatibleFrequency
 from pandas._libs.tslibs.ccalendar import MONTHS
 
 import pandas as pd
@@ -17,8 +18,7 @@ from pandas import (
     period_range,
     to_datetime,
 )
-import pandas.core.indexes.period as period
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestPeriodRepresentation:
@@ -232,11 +232,11 @@ class TestPeriodIndex:
         assert pidx.searchsorted(p2) == 3
 
         msg = "Input has different freq=H from PeriodIndex"
-        with pytest.raises(period.IncompatibleFrequency, match=msg):
+        with pytest.raises(IncompatibleFrequency, match=msg):
             pidx.searchsorted(pd.Period("2014-01-01", freq="H"))
 
         msg = "Input has different freq=5D from PeriodIndex"
-        with pytest.raises(period.IncompatibleFrequency, match=msg):
+        with pytest.raises(IncompatibleFrequency, match=msg):
             pidx.searchsorted(pd.Period("2014-01-01", freq="5D"))
 
 

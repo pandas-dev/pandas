@@ -53,7 +53,7 @@ class Grouper:
         This will groupby the specified frequency if the target selection
         (via key or level) is a datetime-like object. For full specification
         of available frequencies, please see `here
-        <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`_.
+        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`_.
     axis : str, int, defaults to 0
         Number/name of the axis.
     sort : bool, default to False
@@ -194,7 +194,7 @@ class Grouper:
             # use stable sort to support first, last, nth
             indexer = self.indexer = ax.argsort(kind="mergesort")
             ax = ax.take(indexer)
-            obj = obj.take(indexer, axis=self.axis, is_copy=False)
+            obj = obj.take(indexer, axis=self.axis)
 
         self.obj = obj
         self.grouper = ax

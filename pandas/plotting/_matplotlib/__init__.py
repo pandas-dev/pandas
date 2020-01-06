@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING, Dict, Type
+
 from pandas.plotting._matplotlib.boxplot import (
     BoxPlot,
     boxplot,
@@ -26,7 +28,10 @@ from pandas.plotting._matplotlib.misc import (
 )
 from pandas.plotting._matplotlib.tools import table
 
-PLOT_CLASSES = {
+if TYPE_CHECKING:
+    from pandas.plotting._matplotlib.core import MPLPlot  # noqa: F401
+
+PLOT_CLASSES: Dict[str, Type["MPLPlot"]] = {
     "line": LinePlot,
     "bar": BarPlot,
     "barh": BarhPlot,
