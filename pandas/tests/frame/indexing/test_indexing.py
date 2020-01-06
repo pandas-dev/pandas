@@ -25,7 +25,6 @@ from pandas.arrays import SparseArray
 
 import pandas.core.common as com
 from pandas.core.indexing import IndexingError
-import pandas.util.testing as tm
 
 from pandas.tseries.offsets import BDay
 
