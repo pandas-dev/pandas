@@ -14,15 +14,14 @@ Usage::
     $ ./validate_docstrings.py pandas.DataFrame.head
 """
 import argparse
-import ast
 import doctest
 import glob
 import importlib
-import inspect
 import json
 import os
 import sys
 import tempfile
+from typing import List, Optional
 
 import flake8.main.application
 
@@ -48,9 +47,7 @@ sys.path.insert(0, os.path.join(BASE_PATH))
 import pandas  # noqa: E402 isort:skip
 
 sys.path.insert(1, os.path.join(BASE_PATH, "doc", "sphinxext"))
-from numpydoc.docscrape import NumpyDocString  # noqa: E402 isort:skip
-from numpydoc.validate import validate, Docstring, error  # noqa: E402 isort:skip
-from pandas.io.formats.printing import pprint_thing  # noqa: E402 isort:skip
+from numpydoc.validate import validate, Docstring  # noqa: E402 isort:skip
 
 
 PRIVATE_CLASSES = ["NDFrame", "IndexOpsMixin"]
@@ -64,6 +61,14 @@ ERROR_MSGS = {
     "EX04": "Do not import {imported_library}, as it is imported "
     "automatically for the examples (numpy as np, pandas as pd)",
 }
+
+
+def pandas_error(code, **kwargs):
+    """
+    Copy of the numpydoc error function, since ERROR_MSGS can't be updated
+    with our custom errors yet.
+    """
+    return (code, ERROR_MSGS[code].format(**kwargs))
 
 
 def get_api_items(api_doc_fd):
@@ -191,47 +196,50 @@ class PandasDocstring(Docstring):
         yield from application.guide.stats.statistics_for("")
 
 
-def pandas_validation(doc):
+def pandas_validate(func_name: str):
     """
-    Validation of errors specific to pandas.
+    Call the numpydoc validation, and add the errors specific to pandas.
 
     Parameters
     ----------
-    doc : PandasDocString
-        Instance of the PandasDocString corresponding to the docstring to validate.
+    func_name : str
+        Name of the object of the docstring to validate.
 
     Returns
     -------
-    errs : list of error (namedtuple)
-        List of errors detected in the docstring.
-    example_errs : str
-        Error messages captured from running the examples.
+    dict
+        Information about the docstring and the errors found.
     """
-    errs = []
+    doc = PandasDocstring(func_name)
+    result = validate(func_name)
 
     mentioned_errs = doc.mentioned_private_classes
     if mentioned_errs:
-        errs.append(error("GL04", mentioned_private_classes=", ".join(mentioned_errs)))
+        result["errors"].append(
+            pandas_error("GL04", mentioned_private_classes=", ".join(mentioned_errs))
+        )
 
     if doc.see_also:
         for rel_name, rel_desc in doc.see_also.items():
             if rel_name.startswith("pandas."):
-                errs.append(
-                    error(
+                result["errors"].append(
+                    pandas_error(
                         "SA05",
                         reference_name=rel_name,
                         right_reference=rel_name[len("pandas.") :],
                     )
                 )
 
-    examples_errs = ""
+    result["examples_errs"] = ""
     if doc.examples:
-        examples_errs = doc.examples_errors
-        if examples_errs:
-            errs.append(error("EX02", doctest_log=examples_errs))
+        result["examples_errs"] = doc.examples_errors
+        if result["examples_errs"]:
+            result["errors"].append(
+                pandas_error("EX02", doctest_log=result["examples_errs"])
+            )
         for err in doc.validate_pep8():
-            errs.append(
-                error(
+            result["errors"].append(
+                pandas_error(
                     "EX03",
                     error_code=err.error_code,
                     error_message=err.message,
@@ -243,8 +251,9 @@ def pandas_validation(doc):
         examples_source_code = "".join(doc.examples_source_code)
         for wrong_import in ("numpy", "pandas"):
             if "import {}".format(wrong_import) in examples_source_code:
-                errs.append(error("EX04", imported_library=wrong_import))
-    return errs, examples_errs
+                result["errors"].append(error("EX04", imported_library=wrong_import))
+
+    return result
 
 
 def validate_all(prefix, ignore_deprecated=False):
@@ -278,7 +287,7 @@ def validate_all(prefix, ignore_deprecated=False):
     for func_name, func_obj, section, subsection in api_items:
         if prefix and not func_name.startswith(prefix):
             continue
-        doc_info = validate_one(func_name)
+        doc_info = pandas_validate(func_name)
         if ignore_deprecated and doc_info["deprecated"]:
             continue
         result[func_name] = doc_info
@@ -299,7 +308,36 @@ def validate_all(prefix, ignore_deprecated=False):
     return result
 
 
-def main(func_name, prefix, errors, output_format, ignore_deprecated):
+def print_validate_all_results(
+    prefix: str,
+    errors: Optional[List[str]],
+    output_format: str,
+    ignore_deprecated: bool,
+):
+    if output_format not in ("default", "json", "actions"):
+        raise ValueError(f'Unknown output_format "{output_format}"')
+
+    result = validate_all(prefix, ignore_deprecated)
+
+    if output_format == "json":
+        sys.stdout.write(json.dumps(result))
+        return 0
+
+    prefix = "##[error]" if output_format == "actions" else ""
+    exit_status = 0
+    for name, res in result.items():
+        for err_code, err_desc in res["errors"]:
+            if errors and err_code not in errors:
+                continue
+            sys.stdout.write(
+                f'{prefix}{res["file"]}:{res["file_line"]}:{err_code}:{name}:{err_desc}\n'
+            )
+            exit_status += 1
+
+    return exit_status
+
+
+def print_validate_one_results(func_name: str):
     def header(title, width=80, char="#"):
         full_line = char * width
         side_len = (width - len(title) - 2) // 2
@@ -308,61 +346,40 @@ def main(func_name, prefix, errors, output_format, ignore_deprecated):
             side=char * side_len, title=title, adj=adj
         )
 
-        return "\n{full_line}\n{title_line}\n{full_line}\n\n".format(
-            full_line=full_line, title_line=title_line
-        )
+        return f"\n{full_line}\n{title_line}\n{full_line}\n\n"
 
-    exit_status = 0
+    result = pandas_validate(func_name)
+
+    sys.stderr.write(header(f"Docstring ({func_name})"))
+    sys.stderr.write(f"{result['docstring']}\n")
+
+    sys.stderr.write(header("Validation"))
+    if result["errors"]:
+        sys.stderr.write(f'{len(result["errors"])} Errors found:\n')
+        for err_code, err_desc in result["errors"]:
+            if err_code == "EX02":  # Failing examples are printed at the end
+                sys.stderr.write("\tExamples do not pass tests\n")
+                continue
+            sys.stderr.write(f"\t{err_desc}\n")
+    elif result["errors"]:
+        sys.stderr.write(f'Docstring for "{func_name}" correct. :)\n')
+
+    if result["examples_errs"]:
+        sys.stderr.write(header("Doctests"))
+        sys.stderr.write(result["examples_errs"])
+
+
+def main(func_name, prefix, errors, output_format, ignore_deprecated):
+    """
+    Main entry point. Call the validation for one or for all docstrings.
+    """
     if func_name is None:
-        result = validate_all(prefix, ignore_deprecated)
-
-        if output_format == "json":
-            output = json.dumps(result)
-        else:
-            output_format = "{path}:{row}:{code}:{name}:{description}\n"
-            if output_format == "actions":
-                output_format = "##[error]" + output_format
-            elif output_format != "default":
-                raise ValueError(f'Unknown output_format "{output_format}"')
-
-            output = ""
-            for name, res in result.items():
-                for err_code, err_desc in res["errors"]:
-                    if errors and err_code not in errors:
-                        continue
-                    exit_status += 1
-                    output += output_format.format(
-                        path=res["file"],
-                        row=res["file_line"],
-                        code=err_code,
-                        name=name,
-                        description=err_desc,
-                    )
-
-        sys.stdout.write(output)
-
+        return print_validate_all_results(
+            prefix, errors, output_format, ignore_deprecated
+        )
     else:
-        result = validate_one(func_name)
-
-        sys.stderr.write(header("Docstring ({})".format(func_name)))
-        sys.stderr.write("{}\n".format(result["docstring"]))
-
-        sys.stderr.write(header("Validation"))
-        if result["errors"]:
-            sys.stderr.write(f'{len(result["errors"])} Errors found:\n')
-            for err_code, err_desc in result["errors"]:
-                if err_code == "EX02":  # Failing examples are printed at the end
-                    sys.stderr.write("\tExamples do not pass tests\n")
-                    continue
-                sys.stderr.write("\t{err_desc}\n")
-        elif result["errors"]:
-            sys.stderr.write('Docstring for "{}" correct. :)\n'.format(func_name))
-
-        if result["examples_errors"]:
-            sys.stderr.write(header("Doctests"))
-            sys.stderr.write(result["examples_errors"])
-
-    return exit_status
+        print_validate_one_results(func_name)
+        return 0
 
 
 if __name__ == "__main__":
