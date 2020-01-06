@@ -181,7 +181,7 @@ def get_default_val(pat: str):
 class DictWrapper:
     """ provide attribute-style access to a nested dict"""
 
-    def __init__(self, d: Any, prefix: str = ""):
+    def __init__(self, d: Dict[str, Any], prefix: str = ""):
         object.__setattr__(self, "d", d)
         object.__setattr__(self, "prefix", prefix)
 
@@ -555,7 +555,7 @@ def _select_options(pat: str) -> List[str]:
     return [k for k in keys if re.search(pat, k, re.I)]
 
 
-def _get_root(key: str) -> Tuple[Any, str]:
+def _get_root(key: str) -> Tuple[Dict[str, Any], str]:
     path = key.split(".")
     cursor = _global_config
     for p in path[:-1]:
@@ -664,7 +664,7 @@ def _build_option_description(k: str) -> str:
     return s
 
 
-def pp_options_list(keys: List[str], width=80, _print: bool = False):
+def pp_options_list(keys: Iterable[str], width=80, _print: bool = False):
     """ Builds a concise listing of available options, grouped by prefix """
 
     from textwrap import wrap
