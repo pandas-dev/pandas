@@ -319,7 +319,7 @@ class FrameApply(metaclass=abc.ABCMeta):
         results, res_index = self.apply_series_generator()
 
         if flag and return_result is not None:
-            results = np.array([v for v in results.values()])
+            results = np.array(list(results.values()))
             return self.obj._constructor_sliced(
                 results, index=res_index, dtype=return_result.dtype
             )
