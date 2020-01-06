@@ -416,8 +416,8 @@ def register_option(
     key: str,
     defval: object,
     doc: str = "",
-    validator: Optional[Callable] = None,
-    cb: Optional[Callable] = None,
+    validator=None,
+    cb: Optional[Callable[[str], None]] = None,
 ) -> None:
     """
     Register an option in the package-wide pandas config object
@@ -734,7 +734,7 @@ def config_prefix(prefix):
     global register_option, get_option, set_option, reset_option
 
     def wrap(func):
-        def inner(key: str, *args, **kwds) -> Callable:
+        def inner(key: str, *args, **kwds) -> Callable[[str, Any, Any], Any]:
             pkey = f"{prefix}.{key}"
             return func(pkey, *args, **kwds)
 
@@ -756,7 +756,7 @@ def config_prefix(prefix):
 # arg in register_option
 
 
-def is_type_factory(_type) -> Callable:
+def is_type_factory(_type) -> Callable[..., None]:
     """
 
     Parameters
@@ -777,7 +777,7 @@ def is_type_factory(_type) -> Callable:
     return inner
 
 
-def is_instance_factory(_type) -> Callable:
+def is_instance_factory(_type) -> Callable[..., None]:
     """
 
     Parameters
@@ -804,7 +804,7 @@ def is_instance_factory(_type) -> Callable:
     return inner
 
 
-def is_one_of_factory(legal_values) -> Callable:
+def is_one_of_factory(legal_values) -> Callable[..., None]:
 
     callables = [c for c in legal_values if callable(c)]
     legal_values = [c for c in legal_values if not callable(c)]
