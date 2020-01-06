@@ -194,7 +194,7 @@ class Grouper:
             # use stable sort to support first, last, nth
             indexer = self.indexer = ax.argsort(kind="mergesort")
             ax = ax.take(indexer)
-            obj = obj.take(indexer, axis=self.axis, is_copy=False)
+            obj = obj.take(indexer, axis=self.axis)
 
         self.obj = obj
         self.grouper = ax
