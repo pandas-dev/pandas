@@ -1,6 +1,7 @@
 import cython
 
 import time
+from typing import Any
 from cpython.datetime cimport (PyDateTime_IMPORT,
                                PyDateTime_Check,
                                PyDelta_Check,
@@ -328,7 +329,7 @@ class _BaseOffset:
     def __setattr__(self, name, value):
         raise AttributeError("DateOffset objects are immutable.")
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: Any) -> bool:
         if isinstance(other, str):
             try:
                 # GH#23524 if to_offset fails, we are dealing with an
@@ -932,7 +933,7 @@ def shift_month(stamp: datetime, months: int,
 
 cpdef int get_day_of_month(datetime other, day_opt) except? -1:
     """
-    Find the day in `other`'s month that satisfies a DateOffset's onOffset
+    Find the day in `other`'s month that satisfies a DateOffset's is_on_offset
     policy, as described by the `day_opt` argument.
 
     Parameters

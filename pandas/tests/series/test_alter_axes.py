@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame, Index, MultiIndex, RangeIndex, Series
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestSeriesAlterAxes:
@@ -321,17 +321,6 @@ class TestSeriesAlterAxes:
         for axis in [2, "foo"]:
             with pytest.raises(ValueError, match="No axis named"):
                 s.set_axis(list("abcd"), axis=axis, inplace=False)
-
-    def test_set_axis_prior_to_deprecation_signature(self):
-        s = Series(np.arange(4), index=[1, 3, 5, 7], dtype="int64")
-
-        expected = s.copy()
-        expected.index = list("abcd")
-
-        for axis in [0, "index"]:
-            with tm.assert_produces_warning(FutureWarning):
-                result = s.set_axis(0, list("abcd"), inplace=False)
-            tm.assert_series_equal(result, expected)
 
     def test_reset_index_drop_errors(self):
         #  GH 20925

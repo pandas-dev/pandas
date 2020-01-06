@@ -2,10 +2,11 @@
 concat routines
 """
 
-from typing import List
-import warnings
+from typing import Hashable, List, Mapping, Optional, Sequence, Union, overload
 
 import numpy as np
+
+from pandas._typing import FrameOrSeriesUnion
 
 from pandas import DataFrame, Index, MultiIndex, Series
 from pandas.core.arrays.categorical import (
@@ -27,11 +28,11 @@ from pandas.core.internals import concatenate_block_managers
 # Concatenate DataFrame objects
 
 
+@overload
 def concat(
-    objs,
+    objs: Union[Sequence["DataFrame"], Mapping[Optional[Hashable], "DataFrame"]],
     axis=0,
     join: str = "outer",
-    join_axes=None,
     ignore_index: bool = False,
     keys=None,
     levels=None,
@@ -39,7 +40,42 @@ def concat(
     verify_integrity: bool = False,
     sort: bool = False,
     copy: bool = True,
-):
+) -> "DataFrame":
+    ...
+
+
+@overload
+def concat(
+    objs: Union[
+        Sequence[FrameOrSeriesUnion], Mapping[Optional[Hashable], FrameOrSeriesUnion]
+    ],
+    axis=0,
+    join: str = "outer",
+    ignore_index: bool = False,
+    keys=None,
+    levels=None,
+    names=None,
+    verify_integrity: bool = False,
+    sort: bool = False,
+    copy: bool = True,
+) -> FrameOrSeriesUnion:
+    ...
+
+
+def concat(
+    objs: Union[
+        Sequence[FrameOrSeriesUnion], Mapping[Optional[Hashable], FrameOrSeriesUnion]
+    ],
+    axis=0,
+    join="outer",
+    ignore_index: bool = False,
+    keys=None,
+    levels=None,
+    names=None,
+    verify_integrity: bool = False,
+    sort: bool = False,
+    copy: bool = True,
+) -> FrameOrSeriesUnion:
     """
     Concatenate pandas objects along a particular axis with optional set logic
     along the other axes.
@@ -59,12 +95,6 @@ def concat(
         The axis to concatenate along.
     join : {'inner', 'outer'}, default 'outer'
         How to handle indexes on other axis (or axes).
-    join_axes : list of Index objects
-        .. deprecated:: 0.25.0
-
-        Specific indexes to use for the other n - 1 axes instead of performing
-        inner/outer set logic. Use .reindex() before or after concatenation
-        as a replacement.
     ignore_index : bool, default False
         If True, do not use the index values along the concatenation axis. The
         resulting axis will be labeled 0, ..., n - 1. This is useful if you are
@@ -117,7 +147,7 @@ def concat(
 
     A walkthrough of how this method fits in with other tools for combining
     pandas objects can be found `here
-    <http://pandas.pydata.org/pandas-docs/stable/user_guide/merging.html>`__.
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/merging.html>`__.
 
     Examples
     --------
@@ -243,7 +273,6 @@ def concat(
         axis=axis,
         ignore_index=ignore_index,
         join=join,
-        join_axes=join_axes,
         keys=keys,
         levels=levels,
         names=names,
@@ -265,7 +294,6 @@ class _Concatenator:
         objs,
         axis=0,
         join: str = "outer",
-        join_axes=None,
         keys=None,
         levels=None,
         names=None,
@@ -412,7 +440,6 @@ class _Concatenator:
 
         # note: this is the BlockManager axis (since DataFrame is transposed)
         self.axis = axis
-        self.join_axes = join_axes
         self.keys = keys
         self.names = names or getattr(keys, "names", None)
         self.levels = levels
@@ -483,41 +510,12 @@ class _Concatenator:
         else:
             return self.objs[0].ndim
 
-    def _get_new_axes(self):
+    def _get_new_axes(self) -> List[Index]:
         ndim = self._get_result_dim()
-        new_axes = [None] * ndim
-
-        if self.join_axes is None:
-            for i in range(ndim):
-                if i == self.axis:
-                    continue
-                new_axes[i] = self._get_comb_axis(i)
-
-        else:
-            # GH 21951
-            warnings.warn(
-                "The join_axes-keyword is deprecated. Use .reindex or "
-                ".reindex_like on the result to achieve the same "
-                "functionality.",
-                FutureWarning,
-                stacklevel=4,
-            )
-
-            if len(self.join_axes) != ndim - 1:
-                raise AssertionError(
-                    "length of join_axes must be equal "
-                    "to {length}".format(length=ndim - 1)
-                )
-
-            # ufff...
-            indices = list(range(ndim))
-            indices.remove(self.axis)
-
-            for i, ax in zip(indices, self.join_axes):
-                new_axes[i] = ax
-
-        new_axes[self.axis] = self._get_concat_axis()
-        return new_axes
+        return [
+            self._get_concat_axis() if i == self.axis else self._get_comb_axis(i)
+            for i in range(ndim)
+        ]
 
     def _get_comb_axis(self, i: int) -> Index:
         data_axis = self.objs[0]._get_block_manager_axis(i)
@@ -536,14 +534,14 @@ class _Concatenator:
                 idx = ibase.default_index(len(self.objs))
                 return idx
             elif self.keys is None:
-                names: List = [None] * len(self.objs)
+                names: List[Optional[Hashable]] = [None] * len(self.objs)
                 num = 0
                 has_names = False
                 for i, x in enumerate(self.objs):
                     if not isinstance(x, Series):
                         raise TypeError(
-                            "Cannot concatenate type 'Series' "
-                            "with object of type {type!r}".format(type=type(x).__name__)
+                            f"Cannot concatenate type 'Series' with "
+                            f"object of type '{type(x).__name__}'"
                         )
                     if x.name is not None:
                         names[i] = x.name

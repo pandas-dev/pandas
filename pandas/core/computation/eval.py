@@ -5,19 +5,21 @@ Top level ``eval`` module.
 """
 
 import tokenize
+from typing import Optional
 import warnings
 
 from pandas._libs.lib import _no_default
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.computation.engines import _engines
-from pandas.core.computation.expr import Expr, _parsers, tokenize_string
+from pandas.core.computation.expr import Expr, _parsers
+from pandas.core.computation.parsing import tokenize_string
 from pandas.core.computation.scope import ensure_scope
 
 from pandas.io.formats.printing import pprint_thing
 
 
-def _check_engine(engine):
+def _check_engine(engine: Optional[str]) -> str:
     """
     Make sure a valid engine is passed.
 
@@ -47,8 +49,7 @@ def _check_engine(engine):
     if engine not in _engines:
         valid = list(_engines.keys())
         raise KeyError(
-            "Invalid engine {engine!r} passed, valid engines are"
-            " {valid}".format(engine=engine, valid=valid)
+            f"Invalid engine {repr(engine)} passed, valid engines are {valid}"
         )
 
     # TODO: validate this in a more general way (thinking of future engines
@@ -82,8 +83,8 @@ def _check_parser(parser: str):
 
     if parser not in _parsers:
         raise KeyError(
-            "Invalid parser {parser!r} passed, valid parsers are"
-            " {valid}".format(parser=parser, valid=_parsers.keys())
+            f"Invalid parser {repr(parser)} passed, "
+            f"valid parsers are {_parsers.keys()}"
         )
 
 
@@ -93,8 +94,8 @@ def _check_resolvers(resolvers):
             if not hasattr(resolver, "__getitem__"):
                 name = type(resolver).__name__
                 raise TypeError(
-                    "Resolver of type {name!r} does not implement "
-                    "the __getitem__ method".format(name=name)
+                    f"Resolver of type {repr(name)} does not "
+                    f"implement the __getitem__ method"
                 )
 
 
@@ -169,7 +170,7 @@ def _check_for_locals(expr: str, stack_level: int, parser: str):
 def eval(
     expr,
     parser="pandas",
-    engine=None,
+    engine: Optional[str] = None,
     truediv=_no_default,
     local_dict=None,
     global_dict=None,
@@ -307,6 +308,9 @@ def eval(
             "multi-line expressions are only valid in the "
             "context of data, use DataFrame.eval"
         )
+    engine = _check_engine(engine)
+    _check_parser(parser)
+    _check_resolvers(resolvers)
 
     ret = None
     first_expr = True
@@ -314,9 +318,6 @@ def eval(
 
     for expr in exprs:
         expr = _convert_expression(expr)
-        engine = _check_engine(engine)
-        _check_parser(parser)
-        _check_resolvers(resolvers)
         _check_for_locals(expr, level, parser)
 
         # get our (possibly passed-in) scope

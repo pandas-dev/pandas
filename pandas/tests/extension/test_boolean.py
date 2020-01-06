@@ -19,9 +19,9 @@ import pytest
 from pandas.compat.numpy import _np_version_under1p14
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.core.arrays.boolean import BooleanDtype
 from pandas.tests.extension import base
-import pandas.util.testing as tm
 
 
 def make_data():
@@ -60,13 +60,13 @@ def data_missing_for_sorting(dtype):
 
 @pytest.fixture
 def na_cmp():
-    # we are np.nan
-    return lambda x, y: np.isnan(x) and np.isnan(y)
+    # we are pd.NA
+    return lambda x, y: x is pd.NA and y is pd.NA
 
 
 @pytest.fixture
 def na_value():
-    return np.nan
+    return pd.NA
 
 
 @pytest.fixture
@@ -159,6 +159,14 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
 
     def _compare_other(self, s, data, op_name, other):
         self.check_opname(s, op_name, other)
+
+    @pytest.mark.skip(reason="Tested in tests/arrays/test_boolean.py")
+    def test_compare_scalar(self, data, all_compare_operators):
+        pass
+
+    @pytest.mark.skip(reason="Tested in tests/arrays/test_boolean.py")
+    def test_compare_array(self, data, all_compare_operators):
+        pass
 
 
 class TestReshaping(base.BaseReshapingTests):

@@ -14,6 +14,7 @@ Usage::
     $ ./validate_docstrings.py pandas.DataFrame.head
 """
 import argparse
+import ast
 import doctest
 import glob
 import importlib
@@ -322,7 +323,7 @@ def main(func_name, prefix, errors, output_format, ignore_deprecated):
             if output_format == "actions":
                 output_format = "##[error]" + output_format
             elif output_format != "default":
-                raise ValueError('Unknown output_format "{}"'.format(output_format))
+                raise ValueError(f'Unknown output_format "{output_format}"')
 
             output = ""
             for name, res in result.items():
@@ -331,7 +332,6 @@ def main(func_name, prefix, errors, output_format, ignore_deprecated):
                         continue
                     exit_status += 1
                     output += output_format.format(
-                        name=name,
                         path=res["file"],
                         row=res["file_line"],
                         code=err_code,
@@ -349,13 +349,13 @@ def main(func_name, prefix, errors, output_format, ignore_deprecated):
 
         sys.stderr.write(header("Validation"))
         if result["errors"]:
-            sys.stderr.write("{} Errors found:\n".format(len(result["errors"])))
+            sys.stderr.write(f'{len(result["errors"])} Errors found:\n')
             for err_code, err_desc in result["errors"]:
                 if err_code == "EX02":  # Failing examples are printed at the end
                     sys.stderr.write("\tExamples do not pass tests\n")
                     continue
-                sys.stderr.write("\t{}\n".format(err_desc))
-        else result["errors"]:
+                sys.stderr.write("\t{err_desc}\n")
+        elif result["errors"]:
             sys.stderr.write('Docstring for "{}" correct. :)\n'.format(func_name))
 
         if result["examples_errors"]:

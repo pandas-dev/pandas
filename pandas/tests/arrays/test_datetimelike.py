@@ -6,11 +6,11 @@ import pytest
 from pandas._libs import OutOfBoundsDatetime
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
-import pandas.util.testing as tm
 
 
 # TODO: more freq variants
@@ -40,8 +40,8 @@ def datetime_index(request):
     """
     freqstr = request.param
     # TODO: non-monotone indexes; NaTs, different start dates, timezones
-    pi = pd.date_range(start=pd.Timestamp("2000-01-01"), periods=100, freq=freqstr)
-    return pi
+    dti = pd.date_range(start=pd.Timestamp("2000-01-01"), periods=100, freq=freqstr)
+    return dti
 
 
 @pytest.fixture
@@ -224,6 +224,19 @@ class SharedTests:
 
         with pytest.raises(TypeError, match="'value' should be a.* 'object'"):
             arr[0] = object()
+
+    def test_inplace_arithmetic(self):
+        # GH#24115 check that iadd and isub are actually in-place
+        data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
+        arr = self.array_cls(data, freq="D")
+
+        expected = arr + pd.Timedelta(days=1)
+        arr += pd.Timedelta(days=1)
+        tm.assert_equal(arr, expected)
+
+        expected = arr - pd.Timedelta(days=1)
+        arr -= pd.Timedelta(days=1)
+        tm.assert_equal(arr, expected)
 
 
 class TestDatetimeArray(SharedTests):

@@ -21,9 +21,9 @@ from pandas import (
     Timestamp,
     isna,
 )
+import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 from pandas.core.ops import roperator
-import pandas.util.testing as tm
 
 
 @pytest.mark.parametrize(
@@ -141,7 +141,7 @@ def test_round_nat(klass, method, freq):
 )
 def test_nat_methods_raise(method):
     # see gh-9513, gh-17329
-    msg = "NaTType does not support {method}".format(method=method)
+    msg = f"NaTType does not support {method}"
 
     with pytest.raises(ValueError, match=msg):
         getattr(NaT, method)()

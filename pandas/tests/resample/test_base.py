@@ -5,12 +5,12 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Series
+import pandas._testing as tm
 from pandas.core.groupby.groupby import DataError
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import PeriodIndex, period_range
 from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
-import pandas.util.testing as tm
 
 # a fixture value can be overridden by the test parameter value. Note that the
 # value of the fixture can be overridden this way even if the test doesn't use
@@ -139,7 +139,7 @@ def test_resample_empty_dataframe(empty_frame, freq, resample_method):
         expected = df.copy()
     else:
         # GH14962
-        expected = Series([])
+        expected = Series([], dtype=object)
 
     if isinstance(df.index, PeriodIndex):
         expected.index = df.index.asfreq(freq=freq)
@@ -207,7 +207,8 @@ def test_resample_empty_dtypes(index, dtype, resample_method):
 
 
 @all_ts
-def test_resample_loffset_arg_type(frame, create_index):
+@pytest.mark.parametrize("arg", ["mean", {"value": "mean"}, ["mean"]])
+def test_resample_loffset_arg_type(frame, create_index, arg):
     # GH 13218, 15002
     df = frame
     expected_means = [df.values[i : i + 2].mean() for i in range(0, len(df.values), 2)]
@@ -220,26 +221,18 @@ def test_resample_loffset_arg_type(frame, create_index):
     expected_index += timedelta(hours=2)
     expected = DataFrame({"value": expected_means}, index=expected_index)
 
-    for arg in ["mean", {"value": "mean"}, ["mean"]]:
+    result_agg = df.resample("2D", loffset="2H").agg(arg)
 
-        result_agg = df.resample("2D", loffset="2H").agg(arg)
+    if isinstance(arg, list):
+        expected.columns = pd.MultiIndex.from_tuples([("value", "mean")])
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result_how = df.resample("2D", how=arg, loffset="2H")
-
-        if isinstance(arg, list):
-            expected.columns = pd.MultiIndex.from_tuples([("value", "mean")])
-
-        # GH 13022, 7687 - TODO: fix resample w/ TimedeltaIndex
-        if isinstance(expected.index, TimedeltaIndex):
-            msg = "DataFrame are different"
-            with pytest.raises(AssertionError, match=msg):
-                tm.assert_frame_equal(result_agg, expected)
-            with pytest.raises(AssertionError, match=msg):
-                tm.assert_frame_equal(result_how, expected)
-        else:
+    # GH 13022, 7687 - TODO: fix resample w/ TimedeltaIndex
+    if isinstance(expected.index, TimedeltaIndex):
+        msg = "DataFrame are different"
+        with pytest.raises(AssertionError, match=msg):
             tm.assert_frame_equal(result_agg, expected)
-            tm.assert_frame_equal(result_how, expected)
+    else:
+        tm.assert_frame_equal(result_agg, expected)
 
 
 @all_ts

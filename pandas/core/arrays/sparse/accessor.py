@@ -163,7 +163,7 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
 
         Examples
         --------
-        >>> series = pd.Series(pd.SparseArray([0, 1, 0]))
+        >>> series = pd.Series(pd.arrays.SparseArray([0, 1, 0]))
         >>> series
         0    0
         1    1
@@ -216,7 +216,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         -------
         DataFrame
             Each column of the DataFrame is stored as a
-            :class:`SparseArray`.
+            :class:`arrays.SparseArray`.
 
         Examples
         --------
@@ -251,7 +251,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
 
         Examples
         --------
-        >>> df = pd.DataFrame({"A": pd.SparseArray([0, 1, 0])})
+        >>> df = pd.DataFrame({"A": pd.arrays.SparseArray([0, 1, 0])})
         >>> df.sparse.to_dense()
            A
         0  0
@@ -323,13 +323,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
             columns = ibase.default_index(K)
 
         if len(columns) != K:
-            raise ValueError(
-                "Column length mismatch: {columns} vs. {K}".format(
-                    columns=len(columns), K=K
-                )
-            )
+            raise ValueError(f"Column length mismatch: {len(columns)} vs. {K}")
         if len(index) != N:
-            raise ValueError(
-                "Index length mismatch: {index} vs. {N}".format(index=len(index), N=N)
-            )
+            raise ValueError(f"Index length mismatch: {len(index)} vs. {N}")
         return index, columns

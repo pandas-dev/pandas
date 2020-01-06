@@ -12,6 +12,7 @@ import pandas._config.config as cf
 
 from pandas._libs.tslib import Timestamp
 from pandas.compat.numpy import np_datetime64_compat
+from pandas.util._test_decorators import async_mark
 
 from pandas.core.dtypes.common import is_unsigned_integer_dtype
 from pandas.core.dtypes.generic import ABCIndex
@@ -32,12 +33,17 @@ from pandas import (
     isna,
     period_range,
 )
+import pandas._testing as tm
 from pandas.core.algorithms import safe_sort
-from pandas.core.index import ensure_index, ensure_index_from_sequences
-from pandas.core.indexes.api import Index, MultiIndex, _get_combined_index
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+    _get_combined_index,
+    ensure_index,
+    ensure_index_from_sequences,
+)
 from pandas.tests.indexes.common import Base
 from pandas.tests.indexes.conftest import indices_dict
-import pandas.util.testing as tm
 
 
 class TestIndex(Base):
@@ -95,6 +101,7 @@ class TestIndex(Base):
         arr[0] = "SOMEBIGLONGSTRING"
         assert new_index[0] != "SOMEBIGLONGSTRING"
 
+        # FIXME: dont leave commented-out
         # what to do here?
         # arr = np.array(5.)
         # pytest.raises(Exception, arr.view, Index)
@@ -453,9 +460,9 @@ class TestIndex(Base):
             index = Index(vals)
             assert isinstance(index, TimedeltaIndex)
 
-    @pytest.mark.parametrize("attr, utc", [["values", False], ["asi8", True]])
+    @pytest.mark.parametrize("attr", ["values", "asi8"])
     @pytest.mark.parametrize("klass", [pd.Index, pd.DatetimeIndex])
-    def test_constructor_dtypes_datetime(self, tz_naive_fixture, attr, utc, klass):
+    def test_constructor_dtypes_datetime(self, tz_naive_fixture, attr, klass):
         # Test constructing with a datetimetz dtype
         # .values produces numpy datetimes, so these are considered naive
         # .asi8 produces integers, so these are considered epoch timestamps
@@ -466,30 +473,27 @@ class TestIndex(Base):
         index = index.tz_localize(tz_naive_fixture)
         dtype = index.dtype
 
-        if (
-            tz_naive_fixture
-            and attr == "asi8"
-            and str(tz_naive_fixture) not in ("UTC", "tzutc()", "UTC+00:00")
-        ):
-            ex_warn = FutureWarning
+        if attr == "asi8":
+            result = pd.DatetimeIndex(arg).tz_localize(tz_naive_fixture)
         else:
-            ex_warn = None
-
-        # stacklevel is checked elsewhere. We don't do it here since
-        # Index will have an frame, throwing off the expected.
-        with tm.assert_produces_warning(ex_warn, check_stacklevel=False):
             result = klass(arg, tz=tz_naive_fixture)
         tm.assert_index_equal(result, index)
 
-        with tm.assert_produces_warning(ex_warn, check_stacklevel=False):
+        if attr == "asi8":
+            result = pd.DatetimeIndex(arg).astype(dtype)
+        else:
             result = klass(arg, dtype=dtype)
         tm.assert_index_equal(result, index)
 
-        with tm.assert_produces_warning(ex_warn, check_stacklevel=False):
+        if attr == "asi8":
+            result = pd.DatetimeIndex(list(arg)).tz_localize(tz_naive_fixture)
+        else:
             result = klass(list(arg), tz=tz_naive_fixture)
         tm.assert_index_equal(result, index)
 
-        with tm.assert_produces_warning(ex_warn, check_stacklevel=False):
+        if attr == "asi8":
+            result = pd.DatetimeIndex(list(arg)).astype(dtype)
+        else:
             result = klass(list(arg), dtype=dtype)
         tm.assert_index_equal(result, index)
 
@@ -2001,7 +2005,7 @@ class TestIndex(Base):
         with pytest.raises(KeyError, match=msg):
             index.isin([], level=label)
 
-    @pytest.mark.parametrize("empty", [[], Series(), np.array([])])
+    @pytest.mark.parametrize("empty", [[], Series(dtype=object), np.array([])])
     def test_isin_empty(self, empty):
         # see gh-16991
         index = Index(["a", "b"])
@@ -2394,27 +2398,25 @@ Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
         with pytest.raises(AttributeError, match="Can't set attribute"):
             index.is_unique = False
 
-    def test_get_duplicates_deprecated(self):
-        index = pd.Index([1, 2, 3])
-        with tm.assert_produces_warning(FutureWarning):
-            index.get_duplicates()
-
-    def test_tab_complete_warning(self, ip):
+    @async_mark()
+    async def test_tab_complete_warning(self, ip):
         # https://github.com/pandas-dev/pandas/issues/16409
         pytest.importorskip("IPython", minversion="6.0.0")
         from IPython.core.completer import provisionalcompleter
 
         code = "import pandas as pd; idx = pd.Index([1, 2])"
-        ip.run_code(code)
+        await ip.run_code(code)
         with tm.assert_produces_warning(None):
             with provisionalcompleter("ignore"):
                 list(ip.Completer.completions("idx.", 4))
 
-    def test_deprecated_contains(self, indices):
-        # deprecated for all types except IntervalIndex
-        warning = FutureWarning if not isinstance(indices, pd.IntervalIndex) else None
-        with tm.assert_produces_warning(warning):
+    def test_contains_method_removed(self, indices):
+        # GH#30103 method removed for all types except IntervalIndex
+        if isinstance(indices, pd.IntervalIndex):
             indices.contains(1)
+        else:
+            with pytest.raises(AttributeError):
+                indices.contains(1)
 
 
 class TestMixedIntIndex(Base):

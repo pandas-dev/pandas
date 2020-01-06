@@ -3,7 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, Series
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_get():
@@ -150,7 +150,7 @@ def test_delitem():
     tm.assert_series_equal(s, expected)
 
     # empty
-    s = Series()
+    s = Series(dtype=object)
 
     with pytest.raises(KeyError, match=r"^0$"):
         del s[0]

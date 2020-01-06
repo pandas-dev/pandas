@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame, Float64Index, Index, Int64Index, RangeIndex, Series
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestFloatIndexers:
@@ -100,7 +100,12 @@ class TestFloatIndexers:
                         idxr(s)[3.0]
 
                 # label based can be a TypeError or KeyError
-                if s.index.inferred_type in ["string", "unicode", "mixed"]:
+                if s.index.inferred_type in {
+                    "categorical",
+                    "string",
+                    "unicode",
+                    "mixed",
+                }:
                     error = KeyError
                     msg = r"^3$"
                 else:
@@ -132,9 +137,8 @@ class TestFloatIndexers:
                 elif s.index.inferred_type in ["datetime64", "timedelta64", "period"]:
 
                     # these should prob work
-                    # and are inconsisten between series/dataframe ATM
-                    # for idxr in [lambda x: x.ix,
-                    #             lambda x: x]:
+                    # and are inconsistent between series/dataframe ATM
+                    # for idxr in [lambda x: x]:
                     #    s2 = s.copy()
                     #
                     #    with pytest.raises(TypeError):
