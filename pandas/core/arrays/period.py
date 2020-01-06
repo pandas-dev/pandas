@@ -84,11 +84,6 @@ def _period_array_cmp(cls, op):
             except ValueError:
                 # string that can't be parsed as Period
                 return invalid_comparison(self, other, op)
-        elif isinstance(other, int):
-            # TODO: sure we want to allow this?  we dont for DTA/TDA
-            #  2 tests rely on this
-            other = Period(other, freq=self.freq)
-            result = ordinal_op(other.ordinal)
 
         if isinstance(other, Period):
             self._check_compatible_with(other)
