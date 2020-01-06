@@ -73,10 +73,10 @@ def main(
     return is_failed
 
 
-def STC(source_path: str) -> Generator[Tuple[str, int, str], None, None]:
+def strings_to_concatenate(
+    source_path: str,
+) -> Generator[Tuple[str, int, str], None, None]:
     """
-    Strings To Concatenate.
-
     This test case is necessary after 'Black' (https://github.com/psf/black),
     is formating strings over multiple lines.
 
@@ -125,10 +125,10 @@ def STC(source_path: str) -> Generator[Tuple[str, int, str], None, None]:
             yield source_path, current_token[2][0], MSG
 
 
-def SWWPS(source_path: str) -> Generator[Tuple[str, int, str], None, None]:
+def strings_with_wrong_placed_space(
+    source_path: str,
+) -> Generator[Tuple[str, int, str], None, None]:
     """
-    Strings With Wrong Placed Space.
-
     Test case for leading spaces in concated strings.
 
     For example:
@@ -181,9 +181,9 @@ def SWWPS(source_path: str) -> Generator[Tuple[str, int, str], None, None]:
                 yield source_path, third_token[2][0], MSG
 
 
-def BPR(source_path: str) -> Generator[Tuple[str, int, str], None, None]:
+def bare_pytest_raises(source_path: str) -> Generator[Tuple[str, int, str], None, None]:
     """
-    Test Case for bare pytest raise.
+    Test Case for bare pytest raises.
 
     For example:
 
@@ -228,7 +228,11 @@ def BPR(source_path: str) -> Generator[Tuple[str, int, str], None, None]:
 
 
 if __name__ == "__main__":
-    FUNCTIONS_MAP = {"STC": STC, "SWWPS": SWWPS, "BPR": BPR}
+    FUNCTIONS_MAP = {
+        "STC": strings_to_concatenate,
+        "SWWPS": strings_with_wrong_placed_space,
+        "BPR": bare_pytest_raises,
+    }
 
     parser = argparse.ArgumentParser(description="Unwanted patterns checker.")
 
