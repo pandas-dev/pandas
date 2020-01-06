@@ -73,7 +73,6 @@ def _period_array_cmp(cls, op):
 
     @unpack_zerodim_and_defer(opname)
     def wrapper(self, other):
-        ordinal_op = getattr(self.asi8, opname)
 
         if isinstance(other, str):
             try:
@@ -81,11 +80,6 @@ def _period_array_cmp(cls, op):
             except ValueError:
                 # string that can't be parsed as Period
                 return invalid_comparison(self, other, op)
-        elif isinstance(other, int):
-            # TODO: sure we want to allow this?  we dont for DTA/TDA
-            #  2 tests rely on this
-            other = Period(other, freq=self.freq)
-            result = ordinal_op(other.ordinal)
 
         if isinstance(other, self._recognized_scalars) or other is NaT:
             other = self._scalar_type(other)
