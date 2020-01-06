@@ -186,16 +186,16 @@ class Holiday:
     def __repr__(self) -> str:
         info = ""
         if self.year is not None:
-            info += "year={year}, ".format(year=self.year)
-        info += "month={mon}, day={day}, ".format(mon=self.month, day=self.day)
+            info += f"year={self.year}, "
+        info += f"month={self.month}, day={self.day}, "
 
         if self.offset is not None:
-            info += "offset={offset}".format(offset=self.offset)
+            info += f"offset={self.offset}"
 
         if self.observance is not None:
-            info += "observance={obs}".format(obs=self.observance)
+            info += f"observance={self.observance}"
 
-        repr = "Holiday: {name} ({info})".format(name=self.name, info=info)
+        repr = f"Holiday: {self.name} ({info})"
         return repr
 
     def dates(self, start_date, end_date, return_name=False):
@@ -394,8 +394,7 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
         """
         if self.rules is None:
             raise Exception(
-                "Holiday Calendar {name} does not have any "
-                "rules specified".format(name=self.name)
+                f"Holiday Calendar {self.name} does not have any rules specified"
             )
 
         if start is None:
