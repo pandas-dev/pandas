@@ -104,7 +104,8 @@ class TestFancy(Base):
             idxr[nd3]
         else:
             with pytest.raises(ValueError, match=msg):
-                idxr[nd3]
+                with tm.assert_produces_warning(DeprecationWarning):
+                    idxr[nd3]
 
     @pytest.mark.parametrize(
         "index", tm.all_index_generator(5), ids=lambda x: type(x).__name__
@@ -134,8 +135,8 @@ class TestFancy(Base):
         msg = (
             r"Buffer has wrong number of dimensions \(expected 1,"
             r" got 3\)|"
-            "'pandas._libs.interval.IntervalTree' object has no attribute"
-            " 'set_value'|"  # AttributeError
+            "'pandas._libs.interval.IntervalTree' object has no attribute "
+            "'set_value'|"  # AttributeError
             "unhashable type: 'numpy.ndarray'|"  # TypeError
             "No matching signature found|"  # TypeError
             r"^\[\[\[|"  # pandas.core.indexing.IndexingError

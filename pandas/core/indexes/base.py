@@ -3938,8 +3938,9 @@ class Index(IndexOpsMixin, PandasObject):
                 #  cannot do that and keep an index, so return ndarray
                 # Deprecation GH#30588
                 warnings.warn(
-                    "Support for Index[:, None] is deprecated and will be "
-                    "removed in a future version.",
+                    "Support for multi-dimensional indexing (e.g. `index[:, None]` "
+                    "on an Index is deprecated and will be removed in a future "
+                    "version.  Convert to a numpy array before indexing instead.",
                     DeprecationWarning,
                     stacklevel=2,
                 )
