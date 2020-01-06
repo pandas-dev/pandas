@@ -16,6 +16,7 @@ import sys
 from textwrap import dedent
 from typing import (
     IO,
+    TYPE_CHECKING,
     Any,
     FrozenSet,
     Hashable,
@@ -126,6 +127,9 @@ from pandas.io.common import get_filepath_or_buffer
 from pandas.io.formats import console, format as fmt
 from pandas.io.formats.printing import pprint_thing
 import pandas.plotting
+
+if TYPE_CHECKING:
+    from pandas.io.formats.style import Styler
 
 # ---------------------------------------------------------------------
 # Docstring templates
@@ -818,7 +822,7 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
 
     @property
-    def style(self):
+    def style(self) -> "Styler":
         """
         Returns a Styler object.
 
@@ -893,10 +897,10 @@ class DataFrame(NDFrame):
                 yield k, self._ixs(i, axis=1)
 
     @Appender(_shared_docs["items"])
-    def iteritems(self):
+    def iteritems(self) -> Iterable[Tuple[Optional[Hashable], Series]]:
         yield from self.items()
 
-    def iterrows(self):
+    def iterrows(self) -> Iterable[Tuple[Optional[Hashable], Series]]:
         """
         Iterate over DataFrame rows as (index, Series) pairs.
 
@@ -1162,7 +1166,7 @@ class DataFrame(NDFrame):
     # IO methods (to / from other formats)
 
     @classmethod
-    def from_dict(cls, data, orient="columns", dtype=None, columns=None):
+    def from_dict(cls, data, orient="columns", dtype=None, columns=None) -> "DataFrame":
         """
         Construct DataFrame from dict of array-like or dicts.
 
@@ -1242,7 +1246,7 @@ class DataFrame(NDFrame):
 
         return cls(data, index=index, columns=columns, dtype=dtype)
 
-    def to_numpy(self, dtype=None, copy=False):
+    def to_numpy(self, dtype=None, copy=False) -> np.ndarray:
         """
         Convert the DataFrame to a NumPy array.
 
@@ -1446,7 +1450,7 @@ class DataFrame(NDFrame):
         location=None,
         progress_bar=True,
         credentials=None,
-    ):
+    ) -> None:
         """
         Write a DataFrame to a Google BigQuery table.
 
@@ -1551,7 +1555,7 @@ class DataFrame(NDFrame):
         columns=None,
         coerce_float=False,
         nrows=None,
-    ):
+    ) -> "DataFrame":
         """
         Convert structured or record ndarray to DataFrame.
 
@@ -1673,7 +1677,9 @@ class DataFrame(NDFrame):
 
         return cls(mgr)
 
-    def to_records(self, index=True, column_dtypes=None, index_dtypes=None):
+    def to_records(
+        self, index=True, column_dtypes=None, index_dtypes=None
+    ) -> np.recarray:
         """
         Convert DataFrame to a NumPy record array.
 
@@ -1838,7 +1844,7 @@ class DataFrame(NDFrame):
         return np.rec.fromarrays(arrays, dtype={"names": names, "formats": formats})
 
     @classmethod
-    def _from_arrays(cls, arrays, columns, index, dtype=None):
+    def _from_arrays(cls, arrays, columns, index, dtype=None) -> "DataFrame":
         mgr = arrays_to_mgr(arrays, columns, index, columns, dtype=dtype)
         return cls(mgr)
 
@@ -1962,7 +1968,7 @@ class DataFrame(NDFrame):
         writer.write_file()
 
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
-    def to_feather(self, path):
+    def to_feather(self, path) -> None:
         """
         Write out the binary feather-format for DataFrames.
 
@@ -2014,7 +2020,7 @@ class DataFrame(NDFrame):
         index=None,
         partition_cols=None,
         **kwargs,
-    ):
+    ) -> None:
         """
         Write a DataFrame to the binary parquet format.
 
@@ -2205,7 +2211,7 @@ class DataFrame(NDFrame):
 
     def info(
         self, verbose=None, buf=None, max_cols=None, memory_usage=None, null_counts=None
-    ):
+    ) -> None:
         """
         Print a concise summary of a DataFrame.
 
@@ -2480,7 +2486,7 @@ class DataFrame(NDFrame):
             lines.append(f"memory usage: {_sizeof_fmt(mem_usage, size_qualifier)}\n")
         fmt.buffer_put_lines(buf, lines)
 
-    def memory_usage(self, index=True, deep=False):
+    def memory_usage(self, index=True, deep=False) -> Series:
         """
         Return the memory usage of each column in bytes.
 
@@ -2574,7 +2580,7 @@ class DataFrame(NDFrame):
             )
         return result
 
-    def transpose(self, *args, copy: bool = False):
+    def transpose(self, *args, copy: bool = False) -> "DataFrame":
         """
         Transpose index and columns.
 
@@ -3324,7 +3330,7 @@ class DataFrame(NDFrame):
 
         return _eval(expr, inplace=inplace, **kwargs)
 
-    def select_dtypes(self, include=None, exclude=None):
+    def select_dtypes(self, include=None, exclude=None) -> "DataFrame":
         """
         Return a subset of the DataFrame's columns based on the column dtypes.
 
@@ -3454,7 +3460,7 @@ class DataFrame(NDFrame):
 
         return self.iloc[:, keep_these.values]
 
-    def insert(self, loc, column, value, allow_duplicates=False):
+    def insert(self, loc, column, value, allow_duplicates=False) -> None:
         """
         Insert column into DataFrame at specified location.
 
@@ -3474,7 +3480,7 @@ class DataFrame(NDFrame):
         value = self._sanitize_column(column, value, broadcast=False)
         self._data.insert(loc, column, value, allow_duplicates=allow_duplicates)
 
-    def assign(self, **kwargs):
+    def assign(self, **kwargs) -> "DataFrame":
         r"""
         Assign new columns to a DataFrame.
 
@@ -3657,7 +3663,7 @@ class DataFrame(NDFrame):
             for idx, item in enumerate(self.columns)
         }
 
-    def lookup(self, row_labels, col_labels):
+    def lookup(self, row_labels, col_labels) -> np.ndarray:
         """
         Label-based "fancy indexing" function for DataFrame.
 
@@ -3765,7 +3771,7 @@ class DataFrame(NDFrame):
             allow_dups=False,
         )
 
-    def _reindex_multi(self, axes, copy, fill_value):
+    def _reindex_multi(self, axes, copy, fill_value) -> "DataFrame":
         """
         We are guaranteed non-Nones in the axes.
         """
@@ -3799,7 +3805,7 @@ class DataFrame(NDFrame):
         limit=None,
         fill_axis=0,
         broadcast_axis=None,
-    ):
+    ) -> "DataFrame":
         return super().align(
             other,
             join=join,
@@ -3826,13 +3832,13 @@ class DataFrame(NDFrame):
             ("tolerance", None),
         ],
     )
-    def reindex(self, *args, **kwargs):
+    def reindex(self, *args, **kwargs) -> "DataFrame":
         axes = validate_axis_style_args(self, args, kwargs, "labels", "reindex")
         kwargs.update(axes)
         # Pop these, since the values are in `kwargs` under different names
         kwargs.pop("axis", None)
         kwargs.pop("labels", None)
-        return super().reindex(**kwargs)
+        return self._ensure_type(super().reindex(**kwargs))
 
     def drop(
         self,
@@ -4136,9 +4142,9 @@ class DataFrame(NDFrame):
         )
 
     @Appender(_shared_docs["shift"] % _shared_doc_kwargs)
-    def shift(self, periods=1, freq=None, axis=0, fill_value=None):
-        return super().shift(
-            periods=periods, freq=freq, axis=axis, fill_value=fill_value
+    def shift(self, periods=1, freq=None, axis=0, fill_value=None) -> "DataFrame":
+        return self._ensure_type(
+            super().shift(periods=periods, freq=freq, axis=axis, fill_value=fill_value)
         )
 
     def set_index(
@@ -4243,7 +4249,7 @@ class DataFrame(NDFrame):
             "one-dimensional arrays."
         )
 
-        missing = []
+        missing: List[Optional[Hashable]] = []
         for col in keys:
             if isinstance(
                 col, (ABCIndexClass, ABCSeries, np.ndarray, list, abc.Iterator)
@@ -4280,7 +4286,7 @@ class DataFrame(NDFrame):
             else:
                 arrays.append(self.index)
 
-        to_remove = []
+        to_remove: List[Optional[Hashable]] = []
         for col in keys:
             if isinstance(col, ABCMultiIndex):
                 for n in range(col.nlevels):
@@ -4576,19 +4582,19 @@ class DataFrame(NDFrame):
     # Reindex-based selection methods
 
     @Appender(_shared_docs["isna"] % _shared_doc_kwargs)
-    def isna(self):
+    def isna(self) -> "DataFrame":
         return super().isna()
 
     @Appender(_shared_docs["isna"] % _shared_doc_kwargs)
-    def isnull(self):
+    def isnull(self) -> "DataFrame":
         return super().isnull()
 
     @Appender(_shared_docs["notna"] % _shared_doc_kwargs)
-    def notna(self):
+    def notna(self) -> "DataFrame":
         return super().notna()
 
     @Appender(_shared_docs["notna"] % _shared_doc_kwargs)
-    def notnull(self):
+    def notnull(self) -> "DataFrame":
         return super().notnull()
 
     def dropna(self, axis=0, how="any", thresh=None, subset=None, inplace=False):
@@ -4978,7 +4984,7 @@ class DataFrame(NDFrame):
         else:
             return self._constructor(new_data).__finalize__(self)
 
-    def nlargest(self, n, columns, keep="first"):
+    def nlargest(self, n, columns, keep="first") -> "DataFrame":
         """
         Return the first `n` rows ordered by `columns` in descending order.
 
@@ -5087,7 +5093,7 @@ class DataFrame(NDFrame):
         """
         return algorithms.SelectNFrame(self, n=n, keep=keep, columns=columns).nlargest()
 
-    def nsmallest(self, n, columns, keep="first"):
+    def nsmallest(self, n, columns, keep="first") -> "DataFrame":
         """
         Return the first `n` rows ordered by `columns` in ascending order.
 
@@ -5188,7 +5194,7 @@ class DataFrame(NDFrame):
             self, n=n, keep=keep, columns=columns
         ).nsmallest()
 
-    def swaplevel(self, i=-2, j=-1, axis=0):
+    def swaplevel(self, i=-2, j=-1, axis=0) -> "DataFrame":
         """
         Swap levels i and j in a MultiIndex on a particular axis.
 
@@ -5210,7 +5216,7 @@ class DataFrame(NDFrame):
             result.columns = result.columns.swaplevel(i, j)
         return result
 
-    def reorder_levels(self, order, axis=0):
+    def reorder_levels(self, order, axis=0) -> "DataFrame":
         """
         Rearrange index levels using input order. May not drop or duplicate levels.
 
@@ -5224,7 +5230,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        type of caller (new object)
+        DataFrame
         """
         axis = self._get_axis_number(axis)
         if not isinstance(self._get_axis(axis), ABCMultiIndex):  # pragma: no cover
@@ -5298,7 +5304,9 @@ class DataFrame(NDFrame):
         out.columns = self.columns
         return out
 
-    def combine(self, other, func, fill_value=None, overwrite=True):
+    def combine(
+        self, other: "DataFrame", func, fill_value=None, overwrite=True
+    ) -> "DataFrame":
         """
         Perform column-wise combine with another DataFrame.
 
@@ -5465,7 +5473,7 @@ class DataFrame(NDFrame):
         # convert_objects just in case
         return self._constructor(result, index=new_index, columns=new_columns)
 
-    def combine_first(self, other):
+    def combine_first(self, other: "DataFrame") -> "DataFrame":
         """
         Update null elements with value in the same location in `other`.
 
@@ -5543,7 +5551,7 @@ class DataFrame(NDFrame):
 
     def update(
         self, other, join="left", overwrite=True, filter_func=None, errors="ignore"
-    ):
+    ) -> None:
         """
         Modify in place using non-NA values from another DataFrame.
 
@@ -6455,7 +6463,7 @@ Wild         185.0
         var_name=None,
         value_name="value",
         col_level=None,
-    ):
+    ) -> "DataFrame":
         from pandas.core.reshape.melt import melt
 
         return melt(
@@ -6470,7 +6478,7 @@ Wild         185.0
     # ----------------------------------------------------------------------
     # Time series-related
 
-    def diff(self, periods=1, axis=0):
+    def diff(self, periods=1, axis=0) -> "DataFrame":
         """
         First discrete difference of element.
 
@@ -6678,7 +6686,7 @@ Wild         185.0
     agg = aggregate
 
     @Appender(_shared_docs["transform"] % _shared_doc_kwargs)
-    def transform(self, func, axis=0, *args, **kwargs):
+    def transform(self, func, axis=0, *args, **kwargs) -> "DataFrame":
         axis = self._get_axis_number(axis)
         if axis == 1:
             return self.T.transform(func, *args, **kwargs).T
@@ -6833,7 +6841,7 @@ Wild         185.0
         )
         return op.get_result()
 
-    def applymap(self, func):
+    def applymap(self, func) -> "DataFrame":
         """
         Apply a function to a Dataframe elementwise.
 
@@ -6902,7 +6910,9 @@ Wild         185.0
     # ----------------------------------------------------------------------
     # Merging / joining methods
 
-    def append(self, other, ignore_index=False, verify_integrity=False, sort=False):
+    def append(
+        self, other, ignore_index=False, verify_integrity=False, sort=False
+    ) -> "DataFrame":
         """
         Append rows of `other` to the end of caller, returning a new object.
 
@@ -7029,7 +7039,7 @@ Wild         185.0
         from pandas.core.reshape.concat import concat
 
         if isinstance(other, (list, tuple)):
-            to_concat = [self] + other
+            to_concat = [self, *other]
         else:
             to_concat = [self, other]
         return concat(
@@ -7039,7 +7049,9 @@ Wild         185.0
             sort=sort,
         )
 
-    def join(self, other, on=None, how="left", lsuffix="", rsuffix="", sort=False):
+    def join(
+        self, other, on=None, how="left", lsuffix="", rsuffix="", sort=False
+    ) -> "DataFrame":
         """
         Join columns of another DataFrame.
 
@@ -7230,7 +7242,7 @@ Wild         185.0
         copy=True,
         indicator=False,
         validate=None,
-    ):
+    ) -> "DataFrame":
         from pandas.core.reshape.merge import merge
 
         return merge(
@@ -7249,7 +7261,7 @@ Wild         185.0
             validate=validate,
         )
 
-    def round(self, decimals=0, *args, **kwargs):
+    def round(self, decimals=0, *args, **kwargs) -> "DataFrame":
         """
         Round a DataFrame to a variable number of decimal places.
 
@@ -7363,7 +7375,7 @@ Wild         185.0
     # ----------------------------------------------------------------------
     # Statistical methods, etc.
 
-    def corr(self, method="pearson", min_periods=1):
+    def corr(self, method="pearson", min_periods=1) -> "DataFrame":
         """
         Compute pairwise correlation of columns, excluding NA/null values.
 
@@ -7451,7 +7463,7 @@ Wild         185.0
 
         return self._constructor(correl, index=idx, columns=cols)
 
-    def cov(self, min_periods=None):
+    def cov(self, min_periods=None) -> "DataFrame":
         """
         Compute pairwise covariance of columns, excluding NA/null values.
 
@@ -7561,7 +7573,7 @@ Wild         185.0
 
         return self._constructor(baseCov, index=idx, columns=cols)
 
-    def corrwith(self, other, axis=0, drop=False, method="pearson"):
+    def corrwith(self, other, axis=0, drop=False, method="pearson") -> Series:
         """
         Compute pairwise correlation.
 
@@ -7917,7 +7929,7 @@ Wild         185.0
             result = Series(result, index=labels)
         return result
 
-    def nunique(self, axis=0, dropna=True):
+    def nunique(self, axis=0, dropna=True) -> Series:
         """
         Count distinct observations over requested axis.
 
@@ -7957,7 +7969,7 @@ Wild         185.0
         """
         return self.apply(Series.nunique, axis=axis, dropna=dropna)
 
-    def idxmin(self, axis=0, skipna=True):
+    def idxmin(self, axis=0, skipna=True) -> Series:
         """
         Return index of first occurrence of minimum over requested axis.
 
@@ -7995,7 +8007,7 @@ Wild         185.0
         result = [index[i] if i >= 0 else np.nan for i in indices]
         return Series(result, index=self._get_agg_axis(axis))
 
-    def idxmax(self, axis=0, skipna=True):
+    def idxmax(self, axis=0, skipna=True) -> Series:
         """
         Return index of first occurrence of maximum over requested axis.
 
@@ -8044,7 +8056,7 @@ Wild         185.0
         else:
             raise ValueError(f"Axis must be 0 or 1 (got {repr(axis_num)})")
 
-    def mode(self, axis=0, numeric_only=False, dropna=True):
+    def mode(self, axis=0, numeric_only=False, dropna=True) -> "DataFrame":
         """
         Get the mode(s) of each element along the selected axis.
 
@@ -8227,7 +8239,7 @@ Wild         185.0
 
         return result
 
-    def to_timestamp(self, freq=None, how="start", axis=0, copy=True):
+    def to_timestamp(self, freq=None, how="start", axis=0, copy=True) -> "DataFrame":
         """
         Cast to DatetimeIndex of timestamps, at *beginning* of period.
 
@@ -8261,7 +8273,7 @@ Wild         185.0
 
         return self._constructor(new_data)
 
-    def to_period(self, freq=None, axis=0, copy=True):
+    def to_period(self, freq=None, axis=0, copy=True) -> "DataFrame":
         """
         Convert DataFrame from DatetimeIndex to PeriodIndex.
 
@@ -8295,7 +8307,7 @@ Wild         185.0
 
         return self._constructor(new_data)
 
-    def isin(self, values):
+    def isin(self, values) -> "DataFrame":
         """
         Whether each element in the DataFrame is contained in values.
 
@@ -8362,12 +8374,14 @@ Wild         185.0
             from pandas.core.reshape.concat import concat
 
             values = collections.defaultdict(list, values)
-            return concat(
-                (
-                    self.iloc[:, [i]].isin(values[col])
-                    for i, col in enumerate(self.columns)
-                ),
-                axis=1,
+            return self._ensure_type(
+                concat(
+                    (
+                        self.iloc[:, [i]].isin(values[col])
+                        for i, col in enumerate(self.columns)
+                    ),
+                    axis=1,
+                )
             )
         elif isinstance(values, Series):
             if not values.index.is_unique:
