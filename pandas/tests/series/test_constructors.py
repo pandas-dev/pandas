@@ -27,7 +27,7 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.arrays import period_array
+from pandas.core.arrays import IntervalArray, period_array
 
 
 class TestSeriesConstructors:
@@ -967,16 +967,34 @@ class TestSeriesConstructors:
         expected = Series(pd.Timestamp(arg)).dt.tz_localize("CET")
         tm.assert_series_equal(result, expected)
 
-    def test_construction_interval(self):
+    @pytest.mark.parametrize("interval_constructor", [IntervalIndex, IntervalArray])
+    def test_construction_interval(self, interval_constructor):
         # construction from interval & array of intervals
-        index = IntervalIndex.from_breaks(np.arange(3), closed="right")
-        result = Series(index)
-        repr(result)
-        str(result)
-        tm.assert_index_equal(Index(result.values), index)
+        intervals = interval_constructor.from_breaks(np.arange(3), closed="right")
+        result = Series(intervals)
+        assert result.dtype == "interval[int64]"
+        tm.assert_index_equal(Index(result.values), Index(intervals))
 
-        result = Series(index.values)
-        tm.assert_index_equal(Index(result.values), index)
+    @pytest.mark.parametrize(
+        "data_constructor", [list, np.array], ids=["list", "ndarray[object]"]
+    )
+    def test_constructor_infer_interval(self, data_constructor):
+        # GH 23563: consistent closed results in interval dtype
+        data = [pd.Interval(0, 1), pd.Interval(0, 2), None]
+        result = pd.Series(data_constructor(data))
+        expected = pd.Series(IntervalArray(data))
+        assert result.dtype == "interval[float64]"
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "data_constructor", [list, np.array], ids=["list", "ndarray[object]"]
+    )
+    def test_constructor_interval_mixed_closed(self, data_constructor):
+        # GH 23563: mixed closed results in object dtype (not interval dtype)
+        data = [pd.Interval(0, 1, closed="both"), pd.Interval(0, 2, closed="neither")]
+        result = Series(data_constructor(data))
+        assert result.dtype == object
+        assert result.tolist() == data
 
     def test_construction_consistency(self):
 
@@ -993,14 +1011,13 @@ class TestSeriesConstructors:
         result = Series(s.values, dtype=s.dtype)
         tm.assert_series_equal(result, s)
 
-    def test_constructor_infer_period(self):
+    @pytest.mark.parametrize(
+        "data_constructor", [list, np.array], ids=["list", "ndarray[object]"]
+    )
+    def test_constructor_infer_period(self, data_constructor):
         data = [pd.Period("2000", "D"), pd.Period("2001", "D"), None]
-        result = pd.Series(data)
+        result = pd.Series(data_constructor(data))
         expected = pd.Series(period_array(data))
-        tm.assert_series_equal(result, expected)
-        assert result.dtype == "Period[D]"
-
-        data = np.asarray(data, dtype=object)
         tm.assert_series_equal(result, expected)
         assert result.dtype == "Period[D]"
 
