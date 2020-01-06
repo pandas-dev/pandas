@@ -147,7 +147,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
 
     # ------------------------------------------------------------------------
 
-    def equals(self, other):
+    def equals(self, other) -> bool:
         """
         Determines if two Index objects contain the same elements.
         """
