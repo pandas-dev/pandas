@@ -8,9 +8,9 @@ from pandas.compat import PYPY
 
 import pandas as pd
 from pandas import DataFrame, Index, Series
+import pandas._testing as tm
 from pandas.core.accessor import PandasDelegate
 from pandas.core.base import NoNewAttributesMixin, PandasObject
-import pandas.util.testing as tm
 
 
 class TestPandasDelegate:

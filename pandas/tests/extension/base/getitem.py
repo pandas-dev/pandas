@@ -121,6 +121,45 @@ class BaseGetitemTests(BaseExtensionTests):
         assert len(result) == 1
         assert result.dtype == data.dtype
 
+    def test_getitem_mask_raises(self, data):
+        mask = np.array([True, False])
+        with pytest.raises(IndexError):
+            data[mask]
+
+        mask = pd.array(mask, dtype="boolean")
+        with pytest.raises(IndexError):
+            data[mask]
+
+    def test_getitem_boolean_array_mask(self, data):
+        mask = pd.array(np.zeros(data.shape, dtype="bool"), dtype="boolean")
+        result = data[mask]
+        assert len(result) == 0
+        assert isinstance(result, type(data))
+
+        result = pd.Series(data)[mask]
+        assert len(result) == 0
+        assert result.dtype == data.dtype
+
+        mask[:5] = True
+        expected = data.take([0, 1, 2, 3, 4])
+        result = data[mask]
+        self.assert_extension_array_equal(result, expected)
+
+        expected = pd.Series(expected)
+        result = pd.Series(data)[mask]
+        self.assert_series_equal(result, expected)
+
+    def test_getitem_boolean_array_mask_raises(self, data):
+        mask = pd.array(np.zeros(data.shape, dtype="bool"), dtype="boolean")
+        mask[:2] = pd.NA
+        with pytest.raises(ValueError):
+            data[mask]
+
+        s = pd.Series(data)
+
+        with pytest.raises(ValueError):
+            s[mask]
+
     def test_getitem_slice(self, data):
         # getitem[slice] should return an array
         result = data[slice(0)]  # empty

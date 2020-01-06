@@ -9,12 +9,12 @@ import pytest
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame, Index, NaT, Series, isna
+import pandas._testing as tm
 from pandas.core.indexes.datetimes import bdate_range, date_range
 from pandas.core.indexes.period import Period, PeriodIndex, period_range
 from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.core.resample import DatetimeIndex
 from pandas.tests.plotting.common import TestPlotBase
-import pandas.util.testing as tm
 
 from pandas.tseries.offsets import DateOffset
 

@@ -49,6 +49,7 @@ from pandas.core.algorithms import _get_data_algo, factorize, take, take_1d, uni
 from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array, sanitize_array
+from pandas.core.indexers import check_bool_array_indexer
 from pandas.core.missing import interpolate_2d
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.sorting import nargsort
@@ -232,7 +233,7 @@ class Categorical(ExtensionArray, PandasObject):
         `categories` attribute (which in turn is the `categories` argument, if
         provided).
     dtype : CategoricalDtype
-        An instance of ``CategoricalDtype`` to use for this categorical
+        An instance of ``CategoricalDtype`` to use for this categorical.
 
         .. versionadded:: 0.21.0
 
@@ -272,7 +273,7 @@ class Categorical(ExtensionArray, PandasObject):
     Notes
     -----
     See the `user guide
-    <http://pandas.pydata.org/pandas-docs/stable/user_guide/categorical.html>`_
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/categorical.html>`_
     for more.
 
     Examples
@@ -302,7 +303,7 @@ class Categorical(ExtensionArray, PandasObject):
     __array_priority__ = 1000
     _dtype = CategoricalDtype(ordered=False)
     # tolist is not actually deprecated, just suppressed in the __dir__
-    _deprecations = PandasObject._deprecations | frozenset(["tolist", "itemsize"])
+    _deprecations = PandasObject._deprecations | frozenset(["tolist"])
     _typ = "categorical"
 
     def __init__(
@@ -1873,7 +1874,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
         return iter(self._internal_get_values().tolist())
 
-    def __contains__(self, key):
+    def __contains__(self, key) -> bool:
         """
         Returns True if `key` is in this Categorical.
         """
@@ -1883,7 +1884,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         return contains(self, key, container=self._codes)
 
-    def _tidy_repr(self, max_vals=10, footer=True):
+    def _tidy_repr(self, max_vals=10, footer=True) -> str:
         """ a short repr displaying only max_vals and an optional (but default
         footer)
         """
@@ -1920,7 +1921,7 @@ class Categorical(ExtensionArray, PandasObject):
         category_strs = [x.strip() for x in category_strs]
         return category_strs
 
-    def _repr_categories_info(self):
+    def _repr_categories_info(self) -> str:
         """
         Returns a string representation of the footer.
         """
@@ -1950,11 +1951,11 @@ class Categorical(ExtensionArray, PandasObject):
         # replace to simple save space by
         return levheader + "[" + levstring.replace(" < ... < ", " ... ") + "]"
 
-    def _repr_footer(self):
+    def _repr_footer(self) -> str:
         info = self._repr_categories_info()
         return f"Length: {len(self)}\n{info}"
 
-    def _get_repr(self, length=True, na_rep="NaN", footer=True):
+    def _get_repr(self, length=True, na_rep="NaN", footer=True) -> str:
         from pandas.io.formats import format as fmt
 
         formatter = fmt.CategoricalFormatter(
@@ -1996,10 +1997,13 @@ class Categorical(ExtensionArray, PandasObject):
                 return np.nan
             else:
                 return self.categories[i]
-        else:
-            return self._constructor(
-                values=self._codes[key], dtype=self.dtype, fastpath=True
-            )
+
+        elif com.is_bool_indexer(key):
+            key = check_bool_array_indexer(self, key)
+
+        return self._constructor(
+            values=self._codes[key], dtype=self.dtype, fastpath=True
+        )
 
     def __setitem__(self, key, value):
         """

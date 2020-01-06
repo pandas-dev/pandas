@@ -38,7 +38,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import nanops
+from pandas.core import nanops, ops
 from pandas.core.algorithms import checked_add_with_arr
 import pandas.core.common as com
 from pandas.core.ops.common import unpack_zerodim_and_defer
@@ -82,14 +82,20 @@ def _td_array_cmp(cls, op):
     @unpack_zerodim_and_defer(opname)
     def wrapper(self, other):
 
-        if _is_convertible_to_td(other) or other is NaT:
+        if isinstance(other, str):
             try:
-                other = Timedelta(other)
+                other = self._scalar_from_string(other)
             except ValueError:
                 # failed to parse as timedelta
                 return invalid_comparison(self, other, op)
 
-            result = op(self.view("i8"), other.value)
+        if isinstance(other, self._recognized_scalars) or other is NaT:
+            other = self._scalar_type(other)
+            self._check_compatible_with(other)
+
+            other_i8 = self._unbox_scalar(other)
+
+            result = op(self.view("i8"), other_i8)
             if isna(other):
                 result.fill(nat_result)
 
@@ -100,15 +106,31 @@ def _td_array_cmp(cls, op):
             raise ValueError("Lengths must match")
 
         else:
-            try:
-                other = type(self)._from_sequence(other)._data
-            except (ValueError, TypeError):
+            if isinstance(other, list):
+                other = np.array(other)
+
+            if not isinstance(other, (np.ndarray, cls)):
                 return invalid_comparison(self, other, op)
 
-            result = op(self.view("i8"), other.view("i8"))
-            result = com.values_from_object(result)
+            if is_object_dtype(other):
+                with np.errstate(all="ignore"):
+                    result = ops.comp_method_OBJECT_ARRAY(
+                        op, self.astype(object), other
+                    )
+                o_mask = isna(other)
 
-            o_mask = np.array(isna(other))
+            elif not cls._is_recognized_dtype(other.dtype):
+                # e.g. other is datetimearray
+                return invalid_comparison(self, other, op)
+
+            else:
+                other = type(self)._from_sequence(other)
+
+                self._check_compatible_with(other)
+
+                result = op(self.view("i8"), other.view("i8"))
+                o_mask = other._isnan
+
             if o_mask.any():
                 result[o_mask] = nat_result
 
@@ -155,6 +177,9 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
     _typ = "timedeltaarray"
     _scalar_type = Timedelta
+    _recognized_scalars = (timedelta, np.timedelta64, Tick)
+    _is_recognized_dtype = is_timedelta64_dtype
+
     __array_priority__ = 1000
     # define my properties & methods for delegation
     _other_ops: List[str] = []
@@ -445,7 +470,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
         return _get_format_timedelta64(self, box=True)
 
-    def _format_native_types(self, na_rep="NaT", date_format=None):
+    def _format_native_types(self, na_rep="NaT", date_format=None, **kwargs):
         from pandas.io.formats.format import _get_format_timedelta64
 
         formatter = _get_format_timedelta64(self._data, na_rep)
