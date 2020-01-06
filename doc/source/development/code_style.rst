@@ -3,7 +3,7 @@
 {{ header }}
 
 =======================
-pandas code style guide
+Pandas code style guide
 =======================
 
 .. contents:: Table of contents:
