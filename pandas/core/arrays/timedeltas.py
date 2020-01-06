@@ -89,10 +89,13 @@ def _td_array_cmp(cls, op):
                 # failed to parse as timedelta
                 return invalid_comparison(self, other, op)
 
-        if _is_convertible_to_td(other) or other is NaT:
-            other = Timedelta(other)
+        if isinstance(other, self._recognized_scalars) or other is NaT:
+            other = self._scalar_type(other)
+            self._check_compatible_with(other)
 
-            result = op(self.view("i8"), other.value)
+            other_i8 = self._unbox_scalar(other)
+
+            result = op(self.view("i8"), other_i8)
             if isna(other):
                 result.fill(nat_result)
 
@@ -116,12 +119,14 @@ def _td_array_cmp(cls, op):
                     )
                 o_mask = isna(other)
 
-            elif not is_timedelta64_dtype(other):
+            elif not cls._is_recognized_dtype(other.dtype):
                 # e.g. other is datetimearray
                 return invalid_comparison(self, other, op)
 
             else:
                 other = type(self)._from_sequence(other)
+
+                self._check_compatible_with(other)
 
                 result = op(self.view("i8"), other.view("i8"))
                 o_mask = other._isnan
@@ -172,6 +177,9 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
     _typ = "timedeltaarray"
     _scalar_type = Timedelta
+    _recognized_scalars = (timedelta, np.timedelta64, Tick)
+    _is_recognized_dtype = is_timedelta64_dtype
+
     __array_priority__ = 1000
     # define my properties & methods for delegation
     _other_ops: List[str] = []
