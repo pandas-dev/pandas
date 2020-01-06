@@ -21,9 +21,10 @@ if TYPE_CHECKING:
     from pandas.core.arrays.base import ExtensionArray  # noqa: F401
     from pandas.core.dtypes.dtypes import ExtensionDtype  # noqa: F401
     from pandas.core.indexes.base import Index  # noqa: F401
-    from pandas.core.series import Series  # noqa: F401
     from pandas.core.generic import NDFrame  # noqa: F401
     from pandas import Interval  # noqa: F401
+    from pandas.core.series import Series  # noqa: F401
+    from pandas.core.frame import DataFrame  # noqa: F401
 
 # array-like
 
@@ -41,7 +42,19 @@ Scalar = Union[PythonScalar, PandasScalar]
 
 Dtype = Union[str, np.dtype, "ExtensionDtype"]
 FilePathOrBuffer = Union[str, Path, IO[AnyStr]]
+
+# FrameOrSeriesUnion  means either a DataFrame or a Series. E.g.
+# `def func(a: FrameOrSeriesUnion) -> FrameOrSeriesUnion: ...` means that if a Series
+# is passed in, either a Series or DataFrame is returned, and if a DataFrame is passed
+# in, either a DataFrame or a Series is returned.
+FrameOrSeriesUnion = Union["DataFrame", "Series"]
+
+# FrameOrSeries is stricter and ensures that the same subclass of NDFrame always is
+# used. E.g. `def func(a: FrameOrSeries) -> FrameOrSeries: ...` means that if a
+# Series is passed into a function, a Series is always returned and if a DataFrame is
+# passed in, a DataFrame is always returned.
 FrameOrSeries = TypeVar("FrameOrSeries", bound="NDFrame")
+
 Axis = Union[str, int]
 Ordered = Optional[bool]
 JSONSerializable = Union[PythonScalar, List, Dict]

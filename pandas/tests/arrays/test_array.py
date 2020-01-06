@@ -113,7 +113,7 @@ from pandas.tests.extension.decimal import DecimalArray, DecimalDtype, to_decima
             pd.arrays.IntervalArray.from_tuples([(1, 2), (3, 4)]),
         ),
         # Sparse
-        ([0, 1], "Sparse[int64]", pd.SparseArray([0, 1], dtype="int64")),
+        ([0, 1], "Sparse[int64]", pd.arrays.SparseArray([0, 1], dtype="int64")),
         # IntegerNA
         ([1, None], "Int16", integer_array([1, None], dtype="Int16")),
         (pd.Series([1, 2]), None, PandasArray(np.array([1, 2], dtype=np.int64))),
