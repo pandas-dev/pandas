@@ -6623,8 +6623,6 @@ Wild         185.0
         axis = self._get_axis_number(axis)
 
         relabeling, func, columns, order = reconstruct_func(func, *args, **kwargs)
-        if relabeling:
-            kwargs = {}
 
         result = None
         try:
@@ -6639,18 +6637,15 @@ Wild         185.0
                 pair[0] for pair in sorted(zip(columns, order), key=lambda t: t[1])
             ]
 
-            # when there are more than one column being used in aggregate, the order
-            # of result will be reversed, and in case the func is not used by other
-            # columns, there might be NaN values, so separate these two cases
+            # This is to keep the order to columns occurrence unchanged, and also
+            # keep the order of new columns occurrence unchanged
             reordered_result = DataFrame(index=columns)
             idx = 0
-            for col, funcs in func.items():
-                v = reordered_indexes[idx : idx + len(funcs)]
-                if len(func) > 1:
-                    reordered_result.loc[v, col] = result[col][::-1].dropna().values
-                else:
-                    reordered_result.loc[v, col] = result[col].values
-                idx = idx + len(funcs)
+            for col, fun in func.items():
+                s = result[col]
+                s.index = reordered_indexes[idx : idx + len(fun)]
+                reordered_result[col] = s.reindex(columns)
+                idx = idx + len(fun)
             result = reordered_result
         return result
 

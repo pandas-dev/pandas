@@ -3632,7 +3632,6 @@ Name: Max Speed, dtype: float64
 
         if func is None:
             func = dict(kwargs.items())
-            kwargs = {}
 
         result, how = self._aggregate(func, *args, **kwargs)
         if result is None:
