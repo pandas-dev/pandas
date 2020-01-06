@@ -251,7 +251,9 @@ def pandas_validate(func_name: str):
         examples_source_code = "".join(doc.examples_source_code)
         for wrong_import in ("numpy", "pandas"):
             if "import {}".format(wrong_import) in examples_source_code:
-                result["errors"].append(error("EX04", imported_library=wrong_import))
+                result["errors"].append(
+                    pandas_error("EX04", imported_library=wrong_import)
+                )
 
     return result
 
@@ -330,7 +332,8 @@ def print_validate_all_results(
             if errors and err_code not in errors:
                 continue
             sys.stdout.write(
-                f'{prefix}{res["file"]}:{res["file_line"]}:{err_code}:{name}:{err_desc}\n'
+                f'{prefix}{res["file"]}:{res["file_line"]}:'
+                f"{err_code}:{name}:{err_desc}\n"
             )
             exit_status += 1
 
