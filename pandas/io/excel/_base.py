@@ -6,6 +6,7 @@ from textwrap import fill
 
 from pandas._config import config
 
+from pandas._libs.parsers import STR_NA_VALUES
 from pandas.errors import EmptyDataError
 from pandas.util._decorators import Appender
 
@@ -14,12 +15,11 @@ from pandas.core.dtypes.common import is_bool, is_float, is_integer, is_list_lik
 from pandas.core.frame import DataFrame
 
 from pandas.io.common import (
-    _NA_VALUES,
-    _is_url,
-    _stringify_path,
-    _validate_header_arg,
     get_filepath_or_buffer,
+    is_url,
+    stringify_path,
     urlopen,
+    validate_header_arg,
 )
 from pandas.io.excel._util import (
     _fill_mi_header,
@@ -40,7 +40,7 @@ Support an option to read a single sheet or a list of sheets.
 
 Parameters
 ----------
-io : str, ExcelFile, xlrd.Book, path object or file-like object
+io : str, bytes, ExcelFile, xlrd.Book, path object, or file-like object
     Any valid string path is acceptable. The string could be a URL. Valid
     URL schemes include http, ftp, s3, and file. For file URLs, a host is
     expected. A local file could be: ``file://localhost/path/to/table.xlsx``.
@@ -124,7 +124,7 @@ na_values : scalar, str, list-like, or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values. By default the following values are interpreted
     as NaN: '"""
-    + fill("', '".join(sorted(_NA_VALUES)), 70, subsequent_indent="    ")
+    + fill("', '".join(sorted(STR_NA_VALUES)), 70, subsequent_indent="    ")
     + """'.
 keep_default_na : bool, default True
     Whether or not to include the default NaN values when parsing the data.
@@ -297,9 +297,7 @@ def read_excel(
 
     for arg in ("sheet", "sheetname", "parse_cols"):
         if arg in kwds:
-            raise TypeError(
-                "read_excel() got an unexpected keyword argument `{}`".format(arg)
-            )
+            raise TypeError(f"read_excel() got an unexpected keyword argument `{arg}`")
 
     if not isinstance(io, ExcelFile):
         io = ExcelFile(io, engine=engine)
@@ -339,7 +337,7 @@ def read_excel(
 class _BaseExcelReader(metaclass=abc.ABCMeta):
     def __init__(self, filepath_or_buffer):
         # If filepath_or_buffer is a url, load the data into a BytesIO
-        if _is_url(filepath_or_buffer):
+        if is_url(filepath_or_buffer):
             filepath_or_buffer = BytesIO(urlopen(filepath_or_buffer).read())
         elif not isinstance(filepath_or_buffer, (ExcelFile, self._workbook_class)):
             filepath_or_buffer, _, _, _ = get_filepath_or_buffer(filepath_or_buffer)
@@ -352,6 +350,8 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
             self.book = self.load_workbook(filepath_or_buffer)
         elif isinstance(filepath_or_buffer, str):
             self.book = self.load_workbook(filepath_or_buffer)
+        elif isinstance(filepath_or_buffer, bytes):
+            self.book = self.load_workbook(BytesIO(filepath_or_buffer))
         else:
             raise ValueError(
                 "Must explicitly set engine if not passing in buffer or path for io."
@@ -408,7 +408,7 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
         **kwds,
     ):
 
-        _validate_header_arg(header)
+        validate_header_arg(header)
 
         ret_dict = False
 
@@ -429,7 +429,7 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
 
         for asheetname in sheets:
             if verbose:
-                print("Reading sheet {sheet}".format(sheet=asheetname))
+                print(f"Reading sheet {asheetname}")
 
             if isinstance(asheetname, str):
                 sheet = self.get_sheet_by_name(asheetname)
@@ -528,8 +528,10 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
 
 class ExcelWriter(metaclass=abc.ABCMeta):
     """
-    Class for writing DataFrame objects into excel sheets, default is to use
-    xlwt for xls, openpyxl for xlsx.  See DataFrame.to_excel for typical usage.
+    Class for writing DataFrame objects into excel sheets.
+
+    Default is to use xlwt for xls, openpyxl for xlsx.
+    See DataFrame.to_excel for typical usage.
 
     Parameters
     ----------
@@ -543,7 +545,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         Format string for dates written into Excel files (e.g. 'YYYY-MM-DD').
     datetime_format : str, default None
         Format string for datetime objects written into Excel files.
-        (e.g. 'YYYY-MM-DD HH:MM:SS')
+        (e.g. 'YYYY-MM-DD HH:MM:SS').
     mode : {'w', 'a'}, default 'w'
         File mode to use (write or append).
 
@@ -622,11 +624,11 @@ class ExcelWriter(metaclass=abc.ABCMeta):
                     ext = "xlsx"
 
                 try:
-                    engine = config.get_option("io.excel.{ext}.writer".format(ext=ext))
+                    engine = config.get_option(f"io.excel.{ext}.writer")
                     if engine == "auto":
                         engine = _get_default_writer(ext)
                 except KeyError:
-                    raise ValueError("No engine for filetype: '{ext}'".format(ext=ext))
+                    raise ValueError(f"No engine for filetype: '{ext}'")
             cls = get_writer(engine)
 
         return object.__new__(cls)
@@ -708,7 +710,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         self.mode = mode
 
     def __fspath__(self):
-        return _stringify_path(self.path)
+        return stringify_path(self.path)
 
     def _get_sheet_name(self, sheet_name):
         if sheet_name is None:
@@ -757,9 +759,8 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         if ext.startswith("."):
             ext = ext[1:]
         if not any(ext in extension for extension in cls.supported_extensions):
-            msg = "Invalid extension for engine '{engine}': '{ext}'".format(
-                engine=pprint_thing(cls.engine), ext=pprint_thing(ext)
-            )
+            msg = "Invalid extension for engine"
+            f"'{pprint_thing(cls.engine)}': '{pprint_thing(ext)}'"
             raise ValueError(msg)
         else:
             return True
@@ -802,13 +803,13 @@ class ExcelFile:
         if engine is None:
             engine = "xlrd"
         if engine not in self._engines:
-            raise ValueError("Unknown engine: {engine}".format(engine=engine))
+            raise ValueError(f"Unknown engine: {engine}")
 
         self.engine = engine
         # could be a str, ExcelFile, Book, etc.
         self.io = io
         # Always a string
-        self._io = _stringify_path(io)
+        self._io = stringify_path(io)
 
         self._reader = self._engines[engine](self._io)
 

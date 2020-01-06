@@ -20,9 +20,9 @@ import pytest
 
 import pandas as pd
 from pandas import Categorical, CategoricalIndex, Timestamp
+import pandas._testing as tm
 from pandas.api.types import CategoricalDtype
 from pandas.tests.extension import base
-import pandas.util.testing as tm
 
 
 def make_data():

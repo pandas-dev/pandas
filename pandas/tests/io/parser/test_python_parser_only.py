@@ -13,7 +13,7 @@ import pytest
 from pandas.errors import ParserError
 
 from pandas import DataFrame, Index, MultiIndex
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_default_separator(python_parser_only):

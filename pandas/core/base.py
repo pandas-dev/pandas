@@ -2,13 +2,13 @@
 Base and utility classes for pandas objects.
 """
 import builtins
-from collections import OrderedDict
 import textwrap
 from typing import Dict, FrozenSet, List, Optional
 
 import numpy as np
 
 import pandas._libs.lib as lib
+from pandas._typing import T
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -20,6 +20,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64_ns_dtype,
     is_datetime64tz_dtype,
+    is_dict_like,
     is_extension_array_dtype,
     is_list_like,
     is_object_dtype,
@@ -87,6 +88,14 @@ class PandasObject(DirNamesMixin):
         # object's 'sizeof'
         return super().__sizeof__()
 
+    def _ensure_type(self: T, obj) -> T:
+        """Ensure that an object has same type as self.
+
+        Used by type checkers.
+        """
+        assert isinstance(obj, type(self)), type(obj)
+        return obj
+
 
 class NoNewAttributesMixin:
     """Mixin which prevents adding new attributes.
@@ -141,39 +150,35 @@ class SelectionMixin:
     _internal_names = ["_cache", "__setstate__"]
     _internal_names_set = set(_internal_names)
 
-    _builtin_table = OrderedDict(
-        ((builtins.sum, np.sum), (builtins.max, np.max), (builtins.min, np.min))
-    )
+    _builtin_table = {builtins.sum: np.sum, builtins.max: np.max, builtins.min: np.min}
 
-    _cython_table = OrderedDict(
-        (
-            (builtins.sum, "sum"),
-            (builtins.max, "max"),
-            (builtins.min, "min"),
-            (np.all, "all"),
-            (np.any, "any"),
-            (np.sum, "sum"),
-            (np.nansum, "sum"),
-            (np.mean, "mean"),
-            (np.nanmean, "mean"),
-            (np.prod, "prod"),
-            (np.nanprod, "prod"),
-            (np.std, "std"),
-            (np.nanstd, "std"),
-            (np.var, "var"),
-            (np.nanvar, "var"),
-            (np.median, "median"),
-            (np.nanmedian, "median"),
-            (np.max, "max"),
-            (np.nanmax, "max"),
-            (np.min, "min"),
-            (np.nanmin, "min"),
-            (np.cumprod, "cumprod"),
-            (np.nancumprod, "cumprod"),
-            (np.cumsum, "cumsum"),
-            (np.nancumsum, "cumsum"),
-        )
-    )
+    _cython_table = {
+        builtins.sum: "sum",
+        builtins.max: "max",
+        builtins.min: "min",
+        np.all: "all",
+        np.any: "any",
+        np.sum: "sum",
+        np.nansum: "sum",
+        np.mean: "mean",
+        np.nanmean: "mean",
+        np.prod: "prod",
+        np.nanprod: "prod",
+        np.std: "std",
+        np.nanstd: "std",
+        np.var: "var",
+        np.nanvar: "var",
+        np.median: "median",
+        np.nanmedian: "median",
+        np.max: "max",
+        np.nanmax: "max",
+        np.min: "min",
+        np.nanmin: "min",
+        np.cumprod: "cumprod",
+        np.nancumprod: "cumprod",
+        np.cumsum: "cumsum",
+        np.nancumsum: "cumsum",
+    }
 
     @property
     def _selection_name(self):
@@ -328,7 +333,7 @@ class SelectionMixin:
             # eg. {'A' : ['mean']}, normalize all to
             # be list-likes
             if any(is_aggregator(x) for x in arg.values()):
-                new_arg = OrderedDict()
+                new_arg = {}
                 for k, v in arg.items():
                     if not isinstance(v, (tuple, list, dict)):
                         new_arg[k] = [v]
@@ -386,16 +391,16 @@ class SelectionMixin:
             def _agg(arg, func):
                 """
                 run the aggregations over the arg with func
-                return an OrderedDict
+                return a dict
                 """
-                result = OrderedDict()
+                result = {}
                 for fname, agg_how in arg.items():
                     result[fname] = func(fname, agg_how)
                 return result
 
             # set the final keys
             keys = list(arg.keys())
-            result = OrderedDict()
+            result = {}
 
             if self._selection is not None:
 
@@ -602,7 +607,7 @@ class IndexOpsMixin:
     # ndarray compatibility
     __array_priority__ = 1000
     _deprecations: FrozenSet[str] = frozenset(
-        ["tolist", "item"]  # tolist is not deprecated, just suppressed in the __dir__
+        ["tolist"]  # tolist is not deprecated, just suppressed in the __dir__
     )
 
     def transpose(self, *args, **kwargs):
@@ -622,24 +627,6 @@ class IndexOpsMixin:
         Return the transpose, which is by definition self.
         """,
     )
-
-    @property
-    def _is_homogeneous_type(self) -> bool:
-        """
-        Whether the object has a single dtype.
-
-        By definition, Series and Index are always considered homogeneous.
-        A MultiIndex may or may not be homogeneous, depending on the
-        dtypes of the levels.
-
-        See Also
-        --------
-        DataFrame._is_homogeneous_type : Whether all the columns in a
-            DataFrame have the same dtype.
-        MultiIndex._is_homogeneous_type : Whether all the levels of a
-            MultiIndex have the same dtype.
-        """
-        return True
 
     @property
     def shape(self):
@@ -1112,8 +1099,8 @@ class IndexOpsMixin:
         # we can fastpath dict/Series to an efficient map
         # as we know that we are not going to have to yield
         # python types
-        if isinstance(mapper, dict):
-            if hasattr(mapper, "__missing__"):
+        if is_dict_like(mapper):
+            if isinstance(mapper, dict) and hasattr(mapper, "__missing__"):
                 # If a dictionary subclass defines a default value method,
                 # convert mapper to a lookup function (GH #15999).
                 dict_with_default = mapper

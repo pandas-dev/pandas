@@ -32,12 +32,13 @@ import numpy as np
 import pytest
 
 from pandas.compat import is_platform_32bit, is_platform_windows
+from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import _np_version
 
 from pandas.core.computation.expressions import _NUMEXPR_INSTALLED, _USE_NUMEXPR
 
 
-def safe_import(mod_name, min_version=None):
+def safe_import(mod_name: str, min_version: Optional[str] = None):
     """
     Parameters:
     -----------
@@ -110,7 +111,7 @@ def _skip_if_not_us_locale():
         return True
 
 
-def _skip_if_no_scipy():
+def _skip_if_no_scipy() -> bool:
     return not (
         safe_import("scipy.stats")
         and safe_import("scipy.sparse")
@@ -191,11 +192,13 @@ skip_if_no_scipy = pytest.mark.skipif(
 )
 skip_if_no_ne = pytest.mark.skipif(
     not _USE_NUMEXPR,
-    reason=f"numexpr enabled->{_USE_NUMEXPR}, " f"installed->{_NUMEXPR_INSTALLED}",
+    reason=f"numexpr enabled->{_USE_NUMEXPR}, installed->{_NUMEXPR_INSTALLED}",
 )
 
 
-def skip_if_np_lt(ver_str, reason=None, *args, **kwds):
+def skip_if_np_lt(
+    ver_str: str, reason: Optional[str] = None, *args, **kwds
+) -> Callable:
     if reason is None:
         reason = f"NumPy {ver_str} or greater required"
     return pytest.mark.skipif(
@@ -211,14 +214,14 @@ def parametrize_fixture_doc(*args):
     initial fixture docstring by replacing placeholders {0}, {1} etc
     with parameters passed as arguments.
 
-    Parameters:
+    Parameters
     ----------
-        args: iterable
-            Positional arguments for docstring.
+    args: iterable
+        Positional arguments for docstring.
 
-    Returns:
+    Returns
     -------
-    documented_fixture: function
+    function
         The decorated function wrapped within a pytest
         ``parametrize_fixture_doc`` mark
     """
@@ -230,7 +233,7 @@ def parametrize_fixture_doc(*args):
     return documented_fixture
 
 
-def check_file_leaks(func):
+def check_file_leaks(func) -> Callable:
     """
     Decorate a test function tot check that we are not leaking file descriptors.
     """
@@ -249,3 +252,13 @@ def check_file_leaks(func):
         assert flist2 == flist
 
     return new_func
+
+
+def async_mark():
+    try:
+        import_optional_dependency("pytest_asyncio")
+        async_mark = pytest.mark.asyncio
+    except ImportError:
+        async_mark = pytest.mark.skip(reason="Missing dependency pytest-asyncio")
+
+    return async_mark

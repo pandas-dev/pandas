@@ -403,7 +403,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         --------
         >>> import scipy.sparse
         >>> mat = scipy.sparse.coo_matrix((4, 1))
-        >>> pd.SparseArray.from_spmatrix(mat)
+        >>> pd.arrays.SparseArray.from_spmatrix(mat)
         [0.0, 0.0, 0.0, 0.0]
         Fill: 0.0
         IntIndex
@@ -738,6 +738,9 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     # --------
 
     def __getitem__(self, key):
+        # avoid mypy issues when importing at the top-level
+        from pandas.core.indexing import check_bool_indexer
+
         if isinstance(key, tuple):
             if len(key) > 1:
                 raise IndexError("too many indices for array.")
@@ -766,7 +769,9 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                 else:
                     key = np.asarray(key)
 
-            if com.is_bool_indexer(key) and len(self) == len(key):
+            if com.is_bool_indexer(key):
+                key = check_bool_indexer(self, key)
+
                 return self.take(np.arange(len(key), dtype=np.int32)[key])
             elif hasattr(key, "__len__"):
                 return self.take(key)
@@ -1074,7 +1079,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         Examples
         --------
-        >>> arr = pd.SparseArray([0, 1, 2])
+        >>> arr = pd.arrays.SparseArray([0, 1, 2])
         >>> arr.apply(lambda x: x + 10)
         [10, 11, 12]
         Fill: 10

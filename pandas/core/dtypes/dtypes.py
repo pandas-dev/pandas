@@ -7,10 +7,9 @@ import pytz
 
 from pandas._libs.interval import Interval
 from pandas._libs.tslibs import NaT, Period, Timestamp, timezones
+from pandas._typing import Ordered
 
 from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCDateOffset, ABCIndexClass
-
-from pandas._typing import Ordered
 
 from .base import ExtensionDtype
 from .inference import is_bool, is_list_like
@@ -883,7 +882,11 @@ class PeriodDtype(PandasExtensionDtype):
                 return cls(freq=string)
             except ValueError:
                 pass
-        raise TypeError(f"Cannot construct a 'PeriodDtype' from '{string}'")
+        if isinstance(string, str):
+            msg = f"Cannot construct a 'PeriodDtype' from '{string}'"
+        else:
+            msg = f"'construct_from_string' expects a string, got {type(string)}"
+        raise TypeError(msg)
 
     def __str__(self) -> str_type:
         return self.name
@@ -975,7 +978,7 @@ class IntervalDtype(PandasExtensionDtype):
     """
 
     name = "interval"
-    kind: Optional[str_type] = None
+    kind: str_type = "O"
     str = "|O08"
     base = np.dtype("O")
     num = 103

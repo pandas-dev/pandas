@@ -63,24 +63,15 @@ except ImportError:
 from distutils.extension import Extension  # noqa: E402 isort:skip
 from distutils.command.build import build  # noqa: E402 isort:skip
 
-try:
-    if not _CYTHON_INSTALLED:
-        raise ImportError("No supported version of Cython installed.")
+if _CYTHON_INSTALLED:
     from Cython.Distutils.old_build_ext import old_build_ext as _build_ext
 
     cython = True
-except ImportError:
+    from Cython import Tempita as tempita
+else:
     from distutils.command.build_ext import build_ext as _build_ext
 
     cython = False
-else:
-    try:
-        try:
-            from Cython import Tempita as tempita
-        except ImportError:
-            import tempita
-    except ImportError:
-        raise ImportError("Building pandas requires Tempita: pip install Tempita")
 
 
 _pxi_dep_template = {
@@ -513,13 +504,17 @@ def maybe_cythonize(extensions, *args, **kwargs):
         # See https://github.com/cython/cython/issues/1495
         return extensions
 
+    elif not cython:
+        # GH#28836 raise a helfpul error message
+        raise RuntimeError("Cannot cythonize without Cython installed.")
+
     numpy_incl = pkg_resources.resource_filename("numpy", "core/include")
     # TODO: Is this really necessary here?
     for ext in extensions:
         if hasattr(ext, "include_dirs") and numpy_incl not in ext.include_dirs:
             ext.include_dirs.append(numpy_incl)
 
-    # reuse any parallel arguments provided for compliation to cythonize
+    # reuse any parallel arguments provided for compilation to cythonize
     parser = argparse.ArgumentParser()
     parser.add_argument("-j", type=int)
     parser.add_argument("--parallel", type=int)
@@ -530,6 +525,11 @@ def maybe_cythonize(extensions, *args, **kwargs):
         nthreads = parsed.parallel
     elif parsed.j:
         nthreads = parsed.j
+
+    # GH#30356 Cythonize doesn't support parallel on Windows
+    if is_platform_windows() and nthreads > 0:
+        print("Parallel build for cythonize ignored on Windows")
+        nthreads = 0
 
     kwargs["nthreads"] = nthreads
     build_ext.render_templates(_pxifiles)
@@ -596,6 +596,7 @@ ext_data = {
     },
     "_libs.reduction": {"pyxfile": "_libs/reduction"},
     "_libs.ops": {"pyxfile": "_libs/ops"},
+    "_libs.ops_dispatch": {"pyxfile": "_libs/ops_dispatch"},
     "_libs.properties": {"pyxfile": "_libs/properties"},
     "_libs.reshape": {"pyxfile": "_libs/reshape", "depends": []},
     "_libs.sparse": {"pyxfile": "_libs/sparse", "depends": _pxi_dep["sparse"]},
