@@ -44,6 +44,3 @@ RUN conda env update -n base -f "$pandas_home/environment.yml"
 RUN cd "$pandas_home" \
     && python setup.py build_ext --inplace -j 4 \
     && python -m pip install -e .
-
-# Install pylint for VS Code
-RUN /opt/conda/bin/pip install pylint
