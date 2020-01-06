@@ -2,7 +2,7 @@
 Base and utility classes for tseries type pandas objects.
 """
 import operator
-from typing import List, Optional, Set
+from typing import List, Optional, Set, Union
 
 import numpy as np
 
@@ -28,7 +28,13 @@ from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 
 from pandas.core import algorithms
 from pandas.core.accessor import PandasDelegate
-from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
+from pandas.core.arrays import (
+    DatetimeArray,
+    ExtensionArray,
+    ExtensionOpsMixin,
+    PeriodArray,
+    TimedeltaArray,
+)
 from pandas.core.arrays.datetimelike import (
     DatetimeLikeArrayMixin,
     _ensure_datetimelike_to_i8,
@@ -91,7 +97,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
     Common ops mixin to support a unified interface datetimelike Index.
     """
 
-    _data: ExtensionArray
+    _data: Union[DatetimeArray, TimedeltaArray, PeriodArray]
     freq: Optional[DateOffset]
     freqstr: Optional[str]
     _resolution: int
