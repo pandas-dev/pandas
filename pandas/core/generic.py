@@ -4121,7 +4121,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     def sort_values(
         self,
-        by=None,
         axis=0,
         ascending=True,
         inplace: bool_t = False,
@@ -8887,9 +8886,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     """
 
     @Appender(_shared_docs["shift"] % _shared_doc_kwargs)
-    def shift(
-        self: FrameOrSeries, periods=1, freq=None, axis=0, fill_value=None
-    ) -> FrameOrSeries:
+    def shift(self, periods=1, freq=None, axis=0, fill_value=None):
         if periods == 0:
             return self.copy()
 
