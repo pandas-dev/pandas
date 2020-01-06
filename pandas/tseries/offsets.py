@@ -1,7 +1,7 @@
 from datetime import date, datetime, timedelta
 import functools
 import operator
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Tuple
 import warnings
 
 from dateutil.easter import easter
@@ -504,6 +504,10 @@ class _CustomMixin:
     Mixin for classes that define and validate calendar, holidays,
     and weekdays attributes.
     """
+
+    weekmask: str
+    holidays: Tuple[np.datetime64, ...]
+    calendar: np.busdaycalendar
 
     def __init__(self, weekmask, holidays, calendar):
         calendar, holidays = _get_calendar(
