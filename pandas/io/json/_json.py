@@ -13,10 +13,10 @@ from pandas._typing import JSONSerializable
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import (
+    pandas_dtype,
     ensure_str,
     is_period_dtype,
     is_categorical_dtype,
-    pandas_dtype,
 )
 
 from pandas import DataFrame, MultiIndex, Series, isna, to_datetime
