@@ -70,5 +70,5 @@ behaves correctly.
 
 
 The sentinel ``pandas.api.extensions._no_default`` is used as the default
-value in some methods. Use an ``is`` comparisoin to check if the user
+value in some methods. Use an ``is`` comparison to check if the user
 provides a non-default value.
