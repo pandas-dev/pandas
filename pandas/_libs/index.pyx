@@ -634,6 +634,7 @@ cdef class BaseMultiIndexCodesEngine:
         """
         for i, row in enumerate(level_codes):
             need_to_carry = False
+            highest_level_adjustment = None
             # go from right to left for place-value arithmetic
             for j in range(len(row) - 1, -1, -1):
                 max_val = len(self.levels[j])
@@ -655,14 +656,20 @@ cdef class BaseMultiIndexCodesEngine:
                         if j == 0:
                             for k in range(len(row)):
                                 row[k] = 0
-                        # set it to the minimum value and carry to the
-                        # next level
+                        # still possible value is not too large, but need to
+                        # keep track of values which will need to be decreased
                         else:
-                            row[j] = 1
+                            highest_level_adjustment = j
                     # done carrying, for now
                     else:
                         row[j] = new_val
                         need_to_carry = False
+
+            # if we increased any values, all lower levels (visually, all
+            # levels to the left) should be set to their lowest level
+            if row[0] > 0 and highest_level_adjustment is not None:
+                for k in range(highest_level_adjustment + 1, len(row)):
+                    row[k] = 1
 
         return level_codes
 
