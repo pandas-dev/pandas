@@ -10,7 +10,7 @@ import pandas._config.config as cf
 from pandas.compat.numpy import np_datetime64_compat
 
 from pandas import Index, Period, Series, Timestamp, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.plotting import (
     deregister_matplotlib_converters,
@@ -84,7 +84,7 @@ class TestRegistration:
         units = pytest.importorskip("matplotlib.units")
 
         # Can't make any assertion about the start state.
-        # We we check that toggling converters off remvoes it, and toggling it
+        # We we check that toggling converters off removes it, and toggling it
         # on restores it.
 
         with cf.option_context("plotting.matplotlib.register_converters", True):

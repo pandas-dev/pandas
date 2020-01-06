@@ -8,9 +8,9 @@ from pandas._libs.tslibs import Timestamp
 
 import pandas as pd
 from pandas import Float64Index, Index, Int64Index, Series, UInt64Index
+import pandas._testing as tm
 from pandas.api.types import pandas_dtype
 from pandas.tests.indexes.common import Base
-import pandas.util.testing as tm
 
 
 class Numeric(Base):
@@ -735,6 +735,12 @@ class TestInt64Index(NumericInt):
         indexer = index.get_indexer(target, method="backfill")
         expected = np.array([0, 1, 1, 2, 2, 3, 3, 4, 4, 5], dtype=np.intp)
         tm.assert_numpy_array_equal(indexer, expected)
+
+    def test_get_indexer_nan(self):
+        # GH 7820
+        result = Index([1, 2, np.nan]).get_indexer([np.nan])
+        expected = np.array([2], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_intersection(self):
         index = self.create_index()

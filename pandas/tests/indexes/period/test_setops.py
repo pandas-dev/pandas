@@ -1,10 +1,11 @@
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs import IncompatibleFrequency
+
 import pandas as pd
 from pandas import Index, PeriodIndex, date_range, period_range
-import pandas.core.indexes.period as period
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def _permute(obj):
@@ -177,11 +178,11 @@ class TestPeriodIndex:
         # raise if different frequencies
         index = period_range("1/1/2000", "1/20/2000", freq="D")
         index2 = period_range("1/1/2000", "1/20/2000", freq="W-WED")
-        with pytest.raises(period.IncompatibleFrequency):
+        with pytest.raises(IncompatibleFrequency):
             index.union(index2, sort=sort)
 
         index3 = period_range("1/1/2000", "1/20/2000", freq="2D")
-        with pytest.raises(period.IncompatibleFrequency):
+        with pytest.raises(IncompatibleFrequency):
             index.join(index3)
 
     def test_union_dataframe_index(self):
@@ -213,11 +214,11 @@ class TestPeriodIndex:
         # raise if different frequencies
         index = period_range("1/1/2000", "1/20/2000", freq="D")
         index2 = period_range("1/1/2000", "1/20/2000", freq="W-WED")
-        with pytest.raises(period.IncompatibleFrequency):
+        with pytest.raises(IncompatibleFrequency):
             index.intersection(index2, sort=sort)
 
         index3 = period_range("1/1/2000", "1/20/2000", freq="2D")
-        with pytest.raises(period.IncompatibleFrequency):
+        with pytest.raises(IncompatibleFrequency):
             index.intersection(index3, sort=sort)
 
     @pytest.mark.parametrize("sort", [None, False])
@@ -353,3 +354,22 @@ class TestPeriodIndex:
             if sort is None:
                 expected = expected.sort_values()
             tm.assert_index_equal(result_difference, expected)
+
+    @pytest.mark.parametrize("sort", [None, False])
+    def test_difference_freq(self, sort):
+        # GH14323: difference of Period MUST preserve frequency
+        # but the ability to union results must be preserved
+
+        index = period_range("20160920", "20160925", freq="D")
+
+        other = period_range("20160921", "20160924", freq="D")
+        expected = PeriodIndex(["20160920", "20160925"], freq="D")
+        idx_diff = index.difference(other, sort)
+        tm.assert_index_equal(idx_diff, expected)
+        tm.assert_attr_equal("freq", idx_diff, expected)
+
+        other = period_range("20160922", "20160925", freq="D")
+        idx_diff = index.difference(other, sort)
+        expected = PeriodIndex(["20160920", "20160921"], freq="D")
+        tm.assert_index_equal(idx_diff, expected)
+        tm.assert_attr_equal("freq", idx_diff, expected)

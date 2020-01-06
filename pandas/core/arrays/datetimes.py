@@ -140,18 +140,19 @@ def _dt_array_cmp(cls, op):
     @unpack_zerodim_and_defer(opname)
     def wrapper(self, other):
 
-        if isinstance(other, (datetime, np.datetime64, str)):
-            if isinstance(other, (datetime, np.datetime64)):
-                # GH#18435 strings get a pass from tzawareness compat
-                self._assert_tzawareness_compat(other)
-
+        if isinstance(other, str):
             try:
-                other = _to_M8(other, tz=self.tz)
+                # GH#18435 strings get a pass from tzawareness compat
+                other = self._scalar_from_string(other)
             except ValueError:
                 # string that cannot be parsed to Timestamp
                 return invalid_comparison(self, other, op)
 
-            result = op(self.asi8, other.view("i8"))
+        if isinstance(other, (datetime, np.datetime64)):
+            other = Timestamp(other)
+            self._assert_tzawareness_compat(other)
+
+            result = op(self.asi8, other.value)
             if isna(other):
                 result.fill(nat_result)
         elif lib.is_scalar(other) or np.ndim(other) == 0:
@@ -160,13 +161,9 @@ def _dt_array_cmp(cls, op):
             raise ValueError("Lengths must match")
         else:
             if isinstance(other, list):
-                try:
-                    other = type(self)._from_sequence(other)
-                except ValueError:
-                    other = np.array(other, dtype=np.object_)
-            elif not isinstance(
-                other, (np.ndarray, ABCIndexClass, ABCSeries, DatetimeArray)
-            ):
+                other = np.array(other)
+
+            if not isinstance(other, (np.ndarray, cls)):
                 # Following Timestamp convention, __eq__ is all-False
                 # and __ne__ is all True, others raise TypeError.
                 return invalid_comparison(self, other, op)
@@ -180,22 +177,14 @@ def _dt_array_cmp(cls, op):
                         op, self.astype(object), other
                     )
                 o_mask = isna(other)
+
             elif not (is_datetime64_dtype(other) or is_datetime64tz_dtype(other)):
                 # e.g. is_timedelta64_dtype(other)
                 return invalid_comparison(self, other, op)
+
             else:
                 self._assert_tzawareness_compat(other)
-                if isinstance(other, (ABCIndexClass, ABCSeries)):
-                    other = other.array
-
-                if (
-                    is_datetime64_dtype(other)
-                    and not is_datetime64_ns_dtype(other)
-                    or not hasattr(other, "asi8")
-                ):
-                    # e.g. other.dtype == 'datetime64[s]'
-                    # or an object-dtype ndarray
-                    other = type(self)._from_sequence(other)
+                other = type(self)._from_sequence(other)
 
                 result = op(self.view("i8"), other.view("i8"))
                 o_mask = other._isnan
@@ -230,12 +219,12 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         The datetime data.
 
         For DatetimeArray `values` (or a Series or Index boxing one),
-        `dtype` and `freq` will be extracted from `values`, with
-        precedence given to
+        `dtype` and `freq` will be extracted from `values`.
 
     dtype : numpy.dtype or DatetimeTZDtype
         Note that the only NumPy dtype allowed is 'datetime64[ns]'.
     freq : str or Offset, optional
+        The frequency.
     copy : bool, default False
         Whether to copy the underlying array of values.
 
@@ -339,7 +328,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
                 " those."
             )
             raise ValueError(msg)
-        if values.ndim != 1:
+        if values.ndim not in [1, 2]:
             raise ValueError("Only 1-dimensional input arrays are supported.")
 
         if values.dtype == "i8":
@@ -788,15 +777,16 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         return new_values.view("timedelta64[ns]")
 
     def _add_offset(self, offset):
+        if self.ndim == 2:
+            return self.ravel()._add_offset(offset).reshape(self.shape)
+
         assert not isinstance(offset, Tick)
         try:
             if self.tz is not None:
                 values = self.tz_localize(None)
             else:
                 values = self
-            result = offset.apply_index(values)
-            if self.tz is not None:
-                result = result.tz_localize(self.tz)
+            result = offset.apply_index(values).tz_localize(self.tz)
 
         except NotImplementedError:
             warnings.warn(
@@ -804,6 +794,9 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
                 PerformanceWarning,
             )
             result = self.astype("O") + offset
+            if not len(self):
+                # GH#30336 _from_sequence won't be able to infer self.tz
+                return type(self)._from_sequence(result).tz_localize(self.tz)
 
         return type(self)._from_sequence(result, freq="infer")
 

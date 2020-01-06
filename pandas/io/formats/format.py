@@ -38,6 +38,7 @@ from pandas._libs.missing import NA
 from pandas._libs.tslib import format_array_from_datetime
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas._libs.tslibs.nattype import NaTType
+from pandas._typing import FilePathOrBuffer
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import (
@@ -63,7 +64,6 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas._typing import FilePathOrBuffer
 from pandas.core.arrays.datetimes import DatetimeArray
 from pandas.core.arrays.timedeltas import TimedeltaArray
 from pandas.core.base import PandasObject
@@ -72,7 +72,7 @@ from pandas.core.indexes.api import Index, ensure_index
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
-from pandas.io.common import _stringify_path
+from pandas.io.common import stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
 
 if TYPE_CHECKING:
@@ -231,7 +231,7 @@ class SeriesFormatter:
         self,
         series: "Series",
         buf: Optional[IO[str]] = None,
-        length: bool = True,
+        length: Union[bool, str] = True,
         header: bool = True,
         index: bool = True,
         na_rep: str = "NaN",
@@ -281,7 +281,9 @@ class SeriesFormatter:
                 series = series.iloc[:max_rows]
             else:
                 row_num = max_rows // 2
-                series = concat((series.iloc[:row_num], series.iloc[-row_num:]))
+                series = series._ensure_type(
+                    concat((series.iloc[:row_num], series.iloc[-row_num:]))
+                )
             self.tr_row_num = row_num
         else:
             self.tr_row_num = None
@@ -450,7 +452,7 @@ def _get_adjustment() -> TextAdjustment:
 
 class TableFormatter:
 
-    show_dimensions: bool
+    show_dimensions: Union[bool, str]
     is_truncated: bool
     formatters: formatters_type
     columns: Index
@@ -482,7 +484,7 @@ class TableFormatter:
         objects, otherwise yield buf unchanged.
         """
         if buf is not None:
-            buf = _stringify_path(buf)
+            buf = stringify_path(buf)
         else:
             buf = StringIO()
 
@@ -554,7 +556,7 @@ class DataFrameFormatter(TableFormatter):
         max_rows: Optional[int] = None,
         min_rows: Optional[int] = None,
         max_cols: Optional[int] = None,
-        show_dimensions: bool = False,
+        show_dimensions: Union[bool, str] = False,
         decimal: str = ".",
         table_id: Optional[str] = None,
         render_links: bool = False,
@@ -1276,7 +1278,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
     """
 
     def __init__(self, *args, **kwargs):
-        GenericArrayFormatter.__init__(self, *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         # float_format is expected to be a string
         # formatter should be used to pass a function
@@ -1640,7 +1642,7 @@ def _get_format_datetime64_from_values(
     """ given values and a date_format, return a string format """
 
     if isinstance(values, np.ndarray) and values.ndim > 1:
-        # We don't actaully care about the order of values, and DatetimeIndex
+        # We don't actually care about the order of values, and DatetimeIndex
         #  only accepts 1D values
         values = values.ravel()
 

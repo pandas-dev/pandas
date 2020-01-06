@@ -23,9 +23,9 @@ from pandas import (
     UInt64Index,
     isna,
 )
+import pandas._testing as tm
 from pandas.core.indexes.base import InvalidIndexError
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
-import pandas.util.testing as tm
 
 
 class Base:
@@ -102,6 +102,13 @@ class Base:
             idx.shift(1)
         with pytest.raises(NotImplementedError, match=msg):
             idx.shift(1, 2)
+
+    def test_constructor_name_unhashable(self):
+        # GH#29069 check that name is hashable
+        # See also same-named test in tests.series.test_constructors
+        idx = self.create_index()
+        with pytest.raises(TypeError, match="Index.name must be a hashable type"):
+            type(idx)(idx, name=[])
 
     def test_create_index_existing_name(self):
 

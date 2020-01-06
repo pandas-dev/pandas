@@ -7,7 +7,7 @@ import pytest
 import pandas.compat as compat
 
 import pandas as pd
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 ###############################################################
 # Index / Series common tests which may trigger dtype coercions
@@ -986,10 +986,6 @@ class TestReplaceSeriesCoercion(CoercionBase):
         ],
     )
     def test_replace_series(self, how, to_key, from_key):
-        if from_key == "bool" and how == "series":
-            # doesn't work in PY3, though ...dict_from_bool works fine
-            pytest.skip("doesn't work as in PY3")
-
         index = pd.Index([3, 4], name="xxx")
         obj = pd.Series(self.rep[from_key], index=index, name="yyy")
         assert obj.dtype == from_key
