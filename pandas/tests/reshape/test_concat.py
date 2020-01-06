@@ -28,6 +28,7 @@ from pandas import (
     read_csv,
 )
 import pandas._testing as tm
+from pandas.core.arrays import SparseArray
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.tests.extension.decimal import to_decimal
 
@@ -2738,4 +2739,14 @@ def test_concat_empty_df_object_dtype():
     df_2 = pd.DataFrame(columns=df_1.columns)
     result = pd.concat([df_1, df_2], axis=0)
     expected = df_1.astype(object)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_concat_sparse():
+    # GH 23557
+    a = pd.Series(SparseArray([0, 1, 2]))
+    expected = pd.DataFrame(data=[[0, 0], [1, 1], [2, 2]]).astype(
+        pd.SparseDtype(np.int64, 0)
+    )
+    result = pd.concat([a, a], axis=1)
     tm.assert_frame_equal(result, expected)
