@@ -11,7 +11,7 @@ from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes.common import _NS_DTYPE, is_float, is_integer, is_scalar
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core.accessor import delegate_names
 from pandas.core.arrays.datetimes import (
@@ -922,9 +922,14 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
         -------
         new_index : Index
         """
-        if is_scalar(item) and isna(item):
+        if is_valid_nat_for_dtype(item, self.dtype):
             # GH 18295
             item = self._na_value
+        elif is_scalar(item) and isna(item):
+            # i.e. timedeltat64("NaT")
+            raise TypeError(
+                f"cannot insert {type(self).__name__} with incompatible label"
+            )
 
         freq = None
 
