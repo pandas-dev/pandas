@@ -51,7 +51,7 @@ Implementation
 from collections import namedtuple
 from contextlib import contextmanager
 import re
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Type, Union
 import warnings
 
 DeprecatedOption = namedtuple("DeprecatedOption", "key msg rkey removal_ver")
@@ -416,7 +416,7 @@ def register_option(
     key: str,
     defval: object,
     doc: str = "",
-    validator=None,
+    validator: Optional[Union[Callable[..., None], Type[str]]] = None,
     cb: Optional[Callable[[str], None]] = None,
 ) -> None:
     """
