@@ -51,7 +51,7 @@ Implementation
 from collections import namedtuple
 from contextlib import contextmanager
 import re
-from typing import Any, Dict, Iterable, List
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 import warnings
 
 DeprecatedOption = namedtuple("DeprecatedOption", "key msg rkey removal_ver")
@@ -80,7 +80,7 @@ class OptionError(AttributeError, KeyError):
 # User API
 
 
-def _get_single_key(pat, silent):
+def _get_single_key(pat: str, silent: bool) -> str:
     keys = _select_options(pat)
     if len(keys) == 0:
         if not silent:
@@ -98,7 +98,7 @@ def _get_single_key(pat, silent):
     return key
 
 
-def _get_option(pat, silent=False):
+def _get_option(pat: str, silent: bool = False):
     key = _get_single_key(pat, silent)
 
     # walk the nested dict
@@ -106,7 +106,7 @@ def _get_option(pat, silent=False):
     return root[k]
 
 
-def _set_option(*args, **kwargs):
+def _set_option(*args, **kwargs) -> None:
     # must at least 1 arg deal with constraints later
     nargs = len(args)
     if not nargs or nargs % 2 != 0:
@@ -138,7 +138,7 @@ def _set_option(*args, **kwargs):
                 o.cb(key)
 
 
-def _describe_option(pat="", _print_desc=True):
+def _describe_option(pat: str = "", _print_desc: bool = True):
 
     keys = _select_options(pat)
     if len(keys) == 0:
@@ -154,7 +154,7 @@ def _describe_option(pat="", _print_desc=True):
         return s
 
 
-def _reset_option(pat, silent=False):
+def _reset_option(pat: str, silent: bool = False) -> None:
 
     keys = _select_options(pat)
 
@@ -173,7 +173,7 @@ def _reset_option(pat, silent=False):
         _set_option(k, _registered_options[k].defval, silent=silent)
 
 
-def get_default_val(pat):
+def get_default_val(pat: str):
     key = _get_single_key(pat, silent=True)
     return _get_registered_option(key).defval
 
@@ -181,11 +181,11 @@ def get_default_val(pat):
 class DictWrapper:
     """ provide attribute-style access to a nested dict"""
 
-    def __init__(self, d, prefix=""):
+    def __init__(self, d: Any, prefix: str = ""):
         object.__setattr__(self, "d", d)
         object.__setattr__(self, "prefix", prefix)
 
-    def __setattr__(self, key, val):
+    def __setattr__(self, key: str, val: Any) -> None:
         prefix = object.__getattribute__(self, "prefix")
         if prefix:
             prefix += "."
@@ -211,7 +211,7 @@ class DictWrapper:
         else:
             return _get_option(prefix)
 
-    def __dir__(self):
+    def __dir__(self) -> Iterable[str]:
         return list(self.d.keys())
 
 
@@ -412,23 +412,31 @@ class option_context:
                 _set_option(pat, val, silent=True)
 
 
-def register_option(key: str, defval: object, doc="", validator=None, cb=None):
-    """Register an option in the package-wide pandas config object
+def register_option(
+    key: str,
+    defval: object,
+    doc: str = "",
+    validator: Optional[Callable] = None,
+    cb: Optional[Callable] = None,
+) -> None:
+    """
+    Register an option in the package-wide pandas config object
 
     Parameters
     ----------
-    key       - a fully-qualified key, e.g. "x.y.option - z".
-    defval    - the default value of the option
-    doc       - a string description of the option
-    validator - a function of a single argument, should raise `ValueError` if
-                called with a value which is not a legal value for the option.
-    cb        - a function of a single argument "key", which is called
-                immediately after an option value is set/reset. key is
-                the full name of the option.
-
-    Returns
-    -------
-    Nothing.
+    key : str
+        Fully-qualified key, e.g. "x.y.option - z".
+    defval : object
+        Default value of the option.
+    doc : str
+        Description of the option.
+    validator : Callable, optional
+        Function of a single argument, should raise `ValueError` if
+        called with a value which is not a legal value for the option.
+    cb
+        a function of a single argument "key", which is called
+        immediately after an option value is set/reset. key is
+        the full name of the option.
 
     Raises
     ------
@@ -481,7 +489,9 @@ def register_option(key: str, defval: object, doc="", validator=None, cb=None):
     )
 
 
-def deprecate_option(key, msg=None, rkey=None, removal_ver=None):
+def deprecate_option(
+    key: str, msg: Optional[str] = None, rkey: Optional[str] = None, removal_ver=None
+) -> None:
     """
     Mark option `key` as deprecated, if code attempts to access this option,
     a warning will be produced, using `msg` if given, or a default message
@@ -494,32 +504,27 @@ def deprecate_option(key, msg=None, rkey=None, removal_ver=None):
 
     Parameters
     ----------
-    key - the name of the option to be deprecated. must be a fully-qualified
-          option name (e.g "x.y.z.rkey").
-
-    msg - (Optional) a warning message to output when the key is referenced.
-          if no message is given a default message will be emitted.
-
-    rkey - (Optional) the name of an option to reroute access to.
-           If specified, any referenced `key` will be re-routed to `rkey`
-           including set/get/reset.
-           rkey must be a fully-qualified option name (e.g "x.y.z.rkey").
-           used by the default message if no `msg` is specified.
-
-    removal_ver - (Optional) specifies the version in which this option will
-                  be removed. used by the default message if no `msg`
-                  is specified.
-
-    Returns
-    -------
-    Nothing
+    key : str
+        Name of the option to be deprecated.
+        must be a fully-qualified option name (e.g "x.y.z.rkey").
+    msg : str, optional
+        Warning message to output when the key is referenced.
+        if no message is given a default message will be emitted.
+    rkey : str, optional
+        Name of an option to reroute access to.
+        If specified, any referenced `key` will be
+        re-routed to `rkey` including set/get/reset.
+        rkey must be a fully-qualified option name (e.g "x.y.z.rkey").
+        used by the default message if no `msg` is specified.
+    removal_ver : optional
+        Specifies the version in which this option will
+        be removed. used by the default message if no `msg` is specified.
 
     Raises
     ------
-    OptionError - if key has already been deprecated.
-
+    OptionError
+        If the specified key has already been deprecated.
     """
-
     key = key.lower()
 
     if key in _deprecated_options:
@@ -532,7 +537,7 @@ def deprecate_option(key, msg=None, rkey=None, removal_ver=None):
 # functions internal to the module
 
 
-def _select_options(pat):
+def _select_options(pat: str) -> List[str]:
     """returns a list of keys matching `pat`
 
     if pat=="all", returns all registered options
@@ -550,7 +555,7 @@ def _select_options(pat):
     return [k for k in keys if re.search(pat, k, re.I)]
 
 
-def _get_root(key):
+def _get_root(key: str) -> Tuple[Any, str]:
     path = key.split(".")
     cursor = _global_config
     for p in path[:-1]:
@@ -558,14 +563,14 @@ def _get_root(key):
     return cursor, path[-1]
 
 
-def _is_deprecated(key):
+def _is_deprecated(key: str) -> bool:
     """ Returns True if the given option has been deprecated """
 
     key = key.lower()
     return key in _deprecated_options
 
 
-def _get_deprecated_option(key):
+def _get_deprecated_option(key: str):
     """
     Retrieves the metadata for a deprecated option, if `key` is deprecated.
 
@@ -582,7 +587,7 @@ def _get_deprecated_option(key):
         return d
 
 
-def _get_registered_option(key):
+def _get_registered_option(key: str):
     """
     Retrieves the option metadata if `key` is a registered option.
 
@@ -593,7 +598,7 @@ def _get_registered_option(key):
     return _registered_options.get(key)
 
 
-def _translate_key(key):
+def _translate_key(key: str) -> str:
     """
     if key id deprecated and a replacement key defined, will return the
     replacement key, otherwise returns `key` as - is
@@ -606,7 +611,7 @@ def _translate_key(key):
         return key
 
 
-def _warn_if_deprecated(key):
+def _warn_if_deprecated(key: str) -> bool:
     """
     Checks if `key` is a deprecated option and if so, prints a warning.
 
@@ -634,7 +639,7 @@ def _warn_if_deprecated(key):
     return False
 
 
-def _build_option_description(k):
+def _build_option_description(k: str) -> str:
     """ Builds a formatted description of a registered option and prints it """
 
     o = _get_registered_option(k)
@@ -652,14 +657,12 @@ def _build_option_description(k):
 
     if d:
         rkey = d.rkey if d.rkey else ""
-        s += "\n    (Deprecated"
-        s += f", use `{rkey}` instead."
-        s += ")"
+        s += f"\n    (Deprecated, use `{rkey}` instead.)"
 
     return s
 
 
-def pp_options_list(keys, width=80, _print=False):
+def pp_options_list(keys: List[str], width=80, _print: bool = False):
     """ Builds a concise listing of available options, grouped by prefix """
 
     from textwrap import wrap
@@ -729,7 +732,7 @@ def config_prefix(prefix):
     global register_option, get_option, set_option, reset_option
 
     def wrap(func):
-        def inner(key, *args, **kwds):
+        def inner(key: str, *args, **kwds) -> Callable:
             pkey = f"{prefix}.{key}"
             return func(pkey, *args, **kwds)
 
@@ -751,7 +754,7 @@ def config_prefix(prefix):
 # arg in register_option
 
 
-def is_type_factory(_type):
+def is_type_factory(_type) -> Callable:
     """
 
     Parameters
@@ -765,14 +768,14 @@ def is_type_factory(_type):
 
     """
 
-    def inner(x):
+    def inner(x) -> None:
         if type(x) != _type:
             raise ValueError(f"Value must have type '{_type}'")
 
     return inner
 
 
-def is_instance_factory(_type):
+def is_instance_factory(_type) -> Callable:
     """
 
     Parameters
@@ -792,19 +795,19 @@ def is_instance_factory(_type):
     else:
         type_repr = f"'{_type}'"
 
-    def inner(x):
+    def inner(x) -> None:
         if not isinstance(x, _type):
             raise ValueError(f"Value must be an instance of {type_repr}")
 
     return inner
 
 
-def is_one_of_factory(legal_values):
+def is_one_of_factory(legal_values) -> Callable:
 
     callables = [c for c in legal_values if callable(c)]
     legal_values = [c for c in legal_values if not callable(c)]
 
-    def inner(x):
+    def inner(x) -> None:
         if x not in legal_values:
 
             if not any(c(x) for c in callables):
@@ -818,7 +821,7 @@ def is_one_of_factory(legal_values):
     return inner
 
 
-def is_nonnegative_int(value):
+def is_nonnegative_int(value: Optional[int]) -> None:
     """
     Verify that value is None or a positive int.
 
@@ -853,7 +856,7 @@ is_str = is_type_factory(str)
 is_text = is_instance_factory((str, bytes))
 
 
-def is_callable(obj):
+def is_callable(obj) -> bool:
     """
 
     Parameters
