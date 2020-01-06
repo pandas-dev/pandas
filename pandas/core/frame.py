@@ -7039,7 +7039,7 @@ Wild         185.0
         from pandas.core.reshape.concat import concat
 
         if isinstance(other, (list, tuple)):
-            to_concat = [self] + list(other)
+            to_concat = [self, *other]
         else:
             to_concat = [self, other]
         return concat(
