@@ -3936,6 +3936,13 @@ class Index(IndexOpsMixin, PandasObject):
             if np.ndim(result) > 1:
                 # GH#27125 indexer like idx[:, None] expands dim, but we
                 #  cannot do that and keep an index, so return ndarray
+                # Deprecation GH#30588
+                warnings.warn(
+                    "Support for Index[:, None] is deprecated and will be "
+                    "removed in a future version.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
                 return result
             return promote(result)
         else:

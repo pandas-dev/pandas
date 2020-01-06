@@ -1905,6 +1905,14 @@ class TestIndex(Base):
             idx.set_value(arr, idx[1], 80)
         assert arr[1] == 80
 
+    def test_getitem_2d_deprecated(self):
+        # GH#30588
+        idx = self.create_index()
+        with tm.assert_produces_warning(DeprecationWarning):
+            res = idx[:, None]
+
+        assert isinstance(res, np.ndarray)
+
     @pytest.mark.parametrize(
         "index", ["string", "int", "datetime", "timedelta"], indirect=True
     )
@@ -2785,7 +2793,8 @@ def test_shape_of_invalid_index():
     # that the returned shape is consistent with this underlying array for
     # compat with matplotlib (see https://github.com/pandas-dev/pandas/issues/27775)
     idx = pd.Index([0, 1, 2, 3])
-    assert idx[:, None].shape == (4, 1)
+    with tm.assert_produces_warning(DeprecationWarning):
+        assert idx[:, None].shape == (4, 1)
 
 
 def test_validate_1d_input():
