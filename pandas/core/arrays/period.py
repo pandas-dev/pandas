@@ -20,7 +20,7 @@ from pandas._libs.tslibs.period import (
     period_asfreq_arr,
 )
 from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
-from pandas.util._decorators import Appender, cache_readonly
+from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
     _TD_DTYPE,
@@ -427,17 +427,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
     # --------------------------------------------------------------------
     # Array-like / EA-Interface Methods
-
-    @Appender(dtl.DatetimeLikeArrayMixin._validate_fill_value.__doc__)
-    def _validate_fill_value(self, fill_value):
-        if isna(fill_value):
-            fill_value = iNaT
-        elif isinstance(fill_value, Period):
-            self._check_compatible_with(fill_value)
-            fill_value = fill_value.ordinal
-        else:
-            raise ValueError(f"'fill_value' should be a Period. Got '{fill_value}'.")
-        return fill_value
 
     def _values_for_argsort(self):
         return self._data
