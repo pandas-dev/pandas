@@ -591,7 +591,17 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         ------
         ValueError
         """
-        raise AbstractMethodError(self)
+        if isna(fill_value):
+            fill_value = iNaT
+        elif isinstance(fill_value, self._recognized_scalars):
+            self._check_compatible_with(fill_value)
+            fill_value = self._scalar_type(fill_value)
+            fill_value = self._unbox_scalar(fill_value)
+        else:
+            raise ValueError(
+                f"'fill_value' should be a {self._scalar_type}. Got '{fill_value}'."
+            )
+        return fill_value
 
     def take(self, indices, allow_fill=False, fill_value=None):
         if allow_fill:
