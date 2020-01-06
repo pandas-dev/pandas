@@ -1,5 +1,3 @@
-from collections import OrderedDict
-
 import pytest
 
 from pandas.util._validators import validate_args_and_kwargs
@@ -52,9 +50,7 @@ def test_missing_args_or_kwargs(args, kwargs):
     bad_arg = "bar"
     min_fname_arg_count = 2
 
-    compat_args = OrderedDict()
-    compat_args["foo"] = -5
-    compat_args[bad_arg] = 1
+    compat_args = {"foo": -5, bad_arg: 1}
 
     msg = (
         r"the '{arg}' parameter is not supported "
@@ -68,17 +64,11 @@ def test_missing_args_or_kwargs(args, kwargs):
 def test_duplicate_argument():
     min_fname_arg_count = 2
 
-    compat_args = OrderedDict()
-    compat_args["foo"] = None
-    compat_args["bar"] = None
-    compat_args["baz"] = None
-
+    compat_args = {"foo": None, "bar": None, "baz": None}
     kwargs = {"foo": None, "bar": None}
     args = (None,)  # duplicate value for "foo"
 
-    msg = r"{fname}\(\) got multiple values for keyword " r"argument '{arg}'".format(
-        fname=_fname, arg="foo"
-    )
+    msg = fr"{_fname}\(\) got multiple values for keyword argument 'foo'"
 
     with pytest.raises(TypeError, match=msg):
         validate_args_and_kwargs(_fname, args, kwargs, min_fname_arg_count, compat_args)
@@ -86,10 +76,7 @@ def test_duplicate_argument():
 
 def test_validation():
     # No exceptions should be raised.
-    compat_args = OrderedDict()
-    compat_args["foo"] = 1
-    compat_args["bar"] = None
-    compat_args["baz"] = -2
+    compat_args = {"foo": 1, "bar": None, "baz": -2}
     kwargs = {"baz": -2}
 
     args = (1, None)

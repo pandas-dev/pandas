@@ -12,6 +12,7 @@ import pandas._config.config as cf
 
 from pandas._libs.tslib import Timestamp
 from pandas.compat.numpy import np_datetime64_compat
+from pandas.util._test_decorators import async_mark
 
 from pandas.core.dtypes.common import is_unsigned_integer_dtype
 from pandas.core.dtypes.generic import ABCIndex
@@ -32,12 +33,17 @@ from pandas import (
     isna,
     period_range,
 )
+import pandas._testing as tm
 from pandas.core.algorithms import safe_sort
-from pandas.core.index import ensure_index, ensure_index_from_sequences
-from pandas.core.indexes.api import Index, MultiIndex, _get_combined_index
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+    _get_combined_index,
+    ensure_index,
+    ensure_index_from_sequences,
+)
 from pandas.tests.indexes.common import Base
 from pandas.tests.indexes.conftest import indices_dict
-import pandas.util.testing as tm
 
 
 class TestIndex(Base):
@@ -95,6 +101,7 @@ class TestIndex(Base):
         arr[0] = "SOMEBIGLONGSTRING"
         assert new_index[0] != "SOMEBIGLONGSTRING"
 
+        # FIXME: dont leave commented-out
         # what to do here?
         # arr = np.array(5.)
         # pytest.raises(Exception, arr.view, Index)
@@ -2391,13 +2398,14 @@ Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
         with pytest.raises(AttributeError, match="Can't set attribute"):
             index.is_unique = False
 
-    def test_tab_complete_warning(self, ip):
+    @async_mark()
+    async def test_tab_complete_warning(self, ip):
         # https://github.com/pandas-dev/pandas/issues/16409
         pytest.importorskip("IPython", minversion="6.0.0")
         from IPython.core.completer import provisionalcompleter
 
         code = "import pandas as pd; idx = pd.Index([1, 2])"
-        ip.run_code(code)
+        await ip.run_code(code)
         with tm.assert_produces_warning(None):
             with provisionalcompleter("ignore"):
                 list(ip.Completer.completions("idx.", 4))

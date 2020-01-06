@@ -6,10 +6,10 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.arrays import BooleanArray
 from pandas.core.arrays.boolean import coerce_to_array
 from pandas.tests.extension.base import BaseOpsUtil
-import pandas.util.testing as tm
 
 
 def make_data():
@@ -715,6 +715,33 @@ def test_reductions_return_types(dropna, data, all_numeric_reductions):
         assert isinstance(getattr(s, op)(), np.float64)
 
 
+@pytest.mark.parametrize(
+    "values, exp_any, exp_all, exp_any_noskip, exp_all_noskip",
+    [
+        ([True, pd.NA], True, True, True, pd.NA),
+        ([False, pd.NA], False, False, pd.NA, False),
+        ([pd.NA], False, True, pd.NA, pd.NA),
+        ([], False, True, False, True),
+    ],
+)
+def test_any_all(values, exp_any, exp_all, exp_any_noskip, exp_all_noskip):
+    # the methods return numpy scalars
+    exp_any = pd.NA if exp_any is pd.NA else np.bool_(exp_any)
+    exp_all = pd.NA if exp_all is pd.NA else np.bool_(exp_all)
+    exp_any_noskip = pd.NA if exp_any_noskip is pd.NA else np.bool_(exp_any_noskip)
+    exp_all_noskip = pd.NA if exp_all_noskip is pd.NA else np.bool_(exp_all_noskip)
+
+    for con in [pd.array, pd.Series]:
+        a = con(values, dtype="boolean")
+        assert a.any() is exp_any
+        assert a.all() is exp_all
+        assert a.any(skipna=False) is exp_any_noskip
+        assert a.all(skipna=False) is exp_all_noskip
+
+        assert np.any(a.any()) is exp_any
+        assert np.all(a.all()) is exp_all
+
+
 # TODO when BooleanArray coerces to object dtype numpy array, need to do conversion
 # manually in the indexing code
 # def test_indexing_boolean_mask():
@@ -730,12 +757,29 @@ def test_reductions_return_types(dropna, data, all_numeric_reductions):
 #         result = arr[mask]
 
 
-@pytest.mark.skip(reason="broken test")
 @td.skip_if_no("pyarrow", min_version="0.15.0")
 def test_arrow_array(data):
     # protocol added in 0.15.0
     import pyarrow as pa
 
     arr = pa.array(data)
-    expected = pa.array(np.array(data, dtype=object), type=pa.bool_(), from_pandas=True)
+
+    # TODO use to_numpy(na_value=None) here
+    data_object = np.array(data, dtype=object)
+    data_object[data.isna()] = None
+    expected = pa.array(data_object, type=pa.bool_(), from_pandas=True)
     assert arr.equals(expected)
+
+
+@td.skip_if_no("pyarrow", min_version="0.15.1.dev")
+def test_arrow_roundtrip():
+    # roundtrip possible from arrow 1.0.0
+    import pyarrow as pa
+
+    data = pd.array([True, False, None], dtype="boolean")
+    df = pd.DataFrame({"a": data})
+    table = pa.table(df)
+    assert table.field("a").type == "bool"
+    result = table.to_pandas()
+    assert isinstance(result["a"].dtype, pd.BooleanDtype)
+    tm.assert_frame_equal(result, df)

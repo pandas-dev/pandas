@@ -30,8 +30,6 @@ dependencies:
   - openpyxl<=3.0.1
   # https://github.com/pandas-dev/pandas/pull/30009 openpyxl 3.0.2 broke
   - pandas-gbq
-  # https://github.com/pydata/pandas-gbq/issues/271
-  - google-cloud-bigquery<=1.11
   - psycopg2
   - pyarrow>=0.12.0
   - pymysql

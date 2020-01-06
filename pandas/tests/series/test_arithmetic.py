@@ -3,10 +3,11 @@ import operator
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs import IncompatibleFrequency
+
 import pandas as pd
 from pandas import Series
-from pandas.core.indexes.period import IncompatibleFrequency
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def _permute(obj):
@@ -170,6 +171,14 @@ class TestSeriesComparison:
         ser = Series(tdi).rename(names[1])
         result = op(ser, tdi)
         assert result.name == names[2]
+
+        # interval dtype
+        if op in [operator.eq, operator.ne]:
+            # interval dtype comparisons not yet implemented
+            ii = pd.interval_range(start=0, periods=5, name=names[0])
+            ser = Series(ii).rename(names[1])
+            result = op(ser, ii)
+            assert result.name == names[2]
 
         # categorical
         if op in [operator.eq, operator.ne]:

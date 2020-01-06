@@ -12,8 +12,8 @@ from pandas import (
     MultiIndex,
     date_range,
 )
+import pandas._testing as tm
 from pandas.core.indexes.base import InvalidIndexError
-import pandas.util.testing as tm
 
 
 def test_slice_locs_partial(idx):
