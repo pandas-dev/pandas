@@ -693,14 +693,6 @@ cdef class BaseMultiIndexCodesEngine:
         int_keys : 1-dimensional array of dtype uint64 or object
             Integers representing one combination each
         """
-        level_codes = [lev.get_indexer(codes, method=method) + 1 for lev, codes
-                       in zip(self.levels, zip(*target))]
-        return self._codes_to_ints(np.array(level_codes, dtype='uint64').T)
-        print('\n\n<DEBUGGING>\n\n')
-        print('extracting level codes from:\n{}\nwith:\n{}\nwith method: {}\n\n'.format(
-              str(self.levels),
-              str(zip(*target)),
-              str(method)))
         level_codes = np.array([
             lev.get_indexer(codes, method=method) for lev, codes
             in zip(self.levels, zip(*target))
