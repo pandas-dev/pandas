@@ -1004,7 +1004,7 @@ Reshaping
 Sparse
 ^^^^^^
 - Bug in :class:`SparseDataFrame` arithmetic operations incorrectly casting inputs to float (:issue:`28107`)
--
+- Bug in ``DataFrame.sparse`` returning a ``Series`` when there was a column named ``sparse`` rather than the accessor (:issue:`30758`)
 -
 
 ExtensionArray
