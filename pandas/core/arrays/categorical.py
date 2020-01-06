@@ -1874,7 +1874,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
         return iter(self._internal_get_values().tolist())
 
-    def __contains__(self, key):
+    def __contains__(self, key) -> bool:
         """
         Returns True if `key` is in this Categorical.
         """
@@ -1884,7 +1884,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         return contains(self, key, container=self._codes)
 
-    def _tidy_repr(self, max_vals=10, footer=True):
+    def _tidy_repr(self, max_vals=10, footer=True) -> str:
         """ a short repr displaying only max_vals and an optional (but default
         footer)
         """
@@ -1921,7 +1921,7 @@ class Categorical(ExtensionArray, PandasObject):
         category_strs = [x.strip() for x in category_strs]
         return category_strs
 
-    def _repr_categories_info(self):
+    def _repr_categories_info(self) -> str:
         """
         Returns a string representation of the footer.
         """
@@ -1951,11 +1951,11 @@ class Categorical(ExtensionArray, PandasObject):
         # replace to simple save space by
         return levheader + "[" + levstring.replace(" < ... < ", " ... ") + "]"
 
-    def _repr_footer(self):
+    def _repr_footer(self) -> str:
         info = self._repr_categories_info()
         return f"Length: {len(self)}\n{info}"
 
-    def _get_repr(self, length=True, na_rep="NaN", footer=True):
+    def _get_repr(self, length=True, na_rep="NaN", footer=True) -> str:
         from pandas.io.formats import format as fmt
 
         formatter = fmt.CategoricalFormatter(

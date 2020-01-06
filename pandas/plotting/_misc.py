@@ -453,7 +453,7 @@ class _Options(dict):
             raise ValueError(f"Cannot remove default parameter {key}")
         return super().__delitem__(key)
 
-    def __contains__(self, key):
+    def __contains__(self, key) -> bool:
         key = self._get_canonical_key(key)
         return super().__contains__(key)
 

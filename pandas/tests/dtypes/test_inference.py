@@ -240,7 +240,7 @@ def test_is_dict_like_duck_type(has_keys, has_getitem, has_contains):
 
         if has_contains:
 
-            def __contains__(self, key):
+            def __contains__(self, key) -> bool:
                 return self.d.__contains__(key)
 
     d = DictLike({1: 2})
