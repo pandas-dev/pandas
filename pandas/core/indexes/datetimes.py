@@ -22,7 +22,7 @@ from pandas.core.arrays.datetimes import (
 )
 from pandas.core.base import _shared_docs
 import pandas.core.common as com
-from pandas.core.indexes.base import Index, maybe_extract_name
+from pandas.core.indexes.base import Index, deprecate_ndim_indexing, maybe_extract_name
 from pandas.core.indexes.datetimelike import (
     DatetimelikeDelegateMixin,
     DatetimeTimedeltaMixin,
@@ -882,6 +882,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
         elif result.ndim > 1:
             # To support MPL which performs slicing with 2 dim
             # even though it only has 1 dim by definition
+            deprecate_ndim_indexing(result)
             assert isinstance(result, np.ndarray), result
             return result
         return type(self)(result, name=self.name)

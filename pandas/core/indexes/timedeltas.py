@@ -23,7 +23,12 @@ from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.timedeltas import TimedeltaArray, _is_convertible_to_td
 from pandas.core.base import _shared_docs
 import pandas.core.common as com
-from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
+from pandas.core.indexes.base import (
+    Index,
+    _index_shared_docs,
+    deprecate_ndim_indexing,
+    maybe_extract_name,
+)
 from pandas.core.indexes.datetimelike import (
     DatetimeIndexOpsMixin,
     DatetimelikeDelegateMixin,
@@ -228,6 +233,9 @@ class TimedeltaIndex(
     def __getitem__(self, key):
         result = self._data.__getitem__(key)
         if is_scalar(result):
+            return result
+        if np.ndim(result) > 1:
+            deprecate_ndim_indexing(result)
             return result
         return type(self)(result, name=self.name)
 

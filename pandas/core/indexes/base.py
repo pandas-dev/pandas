@@ -3934,16 +3934,7 @@ class Index(IndexOpsMixin, PandasObject):
         result = getitem(key)
         if not is_scalar(result):
             if np.ndim(result) > 1:
-                # GH#27125 indexer like idx[:, None] expands dim, but we
-                #  cannot do that and keep an index, so return ndarray
-                # Deprecation GH#30588
-                warnings.warn(
-                    "Support for multi-dimensional indexing (e.g. `index[:, None]` "
-                    "on an Index is deprecated and will be removed in a future "
-                    "version.  Convert to a numpy array before indexing instead.",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
+                deprecate_ndim_indexing(result)
                 return result
             return promote(result)
         else:
@@ -5576,3 +5567,17 @@ def _try_convert_to_int_array(
         pass
 
     raise ValueError
+
+
+def deprecate_ndim_indexing(result):
+    if np.ndim(result) > 1:
+        # GH#27125 indexer like idx[:, None] expands dim, but we
+        #  cannot do that and keep an index, so return ndarray
+        # Deprecation GH#30588
+        warnings.warn(
+            "Support for multi-dimensional indexing (e.g. `index[:, None]`) "
+            "on an Index is deprecated and will be removed in a future "
+            "version.  Convert to a numpy array before indexing instead.",
+            DeprecationWarning,
+            stacklevel=3,
+        )

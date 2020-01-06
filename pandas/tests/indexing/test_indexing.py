@@ -101,7 +101,8 @@ class TestFancy(Base):
                 "categorical",
             ]
         ):
-            idxr[nd3]
+            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+                idxr[nd3]
         else:
             with pytest.raises(ValueError, match=msg):
                 with tm.assert_produces_warning(DeprecationWarning):

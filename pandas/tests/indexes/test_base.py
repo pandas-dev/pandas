@@ -1905,14 +1905,6 @@ class TestIndex(Base):
             idx.set_value(arr, idx[1], 80)
         assert arr[1] == 80
 
-    def test_getitem_2d_deprecated(self):
-        # GH#30588
-        idx = self.create_index()
-        with tm.assert_produces_warning(DeprecationWarning):
-            res = idx[:, None]
-
-        assert isinstance(res, np.ndarray)
-
     @pytest.mark.parametrize(
         "index", ["string", "int", "datetime", "timedelta"], indirect=True
     )
