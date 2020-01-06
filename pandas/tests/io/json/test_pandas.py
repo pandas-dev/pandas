@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import is_platform_32bit, is_platform_windows
+from pandas.core.dtypes.common import is_categorical
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -1201,13 +1202,12 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         json = (
             '{"a": 0, "b": "A"}\n'
             '{"a": 1, "b": "B"}\n'
-            '{"a": 2, "b": "B"}\n'
+            '{"a": 2, "b": "A"}\n'
             '{"a": 3, "b": "B"}\n'
         )
         json = StringIO(json)
-        result = read_json(json, lines=True, dtype={"a": "category"})
-        expected = DataFrame([[0, "foo"], [1, "bar"], [2, "foo"], [3, "bar"]])
-        tm.assert_frame_equal(result, expected)
+        result = read_json(json, lines=True, dtype={"b": "category"})
+        assert is_categorical(result["b"])
 
     def test_read_jsonl_unicode_chars(self):
         # GH15132: non-ascii unicode characters
