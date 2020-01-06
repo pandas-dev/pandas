@@ -11,6 +11,7 @@ from pandas._libs.tslibs.period import DIFFERENT_FREQ, IncompatibleFrequency, Pe
 from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
 from pandas._libs.tslibs.timestamps import RoundTo, round_nsint64
 from pandas._typing import DatetimeLikeScalar
+from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError, NullFrequencyError, PerformanceWarning
 from pandas.util._decorators import Appender, Substitution
@@ -37,17 +38,92 @@ from pandas.core.dtypes.generic import ABCIndexClass, ABCPeriodArray, ABCSeries
 from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
-from pandas.core import missing, nanops
+from pandas.core import missing, nanops, ops
 from pandas.core.algorithms import checked_add_with_arr, take, unique1d, value_counts
 import pandas.core.common as com
 from pandas.core.indexers import check_bool_array_indexer
 from pandas.core.ops.common import unpack_zerodim_and_defer
-from pandas.core.ops.invalid import make_invalid_op
+from pandas.core.ops.invalid import invalid_comparison, make_invalid_op
 
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import DateOffset, Tick
 
 from .base import ExtensionArray, ExtensionOpsMixin
+
+
+def _datetimelike_array_cmp(cls, op):
+    """
+    Wrap comparison operations to convert Timestamp/Timedelta/Period-like to
+    boxed scalars/arrays.
+    """
+    opname = f"__{op.__name__}__"
+    nat_result = opname == "__ne__"
+
+    @unpack_zerodim_and_defer(opname)
+    def wrapper(self, other):
+
+        if isinstance(other, str):
+            try:
+                # GH#18435 strings get a pass from tzawareness compat
+                other = self._scalar_from_string(other)
+            except ValueError:
+                # failed to parse as Timestamp/Timedelta/Period
+                return invalid_comparison(self, other, op)
+
+        if isinstance(other, self._recognized_scalars) or other is NaT:
+            other = self._scalar_type(other)
+            self._check_compatible_with(other)
+
+            other_i8 = self._unbox_scalar(other)
+
+            result = op(self.view("i8"), other_i8)
+            if isna(other):
+                result.fill(nat_result)
+
+        elif not is_list_like(other):
+            return invalid_comparison(self, other, op)
+
+        elif len(other) != len(self):
+            raise ValueError("Lengths must match")
+
+        else:
+            if isinstance(other, list):
+                # TODO: could use pd.Index to do inference?
+                other = np.array(other)
+
+            if not isinstance(other, (np.ndarray, type(self))):
+                return invalid_comparison(self, other, op)
+
+            if is_object_dtype(other):
+                # We have to use comp_method_OBJECT_ARRAY instead of numpy
+                #  comparison otherwise it would fail to raise when
+                #  comparing tz-aware and tz-naive
+                with np.errstate(all="ignore"):
+                    result = ops.comp_method_OBJECT_ARRAY(
+                        op, self.astype(object), other
+                    )
+                o_mask = isna(other)
+
+            elif not type(self)._is_recognized_dtype(other.dtype):
+                return invalid_comparison(self, other, op)
+
+            else:
+                # For PeriodDType this casting is unnecessary
+                other = type(self)._from_sequence(other)
+                self._check_compatible_with(other)
+
+                result = op(self.view("i8"), other.view("i8"))
+                o_mask = other._isnan
+
+            if o_mask.any():
+                result[o_mask] = nat_result
+
+        if self._hasnans:
+            result[self._isnan] = nat_result
+
+        return result
+
+    return set_function_name(wrapper, opname, cls)
 
 
 class AttributesMixin:
@@ -934,6 +1010,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
 
     # ------------------------------------------------------------------
     # Arithmetic Methods
+    _create_comparison_method = classmethod(_datetimelike_array_cmp)
 
     # pow is invalid for all three subclasses; TimedeltaArray will override
     #  the multiplication and division ops
@@ -1484,6 +1561,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         # Don't have to worry about NA `result`, since no NA went in.
         return self._box_func(result)
 
+
+DatetimeLikeArrayMixin._add_comparison_ops()
 
 # -------------------------------------------------------------------
 # Shared Constructor Helpers
