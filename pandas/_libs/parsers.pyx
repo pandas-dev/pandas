@@ -2,6 +2,7 @@
 # See LICENSE for the license
 import bz2
 import gzip
+import io
 import os
 import sys
 import time
@@ -637,11 +638,10 @@ cdef class TextReader:
                 raise ValueError(f'Unrecognized compression type: '
                                  f'{self.compression}')
 
-            if b'utf-16' in (self.encoding or b''):
-                # we need to read utf-16 through UTF8Recoder.
-                # if source is utf-16, convert source to utf-8 by UTF8Recoder.
-                source = icom.UTF8Recoder(source,
-                                          self.encoding.decode('utf-8'))
+            if self.encoding and isinstance(source, io.BufferedIOBase):
+                source = io.TextIOWrapper(
+                    source, self.encoding.decode('utf-8'), newline='')
+
                 self.encoding = b'utf-8'
                 self.c_encoding = <char*>self.encoding
 
