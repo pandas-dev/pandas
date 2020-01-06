@@ -6564,63 +6564,16 @@ class DataFrame(NDFrame):
         """
         from pandas.core.apply import frame_apply
 
-        # Old apply function, which will be used for each part of DataFrame
-        def partial_apply(dataframe):
-            op = frame_apply(
-                dataframe,
-                func=func,
-                axis=axis,
-                raw=raw,
-                result_type=result_type,
-                args=args,
-                kwds=kwds,
-            )
-            return op.get_result()
-
-        def get_dtype(dataframe, column):
-            return dataframe.dtypes.values[column]
-
-        if axis == 0 or axis == "index":
-            if self.shape[1] == 0:
-                return partial_apply(self)
-
-            frame = self.iloc[:, [0]]
-            result = partial_apply(frame)
-            if isinstance(result, Series):
-                results = result.values
-            else:
-                results = result
-
-            i = 1
-            while i < self.shape[1]:
-                type = get_dtype(self, i)
-                j = i + 1
-
-                # While the dtype of column is the same as previous ones,
-                # they are handled together
-                while j < self.shape[1] and pandas.core.dtypes.common.is_dtype_equal(
-                    type, get_dtype(self, j)
-                ):
-                    j += 1
-                frame = self.iloc[:, i:j]
-                i = j
-                result = partial_apply(frame)
-
-                if isinstance(result, Series):
-                    results = np.append(results, result.values)
-                else:
-                    for k in range(result.shape[0], results.shape[0]):
-                        result.loc[k, :] = np.nan
-                    for k in range(results.shape[0], result.shape[0]):
-                        results.loc[k, :] = np.nan
-                    results = pandas.concat([results, result], axis=1)
-
-            if isinstance(result, Series):
-                return Series(results, index=self.columns)
-            else:
-                return results
-        else:
-            return partial_apply(self)
+        op = frame_apply(
+            self,
+            func=func,
+            axis=axis,
+            raw=raw,
+            result_type=result_type,
+            args=args,
+            kwds=kwds,
+        )
+        return op.get_result()
 
     def applymap(self, func):
         """
