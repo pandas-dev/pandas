@@ -75,9 +75,6 @@ def _period_array_cmp(cls, op):
     def wrapper(self, other):
         ordinal_op = getattr(self.asi8, opname)
 
-        if is_list_like(other) and len(other) != len(self):
-            raise ValueError("Lengths must match")
-
         if isinstance(other, str):
             try:
                 other = self._scalar_from_string(other)
@@ -90,17 +87,21 @@ def _period_array_cmp(cls, op):
             other = Period(other, freq=self.freq)
             result = ordinal_op(other.ordinal)
 
-        if isinstance(other, Period):
+        if isinstance(other, self._recognized_scalars) or other is NaT:
+            other = self._scalar_type(other)
             self._check_compatible_with(other)
 
-            result = ordinal_op(other.ordinal)
+            other_i8 = self._unbox_scalar(other)
 
-        elif other is NaT:
-            result = np.empty(len(self.asi8), dtype=bool)
-            result.fill(nat_result)
+            result = op(self.view("i8"), other_i8)
+            if isna(other):
+                result.fill(nat_result)
 
         elif not is_list_like(other):
             return invalid_comparison(self, other, op)
+
+        elif len(other) != len(self):
+            raise ValueError("Lengths must match")
 
         else:
             if isinstance(other, list):
@@ -117,7 +118,7 @@ def _period_array_cmp(cls, op):
                     )
                 o_mask = isna(other)
 
-            elif not is_period_dtype(other):
+            elif not cls._is_recognized_dtype(other.dtype):
                 # e.g. is_timedelta64_dtype(other)
                 return invalid_comparison(self, other, op)
 
@@ -126,7 +127,7 @@ def _period_array_cmp(cls, op):
 
                 self._check_compatible_with(other)
 
-                result = ordinal_op(other.asi8)
+                result = op(self.view("i8"), other.view("i8"))
                 o_mask = other._isnan
 
             if o_mask.any():
@@ -195,6 +196,8 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     __array_priority__ = 1000
     _typ = "periodarray"  # ABCPeriodArray
     _scalar_type = Period
+    _recognized_scalars = (Period,)
+    _is_recognized_dtype = is_period_dtype
 
     # Names others delegate to us
     _other_ops: List[str] = []
