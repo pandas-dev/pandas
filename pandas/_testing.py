@@ -825,7 +825,7 @@ def assert_categorical_equal(
     if check_category_order:
         assert_index_equal(left.categories, right.categories, obj=f"{obj}.categories")
         assert_numpy_array_equal(
-            left.codes, right.codes, check_dtype=check_dtype, obj=f"{obj}.codes"
+            left.codes, right.codes, check_dtype=check_dtype, obj=f"{obj}.codes",
         )
     else:
         assert_index_equal(
@@ -965,7 +965,7 @@ def assert_numpy_array_equal(
         if err_msg is None:
             if left.shape != right.shape:
                 raise_assert_detail(
-                    obj, f"{obj} shapes are different", left.shape, right.shape
+                    obj, f"{obj} shapes are different", left.shape, right.shape,
                 )
 
             diff = 0
@@ -1149,7 +1149,10 @@ def assert_series_equal(
             # datetimelike may have different objects (e.g. datetime.datetime
             # vs Timestamp) but will compare equal
             if not Index(left.values).equals(Index(right.values)):
-                msg = f"[datetimelike_compat=True] {left.values} is not equal to {right.values}."
+                msg = (
+                    f"[datetimelike_compat=True] {left.values} "
+                    f"is not equal to {right.values}."
+                )
                 raise AssertionError(msg)
         else:
             assert_numpy_array_equal(
@@ -1306,7 +1309,7 @@ def assert_frame_equal(
     # shape comparison
     if left.shape != right.shape:
         raise_assert_detail(
-            obj, f"{obj} shape mismatch", f"{repr(left.shape)}", f"{repr(right.shape)}"
+            obj, f"{obj} shape mismatch", f"{repr(left.shape)}", f"{repr(right.shape)}",
         )
 
     if check_like:
@@ -2474,7 +2477,10 @@ def assert_produces_warning(
                     )
                 )
         if expected_warning:
-            msg = f"Did not see expected warning of class {repr(expected_warning.__name__)}"
+            msg = (
+                f"Did not see expected warning of class "
+                f"{repr(expected_warning.__name__)}"
+            )
             assert saw_warning, msg
         if raise_on_extra_warnings and extra_warnings:
             raise AssertionError(
