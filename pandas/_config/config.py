@@ -657,7 +657,9 @@ def _build_option_description(k: str) -> str:
 
     if d:
         rkey = d.rkey if d.rkey else ""
-        s += f"\n    (Deprecated, use `{rkey}` instead.)"
+        s += "\n    (Deprecated"
+        s += f", use `{rkey}` instead."
+        s += ")"
 
     return s
 
