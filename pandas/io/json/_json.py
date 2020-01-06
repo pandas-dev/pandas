@@ -12,7 +12,12 @@ from pandas._libs.tslibs import iNaT
 from pandas._typing import JSONSerializable
 from pandas.errors import AbstractMethodError
 
-from pandas.core.dtypes.common import ensure_str, is_period_dtype, is_categorical_dtype
+from pandas.core.dtypes.common import (
+    ensure_str,
+    is_period_dtype,
+    is_categorical_dtype,
+    pandas_dtype,
+)
 
 from pandas import DataFrame, MultiIndex, Series, isna, to_datetime
 from pandas.core.construction import create_series_with_explicit_dtype
@@ -893,7 +898,7 @@ class Parser:
                 if dtype is not None:
                     try:
                         if not is_categorical_dtype(dtype):
-                            dtype = np.dtype(dtype)
+                            dtype = pandas_dtype(dtype)
                         return data.astype(dtype), True
                     except (TypeError, ValueError):
                         return data, False
