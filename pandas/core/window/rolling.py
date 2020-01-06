@@ -24,7 +24,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
     is_scalar,
-    is_timedelta64_dtype,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.generic import (
@@ -43,11 +42,11 @@ from pandas.core.window.common import (
     WindowGroupByMixin,
     _doc_template,
     _flex_binary_moment,
-    _offset,
     _shared_docs,
-    _use_window,
-    _zsqrt,
+    calculate_center_offset,
     calculate_min_periods,
+    get_weighted_roll_func,
+    zsqrt,
 )
 from pandas.core.window.indexers import (
     BaseIndexer,
@@ -252,19 +251,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         url = "https://github.com/pandas-dev/pandas/issues/11704"
         raise NotImplementedError(f"See issue #11704 {url}")
 
-    def _get_index(self) -> Optional[np.ndarray]:
-        """
-        Return integer representations as an ndarray if index is frequency.
-
-        Returns
-        -------
-        None or ndarray
-        """
-
-        if self.is_freq_type:
-            return self._on.asi8
-        return None
-
     def _prep_values(self, values: Optional[np.ndarray] = None) -> np.ndarray:
         """Convert input to numpy arrays for Cython routines"""
         if values is None:
@@ -304,17 +290,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         index = obj.index
 
         if isinstance(result, np.ndarray):
-
-            # coerce if necessary
-            if block is not None:
-                if is_timedelta64_dtype(block.values.dtype):
-                    # TODO: do we know what result.dtype is at this point?
-                    #  i.e. can we just do an astype?
-                    from pandas import to_timedelta
-
-                    result = to_timedelta(result.ravel(), unit="ns").values.reshape(
-                        result.shape
-                    )
 
             if result.ndim == 1:
                 from pandas import Series
@@ -384,14 +359,11 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         if self.axis > result.ndim - 1:
             raise ValueError("Requested axis is larger then no. of argument dimensions")
 
-        offset = _offset(window, True)
+        offset = calculate_center_offset(window)
         if offset > 0:
-            if isinstance(result, (ABCSeries, ABCDataFrame)):
-                result = result.slice_shift(-offset, axis=self.axis)
-            else:
-                lead_indexer = [slice(None)] * result.ndim
-                lead_indexer[self.axis] = slice(offset, None)
-                result = np.copy(result[tuple(lead_indexer)])
+            lead_indexer = [slice(None)] * result.ndim
+            lead_indexer[self.axis] = slice(offset, None)
+            result = np.copy(result[tuple(lead_indexer)])
         return result
 
     def _get_roll_func(self, func_name: str) -> Callable:
@@ -424,17 +396,15 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             return self._get_roll_func(f"{func}_variable")
         return partial(self._get_roll_func(f"{func}_fixed"), win=self._get_window())
 
-    def _get_window_indexer(
-        self, index_as_array: Optional[np.ndarray], window: int
-    ) -> BaseIndexer:
+    def _get_window_indexer(self, window: int) -> BaseIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
         """
         if isinstance(self.window, BaseIndexer):
             return self.window
         if self.is_freq_type:
-            return VariableWindowIndexer(index_array=index_as_array, window_size=window)
-        return FixedWindowIndexer(index_array=index_as_array, window_size=window)
+            return VariableWindowIndexer(index_array=self._on.asi8, window_size=window)
+        return FixedWindowIndexer(window_size=window)
 
     def _apply(
         self,
@@ -476,8 +446,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
         blocks, obj = self._create_blocks()
         block_list = list(blocks)
-        index_as_array = self._get_index()
-        window_indexer = self._get_window_indexer(index_as_array, window)
+        window_indexer = self._get_window_indexer(window)
 
         results = []
         exclude: List[Scalar] = []
@@ -498,7 +467,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                 continue
 
             # calculation function
-            offset = _offset(window, center) if center else 0
+            offset = calculate_center_offset(window) if center else 0
             additional_nans = np.array([np.nan] * offset)
 
             if not is_weighted:
@@ -1051,15 +1020,6 @@ class Window(_Window):
             # GH #15662. `False` makes symmetric window, rather than periodic.
             return sig.get_window(win_type, window, False).astype(float)
 
-    def _get_weighted_roll_func(
-        self, cfunc: Callable, check_minp: Callable, **kwargs
-    ) -> Callable:
-        def func(arg, window, min_periods=None, closed=None):
-            minp = check_minp(min_periods, len(window))
-            return cfunc(arg, window, minp, **kwargs)
-
-        return func
-
     _agg_see_also_doc = dedent(
         """
     See Also
@@ -1127,7 +1087,7 @@ class Window(_Window):
     def sum(self, *args, **kwargs):
         nv.validate_window_func("sum", args, kwargs)
         window_func = self._get_roll_func("roll_weighted_sum")
-        window_func = self._get_weighted_roll_func(window_func, _use_window)
+        window_func = get_weighted_roll_func(window_func)
         return self._apply(
             window_func, center=self.center, is_weighted=True, name="sum", **kwargs
         )
@@ -1137,7 +1097,7 @@ class Window(_Window):
     def mean(self, *args, **kwargs):
         nv.validate_window_func("mean", args, kwargs)
         window_func = self._get_roll_func("roll_weighted_mean")
-        window_func = self._get_weighted_roll_func(window_func, _use_window)
+        window_func = get_weighted_roll_func(window_func)
         return self._apply(
             window_func, center=self.center, is_weighted=True, name="mean", **kwargs
         )
@@ -1147,7 +1107,7 @@ class Window(_Window):
     def var(self, ddof=1, *args, **kwargs):
         nv.validate_window_func("var", args, kwargs)
         window_func = partial(self._get_roll_func("roll_weighted_var"), ddof=ddof)
-        window_func = self._get_weighted_roll_func(window_func, _use_window)
+        window_func = get_weighted_roll_func(window_func)
         kwargs.pop("name", None)
         return self._apply(
             window_func, center=self.center, is_weighted=True, name="var", **kwargs
@@ -1157,7 +1117,7 @@ class Window(_Window):
     @Appender(_shared_docs["std"])
     def std(self, ddof=1, *args, **kwargs):
         nv.validate_window_func("std", args, kwargs)
-        return _zsqrt(self.var(ddof=ddof, name="std", **kwargs))
+        return zsqrt(self.var(ddof=ddof, name="std", **kwargs))
 
 
 class _Rolling(_Window):
@@ -1211,8 +1171,6 @@ class _Rolling_and_Expanding(_Rolling):
     def count(self):
 
         blocks, obj = self._create_blocks()
-        # Validate the index
-        self._get_index()
 
         window = self._get_window()
         window = min(window, len(obj)) if not self.center else window
@@ -1307,7 +1265,7 @@ class _Rolling_and_Expanding(_Rolling):
         kwargs.pop("_level", None)
         kwargs.pop("floor", None)
         window = self._get_window()
-        offset = _offset(window, self.center)
+        offset = calculate_center_offset(window) if self.center else 0
         if not is_bool(raw):
             raise ValueError("raw parameter must be `True` or `False`")
 
@@ -1478,7 +1436,7 @@ class _Rolling_and_Expanding(_Rolling):
         window_func = self._get_cython_func_type("roll_var")
 
         def zsqrt_func(values, begin, end, min_periods):
-            return _zsqrt(window_func(values, begin, end, min_periods, ddof=ddof))
+            return zsqrt(window_func(values, begin, end, min_periods, ddof=ddof))
 
         # ddof passed again for compat with groupby.rolling
         return self._apply(

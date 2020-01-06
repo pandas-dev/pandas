@@ -6,7 +6,7 @@ import pytest
 import pandas as pd
 import pandas._testing as tm
 from pandas.core import ops
-from pandas.core.arrays.sparse import SparseDtype
+from pandas.core.arrays.sparse import SparseArray, SparseDtype
 
 
 @pytest.fixture(params=["integer", "block"])
@@ -24,7 +24,7 @@ def mix(request):
 class TestSparseArrayArithmetics:
 
     _base = np.array
-    _klass = pd.SparseArray
+    _klass = SparseArray
 
     def _assert(self, a, b):
         tm.assert_numpy_array_equal(a, b)
@@ -391,15 +391,15 @@ class TestSparseArrayArithmetics:
 
 @pytest.mark.parametrize("op", [operator.eq, operator.add])
 def test_with_list(op):
-    arr = pd.SparseArray([0, 1], fill_value=0)
+    arr = SparseArray([0, 1], fill_value=0)
     result = op(arr, [0, 1])
-    expected = op(arr, pd.SparseArray([0, 1]))
+    expected = op(arr, SparseArray([0, 1]))
     tm.assert_sp_array_equal(result, expected)
 
 
 def test_with_dataframe():
     # GH#27910
-    arr = pd.SparseArray([0, 1], fill_value=0)
+    arr = SparseArray([0, 1], fill_value=0)
     df = pd.DataFrame([[1, 2], [3, 4]])
     result = arr.__add__(df)
     assert result is NotImplemented
@@ -407,7 +407,7 @@ def test_with_dataframe():
 
 def test_with_zerodim_ndarray():
     # GH#27910
-    arr = pd.SparseArray([0, 1], fill_value=0)
+    arr = SparseArray([0, 1], fill_value=0)
 
     result = arr * np.array(2)
     expected = arr * 2
@@ -416,23 +416,23 @@ def test_with_zerodim_ndarray():
 
 @pytest.mark.parametrize("ufunc", [np.abs, np.exp])
 @pytest.mark.parametrize(
-    "arr", [pd.SparseArray([0, 0, -1, 1]), pd.SparseArray([None, None, -1, 1])]
+    "arr", [SparseArray([0, 0, -1, 1]), SparseArray([None, None, -1, 1])]
 )
 def test_ufuncs(ufunc, arr):
     result = ufunc(arr)
     fill_value = ufunc(arr.fill_value)
-    expected = pd.SparseArray(ufunc(np.asarray(arr)), fill_value=fill_value)
+    expected = SparseArray(ufunc(np.asarray(arr)), fill_value=fill_value)
     tm.assert_sp_array_equal(result, expected)
 
 
 @pytest.mark.parametrize(
     "a, b",
     [
-        (pd.SparseArray([0, 0, 0]), np.array([0, 1, 2])),
-        (pd.SparseArray([0, 0, 0], fill_value=1), np.array([0, 1, 2])),
-        (pd.SparseArray([0, 0, 0], fill_value=1), np.array([0, 1, 2])),
-        (pd.SparseArray([0, 0, 0], fill_value=1), np.array([0, 1, 2])),
-        (pd.SparseArray([0, 0, 0], fill_value=1), np.array([0, 1, 2])),
+        (SparseArray([0, 0, 0]), np.array([0, 1, 2])),
+        (SparseArray([0, 0, 0], fill_value=1), np.array([0, 1, 2])),
+        (SparseArray([0, 0, 0], fill_value=1), np.array([0, 1, 2])),
+        (SparseArray([0, 0, 0], fill_value=1), np.array([0, 1, 2])),
+        (SparseArray([0, 0, 0], fill_value=1), np.array([0, 1, 2])),
     ],
 )
 @pytest.mark.parametrize("ufunc", [np.add, np.greater])
@@ -440,12 +440,12 @@ def test_binary_ufuncs(ufunc, a, b):
     # can't say anything about fill value here.
     result = ufunc(a, b)
     expected = ufunc(np.asarray(a), np.asarray(b))
-    assert isinstance(result, pd.SparseArray)
+    assert isinstance(result, SparseArray)
     tm.assert_numpy_array_equal(np.asarray(result), expected)
 
 
 def test_ndarray_inplace():
-    sparray = pd.SparseArray([0, 2, 0, 0])
+    sparray = SparseArray([0, 2, 0, 0])
     ndarray = np.array([0, 1, 2, 3])
     ndarray += sparray
     expected = np.array([0, 3, 2, 3])
@@ -453,19 +453,19 @@ def test_ndarray_inplace():
 
 
 def test_sparray_inplace():
-    sparray = pd.SparseArray([0, 2, 0, 0])
+    sparray = SparseArray([0, 2, 0, 0])
     ndarray = np.array([0, 1, 2, 3])
     sparray += ndarray
-    expected = pd.SparseArray([0, 3, 2, 3], fill_value=0)
+    expected = SparseArray([0, 3, 2, 3], fill_value=0)
     tm.assert_sp_array_equal(sparray, expected)
 
 
 @pytest.mark.parametrize("fill_value", [True, False])
 def test_invert(fill_value):
     arr = np.array([True, False, False, True])
-    sparray = pd.SparseArray(arr, fill_value=fill_value)
+    sparray = SparseArray(arr, fill_value=fill_value)
     result = ~sparray
-    expected = pd.SparseArray(~arr, fill_value=not fill_value)
+    expected = SparseArray(~arr, fill_value=not fill_value)
     tm.assert_sp_array_equal(result, expected)
 
 
@@ -473,7 +473,7 @@ def test_invert(fill_value):
 @pytest.mark.parametrize("op", [operator.pos, operator.neg])
 def test_unary_op(op, fill_value):
     arr = np.array([0, 1, np.nan, 2])
-    sparray = pd.SparseArray(arr, fill_value=fill_value)
+    sparray = SparseArray(arr, fill_value=fill_value)
     result = op(sparray)
-    expected = pd.SparseArray(op(arr), fill_value=op(fill_value))
+    expected = SparseArray(op(arr), fill_value=op(fill_value))
     tm.assert_sp_array_equal(result, expected)
