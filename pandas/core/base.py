@@ -8,6 +8,7 @@ from typing import Dict, FrozenSet, List, Optional
 import numpy as np
 
 import pandas._libs.lib as lib
+from pandas._typing import T
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -86,6 +87,14 @@ class PandasObject(DirNamesMixin):
         # no memory_usage attribute, so fall back to
         # object's 'sizeof'
         return super().__sizeof__()
+
+    def _ensure_type(self: T, obj) -> T:
+        """Ensure that an object has same type as self.
+
+        Used by type checkers.
+        """
+        assert isinstance(obj, type(self)), type(obj)
+        return obj
 
 
 class NoNewAttributesMixin:
@@ -618,24 +627,6 @@ class IndexOpsMixin:
         Return the transpose, which is by definition self.
         """,
     )
-
-    @property
-    def _is_homogeneous_type(self) -> bool:
-        """
-        Whether the object has a single dtype.
-
-        By definition, Series and Index are always considered homogeneous.
-        A MultiIndex may or may not be homogeneous, depending on the
-        dtypes of the levels.
-
-        See Also
-        --------
-        DataFrame._is_homogeneous_type : Whether all the columns in a
-            DataFrame have the same dtype.
-        MultiIndex._is_homogeneous_type : Whether all the levels of a
-            MultiIndex have the same dtype.
-        """
-        return True
 
     @property
     def shape(self):

@@ -4,7 +4,7 @@ import pytest
 
 import pandas as pd
 from pandas import MultiIndex
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_format(idx):

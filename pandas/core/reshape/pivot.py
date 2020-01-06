@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Callable, Dict, Tuple, Union
+from typing import TYPE_CHECKING, Callable, Dict, List, Tuple, Union
 
 import numpy as np
 
@@ -40,7 +40,7 @@ def pivot_table(
     columns = _convert_by(columns)
 
     if isinstance(aggfunc, list):
-        pieces = []
+        pieces: List[DataFrame] = []
         keys = []
         for func in aggfunc:
             table = pivot_table(
@@ -148,9 +148,7 @@ def pivot_table(
         table = table.sort_index(axis=1)
 
     if fill_value is not None:
-        filled = table.fillna(value=fill_value, downcast="infer")
-        assert filled is not None  # needed for mypy
-        table = filled
+        table = table._ensure_type(table.fillna(fill_value, downcast="infer"))
 
     if margins:
         if dropna:
@@ -461,7 +459,7 @@ def crosstab(
     margins_name: str = "All",
     dropna: bool = True,
     normalize=False,
-):
+) -> "DataFrame":
     """
     Compute a simple cross tabulation of two (or more) factors. By default
     computes a frequency table of the factors unless an array of values and an

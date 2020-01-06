@@ -10,7 +10,7 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame, Grouper, MultiIndex, Series, date_range, to_datetime
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 # our starting frame
@@ -47,7 +47,7 @@ for seed_nans in [True, False]:
         keys = "1st", "2nd", ["1st", "2nd"]
         for k, b in product(keys, bins):
             binned.append((df, k, b, n, m))
-            ids.append("{}-{}-{}".format(k, n, m))
+            ids.append(f"{k}-{n}-{m}")
 
 
 @pytest.mark.slow

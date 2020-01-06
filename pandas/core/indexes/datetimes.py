@@ -9,15 +9,7 @@ from pandas._libs import NaT, Timestamp, index as libindex, lib, tslib as libts
 from pandas._libs.tslibs import ccalendar, fields, parsing, timezones
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
-from pandas.core.dtypes.common import (
-    _NS_DTYPE,
-    ensure_int64,
-    is_float,
-    is_integer,
-    is_list_like,
-    is_scalar,
-)
-from pandas.core.dtypes.concat import concat_compat
+from pandas.core.dtypes.common import _NS_DTYPE, is_float, is_integer, is_scalar
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
@@ -35,6 +27,7 @@ from pandas.core.indexes.datetimelike import (
     DatetimelikeDelegateMixin,
     DatetimeTimedeltaMixin,
 )
+from pandas.core.indexes.extension import inherit_names
 from pandas.core.ops import get_op_result_name
 import pandas.core.tools.datetimes as tools
 
@@ -72,6 +65,7 @@ class DatetimeDelegateMixin(DatetimelikeDelegateMixin):
         "_local_timestamps",
         "_has_same_tz",
         "_format_native_types",
+        "__iter__",
     ]
     _extra_raw_properties = ["_box_func", "tz", "tzinfo", "dtype"]
     _delegated_properties = DatetimeArray._datetimelike_ops + _extra_raw_properties
@@ -84,9 +78,19 @@ class DatetimeDelegateMixin(DatetimelikeDelegateMixin):
         | set(_extra_raw_properties)
     )
     _raw_methods = set(_extra_raw_methods)
-    _delegate_class = DatetimeArray
 
 
+@inherit_names(["_timezone", "is_normalized", "_resolution"], DatetimeArray, cache=True)
+@inherit_names(
+    [
+        "_bool_ops",
+        "_object_ops",
+        "_field_ops",
+        "_datetimelike_ops",
+        "_datetimelike_methods",
+    ],
+    DatetimeArray,
+)
 @delegate_names(
     DatetimeArray, DatetimeDelegateMixin._delegated_properties, typ="property"
 )
@@ -195,7 +199,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
     Notes
     -----
     To learn more about the frequency strings, please see `this link
-    <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
     """
 
     _typ = "datetimeindex"
@@ -208,15 +212,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
 
     _is_numeric_dtype = False
     _infer_as_myclass = True
-
-    # Use faster implementation given we know we have DatetimeArrays
-    __iter__ = DatetimeArray.__iter__
-    # some things like freq inference make use of these attributes.
-    _bool_ops = DatetimeArray._bool_ops
-    _object_ops = DatetimeArray._object_ops
-    _field_ops = DatetimeArray._field_ops
-    _datetimelike_ops = DatetimeArray._datetimelike_ops
-    _datetimelike_methods = DatetimeArray._datetimelike_methods
 
     tz: Optional[tzinfo]
 
@@ -291,6 +286,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
         result = object.__new__(cls)
         result._data = dtarr
         result.name = name
+        result._no_setting_name = False
         # For groupby perf. See note in indexes/base about _index_data
         result._index_data = dtarr._data
         result._reset_identity()
@@ -299,21 +295,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
     # --------------------------------------------------------------------
 
     def __array__(self, dtype=None):
-        if (
-            dtype is None
-            and isinstance(self._data, DatetimeArray)
-            and getattr(self.dtype, "tz", None)
-        ):
-            msg = (
-                "Converting timezone-aware DatetimeArray to timezone-naive "
-                "ndarray with 'datetime64[ns]' dtype. In the future, this "
-                "will return an ndarray with 'object' dtype where each "
-                "element is a 'pandas.Timestamp' with the correct 'tz'.\n\t"
-                "To accept the future behavior, pass 'dtype=object'.\n\t"
-                "To keep the old behavior, pass 'dtype=\"datetime64[ns]\"'."
-            )
-            warnings.warn(msg, FutureWarning, stacklevel=3)
-            dtype = "M8[ns]"
         return np.asarray(self._data, dtype=dtype)
 
     @cache_readonly
@@ -398,35 +379,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
     # --------------------------------------------------------------------
     # Set Operation Methods
 
-    def _union(self, other, sort):
-        if not len(other) or self.equals(other) or not len(self):
-            return super()._union(other, sort=sort)
-
-        if len(other) == 0 or self.equals(other) or len(self) == 0:
-            return super().union(other, sort=sort)
-
-        if not isinstance(other, DatetimeIndex):
-            try:
-                other = DatetimeIndex(other)
-            except TypeError:
-                pass
-
-        this, other = self._maybe_utc_convert(other)
-
-        if this._can_fast_union(other):
-            return this._fast_union(other, sort=sort)
-        else:
-            result = Index._union(this, other, sort=sort)
-            if isinstance(result, DatetimeIndex):
-                # TODO: we shouldn't be setting attributes like this;
-                #  in all the tests this equality already holds
-                result._data._dtype = this.dtype
-                if result.freq is None and (
-                    this.freq is not None or other.freq is not None
-                ):
-                    result._set_freq("infer")
-            return result
-
     def union_many(self, others):
         """
         A bit of a hack to accelerate unioning a collection of indexes.
@@ -456,45 +408,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
                     #  in all the tests this equality already holds
                     this._data._dtype = dtype
         return this
-
-    def _fast_union(self, other, sort=None):
-        if len(other) == 0:
-            return self.view(type(self))
-
-        if len(self) == 0:
-            return other.view(type(self))
-
-        # Both DTIs are monotonic. Check if they are already
-        # in the "correct" order
-        if self[0] <= other[0]:
-            left, right = self, other
-        # DTIs are not in the "correct" order and we don't want
-        # to sort but want to remove overlaps
-        elif sort is False:
-            left, right = self, other
-            left_start = left[0]
-            loc = right.searchsorted(left_start, side="left")
-            right_chunk = right.values[:loc]
-            dates = concat_compat((left.values, right_chunk))
-            return self._shallow_copy(dates)
-        # DTIs are not in the "correct" order and we want
-        # to sort
-        else:
-            left, right = other, self
-
-        left_end = left[-1]
-        right_end = right[-1]
-
-        # TODO: consider re-implementing freq._should_cache for fastpath
-
-        # concatenate dates
-        if left_end < right_end:
-            loc = right.searchsorted(left_end, side="right")
-            right_chunk = right.values[loc:]
-            dates = concat_compat((left.values, right_chunk))
-            return self._shallow_copy(dates)
-        else:
-            return left
 
     def _wrap_setop_result(self, other, result):
         name = get_op_result_name(self, other)
@@ -962,10 +875,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
     # --------------------------------------------------------------------
     # Wrapping DatetimeArray
 
-    _timezone = cache_readonly(DatetimeArray._timezone.fget)  # type: ignore
-    is_normalized = cache_readonly(DatetimeArray.is_normalized.fget)  # type: ignore
-    _resolution = cache_readonly(DatetimeArray._resolution.fget)  # type: ignore
-
     def __getitem__(self, key):
         result = self._data.__getitem__(key)
         if is_scalar(result):
@@ -1045,34 +954,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
             if isinstance(item, str):
                 return self.astype(object).insert(loc, item)
             raise TypeError("cannot insert DatetimeIndex with incompatible label")
-
-    def delete(self, loc):
-        """
-        Make a new DatetimeIndex with passed location(s) deleted.
-
-        Parameters
-        ----------
-        loc: int, slice or array of ints
-            Indicate which sub-arrays to remove.
-
-        Returns
-        -------
-        new_index : DatetimeIndex
-        """
-        new_dates = np.delete(self.asi8, loc)
-
-        freq = None
-        if is_integer(loc):
-            if loc in (0, -len(self), -1, len(self) - 1):
-                freq = self.freq
-        else:
-            if is_list_like(loc):
-                loc = lib.maybe_indices_to_slice(ensure_int64(np.array(loc)), len(self))
-            if isinstance(loc, slice) and loc.step in (1, None):
-                if loc.start in (0, None) or loc.stop in (len(self), None):
-                    freq = self.freq
-
-        return self._shallow_copy(new_dates, freq=freq)
 
     def indexer_at_time(self, time, asof=False):
         """
@@ -1165,7 +1046,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
 DatetimeIndex._add_comparison_ops()
 DatetimeIndex._add_numeric_methods_disabled()
 DatetimeIndex._add_logical_methods_disabled()
-DatetimeIndex._add_datetimelike_methods()
 
 
 def date_range(
@@ -1227,7 +1107,7 @@ def date_range(
     ``start`` and ``end`` (closed on both sides).
 
     To learn more about the frequency strings, please see `this link
-    <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
 
     Examples
     --------
@@ -1398,7 +1278,7 @@ def bdate_range(
     desired.
 
     To learn more about the frequency strings, please see `this link
-    <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
 
     Examples
     --------
