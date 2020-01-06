@@ -317,7 +317,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
         return type(self)(self._data[item], self._mask[item])
 
     def to_numpy(
-        self, dtype=None, copy=False, na_value: "Scalar" = lib._no_default, **kwargs
+        self, dtype=None, copy=False, na_value: "Scalar" = lib._no_default,
     ):
         """
         Convert to a NumPy Array.
