@@ -581,7 +581,6 @@ Deprecations
 - ``pandas.SparseArray`` has been deprecated.  Use ``pandas.arrays.SparseArray`` (:class:`arrays.SparseArray`) instead. (:issue:`30642`)
 - The parameter ``is_copy`` of :meth:`DataFrame.take` has been deprecated and will be removed in a future version. (:issue:`27357`)
 
-
 **Selecting Columns from a Grouped DataFrame**
 
 When selecting columns from a :class:`DataFrameGroupBy` object, passing individual keys (or a tuple of keys) inside single brackets is deprecated,
