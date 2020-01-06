@@ -1947,7 +1947,7 @@ class Index(IndexOpsMixin, PandasObject):
             raise ValueError(f"invalid how option: {how}")
 
         if self.hasnans:
-            return self._shallow_copy(self.values[~self._isnan])
+            return self._shallow_copy(self._values[~self._isnan])
         return self._shallow_copy()
 
     # --------------------------------------------------------------------
@@ -2568,11 +2568,11 @@ class Index(IndexOpsMixin, PandasObject):
         left_indexer = np.setdiff1d(
             np.arange(this.size), common_indexer, assume_unique=True
         )
-        left_diff = this.values.take(left_indexer)
+        left_diff = this._values.take(left_indexer)
 
         # {other} minus {this}
         right_indexer = (indexer == -1).nonzero()[0]
-        right_diff = other.values.take(right_indexer)
+        right_diff = other._values.take(right_indexer)
 
         the_diff = concat_compat([left_diff, right_diff])
         if sort is None:
