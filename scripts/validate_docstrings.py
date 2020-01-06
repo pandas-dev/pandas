@@ -357,7 +357,7 @@ class Docstring:
     @property
     def github_url(self):
         url = "https://github.com/pandas-dev/pandas/blob/master/"
-        url += "{}#L{}".format(self.source_file_name, self.source_file_def_line)
+        url += f"{self.source_file_name}#L{self.source_file_def_line}"
         return url
 
     @property
@@ -501,7 +501,7 @@ class Docstring:
         desc = self.doc_parameters[param][1]
         # Find and strip out any sphinx directives
         for directive in DIRECTIVES:
-            full_directive = ".. {}".format(directive)
+            full_directive = f".. {directive}"
             if full_directive in desc:
                 # Only retain any description before the directive
                 desc = desc[: desc.index(full_directive)]
@@ -825,14 +825,12 @@ def get_validation_data(doc):
                     "EX03",
                     error_code=err.error_code,
                     error_message=err.message,
-                    times_happening=" ({} times)".format(err.count)
-                    if err.count > 1
-                    else "",
+                    times_happening=f" ({err.count} times)" if err.count > 1 else "",
                 )
             )
         examples_source_code = "".join(doc.examples_source_code)
         for wrong_import in ("numpy", "pandas"):
-            if "import {}".format(wrong_import) in examples_source_code:
+            if f"import {wrong_import}" in examples_source_code:
                 errs.append(error("EX04", imported_library=wrong_import))
     return errs, wrns, examples_errs
 
@@ -920,7 +918,7 @@ def validate_all(prefix, ignore_deprecated=False):
     api_item_names = set(list(zip(*api_items))[0])
     for class_ in (pandas.Series, pandas.DataFrame):
         for member in inspect.getmembers(class_):
-            func_name = "pandas.{}.{}".format(class_.__name__, member[0])
+            func_name = f"pandas.{class_.__name__}.{member[0]}"
             if not member[0].startswith("_") and func_name not in api_item_names:
                 if prefix and not func_name.startswith(prefix):
                     continue
@@ -938,13 +936,9 @@ def main(func_name, prefix, errors, output_format, ignore_deprecated):
         full_line = char * width
         side_len = (width - len(title) - 2) // 2
         adj = "" if len(title) % 2 == 0 else " "
-        title_line = "{side} {title}{adj} {side}".format(
-            side=char * side_len, title=title, adj=adj
-        )
+        title_line = f"{char * side_len} {title}{adj} {char * side_len}"
 
-        return "\n{full_line}\n{title_line}\n{full_line}\n\n".format(
-            full_line=full_line, title_line=title_line
-        )
+        return f"\n{full_line}\n{title_line}\n{full_line}\n\n"
 
     exit_status = 0
     if func_name is None:
@@ -986,24 +980,24 @@ def main(func_name, prefix, errors, output_format, ignore_deprecated):
 
     else:
         result = validate_one(func_name)
-        sys.stderr.write(header("Docstring ({})".format(func_name)))
-        sys.stderr.write("{}\n".format(result["docstring"]))
+        sys.stderr.write(header(f"Docstring ({func_name})"))
+        sys.stderr.write(f"{result['docstring']}\n")
         sys.stderr.write(header("Validation"))
         if result["errors"]:
-            sys.stderr.write("{} Errors found:\n".format(len(result["errors"])))
+            sys.stderr.write(f"{len(result['errors'])} Errors found:\n")
             for err_code, err_desc in result["errors"]:
                 # Failing examples are printed at the end
                 if err_code == "EX02":
                     sys.stderr.write("\tExamples do not pass tests\n")
                     continue
-                sys.stderr.write("\t{}\n".format(err_desc))
+                sys.stderr.write(f"\t{err_desc}\n")
         if result["warnings"]:
-            sys.stderr.write("{} Warnings found:\n".format(len(result["warnings"])))
+            sys.stderr.write(f"{len(result['warnings'])} Warnings found:\n")
             for wrn_code, wrn_desc in result["warnings"]:
-                sys.stderr.write("\t{}\n".format(wrn_desc))
+                sys.stderr.write(f"\t{wrn_desc}\n")
 
         if not result["errors"]:
-            sys.stderr.write('Docstring for "{}" correct. :)\n'.format(func_name))
+            sys.stderr.write(f'Docstring for "{func_name}" correct. :)\n')
 
         if result["examples_errors"]:
             sys.stderr.write(header("Doctests"))
@@ -1027,7 +1021,7 @@ if __name__ == "__main__":
         choices=format_opts,
         help="format of the output when validating "
         "multiple docstrings (ignored when validating one)."
-        "It can be {}".format(str(format_opts)[1:-1]),
+        f"It can be {str(format_opts)[1:-1]}",
     )
     argparser.add_argument(
         "--prefix",
