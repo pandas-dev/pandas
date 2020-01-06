@@ -73,7 +73,6 @@ def _period_array_cmp(cls, op):
 
     @unpack_zerodim_and_defer(opname)
     def wrapper(self, other):
-        ordinal_op = getattr(self.asi8, opname)
 
         if isinstance(other, str):
             try:
