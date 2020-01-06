@@ -485,7 +485,7 @@ class TestToDatetime:
         invalid_data = "Month 1, 1999"
         expected_args = (
             f"Unknown string format: {invalid_data}. "
-            f"You can coerce to NaT by passing errors='coerce'"
+            "You can coerce to NaT by passing errors='coerce'"
         )
 
         with pytest.raises(ValueError, match=expected_args):

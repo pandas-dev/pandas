@@ -118,7 +118,7 @@ class TestTimedeltas:
             "You can coerce to NaT by passing errors='coerce'"
         )
         with pytest.raises(ValueError, match=expected_msg):
-            to_timedelta(invalid_data, errors="raise")
+            pd.to_timedelta(invalid_data, errors="raise")
 
     def test_to_timedelta_via_apply(self):
         # GH 5458
