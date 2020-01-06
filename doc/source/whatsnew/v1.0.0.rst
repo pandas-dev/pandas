@@ -581,7 +581,7 @@ Deprecations
 - The ``pandas.util.testing`` module has been deprecated. Use the public API in ``pandas.testing`` documented at :ref:`api.general.testing` (:issue:`16232`).
 - ``pandas.SparseArray`` has been deprecated.  Use ``pandas.arrays.SparseArray`` (:class:`arrays.SparseArray`) instead. (:issue:`30642`)
 - The parameter ``is_copy`` of :meth:`DataFrame.take` has been deprecated and will be removed in a future version. (:issue:`27357`)
-- Support for indexing indexing an :class:`Index` with ``index[:, None]`` is deprecated and will be removed in a future version (:issue:`30588`)
+- Support for indexing an :class:`Index` with ``index[:, None]`` is deprecated and will be removed in a future version (:issue:`30588`)
 
 **Selecting Columns from a Grouped DataFrame**
 
