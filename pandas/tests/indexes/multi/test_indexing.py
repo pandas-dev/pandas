@@ -337,30 +337,18 @@ class TestGetIndexer:
         result = idx.get_indexer(labels)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_get_indexer_and_fill():
+    def test_get_indexer_and_fill(self):
       """ test getting an indexer for another index using the backfill method """
       mult_idx_1 = MultiIndex.from_product([[0], [0, 2, 3, 4]])
       mult_idx_2 = MultiIndex.from_product([[0], [1, 3, 4]])
 
       assert_almost_equal(mult_idx_1.get_indexer(mult_idx_2), np.array([-1, 2, 3]))
-      assert_almost_equal(mult_idx_1.get_indexer(mult_idx_2, method='backfill'),
-                          np.array([1, 2, 3]))
       for method in ("bfill", "backfill"):
         assert_almost_equal(mult_idx_1.get_indexer(mult_idx_2, method=method),
                             np.array([1, 2, 3]))
       for method in ("ffill", "pad"):
         assert_almost_equal(mult_idx_1.get_indexer(mult_idx_2, method=method),
                             np.array([0, 2, 3]))
-
-    def test_get_indexer_pad(self):
-      """ test getting an indexer for another index using the pad method """
-      mult_idx_1 = MultiIndex.from_product([[0], [0, 2, 3, 4]])
-      mult_idx_2 = MultiIndex.from_product([[0], [1, 3, 4]])
-      padded_idx = np.array([0, 2, 3])
-
-      assert_almost_equal(mult_idx_1.get_indexer(mult_idx_2, method='ffill'),
-                          padded_idx)
-
 
 def test_getitem(idx):
     # scalar

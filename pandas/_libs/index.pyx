@@ -621,21 +621,14 @@ cdef class BaseMultiIndexCodesEngine:
             in zip(self.levels, zip(*target))
         ], dtype='uint64').T + 1
 
-        print('this gives us:\n{}'.format(str(level_codes)))
         # idk if truthy/falsy stuff works w/cython...
         # also this entire block should basically be moved into its own helper function
         # or something like that
         if method is not None:
-            print('method is {}, so we need any fills at level n to override '
-                  'all fills at level n + k, for all k > 0'.format(str(method)))
             level_codes_no_fill = np.array([
                 lev.get_indexer(codes) for lev, codes
                 in zip(self.levels, zip(*target))
             ], dtype='uint64').T + 1
-            print('without {}-style filling, the level_codes are:\n{}'.format(
-                  str(method),
-                  str(level_codes_no_fill)))
-
 
             # TODO: add arithmetic for (backfill-only) "incremementing" when we hit
             # a "0" (i.e. NaN, i.e. too large value) at level i (i.e. incremementing
@@ -657,60 +650,31 @@ cdef class BaseMultiIndexCodesEngine:
             # let's impl this now!
             # eventually let's see if this can be pulled out into a helper function
             if method == 'backfill':
-                print('we\'re backfilling, so we want to find values which we might '
-                      'need to be bumped to the next value in one or more levels or '
-                      'removed entirely')
                 for i, row in enumerate(level_codes):
-                    print('examining row: {}'.format(str(row)))
                     need_to_carry = False
                     # go from right to left for place-value arithmetic
                     for j in range(len(row) - 1, -1, -1):
-                        print('looking at row[{}], i.e. {}'.format(str(j), str(row[j])))
                         # this is AFTER backfilling, i.e. this means value was too large
                         # subtract 1 bc all values here have 1 added to them
                         max_val = len(self.levels[j])
-                        print('the highest value you can have in this row is: {}'.format(str(max_val)))
-                        if row[j] == 0 or (level_codes_no_fill[i][j] == max_val):
+                        if row[j] == 0:
                             need_to_carry = True
-                            print('row[{}], i.e. {}, is already too large (max val is {}), '
-                                  'or will be after incrementing, so we need to continue '
-                                  'carrying'.format(str(j), str(row[j]), str(max_val)))
-                        elif (row[j] == max_val):
-                            print('this row is at the max value, but since it was backfilled '
-                                  'up to it, we dont actually need to do anything')
-                            need_to_carry = False
 
                         if need_to_carry:
-                            print('we need to carry')
-                            new_val = row[j] + 1 if row[j] == level_codes_no_fill[i][j] else new_val
-                            print('new value would be {}'.format(new_val))
+                            new_val = row[j] + 1 if row[j] == level_codes_no_fill[i][j] else row[j]
                             if new_val > max_val or row[j] == 0:
-                                print('which it too big (if new_val is 1 and we\'re here, that\'s because '
-                                      'it was previously 0 *AFTER* backfilling), so we will see what '
-                                      'happens now')
                                 # if we're at the first row, then we're done, this whole thing
                                 # is too big
                                 if j == 0:
-                                    print('we\'re at the end, i.e. level 0, so we gotta just set the '
-                                          'whole thing to NaN, which we\'ll in turn need to clean up '
-                                          'later to prevent it from being backfilled to the smallest '
-                                          'value')
                                     for k in range(len(row)):
                                         row[k] = 0
-                                        print('the whole row is now: {}'.format(str(level_codes[i])))
                                 # we need to keep carrying, but will not necessarily be a problem
                                 else:
-                                    print('we\'re not at the end, so there\'s still hope -- setting this '
-                                          'to 1, i.e. min value, since that\'s what it should be if the "next", '
-                                          'i.e. next one to the *left*, can be bumped')
                                     row[j] = 1
                             # done carrying, for now
                             else:
-                                print('new value, {}, is legit, so we can stop carrying for now'.format(
-                                      str(new_val)))
                                 row[j] = new_val
                                 need_to_carry = False
-                                print('`need_to_carry` is now False, continuing')
 
             # MOTIVATION:
             # this is basically just backfilling/forward-filling a tuple into a list
@@ -743,35 +707,16 @@ cdef class BaseMultiIndexCodesEngine:
                   # that should either be the min val, if backfill, or the max, if
                   # using pad.  i think.  lemme mull this one over a bit more
                   if level_codes_no_fill[i][j] == 0 and level_codes[i][j] >= 1:
-                      print('without filling, level_codes[{}][{}], curently {}, would be {}'.format(
-                            str(i),
-                            str(j),
-                            str(level_codes[i][j]),
-                            '0'))
                       for k in range(j + 1, len(row)):
                           old_val = row[k]
                           row[k] = 1 if method == 'backfill' else len(self.levels[k])
-                          print('replaced level_codes[{}][{}], previously {}, with {}'.format(
-                                str(i),
-                                str(k),
-                                str(old_val),
-                                str(row[k])))
 
-        print('our cleaned-up level codes are now:\n{},\nwhich we\'ll pass to self._codes_to_ints()'.format(str(level_codes)))
-        int_reprs = self._codes_to_ints(level_codes)
-        print('which, using the index backend\'s int representations, is:\n{}'.format(str(int_reprs)))
-        return int_reprs
-        #return self._codes_to_ints(level_codes)
+        return self._codes_to_ints(level_codes)
 
     def get_indexer(self, object target, object method=None,
                     object limit=None):
         lab_ints = self._extract_level_codes(target, method=method)
 
-        print('extracting level codes from {} on {} (w/method = {}) returned:\n{}'.format(
-              str(self),
-              str(target),
-              str(method),
-              str(lab_ints)))
         # All methods (exact, backfill, pad) directly map to the respective
         # methods of the underlying (integers) index...
         if method is not None:
@@ -796,28 +741,15 @@ cdef class BaseMultiIndexCodesEngine:
             if method == 'backfill':
               # inherently necessary bc NaNs are stored as a value which would
               # otherwise be backfilled to zero
-              print('method is backfill, doing some cleanup, let\'s see if it\'s sufficient... ')
-              print('lab_ints (after re-ordering) is: {}'.format(str(lab_ints)))
-              print('indexer is: {}'.format(str(indexer)))
-              #indexer = np.array([
-              #    idx if lab_ints[i] != nan_val else -1
-              #    for i, idx in enumerate(indexer)
-              #], dtype=indexer.dtype)
               # any too-large values will be backfilled into the minimum index value
               for i in range(len(indexer)):
                   if lab_ints[i] == 0:
-                      print('lab_ints[{}] = {}, but was (incorrectly) backfilled to {}, re-setting to -1'.format(
-                            str(i),
-                            str(lab_ints[i]),
-                            str(indexer[i])))
                       indexer[i] = -1
-              print('after cleanup, indexer is: {}'.format(str(indexer)))
 
             # TODO: try using argsort more to accomplish this.  does not matter for now, though
             new_indexer = [0] * len(indexer)
             for i, idx in enumerate(order):
               new_indexer[idx] = indexer[i]
-            print('after fixing order, indexer is: {}'.format(str(new_indexer)))
             return new_indexer
         else:
             indexer = self._base.get_indexer(self, lab_ints)
