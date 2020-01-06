@@ -1076,10 +1076,9 @@ class DatetimeIndexResampler(Resampler):
             raise AssertionError("axis must be 0")
         if self._from_selection:
             raise ValueError(
-                "Upsampling from level= or on= selection"
-                " is not supported, use .set_index(...)"
-                " to explicitly set index to"
-                " datetime-like"
+                "Upsampling from level= or on= selection "
+                "is not supported, use .set_index(...) "
+                "to explicitly set index to datetime-like"
             )
 
         ax = self.ax
@@ -1135,9 +1134,9 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         if self._from_selection:
             # see GH 14008, GH 12871
             msg = (
-                "Resampling from level= or on= selection"
-                " with a PeriodIndex is not currently supported,"
-                " use .set_index(...) to explicitly set index"
+                "Resampling from level= or on= selection "
+                "with a PeriodIndex is not currently supported, "
+                "use .set_index(...) to explicitly set index"
             )
             raise NotImplementedError(msg)
 

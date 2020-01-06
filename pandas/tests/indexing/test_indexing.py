@@ -83,8 +83,8 @@ class TestFancy(Base):
         msg = (
             r"Buffer has wrong number of dimensions \(expected 1,"
             r" got 3\)|"
-            "The truth value of an array with more than one element is"
-            " ambiguous|"
+            "The truth value of an array with more than one element is "
+            "ambiguous|"
             "Cannot index with multidimensional key|"
             r"Wrong number of dimensions. values.ndim != ndim \[3 != 1\]|"
             "No matching signature found|"  # TypeError
@@ -146,13 +146,13 @@ class TestFancy(Base):
         nd3 = np.random.randint(5, size=(2, 2, 2))
 
         msg = (
-            r"Buffer has wrong number of dimensions \(expected 1,"
-            r" got 3\)|"
-            "The truth value of an array with more than one element is"
-            " ambiguous|"
+            r"Buffer has wrong number of dimensions \(expected 1, "
+            r"got 3\)|"
+            "The truth value of an array with more than one element is "
+            "ambiguous|"
             "Only 1-dimensional input arrays are supported|"
-            "'pandas._libs.interval.IntervalTree' object has no attribute"
-            " 'set_value'|"  # AttributeError
+            "'pandas._libs.interval.IntervalTree' object has no attribute "
+            "'set_value'|"  # AttributeError
             "unhashable type: 'numpy.ndarray'|"  # TypeError
             "No matching signature found|"  # TypeError
             r"^\[\[\["  # pandas.core.indexing.IndexingError

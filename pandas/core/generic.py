@@ -6440,8 +6440,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if not is_dict_like(to_replace):
                 if not is_dict_like(regex):
                     raise TypeError(
-                        'If "to_replace" and "value" are both None'
-                        ' and "to_replace" is not a list, then '
+                        'If "to_replace" and "value" are both None '
+                        'and "to_replace" is not a list, then '
                         "regex must be a mapping"
                     )
                 to_replace = regex
@@ -6455,9 +6455,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if any(are_mappings):
                 if not all(are_mappings):
                     raise TypeError(
-                        "If a nested mapping is passed, all values"
-                        " of the top level mapping must be "
-                        "mappings"
+                        "If a nested mapping is passed, all values "
+                        "of the top level mapping must be mappings"
                     )
                 # passed a nested dict/Series
                 to_rep_dict = {}

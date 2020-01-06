@@ -132,8 +132,8 @@ class TestScalar(Base):
         result = s.at["a"]
         assert result == 1
         msg = (
-            "At based indexing on an non-integer index can only have"
-            " non-integer indexers"
+            "At based indexing on an non-integer index can only have "
+            "non-integer indexers"
         )
         with pytest.raises(ValueError, match=msg):
             s.at[0]

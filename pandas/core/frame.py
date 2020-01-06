@@ -7000,8 +7000,8 @@ Wild         185.0
                 other = Series(other)
             if other.name is None and not ignore_index:
                 raise TypeError(
-                    "Can only append a Series if ignore_index=True"
-                    " or if the Series has a name"
+                    "Can only append a Series if ignore_index=True "
+                    "or if the Series has a name"
                 )
 
             index = Index([other.name], name=self.index.name)

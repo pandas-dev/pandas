@@ -605,8 +605,8 @@ def get_grouper(
 
         if is_categorical_dtype(gpr) and len(gpr) != obj.shape[axis]:
             raise ValueError(
-                f"Length of grouper ({len(gpr)}) and axis ({obj.shape[axis]})"
-                " must be same length"
+                f"Length of grouper ({len(gpr)}) and axis ({obj.shape[axis]}) "
+                "must be same length"
             )
 
         # create the Grouping

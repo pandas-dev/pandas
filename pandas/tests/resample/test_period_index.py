@@ -82,9 +82,9 @@ class TestPeriodIndex:
             index=pd.MultiIndex.from_arrays([rng, index], names=["v", "d"]),
         )
         msg = (
-            "Resampling from level= or on= selection with a PeriodIndex is"
-            r" not currently supported, use \.set_index\(\.\.\.\) to"
-            " explicitly set index"
+            "Resampling from level= or on= selection with a PeriodIndex is "
+            r"not currently supported, use \.set_index\(\.\.\.\) to "
+            "explicitly set index"
         )
         with pytest.raises(NotImplementedError, match=msg):
             df.resample(freq, kind=kind, **kwargs)
@@ -130,8 +130,8 @@ class TestPeriodIndex:
         # These are incompatible period rules for resampling
         ts = simple_period_range_series("1/1/1990", "6/30/1995", freq="w-wed")
         msg = (
-            "Frequency <Week: weekday=2> cannot be resampled to {}, as they"
-            " are not sub or super periods"
+            "Frequency <Week: weekday=2> cannot be resampled to {}, as they "
+            "are not sub or super periods"
         ).format(expected_error_msg)
         with pytest.raises(IncompatibleFrequency, match=msg):
             ts.resample(rule).mean()
@@ -236,8 +236,8 @@ class TestPeriodIndex:
 
     def test_resample_incompat_freq(self):
         msg = (
-            "Frequency <MonthEnd> cannot be resampled to <Week: weekday=6>,"
-            " as they are not sub or super periods"
+            "Frequency <MonthEnd> cannot be resampled to <Week: weekday=6>, "
+            "as they are not sub or super periods"
         )
         with pytest.raises(IncompatibleFrequency, match=msg):
             Series(

@@ -120,8 +120,7 @@ def ints_to_pydatetime(const int64_t[:] arr, object tz=None, object freq=None,
     elif box == "datetime":
         func_create = create_datetime_from_ts
     else:
-        raise ValueError("box must be one of 'datetime', 'date', 'time' or"
-                         " 'timestamp'")
+        raise ValueError("box must be one of 'datetime', 'date', 'time' or 'timestamp'")
 
     if is_utc(tz) or tz is None:
         for i in range(n):

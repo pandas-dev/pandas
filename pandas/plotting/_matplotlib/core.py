@@ -229,10 +229,9 @@ class MPLPlot:
                 for char in s:
                     if char in matplotlib.colors.BASE_COLORS:
                         raise ValueError(
-                            "Cannot pass 'style' string with a color "
-                            "symbol and 'color' keyword argument. Please"
-                            " use one or the other or pass 'style' "
-                            "without a color symbol"
+                            "Cannot pass 'style' string with a color symbol and "
+                            "'color' keyword argument. Please use one or the other or "
+                            "pass 'style' without a color symbol"
                         )
 
     def _iter_data(self, data=None, keep_index=False, fillna=None):

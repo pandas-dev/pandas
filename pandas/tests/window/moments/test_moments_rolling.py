@@ -1128,8 +1128,8 @@ class TestRollingMomentsConsistency(ConsistencyBase):
         # GH3155
         # don't blow the stack
         msg = (
-            "arguments to moment function must be of type"
-            " np.ndarray/Series/DataFrame"
+            "arguments to moment function must be of type "
+            "np.ndarray/Series/DataFrame"
         )
         with pytest.raises(TypeError, match=msg):
             _flex_binary_moment(5, 6, None)

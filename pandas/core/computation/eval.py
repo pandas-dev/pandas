@@ -339,8 +339,8 @@ def eval(
         if parsed_expr.assigner is None:
             if multi_line:
                 raise ValueError(
-                    "Multi-line expressions are only valid"
-                    " if all expressions contain an assignment"
+                    "Multi-line expressions are only valid "
+                    "if all expressions contain an assignment"
                 )
             elif inplace:
                 raise ValueError("Cannot operate inplace if there is no assignment")

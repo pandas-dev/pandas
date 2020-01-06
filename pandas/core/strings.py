@@ -438,8 +438,8 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
 
         if regex.groups > 0:
             warnings.warn(
-                "This pattern has match groups. To actually get the"
-                " groups, use str.extract.",
+                "This pattern has match groups. To actually get the "
+                "groups, use str.extract.",
                 UserWarning,
                 stacklevel=3,
             )

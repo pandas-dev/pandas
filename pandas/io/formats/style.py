@@ -1272,9 +1272,9 @@ class Styler:
             color = [color[0], color[0]]
         elif len(color) > 2:
             raise ValueError(
-                "`color` must be string or a list-like"
-                " of length 2: [`color_neg`, `color_pos`]"
-                " (eg: color=['#d65f5f', '#5fba7d'])"
+                "`color` must be string or a list-like "
+                "of length 2: [`color_neg`, `color_pos`] "
+                "(eg: color=['#d65f5f', '#5fba7d'])"
             )
 
         subset = _maybe_numeric_slice(self.data, subset)
