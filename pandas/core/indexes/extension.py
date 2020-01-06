@@ -3,10 +3,13 @@ Shared methods for Index subclasses backed by ExtensionArray.
 """
 from typing import List
 
+from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly
 
+from pandas.core.dtypes.common import ensure_platform_int
 from pandas.core.dtypes.generic import ABCSeries
 
+from pandas.core.arrays import ExtensionArray
 from pandas.core.ops import get_op_result_name
 
 from .base import Index
@@ -152,3 +155,24 @@ def _maybe_unwrap_index(obj):
     if isinstance(obj, Index):
         return obj._data
     return obj
+
+
+class ExtensionIndex(Index):
+    """
+    Index subclass for indexes backed by ExtensionArray.
+    """
+
+    _data: ExtensionArray
+
+    def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
+        nv.validate_take(tuple(), kwargs)
+        indices = ensure_platform_int(indices)
+
+        taken = self._assert_take_fillable(
+            self._data,
+            indices,
+            allow_fill=allow_fill,
+            fill_value=fill_value,
+            na_value=self._na_value,
+        )
+        return type(self)(taken, name=self.name)

@@ -2414,7 +2414,7 @@ class TestDataFrameConstructors:
         "extension_arr",
         [
             Categorical(list("aabbc")),
-            pd.SparseArray([1, np.nan, np.nan, np.nan]),
+            pd.arrays.SparseArray([1, np.nan, np.nan, np.nan]),
             IntervalArray([pd.Interval(0, 1), pd.Interval(1, 5)]),
             PeriodArray(pd.period_range(start="1/1/2017", end="1/1/2018", freq="M")),
         ],
