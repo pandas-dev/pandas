@@ -381,7 +381,7 @@ class TimedeltaIndex(
     def inferred_type(self) -> str:
         return "timedelta64"
 
-    def insert(self, loc, item):
+    def insert(self, loc: int, item):
         """
         Make new Index inserting new item at location
 
@@ -408,15 +408,19 @@ class TimedeltaIndex(
             item = self._na_value
 
         freq = None
-        if isinstance(item, Timedelta) or (is_scalar(item) and isna(item)):
+        if isinstance(item, self._data._recognized_scalars) or item is NaT:
+            item = self._data._scalar_type(item)
+            self._data._check_compatible_with(item, setitem=True)
 
             # check freq can be preserved on edge cases
-            if self.freq is not None:
-                if (loc == 0 or loc == -len(self)) and item + self.freq == self[0]:
+            if self.size and self.freq is not None:
+                if item is NaT:
+                    pass
+                elif (loc == 0 or loc == -len(self)) and item + self.freq == self[0]:
                     freq = self.freq
                 elif (loc == len(self)) and item - self.freq == self[-1]:
                     freq = self.freq
-            item = Timedelta(item).asm8.view(_TD_DTYPE)
+            item = item.asm8
 
         try:
             new_tds = np.concatenate(

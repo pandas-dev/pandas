@@ -907,7 +907,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
         # sure we can't have ambiguous indexing
         return "datetime64"
 
-    def insert(self, loc, item):
+    def insert(self, loc: int, item):
         """
         Make new Index inserting new item at location
 
@@ -928,10 +928,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
 
         freq = None
 
-        if isinstance(item, (datetime, np.datetime64)):
-            self._assert_can_do_op(item)
-            if not self._has_same_tz(item) and not isna(item):
-                raise ValueError("Passed item and index have different timezone")
+        if isinstance(item, self._data._recognized_scalars) or item is NaT:
+            item = self._data._scalar_type(item)
+            self._data._check_compatible_with(item, setitem=True)
 
             # check freq can be preserved on edge cases
             if self.size and self.freq is not None:
@@ -941,7 +940,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
                     freq = self.freq
                 elif (loc == len(self)) and item - self.freq == self[-1]:
                     freq = self.freq
-            item = _to_M8(item, tz=self.tz)
+            item = item.asm8
 
         try:
             new_dates = np.concatenate(
