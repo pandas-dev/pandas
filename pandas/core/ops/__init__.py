@@ -10,6 +10,7 @@ from typing import Set, Tuple, Union
 import numpy as np
 
 from pandas._libs import Timedelta, Timestamp, lib
+from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op  # noqa:F401
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import is_list_like, is_timedelta64_dtype
@@ -31,7 +32,6 @@ from pandas.core.ops.array_ops import (
 )
 from pandas.core.ops.array_ops import comp_method_OBJECT_ARRAY  # noqa:F401
 from pandas.core.ops.common import unpack_zerodim_and_defer
-from pandas.core.ops.dispatch import maybe_dispatch_ufunc_to_dunder_op  # noqa:F401
 from pandas.core.ops.dispatch import should_series_dispatch
 from pandas.core.ops.docstrings import (
     _arith_doc_FRAME,
