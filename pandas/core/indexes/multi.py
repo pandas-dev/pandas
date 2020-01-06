@@ -2672,7 +2672,7 @@ class MultiIndex(Index):
         key : label or sequence of labels
         level : int/level name or list thereof, optional
         drop_level : bool, default True
-            if ``False``, the resulting index will not drop any level.
+            If ``False``, the resulting index will not drop any level.
 
         Returns
         -------
