@@ -393,6 +393,7 @@ def test_drop_duplicates_inplace():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("inplace", [True, False])
 @pytest.mark.parametrize(
     "origin_dict, output_dict, ignore_index, output_index",
     [
@@ -403,24 +404,17 @@ def test_drop_duplicates_inplace():
     ],
 )
 def test_drop_duplicates_ignore_index(
-    origin_dict, output_dict, ignore_index, output_index
+    inplace, origin_dict, output_dict, ignore_index, output_index
 ):
     # GH 30114
     df = DataFrame(origin_dict)
     expected = DataFrame(output_dict, index=output_index)
 
-    # Test when inplace is False
-    result = df.drop_duplicates(ignore_index=ignore_index)
-    tm.assert_frame_equal(result, expected)
+    if inplace:
+        result_df = df.copy()
+        result_df.drop_duplicates(ignore_index=ignore_index, inplace=inplace)
+    else:
+        result_df = df.drop_duplicates(ignore_index=ignore_index, inplace=inplace)
 
-    # to verify original dataframe is not mutated
-    tm.assert_frame_equal(df, DataFrame(origin_dict))
-
-    # Test when inplace is True
-    copied_df = df.copy()
-
-    copied_df.drop_duplicates(ignore_index=ignore_index, inplace=True)
-    tm.assert_frame_equal(copied_df, expected)
-
-    # to verify that input is unchanged
+    tm.assert_frame_equal(result_df, expected)
     tm.assert_frame_equal(df, DataFrame(origin_dict))
