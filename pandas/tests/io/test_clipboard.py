@@ -6,7 +6,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, get_option, read_clipboard
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.io.clipboard import PyperclipException, clipboard_get, clipboard_set
 

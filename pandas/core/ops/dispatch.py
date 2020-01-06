@@ -1,11 +1,9 @@
 """
 Functions for defining unary operations.
 """
-from typing import Any, Callable, Union
+from typing import Any, Union
 
 import numpy as np
-
-from pandas.errors import NullFrequencyError
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
@@ -17,7 +15,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import ABCExtensionArray, ABCSeries
 
-from pandas._typing import ArrayLike
 from pandas.core.construction import array
 
 
@@ -97,10 +94,7 @@ def should_series_dispatch(left, right, op):
 
 
 def dispatch_to_extension_op(
-    op,
-    left: Union[ABCExtensionArray, np.ndarray],
-    right: Any,
-    keep_null_freq: bool = False,
+    op, left: Union[ABCExtensionArray, np.ndarray], right: Any,
 ):
     """
     Assume that left or right is a Series backed by an ExtensionArray,
@@ -111,9 +105,6 @@ def dispatch_to_extension_op(
     op : binary operator
     left : ExtensionArray or np.ndarray
     right : object
-    keep_null_freq : bool, default False
-        Whether to re-raise a NullFrequencyError unchanged, as opposed to
-        catching and raising TypeError.
 
     Returns
     -------
@@ -131,109 +122,5 @@ def dispatch_to_extension_op(
 
     # The op calls will raise TypeError if the op is not defined
     # on the ExtensionArray
-
-    try:
-        res_values = op(left, right)
-    except NullFrequencyError:
-        # DatetimeIndex and TimedeltaIndex with freq == None raise ValueError
-        # on add/sub of integers (or int-like).  We re-raise as a TypeError.
-        if keep_null_freq:
-            # TODO: remove keep_null_freq after Timestamp+int deprecation
-            #  GH#22535 is enforced
-            raise
-        raise TypeError(
-            "incompatible type for a datetime/timedelta "
-            "operation [{name}]".format(name=op.__name__)
-        )
+    res_values = op(left, right)
     return res_values
-
-
-def maybe_dispatch_ufunc_to_dunder_op(
-    self: ArrayLike, ufunc: Callable, method: str, *inputs: ArrayLike, **kwargs: Any
-):
-    """
-    Dispatch a ufunc to the equivalent dunder method.
-
-    Parameters
-    ----------
-    self : ArrayLike
-        The array whose dunder method we dispatch to
-    ufunc : Callable
-        A NumPy ufunc
-    method : {'reduce', 'accumulate', 'reduceat', 'outer', 'at', '__call__'}
-    inputs : ArrayLike
-        The input arrays.
-    kwargs : Any
-        The additional keyword arguments, e.g. ``out``.
-
-    Returns
-    -------
-    result : Any
-        The result of applying the ufunc
-    """
-    # special has the ufuncs we dispatch to the dunder op on
-    special = {
-        "add",
-        "sub",
-        "mul",
-        "pow",
-        "mod",
-        "floordiv",
-        "truediv",
-        "divmod",
-        "eq",
-        "ne",
-        "lt",
-        "gt",
-        "le",
-        "ge",
-        "remainder",
-        "matmul",
-        "or",
-        "xor",
-        "and",
-    }
-    aliases = {
-        "subtract": "sub",
-        "multiply": "mul",
-        "floor_divide": "floordiv",
-        "true_divide": "truediv",
-        "power": "pow",
-        "remainder": "mod",
-        "divide": "div",
-        "equal": "eq",
-        "not_equal": "ne",
-        "less": "lt",
-        "less_equal": "le",
-        "greater": "gt",
-        "greater_equal": "ge",
-        "bitwise_or": "or",
-        "bitwise_and": "and",
-        "bitwise_xor": "xor",
-    }
-
-    # For op(., Array) -> Array.__r{op}__
-    flipped = {
-        "lt": "__gt__",
-        "le": "__ge__",
-        "gt": "__lt__",
-        "ge": "__le__",
-        "eq": "__eq__",
-        "ne": "__ne__",
-    }
-
-    op_name = ufunc.__name__
-    op_name = aliases.get(op_name, op_name)
-
-    def not_implemented(*args, **kwargs):
-        return NotImplemented
-
-    if method == "__call__" and op_name in special and kwargs.get("out") is None:
-        if isinstance(inputs[0], type(self)):
-            name = "__{}__".format(op_name)
-            return getattr(self, name, not_implemented)(inputs[1])
-        else:
-            name = flipped.get(op_name, "__r{}__".format(op_name))
-            return getattr(self, name, not_implemented)(inputs[0])
-    else:
-        return NotImplemented

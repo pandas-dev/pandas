@@ -8,11 +8,11 @@ import pytz
 from pandas.core.dtypes.dtypes import registry
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.api.extensions import register_extension_dtype
 from pandas.api.types import is_scalar
 from pandas.core.arrays import PandasArray, integer_array, period_array
 from pandas.tests.extension.decimal import DecimalArray, DecimalDtype, to_decimal
-import pandas.util.testing as tm
 
 
 @pytest.mark.parametrize(
@@ -113,7 +113,7 @@ import pandas.util.testing as tm
             pd.arrays.IntervalArray.from_tuples([(1, 2), (3, 4)]),
         ),
         # Sparse
-        ([0, 1], "Sparse[int64]", pd.SparseArray([0, 1], dtype="int64")),
+        ([0, 1], "Sparse[int64]", pd.arrays.SparseArray([0, 1], dtype="int64")),
         # IntegerNA
         ([1, None], "Int16", integer_array([1, None], dtype="Int16")),
         (pd.Series([1, 2]), None, PandasArray(np.array([1, 2], dtype=np.int64))),
@@ -287,6 +287,13 @@ class DecimalDtype2(DecimalDtype):
 
     @classmethod
     def construct_array_type(cls):
+        """
+        Return the array type associated with this dtype.
+
+        Returns
+        -------
+        type
+        """
         return DecimalArray2
 
 

@@ -8,7 +8,7 @@ import pytest
 
 from pandas._libs.tslibs import iNaT
 
-from pandas.core.dtypes.dtypes import CategoricalDtype, ordered_sentinel
+from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
 from pandas import (
@@ -20,7 +20,7 @@ from pandas import (
     Timestamp,
     date_range,
 )
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestSeriesDtypes:
@@ -219,17 +219,6 @@ class TestSeriesDtypes:
         with pytest.raises(TypeError, match="got an unexpected"):
             s.astype("category", categories=["a", "b"], ordered=True)
 
-    @pytest.mark.parametrize(
-        "none, warning", [(None, None), (ordered_sentinel, FutureWarning)]
-    )
-    def test_astype_category_ordered_none_deprecated(self, none, warning):
-        # GH 26336: only warn if None is not explicitly passed
-        cdt1 = CategoricalDtype(categories=list("cdab"), ordered=True)
-        cdt2 = CategoricalDtype(categories=list("cedafb"), ordered=none)
-        s = Series(list("abcdaba"), dtype=cdt1)
-        with tm.assert_produces_warning(warning, check_stacklevel=False):
-            s.astype(cdt2)
-
     def test_astype_from_categorical(self):
         items = ["a", "b", "c", "a"]
         s = Series(items)
@@ -284,7 +273,7 @@ class TestSeriesDtypes:
         expected = s
         tm.assert_series_equal(s.astype("category"), expected)
         tm.assert_series_equal(s.astype(CategoricalDtype()), expected)
-        msg = r"could not convert string to float|" r"invalid literal for float\(\)"
+        msg = r"could not convert string to float|invalid literal for float\(\)"
         with pytest.raises(ValueError, match=msg):
             s.astype("float64")
 
@@ -475,13 +464,6 @@ class TestSeriesDtypes:
 
         assert actual.dtype == "object"
         tm.assert_series_equal(actual, expected)
-
-    def test_is_homogeneous_type(self):
-        with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
-            empty = Series()
-        assert empty._is_homogeneous_type
-        assert Series([1, 2])._is_homogeneous_type
-        assert Series(pd.Categorical([1, 2]))._is_homogeneous_type
 
     @pytest.mark.parametrize(
         "data",

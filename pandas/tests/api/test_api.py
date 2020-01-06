@@ -2,7 +2,7 @@ from typing import List
 
 import pandas as pd
 from pandas import api, compat
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class Base:
@@ -20,7 +20,6 @@ class Base:
 
 
 class TestPDApi(Base):
-
     # these are optionally imported based on testing
     # & need to be ignored
     ignored = ["tests", "locale", "conftest"]
@@ -68,7 +67,6 @@ class TestPDApi(Base):
         "RangeIndex",
         "UInt64Index",
         "Series",
-        "SparseArray",
         "SparseDtype",
         "StringDtype",
         "Timedelta",
@@ -92,7 +90,8 @@ class TestPDApi(Base):
         "NamedAgg",
     ]
     if not compat.PY37:
-        classes.extend(["Panel", "SparseSeries", "SparseDataFrame"])
+        classes.extend(["Panel", "SparseSeries", "SparseDataFrame", "SparseArray"])
+        deprecated_modules.extend(["np", "datetime"])
 
     # these are already deprecated; awaiting removal
     deprecated_classes: List[str] = []
@@ -101,7 +100,7 @@ class TestPDApi(Base):
     deprecated_classes_in_future: List[str] = []
 
     # external modules exposed in pandas namespace
-    modules = ["np", "datetime"]
+    modules: List[str] = []
 
     # top-level functions
     funcs = [
@@ -157,7 +156,6 @@ class TestPDApi(Base):
         "read_hdf",
         "read_html",
         "read_json",
-        "read_msgpack",
         "read_pickle",
         "read_sas",
         "read_sql",
@@ -167,11 +165,15 @@ class TestPDApi(Base):
         "read_table",
         "read_feather",
         "read_parquet",
+        "read_orc",
         "read_spss",
     ]
 
+    # top-level json funcs
+    funcs_json = ["json_normalize"]
+
     # top-level to_* funcs
-    funcs_to = ["to_datetime", "to_msgpack", "to_numeric", "to_pickle", "to_timedelta"]
+    funcs_to = ["to_datetime", "to_numeric", "to_pickle", "to_timedelta"]
 
     # top-level to deprecate in the future
     deprecated_funcs_in_future: List[str] = []
@@ -190,6 +192,7 @@ class TestPDApi(Base):
         "_np_version_under1p16",
         "_np_version_under1p17",
         "_np_version_under1p18",
+        "_testing",
         "_tslib",
         "_typing",
         "_version",
@@ -209,6 +212,7 @@ class TestPDApi(Base):
             + self.funcs
             + self.funcs_option
             + self.funcs_read
+            + self.funcs_json
             + self.funcs_to
             + self.deprecated_funcs_in_future
             + self.deprecated_funcs
@@ -216,22 +220,82 @@ class TestPDApi(Base):
             self.ignored,
         )
 
+    def test_depr(self):
+        deprecated = (
+            self.deprecated_modules
+            + self.deprecated_classes
+            + self.deprecated_classes_in_future
+            + self.deprecated_funcs
+            + self.deprecated_funcs_in_future
+        )
+        for depr in deprecated:
+            with tm.assert_produces_warning(FutureWarning):
+                if compat.PY37:
+                    getattr(pd, depr)
+                elif depr == "datetime":
+                    deprecated = getattr(pd, "__Datetime")
+                    deprecated().__getattr__(dir(pd.datetime)[-1])
+                else:
+                    deprecated = getattr(pd, depr)
+                    deprecated.__getattr__(dir(deprecated)[-1])
+
+
+def test_datetime():
+    from datetime import datetime
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", FutureWarning)
+        assert datetime(2015, 1, 2, 0, 0) == pd.datetime(2015, 1, 2, 0, 0)
+
+
+def test_np():
+    import numpy as np
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", FutureWarning)
+        assert (pd.np.arange(0, 10) == np.arange(0, 10)).all()
+
 
 class TestApi(Base):
-
     allowed = ["types", "extensions", "indexers"]
 
     def test_api(self):
-
         self.check(api, self.allowed)
 
 
 class TestTesting(Base):
-
-    funcs = ["assert_frame_equal", "assert_series_equal", "assert_index_equal"]
+    funcs = [
+        "assert_frame_equal",
+        "assert_series_equal",
+        "assert_index_equal",
+        "assert_equal",
+        "assert_almost_equal",
+        "assert_categorical_equal",
+        "assert_datetime_array_equal",
+        "assert_extension_array_equal",
+        "assert_interval_array_equal",
+        "assert_numpy_array_equal",
+        "assert_period_array_equal",
+        "assert_sp_array_equal",
+        "assert_timedelta_array_equal",
+    ]
 
     def test_testing(self):
-
         from pandas import testing
 
         self.check(testing, self.funcs)
+
+    def test_util_testing_deprecated(self):
+        s = pd.Series([], dtype="object")
+        with tm.assert_produces_warning(FutureWarning) as m:
+            import pandas.util.testing as tm2
+
+            tm2.assert_series_equal(s, s)
+
+        assert "pandas.testing.assert_series_equal" in str(m[0].message)
+
+        with tm.assert_produces_warning(FutureWarning) as m:
+            tm2.DataFrame
+        assert "removed" in str(m[0].message)

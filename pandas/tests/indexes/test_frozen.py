@@ -5,14 +5,20 @@ import pytest
 from pandas.core.indexes.frozen import FrozenList
 
 
-class CheckImmutableMixin:
-    mutable_regex = re.compile("does not support mutable operations")
+class TestFrozenList:
+
+    unicode_container = FrozenList(["\u05d0", "\u05d1", "c"])
+
+    def setup_method(self, _):
+        self.lst = [1, 2, 3, 4, 5]
+        self.container = FrozenList(self.lst)
 
     def check_mutable_error(self, *args, **kwargs):
         # Pass whatever function you normally would to pytest.raises
         # (after the Exception kind).
+        mutable_regex = re.compile("does not support mutable operations")
         with pytest.raises(TypeError):
-            self.mutable_regex(*args, **kwargs)
+            mutable_regex(*args, **kwargs)
 
     def test_no_mutable_funcs(self):
         def setitem():
@@ -34,7 +40,8 @@ class CheckImmutableMixin:
             del self.container[0:3]
 
         self.check_mutable_error(delslice)
-        mutable_methods = getattr(self, "mutable_methods", [])
+
+        mutable_methods = ("extend", "pop", "remove", "insert")
 
         for meth in mutable_methods:
             self.check_mutable_error(getattr(self.container, meth))
@@ -44,33 +51,18 @@ class CheckImmutableMixin:
         expected = self.lst[1:2]
         self.check_result(result, expected)
 
-    def check_result(self, result, expected, klass=None):
-        klass = klass or self.klass
-        assert isinstance(result, klass)
+    def check_result(self, result, expected):
+        assert isinstance(result, FrozenList)
         assert result == expected
 
-
-class CheckStringMixin:
     def test_string_methods_dont_fail(self):
         repr(self.container)
         str(self.container)
         bytes(self.container)
 
     def test_tricky_container(self):
-        if not hasattr(self, "unicode_container"):
-            pytest.skip("Need unicode_container to test with this")
         repr(self.unicode_container)
         str(self.unicode_container)
-
-
-class TestFrozenList(CheckImmutableMixin, CheckStringMixin):
-    mutable_methods = ("extend", "pop", "remove", "insert")
-    unicode_container = FrozenList(["\u05d0", "\u05d1", "c"])
-
-    def setup_method(self, _):
-        self.lst = [1, 2, 3, 4, 5]
-        self.container = FrozenList(self.lst)
-        self.klass = FrozenList
 
     def test_add(self):
         result = self.container + (1, 2, 3)

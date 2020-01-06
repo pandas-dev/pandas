@@ -10,7 +10,7 @@ import pandas._config.config as cf
 from pandas.compat.numpy import np_datetime64_compat
 
 from pandas import Index, Period, Series, Timestamp, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.plotting import (
     deregister_matplotlib_converters,
@@ -84,7 +84,7 @@ class TestRegistration:
         units = pytest.importorskip("matplotlib.units")
 
         # Can't make any assertion about the start state.
-        # We we check that toggling converters off remvoes it, and toggling it
+        # We we check that toggling converters off removes it, and toggling it
         # on restores it.
 
         with cf.option_context("plotting.matplotlib.register_converters", True):
@@ -268,7 +268,7 @@ class TestDateTimeConverter:
             val1 = self.dtc.convert(ts1, None, None)
             val2 = self.dtc.convert(ts2, None, None)
             if not val1 < val2:
-                raise AssertionError("{0} is not less than {1}.".format(val1, val2))
+                raise AssertionError(f"{val1} is not less than {val2}.")
 
         # Matplotlib's time representation using floats cannot distinguish
         # intervals smaller than ~10 microsecond in the common range of years.

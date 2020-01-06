@@ -8,8 +8,8 @@ import pandas.util._test_decorators as td
 from pandas.core.dtypes.dtypes import PeriodDtype, registry
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.core.arrays import PeriodArray, period_array
-import pandas.util.testing as tm
 
 # ----------------------------------------------------------------------------
 # Dtype

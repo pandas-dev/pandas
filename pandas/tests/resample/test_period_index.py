@@ -10,11 +10,11 @@ from pandas._libs.tslibs.period import IncompatibleFrequency
 
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp
+import pandas._testing as tm
 from pandas.core.indexes.base import InvalidIndexError
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import Period, PeriodIndex, period_range
 from pandas.core.resample import _get_period_range_edges
-import pandas.util.testing as tm
 
 import pandas.tseries.offsets as offsets
 
@@ -732,12 +732,9 @@ class TestPeriodIndex:
         expected = DataFrame({"value": expected_means}, index=expected_index)
 
         result_agg = df.resample("2D", loffset="2H", kind=kind).agg(agg_arg)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result_how = df.resample("2D", how=agg_arg, loffset="2H", kind=kind)
         if isinstance(agg_arg, list):
             expected.columns = pd.MultiIndex.from_tuples([("value", "mean")])
         tm.assert_frame_equal(result_agg, expected)
-        tm.assert_frame_equal(result_how, expected)
 
     @pytest.mark.parametrize("freq, period_mult", [("H", 24), ("12H", 2)])
     @pytest.mark.parametrize("kind", [None, "period"])

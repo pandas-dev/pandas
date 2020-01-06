@@ -1,5 +1,3 @@
-from collections import OrderedDict
-
 import pytest
 
 from pandas.util._validators import validate_args
@@ -58,11 +56,7 @@ def test_not_all_defaults(i):
         r"in the pandas implementation of {func}\(\)".format(arg=bad_arg, func=_fname)
     )
 
-    compat_args = OrderedDict()
-    compat_args["foo"] = 2
-    compat_args["bar"] = -1
-    compat_args["baz"] = 3
-
+    compat_args = {"foo": 2, "bar": -1, "baz": 3}
     arg_vals = (1, -1, 3)
 
     with pytest.raises(ValueError, match=msg):
@@ -73,8 +67,5 @@ def test_validation():
     # No exceptions should be raised.
     validate_args(_fname, (None,), 2, dict(out=None))
 
-    compat_args = OrderedDict()
-    compat_args["axis"] = 1
-    compat_args["out"] = None
-
+    compat_args = {"axis": 1, "out": None}
     validate_args(_fname, (1, None), 2, compat_args)
