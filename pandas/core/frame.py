@@ -2104,8 +2104,8 @@ class DataFrame(NDFrame):
         col_space_type="str or int",
         col_space="The minimum width of each column in CSS length "
         "units.  An int is assumed to be px units.\n\n"
-        "           .. versionadded:: 0.25.0\n"
-        "               Ability to use str",
+        "            .. versionadded:: 0.25.0\n"
+        "                Ability to use str",
     )
     @Substitution(shared_params=fmt.common_docstring, returns=fmt.return_docstring)
     def to_html(

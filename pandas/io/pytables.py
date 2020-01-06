@@ -5076,11 +5076,12 @@ class Selection:
             qkeys = ",".join(q.keys())
             raise ValueError(
                 f"The passed where expression: {where}\n"
-                "\t\t\tcontains an invalid variable reference\n"
-                "\t\t\tall of the variable references must be a reference to\n"
-                "\t\t\tan axis (e.g. 'index' or 'columns'), or a "
+                "            contains an invalid variable reference\n"
+                "            all of the variable references must be a "
+                "reference to\n"
+                "            an axis (e.g. 'index' or 'columns'), or a "
                 "data_column\n"
-                f"\t\t\tThe currently defined references are: {qkeys}\n"
+                f"            The currently defined references are: {qkeys}\n"
             )
 
     def select(self):
