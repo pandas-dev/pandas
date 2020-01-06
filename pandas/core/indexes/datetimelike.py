@@ -41,7 +41,12 @@ from pandas.core.tools.timedeltas import to_timedelta
 
 from pandas.tseries.frequencies import DateOffset, to_offset
 
-from .extension import inherit_names, make_wrapped_arith_op, make_wrapped_comparison_op
+from .extension import (
+    ExtensionIndex,
+    inherit_names,
+    make_wrapped_arith_op,
+    make_wrapped_comparison_op,
+)
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
@@ -81,7 +86,7 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
     ["__iter__", "mean", "freq", "freqstr", "_ndarray_values", "asi8", "_box_values"],
     DatetimeLikeArrayMixin,
 )
-class DatetimeIndexOpsMixin(ExtensionOpsMixin):
+class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
     """
     Common ops mixin to support a unified interface datetimelike Index.
     """
@@ -142,7 +147,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
     # ------------------------------------------------------------------------
 
-    def equals(self, other):
+    def equals(self, other) -> bool:
         """
         Determines if two Index objects contain the same elements.
         """
@@ -246,16 +251,13 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         if isinstance(maybe_slice, slice):
             return self[maybe_slice]
 
-        taken = self._assert_take_fillable(
-            self._data,
-            indices,
-            allow_fill=allow_fill,
-            fill_value=fill_value,
-            na_value=NaT,
+        taken = ExtensionIndex.take(
+            self, indices, axis, allow_fill, fill_value, **kwargs
         )
 
         # keep freq in PeriodArray/Index, reset otherwise
         freq = self.freq if is_period_dtype(self) else None
+        assert taken.freq == freq, (taken.freq, freq, taken)
         return self._shallow_copy(taken, freq=freq)
 
     _can_hold_na = True
@@ -805,6 +807,25 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             return self._shallow_copy(dates)
         else:
             return left
+
+    def _union(self, other, sort):
+        if not len(other) or self.equals(other) or not len(self):
+            return super()._union(other, sort=sort)
+
+        # We are called by `union`, which is responsible for this validation
+        assert isinstance(other, type(self))
+
+        this, other = self._maybe_utc_convert(other)
+
+        if this._can_fast_union(other):
+            return this._fast_union(other, sort=sort)
+        else:
+            result = Index._union(this, other, sort=sort)
+            if isinstance(result, type(self)):
+                assert result._data.dtype == this.dtype
+                if result.freq is None:
+                    result._set_freq("infer")
+            return result
 
     # --------------------------------------------------------------------
     # Join Methods

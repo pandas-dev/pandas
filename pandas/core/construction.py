@@ -497,13 +497,8 @@ def sanitize_array(
 
         if is_object_dtype(subarr.dtype) and not is_object_dtype(dtype):
             inferred = lib.infer_dtype(subarr, skipna=False)
-            if inferred == "period":
-                from pandas.core.arrays import period_array
-
-                try:
-                    subarr = period_array(subarr)
-                except IncompatibleFrequency:
-                    pass
+            if inferred in {"interval", "period"}:
+                subarr = array(subarr)
 
     return subarr
 

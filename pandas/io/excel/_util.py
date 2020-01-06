@@ -156,8 +156,8 @@ def _validate_freeze_panes(freeze_panes: Optional[Tuple[int, int]]) -> bool:
             return True
 
         raise ValueError(
-            "freeze_panes must be of form (row, column)"
-            " where row and column are integers"
+            "freeze_panes must be of form (row, column) "
+            "where row and column are integers"
         )
 
     # freeze_panes wasn't specified, return False so it won't be applied

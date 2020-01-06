@@ -612,9 +612,9 @@ def _make_parser_function(name, default_sep=","):
 
         if delim_whitespace and delimiter != default_sep:
             raise ValueError(
-                "Specified a delimiter with both sep and"
-                " delim_whitespace=True; you can only"
-                " specify one."
+                "Specified a delimiter with both sep and "
+                "delim_whitespace=True; you can only "
+                "specify one."
             )
 
         if engine is not None:
@@ -956,8 +956,8 @@ class TextFileReader(abc.Iterator):
         if sep is None and not delim_whitespace:
             if engine == "c":
                 fallback_reason = (
-                    "the 'c' engine does not support"
-                    " sep=None with delim_whitespace=False"
+                    "the 'c' engine does not support "
+                    "sep=None with delim_whitespace=False"
                 )
                 engine = "python"
         elif sep is not None and len(sep) > 1:
@@ -1120,9 +1120,9 @@ class TextFileReader(abc.Iterator):
                 klass = FixedWidthFieldParser
             else:
                 raise ValueError(
-                    f"Unknown engine: {engine} (valid options are"
-                    ' "c", "python", or'
-                    ' "python-fwf")'
+                    f"Unknown engine: {engine} (valid options are "
+                    '"c", "python", or '
+                    '"python-fwf")'
                 )
             self._engine = klass(self.f, **self.options)
 

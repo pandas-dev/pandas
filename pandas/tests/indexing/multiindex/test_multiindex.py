@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 
 import pandas._libs.index as _index
 from pandas.errors import PerformanceWarning
@@ -46,17 +45,6 @@ class TestMultiIndexBasic:
         idx = idx.drop("a")
         assert "a" in idx.levels[0]
         assert "a" not in idx
-
-    @pytest.mark.parametrize(
-        "data, expected",
-        [
-            (MultiIndex.from_product([(), ()]), True),
-            (MultiIndex.from_product([(1, 2), (3, 4)]), True),
-            (MultiIndex.from_product([("a", "b"), (1, 2)]), False),
-        ],
-    )
-    def test_multiindex_is_homogeneous_type(self, data, expected):
-        assert data._is_homogeneous_type is expected
 
     def test_indexing_over_hashtable_size_cutoff(self):
         n = 10000

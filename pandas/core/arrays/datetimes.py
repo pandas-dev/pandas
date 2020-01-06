@@ -26,12 +26,14 @@ from pandas.core.dtypes.common import (
     _INT64_DTYPE,
     _NS_DTYPE,
     is_categorical_dtype,
+    is_datetime64_any_dtype,
     is_datetime64_dtype,
     is_datetime64_ns_dtype,
     is_datetime64tz_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float_dtype,
+    is_list_like,
     is_object_dtype,
     is_period_dtype,
     is_string_dtype,
@@ -148,17 +150,22 @@ def _dt_array_cmp(cls, op):
                 # string that cannot be parsed to Timestamp
                 return invalid_comparison(self, other, op)
 
-        if isinstance(other, (datetime, np.datetime64)):
-            other = Timestamp(other)
+        if isinstance(other, self._recognized_scalars) or other is NaT:
+            other = self._scalar_type(other)
             self._assert_tzawareness_compat(other)
 
-            result = op(self.asi8, other.value)
+            other_i8 = other.value
+
+            result = op(self.view("i8"), other_i8)
             if isna(other):
                 result.fill(nat_result)
-        elif lib.is_scalar(other) or np.ndim(other) == 0:
+
+        elif not is_list_like(other):
             return invalid_comparison(self, other, op)
+
         elif len(other) != len(self):
             raise ValueError("Lengths must match")
+
         else:
             if isinstance(other, list):
                 other = np.array(other)
@@ -178,7 +185,7 @@ def _dt_array_cmp(cls, op):
                     )
                 o_mask = isna(other)
 
-            elif not (is_datetime64_dtype(other) or is_datetime64tz_dtype(other)):
+            elif not cls._is_recognized_dtype(other.dtype):
                 # e.g. is_timedelta64_dtype(other)
                 return invalid_comparison(self, other, op)
 
@@ -239,6 +246,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
 
     _typ = "datetimearray"
     _scalar_type = Timestamp
+    _recognized_scalars = (datetime, np.datetime64)
+    _is_recognized_dtype = is_datetime64_any_dtype
 
     # define my properties & methods for delegation
     _bool_ops = [
@@ -324,8 +333,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         if not isinstance(values, np.ndarray):
             msg = (
                 f"Unexpected type '{type(values).__name__}'. 'values' must be "
-                "a DatetimeArray ndarray, or Series or Index containing one of"
-                " those."
+                "a DatetimeArray ndarray, or Series or Index containing one of those."
             )
             raise ValueError(msg)
         if values.ndim not in [1, 2]:
@@ -545,11 +553,14 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
     def _scalar_from_string(self, value):
         return Timestamp(value, tz=self.tz)
 
-    def _check_compatible_with(self, other):
+    def _check_compatible_with(self, other, setitem: bool = False):
         if other is NaT:
             return
-        if not timezones.tz_compare(self.tz, other.tz):
-            raise ValueError(f"Timezones don't match. '{self.tz} != {other.tz}'")
+        self._assert_tzawareness_compat(other)
+        if setitem:
+            # Stricter check for setitem vs comparison methods
+            if not timezones.tz_compare(self.tz, other.tz):
+                raise ValueError(f"Timezones don't match. '{self.tz} != {other.tz}'")
 
     def _maybe_clear_freq(self):
         self._freq = None

@@ -351,8 +351,8 @@ class _Concatenator:
         for obj in objs:
             if not isinstance(obj, (Series, DataFrame)):
                 msg = (
-                    "cannot concatenate object of type '{typ}';"
-                    " only Series and DataFrame objs are valid".format(typ=type(obj))
+                    "cannot concatenate object of type '{typ}'; "
+                    "only Series and DataFrame objs are valid".format(typ=type(obj))
                 )
                 raise TypeError(msg)
 
@@ -402,8 +402,8 @@ class _Concatenator:
         self._is_series = isinstance(sample, Series)
         if not 0 <= axis <= sample.ndim:
             raise AssertionError(
-                "axis must be between 0 and {ndim}, input was"
-                " {axis}".format(ndim=sample.ndim, axis=axis)
+                "axis must be between 0 and {ndim}, input was "
+                "{axis}".format(ndim=sample.ndim, axis=axis)
             )
 
         # if we have mixed ndims, then convert to highest ndim
@@ -648,8 +648,8 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
             # make sure that all of the passed indices have the same nlevels
             if not len({idx.nlevels for idx in indexes}) == 1:
                 raise AssertionError(
-                    "Cannot concat indices that do"
-                    " not have the same number of levels"
+                    "Cannot concat indices that do "
+                    "not have the same number of levels"
                 )
 
             # also copies

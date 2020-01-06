@@ -51,6 +51,7 @@ from pandas.core.indexes.base import (
     maybe_extract_name,
 )
 from pandas.core.indexes.datetimes import DatetimeIndex, date_range
+from pandas.core.indexes.extension import make_wrapped_comparison_op
 from pandas.core.indexes.multi import MultiIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 from pandas.core.ops import get_op_result_name
@@ -58,7 +59,7 @@ from pandas.core.ops import get_op_result_name
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import DateOffset
 
-from .extension import inherit_names
+from .extension import ExtensionIndex, inherit_names
 
 if TYPE_CHECKING:
     from pandas import CategoricalIndex  # noqa: F401
@@ -233,7 +234,7 @@ def _setop(op_name: str, sort=None):
     overwrite=True,
 )
 @inherit_names(["is_non_overlapping_monotonic", "mid"], IntervalArray, cache=True)
-class IntervalIndex(IntervalMixin, Index, accessor.PandasDelegate):
+class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
     _typ = "intervalindex"
     _comparables = ["name"]
     _attributes = ["name", "closed"]
@@ -244,7 +245,12 @@ class IntervalIndex(IntervalMixin, Index, accessor.PandasDelegate):
     # Immutable, so we are able to cache computations like isna in '_mask'
     _mask = None
 
-    _raw_inherit = {"_ndarray_values", "__array__", "overlaps", "contains"}
+    _raw_inherit = {
+        "_ndarray_values",
+        "__array__",
+        "overlaps",
+        "contains",
+    }
 
     # --------------------------------------------------------------------
     # Constructors
@@ -1204,7 +1210,14 @@ class IntervalIndex(IntervalMixin, Index, accessor.PandasDelegate):
             return type(self)._simple_new(res, name=self.name)
         return Index(res)
 
+    @classmethod
+    def _add_comparison_methods(cls):
+        """ add in comparison methods """
+        cls.__eq__ = make_wrapped_comparison_op("__eq__")
+        cls.__ne__ = make_wrapped_comparison_op("__ne__")
 
+
+IntervalIndex._add_comparison_methods()
 IntervalIndex._add_logical_methods_disabled()
 
 

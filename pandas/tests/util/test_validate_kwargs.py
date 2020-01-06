@@ -22,8 +22,8 @@ def test_bad_kwarg():
 def test_not_all_none(i):
     bad_arg = "foo"
     msg = (
-        r"the '{arg}' parameter is not supported "
-        r"in the pandas implementation of {func}\(\)".format(arg=bad_arg, func=_fname)
+        fr"the '{bad_arg}' parameter is not supported "
+        fr"in the pandas implementation of {_fname}\(\)"
     )
 
     compat_args = {"foo": 1, "bar": "s", "baz": None}
