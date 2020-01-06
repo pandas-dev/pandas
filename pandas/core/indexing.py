@@ -962,7 +962,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                     s._maybe_update_cacher(clear=True)
 
                 # reset the sliced object if unique
-                self.obj[item] = s
+                self.obj.loc[:,item] = s
 
             # we need an iterable, with a ndim of at least 1
             # eg. don't pass through np.array(0)
