@@ -5,7 +5,7 @@ from pandas.core.dtypes.common import ensure_platform_int
 
 import pandas as pd
 from pandas import Float64Index, Index, Int64Index, RangeIndex
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from ..test_numeric import Numeric
 

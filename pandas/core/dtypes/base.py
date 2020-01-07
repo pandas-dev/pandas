@@ -236,6 +236,10 @@ class ExtensionDtype:
         """
         if not isinstance(string, str):
             raise TypeError(f"Expects a string, got {type(string).__name__}")
+
+        # error: Non-overlapping equality check (left operand type: "str", right
+        #  operand type: "Callable[[ExtensionDtype], str]")  [comparison-overlap]
+        assert isinstance(cls.name, str), (cls, type(cls.name))
         if string != cls.name:
             raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
         return cls()
@@ -276,10 +280,12 @@ class ExtensionDtype:
             return False
         elif isinstance(dtype, cls):
             return True
-        try:
-            return cls.construct_from_string(dtype) is not None
-        except TypeError:
-            return False
+        if isinstance(dtype, str):
+            try:
+                return cls.construct_from_string(dtype) is not None
+            except TypeError:
+                return False
+        return False
 
     @property
     def _is_numeric(self) -> bool:

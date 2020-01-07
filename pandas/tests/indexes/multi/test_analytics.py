@@ -5,7 +5,7 @@ from pandas.compat.numpy import _np_version_under1p17
 
 import pandas as pd
 from pandas import Index, MultiIndex, date_range, period_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_shift(idx):
@@ -348,9 +348,9 @@ def test_numpy_ufuncs(idx, func):
 )
 def test_numpy_type_funcs(idx, func):
     msg = (
-        f"ufunc '{func.__name__}' not supported for the input types, and the inputs"
-        " could not be safely coerced to any supported types according to"
-        " the casting rule ''safe''"
+        f"ufunc '{func.__name__}' not supported for the input types, and the inputs "
+        "could not be safely coerced to any supported types according to "
+        "the casting rule ''safe''"
     )
     with pytest.raises(TypeError, match=msg):
         func(idx)

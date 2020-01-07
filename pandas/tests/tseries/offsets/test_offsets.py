@@ -22,9 +22,9 @@ import pandas.compat as compat
 from pandas.compat.numpy import np_datetime64_compat
 from pandas.errors import PerformanceWarning
 
+import pandas._testing as tm
 from pandas.core.indexes.datetimes import DatetimeIndex, _to_M8, date_range
 from pandas.core.series import Series
-import pandas.util.testing as tm
 
 from pandas.io.pickle import read_pickle
 from pandas.tseries.frequencies import _get_offset, _offset_map
@@ -2792,8 +2792,8 @@ class TestCustomBusinessDay(Base):
 
     def test_apply_corner(self):
         msg = (
-            "Only know how to combine trading day with datetime, datetime64"
-            " or timedelta"
+            "Only know how to combine trading day "
+            "with datetime, datetime64 or timedelta"
         )
         with pytest.raises(ApplyTypeError, match=msg):
             CDay().apply(BMonthEnd())
