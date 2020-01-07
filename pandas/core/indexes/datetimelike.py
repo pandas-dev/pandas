@@ -514,7 +514,8 @@ class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
                 # Then it doesnt matter what other is, so go with it
                 other = NaT.value
             else:
-                raise TypeError(other)
+                other = NaT.value
+                #raise TypeError(other)
         else:
             raise TypeError(other)
 
