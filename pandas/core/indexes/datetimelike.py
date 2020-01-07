@@ -509,6 +509,10 @@ class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
             other = type(self._data)._from_sequence(other)
             # TODO: require dtype match
             other = other.view("i8")
+        elif other is None:
+            if cond.all():
+                # Then it doesnt matter what other is, so go with it
+                other = NaT.value
 
         result = np.where(cond, values, other).astype("i8")
         return self._shallow_copy(result)
