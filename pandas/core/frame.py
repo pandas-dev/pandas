@@ -72,8 +72,7 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     infer_dtype_from_object,
     is_bool_dtype,
-    is_dataclass_instance,
-    is_datetime64tz_dtype,
+    is_dataclass,
     is_dict_like,
     is_dtype_equal,
     is_extension_array_dtype,
@@ -112,7 +111,7 @@ from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexing import check_bool_indexer, convert_to_index_sliceable
 from pandas.core.internals import BlockManager
 from pandas.core.internals.construction import (
-    _dataclasses_to_dicts,
+    dataclasses_to_dicts,
     arrays_to_mgr,
     get_names_from_index,
     init_dict,
@@ -467,8 +466,8 @@ class DataFrame(NDFrame):
             if not isinstance(data, (abc.Sequence, ExtensionArray)):
                 data = list(data)
             if len(data) > 0:
-                if is_dataclass_instance(data[0]):
-                    data = _dataclasses_to_dicts(data)
+                if is_dataclass(data[0]):
+                    data = dataclasses_to_dicts(data)
                 if is_list_like(data[0]) and getattr(data[0], "ndim", 1) == 1:
                     if is_named_tuple(data[0]) and columns is None:
                         columns = data[0]._fields

@@ -424,7 +424,7 @@ def is_sequence(obj) -> bool:
         return False
 
 
-def is_dataclass_instance(item):
+def is_dataclass(item):
     """
     Checks if the object is a data-class instance
 
@@ -434,7 +434,7 @@ def is_dataclass_instance(item):
 
     Returns
     --------
-    is_dataclass_instance : bool
+    is_dataclass : bool
         True if the item is an instance of a data-class,
         will return false if you pass the data class itself
 
@@ -445,9 +445,9 @@ def is_dataclass_instance(item):
     ...     x: int
     ...     y: int
 
-    >>> is_dataclass_instance(Point)
+    >>> is_dataclass(Point)
     False
-    >>> is_dataclass_instance(Point(0,2))
+    >>> is_dataclass(Point(0,2))
     True
 
     """
