@@ -6645,7 +6645,6 @@ Wild         185.0
             # The reason is self._aggregate outputs different type of result if
             # any column is only used once in aggregation
             mask = True if any([len(v) == 1 for v in func.values()]) else False
-            print(mask)
             for col, fun in func.items():
                 if not mask:
                     s = result[col]
