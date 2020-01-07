@@ -172,7 +172,10 @@ the :ref:`custom window rolling documentation <stats.custom_rolling_window>`
 
 .. _whatsnew_1000.to_markdown:
 
-We've added :meth:`~DataFrame.to_markdown` for creating a markdown table (:issue:``)
+Converting to Markdown
+^^^^^^^^^^^^^^^^^^^^^^
+
+We've added :meth:`~DataFrame.to_markdown` for creating a markdown table (:issue:`11052`)
 
 .. ipython:: python
 
