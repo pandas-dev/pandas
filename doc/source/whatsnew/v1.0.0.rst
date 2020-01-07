@@ -197,6 +197,7 @@ Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - :meth:`DataFrame.to_string` added the ``max_colwidth`` parameter to control when wide columns are truncated (:issue:`9784`)
+- Added the ``na_value`` argument to :meth:`Series.to_numpy`, :meth:`Index.to_numpy` and :meth:`DataFrame.to_numpy` to control the value used for missing data (:issue:`30322`)
 - :meth:`MultiIndex.from_product` infers level names from inputs if not explicitly provided (:issue:`27292`)
 - :meth:`DataFrame.to_latex` now accepts ``caption`` and ``label`` arguments (:issue:`25436`)
 - The :ref:`integer dtype <integer_na>` with support for missing values and the
@@ -729,7 +730,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - Removed the previously deprecated keywords "how", "fill_method", and "limit" from :meth:`DataFrame.resample` (:issue:`30139`)
 - Passing an integer to :meth:`Series.fillna` or :meth:`DataFrame.fillna` with ``timedelta64[ns]`` dtype now raises ``TypeError`` (:issue:`24694`)
 - Passing multiple axes to :meth:`DataFrame.dropna` is no longer supported (:issue:`20995`)
-- Removed :meth:`Series.nonzero`, use `to_numpy().nonzero()` instead (:issue:`24048`)
+- Removed :meth:`Series.nonzero`, use ``to_numpy().nonzero()`` instead (:issue:`24048`)
 - Passing floating dtype ``codes`` to :meth:`Categorical.from_codes` is no longer supported, pass ``codes.astype(np.int64)`` instead (:issue:`21775`)
 - Removed the previously deprecated keyword "pat" from :meth:`Series.str.partition` and :meth:`Series.str.rpartition`, use "sep" instead (:issue:`23767`)
 - Removed :meth:`Series.put` (:issue:`27106`)

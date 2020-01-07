@@ -2232,7 +2232,8 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
     return objects
 
 
-_no_default = object()
+# Note: _no_default is exported to the public API in pandas.api.extensions
+_no_default = object()  #: Sentinel indicating the default value.
 
 
 @cython.boundscheck(False)

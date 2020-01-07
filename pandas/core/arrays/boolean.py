@@ -316,29 +316,81 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
 
         return type(self)(self._data[item], self._mask[item])
 
-    def _coerce_to_ndarray(self, dtype=None, na_value: "Scalar" = libmissing.NA):
+    def to_numpy(
+        self, dtype=None, copy=False, na_value: "Scalar" = lib._no_default,
+    ):
         """
-        Coerce to an ndarray of object dtype or bool dtype (if force_bool=True).
+        Convert to a NumPy Array.
+
+        By default converts to an object-dtype NumPy array. Specify the `dtype` and
+        `na_value` keywords to customize the conversion.
 
         Parameters
         ----------
         dtype : dtype, default object
-            The numpy dtype to convert to
+            The numpy dtype to convert to.
+        copy : bool, default False
+            Whether to ensure that the returned value is a not a view on
+            the array. Note that ``copy=False`` does not *ensure* that
+            ``to_numpy()`` is no-copy. Rather, ``copy=True`` ensure that
+            a copy is made, even if not strictly necessary. This is typically
+            only possible when no missing values are present and `dtype`
+            is a boolean dtype.
         na_value : scalar, optional
              Scalar missing value indicator to use in numpy array. Defaults
              to the native missing value indicator of this array (pd.NA).
+
+        Returns
+        -------
+        numpy.ndarray
+
+        Examples
+        --------
+        An object-dtype is the default result
+
+        >>> a = pd.array([True, False], dtype="boolean")
+        >>> a.to_numpy()
+        array([True, False], dtype=object)
+
+        When no missing values are present, a boolean dtype can be used.
+
+        >>> a.to_numpy(dtype="bool")
+        array([ True, False])
+
+        However, requesting a bool dtype will raise a ValueError if
+        missing values are present and the default missing value :attr:`NA`
+        is used.
+
+        >>> a = pd.array([True, False, pd.NA], dtype="boolean")
+        >>> a
+        <BooleanArray>
+        [True, False, NA]
+        Length: 3, dtype: boolean
+
+        >>> a.to_numpy(dtype="bool")
+        Traceback (most recent call last):
+        ...
+        ValueError: cannot convert to bool numpy array in presence of missing values
+
+        Specify a valid `na_value` instead
+
+        >>> a.to_numpy(dtype="bool", na_value=False)
+        array([ True, False, False])
         """
+        if na_value is lib._no_default:
+            na_value = libmissing.NA
         if dtype is None:
             dtype = object
-        if is_bool_dtype(dtype):
-            if not self._hasna:
-                return self._data
-            else:
+        if self._hasna:
+            if is_bool_dtype(dtype) and na_value is libmissing.NA:
                 raise ValueError(
                     "cannot convert to bool numpy array in presence of missing values"
                 )
-        data = self._data.astype(dtype)
-        data[self._mask] = na_value
+            # don't pass copy to astype -> always need a copy since we are mutating
+            data = self._data.astype(dtype)
+            data[self._mask] = na_value
+        else:
+            data = self._data.astype(dtype, copy=copy)
         return data
 
     __array_priority__ = 1000  # higher than ndarray so ops dispatch to us
@@ -349,7 +401,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
         We return an object array here to preserve our scalar values
         """
         # by default (no dtype specified), return an object array
-        return self._coerce_to_ndarray(dtype=dtype)
+        return self.to_numpy(dtype=dtype)
 
     def __arrow_array__(self, type=None):
         """
@@ -525,7 +577,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
         if is_float_dtype(dtype):
             na_value = np.nan
         # coerce
-        data = self._coerce_to_ndarray(na_value=na_value)
+        data = self.to_numpy(na_value=na_value)
         return astype_nansafe(data, dtype, copy=False)
 
     def value_counts(self, dropna=True):
