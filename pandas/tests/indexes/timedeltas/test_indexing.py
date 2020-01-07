@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Index, Timedelta, TimedeltaIndex, timedelta_range, notna
+from pandas import Index, Timedelta, TimedeltaIndex, notna, timedelta_range
 import pandas._testing as tm
 
 
@@ -58,7 +58,6 @@ class TestGetItem:
 
 
 class TestWhere:
-
     def test_where_invalid_dtypes(self):
         tdi = timedelta_range("1 day", periods=3, freq="D", name="idx")
 
