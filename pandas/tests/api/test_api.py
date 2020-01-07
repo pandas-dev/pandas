@@ -43,7 +43,7 @@ class TestPDApi(Base):
     ]
 
     # these are already deprecated; awaiting removal
-    deprecated_modules: List[str] = []
+    deprecated_modules: List[str] = ["np", "datetime"]
 
     # misc
     misc = ["IndexSlice", "NaT", "NA"]
@@ -95,12 +95,12 @@ class TestPDApi(Base):
     deprecated_classes: List[str] = []
 
     # these should be deprecated in the future
-    deprecated_classes_in_future: List[str] = []
+    deprecated_classes_in_future: List[str] = ["SparseArray"]
 
     if not compat.PY37:
         classes.extend(["Panel", "SparseSeries", "SparseDataFrame"])
-        deprecated_modules.extend(["np", "datetime"])
-        deprecated_classes_in_future.extend(["SparseArray"])
+        # deprecated_modules.extend(["np", "datetime"])
+        # deprecated_classes_in_future.extend(["SparseArray"])
 
     # external modules exposed in pandas namespace
     modules: List[str] = []
@@ -203,25 +203,27 @@ class TestPDApi(Base):
 
     def test_api(self):
 
-        self.check(
-            pd,
+        checkthese = (
             self.lib
             + self.misc
             + self.modules
-            + self.deprecated_modules
             + self.classes
-            + self.deprecated_classes
-            + self.deprecated_classes_in_future
             + self.funcs
             + self.funcs_option
             + self.funcs_read
             + self.funcs_json
             + self.funcs_to
-            + self.deprecated_funcs_in_future
-            + self.deprecated_funcs
-            + self.private_modules,
-            self.ignored,
+            + self.private_modules
         )
+        if not compat.PY37:
+            checkthese.extend(
+                self.deprecated_modules
+                + self.deprecated_classes
+                + self.deprecated_classes_in_future
+                + self.deprecated_funcs_in_future
+                + self.deprecated_funcs
+            )
+        self.check(pd, checkthese, self.ignored)
 
     def test_depr(self):
         deprecated = (
