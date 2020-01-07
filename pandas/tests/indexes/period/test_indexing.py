@@ -235,6 +235,21 @@ class TestWhere:
         result = i.where(notna(i2), i2.values)
         tm.assert_index_equal(result, i2)
 
+    def test_where_invalid_dtypes(self):
+        pi = period_range("20130101", periods=5, freq="D")
+
+        i2 = pi.copy()
+        i2 = pd.PeriodIndex([pd.NaT, pd.NaT] + pi[2:].tolist(), freq="D")
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            pi.where(notna(i2), i2.asi8)
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            pi.where(notna(i2), i2.asi8.view("timedelta64[ns]"))
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            pi.where(notna(i2), i2.to_timestamp("S"))
+
 
 class TestTake:
     def test_take(self):
