@@ -1,7 +1,7 @@
 import numpy as np
 
 from pandas import DataFrame, date_range, read_pickle
-import pandas._testing as tm
+import pandas.util.testing as tm
 
 from ..pandas_vb_common import BaseIO
 

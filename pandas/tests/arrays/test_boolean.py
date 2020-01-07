@@ -251,6 +251,70 @@ def test_coerce_to_numpy_array():
         np.array(arr, dtype="bool")
 
 
+@pytest.mark.parametrize("box", [True, False], ids=["series", "array"])
+def test_to_numpy(box):
+    con = pd.Series if box else pd.array
+    # default (with or without missing values) -> object dtype
+    arr = con([True, False, True], dtype="boolean")
+    result = arr.to_numpy()
+    expected = np.array([True, False, True], dtype="object")
+    tm.assert_numpy_array_equal(result, expected)
+
+    arr = con([True, False, None], dtype="boolean")
+    result = arr.to_numpy()
+    expected = np.array([True, False, pd.NA], dtype="object")
+    tm.assert_numpy_array_equal(result, expected)
+
+    # no missing values -> can convert to bool, otherwise raises
+    arr = con([True, False, True], dtype="boolean")
+    result = arr.to_numpy(dtype="bool")
+    expected = np.array([True, False, True], dtype="bool")
+    tm.assert_numpy_array_equal(result, expected)
+
+    arr = con([True, False, None], dtype="boolean")
+    with pytest.raises(ValueError, match="cannot convert to bool numpy"):
+        result = arr.to_numpy(dtype="bool")
+
+    # specify dtype and na_value
+    arr = con([True, False, None], dtype="boolean")
+    result = arr.to_numpy(dtype=object, na_value=None)
+    expected = np.array([True, False, None], dtype="object")
+    tm.assert_numpy_array_equal(result, expected)
+
+    result = arr.to_numpy(dtype=bool, na_value=False)
+    expected = np.array([True, False, False], dtype="bool")
+    tm.assert_numpy_array_equal(result, expected)
+
+    result = arr.to_numpy(dtype="int64", na_value=-99)
+    expected = np.array([1, 0, -99], dtype="int64")
+    tm.assert_numpy_array_equal(result, expected)
+
+    result = arr.to_numpy(dtype="float64", na_value=np.nan)
+    expected = np.array([1, 0, np.nan], dtype="float64")
+    tm.assert_numpy_array_equal(result, expected)
+
+    # converting to int or float without specifying na_value raises
+    with pytest.raises(TypeError):
+        arr.to_numpy(dtype="int64")
+    with pytest.raises(TypeError):
+        arr.to_numpy(dtype="float64")
+
+
+def test_to_numpy_copy():
+    # to_numpy can be zero-copy if no missing values
+    arr = pd.array([True, False, True], dtype="boolean")
+    result = arr.to_numpy(dtype=bool)
+    result[0] = False
+    tm.assert_extension_array_equal(
+        arr, pd.array([False, False, True], dtype="boolean")
+    )
+
+    arr = pd.array([True, False, True], dtype="boolean")
+    result = arr.to_numpy(dtype=bool, copy=True)
+    result[0] = False
+    tm.assert_extension_array_equal(arr, pd.array([True, False, True], dtype="boolean"))
+
+
 def test_astype():
     # with missing values
     arr = pd.array([True, False, None], dtype="boolean")

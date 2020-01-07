@@ -421,7 +421,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
             values = self._data._local_timestamps()
         return fields.get_time_micros(values)
 
-    def to_series(self, keep_tz=lib._no_default, index=None, name=None):
+    def to_series(self, keep_tz=lib.no_default, index=None, name=None):
         """
         Create a Series with both index and values equal to the index keys
         useful with map for returning an indexer based on an index.
@@ -466,7 +466,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
         if name is None:
             name = self.name
 
-        if keep_tz is not lib._no_default:
+        if keep_tz is not lib.no_default:
             if keep_tz:
                 warnings.warn(
                     "The 'keep_tz' keyword in DatetimeIndex.to_series "
