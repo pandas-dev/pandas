@@ -25,7 +25,7 @@ from pandas.compat import _get_lzma_file, _import_lzma, is_platform_little_endia
 
 import pandas as pd
 from pandas import Index
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.tseries.offsets import Day, MonthEnd
 
@@ -381,10 +381,10 @@ class TestProtocol:
             tm.assert_frame_equal(df, df2)
 
 
-def test_unicode_decode_error():
+def test_unicode_decode_error(datapath):
     # pickle file written with py27, should be readable without raising
     #  UnicodeDecodeError, see GH#28645
-    path = os.path.join(os.path.dirname(__file__), "data", "pickle", "test_py27.pkl")
+    path = datapath("io", "data", "pickle", "test_py27.pkl")
     df = pd.read_pickle(path)
 
     # just test the columns are correct since the values are random

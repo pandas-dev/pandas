@@ -154,6 +154,8 @@ enum JSTYPES {
   JT_ARRAY,    // Array structure
   JT_OBJECT,   // Key/Value structure
   JT_INVALID,  // Internal, do not return nor expect
+  JT_POS_INF,  // Positive infinity
+  JT_NEG_INF,  // Negative infinity
 };
 
 typedef void * JSOBJ;
@@ -290,6 +292,8 @@ typedef struct __JSONObjectDecoder {
   JSOBJ (*newTrue)(void *prv);
   JSOBJ (*newFalse)(void *prv);
   JSOBJ (*newNull)(void *prv);
+  JSOBJ (*newPosInf)(void *prv);
+  JSOBJ (*newNegInf)(void *prv);
   JSOBJ (*newObject)(void *prv, void *decoder);
   JSOBJ (*endObject)(void *prv, JSOBJ obj);
   JSOBJ (*newArray)(void *prv, void *decoder);

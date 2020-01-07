@@ -36,6 +36,7 @@ moto
 pytest>=5.0.1
 pytest-cov
 pytest-xdist>=1.21
+pytest-asyncio
 seaborn
 statsmodels
 ipywidgets
@@ -45,7 +46,7 @@ pip
 blosc
 bottleneck>=1.2.1
 ipykernel
-ipython>=5.6.0
+ipython>=7.11.1
 jinja2
 matplotlib>=2.2.2
 numexpr>=2.6.8
