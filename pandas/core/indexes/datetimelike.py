@@ -528,6 +528,8 @@ class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
         elif is_float(other) and np.isnan(other):
             other = NaT.value
         else:
+            # We test for error message coming from the Index constructor
+            Index(other)
             raise TypeError(other)
 
         result = np.where(cond, values, other).astype("i8")
