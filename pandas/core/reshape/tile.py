@@ -404,10 +404,11 @@ def _bins_to_cuts(
                 bins, precision, right=right, include_lowest=include_lowest, dtype=dtype
             )
 
-        elif len(labels) != len(bins) - 1:
-            raise ValueError(
-                "Bin labels must be one fewer than the number of bin edges"
-            )
+        else:
+            if len(labels) != len(bins) - 1:
+                raise ValueError(
+                    "Bin labels must be one fewer than the number of " "bin edges"
+                )
 
         if not is_categorical_dtype(labels):
             labels = Categorical(labels, categories=labels, ordered=True)
