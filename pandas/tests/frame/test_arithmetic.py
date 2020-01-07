@@ -726,3 +726,14 @@ def test_zero_len_frame_with_series_corner_cases():
     result = df + ser
     expected = df
     tm.assert_frame_equal(result, expected)
+
+
+def test_frame_single_columns_object_sum_axis_1():
+    # GH 13758
+    data = {
+        "One": pd.Series(["A", 1.2, np.nan]),
+    }
+    df = pd.DataFrame(data)
+    result = df.sum(axis=1)
+    expected = pd.Series(["A", 1.2, 0])
+    tm.assert_series_equal(result, expected)
