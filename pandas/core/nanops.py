@@ -1243,8 +1243,14 @@ def nancorr(a, b, method="pearson", min_periods=None):
 def get_corr_func(method):
     if method in ["kendall", "spearman"]:
         from scipy.stats import kendalltau, spearmanr
+    elif method in ["pearson"]:
+        pass
     elif callable(method):
         return method
+    else:
+        raise ValueError(
+            f"Unkown method '{method}', expected one of 'kendall', 'spearman'"
+        )
 
     def _pearson(a, b):
         return np.corrcoef(a, b)[0, 1]
