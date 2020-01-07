@@ -501,19 +501,14 @@ class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
             # e.g. we passed PeriodIndex.values and got an ndarray of Periods
             other = Index(other)
 
-        if is_categorical_dtype(other):
-            # e.g. we have a Categorical holding self.dtype
-            if needs_i8_conversion(other.categories):
-                other = other._internal_get_values()
+            if is_categorical_dtype(other):
+                # e.g. we have a Categorical holding self.dtype
+                if needs_i8_conversion(other.categories):
+                    other = other._internal_get_values()
 
-        if not is_scalar(other) and not is_dtype_equal(self.dtype, other.dtype):
-            # Primarily we want self.dtype, but could also be Categorical
-            #  holding self.dtype
-            raise TypeError(f"Where requires matching dtype, not {other.dtype}")
+            if not is_dtype_equal(self.dtype, other.dtype):
+                raise TypeError(f"Where requires matching dtype, not {other.dtype}")
 
-        if not is_scalar(other):
-            #other = type(self._data)._from_sequence(other)
-            # TODO: require dtype match
             other = other.view("i8")
 
         result = np.where(cond, values, other).astype("i8")
