@@ -163,6 +163,7 @@ def strings_with_wrong_placed_space(
         "String has a space at the beginning "
         "instead of the end of the previous string."
     )
+
     with open(source_path, "r") as file_name:
         tokens: List = list(tokenize.generate_tokens(file_name.readline))
 
@@ -214,6 +215,7 @@ def bare_pytest_raises(source_path: str) -> Generator[Tuple[str, int, str], None
     GH #23922
     """
     MSG: str = "Bare pytests raise have been found."
+
     with open(source_path, "r") as file_name:
         tokens: List = list(tokenize.generate_tokens(file_name.readline))
 
