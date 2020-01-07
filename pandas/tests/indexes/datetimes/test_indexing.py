@@ -6,7 +6,7 @@ import pytz
 
 import pandas as pd
 from pandas import DatetimeIndex, Index, Timestamp, date_range, notna
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.tseries.offsets import BDay, CDay
 
@@ -317,7 +317,9 @@ class TestTake:
 
 
 class TestDatetimeIndex:
-    @pytest.mark.parametrize("null", [None, np.nan, pd.NaT])
+    @pytest.mark.parametrize(
+        "null", [None, np.nan, np.datetime64("NaT"), pd.NaT, pd.NA]
+    )
     @pytest.mark.parametrize("tz", [None, "UTC", "US/Eastern"])
     def test_insert_nat(self, tz, null):
         # GH#16537, GH#18295 (test missing)
@@ -325,6 +327,12 @@ class TestDatetimeIndex:
         expected = pd.DatetimeIndex(["NaT", "2017-01-01"], tz=tz)
         res = idx.insert(0, null)
         tm.assert_index_equal(res, expected)
+
+    @pytest.mark.parametrize("tz", [None, "UTC", "US/Eastern"])
+    def test_insert_invalid_na(self, tz):
+        idx = pd.DatetimeIndex(["2017-01-01"], tz=tz)
+        with pytest.raises(TypeError, match="incompatible label"):
+            idx.insert(0, np.timedelta64("NaT"))
 
     def test_insert(self):
         idx = DatetimeIndex(["2000-01-04", "2000-01-01", "2000-01-02"], name="idx")
@@ -457,7 +465,7 @@ class TestDatetimeIndex:
     def test_delete(self):
         idx = date_range(start="2000-01-01", periods=5, freq="M", name="idx")
 
-        # prserve freq
+        # preserve freq
         expected_0 = date_range(start="2000-02-01", periods=4, freq="M", name="idx")
         expected_4 = date_range(start="2000-01-01", periods=4, freq="M", name="idx")
 
@@ -511,7 +519,7 @@ class TestDatetimeIndex:
     def test_delete_slice(self):
         idx = date_range(start="2000-01-01", periods=10, freq="D", name="idx")
 
-        # prserve freq
+        # preserve freq
         expected_0_2 = date_range(start="2000-01-04", periods=7, freq="D", name="idx")
         expected_7_9 = date_range(start="2000-01-01", periods=7, freq="D", name="idx")
 

@@ -1,6 +1,5 @@
 import textwrap
 from typing import List, Set
-import warnings
 
 from pandas._libs import NaT, lib
 
@@ -38,8 +37,6 @@ To retain the current behavior and silence the warning, pass 'sort=True'.
 )
 
 
-# TODO: there are many places that rely on these private methods existing in
-# pandas.core.index
 __all__ = [
     "Index",
     "MultiIndex",
@@ -127,7 +124,6 @@ def _get_combined_index(
     -------
     Index
     """
-
     # TODO: handle index names!
     indexes = _get_distinct_objs(indexes)
     if len(indexes) == 0:
@@ -202,6 +198,7 @@ def union_indexes(indexes, sort=True) -> Index:
         result = indexes[0]
 
         if hasattr(result, "union_many"):
+            # DatetimeIndex
             return result.union_many(indexes[1:])
         else:
             for other in indexes[1:]:
@@ -211,12 +208,6 @@ def union_indexes(indexes, sort=True) -> Index:
         index = indexes[0]
         for other in indexes[1:]:
             if not index.equals(other):
-
-                if sort is None:
-                    # TODO: remove once pd.concat sort default changes
-                    warnings.warn(_sort_msg, FutureWarning, stacklevel=8)
-                    sort = True
-
                 return _unique_indices(indexes)
 
         name = get_consensus_names(indexes)[0]
@@ -282,7 +273,6 @@ def get_consensus_names(indexes):
     list
         A list representing the consensus 'names' found.
     """
-
     # find the non-none names, need to tupleify to make
     # the set hashable, then reverse on return
     consensus_names = {tuple(i.names) for i in indexes if com.any_not_none(*i.names)}

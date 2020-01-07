@@ -17,8 +17,8 @@ from pandas import (
     notna,
     timedelta_range,
 )
+import pandas._testing as tm
 import pandas.core.common as com
-import pandas.util.testing as tm
 
 
 @pytest.fixture(scope="class", params=[None, "foo"])
@@ -105,11 +105,11 @@ class TestIntervalIndex:
         assert index.hasnans is False
 
         result = index.isna()
-        expected = np.repeat(False, len(index))
+        expected = np.zeros(len(index), dtype=bool)
         tm.assert_numpy_array_equal(result, expected)
 
         result = index.notna()
-        expected = np.repeat(True, len(index))
+        expected = np.ones(len(index), dtype=bool)
         tm.assert_numpy_array_equal(result, expected)
 
         index = self.create_index_with_nan(closed=closed)
@@ -586,8 +586,8 @@ class TestIntervalIndex:
         assert idx.equals(idx2)
 
         msg = (
-            "missing values must be missing in the same location both left"
-            " and right sides"
+            "missing values must be missing in the same location both left "
+            "and right sides"
         )
         with pytest.raises(ValueError, match=msg):
             IntervalIndex.from_arrays(
@@ -834,17 +834,6 @@ class TestIntervalIndex:
 
         result = IntervalIndex.from_arrays(left, right).nbytes
         expected = 64  # 4 * 8 * 2
-        assert result == expected
-
-    def test_itemsize(self):
-        # GH 19209
-        left = np.arange(0, 4, dtype="i8")
-        right = np.arange(1, 5, dtype="i8")
-        expected = 16  # 8 * 2
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = IntervalIndex.from_arrays(left, right).itemsize
-
         assert result == expected
 
     @pytest.mark.parametrize("new_closed", ["left", "right", "both", "neither"])

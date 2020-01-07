@@ -5,9 +5,9 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
+import pandas._testing as tm
 from pandas.core.api import DataFrame
 from pandas.core.computation import expressions as expr
-import pandas.util.testing as tm
 
 _frame = DataFrame(randn(10000, 4), columns=list("ABCD"), dtype="float64")
 _frame2 = DataFrame(randn(100, 4), columns=list("ABCD"), dtype="float64")
@@ -261,9 +261,9 @@ class TestExpressions:
     def test_bool_ops_raise_on_arithmetic(self, op_str, opname):
         df = DataFrame({"a": np.random.rand(10) > 0.5, "b": np.random.rand(10) > 0.5})
 
-        msg = "operator %r not implemented for bool dtypes"
+        msg = f"operator {repr(op_str)} not implemented for bool dtypes"
         f = getattr(operator, opname)
-        err_msg = re.escape(msg % op_str)
+        err_msg = re.escape(msg)
 
         with pytest.raises(NotImplementedError, match=err_msg):
             f(df, df)

@@ -1,24 +1,14 @@
-import bz2
-from collections import Counter
-from contextlib import contextmanager
-from datetime import datetime
-from functools import wraps
-import gzip
-import os
-from shutil import rmtree
-import string
-import tempfile
-from typing import Optional, Union, cast
 import warnings
-import zipfile
 
-import numpy as np
-from numpy.random import rand, randn
+from pandas._testing import *  # noqa
 
-from pandas._config.localization import (  # noqa:F401
-    can_set_locale,
-    get_locales,
-    set_locale,
+warnings.warn(
+    (
+        "pandas.util.testing is deprecated. Use the functions in the "
+        "public API at pandas.testing instead."
+    ),
+    FutureWarning,
+    stacklevel=2,
 )
 
 import pandas._libs.testing as _testing

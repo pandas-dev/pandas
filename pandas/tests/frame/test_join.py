@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame, Index, period_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 @pytest.fixture
@@ -195,7 +195,7 @@ def test_join_left_sequence_non_unique_index():
     tm.assert_frame_equal(joined, expected)
 
 
-@pytest.mark.parametrize("sort_kw", [True, False, None])
+@pytest.mark.parametrize("sort_kw", [True, False])
 def test_suppress_future_warning_with_sort_kw(sort_kw):
     a = DataFrame({"col1": [1, 2]}, index=["c", "a"])
 
@@ -213,12 +213,6 @@ def test_suppress_future_warning_with_sort_kw(sort_kw):
     if sort_kw is False:
         expected = expected.reindex(index=["c", "a", "b"])
 
-    if sort_kw is None:
-        # only warn if not explicitly specified
-        ctx = tm.assert_produces_warning(FutureWarning, check_stacklevel=False)
-    else:
-        ctx = tm.assert_produces_warning(None, check_stacklevel=False)
-
-    with ctx:
+    with tm.assert_produces_warning(None, check_stacklevel=False):
         result = a.join([b, c], how="outer", sort=sort_kw)
     tm.assert_frame_equal(result, expected)

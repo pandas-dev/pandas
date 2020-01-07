@@ -1,3 +1,4 @@
+from copy import copy
 from distutils.version import LooseVersion
 
 from cython import Py_ssize_t
@@ -15,7 +16,7 @@ from numpy cimport (ndarray,
 cnp.import_array()
 
 cimport pandas._libs.util as util
-from pandas._libs.lib import maybe_convert_objects
+from pandas._libs.lib import maybe_convert_objects, is_scalar
 
 
 cdef _check_result_array(object obj, Py_ssize_t cnt):
@@ -24,14 +25,6 @@ cdef _check_result_array(object obj, Py_ssize_t cnt):
             (isinstance(obj, list) and len(obj) == cnt) or
             getattr(obj, 'shape', None) == (cnt,)):
         raise ValueError('Function does not reduce')
-
-
-cdef bint _is_sparse_array(object obj):
-    # TODO can be removed one SparseArray.values is removed (GH26421)
-    if hasattr(obj, '_subtyp'):
-        if obj._subtyp == 'sparse_array':
-            return True
-    return False
 
 
 cdef class Reducer:
@@ -135,9 +128,8 @@ cdef class Reducer:
                 else:
                     res = self.f(chunk)
 
-                if (not _is_sparse_array(res) and hasattr(res, 'values')
-                        and util.is_array(res.values)):
-                    res = res.values
+                # TODO: reason for not squeezing here?
+                res = _extract_result(res, squeeze=False)
                 if i == 0:
                     # On the first pass, we check the output shape to see
                     #  if this looks like a reduction.
@@ -402,18 +394,16 @@ cdef class SeriesGrouper(_BaseGrouper):
         return result, counts
 
 
-cdef inline _extract_result(object res):
+cdef inline _extract_result(object res, bint squeeze=True):
     """ extract the result object, it might be a 0-dim ndarray
         or a len-1 0-dim, or a scalar """
-    if (not _is_sparse_array(res) and hasattr(res, 'values')
-            and util.is_array(res.values)):
+    if hasattr(res, 'values') and util.is_array(res.values):
         res = res.values
-    if not np.isscalar(res):
-        if util.is_array(res):
-            if res.ndim == 0:
-                res = res.item()
-            elif res.ndim == 1 and len(res) == 1:
-                res = res[0]
+    if util.is_array(res):
+        if res.ndim == 0:
+            res = res.item()
+        elif squeeze and res.ndim == 1 and len(res) == 1:
+            res = res[0]
     return res
 
 
@@ -503,13 +493,18 @@ def apply_frame_axis0(object frame, object f, object names,
             # Need to infer if low level index slider will cause segfaults
             require_slow_apply = i == 0 and piece is chunk
             try:
-                if piece.index is chunk.index:
-                    piece = piece.copy(deep='all')
-                else:
+                if piece.index is not chunk.index:
                     mutated = True
             except AttributeError:
                 # `piece` might not have an index, could be e.g. an int
                 pass
+
+            if not is_scalar(piece):
+                # Need to copy data to avoid appending references
+                if hasattr(piece, "copy"):
+                    piece = piece.copy(deep="all")
+                else:
+                    piece = copy(piece)
 
             results.append(piece)
 

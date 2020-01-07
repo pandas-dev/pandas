@@ -13,18 +13,14 @@ def assert_offset_equal(offset, base, expected):
         assert actual_apply == expected
     except AssertionError:
         raise AssertionError(
-            "\nExpected: {expected}\nActual: {actual}\nFor Offset: {offset})"
-            "\nAt Date: {base}".format(
-                expected=expected, actual=actual, offset=offset, base=base
-            )
+            f"\nExpected: {expected}\nActual: {actual}\nFor Offset: {offset})"
+            f"\nAt Date: {base}"
         )
 
 
-def assert_onOffset(offset, date, expected):
-    actual = offset.onOffset(date)
+def assert_is_on_offset(offset, date, expected):
+    actual = offset.is_on_offset(date)
     assert actual == expected, (
-        "\nExpected: {expected}\nActual: {actual}\nFor Offset: {offset})"
-        "\nAt Date: {date}".format(
-            expected=expected, actual=actual, offset=offset, date=date
-        )
+        f"\nExpected: {expected}\nActual: {actual}\nFor Offset: {offset})"
+        f"\nAt Date: {date}"
     )

@@ -8,7 +8,7 @@ import pandas._libs.index as _index
 
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex, NaT, Series, Timestamp, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 """
@@ -105,7 +105,7 @@ def test_series_set_value():
     dates = [datetime(2001, 1, 1), datetime(2001, 1, 2)]
     index = DatetimeIndex(dates)
 
-    s = Series()._set_value(dates[0], 1.0)
+    s = Series(dtype=object)._set_value(dates[0], 1.0)
     s2 = s._set_value(dates[1], np.nan)
 
     expected = Series([1.0, np.nan], index=index)

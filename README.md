@@ -124,7 +124,7 @@ Here are just a few of the things that pandas does well:
     and saving/loading data from the ultrafast [**HDF5 format**][hdfstore]
   - [**Time series**][timeseries]-specific functionality: date range
     generation and frequency conversion, moving window statistics,
-    moving window linear regressions, date shifting and lagging, etc.
+    date shifting and lagging.
 
 
    [missing-data]: https://pandas.pydata.org/pandas-docs/stable/missing_data.html#working-with-missing-data
@@ -164,12 +164,11 @@ pip install pandas
 ```
 
 ## Dependencies
-- [NumPy](https://www.numpy.org): 1.13.3 or higher
-- [python-dateutil](https://labix.org/python-dateutil): 2.5.0 or higher
-- [pytz](https://pythonhosted.org/pytz): 2015.4 or higher
+- [NumPy](https://www.numpy.org)
+- [python-dateutil](https://labix.org/python-dateutil)
+- [pytz](https://pythonhosted.org/pytz)
 
-See the [full installation instructions](https://pandas.pydata.org/pandas-docs/stable/install.html#dependencies)
-for recommended and optional dependencies.
+See the [full installation instructions](https://pandas.pydata.org/pandas-docs/stable/install.html#dependencies) for minimum supported versions of required, recommended and optional dependencies.
 
 ## Installation from sources
 To install pandas from source you need Cython in addition to the normal

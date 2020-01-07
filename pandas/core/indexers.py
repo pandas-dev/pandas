@@ -3,6 +3,8 @@ Low-dependency indexing utilities.
 """
 import numpy as np
 
+from pandas._typing import AnyArrayLike
+
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 
@@ -27,8 +29,13 @@ def is_list_like_indexer(key) -> bool:
 
 
 def is_scalar_indexer(indexer, arr_value) -> bool:
-    # return True if we are all scalar indexers
+    """
+    Return True if we are all scalar indexers.
 
+    Returns
+    -------
+    bool
+    """
     if arr_value.ndim == 1:
         if not isinstance(indexer, tuple):
             indexer = tuple([indexer])
@@ -73,11 +80,11 @@ def check_setitem_lengths(indexer, value, values) -> None:
     Parameters
     ----------
     indexer : sequence
-        The key for the setitem
+        Key for the setitem.
     value : array-like
-        The value for the setitem
+        Value for the setitem.
     values : array-like
-        The values being set into
+        Values being set into.
 
     Returns
     -------
@@ -86,8 +93,7 @@ def check_setitem_lengths(indexer, value, values) -> None:
     Raises
     ------
     ValueError
-        When the indexer is an ndarray or list and the lengths don't
-        match.
+        When the indexer is an ndarray or list and the lengths don't match.
     """
     # boolean with truth values == len of the value is ok too
     if isinstance(indexer, (np.ndarray, list)):
@@ -122,7 +128,7 @@ def validate_indices(indices: np.ndarray, n: int) -> None:
     ----------
     indices : ndarray
     n : int
-        length of the array being indexed
+        Length of the array being indexed.
 
     Raises
     ------
@@ -144,9 +150,7 @@ def validate_indices(indices: np.ndarray, n: int) -> None:
     if len(indices):
         min_idx = indices.min()
         if min_idx < -1:
-            msg = "'indices' contains values less than allowed ({} < {})".format(
-                min_idx, -1
-            )
+            msg = f"'indices' contains values less than allowed ({min_idx} < -1)"
             raise ValueError(msg)
 
         max_idx = indices.max()
@@ -168,27 +172,27 @@ def maybe_convert_indices(indices, n: int):
     Parameters
     ----------
     indices : array-like
-        The array of indices that we are to convert.
+        Array of indices that we are to convert.
     n : int
-        The number of elements in the array that we are indexing.
+        Number of elements in the array that we are indexing.
 
     Returns
     -------
-    valid_indices : array-like
+    array-like
         An array-like of positive indices that correspond to the ones
         that were passed in initially to this function.
 
     Raises
     ------
-    IndexError : one of the converted indices either exceeded the number
-        of elements (specified by `n`) OR was still negative.
+    IndexError
+        One of the converted indices either exceeded the number of,
+        elements (specified by `n`), or was still negative.
     """
-
     if isinstance(indices, list):
         indices = np.array(indices)
         if len(indices) == 0:
-            # If list is empty, np.array will return float and cause indexing
-            # errors.
+            # If `indices` is empty, np.array will return a float,
+            # and will cause indexing errors.
             return np.empty(0, dtype=np.intp)
 
     mask = indices < 0
@@ -208,7 +212,11 @@ def maybe_convert_indices(indices, n: int):
 
 def length_of_indexer(indexer, target=None) -> int:
     """
-    return the length of a single non-tuple indexer which could be a slice
+    Return the length of a single non-tuple indexer which could be a slice.
+
+    Returns
+    -------
+    int
     """
     if target is not None and isinstance(indexer, slice):
         target_len = len(target)
@@ -234,3 +242,68 @@ def length_of_indexer(indexer, target=None) -> int:
     elif not is_list_like_indexer(indexer):
         return 1
     raise AssertionError("cannot find the length of the indexer")
+
+
+def check_bool_array_indexer(array: AnyArrayLike, mask: AnyArrayLike) -> np.ndarray:
+    """
+    Check if `mask` is a valid boolean indexer for `array`.
+
+    `array` and `mask` are checked to have the same length, and the
+    dtype is validated.
+
+    .. versionadded:: 1.0.0
+
+    Parameters
+    ----------
+    array : array
+        The array that's being masked.
+    mask : array
+        The boolean array that's masking.
+
+    Returns
+    -------
+    numpy.ndarray
+        The validated boolean mask.
+
+    Raises
+    ------
+    IndexError
+        When the lengths don't match.
+    ValueError
+        When `mask` cannot be converted to a bool-dtype ndarray.
+
+    See Also
+    --------
+    api.types.is_bool_dtype : Check if `key` is of boolean dtype.
+
+    Examples
+    --------
+    A boolean ndarray is returned when the arguments are all valid.
+
+    >>> mask = pd.array([True, False])
+    >>> arr = pd.array([1, 2])
+    >>> pd.api.extensions.check_bool_array_indexer(arr, mask)
+    array([ True, False])
+
+    An IndexError is raised when the lengths don't match.
+
+    >>> mask = pd.array([True, False, True])
+    >>> pd.api.extensions.check_bool_array_indexer(arr, mask)
+    Traceback (most recent call last):
+    ...
+    IndexError: Item wrong length 3 instead of 2.
+
+    A ValueError is raised when the mask cannot be converted to
+    a bool-dtype ndarray.
+
+    >>> mask = pd.array([True, pd.NA])
+    >>> pd.api.extensions.check_bool_array_indexer(arr, mask)
+    Traceback (most recent call last):
+    ...
+    ValueError: cannot convert to bool numpy array in presence of missing values
+    """
+    result = np.asarray(mask, dtype=bool)
+    # GH26658
+    if len(result) != len(array):
+        raise IndexError(f"Item wrong length {len(result)} instead of {len(array)}.")
+    return result

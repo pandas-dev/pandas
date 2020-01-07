@@ -1,7 +1,4 @@
 from contextlib import contextmanager
-import warnings
-
-from pandas.util._decorators import deprecate_kwarg
 
 from pandas.plotting._core import _get_plot_backend
 
@@ -211,7 +208,6 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
     )
 
 
-@deprecate_kwarg(old_arg_name="data", new_arg_name="frame")
 def andrews_curves(
     frame, class_column, ax=None, samples=200, color=None, colormap=None, **kwargs
 ):
@@ -311,8 +307,6 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
     )
 
 
-@deprecate_kwarg(old_arg_name="colors", new_arg_name="color")
-@deprecate_kwarg(old_arg_name="data", new_arg_name="frame", stacklevel=3)
 def parallel_coordinates(
     frame,
     class_column,
@@ -426,33 +420,6 @@ def autocorrelation_plot(series, ax=None, **kwargs):
     return plot_backend.autocorrelation_plot(series=series, ax=ax, **kwargs)
 
 
-def tsplot(series, plotf, ax=None, **kwargs):
-    """
-    Plots a Series on the given Matplotlib axes or the current axes
-
-    Parameters
-    ----------
-    axes : Axes
-    series : Series
-
-    Notes
-    _____
-    Supports same kwargs as Axes.plot
-
-
-    .. deprecated:: 0.23.0
-       Use Series.plot() instead
-    """
-    warnings.warn(
-        "'tsplot' is deprecated and will be removed in a "
-        "future version. Please use Series.plot() instead.",
-        FutureWarning,
-        stacklevel=2,
-    )
-    plot_backend = _get_plot_backend("matplotlib")
-    return plot_backend.tsplot(series=series, plotf=plotf, ax=ax, **kwargs)
-
-
 class _Options(dict):
     """
     Stores pandas plotting options.
@@ -468,15 +435,12 @@ class _Options(dict):
 
     def __init__(self, deprecated=False):
         self._deprecated = deprecated
-        # self['xaxis.compat'] = False
         super().__setitem__("xaxis.compat", False)
 
     def __getitem__(self, key):
         key = self._get_canonical_key(key)
         if key not in self:
-            raise ValueError(
-                "{key} is not a valid pandas plotting option".format(key=key)
-            )
+            raise ValueError(f"{key} is not a valid pandas plotting option")
         return super().__getitem__(key)
 
     def __setitem__(self, key, value):
@@ -486,10 +450,10 @@ class _Options(dict):
     def __delitem__(self, key):
         key = self._get_canonical_key(key)
         if key in self._DEFAULT_KEYS:
-            raise ValueError("Cannot remove default parameter {key}".format(key=key))
+            raise ValueError(f"Cannot remove default parameter {key}")
         return super().__delitem__(key)
 
-    def __contains__(self, key):
+    def __contains__(self, key) -> bool:
         key = self._get_canonical_key(key)
         return super().__contains__(key)
 

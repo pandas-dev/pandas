@@ -7,9 +7,9 @@ from pandas import read_csv, read_table
 
 
 class BaseParser:
-    engine = None  # type: Optional[str]
+    engine: Optional[str] = None
     low_memory = True
-    float_precision_choices = []  # type: List[Optional[str]]
+    float_precision_choices: List[Optional[str]] = []
 
     def update_kwargs(self, kwargs):
         kwargs = kwargs.copy()

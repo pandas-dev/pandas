@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from datetime import date, datetime, timedelta
 from itertools import product
 
@@ -16,9 +15,9 @@ from pandas import (
     concat,
     date_range,
 )
+import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 from pandas.core.reshape.pivot import crosstab, pivot_table
-import pandas.util.testing as tm
 
 
 @pytest.fixture(params=[True, False])
@@ -1044,7 +1043,7 @@ class TestPivotTable:
         assert pivoted.columns.is_monotonic
 
     def test_pivot_complex_aggfunc(self):
-        f = OrderedDict([("D", ["std"]), ("E", ["sum"])])
+        f = {"D": ["std"], "E": ["sum"]}
         expected = self.data.groupby(["A", "B"]).agg(f).unstack("B")
         result = self.data.pivot_table(index="A", columns="B", aggfunc=f)
 
@@ -1656,6 +1655,24 @@ class TestPivotTable:
         table = df.pivot_table("x", "y", "z", dropna=observed, margins=True)
         tm.assert_frame_equal(table, expected)
 
+    def test_margins_casted_to_float(self, observed):
+        # GH 24893
+        df = pd.DataFrame(
+            {
+                "A": [2, 4, 6, 8],
+                "B": [1, 4, 5, 8],
+                "C": [1, 3, 4, 6],
+                "D": ["X", "X", "Y", "Y"],
+            }
+        )
+
+        result = pd.pivot_table(df, index="D", margins=True)
+        expected = pd.DataFrame(
+            {"A": [3, 7, 5], "B": [2.5, 6.5, 4.5], "C": [2, 5, 3.5]},
+            index=pd.Index(["X", "Y", "All"], name="D"),
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_pivot_with_categorical(self, observed, ordered_fixture):
         # gh-21370
         idx = [np.nan, "low", "high", "low", np.nan]
@@ -1947,6 +1964,31 @@ class TestPivotTable:
             expected = expected.dropna(axis="columns")
 
         tm.assert_frame_equal(result, expected)
+
+    def test_pivot_table_empty_aggfunc(self):
+        # GH 9186
+        df = pd.DataFrame(
+            {
+                "A": [2, 2, 3, 3, 2],
+                "id": [5, 6, 7, 8, 9],
+                "C": ["p", "q", "q", "p", "q"],
+                "D": [None, None, None, None, None],
+            }
+        )
+        result = df.pivot_table(index="A", columns="D", values="id", aggfunc=np.size)
+        expected = pd.DataFrame()
+        tm.assert_frame_equal(result, expected)
+
+    def test_pivot_table_no_column_raises(self):
+        # GH 10326
+        def agg(l):
+            return np.mean(l)
+
+        foo = pd.DataFrame(
+            {"X": [0, 0, 1, 1], "Y": [0, 1, 0, 1], "Z": [10, 20, 30, 40]}
+        )
+        with pytest.raises(KeyError, match="notpresent"):
+            foo.pivot_table("notpresent", "X", "Y", aggfunc=agg)
 
 
 class TestCrosstab:

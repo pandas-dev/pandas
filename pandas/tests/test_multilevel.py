@@ -2,7 +2,6 @@ import datetime
 from io import StringIO
 import itertools
 from itertools import product
-from warnings import catch_warnings, simplefilter
 
 import numpy as np
 from numpy.random import randn
@@ -12,9 +11,8 @@ import pytz
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp, isna
-from pandas.core.index import Index, MultiIndex
-import pandas.util.testing as tm
+from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, isna
+import pandas._testing as tm
 
 AGG_FUNCTIONS = [
     "sum",
@@ -121,7 +119,8 @@ class TestMultiLevel(Base):
                     (1.2, tz.localize(datetime.datetime(2011, 1, 2)), "B"),
                     (1.3, tz.localize(datetime.datetime(2011, 1, 3)), "C"),
                 ]
-                + expected_tuples
+                + expected_tuples,
+                dtype=object,
             ),
             None,
         )
@@ -209,22 +208,12 @@ class TestMultiLevel(Base):
         reindexed = self.frame.loc[[("foo", "one"), ("bar", "one")]]
         tm.assert_frame_equal(reindexed, expected)
 
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            reindexed = self.frame.ix[[("foo", "one"), ("bar", "one")]]
-        tm.assert_frame_equal(reindexed, expected)
-
     def test_reindex_preserve_levels(self):
         new_index = self.ymd.index[::10]
         chunk = self.ymd.reindex(new_index)
         assert chunk.index is new_index
 
         chunk = self.ymd.loc[new_index]
-        assert chunk.index is new_index
-
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            chunk = self.ymd.ix[new_index]
         assert chunk.index is new_index
 
         ymdT = self.ymd.T
@@ -582,6 +571,17 @@ Thur,Lunch,Yes,51.51,17"""
             s = df.iloc[:, 0]
             with pytest.raises(KeyError, match="does not match index name"):
                 getattr(s, method)("mistake")
+
+    def test_unused_level_raises(self):
+        # GH 20410
+        mi = MultiIndex(
+            levels=[["a_lot", "onlyone", "notevenone"], [1970, ""]],
+            codes=[[1, 0], [1, 0]],
+        )
+        df = DataFrame(-1, index=range(3), columns=mi)
+
+        with pytest.raises(KeyError, match="notevenone"):
+            df["notevenone"]
 
     def test_unstack_level_name(self):
         result = self.frame.unstack("second")
@@ -1359,6 +1359,30 @@ Thur,Lunch,Yes,51.51,17"""
         )
         tm.assert_frame_equal(expected, result)
 
+    def test_drop_multiindex_other_level_nan(self):
+        # GH 12754
+        df = (
+            DataFrame(
+                {
+                    "A": ["one", "one", "two", "two"],
+                    "B": [np.nan, 0.0, 1.0, 2.0],
+                    "C": ["a", "b", "c", "c"],
+                    "D": [1, 2, 3, 4],
+                }
+            )
+            .set_index(["A", "B", "C"])
+            .sort_index()
+        )
+        result = df.drop("c", level="C")
+        expected = DataFrame(
+            [2, 1],
+            columns=["D"],
+            index=pd.MultiIndex.from_tuples(
+                [("one", 0.0, "b"), ("one", np.nan, "a")], names=["A", "B", "C"]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_drop_nonunique(self):
         df = DataFrame(
             [
@@ -1527,7 +1551,7 @@ Thur,Lunch,Yes,51.51,17"""
         s2 = Series(
             [1, 2, 3, 4], index=MultiIndex.from_tuples([(1, 2), (1, 3), (3, 2), (3, 4)])
         )
-        s3 = Series()
+        s3 = Series(dtype=object)
 
         # it works!
         DataFrame({"foo": s1, "bar": s2, "baz": s3})
@@ -2285,6 +2309,14 @@ class TestSorted(Base):
         assert result.index.is_monotonic
 
         tm.assert_frame_equal(result, expected)
+
+    def test_sort_index_non_existent_label_multiindex(self):
+        # GH 12261
+        df = DataFrame(0, columns=[], index=pd.MultiIndex.from_product([[], []]))
+        df.loc["b", "2"] = 1
+        df.loc["a", "3"] = 1
+        result = df.sort_index().index.is_monotonic
+        assert result is True
 
     def test_sort_index_reorder_on_ops(self):
         # 15687

@@ -73,6 +73,7 @@ See the :ref:`overview` for more detail about what's in the library.
   * :doc:`user_guide/missing_data`
   * :doc:`user_guide/categorical`
   * :doc:`user_guide/integer_na`
+  * :doc:`user_guide/boolean`
   * :doc:`user_guide/visualization`
   * :doc:`user_guide/computation`
   * :doc:`user_guide/groupby`
@@ -108,6 +109,7 @@ See the :ref:`overview` for more detail about what's in the library.
 * :doc:`development/index`
 
   * :doc:`development/contributing`
+  * :doc:`development/code_style`
   * :doc:`development/internals`
   * :doc:`development/extending`
   * :doc:`development/developer`

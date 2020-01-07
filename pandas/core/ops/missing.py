@@ -168,7 +168,7 @@ def dispatch_fill_zeros(op, left, right, result):
         # Note: no need to do this for truediv; in py3 numpy behaves the way
         #  we want.
         result = mask_zero_div_zero(left, right, result)
-    elif op is op is rfloordiv:
+    elif op is rfloordiv:
         # Note: no need to do this for rtruediv; in py3 numpy behaves the way
         #  we want.
         result = mask_zero_div_zero(right, left, result)
