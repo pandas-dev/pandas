@@ -5,6 +5,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib, missing as libmissing
+from pandas._typing import Scalar
 from pandas.compat import set_function_name
 from pandas.util._decorators import cache_readonly
 
@@ -19,6 +20,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
     is_scalar,
+    is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna, notna
@@ -376,30 +378,35 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         return type(self)(self._data[item], self._mask[item])
 
-    def _coerce_to_ndarray(self, dtype=None, na_value=lib.no_default):
-        """
-        coerce to an ndarary of object dtype
-        """
+    @property
+    def _hasna(self) -> bool:
+        # Note: this is expensive right now! The hope is that we can
+        # make this faster by having an optional mask, but not have to change
+        # source code using it..
+        return self._mask.any()
+
+    def to_numpy(
+        self, dtype=None, copy=False, na_value: "Scalar" = lib.no_default,
+    ):
+        if na_value is lib.no_default:
+            na_value = libmissing.NA
         if dtype is None:
             dtype = object
-
-        if na_value is lib.no_default and is_float_dtype(dtype):
-            na_value = np.nan
-        elif na_value is lib.no_default:
-            na_value = libmissing.NA
-
-        if is_integer_dtype(dtype):
-            # Specifically, a NumPy integer dtype, not a pandas integer dtype,
-            # since we're coercing to a numpy dtype by definition in this function.
-            if not self.isna().any():
-                return self._data.astype(dtype)
-            else:
+        if self._hasna:
+            if (
+                not (is_object_dtype(dtype) or is_string_dtype(dtype))
+                and na_value is libmissing.NA
+            ):
                 raise ValueError(
-                    "cannot convert to integer NumPy array with missing values"
+                    f"cannot convert to '{dtype}'-dtype NumPy array "
+                    "with missing values. Specify an appropriate 'na_value' "
+                    "for this dtype."
                 )
-
-        data = self._data.astype(dtype)
-        data[self._mask] = na_value
+            # don't pass copy to astype -> always need a copy since we are mutating
+            data = self._data.astype(dtype)
+            data[self._mask] = na_value
+        else:
+            data = self._data.astype(dtype, copy=copy)
         return data
 
     __array_priority__ = 1000  # higher than ndarray so ops dispatch to us
@@ -409,7 +416,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         the array interface, return my values
         We return an object array here to preserve our scalar values
         """
-        return self._coerce_to_ndarray(dtype=dtype)
+        return self.to_numpy(dtype=dtype)
 
     def __arrow_array__(self, type=None):
         """
@@ -564,7 +571,13 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             return type(self)(result, mask=self._mask, copy=False)
 
         # coerce
-        data = self._coerce_to_ndarray(dtype=dtype)
+        if is_float_dtype(dtype):
+            # In astype, we consider dtype=float to also mean na_value=np.nan
+            kwargs = dict(na_value=np.nan)
+        else:
+            kwargs = {}
+
+        data = self.to_numpy(dtype=dtype, **kwargs)
         return astype_nansafe(data, dtype, copy=False)
 
     @property
@@ -630,7 +643,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
     def _values_for_factorize(self) -> Tuple[np.ndarray, Any]:
         # TODO: https://github.com/pandas-dev/pandas/issues/30037
         # use masked algorithms, rather than object-dtype / np.nan.
-        return self._coerce_to_ndarray(na_value=np.nan), np.nan
+        return self.to_numpy(na_value=np.nan), np.nan
 
     def _values_for_argsort(self) -> np.ndarray:
         """Return values for sorting.
