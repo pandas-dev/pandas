@@ -1,4 +1,6 @@
 """Public API for extending pandas objects."""
+from pandas._libs.lib import _no_default  # noqa: F401
+
 from pandas.core.dtypes.dtypes import (  # noqa: F401
     ExtensionDtype,
     register_extension_dtype,
