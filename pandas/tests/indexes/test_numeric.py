@@ -194,8 +194,8 @@ class TestFloat64Index(Numeric):
         with pytest.raises(TypeError, match=msg):
             Float64Index(0.0)
         msg = (
-            "String dtype not supported, you may need to explicitly cast to"
-            " a numeric type"
+            "String dtype not supported, "
+            "you may need to explicitly cast to a numeric type"
         )
         with pytest.raises(TypeError, match=msg):
             Float64Index(["a", "b", 0.0])
@@ -570,8 +570,8 @@ class NumericInt(Numeric):
 
     def test_cant_or_shouldnt_cast(self):
         msg = (
-            "String dtype not supported, you may need to explicitly cast to"
-            " a numeric type"
+            "String dtype not supported, "
+            "you may need to explicitly cast to a numeric type"
         )
         # can't
         data = ["foo", "bar", "baz"]
@@ -655,8 +655,8 @@ class TestInt64Index(NumericInt):
 
         # scalar raise Exception
         msg = (
-            r"Int64Index\(\.\.\.\) must be called with a collection of some"
-            " kind, 5 was passed"
+            r"Int64Index\(\.\.\.\) must be called with a collection of some "
+            "kind, 5 was passed"
         )
         with pytest.raises(TypeError, match=msg):
             Int64Index(5)
