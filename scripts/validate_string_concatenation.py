@@ -231,9 +231,9 @@ def bare_pytest_raises(source_path: str) -> Generator[Tuple[str, int, str], None
 
 if __name__ == "__main__":
     FUNCTIONS_MAP = {
-        "STC": strings_to_concatenate,
-        "SWWPS": strings_with_wrong_placed_space,
-        "BPR": bare_pytest_raises,
+        "strings_to_concatenate": strings_to_concatenate,
+        "strings_with_wrong_placed_space": strings_with_wrong_placed_space,
+        "bare_pytest_raises": bare_pytest_raises,
     }
 
     parser = argparse.ArgumentParser(description="Unwanted patterns checker.")
