@@ -351,7 +351,7 @@ class ExtensionArray:
         for i in range(len(self)):
             yield self[i]
 
-    def to_numpy(self, dtype=None, copy=False, na_value=lib._no_default):
+    def to_numpy(self, dtype=None, copy=False, na_value=lib.no_default):
         """
         Convert to a NumPy ndarray.
 
@@ -378,9 +378,9 @@ class ExtensionArray:
         numpy.ndarray
         """
         result = np.asarray(self, dtype=dtype)
-        if copy or na_value is not lib._no_default:
+        if copy or na_value is not lib.no_default:
             result = result.copy()
-        if na_value is not lib._no_default:
+        if na_value is not lib.no_default:
             result[self.isna()] = na_value
         return result
 

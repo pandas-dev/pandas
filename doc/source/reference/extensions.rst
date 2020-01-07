@@ -69,6 +69,6 @@ behaves correctly.
   api.indexers.check_bool_array_indexer
 
 
-The sentinel ``pandas.api.extensions._no_default`` is used as the default
+The sentinel ``pandas.api.extensions.no_default`` is used as the default
 value in some methods. Use an ``is`` comparison to check if the user
 provides a non-default value.
