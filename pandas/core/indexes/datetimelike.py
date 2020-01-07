@@ -30,7 +30,6 @@ from pandas.core import algorithms
 from pandas.core.accessor import PandasDelegate
 from pandas.core.arrays import (
     DatetimeArray,
-    ExtensionArray,
     ExtensionOpsMixin,
     PeriodArray,
     TimedeltaArray,
