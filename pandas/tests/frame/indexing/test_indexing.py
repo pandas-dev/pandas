@@ -1636,7 +1636,6 @@ class TestDataFrameIndexing:
         new_index = [0.5, 2.0, 5.0, 5.8]
         new_multi_index = MultiIndex.from_product([[0], new_index], names=["a", "b"])
 
-
         # reindexing w/o a `method` value
         reindexed = df.reindex(new_multi_index)
         expected = pd.DataFrame(
