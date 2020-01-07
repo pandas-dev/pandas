@@ -724,8 +724,8 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
         t1, t2 = self._parsed_string_to_bounds(reso, parsed)
         return slice(
-            self.searchsorted(t1.ordinal, side="left"),
-            self.searchsorted(t2.ordinal, side="right"),
+            self.searchsorted(t1, side="left"),
+            self.searchsorted(t2, side="right"),
         )
 
     def _convert_tolerance(self, tolerance, target):
