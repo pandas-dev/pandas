@@ -6646,10 +6646,7 @@ Wild         185.0
             # any column is only used once in aggregation
             mask = True if any(len(v) == 1 for v in func.values()) else False
             for col, fun in func.items():
-                if not mask:
-                    s = result[col]
-                else:
-                    s = result[col][::-1].dropna()
+                s = result[col][::-1].dropna() if mask else result[col]
                 s.index = reordered_indexes[idx : idx + len(fun)]
                 reordered_result[col] = s.reindex(columns)
                 idx = idx + len(fun)
