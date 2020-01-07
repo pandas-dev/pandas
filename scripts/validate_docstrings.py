@@ -399,16 +399,16 @@ if __name__ == "__main__":
         default="default",
         choices=format_opts,
         help="format of the output when validating "
-        "multiple docstrings (ignored when validating one)."
-        "It can be {}".format(str(format_opts)[1:-1]),
+        "multiple docstrings (ignored when validating one). "
+        "It can be {str(format_opts)[1:-1]}"
     )
     argparser.add_argument(
         "--prefix",
         default=None,
         help="pattern for the "
         "docstring names, in order to decide which ones "
-        'will be validated. A prefix "pandas.Series.str.'
-        "will make the script validate all the docstrings"
+        'will be validated. A prefix "pandas.Series.str."'
+        "will make the script validate all the docstrings "
         "of methods starting by this pattern. It is "
         "ignored if parameter function is provided",
     )
