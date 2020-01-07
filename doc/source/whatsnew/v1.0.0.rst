@@ -227,6 +227,7 @@ Other enhancements
 - Added new writer for exporting Stata dta files in version 118, ``StataWriter118``.  This format supports exporting strings containing Unicode characters (:issue:`23573`)
 - :meth:`Series.map` now accepts ``collections.abc.Mapping`` subclasses as a mapper (:issue:`29733`)
 - The ``pandas.datetime`` class is now deprecated. Import from ``datetime`` instead (:issue:`30296`)
+- :meth:`Timestamp.fromisocalendar` is now compatible with python 3.8 and above (:issue:`28115`)
 
 
 
@@ -836,6 +837,7 @@ Datetimelike
 - Bug in :class:`DatetimeArray`, :class:`TimedeltaArray`, and :class:`PeriodArray` where inplace addition and subtraction did not actually operate inplace (:issue:`24115`)
 - Bug in :func:`pandas.to_datetime` when called with ``Series`` storing ``IntegerArray`` raising ``TypeError`` instead of returning ``Series`` (:issue:`30050`)
 - Bug in :func:`date_range` with custom business hours as ``freq`` and given number of ``periods`` (:issue:`30593`)
+- Bug in :class:`PeriodIndex` comparisons with incorrectly casting integers to :class:`Period` objects, inconsistent with the :class:`Period` comparison behavior (:issue:`30722`)
 
 Timedelta
 ^^^^^^^^^
@@ -885,6 +887,7 @@ Interval
 
 - Bug in :meth:`IntervalIndex.get_indexer` where a :class:`Categorical` or :class:`CategoricalIndex` ``target`` would incorrectly raise a ``TypeError`` (:issue:`30063`)
 - Bug in ``pandas.core.dtypes.cast.infer_dtype_from_scalar`` where passing ``pandas_dtype=True`` did not infer :class:`IntervalDtype` (:issue:`30337`)
+- Bug in :class:`Series` constructor where constructing a ``Series`` from a ``list`` of :class:`Interval` objects resulted in ``object`` dtype instead of :class:`IntervalDtype` (:issue:`23563`)
 - Bug in :class:`IntervalDtype` where the ``kind`` attribute was incorrectly set as ``None`` instead of ``"O"`` (:issue:`30568`)
 - Bug in :class:`IntervalIndex`, :class:`~arrays.IntervalArray`, and :class:`Series` with interval data where equality comparisons were incorrect (:issue:`24112`)
 
@@ -1001,7 +1004,7 @@ Reshaping
 Sparse
 ^^^^^^
 - Bug in :class:`SparseDataFrame` arithmetic operations incorrectly casting inputs to float (:issue:`28107`)
--
+- Bug in ``DataFrame.sparse`` returning a ``Series`` when there was a column named ``sparse`` rather than the accessor (:issue:`30758`)
 -
 
 ExtensionArray
