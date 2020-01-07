@@ -503,7 +503,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
             # Primarily we want self.dtype, but could also be Categorical
             #  holding self.dtype
             odtype = getattr(other, "dtype", None)
-            raise TypeError(f"Where requires matching dtype, not {odtype}")
+            raise TypeError(f"Where requires matching dtype, not {odtype}", type(other))
 
         other = type(self._data)._from_sequence(other)
         # TODO: require dtype match
