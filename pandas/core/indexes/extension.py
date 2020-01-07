@@ -176,3 +176,19 @@ class ExtensionIndex(Index):
             na_value=self._na_value,
         )
         return type(self)(taken, name=self.name)
+
+    def unique(self, level=None):
+        if level is not None:
+            self._validate_index_level(level)
+
+        result = self._data.unique()
+        return self._shallow_copy(result)
+
+    def _get_unique_index(self, dropna=False):
+        if self.is_unique and not dropna:
+            return self
+
+        result = self._data.unique()
+        if dropna and self.hasnans:
+            result = result[~result.isna()]
+        return self._shallow_copy(result)
