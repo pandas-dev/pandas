@@ -1,5 +1,4 @@
 - [ ] closes #xxxx
 - [ ] tests added / passed
-- [ ] passes `black pandas`
-- [ ] passes `git diff upstream/master -u -- "*.py" | flake8 --diff`
+- [ ] passes `./scripts/quick_style_check.sh`
 - [ ] whatsnew entry
