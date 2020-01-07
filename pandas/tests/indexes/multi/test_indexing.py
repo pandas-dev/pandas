@@ -214,124 +214,6 @@ class TestGetIndexer:
             expected_indexer_padded = np.array([0, 2, 3])
             assert_almost_equal(expected_indexer_padded, indexer_padded)
 
-    def test_get_indexer_three_or_more_levels(self):
-        """ tests get_indexer() on MultiIndexes with 3+ levels
-
-        visually, these are
-
-        mult_idx_1:
-          0: 1 2 5
-          1:     7
-          2:   4 5
-          3:     7
-          4:   6 5
-          5:     7
-          6: 3 2 5
-          7:     7
-          8:   4 5
-          9:     7
-         10:   6 5
-         11:     7
-
-        mult_idx_2:
-          0: 1 1 8
-          1: 1 5 9
-          2: 1 6 7
-          3: 2 1 6
-          4: 3 6 8
-        """
-        mult_idx_1 = pd.MultiIndex.from_product([[1, 3], [2, 4, 6], [5, 7]])
-        mult_idx_2 = pd.MultiIndex.from_tuples([(1, 1, 8),
-                                                (1, 5, 9),
-                                                (1, 6, 7),
-                                                (2, 1, 6),
-                                                (3, 6, 8)])
-        # sanity check
-        assert mult_idx_1.is_monotonic
-        assert mult_idx_1.is_unique
-        assert mult_idx_2.is_monotonic
-        assert mult_idx_2.is_unique
-
-        # show the relationships between the two
-        assert mult_idx_2[0] < mult_idx_1[0]
-        assert mult_idx_1[3] < mult_idx_2[1] < mult_idx_1[4]
-        assert mult_idx_1[5] == mult_idx_2[2]
-        assert mult_idx_1[5] < mult_idx_2[3] < mult_idx_1[6]
-        assert mult_idx_1[-1] < mult_idx_[4]
-
-        indexer_no_fill = mult_idx_1.get_indexer(mult_idx_2)
-        assert_almost_equal(indexer_no_fill, [-1, -1, 5, -1, -1])
-
-        # test with backfilling
-        indexer_backfilled = mult_idx_1.get_indexer(mult_idx_2, method='backfill')
-        assert_almost_equal(indexer_backfilled, [0, 4, 5, 6, -1])
-
-        # now, the same thing, but forward-filled (aka "padded")
-        indexer_padded = mult_idx_1.get_indexer(mult_idx_2, method='pad')
-        assert_almost_equal(indexer_padded, [-1, 3, 5, 5, 11])
-
-        # now, do the indexing in the other direction
-        assert mult_idx_2[0] < mult_idx_1[0] < mult_idx_2[1]
-        assert mult_idx_2[0] < mult_idx_1[1] < mult_idx_2[1]
-        assert mult_idx_2[0] < mult_idx_1[2] < mult_idx_2[1]
-        assert mult_idx_2[0] < mult_idx_1[3] < mult_idx_2[1]
-        assert mult_idx_2[1] < mult_idx_1[4] < mult_idx_2[2]
-        assert mult_idx_2[2] == mult_idx_1[5]
-        assert mult_idx_2[3] < mult_idx_1[6] < mult_idx_2[4]
-        assert mult_idx_2[3] < mult_idx_1[7] < mult_idx_2[4]
-        assert mult_idx_2[3] < mult_idx_1[8] < mult_idx_2[4]
-        assert mult_idx_2[3] < mult_idx_1[9] < mult_idx_2[4]
-        assert mult_idx_2[3] < mult_idx_1[10] < mult_idx_2[4]
-        assert mult_idx_2[3] < mult_idx_1[11] < mult_idx_2[4]
-
-        assert_almost_equal(mult_idx_2.get_indexer(mult_idx_1),
-                            [-1, -1, -1, -1, -1, 2, -1, -1, -1, -1, -1, -1])
-        assert_almost_equal(mult_idx_2.get_indexer(mult_idx_1, method='bfill'),
-                            [1, 1, 1, 1, 2, 2, 4, 4, 4, 4, 4, 4])
-        assert_almost_equal(mult_idx_2.get_indexer(mult_idx_1, method='pad'),
-                            [0, 0, 0, 0, 1, 2, 3, 3, 3, 3, 3, 3])
-
-    def test_get_indexer_crossing_levels(self):
-        """ tests a corner case with get_indexer() with MultiIndexes where, when we
-        need to "carry" across levels, proper tuple ordering is respected
-
-        the MultiIndexes used in this test, visually, are:
-
-        mult_idx_1:
-          0: 1 1 1 1
-          1:       2
-          2:     2 1
-          3:       2
-          4: 1 2 1 1
-          5:       2
-          6:     2 1
-          7:       2
-          8: 2 1 1 1
-          9:       2
-         10:     2 1
-         11:       2
-         12: 2 2 1 1
-         13:       2
-         14:     2 1
-         15:       2
-
-        mult_idx_2:
-          0: 1 3 2 2
-          1: 2 3 2 2
-        """
-        mult_idx_1 = pd.MultiIndex.from_product([[1, 2]] * 4)
-        mult_idx_2 = pd.MultiIndex.from_tuples([(1, 3, 2, 2), (2, 3, 2, 2)])
-
-        # show the tuple orderings, which get_indexer() should respect
-        assert mult_idx_1[7] < mult_idx_2[0] < mult_idx_1[8]
-        assert mult_idx_1[-1] < mult_idx_2[1]
-
-        tm.assert_almost_equal(mult_idx_1.get_indexer(mult_idx_2),
-                               np.array([-1, -1]))
-        tm.assert_almost_equal(mult_idx_1.get_indexer(mult_idx_2, method='bfill'),
-                               np.array([8, -1]))
-        tm.assert_almost_equal(mult_idx_1.get_indexer(mult_idx_2, method='ffill'),
-                               np.array([7, 15]))
 
     def test_get_indexer_nearest(self):
         midx = MultiIndex.from_tuples([("a", 1), ("b", 2)])
@@ -379,18 +261,170 @@ class TestGetIndexer:
         result = idx.get_indexer(labels)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_get_indexer_and_fill(self):
-      """ test getting an indexer for another index using the backfill method """
-      mult_idx_1 = MultiIndex.from_product([[0], [0, 2, 3, 4]])
-      mult_idx_2 = MultiIndex.from_product([[0], [1, 3, 4]])
+    def test_get_indexer_methods(self):
+        """ test getting an indexer for another index using the backfill method
 
-      assert_almost_equal(mult_idx_1.get_indexer(mult_idx_2), np.array([-1, 2, 3]))
-      for method in ("bfill", "backfill"):
-        assert_almost_equal(mult_idx_1.get_indexer(mult_idx_2, method=method),
-                            np.array([1, 2, 3]))
-      for method in ("ffill", "pad"):
-        assert_almost_equal(mult_idx_1.get_indexer(mult_idx_2, method=method),
-                            np.array([0, 2, 3]))
+        apropos of https://github.com/pandas-dev/pandas/issues/29896
+        """
+        mult_idx_1 = MultiIndex.from_product([[0], [0, 2, 3, 4]])
+        mult_idx_2 = MultiIndex.from_product([[0], [1, 3, 4]])
+
+        indexer = mult_idx_1.get_indexer(mult_idx_2)
+        expected = np.array([-1, 2, 3], dtype="int64")
+        tm.assert_almost_equal(expected, indexer)
+
+        backfill_indexer = mult_idx_1.get_indexer(mult_idx_2, method="backfill")
+        expected = np.array([1, 2, 3], dtype="int64")
+        tm.assert_almost_equal(expected, backfill_indexer)
+
+        backfill_indexer = mult_idx_1.get_indexer(mult_idx_2, method="bfill")
+        expected = np.array([1, 2, 3], dtype="int64")
+        tm.assert_almost_equal(expected, backfill_indexer)
+
+        pad_indexer = mult_idx_1.get_indexer(mult_idx_2, method="pad")
+        expected = np.array([0, 2, 3], dtype="int64")
+        tm.assert_almost_equal(expected, pad_indexer)
+
+        pad_indexer = mult_idx_1.get_indexer(mult_idx_2, method="ffill")
+        expected = np.array([0, 2, 3], dtype="int64")
+        tm.assert_almost_equal(expected, pad_indexer)
+
+    def test_get_indexer_three_or_more_levels(self):
+        """ tests get_indexer() on MultiIndexes with 3+ levels
+
+        apropos of https://github.com/pandas-dev/pandas/issues/29896
+
+        visually, these are
+        mult_idx_1:
+          0: 1 2 5
+          1:     7
+          2:   4 5
+          3:     7
+          4:   6 5
+          5:     7
+          6: 3 2 5
+          7:     7
+          8:   4 5
+          9:     7
+         10:   6 5
+         11:     7
+
+        mult_idx_2:
+          0: 1 1 8
+          1: 1 5 9
+          2: 1 6 7
+          3: 2 1 6
+          4: 2 7 6
+          5: 2 7 8
+          6: 3 6 8
+        """
+        mult_idx_1 = pd.MultiIndex.from_product([[1, 3], [2, 4, 6], [5, 7]])
+        mult_idx_2 = pd.MultiIndex.from_tuples(
+            [(1, 1, 8), (1, 5, 9), (1, 6, 7), (2, 1, 6), (2, 7, 7), (2, 7, 8), (3, 6, 8)]
+        )
+        # sanity check
+        assert mult_idx_1.is_monotonic
+        assert mult_idx_1.is_unique
+        assert mult_idx_2.is_monotonic
+        assert mult_idx_2.is_unique
+
+        # show the relationships between the two
+        assert mult_idx_2[0] < mult_idx_1[0]
+        assert mult_idx_1[3] < mult_idx_2[1] < mult_idx_1[4]
+        assert mult_idx_1[5] == mult_idx_2[2]
+        assert mult_idx_1[5] < mult_idx_2[3] < mult_idx_1[6]
+        assert mult_idx_1[5] < mult_idx_2[4] < mult_idx_1[6]
+        assert mult_idx_1[5] < mult_idx_2[5] < mult_idx_1[6]
+        assert mult_idx_1[-1] < mult_idx_2[6]
+
+        indexer_no_fill = mult_idx_1.get_indexer(mult_idx_2)
+        tm.assert_almost_equal(indexer_no_fill, np.array([-1, -1, 5, -1, -1, -1, -1]))
+
+        # test with backfilling
+        indexer_backfilled = mult_idx_1.get_indexer(mult_idx_2, method="backfill")
+        expected = np.array([0, 4, 5, 6, 6, 6, -1], dtype="int64")
+        tm.assert_almost_equal(expected, indexer_backfilled)
+
+        # now, the same thing, but forward-filled (aka "padded")
+        indexer_padded = mult_idx_1.get_indexer(mult_idx_2, method="pad")
+        expected = np.array([-1, 3, 5, 5, 5, 5, 11], dtype="int64")
+        tm.assert_almost_equal(expected, indexer_padded)
+
+        # now, do the indexing in the other direction
+        assert mult_idx_2[0] < mult_idx_1[0] < mult_idx_2[1]
+        assert mult_idx_2[0] < mult_idx_1[1] < mult_idx_2[1]
+        assert mult_idx_2[0] < mult_idx_1[2] < mult_idx_2[1]
+        assert mult_idx_2[0] < mult_idx_1[3] < mult_idx_2[1]
+        assert mult_idx_2[1] < mult_idx_1[4] < mult_idx_2[2]
+        assert mult_idx_2[2] == mult_idx_1[5]
+        assert mult_idx_2[5] < mult_idx_1[6] < mult_idx_2[6]
+        assert mult_idx_2[5] < mult_idx_1[7] < mult_idx_2[6]
+        assert mult_idx_2[5] < mult_idx_1[8] < mult_idx_2[6]
+        assert mult_idx_2[5] < mult_idx_1[9] < mult_idx_2[6]
+        assert mult_idx_2[5] < mult_idx_1[10] < mult_idx_2[6]
+        assert mult_idx_2[5] < mult_idx_1[11] < mult_idx_2[6]
+
+        indexer = mult_idx_2.get_indexer(mult_idx_1)
+        expected = np.array([-1, -1, -1, -1, -1, 2, -1, -1, -1, -1, -1, -1],
+                            dtype="int64")
+        tm.assert_almost_equal(expected, indexer)
+
+        backfill_indexer = mult_idx_2.get_indexer(mult_idx_1, method="bfill")
+        expected = np.array([1, 1, 1, 1, 2, 2, 6, 6, 6, 6, 6, 6], dtype="int64")
+        tm.assert_almost_equal(expected, backfill_indexer)
+
+        pad_indexer = mult_idx_2.get_indexer(mult_idx_1, method="pad")
+        expected = np.array([0, 0, 0, 0, 1, 2, 5, 5, 5, 5, 5, 5], dtype="int64")
+        tm.assert_almost_equal(expected, pad_indexer)
+
+    def test_get_indexer_backfill_with_carrying(self):
+        """ tests a corner case with get_indexer() with MultiIndexes where, when we
+        need to "carry" across levels, proper tuple ordering is respected
+
+        apropos of https://github.com/pandas-dev/pandas/issues/29896
+
+        the MultiIndexes used in this test, visually, are:
+        mult_idx_1:
+          0: 1 1 1 1
+          1:       2
+          2:     2 1
+          3:       2
+          4: 1 2 1 1
+          5:       2
+          6:     2 1
+          7:       2
+          8: 2 1 1 1
+          9:       2
+         10:     2 1
+         11:       2
+         12: 2 2 1 1
+         13:       2
+         14:     2 1
+         15:       2
+
+        mult_idx_2:
+          0: 1 3 2 2
+          1: 2 3 2 2
+        """
+        mult_idx_1 = pd.MultiIndex.from_product([[1, 2]] * 4)
+        mult_idx_2 = pd.MultiIndex.from_tuples([(1, 3, 2, 2), (2, 3, 2, 2)])
+
+        # show the tuple orderings, which get_indexer() should respect
+        assert mult_idx_1[7] < mult_idx_2[0] < mult_idx_1[8]
+        assert mult_idx_1[-1] < mult_idx_2[1]
+
+        indexer = mult_idx_1.get_indexer(mult_idx_2)
+        expected = np.array([-1, -1], dtype="int64")
+        tm.assert_almost_equal(expected, indexer)
+
+        backfill_indexer = mult_idx_1.get_indexer(mult_idx_2, method="bfill")
+        expected = np.array([8, -1], dtype="int64")
+        tm.assert_almost_equal(expected, backfill_indexer)
+
+        pad_indexer = mult_idx_1.get_indexer(mult_idx_2, method="ffill")
+        expected = np.array([7, 15], dtype="int64")
+        tm.assert_almost_equal(expected, pad_indexer)
+
 
 def test_getitem(idx):
     # scalar
