@@ -493,17 +493,14 @@ class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
     def where(self, cond, other=None):
         values = self.view("i8")
 
+        # Do type inference if necessary up front
+        # e.g. we passed PeriodIndex.values and got an ndarray of Periods
+        other = Index(other)
+
         if is_categorical_dtype(other):
+            # e.g. we have a Categorical holding self.dtype
             if needs_i8_conversion(other.categories):
                 other = other._internal_get_values()
-                assert needs_i8_conversion(other)
-                #raise TypeError(other.dtype)
-            else:
-                raise TypeError(other.dtype)
-        if is_object_dtype(other):
-            # Try to do inference, e.g. we passed PeriodIndex.values and got
-            #  an ndarray of Periods
-            other = Index(np.asarray(other))
 
         if not is_scalar(other) and not needs_i8_conversion(other):
             # Primarily we want self.dtype, but could also be Categorical
