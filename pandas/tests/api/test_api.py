@@ -98,7 +98,7 @@ class TestPDApi(Base):
     deprecated_classes: List[str] = []
 
     # these should be deprecated in the future
-    deprecated_classes_in_future: List[str] = []
+    deprecated_classes_in_future: List[str] = ["SparseArray"]
 
     # external modules exposed in pandas namespace
     modules: List[str] = []
@@ -206,17 +206,12 @@ class TestPDApi(Base):
             self.lib
             + self.misc
             + self.modules
-            + self.deprecated_modules
             + self.classes
-            + self.deprecated_classes
-            + self.deprecated_classes_in_future
             + self.funcs
             + self.funcs_option
             + self.funcs_read
             + self.funcs_json
             + self.funcs_to
-            + self.deprecated_funcs_in_future
-            + self.deprecated_funcs
             + self.private_modules,
             self.ignored,
         )
