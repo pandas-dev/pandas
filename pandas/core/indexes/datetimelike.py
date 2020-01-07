@@ -16,15 +16,18 @@ from pandas.util._decorators import Appender, cache_readonly
 from pandas.core.dtypes.common import (
     ensure_int64,
     is_bool_dtype,
+    is_categorical_dtype,
     is_dtype_equal,
     is_float,
     is_integer,
     is_list_like,
     is_period_dtype,
     is_scalar,
+    needs_i8_conversion,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms
 from pandas.core.accessor import PandasDelegate
@@ -34,10 +37,7 @@ from pandas.core.arrays import (
     ExtensionOpsMixin,
     TimedeltaArray,
 )
-from pandas.core.arrays.datetimelike import (
-    DatetimeLikeArrayMixin,
-    _ensure_datetimelike_to_i8,
-)
+from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.numeric import Int64Index
@@ -165,18 +165,6 @@ class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
             return False
 
         return np.array_equal(self.asi8, other.asi8)
-
-    def _ensure_localized(
-        self, arg, ambiguous="raise", nonexistent="raise", from_utc=False
-    ):
-        # See DatetimeLikeArrayMixin._ensure_localized.__doc__
-        if getattr(self, "tz", None):
-            # ensure_localized is only relevant for tz-aware DTI
-            result = self._data._ensure_localized(
-                arg, ambiguous=ambiguous, nonexistent=nonexistent, from_utc=from_utc
-            )
-            return type(self)._simple_new(result, name=self.name)
-        return arg
 
     @Appender(_index_shared_docs["contains"] % _index_doc_kwargs)
     def __contains__(self, key):
@@ -480,11 +468,27 @@ class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
 
     @Appender(_index_shared_docs["where"] % _index_doc_kwargs)
     def where(self, cond, other=None):
-        other = _ensure_datetimelike_to_i8(other, to_utc=True)
-        values = _ensure_datetimelike_to_i8(self, to_utc=True)
-        result = np.where(cond, values, other).astype("i8")
+        values = self.view("i8")
 
-        result = self._ensure_localized(result, from_utc=True)
+        if is_scalar(other) and isna(other):
+            other = NaT.value
+
+        else:
+            # Do type inference if necessary up front
+            # e.g. we passed PeriodIndex.values and got an ndarray of Periods
+            other = Index(other)
+
+            if is_categorical_dtype(other):
+                # e.g. we have a Categorical holding self.dtype
+                if needs_i8_conversion(other.categories):
+                    other = other._internal_get_values()
+
+            if not is_dtype_equal(self.dtype, other.dtype):
+                raise TypeError(f"Where requires matching dtype, not {other.dtype}")
+
+            other = other.view("i8")
+
+        result = np.where(cond, values, other).astype("i8")
         return self._shallow_copy(result)
 
     def _summary(self, name=None):
