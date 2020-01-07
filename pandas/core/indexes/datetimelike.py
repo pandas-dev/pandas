@@ -28,7 +28,12 @@ from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 
 from pandas.core import algorithms
 from pandas.core.accessor import PandasDelegate
-from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
+from pandas.core.arrays import (
+    DatetimeArray,
+    ExtensionArray,
+    ExtensionOpsMixin,
+    TimedeltaArray,
+)
 from pandas.core.arrays.datetimelike import (
     DatetimeLikeArrayMixin,
     _ensure_datetimelike_to_i8,
@@ -251,14 +256,9 @@ class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
         if isinstance(maybe_slice, slice):
             return self[maybe_slice]
 
-        taken = ExtensionIndex.take(
+        return ExtensionIndex.take(
             self, indices, axis, allow_fill, fill_value, **kwargs
         )
-
-        # keep freq in PeriodArray/Index, reset otherwise
-        freq = self.freq if is_period_dtype(self) else None
-        assert taken.freq == freq, (taken.freq, freq, taken)
-        return self._shallow_copy(taken, freq=freq)
 
     _can_hold_na = True
 
@@ -486,8 +486,8 @@ class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
     @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
     def repeat(self, repeats, axis=None):
         nv.validate_repeat(tuple(), dict(axis=axis))
-        freq = self.freq if is_period_dtype(self) else None
-        return self._shallow_copy(self.asi8.repeat(repeats), freq=freq)
+        result = type(self._data)(self.asi8.repeat(repeats), dtype=self.dtype)
+        return self._shallow_copy(result)
 
     @Appender(_index_shared_docs["where"] % _index_doc_kwargs)
     def where(self, cond, other=None):
@@ -649,6 +649,22 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             freq = to_offset(self.inferred_freq)
 
         self._data._freq = freq
+
+    def _shallow_copy(self, values=None, **kwargs):
+        if values is None:
+            values = self._data
+        if isinstance(values, type(self)):
+            values = values._data
+
+        attributes = self._get_attributes_dict()
+
+        if "freq" not in kwargs and self.freq is not None:
+            if isinstance(values, (DatetimeArray, TimedeltaArray)):
+                if values.freq is None:
+                    del attributes["freq"]
+
+        attributes.update(kwargs)
+        return self._simple_new(values, **attributes)
 
     # --------------------------------------------------------------------
     # Set Operation Methods
