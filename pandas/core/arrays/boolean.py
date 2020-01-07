@@ -317,7 +317,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
         return type(self)(self._data[item], self._mask[item])
 
     def to_numpy(
-        self, dtype=None, copy=False, na_value: "Scalar" = lib._no_default,
+        self, dtype=None, copy=False, na_value: "Scalar" = lib.no_default,
     ):
         """
         Convert to a NumPy Array.
@@ -377,7 +377,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
         >>> a.to_numpy(dtype="bool", na_value=False)
         array([ True, False, False])
         """
-        if na_value is lib._no_default:
+        if na_value is lib.no_default:
             na_value = libmissing.NA
         if dtype is None:
             dtype = object

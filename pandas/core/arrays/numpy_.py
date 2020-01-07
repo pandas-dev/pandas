@@ -421,13 +421,13 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
 
     # ------------------------------------------------------------------------
     # Additional Methods
-    def to_numpy(self, dtype=None, copy=False, na_value=lib._no_default):
+    def to_numpy(self, dtype=None, copy=False, na_value=lib.no_default):
         result = np.asarray(self._ndarray, dtype=dtype)
 
-        if (copy or na_value is not lib._no_default) and result is self._ndarray:
+        if (copy or na_value is not lib.no_default) and result is self._ndarray:
             result = result.copy()
 
-        if na_value is not lib._no_default:
+        if na_value is not lib.no_default:
             result[self.isna()] = na_value
 
         return result

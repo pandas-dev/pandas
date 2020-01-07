@@ -2232,14 +2232,14 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
     return objects
 
 
-# Note: _no_default is exported to the public API in pandas.api.extensions
-_no_default = object()  #: Sentinel indicating the default value.
+# Note: no_default is exported to the public API in pandas.api.extensions
+no_default = object()  #: Sentinel indicating the default value.
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=1,
-                   object na_value=_no_default, object dtype=object):
+                   object na_value=no_default, object dtype=object):
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
 
@@ -2270,7 +2270,7 @@ def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=1,
     result = np.empty(n, dtype=dtype)
     for i in range(n):
         if mask[i]:
-            if na_value is _no_default:
+            if na_value is no_default:
                 val = arr[i]
             else:
                 val = na_value

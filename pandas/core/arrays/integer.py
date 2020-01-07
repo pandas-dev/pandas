@@ -376,16 +376,16 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         return type(self)(self._data[item], self._mask[item])
 
-    def _coerce_to_ndarray(self, dtype=None, na_value=lib._no_default):
+    def _coerce_to_ndarray(self, dtype=None, na_value=lib.no_default):
         """
         coerce to an ndarary of object dtype
         """
         if dtype is None:
             dtype = object
 
-        if na_value is lib._no_default and is_float_dtype(dtype):
+        if na_value is lib.no_default and is_float_dtype(dtype):
             na_value = np.nan
-        elif na_value is lib._no_default:
+        elif na_value is lib.no_default:
             na_value = libmissing.NA
 
         if is_integer_dtype(dtype):

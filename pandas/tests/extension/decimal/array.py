@@ -5,12 +5,10 @@ import sys
 
 import numpy as np
 
-from pandas._libs import lib
-
 from pandas.core.dtypes.base import ExtensionDtype
 
 import pandas as pd
-from pandas.api.extensions import register_extension_dtype
+from pandas.api.extensions import no_default, register_extension_dtype
 from pandas.core.arrays import ExtensionArray, ExtensionScalarOpsMixin
 
 
@@ -86,7 +84,7 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
 
     _HANDLED_TYPES = (decimal.Decimal, numbers.Number, np.ndarray)
 
-    def to_numpy(self, dtype=None, copy=False, na_value=lib._no_default, decimals=None):
+    def to_numpy(self, dtype=None, copy=False, na_value=no_default, decimals=None):
         result = np.asarray(self, dtype=dtype)
         if decimals is not None:
             result = np.asarray([round(x, decimals) for x in result])

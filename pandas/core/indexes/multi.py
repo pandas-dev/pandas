@@ -61,8 +61,6 @@ _index_doc_kwargs.update(
     dict(klass="MultiIndex", target_klass="MultiIndex or list of tuples")
 )
 
-_no_default_names = object()
-
 
 class MultiIndexUIntEngine(libindex.BaseMultiIndexCodesEngine, libindex.UInt64Engine):
     """
@@ -373,7 +371,7 @@ class MultiIndex(Index):
         return new_codes
 
     @classmethod
-    def from_arrays(cls, arrays, sortorder=None, names=_no_default_names):
+    def from_arrays(cls, arrays, sortorder=None, names=lib.no_default):
         """
         Convert arrays to MultiIndex.
 
@@ -427,7 +425,7 @@ class MultiIndex(Index):
                 raise ValueError("all arrays must be same length")
 
         codes, levels = factorize_from_iterables(arrays)
-        if names is _no_default_names:
+        if names is lib.no_default:
             names = [getattr(arr, "name", None) for arr in arrays]
 
         return MultiIndex(
@@ -497,7 +495,7 @@ class MultiIndex(Index):
         return MultiIndex.from_arrays(arrays, sortorder=sortorder, names=names)
 
     @classmethod
-    def from_product(cls, iterables, sortorder=None, names=_no_default_names):
+    def from_product(cls, iterables, sortorder=None, names=lib.no_default):
         """
         Make a MultiIndex from the cartesian product of multiple iterables.
 
@@ -548,7 +546,7 @@ class MultiIndex(Index):
             iterables = list(iterables)
 
         codes, levels = factorize_from_iterables(iterables)
-        if names is _no_default_names:
+        if names is lib.no_default:
             names = [getattr(it, "name", None) for it in iterables]
 
         codes = cartesian_product(codes)
