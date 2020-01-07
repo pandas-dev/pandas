@@ -102,9 +102,9 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
 
     MSG='Check for use of not concatenated strings' ; echo $MSG
     if [[ "$GITHUB_ACTIONS" == "true" ]]; then
-        $BASE_DIR/scripts/validate_string_concatenation --id="strings_to_concatenate" --format="[error]{source_path}:{line_number}:{msg}" .
+        $BASE_DIR/scripts/validate_string_concatenation.py --id="strings_to_concatenate" --format="[error]{source_path}:{line_number}:{msg}" .
     else
-        $BASE_DIR/scripts/validate_string_concatenation --id="strings_to_concatenate" .
+        $BASE_DIR/scripts/validate_string_concatenation.py --id="strings_to_concatenate" .
     fi
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
