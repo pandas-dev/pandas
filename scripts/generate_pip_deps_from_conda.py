@@ -92,7 +92,7 @@ def main(conda_fname, pip_fname, compare=False):
     fname = os.path.split(conda_fname)[1]
     header = (
         f"# This file is auto-generated from {fname}, do not modify.\n"
-        "# See that file for comments about the need/usage of each depdendency.\n\n"
+        "# See that file for comments about the need/usage of each dependency.\n\n"
     )
     pip_content = header + "\n".join(pip_deps)
 
