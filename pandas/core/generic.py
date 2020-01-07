@@ -3356,12 +3356,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if is_copy is not None:
             warnings.warn(
                 "is_copy is deprecated and will be removed in a future version. "
-                "take will always return a copy in the future.",
+                "take always returns a copy, so there is no need to specify this.",
                 FutureWarning,
                 stacklevel=2,
             )
-        else:
-            is_copy = True
 
         nv.validate_take(tuple(), kwargs)
 
@@ -3370,14 +3368,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         new_data = self._data.take(
             indices, axis=self._get_block_manager_axis(axis), verify=True
         )
-        result = self._constructor(new_data).__finalize__(self)
-
-        # Maybe set copy if we didn't actually change the index.
-        if is_copy:
-            if not result._get_axis(axis).equals(self._get_axis(axis)):
-                result._set_is_copy(self)
-
-        return result
+        return self._constructor(new_data).__finalize__(self)
 
     def xs(self, key, axis=0, level=None, drop_level: bool_t = True):
         """
@@ -7022,8 +7013,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         # mask the missing
         missing = locs == -1
-        d = self.take(locs)
-        data = d.copy()
+        data = self.take(locs)
         data.index = where
         data.loc[missing] = np.nan
         return data if is_list else data.iloc[-1]
