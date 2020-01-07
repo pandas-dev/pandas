@@ -495,7 +495,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
         if is_categorical_dtype(other):
             if needs_i8_conversion(other.categories):
                 other._internal_get_values()
-                assert needs_i8_conversion(other), other.dtype
+                assert needs_i8_conversion(other), other.categories.dtype
                 raise TypeError(other.dtype)
             else:
                 raise TypeError(other.dtype)
