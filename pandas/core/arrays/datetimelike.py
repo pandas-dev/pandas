@@ -373,7 +373,7 @@ default 'raise'
             naive = self.tz_localize(None)
             result = naive._round(freq, mode, ambiguous, nonexistent)
             aware = result.tz_localize(
-                self.tz, mode=mode, ambiguous=ambiguous, nonexistent=nonexistent
+                self.tz, ambiguous=ambiguous, nonexistent=nonexistent
             )
             return aware
 
