@@ -19,6 +19,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_dtype_equal,
     is_float,
+    is_object_dtype,
     is_integer,
     is_list_like,
     is_period_dtype,
