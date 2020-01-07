@@ -193,28 +193,6 @@ class TestGetIndexer:
         with pytest.raises(InvalidIndexError, match=msg):
             idx1.get_indexer(idx2)
 
-    def test_get_indexer_and_fill(self):
-        """ test getting an indexer for another index using the backfill method """
-        mult_idx_1 = MultiIndex.from_product([[0], [0, 2, 3, 4]])
-        mult_idx_2 = MultiIndex.from_product([[0], [1, 3, 4]])
-
-        indexer_no_fill = mult_idx_1.get_indexer(mult_idx_2)
-        expected_indexer_no_fill = np.array([-1, 2, 3])
-        assert_almost_equal(expected_indexer_no_fill, indexer_no_fill)
-
-        for method in ("bfill", "backfill"):
-            indexer_backfilled = multi_idx_1.get_indexer(mult_idx_2,
-                                                         method=method)
-            expected_indexer_backfilled = np.array([1, 2, 3])
-            assert_almost_equal(expected_indexer_backfilled, indexer_backfilled)
-
-        for method in ("ffill", "pad"):
-            indexer_padded = mult_idx_1.get_indexer(mult_idx_2,
-                                                    method=method)
-            expected_indexer_padded = np.array([0, 2, 3])
-            assert_almost_equal(expected_indexer_padded, indexer_padded)
-
-
     def test_get_indexer_nearest(self):
         midx = MultiIndex.from_tuples([("a", 1), ("b", 2)])
         msg = (
@@ -262,10 +240,8 @@ class TestGetIndexer:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_get_indexer_methods(self):
-        """ test getting an indexer for another index using the backfill method
-
-        apropos of https://github.com/pandas-dev/pandas/issues/29896
-        """
+        # https://github.com/pandas-dev/pandas/issues/29896
+        # test getting an indexer for another index with different methods
         mult_idx_1 = MultiIndex.from_product([[0], [0, 2, 3, 4]])
         mult_idx_2 = MultiIndex.from_product([[0], [1, 3, 4]])
 
@@ -290,34 +266,31 @@ class TestGetIndexer:
         tm.assert_almost_equal(expected, pad_indexer)
 
     def test_get_indexer_three_or_more_levels(self):
-        """ tests get_indexer() on MultiIndexes with 3+ levels
-
-        apropos of https://github.com/pandas-dev/pandas/issues/29896
-
-        visually, these are
-        mult_idx_1:
-          0: 1 2 5
-          1:     7
-          2:   4 5
-          3:     7
-          4:   6 5
-          5:     7
-          6: 3 2 5
-          7:     7
-          8:   4 5
-          9:     7
-         10:   6 5
-         11:     7
-
-        mult_idx_2:
-          0: 1 1 8
-          1: 1 5 9
-          2: 1 6 7
-          3: 2 1 6
-          4: 2 7 6
-          5: 2 7 8
-          6: 3 6 8
-        """
+        # https://github.com/pandas-dev/pandas/issues/29896
+        # tests get_indexer() on MultiIndexes with 3+ levels
+        # visually, these are
+        # mult_idx_1:
+        #  0: 1 2 5
+        #  1:     7
+        #  2:   4 5
+        #  3:     7
+        #  4:   6 5
+        #  5:     7
+        #  6: 3 2 5
+        #  7:     7
+        #  8:   4 5
+        #  9:     7
+        # 10:   6 5
+        # 11:     7
+        #
+        # mult_idx_2:
+        #  0: 1 1 8
+        #  1: 1 5 9
+        #  2: 1 6 7
+        #  3: 2 1 6
+        #  4: 2 7 6
+        #  5: 2 7 8
+        #  6: 3 6 8
         mult_idx_1 = pd.MultiIndex.from_product([[1, 3], [2, 4, 6], [5, 7]])
         mult_idx_2 = pd.MultiIndex.from_tuples(
             [(1, 1, 8), (1, 5, 9), (1, 6, 7), (2, 1, 6), (2, 7, 7), (2, 7, 8), (3, 6, 8)]
@@ -378,34 +351,32 @@ class TestGetIndexer:
         tm.assert_almost_equal(expected, pad_indexer)
 
     def test_get_indexer_backfill_with_carrying(self):
-        """ tests a corner case with get_indexer() with MultiIndexes where, when we
-        need to "carry" across levels, proper tuple ordering is respected
-
-        apropos of https://github.com/pandas-dev/pandas/issues/29896
-
-        the MultiIndexes used in this test, visually, are:
-        mult_idx_1:
-          0: 1 1 1 1
-          1:       2
-          2:     2 1
-          3:       2
-          4: 1 2 1 1
-          5:       2
-          6:     2 1
-          7:       2
-          8: 2 1 1 1
-          9:       2
-         10:     2 1
-         11:       2
-         12: 2 2 1 1
-         13:       2
-         14:     2 1
-         15:       2
-
-        mult_idx_2:
-          0: 1 3 2 2
-          1: 2 3 2 2
-        """
+        # https://github.com/pandas-dev/pandas/issues/29896
+        # tests a corner case with get_indexer() with MultiIndexes where, when we
+        # need to "carry" across levels, proper tuple ordering is respected
+        #
+        # the MultiIndexes used in this test, visually, are:
+        # mult_idx_1:
+        #  0: 1 1 1 1
+        #  1:       2
+        #  2:     2 1
+        #  3:       2
+        #  4: 1 2 1 1
+        #  5:       2
+        #  6:     2 1
+        #  7:       2
+        #  8: 2 1 1 1
+        #  9:       2
+        # 10:     2 1
+        # 11:       2
+        # 12: 2 2 1 1
+        # 13:       2
+        # 14:     2 1
+        # 15:       2
+        #
+        # mult_idx_2:
+        #  0: 1 3 2 2
+        #  1: 2 3 2 2
         mult_idx_1 = pd.MultiIndex.from_product([[1, 2]] * 4)
         mult_idx_2 = pd.MultiIndex.from_tuples([(1, 3, 2, 2), (2, 3, 2, 2)])
 

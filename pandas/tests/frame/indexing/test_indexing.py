@@ -1628,8 +1628,8 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(expected, actual)
 
     def test_reindex_with_multi_index(self):
+        # https://github.com/pandas-dev/pandas/issues/29896
         # tests for reindexing a multi-indexed DataFrame with a new MultiIndex
-        # apropos of https://github.com/pandas-dev/pandas/issues/29896
         df = pd.DataFrame(
             {"a": [0] * 7, "b": list(range(7)), "c": list(range(7))}
         ).set_index(["a", "b"])
