@@ -499,15 +499,16 @@ class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
                 #raise TypeError(other.dtype)
             else:
                 raise TypeError(other.dtype)
-        if not needs_i8_conversion(other):
+        if not is_scalar(other) and not needs_i8_conversion(other):
             # Primarily we want self.dtype, but could also be Categorical
             #  holding self.dtype
             odtype = getattr(other, "dtype", None)
             raise TypeError(f"Where requires matching dtype, not {odtype}", type(other))
 
-        other = type(self._data)._from_sequence(other)
-        # TODO: require dtype match
-        other = other.view("i8")
+        if not is_scalar(other):
+            other = type(self._data)._from_sequence(other)
+            # TODO: require dtype match
+            other = other.view("i8")
 
         result = np.where(cond, values, other).astype("i8")
         return self._shallow_copy(result)
