@@ -130,12 +130,13 @@ def test_qcut_return_intervals():
     tm.assert_series_equal(res, exp)
 
 
-def test_qcut_labels_true():
+@pytest.mark.parametrize("labels", ["foo", 1, True])
+def test_qcut_incorrect_labels(labels):
     # GH 13318
     values = range(5)
-    msg = "User desired bin labels must be passed in as an argument, not just `True`"
+    msg = "Bin labels must either be False, None or passed in as a list-like argument"
     with pytest.raises(ValueError, match=msg):
-        qcut(values, 4, labels=True)
+        qcut(values, 4, labels=labels)
 
 
 @pytest.mark.parametrize("labels", [["a", "b", "c"], list(range(3))])

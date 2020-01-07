@@ -393,20 +393,22 @@ def _bins_to_cuts(
     has_nas = na_mask.any()
 
     if labels is not False:
-        if labels is None:
+        if not (labels is None or is_list_like(labels)):
+            raise ValueError(
+                "Bin labels must either be False, None or passed in as a "
+                "list-like argument"
+            )
+
+        elif labels is None:
             labels = _format_labels(
                 bins, precision, right=right, include_lowest=include_lowest, dtype=dtype
             )
-        elif labels is True:
+
+        elif len(labels) != len(bins) - 1:
             raise ValueError(
-                "User desired bin labels must be passed in as an argument, "
-                "not just `True`"
+                "Bin labels must be one fewer than the number of bin edges"
             )
-        elif is_list_like(labels):
-            if len(labels) != len(bins) - 1:
-                raise ValueError(
-                    "Bin labels must be one fewer than the number of bin edges"
-                )
+
         if not is_categorical_dtype(labels):
             labels = Categorical(labels, categories=labels, ordered=True)
 
