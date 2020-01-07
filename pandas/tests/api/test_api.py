@@ -90,15 +90,17 @@ class TestPDApi(Base):
         "UInt64Dtype",
         "NamedAgg",
     ]
-    if not compat.PY37:
-        classes.extend(["Panel", "SparseSeries", "SparseDataFrame"])
-        deprecated_modules.extend(["np", "datetime"])
 
     # these are already deprecated; awaiting removal
     deprecated_classes: List[str] = []
 
     # these should be deprecated in the future
-    deprecated_classes_in_future: List[str] = ["SparseArray"]
+    deprecated_classes_in_future: List[str] = []
+
+    if not compat.PY37:
+        classes.extend(["Panel", "SparseSeries", "SparseDataFrame"])
+        deprecated_modules.extend(["np", "datetime"])
+        deprecated_classes_in_future.extend(["SparseArray"])
 
     # external modules exposed in pandas namespace
     modules: List[str] = []
