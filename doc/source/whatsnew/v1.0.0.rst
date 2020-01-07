@@ -3,38 +3,18 @@
 What's new in 1.0.0 (??)
 ------------------------
 
-.. warning::
-
-   Starting with the 1.x series of releases, pandas only supports Python 3.6.1 and higher.
+These are the changes in pandas 1.0.0. See :ref:`release` for a full changelog
+including other versions of pandas.
 
 New Deprecation Policy
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Starting with Pandas 1.0.0, pandas will adopt a version of `SemVer`_.
+Starting with Pandas 1.0.0, pandas will adopt a variant of `SemVer`_ to
+version releases. Briefly,
 
-Historically, pandas has used a "rolling" deprecation policy, with occasional
-outright breaking API changes. Where possible, we would deprecate the behavior
-we'd like to change, giving an option to adopt the new behavior (via a keyword
-or an alternative method), and issuing a warning for users of the old behavior.
-Sometimes, a deprecation was not possible, and we would make an outright API
-breaking change.
-
-We'll continue to *introduce* deprecations in major and minor releases (e.g.
-1.0.0, 1.1.0, ...). Those deprecations will be *enforced* in the next major
-release.
-
-Note that *behavior changes* and *API breaking changes* are not identical. API
-breaking changes will only be released in major versions. If we consider a
-behavior to be a bug, and fixing that bug induces a behavior change, we'll
-release that change in a minor release. This is a sometimes difficult judgment
-call that we'll do our best on.
-
-This doesn't mean that pandas' pace of development will slow down. In the `2019
-Pandas User Survey`_, about 95% of the respondents said they considered pandas
-"stable enough". This indicates there's an appetite for new features, even if it
-comes at the cost of break API. The difference is that now API breaking changes
-will be accompanied with a bump in the major version number (e.g. pandas 1.5.1
--> 2.0.0).
+* Deprecations will be introduced in minor releases (e.g. 1.1.0, 1.2.0, 2.1.0, ...)
+* Deprecations will be enforced in major releases (e.g. 1.0.0, 2.0,0, 3.0.0, ...)
+* API-breaking changes will be made only in major releases
 
 See :ref:`policies.version` for more.
 
@@ -43,12 +23,55 @@ See :ref:`policies.version` for more.
 
 {{ header }}
 
-These are the changes in pandas 1.0.0. See :ref:`release` for a full changelog
-including other versions of pandas.
-
+.. ---------------------------------------------------------------------------
 
 Enhancements
 ~~~~~~~~~~~~
+
+.. _whatsnew_100.NA:
+
+Experimental ``NA`` scalar to denote missing values
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A new ``pd.NA`` value (singleton) is introduced to represent scalar missing
+values. Up to now, pandas used several values to represent missing data: ``np.nan`` is used for this for float data, ``np.nan`` or
+``None`` for object-dtype data and ``pd.NaT`` for datetime-like data. The
+goal of ``pd.NA`` is to provide a "missing" indicator that can be used
+consistently across data types. ``pd.NA`` is currently used by the nullable integer and boolean
+data types and the new string data type (:issue:`28095`).
+
+.. warning::
+
+   Experimental: the behaviour of ``pd.NA`` can still change without warning.
+
+For example, creating a Series using the nullable integer dtype:
+
+.. ipython:: python
+
+    s = pd.Series([1, 2, None], dtype="Int64")
+    s
+    s[2]
+
+Compared to ``np.nan``, ``pd.NA`` behaves differently in certain operations.
+In addition to arithmetic operations, ``pd.NA`` also propagates as "missing"
+or "unknown" in comparison operations:
+
+.. ipython:: python
+
+    np.nan > 1
+    pd.NA > 1
+
+For logical operations, ``pd.NA`` follows the rules of the
+`three-valued logic <https://en.wikipedia.org/wiki/Three-valued_logic>`__ (or
+*Kleene logic*). For example:
+
+.. ipython:: python
+
+    pd.NA | True
+
+For more, see :ref:`NA section <missing_data.NA>` in the user guide on missing
+data.
+
 
 .. _whatsnew_100.string:
 
@@ -102,59 +125,15 @@ String accessor methods returning integers will return a value with :class:`Int6
 We recommend explicitly using the ``string`` data type when working with strings.
 See :ref:`text.types` for more.
 
-.. _whatsnew_100.NA:
-
-Experimental ``NA`` scalar to denote missing values
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-A new ``pd.NA`` value (singleton) is introduced to represent scalar missing
-values. Up to now, ``np.nan`` is used for this for float data, ``np.nan`` or
-``None`` for object-dtype data and ``pd.NaT`` for datetime-like data. The
-goal of ``pd.NA`` is provide a "missing" indicator that can be used
-consistently across data types. For now, the nullable integer and boolean
-data types and the new string data type make use of ``pd.NA`` (:issue:`28095`).
-
-.. warning::
-
-   Experimental: the behaviour of ``pd.NA`` can still change without warning.
-
-For example, creating a Series using the nullable integer dtype:
-
-.. ipython:: python
-
-    s = pd.Series([1, 2, None], dtype="Int64")
-    s
-    s[2]
-
-Compared to ``np.nan``, ``pd.NA`` behaves differently in certain operations.
-In addition to arithmetic operations, ``pd.NA`` also propagates as "missing"
-or "unknown" in comparison operations:
-
-.. ipython:: python
-
-    np.nan > 1
-    pd.NA > 1
-
-For logical operations, ``pd.NA`` follows the rules of the
-`three-valued logic <https://en.wikipedia.org/wiki/Three-valued_logic>`__ (or
-*Kleene logic*). For example:
-
-.. ipython:: python
-
-    pd.NA | True
-
-For more, see :ref:`NA section <missing_data.NA>` in the user guide on missing
-data.
-
 .. _whatsnew_100.boolean:
 
 Boolean data type with missing values support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 We've added :class:`BooleanDtype` / :class:`~arrays.BooleanArray`, an extension
-type dedicated to boolean data that can hold missing values. With the default
-``'bool`` data type based on a numpy bool array, the column can only hold
-True or False values and not missing values. This new :class:`BooleanDtype`
+type dedicated to boolean data that can hold missing values. The default
+``bool`` data type based on a bool-dtype NumPy array, the column can only hold
+``True`` or ``False``, and not missing values. This new :class:`~arrays.BooleanArray`
 can store missing values as well by keeping track of this in a separate mask.
 (:issue:`29555`, :issue:`30095`)
 
@@ -191,6 +170,18 @@ method on a :func:`pandas.api.indexers.BaseIndexer` subclass that will generate 
 indices used for each window during the rolling aggregation. For more details and example usage, see
 the :ref:`custom window rolling documentation <stats.custom_rolling_window>`
 
+.. _whatsnew_1000.to_markdown:
+
+Converting to Markdown
+^^^^^^^^^^^^^^^^^^^^^^
+
+We've added :meth:`~DataFrame.to_markdown` for creating a markdown table (:issue:`11052`)
+
+.. ipython:: python
+
+   df = pd.DataFrame({"A": [1, 2, 3], "B": [1, 2, 3]}, index=['a', 'a', 'b'])
+   print(df.to_markdown())
+
 .. _whatsnew_1000.enhancements.other:
 
 Other enhancements
@@ -222,14 +213,12 @@ Other enhancements
 - :func:`to_parquet` now appropriately handles the ``schema`` argument for user defined schemas in the pyarrow engine. (:issue: `30270`)
 - DataFrame constructor preserve `ExtensionArray` dtype with `ExtensionArray` (:issue:`11363`)
 - :meth:`DataFrame.sort_values` and :meth:`Series.sort_values` have gained ``ignore_index`` keyword to be able to reset index after sorting (:issue:`30114`)
-- :meth:`DataFrame.to_markdown` and :meth:`Series.to_markdown` added (:issue:`11052`)
 - :meth:`DataFrame.sort_index` and :meth:`Series.sort_index` have gained ``ignore_index`` keyword to reset index (:issue:`30114`)
 - :meth:`DataFrame.drop_duplicates` has gained ``ignore_index`` keyword to reset index (:issue:`30114`)
 - Added new writer for exporting Stata dta files in version 118, ``StataWriter118``.  This format supports exporting strings containing Unicode characters (:issue:`23573`)
 - :meth:`Series.map` now accepts ``collections.abc.Mapping`` subclasses as a mapper (:issue:`29733`)
 - The ``pandas.datetime`` class is now deprecated. Import from ``datetime`` instead (:issue:`30296`)
 - :meth:`Timestamp.fromisocalendar` is now compatible with python 3.8 and above (:issue:`28115`)
-
 
 
 Build Changes
@@ -239,6 +228,8 @@ Pandas has added a `pyproject.toml <https://www.python.org/dev/peps/pep-0517/>`_
 cythonized files in the source distribution uploaded to PyPI (:issue:`28341`, :issue:`20775`). If you're installing
 a built distribution (wheel) or via conda, this shouldn't have any effect on you. If you're building pandas from
 source, you should no longer need to install Cython into your build environment before calling ``pip install pandas``.
+
+.. ---------------------------------------------------------------------------
 
 .. _whatsnew_1000.api_breaking:
 
@@ -458,6 +449,13 @@ consistent with the behaviour of :class:`DataFrame` and :class:`Index`.
    DeprecationWarning: The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.
    Series([], dtype: float64)
 
+.. _whatsnew_1000.api_breaking.python:
+
+Increased minimum version for Python
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Pandas 1.0.0 supports Python 3.6.1 and higher (:issue:`29212`).
+
 .. _whatsnew_1000.api_breaking.deps:
 
 Increased minimum versions for dependencies
@@ -555,7 +553,9 @@ Documentation Improvements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Added new section on :ref:`scale` (:issue:`28315`).
-- Added sub-section Query MultiIndex in IO tools user guide (:issue:`28791`)
+- Added sub-section on :ref:`io.query_multi` for HDF5 datasets (:issue:`28791`).
+
+.. ---------------------------------------------------------------------------
 
 .. _whatsnew_1000.deprecations:
 
@@ -613,20 +613,19 @@ a list of items should be used instead. (:issue:`23566`) For example:
     # proper way, returns DataFrameGroupBy
     g[['B', 'C']]
 
+.. ---------------------------------------------------------------------------
 
 .. _whatsnew_1000.prior_deprecations:
 
+Removal of prior version deprecations/changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Removed SparseSeries and SparseDataFrame
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Removed SparseSeries and SparseDataFrame**
 
 ``SparseSeries``, ``SparseDataFrame`` and the ``DataFrame.to_sparse`` method
 have been removed (:issue:`28425`). We recommend using a ``Series`` or
 ``DataFrame`` with sparse values instead. See :ref:`sparse.migration` for help
 with migrating existing code.
-
-Removal of prior version deprecations/changes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. _whatsnew_1000.matplotlib_units:
 
@@ -760,6 +759,8 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - Calling ``np.array`` and ``np.asarray`` on tz-aware :class:`Series` and :class:`DatetimeIndex` will now return an object array of tz-aware :class:`Timestamp` (:issue:`24596`)
 -
 
+.. ---------------------------------------------------------------------------
+
 .. _whatsnew_1000.performance:
 
 Performance improvements
@@ -779,6 +780,8 @@ Performance improvements
   The improvement is not present if checking if the :class:`Categorical` is less than or less than or equal than the scalar (:issue:`29820`)
 - Performance improvement in :meth:`Index.equals` and  :meth:`MultiIndex.equals` (:issue:`29134`)
 - Performance improvement in :func:`~pandas.api.types.infer_dtype` when ``skipna`` is ``True`` (:issue:`28814`)
+
+.. ---------------------------------------------------------------------------
 
 .. _whatsnew_1000.bug_fixes:
 
@@ -1037,6 +1040,8 @@ Other
 - Bug in :class:`DataFrame` constructor when passing a 2D ``ndarray`` and an extension dtype (:issue:`12513`)
 - Bug in :meth:`DaataFrame.to_csv` when supplied a series with a ``dtype="string"`` and a ``na_rep``, the ``na_rep`` was being truncated to 2 characters. (:issue:`29975`)
 - Bug where :meth:`DataFrame.itertuples` would incorrectly determine whether or not namedtuples could be used for dataframes of 255 columns (:issue:`28282`)
+
+.. ---------------------------------------------------------------------------
 
 .. _whatsnew_1000.contributors:
 
