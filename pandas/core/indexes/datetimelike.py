@@ -519,6 +519,8 @@ class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
                 # 7 tests
                 other = NaT.value
                 #raise TypeError(other)
+        elif is_scalar(other) and np.isnan(other):
+            other = NaT.value
         else:
             raise TypeError(other)
 
