@@ -951,7 +951,7 @@ class DatetimelikeDelegateMixin(PandasDelegate):
     _raw_methods: Set[str] = set()
     # raw_properties : dispatch properties that shouldn't be boxed in an Index
     _raw_properties: Set[str] = set()
-    _data: ExtensionArray
+    _data: Union[DatetimeArray, TimedeltaArray, PeriodArray]
 
     def _delegate_property_get(self, name, *args, **kwargs):
         result = getattr(self._data, name)
