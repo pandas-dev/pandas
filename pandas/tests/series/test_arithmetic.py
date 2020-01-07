@@ -47,10 +47,7 @@ class TestSeriesFlexArithmetic:
             expected = alt(other, series)
             tm.assert_almost_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "opname", ["add", "sub", "mul", "floordiv", "truediv", "pow"]
-    )
-    def test_flex_method_subclass_metadata_preservation(self, opname):
+    def test_flex_method_subclass_metadata_preservation(self, all_arithmetic_operators):
         # GH 13208
         class MySeries(Series):
             _metadata = ["x"]
@@ -59,6 +56,7 @@ class TestSeriesFlexArithmetic:
             def _constructor(self):
                 return MySeries
 
+        opname = all_arithmetic_operators
         op = getattr(Series, opname)
         m = MySeries([1, 2, 3], name="test")
         m.x = 42
