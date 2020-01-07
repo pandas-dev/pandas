@@ -65,8 +65,8 @@ def test_constructor_mismatched_codes_levels(idx):
         MultiIndex(levels=levels, codes=codes)
 
     length_error = (
-        r"On level 0, code max \(3\) >= length of level \(1\)\."
-        " NOTE: this index is in an inconsistent state"
+        r"On level 0, code max \(3\) >= length of level \(1\)\. "
+        "NOTE: this index is in an inconsistent state"
     )
     label_error = r"Unequal code lengths: \[4, 2\]"
     code_value_error = r"On level 0, code value \(-2\) < -1"

@@ -547,15 +547,15 @@ class TestDatetimeIndex:
 
         # non-conforming
         msg = (
-            "Inferred frequency None from passed values does not conform"
-            " to passed frequency D"
+            "Inferred frequency None from passed values does not conform "
+            "to passed frequency D"
         )
         with pytest.raises(ValueError, match=msg):
             DatetimeIndex(["2000-01-01", "2000-01-02", "2000-01-04"], freq="D")
 
         msg = (
-            "Of the four parameters: start, end, periods, and freq, exactly"
-            " three must be specified"
+            "Of the four parameters: start, end, periods, and freq, exactly "
+            "three must be specified"
         )
         with pytest.raises(ValueError, match=msg):
             date_range(start="2011-01-01", freq="b")
