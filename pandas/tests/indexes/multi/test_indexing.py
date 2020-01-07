@@ -246,23 +246,23 @@ class TestGetIndexer:
         mult_idx_2 = MultiIndex.from_product([[0], [1, 3, 4]])
 
         indexer = mult_idx_1.get_indexer(mult_idx_2)
-        expected = np.array([-1, 2, 3], dtype="int64")
+        expected = np.array([-1, 2, 3], dtype=indexer.dtype)
         tm.assert_almost_equal(expected, indexer)
 
         backfill_indexer = mult_idx_1.get_indexer(mult_idx_2, method="backfill")
-        expected = np.array([1, 2, 3], dtype="int64")
+        expected = np.array([1, 2, 3], dtype=backfill_indexer.dtype)
         tm.assert_almost_equal(expected, backfill_indexer)
 
         backfill_indexer = mult_idx_1.get_indexer(mult_idx_2, method="bfill")
-        expected = np.array([1, 2, 3], dtype="int64")
+        expected = np.array([1, 2, 3], dtype=backfill_indexer.dtype)
         tm.assert_almost_equal(expected, backfill_indexer)
 
         pad_indexer = mult_idx_1.get_indexer(mult_idx_2, method="pad")
-        expected = np.array([0, 2, 3], dtype="int64")
+        expected = np.array([0, 2, 3], dtype=pad_indexer.dtype)
         tm.assert_almost_equal(expected, pad_indexer)
 
         pad_indexer = mult_idx_1.get_indexer(mult_idx_2, method="ffill")
-        expected = np.array([0, 2, 3], dtype="int64")
+        expected = np.array([0, 2, 3], dtype=pad_indexer.dtype)
         tm.assert_almost_equal(expected, pad_indexer)
 
     def test_get_indexer_three_or_more_levels(self):
@@ -315,12 +315,12 @@ class TestGetIndexer:
 
         # test with backfilling
         indexer_backfilled = mult_idx_1.get_indexer(mult_idx_2, method="backfill")
-        expected = np.array([0, 4, 5, 6, 6, 6, -1], dtype="int64")
+        expected = np.array([0, 4, 5, 6, 6, 6, -1], dtype=indexer_backfilled.dtype)
         tm.assert_almost_equal(expected, indexer_backfilled)
 
         # now, the same thing, but forward-filled (aka "padded")
         indexer_padded = mult_idx_1.get_indexer(mult_idx_2, method="pad")
-        expected = np.array([-1, 3, 5, 5, 5, 5, 11], dtype="int64")
+        expected = np.array([-1, 3, 5, 5, 5, 5, 11], dtype=indexer_padded.dtype)
         tm.assert_almost_equal(expected, indexer_padded)
 
         # now, do the indexing in the other direction
@@ -343,11 +343,12 @@ class TestGetIndexer:
         tm.assert_almost_equal(expected, indexer)
 
         backfill_indexer = mult_idx_2.get_indexer(mult_idx_1, method="bfill")
-        expected = np.array([1, 1, 1, 1, 2, 2, 6, 6, 6, 6, 6, 6], dtype="int64")
+        expected = np.array([1, 1, 1, 1, 2, 2, 6, 6, 6, 6, 6, 6],
+                            dtype=backfill_indexer.dtype)
         tm.assert_almost_equal(expected, backfill_indexer)
 
         pad_indexer = mult_idx_2.get_indexer(mult_idx_1, method="pad")
-        expected = np.array([0, 0, 0, 0, 1, 2, 5, 5, 5, 5, 5, 5], dtype="int64")
+        expected = np.array([0, 0, 0, 0, 1, 2, 5, 5, 5, 5, 5, 5],dtype="int64")
         tm.assert_almost_equal(expected, pad_indexer)
 
     def test_get_indexer_backfill_with_carrying(self):
@@ -385,15 +386,15 @@ class TestGetIndexer:
         assert mult_idx_1[-1] < mult_idx_2[1]
 
         indexer = mult_idx_1.get_indexer(mult_idx_2)
-        expected = np.array([-1, -1], dtype="int64")
+        expected = np.array([-1, -1], dtype=indexer.dtype)
         tm.assert_almost_equal(expected, indexer)
 
         backfill_indexer = mult_idx_1.get_indexer(mult_idx_2, method="bfill")
-        expected = np.array([8, -1], dtype="int64")
+        expected = np.array([8, -1], dtype=backfill_indexer.dtype)
         tm.assert_almost_equal(expected, backfill_indexer)
 
         pad_indexer = mult_idx_1.get_indexer(mult_idx_2, method="ffill")
-        expected = np.array([7, 15], dtype="int64")
+        expected = np.array([7, 15], dtype=pad_indexer.dtype)
         tm.assert_almost_equal(expected, pad_indexer)
 
 
