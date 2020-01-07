@@ -1629,19 +1629,19 @@ class TestDataFrameIndexing:
 
     def test_reindex_with_multi_index(self):
         df = pd.DataFrame(
-            {"a": [0] * 7, "b": list(range(7)), "c": list(range(7)),}
+            {"a": [0] * 7, "b": list(range(7)), "c": list(range(7))}
         ).set_index(["a", "b"])
         new_index = [0.5, 2.0, 5.0, 5.8]
         new_multi_index = MultiIndex.from_product([[0], new_index], names=["a", "b"])
 
         reindexed_df = pd.DataFrame(
-            {"a": [0] * 4, "b": new_index, "c": [np.nan, 2.0, 5.0, np.nan],}
+            {"a": [0] * 4, "b": new_index, "c": [np.nan, 2.0, 5.0, np.nan]}
         ).set_index(["a", "b"])
         reindexed_and_backfilled_df = pd.DataFrame(
-            {"a": [0] * 4, "b": new_index, "c": [1, 2, 5, 6],}
+            {"a": [0] * 4, "b": new_index, "c": [1, 2, 5, 6]}
         ).set_index(["a", "b"])
         reindexed_and_padded_df = pd.DataFrame(
-            {"a": [0] * 4, "b": new_index, "c": [0, 2, 5, 5],}
+            {"a": [0] * 4, "b": new_index, "c": [0, 2, 5, 5]}
         ).set_index(["a", "b"])
 
         tm.assert_frame_equal(df.reindex(new_multi_index), reindexed_df)

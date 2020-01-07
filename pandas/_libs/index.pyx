@@ -673,7 +673,6 @@ cdef class BaseMultiIndexCodesEngine:
 
         return level_codes
 
-
     def _extract_level_codes(self, object target, object method=None):
         """
         Map the requested list of (tuple) keys to their integer representations
@@ -711,12 +710,11 @@ cdef class BaseMultiIndexCodesEngine:
             # as small as possible, and vice versa
             for i, row in enumerate(level_codes):
                 for j, level in enumerate(row):
-                  if level_codes_no_fill[i][j] != level_codes[i][j]:
-                      for k in range(j + 1, len(row)):
-                          row[k] = (
-                              1 if method == 'backfill' else
-                              len(self.levels[k]))
-                      break
+                    if level_codes_no_fill[i][j] != level_codes[i][j]:
+                        for k in range(j + 1, len(row)):
+                            row[k] = (1 if method == 'backfill' else
+                                      len(self.levels[k]))
+                        break
 
             # after doing per-level indexing, backfilled level codes need
             # additional cleanup, as too-large values are 0, which will in
@@ -747,14 +745,14 @@ cdef class BaseMultiIndexCodesEngine:
             # handle the case where too-large values are backfilled to NaN, for
             # which the integer representation from _extract_level_codes() is 0
             if method == 'backfill':
-              for i in range(len(indexer)):
-                  if lab_ints[i] == 0:
-                      indexer[i] = -1
+                for i in range(len(indexer)):
+                    if lab_ints[i] == 0:
+                        indexer[i] = -1
 
             # restore the ordering
             new_indexer = [0] * len(indexer)
             for i, idx in enumerate(order):
-              new_indexer[idx] = indexer[i]
+                new_indexer[idx] = indexer[i]
             return new_indexer
         else:
             indexer = self._base.get_indexer(self, lab_ints)
