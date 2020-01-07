@@ -510,10 +510,13 @@ class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
             # TODO: require dtype match
             other = other.view("i8")
         elif other is None:
-            if cond.all():
+            if not hasattr(cond, "all"):
+                other = NaT.value
+            elif cond.all():
                 # Then it doesnt matter what other is, so go with it
                 other = NaT.value
             else:
+                # 7 tests
                 other = NaT.value
                 #raise TypeError(other)
         else:
