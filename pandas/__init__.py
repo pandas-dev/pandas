@@ -321,9 +321,35 @@ else:
 
     datetime = __Datetime().datetime
 
-    class SparseArray:
-        pass
+    class __SparseArray(pandas.core.arrays.sparse.SparseArray):
 
+        def __warnSparseArray(self):
+            import warnings
+            warnings.warn(
+                "The pandas.SparseArray class is deprecated "
+                "and will be removed from pandas in a future version. "
+                "Use pandas.arrays.SparseArray instead.",
+                FutureWarning,
+                stacklevel=3,
+            )
+             
+        def __init__(
+            self,
+            data,
+            sparse_index=None,
+            index=None,
+            fill_value=None,
+            kind="integer",
+            dtype=None,
+            copy=False,
+        ):
+            self.__warnSparseArray()
+            super().__init__(data, sparse_index, index, fill_value, kind, dtype, copy)
+            
+        def __getattr__(self, name):
+            return super().__getattribute__(name)
+            
+    SparseArray = __SparseArray
 
 # module level doc-string
 __doc__ = """

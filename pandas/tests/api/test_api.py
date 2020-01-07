@@ -91,7 +91,7 @@ class TestPDApi(Base):
         "NamedAgg",
     ]
     if not compat.PY37:
-        classes.extend(["Panel", "SparseSeries", "SparseDataFrame", "SparseArray"])
+        classes.extend(["Panel", "SparseSeries", "SparseDataFrame"])
         deprecated_modules.extend(["np", "datetime"])
 
     # these are already deprecated; awaiting removal
@@ -206,12 +206,17 @@ class TestPDApi(Base):
             self.lib
             + self.misc
             + self.modules
+            + self.deprecated_modules
             + self.classes
+            + self.deprecated_classes
+            + self.deprecated_classes_in_future
             + self.funcs
             + self.funcs_option
             + self.funcs_read
             + self.funcs_json
             + self.funcs_to
+            + self.deprecated_funcs_in_future
+            + self.deprecated_funcs
             + self.private_modules,
             self.ignored,
         )
@@ -231,6 +236,9 @@ class TestPDApi(Base):
                 elif depr == "datetime":
                     deprecated = getattr(pd, "__Datetime")
                     deprecated().__getattr__(dir(pd.datetime)[-1])
+                elif depr == "SparseArray":
+                    deprecated = getattr(pd, depr)
+                    deprecated([])
                 else:
                     deprecated = getattr(pd, depr)
                     deprecated.__getattr__(dir(deprecated)[-1])
