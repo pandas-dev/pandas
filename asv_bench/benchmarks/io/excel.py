@@ -6,7 +6,7 @@ from odf.table import Table, TableCell, TableRow
 from odf.text import P
 
 from pandas import DataFrame, ExcelWriter, date_range, read_excel
-import pandas._testing as tm
+import pandas.util.testing as tm
 
 
 def _generate_dataframe():

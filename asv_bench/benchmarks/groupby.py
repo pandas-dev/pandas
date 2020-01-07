@@ -13,7 +13,7 @@ from pandas import (
     date_range,
     period_range,
 )
-import pandas._testing as tm
+import pandas.util.testing as tm
 
 method_blacklist = {
     "object": {
