@@ -1,25 +1,13 @@
 """Common IO api utilities"""
 
 import bz2
-import codecs
 from collections import abc
 import gzip
 from io import BufferedIOBase, BytesIO
 import mmap
 import os
 import pathlib
-from typing import (
-    IO,
-    Any,
-    AnyStr,
-    BinaryIO,
-    Dict,
-    List,
-    Mapping,
-    Optional,
-    Tuple,
-    Union,
-)
+from typing import IO, Any, AnyStr, Dict, List, Mapping, Optional, Tuple, Union
 from urllib.parse import (  # noqa
     urlencode,
     urljoin,
@@ -538,24 +526,3 @@ class _MMapWrapper(abc.Iterator):
         if newline == "":
             raise StopIteration
         return newline
-
-
-class UTF8Recoder(abc.Iterator):
-    """
-    Iterator that reads an encoded stream and re-encodes the input to UTF-8
-    """
-
-    def __init__(self, f: BinaryIO, encoding: str):
-        self.reader = codecs.getreader(encoding)(f)
-
-    def read(self, bytes: int = -1) -> bytes:
-        return self.reader.read(bytes).encode("utf-8")
-
-    def readline(self) -> bytes:
-        return self.reader.readline().encode("utf-8")
-
-    def __next__(self) -> bytes:
-        return next(self.reader).encode("utf-8")
-
-    def close(self):
-        self.reader.close()
