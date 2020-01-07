@@ -226,20 +226,20 @@ class TestPDApi(Base):
         self.check(pd, checkthese, self.ignored)
 
     def test_depr(self):
-        deprecated = (
+        deprecated_list = (
             self.deprecated_modules
             + self.deprecated_classes
             + self.deprecated_classes_in_future
             + self.deprecated_funcs
             + self.deprecated_funcs_in_future
         )
-        for depr in deprecated:
+        for depr in deprecated_list:
             with tm.assert_produces_warning(FutureWarning):
                 if compat.PY37:
                     getattr(pd, depr)
                 elif depr == "datetime":
                     deprecated = getattr(pd, "__Datetime")
-                    deprecated().__getattr__(dir(pd.datetime)[-1])
+                    deprecated().__getattr__(dir(pd.datetime.datetime)[-1])
                 elif depr == "SparseArray":
                     deprecated = getattr(pd, depr)
                     deprecated([])
@@ -252,9 +252,10 @@ def test_datetime():
     from datetime import datetime
     import warnings
 
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", FutureWarning)
-        assert datetime(2015, 1, 2, 0, 0) == pd.datetime(2015, 1, 2, 0, 0)
+    if compat.PY37:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", FutureWarning)
+            assert datetime(2015, 1, 2, 0, 0) == pd.datetime(2015, 1, 2, 0, 0)
 
 
 def test_np():
