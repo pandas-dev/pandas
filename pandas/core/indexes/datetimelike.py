@@ -16,6 +16,7 @@ from pandas.util._decorators import Appender, cache_readonly
 from pandas.core.dtypes.common import (
     ensure_int64,
     is_bool_dtype,
+    is_categorical_dtype,
     is_dtype_equal,
     is_float,
     is_integer,
@@ -490,6 +491,10 @@ class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
     @Appender(_index_shared_docs["where"] % _index_doc_kwargs)
     def where(self, cond, other=None):
         values = self.view("i8")
+
+        if is_categorical_dtype(other):
+            if needs_i8_conversion(other.categories):
+                other._internal_get_values()
         if not needs_i8_conversion(other):
             # Primarily we want self.dtype, but could also be Categorical
             #  holding self.dtype
