@@ -46,11 +46,17 @@ class PythonParser(BaseParser):
 
 @pytest.fixture
 def csv_dir_path(datapath):
+    """
+    The directory path to the data files needed for parser tests.
+    """
     return datapath("io", "parser", "data")
 
 
 @pytest.fixture
 def csv1(csv_dir_path):
+    """
+    The path to the data file "test1.csv" needed for parser tests.
+    """
     return os.path.join(csv_dir_path, "test1.csv")
 
 
@@ -69,14 +75,23 @@ _all_parser_ids = [*_c_parser_ids, *_py_parser_ids]
 
 @pytest.fixture(params=_all_parsers, ids=_all_parser_ids)
 def all_parsers(request):
+    """
+    Fixture all of the CSV parsers.
+    """
     return request.param
 
 
 @pytest.fixture(params=_c_parsers_only, ids=_c_parser_ids)
 def c_parser_only(request):
+    """
+    Fixture all of the CSV parsers using the C engine.
+    """
     return request.param
 
 
 @pytest.fixture(params=_py_parsers_only, ids=_py_parser_ids)
 def python_parser_only(request):
+    """
+    Fixture all of the CSV parsers using the Python engine.
+    """
     return request.param
