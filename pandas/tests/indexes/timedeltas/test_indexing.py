@@ -219,11 +219,29 @@ class TestTimedeltaIndex:
             assert result.name == expected.name
             assert result.freq == expected.freq
 
+    @pytest.mark.parametrize(
+        "null", [None, np.nan, np.timedelta64("NaT"), pd.NaT, pd.NA]
+    )
+    def test_insert_nat(self, null):
         # GH 18295 (test missing)
+        idx = timedelta_range("1day", "3day")
+        result = idx.insert(1, null)
         expected = TimedeltaIndex(["1day", pd.NaT, "2day", "3day"])
-        for na in (np.nan, pd.NaT, None):
-            result = timedelta_range("1day", "3day").insert(1, na)
-            tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
+
+    def test_insert_invalid_na(self):
+        idx = TimedeltaIndex(["4day", "1day", "2day"], name="idx")
+        with pytest.raises(TypeError, match="incompatible label"):
+            idx.insert(0, np.datetime64("NaT"))
+
+    def test_insert_dont_cast_strings(self):
+        # To match DatetimeIndex and PeriodIndex behavior, dont try to
+        #  parse strings to Timedelta
+        idx = timedelta_range("1day", "3day")
+
+        result = idx.insert(0, "1 Day")
+        assert result.dtype == object
+        assert result[0] == "1 Day"
 
     def test_delete(self):
         idx = timedelta_range(start="1 Days", periods=5, freq="D", name="idx")
