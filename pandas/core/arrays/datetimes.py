@@ -1962,7 +1962,7 @@ def objects_to_datetime64ns(
             # GH#10720. If we failed to parse datetime then notify
             #  that flag errors='coerce' could be used to NaT.
             #  Trying to distinguish exception based on message.
-            msg = " ".join(e.args)
+            msg = " ".join([str(arg) for arg in e.args])
             if "Unknown string format" in e.args[0]:
                 msg = f"{msg}. You can coerce to NaT by passing errors='coerce'"
                 raise ValueError(msg) from e
