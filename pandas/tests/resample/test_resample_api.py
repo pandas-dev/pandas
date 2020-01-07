@@ -519,8 +519,8 @@ def test_selection_api_validation():
 
     # non DatetimeIndex
     msg = (
-        "Only valid with DatetimeIndex, TimedeltaIndex or PeriodIndex,"
-        " but got an instance of 'Int64Index'"
+        "Only valid with DatetimeIndex, TimedeltaIndex or PeriodIndex, "
+        "but got an instance of 'Int64Index'"
     )
     with pytest.raises(TypeError, match=msg):
         df.resample("2D", level="v")
@@ -539,8 +539,8 @@ def test_selection_api_validation():
 
     # upsampling not allowed
     msg = (
-        "Upsampling from level= or on= selection is not supported, use"
-        r" \.set_index\(\.\.\.\) to explicitly set index to datetime-like"
+        "Upsampling from level= or on= selection is not supported, use "
+        r"\.set_index\(\.\.\.\) to explicitly set index to datetime-like"
     )
     with pytest.raises(ValueError, match=msg):
         df.resample("2D", level="d").asfreq()

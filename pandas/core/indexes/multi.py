@@ -661,31 +661,6 @@ class MultiIndex(Index):
             "'MultiIndex.to_numpy()' to get a NumPy array of tuples."
         )
 
-    @property
-    def _is_homogeneous_type(self) -> bool:
-        """
-        Whether the levels of a MultiIndex all have the same dtype.
-
-        This looks at the dtypes of the levels.
-
-        See Also
-        --------
-        Index._is_homogeneous_type : Whether the object has a single
-            dtype.
-        DataFrame._is_homogeneous_type : Whether all the columns in a
-            DataFrame have the same dtype.
-
-        Examples
-        --------
-        >>> MultiIndex.from_tuples([
-        ...     ('a', 'b'), ('a', 'c')])._is_homogeneous_type
-        True
-        >>> MultiIndex.from_tuples([
-        ...     ('a', 1), ('a', 2)])._is_homogeneous_type
-        False
-        """
-        return len({x.dtype for x in self.levels}) <= 1
-
     def _set_levels(
         self, levels, level=None, copy=False, validate=True, verify_integrity=False
     ):
@@ -2098,9 +2073,8 @@ class MultiIndex(Index):
                 elif com.is_bool_indexer(loc):
                     if self.lexsort_depth == 0:
                         warnings.warn(
-                            "dropping on a non-lexsorted multi-index"
-                            " without a level parameter may impact "
-                            "performance.",
+                            "dropping on a non-lexsorted multi-index "
+                            "without a level parameter may impact performance.",
                             PerformanceWarning,
                             stacklevel=3,
                         )
@@ -2698,7 +2672,7 @@ class MultiIndex(Index):
         key : label or sequence of labels
         level : int/level name or list thereof, optional
         drop_level : bool, default True
-            if ``False``, the resulting index will not drop any level.
+            If ``False``, the resulting index will not drop any level.
 
         Returns
         -------

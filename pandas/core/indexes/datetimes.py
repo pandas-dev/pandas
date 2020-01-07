@@ -10,9 +10,8 @@ from pandas._libs.tslibs import ccalendar, fields, parsing, timezones
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes.common import _NS_DTYPE, is_float, is_integer, is_scalar
-from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core.accessor import delegate_names
 from pandas.core.arrays.datetimes import (
@@ -380,27 +379,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
     # --------------------------------------------------------------------
     # Set Operation Methods
 
-    def _union(self, other: "DatetimeIndex", sort):
-        if not len(other) or self.equals(other) or not len(self):
-            return super()._union(other, sort=sort)
-
-        # We are called by `union`, which is responsible for this validation
-        assert isinstance(other, DatetimeIndex)
-
-        this, other = self._maybe_utc_convert(other)
-
-        if this._can_fast_union(other):
-            return this._fast_union(other, sort=sort)
-        else:
-            result = Index._union(this, other, sort=sort)
-            if isinstance(result, DatetimeIndex):
-                assert result._data.dtype == this.dtype
-                if result.freq is None and (
-                    this.freq is not None or other.freq is not None
-                ):
-                    result._set_freq("infer")
-            return result
-
     def union_many(self, others):
         """
         A bit of a hack to accelerate unioning a collection of indexes.
@@ -430,45 +408,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
                     #  in all the tests this equality already holds
                     this._data._dtype = dtype
         return this
-
-    def _fast_union(self, other, sort=None):
-        if len(other) == 0:
-            return self.view(type(self))
-
-        if len(self) == 0:
-            return other.view(type(self))
-
-        # Both DTIs are monotonic. Check if they are already
-        # in the "correct" order
-        if self[0] <= other[0]:
-            left, right = self, other
-        # DTIs are not in the "correct" order and we don't want
-        # to sort but want to remove overlaps
-        elif sort is False:
-            left, right = self, other
-            left_start = left[0]
-            loc = right.searchsorted(left_start, side="left")
-            right_chunk = right.values[:loc]
-            dates = concat_compat((left.values, right_chunk))
-            return self._shallow_copy(dates)
-        # DTIs are not in the "correct" order and we want
-        # to sort
-        else:
-            left, right = other, self
-
-        left_end = left[-1]
-        right_end = right[-1]
-
-        # TODO: consider re-implementing freq._should_cache for fastpath
-
-        # concatenate dates
-        if left_end < right_end:
-            loc = right.searchsorted(left_end, side="right")
-            right_chunk = right.values[loc:]
-            dates = concat_compat((left.values, right_chunk))
-            return self._shallow_copy(dates)
-        else:
-            return left
 
     def _wrap_setop_result(self, other, result):
         name = get_op_result_name(self, other)
@@ -983,9 +922,14 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
         -------
         new_index : Index
         """
-        if is_scalar(item) and isna(item):
+        if is_valid_nat_for_dtype(item, self.dtype):
             # GH 18295
             item = self._na_value
+        elif is_scalar(item) and isna(item):
+            # i.e. timedeltat64("NaT")
+            raise TypeError(
+                f"cannot insert {type(self).__name__} with incompatible label"
+            )
 
         freq = None
 

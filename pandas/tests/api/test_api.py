@@ -1,3 +1,4 @@
+import sys
 from typing import List
 
 import pandas as pd
@@ -67,7 +68,6 @@ class TestPDApi(Base):
         "RangeIndex",
         "UInt64Index",
         "Series",
-        "SparseArray",
         "SparseDtype",
         "StringDtype",
         "Timedelta",
@@ -91,7 +91,7 @@ class TestPDApi(Base):
         "NamedAgg",
     ]
     if not compat.PY37:
-        classes.extend(["Panel", "SparseSeries", "SparseDataFrame"])
+        classes.extend(["Panel", "SparseSeries", "SparseDataFrame", "SparseArray"])
         deprecated_modules.extend(["np", "datetime"])
 
     # these are already deprecated; awaiting removal
@@ -289,14 +289,20 @@ class TestTesting(Base):
         self.check(testing, self.funcs)
 
     def test_util_testing_deprecated(self):
-        s = pd.Series([], dtype="object")
-        with tm.assert_produces_warning(FutureWarning) as m:
-            import pandas.util.testing as tm2
-
-            tm2.assert_series_equal(s, s)
-
-        assert "pandas.testing.assert_series_equal" in str(m[0].message)
+        # avoid cache state affecting the test
+        sys.modules.pop("pandas.util.testing", None)
 
         with tm.assert_produces_warning(FutureWarning) as m:
-            tm2.DataFrame
-        assert "removed" in str(m[0].message)
+            import pandas.util.testing  # noqa: F401
+
+        assert "pandas.util.testing is deprecated" in str(m[0].message)
+        assert "pandas.testing instead" in str(m[0].message)
+
+    def test_util_testing_deprecated_direct(self):
+        # avoid cache state affecting the test
+        sys.modules.pop("pandas.util.testing", None)
+        with tm.assert_produces_warning(FutureWarning) as m:
+            from pandas.util.testing import assert_series_equal  # noqa: F401
+
+        assert "pandas.util.testing is deprecated" in str(m[0].message)
+        assert "pandas.testing instead" in str(m[0].message)

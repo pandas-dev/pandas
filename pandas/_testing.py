@@ -622,7 +622,7 @@ def assert_index_equal(
         # accept level number only
         unique = index.levels[level]
         level_codes = index.codes[level]
-        filled = take_1d(unique.values, level_codes, fill_value=unique._na_value)
+        filled = take_1d(unique._values, level_codes, fill_value=unique._na_value)
         values = unique._shallow_copy(filled, name=index.names[level])
         return values
 
@@ -1290,7 +1290,7 @@ def assert_frame_equal(
     >>> assert_frame_equal(df1, df2)
     Traceback (most recent call last):
     ...
-    AssertionError: Attributes of DataFrame.iloc[:, 1] are different
+    AssertionError: Attributes of DataFrame.iloc[:, 1] (column name="b") are different
 
     Attribute "dtype" are different
     [left]:  int64
@@ -1369,7 +1369,7 @@ def assert_frame_equal(
                 check_names=check_names,
                 check_datetimelike_compat=check_datetimelike_compat,
                 check_categorical=check_categorical,
-                obj=f"{obj}.iloc[:, {i}]",
+                obj=f'{obj}.iloc[:, {i}] (column name="{col}")',
             )
 
 
@@ -1495,7 +1495,7 @@ def assert_sp_array_equal(
         block indices.
     """
 
-    _check_isinstance(left, right, pd.SparseArray)
+    _check_isinstance(left, right, pd.arrays.SparseArray)
 
     assert_numpy_array_equal(left.sp_values, right.sp_values, check_dtype=check_dtype)
 

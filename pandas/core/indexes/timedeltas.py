@@ -16,8 +16,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_ns_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core.accessor import delegate_names
 from pandas.core.arrays import datetimelike as dtl
@@ -247,58 +246,6 @@ class TimedeltaIndex(
             return Index(result.astype("i8"), name=self.name)
         return DatetimeIndexOpsMixin.astype(self, dtype, copy=copy)
 
-    def _union(self, other: "TimedeltaIndex", sort):
-        if len(other) == 0 or self.equals(other) or len(self) == 0:
-            return super()._union(other, sort=sort)
-
-        # We are called by `union`, which is responsible for this validation
-        assert isinstance(other, TimedeltaIndex)
-
-        this, other = self, other
-
-        if this._can_fast_union(other):
-            return this._fast_union(other, sort=sort)
-        else:
-            result = Index._union(this, other, sort=sort)
-            if isinstance(result, TimedeltaIndex):
-                if result.freq is None:
-                    result._set_freq("infer")
-            return result
-
-    def _fast_union(self, other, sort=None):
-        if len(other) == 0:
-            return self.view(type(self))
-
-        if len(self) == 0:
-            return other.view(type(self))
-
-        # to make our life easier, "sort" the two ranges
-        if self[0] <= other[0]:
-            left, right = self, other
-        elif sort is False:
-            # TDIs are not in the "correct" order and we don't want
-            #  to sort but want to remove overlaps
-            left, right = self, other
-            left_start = left[0]
-            loc = right.searchsorted(left_start, side="left")
-            right_chunk = right.values[:loc]
-            dates = concat_compat((left.values, right_chunk))
-            return self._shallow_copy(dates)
-        else:
-            left, right = other, self
-
-        left_end = left[-1]
-        right_end = right[-1]
-
-        # concatenate
-        if left_end < right_end:
-            loc = right.searchsorted(left_end, side="right")
-            right_chunk = right.values[loc:]
-            dates = concat_compat((left.values, right_chunk))
-            return self._shallow_copy(dates)
-        else:
-            return left
-
     def _maybe_promote(self, other):
         if other.inferred_type == "timedelta":
             other = TimedeltaIndex(other)
@@ -450,15 +397,16 @@ class TimedeltaIndex(
         new_index : Index
         """
         # try to convert if possible
-        if _is_convertible_to_td(item):
-            try:
-                item = Timedelta(item)
-            except ValueError:
-                # e.g. str that can't be parsed to timedelta
-                pass
-        elif is_scalar(item) and isna(item):
+        if isinstance(item, self._data._recognized_scalars):
+            item = Timedelta(item)
+        elif is_valid_nat_for_dtype(item, self.dtype):
             # GH 18295
             item = self._na_value
+        elif is_scalar(item) and isna(item):
+            # i.e. datetime64("NaT")
+            raise TypeError(
+                f"cannot insert {type(self).__name__} with incompatible label"
+            )
 
         freq = None
         if isinstance(item, Timedelta) or (is_scalar(item) and isna(item)):

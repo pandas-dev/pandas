@@ -23,11 +23,17 @@ from pandas.core.dtypes.common import (
     is_period_dtype,
     is_scalar,
 )
+from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 
 from pandas.core import algorithms
 from pandas.core.accessor import PandasDelegate
-from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
+from pandas.core.arrays import (
+    DatetimeArray,
+    ExtensionArray,
+    ExtensionOpsMixin,
+    TimedeltaArray,
+)
 from pandas.core.arrays.datetimelike import (
     DatetimeLikeArrayMixin,
     _ensure_datetimelike_to_i8,
@@ -40,7 +46,12 @@ from pandas.core.tools.timedeltas import to_timedelta
 
 from pandas.tseries.frequencies import DateOffset, to_offset
 
-from .extension import inherit_names, make_wrapped_arith_op, make_wrapped_comparison_op
+from .extension import (
+    ExtensionIndex,
+    inherit_names,
+    make_wrapped_arith_op,
+    make_wrapped_comparison_op,
+)
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
@@ -80,7 +91,7 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
     ["__iter__", "mean", "freq", "freqstr", "_ndarray_values", "asi8", "_box_values"],
     DatetimeLikeArrayMixin,
 )
-class DatetimeIndexOpsMixin(ExtensionOpsMixin):
+class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
     """
     Common ops mixin to support a unified interface datetimelike Index.
     """
@@ -141,7 +152,7 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
 
     # ------------------------------------------------------------------------
 
-    def equals(self, other):
+    def equals(self, other) -> bool:
         """
         Determines if two Index objects contain the same elements.
         """
@@ -245,17 +256,9 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
         if isinstance(maybe_slice, slice):
             return self[maybe_slice]
 
-        taken = self._assert_take_fillable(
-            self._data,
-            indices,
-            allow_fill=allow_fill,
-            fill_value=fill_value,
-            na_value=NaT,
+        return ExtensionIndex.take(
+            self, indices, axis, allow_fill, fill_value, **kwargs
         )
-
-        # keep freq in PeriodArray/Index, reset otherwise
-        freq = self.freq if is_period_dtype(self) else None
-        return self._shallow_copy(taken, freq=freq)
 
     _can_hold_na = True
 
@@ -483,8 +486,8 @@ class DatetimeIndexOpsMixin(ExtensionOpsMixin):
     @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
     def repeat(self, repeats, axis=None):
         nv.validate_repeat(tuple(), dict(axis=axis))
-        freq = self.freq if is_period_dtype(self) else None
-        return self._shallow_copy(self.asi8.repeat(repeats), freq=freq)
+        result = type(self._data)(self.asi8.repeat(repeats), dtype=self.dtype)
+        return self._shallow_copy(result)
 
     @Appender(_index_shared_docs["where"] % _index_doc_kwargs)
     def where(self, cond, other=None):
@@ -647,6 +650,22 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
 
         self._data._freq = freq
 
+    def _shallow_copy(self, values=None, **kwargs):
+        if values is None:
+            values = self._data
+        if isinstance(values, type(self)):
+            values = values._data
+
+        attributes = self._get_attributes_dict()
+
+        if "freq" not in kwargs and self.freq is not None:
+            if isinstance(values, (DatetimeArray, TimedeltaArray)):
+                if values.freq is None:
+                    del attributes["freq"]
+
+        attributes.update(kwargs)
+        return self._simple_new(values, **attributes)
+
     # --------------------------------------------------------------------
     # Set Operation Methods
 
@@ -770,6 +789,59 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             # if we are comparing a freq that does not propagate timezones
             # this will raise
             return False
+
+    def _fast_union(self, other, sort=None):
+        if len(other) == 0:
+            return self.view(type(self))
+
+        if len(self) == 0:
+            return other.view(type(self))
+
+        # to make our life easier, "sort" the two ranges
+        if self[0] <= other[0]:
+            left, right = self, other
+        elif sort is False:
+            # TDIs are not in the "correct" order and we don't want
+            #  to sort but want to remove overlaps
+            left, right = self, other
+            left_start = left[0]
+            loc = right.searchsorted(left_start, side="left")
+            right_chunk = right.values[:loc]
+            dates = concat_compat((left.values, right_chunk))
+            return self._shallow_copy(dates)
+        else:
+            left, right = other, self
+
+        left_end = left[-1]
+        right_end = right[-1]
+
+        # concatenate
+        if left_end < right_end:
+            loc = right.searchsorted(left_end, side="right")
+            right_chunk = right.values[loc:]
+            dates = concat_compat((left.values, right_chunk))
+            return self._shallow_copy(dates)
+        else:
+            return left
+
+    def _union(self, other, sort):
+        if not len(other) or self.equals(other) or not len(self):
+            return super()._union(other, sort=sort)
+
+        # We are called by `union`, which is responsible for this validation
+        assert isinstance(other, type(self))
+
+        this, other = self._maybe_utc_convert(other)
+
+        if this._can_fast_union(other):
+            return this._fast_union(other, sort=sort)
+        else:
+            result = Index._union(this, other, sort=sort)
+            if isinstance(result, type(self)):
+                assert result._data.dtype == this.dtype
+                if result.freq is None:
+                    result._set_freq("infer")
+            return result
 
     # --------------------------------------------------------------------
     # Join Methods
