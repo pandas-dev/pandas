@@ -22,6 +22,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_period_dtype,
     is_scalar,
+    needs_i8_conversion,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
@@ -34,10 +35,7 @@ from pandas.core.arrays import (
     ExtensionOpsMixin,
     TimedeltaArray,
 )
-from pandas.core.arrays.datetimelike import (
-    DatetimeLikeArrayMixin,
-    _ensure_datetimelike_to_i8,
-)
+from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.numeric import Int64Index
@@ -491,11 +489,18 @@ class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
 
     @Appender(_index_shared_docs["where"] % _index_doc_kwargs)
     def where(self, cond, other=None):
-        other = _ensure_datetimelike_to_i8(other, to_utc=True)
-        values = _ensure_datetimelike_to_i8(self, to_utc=True)
-        result = np.where(cond, values, other).astype("i8")
+        values = self.view("i8")
+        if not needs_i8_conversion(other):
+            # Primarily we want self.dtype, but could also be Categorical
+            #  holding self.dtype
+            odtype = getattr(other, "dtype", None)
+            raise TypeError(f"Where requires matching dtype, not {odtype}")
 
-        result = self._ensure_localized(result, from_utc=True)
+        other = type(self._data)._from_sequence(other)
+        # TODO: require dtype match
+        other = other.view("i8")
+
+        result = np.where(cond, values, other).astype("i8")
         return self._shallow_copy(result)
 
     def _summary(self, name=None):
