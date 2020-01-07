@@ -768,7 +768,7 @@ class IndexOpsMixin:
 
         return result
 
-    def to_numpy(self, dtype=None, copy=False, na_value=lib._no_default, **kwargs):
+    def to_numpy(self, dtype=None, copy=False, na_value=lib.no_default, **kwargs):
         """
         A NumPy ndarray representing the values in this Series or Index.
 
@@ -874,9 +874,9 @@ class IndexOpsMixin:
 
         result = np.asarray(self._values, dtype=dtype)
         # TODO(GH-24345): Avoid potential double copy
-        if copy or na_value is not lib._no_default:
+        if copy or na_value is not lib.no_default:
             result = result.copy()
-            if na_value is not lib._no_default:
+            if na_value is not lib.no_default:
                 result[self.isna()] = na_value
         return result
 
