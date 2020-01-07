@@ -5,7 +5,7 @@ What's new in 1.0.0 (??)
 
 .. warning::
 
-   Starting with the 1.x series of releases, pandas only supports Python 3.6.1 and higher.
+   Starting with the 1.x series of releases, pandas only supports Python 3.6.0 and higher.
 
 New Deprecation Policy
 ~~~~~~~~~~~~~~~~~~~~~~

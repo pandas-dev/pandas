@@ -3,7 +3,7 @@ channels:
   - defaults
   - conda-forge
 dependencies:
-  - python=3.6.1
+  - python=3.6.0
 
   # tools
   - cython=0.29.13
