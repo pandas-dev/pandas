@@ -177,18 +177,6 @@ class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
 
         return np.array_equal(self.asi8, other.asi8)
 
-    def _ensure_localized(
-        self, arg, ambiguous="raise", nonexistent="raise", from_utc=False
-    ):
-        # See DatetimeLikeArrayMixin._ensure_localized.__doc__
-        if getattr(self, "tz", None):
-            # ensure_localized is only relevant for tz-aware DTI
-            result = self._data._ensure_localized(
-                arg, ambiguous=ambiguous, nonexistent=nonexistent, from_utc=from_utc
-            )
-            return type(self)._simple_new(result, name=self.name)
-        return arg
-
     @Appender(_index_shared_docs["contains"] % _index_doc_kwargs)
     def __contains__(self, key):
         try:
