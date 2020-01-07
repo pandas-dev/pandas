@@ -311,7 +311,9 @@ class TestGetIndexer:
         assert mult_idx_1[-1] < mult_idx_2[6]
 
         indexer_no_fill = mult_idx_1.get_indexer(mult_idx_2)
-        tm.assert_almost_equal(indexer_no_fill, np.array([-1, -1, 5, -1, -1, -1, -1]))
+        expected = np.array([-1, -1, 5, -1, -1, -1, -1],
+                            dtype=indexer_no_fill.dtype)
+        tm.assert_almost_equal(expected, indexer_no_fill)
 
         # test with backfilling
         indexer_backfilled = mult_idx_1.get_indexer(mult_idx_2, method="backfill")
@@ -339,7 +341,7 @@ class TestGetIndexer:
 
         indexer = mult_idx_2.get_indexer(mult_idx_1)
         expected = np.array([-1, -1, -1, -1, -1, 2, -1, -1, -1, -1, -1, -1],
-                            dtype="int64")
+                            dtype=indexer.dtype)
         tm.assert_almost_equal(expected, indexer)
 
         backfill_indexer = mult_idx_2.get_indexer(mult_idx_1, method="bfill")
@@ -352,7 +354,8 @@ class TestGetIndexer:
                             dtype=pad_indexer.dtype)
         tm.assert_almost_equal(expected, pad_indexer)
 
-    def test_get_indexer_backfill_with_carrying(self):
+
+    def test_get_indexer_backfill_with_carrying():
         # https://github.com/pandas-dev/pandas/issues/29896
         # tests a corner case with get_indexer() with MultiIndexes where, when we
         # need to "carry" across levels, proper tuple ordering is respected
