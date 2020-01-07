@@ -132,7 +132,7 @@ class TestWhere:
 
         i2 = i.copy()
         i2 = Index([pd.NaT, pd.NaT] + i[2:].tolist())
-        result = i.where(notna(i2), i2.values)
+        result = i.where(notna(i2), i2._values)
         tm.assert_index_equal(result, i2)
 
     def test_where_tz(self):
