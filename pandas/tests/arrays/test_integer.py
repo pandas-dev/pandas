@@ -98,9 +98,9 @@ def test_repr_array_long():
     data = integer_array([1, 2, None] * 1000)
     expected = (
         "<IntegerArray>\n"
-        "[ 1,  2, NA,  1,  2, NA,  1,  2, NA,  1,\n"
-        " ...\n"
-        " NA,  1,  2, NA,  1,  2, NA,  1,  2, NA]\n"
+        "[ 1,  2, NA,  1,  2, NA,  1,  2, NA,  1,\n "
+        "...\n "
+        "NA,  1,  2, NA,  1,  2, NA,  1,  2, NA]\n"
         "Length: 3000, dtype: Int64"
     )
     result = repr(data)

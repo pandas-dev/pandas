@@ -1180,8 +1180,8 @@ class TestSeriesInterpolateData:
     def test_interpolate_non_ts(self):
         s = Series([1, 3, np.nan, np.nan, np.nan, 11])
         msg = (
-            "time-weighted interpolation only works on Series or DataFrames"
-            " with a DatetimeIndex"
+            "time-weighted interpolation only works on Series or DataFrames "
+            "with a DatetimeIndex"
         )
         with pytest.raises(ValueError, match=msg):
             s.interpolate(method="time")
