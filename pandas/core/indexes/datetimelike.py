@@ -21,7 +21,6 @@ from pandas.core.dtypes.common import (
     is_float,
     is_integer,
     is_list_like,
-    is_object_dtype,
     is_period_dtype,
     is_scalar,
     needs_i8_conversion,
@@ -507,32 +506,15 @@ class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
             if needs_i8_conversion(other.categories):
                 other = other._internal_get_values()
 
-        if not is_scalar(other) and not needs_i8_conversion(other):
+        if not is_scalar(other) and not is_dtype_equal(self.dtype, other.dtype):
             # Primarily we want self.dtype, but could also be Categorical
             #  holding self.dtype
-            odtype = getattr(other, "dtype", None)
-            raise TypeError(f"Where requires matching dtype, not {odtype}", type(other))
+            raise TypeError(f"Where requires matching dtype, not {other.dtype}")
 
         if not is_scalar(other):
-            other = type(self._data)._from_sequence(other)
+            #other = type(self._data)._from_sequence(other)
             # TODO: require dtype match
             other = other.view("i8")
-        #elif other is None:
-        #    if not hasattr(cond, "all"):
-        #        other = NaT.value
-        #    elif cond.all():
-        #        # Then it doesnt matter what other is, so go with it
-        #        other = NaT.value
-        #    else:
-        #        # 7 tests
-        #        other = NaT.value
-        #        #raise TypeError(other)
-        #elif is_float(other) and np.isnan(other):
-        #    other = NaT.value
-        #else:
-        #    # We test for error message coming from the Index constructor
-        #    Index(other)
-        #    raise TypeError(other)
 
         result = np.where(cond, values, other).astype("i8")
         return self._shallow_copy(result)
