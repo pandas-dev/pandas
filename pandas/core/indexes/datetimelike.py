@@ -19,15 +19,16 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_dtype_equal,
     is_float,
-    is_object_dtype,
     is_integer,
     is_list_like,
+    is_object_dtype,
     is_period_dtype,
     is_scalar,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms
 from pandas.core.accessor import PandasDelegate
