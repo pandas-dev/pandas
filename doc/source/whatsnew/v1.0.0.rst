@@ -942,6 +942,7 @@ I/O
 - :meth:`read_gbq` now accepts ``progress_bar_type`` to display progress bar while the data downloads. (:issue:`29857`)
 - Bug in :func:`pandas.io.json.json_normalize` where a missing value in the location specified by `record_path` would raise a ``TypeError`` (:issue:`30148`)
 - :func:`read_excel` now accepts binary data (:issue:`15914`)
+- Bug in :meth:`read_csv` in which encoding handling was limited to just the string `utf-16` for the C engine (:issue:`24130`)
 
 Plotting
 ^^^^^^^^
