@@ -513,6 +513,10 @@ class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
             if cond.all():
                 # Then it doesnt matter what other is, so go with it
                 other = NaT.value
+            else:
+                raise TypeError(other)
+        else:
+            raise TypeError(other)
 
         result = np.where(cond, values, other).astype("i8")
         return self._shallow_copy(result)
