@@ -3877,6 +3877,8 @@ specified in the format: ``<float>(<unit>)``, where float may be signed (and fra
    store.append('dftd', dftd, data_columns=True)
    store.select('dftd', "C<'-3.5D'")
 
+.. _io.query_multi:
+
 Query MultiIndex
 ++++++++++++++++
 
