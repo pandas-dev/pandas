@@ -15,6 +15,7 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_datetime_or_timedelta_dtype,
     is_integer,
+    is_list_like,
     is_scalar,
     is_timedelta64_dtype,
 )
@@ -65,11 +66,12 @@ def cut(
         ``right == True`` (the default), then the `bins` ``[1, 2, 3, 4]``
         indicate (1,2], (2,3], (3,4]. This argument is ignored when
         `bins` is an IntervalIndex.
-    labels : array or bool, optional
+    labels : array or False, default None
         Specifies the labels for the returned bins. Must be the same length as
         the resulting bins. If False, returns only integer indicators of the
         bins. This affects the type of the output container (see below).
-        This argument is ignored when `bins` is an IntervalIndex.
+        This argument is ignored when `bins` is an IntervalIndex. If True,
+        raises an error.
     retbins : bool, default False
         Whether to return the bins or not. Useful when bins is provided
         as a scalar.
@@ -286,10 +288,10 @@ def qcut(
     q : int or list-like of int
         Number of quantiles. 10 for deciles, 4 for quartiles, etc. Alternately
         array of quantiles, e.g. [0, .25, .5, .75, 1.] for quartiles.
-    labels : array or bool, default None
+    labels : array or False, default None
         Used as labels for the resulting bins. Must be of the same length as
         the resulting bins. If False, return only integer indicators of the
-        bins.
+        bins. If True, raises an error.
     retbins : bool, optional
         Whether to return the (bins, labels) or not. Can be useful if bins
         is given as a scalar.
@@ -391,15 +393,23 @@ def _bins_to_cuts(
     has_nas = na_mask.any()
 
     if labels is not False:
-        if labels is None:
+        if not (labels is None or is_list_like(labels)):
+            raise ValueError(
+                "Bin labels must either be False, None or passed in as a "
+                "list-like argument"
+            )
+
+        elif labels is None:
             labels = _format_labels(
                 bins, precision, right=right, include_lowest=include_lowest, dtype=dtype
             )
+
         else:
             if len(labels) != len(bins) - 1:
                 raise ValueError(
                     "Bin labels must be one fewer than the number of bin edges"
                 )
+
         if not is_categorical_dtype(labels):
             labels = Categorical(labels, categories=labels, ordered=True)
 
