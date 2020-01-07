@@ -6641,8 +6641,15 @@ Wild         185.0
             # keep the order of new columns occurrence unchanged
             reordered_result = DataFrame(index=columns)
             idx = 0
+
+            # The reason is self._aggregate outputs different type of result if
+            # any column is only used once in aggregation
+            mask = True if any([len(v) == 1 for v in func.values()]) else False
             for col, fun in func.items():
-                s = result[col].dropna()
+                if mask:
+                    s = result[col]
+                else:
+                    s = result[col][::-1].dropna()
                 s.index = reordered_indexes[idx : idx + len(fun)]
                 reordered_result[col] = s.reindex(columns)
                 idx = idx + len(fun)
