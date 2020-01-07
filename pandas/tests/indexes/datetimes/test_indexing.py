@@ -317,7 +317,9 @@ class TestTake:
 
 
 class TestDatetimeIndex:
-    @pytest.mark.parametrize("null", [None, np.nan, pd.NaT])
+    @pytest.mark.parametrize(
+        "null", [None, np.nan, np.datetime64("NaT"), pd.NaT, pd.NA]
+    )
     @pytest.mark.parametrize("tz", [None, "UTC", "US/Eastern"])
     def test_insert_nat(self, tz, null):
         # GH#16537, GH#18295 (test missing)
@@ -325,6 +327,12 @@ class TestDatetimeIndex:
         expected = pd.DatetimeIndex(["NaT", "2017-01-01"], tz=tz)
         res = idx.insert(0, null)
         tm.assert_index_equal(res, expected)
+
+    @pytest.mark.parametrize("tz", [None, "UTC", "US/Eastern"])
+    def test_insert_invalid_na(self, tz):
+        idx = pd.DatetimeIndex(["2017-01-01"], tz=tz)
+        with pytest.raises(TypeError, match="incompatible label"):
+            idx.insert(0, np.timedelta64("NaT"))
 
     def test_insert(self):
         idx = DatetimeIndex(["2000-01-04", "2000-01-01", "2000-01-02"], name="idx")
