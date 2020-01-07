@@ -348,7 +348,8 @@ class TestGetIndexer:
         tm.assert_almost_equal(expected, backfill_indexer)
 
         pad_indexer = mult_idx_2.get_indexer(mult_idx_1, method="pad")
-        expected = np.array([0, 0, 0, 0, 1, 2, 5, 5, 5, 5, 5, 5],dtype="int64")
+        expected = np.array([0, 0, 0, 0, 1, 2, 5, 5, 5, 5, 5, 5],
+                            dtype=pad_indexer.dtype)
         tm.assert_almost_equal(expected, pad_indexer)
 
     def test_get_indexer_backfill_with_carrying(self):
