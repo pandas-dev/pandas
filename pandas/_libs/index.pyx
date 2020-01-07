@@ -596,6 +596,8 @@ cdef class BaseMultiIndexCodesEngine:
     def _do_backfill_carrying(self, object level_codes,
                               object level_codes_no_fill):
         """
+        cleanup for the case of per-level backfills of too-large values to -1
+
         given a 2d list of level_codes, i.e. integers representing the index
         of a target index inside `self.level_codes` for each level, which
         were backfilled at each level, handle cases where too-large values
@@ -618,7 +620,7 @@ cdef class BaseMultiIndexCodesEngine:
 
         Parameters
         ----------
-        level_codes : 2D array, M x N (where self has N levels)
+        level_codes : ndarray[ndim=2]
             per-level backfilled codes of a target index. a 0 represents NaN,
             and the remainder of the values should be from 1, ..., L_i, where
             L_i is the length of `self.levels[i]`
