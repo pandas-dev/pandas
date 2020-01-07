@@ -503,7 +503,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
         if is_object_dtype(other):
             # Try to do inference, e.g. we passed PeriodIndex.values and got
             #  an ndarray of Periods
-            other = pd.Index(np.asarray(other))
+            other = Index(np.asarray(other))
 
         if not is_scalar(other) and not needs_i8_conversion(other):
             # Primarily we want self.dtype, but could also be Categorical
