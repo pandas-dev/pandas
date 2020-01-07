@@ -319,7 +319,7 @@ else:
             except AttributeError:
                 raise AttributeError(f"module datetime has no attribute {item}")
 
-    datetime = __Datetime().datetime
+    datetime = __Datetime()
 
     class __SparseArray(pandas.core.arrays.sparse.SparseArray):
         def __warnSparseArray(self):
