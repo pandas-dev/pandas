@@ -2,8 +2,7 @@ import numpy as np
 
 from pandas import DataFrame, date_range, read_stata
 
-from ..pandas_vb_common import BaseIO
-from .pandas_vb_common import tm
+from ..pandas_vb_common import BaseIO, tm
 
 
 class Stata(BaseIO):

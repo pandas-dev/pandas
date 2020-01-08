@@ -7,7 +7,7 @@ from odf.text import P
 
 from pandas import DataFrame, ExcelWriter, date_range, read_excel
 
-from .pandas_vb_common import tm
+from ..pandas_vb_common import tm
 
 
 def _generate_dataframe():

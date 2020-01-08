@@ -2,8 +2,7 @@ import numpy as np
 
 from pandas import DataFrame, HDFStore, date_range, read_hdf
 
-from ..pandas_vb_common import BaseIO
-from .pandas_vb_common import tm
+from ..pandas_vb_common import BaseIO, tm
 
 
 class HDFStoreDataFrame(BaseIO):
