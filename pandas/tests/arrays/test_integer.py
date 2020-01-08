@@ -118,7 +118,9 @@ class TestConstructors:
 
         # from float
         expected = pd.Series(data)
-        result = pd.Series(np.array(data, dtype="float"), dtype=str(dtype))
+        result = pd.Series(
+            data.to_numpy(na_value=np.nan, dtype="float"), dtype=str(dtype)
+        )
         tm.assert_series_equal(result, expected)
 
         # from int / list
@@ -634,10 +636,47 @@ class TestCasting:
         with pytest.raises(TypeError, match=msg):
             pd.Series(arr).astype(dtype)
 
-    def test_coerce_to_ndarray_float_NA_rasies(self):
-        a = pd.array([0, 1, 2], dtype="Int64")
-        with pytest.raises(TypeError, match="NAType"):
-            a._coerce_to_ndarray(dtype="float", na_value=pd.NA)
+    @pytest.mark.parametrize("in_series", [True, False])
+    def test_to_numpy_na_nan(self, in_series):
+        a = pd.array([0, 1, None], dtype="Int64")
+        if in_series:
+            a = pd.Series(a)
+
+        result = a.to_numpy(dtype="float64", na_value=np.nan)
+        expected = np.array([0.0, 1.0, np.nan], dtype="float64")
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = a.to_numpy(dtype="int64", na_value=-1)
+        expected = np.array([0, 1, -1], dtype="int64")
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = a.to_numpy(dtype="bool", na_value=False)
+        expected = np.array([False, True, False], dtype="bool")
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize("in_series", [True, False])
+    @pytest.mark.parametrize("dtype", ["int32", "int64", "bool"])
+    def test_to_numpy_dtype(self, dtype, in_series):
+        a = pd.array([0, 1], dtype="Int64")
+        if in_series:
+            a = pd.Series(a)
+
+        result = a.to_numpy(dtype=dtype)
+        expected = np.array([0, 1], dtype=dtype)
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["float64", "int64", "bool"])
+    def test_to_numpy_na_raises(self, dtype):
+        a = pd.array([0, 1, None], dtype="Int64")
+        with pytest.raises(ValueError, match=dtype):
+            a.to_numpy(dtype=dtype)
+
+    def test_astype_str(self):
+        a = pd.array([1, 2, None], dtype="Int64")
+        expected = np.array(["1", "2", "NA"], dtype=object)
+
+        tm.assert_numpy_array_equal(a.astype(str), expected)
+        tm.assert_numpy_array_equal(a.astype("str"), expected)
 
 
 def test_frame_repr(data_missing):
@@ -887,7 +926,7 @@ def test_reduce_to_float(op):
 def test_astype_nansafe():
     # see gh-22343
     arr = integer_array([np.nan, 1, 2], dtype="Int8")
-    msg = "cannot convert to integer NumPy array with missing values"
+    msg = "cannot convert to 'uint32'-dtype NumPy array with missing values."
 
     with pytest.raises(ValueError, match=msg):
         arr.astype("uint32")
