@@ -1018,7 +1018,7 @@ class HDFStore:
         data_columns : list, default None
             List of columns to create as data columns, or True to
             use all columns. See `here
-            <http://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
+            <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
         encoding : str, default None
             Provide an encoding for strings.
         dropna   : bool, default False, do not write an ALL nan row to
@@ -1138,7 +1138,7 @@ class HDFStore:
             List of columns to create as indexed data columns for on-disk
             queries, or True to use all columns. By default only the axes
             of the object are indexed. See `here
-            <http://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
+            <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
         min_itemsize : dict of columns that specify minimum string sizes
         nan_rep      : string to use as string nan representation
         chunksize    : size to chunk the writing
@@ -1215,9 +1215,8 @@ class HDFStore:
         """
         if axes is not None:
             raise TypeError(
-                "axes is currently not accepted as a parameter to"
-                " append_to_multiple; you can create the "
-                "tables independently instead"
+                "axes is currently not accepted as a parameter to append_to_multiple; "
+                "you can create the tables independently instead"
             )
 
         if not isinstance(d, dict):
@@ -1459,7 +1458,7 @@ class HDFStore:
                 data = self.select(k)
                 if isinstance(s, Table):
 
-                    index: Union[bool, list] = False
+                    index: Union[bool, List[str]] = False
                     if propindexes:
                         index = [a.name for a in s.axes if a.is_indexed]
                     new_store.append(
@@ -3548,9 +3547,8 @@ class Table(Fixed):
                 if not v.is_indexed:
                     if v.type.startswith("complex"):
                         raise TypeError(
-                            "Columns containing complex values can be stored "
-                            "but cannot"
-                            " be indexed when using table format. Either use "
+                            "Columns containing complex values can be stored but "
+                            "cannot be indexed when using table format. Either use "
                             "fixed format, set index=False, or do not include "
                             "the columns containing complex values to "
                             "data_columns when initializing the table."

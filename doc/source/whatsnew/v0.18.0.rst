@@ -1279,7 +1279,7 @@ Bug Fixes
 
 - Removed ``millisecond`` property of ``DatetimeIndex``. This would always raise a ``ValueError`` (:issue:`12019`).
 - Bug in ``Series`` constructor with read-only data (:issue:`11502`)
-- Removed ``pandas.util.testing.choice()``.  Should use ``np.random.choice()``, instead. (:issue:`12386`)
+- Removed ``pandas._testing.choice()``.  Should use ``np.random.choice()``, instead. (:issue:`12386`)
 - Bug in ``.loc`` setitem indexer preventing the use of a TZ-aware DatetimeIndex (:issue:`12050`)
 - Bug in ``.style`` indexes and MultiIndexes not appearing (:issue:`11655`)
 - Bug in ``to_msgpack`` and ``from_msgpack`` which did not correctly serialize or deserialize ``NaT`` (:issue:`12307`).

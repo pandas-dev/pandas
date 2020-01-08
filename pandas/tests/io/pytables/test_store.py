@@ -33,6 +33,7 @@ from pandas import (
     isna,
     timedelta_range,
 )
+import pandas._testing as tm
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
     create_tempfile,
@@ -42,7 +43,6 @@ from pandas.tests.io.pytables.common import (
     safe_remove,
     tables,
 )
-import pandas.util.testing as tm
 
 from pandas.io.pytables import (
     ClosedFileError,

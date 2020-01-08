@@ -24,7 +24,7 @@ try:
 except ImportError:
     from pandas import algos
 try:
-    from pandas.util.testing import test_parallel
+    from pandas._testing import test_parallel
 
     have_real_test_parallel = True
 except ImportError:

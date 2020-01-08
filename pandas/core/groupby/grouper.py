@@ -3,7 +3,7 @@ Provide user facing operators for doing the split part of the
 split-apply-combine paradigm.
 """
 
-from typing import Hashable, List, Optional, Tuple
+from typing import Dict, Hashable, List, Optional, Tuple
 
 import numpy as np
 
@@ -34,8 +34,7 @@ from pandas.io.formats.printing import pprint_thing
 
 class Grouper:
     """
-    A Grouper allows the user to specify a groupby instruction for a target
-    object.
+    A Grouper allows the user to specify a groupby instruction for an object.
 
     This specification will select a column via the key parameter, or if the
     level and/or axis parameters are given, a level of the index of the target
@@ -47,17 +46,18 @@ class Grouper:
     Parameters
     ----------
     key : str, defaults to None
-        groupby key, which selects the grouping column of the target
+        Groupby key, which selects the grouping column of the target.
     level : name/number, defaults to None
-        the level for the target index
+        The level for the target index.
     freq : str / frequency object, defaults to None
         This will groupby the specified frequency if the target selection
         (via key or level) is a datetime-like object. For full specification
         of available frequencies, please see `here
-        <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`_.
-    axis : number/name of the axis, defaults to 0
+        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`_.
+    axis : str, int, defaults to 0
+        Number/name of the axis.
     sort : bool, default to False
-        whether to sort the resulting labels
+        Whether to sort the resulting labels.
     closed : {'left' or 'right'}
         Closed end of interval. Only when `freq` parameter is passed.
     label : {'left' or 'right'}
@@ -194,7 +194,7 @@ class Grouper:
             # use stable sort to support first, last, nth
             indexer = self.indexer = ax.argsort(kind="mergesort")
             ax = ax.take(indexer)
-            obj = obj.take(indexer, axis=self.axis, is_copy=False)
+            obj = obj.take(indexer, axis=self.axis)
 
         self.obj = obj
         self.grouper = ax
@@ -419,7 +419,7 @@ class Grouping:
             self._group_index = uniques
 
     @cache_readonly
-    def groups(self) -> dict:
+    def groups(self) -> Dict[Hashable, np.ndarray]:
         return self.index.groupby(Categorical.from_codes(self.codes, self.group_index))
 
 
@@ -605,8 +605,8 @@ def get_grouper(
 
         if is_categorical_dtype(gpr) and len(gpr) != obj.shape[axis]:
             raise ValueError(
-                f"Length of grouper ({len(gpr)}) and axis ({obj.shape[axis]})"
-                " must be same length"
+                f"Length of grouper ({len(gpr)}) and axis ({obj.shape[axis]}) "
+                "must be same length"
             )
 
         # create the Grouping
