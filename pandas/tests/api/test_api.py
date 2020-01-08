@@ -239,7 +239,7 @@ class TestPDApi(Base):
                     getattr(pd, depr)
                 elif depr == "datetime":
                     deprecated = getattr(pd, "__Datetime")
-                    deprecated().__getattr__(dir(pd.datetime.datetime)[-1])
+                    deprecated.__getattr__(deprecated, dir(pd.datetime.datetime)[-1])
                 elif depr == "SparseArray":
                     deprecated = getattr(pd, depr)
                     deprecated([])
@@ -252,10 +252,9 @@ def test_datetime():
     from datetime import datetime
     import warnings
 
-    if compat.PY37:
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", FutureWarning)
-            assert datetime(2015, 1, 2, 0, 0) == pd.datetime(2015, 1, 2, 0, 0)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", FutureWarning)
+        assert datetime(2015, 1, 2, 0, 0) == pd.datetime(2015, 1, 2, 0, 0)
 
 
 def test_np():
