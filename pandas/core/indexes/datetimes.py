@@ -641,7 +641,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
         know what you're doing
         """
 
-        if isinstance(key, datetime):
+        if isinstance(key, (datetime, np.datetime64)):
 
             # needed to localize naive datetimes
             if self.tz is not None:
