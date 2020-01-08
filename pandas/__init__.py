@@ -304,23 +304,21 @@ else:
         datetime = dt
 
         def __getattr__(cls, item):
-            import warnings
-
-            warnings.warn(
-                "The pandas.datetime class is deprecated "
-                "and will be removed from pandas in a future version. "
-                "Import from datetime instead.",
-                FutureWarning,
-                stacklevel=2,
-            )
+            cls.emitWarning()
 
             try:
                 return getattr(cls.datetime, item)
             except AttributeError:
                 raise AttributeError(f"module datetime has no attribute {item}")
 
+        def __instancecheck__(cls, other):
+            if isinstance(other, cls.datetime):
+                return True
+            else:
+                return False
+
     class __DatetimeSub(metaclass=__Datetime):
-        def __new__(cls, *args, **kwargs):
+        def emitWarning():
             import warnings
 
             warnings.warn(
@@ -328,17 +326,31 @@ else:
                 "and will be removed from pandas in a future version. "
                 "Import from datetime instead.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=3,
             )
 
+        def __new__(cls, *args, **kwargs):
+            cls.emitWarning()
             from datetime import datetime as dt
 
             return dt(*args, **kwargs)
 
     datetime = __DatetimeSub
 
-    class __SparseArray(pandas.core.arrays.sparse.SparseArray):
-        def __warnSparseArray(self):
+    class __SparseArray(type):
+
+        from pandas.core.arrays.sparse import SparseArray as sa
+
+        SparseArray = sa
+
+        def __instancecheck__(cls, other):
+            if isinstance(other, cls.SparseArray):
+                return True
+            else:
+                return False
+
+    class __SparseArraySub(metaclass=__SparseArray):
+        def emitWarning():
             import warnings
 
             warnings.warn(
@@ -349,23 +361,14 @@ else:
                 stacklevel=3,
             )
 
-        def __init__(
-            self,
-            data,
-            sparse_index=None,
-            index=None,
-            fill_value=None,
-            kind="integer",
-            dtype=None,
-            copy=False,
-        ):
-            self.__warnSparseArray()
-            super().__init__(data, sparse_index, index, fill_value, kind, dtype, copy)
+        def __new__(cls, *args, **kwargs):
+            cls.emitWarning()
+            from pandas.core.arrays.sparse import SparseArray as sa
 
-        def __getattr__(self, name):
-            return super().__getattribute__(name)
+            return sa(*args, **kwargs)
 
-    SparseArray = __SparseArray
+    SparseArray = __SparseArraySub
+
 
 # module level doc-string
 __doc__ = """
