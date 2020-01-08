@@ -1,7 +1,7 @@
 """ test partial slicing on Series/Frame """
 
 from datetime import datetime
-import operator as op
+import operator
 
 import numpy as np
 import pytest
@@ -16,8 +16,8 @@ from pandas import (
     Timestamp,
     date_range,
 )
+import pandas._testing as tm
 from pandas.core.indexing import IndexingError
-from pandas.util import testing as tm
 
 
 class TestSlicing:
@@ -274,7 +274,7 @@ class TestSlicing:
                 result = df["a"][ts_string]
                 assert isinstance(result, np.int64)
                 assert result == expected
-                msg = r"^'{}'$".format(ts_string)
+                msg = fr"^'{ts_string}'$"
                 with pytest.raises(KeyError, match=msg):
                     df[ts_string]
 
@@ -302,7 +302,7 @@ class TestSlicing:
                 result = df["a"][ts_string]
                 assert isinstance(result, np.int64)
                 assert result == 2
-                msg = r"^'{}'$".format(ts_string)
+                msg = fr"^'{ts_string}'$"
                 with pytest.raises(KeyError, match=msg):
                     df[ts_string]
 
@@ -311,7 +311,7 @@ class TestSlicing:
             for fmt, res in list(zip(formats, resolutions))[rnum + 1 :]:
                 ts = index[1] + Timedelta("1 " + res)
                 ts_string = ts.strftime(fmt)
-                msg = r"^'{}'$".format(ts_string)
+                msg = fr"^'{ts_string}'$"
                 with pytest.raises(KeyError, match=msg):
                     df["a"][ts_string]
                 with pytest.raises(KeyError, match=msg):
@@ -408,10 +408,10 @@ class TestSlicing:
     @pytest.mark.parametrize(
         "op,expected",
         [
-            (op.lt, [True, False, False, False]),
-            (op.le, [True, True, False, False]),
-            (op.eq, [False, True, False, False]),
-            (op.gt, [False, False, False, True]),
+            (operator.lt, [True, False, False, False]),
+            (operator.le, [True, True, False, False]),
+            (operator.eq, [False, True, False, False]),
+            (operator.gt, [False, False, False, True]),
         ],
     )
     def test_selection_by_datetimelike(self, datetimelike, op, expected):

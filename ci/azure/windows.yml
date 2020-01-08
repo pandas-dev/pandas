@@ -11,49 +11,47 @@ jobs:
       py36_np15:
         ENV_FILE: ci/deps/azure-windows-36.yaml
         CONDA_PY: "36"
+        PATTERN: "not slow and not network"
 
       py37_np141:
         ENV_FILE: ci/deps/azure-windows-37.yaml
         CONDA_PY: "37"
+        PATTERN: "not slow and not network"
 
   steps:
     - powershell: |
         Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
         Write-Host "##vso[task.prependpath]$HOME/miniconda3/bin"
       displayName: 'Add conda to PATH'
+
     - script: conda update -q -n base conda
-      displayName: Update conda
-    - script: |
-        call activate
+      displayName: 'Update conda'
+
+    - bash: |
         conda env create -q --file ci\\deps\\azure-windows-$(CONDA_PY).yaml
       displayName: 'Create anaconda environment'
-    - script: |
-        call activate pandas-dev
-        call conda list
-        ci\\incremental\\build.cmd
+
+    - bash: |
+        source activate pandas-dev
+        conda list
+        python setup.py build_ext -q -i -j 4
+        python -m pip install --no-build-isolation -e .
       displayName: 'Build'
-    - script: |
-        call activate pandas-dev
-        pytest -m "not slow and not network" --junitxml=test-data.xml pandas -n 2 -r sxX --strict --durations=10 %*
+
+    - bash: |
+        source activate pandas-dev
+        ci/run_tests.sh
       displayName: 'Test'
+
     - task: PublishTestResults@2
+      condition: succeededOrFailed()
       inputs:
+        failTaskOnFailedTests: true
         testResultsFiles: 'test-data.xml'
-        testRunTitle: 'Windows-$(CONDA_PY)'
-    - powershell: |
-        $junitXml = "test-data.xml"
-        $(Get-Content $junitXml | Out-String) -match 'failures="(.*?)"'
-        if ($matches[1] -eq 0)
-        {
-          Write-Host "No test failures in test-data"
-        }
-        else
-        {
-          # note that this will produce $LASTEXITCODE=1
-          Write-Error "$($matches[1]) tests failed"
-        }
-      displayName: 'Check for test failures'
-    - script: |
+        testRunTitle: ${{ format('{0}-$(CONDA_PY)', parameters.name) }}
+      displayName: 'Publish test results'
+
+    - bash: |
         source activate pandas-dev
         python ci/print_skipped.py
       displayName: 'Print skipped tests'

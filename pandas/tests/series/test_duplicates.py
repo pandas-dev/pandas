@@ -2,10 +2,11 @@ import numpy as np
 import pytest
 
 from pandas import Categorical, Series
-import pandas.util.testing as tm
+import pandas._testing as tm
+from pandas.core.construction import create_series_with_explicit_dtype
 
 
-def test_value_counts_nunique():
+def test_nunique():
     # basics.rst doc example
     series = Series(np.random.randn(500))
     series[20:500] = np.nan
@@ -70,7 +71,7 @@ def test_unique_data_ownership():
 )
 def test_is_unique(data, expected):
     # GH11946 / GH25180
-    s = Series(data)
+    s = create_series_with_explicit_dtype(data, dtype_if_empty=object)
     assert s.is_unique is expected
 
 
@@ -85,76 +86,7 @@ def test_is_unique_class_ne(capsys):
 
     with capsys.disabled():
         li = [Foo(i) for i in range(5)]
-        s = Series(li, index=[i for i in range(5)])
+        s = Series(li, index=list(range(5)))
     s.is_unique
     captured = capsys.readouterr()
     assert len(captured.err) == 0
-
-
-@pytest.mark.parametrize(
-    "keep, expected",
-    [
-        ("first", Series([False, False, False, False, True, True, False])),
-        ("last", Series([False, True, True, False, False, False, False])),
-        (False, Series([False, True, True, False, True, True, False])),
-    ],
-)
-def test_drop_duplicates(any_numpy_dtype, keep, expected):
-    tc = Series([1, 0, 3, 5, 3, 0, 4], dtype=np.dtype(any_numpy_dtype))
-
-    if tc.dtype == "bool":
-        pytest.skip("tested separately in test_drop_duplicates_bool")
-
-    tm.assert_series_equal(tc.duplicated(keep=keep), expected)
-    tm.assert_series_equal(tc.drop_duplicates(keep=keep), tc[~expected])
-    sc = tc.copy()
-    sc.drop_duplicates(keep=keep, inplace=True)
-    tm.assert_series_equal(sc, tc[~expected])
-
-
-@pytest.mark.parametrize(
-    "keep, expected",
-    [
-        ("first", Series([False, False, True, True])),
-        ("last", Series([True, True, False, False])),
-        (False, Series([True, True, True, True])),
-    ],
-)
-def test_drop_duplicates_bool(keep, expected):
-    tc = Series([True, False, True, False])
-
-    tm.assert_series_equal(tc.duplicated(keep=keep), expected)
-    tm.assert_series_equal(tc.drop_duplicates(keep=keep), tc[~expected])
-    sc = tc.copy()
-    sc.drop_duplicates(keep=keep, inplace=True)
-    tm.assert_series_equal(sc, tc[~expected])
-
-
-@pytest.mark.parametrize(
-    "keep, expected",
-    [
-        ("first", Series([False, False, True, False, True], name="name")),
-        ("last", Series([True, True, False, False, False], name="name")),
-        (False, Series([True, True, True, False, True], name="name")),
-    ],
-)
-def test_duplicated_keep(keep, expected):
-    s = Series(["a", "b", "b", "c", "a"], name="name")
-
-    result = s.duplicated(keep=keep)
-    tm.assert_series_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "keep, expected",
-    [
-        ("first", Series([False, False, True, False, True])),
-        ("last", Series([True, True, False, False, False])),
-        (False, Series([True, True, True, False, True])),
-    ],
-)
-def test_duplicated_nan_none(keep, expected):
-    s = Series([np.nan, 3, 3, None, np.nan], dtype=object)
-
-    result = s.duplicated(keep=keep)
-    tm.assert_series_equal(result, expected)

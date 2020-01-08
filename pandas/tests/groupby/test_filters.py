@@ -3,7 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_filter_series():
@@ -593,5 +593,5 @@ def test_filter_dropna_with_empty_groups():
     tm.assert_series_equal(result_false, expected_false)
 
     result_true = groupped.filter(lambda x: x.mean() > 1, dropna=True)
-    expected_true = pd.Series(index=pd.Index([], dtype=int))
+    expected_true = pd.Series(index=pd.Index([], dtype=int), dtype=np.float64)
     tm.assert_series_equal(result_true, expected_true)

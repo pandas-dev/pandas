@@ -5,6 +5,9 @@ from cpython.object cimport (
 from cpython.datetime cimport (datetime,
                                PyDateTime_Check, PyDelta_Check,
                                PyDateTime_IMPORT)
+
+from cpython.version cimport PY_MINOR_VERSION
+
 PyDateTime_IMPORT
 
 import numpy as np
@@ -18,6 +21,7 @@ cimport pandas._libs.tslibs.util as util
 from pandas._libs.tslibs.util cimport (
     get_nat, is_integer_object, is_float_object, is_datetime64_object,
     is_timedelta64_object)
+
 
 # ----------------------------------------------------------------------
 # Constants
@@ -95,10 +99,6 @@ cdef class _NaT(datetime):
     # higher than np.ndarray and np.matrix
     __array_priority__ = 100
 
-    def __hash__(_NaT self):
-        # py3k needs this defined here
-        return hash(self.value)
-
     def __richcmp__(_NaT self, object other, int op):
         cdef:
             int ndim = getattr(other, 'ndim', -1)
@@ -115,8 +115,8 @@ cdef class _NaT(datetime):
             if is_datetime64_object(other):
                 return _nat_scalar_rules[op]
             else:
-                raise TypeError('Cannot compare type %r with type %r' %
-                                (type(self).__name__, type(other).__name__))
+                raise TypeError(f'Cannot compare type {type(self).__name__} '
+                                f'with type {type(other).__name__}')
 
         # Note: instead of passing "other, self, _reverse_ops[op]", we observe
         # that `_nat_scalar_rules` is invariant under `_reverse_ops`,
@@ -150,8 +150,7 @@ cdef class _NaT(datetime):
                 result = np.empty(other.shape, dtype="datetime64[ns]")
                 result.fill("NaT")
                 return result
-            raise TypeError("Cannot add NaT to ndarray with dtype {dtype}"
-                            .format(dtype=other.dtype))
+            raise TypeError(f"Cannot add NaT to ndarray with dtype {other.dtype}")
 
         return NotImplemented
 
@@ -203,9 +202,8 @@ cdef class _NaT(datetime):
                 result.fill("NaT")
                 return result
 
-            raise TypeError(
-                "Cannot subtract NaT from ndarray with dtype {dtype}"
-                .format(dtype=other.dtype))
+            raise TypeError(f"Cannot subtract NaT from ndarray with "
+                            f"dtype {other.dtype}")
 
         return NotImplemented
 
@@ -230,16 +228,16 @@ cdef class _NaT(datetime):
         return NotImplemented
 
     @property
-    def asm8(self):
+    def asm8(self) -> np.datetime64:
         return np.datetime64(NPY_NAT, 'ns')
 
-    def to_datetime64(self):
+    def to_datetime64(self) -> np.datetime64:
         """
         Return a numpy.datetime64 object with 'ns' precision.
         """
         return np.datetime64('NaT', 'ns')
 
-    def to_numpy(self, dtype=None, copy=False):
+    def to_numpy(self, dtype=None, copy=False) -> np.datetime64:
         """
         Convert the Timestamp to a NumPy datetime64.
 
@@ -259,13 +257,13 @@ cdef class _NaT(datetime):
         """
         return self.to_datetime64()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return 'NaT'
 
-    def __str__(self):
+    def __str__(self) -> str:
         return 'NaT'
 
-    def isoformat(self, sep='T'):
+    def isoformat(self, sep='T') -> str:
         # This allows Timestamp(ts.isoformat()) to always correctly roundtrip.
         return 'NaT'
 
@@ -370,7 +368,6 @@ class NaTType(_NaT):
     days_in_month = property(fget=lambda self: np.nan)
     daysinmonth = property(fget=lambda self: np.nan)
     dayofweek = property(fget=lambda self: np.nan)
-    weekday_name = property(fget=lambda self: np.nan)
 
     # inject Timedelta properties
     days = property(fget=lambda self: np.nan)
@@ -434,6 +431,10 @@ class NaTType(_NaT):
     tzname = _make_error_func('tzname', datetime)
     utcoffset = _make_error_func('utcoffset', datetime)
 
+    # "fromisocalendar" was introduced in 3.8
+    if PY_MINOR_VERSION >= 8:
+        fromisocalendar = _make_error_func('fromisocalendar', datetime)
+
     # ----------------------------------------------------------------------
     # The remaining methods have docstrings copy/pasted from the analogous
     # Timestamp methods.
@@ -464,7 +465,7 @@ class NaTType(_NaT):
         """
         Timestamp.combine(date, time)
 
-        date, time -> datetime with same date and time fields
+        date, time -> datetime with same date and time fields.
         """
     )
     utcnow = _make_error_func('utcnow',  # noqa:E128
@@ -503,8 +504,8 @@ class NaTType(_NaT):
         """
         Timestamp.fromordinal(ordinal, freq=None, tz=None)
 
-        passed an ordinal, translate and convert to a ts
-        note: by definition there cannot be any tz info on the ordinal itself
+        Passed an ordinal, translate and convert to a ts.
+        Note: by definition there cannot be any tz info on the ordinal itself.
 
         Parameters
         ----------
@@ -727,18 +728,6 @@ default 'raise'
               nonexistent times.
 
             .. versionadded:: 0.24.0
-        errors : 'raise', 'coerce', default None
-            Determine how errors should be handled.
-
-            The behavior is as follows:
-
-            * 'raise' will raise a NonExistentTimeError if a timestamp is not
-              valid in the specified timezone (e.g. due to a transition from
-              or to DST time). Use ``nonexistent='raise'`` instead.
-            * 'coerce' will return NaT if the timestamp can not be converted
-              into the specified timezone. Use ``nonexistent='NaT'`` instead.
-
-            .. deprecated:: 0.24.0
 
         Returns
         -------

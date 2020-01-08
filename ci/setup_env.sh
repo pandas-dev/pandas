@@ -1,20 +1,15 @@
 #!/bin/bash -e
 
-if [ "$JOB" == "3.8-dev" ]; then
-    /bin/bash ci/build38.sh
-    exit 0
-fi
-
 # edit the locale file if needed
-if [ -n "$LOCALE_OVERRIDE" ]; then
+if [[ "$(uname)" == "Linux" && -n "$LC_ALL" ]]; then
     echo "Adding locale to the first line of pandas/__init__.py"
     rm -f pandas/__init__.pyc
-    SEDC="3iimport locale\nlocale.setlocale(locale.LC_ALL, '$LOCALE_OVERRIDE')\n"
+    SEDC="3iimport locale\nlocale.setlocale(locale.LC_ALL, '$LC_ALL')\n"
     sed -i "$SEDC" pandas/__init__.py
+
     echo "[head -4 pandas/__init__.py]"
     head -4 pandas/__init__.py
     echo
-    sudo locale-gen "$LOCALE_OVERRIDE"
 fi
 
 MINICONDA_DIR="$HOME/miniconda3"
@@ -115,16 +110,21 @@ conda remove pandas -y --force || true
 pip uninstall -y pandas || true
 
 echo
+echo "remove postgres if has been installed with conda"
+echo "we use the one from the CI"
+conda remove postgresql -y --force || true
+
+echo
 echo "conda list pandas"
 conda list pandas
 
 # Make sure any error below is reported as such
 
 echo "[Build extensions]"
-python setup.py build_ext -q -i
+python setup.py build_ext -q -i -j2
 
-# XXX: Some of our environments end up with old verisons of pip (10.x)
-# Adding a new enough verison of pip to the requirements explodes the
+# XXX: Some of our environments end up with old versions of pip (10.x)
+# Adding a new enough version of pip to the requirements explodes the
 # solve time. Just using pip to update itself.
 # - py35_macos
 # - py35_compat
@@ -140,7 +140,8 @@ echo "conda list"
 conda list
 
 # Install DB for Linux
-if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
+
+if [[ -n ${SQL:0} ]]; then
   echo "installing dbs"
   mysql -e 'create database pandas_nosetest;'
   psql -c 'create database pandas_nosetest;' -U postgres

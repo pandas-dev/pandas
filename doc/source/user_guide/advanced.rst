@@ -206,8 +206,6 @@ highly performant. If you want to see only the used levels, you can use the
 To reconstruct the ``MultiIndex`` with only the used levels, the
 :meth:`~MultiIndex.remove_unused_levels` method may be used.
 
-.. versionadded:: 0.20.0
-
 .. ipython:: python
 
    new_mi = df[['foo', 'qux']].columns.remove_unused_levels()
@@ -555,6 +553,27 @@ index.
 
 Both ``rename`` and ``rename_axis`` support specifying a dictionary,
 ``Series`` or a mapping function to map labels/names to new values.
+
+When working with an ``Index`` object directly, rather than via a ``DataFrame``,
+:meth:`Index.set_names` can be used to change the names.
+
+.. ipython:: python
+
+   mi = pd.MultiIndex.from_product([[1, 2], ['a', 'b']], names=['x', 'y'])
+   mi.names
+
+   mi2 = mi.rename("new name", level=0)
+   mi2
+
+
+You cannot set the names of the MultiIndex via a level.
+
+.. ipython:: python
+   :okexcept:
+
+   mi.levels[0].name = "name via level"
+
+Use :meth:`Index.set_names` instead.
 
 Sorting a ``MultiIndex``
 ------------------------
@@ -927,8 +946,6 @@ If you need integer based selection, you should use ``iloc``:
 
 IntervalIndex
 ~~~~~~~~~~~~~
-
-.. versionadded:: 0.20.0
 
 :class:`IntervalIndex` together with its own dtype, :class:`~pandas.api.types.IntervalDtype`
 as well as the :class:`Interval` scalar type,  allow first-class support in pandas

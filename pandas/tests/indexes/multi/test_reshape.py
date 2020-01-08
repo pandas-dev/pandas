@@ -3,7 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import Index, MultiIndex
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_insert(idx):

@@ -16,7 +16,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.accessor import PandasDelegate, delegate_names
-from pandas.core.algorithms import take_1d
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 from pandas.core.base import NoNewAttributesMixin, PandasObject
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -27,8 +26,7 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
     def __init__(self, data, orig):
         if not isinstance(data, ABCSeries):
             raise TypeError(
-                "cannot convert an object of type {0} to a "
-                "datetimelike index".format(type(data))
+                f"cannot convert an object of type {type(data)} to a datetimelike index"
             )
 
         self._parent = data
@@ -55,8 +53,7 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
                 return DatetimeIndex(data, copy=False, name=self.name)
 
         raise TypeError(
-            "cannot convert an object of type {0} to a "
-            "datetimelike index".format(type(data))
+            f"cannot convert an object of type {type(data)} to a datetimelike index"
         )
 
     def _delegate_property_get(self, name):
@@ -75,9 +72,7 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
         result = np.asarray(result)
 
-        # blow up if we operate on categories
         if self.orig is not None:
-            result = take_1d(result, self.orig.cat.codes)
             index = self.orig.index
         else:
             index = self._parent.index
@@ -95,9 +90,8 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
     def _delegate_property_set(self, name, value, *args, **kwargs):
         raise ValueError(
-            "modifications to a property of a datetimelike "
-            "object are not supported. Change values on the "
-            "original."
+            "modifications to a property of a datetimelike object are not supported. "
+            "Change values on the original."
         )
 
     def _delegate_method(self, name, *args, **kwargs):
@@ -226,7 +220,7 @@ class TimedeltaProperties(Properties):
 
         Returns
         -------
-        a : numpy.ndarray
+        numpy.ndarray
             Array of 1D containing data with `datetime.timedelta` type.
 
         See Also
@@ -318,13 +312,17 @@ class CombinedDatetimelikeProperties(
 
         if not isinstance(data, ABCSeries):
             raise TypeError(
-                "cannot convert an object of type {0} to a "
-                "datetimelike index".format(type(data))
+                f"cannot convert an object of type {type(data)} to a datetimelike index"
             )
 
         orig = data if is_categorical_dtype(data) else None
         if orig is not None:
-            data = Series(orig.values.categories, name=orig.name, copy=False)
+            data = Series(
+                orig.array,
+                name=orig.name,
+                copy=False,
+                dtype=orig.values.categories.dtype,
+            )
 
         if is_datetime64_dtype(data.dtype):
             return DatetimeProperties(data, orig)

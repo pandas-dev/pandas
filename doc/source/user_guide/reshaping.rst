@@ -14,7 +14,7 @@ Reshaping by pivoting DataFrame objects
 .. ipython:: python
    :suppress:
 
-   import pandas.util.testing as tm
+   import pandas._testing as tm
    tm.N = 3
 
    def unpivot(frame):
@@ -38,7 +38,7 @@ For the curious here is how the above ``DataFrame`` was created:
 
 .. code-block:: python
 
-   import pandas.util.testing as tm
+   import pandas._testing as tm
 
    tm.N = 3
 
@@ -538,8 +538,6 @@ Alternatively we can specify custom bin-edges:
 
    c = pd.cut(ages, bins=[0, 18, 35, 70])
    c
-
-.. versionadded:: 0.20.0
 
 If the ``bins`` keyword is an ``IntervalIndex``, then these will be
 used to bin the passed data.::
