@@ -319,41 +319,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
         d.update(self._get_attributes_dict())
         return _new_DatetimeIndex, (type(self), d), None
 
-    def __setstate__(self, state):
-        """
-        Necessary for making this object picklable.
-        """
-        if isinstance(state, dict):
-            super().__setstate__(state)
-
-        elif isinstance(state, tuple):
-
-            # < 0.15 compat
-            if len(state) == 2:
-                nd_state, own_state = state
-                data = np.empty(nd_state[1], dtype=nd_state[2])
-                np.ndarray.__setstate__(data, nd_state)
-
-                freq = own_state[1]
-                tz = timezones.tz_standardize(own_state[2])
-                dtype = tz_to_dtype(tz)
-                dtarr = DatetimeArray._simple_new(data, freq=freq, dtype=dtype)
-
-                self.name = own_state[0]
-
-            else:  # pragma: no cover
-                data = np.empty(state)
-                np.ndarray.__setstate__(data, state)
-                dtarr = DatetimeArray(data)
-
-            self._data = dtarr
-            self._reset_identity()
-
-        else:
-            raise Exception("invalid pickle state")
-
-    _unpickle_compat = __setstate__
-
     def _convert_for_op(self, value):
         """
         Convert value to be insertable to ndarray.
