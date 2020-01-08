@@ -780,7 +780,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 class ExcelFile:
     """
     Class for parsing tabular excel sheets into DataFrame objects.
-    Uses xlrd. See read_excel for more documentation
+    Uses openpyxl. See read_excel for more documentation
 
     Parameters
     ----------
@@ -801,7 +801,7 @@ class ExcelFile:
 
     def __init__(self, io, engine=None):
         if engine is None:
-            engine = "xlrd"
+            engine = "openpyxl"
         if engine not in self._engines:
             raise ValueError(f"Unknown engine: {engine}")
 
