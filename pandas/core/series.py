@@ -3895,16 +3895,14 @@ Name: Max Speed, dtype: float64
 
     def rename(
         self,
-        index: Optional[
-            Union[Hashable, Mapping[Hashable, Hashable], Callable[[Hashable], Hashable]]
-        ] = None,
+            index = None,
         *,
-        axis: Optional[Axis] = None,
-        copy: bool = True,
-        inplace: bool = False,
-        level: Optional[Level] = None,
-        errors: str = "ignore",
-    ) -> "Series":
+        axis=None,
+        copy=True,
+        inplace=False,
+        level=None,
+        errors="ignore",
+    ):
         """
         Alter Series index labels or name.
 

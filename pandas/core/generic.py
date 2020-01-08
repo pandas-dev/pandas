@@ -927,14 +927,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def rename(
         self,
         mapper: Optional[
-            Union[Mapping[Hashable, Hashable], Callable[[Hashable], Hashable]]
+            Union[Mapping[Hashable, Any], Callable[[Hashable], Hashable]]
         ] = None,
         *,
         index: Optional[
-            Union[Mapping[Hashable, Hashable], Callable[[Hashable], Hashable]]
+            Union[Mapping[Hashable, Any], Callable[[Hashable], Hashable]]
         ] = None,
         columns: Optional[
-            Union[Mapping[Hashable, Hashable], Callable[[Hashable], Hashable]]
+            Union[Mapping[Hashable, Any], Callable[[Hashable], Hashable]]
         ] = None,
         axis: Optional[Axis] = None,
         copy: bool = True,
@@ -1079,16 +1079,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if replacements is None:
                 continue
 
-            axis = self._get_axis(axis_no)
+            ax = self._get_axis(axis_no)
             baxis = self._get_block_manager_axis(axis_no)
             f = com.get_rename_function(replacements)
 
             if level is not None:
-                level = axis._get_level_number(level)
+                level = ax._get_level_number(level)
 
             # GH 13473
             if not callable(replacements):
-                indexer = axis.get_indexer_for(replacements)
+                indexer = ax.get_indexer_for(replacements)
                 if errors == "raise" and len(indexer[indexer == -1]):
                     missing_labels = [
                         label
