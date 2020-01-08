@@ -1,5 +1,4 @@
 from datetime import timedelta
-import json
 import operator
 from typing import Any, Callable, List, Optional, Sequence, Union
 
@@ -42,7 +41,6 @@ from pandas.core.dtypes.missing import isna, notna
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import datetimelike as dtl
-from pandas.core.arrays._arrow_utils import _PYARROW_INSTALLED, _pyarrow_version_ge_015
 import pandas.core.common as com
 
 from pandas.tseries import frequencies
@@ -290,6 +288,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         Convert myself into a pyarrow Array.
         """
         import pyarrow
+        from pandas.core.arrays._arrow_utils import ArrowPeriodType
 
         if type is not None:
             if pyarrow.types.is_integer(type):
@@ -1053,40 +1052,3 @@ def _make_field_arrays(*fields):
     ]
 
     return arrays
-
-
-if _PYARROW_INSTALLED and _pyarrow_version_ge_015:
-    import pyarrow
-
-    class ArrowPeriodType(pyarrow.ExtensionType):
-        def __init__(self, freq):
-            # attributes need to be set first before calling
-            # super init (as that calls serialize)
-            self._freq = freq
-            pyarrow.ExtensionType.__init__(self, pyarrow.int64(), "pandas.period")
-
-        @property
-        def freq(self):
-            return self._freq
-
-        def __arrow_ext_serialize__(self):
-            metadata = {"freq": self.freq}
-            return json.dumps(metadata).encode()
-
-        @classmethod
-        def __arrow_ext_deserialize__(cls, storage_type, serialized):
-            metadata = json.loads(serialized.decode())
-            return ArrowPeriodType(metadata["freq"])
-
-        def __eq__(self, other):
-            if isinstance(other, pyarrow.BaseExtensionType):
-                return type(self) == type(other) and self.freq == other.freq
-            else:
-                return NotImplemented
-
-        def __hash__(self):
-            return hash((str(self), self.freq))
-
-    # register the type with a dummy instance
-    _period_type = ArrowPeriodType("D")
-    pyarrow.register_extension_type(_period_type)

@@ -28,7 +28,6 @@ from pandas.core.dtypes.missing import isna, notna
 from pandas.core import nanops, ops
 from pandas.core.algorithms import take
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
-from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
 import pandas.core.common as com
 from pandas.core.indexers import check_bool_array_indexer
 from pandas.core.ops import invalid_comparison
@@ -95,6 +94,7 @@ class _IntegerDtype(ExtensionDtype):
     def __from_arrow__(self, array):
         """Construct IntegerArray from passed pyarrow Array/ChunkedArray"""
         import pyarrow
+        from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
 
         if isinstance(array, pyarrow.Array):
             chunks = [array]

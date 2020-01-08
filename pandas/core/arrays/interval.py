@@ -1,4 +1,3 @@
-import json
 from operator import le, lt
 import textwrap
 
@@ -37,7 +36,6 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core.algorithms import take, value_counts
-from pandas.core.arrays._arrow_utils import _PYARROW_INSTALLED, _pyarrow_version_ge_015
 from pandas.core.arrays.base import ExtensionArray, _extension_array_shared_docs
 from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
@@ -1088,6 +1086,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Convert myself into a pyarrow Array.
         """
         import pyarrow
+        from pandas.core.arrays._arrow_utils import ArrowIntervalType
 
         try:
             subtype = pyarrow.from_numpy_dtype(self.dtype.subtype)
@@ -1326,56 +1325,3 @@ def maybe_convert_platform_interval(values):
         values = np.asarray(values)
 
     return maybe_convert_platform(values)
-
-
-if _PYARROW_INSTALLED and _pyarrow_version_ge_015:
-    import pyarrow
-
-    class ArrowIntervalType(pyarrow.ExtensionType):
-        def __init__(self, subtype, closed):
-            # attributes need to be set first before calling
-            # super init (as that calls serialize)
-            assert closed in _VALID_CLOSED
-            self._closed = closed
-            if not isinstance(subtype, pyarrow.DataType):
-                subtype = pyarrow.type_for_alias(str(subtype))
-            self._subtype = subtype
-
-            storage_type = pyarrow.struct([("left", subtype), ("right", subtype)])
-            pyarrow.ExtensionType.__init__(self, storage_type, "pandas.interval")
-
-        @property
-        def subtype(self):
-            return self._subtype
-
-        @property
-        def closed(self):
-            return self._closed
-
-        def __arrow_ext_serialize__(self):
-            metadata = {"subtype": str(self.subtype), "closed": self.closed}
-            return json.dumps(metadata).encode()
-
-        @classmethod
-        def __arrow_ext_deserialize__(cls, storage_type, serialized):
-            metadata = json.loads(serialized.decode())
-            subtype = pyarrow.type_for_alias(metadata["subtype"])
-            closed = metadata["closed"]
-            return ArrowIntervalType(subtype, closed)
-
-        def __eq__(self, other):
-            if isinstance(other, pyarrow.BaseExtensionType):
-                return (
-                    type(self) == type(other)
-                    and self.subtype == other.subtype
-                    and self.closed == other.closed
-                )
-            else:
-                return NotImplemented
-
-        def __hash__(self):
-            return hash((str(self), str(self.subtype), self.closed))
-
-    # register the type with a dummy instance
-    _interval_type = ArrowIntervalType(pyarrow.int64(), "left")
-    pyarrow.register_extension_type(_interval_type)
