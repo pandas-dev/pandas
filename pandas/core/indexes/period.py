@@ -768,12 +768,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         if isinstance(other, PeriodIndex) and self.freq != other.freq:
             raise raise_on_incompatible(self, other)
 
-    def _wrap_setop_result(self, other, result):
-        name = get_op_result_name(self, other)
-        result = self._apply_meta(result)
-        result.name = name
-        return result
-
     def intersection(self, other, sort=False):
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
@@ -816,6 +810,26 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         i8other = Int64Index._simple_new(other.asi8)
         i8result = i8self.difference(i8other, sort=sort)
 
+        result = self._shallow_copy(np.asarray(i8result, dtype=np.int64), name=res_name)
+        return result
+
+    def _union(self, other, sort):
+        if not len(other) or self.equals(other) or not len(self):
+            return super()._union(other, sort=sort)
+
+        # We are called by `union`, which is responsible for this validation
+        assert isinstance(other, type(self))
+
+        if not is_dtype_equal(self.dtype, other.dtype):
+            this = self.astype("O")
+            other = other.astype("O")
+            return this._union(other, sort=sort)
+
+        i8self = Int64Index._simple_new(self.asi8)
+        i8other = Int64Index._simple_new(other.asi8)
+        i8result = i8self._union(i8other, sort=sort)
+
+        res_name = get_op_result_name(self, other)
         result = self._shallow_copy(np.asarray(i8result, dtype=np.int64), name=res_name)
         return result
 
