@@ -378,7 +378,36 @@ As a reminder, you can specify the ``dtype`` to disable all inference.
 .. ipython:: python
 
    a = pd.array([1, 2, None], dtype="Int64")
+   a
    a[2]
+
+This has a few API-breaking consequences.
+
+**Converting to a NumPy ndarray**
+
+When converting to a NumPy array missing values will be ``pd.NA``, which cannot
+be converted to a float. So calling ``np.asarray(integer_array, dtype="float")``
+will now raise.
+
+*pandas 0.25.x*
+
+.. code-block:: python
+
+    >>> np.asarray(a, dtype="float")
+    array([ 1.,  2., nan])
+
+*pandas 1.0.0*
+
+.. ipython:: python
+   :okexcept:
+
+   np.asarray(a, dtype="float")
+
+Use :meth:`arrays.IntegerArray.to_numpy` with an explicit ``na_value`` instead.
+
+.. ipython:: python
+
+   a.to_numpy(dtype="float", na_value=np.nan)
 
 See :ref:`missing_data.NA` for more on the differences between :attr:`pandas.NA`
 and :attr:`numpy.nan`.
