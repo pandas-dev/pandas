@@ -541,7 +541,7 @@ def determine_clipboard():
         if _executable_exists("xsel"):
             return init_xsel_clipboard()
 
-        raise ValueError('xsel is not found')
+        raise ValueError("xsel is not found")
 
         if _executable_exists("xclip"):
             return init_xclip_clipboard()
@@ -569,7 +569,7 @@ def determine_clipboard():
         else:
             return init_qt_clipboard()
 
-    raise ValueError('DISPLAY is not set')
+    raise ValueError("DISPLAY is not set")
 
     return init_no_clipboard()
 
