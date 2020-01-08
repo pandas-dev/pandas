@@ -2,7 +2,7 @@
 Base and utility classes for tseries type pandas objects.
 """
 import operator
-from typing import List, Optional, Set, Union
+from typing import List, Optional, Set
 
 import numpy as np
 
@@ -33,8 +33,8 @@ from pandas.core import algorithms
 from pandas.core.accessor import PandasDelegate
 from pandas.core.arrays import (
     DatetimeArray,
+    ExtensionArray,
     ExtensionOpsMixin,
-    PeriodArray,
     TimedeltaArray,
 )
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
@@ -96,7 +96,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
     Common ops mixin to support a unified interface datetimelike Index.
     """
 
-    _data: Union[DatetimeArray, TimedeltaArray, PeriodArray]
+    _data: ExtensionArray
     freq: Optional[DateOffset]
     freqstr: Optional[str]
     _resolution: int
@@ -925,7 +925,7 @@ class DatetimelikeDelegateMixin(PandasDelegate):
     _raw_methods: Set[str] = set()
     # raw_properties : dispatch properties that shouldn't be boxed in an Index
     _raw_properties: Set[str] = set()
-    _data: Union[DatetimeArray, TimedeltaArray, PeriodArray]
+    _data: ExtensionArray
 
     def _delegate_property_get(self, name, *args, **kwargs):
         result = getattr(self._data, name)
