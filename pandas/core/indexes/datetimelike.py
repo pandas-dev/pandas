@@ -40,18 +40,17 @@ from pandas.core.arrays import (
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
-from pandas.core.indexes.numeric import Int64Index
-from pandas.core.ops import get_op_result_name
-from pandas.core.tools.timedeltas import to_timedelta
-
-from pandas.tseries.frequencies import DateOffset, to_offset
-
-from .extension import (
+from pandas.core.indexes.extension import (
     ExtensionIndex,
     inherit_names,
     make_wrapped_arith_op,
     make_wrapped_comparison_op,
 )
+from pandas.core.indexes.numeric import Int64Index
+from pandas.core.ops import get_op_result_name
+from pandas.core.tools.timedeltas import to_timedelta
+
+from pandas.tseries.frequencies import DateOffset, to_offset
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
