@@ -1,9 +1,8 @@
 import numpy as np
 
 from pandas import DataFrame, Series, to_numeric
-import pandas.util.testing as tm
 
-from .pandas_vb_common import lib, numeric_dtypes
+from .pandas_vb_common import lib, numeric_dtypes, tm
 
 
 class NumericInferOps:

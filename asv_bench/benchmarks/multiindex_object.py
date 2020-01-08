@@ -3,7 +3,8 @@ import string
 import numpy as np
 
 from pandas import DataFrame, MultiIndex, RangeIndex, date_range
-import pandas.util.testing as tm
+
+from .pandas_vb_common import tm
 
 
 class GetLoc:

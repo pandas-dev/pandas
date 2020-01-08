@@ -13,6 +13,13 @@ for imp in ["pandas._libs.lib", "pandas.lib"]:
     except (ImportError, TypeError, ValueError):
         pass
 
+# Compatibility import for the testing module
+try:
+    import pandas._testing as tm  # noqa
+except ImportError:
+    import pandas.util.testing as tm  # noqa
+
+
 numeric_dtypes = [
     np.int64,
     np.int32,
