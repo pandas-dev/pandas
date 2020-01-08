@@ -190,13 +190,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
     # Constructors
 
     def __new__(
-        cls,
-        data=None,
-        categories=None,
-        ordered=None,
-        dtype=None,
-        copy=False,
-        name=None,
+        cls, data=None, categories=None, ordered=None, dtype=None, copy=False, name=None
     ):
 
         dtype = CategoricalDtype._from_values_or_dtype(data, categories, ordered, dtype)
@@ -388,6 +382,8 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
     def _wrap_setop_result(self, other, result):
         name = get_op_result_name(self, other)
+        # We use _shallow_copy rather than the Index implementation
+        #  (which uses _constructor) in order to preserve dtype.
         return self._shallow_copy(result, name=name)
 
     @Appender(_index_shared_docs["contains"] % _index_doc_kwargs)
@@ -414,7 +410,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
             if dtype == self.dtype:
                 return self.copy() if copy else self
 
-        return super().astype(dtype=dtype, copy=copy)
+        return Index.astype(self, dtype=dtype, copy=copy)
 
     @cache_readonly
     def _isnan(self):

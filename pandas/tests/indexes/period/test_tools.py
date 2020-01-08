@@ -231,13 +231,42 @@ class TestPeriodIndex:
         p2 = pd.Period("2014-01-04", freq=freq)
         assert pidx.searchsorted(p2) == 3
 
-        msg = "Input has different freq=H from PeriodIndex"
+        assert pidx.searchsorted(pd.NaT) == 0
+
+        msg = "Input has different freq=H from PeriodArray"
         with pytest.raises(IncompatibleFrequency, match=msg):
             pidx.searchsorted(pd.Period("2014-01-01", freq="H"))
 
-        msg = "Input has different freq=5D from PeriodIndex"
+        msg = "Input has different freq=5D from PeriodArray"
         with pytest.raises(IncompatibleFrequency, match=msg):
             pidx.searchsorted(pd.Period("2014-01-01", freq="5D"))
+
+    def test_searchsorted_invalid(self):
+        pidx = pd.PeriodIndex(
+            ["2014-01-01", "2014-01-02", "2014-01-03", "2014-01-04", "2014-01-05"],
+            freq="D",
+        )
+
+        other = np.array([0, 1], dtype=np.int64)
+
+        msg = "requires either a Period or PeriodArray"
+        with pytest.raises(TypeError, match=msg):
+            pidx.searchsorted(other)
+
+        with pytest.raises(TypeError, match=msg):
+            pidx.searchsorted(other.astype("timedelta64[ns]"))
+
+        with pytest.raises(TypeError, match=msg):
+            pidx.searchsorted(np.timedelta64(4))
+
+        with pytest.raises(TypeError, match=msg):
+            pidx.searchsorted(np.timedelta64("NaT", "ms"))
+
+        with pytest.raises(TypeError, match=msg):
+            pidx.searchsorted(np.datetime64(4, "ns"))
+
+        with pytest.raises(TypeError, match=msg):
+            pidx.searchsorted(np.datetime64("NaT", "ns"))
 
 
 class TestPeriodIndexConversion:
