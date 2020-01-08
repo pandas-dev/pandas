@@ -34,7 +34,7 @@ from pandas.core.dtypes.common import (
     is_unsigned_integer_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.generic import ABCIndexClass, ABCPeriodArray, ABCSeries
+from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
@@ -368,16 +368,19 @@ default 'raise'
 
     def _round(self, freq, mode, ambiguous, nonexistent):
         # round the local times
-        values = _ensure_datetimelike_to_i8(self)
+        if is_datetime64tz_dtype(self):
+            # operate on naive timestamps, then convert back to aware
+            naive = self.tz_localize(None)
+            result = naive._round(freq, mode, ambiguous, nonexistent)
+            aware = result.tz_localize(
+                self.tz, ambiguous=ambiguous, nonexistent=nonexistent
+            )
+            return aware
+
+        values = self.view("i8")
         result = round_nsint64(values, mode, freq)
         result = self._maybe_mask_results(result, fill_value=NaT)
-
-        dtype = self.dtype
-        if is_datetime64tz_dtype(self):
-            dtype = None
-        return self._ensure_localized(
-            self._simple_new(result, dtype=dtype), ambiguous, nonexistent
-        )
+        return self._simple_new(result, dtype=self.dtype)
 
     @Appender((_round_doc + _round_example).format(op="round"))
     def round(self, freq, ambiguous="raise", nonexistent="raise"):
@@ -1412,45 +1415,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         return self
 
     # --------------------------------------------------------------
-    # Comparison Methods
-
-    def _ensure_localized(
-        self, arg, ambiguous="raise", nonexistent="raise", from_utc=False
-    ):
-        """
-        Ensure that we are re-localized.
-
-        This is for compat as we can then call this on all datetimelike
-        arrays generally (ignored for Period/Timedelta)
-
-        Parameters
-        ----------
-        arg : Union[DatetimeLikeArray, DatetimeIndexOpsMixin, ndarray]
-        ambiguous : str, bool, or bool-ndarray, default 'raise'
-        nonexistent : str, default 'raise'
-        from_utc : bool, default False
-            If True, localize the i8 ndarray to UTC first before converting to
-            the appropriate tz. If False, localize directly to the tz.
-
-        Returns
-        -------
-        localized array
-        """
-
-        # reconvert to local tz
-        tz = getattr(self, "tz", None)
-        if tz is not None:
-            if not isinstance(arg, type(self)):
-                arg = self._simple_new(arg)
-            if from_utc:
-                arg = arg.tz_localize("UTC").tz_convert(self.tz)
-            else:
-                arg = arg.tz_localize(
-                    self.tz, ambiguous=ambiguous, nonexistent=nonexistent
-                )
-        return arg
-
-    # --------------------------------------------------------------
     # Reductions
 
     def _reduce(self, name, axis=0, skipna=True, **kwargs):
@@ -1687,38 +1651,3 @@ def maybe_infer_freq(freq):
             freq_infer = True
             freq = None
     return freq, freq_infer
-
-
-def _ensure_datetimelike_to_i8(other, to_utc=False):
-    """
-    Helper for coercing an input scalar or array to i8.
-
-    Parameters
-    ----------
-    other : 1d array
-    to_utc : bool, default False
-        If True, convert the values to UTC before extracting the i8 values
-        If False, extract the i8 values directly.
-
-    Returns
-    -------
-    i8 1d array
-    """
-    from pandas import Index
-
-    if lib.is_scalar(other) and isna(other):
-        return iNaT
-    elif isinstance(other, (ABCPeriodArray, ABCIndexClass, DatetimeLikeArrayMixin)):
-        # convert tz if needed
-        if getattr(other, "tz", None) is not None:
-            if to_utc:
-                other = other.tz_convert("UTC")
-            else:
-                other = other.tz_localize(None)
-    else:
-        try:
-            return np.array(other, copy=False).view("i8")
-        except TypeError:
-            # period array cannot be coerced to int
-            other = Index(other)
-    return other.asi8

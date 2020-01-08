@@ -231,6 +231,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def attrs(self) -> Dict[Optional[Hashable], Any]:
         """
         Dictionary of global attributes on this object.
+
+        .. warning::
+
+           attrs is experimental and may change without warning.
         """
         if self._attrs is None:
             self._attrs = {}
@@ -6972,8 +6976,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if not is_list:
             start = self.index[0]
             if isinstance(self.index, PeriodIndex):
-                where = Period(where, freq=self.index.freq).ordinal
-                start = start.ordinal
+                where = Period(where, freq=self.index.freq)
 
             if where < start:
                 if not is_series:
