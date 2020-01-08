@@ -335,7 +335,7 @@ def test_astype():
     tm.assert_numpy_array_equal(result, expected)
 
     result = arr.astype("str")
-    expected = np.array(["True", "False", "NA"], dtype="object")
+    expected = np.array(["True", "False", "<NA>"], dtype="object")
     tm.assert_numpy_array_equal(result, expected)
 
     # no missing values
