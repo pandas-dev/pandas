@@ -460,12 +460,6 @@ class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
 
         return algorithms.isin(self.asi8, values.asi8)
 
-    @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
-    def repeat(self, repeats, axis=None):
-        nv.validate_repeat(tuple(), dict(axis=axis))
-        result = type(self._data)(self.asi8.repeat(repeats), dtype=self.dtype)
-        return self._shallow_copy(result)
-
     @Appender(_index_shared_docs["where"] % _index_doc_kwargs)
     def where(self, cond, other=None):
         values = self.view("i8")
@@ -541,18 +535,6 @@ class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
             attribs["freq"] = None
 
         return self._simple_new(new_data, **attribs)
-
-    @Appender(_index_shared_docs["astype"])
-    def astype(self, dtype, copy=True):
-        if is_dtype_equal(self.dtype, dtype) and copy is False:
-            # Ensure that self.astype(self.dtype) is self
-            return self
-
-        new_values = self._data.astype(dtype, copy=copy)
-
-        # pass copy=False because any copying will be done in the
-        #  _data.astype call above
-        return Index(new_values, dtype=new_values.dtype, name=self.name, copy=False)
 
     def shift(self, periods=1, freq=None):
         """

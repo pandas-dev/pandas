@@ -218,6 +218,7 @@ Other enhancements
 - Added new writer for exporting Stata dta files in version 118, ``StataWriter118``.  This format supports exporting strings containing Unicode characters (:issue:`23573`)
 - :meth:`Series.map` now accepts ``collections.abc.Mapping`` subclasses as a mapper (:issue:`29733`)
 - The ``pandas.datetime`` class is now deprecated. Import from ``datetime`` instead (:issue:`30296`)
+- Added an experimental :attr:`~DataFrame.attrs` for storing global metadata about a dataset (:issue:`29062`)
 - :meth:`Timestamp.fromisocalendar` is now compatible with python 3.8 and above (:issue:`28115`)
 
 
@@ -378,7 +379,36 @@ As a reminder, you can specify the ``dtype`` to disable all inference.
 .. ipython:: python
 
    a = pd.array([1, 2, None], dtype="Int64")
+   a
    a[2]
+
+This has a few API-breaking consequences.
+
+**Converting to a NumPy ndarray**
+
+When converting to a NumPy array missing values will be ``pd.NA``, which cannot
+be converted to a float. So calling ``np.asarray(integer_array, dtype="float")``
+will now raise.
+
+*pandas 0.25.x*
+
+.. code-block:: python
+
+    >>> np.asarray(a, dtype="float")
+    array([ 1.,  2., nan])
+
+*pandas 1.0.0*
+
+.. ipython:: python
+   :okexcept:
+
+   np.asarray(a, dtype="float")
+
+Use :meth:`arrays.IntegerArray.to_numpy` with an explicit ``na_value`` instead.
+
+.. ipython:: python
+
+   a.to_numpy(dtype="float", na_value=np.nan)
 
 See :ref:`missing_data.NA` for more on the differences between :attr:`pandas.NA`
 and :attr:`numpy.nan`.
@@ -908,6 +938,7 @@ Indexing
 - :meth:`Index.get_indexer_non_unique` could fail with `TypeError` in some cases, such as when searching for ints in a string index (:issue:`28257`)
 - Bug in :meth:`Float64Index.get_loc` incorrectly raising ``TypeError`` instead of ``KeyError`` (:issue:`29189`)
 - Bug in :meth:`Series.__setitem__` incorrectly assigning values with boolean indexer when the length of new data matches the number of ``True`` values and new data is not a ``Series`` or an ``np.array`` (:issue:`30567`)
+- Bug in indexing with a :class:`PeriodIndex` incorrectly accepting integers representing years, use e.g. ``ser.loc["2007"]`` instead of ``ser.loc[2007]`` (:issue:`30763`)
 
 Missing
 ^^^^^^^
