@@ -297,13 +297,13 @@ else:
 
     np = __numpy()
 
-    class __Datetime:
-        def __init__(self):
-            from datetime import datetime as dt
+    class __Datetime(type):
 
-            self.datetime = dt
+        from datetime import datetime as dt
 
-        def __getattr__(self, item):
+        datetime = dt
+
+        def __getattr__(cls, item):
             import warnings
 
             warnings.warn(
@@ -315,11 +315,27 @@ else:
             )
 
             try:
-                return getattr(self.datetime, item)
+                return getattr(cls.datetime, item)
             except AttributeError:
                 raise AttributeError(f"module datetime has no attribute {item}")
 
-    datetime = __Datetime()
+    class __DatetimeSub(metaclass=__Datetime):
+        def __new__(cls, *args, **kwargs):
+            import warnings
+
+            warnings.warn(
+                "The pandas.datetime class is deprecated "
+                "and will be removed from pandas in a future version. "
+                "Import from datetime instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+
+            from datetime import datetime as dt
+
+            return dt(*args, **kwargs)
+
+    datetime = __DatetimeSub
 
     class __SparseArray(pandas.core.arrays.sparse.SparseArray):
         def __warnSparseArray(self):
