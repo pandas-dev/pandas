@@ -6,7 +6,7 @@ from typing import List
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.common import ensure_platform_int
+from pandas.core.dtypes.common import ensure_platform_int, is_dtype_equal
 from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.arrays import ExtensionArray
@@ -164,6 +164,11 @@ class ExtensionIndex(Index):
 
     _data: ExtensionArray
 
+    def repeat(self, repeats, axis=None):
+        nv.validate_repeat(tuple(), dict(axis=axis))
+        result = self._data.repeat(repeats, axis=axis)
+        return self._shallow_copy(result)
+
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
         nv.validate_take(tuple(), kwargs)
         indices = ensure_platform_int(indices)
@@ -176,3 +181,30 @@ class ExtensionIndex(Index):
             na_value=self._na_value,
         )
         return type(self)(taken, name=self.name)
+
+    def unique(self, level=None):
+        if level is not None:
+            self._validate_index_level(level)
+
+        result = self._data.unique()
+        return self._shallow_copy(result)
+
+    def _get_unique_index(self, dropna=False):
+        if self.is_unique and not dropna:
+            return self
+
+        result = self._data.unique()
+        if dropna and self.hasnans:
+            result = result[~result.isna()]
+        return self._shallow_copy(result)
+
+    def astype(self, dtype, copy=True):
+        if is_dtype_equal(self.dtype, dtype) and copy is False:
+            # Ensure that self.astype(self.dtype) is self
+            return self
+
+        new_values = self._data.astype(dtype, copy=copy)
+
+        # pass copy=False because any copying will be done in the
+        #  _data.astype call above
+        return Index(new_values, dtype=new_values.dtype, name=self.name, copy=False)
