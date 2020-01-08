@@ -113,7 +113,7 @@ def strings_to_concatenate(
         Source file path.
     line_number : int
         Line number of unconcatenated string.
-    MSG : str
+    msg : str
         Explenation of the error.
 
     Notes
@@ -166,7 +166,7 @@ def strings_with_wrong_placed_space(
         Source file path.
     line_number : int
         Line number of unconcatenated string.
-    MSG : str
+    msg : str
         Explenation of the error.
     """
     with open(source_path, "r") as file_name:
@@ -219,7 +219,7 @@ def bare_pytest_raises(source_path: str) -> Generator[Tuple[str, int, str], None
         Source file path.
     line_number : int
         Line number of unconcatenated string.
-    MSG : str
+    msg : str
         Explenation of the error.
 
     Notes
