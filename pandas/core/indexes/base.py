@@ -2310,11 +2310,14 @@ class Index(IndexOpsMixin, PandasObject):
             return other._get_reconciled_name_object(self)
 
         # TODO(EA): setops-refactor, clean all this up
-        # PeriodIndex and DatetimeIndex both override _union
-        assert not (is_period_dtype(self.dtype) or is_datetime64tz_dtype(self.dtype))
-        assert not (is_period_dtype(other.dtype) or is_datetime64tz_dtype(other.dtype))
-        lvals = self._values
-        rvals = other._values
+        if is_datetime64tz_dtype(self):
+            lvals = self._ndarray_values
+        else:
+            lvals = self._values
+        if is_datetime64tz_dtype(other):
+            rvals = other._ndarray_values
+        else:
+            rvals = other._values
 
         if sort is None and self.is_monotonic and other.is_monotonic:
             try:
@@ -2409,6 +2412,7 @@ class Index(IndexOpsMixin, PandasObject):
             other = other.astype("O")
             return this.intersection(other, sort=sort)
 
+        # TODO(EA): setops-refactor, clean all this up
         lvals = self._values
         rvals = other._values
 
