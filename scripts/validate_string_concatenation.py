@@ -20,66 +20,6 @@ from typing import Callable, Generator, List, Tuple
 FILE_EXTENSIONS_TO_CHECK = (".py", ".pyx", ".pyx.ini", ".pxd")
 
 
-def main(
-    function: Callable[[str], Generator[Tuple[str, int, str], None, None]],
-    source_path: str,
-    output_format: str,
-) -> bool:
-    """
-    Main entry point of the script.
-
-    Parameters
-    ----------
-    function : Callable
-        Function to execute for the test case.
-    source_path : str
-        Source path representing path to a file/directory.
-    output_format : str
-        Output format of the error message.
-
-    Returns
-    -------
-    bool
-        True if found any patterns are found related to the given function.
-
-    Raises
-    ------
-    ValueError
-        If the `source_path` is not pointing to existing file/directory.
-    """
-    if not os.path.exists(source_path):
-        raise ValueError(
-            "Please enter a valid path, pointing to a valid file/directory."
-        )
-
-    is_failed: bool = False
-
-    if os.path.isfile(source_path):
-        for source_path, line_number, msg in function(source_path):
-            is_failed = True
-            print(
-                output_format.format(
-                    source_path=source_path, line_number=line_number, msg=msg
-                )
-            )
-
-    for subdir, _, files in os.walk(source_path):
-        for file_name in files:
-            if any(
-                file_name.endswith(extension) for extension in FILE_EXTENSIONS_TO_CHECK
-            ):
-                for source_path, line_number, msg in function(
-                    os.path.join(subdir, file_name)
-                ):
-                    is_failed = True
-                    print(
-                        output_format.format(
-                            source_path=source_path, line_number=line_number, msg=msg
-                        )
-                    )
-    return is_failed
-
-
 def strings_to_concatenate(
     source_path: str,
 ) -> Generator[Tuple[str, int, str], None, None]:
@@ -240,6 +180,66 @@ def bare_pytest_raises(source_path: str) -> Generator[Tuple[str, int, str], None
                         "Bare pytests raise have been found.",
                     )
                     break
+
+
+def main(
+    function: Callable[[str], Generator[Tuple[str, int, str], None, None]],
+    source_path: str,
+    output_format: str,
+) -> bool:
+    """
+    Main entry point of the script.
+
+    Parameters
+    ----------
+    function : Callable
+        Function to execute for the test case.
+    source_path : str
+        Source path representing path to a file/directory.
+    output_format : str
+        Output format of the error message.
+
+    Returns
+    -------
+    bool
+        True if found any patterns are found related to the given function.
+
+    Raises
+    ------
+    ValueError
+        If the `source_path` is not pointing to existing file/directory.
+    """
+    if not os.path.exists(source_path):
+        raise ValueError(
+            "Please enter a valid path, pointing to a valid file/directory."
+        )
+
+    is_failed: bool = False
+
+    if os.path.isfile(source_path):
+        for source_path, line_number, msg in function(source_path):
+            is_failed = True
+            print(
+                output_format.format(
+                    source_path=source_path, line_number=line_number, msg=msg
+                )
+            )
+
+    for subdir, _, files in os.walk(source_path):
+        for file_name in files:
+            if any(
+                file_name.endswith(extension) for extension in FILE_EXTENSIONS_TO_CHECK
+            ):
+                for source_path, line_number, msg in function(
+                    os.path.join(subdir, file_name)
+                ):
+                    is_failed = True
+                    print(
+                        output_format.format(
+                            source_path=source_path, line_number=line_number, msg=msg
+                        )
+                    )
+    return is_failed
 
 
 if __name__ == "__main__":
