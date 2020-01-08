@@ -559,11 +559,6 @@ class TestUltraJSONTests:
         with pytest.raises(TypeError, match=msg):
             ujson.loads(None)
 
-    def test_version(self):
-        assert re.match(
-            r"^\d+\.\d+(\.\d+)?$", ujson.__version__
-        ), "ujson.__version__ must be a string like '1.4.0'"
-
     def test_encode_numeric_overflow(self):
         with pytest.raises(OverflowError):
             ujson.encode(12839128391289382193812939)
