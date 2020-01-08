@@ -403,7 +403,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         --------
         >>> import scipy.sparse
         >>> mat = scipy.sparse.coo_matrix((4, 1))
-        >>> pd.SparseArray.from_spmatrix(mat)
+        >>> pd.arrays.SparseArray.from_spmatrix(mat)
         [0.0, 0.0, 0.0, 0.0]
         Fill: 0.0
         IntIndex
@@ -1079,7 +1079,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         Examples
         --------
-        >>> arr = pd.SparseArray([0, 1, 2])
+        >>> arr = pd.arrays.SparseArray([0, 1, 2])
         >>> arr.apply(lambda x: x + 10)
         [10, 11, 12]
         Fill: 10

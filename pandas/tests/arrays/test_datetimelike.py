@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import OutOfBoundsDatetime
+from pandas.compat.numpy import _np_version_under1p18
 
 import pandas as pd
 import pandas._testing as tm
@@ -758,3 +759,38 @@ def test_invalid_nat_setitem_array(array, non_casting_nats):
     for nat in non_casting_nats:
         with pytest.raises(TypeError):
             array[0] = nat
+
+
+@pytest.mark.parametrize(
+    "array",
+    [
+        pd.date_range("2000", periods=4).array,
+        pd.timedelta_range("2000", periods=4).array,
+    ],
+)
+def test_to_numpy_extra(array):
+    if _np_version_under1p18:
+        # np.isnan(NaT) raises, so use pandas'
+        isnan = pd.isna
+    else:
+        isnan = np.isnan
+
+    array[0] = pd.NaT
+    original = array.copy()
+
+    result = array.to_numpy()
+    assert isnan(result[0])
+
+    result = array.to_numpy(dtype="int64")
+    assert result[0] == -9223372036854775808
+
+    result = array.to_numpy(dtype="int64", na_value=0)
+    assert result[0] == 0
+
+    result = array.to_numpy(na_value=array[1].to_numpy())
+    assert result[0] == result[1]
+
+    result = array.to_numpy(na_value=array[1].to_numpy(copy=False))
+    assert result[0] == result[1]
+
+    tm.assert_equal(array, original)

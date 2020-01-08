@@ -2629,7 +2629,7 @@ that contain URLs.
 
    url_df = pd.DataFrame({
        'name': ['Python', 'Pandas'],
-       'url': ['https://www.python.org/', 'http://pandas.pydata.org']})
+       'url': ['https://www.python.org/', 'https://pandas.pydata.org']})
    print(url_df.to_html(render_links=True))
 
 .. ipython:: python
@@ -3876,6 +3876,8 @@ specified in the format: ``<float>(<unit>)``, where float may be signed (and fra
    dftd
    store.append('dftd', dftd, data_columns=True)
    store.select('dftd', "C<'-3.5D'")
+
+.. _io.query_multi:
 
 Query MultiIndex
 ++++++++++++++++

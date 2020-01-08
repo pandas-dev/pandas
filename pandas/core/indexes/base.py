@@ -107,6 +107,11 @@ def _make_comparison_op(op, cls):
         if is_object_dtype(self) and isinstance(other, ABCCategorical):
             left = type(other)(self._values, dtype=other.dtype)
             return op(left, other)
+        elif is_object_dtype(self) and isinstance(other, ExtensionArray):
+            # e.g. PeriodArray
+            with np.errstate(all="ignore"):
+                result = op(self.values, other)
+
         elif is_object_dtype(self) and not isinstance(self, ABCMultiIndex):
             # don't pass MultiIndex
             with np.errstate(all="ignore"):
@@ -1721,35 +1726,6 @@ class Index(IndexOpsMixin, PandasObject):
         d.update(self._get_attributes_dict())
         return _new_Index, (type(self), d), None
 
-    def __setstate__(self, state):
-        """
-        Necessary for making this object picklable.
-        """
-
-        if isinstance(state, dict):
-            self._data = state.pop("data")
-            for k, v in state.items():
-                setattr(self, k, v)
-
-        elif isinstance(state, tuple):
-
-            if len(state) == 2:
-                nd_state, own_state = state
-                data = np.empty(nd_state[1], dtype=nd_state[2])
-                np.ndarray.__setstate__(data, nd_state)
-                self._name = own_state[0]
-
-            else:  # pragma: no cover
-                data = np.empty(state)
-                np.ndarray.__setstate__(data, state)
-
-            self._data = data
-            self._reset_identity()
-        else:
-            raise Exception("invalid pickle state")
-
-    _unpickle_compat = __setstate__
-
     # --------------------------------------------------------------------
     # Null Handling Methods
 
@@ -1942,7 +1918,7 @@ class Index(IndexOpsMixin, PandasObject):
             raise ValueError(f"invalid how option: {how}")
 
         if self.hasnans:
-            return self._shallow_copy(self.values[~self._isnan])
+            return self._shallow_copy(self._values[~self._isnan])
         return self._shallow_copy()
 
     # --------------------------------------------------------------------
@@ -2305,11 +2281,11 @@ class Index(IndexOpsMixin, PandasObject):
             return other._get_reconciled_name_object(self)
 
         # TODO(EA): setops-refactor, clean all this up
-        if is_period_dtype(self) or is_datetime64tz_dtype(self):
+        if is_datetime64tz_dtype(self):
             lvals = self._ndarray_values
         else:
             lvals = self._values
-        if is_period_dtype(other) or is_datetime64tz_dtype(other):
+        if is_datetime64tz_dtype(other):
             rvals = other._ndarray_values
         else:
             rvals = other._values
@@ -2408,14 +2384,8 @@ class Index(IndexOpsMixin, PandasObject):
             return this.intersection(other, sort=sort)
 
         # TODO(EA): setops-refactor, clean all this up
-        if is_period_dtype(self):
-            lvals = self._ndarray_values
-        else:
-            lvals = self._values
-        if is_period_dtype(other):
-            rvals = other._ndarray_values
-        else:
-            rvals = other._values
+        lvals = self._values
+        rvals = other._values
 
         if self.is_monotonic and other.is_monotonic:
             try:
@@ -2434,18 +2404,13 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = indexer[indexer != -1]
 
         taken = other.take(indexer)
+        res_name = get_op_result_name(self, other)
 
         if sort is None:
             taken = algos.safe_sort(taken.values)
-            if self.name != other.name:
-                name = None
-            else:
-                name = self.name
-            return self._shallow_copy(taken, name=name)
+            return self._shallow_copy(taken, name=res_name)
 
-        if self.name != other.name:
-            taken.name = None
-
+        taken.name = res_name
         return taken
 
     def difference(self, other, sort=None):
@@ -2574,11 +2539,11 @@ class Index(IndexOpsMixin, PandasObject):
         left_indexer = np.setdiff1d(
             np.arange(this.size), common_indexer, assume_unique=True
         )
-        left_diff = this.values.take(left_indexer)
+        left_diff = this._values.take(left_indexer)
 
         # {other} minus {this}
         right_indexer = (indexer == -1).nonzero()[0]
-        right_diff = other.values.take(right_indexer)
+        right_diff = other._values.take(right_indexer)
 
         the_diff = concat_compat([left_diff, right_diff])
         if sort is None:

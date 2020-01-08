@@ -781,6 +781,13 @@ class TestSeriesMap:
         result = pd.Series(series.index).apply(lambda x: 1)
         tm.assert_series_equal(result, pd.Series(np.ones(30), dtype="int64"))
 
+    def test_map_float_to_string_precision(self):
+        # GH 13228
+        ser = pd.Series(1 / 3)
+        result = ser.map(lambda val: str(val)).to_dict()
+        expected = {0: "0.3333333333333333"}
+        assert result == expected
+
 
 class TestNamedAggregation:
     def test_relabel_no_duplicated_method(self):
