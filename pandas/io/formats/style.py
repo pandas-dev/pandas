@@ -26,6 +26,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib
+from pandas._typing import Axis, FrameOrSeries
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import Appender
 
@@ -37,7 +38,6 @@ import pandas.core.common as com
 from pandas.core.generic import _shared_docs
 from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
 
-from pandas._typing import Axis, FrameOrSeries
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
 
 
