@@ -95,3 +95,29 @@ def python_parser_only(request):
     Fixture all of the CSV parsers using the Python engine.
     """
     return request.param
+
+
+_utf_values = [8, 16, 32]
+
+_encoding_seps = ["", "-", "_"]
+_encoding_prefixes = ["utf", "UTF"]
+
+_encoding_fmts = [
+    f"{prefix}{sep}" + "{0}" for sep in _encoding_seps for prefix in _encoding_prefixes
+]
+
+
+@pytest.fixture(params=_utf_values)
+def utf_value(request):
+    """
+    Fixture for all possible integer values for a UTF encoding.
+    """
+    return request.param
+
+
+@pytest.fixture(params=_encoding_fmts)
+def encoding_fmt(request):
+    """
+    Fixture for all possible string formats of a UTF encoding.
+    """
+    return request.param

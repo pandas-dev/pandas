@@ -132,8 +132,31 @@ class TestWhere:
 
         i2 = i.copy()
         i2 = Index([pd.NaT, pd.NaT] + i[2:].tolist())
-        result = i.where(notna(i2), i2.values)
+        result = i.where(notna(i2), i2._values)
         tm.assert_index_equal(result, i2)
+
+    def test_where_invalid_dtypes(self):
+        dti = pd.date_range("20130101", periods=3, tz="US/Eastern")
+
+        i2 = dti.copy()
+        i2 = Index([pd.NaT, pd.NaT] + dti[2:].tolist())
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            # passing tz-naive ndarray to tzaware DTI
+            dti.where(notna(i2), i2.values)
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            # passing tz-aware DTI to tznaive DTI
+            dti.tz_localize(None).where(notna(i2), i2)
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            dti.where(notna(i2), i2.tz_localize(None).to_period("D"))
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            dti.where(notna(i2), i2.asi8.view("timedelta64[ns]"))
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            dti.where(notna(i2), i2.asi8)
 
     def test_where_tz(self):
         i = pd.date_range("20130101", periods=3, tz="US/Eastern")

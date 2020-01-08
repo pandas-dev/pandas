@@ -17,7 +17,7 @@ from pandas import (
     option_context,
     period_range,
 )
-import pandas._testing as tm
+import pandas.util.testing as tm
 
 
 class NumericSeriesIndexing:
