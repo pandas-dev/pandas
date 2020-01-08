@@ -664,7 +664,6 @@ class Block(PandasObject):
         else:
             values = np.array(values, dtype="object")
 
-        breakpoint()
         values[mask] = na_rep
         return values
 
