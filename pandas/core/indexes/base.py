@@ -2310,11 +2310,11 @@ class Index(IndexOpsMixin, PandasObject):
             return other._get_reconciled_name_object(self)
 
         # TODO(EA): setops-refactor, clean all this up
-        if is_period_dtype(self) or is_datetime64tz_dtype(self):
+        if is_datetime64tz_dtype(self):
             lvals = self._ndarray_values
         else:
             lvals = self._values
-        if is_period_dtype(other) or is_datetime64tz_dtype(other):
+        if is_datetime64tz_dtype(other):
             rvals = other._ndarray_values
         else:
             rvals = other._values
