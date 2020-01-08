@@ -106,10 +106,6 @@ _shared_doc_kwargs = dict(
             Name or list of names to sort by""",
 )
 
-# sentinel value to use as kwarg in place of None when None has special meaning
-# and needs to be distinguished from a user explicitly passing None.
-sentinel = object()
-
 
 def _single_replace(self, to_replace, method, inplace, limit):
     """
@@ -1086,7 +1082,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return result.__finalize__(self)
 
     @rewrite_axis_style_signature("mapper", [("copy", True), ("inplace", False)])
-    def rename_axis(self, mapper=sentinel, **kwargs):
+    def rename_axis(self, mapper=lib.no_default, **kwargs):
         """
         Set the name of the axis for the index or columns.
 
@@ -1211,7 +1207,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                monkey         2         2
         """
         axes, kwargs = self._construct_axes_from_arguments(
-            (), kwargs, sentinel=sentinel
+            (), kwargs, sentinel=lib.no_default
         )
         copy = kwargs.pop("copy", True)
         inplace = kwargs.pop("inplace", False)
@@ -1227,7 +1223,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         inplace = validate_bool_kwarg(inplace, "inplace")
 
-        if mapper is not sentinel:
+        if mapper is not lib.no_default:
             # Use v0.23 behavior if a scalar or list
             non_mapper = is_scalar(mapper) or (
                 is_list_like(mapper) and not is_dict_like(mapper)
@@ -1243,7 +1239,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             for axis in range(self._AXIS_LEN):
                 v = axes.get(self._AXIS_NAMES[axis])
-                if v is sentinel:
+                if v is lib.no_default:
                     continue
                 non_mapper = is_scalar(v) or (is_list_like(v) and not is_dict_like(v))
                 if non_mapper:
@@ -3275,7 +3271,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # Indexing Methods
 
     def take(
-        self: FrameOrSeries, indices, axis=0, is_copy: bool_t = True, **kwargs
+        self: FrameOrSeries, indices, axis=0, is_copy: Optional[bool_t] = None, **kwargs
     ) -> FrameOrSeries:
         """
         Return the elements in the given *positional* indices along an axis.
@@ -3293,6 +3289,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             selecting rows, ``1`` means that we are selecting columns.
         is_copy : bool, default True
             Whether to return a copy of the original object or not.
+
+            .. deprecated:: 1.0.0
         **kwargs
             For compatibility with :meth:`numpy.take`. Has no effect on the
             output.
@@ -3351,6 +3349,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         1  monkey  mammal        NaN
         3    lion  mammal       80.5
         """
+        if is_copy is not None:
+            warnings.warn(
+                "is_copy is deprecated and will be removed in a future version. "
+                "take will always return a copy in the future.",
+                FutureWarning,
+                stacklevel=2,
+            )
+        else:
+            is_copy = True
+
         nv.validate_take(tuple(), kwargs)
 
         self._consolidate_inplace()
@@ -5014,7 +5022,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             )
 
         locs = rs.choice(axis_length, size=n, replace=replace, p=weights)
-        return self.take(locs, axis=axis, is_copy=False)
+        return self.take(locs, axis=axis)
 
     _shared_docs[
         "pipe"
@@ -6428,8 +6436,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if not is_dict_like(to_replace):
                 if not is_dict_like(regex):
                     raise TypeError(
-                        'If "to_replace" and "value" are both None'
-                        ' and "to_replace" is not a list, then '
+                        'If "to_replace" and "value" are both None '
+                        'and "to_replace" is not a list, then '
                         "regex must be a mapping"
                     )
                 to_replace = regex
@@ -6443,9 +6451,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if any(are_mappings):
                 if not all(are_mappings):
                     raise TypeError(
-                        "If a nested mapping is passed, all values"
-                        " of the top level mapping must be "
-                        "mappings"
+                        "If a nested mapping is passed, all values "
+                        "of the top level mapping must be mappings"
                     )
                 # passed a nested dict/Series
                 to_rep_dict = {}
@@ -7011,7 +7018,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         # mask the missing
         missing = locs == -1
-        data = self.take(locs, is_copy=False)
+        d = self.take(locs)
+        data = d.copy()
         data.index = where
         data.loc[missing] = np.nan
         return data if is_list else data.iloc[-1]

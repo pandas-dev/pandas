@@ -326,7 +326,7 @@ cdef class Interval(IntervalMixin):
     def __hash__(self):
         return hash((self.left, self.right, self.closed))
 
-    def __contains__(self, key):
+    def __contains__(self, key) -> bool:
         if _interval_like(key):
             raise TypeError("__contains__ not defined for two intervals")
         return ((self.left < key if self.open_left else self.left <= key) and

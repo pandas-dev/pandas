@@ -11,7 +11,7 @@ from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes.common import _NS_DTYPE, is_float, is_integer, is_scalar
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core.accessor import delegate_names
 from pandas.core.arrays.datetimes import (
@@ -379,25 +379,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
     # --------------------------------------------------------------------
     # Set Operation Methods
 
-    def _union(self, other: "DatetimeIndex", sort):
-        if not len(other) or self.equals(other) or not len(self):
-            return super()._union(other, sort=sort)
-
-        # We are called by `union`, which is responsible for this validation
-        assert isinstance(other, DatetimeIndex)
-
-        this, other = self._maybe_utc_convert(other)
-
-        if this._can_fast_union(other):
-            return this._fast_union(other, sort=sort)
-        else:
-            result = Index._union(this, other, sort=sort)
-            if isinstance(result, DatetimeIndex):
-                assert result._data.dtype == this.dtype
-                if result.freq is None:
-                    result._set_freq("infer")
-            return result
-
     def union_many(self, others):
         """
         A bit of a hack to accelerate unioning a collection of indexes.
@@ -440,7 +421,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
             values = self._data._local_timestamps()
         return fields.get_time_micros(values)
 
-    def to_series(self, keep_tz=lib._no_default, index=None, name=None):
+    def to_series(self, keep_tz=lib.no_default, index=None, name=None):
         """
         Create a Series with both index and values equal to the index keys
         useful with map for returning an indexer based on an index.
@@ -485,7 +466,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
         if name is None:
             name = self.name
 
-        if keep_tz is not lib._no_default:
+        if keep_tz is not lib.no_default:
             if keep_tz:
                 warnings.warn(
                     "The 'keep_tz' keyword in DatetimeIndex.to_series "
@@ -941,9 +922,14 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
         -------
         new_index : Index
         """
-        if is_scalar(item) and isna(item):
+        if is_valid_nat_for_dtype(item, self.dtype):
             # GH 18295
             item = self._na_value
+        elif is_scalar(item) and isna(item):
+            # i.e. timedeltat64("NaT")
+            raise TypeError(
+                f"cannot insert {type(self).__name__} with incompatible label"
+            )
 
         freq = None
 

@@ -176,15 +176,15 @@ class TestTimedeltaIndex:
 
         # non-conforming freq
         msg = (
-            "Inferred frequency None from passed values does not conform to"
-            " passed frequency D"
+            "Inferred frequency None from passed values does not conform to "
+            "passed frequency D"
         )
         with pytest.raises(ValueError, match=msg):
             TimedeltaIndex(["1 days", "2 days", "4 days"], freq="D")
 
         msg = (
-            "Of the four parameters: start, end, periods, and freq, exactly"
-            " three must be specified"
+            "Of the four parameters: start, end, periods, and freq, exactly "
+            "three must be specified"
         )
         with pytest.raises(ValueError, match=msg):
             timedelta_range(periods=10, freq="D")

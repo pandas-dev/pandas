@@ -18,14 +18,13 @@ from pandas._libs.tslibs import (
     timezones,
     tzconversion,
 )
-import pandas.compat as compat
 from pandas.errors import PerformanceWarning
-from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
     _INT64_DTYPE,
     _NS_DTYPE,
     is_categorical_dtype,
+    is_datetime64_any_dtype,
     is_datetime64_dtype,
     is_datetime64_ns_dtype,
     is_datetime64tz_dtype,
@@ -42,13 +41,10 @@ from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCPandasArray, ABCSeries
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import ops
 from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
-from pandas.core.ops.common import unpack_zerodim_and_defer
-from pandas.core.ops.invalid import invalid_comparison
 
 from pandas.tseries.frequencies import get_period_alias, to_offset
 from pandas.tseries.offsets import Day, Tick
@@ -130,76 +126,6 @@ def _field_accessor(name, field, docstring=None):
     return property(f)
 
 
-def _dt_array_cmp(cls, op):
-    """
-    Wrap comparison operations to convert datetime-like to datetime64
-    """
-    opname = f"__{op.__name__}__"
-    nat_result = opname == "__ne__"
-
-    @unpack_zerodim_and_defer(opname)
-    def wrapper(self, other):
-
-        if isinstance(other, str):
-            try:
-                # GH#18435 strings get a pass from tzawareness compat
-                other = self._scalar_from_string(other)
-            except ValueError:
-                # string that cannot be parsed to Timestamp
-                return invalid_comparison(self, other, op)
-
-        if isinstance(other, (datetime, np.datetime64)):
-            other = Timestamp(other)
-            self._assert_tzawareness_compat(other)
-
-            result = op(self.asi8, other.value)
-            if isna(other):
-                result.fill(nat_result)
-        elif lib.is_scalar(other) or np.ndim(other) == 0:
-            return invalid_comparison(self, other, op)
-        elif len(other) != len(self):
-            raise ValueError("Lengths must match")
-        else:
-            if isinstance(other, list):
-                other = np.array(other)
-
-            if not isinstance(other, (np.ndarray, cls)):
-                # Following Timestamp convention, __eq__ is all-False
-                # and __ne__ is all True, others raise TypeError.
-                return invalid_comparison(self, other, op)
-
-            if is_object_dtype(other):
-                # We have to use comp_method_OBJECT_ARRAY instead of numpy
-                #  comparison otherwise it would fail to raise when
-                #  comparing tz-aware and tz-naive
-                with np.errstate(all="ignore"):
-                    result = ops.comp_method_OBJECT_ARRAY(
-                        op, self.astype(object), other
-                    )
-                o_mask = isna(other)
-
-            elif not (is_datetime64_dtype(other) or is_datetime64tz_dtype(other)):
-                # e.g. is_timedelta64_dtype(other)
-                return invalid_comparison(self, other, op)
-
-            else:
-                self._assert_tzawareness_compat(other)
-                other = type(self)._from_sequence(other)
-
-                result = op(self.view("i8"), other.view("i8"))
-                o_mask = other._isnan
-
-            if o_mask.any():
-                result[o_mask] = nat_result
-
-        if self._hasnans:
-            result[self._isnan] = nat_result
-
-        return result
-
-    return compat.set_function_name(wrapper, opname, cls)
-
-
 class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps):
     """
     Pandas ExtensionArray for tz-naive or tz-aware datetime data.
@@ -239,6 +165,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
 
     _typ = "datetimearray"
     _scalar_type = Timestamp
+    _recognized_scalars = (datetime, np.datetime64)
+    _is_recognized_dtype = is_datetime64_any_dtype
 
     # define my properties & methods for delegation
     _bool_ops = [
@@ -316,7 +244,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
                     raise TypeError(msg)
             elif values.tz:
                 dtype = values.dtype
-            # freq = validate_values_freq(values, freq)
+
             if freq is None:
                 freq = values.freq
             values = values._data
@@ -324,8 +252,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         if not isinstance(values, np.ndarray):
             msg = (
                 f"Unexpected type '{type(values).__name__}'. 'values' must be "
-                "a DatetimeArray ndarray, or Series or Index containing one of"
-                " those."
+                "a DatetimeArray ndarray, or Series or Index containing one of those."
             )
             raise ValueError(msg)
         if values.ndim not in [1, 2]:
@@ -545,11 +472,14 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
     def _scalar_from_string(self, value):
         return Timestamp(value, tz=self.tz)
 
-    def _check_compatible_with(self, other):
+    def _check_compatible_with(self, other, setitem: bool = False):
         if other is NaT:
             return
-        if not timezones.tz_compare(self.tz, other.tz):
-            raise ValueError(f"Timezones don't match. '{self.tz} != {other.tz}'")
+        self._assert_tzawareness_compat(other)
+        if setitem:
+            # Stricter check for setitem vs comparison methods
+            if not timezones.tz_compare(self.tz, other.tz):
+                raise ValueError(f"Timezones don't match. '{self.tz} != {other.tz}'")
 
     def _maybe_clear_freq(self):
         self._freq = None
@@ -689,20 +619,6 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
             return self.to_period(freq=dtype.freq)
         return dtl.DatetimeLikeArrayMixin.astype(self, dtype, copy)
 
-    # ----------------------------------------------------------------
-    # ExtensionArray Interface
-
-    @Appender(dtl.DatetimeLikeArrayMixin._validate_fill_value.__doc__)
-    def _validate_fill_value(self, fill_value):
-        if isna(fill_value):
-            fill_value = iNaT
-        elif isinstance(fill_value, (datetime, np.datetime64)):
-            self._assert_tzawareness_compat(fill_value)
-            fill_value = Timestamp(fill_value).value
-        else:
-            raise ValueError(f"'fill_value' should be a Timestamp. Got '{fill_value}'.")
-        return fill_value
-
     # -----------------------------------------------------------------
     # Rendering Methods
 
@@ -717,8 +633,6 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
 
     # -----------------------------------------------------------------
     # Comparison Methods
-
-    _create_comparison_method = classmethod(_dt_array_cmp)
 
     def _has_same_tz(self, other):
         zzone = self._timezone
@@ -1769,9 +1683,6 @@ default 'raise'
             )
             / 24.0
         )
-
-
-DatetimeArray._add_comparison_ops()
 
 
 # -------------------------------------------------------------------

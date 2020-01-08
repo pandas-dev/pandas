@@ -132,8 +132,31 @@ class TestWhere:
 
         i2 = i.copy()
         i2 = Index([pd.NaT, pd.NaT] + i[2:].tolist())
-        result = i.where(notna(i2), i2.values)
+        result = i.where(notna(i2), i2._values)
         tm.assert_index_equal(result, i2)
+
+    def test_where_invalid_dtypes(self):
+        dti = pd.date_range("20130101", periods=3, tz="US/Eastern")
+
+        i2 = dti.copy()
+        i2 = Index([pd.NaT, pd.NaT] + dti[2:].tolist())
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            # passing tz-naive ndarray to tzaware DTI
+            dti.where(notna(i2), i2.values)
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            # passing tz-aware DTI to tznaive DTI
+            dti.tz_localize(None).where(notna(i2), i2)
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            dti.where(notna(i2), i2.tz_localize(None).to_period("D"))
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            dti.where(notna(i2), i2.asi8.view("timedelta64[ns]"))
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            dti.where(notna(i2), i2.asi8)
 
     def test_where_tz(self):
         i = pd.date_range("20130101", periods=3, tz="US/Eastern")
@@ -317,7 +340,9 @@ class TestTake:
 
 
 class TestDatetimeIndex:
-    @pytest.mark.parametrize("null", [None, np.nan, pd.NaT])
+    @pytest.mark.parametrize(
+        "null", [None, np.nan, np.datetime64("NaT"), pd.NaT, pd.NA]
+    )
     @pytest.mark.parametrize("tz", [None, "UTC", "US/Eastern"])
     def test_insert_nat(self, tz, null):
         # GH#16537, GH#18295 (test missing)
@@ -325,6 +350,12 @@ class TestDatetimeIndex:
         expected = pd.DatetimeIndex(["NaT", "2017-01-01"], tz=tz)
         res = idx.insert(0, null)
         tm.assert_index_equal(res, expected)
+
+    @pytest.mark.parametrize("tz", [None, "UTC", "US/Eastern"])
+    def test_insert_invalid_na(self, tz):
+        idx = pd.DatetimeIndex(["2017-01-01"], tz=tz)
+        with pytest.raises(TypeError, match="incompatible label"):
+            idx.insert(0, np.timedelta64("NaT"))
 
     def test_insert(self):
         idx = DatetimeIndex(["2000-01-04", "2000-01-01", "2000-01-02"], name="idx")
