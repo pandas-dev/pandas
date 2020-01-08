@@ -122,7 +122,9 @@ def strings_with_wrong_placed_space(
             first_string = first_token[1][1:-1]
             second_string = third_token[1][1:-1]
 
-            if (not first_string.endswith(" ")) and (second_string.startswith(" ")):
+            if ((not first_string.endswith(" ")) and second_string.startswith(" ")) and (
+                not second_string.startswith("  ")
+            ):
                 yield (
                     source_path,
                     third_token[2][0],
