@@ -318,7 +318,7 @@ else:
                 return False
 
     class __DatetimeSub(metaclass=__Datetime):
-        def emitWarning():
+        def emitWarning(dummy=0):
             import warnings
 
             warnings.warn(
@@ -350,7 +350,7 @@ else:
                 return False
 
     class __SparseArraySub(metaclass=__SparseArray):
-        def emitWarning():
+        def emitWarning(dummy=0):
             import warnings
 
             warnings.warn(
