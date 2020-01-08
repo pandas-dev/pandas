@@ -2402,8 +2402,8 @@ class TestSeriesFormatting:
 
                 s.index = ["ああ", "いいいい", "う", "えええ"]
                 expected = (
-                    "ああ            あ\n            "
-                    "...   \n"
+                    "ああ            あ\n"
+                    "            ...   \n"
                     "えええ    ええええ\n"
                     "Name: おおおおおおお, Length: 4, dtype: object"
                 )
