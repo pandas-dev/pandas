@@ -856,3 +856,10 @@ def test_arrow_roundtrip():
     result = table.to_pandas()
     assert isinstance(result["a"].dtype, pd.BooleanDtype)
     tm.assert_frame_equal(result, df)
+
+
+def test_value_counts_na():
+    arr = pd.array([True, False, pd.NA], dtype="boolean")
+    result = arr.value_counts(dropna=False)
+    expected = pd.Series([1, 1, 1], index=[True, False, pd.NA])
+    tm.assert_series_equal(result, expected)

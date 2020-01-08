@@ -628,7 +628,8 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
             # w/o passing the dtype
             array = np.append(array, [self._mask.sum()])
             index = Index(
-                np.concatenate([index, np.array([np.nan], dtype=object)]), dtype=object
+                np.concatenate([index, np.array([self.dtype.na_value], dtype=object)]),
+                dtype=object,
             )
 
         return Series(array, index=index)
