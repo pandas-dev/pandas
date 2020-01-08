@@ -5,7 +5,6 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib, missing as libmissing
-from pandas._typing import Scalar
 from pandas.compat import set_function_name
 from pandas.util._decorators import cache_readonly
 
@@ -20,7 +19,6 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
     is_scalar,
-    is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna, notna
@@ -367,38 +365,6 @@ class IntegerArray(BaseMaskedArray):
     @classmethod
     def _from_factorized(cls, values, original):
         return integer_array(values, dtype=original.dtype)
-
-    def to_numpy(
-        self, dtype=None, copy=False, na_value: "Scalar" = lib.no_default,
-    ):
-        if na_value is lib.no_default:
-            na_value = libmissing.NA
-        if dtype is None:
-            dtype = object
-        if self._hasna:
-            if (
-                not (is_object_dtype(dtype) or is_string_dtype(dtype))
-                and na_value is libmissing.NA
-            ):
-                raise ValueError(
-                    f"cannot convert to '{dtype}'-dtype NumPy array "
-                    "with missing values. Specify an appropriate 'na_value' "
-                    "for this dtype."
-                )
-            # don't pass copy to astype -> always need a copy since we are mutating
-            data = self._data.astype(dtype)
-            data[self._mask] = na_value
-        else:
-            data = self._data.astype(dtype, copy=copy)
-        return data
-
-    # TODO: remove this when _coerce_to_ndarray is replace with to_numpy
-    def __array__(self, dtype=None):
-        """
-        the array interface, return my values
-        We return an object array here to preserve our scalar values
-        """
-        return self.to_numpy(dtype=dtype)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
 
