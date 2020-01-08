@@ -4649,9 +4649,9 @@ Several caveats.
 * In the ``pyarrow`` engine, categorical dtypes for non-string types can be serialized to parquet, but will de-serialize as their primitive dtype.
 * The ``pyarrow`` engine preserves the ``ordered`` flag of categorical dtypes with string types. ``fastparquet`` does not preserve the ``ordered`` flag.
 * Non supported types include ``Interval`` and actual Python object types. These will raise a helpful error message
-  on an attempt at serialization. ``Period`` type is supported with pyarrow >= 1.0.0.
+  on an attempt at serialization. ``Period`` type is supported with pyarrow >= 0.16.0.
 * The ``pyarrow`` engine preserves extension data types such as the nullable integer and string data
-  type (requiring pyarrow >= 1.0.0, and requiring the extension type to implement the needed protocols,
+  type (requiring pyarrow >= 0.16.0, and requiring the extension type to implement the needed protocols,
   see the :ref:`extension types documentation <extending.extension.arrow>`).
 
 You can specify an ``engine`` to direct the serialization. This can be one of ``pyarrow``, or ``fastparquet``, or ``auto``.

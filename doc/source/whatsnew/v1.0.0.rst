@@ -206,7 +206,7 @@ Other enhancements
 - :meth:`Styler.format` added the ``na_rep`` parameter to help format the missing values (:issue:`21527`, :issue:`28358`)
 - Roundtripping DataFrames with nullable integer, string and period data types to parquet
   (:meth:`~DataFrame.to_parquet` / :func:`read_parquet`) using the `'pyarrow'` engine
-  now preserve those data types with pyarrow >= 1.0.0 (:issue:`20612`, :issue:`28371`).
+  now preserve those data types with pyarrow >= 0.16.0 (:issue:`20612`, :issue:`28371`).
 - The ``partition_cols`` argument in :meth:`DataFrame.to_parquet` now accepts a string (:issue:`27117`)
 - :func:`pandas.read_json` now parses ``NaN``, ``Infinity`` and ``-Infinity`` (:issue:`12213`)
 - The ``pandas.np`` submodule is now deprecated. Import numpy directly instead (:issue:`30296`)
