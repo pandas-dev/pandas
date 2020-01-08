@@ -28,7 +28,7 @@ See :ref:`policies.version` for more.
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_100.NA:
+.. _whatsnew_1000.NA:
 
 Experimental ``NA`` scalar to denote missing values
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -73,7 +73,7 @@ For more, see :ref:`NA section <missing_data.NA>` in the user guide on missing
 data.
 
 
-.. _whatsnew_100.string:
+.. _whatsnew_1000.string:
 
 Dedicated string data type
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -125,7 +125,7 @@ String accessor methods returning integers will return a value with :class:`Int6
 We recommend explicitly using the ``string`` data type when working with strings.
 See :ref:`text.types` for more.
 
-.. _whatsnew_100.boolean:
+.. _whatsnew_1000.boolean:
 
 Boolean data type with missing values support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -210,7 +210,7 @@ Other enhancements
 - The ``partition_cols`` argument in :meth:`DataFrame.to_parquet` now accepts a string (:issue:`27117`)
 - :func:`pandas.read_json` now parses ``NaN``, ``Infinity`` and ``-Infinity`` (:issue:`12213`)
 - The ``pandas.np`` submodule is now deprecated. Import numpy directly instead (:issue:`30296`)
-- :func:`to_parquet` now appropriately handles the ``schema`` argument for user defined schemas in the pyarrow engine. (:issue: `30270`)
+- :func:`to_parquet` now appropriately handles the ``schema`` argument for user defined schemas in the pyarrow engine. (:issue:`30270`)
 - DataFrame constructor preserve `ExtensionArray` dtype with `ExtensionArray` (:issue:`11363`)
 - :meth:`DataFrame.sort_values` and :meth:`Series.sort_values` have gained ``ignore_index`` keyword to be able to reset index after sorting (:issue:`30114`)
 - :meth:`DataFrame.sort_index` and :meth:`Series.sort_index` have gained ``ignore_index`` keyword to reset index (:issue:`30114`)
@@ -294,7 +294,7 @@ New repr for :class:`~pandas.arrays.IntervalArray`
 Extended verbose info output for :class:`~pandas.DataFrame`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- :meth:`Dataframe.info` now shows line numbers for the columns summary (:issue:`17304`)
+- :meth:`DataFrame.info` now shows line numbers for the columns summary (:issue:`17304`)
 
 *pandas 0.25.x*
 
@@ -712,7 +712,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - Removed :meth:`DataFrame.from_items` (:issue:`18458`)
 - Removed :meth:`DataFrame.as_matrix`, :meth:`Series.as_matrix` (:issue:`18458`)
 - Removed :meth:`Series.asobject` (:issue:`18477`)
-- Removed :meth:`DataFrame.as_blocks`, :meth:`Series.as_blocks`, `DataFrame.blocks`, :meth:`Series.blocks` (:issue:`17656`)
+- Removed :meth:`DataFrame.as_blocks`, :meth:`Series.as_blocks`, :attr:`DataFrame.blocks`, :attr:`Series.blocks` (:issue:`17656`)
 - :meth:`pandas.Series.str.cat` now defaults to aligning ``others``, using ``join='left'`` (:issue:`27611`)
 - :meth:`pandas.Series.str.cat` does not accept list-likes *within* list-likes anymore (:issue:`27611`)
 - :meth:`Series.where` with ``Categorical`` dtype (or :meth:`DataFrame.where` with ``Categorical`` column) no longer allows setting new categories (:issue:`24114`)
@@ -912,7 +912,7 @@ Conversion
 Strings
 ^^^^^^^
 
-- Calling :meth:`Series.str.isalnum` (and other "ismethods") on an empty Series would return an object dtype instead of bool (:issue:`29624`)
+- Calling :meth:`Series.str.isalnum` (and other "ismethods") on an empty ``Series`` would return an ``object`` dtype instead of ``bool`` (:issue:`29624`)
 -
 
 
@@ -935,7 +935,7 @@ Indexing
 - Bug in :meth:`Float64Index.astype` where ``np.inf`` was not handled properly when casting to an integer dtype (:issue:`28475`)
 - :meth:`Index.union` could fail when the left contained duplicates (:issue:`28257`)
 - Bug when indexing with ``.loc`` where the index was a :class:`CategoricalIndex` with non-string categories didn't work (:issue:`17569`, :issue:`30225`)
-- :meth:`Index.get_indexer_non_unique` could fail with `TypeError` in some cases, such as when searching for ints in a string index (:issue:`28257`)
+- :meth:`Index.get_indexer_non_unique` could fail with ``TypeError`` in some cases, such as when searching for ints in a string index (:issue:`28257`)
 - Bug in :meth:`Float64Index.get_loc` incorrectly raising ``TypeError`` instead of ``KeyError`` (:issue:`29189`)
 - Bug in :meth:`Series.__setitem__` incorrectly assigning values with boolean indexer when the length of new data matches the number of ``True`` values and new data is not a ``Series`` or an ``np.array`` (:issue:`30567`)
 - Bug in indexing with a :class:`PeriodIndex` incorrectly accepting integers representing years, use e.g. ``ser.loc["2007"]`` instead of ``ser.loc[2007]`` (:issue:`30763`)
@@ -982,17 +982,16 @@ Plotting
 ^^^^^^^^
 
 - Bug in :meth:`Series.plot` not able to plot boolean values (:issue:`23719`)
--
 - Bug in :meth:`DataFrame.plot` not able to plot when no rows (:issue:`27758`)
 - Bug in :meth:`DataFrame.plot` producing incorrect legend markers when plotting multiple series on the same axis (:issue:`18222`)
 - Bug in :meth:`DataFrame.plot` when ``kind='box'`` and data contains datetime or timedelta data. These types are now automatically dropped (:issue:`22799`)
 - Bug in :meth:`DataFrame.plot.line` and :meth:`DataFrame.plot.area` produce wrong xlim in x-axis (:issue:`27686`, :issue:`25160`, :issue:`24784`)
-- Bug where :meth:`DataFrame.boxplot` would not accept a `color` parameter like `DataFrame.plot.box` (:issue:`26214`)
+- Bug where :meth:`DataFrame.boxplot` would not accept a ``color`` parameter like :meth:`DataFrame.plot.box` (:issue:`26214`)
 - Bug in the ``xticks`` argument being ignored for :meth:`DataFrame.plot.bar` (:issue:`14119`)
 - :func:`set_option` now validates that the plot backend provided to ``'plotting.backend'`` implements the backend when the option is set, rather than when a plot is created (:issue:`28163`)
 - :meth:`DataFrame.plot` now allow a ``backend`` keyword argument to allow changing between backends in one session (:issue:`28619`).
 - Bug in color validation incorrectly raising for non-color styles (:issue:`29122`).
-- Allow :meth: `DataFrame.plot.scatter` to plot ``objects`` and ``datetime`` type data (:issue:`18755`, :issue:`30391`)
+- Allow :meth:`DataFrame.plot.scatter` to plot ``objects`` and ``datetime`` type data (:issue:`18755`, :issue:`30391`)
 - Bug in :meth:`DataFrame.hist`, ``xrot=0`` does not work with ``by`` and subplots (:issue:`30288`).
 
 Groupby/resample/rolling
@@ -1000,7 +999,7 @@ Groupby/resample/rolling
 
 - Bug in :meth:`core.groupby.DataFrameGroupBy.apply` only showing output from a single group when function returns an :class:`Index` (:issue:`28652`)
 - Bug in :meth:`DataFrame.groupby` with multiple groups where an ``IndexError`` would be raised if any group contained all NA values (:issue:`20519`)
-- Bug in :meth:`pandas.core.resample.Resampler.size` and :meth:`pandas.core.resample.Resampler.count` returning wrong dtype when used with an empty series or dataframe (:issue:`28427`)
+- Bug in :meth:`pandas.core.resample.Resampler.size` and :meth:`pandas.core.resample.Resampler.count` returning wrong dtype when used with an empty :class:`Series` or :class:`DataFrame` (:issue:`28427`)
 - Bug in :meth:`DataFrame.rolling` not allowing for rolling over datetimes when ``axis=1`` (:issue:`28192`)
 - Bug in :meth:`DataFrame.rolling` not allowing rolling over multi-index levels (:issue:`15584`).
 - Bug in :meth:`DataFrame.rolling` not allowing rolling on monotonic decreasing time indexes (:issue:`19248`).
@@ -1029,7 +1028,7 @@ Reshaping
 - Fix to ensure all int dtypes can be used in :func:`merge_asof` when using a tolerance value. Previously every non-int64 type would raise an erroneous ``MergeError`` (:issue:`28870`).
 - Better error message in :func:`get_dummies` when `columns` isn't a list-like value (:issue:`28383`)
 - Bug in :meth:`Index.join` that caused infinite recursion error for mismatched ``MultiIndex`` name orders. (:issue:`25760`, :issue:`28956`)
-- Bug :meth:`Series.pct_change` where supplying an anchored frequency would throw a ValueError (:issue:`28664`)
+- Bug :meth:`Series.pct_change` where supplying an anchored frequency would throw a ``ValueError`` (:issue:`28664`)
 - Bug where :meth:`DataFrame.equals` returned True incorrectly in some cases when two DataFrames had the same columns in different orders (:issue:`28839`)
 - Bug in :meth:`DataFrame.replace` that caused non-numeric replacer's dtype not respected (:issue:`26632`)
 - Bug in :func:`melt` where supplying mixed strings and numeric values for ``id_vars`` or ``value_vars`` would incorrectly raise a ``ValueError`` (:issue:`29718`)
@@ -1048,7 +1047,7 @@ ExtensionArray
 
 - Bug in :class:`arrays.PandasArray` when setting a scalar string (:issue:`28118`, :issue:`28150`).
 - Bug where nullable integers could not be compared to strings (:issue:`28930`)
-- Bug where :class:`DataFrame` constructor raised ValueError with list-like data and ``dtype`` specified (:issue:`30280`)
+- Bug where :class:`DataFrame` constructor raised ``ValueError`` with list-like data and ``dtype`` specified (:issue:`30280`)
 
 
 Other
@@ -1064,12 +1063,12 @@ Other
 - Bug in :meth:`DataFrame.append` that raised ``IndexError`` when appending with empty list (:issue:`28769`)
 - Fix :class:`AbstractHolidayCalendar` to return correct results for
   years after 2030 (now goes up to 2200) (:issue:`27790`)
-- Fixed :class:`IntegerArray` returning ``inf`` rather than ``NaN`` for operations dividing by 0 (:issue:`27398`)
-- Fixed ``pow`` operations for :class:`IntegerArray` when the other value is ``0`` or ``1`` (:issue:`29997`)
+- Fixed :class:`~arrays.IntegerArray` returning ``inf`` rather than ``NaN`` for operations dividing by ``0`` (:issue:`27398`)
+- Fixed ``pow`` operations for :class:`~arrays.IntegerArray` when the other value is ``0`` or ``1`` (:issue:`29997`)
 - Bug in :meth:`Series.count` raises if use_inf_as_na is enabled (:issue:`29478`)
 - Bug in :class:`Index` where a non-hashable name could be set without raising ``TypeError`` (:issue:`29069`)
 - Bug in :class:`DataFrame` constructor when passing a 2D ``ndarray`` and an extension dtype (:issue:`12513`)
-- Bug in :meth:`DaataFrame.to_csv` when supplied a series with a ``dtype="string"`` and a ``na_rep``, the ``na_rep`` was being truncated to 2 characters. (:issue:`29975`)
+- Bug in :meth:`DataFrame.to_csv` when supplied a series with a ``dtype="string"`` and a ``na_rep``, the ``na_rep`` was being truncated to 2 characters. (:issue:`29975`)
 - Bug where :meth:`DataFrame.itertuples` would incorrectly determine whether or not namedtuples could be used for dataframes of 255 columns (:issue:`28282`)
 
 .. ---------------------------------------------------------------------------
