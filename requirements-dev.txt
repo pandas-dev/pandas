@@ -1,5 +1,5 @@
 # This file is auto-generated from environment.yml, do not modify.
-# See that file for comments about the need/usage of each depdendency.
+# See that file for comments about the need/usage of each dependency.
 
 numpy>=1.15
 python-dateutil>=2.6.1
