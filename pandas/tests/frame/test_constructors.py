@@ -26,7 +26,7 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
-from pandas.arrays import IntervalArray, PeriodArray
+from pandas.arrays import IntervalArray, PeriodArray, SparseArray
 from pandas.core.construction import create_series_with_explicit_dtype
 
 MIXED_FLOAT_DTYPES = ["float16", "float32", "float64"]
@@ -2414,7 +2414,7 @@ class TestDataFrameConstructors:
         "extension_arr",
         [
             Categorical(list("aabbc")),
-            pd.arrays.SparseArray([1, np.nan, np.nan, np.nan]),
+            SparseArray([1, np.nan, np.nan, np.nan]),
             IntervalArray([pd.Interval(0, 1), pd.Interval(1, 5)]),
             PeriodArray(pd.period_range(start="1/1/2017", end="1/1/2018", freq="M")),
         ],
