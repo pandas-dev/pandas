@@ -734,7 +734,7 @@ def config_prefix(prefix):
     global register_option, get_option, set_option, reset_option
 
     def wrap(func):
-        def inner(key: str, *args, **kwds) -> Callable[[str, Any, Any], Any]:
+        def inner(key: str, *args, **kwds) -> Callable[[str], Any]:
             pkey = f"{prefix}.{key}"
             return func(pkey, *args, **kwds)
 
