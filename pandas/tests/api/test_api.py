@@ -235,17 +235,14 @@ class TestPDApi(Base):
         )
         for depr in deprecated_list:
             with tm.assert_produces_warning(FutureWarning):
-                if compat.PY37:
-                    getattr(pd, depr)
-                elif depr == "datetime":
-                    deprecated = getattr(pd, "__Datetime")
-                    deprecated.__getattr__(deprecated, dir(pd.datetime.datetime)[-1])
-                elif depr == "SparseArray":
-                    deprecated = getattr(pd, depr)
-                    deprecated([])
-                else:
-                    deprecated = getattr(pd, depr)
-                    deprecated.__getattr__(dir(deprecated)[-1])
+                deprecated = getattr(pd, depr)
+                if not compat.PY37:
+                    if depr == "datetime":
+                        deprecated.__getattr__(dir(pd.datetime.datetime)[-1])
+                    elif depr == "SparseArray":
+                        deprecated([])
+                    else:
+                        deprecated.__getattr__(dir(deprecated)[-1])
 
 
 def test_datetime():
@@ -255,6 +252,16 @@ def test_datetime():
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", FutureWarning)
         assert datetime(2015, 1, 2, 0, 0) == pd.datetime(2015, 1, 2, 0, 0)
+
+        assert isinstance(pd.datetime(2015, 1, 2, 0, 0), pd.datetime)
+
+
+def test_sparsearray():
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", FutureWarning)
+        assert isinstance(pd.array([1, 2, 3], dtype="Sparse"), pd.SparseArray)
 
 
 def test_np():
