@@ -164,6 +164,11 @@ class ExtensionIndex(Index):
 
     _data: ExtensionArray
 
+    def repeat(self, repeats, axis=None):
+        nv.validate_repeat(tuple(), dict(axis=axis))
+        result = self._data.repeat(repeats, axis=axis)
+        return self._shallow_copy(result)
+
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
         nv.validate_take(tuple(), kwargs)
         indices = ensure_platform_int(indices)

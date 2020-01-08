@@ -460,12 +460,6 @@ class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
 
         return algorithms.isin(self.asi8, values.asi8)
 
-    @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
-    def repeat(self, repeats, axis=None):
-        nv.validate_repeat(tuple(), dict(axis=axis))
-        result = type(self._data)(self.asi8.repeat(repeats), dtype=self.dtype)
-        return self._shallow_copy(result)
-
     @Appender(_index_shared_docs["where"] % _index_doc_kwargs)
     def where(self, cond, other=None):
         values = self.view("i8")
