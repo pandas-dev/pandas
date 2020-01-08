@@ -15,10 +15,10 @@ import itertools
 import sys
 from textwrap import dedent
 from typing import (
-    Callable,
     IO,
     TYPE_CHECKING,
     Any,
+    Callable,
     FrozenSet,
     Hashable,
     Iterable,
@@ -40,7 +40,7 @@ import numpy.ma as ma
 from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, lib
-from pandas._typing import Axes, Dtype, FilePathOrBuffer
+from pandas._typing import Axes, Axis, Dtype, FilePathOrBuffer, Level
 from pandas.compat import PY37
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -98,7 +98,6 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas._typing import Axes, Axis, Dtype, FilePathOrBuffer, Level
 from pandas.core import algorithms, common as com, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import Categorical, ExtensionArray

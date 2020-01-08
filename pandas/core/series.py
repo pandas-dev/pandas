@@ -12,6 +12,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import index as libindex, lib, reshape, tslibs
+from pandas._typing import Axis, Level
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_bool_kwarg, validate_percentile
@@ -46,7 +47,6 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas as pd
-from pandas._typing import Axis, Level
 from pandas.core import algorithms, base, generic, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import ExtensionArray, try_cast_to_ea
@@ -3903,7 +3903,7 @@ Name: Max Speed, dtype: float64
         copy: bool = True,
         inplace: bool = False,
         level: Optional[Level] = None,
-        errors: str = "ignore"
+        errors: str = "ignore",
     ) -> "Series":
         """
         Alter Series index labels or name.
