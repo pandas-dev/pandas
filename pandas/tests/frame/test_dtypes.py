@@ -595,7 +595,7 @@ class TestDataFrameDataTypes:
 
     @pytest.mark.parametrize("dtype_class", [dict, Series])
     def test_astype_dict_like(self, dtype_class):
-        # GH7271 & GH16717
+        # GH7271 & GH16717 & GH30324
         a = Series(date_range("2010-01-04", periods=5))
         b = Series(range(5))
         c = Series([0.0, 0.2, 0.4, 0.6, 0.8])
