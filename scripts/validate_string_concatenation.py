@@ -90,8 +90,8 @@ def strings_to_concatenate(
     For example, when this:
 
     >>> foo = (
-    ...        "bar "
-    ...        "baz"
+    ...     "bar "
+    ...     "baz"
     ... )
 
     Is becoming this:
@@ -151,8 +151,8 @@ def strings_with_wrong_placed_space(
     Instead of:
 
     >>> foo = (
-    ...        "bar"
-    ...       " baz"
+    ...     "bar"
+    ...     " baz"
     ... )
 
     Parameters
