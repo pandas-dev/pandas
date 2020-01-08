@@ -10,9 +10,8 @@ from pandas.core.dtypes.common import ensure_platform_int, is_dtype_equal
 from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.arrays import ExtensionArray
+from pandas.core.indexes.base import Index
 from pandas.core.ops import get_op_result_name
-
-from .base import Index
 
 
 def inherit_from_data(name: str, delegate, cache: bool = False):

@@ -34,10 +34,7 @@ import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.api import Index, MultiIndex, ensure_index
-
-from pandas.io.formats.printing import pprint_thing
-
-from .blocks import (
+from pandas.core.internals.blocks import (
     Block,
     CategoricalBlock,
     DatetimeTZBlock,
@@ -49,12 +46,14 @@ from .blocks import (
     get_block_type,
     make_block,
 )
-from .concat import (  # all for concatenate_block_managers
+from pandas.core.internals.concat import (  # all for concatenate_block_managers
     combine_concat_plans,
     concatenate_join_units,
     get_mgr_concatenation_plan,
     is_uniform_join_units,
 )
+
+from pandas.io.formats.printing import pprint_thing
 
 # TODO: flexible with index=None and/or items=None
 

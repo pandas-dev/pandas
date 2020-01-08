@@ -9,10 +9,9 @@ from pandas._libs.interval import Interval
 from pandas._libs.tslibs import NaT, Period, Timestamp, timezones
 from pandas._typing import Ordered
 
+from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCDateOffset, ABCIndexClass
-
-from .base import ExtensionDtype
-from .inference import is_bool, is_list_like
+from pandas.core.dtypes.inference import is_bool, is_list_like
 
 str_type = str
 

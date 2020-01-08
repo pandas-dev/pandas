@@ -24,10 +24,9 @@ from pandas.io.common import (
     infer_compression,
     stringify_path,
 )
+from pandas.io.json._normalize import convert_to_line_delimits
+from pandas.io.json._table_schema import build_table_schema, parse_table_schema
 from pandas.io.parsers import _validate_integer
-
-from ._normalize import convert_to_line_delimits
-from ._table_schema import build_table_schema, parse_table_schema
 
 loads = json.loads
 dumps = json.dumps

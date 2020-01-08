@@ -1,6 +1,6 @@
 # flake8: noqa
 
-from .common import (
+from pandas.core.dtypes.common import (
     is_array_like,
     is_bool,
     is_bool_dtype,

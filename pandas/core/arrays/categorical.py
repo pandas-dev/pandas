@@ -46,6 +46,11 @@ from pandas.core import ops
 from pandas.core.accessor import PandasDelegate, delegate_names
 import pandas.core.algorithms as algorithms
 from pandas.core.algorithms import _get_data_algo, factorize, take, take_1d, unique1d
+from pandas.core.arrays.base import (
+    ExtensionArray,
+    _extension_array_shared_docs,
+    try_cast_to_ea,
+)
 from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array, sanitize_array
@@ -55,8 +60,6 @@ from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.sorting import nargsort
 
 from pandas.io.formats import console
-
-from .base import ExtensionArray, _extension_array_shared_docs, try_cast_to_ea
 
 
 def _cat_compare_op(op):

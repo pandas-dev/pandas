@@ -51,15 +51,17 @@ from pandas.core.indexes.base import (
     maybe_extract_name,
 )
 from pandas.core.indexes.datetimes import DatetimeIndex, date_range
-from pandas.core.indexes.extension import make_wrapped_comparison_op
+from pandas.core.indexes.extension import (
+    ExtensionIndex,
+    inherit_names,
+    make_wrapped_comparison_op,
+)
 from pandas.core.indexes.multi import MultiIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 from pandas.core.ops import get_op_result_name
 
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import DateOffset
-
-from .extension import ExtensionIndex, inherit_names
 
 _VALID_CLOSED = {"left", "right", "both", "neither"}
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
