@@ -231,6 +231,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def attrs(self) -> Dict[Optional[Hashable], Any]:
         """
         Dictionary of global attributes on this object.
+
+        .. warning::
+
+           attrs is experimental and may change without warning.
         """
         if self._attrs is None:
             self._attrs = {}
