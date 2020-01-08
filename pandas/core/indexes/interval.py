@@ -51,7 +51,6 @@ from pandas.core.indexes.base import (
     maybe_extract_name,
 )
 from pandas.core.indexes.datetimes import DatetimeIndex, date_range
-from pandas.core.indexes.extension import make_wrapped_comparison_op
 from pandas.core.indexes.multi import MultiIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 from pandas.core.ops import get_op_result_name
@@ -1193,14 +1192,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
             return type(self)._simple_new(res, name=self.name)
         return Index(res)
 
-    @classmethod
-    def _add_comparison_methods(cls):
-        """ add in comparison methods """
-        cls.__eq__ = make_wrapped_comparison_op("__eq__")
-        cls.__ne__ = make_wrapped_comparison_op("__ne__")
 
-
-IntervalIndex._add_comparison_methods()
 IntervalIndex._add_logical_methods_disabled()
 
 
