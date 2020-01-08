@@ -120,16 +120,19 @@ def strings_to_concatenate(
     -----
     GH #30454
     """
-    MSG: str = (
-        "String unnecessarily split in two by black. Please merge them manually."
-    )
-
     with open(source_path, "r") as file_name:
         tokens: List = list(tokenize.generate_tokens(file_name.readline))
 
     for current_token, next_token in zip(tokens, tokens[1:]):
         if current_token[0] == next_token[0] == token.STRING:
-            yield source_path, current_token[2][0], MSG
+            yield (
+                source_path,
+                current_token[2][0],
+                (
+                    "String unnecessarily split in two by black. "
+                    "Please merge them manually."
+                ),
+            )
 
 
 def strings_with_wrong_placed_space(
@@ -166,11 +169,6 @@ def strings_with_wrong_placed_space(
     MSG : str
         Explenation of the error.
     """
-    MSG: str = (
-        "String has a space at the beginning "
-        "instead of the end of the previous string."
-    )
-
     with open(source_path, "r") as file_name:
         tokens: List = list(tokenize.generate_tokens(file_name.readline))
 
@@ -186,7 +184,14 @@ def strings_with_wrong_placed_space(
             second_string = third_token[1][1:-1]
 
             if (not first_string.endswith(" ")) and (second_string.startswith(" ")):
-                yield source_path, third_token[2][0], MSG
+                yield (
+                    source_path,
+                    third_token[2][0],
+                    (
+                        "String has a space at the beginning instead "
+                        "of the end of the previous string."
+                    ),
+                )
 
 
 def bare_pytest_raises(source_path: str) -> Generator[Tuple[str, int, str], None, None]:
@@ -221,8 +226,6 @@ def bare_pytest_raises(source_path: str) -> Generator[Tuple[str, int, str], None
     -----
     GH #23922
     """
-    MSG: str = "Bare pytests raise have been found."
-
     with open(source_path, "r") as file_name:
         tokens: List = list(tokenize.generate_tokens(file_name.readline))
 
@@ -232,7 +235,11 @@ def bare_pytest_raises(source_path: str) -> Generator[Tuple[str, int, str], None
                 if next_token[0] == token.NAME and next_token[1] == "match":
                     break
                 if next_token[0] == token.NEWLINE:
-                    yield source_path, current_token[2][0], MSG
+                    yield (
+                        source_path,
+                        current_token[2][0],
+                        "Bare pytests raise have been found.",
+                    )
                     break
 
 
