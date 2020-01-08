@@ -171,6 +171,8 @@ def ensure_int_or_float(arr: ArrayLike, copy: bool = False) -> np.array:
     try:
         return arr.astype("uint64", copy=copy, casting="safe")  # type: ignore
     except TypeError:
+        if is_extension_array_dtype(arr.dtype):
+            return arr.to_numpy(dtype="float64", na_value=np.nan)
         return arr.astype("float64", copy=copy)
 
 

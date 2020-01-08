@@ -19,7 +19,9 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
     is_numeric_dtype,
+    is_object_dtype,
     is_scalar,
+    is_string_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import register_extension_dtype
@@ -382,9 +384,14 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
         if dtype is None:
             dtype = object
         if self._hasna:
-            if is_bool_dtype(dtype) and na_value is libmissing.NA:
+            if (
+                not (is_object_dtype(dtype) or is_string_dtype(dtype))
+                and na_value is libmissing.NA
+            ):
                 raise ValueError(
-                    "cannot convert to bool numpy array in presence of missing values"
+                    f"cannot convert to '{dtype}'-dtype NumPy array "
+                    "with missing values. Specify an appropriate 'na_value' "
+                    "for this dtype."
                 )
             # don't pass copy to astype -> always need a copy since we are mutating
             data = self._data.astype(dtype)

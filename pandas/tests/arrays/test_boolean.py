@@ -265,6 +265,11 @@ def test_to_numpy(box):
     expected = np.array([True, False, pd.NA], dtype="object")
     tm.assert_numpy_array_equal(result, expected)
 
+    arr = con([True, False, None], dtype="boolean")
+    result = arr.to_numpy(dtype="str")
+    expected = np.array([True, False, pd.NA], dtype="<U5")
+    tm.assert_numpy_array_equal(result, expected)
+
     # no missing values -> can convert to bool, otherwise raises
     arr = con([True, False, True], dtype="boolean")
     result = arr.to_numpy(dtype="bool")
@@ -272,7 +277,7 @@ def test_to_numpy(box):
     tm.assert_numpy_array_equal(result, expected)
 
     arr = con([True, False, None], dtype="boolean")
-    with pytest.raises(ValueError, match="cannot convert to bool numpy"):
+    with pytest.raises(ValueError, match="cannot convert to 'bool'-dtype"):
         result = arr.to_numpy(dtype="bool")
 
     # specify dtype and na_value
@@ -294,9 +299,9 @@ def test_to_numpy(box):
     tm.assert_numpy_array_equal(result, expected)
 
     # converting to int or float without specifying na_value raises
-    with pytest.raises(TypeError):
+    with pytest.raises(ValueError, match="cannot convert to 'int64'-dtype"):
         arr.to_numpy(dtype="int64")
-    with pytest.raises(TypeError):
+    with pytest.raises(ValueError, match="cannot convert to 'float64'-dtype"):
         arr.to_numpy(dtype="float64")
 
 
@@ -327,6 +332,10 @@ def test_astype():
 
     result = arr.astype("float64")
     expected = np.array([1, 0, np.nan], dtype="float64")
+    tm.assert_numpy_array_equal(result, expected)
+
+    result = arr.astype("str")
+    expected = np.array(["True", "False", "NA"], dtype="object")
     tm.assert_numpy_array_equal(result, expected)
 
     # no missing values
