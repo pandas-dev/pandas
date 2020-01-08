@@ -400,7 +400,7 @@ if __name__ == "__main__":
         choices=format_opts,
         help="format of the output when validating "
         "multiple docstrings (ignored when validating one). "
-        "It can be {str(format_opts)[1:-1]}"
+        "It can be {str(format_opts)[1:-1]}",
     )
     argparser.add_argument(
         "--prefix",
