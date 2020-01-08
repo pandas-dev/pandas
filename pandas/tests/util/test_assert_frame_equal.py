@@ -80,7 +80,7 @@ def test_frame_equal_row_order_mismatch(check_like, obj_fixture):
     df2 = DataFrame({"A": [3, 2, 1], "B": [6, 5, 4]}, index=["c", "b", "a"])
 
     if not check_like:  # Do not ignore row-column orderings.
-        msg = "{obj}.index are different".format(obj=obj_fixture)
+        msg = f"{obj_fixture}.index are different"
         with pytest.raises(AssertionError, match=msg):
             tm.assert_frame_equal(df1, df2, check_like=check_like, obj=obj_fixture)
     else:
@@ -95,7 +95,7 @@ def test_frame_equal_row_order_mismatch(check_like, obj_fixture):
     ],
 )
 def test_frame_equal_shape_mismatch(df1, df2, obj_fixture):
-    msg = "{obj} are different".format(obj=obj_fixture)
+    msg = f"{obj_fixture} are different"
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_frame_equal(df1, df2, obj=obj_fixture)
@@ -149,13 +149,11 @@ def test_empty_dtypes(check_dtype):
 
 
 def test_frame_equal_index_mismatch(obj_fixture):
-    msg = """{obj}\\.index are different
+    msg = f"""{obj_fixture}\\.index are different
 
-{obj}\\.index values are different \\(33\\.33333 %\\)
+{obj_fixture}\\.index values are different \\(33\\.33333 %\\)
 \\[left\\]:  Index\\(\\['a', 'b', 'c'\\], dtype='object'\\)
-\\[right\\]: Index\\(\\['a', 'b', 'd'\\], dtype='object'\\)""".format(
-        obj=obj_fixture
-    )
+\\[right\\]: Index\\(\\['a', 'b', 'd'\\], dtype='object'\\)"""
 
     df1 = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, index=["a", "b", "c"])
     df2 = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, index=["a", "b", "d"])
@@ -165,13 +163,11 @@ def test_frame_equal_index_mismatch(obj_fixture):
 
 
 def test_frame_equal_columns_mismatch(obj_fixture):
-    msg = """{obj}\\.columns are different
+    msg = f"""{obj_fixture}\\.columns are different
 
-{obj}\\.columns values are different \\(50\\.0 %\\)
+{obj_fixture}\\.columns values are different \\(50\\.0 %\\)
 \\[left\\]:  Index\\(\\['A', 'B'\\], dtype='object'\\)
-\\[right\\]: Index\\(\\['A', 'b'\\], dtype='object'\\)""".format(
-        obj=obj_fixture
-    )
+\\[right\\]: Index\\(\\['A', 'b'\\], dtype='object'\\)"""
 
     df1 = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, index=["a", "b", "c"])
     df2 = DataFrame({"A": [1, 2, 3], "b": [4, 5, 6]}, index=["a", "b", "c"])
@@ -181,13 +177,12 @@ def test_frame_equal_columns_mismatch(obj_fixture):
 
 
 def test_frame_equal_block_mismatch(by_blocks_fixture, obj_fixture):
-    msg = """{obj}\\.iloc\\[:, 1\\] \\(column name="B"\\) are different
+    obj = obj_fixture
+    msg = f"""{obj}\\.iloc\\[:, 1\\] \\(column name="B"\\) are different
 
 {obj}\\.iloc\\[:, 1\\] \\(column name="B"\\) values are different \\(33\\.33333 %\\)
 \\[left\\]:  \\[4, 5, 6\\]
-\\[right\\]: \\[4, 5, 7\\]""".format(
-        obj=obj_fixture
-    )
+\\[right\\]: \\[4, 5, 7\\]"""
 
     df1 = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
     df2 = DataFrame({"A": [1, 2, 3], "B": [4, 5, 7]})
