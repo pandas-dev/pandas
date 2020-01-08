@@ -143,16 +143,16 @@ def strings_with_wrong_placed_space(
 
     For example:
 
-    >>> foo = (
-    ...    "bar "
-    ...    "baz"
+    >>> rule = (
+    ...    "We want the space at the end of the line, "
+    ...    "not at the beginning"
     ... )
 
     Instead of:
 
-    >>> foo = (
-    ...     "bar"
-    ...     " baz"
+    >>> rule = (
+    ...    "We want the space at the end of the line,"
+    ...    " not at the beginning"
     ... )
 
     Parameters
