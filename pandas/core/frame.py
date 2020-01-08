@@ -16,7 +16,6 @@ import sys
 from textwrap import dedent
 from typing import (
     Callable,
-    Callable,
     IO,
     TYPE_CHECKING,
     Any,

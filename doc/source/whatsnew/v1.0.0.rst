@@ -324,7 +324,7 @@ Note that errors will now be raised when conflicting or potentially ambiguous ar
    Out[1]:
       0
    1  1
-   
+
    In [2]: df.rename(mapper={0: 1}, index={0: 2})
    Out[2]:
       0
@@ -351,7 +351,7 @@ keywords.
 .. ipython:: python
 
    df.rename(index={0: 1}, columns={0: 2})
-   
+
 Extended verbose info output for :class:`~pandas.DataFrame`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -585,8 +585,6 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
-
->>>>>>> upstream/master
 
 .. _whatsnew_1000.api.other:
 
