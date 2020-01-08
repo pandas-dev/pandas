@@ -230,11 +230,11 @@ def bare_pytest_raises(source_path: str) -> Generator[Tuple[str, int, str], None
 
 
 if __name__ == "__main__":
-    FUNCTIONS_MAP = {
-        "strings_to_concatenate": strings_to_concatenate,
-        "strings_with_wrong_placed_space": strings_with_wrong_placed_space,
-        "bare_pytest_raises": bare_pytest_raises,
-    }
+    available_tests = [
+        f.__name__
+        for f in globals().values()
+        if type(f) == type(main) and f.__name__ != "main"
+    ]
 
     parser = argparse.ArgumentParser(description="Unwanted patterns checker.")
 
@@ -248,14 +248,14 @@ if __name__ == "__main__":
         help="Output format of the error message.",
     )
     parser.add_argument(
-        "--id", "-i", choices=FUNCTIONS_MAP.keys(), help="Test case to check."
+        "--id", "-i", choices=available_tests, help="Test case to check."
     )
 
     args = parser.parse_args()
 
     sys.exit(
         main(
-            function=FUNCTIONS_MAP[args.id],
+            function=globals().get(args.id),
             source_path=args.path,
             output_format=args.format,
         )
