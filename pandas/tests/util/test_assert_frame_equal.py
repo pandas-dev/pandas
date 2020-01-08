@@ -177,9 +177,10 @@ def test_frame_equal_columns_mismatch(obj_fixture):
 
 
 def test_frame_equal_block_mismatch(by_blocks_fixture, obj_fixture):
-    msg = f"""{obj_fixture}\\.iloc\\[:, 1\\] \\(column name="B"\\) are different
+    obj = obj_fixture
+    msg = f"""{obj}\\.iloc\\[:, 1\\] \\(column name="B"\\) are different
 
-{obj_fixture}\\.iloc\\[:, 1\\] \\(column name="B"\\) values are different \\(33\\.33333 %\\)
+{obj}\\.iloc\\[:, 1\\] \\(column name="B"\\) values are different \\(33\\.33333 %\\)
 \\[left\\]:  \\[4, 5, 6\\]
 \\[right\\]: \\[4, 5, 7\\]"""
 
