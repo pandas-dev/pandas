@@ -370,7 +370,7 @@ class TimedeltaIndex(
     def inferred_type(self) -> str:
         return "timedelta64"
 
-    def insert(self, loc: int, item):
+    def insert(self, loc, item):
         """
         Make new Index inserting new item at location
 

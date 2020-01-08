@@ -872,7 +872,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
         # sure we can't have ambiguous indexing
         return "datetime64"
 
-    def insert(self, loc: int, item):
+    def insert(self, loc, item):
         """
         Make new Index inserting new item at location
 
