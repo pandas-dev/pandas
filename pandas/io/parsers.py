@@ -5,7 +5,7 @@ Module contains tools for processing files into DataFrames or other objects
 from collections import abc, defaultdict
 import csv
 import datetime
-from io import StringIO
+from io import BufferedIOBase, StringIO, TextIOWrapper
 import re
 import sys
 from textwrap import fill
@@ -62,7 +62,6 @@ from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
 
 from pandas.io.common import (
-    UTF8Recoder,
     get_filepath_or_buffer,
     get_handle,
     infer_compression,
@@ -1868,12 +1867,18 @@ class CParserWrapper(ParserBase):
 
         ParserBase.__init__(self, kwds)
 
-        if kwds.get("compression") is None and "utf-16" in (kwds.get("encoding") or ""):
-            # if source is utf-16 plain text, convert source to utf-8
+        encoding = kwds.get("encoding")
+
+        if kwds.get("compression") is None and encoding:
             if isinstance(src, str):
                 src = open(src, "rb")
                 self.handles.append(src)
-            src = UTF8Recoder(src, kwds["encoding"])
+
+            # Handle the file object with universal line mode enabled.
+            # We will handle the newline character ourselves later on.
+            if isinstance(src, BufferedIOBase):
+                src = TextIOWrapper(src, encoding=encoding, newline="")
+
             kwds["encoding"] = "utf-8"
 
         # #2442

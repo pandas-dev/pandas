@@ -391,16 +391,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     # ------------------------------------------------------------------------
     # Index Methods
 
-    def _coerce_scalar_to_index(self, item):
-        """
-        we need to coerce a scalar to a compat for our index type
-
-        Parameters
-        ----------
-        item : scalar item to coerce
-        """
-        return PeriodIndex([item], **self._get_attributes_dict())
-
     def __array__(self, dtype=None):
         if is_integer_dtype(dtype):
             return self.asi8
@@ -479,17 +469,19 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     @Substitution(klass="PeriodIndex")
     @Appender(_shared_docs["searchsorted"])
     def searchsorted(self, value, side="left", sorter=None):
-        if isinstance(value, Period):
-            if value.freq != self.freq:
-                raise raise_on_incompatible(self, value)
-            value = value.ordinal
+        if isinstance(value, Period) or value is NaT:
+            self._data._check_compatible_with(value)
         elif isinstance(value, str):
             try:
-                value = Period(value, freq=self.freq).ordinal
+                value = Period(value, freq=self.freq)
             except DateParseError:
                 raise KeyError(f"Cannot interpret '{value}' as period")
+        elif not isinstance(value, PeriodArray):
+            raise TypeError(
+                "PeriodIndex.searchsorted requires either a Period or PeriodArray"
+            )
 
-        return self._ndarray_values.searchsorted(value, side=side, sorter=sorter)
+        return self._data.searchsorted(value, side=side, sorter=sorter)
 
     @property
     def is_full(self) -> bool:
@@ -582,15 +574,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
         indexer, missing = self._int64index.get_indexer_non_unique(target)
         return ensure_platform_int(indexer), missing
-
-    def _get_unique_index(self, dropna=False):
-        if self.is_unique and not dropna:
-            return self
-
-        result = self._data.unique()
-        if dropna and self.hasnans:
-            result = result[~result.isna()]
-        return self._shallow_copy(result)
 
     def get_loc(self, key, method=None, tolerance=None):
         """
@@ -722,8 +705,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
         t1, t2 = self._parsed_string_to_bounds(reso, parsed)
         return slice(
-            self.searchsorted(t1.ordinal, side="left"),
-            self.searchsorted(t2.ordinal, side="right"),
+            self.searchsorted(t1, side="left"), self.searchsorted(t2, side="right")
         )
 
     def _convert_tolerance(self, tolerance, target):
@@ -777,12 +759,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         if isinstance(other, PeriodIndex) and self.freq != other.freq:
             raise raise_on_incompatible(self, other)
 
-    def _wrap_setop_result(self, other, result):
-        name = get_op_result_name(self, other)
-        result = self._apply_meta(result)
-        result.name = name
-        return result
-
     def intersection(self, other, sort=False):
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
@@ -828,42 +804,32 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         result = self._shallow_copy(np.asarray(i8result, dtype=np.int64), name=res_name)
         return result
 
+    def _union(self, other, sort):
+        if not len(other) or self.equals(other) or not len(self):
+            return super()._union(other, sort=sort)
+
+        # We are called by `union`, which is responsible for this validation
+        assert isinstance(other, type(self))
+
+        if not is_dtype_equal(self.dtype, other.dtype):
+            this = self.astype("O")
+            other = other.astype("O")
+            return this._union(other, sort=sort)
+
+        i8self = Int64Index._simple_new(self.asi8)
+        i8other = Int64Index._simple_new(other.asi8)
+        i8result = i8self._union(i8other, sort=sort)
+
+        res_name = get_op_result_name(self, other)
+        result = self._shallow_copy(np.asarray(i8result, dtype=np.int64), name=res_name)
+        return result
+
     # ------------------------------------------------------------------------
 
     def _apply_meta(self, rawarr):
         if not isinstance(rawarr, PeriodIndex):
             rawarr = PeriodIndex._simple_new(rawarr, freq=self.freq, name=self.name)
         return rawarr
-
-    def __setstate__(self, state):
-        """Necessary for making this object picklable"""
-
-        if isinstance(state, dict):
-            super().__setstate__(state)
-
-        elif isinstance(state, tuple):
-
-            # < 0.15 compat
-            if len(state) == 2:
-                nd_state, own_state = state
-                data = np.empty(nd_state[1], dtype=nd_state[2])
-                np.ndarray.__setstate__(data, nd_state)
-
-                # backcompat
-                freq = Period._maybe_convert_freq(own_state[1])
-
-            else:  # pragma: no cover
-                data = np.empty(state)
-                np.ndarray.__setstate__(self, state)
-                freq = None  # ?
-
-            data = PeriodArray(data, freq=freq)
-            self._data = data
-
-        else:
-            raise Exception("invalid pickle state")
-
-    _unpickle_compat = __setstate__
 
     def memory_usage(self, deep=False):
         result = super().memory_usage(deep=deep)
