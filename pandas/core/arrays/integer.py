@@ -28,6 +28,7 @@ from pandas.core.dtypes.missing import isna, notna
 from pandas.core import nanops, ops
 from pandas.core.algorithms import take
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
+from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
 import pandas.core.common as com
 from pandas.core.indexers import check_bool_array_indexer
 from pandas.core.ops import invalid_comparison
@@ -103,18 +104,7 @@ class _IntegerDtype(ExtensionDtype):
 
         results = []
         for arr in chunks:
-            buflist = arr.buffers()
-            data = np.frombuffer(buflist[1], dtype=self.type)[
-                arr.offset : arr.offset + len(arr)
-            ]
-            bitmask = buflist[0]
-            if bitmask is not None:
-                mask = pyarrow.BooleanArray.from_buffers(
-                    pyarrow.bool_(), len(arr), [None, bitmask]
-                )
-                mask = np.asarray(mask)
-            else:
-                mask = np.ones(len(arr), dtype=bool)
+            data, mask = pyarrow_array_to_numpy_and_mask(arr, dtype=self.type)
             int_arr = IntegerArray(data.copy(), ~mask, copy=False)
             results.append(int_arr)
 
