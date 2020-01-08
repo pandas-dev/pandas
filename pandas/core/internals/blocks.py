@@ -1777,7 +1777,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             values = values[slicer]
         mask = isna(values)
 
-        values = np.asarray(values.astype(str))
+        values = np.asarray(values.astype(object))
         values[mask] = na_rep
 
         # we are expected to return a 2-d ndarray
