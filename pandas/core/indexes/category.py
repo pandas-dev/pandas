@@ -190,13 +190,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
     # Constructors
 
     def __new__(
-        cls,
-        data=None,
-        categories=None,
-        ordered=None,
-        dtype=None,
-        copy=False,
-        name=None,
+        cls, data=None, categories=None, ordered=None, dtype=None, copy=False, name=None
     ):
 
         dtype = CategoricalDtype._from_values_or_dtype(data, categories, ordered, dtype)
@@ -416,7 +410,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
             if dtype == self.dtype:
                 return self.copy() if copy else self
 
-        return super().astype(dtype=dtype, copy=copy)
+        return Index.astype(self, dtype=dtype, copy=copy)
 
     @cache_readonly
     def _isnan(self):
