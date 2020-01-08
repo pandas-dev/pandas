@@ -5,8 +5,8 @@ from pandas.core.dtypes.common import is_integer
 
 import pandas as pd
 from pandas import Index, Series, Timestamp, date_range, isna
+import pandas._testing as tm
 from pandas.core.indexing import IndexingError
-import pandas.util.testing as tm
 
 from pandas.tseries.offsets import BDay
 
@@ -75,7 +75,7 @@ def test_getitem_boolean_object(string_series):
 
     # nans raise exception
     omask[5:10] = np.nan
-    msg = "cannot index with vector containing NA / NaN values"
+    msg = "cannot mask with array containing NA / NaN values"
     with pytest.raises(ValueError, match=msg):
         s[omask]
     with pytest.raises(ValueError, match=msg):

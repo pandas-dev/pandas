@@ -4,8 +4,8 @@ import pytest
 from pandas.compat.numpy import _np_version_under1p16
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.core.arrays.numpy_ import PandasArray, PandasDtype
-import pandas.util.testing as tm
 
 from . import base
 
@@ -331,6 +331,10 @@ class TestReshaping(BaseNumPyTests, base.BaseReshapingTests):
     def test_merge_on_extension_array_duplicates(self, data):
         # Fails creating expected
         super().test_merge_on_extension_array_duplicates(data)
+
+    @skip_nested
+    def test_transpose(self, data):
+        super().test_transpose(data)
 
 
 class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):

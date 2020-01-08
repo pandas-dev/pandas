@@ -5,7 +5,7 @@ import pytest
 
 import pandas as pd
 from pandas import Series, TimedeltaIndex, isna, to_timedelta
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestTimedeltas:
@@ -73,8 +73,7 @@ class TestTimedeltas:
 
         # time not supported ATM
         msg = (
-            "Value must be Timedelta, string, integer, float, timedelta or"
-            " convertible"
+            "Value must be Timedelta, string, integer, float, timedelta or convertible"
         )
         with pytest.raises(ValueError, match=msg):
             to_timedelta(time(second=1))

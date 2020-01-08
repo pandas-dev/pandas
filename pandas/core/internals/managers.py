@@ -340,13 +340,39 @@ class BlockManager(PandasObject):
                 f"tot_items: {tot_items}"
             )
 
-    def apply(self, f: str, filter=None, **kwargs):
+    def reduce(self, func, *args, **kwargs):
+        # If 2D, we assume that we're operating column-wise
+        if self.ndim == 1:
+            # we'll be returning a scalar
+            blk = self.blocks[0]
+            return func(blk.values, *args, **kwargs)
+
+        res = {}
+        for blk in self.blocks:
+            bres = func(blk.values, *args, **kwargs)
+
+            if np.ndim(bres) == 0:
+                # EA
+                assert blk.shape[0] == 1
+                new_res = zip(blk.mgr_locs.as_array, [bres])
+            else:
+                assert bres.ndim == 1, bres.shape
+                assert blk.shape[0] == len(bres), (blk.shape, bres.shape, args, kwargs)
+                new_res = zip(blk.mgr_locs.as_array, bres)
+
+            nr = dict(new_res)
+            assert not any(key in res for key in nr)
+            res.update(nr)
+
+        return res
+
+    def apply(self, f, filter=None, **kwargs):
         """
         Iterate over the blocks, collect and create a new BlockManager.
 
         Parameters
         ----------
-        f : str
+        f : str or callable
             Name of the Block method to apply.
         filter : list, if supplied, only call the block if the filter is in
                  the block
@@ -411,7 +437,10 @@ class BlockManager(PandasObject):
                     axis = obj._info_axis_number
                     kwargs[k] = obj.reindex(b_items, axis=axis, copy=align_copy)
 
-            applied = getattr(b, f)(**kwargs)
+            if callable(f):
+                applied = b.apply(f, **kwargs)
+            else:
+                applied = getattr(b, f)(**kwargs)
             result_blocks = _extend_blocks(applied, result_blocks)
 
         if len(result_blocks) == 0:
@@ -709,16 +738,16 @@ class BlockManager(PandasObject):
 
         return type(self)(new_blocks, axes, do_integrity_check=False)
 
-    def get_slice(self, slobj, axis=0):
+    def get_slice(self, slobj: slice, axis: int = 0):
         if axis >= self.ndim:
             raise IndexError("Requested axis not found in manager")
 
         if axis == 0:
             new_blocks = self._slice_take_blocks_ax0(slobj)
         else:
-            slicer = [slice(None)] * (axis + 1)
-            slicer[axis] = slobj
-            slicer = tuple(slicer)
+            _slicer = [slice(None)] * (axis + 1)
+            _slicer[axis] = slobj
+            slicer = tuple(_slicer)
             new_blocks = [blk.getitem_block(slicer) for blk in self.blocks]
 
         new_axes = list(self.axes)
@@ -728,11 +757,11 @@ class BlockManager(PandasObject):
         bm._consolidate_inplace()
         return bm
 
-    def __contains__(self, item):
+    def __contains__(self, item) -> bool:
         return item in self.items
 
     @property
-    def nblocks(self):
+    def nblocks(self) -> int:
         return len(self.blocks)
 
     def copy(self, deep=True):
