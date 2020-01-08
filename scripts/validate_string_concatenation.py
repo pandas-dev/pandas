@@ -197,12 +197,12 @@ def bare_pytest_raises(source_path: str) -> Generator[Tuple[str, int, str], None
     """
     Test Case for bare pytest raises.
 
-    For example:
+    For example, this is wrong:
 
     >>> with pytest.raise(ValueError):
     ...     # Some code that raises ValueError
 
-    Instead of:
+    And this is what we want instead:
 
     >>> with pytest.raise(ValueError, match="foo"):
     ...     # Some code that raises ValueError
