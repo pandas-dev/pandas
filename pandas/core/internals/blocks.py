@@ -664,6 +664,7 @@ class Block(PandasObject):
         else:
             values = np.array(values, dtype="object")
 
+        breakpoint()
         values[mask] = na_rep
         return values
 
@@ -1777,12 +1778,8 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             values = values[slicer]
         mask = isna(values)
 
-        try:
-            values[mask] = na_rep
-        except Exception:
-            # eg SparseArray does not support setitem, needs to be converted to ndarray
-            return super().to_native_types(slicer, na_rep, quoting, **kwargs)
-        values = values.astype(str)
+        values = np.asarray(values.astype(str))
+        values[mask] = na_rep
 
         # we are expected to return a 2-d ndarray
         return values.reshape(1, len(values))
