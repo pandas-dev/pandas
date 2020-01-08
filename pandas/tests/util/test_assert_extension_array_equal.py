@@ -96,7 +96,7 @@ def test_assert_extension_array_equal_non_extension_array(side):
     numpy_array = np.arange(5)
     extension_array = SparseArray(numpy_array)
 
-    msg = "{side} is not an ExtensionArray".format(side=side)
+    msg = f"{side} is not an ExtensionArray"
     args = (
         (numpy_array, extension_array)
         if side == "left"

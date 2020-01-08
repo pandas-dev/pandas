@@ -15,10 +15,8 @@ def test_invalid_total_length_max_length_one():
     actual_length = len(kwargs) + len(args) + min_fname_arg_count
 
     msg = (
-        r"{fname}\(\) takes at most {max_length} "
-        r"argument \({actual_length} given\)".format(
-            fname=_fname, max_length=max_length, actual_length=actual_length
-        )
+        fr"{_fname}\(\) takes at most {max_length} "
+        fr"argument \({actual_length} given\)"
     )
 
     with pytest.raises(TypeError, match=msg):
@@ -35,10 +33,8 @@ def test_invalid_total_length_max_length_multiple():
     actual_length = len(kwargs) + len(args) + min_fname_arg_count
 
     msg = (
-        r"{fname}\(\) takes at most {max_length} "
-        r"arguments \({actual_length} given\)".format(
-            fname=_fname, max_length=max_length, actual_length=actual_length
-        )
+        fr"{_fname}\(\) takes at most {max_length} "
+        fr"arguments \({actual_length} given\)"
     )
 
     with pytest.raises(TypeError, match=msg):
@@ -53,8 +49,8 @@ def test_missing_args_or_kwargs(args, kwargs):
     compat_args = {"foo": -5, bad_arg: 1}
 
     msg = (
-        r"the '{arg}' parameter is not supported "
-        r"in the pandas implementation of {func}\(\)".format(arg=bad_arg, func=_fname)
+        fr"the '{bad_arg}' parameter is not supported "
+        fr"in the pandas implementation of {_fname}\(\)"
     )
 
     with pytest.raises(ValueError, match=msg):

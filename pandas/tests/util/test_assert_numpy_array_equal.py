@@ -28,13 +28,11 @@ def test_assert_numpy_array_equal_bad_type():
     [(np.array([1]), 1, "ndarray", "int"), (1, np.array([1]), "int", "ndarray")],
 )
 def test_assert_numpy_array_equal_class_mismatch(a, b, klass1, klass2):
-    msg = """numpy array are different
+    msg = f"""numpy array are different
 
 numpy array classes are different
 \\[left\\]:  {klass1}
-\\[right\\]: {klass2}""".format(
-        klass1=klass1, klass2=klass2
-    )
+\\[right\\]: {klass2}"""
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_numpy_array_equal(a, b)
