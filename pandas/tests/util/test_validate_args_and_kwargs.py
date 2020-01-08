@@ -15,7 +15,7 @@ def test_invalid_total_length_max_length_one():
     actual_length = len(kwargs) + len(args) + min_fname_arg_count
 
     msg = (
-        fr"{fname}\(\) takes at most {max_length} "
+        fr"{_fname}\(\) takes at most {max_length} "
         fr"argument \({actual_length} given\)"
     )
 
@@ -33,8 +33,8 @@ def test_invalid_total_length_max_length_multiple():
     actual_length = len(kwargs) + len(args) + min_fname_arg_count
 
     msg = (
-        r"{fname}\(\) takes at most {max_length} "
-        r"arguments \({actual_length} given\)"
+        fr"{_fname}\(\) takes at most {max_length} "
+        fr"arguments \({actual_length} given\)"
     )
 
     with pytest.raises(TypeError, match=msg):

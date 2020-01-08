@@ -95,7 +95,7 @@ def test_frame_equal_row_order_mismatch(check_like, obj_fixture):
     ],
 )
 def test_frame_equal_shape_mismatch(df1, df2, obj_fixture):
-    msg = "{obj_fixture} are different"
+    msg = f"{obj_fixture} are different"
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_frame_equal(df1, df2, obj=obj_fixture)
@@ -149,7 +149,7 @@ def test_empty_dtypes(check_dtype):
 
 
 def test_frame_equal_index_mismatch(obj_fixture):
-    msg = """{obj_fixture}\\.index are different
+    msg = f"""{obj_fixture}\\.index are different
 
 {obj_fixture}\\.index values are different \\(33\\.33333 %\\)
 \\[left\\]:  Index\\(\\['a', 'b', 'c'\\], dtype='object'\\)
@@ -163,7 +163,7 @@ def test_frame_equal_index_mismatch(obj_fixture):
 
 
 def test_frame_equal_columns_mismatch(obj_fixture):
-    msg = """{obj_fixture}\\.columns are different
+    msg = f"""{obj_fixture}\\.columns are different
 
 {obj_fixture}\\.columns values are different \\(50\\.0 %\\)
 \\[left\\]:  Index\\(\\['A', 'B'\\], dtype='object'\\)
@@ -177,7 +177,7 @@ def test_frame_equal_columns_mismatch(obj_fixture):
 
 
 def test_frame_equal_block_mismatch(by_blocks_fixture, obj_fixture):
-    msg = """{obj_fixture}\\.iloc\\[:, 1\\] \\(column name="B"\\) are different
+    msg = f"""{obj_fixture}\\.iloc\\[:, 1\\] \\(column name="B"\\) are different
 
 {obj_fixture}\\.iloc\\[:, 1\\] \\(column name="B"\\) values are different \\(33\\.33333 %\\)
 \\[left\\]:  \\[4, 5, 6\\]
