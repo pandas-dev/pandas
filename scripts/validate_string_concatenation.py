@@ -173,12 +173,11 @@ def strings_with_wrong_placed_space(
         tokens: List = list(tokenize.generate_tokens(file_name.readline))
 
     for first_token, second_token, third_token in zip(tokens, tokens[1:], tokens[2:]):
+        # Checking if we are in a block of concated string
         if (
             first_token[0] == third_token[0] == token.STRING
             and second_token[0] == token.NL
         ):
-            # Means we are in a block of concated string
-
             # Striping the quotes
             first_string = first_token[1][1:-1]
             second_string = third_token[1][1:-1]
