@@ -11,4 +11,4 @@ def test_dtypes(test_dtype):
 
     df.set_index('A')
     result = df.index.dtype.type
-    tm.assert_equal(result, expected)
+    assert result == expected
