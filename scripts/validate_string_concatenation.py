@@ -230,7 +230,7 @@ def bare_pytest_raises(source_path: str) -> Generator[Tuple[str, int, str], None
 
 
 if __name__ == "__main__":
-    available_tests = [
+    available_validation_types = [
         f.__name__
         for f in globals().values()
         if type(f) == type(main) and f.__name__ != "main"
@@ -248,14 +248,17 @@ if __name__ == "__main__":
         help="Output format of the error message.",
     )
     parser.add_argument(
-        "--id", "-i", choices=available_tests, help="Test case to check."
+        "--validation-type",
+        "-vt",
+        choices=available_validation_types,
+        help="Validation test case to check.",
     )
 
     args = parser.parse_args()
 
     sys.exit(
         main(
-            function=globals().get(args.id),
+            function=globals().get(args.validation_type),
             source_path=args.path,
             output_format=args.format,
         )
