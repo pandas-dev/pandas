@@ -6,7 +6,7 @@ from typing import List
 import numpy as np
 
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender, cache_readonly
+from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import ensure_platform_int, is_dtype_equal
 from pandas.core.dtypes.generic import ABCSeries
@@ -14,7 +14,7 @@ from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.arrays import ExtensionArray
 from pandas.core.ops import get_op_result_name
 
-from .base import Index, _index_shared_docs
+from .base import Index
 
 
 def inherit_from_data(name: str, delegate, cache: bool = False):
@@ -181,18 +181,6 @@ class ExtensionIndex(Index):
     def _ndarray_values(self) -> np.ndarray:
         return self._data._ndarray_values
 
-    @Appender(_index_shared_docs["astype"])
-    def astype(self, dtype, copy=True):
-        if is_dtype_equal(self.dtype, dtype) and copy is False:
-            # Ensure that self.astype(self.dtype) is self
-            return self
-
-        new_values = self._data.astype(dtype, copy=copy)
-
-        # pass copy=False because any copying will be done in the
-        #  _data.astype call above
-        return Index(new_values, dtype=new_values.dtype, name=self.name, copy=False)
-
     def dropna(self, how="any"):
         if how not in ("any", "all"):
             raise ValueError(f"invalid how option: {how}")
@@ -201,20 +189,9 @@ class ExtensionIndex(Index):
             return self._shallow_copy(self._data[~self._isnan])
         return self._shallow_copy()
 
-    def _get_unique_index(self, dropna=False):
-        if self.is_unique and not dropna:
-            return self
-
-        result = self._data.unique()
-        if dropna and self.hasnans:
-            result = result[~result.isna()]
-        return self._shallow_copy(result)
-
-    def unique(self, level=None):
-        if level is not None:
-            self._validate_index_level(level)
-
-        result = self._data.unique()
+    def repeat(self, repeats, axis=None):
+        nv.validate_repeat(tuple(), dict(axis=axis))
+        result = self._data.repeat(repeats, axis=axis)
         return self._shallow_copy(result)
 
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
@@ -229,3 +206,30 @@ class ExtensionIndex(Index):
             na_value=self._na_value,
         )
         return type(self)(taken, name=self.name)
+
+    def unique(self, level=None):
+        if level is not None:
+            self._validate_index_level(level)
+
+        result = self._data.unique()
+        return self._shallow_copy(result)
+
+    def _get_unique_index(self, dropna=False):
+        if self.is_unique and not dropna:
+            return self
+
+        result = self._data.unique()
+        if dropna and self.hasnans:
+            result = result[~result.isna()]
+        return self._shallow_copy(result)
+
+    def astype(self, dtype, copy=True):
+        if is_dtype_equal(self.dtype, dtype) and copy is False:
+            # Ensure that self.astype(self.dtype) is self
+            return self
+
+        new_values = self._data.astype(dtype, copy=copy)
+
+        # pass copy=False because any copying will be done in the
+        #  _data.astype call above
+        return Index(new_values, dtype=new_values.dtype, name=self.name, copy=False)
