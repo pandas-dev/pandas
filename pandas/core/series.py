@@ -159,7 +159,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     _typ = "series"
 
-    _name: Hashable
+    _name: Optional[Hashable]
     _metadata: List[str] = ["name"]
     _accessors = {"dt", "cat", "str", "sparse"}
     _deprecations = (
