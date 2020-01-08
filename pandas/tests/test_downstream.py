@@ -9,7 +9,7 @@ import numpy as np  # noqa
 import pytest
 
 from pandas import DataFrame, Series
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def import_module(name):
@@ -55,6 +55,10 @@ def test_oo_optimizable():
 @tm.network
 # Cython import warning
 @pytest.mark.filterwarnings("ignore:can't:ImportWarning")
+@pytest.mark.filterwarnings(
+    # patsy needs to update their imports
+    "ignore:Using or importing the ABCs from 'collections:DeprecationWarning"
+)
 def test_statsmodels():
 
     statsmodels = import_module("statsmodels")  # noqa

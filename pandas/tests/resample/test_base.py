@@ -5,12 +5,12 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Series
+import pandas._testing as tm
 from pandas.core.groupby.groupby import DataError
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import PeriodIndex, period_range
 from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
-import pandas.util.testing as tm
 
 # a fixture value can be overridden by the test parameter value. Note that the
 # value of the fixture can be overridden this way even if the test doesn't use
@@ -84,8 +84,8 @@ def test_raises_on_non_datetimelike_index():
     # this is a non datetimelike index
     xp = DataFrame()
     msg = (
-        "Only valid with DatetimeIndex, TimedeltaIndex or PeriodIndex,"
-        " but got an instance of 'Index'"
+        "Only valid with DatetimeIndex, TimedeltaIndex or PeriodIndex, "
+        "but got an instance of 'Index'"
     )
     with pytest.raises(TypeError, match=msg):
         xp.resample("A").mean()

@@ -1259,15 +1259,15 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     # make contiguous
     values = values.ravel()
 
-    if skipna:
-        values = values[~isnaobj(values)]
-
     val = _try_infer_map(values)
     if val is not None:
         return val
 
     if values.dtype != np.object_:
         values = values.astype('O')
+
+    if skipna:
+        values = values[~isnaobj(values)]
 
     n = len(values)
     if n == 0:
@@ -2232,13 +2232,14 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
     return objects
 
 
-_no_default = object()
+# Note: no_default is exported to the public API in pandas.api.extensions
+no_default = object()  #: Sentinel indicating the default value.
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=1,
-                   object na_value=_no_default, object dtype=object):
+                   object na_value=no_default, object dtype=object):
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
 
@@ -2269,7 +2270,7 @@ def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=1,
     result = np.empty(n, dtype=dtype)
     for i in range(n):
         if mask[i]:
-            if na_value is _no_default:
+            if na_value is no_default:
                 val = arr[i]
             else:
                 val = na_value

@@ -9,6 +9,7 @@ import numpy as np
 
 import pandas._libs.lib as lib
 import pandas._libs.ops as libops
+from pandas._typing import ArrayLike, Dtype
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
@@ -32,7 +33,6 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas._typing import ArrayLike, Dtype
 from pandas.core.algorithms import take_1d
 from pandas.core.base import NoNewAttributesMixin
 import pandas.core.common as com
@@ -438,8 +438,8 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
 
         if regex.groups > 0:
             warnings.warn(
-                "This pattern has match groups. To actually get the"
-                " groups, use str.extract.",
+                "This pattern has match groups. To actually get the "
+                "groups, use str.extract.",
                 UserWarning,
                 stacklevel=3,
             )

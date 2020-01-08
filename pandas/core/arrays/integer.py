@@ -1,10 +1,11 @@
 import numbers
-from typing import Type
+from typing import Any, Tuple, Type
 import warnings
 
 import numpy as np
 
-from pandas._libs import lib
+from pandas._libs import lib, missing as libmissing
+from pandas._typing import Scalar
 from pandas.compat import set_function_name
 from pandas.util._decorators import cache_readonly
 
@@ -19,6 +20,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
     is_scalar,
+    is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna, notna
@@ -26,6 +28,8 @@ from pandas.core.dtypes.missing import isna, notna
 from pandas.core import nanops, ops
 from pandas.core.algorithms import take
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
+import pandas.core.common as com
+from pandas.core.indexers import check_bool_array_indexer
 from pandas.core.ops import invalid_comparison
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.tools.numeric import to_numeric
@@ -44,7 +48,7 @@ class _IntegerDtype(ExtensionDtype):
     name: str
     base = None
     type: Type
-    na_value = np.nan
+    na_value = libmissing.NA
 
     def __repr__(self) -> str:
         sign = "U" if self.is_unsigned_integer else ""
@@ -263,6 +267,11 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
     .. versionadded:: 0.24.0
 
+    .. versionchanged:: 1.0.0
+
+       Now uses :attr:`pandas.NA` as the missing value rather
+       than :attr:`numpy.nan`.
+
     .. warning::
 
        IntegerArray is currently experimental, and its API or internal
@@ -358,29 +367,46 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
     def _from_factorized(cls, values, original):
         return integer_array(values, dtype=original.dtype)
 
-    def _formatter(self, boxed=False):
-        def fmt(x):
-            if isna(x):
-                return "NaN"
-            return str(x)
-
-        return fmt
-
     def __getitem__(self, item):
         if is_integer(item):
             if self._mask[item]:
                 return self.dtype.na_value
             return self._data[item]
+
+        elif com.is_bool_indexer(item):
+            item = check_bool_array_indexer(self, item)
+
         return type(self)(self._data[item], self._mask[item])
 
-    def _coerce_to_ndarray(self):
-        """
-        coerce to an ndarary of object dtype
-        """
+    @property
+    def _hasna(self) -> bool:
+        # Note: this is expensive right now! The hope is that we can
+        # make this faster by having an optional mask, but not have to change
+        # source code using it..
+        return self._mask.any()
 
-        # TODO(jreback) make this better
-        data = self._data.astype(object)
-        data[self._mask] = self._na_value
+    def to_numpy(
+        self, dtype=None, copy=False, na_value: "Scalar" = lib.no_default,
+    ):
+        if na_value is lib.no_default:
+            na_value = libmissing.NA
+        if dtype is None:
+            dtype = object
+        if self._hasna:
+            if (
+                not (is_object_dtype(dtype) or is_string_dtype(dtype))
+                and na_value is libmissing.NA
+            ):
+                raise ValueError(
+                    f"cannot convert to '{dtype}'-dtype NumPy array "
+                    "with missing values. Specify an appropriate 'na_value' "
+                    "for this dtype."
+                )
+            # don't pass copy to astype -> always need a copy since we are mutating
+            data = self._data.astype(dtype)
+            data[self._mask] = na_value
+        else:
+            data = self._data.astype(dtype, copy=copy)
         return data
 
     __array_priority__ = 1000  # higher than ndarray so ops dispatch to us
@@ -390,7 +416,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         the array interface, return my values
         We return an object array here to preserve our scalar values
         """
-        return self._coerce_to_ndarray()
+        return self.to_numpy(dtype=dtype)
 
     def __arrow_array__(self, type=None):
         """
@@ -506,7 +532,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
     @property
     def _na_value(self):
-        return np.nan
+        return self.dtype.na_value
 
     @classmethod
     def _concat_same_type(cls, to_concat):
@@ -545,8 +571,14 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             return type(self)(result, mask=self._mask, copy=False)
 
         # coerce
-        data = self._coerce_to_ndarray()
-        return astype_nansafe(data, dtype, copy=None)
+        if is_float_dtype(dtype):
+            # In astype, we consider dtype=float to also mean na_value=np.nan
+            kwargs = dict(na_value=np.nan)
+        else:
+            kwargs = {}
+
+        data = self.to_numpy(dtype=dtype, **kwargs)
+        return astype_nansafe(data, dtype, copy=False)
 
     @property
     def _ndarray_values(self) -> np.ndarray:
@@ -600,11 +632,18 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             # w/o passing the dtype
             array = np.append(array, [self._mask.sum()])
             index = Index(
-                np.concatenate([index.values, np.array([np.nan], dtype=object)]),
+                np.concatenate(
+                    [index.values, np.array([self.dtype.na_value], dtype=object)]
+                ),
                 dtype=object,
             )
 
         return Series(array, index=index)
+
+    def _values_for_factorize(self) -> Tuple[np.ndarray, Any]:
+        # TODO: https://github.com/pandas-dev/pandas/issues/30037
+        # use masked algorithms, rather than object-dtype / np.nan.
+        return self.to_numpy(na_value=np.nan), np.nan
 
     def _values_for_argsort(self) -> np.ndarray:
         """Return values for sorting.
@@ -629,9 +668,11 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         @unpack_zerodim_and_defer(op.__name__)
         def cmp_method(self, other):
+            from pandas.arrays import BooleanArray
+
             mask = None
 
-            if isinstance(other, IntegerArray):
+            if isinstance(other, (BooleanArray, IntegerArray)):
                 other, mask = other._data, other._mask
 
             elif is_list_like(other):
@@ -643,25 +684,35 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
                 if len(self) != len(other):
                     raise ValueError("Lengths must match to compare")
 
-            # numpy will show a DeprecationWarning on invalid elementwise
-            # comparisons, this will raise in the future
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", "elementwise", FutureWarning)
-                with np.errstate(all="ignore"):
-                    method = getattr(self._data, f"__{op_name}__")
-                    result = method(other)
+            if other is libmissing.NA:
+                # numpy does not handle pd.NA well as "other" scalar (it returns
+                # a scalar False instead of an array)
+                # This may be fixed by NA.__array_ufunc__. Revisit this check
+                # once that's implemented.
+                result = np.zeros(self._data.shape, dtype="bool")
+                mask = np.ones(self._data.shape, dtype="bool")
+            else:
+                with warnings.catch_warnings():
+                    # numpy may show a FutureWarning:
+                    #     elementwise comparison failed; returning scalar instead,
+                    #     but in the future will perform elementwise comparison
+                    # before returning NotImplemented. We fall back to the correct
+                    # behavior today, so that should be fine to ignore.
+                    warnings.filterwarnings("ignore", "elementwise", FutureWarning)
+                    with np.errstate(all="ignore"):
+                        method = getattr(self._data, f"__{op_name}__")
+                        result = method(other)
 
                     if result is NotImplemented:
                         result = invalid_comparison(self._data, other, op)
 
             # nans propagate
             if mask is None:
-                mask = self._mask
+                mask = self._mask.copy()
             else:
                 mask = self._mask | mask
 
-            result[mask] = op_name == "ne"
-            return result
+            return BooleanArray(result, mask)
 
         name = f"__{op.__name__}__"
         return set_function_name(cmp_method, name, cls)
@@ -673,7 +724,8 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         # coerce to a nan-aware float if needed
         if mask.any():
             data = self._data.astype("float64")
-            data[mask] = self._na_value
+            # We explicitly use NaN within reductions.
+            data[mask] = np.nan
 
         op = getattr(nanops, "nan" + name)
         result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)
@@ -739,12 +791,13 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
                     raise TypeError("can only perform ops with numeric values")
 
             else:
-                if not (is_float(other) or is_integer(other)):
+                if not (is_float(other) or is_integer(other) or other is libmissing.NA):
                     raise TypeError("can only perform ops with numeric values")
 
-            # nans propagate
             if omask is None:
                 mask = self._mask.copy()
+                if other is libmissing.NA:
+                    mask |= True
             else:
                 mask = self._mask | omask
 
@@ -754,20 +807,23 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
                 # x ** 0 is 1.
                 if omask is not None:
                     mask = np.where((other == 0) & ~omask, False, mask)
-                else:
+                elif other is not libmissing.NA:
                     mask = np.where(other == 0, False, mask)
 
             elif op_name == "rpow":
                 # 1 ** x is 1.
                 if omask is not None:
                     mask = np.where((other == 1) & ~omask, False, mask)
-                else:
+                elif other is not libmissing.NA:
                     mask = np.where(other == 1, False, mask)
                 # x ** 0 is 1.
                 mask = np.where((self._data == 0) & ~self._mask, False, mask)
 
-            with np.errstate(all="ignore"):
-                result = op(self._data, other)
+            if other is libmissing.NA:
+                result = np.ones_like(self._data)
+            else:
+                with np.errstate(all="ignore"):
+                    result = op(self._data, other)
 
             # divmod returns a tuple
             if op_name == "divmod":
@@ -789,6 +845,11 @@ IntegerArray._add_comparison_ops()
 
 _dtype_docstring = """
 An ExtensionDtype for {dtype} integer data.
+
+.. versionchanged:: 1.0.0
+
+   Now uses :attr:`pandas.NA` as its missing value,
+   rather than :attr:`numpy.nan`.
 
 Attributes
 ----------

@@ -8,7 +8,7 @@ from pandas._libs.tslibs import NaT, Timestamp, iNaT
 
 import pandas as pd
 from pandas import Series, Timedelta, TimedeltaIndex, timedelta_range, to_timedelta
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestTimedeltaArithmetic:
@@ -20,7 +20,7 @@ class TestTimedeltaArithmetic:
             Timestamp("1700-01-01") + timedelta(days=13 * 19999)
 
     def test_array_timedelta_floordiv(self):
-        # deprected GH#19761, enforced GH#29797
+        # deprecated GH#19761, enforced GH#29797
         ints = pd.date_range("2012-10-08", periods=4, freq="D").view("i8")
 
         with pytest.raises(TypeError, match="Invalid dtype"):
@@ -399,7 +399,7 @@ class TestTimedeltas:
                     [np.timedelta64(i, "m") for i in np.arange(5).tolist()]
                 )
 
-            str_repr = ["{}{}".format(x, unit) for x in np.arange(5)]
+            str_repr = [f"{x}{unit}" for x in np.arange(5)]
             result = to_timedelta(wrapper(str_repr))
             tm.assert_index_equal(result, expected)
             result = TimedeltaIndex(wrapper(str_repr))
@@ -416,9 +416,9 @@ class TestTimedeltas:
             if unit == "M":
                 expected = Timedelta(np.timedelta64(2, "m").astype("timedelta64[ns]"))
 
-            result = to_timedelta("2{}".format(unit))
+            result = to_timedelta(f"2{unit}")
             assert result == expected
-            result = Timedelta("2{}".format(unit))
+            result = Timedelta(f"2{unit}")
             assert result == expected
 
     @pytest.mark.parametrize("unit", ["Y", "y", "M"])

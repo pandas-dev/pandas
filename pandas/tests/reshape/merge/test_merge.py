@@ -25,10 +25,10 @@ from pandas import (
     TimedeltaIndex,
     UInt64Index,
 )
+import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.merge import MergeError, merge
-import pandas.util.testing as tm
 
 N = 50
 NGROUPS = 8
@@ -744,7 +744,7 @@ class TestMerge:
 
         # #2649, #10639
         df2.columns = ["key1", "foo", "foo"]
-        msg = r"Data columns not unique: Index\(\['foo', 'foo'\]," r" dtype='object'\)"
+        msg = r"Data columns not unique: Index\(\['foo', 'foo'\], dtype='object'\)"
         with pytest.raises(MergeError, match=msg):
             merge(df, df2)
 
