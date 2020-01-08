@@ -957,7 +957,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
             # fall back to object index
             if isinstance(item, str):
                 return self.astype(object).insert(loc, item)
-            raise TypeError(f"cannot insert {type(self).__name__} with incompatible label")
+            raise TypeError(
+                f"cannot insert {type(self).__name__} with incompatible label"
+            )
 
     def indexer_at_time(self, time, asof=False):
         """

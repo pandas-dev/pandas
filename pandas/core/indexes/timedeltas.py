@@ -432,7 +432,9 @@ class TimedeltaIndex(
             # fall back to object index
             if isinstance(item, str):
                 return self.astype(object).insert(loc, item)
-            raise TypeError(f"cannot insert {type(self).__name__} with incompatible label")
+            raise TypeError(
+                f"cannot insert {type(self).__name__} with incompatible label"
+            )
 
 
 TimedeltaIndex._add_comparison_ops()
