@@ -576,6 +576,7 @@ Other API changes
   Supplying anything else than ``how`` to ``**kwargs`` raised a ``TypeError`` previously (:issue:`29388`)
 - When testing pandas, the new minimum required version of pytest is 5.0.1 (:issue:`29664`)
 - :meth:`Series.str.__iter__` was deprecated and will be removed in future releases (:issue:`28277`).
+- Added ``<NA>`` to the list of default NA values for :meth:`read_csv` (:issue:`30821`)
 
 
 .. _whatsnew_100.api.documentation:
