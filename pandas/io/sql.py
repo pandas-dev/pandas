@@ -808,8 +808,6 @@ class SQLTable(PandasObject):
                 temp.reset_index(inplace=True)
             except ValueError as err:
                 raise ValueError(f"duplicate name in index/columns: {err}")
-        else:
-            temp = self.frame
 
         return temp
 
