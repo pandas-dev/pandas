@@ -31,12 +31,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms
 from pandas.core.accessor import PandasDelegate
-from pandas.core.arrays import (
-    DatetimeArray,
-    ExtensionArray,
-    ExtensionOpsMixin,
-    TimedeltaArray,
-)
+from pandas.core.arrays import DatetimeArray, ExtensionArray, TimedeltaArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
@@ -44,7 +39,6 @@ from pandas.core.indexes.extension import (
     ExtensionIndex,
     inherit_names,
     make_wrapped_arith_op,
-    make_wrapped_comparison_op,
 )
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
@@ -90,7 +84,7 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
     ["__iter__", "mean", "freq", "freqstr", "_ndarray_values", "asi8", "_box_values"],
     DatetimeLikeArrayMixin,
 )
-class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
+class DatetimeIndexOpsMixin(ExtensionIndex):
     """
     Common ops mixin to support a unified interface datetimelike Index.
     """
@@ -108,13 +102,6 @@ class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
     @property
     def is_all_dates(self) -> bool:
         return True
-
-    @classmethod
-    def _create_comparison_method(cls, op):
-        """
-        Create a comparison method that dispatches to ``cls.values``.
-        """
-        return make_wrapped_comparison_op(f"__{op.__name__}__")
 
     # ------------------------------------------------------------------------
     # Abstract data attributes

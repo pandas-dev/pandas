@@ -949,6 +949,26 @@ class PeriodDtype(PandasExtensionDtype):
 
         return PeriodArray
 
+    def __from_arrow__(self, array):
+        """Construct PeriodArray from pyarrow Array/ChunkedArray."""
+        import pyarrow
+        from pandas.core.arrays import PeriodArray
+        from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
+
+        if isinstance(array, pyarrow.Array):
+            chunks = [array]
+        else:
+            chunks = array.chunks
+
+        results = []
+        for arr in chunks:
+            data, mask = pyarrow_array_to_numpy_and_mask(arr, dtype="int64")
+            parr = PeriodArray(data.copy(), freq=self.freq, copy=False)
+            parr[~mask] = NaT
+            results.append(parr)
+
+        return PeriodArray._concat_same_type(results)
+
 
 @register_extension_dtype
 class IntervalDtype(PandasExtensionDtype):
@@ -1120,3 +1140,22 @@ class IntervalDtype(PandasExtensionDtype):
             else:
                 return False
         return super().is_dtype(dtype)
+
+    def __from_arrow__(self, array):
+        """Construct IntervalArray from pyarrow Array/ChunkedArray."""
+        import pyarrow
+        from pandas.core.arrays import IntervalArray
+
+        if isinstance(array, pyarrow.Array):
+            chunks = [array]
+        else:
+            chunks = array.chunks
+
+        results = []
+        for arr in chunks:
+            left = np.asarray(arr.storage.field("left"), dtype=self.subtype)
+            right = np.asarray(arr.storage.field("right"), dtype=self.subtype)
+            iarr = IntervalArray.from_arrays(left, right, closed=array.type.closed)
+            results.append(iarr)
+
+        return IntervalArray._concat_same_type(results)
