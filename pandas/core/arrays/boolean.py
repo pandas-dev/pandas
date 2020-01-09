@@ -244,7 +244,7 @@ class BooleanArray(BaseMaskedArray):
 
     >>> pd.array([True, False, None], dtype="boolean")
     <BooleanArray>
-    [True, False, NA]
+    [True, False, <NA>]
     Length: 3, dtype: boolean
     """
 
@@ -527,7 +527,7 @@ class BooleanArray(BaseMaskedArray):
         >>> pd.array([True, False, pd.NA]).any(skipna=False)
         True
         >>> pd.array([False, False, pd.NA]).any(skipna=False)
-        NA
+        <NA>
         """
         kwargs.pop("axis", None)
         nv.validate_any((), kwargs)
@@ -592,7 +592,7 @@ class BooleanArray(BaseMaskedArray):
         required (whether ``pd.NA`` is True or False influences the result):
 
         >>> pd.array([True, True, pd.NA]).all(skipna=False)
-        NA
+        <NA>
         >>> pd.array([True, False, pd.NA]).all(skipna=False)
         False
         """

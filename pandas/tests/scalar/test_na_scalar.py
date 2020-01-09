@@ -16,8 +16,8 @@ def test_singleton():
 
 
 def test_repr():
-    assert repr(NA) == "NA"
-    assert str(NA) == "NA"
+    assert repr(NA) == "<NA>"
+    assert str(NA) == "<NA>"
 
 
 def test_truthiness():
