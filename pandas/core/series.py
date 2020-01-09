@@ -3916,7 +3916,7 @@ Name: Max Speed, dtype: float64
 
         Parameters
         ----------
-        axis : int or str
+        axis : {0 or "index"}
             Unused. Accepted for compatability with DataFrame method only.
         index : scalar, hashable sequence, dict-like or function, optional
             Functions or dict-like are transformations to apply to

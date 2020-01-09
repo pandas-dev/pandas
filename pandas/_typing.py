@@ -67,7 +67,7 @@ JSONSerializable = Union[PythonScalar, List, Dict]
 Axes = Collection
 
 # For functions like rename that convert one label to another
-Renamer = Union[Mapping[Hashable, Any], Callable[[Hashable], Hashable]]
+Renamer = Union[Mapping[Label, Any], Callable[[Label], Label]]
 
 # to maintain type information across generic functions and parametrization
 T = TypeVar("T")
