@@ -635,6 +635,8 @@ many errors as possible, but it may not correct *all* of them. Thus, it is
 recommended that you run ``cpplint`` to double check and make any other style
 fixes manually.
 
+.. _contributing.code-formatting:
+
 Python (PEP8 / black)
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -655,6 +657,9 @@ apply ``black`` as you edit files.
 
 You should use a ``black`` version >= 19.10b0 as previous versions are not compatible
 with the pandas codebase.
+
+If you wish to run these checks automatically, we encourage you to use
+:ref:`pre-commits <contributing.pre-commit>` instead.
 
 One caveat about ``git diff upstream/master -u -- "*.py" | flake8 --diff``: this
 command will catch any stylistic errors in your changes specifically, but
@@ -727,13 +732,15 @@ to automatically format imports correctly. This will modify your local copy of t
 
 The `--recursive` flag can be passed to sort all files in a directory.
 
-Alternatively, you can run a command similar to what was suggested for ``black`` and ``flake8`` right above::
+Alternatively, you can run a command similar to what was suggested for ``black`` and ``flake8`` :ref:`right above <contributing.code-formatting>`::
 
     git diff upstream/master --name-only -- "*.py" | xargs -r isort
 
 Where similar caveats apply if you are on OSX or Windows.
 
 You can then verify the changes look ok, then git :ref:`commit <contributing.commit-code>` and :ref:`push <contributing.push-code>`.
+
+.. _contributing.pre-commit:
 
 Pre-Commit
 ~~~~~~~~~~
