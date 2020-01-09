@@ -391,7 +391,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     # ------------------------------------------------------------------------
     # Index Methods
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None) -> np.ndarray:
         if is_integer_dtype(dtype):
             return self.asi8
         else:

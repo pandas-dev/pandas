@@ -951,7 +951,7 @@ class MultiIndex(Index):
             _set_identity=_set_identity,
         )
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None) -> np.ndarray:
         """ the array interface, return my values """
         return self.values
 
