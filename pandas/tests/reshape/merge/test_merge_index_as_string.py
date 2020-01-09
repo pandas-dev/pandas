@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame
-from pandas.util.testing import assert_frame_equal
+import pandas._testing as tm
 
 
 @pytest.fixture
@@ -136,7 +136,7 @@ def test_merge_indexes_and_columns_on(left_df, right_df, on, how):
 
     # Perform merge
     result = left_df.merge(right_df, on=on, how=how)
-    assert_frame_equal(result, expected, check_like=True)
+    tm.assert_frame_equal(result, expected, check_like=True)
 
 
 @pytest.mark.parametrize(
@@ -159,7 +159,7 @@ def test_merge_indexes_and_columns_lefton_righton(
 
     # Perform merge
     result = left_df.merge(right_df, left_on=left_on, right_on=right_on, how=how)
-    assert_frame_equal(result, expected, check_like=True)
+    tm.assert_frame_equal(result, expected, check_like=True)
 
 
 @pytest.mark.parametrize("left_index", ["inner", ["inner", "outer"]])
@@ -185,4 +185,4 @@ def test_join_indexes_and_columns_on(df1, df2, left_index, join_type):
         right_df, on=["outer", "inner"], how=join_type, lsuffix="_x", rsuffix="_y"
     )
 
-    assert_frame_equal(result, expected, check_like=True)
+    tm.assert_frame_equal(result, expected, check_like=True)

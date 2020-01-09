@@ -1,5 +1,4 @@
 from datetime import timedelta
-import re
 
 import numpy as np
 import pytest
@@ -15,12 +14,7 @@ from pandas import (
     date_range,
     timedelta_range,
 )
-import pandas.util.testing as tm
-from pandas.util.testing import (
-    assert_almost_equal,
-    assert_index_equal,
-    assert_series_equal,
-)
+import pandas._testing as tm
 
 from ..datetimelike import DatetimeLike
 
@@ -30,9 +24,9 @@ randn = np.random.randn
 class TestTimedeltaIndex(DatetimeLike):
     _holder = TimedeltaIndex
 
-    def setup_method(self, method):
-        self.indices = dict(index=tm.makeTimedeltaIndex(10))
-        self.setup_indices()
+    @pytest.fixture
+    def indices(self):
+        return tm.makeTimedeltaIndex(10)
 
     def create_index(self):
         return pd.to_timedelta(range(5), unit="d") + pd.offsets.Hour(1)
@@ -63,52 +57,6 @@ class TestTimedeltaIndex(DatetimeLike):
         )
         tm.assert_index_equal(idx.fillna("x"), exp)
 
-    @pytest.mark.parametrize("sort", [None, False])
-    def test_difference_freq(self, sort):
-        # GH14323: Difference of TimedeltaIndex should not preserve frequency
-
-        index = timedelta_range("0 days", "5 days", freq="D")
-
-        other = timedelta_range("1 days", "4 days", freq="D")
-        expected = TimedeltaIndex(["0 days", "5 days"], freq=None)
-        idx_diff = index.difference(other, sort)
-        tm.assert_index_equal(idx_diff, expected)
-        tm.assert_attr_equal("freq", idx_diff, expected)
-
-        other = timedelta_range("2 days", "5 days", freq="D")
-        idx_diff = index.difference(other, sort)
-        expected = TimedeltaIndex(["0 days", "1 days"], freq=None)
-        tm.assert_index_equal(idx_diff, expected)
-        tm.assert_attr_equal("freq", idx_diff, expected)
-
-    @pytest.mark.parametrize("sort", [None, False])
-    def test_difference_sort(self, sort):
-
-        index = pd.TimedeltaIndex(
-            ["5 days", "3 days", "2 days", "4 days", "1 days", "0 days"]
-        )
-
-        other = timedelta_range("1 days", "4 days", freq="D")
-        idx_diff = index.difference(other, sort)
-
-        expected = TimedeltaIndex(["5 days", "0 days"], freq=None)
-
-        if sort is None:
-            expected = expected.sort_values()
-
-        tm.assert_index_equal(idx_diff, expected)
-        tm.assert_attr_equal("freq", idx_diff, expected)
-
-        other = timedelta_range("2 days", "5 days", freq="D")
-        idx_diff = index.difference(other, sort)
-        expected = TimedeltaIndex(["1 days", "0 days"], freq=None)
-
-        if sort is None:
-            expected = expected.sort_values()
-
-        tm.assert_index_equal(idx_diff, expected)
-        tm.assert_attr_equal("freq", idx_diff, expected)
-
     def test_isin(self):
 
         index = tm.makeTimedeltaIndex(4)
@@ -118,7 +66,7 @@ class TestTimedeltaIndex(DatetimeLike):
         result = index.isin(list(index))
         assert result.all()
 
-        assert_almost_equal(
+        tm.assert_almost_equal(
             index.isin([index[2], 5]), np.array([False, False, True, False])
         )
 
@@ -184,16 +132,6 @@ class TestTimedeltaIndex(DatetimeLike):
 
         tm.assert_numpy_array_equal(dexer, np.array([0, 2, 1]), check_dtype=False)
 
-    def test_get_duplicates(self):
-        idx = TimedeltaIndex(["1 day", "2 day", "2 day", "3 day", "3day", "4day"])
-
-        with tm.assert_produces_warning(FutureWarning):
-            # Deprecated - see GH20239
-            result = idx.get_duplicates()
-
-        ex = TimedeltaIndex(["2 day", "3day"])
-        tm.assert_index_equal(result, ex)
-
     def test_argmin_argmax(self):
         idx = TimedeltaIndex(["1 day 00:00:05", "1 day 00:00:01", "1 day 00:00:02"])
         assert idx.argmin() == 1
@@ -239,7 +177,7 @@ class TestTimedeltaIndex(DatetimeLike):
     def test_hash_error(self):
         index = timedelta_range("1 days", periods=10)
         with pytest.raises(
-            TypeError, match=("unhashable type: {0.__name__!r}".format(type(index)))
+            TypeError, match=(f"unhashable type: {repr(type(index).__name__)}")
         ):
             hash(index)
 
@@ -262,6 +200,13 @@ class TestTimedeltaIndex(DatetimeLike):
 
         result = a.append(c)
         assert (result["B"] == td).all()
+
+    def test_delete_doesnt_infer_freq(self):
+        # GH#30655 behavior matches DatetimeIndex
+
+        tdi = pd.TimedeltaIndex(["1 Day", "2 Days", None, "3 Days", "4 Days"])
+        result = tdi.delete(2)
+        assert result.freq is None
 
     def test_fields(self):
         rng = timedelta_range("1 days, 10:11:12.100123456", periods=2, freq="s")
@@ -309,43 +254,42 @@ class TestTimedeltaIndex(DatetimeLike):
 
         result = td / np.timedelta64(1, "D")
         expected = Series([31, 31, (31 * 86400 + 5 * 60 + 3) / 86400.0, np.nan])
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = td.astype("timedelta64[D]")
         expected = Series([31, 31, 31, np.nan])
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = td / np.timedelta64(1, "s")
         expected = Series([31 * 86400, 31 * 86400, 31 * 86400 + 5 * 60 + 3, np.nan])
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = td.astype("timedelta64[s]")
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # tdi
         td = TimedeltaIndex(td)
 
         result = td / np.timedelta64(1, "D")
         expected = Index([31, 31, (31 * 86400 + 5 * 60 + 3) / 86400.0, np.nan])
-        assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         result = td.astype("timedelta64[D]")
         expected = Index([31, 31, 31, np.nan])
-        assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         result = td / np.timedelta64(1, "s")
         expected = Index([31 * 86400, 31 * 86400, 31 * 86400 + 5 * 60 + 3, np.nan])
-        assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         result = td.astype("timedelta64[s]")
-        assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("unit", ["Y", "y", "M"])
-    def test_unit_m_y_deprecated(self, unit):
-        with tm.assert_produces_warning(FutureWarning) as w:
+    def test_unit_m_y_raises(self, unit):
+        msg = "Units 'M' and 'Y' are no longer supported"
+        with pytest.raises(ValueError, match=msg):
             TimedeltaIndex([1, 3, 7], unit)
-        msg = r".* units are deprecated .*"
-        assert re.match(msg, str(w[0].message))
 
 
 class TestTimeSeries:

@@ -226,11 +226,8 @@ cdef object get_dst_info(object tz):
         if treat_tz_as_pytz(tz):
             trans = np.array(tz._utc_transition_times, dtype='M8[ns]')
             trans = trans.view('i8')
-            try:
-                if tz._utc_transition_times[0].year == 1:
-                    trans[0] = NPY_NAT + 1
-            except Exception:
-                pass
+            if tz._utc_transition_times[0].year == 1:
+                trans[0] = NPY_NAT + 1
             deltas = unbox_utcoffsets(tz._transition_info)
             typ = 'pytz'
 
@@ -283,8 +280,8 @@ def infer_tzinfo(start, end):
     if start is not None and end is not None:
         tz = start.tzinfo
         if not tz_compare(tz, end.tzinfo):
-            msg = 'Inputs must both have the same timezone, {tz1} != {tz2}'
-            raise AssertionError(msg.format(tz1=tz, tz2=end.tzinfo))
+            raise AssertionError(f'Inputs must both have the same timezone, '
+                                 f'{tz} != {end.tzinfo}')
     elif start is not None:
         tz = start.tzinfo
     elif end is not None:

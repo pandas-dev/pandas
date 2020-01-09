@@ -3,6 +3,7 @@ from io import StringIO
 import re
 import sys
 import textwrap
+import warnings
 
 import numpy as np
 import pytest
@@ -18,8 +19,7 @@ from pandas import (
     option_context,
     period_range,
 )
-from pandas.tests.frame.common import TestData
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 import pandas.io.formats.format as fmt
 
@@ -27,21 +27,21 @@ import pandas.io.formats.format as fmt
 # structure
 
 
-class TestDataFrameReprInfoEtc(TestData):
+class TestDataFrameReprInfoEtc:
     def test_repr_empty(self):
         # empty
-        foo = repr(self.empty)  # noqa
+        repr(DataFrame())
 
         # empty with index
         frame = DataFrame(index=np.arange(1000))
-        foo = repr(frame)  # noqa
+        repr(frame)
 
-    def test_repr_mixed(self):
+    def test_repr_mixed(self, float_string_frame):
         buf = StringIO()
 
         # mixed
-        foo = repr(self.mixed_frame)  # noqa
-        self.mixed_frame.info(verbose=False, buf=buf)
+        repr(float_string_frame)
+        float_string_frame.info(verbose=False, buf=buf)
 
     @pytest.mark.slow
     def test_repr_mixed_big(self):
@@ -52,27 +52,27 @@ class TestDataFrameReprInfoEtc(TestData):
         biggie.loc[:20, "A"] = np.nan
         biggie.loc[:20, "B"] = np.nan
 
-        foo = repr(biggie)  # noqa
+        repr(biggie)
 
-    def test_repr(self):
+    def test_repr(self, float_frame):
         buf = StringIO()
 
         # small one
-        foo = repr(self.frame)
-        self.frame.info(verbose=False, buf=buf)
+        repr(float_frame)
+        float_frame.info(verbose=False, buf=buf)
 
         # even smaller
-        self.frame.reindex(columns=["A"]).info(verbose=False, buf=buf)
-        self.frame.reindex(columns=["A", "B"]).info(verbose=False, buf=buf)
+        float_frame.reindex(columns=["A"]).info(verbose=False, buf=buf)
+        float_frame.reindex(columns=["A", "B"]).info(verbose=False, buf=buf)
 
         # exhausting cases in DataFrame.info
 
         # columns but no index
         no_index = DataFrame(columns=[0, 1, 3])
-        foo = repr(no_index)  # noqa
+        repr(no_index)
 
         # no columns or index
-        self.empty.info(buf=buf)
+        DataFrame().info(buf=buf)
 
         df = DataFrame(["a\n\r\tb"], columns=["a\n\r\td"], index=["a\n\r\tf"])
         assert "\t" not in repr(df)
@@ -96,9 +96,8 @@ class TestDataFrameReprInfoEtc(TestData):
         biggie = DataFrame(np.zeros((200, 4)), columns=range(4), index=range(200))
         repr(biggie)
 
-    def test_repr_unsortable(self):
+    def test_repr_unsortable(self, float_frame):
         # columns are not sortable
-        import warnings
 
         warn_filters = warnings.filters
         warnings.filterwarnings("ignore", category=FutureWarning, module=".*format")
@@ -115,13 +114,13 @@ class TestDataFrameReprInfoEtc(TestData):
         repr(unsortable)
 
         fmt.set_option("display.precision", 3, "display.column_space", 10)
-        repr(self.frame)
+        repr(float_frame)
 
         fmt.set_option("display.max_rows", 10, "display.max_columns", 2)
-        repr(self.frame)
+        repr(float_frame)
 
         fmt.set_option("display.max_rows", 1000, "display.max_columns", 1000)
-        repr(self.frame)
+        repr(float_frame)
 
         tm.reset_display_options()
 
@@ -196,15 +195,37 @@ class TestDataFrameReprInfoEtc(TestData):
         # GH 12182
         assert df._repr_latex_() is None
 
-    def test_info(self):
+    def test_info(self, float_frame, datetime_frame):
         io = StringIO()
-        self.frame.info(buf=io)
-        self.tsframe.info(buf=io)
+        float_frame.info(buf=io)
+        datetime_frame.info(buf=io)
 
         frame = DataFrame(np.random.randn(5, 3))
 
         frame.info()
         frame.info(verbose=False)
+
+    def test_info_verbose(self):
+        buf = StringIO()
+        size = 1001
+        start = 5
+        frame = DataFrame(np.random.randn(3, size))
+        frame.info(verbose=True, buf=buf)
+
+        res = buf.getvalue()
+        header = " #    Column  Dtype  \n---   ------  -----  "
+        assert header in res
+
+        frame.info(verbose=True, buf=buf)
+        buf.seek(0)
+        lines = buf.readlines()
+        assert len(lines) > 0
+
+        for i, line in enumerate(lines):
+            if i >= start and i < start + size:
+                index = i - start
+                line_nr = " {} ".format(index)
+                assert line.startswith(line_nr)
 
     def test_info_memory(self):
         # https://github.com/pandas-dev/pandas/issues/21056
@@ -219,7 +240,9 @@ class TestDataFrameReprInfoEtc(TestData):
         <class 'pandas.core.frame.DataFrame'>
         RangeIndex: 2 entries, 0 to 1
         Data columns (total 1 columns):
-        a    2 non-null int64
+         #   Column  Non-Null Count  Dtype
+        ---  ------  --------------  -----
+         0   a       2 non-null      int64
         dtypes: int64(1)
         memory usage: {} bytes
         """.format(
@@ -263,8 +286,8 @@ class TestDataFrameReprInfoEtc(TestData):
         frame.info(buf=io)
         io.seek(0)
         lines = io.readlines()
-        assert "a    1 non-null int64\n" == lines[3]
-        assert "a    1 non-null float64\n" == lines[4]
+        assert " 0   a       1 non-null      int64  \n" == lines[5]
+        assert " 1   a       1 non-null      float64\n" == lines[6]
 
     def test_info_shows_column_dtypes(self):
         dtypes = [
@@ -284,13 +307,20 @@ class TestDataFrameReprInfoEtc(TestData):
         buf = StringIO()
         df.info(buf=buf)
         res = buf.getvalue()
+        header = (
+            " #   Column  Non-Null Count  Dtype          \n"
+            "---  ------  --------------  -----          "
+        )
+        assert header in res
         for i, dtype in enumerate(dtypes):
-            name = "{i:d}    {n:d} non-null {dtype}".format(i=i, n=n, dtype=dtype)
+            name = " {i:d}   {i:d}       {n:d} non-null     {dtype}".format(
+                i=i, n=n, dtype=dtype
+            )
             assert name in res
 
     def test_info_max_cols(self):
         df = DataFrame(np.random.randn(10, 5))
-        for len_, verbose in [(5, None), (5, False), (10, True)]:
+        for len_, verbose in [(5, None), (5, False), (12, True)]:
             # For verbose always      ^ setting  ^ summarize ^ full output
             with option_context("max_info_columns", 4):
                 buf = StringIO()
@@ -298,16 +328,16 @@ class TestDataFrameReprInfoEtc(TestData):
                 res = buf.getvalue()
                 assert len(res.strip().split("\n")) == len_
 
-        for len_, verbose in [(10, None), (5, False), (10, True)]:
+        for len_, verbose in [(12, None), (5, False), (12, True)]:
 
-            # max_cols no exceeded
+            # max_cols not exceeded
             with option_context("max_info_columns", 5):
                 buf = StringIO()
                 df.info(buf=buf, verbose=verbose)
                 res = buf.getvalue()
                 assert len(res.strip().split("\n")) == len_
 
-        for len_, max_cols in [(10, 5), (5, 4)]:
+        for len_, max_cols in [(12, 5), (5, 4)]:
             # setting truncates
             with option_context("max_info_columns", 4):
                 buf = StringIO()

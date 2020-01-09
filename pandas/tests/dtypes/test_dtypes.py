@@ -12,10 +12,8 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_datetime64_ns_dtype,
     is_datetime64tz_dtype,
-    is_datetimetz,
     is_dtype_equal,
     is_interval_dtype,
-    is_period,
     is_period_dtype,
     is_string_dtype,
 )
@@ -24,14 +22,13 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     IntervalDtype,
     PeriodDtype,
-    ordered_sentinel,
     registry,
 )
 
 import pandas as pd
 from pandas import Categorical, CategoricalIndex, IntervalIndex, Series, date_range
-from pandas.core.sparse.api import SparseDtype
-import pandas.util.testing as tm
+import pandas._testing as tm
+from pandas.core.arrays.sparse import SparseArray, SparseDtype
 
 
 class Base:
@@ -67,8 +64,7 @@ class Base:
 
 class TestCategoricalDtype(Base):
     def create(self):
-        # TODO(GH 26403): Remove when default ordered becomes False
-        return CategoricalDtype(ordered=None)
+        return CategoricalDtype()
 
     def test_pickle(self):
         # make sure our cache is NOT pickled
@@ -189,7 +185,7 @@ class TestDatetimeTZDtype(Base):
 
     def test_alias_to_unit_raises(self):
         # 23990
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(ValueError, match="Passing a dtype alias"):
             DatetimeTZDtype("datetime64[ns, US/Central]")
 
     def test_alias_to_unit_bad_alias_raises(self):
@@ -240,7 +236,7 @@ class TestDatetimeTZDtype(Base):
     def test_construction_from_string(self):
         result = DatetimeTZDtype.construct_from_string("datetime64[ns, US/Eastern]")
         assert is_dtype_equal(self.dtype, result)
-        msg = "Could not construct DatetimeTZDtype from 'foo'"
+        msg = "Cannot construct a 'DatetimeTZDtype' from 'foo'"
         with pytest.raises(TypeError, match=msg):
             DatetimeTZDtype.construct_from_string("foo")
 
@@ -248,8 +244,18 @@ class TestDatetimeTZDtype(Base):
         with pytest.raises(TypeError, match="notatz"):
             DatetimeTZDtype.construct_from_string("datetime64[ns, notatz]")
 
-        with pytest.raises(TypeError, match="^Could not construct DatetimeTZDtype$"):
+        msg = "^Cannot construct a 'DatetimeTZDtype'"
+        with pytest.raises(TypeError, match=msg):
+            # list instead of string
             DatetimeTZDtype.construct_from_string(["datetime64[ns, notatz]"])
+
+        with pytest.raises(TypeError, match=msg):
+            # non-nano unit
+            DatetimeTZDtype.construct_from_string("datetime64[ps, UTC]")
+
+        with pytest.raises(TypeError, match=msg):
+            # dateutil str that returns None from gettz
+            DatetimeTZDtype.construct_from_string("datetime64[ns, dateutil/invalid]")
 
     def test_is_dtype(self):
         assert not DatetimeTZDtype.is_dtype(None)
@@ -284,32 +290,22 @@ class TestDatetimeTZDtype(Base):
         assert not is_datetime64tz_dtype(np.dtype("float64"))
         assert not is_datetime64tz_dtype(1.0)
 
-        with tm.assert_produces_warning(FutureWarning):
-            assert is_datetimetz(s)
-            assert is_datetimetz(s.dtype)
-            assert not is_datetimetz(np.dtype("float64"))
-            assert not is_datetimetz(1.0)
-
     def test_dst(self):
 
         dr1 = date_range("2013-01-01", periods=3, tz="US/Eastern")
         s1 = Series(dr1, name="A")
         assert is_datetime64tz_dtype(s1)
-        with tm.assert_produces_warning(FutureWarning):
-            assert is_datetimetz(s1)
 
         dr2 = date_range("2013-08-01", periods=3, tz="US/Eastern")
         s2 = Series(dr2, name="A")
         assert is_datetime64tz_dtype(s2)
-        with tm.assert_produces_warning(FutureWarning):
-            assert is_datetimetz(s2)
         assert s1.dtype == s2.dtype
 
     @pytest.mark.parametrize("tz", ["UTC", "US/Eastern"])
     @pytest.mark.parametrize("constructor", ["M8", "datetime64"])
     def test_parser(self, tz, constructor):
         # pr #11245
-        dtz_str = "{con}[ns, {tz}]".format(con=constructor, tz=tz)
+        dtz_str = f"{constructor}[ns, {tz}]"
         result = DatetimeTZDtype.construct_from_string(dtz_str)
         expected = DatetimeTZDtype("ns", tz)
         assert result == expected
@@ -412,6 +408,9 @@ class TestPeriodDtype(Base):
         with pytest.raises(TypeError):
             PeriodDtype.construct_from_string("datetime64[ns, US/Eastern]")
 
+        with pytest.raises(TypeError, match="list"):
+            PeriodDtype.construct_from_string([1, 2, 3])
+
     def test_is_dtype(self):
         assert PeriodDtype.is_dtype(self.dtype)
         assert PeriodDtype.is_dtype("period[D]")
@@ -447,22 +446,14 @@ class TestPeriodDtype(Base):
 
         assert is_period_dtype(pidx.dtype)
         assert is_period_dtype(pidx)
-        with tm.assert_produces_warning(FutureWarning):
-            assert is_period(pidx)
 
         s = Series(pidx, name="A")
 
         assert is_period_dtype(s.dtype)
         assert is_period_dtype(s)
-        with tm.assert_produces_warning(FutureWarning):
-            assert is_period(s)
 
         assert not is_period_dtype(np.dtype("float64"))
         assert not is_period_dtype(1.0)
-        with tm.assert_produces_warning(FutureWarning):
-            assert not is_period(np.dtype("float64"))
-        with tm.assert_produces_warning(FutureWarning):
-            assert not is_period(1.0)
 
     def test_empty(self):
         dt = PeriodDtype()
@@ -647,7 +638,7 @@ class TestIntervalDtype(Base):
     def test_name_repr(self, subtype):
         # GH 18980
         dtype = IntervalDtype(subtype)
-        expected = "interval[{subtype}]".format(subtype=subtype)
+        expected = f"interval[{subtype}]"
         assert str(dtype) == expected
         assert dtype.name == "interval"
 
@@ -697,6 +688,10 @@ class TestIntervalDtype(Base):
         tm.round_trip_pickle(dtype)
         assert len(IntervalDtype._cache) == 0
 
+    def test_not_string(self):
+        # GH30568: though IntervalDtype has object kind, it cannot be string
+        assert not is_string_dtype(IntervalDtype())
+
 
 class TestCategoricalDtypeParametrized:
     @pytest.mark.parametrize(
@@ -731,8 +726,7 @@ class TestCategoricalDtypeParametrized:
     def test_categories(self):
         result = CategoricalDtype(["a", "b", "c"])
         tm.assert_index_equal(result.categories, pd.Index(["a", "b", "c"]))
-        with tm.assert_produces_warning(FutureWarning):
-            assert result.ordered is None
+        assert result.ordered is False
 
     def test_equal_but_different(self, ordered_fixture):
         c1 = CategoricalDtype([1, 2, 3])
@@ -857,25 +851,15 @@ class TestCategoricalDtypeParametrized:
     @pytest.mark.parametrize(
         "new_categories", [list("abc"), list("cba"), list("wxyz"), None]
     )
-    @pytest.mark.parametrize("new_ordered", [True, False, None, ordered_sentinel])
+    @pytest.mark.parametrize("new_ordered", [True, False, None])
     def test_update_dtype(self, ordered_fixture, new_categories, new_ordered):
-        dtype = CategoricalDtype(list("abc"), ordered_fixture)
+        original_categories = list("abc")
+        dtype = CategoricalDtype(original_categories, ordered_fixture)
         new_dtype = CategoricalDtype(new_categories, new_ordered)
 
-        expected_categories = new_dtype.categories
-        if expected_categories is None:
-            expected_categories = dtype.categories
-
-        expected_ordered = new_ordered
-        if new_ordered is ordered_sentinel or new_ordered is None:
-            expected_ordered = dtype.ordered
-
-        # GH 26336
-        if new_ordered is ordered_sentinel and ordered_fixture is True:
-            with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-                result = dtype.update_dtype(new_dtype)
-        else:
-            result = dtype.update_dtype(new_dtype)
+        result = dtype.update_dtype(new_dtype)
+        expected_categories = pd.Index(new_categories or original_categories)
+        expected_ordered = new_ordered if new_ordered is not None else dtype.ordered
 
         tm.assert_index_equal(result.categories, expected_categories)
         assert result.ordered is expected_ordered
@@ -894,27 +878,6 @@ class TestCategoricalDtypeParametrized:
         msg = "a CategoricalDtype must be passed to perform an update, "
         with pytest.raises(ValueError, match=msg):
             dtype.update_dtype(bad_dtype)
-
-    @pytest.mark.parametrize("ordered", [ordered_sentinel, None, True, False])
-    def test_ordered_none_default_deprecated(self, ordered):
-        # GH 26403: CDT.ordered only warns if ordered is not explicitly passed
-        dtype = CategoricalDtype(list("abc"), ordered=ordered)
-        warning = FutureWarning if ordered is ordered_sentinel else None
-        with tm.assert_produces_warning(warning):
-            dtype.ordered
-
-    @pytest.mark.parametrize("ordered", [True, False, None, ordered_sentinel])
-    def test_pickle_ordered_from_sentinel(self, ordered):
-        # GH 27295: can remove test when _ordered_from_sentinel is removed (GH 26403)
-        dtype = CategoricalDtype(categories=list("abc"), ordered=ordered)
-
-        warning = FutureWarning if ordered is ordered_sentinel else None
-        with tm.assert_produces_warning(warning, check_stacklevel=False):
-            dtype_from_pickle = tm.round_trip_pickle(dtype)
-
-        result = dtype_from_pickle._ordered_from_sentinel
-        expected = ordered is ordered_sentinel
-        assert result is expected
 
 
 @pytest.mark.parametrize(
@@ -951,7 +914,7 @@ def test_registry_find(dtype, expected):
         (pd.Series([1, 2]), False),
         (np.array([True, False]), True),
         (pd.Series([True, False]), True),
-        (pd.SparseArray([True, False]), True),
+        (SparseArray([True, False]), True),
         (SparseDtype(bool), True),
     ],
 )
@@ -960,9 +923,8 @@ def test_is_bool_dtype(dtype, expected):
     assert result is expected
 
 
-@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 def test_is_bool_dtype_sparse():
-    result = is_bool_dtype(pd.SparseSeries([True, False]))
+    result = is_bool_dtype(pd.Series(SparseArray([True, False])))
     assert result is True
 
 

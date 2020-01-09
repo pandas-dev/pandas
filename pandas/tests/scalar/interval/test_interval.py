@@ -254,6 +254,6 @@ class TestInterval:
         # GH 18538
         left = Timestamp("2017-01-01", tz=tz_left)
         right = Timestamp("2017-01-02", tz=tz_right)
-        error = TypeError if com._any_none(tz_left, tz_right) else ValueError
+        error = TypeError if com.any_none(tz_left, tz_right) else ValueError
         with pytest.raises(error):
             Interval(left, right)

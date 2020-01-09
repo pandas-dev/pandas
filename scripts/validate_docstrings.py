@@ -13,20 +13,19 @@ Usage::
     $ ./validate_docstrings.py
     $ ./validate_docstrings.py pandas.DataFrame.head
 """
-import os
-import sys
-import json
-import re
-import glob
-import functools
-import collections
 import argparse
-import pydoc
-import inspect
-import importlib
-import doctest
-import tempfile
 import ast
+import doctest
+import functools
+import glob
+import importlib
+import inspect
+import json
+import os
+import pydoc
+import re
+import sys
+import tempfile
 import textwrap
 
 import flake8.main.application
@@ -41,24 +40,25 @@ except ImportError:
 # script. Setting here before matplotlib is loaded.
 # We don't warn for the number of open plots, as none is actually being opened
 os.environ["MPLBACKEND"] = "Template"
-import matplotlib
+import matplotlib  # noqa: E402 isort:skip
 
 matplotlib.rc("figure", max_open_warning=10000)
 
-import numpy
+import numpy  # noqa: E402 isort:skip
 
 BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 sys.path.insert(0, os.path.join(BASE_PATH))
-import pandas
+import pandas  # noqa: E402 isort:skip
 
 sys.path.insert(1, os.path.join(BASE_PATH, "doc", "sphinxext"))
-from numpydoc.docscrape import NumpyDocString
-from pandas.io.formats.printing import pprint_thing
+from numpydoc.docscrape import NumpyDocString  # noqa: E402 isort:skip
+from pandas.io.formats.printing import pprint_thing  # noqa: E402 isort:skip
 
 
 PRIVATE_CLASSES = ["NDFrame", "IndexOpsMixin"]
 DIRECTIVES = ["versionadded", "versionchanged", "deprecated"]
+DIRECTIVE_PATTERN = re.compile(rf"^\s*\.\. ({'|'.join(DIRECTIVES)})(?!::)", re.I | re.M)
 ALLOWED_SECTIONS = [
     "Parameters",
     "Attributes",
@@ -90,9 +90,10 @@ ERROR_MSGS = {
     "whitespace only",
     "GL06": 'Found unknown section "{section}". Allowed sections are: '
     "{allowed_sections}",
-    "GL07": "Sections are in the wrong order. Correct order is: " "{correct_sections}",
+    "GL07": "Sections are in the wrong order. Correct order is: {correct_sections}",
     "GL08": "The object does not have a docstring",
     "GL09": "Deprecation warning should precede extended summary",
+    "GL10": "reST directives {directives} must be followed by two colons",
     "SS01": "No summary found (a short summary in a single line should be "
     "present at the beginning of the docstring)",
     "SS02": "Summary does not start with a capital letter",
@@ -248,7 +249,7 @@ class Docstring:
         self.clean_doc = pydoc.getdoc(obj)
         self.doc = NumpyDocString(self.clean_doc)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.raw_doc)
 
     @staticmethod
@@ -284,7 +285,7 @@ class Docstring:
                 continue
 
         if "obj" not in locals():
-            raise ImportError("No module can be imported " 'from "{}"'.format(name))
+            raise ImportError(f'No module can be imported from "{name}"')
 
         for part in func_parts:
             obj = getattr(obj, part)
@@ -356,7 +357,7 @@ class Docstring:
     @property
     def github_url(self):
         url = "https://github.com/pandas-dev/pandas/blob/master/"
-        url += "{}#L{}".format(self.source_file_name, self.source_file_def_line)
+        url += f"{self.source_file_name}#L{self.source_file_def_line}"
         return url
 
     @property
@@ -420,13 +421,25 @@ class Docstring:
 
     @property
     def doc_parameters(self):
-        return collections.OrderedDict(
-            (name, (type_, "".join(desc)))
-            for name, type_, desc in self.doc["Parameters"]
-        )
+        parameters = {}
+        for names, type_, desc in self.doc["Parameters"]:
+            for name in names.split(", "):
+                parameters[name] = (type_, "".join(desc))
+        return parameters
 
     @property
     def signature_parameters(self):
+        def add_stars(param_name: str, info: inspect.Parameter):
+            """
+            Add stars to *args and **kwargs parameters
+            """
+            if info.kind == inspect.Parameter.VAR_POSITIONAL:
+                return f"*{param_name}"
+            elif info.kind == inspect.Parameter.VAR_KEYWORD:
+                return f"**{param_name}"
+            else:
+                return param_name
+
         if inspect.isclass(self.obj):
             if hasattr(self.obj, "_accessors") and (
                 self.name.split(".")[-1] in self.obj._accessors
@@ -434,17 +447,16 @@ class Docstring:
                 # accessor classes have a signature but don't want to show this
                 return tuple()
         try:
-            sig = inspect.getfullargspec(self.obj)
+            sig = inspect.signature(self.obj)
         except (TypeError, ValueError):
             # Some objects, mainly in C extensions do not support introspection
             # of the signature
             return tuple()
-        params = sig.args
-        if sig.varargs:
-            params.append("*" + sig.varargs)
-        if sig.varkw:
-            params.append("**" + sig.varkw)
-        params = tuple(params)
+
+        params = tuple(
+            add_stars(parameter, sig.parameters[parameter])
+            for parameter in sig.parameters
+        )
         if params and params[0] in ("self", "cls"):
             return params[1:]
         return params
@@ -478,6 +490,10 @@ class Docstring:
     def correct_parameters(self):
         return not bool(self.parameter_mismatches)
 
+    @property
+    def directives_without_two_colons(self):
+        return DIRECTIVE_PATTERN.findall(self.raw_doc)
+
     def parameter_type(self, param):
         return self.doc_parameters[param][0]
 
@@ -485,7 +501,7 @@ class Docstring:
         desc = self.doc_parameters[param][1]
         # Find and strip out any sphinx directives
         for directive in DIRECTIVES:
-            full_directive = ".. {}".format(directive)
+            full_directive = f".. {directive}"
             if full_directive in desc:
                 # Only retain any description before the directive
                 desc = desc[: desc.index(full_directive)]
@@ -493,7 +509,7 @@ class Docstring:
 
     @property
     def see_also(self):
-        result = collections.OrderedDict()
+        result = {}
         for funcs, desc in self.doc["See Also"]:
             for func, _ in funcs:
                 result[func] = "".join(desc)
@@ -697,6 +713,10 @@ def get_validation_data(doc):
     if doc.deprecated and not doc.extended_summary.startswith(".. deprecated:: "):
         errs.append(error("GL09"))
 
+    directives_without_two_colons = doc.directives_without_two_colons
+    if directives_without_two_colons:
+        errs.append(error("GL10", directives=directives_without_two_colons))
+
     if not doc.summary:
         errs.append(error("SS01"))
     else:
@@ -805,14 +825,12 @@ def get_validation_data(doc):
                     "EX03",
                     error_code=err.error_code,
                     error_message=err.message,
-                    times_happening=" ({} times)".format(err.count)
-                    if err.count > 1
-                    else "",
+                    times_happening=f" ({err.count} times)" if err.count > 1 else "",
                 )
             )
         examples_source_code = "".join(doc.examples_source_code)
         for wrong_import in ("numpy", "pandas"):
-            if "import {}".format(wrong_import) in examples_source_code:
+            if f"import {wrong_import}" in examples_source_code:
                 errs.append(error("EX04", imported_library=wrong_import))
     return errs, wrns, examples_errs
 
@@ -900,7 +918,7 @@ def validate_all(prefix, ignore_deprecated=False):
     api_item_names = set(list(zip(*api_items))[0])
     for class_ in (pandas.Series, pandas.DataFrame):
         for member in inspect.getmembers(class_):
-            func_name = "pandas.{}.{}".format(class_.__name__, member[0])
+            func_name = f"pandas.{class_.__name__}.{member[0]}"
             if not member[0].startswith("_") and func_name not in api_item_names:
                 if prefix and not func_name.startswith(prefix):
                     continue
@@ -918,13 +936,9 @@ def main(func_name, prefix, errors, output_format, ignore_deprecated):
         full_line = char * width
         side_len = (width - len(title) - 2) // 2
         adj = "" if len(title) % 2 == 0 else " "
-        title_line = "{side} {title}{adj} {side}".format(
-            side=char * side_len, title=title, adj=adj
-        )
+        title_line = f"{char * side_len} {title}{adj} {char * side_len}"
 
-        return "\n{full_line}\n{title_line}\n{full_line}\n\n".format(
-            full_line=full_line, title_line=title_line
-        )
+        return f"\n{full_line}\n{title_line}\n{full_line}\n\n"
 
     exit_status = 0
     if func_name is None:
@@ -944,7 +958,7 @@ def main(func_name, prefix, errors, output_format, ignore_deprecated):
                     "]{text}\n"
                 )
             else:
-                raise ValueError('Unknown output_format "{}"'.format(output_format))
+                raise ValueError(f'Unknown output_format "{output_format}"')
 
             output = ""
             for name, res in result.items():
@@ -956,35 +970,34 @@ def main(func_name, prefix, errors, output_format, ignore_deprecated):
                         continue
                     exit_status += 1
                     output += output_format.format(
-                        name=name,
                         path=res["file"],
                         row=res["file_line"],
                         code=err_code,
-                        text="{}: {}".format(name, err_desc),
+                        text=f"{name}: {err_desc}",
                     )
 
         sys.stdout.write(output)
 
     else:
         result = validate_one(func_name)
-        sys.stderr.write(header("Docstring ({})".format(func_name)))
-        sys.stderr.write("{}\n".format(result["docstring"]))
+        sys.stderr.write(header(f"Docstring ({func_name})"))
+        sys.stderr.write(f"{result['docstring']}\n")
         sys.stderr.write(header("Validation"))
         if result["errors"]:
-            sys.stderr.write("{} Errors found:\n".format(len(result["errors"])))
+            sys.stderr.write(f"{len(result['errors'])} Errors found:\n")
             for err_code, err_desc in result["errors"]:
                 # Failing examples are printed at the end
                 if err_code == "EX02":
                     sys.stderr.write("\tExamples do not pass tests\n")
                     continue
-                sys.stderr.write("\t{}\n".format(err_desc))
+                sys.stderr.write(f"\t{err_desc}\n")
         if result["warnings"]:
-            sys.stderr.write("{} Warnings found:\n".format(len(result["warnings"])))
+            sys.stderr.write(f"{len(result['warnings'])} Warnings found:\n")
             for wrn_code, wrn_desc in result["warnings"]:
-                sys.stderr.write("\t{}\n".format(wrn_desc))
+                sys.stderr.write(f"\t{wrn_desc}\n")
 
         if not result["errors"]:
-            sys.stderr.write('Docstring for "{}" correct. :)\n'.format(func_name))
+            sys.stderr.write(f'Docstring for "{func_name}" correct. :)\n')
 
         if result["examples_errors"]:
             sys.stderr.write(header("Doctests"))
@@ -1008,7 +1021,7 @@ if __name__ == "__main__":
         choices=format_opts,
         help="format of the output when validating "
         "multiple docstrings (ignored when validating one)."
-        "It can be {}".format(str(format_opts)[1:-1]),
+        f"It can be {str(format_opts)[1:-1]}",
     )
     argparser.add_argument(
         "--prefix",
