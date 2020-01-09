@@ -304,7 +304,7 @@ else:
         datetime = dt
 
         def __getattr__(cls, item):
-            cls.emitWarning()
+            cls.emit_warning()
 
             try:
                 return getattr(cls.datetime, item)
@@ -312,13 +312,10 @@ else:
                 raise AttributeError(f"module datetime has no attribute {item}")
 
         def __instancecheck__(cls, other):
-            if isinstance(other, cls.datetime):
-                return True
-            else:
-                return False
+            return isinstance(other, cls.datetime)
 
     class __DatetimeSub(metaclass=__Datetime):
-        def emitWarning(dummy=0):
+        def emit_warning(dummy=0):
             import warnings
 
             warnings.warn(
@@ -330,7 +327,7 @@ else:
             )
 
         def __new__(cls, *args, **kwargs):
-            cls.emitWarning()
+            cls.emit_warning()
             from datetime import datetime as dt
 
             return dt(*args, **kwargs)
@@ -344,13 +341,10 @@ else:
         SparseArray = sa
 
         def __instancecheck__(cls, other):
-            if isinstance(other, cls.SparseArray):
-                return True
-            else:
-                return False
+            return isinstance(other, cls.SparseArray)
 
     class __SparseArraySub(metaclass=__SparseArray):
-        def emitWarning(dummy=0):
+        def emit_warning(dummy=0):
             import warnings
 
             warnings.warn(
@@ -362,7 +356,7 @@ else:
             )
 
         def __new__(cls, *args, **kwargs):
-            cls.emitWarning()
+            cls.emit_warning()
             from pandas.core.arrays.sparse import SparseArray as sa
 
             return sa(*args, **kwargs)
