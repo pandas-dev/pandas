@@ -4554,10 +4554,7 @@ class DataFrame(NDFrame):
 
         def _maybe_casted_values(index, labels=None):
             values = index._values
-            if not isinstance(index, (PeriodIndex, DatetimeIndex)):
-                if values.dtype == np.object_:
-                    values = lib.maybe_convert_objects(values)
-
+            
             # if we have the labels, extract the values with a mask
             if labels is not None:
                 mask = labels == -1
