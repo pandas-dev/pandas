@@ -212,15 +212,6 @@ class TimedeltaIndex(
         return _get_format_timedelta64(self, box=True)
 
     # -------------------------------------------------------------------
-    # Wrapping TimedeltaArray
-
-    def __getitem__(self, key):
-        result = self._data.__getitem__(key)
-        if is_scalar(result):
-            return result
-        return type(self)(result, name=self.name)
-
-    # -------------------------------------------------------------------
 
     @Appender(_index_shared_docs["astype"])
     def astype(self, dtype, copy=True):
