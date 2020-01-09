@@ -292,6 +292,71 @@ New repr for :class:`~pandas.arrays.IntervalArray`
 
    pd.arrays.IntervalArray.from_tuples([(0, 1), (2, 3)])
 
+``DataFrame.rename`` now only accepts one positional argument
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- :meth:`DataFrame.rename` would previously accept positional arguments that would lead
+  to ambiguous or undefined behavior. From pandas 1.0, only the very first argument, which
+  maps labels to their new names along the default axis, is allowed to be passed by position
+  (:issue:`29136`).
+
+*pandas 0.25.x*
+
+.. code-block:: ipython
+
+   In [1]: df = pd.DataFrame([[1]])
+   In [2]: df.rename({0: 1}, {0: 2})
+   FutureWarning: ...Use named arguments to resolve ambiguity...
+   Out[2]:
+      2
+   1  1
+
+*pandas 1.0.0*
+
+.. ipython:: python
+   :okexcept:
+
+   df.rename({0: 1}, {0: 2})
+
+Note that errors will now be raised when conflicting or potentially ambiguous arguments are provided.
+
+*pandas 0.25.x*
+
+.. code-block:: ipython
+
+   In [1]: df.rename({0: 1}, index={0: 2})
+   Out[1]:
+      0
+   1  1
+
+   In [2]: df.rename(mapper={0: 1}, index={0: 2})
+   Out[2]:
+      0
+   2  1
+
+*pandas 1.0.0*
+
+.. ipython:: python
+   :okexcept:
+
+   df.rename({0: 1}, index={0: 2})
+   df.rename(mapper={0: 1}, index={0: 2})
+
+You can still change the axis along which the first positional argument is applied by
+supplying the ``axis`` keyword argument.
+
+.. ipython:: python
+
+   df.rename({0: 1})
+   df.rename({0: 1}, axis=1)
+
+If you would like to update both the index and column labels, be sure to use the respective
+keywords.
+
+.. ipython:: python
+
+   df.rename(index={0: 1}, columns={0: 2})
+
 Extended verbose info output for :class:`~pandas.DataFrame`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -572,7 +637,6 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
-
 
 .. _whatsnew_100.api.other:
 
