@@ -77,11 +77,6 @@ class BooleanDtype(ExtensionDtype):
         return np.bool_
 
     @property
-    def numpy_dtype(self):
-        """ Return an instance of our numpy dtype """
-        return np.dtype(self.type)
-
-    @property
     def kind(self) -> str:
         return "b"
 
