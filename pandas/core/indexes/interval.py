@@ -1175,11 +1175,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
     symmetric_difference = _setop("symmetric_difference")
 
     # TODO: arithmetic operations
-    # GH#30817 until IntervalArray implements inequalities, get them from Index
-    __lt__ = Index.__lt__
-    __le__ = Index.__le__
-    __gt__ = Index.__gt__
-    __ge__ = Index.__ge__
 
     def _delegate_property_get(self, name, *args, **kwargs):
         """ method delegation to the ._values """
@@ -1195,6 +1190,19 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
         if isinstance(res, IntervalArray):
             return type(self)._simple_new(res, name=self.name)
         return Index(res)
+
+    # GH#30817 until IntervalArray implements inequalities, get them from Index
+    def __lt__(self, other):
+        return Index.__lt__(self, other)
+
+    def __le__(self, other):
+        return Index.__le__(self, other)
+
+    def __gt__(self, other):
+        return Index.__gt__(self, other)
+
+    def __ge__(self, other):
+        return Index.__ge__(self, other)
 
 
 IntervalIndex._add_logical_methods_disabled()
