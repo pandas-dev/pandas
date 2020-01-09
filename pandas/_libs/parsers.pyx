@@ -1369,6 +1369,7 @@ STR_NA_VALUES = {
     "N/A",
     "n/a",
     "NA",
+    "<NA>",
     "#NA",
     "NULL",
     "null",

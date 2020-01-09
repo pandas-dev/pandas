@@ -9,14 +9,16 @@ import pandas as pd
 import pandas._testing as tm
 
 
-def test_repr_with_NA():
-    a = pd.array(["a", pd.NA, "b"], dtype="string")
-    for obj in [a, pd.Series(a), pd.DataFrame({"a": a})]:
-        assert "NA" in repr(obj) and "NaN" not in repr(obj)
-        assert "NA" in str(obj) and "NaN" not in str(obj)
-        if hasattr(obj, "_repr_html_"):
-            html_repr = obj._repr_html_()
-            assert "NA" in html_repr and "NaN" not in html_repr
+def test_repr():
+    df = pd.DataFrame({"A": pd.array(["a", pd.NA, "b"], dtype="string")})
+    expected = "      A\n0     a\n1  <NA>\n2     b"
+    assert repr(df) == expected
+
+    expected = "0       a\n1    <NA>\n2       b\nName: A, dtype: string"
+    assert repr(df.A) == expected
+
+    expected = "<StringArray>\n['a', <NA>, 'b']\nLength: 3, dtype: string"
+    assert repr(df.A.array) == expected
 
 
 def test_none_to_nan():

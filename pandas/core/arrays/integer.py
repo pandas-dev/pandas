@@ -301,19 +301,19 @@ class IntegerArray(BaseMaskedArray):
     >>> int_array = pd.array([1, None, 3], dtype=pd.Int32Dtype())
     >>> int_array
     <IntegerArray>
-    [1, NaN, 3]
+    [1, <NA>, 3]
     Length: 3, dtype: Int32
 
     String aliases for the dtypes are also available. They are capitalized.
 
     >>> pd.array([1, None, 3], dtype='Int32')
     <IntegerArray>
-    [1, NaN, 3]
+    [1, <NA>, 3]
     Length: 3, dtype: Int32
 
     >>> pd.array([1, None, 3], dtype='UInt16')
     <IntegerArray>
-    [1, NaN, 3]
+    [1, <NA>, 3]
     Length: 3, dtype: UInt16
     """
 

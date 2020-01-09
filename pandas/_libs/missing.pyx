@@ -354,10 +354,7 @@ class NAType(C_NAType):
         return NAType._instance
 
     def __repr__(self) -> str:
-        return "NA"
-
-    def __str__(self) -> str:
-        return "NA"
+        return "<NA>"
 
     def __bool__(self):
         raise TypeError("boolean value of NA is ambiguous")
