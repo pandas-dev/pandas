@@ -333,6 +333,7 @@ Note that errors will now be raised when conflicting or potentially ambiguous ar
 *pandas 1.0.0*
 
 .. ipython:: python
+   :okexcept:
 
    df.rename({0: 1}, index={0: 2})
    df.rename(mapper={0: 1}, index={0: 2})
