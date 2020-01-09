@@ -13,7 +13,7 @@ Starting with Pandas 1.0.0, pandas will adopt a variant of `SemVer`_ to
 version releases. Briefly,
 
 * Deprecations will be introduced in minor releases (e.g. 1.1.0, 1.2.0, 2.1.0, ...)
-* Deprecations will be enforced in major releases (e.g. 1.0.0, 2.0,0, 3.0.0, ...)
+* Deprecations will be enforced in major releases (e.g. 1.0.0, 2.0.0, 3.0.0, ...)
 * API-breaking changes will be made only in major releases
 
 See :ref:`policies.version` for more.
