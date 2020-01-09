@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray
-from pandas.util.testing import assert_extension_array_equal
 
 
 @pytest.mark.parametrize(
@@ -27,9 +27,9 @@ ExtensionArray values are different \\(50\\.0 %\\)
 \\[right\\]: \\[-0\\.17387645482.*, 0\\.341414801642.*\\]"""
 
         with pytest.raises(AssertionError, match=msg):
-            assert_extension_array_equal(arr1, arr2, **kwargs)
+            tm.assert_extension_array_equal(arr1, arr2, **kwargs)
     else:
-        assert_extension_array_equal(arr1, arr2, **kwargs)
+        tm.assert_extension_array_equal(arr1, arr2, **kwargs)
 
 
 @pytest.mark.parametrize(
@@ -50,9 +50,9 @@ ExtensionArray values are different \\(50\\.0 %\\)
 \\[right\\]: \\[0\\.5, 0\\.123457\\]"""
 
         with pytest.raises(AssertionError, match=msg):
-            assert_extension_array_equal(arr1, arr2, **kwargs)
+            tm.assert_extension_array_equal(arr1, arr2, **kwargs)
     else:
-        assert_extension_array_equal(arr1, arr2, **kwargs)
+        tm.assert_extension_array_equal(arr1, arr2, **kwargs)
 
 
 def test_assert_extension_array_equal_dtype_mismatch(check_dtype):
@@ -71,9 +71,9 @@ Attribute "dtype" are different
 \\[right\\]: Sparse\\[int32, 0\\]"""
 
         with pytest.raises(AssertionError, match=msg):
-            assert_extension_array_equal(arr1, arr2, **kwargs)
+            tm.assert_extension_array_equal(arr1, arr2, **kwargs)
     else:
-        assert_extension_array_equal(arr1, arr2, **kwargs)
+        tm.assert_extension_array_equal(arr1, arr2, **kwargs)
 
 
 def test_assert_extension_array_equal_missing_values():
@@ -88,7 +88,7 @@ ExtensionArray NA mask values are different \\(25\\.0 %\\)
 \\[right\\]: \\[True, False, False, False\\]"""
 
     with pytest.raises(AssertionError, match=msg):
-        assert_extension_array_equal(arr1, arr2)
+        tm.assert_extension_array_equal(arr1, arr2)
 
 
 @pytest.mark.parametrize("side", ["left", "right"])
@@ -96,7 +96,7 @@ def test_assert_extension_array_equal_non_extension_array(side):
     numpy_array = np.arange(5)
     extension_array = SparseArray(numpy_array)
 
-    msg = "{side} is not an ExtensionArray".format(side=side)
+    msg = f"{side} is not an ExtensionArray"
     args = (
         (numpy_array, extension_array)
         if side == "left"
@@ -104,4 +104,4 @@ def test_assert_extension_array_equal_non_extension_array(side):
     )
 
     with pytest.raises(AssertionError, match=msg):
-        assert_extension_array_equal(*args)
+        tm.assert_extension_array_equal(*args)

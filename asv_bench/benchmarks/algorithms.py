@@ -5,7 +5,8 @@ import numpy as np
 from pandas._libs import lib
 
 import pandas as pd
-from pandas.util import testing as tm
+
+from .pandas_vb_common import tm
 
 for imp in ["pandas.util", "pandas.tools.hashing"]:
     try:

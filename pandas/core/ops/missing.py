@@ -1,7 +1,7 @@
 """
 Missing data handling for arithmetic operations.
 
-In particular, pandas conventions regarding divison by zero differ
+In particular, pandas conventions regarding division by zero differ
 from numpy in the following ways:
     1) np.array([-1, 0, 1], dtype=dtype1) // np.array([0, 0, 0], dtype=dtype2)
        gives [nan, nan, nan] for most dtype combinations, and [0, 0, 0] for
@@ -27,7 +27,7 @@ import numpy as np
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype, is_scalar
 
-from .roperator import rdivmod, rfloordiv, rmod
+from pandas.core.ops.roperator import rdivmod, rfloordiv, rmod
 
 
 def fill_zeros(result, x, y):
@@ -168,7 +168,7 @@ def dispatch_fill_zeros(op, left, right, result):
         # Note: no need to do this for truediv; in py3 numpy behaves the way
         #  we want.
         result = mask_zero_div_zero(left, right, result)
-    elif op is op is rfloordiv:
+    elif op is rfloordiv:
         # Note: no need to do this for rtruediv; in py3 numpy behaves the way
         #  we want.
         result = mask_zero_div_zero(right, left, result)

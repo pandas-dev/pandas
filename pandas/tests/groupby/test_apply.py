@@ -6,7 +6,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, bdate_range
-from pandas.util import testing as tm
+import pandas._testing as tm
 
 
 def test_apply_issues():
@@ -265,7 +265,7 @@ def test_apply_concat_preserve_names(three_group):
         result = group.describe()
 
         # names are different
-        result.index.name = "stat_{:d}".format(len(group))
+        result.index.name = f"stat_{len(group):d}"
 
         result = result[: len(group)]
         # weirdo
@@ -543,6 +543,33 @@ def test_apply_numeric_coercion_when_datetime():
     tm.assert_series_equal(expected, result)
 
 
+def test_apply_aggregating_timedelta_and_datetime():
+    # Regression test for GH 15562
+    # The following groupby caused ValueErrors and IndexErrors pre 0.20.0
+
+    df = pd.DataFrame(
+        {
+            "clientid": ["A", "B", "C"],
+            "datetime": [np.datetime64("2017-02-01 00:00:00")] * 3,
+        }
+    )
+    df["time_delta_zero"] = df.datetime - df.datetime
+    result = df.groupby("clientid").apply(
+        lambda ddf: pd.Series(
+            dict(clientid_age=ddf.time_delta_zero.min(), date=ddf.datetime.min())
+        )
+    )
+    expected = pd.DataFrame(
+        {
+            "clientid": ["A", "B", "C"],
+            "clientid_age": [np.timedelta64(0, "D")] * 3,
+            "date": [np.datetime64("2017-02-01 00:00:00")] * 3,
+        }
+    ).set_index("clientid")
+
+    tm.assert_frame_equal(result, expected)
+
+
 def test_time_field_bug():
     # Test a fix for the following error related to GH issue 11324 When
     # non-key fields in a group-by dataframe contained time-based fields
@@ -659,6 +686,17 @@ def test_apply_with_mixed_types():
     tm.assert_frame_equal(result, expected)
 
 
+def test_func_returns_object():
+    # GH 28652
+    df = DataFrame({"a": [1, 2]}, index=pd.Int64Index([1, 2]))
+    result = df.groupby("a").apply(lambda g: g.index)
+    expected = Series(
+        [pd.Int64Index([1]), pd.Int64Index([2])], index=pd.Int64Index([1, 2], name="a")
+    )
+
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "group_column_dtlike",
     [datetime.today(), datetime.today().date(), datetime.today().time()],
@@ -676,3 +714,41 @@ def test_apply_datetime_issue(group_column_dtlike):
         ["spam"], Index(["foo"], dtype="object", name="a"), columns=[42]
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_apply_series_return_dataframe_groups():
+    # GH 10078
+    tdf = DataFrame(
+        {
+            "day": {
+                0: pd.Timestamp("2015-02-24 00:00:00"),
+                1: pd.Timestamp("2015-02-24 00:00:00"),
+                2: pd.Timestamp("2015-02-24 00:00:00"),
+                3: pd.Timestamp("2015-02-24 00:00:00"),
+                4: pd.Timestamp("2015-02-24 00:00:00"),
+            },
+            "userAgent": {
+                0: "some UA string",
+                1: "some UA string",
+                2: "some UA string",
+                3: "another UA string",
+                4: "some UA string",
+            },
+            "userId": {
+                0: "17661101",
+                1: "17661101",
+                2: "17661101",
+                3: "17661101",
+                4: "17661101",
+            },
+        }
+    )
+
+    def most_common_values(df):
+        return Series({c: s.value_counts().index[0] for c, s in df.iteritems()})
+
+    result = tdf.groupby("day").apply(most_common_values)["userId"]
+    expected = pd.Series(
+        ["17661101"], index=pd.DatetimeIndex(["2015-02-24"], name="day"), name="userId"
+    )
+    tm.assert_series_equal(result, expected)

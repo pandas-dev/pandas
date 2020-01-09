@@ -5,7 +5,7 @@ ExcelFormatter is tested implicitly in pandas/tests/io/test_excel.py
 
 import pytest
 
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.io.formats.css import CSSWarning
 from pandas.io.formats.excel import CSSToExcelConverter
@@ -262,7 +262,7 @@ def test_css_to_excel_inherited(css, inherited, expected):
 @pytest.mark.parametrize(
     "input_color,output_color",
     (
-        [(name, rgb) for name, rgb in CSSToExcelConverter.NAMED_COLORS.items()]
+        list(CSSToExcelConverter.NAMED_COLORS.items())
         + [("#" + rgb, rgb) for rgb in CSSToExcelConverter.NAMED_COLORS.values()]
         + [("#F0F", "FF00FF"), ("#ABC", "AABBCC")]
     ),
@@ -270,13 +270,13 @@ def test_css_to_excel_inherited(css, inherited, expected):
 def test_css_to_excel_good_colors(input_color, output_color):
     # see gh-18392
     css = (
-        "border-top-color: {color}; "
-        "border-right-color: {color}; "
-        "border-bottom-color: {color}; "
-        "border-left-color: {color}; "
-        "background-color: {color}; "
-        "color: {color}"
-    ).format(color=input_color)
+        f"border-top-color: {input_color}; "
+        f"border-right-color: {input_color}; "
+        f"border-bottom-color: {input_color}; "
+        f"border-left-color: {input_color}; "
+        f"background-color: {input_color}; "
+        f"color: {input_color}"
+    )
 
     expected = dict()
 
@@ -297,13 +297,13 @@ def test_css_to_excel_good_colors(input_color, output_color):
 def test_css_to_excel_bad_colors(input_color):
     # see gh-18392
     css = (
-        "border-top-color: {color}; "
-        "border-right-color: {color}; "
-        "border-bottom-color: {color}; "
-        "border-left-color: {color}; "
-        "background-color: {color}; "
-        "color: {color}"
-    ).format(color=input_color)
+        f"border-top-color: {input_color}; "
+        f"border-right-color: {input_color}; "
+        f"border-bottom-color: {input_color}; "
+        f"border-left-color: {input_color}; "
+        f"background-color: {input_color}; "
+        f"color: {input_color}"
+    )
 
     expected = dict()
 

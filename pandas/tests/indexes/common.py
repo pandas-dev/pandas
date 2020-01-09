@@ -1,4 +1,5 @@
 import gc
+from typing import Optional, Type
 
 import numpy as np
 import pytest
@@ -22,15 +23,15 @@ from pandas import (
     UInt64Index,
     isna,
 )
+import pandas._testing as tm
 from pandas.core.indexes.base import InvalidIndexError
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
-import pandas.util.testing as tm
 
 
 class Base:
     """ base class for index sub-class tests """
 
-    _holder = None
+    _holder: Optional[Type[Index]] = None
     _compat_props = ["shape", "ndim", "size", "nbytes"]
 
     def test_pickle_compat_construction(self):
@@ -101,6 +102,13 @@ class Base:
             idx.shift(1)
         with pytest.raises(NotImplementedError, match=msg):
             idx.shift(1, 2)
+
+    def test_constructor_name_unhashable(self):
+        # GH#29069 check that name is hashable
+        # See also same-named test in tests.series.test_constructors
+        idx = self.create_index()
+        with pytest.raises(TypeError, match="Index.name must be a hashable type"):
+            type(idx)(idx, name=[])
 
     def test_create_index_existing_name(self):
 
@@ -243,7 +251,7 @@ class Base:
         idx = self.create_index()
         idx.name = "foo"
         assert "'foo'" in str(idx)
-        assert idx.__class__.__name__ in str(idx)
+        assert type(idx).__name__ in str(idx)
 
     def test_repr_max_seq_item_setting(self):
         # GH10182
@@ -259,8 +267,8 @@ class Base:
         if isinstance(indices, MultiIndex):
             return
 
-        first = indices.__class__(indices, copy=True, name="mario")
-        second = first.__class__(first, copy=False)
+        first = type(indices)(indices, copy=True, name="mario")
+        second = type(first)(first, copy=False)
 
         # Even though "copy=False", we want a new object.
         assert first is not second
@@ -291,7 +299,7 @@ class Base:
             # MultiIndex and CategoricalIndex are tested separately
             return
 
-        index_type = indices.__class__
+        index_type = type(indices)
         result = index_type(indices.values, copy=True, **init_kwargs)
         tm.assert_index_equal(indices, result)
         tm.assert_numpy_array_equal(
@@ -501,7 +509,7 @@ class Base:
         cases = [klass(second.values) for klass in [np.array, Series, list]]
         for case in cases:
             if isinstance(indices, (DatetimeIndex, TimedeltaIndex)):
-                assert result.__class__ == answer.__class__
+                assert type(result) == type(answer)
                 tm.assert_numpy_array_equal(
                     result.sort_values().asi8, answer.sort_values().asi8
                 )
@@ -676,9 +684,9 @@ class Base:
             values[1] = np.nan
 
         if isinstance(indices, PeriodIndex):
-            idx = indices.__class__(values, freq=indices.freq)
+            idx = type(indices)(values, freq=indices.freq)
         else:
-            idx = indices.__class__(values)
+            idx = type(indices)(values)
 
             expected = np.array([False] * len(idx), dtype=bool)
             expected[1] = True
@@ -715,9 +723,9 @@ class Base:
                 values[1] = np.nan
 
             if isinstance(indices, PeriodIndex):
-                idx = indices.__class__(values, freq=indices.freq)
+                idx = type(indices)(values, freq=indices.freq)
             else:
-                idx = indices.__class__(values)
+                idx = type(indices)(values)
 
             expected = np.array([False] * len(idx), dtype=bool)
             expected[1] = True

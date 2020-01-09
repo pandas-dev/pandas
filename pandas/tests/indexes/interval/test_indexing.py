@@ -3,9 +3,16 @@ import re
 import numpy as np
 import pytest
 
-from pandas import Interval, IntervalIndex, Timedelta, date_range, timedelta_range
+from pandas import (
+    CategoricalIndex,
+    Interval,
+    IntervalIndex,
+    Timedelta,
+    date_range,
+    timedelta_range,
+)
+import pandas._testing as tm
 from pandas.core.indexes.base import InvalidIndexError
-import pandas.util.testing as tm
 
 
 class TestGetLoc:
@@ -232,6 +239,25 @@ class TestGetIndexer:
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize(
+        "target",
+        [
+            IntervalIndex.from_tuples([(7, 8), (1, 2), (3, 4), (0, 1)]),
+            IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4), np.nan]),
+            IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4)], closed="both"),
+            [-1, 0, 0.5, 1, 2, 2.5, np.nan],
+            ["foo", "foo", "bar", "baz"],
+        ],
+    )
+    def test_get_indexer_categorical(self, target, ordered_fixture):
+        # GH 30063: categorical and non-categorical results should be consistent
+        index = IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4)])
+        categorical_target = CategoricalIndex(target, ordered=ordered_fixture)
+
+        result = index.get_indexer(categorical_target)
+        expected = index.get_indexer(target)
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize(
         "tuples, closed",
         [
             ([(0, 2), (1, 3), (3, 4)], "neither"),
@@ -323,8 +349,8 @@ class TestSliceLocs:
         with pytest.raises(
             KeyError,
             match=re.escape(
-                '"Cannot get left slice bound for non-unique label:'
-                " Interval(0, 2, closed='right')\""
+                '"Cannot get left slice bound for non-unique label: '
+                "Interval(0, 2, closed='right')\""
             ),
         ):
             index.slice_locs(start=Interval(0, 2), end=Interval(2, 4))
@@ -332,8 +358,8 @@ class TestSliceLocs:
         with pytest.raises(
             KeyError,
             match=re.escape(
-                '"Cannot get left slice bound for non-unique label:'
-                " Interval(0, 2, closed='right')\""
+                '"Cannot get left slice bound for non-unique label: '
+                "Interval(0, 2, closed='right')\""
             ),
         ):
             index.slice_locs(start=Interval(0, 2))
@@ -343,8 +369,8 @@ class TestSliceLocs:
         with pytest.raises(
             KeyError,
             match=re.escape(
-                '"Cannot get right slice bound for non-unique label:'
-                " Interval(0, 2, closed='right')\""
+                '"Cannot get right slice bound for non-unique label: '
+                "Interval(0, 2, closed='right')\""
             ),
         ):
             index.slice_locs(end=Interval(0, 2))
@@ -352,8 +378,8 @@ class TestSliceLocs:
         with pytest.raises(
             KeyError,
             match=re.escape(
-                '"Cannot get right slice bound for non-unique label:'
-                " Interval(0, 2, closed='right')\""
+                '"Cannot get right slice bound for non-unique label: '
+                "Interval(0, 2, closed='right')\""
             ),
         ):
             index.slice_locs(start=Interval(2, 4), end=Interval(0, 2))
@@ -405,8 +431,8 @@ class TestSliceLocs:
         with pytest.raises(
             KeyError,
             match=(
-                "'can only get slices from an IntervalIndex if bounds are"
-                " non-overlapping and all monotonic increasing or decreasing'"
+                "'can only get slices from an IntervalIndex if bounds are "
+                "non-overlapping and all monotonic increasing or decreasing'"
             ),
         ):
             index.slice_locs(start, stop)

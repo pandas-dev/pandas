@@ -25,7 +25,7 @@ from pandas.compat import _get_lzma_file, _import_lzma, is_platform_little_endia
 
 import pandas as pd
 from pandas import Index
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.tseries.offsets import Day, MonthEnd
 
@@ -202,23 +202,25 @@ def test_legacy_sparse_warning(datapath):
     Generated with
 
     >>> df = pd.DataFrame({"A": [1, 2, 3, 4], "B": [0, 0, 1, 1]}).to_sparse()
-    >>> df.to_pickle("pandas/tests/io/data/sparseframe-0.20.3.pickle.gz",
+    >>> df.to_pickle("pandas/tests/io/data/pickle/sparseframe-0.20.3.pickle.gz",
     ...              compression="gzip")
 
     >>> s = df['B']
-    >>> s.to_pickle("pandas/tests/io/data/sparseseries-0.20.3.pickle.gz",
+    >>> s.to_pickle("pandas/tests/io/data/pickle/sparseseries-0.20.3.pickle.gz",
     ...             compression="gzip")
     """
     with tm.assert_produces_warning(FutureWarning):
         simplefilter("ignore", DeprecationWarning)  # from boto
         pd.read_pickle(
-            datapath("io", "data", "sparseseries-0.20.3.pickle.gz"), compression="gzip"
+            datapath("io", "data", "pickle", "sparseseries-0.20.3.pickle.gz"),
+            compression="gzip",
         )
 
     with tm.assert_produces_warning(FutureWarning):
         simplefilter("ignore", DeprecationWarning)  # from boto
         pd.read_pickle(
-            datapath("io", "data", "sparseframe-0.20.3.pickle.gz"), compression="gzip"
+            datapath("io", "data", "pickle", "sparseframe-0.20.3.pickle.gz"),
+            compression="gzip",
         )
 
 
@@ -377,3 +379,14 @@ class TestProtocol:
             df.to_pickle(path, protocol=protocol)
             df2 = pd.read_pickle(path)
             tm.assert_frame_equal(df, df2)
+
+
+def test_unicode_decode_error(datapath):
+    # pickle file written with py27, should be readable without raising
+    #  UnicodeDecodeError, see GH#28645
+    path = datapath("io", "data", "pickle", "test_py27.pkl")
+    df = pd.read_pickle(path)
+
+    # just test the columns are correct since the values are random
+    excols = pd.Index(["a", "b", "c"])
+    tm.assert_index_equal(df.columns, excols)

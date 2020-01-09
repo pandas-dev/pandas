@@ -2,7 +2,7 @@ import pytest
 
 import pandas as pd
 from pandas import MultiIndex
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def check_level_names(index, names):
@@ -27,28 +27,25 @@ def test_index_name_retained():
 
 
 def test_changing_names(idx):
-
-    # names should be applied to levels
-    level_names = [level.name for level in idx.levels]
-    check_level_names(idx, idx.names)
+    assert [level.name for level in idx.levels] == ["first", "second"]
 
     view = idx.view()
     copy = idx.copy()
     shallow_copy = idx._shallow_copy()
 
-    # changing names should change level names on object
+    # changing names should not change level names on object
     new_names = [name + "a" for name in idx.names]
     idx.names = new_names
-    check_level_names(idx, new_names)
+    check_level_names(idx, ["firsta", "seconda"])
 
-    # but not on copies
-    check_level_names(view, level_names)
-    check_level_names(copy, level_names)
-    check_level_names(shallow_copy, level_names)
+    # and not on copies
+    check_level_names(view, ["first", "second"])
+    check_level_names(copy, ["first", "second"])
+    check_level_names(shallow_copy, ["first", "second"])
 
     # and copies shouldn't change original
     shallow_copy.names = [name + "c" for name in shallow_copy.names]
-    check_level_names(idx, new_names)
+    check_level_names(idx, ["firsta", "seconda"])
 
 
 def test_take_preserve_name(idx):
@@ -82,9 +79,9 @@ def test_copy_names():
 def test_names(idx, index_names):
 
     # names are assigned in setup
-    names = index_names
+    assert index_names == ["first", "second"]
     level_names = [level.name for level in idx.levels]
-    assert names == level_names
+    assert level_names == index_names
 
     # setting bad names on existing
     index = idx
@@ -109,11 +106,10 @@ def test_names(idx, index_names):
             names=["first", "second", "third"],
         )
 
-    # names are assigned
+    # names are assigned on index, but not transferred to the levels
     index.names = ["a", "b"]
-    ind_names = list(index.names)
     level_names = [level.name for level in index.levels]
-    assert ind_names == level_names
+    assert level_names == ["a", "b"]
 
 
 def test_duplicate_level_names_access_raises(idx):
@@ -121,3 +117,27 @@ def test_duplicate_level_names_access_raises(idx):
     idx.names = ["foo", "foo"]
     with pytest.raises(ValueError, match="name foo occurs multiple times"):
         idx._get_level_number("foo")
+
+
+def test_get_names_from_levels():
+    idx = pd.MultiIndex.from_product([["a"], [1, 2]], names=["a", "b"])
+
+    assert idx.levels[0].name == "a"
+    assert idx.levels[1].name == "b"
+
+
+def test_setting_names_from_levels_raises():
+    idx = pd.MultiIndex.from_product([["a"], [1, 2]], names=["a", "b"])
+    with pytest.raises(RuntimeError, match="set_names"):
+        idx.levels[0].name = "foo"
+
+    with pytest.raises(RuntimeError, match="set_names"):
+        idx.levels[1].name = "foo"
+
+    new = pd.Series(1, index=idx.levels[0])
+    with pytest.raises(RuntimeError, match="set_names"):
+        new.index.name = "bar"
+
+    assert pd.Index._no_setting_name is False
+    assert pd.Int64Index._no_setting_name is False
+    assert pd.RangeIndex._no_setting_name is False

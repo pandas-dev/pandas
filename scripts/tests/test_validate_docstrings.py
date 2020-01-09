@@ -1,3 +1,4 @@
+import functools
 import io
 import random
 import string
@@ -67,6 +68,23 @@ class GoodDocStrings:
             Random number generated.
         """
         return random.random()
+
+    @functools.lru_cache(None)
+    def decorated_sample(self, max):
+        """
+        Generate and return a random integer between 0 and max.
+
+        Parameters
+        ----------
+        max : int
+            The maximum value of the random number.
+
+        Returns
+        -------
+        int
+            Random number generated.
+        """
+        return random.randint(0, max)
 
     def random_letters(self):
         """
@@ -701,7 +719,7 @@ class BadReturns:
 
     def no_description(self):
         """
-        Provides type but no descrption.
+        Provides type but no description.
 
         Returns
         -------
@@ -870,6 +888,7 @@ class TestValidator:
             "plot",
             "swap",
             "sample",
+            "decorated_sample",
             "random_letters",
             "sample_values",
             "head",
@@ -1281,7 +1300,7 @@ class TestDocstringClass:
 
     @pytest.mark.parametrize("invalid_name", ["panda", "panda.DataFrame"])
     def test_raises_for_invalid_module_name(self, invalid_name):
-        msg = 'No module can be imported from "{}"'.format(invalid_name)
+        msg = f'No module can be imported from "{invalid_name}"'
         with pytest.raises(ImportError, match=msg):
             validate_docstrings.Docstring(invalid_name)
 
@@ -1291,7 +1310,7 @@ class TestDocstringClass:
     def test_raises_for_invalid_attribute_name(self, invalid_name):
         name_components = invalid_name.split(".")
         obj_name, invalid_attr_name = name_components[-2], name_components[-1]
-        msg = "'{}' has no attribute '{}'".format(obj_name, invalid_attr_name)
+        msg = f"'{obj_name}' has no attribute '{invalid_attr_name}'"
         with pytest.raises(AttributeError, match=msg):
             validate_docstrings.Docstring(invalid_name)
 

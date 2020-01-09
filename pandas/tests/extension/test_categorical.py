@@ -20,9 +20,9 @@ import pytest
 
 import pandas as pd
 from pandas import Categorical, CategoricalIndex, Timestamp
+import pandas._testing as tm
 from pandas.api.types import CategoricalDtype
 from pandas.tests.extension import base
-import pandas.util.testing as tm
 
 
 def make_data():
@@ -93,10 +93,7 @@ class TestConstructors(base.BaseConstructorsTests):
 
 
 class TestReshaping(base.BaseReshapingTests):
-    def test_ravel(self, data):
-        # GH#27199 Categorical.ravel returns self until after deprecation cycle
-        with tm.assert_produces_warning(FutureWarning):
-            data.ravel()
+    pass
 
 
 class TestGetitem(base.BaseGetitemTests):
@@ -222,6 +219,26 @@ class TestCasting(base.BaseCastingTests):
         result = expected.astype("category").astype(expected.dtype)
 
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype, expected",
+        [
+            (
+                "datetime64[ns]",
+                np.array(["2015-01-01T00:00:00.000000000"], dtype="datetime64[ns]"),
+            ),
+            (
+                "datetime64[ns, MET]",
+                pd.DatetimeIndex(
+                    [pd.Timestamp("2015-01-01 00:00:00+0100", tz="MET")]
+                ).array,
+            ),
+        ],
+    )
+    def test_consistent_casting(self, dtype, expected):
+        # GH 28448
+        result = pd.Categorical("2015-01-01").astype(dtype)
+        assert result == expected
 
 
 class TestArithmeticOps(base.BaseArithmeticOpsTests):

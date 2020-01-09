@@ -7,7 +7,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, option_context
-from pandas.util import testing as tm
+import pandas._testing as tm
 
 import pandas.io.formats.format as fmt
 
@@ -97,6 +97,14 @@ def test_to_html_unicode(df, expected, datapath):
     expected = expected_html(datapath, expected)
     result = df.to_html()
     assert result == expected
+
+
+def test_to_html_encoding(float_frame, tmp_path):
+    # GH 28663
+    path = tmp_path / "test.html"
+    float_frame.to_html(path, encoding="gbk")
+    with open(str(path), "r", encoding="gbk") as f:
+        assert float_frame.to_html() == f.read()
 
 
 def test_to_html_decimal(datapath):
@@ -680,7 +688,7 @@ def test_to_html_float_format_no_fixed_width(value, float_format, expected, data
 def test_to_html_render_links(render_links, expected, datapath):
     # GH 2679
     data = [
-        [0, "http://pandas.pydata.org/?q1=a&q2=b", "pydata.org"],
+        [0, "https://pandas.pydata.org/?q1=a&q2=b", "pydata.org"],
         [0, "www.pydata.org", "pydata.org"],
     ]
     df = DataFrame(data, columns=["foo", "bar", None])

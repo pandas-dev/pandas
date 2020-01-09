@@ -5,13 +5,11 @@ import json
 import numpy as np
 import pytest
 
-from pandas.compat import PY35
-
 from pandas.core.dtypes.dtypes import CategoricalDtype, DatetimeTZDtype, PeriodDtype
 
 import pandas as pd
 from pandas import DataFrame
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.io.json._table_schema import (
     as_json_table_type,
@@ -20,14 +18,6 @@ from pandas.io.json._table_schema import (
     convert_pandas_type_to_json_field,
     set_default_names,
 )
-
-
-def assert_results_equal(result, expected):
-    """Helper function for comparing deserialized JSON with Py35 compat."""
-    if PY35:
-        assert sorted(result.items()) == sorted(expected.items())
-    else:
-        assert result == expected
 
 
 class TestBuildSchema:
@@ -245,7 +235,7 @@ class TestTableOrient:
             ]
         )
 
-        assert_results_equal(result, expected)
+        assert result == expected
 
     def test_to_json(self):
         df = self.df.copy()
@@ -335,7 +325,7 @@ class TestTableOrient:
         ]
         expected = OrderedDict([("schema", schema), ("data", data)])
 
-        assert_results_equal(result, expected)
+        assert result == expected
 
     def test_to_json_float_index(self):
         data = pd.Series(1, index=[1.0, 2.0])
@@ -365,7 +355,7 @@ class TestTableOrient:
             ]
         )
 
-        assert_results_equal(result, expected)
+        assert result == expected
 
     def test_to_json_period_index(self):
         idx = pd.period_range("2016", freq="Q-JAN", periods=2)
@@ -386,7 +376,7 @@ class TestTableOrient:
         ]
         expected = OrderedDict([("schema", schema), ("data", data)])
 
-        assert_results_equal(result, expected)
+        assert result == expected
 
     def test_to_json_categorical_index(self):
         data = pd.Series(1, pd.CategoricalIndex(["a", "b"]))
@@ -421,7 +411,7 @@ class TestTableOrient:
             ]
         )
 
-        assert_results_equal(result, expected)
+        assert result == expected
 
     def test_date_format_raises(self):
         with pytest.raises(ValueError):
@@ -431,15 +421,15 @@ class TestTableOrient:
         self.df.to_json(orient="table", date_format="iso")
         self.df.to_json(orient="table")
 
-    @pytest.mark.parametrize("kind", [pd.Series, pd.Index])
-    def test_convert_pandas_type_to_json_field_int(self, kind):
+    def test_convert_pandas_type_to_json_field_int(self, index_or_series):
+        kind = index_or_series
         data = [1, 2, 3]
         result = convert_pandas_type_to_json_field(kind(data, name="name"))
         expected = {"name": "name", "type": "integer"}
         assert result == expected
 
-    @pytest.mark.parametrize("kind", [pd.Series, pd.Index])
-    def test_convert_pandas_type_to_json_field_float(self, kind):
+    def test_convert_pandas_type_to_json_field_float(self, index_or_series):
+        kind = index_or_series
         data = [1.0, 2.0, 3.0]
         result = convert_pandas_type_to_json_field(kind(data, name="name"))
         expected = {"name": "name", "type": "number"}
@@ -523,7 +513,7 @@ class TestTableOrient:
     def test_convert_json_field_to_pandas_type_raises(self, inp):
         field = {"type": inp}
         with pytest.raises(
-            ValueError, match=("Unsupported or invalid field type: {}".format(inp))
+            ValueError, match=f"Unsupported or invalid field type: {inp}"
         ):
             convert_json_field_to_pandas_type(field)
 
@@ -558,7 +548,7 @@ class TestTableOrient:
             ]
         )
 
-        assert_results_equal(result, expected)
+        assert result == expected
 
     @pytest.mark.parametrize(
         "idx,nm,prop",

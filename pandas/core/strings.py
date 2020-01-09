@@ -2,24 +2,28 @@ import codecs
 from functools import wraps
 import re
 import textwrap
-from typing import Dict, List
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Type, Union
 import warnings
 
 import numpy as np
 
 import pandas._libs.lib as lib
 import pandas._libs.ops as libops
-from pandas.util._decorators import Appender, deprecate_kwarg
+from pandas._typing import ArrayLike, Dtype
+from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
     is_categorical_dtype,
+    is_extension_array_dtype,
     is_integer,
+    is_integer_dtype,
     is_list_like,
+    is_object_dtype,
     is_re,
     is_scalar,
-    is_string_like,
+    is_string_dtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -32,6 +36,10 @@ from pandas.core.dtypes.missing import isna
 from pandas.core.algorithms import take_1d
 from pandas.core.base import NoNewAttributesMixin
 import pandas.core.common as com
+from pandas.core.construction import extract_array
+
+if TYPE_CHECKING:
+    from pandas.arrays import StringArray
 
 _cpython_optimized_encoders = (
     "utf-8",
@@ -44,7 +52,7 @@ _cpython_optimized_encoders = (
 )
 _cpython_optimized_decoders = _cpython_optimized_encoders + ("utf-16", "utf-32")
 
-_shared_docs = dict()  # type: Dict[str, str]
+_shared_docs: Dict[str, str] = dict()
 
 
 def cat_core(list_of_columns: List, sep: str):
@@ -57,19 +65,21 @@ def cat_core(list_of_columns: List, sep: str):
         List of arrays to be concatenated with sep;
         these arrays may not contain NaNs!
     sep : string
-        The separator string for concatenating the columns
+        The separator string for concatenating the columns.
 
     Returns
     -------
     nd.array
-        The concatenation of list_of_columns with sep
+        The concatenation of list_of_columns with sep.
     """
     if sep == "":
         # no need to interleave sep if it is empty
-        return np.sum(list_of_columns, axis=0)
+        arr_of_cols = np.asarray(list_of_columns, dtype=object)
+        return np.sum(arr_of_cols, axis=0)
     list_with_sep = [sep] * (2 * len(list_of_columns) - 1)
     list_with_sep[::2] = list_of_columns
-    return np.sum(list_with_sep, axis=0)
+    arr_with_sep = np.asarray(list_with_sep)
+    return np.sum(arr_with_sep, axis=0)
 
 
 def cat_safe(list_of_columns: List, sep: str):
@@ -85,12 +95,12 @@ def cat_safe(list_of_columns: List, sep: str):
         List of arrays to be concatenated with sep;
         these arrays may not contain NaNs!
     sep : string
-        The separator string for concatenating the columns
+        The separator string for concatenating the columns.
 
     Returns
     -------
     nd.array
-        The concatenation of list_of_columns with sep
+        The concatenation of list_of_columns with sep.
     """
     try:
         result = cat_core(list_of_columns, sep)
@@ -103,17 +113,91 @@ def cat_safe(list_of_columns: List, sep: str):
                 raise TypeError(
                     "Concatenation requires list-likes containing only "
                     "strings (or missing values). Offending values found in "
-                    "column {}".format(dtype)
+                    f"column {dtype}"
                 ) from None
     return result
 
 
 def _na_map(f, arr, na_result=np.nan, dtype=object):
     # should really _check_ for NA
-    return _map(f, arr, na_mask=True, na_value=na_result, dtype=dtype)
+    if is_extension_array_dtype(arr.dtype):
+        # just StringDtype
+        arr = extract_array(arr)
+        return _map_stringarray(f, arr, na_value=na_result, dtype=dtype)
+    return _map_object(f, arr, na_mask=True, na_value=na_result, dtype=dtype)
 
 
-def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
+def _map_stringarray(
+    func: Callable[[str], Any], arr: "StringArray", na_value: Any, dtype: Dtype
+) -> ArrayLike:
+    """
+    Map a callable over valid elements of a StringArrray.
+
+    Parameters
+    ----------
+    func : Callable[[str], Any]
+        Apply to each valid element.
+    arr : StringArray
+    na_value : Any
+        The value to use for missing values. By default, this is
+        the original value (NA).
+    dtype : Dtype
+        The result dtype to use. Specifying this avoids an intermediate
+        object-dtype allocation.
+
+    Returns
+    -------
+    ArrayLike
+        An ExtensionArray for integer or string dtypes, otherwise
+        an ndarray.
+
+    """
+    from pandas.arrays import IntegerArray, StringArray, BooleanArray
+
+    mask = isna(arr)
+
+    assert isinstance(arr, StringArray)
+    arr = np.asarray(arr)
+
+    if is_integer_dtype(dtype) or is_bool_dtype(dtype):
+        constructor: Union[Type[IntegerArray], Type[BooleanArray]]
+        if is_integer_dtype(dtype):
+            constructor = IntegerArray
+        else:
+            constructor = BooleanArray
+
+        na_value_is_na = isna(na_value)
+        if na_value_is_na:
+            na_value = 1
+        result = lib.map_infer_mask(
+            arr,
+            func,
+            mask.view("uint8"),
+            convert=False,
+            na_value=na_value,
+            dtype=np.dtype(dtype),
+        )
+
+        if not na_value_is_na:
+            mask[:] = False
+
+        return constructor(result, mask)
+
+    elif is_string_dtype(dtype) and not is_object_dtype(dtype):
+        # i.e. StringDtype
+        result = lib.map_infer_mask(
+            arr, func, mask.view("uint8"), convert=False, na_value=na_value
+        )
+        return StringArray(result)
+    else:
+        # This is when the result type is object. We reach this when
+        # -> We know the result type is truly object (e.g. .encode returns bytes
+        #    or .findall returns a list).
+        # -> We don't know the result type. E.g. `.get` can return anything.
+        return lib.map_infer_mask(arr, func, mask.view("uint8"))
+
+
+def _map_object(f, arr, na_mask=False, na_value=np.nan, dtype=object):
     if not len(arr):
         return np.ndarray(0, dtype=dtype)
 
@@ -123,8 +207,8 @@ def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
         arr = np.asarray(arr, dtype=object)
     if na_mask:
         mask = isna(arr)
+        convert = not np.all(mask)
         try:
-            convert = not all(mask)
             result = lib.map_infer_mask(arr, f, mask.view(np.uint8), convert)
         except (TypeError, AttributeError) as e:
             # Reraise the exception if callable `f` got wrong number of args.
@@ -135,6 +219,7 @@ def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
             )
 
             if len(e.args) >= 1 and re.search(p_err, e.args[0]):
+                # FIXME: this should be totally avoidable
                 raise e
 
             def g(x):
@@ -143,7 +228,7 @@ def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
                 except (TypeError, AttributeError):
                     return na_value
 
-            return _map(g, arr, dtype=dtype)
+            return _map_object(g, arr, dtype=dtype)
         if na_value is not np.nan:
             np.putmask(result, mask, na_value)
             if result.dtype == object:
@@ -219,7 +304,7 @@ def str_count(arr, pat, flags=0):
     """
     regex = re.compile(pat, flags=flags)
     f = lambda x: len(regex.findall(x))
-    return _na_map(f, arr, dtype=int)
+    return _na_map(f, arr, dtype="int64")
 
 
 def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
@@ -353,8 +438,8 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
 
         if regex.groups > 0:
             warnings.warn(
-                "This pattern has match groups. To actually get the"
-                " groups, use str.extract.",
+                "This pattern has match groups. To actually get the "
+                "groups, use str.extract.",
                 UserWarning,
                 stacklevel=3,
             )
@@ -491,28 +576,25 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     ----------
     pat : str or compiled regex
         String can be a character sequence or regular expression.
-
-        .. versionadded:: 0.20.0
-            `pat` also accepts a compiled regex.
-
     repl : str or callable
         Replacement string or a callable. The callable is passed the regex
         match object and must return a replacement string to be used.
         See :func:`re.sub`.
-
-        .. versionadded:: 0.20.0
-            `repl` also accepts a callable.
-
     n : int, default -1 (all)
         Number of replacements to make from start.
     case : bool, default None
+        Determines if replace is case sensitive:
+
         - If True, case sensitive (the default if `pat` is a string)
         - Set to False for case insensitive
-        - Cannot be set if `pat` is a compiled regex
+        - Cannot be set if `pat` is a compiled regex.
+
     flags : int, default 0 (no flags)
-        - re module flags, e.g. re.IGNORECASE
-        - Cannot be set if `pat` is a compiled regex
+        Regex module flags, e.g. re.IGNORECASE. Cannot be set if `pat` is a compiled
+        regex.
     regex : bool, default True
+        Determines if assumes the passed-in pattern is a regular expression:
+
         - If True, assumes the passed-in pattern is a regular expression.
         - If False, treats the pattern as a literal string
         - Cannot be set to False if `pat` is a compiled regex or `repl` is
@@ -603,7 +685,7 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     """
 
     # Check whether repl is valid (GH 13438, GH 15055)
-    if not (is_string_like(repl) or callable(repl)):
+    if not (isinstance(repl, str) or callable(repl)):
         raise TypeError("repl must be a string or callable")
 
     is_compiled_re = is_re(pat)
@@ -637,7 +719,7 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
             raise ValueError("Cannot use a callable replacement when regex=False")
         f = lambda x: x.replace(pat, repl, n)
 
-    return _na_map(f, arr)
+    return _na_map(f, arr, dtype=str)
 
 
 def str_repeat(arr, repeats):
@@ -688,7 +770,7 @@ def str_repeat(arr, repeats):
             except TypeError:
                 return str.__mul__(x, repeats)
 
-        return _na_map(scalar_rep, arr)
+        return _na_map(scalar_rep, arr, dtype=str)
     else:
 
         def rep(x, r):
@@ -713,7 +795,7 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan):
     case : bool, default True
         If True, case sensitive.
     flags : int, default 0 (no flags)
-        re module flags, e.g. re.IGNORECASE.
+        Regex module flags, e.g. re.IGNORECASE.
     na : default NaN
         Fill value for missing values.
 
@@ -1153,7 +1235,7 @@ def str_join(arr, sep):
     4                    NaN
     dtype: object
     """
-    return _na_map(sep.join, arr)
+    return _na_map(sep.join, arr, dtype=str)
 
 
 def str_findall(arr, pat, flags=0):
@@ -1273,8 +1355,8 @@ def str_find(arr, sub, start=0, end=None, side="left"):
     """
 
     if not isinstance(sub, str):
-        msg = "expected a string object, not {0}"
-        raise TypeError(msg.format(type(sub).__name__))
+        msg = f"expected a string object, not {type(sub).__name__}"
+        raise TypeError(msg)
 
     if side == "left":
         method = "find"
@@ -1288,13 +1370,13 @@ def str_find(arr, sub, start=0, end=None, side="left"):
     else:
         f = lambda x: getattr(x, method)(sub, start, end)
 
-    return _na_map(f, arr, dtype=int)
+    return _na_map(f, arr, dtype="int64")
 
 
 def str_index(arr, sub, start=0, end=None, side="left"):
     if not isinstance(sub, str):
-        msg = "expected a string object, not {0}"
-        raise TypeError(msg.format(type(sub).__name__))
+        msg = f"expected a string object, not {type(sub).__name__}"
+        raise TypeError(msg)
 
     if side == "left":
         method = "index"
@@ -1308,7 +1390,7 @@ def str_index(arr, sub, start=0, end=None, side="left"):
     else:
         f = lambda x: getattr(x, method)(sub, start, end)
 
-    return _na_map(f, arr, dtype=int)
+    return _na_map(f, arr, dtype="int64")
 
 
 def str_pad(arr, width, side="left", fillchar=" "):
@@ -1338,7 +1420,7 @@ def str_pad(arr, width, side="left", fillchar=" "):
         character. Equivalent to ``Series.str.pad(side='right')``.
     Series.str.center : Fills boths sides of strings with an arbitrary
         character. Equivalent to ``Series.str.pad(side='both')``.
-    Series.str.zfill :  Pad strings in the Series/Index by prepending '0'
+    Series.str.zfill : Pad strings in the Series/Index by prepending '0'
         character. Equivalent to ``Series.str.pad(side='left', fillchar='0')``.
 
     Examples
@@ -1365,15 +1447,15 @@ def str_pad(arr, width, side="left", fillchar=" "):
     dtype: object
     """
     if not isinstance(fillchar, str):
-        msg = "fillchar must be a character, not {0}"
-        raise TypeError(msg.format(type(fillchar).__name__))
+        msg = f"fillchar must be a character, not {type(fillchar).__name__}"
+        raise TypeError(msg)
 
     if len(fillchar) != 1:
         raise TypeError("fillchar must be a character, not str")
 
     if not is_integer(width):
-        msg = "width must be of integer type, not {0}"
-        raise TypeError(msg.format(type(width).__name__))
+        msg = f"width must be of integer type, not {type(width).__name__}"
+        raise TypeError(msg)
 
     if side == "left":
         f = lambda x: x.rjust(width, fillchar)
@@ -1384,7 +1466,7 @@ def str_pad(arr, width, side="left", fillchar=" "):
     else:  # pragma: no cover
         raise ValueError("Invalid side")
 
-    return _na_map(f, arr)
+    return _na_map(f, arr, dtype=str)
 
 
 def str_split(arr, pat=None, n=None):
@@ -1490,7 +1572,7 @@ def str_slice(arr, start=None, stop=None, step=None):
     """
     obj = slice(start, stop, step)
     f = lambda x: x[obj]
-    return _na_map(f, arr)
+    return _na_map(f, arr, dtype=str)
 
 
 def str_slice_replace(arr, start=None, stop=None, repl=None):
@@ -1581,7 +1663,7 @@ def str_slice_replace(arr, start=None, stop=None, repl=None):
             y += x[local_stop:]
         return y
 
-    return _na_map(f, arr)
+    return _na_map(f, arr, dtype=str)
 
 
 def str_strip(arr, to_strip=None, side="both"):
@@ -1606,7 +1688,7 @@ def str_strip(arr, to_strip=None, side="both"):
         f = lambda x: x.rstrip(to_strip)
     else:  # pragma: no cover
         raise ValueError("Invalid side")
-    return _na_map(f, arr)
+    return _na_map(f, arr, dtype=str)
 
 
 def str_wrap(arr, width, **kwargs):
@@ -1670,7 +1752,7 @@ def str_wrap(arr, width, **kwargs):
 
     tw = textwrap.TextWrapper(**kwargs)
 
-    return _na_map(lambda s: "\n".join(tw.wrap(s)), arr)
+    return _na_map(lambda s: "\n".join(tw.wrap(s)), arr, dtype=str)
 
 
 def str_translate(arr, table):
@@ -1681,7 +1763,7 @@ def str_translate(arr, table):
     Parameters
     ----------
     table : dict
-        table is a mapping of Unicode ordinals to Unicode ordinals, strings, or
+        Table is a mapping of Unicode ordinals to Unicode ordinals, strings, or
         None. Unmapped characters are left untouched.
         Characters mapped to None are deleted. :meth:`str.maketrans` is a
         helper function for making translation tables.
@@ -1690,7 +1772,7 @@ def str_translate(arr, table):
     -------
     Series or Index
     """
-    return _na_map(lambda x: x.translate(table), arr)
+    return _na_map(lambda x: x.translate(table), arr, dtype=str)
 
 
 def str_get(arr, i):
@@ -1858,10 +1940,8 @@ def forbid_nonstring_types(forbidden, name=None):
         def wrapper(self, *args, **kwargs):
             if self._inferred_dtype not in allowed_types:
                 msg = (
-                    "Cannot use .str.{name} with values of inferred dtype "
-                    "{inf_type!r}.".format(
-                        name=func_name, inf_type=self._inferred_dtype
-                    )
+                    f"Cannot use .str.{func_name} with values of "
+                    f"inferred dtype '{self._inferred_dtype}'."
                 )
                 raise TypeError(msg)
             return func(self, *args, **kwargs)
@@ -1878,7 +1958,7 @@ def _noarg_wrapper(
     docstring=None,
     forbidden_types=["bytes"],
     returns_string=True,
-    **kargs
+    **kargs,
 ):
     @forbid_nonstring_types(forbidden_types, name=name)
     def wrapper(self):
@@ -1901,7 +1981,7 @@ def _pat_wrapper(
     name=None,
     forbidden_types=["bytes"],
     returns_string=True,
-    **kwargs
+    **kwargs,
 ):
     @forbid_nonstring_types(forbidden_types, name=name)
     def wrapper1(self, pat):
@@ -2018,6 +2098,11 @@ class StringMethods(NoNewAttributesMixin):
             return self.get(key)
 
     def __iter__(self):
+        warnings.warn(
+            "Columnar iteration over characters will be deprecated in future releases.",
+            FutureWarning,
+            stacklevel=2,
+        )
         i = 0
         g = self.get(i)
         while g.notna().any():
@@ -2134,11 +2219,12 @@ class StringMethods(NoNewAttributesMixin):
         Parameters
         ----------
         others : Series, DataFrame, np.ndarray, list-like or list-like of
-            objects that are either Series, Index or np.ndarray (1-dim)
+            Objects that are either Series, Index or np.ndarray (1-dim).
 
         Returns
         -------
-        list : others transformed into list of Series
+        list of Series
+            Others transformed into list of Series.
         """
         from pandas import Series, DataFrame
 
@@ -2554,9 +2640,6 @@ class StringMethods(NoNewAttributesMixin):
     ----------
     sep : str, default whitespace
         String to split on.
-    pat : str, default whitespace
-        .. deprecated:: 0.24.0
-           Use ``sep`` instead
     expand : bool, default True
         If True, return DataFrame/MultiIndex expanding dimensionality.
         If False, return Series/Index.
@@ -2634,7 +2717,6 @@ class StringMethods(NoNewAttributesMixin):
             "also": "rpartition : Split the string at the last occurrence of `sep`.",
         }
     )
-    @deprecate_kwarg(old_arg_name="pat", new_arg_name="sep")
     @forbid_nonstring_types(["bytes"])
     def partition(self, sep=" ", expand=True):
         f = lambda x: x.partition(sep)
@@ -2650,7 +2732,6 @@ class StringMethods(NoNewAttributesMixin):
             "also": "partition : Split the string at the first occurrence of `sep`.",
         }
     )
-    @deprecate_kwarg(old_arg_name="pat", new_arg_name="sep")
     @forbid_nonstring_types(["bytes"])
     def rpartition(self, sep=" ", expand=True):
         f = lambda x: x.rpartition(sep)
@@ -2712,13 +2793,13 @@ class StringMethods(NoNewAttributesMixin):
     ----------
     width : int
         Minimum width of resulting string; additional characters will be filled
-        with ``fillchar``
+        with ``fillchar``.
     fillchar : str
-        Additional character for filling, default is whitespace
+        Additional character for filling, default is whitespace.
 
     Returns
     -------
-    filled : Series/Index of objects
+    filled : Series/Index of objects.
     """
 
     @Appender(_shared_docs["str_pad"] % dict(side="left and right", method="center"))
@@ -2754,7 +2835,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Returns
         -------
-        Series/Index of objects
+        Series/Index of objects.
 
         See Also
         --------
@@ -2842,7 +2923,7 @@ class StringMethods(NoNewAttributesMixin):
 
     Returns
     -------
-    Series/Index of objects
+    Series or Index of object
 
     See Also
     --------
@@ -2967,15 +3048,15 @@ class StringMethods(NoNewAttributesMixin):
     Parameters
     ----------
     sub : str
-        Substring being searched
+        Substring being searched.
     start : int
-        Left edge index
+        Left edge index.
     end : int
-        Right edge index
+        Right edge index.
 
     Returns
     -------
-    found : Series/Index of integer values
+    Series or Index of int.
 
     See Also
     --------
@@ -3018,7 +3099,7 @@ class StringMethods(NoNewAttributesMixin):
         Parameters
         ----------
         form : {'NFC', 'NFKC', 'NFD', 'NFKD'}
-            Unicode form
+            Unicode form.
 
         Returns
         -------
@@ -3027,7 +3108,7 @@ class StringMethods(NoNewAttributesMixin):
         import unicodedata
 
         f = lambda x: unicodedata.normalize(form, x)
-        result = _na_map(f, self._parent)
+        result = _na_map(f, self._parent, dtype=str)
         return self._wrap_result(result)
 
     _shared_docs[
@@ -3041,15 +3122,15 @@ class StringMethods(NoNewAttributesMixin):
     Parameters
     ----------
     sub : str
-        Substring being searched
+        Substring being searched.
     start : int
-        Left edge index
+        Left edge index.
     end : int
-        Right edge index
+        Right edge index.
 
     Returns
     -------
-    found : Series/Index of objects
+    Series or Index of object
 
     See Also
     --------
@@ -3134,7 +3215,7 @@ class StringMethods(NoNewAttributesMixin):
         len,
         docstring=_shared_docs["len"],
         forbidden_types=None,
-        dtype=int,
+        dtype="int64",
         returns_string=False,
     )
 
@@ -3147,7 +3228,7 @@ class StringMethods(NoNewAttributesMixin):
 
     Returns
     -------
-    Series/Index of objects
+    Series or Index of object
 
     See Also
     --------
@@ -3208,7 +3289,7 @@ class StringMethods(NoNewAttributesMixin):
     """
 
     # _doc_args holds dict of strings to use in substituting casemethod docs
-    _doc_args = {}  # type: Dict[str, Dict[str, str]]
+    _doc_args: Dict[str, Dict[str, str]] = {}
     _doc_args["lower"] = dict(type="lowercase", method="lower", version="")
     _doc_args["upper"] = dict(type="uppercase", method="upper", version="")
     _doc_args["title"] = dict(type="titlecase", method="title", version="")
@@ -3225,31 +3306,37 @@ class StringMethods(NoNewAttributesMixin):
         lambda x: x.lower(),
         name="lower",
         docstring=_shared_docs["casemethods"] % _doc_args["lower"],
+        dtype=str,
     )
     upper = _noarg_wrapper(
         lambda x: x.upper(),
         name="upper",
         docstring=_shared_docs["casemethods"] % _doc_args["upper"],
+        dtype=str,
     )
     title = _noarg_wrapper(
         lambda x: x.title(),
         name="title",
         docstring=_shared_docs["casemethods"] % _doc_args["title"],
+        dtype=str,
     )
     capitalize = _noarg_wrapper(
         lambda x: x.capitalize(),
         name="capitalize",
         docstring=_shared_docs["casemethods"] % _doc_args["capitalize"],
+        dtype=str,
     )
     swapcase = _noarg_wrapper(
         lambda x: x.swapcase(),
         name="swapcase",
         docstring=_shared_docs["casemethods"] % _doc_args["swapcase"],
+        dtype=str,
     )
     casefold = _noarg_wrapper(
         lambda x: x.casefold(),
         name="casefold",
         docstring=_shared_docs["casemethods"] % _doc_args["casefold"],
+        dtype=str,
     )
 
     _shared_docs[
@@ -3403,59 +3490,69 @@ class StringMethods(NoNewAttributesMixin):
     _doc_args["istitle"] = dict(type="titlecase", method="istitle")
     _doc_args["isnumeric"] = dict(type="numeric", method="isnumeric")
     _doc_args["isdecimal"] = dict(type="decimal", method="isdecimal")
+    # force _noarg_wrapper return type with dtype=bool (GH 29624)
     isalnum = _noarg_wrapper(
         lambda x: x.isalnum(),
         name="isalnum",
         docstring=_shared_docs["ismethods"] % _doc_args["isalnum"],
         returns_string=False,
+        dtype=bool,
     )
     isalpha = _noarg_wrapper(
         lambda x: x.isalpha(),
         name="isalpha",
         docstring=_shared_docs["ismethods"] % _doc_args["isalpha"],
         returns_string=False,
+        dtype=bool,
     )
     isdigit = _noarg_wrapper(
         lambda x: x.isdigit(),
         name="isdigit",
         docstring=_shared_docs["ismethods"] % _doc_args["isdigit"],
         returns_string=False,
+        dtype=bool,
     )
     isspace = _noarg_wrapper(
         lambda x: x.isspace(),
         name="isspace",
         docstring=_shared_docs["ismethods"] % _doc_args["isspace"],
         returns_string=False,
+        dtype=bool,
     )
     islower = _noarg_wrapper(
         lambda x: x.islower(),
         name="islower",
         docstring=_shared_docs["ismethods"] % _doc_args["islower"],
         returns_string=False,
+        dtype=bool,
     )
     isupper = _noarg_wrapper(
         lambda x: x.isupper(),
         name="isupper",
         docstring=_shared_docs["ismethods"] % _doc_args["isupper"],
         returns_string=False,
+        dtype=bool,
     )
     istitle = _noarg_wrapper(
         lambda x: x.istitle(),
         name="istitle",
         docstring=_shared_docs["ismethods"] % _doc_args["istitle"],
         returns_string=False,
+        dtype=bool,
     )
     isnumeric = _noarg_wrapper(
         lambda x: x.isnumeric(),
         name="isnumeric",
         docstring=_shared_docs["ismethods"] % _doc_args["isnumeric"],
         returns_string=False,
+        dtype=bool,
     )
     isdecimal = _noarg_wrapper(
         lambda x: x.isdecimal(),
         name="isdecimal",
         docstring=_shared_docs["ismethods"] % _doc_args["isdecimal"],
         returns_string=False,
+        dtype=bool,
     )
 
     @classmethod

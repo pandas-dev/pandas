@@ -16,7 +16,7 @@ from pandas import (
     date_range,
     to_datetime,
 )
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.tseries.offsets import BMonthEnd, Minute, MonthEnd
 
@@ -157,11 +157,26 @@ class TestDatetimeIndexSetOps:
     def test_union_freq_both_none(self, sort):
         # GH11086
         expected = bdate_range("20150101", periods=10)
-        expected.freq = None
+        expected._data.freq = None
 
         result = expected.union(expected, sort=sort)
         tm.assert_index_equal(result, expected)
         assert result.freq is None
+
+    def test_union_freq_infer(self):
+        # When taking the union of two DatetimeIndexes, we infer
+        #  a freq even if the arguments don't have freq.  This matches
+        #  TimedeltaIndex behavior.
+        dti = pd.date_range("2016-01-01", periods=5)
+        left = dti[[0, 1, 3, 4]]
+        right = dti[[2, 3, 1]]
+
+        assert left.freq is None
+        assert right.freq is None
+
+        result = left.union(right)
+        tm.assert_index_equal(result, dti)
+        assert result.freq == "D"
 
     def test_union_dataframe_index(self):
         rng1 = date_range("1/1/1999", "1/1/2012", freq="MS")

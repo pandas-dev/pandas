@@ -5,10 +5,9 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
+import pandas._testing as tm
 from pandas.core.api import DataFrame
 from pandas.core.computation import expressions as expr
-import pandas.util.testing as tm
-from pandas.util.testing import assert_frame_equal
 
 _frame = DataFrame(randn(10000, 4), columns=list("ABCD"), dtype="float64")
 _frame2 = DataFrame(randn(100, 4), columns=list("ABCD"), dtype="float64")
@@ -262,9 +261,9 @@ class TestExpressions:
     def test_bool_ops_raise_on_arithmetic(self, op_str, opname):
         df = DataFrame({"a": np.random.rand(10) > 0.5, "b": np.random.rand(10) > 0.5})
 
-        msg = "operator %r not implemented for bool dtypes"
+        msg = f"operator {repr(op_str)} not implemented for bool dtypes"
         f = getattr(operator, opname)
-        err_msg = re.escape(msg % op_str)
+        err_msg = re.escape(msg)
 
         with pytest.raises(NotImplementedError, match=err_msg):
             f(df, df)
@@ -356,7 +355,7 @@ class TestExpressions:
     def test_bool_ops_column_name_dtype(self, test_input, expected):
         # GH 22383 - .ne fails if columns containing column name 'dtype'
         result = test_input.loc[:, ["a", "dtype"]].ne(test_input.loc[:, ["a", "dtype"]])
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         "arith", ("add", "sub", "mul", "mod", "truediv", "floordiv")
@@ -382,4 +381,4 @@ class TestExpressions:
         expr.set_use_numexpr(True)
 
         result = op_func(other, axis=axis)
-        assert_frame_equal(expected, result)
+        tm.assert_frame_equal(expected, result)

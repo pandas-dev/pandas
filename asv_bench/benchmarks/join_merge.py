@@ -3,7 +3,8 @@ import string
 import numpy as np
 
 from pandas import DataFrame, MultiIndex, Series, concat, date_range, merge, merge_asof
-import pandas.util.testing as tm
+
+from .pandas_vb_common import tm
 
 try:
     from pandas import merge_ordered
@@ -273,10 +274,10 @@ class MergeOrdered:
 
 
 class MergeAsof:
-    params = [["backward", "forward", "nearest"]]
-    param_names = ["direction"]
+    params = [["backward", "forward", "nearest"], [None, 5]]
+    param_names = ["direction", "tolerance"]
 
-    def setup(self, direction):
+    def setup(self, direction, tolerance):
         one_count = 200000
         two_count = 1000000
 
@@ -303,6 +304,9 @@ class MergeAsof:
         df1["time32"] = np.int32(df1.time)
         df2["time32"] = np.int32(df2.time)
 
+        df1["timeu64"] = np.uint64(df1.time)
+        df2["timeu64"] = np.uint64(df2.time)
+
         self.df1a = df1[["time", "value1"]]
         self.df2a = df2[["time", "value2"]]
         self.df1b = df1[["time", "key", "value1"]]
@@ -313,22 +317,52 @@ class MergeAsof:
         self.df2d = df2[["time32", "value2"]]
         self.df1e = df1[["time", "key", "key2", "value1"]]
         self.df2e = df2[["time", "key", "key2", "value2"]]
+        self.df1f = df1[["timeu64", "value1"]]
+        self.df2f = df2[["timeu64", "value2"]]
 
-    def time_on_int(self, direction):
-        merge_asof(self.df1a, self.df2a, on="time", direction=direction)
-
-    def time_on_int32(self, direction):
-        merge_asof(self.df1d, self.df2d, on="time32", direction=direction)
-
-    def time_by_object(self, direction):
-        merge_asof(self.df1b, self.df2b, on="time", by="key", direction=direction)
-
-    def time_by_int(self, direction):
-        merge_asof(self.df1c, self.df2c, on="time", by="key2", direction=direction)
-
-    def time_multiby(self, direction):
+    def time_on_int(self, direction, tolerance):
         merge_asof(
-            self.df1e, self.df2e, on="time", by=["key", "key2"], direction=direction
+            self.df1a, self.df2a, on="time", direction=direction, tolerance=tolerance
+        )
+
+    def time_on_int32(self, direction, tolerance):
+        merge_asof(
+            self.df1d, self.df2d, on="time32", direction=direction, tolerance=tolerance
+        )
+
+    def time_on_uint64(self, direction, tolerance):
+        merge_asof(
+            self.df1f, self.df2f, on="timeu64", direction=direction, tolerance=tolerance
+        )
+
+    def time_by_object(self, direction, tolerance):
+        merge_asof(
+            self.df1b,
+            self.df2b,
+            on="time",
+            by="key",
+            direction=direction,
+            tolerance=tolerance,
+        )
+
+    def time_by_int(self, direction, tolerance):
+        merge_asof(
+            self.df1c,
+            self.df2c,
+            on="time",
+            by="key2",
+            direction=direction,
+            tolerance=tolerance,
+        )
+
+    def time_multiby(self, direction, tolerance):
+        merge_asof(
+            self.df1e,
+            self.df2e,
+            on="time",
+            by=["key", "key2"],
+            direction=direction,
+            tolerance=tolerance,
         )
 
 
