@@ -861,5 +861,9 @@ def test_arrow_roundtrip():
 def test_value_counts_na():
     arr = pd.array([True, False, pd.NA], dtype="boolean")
     result = arr.value_counts(dropna=False)
-    expected = pd.Series([1, 1, 1], index=[True, False, pd.NA])
+    expected = pd.Series([1, 1, 1], index=[True, False, pd.NA], dtype="Int64")
+    tm.assert_series_equal(result, expected)
+
+    result = arr.value_counts(dropna=True)
+    expected = pd.Series([1, 1], index=[True, False], dtype="Int64")
     tm.assert_series_equal(result, expected)

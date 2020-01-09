@@ -77,6 +77,11 @@ class BooleanDtype(ExtensionDtype):
         return np.bool_
 
     @property
+    def numpy_dtype(self):
+        """ Return an instance of our numpy dtype """
+        return np.dtype(self.type)
+
+    @property
     def kind(self) -> str:
         return "b"
 
@@ -409,53 +414,6 @@ class BooleanArray(BaseMaskedArray):
         # coerce
         data = self.to_numpy(na_value=na_value)
         return astype_nansafe(data, dtype, copy=False)
-
-    def value_counts(self, dropna=True):
-        """
-        Returns a Series containing counts of each category.
-
-        Every category will have an entry, even those with a count of 0.
-
-        Parameters
-        ----------
-        dropna : bool, default True
-            Don't include counts of NaN.
-
-        Returns
-        -------
-        counts : Series
-
-        See Also
-        --------
-        Series.value_counts
-
-        """
-
-        from pandas import Index, Series
-
-        # compute counts on the data with no nans
-        data = self._data[~self._mask]
-        value_counts = Index(data).value_counts()
-        array = value_counts.values
-
-        # TODO(extension)
-        # if we have allow Index to hold an ExtensionArray
-        # this is easier
-        index = value_counts.index.values.astype(bool).astype(object)
-
-        # if we want nans, count the mask
-        if not dropna:
-
-            # TODO(extension)
-            # appending to an Index *always* infers
-            # w/o passing the dtype
-            array = np.append(array, [self._mask.sum()])
-            index = Index(
-                np.concatenate([index, np.array([self.dtype.na_value], dtype=object)]),
-                dtype=object,
-            )
-
-        return Series(array, index=index)
 
     def _values_for_argsort(self) -> np.ndarray:
         """

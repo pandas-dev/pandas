@@ -253,7 +253,7 @@ class StringArray(PandasArray):
     def value_counts(self, dropna=False):
         from pandas import value_counts
 
-        return value_counts(self._ndarray, dropna=dropna)
+        return value_counts(self._ndarray, dropna=dropna).astype("Int64")
 
     # Overrride parent because we have different return types.
     @classmethod
