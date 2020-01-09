@@ -39,6 +39,7 @@ from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
+from pandas.core.arrays.sparse.dtype import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.construction import sanitize_array
@@ -47,8 +48,6 @@ import pandas.core.ops as ops
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 import pandas.io.formats.printing as printing
-
-from .dtype import SparseDtype
 
 # ----------------------------------------------------------------------------
 # Array
@@ -403,7 +402,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         --------
         >>> import scipy.sparse
         >>> mat = scipy.sparse.coo_matrix((4, 1))
-        >>> pd.SparseArray.from_spmatrix(mat)
+        >>> pd.arrays.SparseArray.from_spmatrix(mat)
         [0.0, 0.0, 0.0, 0.0]
         Fill: 0.0
         IntIndex
@@ -1079,7 +1078,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         Examples
         --------
-        >>> arr = pd.SparseArray([0, 1, 2])
+        >>> arr = pd.arrays.SparseArray([0, 1, 2])
         >>> arr.apply(lambda x: x + 10)
         [10, 11, 12]
         Fill: 10

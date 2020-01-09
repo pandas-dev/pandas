@@ -6,8 +6,8 @@ import pytest
 
 import pandas as pd
 from pandas import Categorical, DataFrame, Series, date_range
+import pandas._testing as tm
 from pandas.tests.arrays.categorical.common import TestCategorical
-import pandas.util.testing as tm
 
 
 class TestCategoricalOpsWithFactor(TestCategorical):
@@ -172,8 +172,8 @@ class TestCategoricalOps:
         cat = Categorical([1, 2, 3], ordered=True)
 
         msg = (
-            "Cannot compare a Categorical for op __{}__ with a scalar,"
-            " which is not a category"
+            "Cannot compare a Categorical for op __{}__ with a scalar, "
+            "which is not a category"
         )
         with pytest.raises(TypeError, match=msg.format("lt")):
             cat < 4

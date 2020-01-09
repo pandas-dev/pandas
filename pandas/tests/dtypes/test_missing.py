@@ -22,7 +22,7 @@ from pandas.core.dtypes.missing import (
 
 import pandas as pd
 from pandas import DatetimeIndex, Float64Index, NaT, Series, TimedeltaIndex, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 now = pd.Timestamp.now()
 utcnow = pd.Timestamp.now("UTC")
@@ -293,6 +293,11 @@ def test_array_equivalent():
     assert array_equivalent(
         np.array([np.nan, None], dtype="object"),
         np.array([np.nan, None], dtype="object"),
+    )
+    # Check the handling of nested arrays in array_equivalent_object
+    assert array_equivalent(
+        np.array([np.array([np.nan, None], dtype="object"), None], dtype="object"),
+        np.array([np.array([np.nan, None], dtype="object"), None], dtype="object"),
     )
     assert array_equivalent(
         np.array([np.nan, 1 + 1j], dtype="complex"),

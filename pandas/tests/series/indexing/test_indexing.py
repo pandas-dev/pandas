@@ -9,7 +9,7 @@ from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
 from pandas import Categorical, DataFrame, MultiIndex, Series, Timedelta, Timestamp
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.tseries.offsets import BDay
 
@@ -294,8 +294,8 @@ def test_getitem_dataframe():
     s = pd.Series(10, index=rng)
     df = pd.DataFrame(rng, index=rng)
     msg = (
-        "Indexing a Series with DataFrame is not supported,"
-        " use the appropriate DataFrame column"
+        "Indexing a Series with DataFrame is not supported, "
+        "use the appropriate DataFrame column"
     )
     with pytest.raises(TypeError, match=msg):
         s[df > 5]

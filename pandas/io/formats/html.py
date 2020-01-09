@@ -7,6 +7,8 @@ from typing import IO, Any, Dict, Iterable, List, Mapping, Optional, Tuple, Unio
 
 from pandas._config import get_option
 
+from pandas._libs import lib
+
 from pandas.core.dtypes.generic import ABCMultiIndex
 
 from pandas import option_context
@@ -245,7 +247,7 @@ class HTMLFormatter(TableFormatter):
 
             if self.fmt.sparsify:
                 # GH3547
-                sentinel = object()
+                sentinel = lib.no_default
             else:
                 sentinel = False
             levels = self.columns.format(sparsify=sentinel, adjoin=False, names=False)
@@ -451,7 +453,7 @@ class HTMLFormatter(TableFormatter):
 
         if self.fmt.sparsify:
             # GH3547
-            sentinel = object()
+            sentinel = lib.no_default
             levels = frame.index.format(sparsify=sentinel, adjoin=False, names=False)
 
             level_lengths = get_level_lengths(levels, sentinel)

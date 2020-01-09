@@ -30,9 +30,9 @@ from pandas import (
     isna,
     to_datetime,
 )
+import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray
 from pandas.core.tools import datetimes as tools
-import pandas.util.testing as tm
 
 
 class TestTimeConversionFormats:
@@ -616,8 +616,8 @@ class TestToDatetime:
             pd.Timestamp("2013-01-02 14:00:00", tz="US/Eastern"),
         ]
         msg = (
-            "Tz-aware datetime.datetime cannot be converted to datetime64"
-            " unless utc=True"
+            "Tz-aware datetime.datetime cannot be "
+            "converted to datetime64 unless utc=True"
         )
         with pytest.raises(ValueError, match=msg):
             pd.to_datetime(arr, cache=cache)

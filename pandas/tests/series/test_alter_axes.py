@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame, Index, MultiIndex, RangeIndex, Series
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestSeriesAlterAxes:
@@ -19,8 +19,8 @@ class TestSeriesAlterAxes:
 
         # wrong length
         msg = (
-            "Length mismatch: Expected axis has 30 elements, new"
-            " values have 29 elements"
+            "Length mismatch: Expected axis has 30 elements, "
+            "new values have 29 elements"
         )
         with pytest.raises(ValueError, match=msg):
             string_series.index = np.arange(len(string_series) - 1)

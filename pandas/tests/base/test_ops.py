@@ -29,8 +29,8 @@ from pandas import (
     TimedeltaIndex,
     Timestamp,
 )
+import pandas._testing as tm
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
-import pandas.util.testing as tm
 
 
 class Ops:

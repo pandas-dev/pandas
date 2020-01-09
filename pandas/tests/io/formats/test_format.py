@@ -35,7 +35,7 @@ from pandas import (
     reset_option,
     set_option,
 )
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 import pandas.io.formats.format as fmt
 import pandas.io.formats.printing as printing
@@ -2659,14 +2659,14 @@ class TestSeriesFormatting:
             assert exp == res
             res = repr(test_sers["asc"])
             exp = (
-                "0         a\n1        ab\n      ...  \n4     abcde\n5"
-                "    abcdef\ndtype: object"
+                "0         a\n1        ab\n      ...  \n4     abcde\n5    "
+                "abcdef\ndtype: object"
             )
             assert exp == res
             res = repr(test_sers["desc"])
             exp = (
-                "5    abcdef\n4     abcde\n      ...  \n1        ab\n0"
-                "         a\ndtype: object"
+                "5    abcdef\n4     abcde\n      ...  \n1        ab\n0         "
+                "a\ndtype: object"
             )
             assert exp == res
 

@@ -12,7 +12,8 @@ from pandas import (
     Series,
     date_range,
 )
-import pandas.util.testing as tm
+
+from .pandas_vb_common import tm
 
 
 class SetOperations:

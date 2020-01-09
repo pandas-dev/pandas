@@ -26,14 +26,13 @@ from pandas import (
     Timestamp,
     date_range,
 )
-from pandas.core.indexes.datetimes import _to_M8
+import pandas._testing as tm
 from pandas.core.ops import roperator
 from pandas.tests.arithmetic.common import (
     assert_invalid_addsub_type,
     assert_invalid_comparison,
     get_upcast_box,
 )
-import pandas.util.testing as tm
 
 # ------------------------------------------------------------------
 # Comparisons
@@ -84,6 +83,52 @@ class TestDatetime64ArrayLikeComparisons:
         rng = date_range("1/1/2000", periods=10, tz=tz)
         dtarr = tm.box_expected(rng, box_with_array)
         assert_invalid_comparison(dtarr, other, box_with_array)
+
+    @pytest.mark.parametrize(
+        "other",
+        [
+            list(range(10)),
+            np.arange(10),
+            np.arange(10).astype(np.float32),
+            np.arange(10).astype(object),
+            pd.timedelta_range("1ns", periods=10).array,
+            np.array(pd.timedelta_range("1ns", periods=10)),
+            list(pd.timedelta_range("1ns", periods=10)),
+            pd.timedelta_range("1 Day", periods=10).astype(object),
+            pd.period_range("1971-01-01", freq="D", periods=10).array,
+            pd.period_range("1971-01-01", freq="D", periods=10).astype(object),
+        ],
+    )
+    def test_dt64arr_cmp_arraylike_invalid(self, other, tz_naive_fixture):
+        # We don't parametrize this over box_with_array because listlike
+        #  other plays poorly with assert_invalid_comparison reversed checks
+        tz = tz_naive_fixture
+
+        dta = date_range("1970-01-01", freq="ns", periods=10, tz=tz)._data
+        assert_invalid_comparison(dta, other, tm.to_array)
+
+    def test_dt64arr_cmp_mixed_invalid(self, tz_naive_fixture):
+        tz = tz_naive_fixture
+
+        dta = date_range("1970-01-01", freq="h", periods=5, tz=tz)._data
+
+        other = np.array([0, 1, 2, dta[3], pd.Timedelta(days=1)])
+        result = dta == other
+        expected = np.array([False, False, False, True, False])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = dta != other
+        tm.assert_numpy_array_equal(result, ~expected)
+
+        msg = "Invalid comparison between|Cannot compare type|not supported between"
+        with pytest.raises(TypeError, match=msg):
+            dta < other
+        with pytest.raises(TypeError, match=msg):
+            dta > other
+        with pytest.raises(TypeError, match=msg):
+            dta <= other
+        with pytest.raises(TypeError, match=msg):
+            dta >= other
 
     def test_dt64arr_nat_comparison(self, tz_naive_fixture, box_with_array):
         # GH#22242, GH#22163 DataFrame considered NaT == ts incorrectly
@@ -295,7 +340,7 @@ class TestDatetimeIndexComparisons:
     def test_comparators(self, op):
         index = tm.makeDateIndex(100)
         element = index[len(index) // 2]
-        element = _to_M8(element)
+        element = Timestamp(element).to_datetime64()
 
         arr = np.array(index)
         arr_result = op(arr, element)

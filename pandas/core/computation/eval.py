@@ -8,11 +8,12 @@ import tokenize
 from typing import Optional
 import warnings
 
-from pandas._libs.lib import _no_default
+from pandas._libs.lib import no_default
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.computation.engines import _engines
-from pandas.core.computation.expr import Expr, _parsers, tokenize_string
+from pandas.core.computation.expr import Expr, _parsers
+from pandas.core.computation.parsing import tokenize_string
 from pandas.core.computation.scope import ensure_scope
 
 from pandas.io.formats.printing import pprint_thing
@@ -170,7 +171,7 @@ def eval(
     expr,
     parser="pandas",
     engine: Optional[str] = None,
-    truediv=_no_default,
+    truediv=no_default,
     local_dict=None,
     global_dict=None,
     resolvers=(),
@@ -287,7 +288,7 @@ def eval(
 
     inplace = validate_bool_kwarg(inplace, "inplace")
 
-    if truediv is not _no_default:
+    if truediv is not no_default:
         warnings.warn(
             "The `truediv` parameter in pd.eval is deprecated and will be "
             "removed in a future version.",
@@ -338,8 +339,8 @@ def eval(
         if parsed_expr.assigner is None:
             if multi_line:
                 raise ValueError(
-                    "Multi-line expressions are only valid"
-                    " if all expressions contain an assignment"
+                    "Multi-line expressions are only valid "
+                    "if all expressions contain an assignment"
                 )
             elif inplace:
                 raise ValueError("Cannot operate inplace if there is no assignment")

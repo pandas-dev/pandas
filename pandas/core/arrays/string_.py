@@ -47,25 +47,14 @@ class StringDtype(ExtensionDtype):
     StringDtype
     """
 
+    name = "string"
+
     #: StringDtype.na_value uses pandas.NA
     na_value = libmissing.NA
 
     @property
     def type(self) -> Type:
         return str
-
-    @property
-    def name(self) -> str:
-        """
-        The alias for StringDtype is ``'string'``.
-        """
-        return "string"
-
-    @classmethod
-    def construct_from_string(cls, string: str) -> ExtensionDtype:
-        if string == "string":
-            return cls()
-        return super().construct_from_string(string)
 
     @classmethod
     def construct_array_type(cls) -> "Type[StringArray]":
@@ -142,7 +131,7 @@ class StringArray(PandasArray):
     --------
     >>> pd.array(['This is', 'some text', None, 'data.'], dtype="string")
     <StringArray>
-    ['This is', 'some text', NA, 'data.']
+    ['This is', 'some text', <NA>, 'data.']
     Length: 4, dtype: string
 
     Unlike ``object`` dtype arrays, ``StringArray`` doesn't allow non-string
@@ -157,7 +146,7 @@ class StringArray(PandasArray):
 
     >>> pd.array(["a", None, "c"], dtype="string") == "a"
     <BooleanArray>
-    [True, NA, False]
+    [True, <NA>, False]
     Length: 3, dtype: boolean
     """
 

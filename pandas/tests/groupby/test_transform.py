@@ -18,8 +18,8 @@ from pandas import (
     concat,
     date_range,
 )
+import pandas._testing as tm
 from pandas.core.groupby.groupby import DataError
-import pandas.util.testing as tm
 
 
 def assert_fp_equal(a, b):
@@ -962,9 +962,7 @@ def test_groupby_transform_rename():
         if isinstance(x, pd.Series):
             return result
 
-        result = result.rename(
-            columns={c: "{}_demeaned".format(c) for c in result.columns}
-        )
+        result = result.rename(columns={c: "{c}_demeaned" for c in result.columns})
 
         return result
 

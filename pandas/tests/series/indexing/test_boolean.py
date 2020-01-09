@@ -5,8 +5,8 @@ from pandas.core.dtypes.common import is_integer
 
 import pandas as pd
 from pandas import Index, Series, Timestamp, date_range, isna
+import pandas._testing as tm
 from pandas.core.indexing import IndexingError
-import pandas.util.testing as tm
 
 from pandas.tseries.offsets import BDay
 
@@ -285,8 +285,8 @@ def test_where_error():
     with pytest.raises(ValueError, match=msg):
         s[[True, False]] = [0, 2, 3]
     msg = (
-        "NumPy boolean array indexing assignment cannot assign 0 input"
-        " values to the 1 output values where the mask is true"
+        "NumPy boolean array indexing assignment cannot assign 0 input "
+        "values to the 1 output values where the mask is true"
     )
     with pytest.raises(ValueError, match=msg):
         s[[True, False]] = []

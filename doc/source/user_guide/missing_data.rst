@@ -920,3 +920,29 @@ filling missing values beforehand.
 
 A similar situation occurs when using Series or DataFrame objects in ``if``
 statements, see :ref:`gotchas.truth`.
+
+NumPy ufuncs
+------------
+
+:attr:`pandas.NA` implements NumPy's ``__array_ufunc__`` protocol. Most ufuncs
+work with ``NA``, and generally return ``NA``:
+
+.. ipython:: python
+
+   np.log(pd.NA)
+   np.add(pd.NA, 1)
+
+.. warning::
+
+   Currently, ufuncs involving an ndarray and ``NA`` will return an
+   object-dtype filled with NA values.
+
+   .. ipython:: python
+
+      a = np.array([1, 2, 3])
+      np.greater(a, pd.NA)
+
+   The return type here may change to return a different array type
+   in the future.
+
+See :ref:`dsintro.numpy_interop` for more on ufuncs.
