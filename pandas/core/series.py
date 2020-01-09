@@ -3895,7 +3895,7 @@ Name: Max Speed, dtype: float64
 
     def rename(
         self,
-            index = None,
+        index=None,
         *,
         axis=None,
         copy=True,
