@@ -23,7 +23,8 @@ from pandas.compat.numpy import np_datetime64_compat
 from pandas.errors import PerformanceWarning
 
 import pandas._testing as tm
-from pandas.core.indexes.datetimes import DatetimeIndex, _to_M8, date_range
+from pandas.core.arrays.datetimes import _to_M8
+from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 from pandas.core.series import Series
 
 from pandas.io.pickle import read_pickle

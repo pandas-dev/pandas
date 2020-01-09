@@ -16,7 +16,6 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 from pandas.core.accessor import delegate_names
 from pandas.core.arrays.datetimes import (
     DatetimeArray,
-    _to_M8,
     tz_to_dtype,
     validate_tz_from_dtype,
 )
