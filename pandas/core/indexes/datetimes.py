@@ -324,7 +324,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
         Convert value to be insertable to ndarray.
         """
         if self._has_same_tz(value):
-            return _to_M8(value)
+            return Timestamp(value).asm8
         raise ValueError("Passed item and index have different timezone")
 
     # --------------------------------------------------------------------
@@ -859,11 +859,25 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
     @Appender(_shared_docs["searchsorted"])
     def searchsorted(self, value, side="left", sorter=None):
         if isinstance(value, (np.ndarray, Index)):
-            value = np.array(value, dtype=_NS_DTYPE, copy=False)
-        else:
-            value = _to_M8(value, tz=self.tz)
+            if not type(self._data)._is_recognized_dtype(value):
+                raise TypeError(
+                    "searchsorted requires compatible dtype or scalar, "
+                    f"not {type(value).__name__}"
+                )
+            value = type(self._data)(value)
+            self._data._check_compatible_with(value)
 
-        return self.values.searchsorted(value, side=side)
+        elif isinstance(value, self._data._recognized_scalars):
+            self._data._check_compatible_with(value)
+            value = self._data._scalar_type(value)
+
+        elif not isinstance(value, DatetimeArray):
+            raise TypeError(
+                "searchsorted requires compatible dtype or scalar, "
+                f"not {type(value).__name__}"
+            )
+
+        return self._data.searchsorted(value, side=side)
 
     def is_type_compatible(self, typ) -> bool:
         return typ == self.inferred_type or typ == "datetime"
