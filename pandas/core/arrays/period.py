@@ -743,7 +743,7 @@ def raise_on_incompatible(left, right):
     right : None, DateOffset, Period, ndarray, or timedelta-like
 
     Returns
-    ------
+    -------
     IncompatibleFrequency
         Exception to be raised by the caller.
     """
