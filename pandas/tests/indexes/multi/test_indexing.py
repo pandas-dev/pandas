@@ -437,3 +437,91 @@ def test_timestamp_multiindex_indexer():
     )
     should_be = pd.Series(data=np.arange(24, len(qidx) + 24), index=qidx, name="foo")
     tm.assert_series_equal(result, should_be)
+
+
+def test_get_loc_with_values_including_missing_values():
+    # issue 19132
+    idx = MultiIndex.from_product([[np.nan, 1]] * 2)
+    expected = slice(0, 2, None)
+    assert idx.get_loc(np.nan) == expected
+
+    idx = MultiIndex.from_arrays([[np.nan, 1, 2, np.nan]])
+    expected = np.array([True, False, False, True])
+    tm.assert_numpy_array_equal(idx.get_loc(np.nan), expected)
+
+    idx = MultiIndex.from_product([[np.nan, 1]] * 3)
+    expected = slice(2, 4, None)
+    assert idx.get_loc((np.nan, 1)) == expected
+
+
+@pytest.mark.parametrize(
+    "index_arr,labels,expected",
+    [
+        (
+            [[1, np.nan, 2], [3, 4, 5]],
+            [1, np.nan, 2],
+            np.array([-1, -1, -1], dtype=np.intp),
+        ),
+        ([[1, np.nan, 2], [3, 4, 5]], [(np.nan, 4)], np.array([1], dtype=np.intp)),
+        ([[1, 2, 3], [np.nan, 4, 5]], [(1, np.nan)], np.array([0], dtype=np.intp)),
+        (
+            [[1, 2, 3], [np.nan, 4, 5]],
+            [np.nan, 4, 5],
+            np.array([-1, -1, -1], dtype=np.intp),
+        ),
+    ],
+)
+def test_get_indexer_with_missing_value(index_arr, labels, expected):
+    # issue 19132
+    idx = MultiIndex.from_arrays(index_arr)
+    result = idx.get_indexer(labels)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "index_arr,expected,target,algo",
+    [
+        ([[np.nan, "a", "b"], ["c", "d", "e"]], 0, np.nan, "left"),
+        ([[np.nan, "a", "b"], ["c", "d", "e"]], 1, (np.nan, "c"), "right"),
+        ([["a", "b", "c"], ["d", np.nan, "d"]], 1, ("b", np.nan), "left"),
+    ],
+)
+def test_get_slice_bound_with_missing_value(index_arr, expected, target, algo):
+    # issue 19132
+    idx = MultiIndex.from_arrays(index_arr)
+    result = idx.get_slice_bound(target, side=algo, kind="loc")
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    "index_arr,expected,start_idx,end_idx",
+    [
+        ([[np.nan, 1, 2], [3, 4, 5]], slice(0, 2, None), np.nan, 1),
+        ([[np.nan, 1, 2], [3, 4, 5]], slice(0, 3, None), np.nan, (2, 5)),
+        ([[1, 2, 3], [4, np.nan, 5]], slice(1, 3, None), (2, np.nan), 3),
+        ([[1, 2, 3], [4, np.nan, 5]], slice(1, 3, None), (2, np.nan), (3, 5)),
+    ],
+)
+def test_slice_indexer_with_missing_value(index_arr, expected, start_idx, end_idx):
+    # issue 19132
+    idx = MultiIndex.from_arrays(index_arr)
+    result = idx.slice_indexer(start=start_idx, end=end_idx)
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    "index_arr,expected,start_idx,end_idx",
+    [
+        ([[np.nan, "a", "b"], ["c", "d", "e"]], (0, 3), np.nan, None),
+        ([[np.nan, "a", "b"], ["c", "d", "e"]], (0, 3), np.nan, "b"),
+        ([[np.nan, "a", "b"], ["c", "d", "e"]], (0, 3), np.nan, ("b", "e")),
+        ([["a", "b", "c"], ["d", np.nan, "e"]], (1, 3), ("b", np.nan), None),
+        ([["a", "b", "c"], ["d", np.nan, "e"]], (1, 3), ("b", np.nan), "c"),
+        ([["a", "b", "c"], ["d", np.nan, "e"]], (1, 3), ("b", np.nan), ("c", "e")),
+    ],
+)
+def test_slice_locs_with_missing_value(index_arr, expected, start_idx, end_idx):
+    # issue 19132
+    idx = MultiIndex.from_arrays(index_arr)
+    result = idx.slice_locs(start=start_idx, end=end_idx)
+    assert result == expected
