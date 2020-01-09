@@ -173,6 +173,15 @@ class TestTake:
 
 
 class TestTimedeltaIndex:
+    def test_insert_empty(self):
+        # Corner case inserting with length zero doesnt raise IndexError
+        idx = timedelta_range("1 Day", periods=3)
+        td = idx[0]
+
+        idx[:0].insert(0, td)
+        idx[:0].insert(1, td)
+        idx[:0].insert(-1, td)
+
     def test_insert(self):
 
         idx = TimedeltaIndex(["4day", "1day", "2day"], name="idx")
