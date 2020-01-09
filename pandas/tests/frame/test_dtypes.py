@@ -661,6 +661,15 @@ class TestDataFrameDataTypes:
         tm.assert_frame_equal(df, equiv)
         tm.assert_frame_equal(df, original)
 
+        # GH 30324
+        # If errors=='ignore' than the resulting DataFrame
+        # should be the same as the original DataFrame
+        dt8 = dtype_class({"b": str, 2: str})
+        dt9 = dtype_class({"e": str})
+        df.astype(dt8, errors="ignore")
+        df.astype(dt9, errors="ignore")
+        tm.assert_frame_equal(df, original)
+
     def test_astype_duplicate_col(self):
         a1 = Series([1, 2, 3, 4, 5], name="a")
         b = Series([0.1, 0.2, 0.4, 0.6, 0.8], name="b")
