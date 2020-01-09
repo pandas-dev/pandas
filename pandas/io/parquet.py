@@ -76,6 +76,9 @@ class PyArrowImpl(BaseImpl):
         )
         import pyarrow.parquet
 
+        # import utils to register the pyarrow extension types
+        import pandas.core.arrays._arrow_utils  # noqa
+
         self.api = pyarrow
 
     def write(
