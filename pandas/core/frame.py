@@ -5323,10 +5323,10 @@ class DataFrame(NDFrame):
             * 0, or 'index' : Stack differences on neighbouring rows.
             * 1, or 'columns' : Stack differences on neighbouring columns.
 
-        keep_indices: bool, default False
+        keep_indices : bool, default False
             Whether to keep the rows and columns that are equal, or drop them.
 
-        keep_values: bool, default False
+        keep_values : bool, default False
             Whether to keep the values that are equal, or show as NaNs.
 
         Returns
