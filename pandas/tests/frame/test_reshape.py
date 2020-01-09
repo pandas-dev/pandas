@@ -1130,20 +1130,19 @@ def test_stack_timezone_aware_values():
     tm.assert_series_equal(result, expected)
 
 
-class TestMultiIndexReshape:
-    def test_unstacking_multi_index_df(self):
-        # BUG: gh-30740
-        df = pd.DataFrame(
-            {
-                "name": ["Alice", "Bob"],
-                "score": [9.5, 8],
-                "employed": [False, True],
-                "kids": [0, 0],
-                "gender": ["female", "male"],
-            }
-        )
-        df = df.set_index(["name", "employed", "kids", "gender"])
-        df = df.unstack(["gender"], fill_value=0)
-        expected = df.unstack("employed", fill_value=0).unstack("kids", fill_value=0)
-        result = df.unstack(["employed", "kids"], fill_value=0)
-        tm.assert_frame_equal(result, expected)
+def test_unstacking_multi_index_df(self):
+    # BUG: gh-30740
+    df = pd.DataFrame(
+        {
+            "name": ["Alice", "Bob"],
+            "score": [9.5, 8],
+            "employed": [False, True],
+            "kids": [0, 0],
+            "gender": ["female", "male"],
+        }
+    )
+    df = df.set_index(["name", "employed", "kids", "gender"])
+    df = df.unstack(["gender"], fill_value=0)
+    expected = df.unstack("employed", fill_value=0).unstack("kids", fill_value=0)
+    result = df.unstack(["employed", "kids"], fill_value=0)
+    tm.assert_frame_equal(result, expected)
