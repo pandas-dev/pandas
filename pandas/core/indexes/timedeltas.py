@@ -4,7 +4,7 @@ from datetime import datetime
 import numpy as np
 
 from pandas._libs import NaT, Timedelta, index as libindex
-from pandas.util._decorators import Appender, Substitution
+from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
     _TD_DTYPE,
@@ -21,7 +21,6 @@ from pandas.core.dtypes.missing import isna
 from pandas.core.accessor import delegate_names
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.timedeltas import TimedeltaArray, _is_convertible_to_td
-from pandas.core.base import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
 from pandas.core.indexes.datetimelike import (
@@ -343,30 +342,6 @@ class TimedeltaIndex(
             return key
 
         raise NotImplementedError
-
-    @Substitution(klass="TimedeltaIndex")
-    @Appender(_shared_docs["searchsorted"])
-    def searchsorted(self, value, side="left", sorter=None):
-        if isinstance(value, (np.ndarray, Index)):
-            if not type(self._data)._is_recognized_dtype(value):
-                raise TypeError(
-                    "searchsorted requires compatible dtype or scalar, "
-                    f"not {type(value).__name__}"
-                )
-            value = type(self._data)(value)
-            self._data._check_compatible_with(value)
-
-        elif isinstance(value, self._data._recognized_scalars):
-            self._data._check_compatible_with(value)
-            value = self._data._scalar_type(value)
-
-        elif not isinstance(value, TimedeltaArray):
-            raise TypeError(
-                "searchsorted requires compatible dtype or scalar, "
-                f"not {type(value).__name__}"
-            )
-
-        return self._data.searchsorted(value, side=side, sorter=sorter)
 
     def is_type_compatible(self, typ) -> bool:
         return typ == self.inferred_type or typ == "timedelta"

@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas._libs import Timestamp, index as libindex, lib, tslib as libts
 from pandas._libs.tslibs import ccalendar, fields, parsing, timezones
-from pandas.util._decorators import Appender, Substitution, cache_readonly
+from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import _NS_DTYPE, is_float, is_integer, is_scalar
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -18,7 +18,6 @@ from pandas.core.arrays.datetimes import (
     tz_to_dtype,
     validate_tz_from_dtype,
 )
-from pandas.core.base import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, maybe_extract_name
 from pandas.core.indexes.datetimelike import (
@@ -830,30 +829,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
                 raise
 
     # --------------------------------------------------------------------
-
-    @Substitution(klass="DatetimeIndex")
-    @Appender(_shared_docs["searchsorted"])
-    def searchsorted(self, value, side="left", sorter=None):
-        if isinstance(value, (np.ndarray, Index)):
-            if not type(self._data)._is_recognized_dtype(value):
-                raise TypeError(
-                    "searchsorted requires compatible dtype or scalar, "
-                    f"not {type(value).__name__}"
-                )
-            value = type(self._data)(value)
-            self._data._check_compatible_with(value)
-
-        elif isinstance(value, self._data._recognized_scalars):
-            self._data._check_compatible_with(value)
-            value = self._data._scalar_type(value)
-
-        elif not isinstance(value, DatetimeArray):
-            raise TypeError(
-                "searchsorted requires compatible dtype or scalar, "
-                f"not {type(value).__name__}"
-            )
-
-        return self._data.searchsorted(value, side=side)
 
     def is_type_compatible(self, typ) -> bool:
         return typ == self.inferred_type or typ == "datetime"

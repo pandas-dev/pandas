@@ -945,6 +945,31 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
                 f"cannot insert {type(self).__name__} with incompatible label"
             )
 
+    # --------------------------------------------------------------------
+    # NDarray-like Methods
+
+    def searchsorted(self, value, side="left", sorter=None):
+        if isinstance(value, (np.ndarray, Index)):
+            if not type(self._data)._is_recognized_dtype(value):
+                raise TypeError(
+                    "searchsorted requires compatible dtype or scalar, "
+                    f"not {type(value).__name__}"
+                )
+            value = type(self._data)(value)
+            self._data._check_compatible_with(value)
+
+        elif isinstance(value, self._data._recognized_scalars) or value is NaT:
+            self._data._check_compatible_with(value)
+            value = self._data._scalar_type(value)
+
+        elif not isinstance(value, type(self._data)):
+            raise TypeError(
+                "searchsorted requires compatible dtype or scalar, "
+                f"not {type(value).__name__}"
+            )
+
+        return self._data.searchsorted(value, side=side, sorter=sorter)
+
 
 class DatetimelikeDelegateMixin(PandasDelegate):
     """
