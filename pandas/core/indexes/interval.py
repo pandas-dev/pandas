@@ -51,15 +51,13 @@ from pandas.core.indexes.base import (
     maybe_extract_name,
 )
 from pandas.core.indexes.datetimes import DatetimeIndex, date_range
-from pandas.core.indexes.extension import make_wrapped_comparison_op
+from pandas.core.indexes.extension import ExtensionIndex, inherit_names
 from pandas.core.indexes.multi import MultiIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 from pandas.core.ops import get_op_result_name
 
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import DateOffset
-
-from .extension import ExtensionIndex, inherit_names
 
 _VALID_CLOSED = {"left", "right", "both", "neither"}
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -187,16 +185,7 @@ class SetopCheck:
 )
 @accessor.delegate_names(
     delegate=IntervalArray,
-    accessors=[
-        "_ndarray_values",
-        "length",
-        "size",
-        "left",
-        "right",
-        "mid",
-        "closed",
-        "dtype",
-    ],
+    accessors=["length", "size", "left", "right", "mid", "closed", "dtype"],
     typ="property",
     overwrite=True,
 )
@@ -213,7 +202,11 @@ class SetopCheck:
     typ="method",
     overwrite=True,
 )
-@inherit_names(["is_non_overlapping_monotonic", "mid"], IntervalArray, cache=True)
+@inherit_names(
+    ["is_non_overlapping_monotonic", "mid", "_ndarray_values"],
+    IntervalArray,
+    cache=True,
+)
 class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
     _typ = "intervalindex"
     _comparables = ["name"]
@@ -225,12 +218,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
     # Immutable, so we are able to cache computations like isna in '_mask'
     _mask = None
 
-    _raw_inherit = {
-        "_ndarray_values",
-        "__array__",
-        "overlaps",
-        "contains",
-    }
+    _raw_inherit = {"__array__", "overlaps", "contains"}
 
     # --------------------------------------------------------------------
     # Constructors
@@ -436,7 +424,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
             new_values = self.values.astype(dtype, copy=copy)
         if is_interval_dtype(new_values):
             return self._shallow_copy(new_values.left, new_values.right)
-        return super().astype(dtype, copy=copy)
+        return Index.astype(self, dtype, copy=copy)
 
     @property
     def inferred_type(self) -> str:
@@ -1203,14 +1191,20 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
             return type(self)._simple_new(res, name=self.name)
         return Index(res)
 
-    @classmethod
-    def _add_comparison_methods(cls):
-        """ add in comparison methods """
-        cls.__eq__ = make_wrapped_comparison_op("__eq__")
-        cls.__ne__ = make_wrapped_comparison_op("__ne__")
+    # GH#30817 until IntervalArray implements inequalities, get them from Index
+    def __lt__(self, other):
+        return Index.__lt__(self, other)
+
+    def __le__(self, other):
+        return Index.__le__(self, other)
+
+    def __gt__(self, other):
+        return Index.__gt__(self, other)
+
+    def __ge__(self, other):
+        return Index.__ge__(self, other)
 
 
-IntervalIndex._add_comparison_methods()
 IntervalIndex._add_logical_methods_disabled()
 
 

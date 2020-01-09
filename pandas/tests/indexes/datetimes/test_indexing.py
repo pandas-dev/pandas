@@ -132,8 +132,31 @@ class TestWhere:
 
         i2 = i.copy()
         i2 = Index([pd.NaT, pd.NaT] + i[2:].tolist())
-        result = i.where(notna(i2), i2.values)
+        result = i.where(notna(i2), i2._values)
         tm.assert_index_equal(result, i2)
+
+    def test_where_invalid_dtypes(self):
+        dti = pd.date_range("20130101", periods=3, tz="US/Eastern")
+
+        i2 = dti.copy()
+        i2 = Index([pd.NaT, pd.NaT] + dti[2:].tolist())
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            # passing tz-naive ndarray to tzaware DTI
+            dti.where(notna(i2), i2.values)
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            # passing tz-aware DTI to tznaive DTI
+            dti.tz_localize(None).where(notna(i2), i2)
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            dti.where(notna(i2), i2.tz_localize(None).to_period("D"))
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            dti.where(notna(i2), i2.asi8.view("timedelta64[ns]"))
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            dti.where(notna(i2), i2.asi8)
 
     def test_where_tz(self):
         i = pd.date_range("20130101", periods=3, tz="US/Eastern")
@@ -411,9 +434,9 @@ class TestDatetimeIndex:
 
         # see gh-7299
         idx = date_range("1/1/2000", periods=3, freq="D", tz="Asia/Tokyo", name="idx")
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError, match="Cannot compare tz-naive and tz-aware"):
             idx.insert(3, pd.Timestamp("2000-01-04"))
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError, match="Cannot compare tz-naive and tz-aware"):
             idx.insert(3, datetime(2000, 1, 4))
         with pytest.raises(ValueError):
             idx.insert(3, pd.Timestamp("2000-01-04", tz="US/Eastern"))
@@ -589,6 +612,23 @@ class TestDatetimeIndex:
             assert result.name == expected.name
             assert result.freq == expected.freq
             assert result.tz == expected.tz
+
+    def test_get_value(self):
+        # specifically make sure we have test for np.datetime64 key
+        dti = pd.date_range("2016-01-01", periods=3)
+
+        arr = np.arange(6, 8)
+
+        key = dti[1]
+
+        result = dti.get_value(arr, key)
+        assert result == 7
+
+        result = dti.get_value(arr, key.to_pydatetime())
+        assert result == 7
+
+        result = dti.get_value(arr, key.to_datetime64())
+        assert result == 7
 
     def test_get_loc(self):
         idx = pd.date_range("2000-01-01", periods=3)

@@ -159,7 +159,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     _typ = "series"
 
-    _metadata: List[str] = []
+    _name: Optional[Hashable]
+    _metadata: List[str] = ["name"]
     _accessors = {"dt", "cat", "str", "sparse"}
     _deprecations = (
         base.IndexOpsMixin._deprecations
@@ -425,13 +426,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @property
     def name(self) -> Optional[Hashable]:
-        return self.attrs.get("name", None)
+        return self._name
 
     @name.setter
     def name(self, value: Optional[Hashable]) -> None:
         if not is_hashable(value):
             raise TypeError("Series.name must be a hashable type")
-        self.attrs["name"] = value
+        object.__setattr__(self, "_name", value)
 
     @property
     def values(self):
