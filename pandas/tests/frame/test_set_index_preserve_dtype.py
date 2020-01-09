@@ -9,6 +9,5 @@ def test_dtypes(test_dtype):
     df = pd.DataFrame({'A': pd.Series([1, 2, 3], dtype=test_dtype), 'B': [1, 2, 3]})
     expected = df.dtypes.values[0].type
 
-    df.set_index('A')
-    result = df.index.dtype.type
+    result = df.set_index('A').index.dtype.type
     assert result == expected
