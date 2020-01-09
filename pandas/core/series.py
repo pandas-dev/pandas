@@ -4,7 +4,7 @@ Data structure for 1-dimensional cross-sectional and time series data
 from io import StringIO
 from shutil import get_terminal_size
 from textwrap import dedent
-from typing import IO, Any, Callable, Hashable, List, Mapping, Optional, Union
+from typing import IO, Any, Callable, Hashable, List, Optional
 import warnings
 
 import numpy as np
@@ -12,7 +12,6 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import index as libindex, lib, reshape, tslibs
-from pandas._typing import Axis, Level
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_bool_kwarg, validate_percentile
