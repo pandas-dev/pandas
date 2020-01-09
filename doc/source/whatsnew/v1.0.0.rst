@@ -872,6 +872,7 @@ Datetimelike
 - Bug in :func:`pandas.to_datetime` when called with ``Series`` storing ``IntegerArray`` raising ``TypeError`` instead of returning ``Series`` (:issue:`30050`)
 - Bug in :func:`date_range` with custom business hours as ``freq`` and given number of ``periods`` (:issue:`30593`)
 - Bug in :class:`PeriodIndex` comparisons with incorrectly casting integers to :class:`Period` objects, inconsistent with the :class:`Period` comparison behavior (:issue:`30722`)
+- Bug in :meth:`DatetimeIndex.insert` raising a ``ValueError`` instead of a ``TypeError`` when trying to insert a timezone-aware :class:`Timestamp` into a timezone-naive :class:`DatetimeIndex`, or vice-versa (:issue:`30806`)
 
 Timedelta
 ^^^^^^^^^

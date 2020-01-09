@@ -434,9 +434,9 @@ class TestDatetimeIndex:
 
         # see gh-7299
         idx = date_range("1/1/2000", periods=3, freq="D", tz="Asia/Tokyo", name="idx")
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError, match="Cannot compare tz-naive and tz-aware"):
             idx.insert(3, pd.Timestamp("2000-01-04"))
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError, match="Cannot compare tz-naive and tz-aware"):
             idx.insert(3, datetime(2000, 1, 4))
         with pytest.raises(ValueError):
             idx.insert(3, pd.Timestamp("2000-01-04", tz="US/Eastern"))

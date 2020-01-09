@@ -895,7 +895,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
         -------
         new_index : Index
         """
-        if is_valid_nat_for_dtype(item, self.dtype):
+        if isinstance(item, self._data._recognized_scalars):
+            item = self._data._scalar_type(item)
+        elif is_valid_nat_for_dtype(item, self.dtype):
             # GH 18295
             item = self._na_value
         elif is_scalar(item) and isna(item):
@@ -905,11 +907,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
             )
 
         freq = None
-
-        if isinstance(item, (datetime, np.datetime64)):
-            self._assert_can_do_op(item)
-            if not self._has_same_tz(item) and not isna(item):
-                raise ValueError("Passed item and index have different timezone")
+        if isinstance(item, self._data._scalar_type) or item is NaT:
+            self._data._check_compatible_with(item, setitem=True)
 
             # check freq can be preserved on edge cases
             if self.size and self.freq is not None:
@@ -919,19 +918,21 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
                     freq = self.freq
                 elif (loc == len(self)) and item - self.freq == self[-1]:
                     freq = self.freq
-            item = _to_M8(item, tz=self.tz)
+            item = item.asm8
 
         try:
-            new_dates = np.concatenate(
+            new_i8s = np.concatenate(
                 (self[:loc].asi8, [item.view(np.int64)], self[loc:].asi8)
             )
-            return self._shallow_copy(new_dates, freq=freq)
+            return self._shallow_copy(new_i8s, freq=freq)
         except (AttributeError, TypeError):
 
             # fall back to object index
             if isinstance(item, str):
                 return self.astype(object).insert(loc, item)
-            raise TypeError("cannot insert DatetimeIndex with incompatible label")
+            raise TypeError(
+                f"cannot insert {type(self).__name__} with incompatible label"
+            )
 
     def indexer_at_time(self, time, asof=False):
         """
