@@ -10,9 +10,8 @@ from pandas.core.dtypes.common import ensure_platform_int, is_dtype_equal
 from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.arrays import ExtensionArray
+from pandas.core.indexes.base import Index
 from pandas.core.ops import get_op_result_name
-
-from .base import Index
 
 
 def inherit_from_data(name: str, delegate, cache: bool = False):
@@ -87,7 +86,7 @@ def inherit_names(names: List[str], delegate, cache: bool = False):
     return wrapper
 
 
-def make_wrapped_comparison_op(opname):
+def _make_wrapped_comparison_op(opname):
     """
     Create a comparison method that dispatches to ``._data``.
     """
@@ -163,6 +162,13 @@ class ExtensionIndex(Index):
     """
 
     _data: ExtensionArray
+
+    __eq__ = _make_wrapped_comparison_op("__eq__")
+    __ne__ = _make_wrapped_comparison_op("__ne__")
+    __lt__ = _make_wrapped_comparison_op("__lt__")
+    __gt__ = _make_wrapped_comparison_op("__gt__")
+    __le__ = _make_wrapped_comparison_op("__le__")
+    __ge__ = _make_wrapped_comparison_op("__ge__")
 
     def repeat(self, repeats, axis=None):
         nv.validate_repeat(tuple(), dict(axis=axis))

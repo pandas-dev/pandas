@@ -39,6 +39,7 @@ from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
+from pandas.core.arrays.sparse.dtype import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.construction import sanitize_array
@@ -47,8 +48,6 @@ import pandas.core.ops as ops
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 import pandas.io.formats.printing as printing
-
-from .dtype import SparseDtype
 
 # ----------------------------------------------------------------------------
 # Array
