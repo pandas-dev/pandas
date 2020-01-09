@@ -648,7 +648,7 @@ class TestCategoricalReshape:
 
 class TestMultiIndexReshape:
     def test_unstacking_multi_index_df(self):
-        # BUG: 30740
+        # see gh-30740
         df = pd.DataFrame(
             {
                 "name": ["Alice", "Bob"],
