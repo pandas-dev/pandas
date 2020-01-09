@@ -641,15 +641,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
         know what you're doing
         """
 
-        if isinstance(key, datetime):
-
-            # needed to localize naive datetimes
-            if self.tz is not None:
-                if key.tzinfo is not None:
-                    key = Timestamp(key).tz_convert(self.tz)
-                else:
-                    key = Timestamp(key).tz_localize(self.tz)
-
+        if isinstance(key, (datetime, np.datetime64)):
             return self.get_value_maybe_box(series, key)
 
         if isinstance(key, time):
