@@ -1,6 +1,6 @@
 from collections import defaultdict
 from functools import partial
-from typing import Any, Sequence
+from typing import Any, DefaultDict, Sequence
 
 from pandas.core.dtypes.common import is_dict_like, is_list_like
 
