@@ -8886,7 +8886,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     """
 
     @Appender(_shared_docs["shift"] % _shared_doc_kwargs)
-    def shift(self, periods=1, freq=None, axis=0, fill_value=None):
+    def shift(
+        self: FrameOrSeries, periods=1, freq=None, axis=0, fill_value=None
+    ) -> FrameOrSeries:
         if periods == 0:
             return self.copy()
 
