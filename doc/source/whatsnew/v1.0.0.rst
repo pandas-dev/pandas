@@ -411,6 +411,24 @@ Use :meth:`arrays.IntegerArray.to_numpy` with an explicit ``na_value`` instead.
 
    a.to_numpy(dtype="float", na_value=np.nan)
 
+**value_counts returns a nullable integer dtype**
+
+:meth:`Series.value_counts` with a nullable integer dtype now returns a nullable
+integer dtype for the values.
+
+*pandas 0.25.x*
+
+.. code-block:: python
+
+   >>> pd.Series([2, 1, 1, None], dtype="Int64").value_counts().dtype
+   dtype('int64')
+
+*pandas 1.0.0*
+
+.. ipython:: python
+
+   pd.Series([2, 1, 1, None], dtype="Int64").value_counts().dtype
+
 See :ref:`missing_data.NA` for more on the differences between :attr:`pandas.NA`
 and :attr:`numpy.nan`.
 
