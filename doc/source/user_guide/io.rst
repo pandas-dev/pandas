@@ -2066,6 +2066,8 @@ The Numpy parameter
 +++++++++++++++++++
 
 .. note::
+  This param has been deprecated as of version 1.0.0 and will raise a ``FutureWarning``.
+
   This supports numeric data only. Index and columns labels may be non-numeric, e.g. strings, dates etc.
 
 If ``numpy=True`` is passed to ``read_json`` an attempt will be made to sniff
@@ -2088,6 +2090,7 @@ data:
    %timeit pd.read_json(jsonfloats)
 
 .. ipython:: python
+   :okwarning:
 
    %timeit pd.read_json(jsonfloats, numpy=True)
 
@@ -2102,6 +2105,7 @@ The speedup is less noticeable for smaller datasets:
    %timeit pd.read_json(jsonfloats)
 
 .. ipython:: python
+   :okwarning:
 
    %timeit pd.read_json(jsonfloats, numpy=True)
 

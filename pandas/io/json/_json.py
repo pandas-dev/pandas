@@ -11,6 +11,7 @@ import pandas._libs.json as json
 from pandas._libs.tslibs import iNaT
 from pandas._typing import JSONSerializable
 from pandas.errors import AbstractMethodError
+from pandas.util._decorators import deprecate_kwarg
 
 from pandas.core.dtypes.common import ensure_str, is_period_dtype
 
@@ -345,6 +346,7 @@ class JSONTableWriter(FrameWriter):
         return serialized
 
 
+@deprecate_kwarg(old_arg_name="numpy", new_arg_name=None)
 def read_json(
     path_or_buf=None,
     orient=None,
@@ -457,6 +459,8 @@ def read_json(
         Direct decoding to numpy arrays. Supports numeric data only, but
         non-numeric column and index labels are supported. Note also that the
         JSON ordering MUST be the same for each term if numpy=True.
+
+        .. deprecated:: 1.0.0
 
     precise_float : bool, default False
         Set to enable usage of higher precision (strtod) function when
