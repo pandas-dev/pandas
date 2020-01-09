@@ -357,11 +357,25 @@ class TimedeltaIndex(
     @Appender(_shared_docs["searchsorted"])
     def searchsorted(self, value, side="left", sorter=None):
         if isinstance(value, (np.ndarray, Index)):
-            value = np.array(value, dtype=_TD_DTYPE, copy=False)
-        else:
-            value = Timedelta(value).asm8.view(_TD_DTYPE)
+            if not type(self._data)._is_recognized_dtype(value):
+                raise TypeError(
+                    "searchsorted requires compatible dtype or scalar, "
+                    f"not {type(value).__name__}"
+                )
+            value = type(self._data)(value)
+            self._data._check_compatible_with(value)
 
-        return self.values.searchsorted(value, side=side, sorter=sorter)
+        elif isinstance(value, self._data._recognized_scalars):
+            self._data._check_compatible_with(value)
+            value = self._data._scalar_type(value)
+
+        elif not isinstance(value, TimedeltaArray):
+            raise TypeError(
+                "searchsorted requires compatible dtype or scalar, "
+                f"not {type(value).__name__}"
+            )
+
+        return self._data.searchsorted(value, side=side, sorter=sorter)
 
     def is_type_compatible(self, typ) -> bool:
         return typ == self.inferred_type or typ == "timedelta"
@@ -387,7 +401,7 @@ class TimedeltaIndex(
         """
         # try to convert if possible
         if isinstance(item, self._data._recognized_scalars):
-            item = Timedelta(item)
+            item = self._data._scalar_type(item)
         elif is_valid_nat_for_dtype(item, self.dtype):
             # GH 18295
             item = self._na_value
@@ -398,8 +412,7 @@ class TimedeltaIndex(
             )
 
         freq = None
-        if isinstance(item, self._data._recognized_scalars) or item is NaT:
-            item = self._data._scalar_type(item)
+        if isinstance(item, self._data._scalar_type) or item is NaT:
             self._data._check_compatible_with(item, setitem=True)
 
             # check freq can be preserved on edge cases
@@ -413,20 +426,20 @@ class TimedeltaIndex(
             item = item.asm8
 
         try:
-            new_tds = np.concatenate(
+            new_i8s = np.concatenate(
                 (self[:loc].asi8, [item.view(np.int64)], self[loc:].asi8)
             )
-            return self._shallow_copy(new_tds, freq=freq)
-
+            return self._shallow_copy(new_i8s, freq=freq)
         except (AttributeError, TypeError):
 
             # fall back to object index
             if isinstance(item, str):
                 return self.astype(object).insert(loc, item)
-            raise TypeError("cannot insert TimedeltaIndex with incompatible label")
+            raise TypeError(
+                f"cannot insert {type(self).__name__} with incompatible label"
+            )
 
 
-TimedeltaIndex._add_comparison_ops()
 TimedeltaIndex._add_logical_methods_disabled()
 
 

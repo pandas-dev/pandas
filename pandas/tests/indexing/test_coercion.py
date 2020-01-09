@@ -433,7 +433,7 @@ class TestInsertIndexCoercion(CoercionBase):
         self._assert_insert_conversion(obj, fill_val, exp, exp_dtype)
 
         if fill_val.tz:
-            msg = "Cannot compare tz-naive and tz-aware datetime-like objects"
+            msg = "Cannot compare tz-naive and tz-aware"
             with pytest.raises(TypeError, match=msg):
                 obj.insert(1, pd.Timestamp("2012-01-01"))
 
@@ -442,7 +442,7 @@ class TestInsertIndexCoercion(CoercionBase):
                 obj.insert(1, pd.Timestamp("2012-01-01", tz="Asia/Tokyo"))
 
         else:
-            msg = "Cannot compare tz-naive and tz-aware datetime-like objects"
+            msg = "Cannot compare tz-naive and tz-aware"
             with pytest.raises(TypeError, match=msg):
                 obj.insert(1, pd.Timestamp("2012-01-01", tz="Asia/Tokyo"))
 
