@@ -6,6 +6,15 @@ What's new in 1.0.0 (??)
 These are the changes in pandas 1.0.0. See :ref:`release` for a full changelog
 including other versions of pandas.
 
+.. note::
+
+    The pandas 1.0 release removed a lot of functionality that was deprecated
+    in previous releases (see :ref:`below <whatsnew_100.prior_deprecations>`
+    for an overview). It is recommended to first upgrade to pandas 0.25 and to
+    ensure your code is working without warnings, before upgrading to pandas
+    1.0.
+
+
 New Deprecation Policy
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -14,7 +23,7 @@ version releases. Briefly,
 
 * Deprecations will be introduced in minor releases (e.g. 1.1.0, 1.2.0, 2.1.0, ...)
 * Deprecations will be enforced in major releases (e.g. 1.0.0, 2.0.0, 3.0.0, ...)
-* API-breaking changes will be made only in major releases
+* API-breaking changes will be made only in major releases (except for experimental features)
 
 See :ref:`policies.version` for more.
 
