@@ -1882,7 +1882,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # GH#23114 Ensure ndarray.__op__(DataFrame) returns NotImplemented
     __array_priority__ = 1000
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None) -> np.ndarray:
         return com.values_from_object(self)
 
     def __array_wrap__(self, result, context=None):

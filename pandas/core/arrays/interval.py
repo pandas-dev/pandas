@@ -1063,7 +1063,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         )
 
     # Conversion
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None) -> np.ndarray:
         """
         Return the IntervalArray's data as a numpy array of Interval
         objects (with dtype='object')
