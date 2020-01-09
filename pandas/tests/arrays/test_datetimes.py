@@ -327,7 +327,7 @@ class TestDatetimeArray:
             pd.Timedelta(days=2),
             "invalid",
             np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9,
-            np.arange(10, dtype="timedelta64[ns]") * 24 * 3600 * 10 ** 9,
+            np.arange(10).view("timedelta64[ns]") * 24 * 3600 * 10 ** 9,
             pd.Timestamp.now().to_period("D"),
         ],
     )
