@@ -37,12 +37,11 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import nanops
 from pandas.core.algorithms import checked_add_with_arr
+from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
 
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import Tick
-
-from . import datetimelike as dtl
 
 _BAD_DTYPE = "dtype {dtype} cannot be converted to timedelta64[ns]"
 

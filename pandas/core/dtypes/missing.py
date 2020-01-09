@@ -9,7 +9,7 @@ from pandas._libs import lib
 import pandas._libs.missing as libmissing
 from pandas._libs.tslibs import NaT, iNaT
 
-from .common import (
+from pandas.core.dtypes.common import (
     _NS_DTYPE,
     _TD_DTYPE,
     ensure_object,
@@ -31,7 +31,7 @@ from .common import (
     needs_i8_conversion,
     pandas_dtype,
 )
-from .generic import (
+from pandas.core.dtypes.generic import (
     ABCDatetimeArray,
     ABCExtensionArray,
     ABCGeneric,
@@ -40,7 +40,7 @@ from .generic import (
     ABCSeries,
     ABCTimedeltaArray,
 )
-from .inference import is_list_like
+from pandas.core.dtypes.inference import is_list_like
 
 isposinf_scalar = libmissing.isposinf_scalar
 isneginf_scalar = libmissing.isneginf_scalar
