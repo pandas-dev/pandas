@@ -1131,7 +1131,7 @@ def test_stack_timezone_aware_values():
 
 
 def test_unstacking_multi_index_df():
-    # BUG: gh-30740
+    # see gh-30740
     df = DataFrame(
         {
             "name": ["Alice", "Bob"],
