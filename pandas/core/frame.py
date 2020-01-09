@@ -5304,6 +5304,147 @@ class DataFrame(NDFrame):
         out.columns = self.columns
         return out
 
+    def differences(self, other, axis=1, keep_indices=False, keep_values=False):
+        """
+        Compare to another DataFrame and show the differences.
+
+        The axis on which to stack results and how much information to
+        preserve can be customized.
+
+        Note that NaNs are considered not different from other NaNs.
+
+        Parameters
+        ----------
+        other : DataFrame
+            Object to compare with.
+
+        axis : {0 or 'index', 1 or 'columns'}, default 1
+            Determine how the differences are stacked.
+            * 0, or 'index' : Stack differences on neighbouring rows.
+            * 1, or 'columns' : Stack differences on neighbouring columns.
+
+        keep_indices: bool, default False
+            Whether to keep the rows and columns that are equal, or drop them.
+
+        keep_values: bool, default False
+            Whether to keep the values that are equal, or show as NaNs.
+
+        Returns
+        -------
+        DataFrame
+            DataFrame that shows the differences stacked side by side.
+
+        See Also
+        --------
+        Series.differences: Show differences.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "col1": ["a", "a", "b", "b", "a"],
+        ...         "col2": [1.0, 2.0, 3.0, np.nan, 5.0],
+        ...         "col3": [1.0, 2.0, 3.0, 4.0, 5.0]
+        ...     },
+        ...     columns=["col1", "col2", "col3"],
+        ... )
+        >>> df
+          col1  col2  col3
+        0    a   1.0   1.0
+        1    a   2.0   2.0
+        2    b   3.0   3.0
+        3    b   NaN   4.0
+        4    a   5.0   5.0
+
+        >>> df2 = df.copy()
+        >>> df2.loc[0, 'col1'] = 'c'
+        >>> df2.loc[2, 'col3'] = 4.0
+        >>> df2
+          col1  col2  col3
+        0    c   1.0   1.0
+        1    a   2.0   2.0
+        2    b   3.0   4.0
+        3    b   NaN   4.0
+        4    a   5.0   5.0
+
+        Stack the differences on columns
+
+        >>> df.differences(df2)
+          col1       col3
+          self other self other
+        0    a     c  NaN   NaN
+        2  NaN   NaN  3.0   4.0
+
+        Stack the differences on rows
+
+        >>> df.differences(df2, axis=0)
+                col1  col3
+        0 self     a   NaN
+          other    c   NaN
+        2 self   NaN   3.0
+          other  NaN   4.0
+
+        Keep all the original indices (rows and columns)
+
+        >>> df.differences(df2, keep_indices=True)
+          col1       col2       col3
+          self other self other self other
+        0    a     c  NaN   NaN  NaN   NaN
+        1  NaN   NaN  NaN   NaN  NaN   NaN
+        2  NaN   NaN  NaN   NaN  3.0   4.0
+        3  NaN   NaN  NaN   NaN  NaN   NaN
+        4  NaN   NaN  NaN   NaN  NaN   NaN
+
+        Keep all original indices and data
+
+        >>> df.differences(df2, keep_indices=True, keep_values=True)
+          col1       col2       col3
+          self other self other self other
+        0    a     c  1.0   1.0  1.0   1.0
+        1    a     a  2.0   2.0  2.0   2.0
+        2    b     b  3.0   3.0  3.0   4.0
+        3    b     b  NaN   NaN  4.0   4.0
+        4    a     a  5.0   5.0  5.0   5.0
+        """
+        from pandas.core.reshape.concat import concat
+
+        mask = ~((self == other) | (self.isna() & other.isna()))
+        keys = ["self", "other"]
+
+        if not keep_values:
+            self = self.where(mask)
+            other = other.where(mask)
+
+        if not keep_indices:
+            cmask = mask.any()
+            rmask = mask.any(axis=1)
+            self = self.loc[rmask, cmask]
+            other = other.loc[rmask, cmask]
+
+        axis = self._get_axis_number(axis)
+        diff = concat([self, other], axis=axis, keys=keys)
+
+        ax = diff._get_axis(axis)
+        ax_names = np.array(ax.names)
+
+        # set index names to positions to avoid confusion
+        ax.names = np.arange(len(ax_names))
+
+        # bring self-other to inner level
+        order = list(range(1, ax.nlevels)) + [0]
+        diff = diff.reorder_levels(order, axis=axis)
+
+        # restore the index names in order
+        diff._get_axis(axis=axis).names = ax_names[order]
+
+        # reorder axis to keep things organized
+        indices = (
+            np.arange(diff.shape[axis]).reshape([2, diff.shape[axis] // 2]).T.flatten()
+        )
+        diff = diff.take(indices, axis=axis)
+
+        return diff
+
     def combine(
         self, other: "DataFrame", func, fill_value=None, overwrite=True
     ) -> "DataFrame":
