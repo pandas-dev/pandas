@@ -22,39 +22,39 @@ Next example gives an idea on how a docstring looks like:
 .. code-block:: python
 
     def add(num1, num2):
-    """
-    Add up two integer numbers.
+        """
+        Add up two integer numbers.
 
-    This function simply wraps the `+` operator, and does not
-    do anything interesting, except for illustrating what is
-    the docstring of a very simple function.
+        This function simply wraps the `+` operator, and does not
+        do anything interesting, except for illustrating what is
+        the docstring of a very simple function.
 
-    Parameters
-    ----------
-    num1 : int
-        First number to add
-    num2 : int
-        Second number to add
+        Parameters
+        ----------
+        num1 : int
+            First number to add
+        num2 : int
+            Second number to add
 
-    Returns
-    -------
-    int
-        The sum of `num1` and `num2`
+        Returns
+        -------
+        int
+            The sum of `num1` and `num2`
 
-    See Also
-    --------
-    subtract : Subtract one integer from another
+        See Also
+        --------
+        subtract : Subtract one integer from another
 
-    Examples
-    --------
-    >>> add(2, 2)
-    4
-    >>> add(25, 0)
-    25
-    >>> add(10, -10)
-    0
-    """
-    return num1 + num2
+        Examples
+        --------
+        >>> add(2, 2)
+        4
+        >>> add(25, 0)
+        25
+        >>> add(10, -10)
+        0
+        """
+        return num1 + num2
 
 Some standards exist about docstrings, so they are easier to read, and they can
 be exported to other formats such as html or pdf.
