@@ -1,7 +1,8 @@
 import numpy as np
 
 from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range
-import pandas.util.testing as tm
+
+from .pandas_vb_common import tm
 
 try:
     from pandas.tseries.offsets import Nano, Hour

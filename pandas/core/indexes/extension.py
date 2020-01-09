@@ -3,16 +3,17 @@ Shared methods for Index subclasses backed by ExtensionArray.
 """
 from typing import List
 
+import numpy as np
+
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.common import ensure_platform_int
+from pandas.core.dtypes.common import ensure_platform_int, is_dtype_equal
 from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.arrays import ExtensionArray
+from pandas.core.indexes.base import Index
 from pandas.core.ops import get_op_result_name
-
-from .base import Index
 
 
 def inherit_from_data(name: str, delegate, cache: bool = False):
@@ -87,7 +88,7 @@ def inherit_names(names: List[str], delegate, cache: bool = False):
     return wrapper
 
 
-def make_wrapped_comparison_op(opname):
+def _make_wrapped_comparison_op(opname):
     """
     Create a comparison method that dispatches to ``._data``.
     """
@@ -164,6 +165,41 @@ class ExtensionIndex(Index):
 
     _data: ExtensionArray
 
+    __eq__ = _make_wrapped_comparison_op("__eq__")
+    __ne__ = _make_wrapped_comparison_op("__ne__")
+    __lt__ = _make_wrapped_comparison_op("__lt__")
+    __gt__ = _make_wrapped_comparison_op("__gt__")
+    __le__ = _make_wrapped_comparison_op("__le__")
+    __ge__ = _make_wrapped_comparison_op("__ge__")
+
+    def __getitem__(self, key):
+        result = self._data[key]
+        if isinstance(result, type(self._data)):
+            return type(self)(result, name=self.name)
+
+        # Includes cases where we get a 2D ndarray back for MPL compat
+        return result
+
+    def __iter__(self):
+        return self._data.__iter__()
+
+    @property
+    def _ndarray_values(self) -> np.ndarray:
+        return self._data._ndarray_values
+
+    def dropna(self, how="any"):
+        if how not in ("any", "all"):
+            raise ValueError(f"invalid how option: {how}")
+
+        if self.hasnans:
+            return self._shallow_copy(self._data[~self._isnan])
+        return self._shallow_copy()
+
+    def repeat(self, repeats, axis=None):
+        nv.validate_repeat(tuple(), dict(axis=axis))
+        result = self._data.repeat(repeats, axis=axis)
+        return self._shallow_copy(result)
+
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
         nv.validate_take(tuple(), kwargs)
         indices = ensure_platform_int(indices)
@@ -192,3 +228,14 @@ class ExtensionIndex(Index):
         if dropna and self.hasnans:
             result = result[~result.isna()]
         return self._shallow_copy(result)
+
+    def astype(self, dtype, copy=True):
+        if is_dtype_equal(self.dtype, dtype) and copy is False:
+            # Ensure that self.astype(self.dtype) is self
+            return self
+
+        new_values = self._data.astype(dtype, copy=copy)
+
+        # pass copy=False because any copying will be done in the
+        #  _data.astype call above
+        return Index(new_values, dtype=new_values.dtype, name=self.name, copy=False)
