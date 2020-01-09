@@ -5519,7 +5519,7 @@ Index._add_logical_methods()
 Index._add_comparison_methods()
 
 
-def ensure_index_from_sequences(sequences, names=None):
+def ensure_index_from_sequences(sequences, names=None, dtype=None):
     """
     Construct an index from sequences of data.
 
@@ -5530,6 +5530,7 @@ def ensure_index_from_sequences(sequences, names=None):
     ----------
     sequences : sequence of sequences
     names : sequence of str
+    dtype : NumPy dtype
 
     Returns
     -------
@@ -5555,7 +5556,7 @@ def ensure_index_from_sequences(sequences, names=None):
     if len(sequences) == 1:
         if names is not None:
             names = names[0]
-        return Index(sequences[0], name=names)
+        return Index(sequences[0], name=names, dtype=dtype)
     else:
         return MultiIndex.from_arrays(sequences, names=names)
 

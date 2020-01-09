@@ -4307,6 +4307,7 @@ class DataFrame(NDFrame):
             "one-dimensional arrays."
         )
 
+        current_dtype = None
         missing: List[Optional[Hashable]] = []
         for col in keys:
             if isinstance(
@@ -4320,6 +4321,9 @@ class DataFrame(NDFrame):
                 # everything else gets tried as a key; see GH 24969
                 try:
                     found = col in self.columns
+                    if found:
+                        # get current dtype to preserve through index creation
+                        current_dtype = self.dtypes.get(col).type
                 except TypeError:
                     raise TypeError(f"{err_msg}. Received column of type {type(col)}")
                 else:
@@ -4375,7 +4379,7 @@ class DataFrame(NDFrame):
                     f"received array of length {len(arrays[-1])}"
                 )
 
-        index = ensure_index_from_sequences(arrays, names)
+        index = ensure_index_from_sequences(arrays, names, current_dtype)
 
         if verify_integrity and not index.is_unique:
             duplicates = index[index.duplicated()].unique()
