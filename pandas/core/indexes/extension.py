@@ -14,7 +14,7 @@ from pandas.core.indexes.base import Index
 from pandas.core.ops import get_op_result_name
 
 
-def inherit_from_data(name: str, delegate, cache: bool = False):
+def inherit_from_data(name: str, delegate, cache: bool = False, wrap: bool = False):
     """
     Make an alias for a method of the underlying ExtensionArray.
 
@@ -25,6 +25,8 @@ def inherit_from_data(name: str, delegate, cache: bool = False):
     delegate : class
     cache : bool, default False
         Whether to convert wrapped properties into cache_readonly
+    wrap : bool, default False
+        Whether to wrap the inherited result in an Index.
 
     Returns
     -------
@@ -40,7 +42,12 @@ def inherit_from_data(name: str, delegate, cache: bool = False):
         else:
 
             def fget(self):
-                return getattr(self._data, name)
+                result = getattr(self._data, name)
+                if wrap:
+                    if isinstance(result, type(self._data)):
+                        return type(self)._simple_new(result, name=self.name)
+                    return Index(result, name=self.name)
+                return result
 
             def fset(self, value):
                 setattr(self._data, name, value)
@@ -58,6 +65,10 @@ def inherit_from_data(name: str, delegate, cache: bool = False):
 
         def method(self, *args, **kwargs):
             result = attr(self._data, *args, **kwargs)
+            if wrap:
+                if isinstance(result, type(self._data)):
+                    return type(self)._simple_new(result, name=self.name)
+                return Index(result, name=self.name)
             return result
 
         method.__name__ = name
@@ -65,7 +76,7 @@ def inherit_from_data(name: str, delegate, cache: bool = False):
     return method
 
 
-def inherit_names(names: List[str], delegate, cache: bool = False):
+def inherit_names(names: List[str], delegate, cache: bool = False, wrap: bool = False):
     """
     Class decorator to pin attributes from an ExtensionArray to a Index subclass.
 
@@ -74,11 +85,13 @@ def inherit_names(names: List[str], delegate, cache: bool = False):
     names : List[str]
     delegate : class
     cache : bool, default False
+    wrap : bool, default False
+        Whether to wrap the inherited result in an Index.
     """
 
     def wrapper(cls):
         for name in names:
-            meth = inherit_from_data(name, delegate, cache=cache)
+            meth = inherit_from_data(name, delegate, cache=cache, wrap=wrap)
             setattr(cls, name, meth)
 
         return cls

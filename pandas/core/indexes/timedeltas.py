@@ -46,10 +46,10 @@ class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
     _delegated_methods = (
         TimedeltaArray._datetimelike_methods
         + list(_raw_methods)
-        + ["_box_values", "__neg__", "__pos__", "__abs__"]
     )
 
 
+@inherit_names(["_box_values", "__neg__", "__pos__", "__abs__"], TimedeltaArray, wrap=True)
 @inherit_names(
     [
         "_bool_ops",
