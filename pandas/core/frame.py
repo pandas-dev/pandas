@@ -402,7 +402,7 @@ class DataFrame(NDFrame):
 
     _constructor_sliced: Type[Series] = Series
     _deprecations: FrozenSet[str] = NDFrame._deprecations | frozenset([])
-    _accessors: Set[str] = set()
+    _accessors: Set[str] = {"sparse"}
 
     @property
     def _constructor_expanddim(self):

@@ -1,13 +1,20 @@
 """ pickle compat """
 import pickle
+from typing import Any, Optional
 import warnings
 
+from pandas._typing import FilePathOrBuffer
 from pandas.compat import pickle_compat as pc
 
-from pandas.io.common import get_handle, stringify_path
+from pandas.io.common import get_filepath_or_buffer, get_handle
 
 
-def to_pickle(obj, path, compression="infer", protocol=pickle.HIGHEST_PROTOCOL):
+def to_pickle(
+    obj: Any,
+    filepath_or_buffer: FilePathOrBuffer,
+    compression: Optional[str] = "infer",
+    protocol: int = pickle.HIGHEST_PROTOCOL,
+):
     """
     Pickle (serialize) object to file.
 
@@ -15,11 +22,17 @@ def to_pickle(obj, path, compression="infer", protocol=pickle.HIGHEST_PROTOCOL):
     ----------
     obj : any object
         Any python object.
-    path : str
-        File path where the pickled object will be stored.
+    filepath_or_buffer : str, path object or file-like object
+        File path, URL, or buffer where the pickled object will be stored.
+
+        .. versionchanged:: 1.0.0
+           Accept URL. URL has to be of S3 or GCS.
+
     compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
-        A string representing the compression to use in the output file. By
-        default, infers from the file extension in specified path.
+        If 'infer' and 'path_or_url' is path-like, then detect compression from
+        the following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise no
+        compression) If 'infer' and 'path_or_url' is not path-like, then use
+        None (= no decompression).
     protocol : int
         Int which indicates which protocol should be used by the pickler,
         default HIGHEST_PROTOCOL (see [1], paragraph 12.1.2). The possible
@@ -63,8 +76,12 @@ def to_pickle(obj, path, compression="infer", protocol=pickle.HIGHEST_PROTOCOL):
     >>> import os
     >>> os.remove("./dummy.pkl")
     """
-    path = stringify_path(path)
-    f, fh = get_handle(path, "wb", compression=compression, is_text=False)
+    fp_or_buf, _, compression, should_close = get_filepath_or_buffer(
+        filepath_or_buffer, compression=compression, mode="wb"
+    )
+    if not isinstance(fp_or_buf, str) and compression == "infer":
+        compression = None
+    f, fh = get_handle(fp_or_buf, "wb", compression=compression, is_text=False)
     if protocol < 0:
         protocol = pickle.HIGHEST_PROTOCOL
     try:
@@ -73,9 +90,16 @@ def to_pickle(obj, path, compression="infer", protocol=pickle.HIGHEST_PROTOCOL):
         f.close()
         for _f in fh:
             _f.close()
+        if should_close:
+            try:
+                fp_or_buf.close()
+            except ValueError:
+                pass
 
 
-def read_pickle(path, compression="infer"):
+def read_pickle(
+    filepath_or_buffer: FilePathOrBuffer, compression: Optional[str] = "infer"
+):
     """
     Load pickled pandas object (or any object) from file.
 
@@ -86,13 +110,17 @@ def read_pickle(path, compression="infer"):
 
     Parameters
     ----------
-    path : str
-        File path where the pickled object will be loaded.
+    filepath_or_buffer : str, path object or file-like object
+        File path, URL, or buffer where the pickled object will be loaded from.
+
+        .. versionchanged:: 1.0.0
+           Accept URL. URL is not limited to S3 and GCS.
+
     compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
-        For on-the-fly decompression of on-disk data. If 'infer', then use
-        gzip, bz2, xz or zip if path ends in '.gz', '.bz2', '.xz',
-        or '.zip' respectively, and no decompression otherwise.
-        Set to None for no decompression.
+        If 'infer' and 'path_or_url' is path-like, then detect compression from
+        the following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise no
+        compression) If 'infer' and 'path_or_url' is not path-like, then use
+        None (= no decompression).
 
     Returns
     -------
@@ -134,8 +162,12 @@ def read_pickle(path, compression="infer"):
     >>> import os
     >>> os.remove("./dummy.pkl")
     """
-    path = stringify_path(path)
-    f, fh = get_handle(path, "rb", compression=compression, is_text=False)
+    fp_or_buf, _, compression, should_close = get_filepath_or_buffer(
+        filepath_or_buffer, compression=compression
+    )
+    if not isinstance(fp_or_buf, str) and compression == "infer":
+        compression = None
+    f, fh = get_handle(fp_or_buf, "rb", compression=compression, is_text=False)
 
     # 1) try standard library Pickle
     # 2) try pickle_compat (older pandas version) to handle subclass changes
@@ -159,3 +191,8 @@ def read_pickle(path, compression="infer"):
         f.close()
         for _f in fh:
             _f.close()
+        if should_close:
+            try:
+                fp_or_buf.close()
+            except ValueError:
+                pass
