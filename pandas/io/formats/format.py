@@ -1230,7 +1230,7 @@ class GenericArrayFormatter:
                     if x is None:
                         return "None"
                     elif x is NA:
-                        return formatter(x)
+                        return str(NA)
                     elif x is NaT or np.isnat(x):
                         return "NaT"
                 except (TypeError, ValueError):
