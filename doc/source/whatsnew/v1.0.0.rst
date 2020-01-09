@@ -1,4 +1,4 @@
-.. _whatsnew_1000:
+.. _whatsnew_100:
 
 What's new in 1.0.0 (??)
 ------------------------
@@ -28,7 +28,7 @@ See :ref:`policies.version` for more.
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_1000.NA:
+.. _whatsnew_100.NA:
 
 Experimental ``NA`` scalar to denote missing values
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -73,7 +73,7 @@ For more, see :ref:`NA section <missing_data.NA>` in the user guide on missing
 data.
 
 
-.. _whatsnew_1000.string:
+.. _whatsnew_100.string:
 
 Dedicated string data type
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -125,7 +125,7 @@ String accessor methods returning integers will return a value with :class:`Int6
 We recommend explicitly using the ``string`` data type when working with strings.
 See :ref:`text.types` for more.
 
-.. _whatsnew_1000.boolean:
+.. _whatsnew_100.boolean:
 
 Boolean data type with missing values support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -148,7 +148,7 @@ You can use the alias ``"boolean"`` as well.
    s = pd.Series([True, False, None], dtype="boolean")
    s
 
-.. _whatsnew_1000.numba_rolling_apply:
+.. _whatsnew_100.numba_rolling_apply:
 
 Using Numba in ``rolling.apply``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -159,7 +159,7 @@ can yield significant performance gains if the apply function can operate on num
 the data set is larger (1 million rows or greater). For more details, see
 :ref:`rolling apply documentation <stats.rolling_apply>` (:issue:`28987`)
 
-.. _whatsnew_1000.custom_window:
+.. _whatsnew_100.custom_window:
 
 Defining custom windows for rolling operations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -170,7 +170,7 @@ method on a :func:`pandas.api.indexers.BaseIndexer` subclass that will generate 
 indices used for each window during the rolling aggregation. For more details and example usage, see
 the :ref:`custom window rolling documentation <stats.custom_rolling_window>`
 
-.. _whatsnew_1000.to_markdown:
+.. _whatsnew_100.to_markdown:
 
 Converting to Markdown
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -182,7 +182,7 @@ We've added :meth:`~DataFrame.to_markdown` for creating a markdown table (:issue
    df = pd.DataFrame({"A": [1, 2, 3], "B": [1, 2, 3]}, index=['a', 'a', 'b'])
    print(df.to_markdown())
 
-.. _whatsnew_1000.enhancements.other:
+.. _whatsnew_100.enhancements.other:
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
@@ -232,12 +232,12 @@ source, you should no longer need to install Cython into your build environment 
 
 .. ---------------------------------------------------------------------------
 
-.. _whatsnew_1000.api_breaking:
+.. _whatsnew_100.api_breaking:
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. _whatsnew_1000.api_breaking.MultiIndex._names:
+.. _whatsnew_100.api_breaking.MultiIndex._names:
 
 Avoid using names from ``MultiIndex.levels``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -479,14 +479,14 @@ consistent with the behaviour of :class:`DataFrame` and :class:`Index`.
    DeprecationWarning: The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.
    Series([], dtype: float64)
 
-.. _whatsnew_1000.api_breaking.python:
+.. _whatsnew_100.api_breaking.python:
 
 Increased minimum version for Python
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Pandas 1.0.0 supports Python 3.6.1 and higher (:issue:`29212`).
 
-.. _whatsnew_1000.api_breaking.deps:
+.. _whatsnew_100.api_breaking.deps:
 
 Increased minimum versions for dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -555,7 +555,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
 
-.. _whatsnew_1000.api.other:
+.. _whatsnew_100.api.other:
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
@@ -577,7 +577,7 @@ Other API changes
 - :meth:`Series.str.__iter__` was deprecated and will be removed in future releases (:issue:`28277`).
 
 
-.. _whatsnew_1000.api.documentation:
+.. _whatsnew_100.api.documentation:
 
 Documentation Improvements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -587,7 +587,7 @@ Documentation Improvements
 
 .. ---------------------------------------------------------------------------
 
-.. _whatsnew_1000.deprecations:
+.. _whatsnew_100.deprecations:
 
 Deprecations
 ~~~~~~~~~~~~
@@ -645,7 +645,7 @@ a list of items should be used instead. (:issue:`23566`) For example:
 
 .. ---------------------------------------------------------------------------
 
-.. _whatsnew_1000.prior_deprecations:
+.. _whatsnew_100.prior_deprecations:
 
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -657,7 +657,7 @@ have been removed (:issue:`28425`). We recommend using a ``Series`` or
 ``DataFrame`` with sparse values instead. See :ref:`sparse.migration` for help
 with migrating existing code.
 
-.. _whatsnew_1000.matplotlib_units:
+.. _whatsnew_100.matplotlib_units:
 
 **Matplotlib unit registration**
 
@@ -791,7 +791,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 
 .. ---------------------------------------------------------------------------
 
-.. _whatsnew_1000.performance:
+.. _whatsnew_100.performance:
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -813,7 +813,7 @@ Performance improvements
 
 .. ---------------------------------------------------------------------------
 
-.. _whatsnew_1000.bug_fixes:
+.. _whatsnew_100.bug_fixes:
 
 Bug fixes
 ~~~~~~~~~
@@ -1073,7 +1073,7 @@ Other
 
 .. ---------------------------------------------------------------------------
 
-.. _whatsnew_1000.contributors:
+.. _whatsnew_100.contributors:
 
 Contributors
 ~~~~~~~~~~~~
