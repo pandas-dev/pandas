@@ -204,9 +204,9 @@ Other enhancements
 - Added ``encoding`` argument to :func:`DataFrame.to_html` for non-ascii text (:issue:`28663`)
 - :meth:`Styler.background_gradient` now accepts ``vmin`` and ``vmax`` arguments (:issue:`12145`)
 - :meth:`Styler.format` added the ``na_rep`` parameter to help format the missing values (:issue:`21527`, :issue:`28358`)
-- Roundtripping DataFrames with nullable integer or string data types to parquet
+- Roundtripping DataFrames with nullable integer, string and period data types to parquet
   (:meth:`~DataFrame.to_parquet` / :func:`read_parquet`) using the `'pyarrow'` engine
-  now preserve those data types with pyarrow >= 1.0.0 (:issue:`20612`).
+  now preserve those data types with pyarrow >= 0.16.0 (:issue:`20612`, :issue:`28371`).
 - The ``partition_cols`` argument in :meth:`DataFrame.to_parquet` now accepts a string (:issue:`27117`)
 - :func:`pandas.read_json` now parses ``NaN``, ``Infinity`` and ``-Infinity`` (:issue:`12213`)
 - The ``pandas.np`` submodule is now deprecated. Import numpy directly instead (:issue:`30296`)
@@ -220,7 +220,6 @@ Other enhancements
 - The ``pandas.datetime`` class is now deprecated. Import from ``datetime`` instead (:issue:`30296`)
 - Added an experimental :attr:`~DataFrame.attrs` for storing global metadata about a dataset (:issue:`29062`)
 - :meth:`Timestamp.fromisocalendar` is now compatible with python 3.8 and above (:issue:`28115`)
-
 
 Build Changes
 ^^^^^^^^^^^^^

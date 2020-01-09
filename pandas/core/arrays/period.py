@@ -283,6 +283,32 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         # overriding DatetimelikeArray
         return np.array(list(self), dtype=object)
 
+    def __arrow_array__(self, type=None):
+        """
+        Convert myself into a pyarrow Array.
+        """
+        import pyarrow
+        from pandas.core.arrays._arrow_utils import ArrowPeriodType
+
+        if type is not None:
+            if pyarrow.types.is_integer(type):
+                return pyarrow.array(self._data, mask=self.isna(), type=type)
+            elif isinstance(type, ArrowPeriodType):
+                # ensure we have the same freq
+                if self.freqstr != type.freq:
+                    raise TypeError(
+                        "Not supported to convert PeriodArray to array with different"
+                        " 'freq' ({0} vs {1})".format(self.freqstr, type.freq)
+                    )
+            else:
+                raise TypeError(
+                    "Not supported to convert PeriodArray to '{0}' type".format(type)
+                )
+
+        period_type = ArrowPeriodType(self.freqstr)
+        storage_array = pyarrow.array(self._data, mask=self.isna(), type="int64")
+        return pyarrow.ExtensionArray.from_storage(period_type, storage_array)
+
     # --------------------------------------------------------------------
     # Vectorized analogues of Period properties
 
