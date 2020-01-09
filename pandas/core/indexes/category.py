@@ -1,4 +1,3 @@
-import operator
 from typing import Any, List
 import warnings
 
@@ -9,7 +8,6 @@ from pandas._config import get_option
 from pandas._libs import index as libindex
 from pandas._libs.hashtable import duplicated_int64
 from pandas._typing import AnyArrayLike
-import pandas.compat as compat
 from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -29,7 +27,7 @@ from pandas.core.arrays.categorical import Categorical, _recode_for_categories, 
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
-from pandas.core.indexes.extension import ExtensionIndex, make_wrapped_comparison_op
+from pandas.core.indexes.extension import ExtensionIndex
 import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name
 
@@ -858,24 +856,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         result.name = name
         return result
 
-    @classmethod
-    def _add_comparison_methods(cls):
-        """ add in comparison methods """
-
-        def _make_compare(op):
-            opname = f"__{op.__name__}__"
-
-            _evaluate_compare = make_wrapped_comparison_op(opname)
-
-            return compat.set_function_name(_evaluate_compare, opname, cls)
-
-        cls.__eq__ = _make_compare(operator.eq)
-        cls.__ne__ = _make_compare(operator.ne)
-        cls.__lt__ = _make_compare(operator.lt)
-        cls.__gt__ = _make_compare(operator.gt)
-        cls.__le__ = _make_compare(operator.le)
-        cls.__ge__ = _make_compare(operator.ge)
-
     def _delegate_property_get(self, name, *args, **kwargs):
         """ method delegation to the ._values """
         prop = getattr(self._values, name)
@@ -895,4 +875,3 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 CategoricalIndex._add_numeric_methods_add_sub_disabled()
 CategoricalIndex._add_numeric_methods_disabled()
 CategoricalIndex._add_logical_methods_disabled()
-CategoricalIndex._add_comparison_methods()

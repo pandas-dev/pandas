@@ -436,7 +436,6 @@ class TimedeltaIndex(
             raise TypeError("cannot insert TimedeltaIndex with incompatible label")
 
 
-TimedeltaIndex._add_comparison_ops()
 TimedeltaIndex._add_logical_methods_disabled()
 
 
