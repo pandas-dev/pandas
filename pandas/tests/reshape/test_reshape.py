@@ -646,6 +646,7 @@ class TestCategoricalReshape:
         )
         tm.assert_frame_equal(result, expected)
 
+
 class TestMultiIndexReshape:
     def test_unstacking_multi_index_df(self):
         # BUG: 30740
