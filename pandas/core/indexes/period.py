@@ -509,7 +509,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         """
         s = com.values_from_object(series)
         try:
-            return com.maybe_box(self, super().get_value(s, key), series, key)
+            value = super().get_value(s, key)
         except (KeyError, IndexError):
             if isinstance(key, str):
                 asdt, parsed, reso = parse_time_string(key, self.freq)
@@ -541,6 +541,8 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             period = Period(key, self.freq)
             key = period.value if isna(period) else period.ordinal
             return com.maybe_box(self, self._int64index.get_value(s, key), series, key)
+        else:
+            return com.maybe_box(self, value, series, key)
 
     @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
