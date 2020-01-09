@@ -277,11 +277,11 @@ class Index(IndexOpsMixin, PandasObject):
         cls, data=None, dtype=None, copy=False, name=None, tupleize_cols=True, **kwargs,
     ) -> "Index":
 
-        from .range import RangeIndex
+        from pandas.core.indexes.range import RangeIndex
         from pandas import PeriodIndex, DatetimeIndex, TimedeltaIndex
-        from .numeric import Float64Index, Int64Index, UInt64Index
-        from .interval import IntervalIndex
-        from .category import CategoricalIndex
+        from pandas.core.indexes.numeric import Float64Index, Int64Index, UInt64Index
+        from pandas.core.indexes.interval import IntervalIndex
+        from pandas.core.indexes.category import CategoricalIndex
 
         name = maybe_extract_name(name, data, cls)
 
@@ -411,7 +411,7 @@ class Index(IndexOpsMixin, PandasObject):
                 if data and all(isinstance(e, tuple) for e in data):
                     # we must be all tuples, otherwise don't construct
                     # 10697
-                    from .multi import MultiIndex
+                    from pandas.core.indexes.multi import MultiIndex
 
                     return MultiIndex.from_tuples(
                         data, names=name or kwargs.get("names")
@@ -682,7 +682,7 @@ class Index(IndexOpsMixin, PandasObject):
             return self.copy() if copy else self
 
         elif is_categorical_dtype(dtype):
-            from .category import CategoricalIndex
+            from pandas.core.indexes.category import CategoricalIndex
 
             return CategoricalIndex(self.values, name=self.name, dtype=dtype, copy=copy)
 
@@ -1516,7 +1516,7 @@ class Index(IndexOpsMixin, PandasObject):
             result._name = new_names[0]
             return result
         else:
-            from .multi import MultiIndex
+            from pandas.core.indexes.multi import MultiIndex
 
             return MultiIndex(
                 levels=new_levels,
@@ -1727,35 +1727,6 @@ class Index(IndexOpsMixin, PandasObject):
         d = dict(data=self._data)
         d.update(self._get_attributes_dict())
         return _new_Index, (type(self), d), None
-
-    def __setstate__(self, state):
-        """
-        Necessary for making this object picklable.
-        """
-
-        if isinstance(state, dict):
-            self._data = state.pop("data")
-            for k, v in state.items():
-                setattr(self, k, v)
-
-        elif isinstance(state, tuple):
-
-            if len(state) == 2:
-                nd_state, own_state = state
-                data = np.empty(nd_state[1], dtype=nd_state[2])
-                np.ndarray.__setstate__(data, nd_state)
-                self._name = own_state[0]
-
-            else:  # pragma: no cover
-                data = np.empty(state)
-                np.ndarray.__setstate__(data, state)
-
-            self._data = data
-            self._reset_identity()
-        else:
-            raise Exception("invalid pickle state")
-
-    _unpickle_compat = __setstate__
 
     # --------------------------------------------------------------------
     # Null Handling Methods
@@ -2312,11 +2283,11 @@ class Index(IndexOpsMixin, PandasObject):
             return other._get_reconciled_name_object(self)
 
         # TODO(EA): setops-refactor, clean all this up
-        if is_period_dtype(self) or is_datetime64tz_dtype(self):
+        if is_datetime64tz_dtype(self):
             lvals = self._ndarray_values
         else:
             lvals = self._values
-        if is_period_dtype(other) or is_datetime64tz_dtype(other):
+        if is_datetime64tz_dtype(other):
             rvals = other._ndarray_values
         else:
             rvals = other._values
@@ -3359,7 +3330,7 @@ class Index(IndexOpsMixin, PandasObject):
             return join_index
 
     def _join_multi(self, other, how, return_indexers=True):
-        from .multi import MultiIndex
+        from pandas.core.indexes.multi import MultiIndex
         from pandas.core.reshape.merge import _restore_dropped_levels_multijoin
 
         # figure out join names
@@ -3466,7 +3437,7 @@ class Index(IndexOpsMixin, PandasObject):
         MultiIndex will not be changed; otherwise, it will tie out
         with `other`.
         """
-        from .multi import MultiIndex
+        from pandas.core.indexes.multi import MultiIndex
 
         def _get_leaf_sorter(labels):
             """
@@ -4553,7 +4524,7 @@ class Index(IndexOpsMixin, PandasObject):
             a MultiIndex will be returned.
         """
 
-        from .multi import MultiIndex
+        from pandas.core.indexes.multi import MultiIndex
 
         new_values = super()._map_values(mapper, na_action=na_action)
 
@@ -5274,7 +5245,7 @@ def ensure_index_from_sequences(sequences, names=None):
     --------
     ensure_index
     """
-    from .multi import MultiIndex
+    from pandas.core.indexes.multi import MultiIndex
 
     if len(sequences) == 1:
         if names is not None:
@@ -5335,7 +5306,7 @@ def ensure_index(index_like, copy=False):
         converted, all_arrays = lib.clean_index_list(index_like)
 
         if len(converted) > 0 and all_arrays:
-            from .multi import MultiIndex
+            from pandas.core.indexes.multi import MultiIndex
 
             return MultiIndex.from_arrays(converted)
         else:

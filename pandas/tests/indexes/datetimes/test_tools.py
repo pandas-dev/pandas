@@ -616,8 +616,8 @@ class TestToDatetime:
             pd.Timestamp("2013-01-02 14:00:00", tz="US/Eastern"),
         ]
         msg = (
-            "Tz-aware datetime.datetime cannot be converted to datetime64"
-            " unless utc=True"
+            "Tz-aware datetime.datetime cannot be "
+            "converted to datetime64 unless utc=True"
         )
         with pytest.raises(ValueError, match=msg):
             pd.to_datetime(arr, cache=cache)
