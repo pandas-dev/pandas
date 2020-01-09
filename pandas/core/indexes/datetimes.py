@@ -657,7 +657,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
             return series.take(locs)
 
         try:
-            return com.maybe_box(self, Index.get_value(self, series, key), series, key)
+            value = Index.get_value(self, series, key)
         except KeyError:
             try:
                 loc = self._get_string_slice(key)
@@ -669,6 +669,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
                 return self.get_value_maybe_box(series, key)
             except (TypeError, ValueError, KeyError):
                 raise KeyError(key)
+        else:
+            return com.maybe_box(self, value, series, key)
 
     def get_value_maybe_box(self, series, key):
         # needed to localize naive datetimes
