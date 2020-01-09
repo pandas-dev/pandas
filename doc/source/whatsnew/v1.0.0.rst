@@ -607,6 +607,7 @@ Deprecations
 - :func:`pandas.json_normalize` is now exposed in the top-level namespace.
   Usage of ``json_normalize`` as ``pandas.io.json.json_normalize`` is now deprecated and
   it is recommended to use ``json_normalize`` as :func:`pandas.json_normalize` instead (:issue:`27586`).
+- The ``numpy`` argument of :meth:`pandas.read_json` is deprecated (:issue:`28512`).
 - :meth:`DataFrame.to_stata`, :meth:`DataFrame.to_feather`, and :meth:`DataFrame.to_parquet` argument "fname" is deprecated, use "path" instead (:issue:`23574`)
 - The deprecated internal attributes ``_start``, ``_stop`` and ``_step`` of :class:`RangeIndex` now raise a ``FutureWarning`` instead of a ``DeprecationWarning`` (:issue:`26581`)
 - The ``pandas.util.testing`` module has been deprecated. Use the public API in ``pandas.testing`` documented at :ref:`api.general.testing` (:issue:`16232`).
@@ -872,6 +873,7 @@ Datetimelike
 - Bug in :func:`pandas.to_datetime` when called with ``Series`` storing ``IntegerArray`` raising ``TypeError`` instead of returning ``Series`` (:issue:`30050`)
 - Bug in :func:`date_range` with custom business hours as ``freq`` and given number of ``periods`` (:issue:`30593`)
 - Bug in :class:`PeriodIndex` comparisons with incorrectly casting integers to :class:`Period` objects, inconsistent with the :class:`Period` comparison behavior (:issue:`30722`)
+- Bug in :meth:`DatetimeIndex.insert` raising a ``ValueError`` instead of a ``TypeError`` when trying to insert a timezone-aware :class:`Timestamp` into a timezone-naive :class:`DatetimeIndex`, or vice-versa (:issue:`30806`)
 
 Timedelta
 ^^^^^^^^^
@@ -937,6 +939,7 @@ Indexing
 - Bug when indexing with ``.loc`` where the index was a :class:`CategoricalIndex` with non-string categories didn't work (:issue:`17569`, :issue:`30225`)
 - :meth:`Index.get_indexer_non_unique` could fail with `TypeError` in some cases, such as when searching for ints in a string index (:issue:`28257`)
 - Bug in :meth:`Float64Index.get_loc` incorrectly raising ``TypeError`` instead of ``KeyError`` (:issue:`29189`)
+- :meth:`MultiIndex.get_loc` can't find missing values when input includes missing values (:issue:`19132`)
 - Bug in :meth:`Series.__setitem__` incorrectly assigning values with boolean indexer when the length of new data matches the number of ``True`` values and new data is not a ``Series`` or an ``np.array`` (:issue:`30567`)
 - Bug in indexing with a :class:`PeriodIndex` incorrectly accepting integers representing years, use e.g. ``ser.loc["2007"]`` instead of ``ser.loc[2007]`` (:issue:`30763`)
 

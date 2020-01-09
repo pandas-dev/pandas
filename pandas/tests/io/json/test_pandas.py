@@ -39,6 +39,7 @@ def assert_json_roundtrip_equal(result, expected, orient):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:the 'numpy' keyword is deprecated:FutureWarning")
 class TestPandasContainer:
     @pytest.fixture(scope="function", autouse=True)
     def setup(self, datapath):
@@ -1606,3 +1607,10 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
             ["a", np.nan, "NaN", np.inf, "Infinity", -np.inf, "-Infinity"]
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_deprecate_numpy_argument_read_json(self):
+        # GH 28512
+        expected = DataFrame([1, 2, 3])
+        with tm.assert_produces_warning(FutureWarning):
+            result = read_json(expected.to_json(), numpy=True)
+            tm.assert_frame_equal(result, expected)
