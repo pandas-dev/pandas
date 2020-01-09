@@ -299,9 +299,7 @@ else:
 
     class __Datetime(type):
 
-        from datetime import datetime as dt
-
-        datetime = dt
+        from datetime import datetime
 
         def __getattr__(cls, item):
             cls.emit_warning()
@@ -328,17 +326,15 @@ else:
 
         def __new__(cls, *args, **kwargs):
             cls.emit_warning()
-            from datetime import datetime as dt
+            from datetime import datetime
 
-            return dt(*args, **kwargs)
+            return datetime(*args, **kwargs)
 
     datetime = __DatetimeSub
 
     class __SparseArray(type):
 
-        from pandas.core.arrays.sparse import SparseArray as sa
-
-        SparseArray = sa
+        from pandas.core.arrays.sparse import SparseArray
 
         def __instancecheck__(cls, other):
             return isinstance(other, cls.SparseArray)
@@ -357,9 +353,9 @@ else:
 
         def __new__(cls, *args, **kwargs):
             cls.emit_warning()
-            from pandas.core.arrays.sparse import SparseArray as sa
+            from pandas.core.arrays.sparse import SparseArray
 
-            return sa(*args, **kwargs)
+            return SparseArray(*args, **kwargs)
 
     SparseArray = __SparseArraySub
 
