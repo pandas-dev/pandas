@@ -930,7 +930,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # Rename
 
     def rename(
-        self,
+        self: FrameOrSeries,
         mapper: Optional[Renamer] = None,
         *,
         index: Optional[Renamer] = None,
@@ -940,7 +940,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         inplace: bool = False,
         level: Optional[Level] = None,
         errors: str = "ignore",
-    ):
+    ) -> Optional[FrameOrSeries]:
         """
         Alter axes input function or functions. Function / dict values must be
         unique (1-to-1). Labels not contained in a dict / Series will be left
