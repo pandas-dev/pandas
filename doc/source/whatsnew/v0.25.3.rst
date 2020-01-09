@@ -10,7 +10,6 @@ including other versions of pandas.
 
 Bug fixes
 ~~~~~~~~~
-- Bug in missing fill_na parameter to DataFrame.unstack() with list of levels (:issue:`30740`)
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
