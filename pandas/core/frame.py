@@ -18,12 +18,10 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
-    Callable,
     FrozenSet,
     Hashable,
     Iterable,
     List,
-    Mapping,
     Optional,
     Sequence,
     Set,
@@ -40,7 +38,7 @@ import numpy.ma as ma
 from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, lib
-from pandas._typing import Axes, Axis, Dtype, FilePathOrBuffer, Level
+from pandas._typing import Axes, Axis, Dtype, FilePathOrBuffer, Level, Renamer
 from pandas.compat import PY37
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -3990,22 +3988,16 @@ class DataFrame(NDFrame):
     )
     def rename(
         self,
-        mapper: Optional[
-            Union[Mapping[Hashable, Hashable], Callable[[Hashable], Hashable]]
-        ] = None,
+        mapper: Optional[Renamer] = None,
         *,
-        index: Optional[
-            Union[Mapping[Hashable, Hashable], Callable[[Hashable], Hashable]]
-        ] = None,
-        columns: Optional[
-            Union[Mapping[Hashable, Hashable], Callable[[Hashable], Hashable]]
-        ] = None,
+        index: Optional[Renamer] = None,
+        columns: Optional[Renamer] = None,
         axis: Optional[Axis] = None,
         copy: bool = True,
         inplace: bool = False,
         level: Optional[Level] = None,
         errors: str = "ignore",
-    ) -> "DataFrame":
+    ) -> Optional["DataFrame"]:
 
         """
         Alter axes labels.

@@ -3124,7 +3124,7 @@ Name: Max Speed, dtype: float64
 
         Parameters
         ----------
-        axis : int
+        axis : {0 or "index"}
             Has no effect but is accepted for compatibility with numpy.
         kind : {'mergesort', 'quicksort', 'heapsort'}, default 'quicksort'
             Choice of sorting algorithm. See np.sort for more

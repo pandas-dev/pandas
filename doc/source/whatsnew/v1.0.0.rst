@@ -312,7 +312,9 @@ New repr for :class:`~pandas.arrays.IntervalArray`
    1  1
 
 *pandas 1.0.0*
+
 .. ipython:: python
+   :okexcept:
 
    df.rename({0: 1}, {0: 2})
 

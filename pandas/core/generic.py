@@ -37,6 +37,7 @@ from pandas._typing import (
     FrameOrSeries,
     JSONSerializable,
     Level,
+    Renamer,
 )
 from pandas.compat import set_function_name
 from pandas.compat._optional import import_optional_dependency
@@ -930,16 +931,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     def rename(
         self,
-        mapper: Optional[
-            Union[Mapping[Hashable, Any], Callable[[Hashable], Hashable]]
-        ] = None,
+        mapper: Optional[Renamer] = None,
         *,
-        index: Optional[
-            Union[Mapping[Hashable, Any], Callable[[Hashable], Hashable]]
-        ] = None,
-        columns: Optional[
-            Union[Mapping[Hashable, Any], Callable[[Hashable], Hashable]]
-        ] = None,
+        index: Optional[Renamer] = None,
+        columns: Optional[Renamer] = None,
         axis: Optional[Axis] = None,
         copy: bool = True,
         inplace: bool = False,
@@ -1072,7 +1067,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 )
         else:
             # use the mapper argument
-            if axis in {1, "columns"}:
+            if axis and self._get_axis_number(axis) == 1:
                 columns = mapper
             else:
                 index = mapper
@@ -1108,6 +1103,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         if inplace:
             self._update_inplace(result._data)
+            return None
         else:
             return result.__finalize__(self)
 
