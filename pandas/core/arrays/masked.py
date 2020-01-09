@@ -136,7 +136,7 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
 
     __array_priority__ = 1000  # higher than ndarray so ops dispatch to us
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None) -> np.ndarray:
         """
         the array interface, return my values
         We return an object array here to preserve our scalar values

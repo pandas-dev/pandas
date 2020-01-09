@@ -245,7 +245,7 @@ class TestIndex(Base):
             def __init__(self, array):
                 self.array = array
 
-            def __array__(self, dtype=None):
+            def __array__(self, dtype=None) -> np.ndarray:
                 return self.array
 
         expected = pd.Index(array)

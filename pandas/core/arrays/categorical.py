@@ -1264,7 +1264,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         return self.from_codes(codes, dtype=self.dtype)
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None) -> np.ndarray:
         """
         The numpy array interface.
 

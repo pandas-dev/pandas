@@ -392,7 +392,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
         return contains(self, key, container=self._engine)
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None) -> np.ndarray:
         """ the array interface, return my values """
         return np.array(self._data, dtype=dtype)
 
