@@ -312,7 +312,7 @@ class SeriesGroupBy(GroupBy):
             arg = zip(columns, arg)
 
         results = {}
-        for name, func in arg:
+        for idx, (name, func) in enumerate(arg):
             obj = self
 
             # reset the cache so that we
@@ -321,13 +321,15 @@ class SeriesGroupBy(GroupBy):
                 obj = copy.copy(obj)
                 obj._reset_cache()
                 obj._selection = name
-            results[name] = obj.aggregate(func)
+            results[base.OutputKey(label=name, position=idx)] = obj.aggregate(func)
 
         if any(isinstance(x, DataFrame) for x in results.values()):
             # let higher level handle
-            return results
+            return {key.label: value for key, value in results.items()}
 
-        return DataFrame(results, columns=columns)
+        if results:
+            return DataFrame(self._wrap_aggregated_output(results), columns=columns)
+        return DataFrame(columns=columns)
 
     def _wrap_series_output(
         self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]], index: Index
