@@ -172,8 +172,8 @@ class TestCategoricalOps:
         cat = Categorical([1, 2, 3], ordered=True)
 
         msg = (
-            "Cannot compare a Categorical for op __{}__ with a scalar,"
-            " which is not a category"
+            "Cannot compare a Categorical for op __{}__ with a scalar, "
+            "which is not a category"
         )
         with pytest.raises(TypeError, match=msg.format("lt")):
             cat < 4

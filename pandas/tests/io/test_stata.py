@@ -1296,8 +1296,8 @@ class TestStata:
         }
 
         msg = (
-            "Variable labels must contain only characters that can be"
-            " encoded in Latin-1"
+            "Variable labels must contain only characters that can be "
+            "encoded in Latin-1"
         )
         with pytest.raises(ValueError, match=msg):
             with tm.ensure_clean() as path:
@@ -1467,8 +1467,8 @@ The repeated labels are:\n-+\nwolof
 
         original.loc[2, "ColumnTooBig"] = np.inf
         msg = (
-            "Column ColumnTooBig has a maximum value of infinity which"
-            " is outside the range supported by Stata"
+            "Column ColumnTooBig has a maximum value of infinity which "
+            "is outside the range supported by Stata"
         )
         with pytest.raises(ValueError, match=msg):
             with tm.ensure_clean() as path:

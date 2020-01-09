@@ -285,8 +285,8 @@ def test_where_error():
     with pytest.raises(ValueError, match=msg):
         s[[True, False]] = [0, 2, 3]
     msg = (
-        "NumPy boolean array indexing assignment cannot assign 0 input"
-        " values to the 1 output values where the mask is true"
+        "NumPy boolean array indexing assignment cannot assign 0 input "
+        "values to the 1 output values where the mask is true"
     )
     with pytest.raises(ValueError, match=msg):
         s[[True, False]] = []
