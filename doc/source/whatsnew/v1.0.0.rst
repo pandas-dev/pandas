@@ -427,8 +427,7 @@ integer dtype for the values.
 
 .. ipython:: python
 
-   >>> pd.Series([2, 1, 1, None], dtype="Int64").value_counts().dtype
-   Int64Dtype()
+   pd.Series([2, 1, 1, None], dtype="Int64").value_counts().dtype
 
 See :ref:`missing_data.NA` for more on the differences between :attr:`pandas.NA`
 and :attr:`numpy.nan`.
