@@ -1148,7 +1148,7 @@ def test_unstacking_multi_index_df():
     expected = DataFrame(
         [[9.5, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 8.0]],
         Index(["Alice", "Bob"], name="name"),
-        columns= MultiIndex.from_tuples(
+        columns=MultiIndex.from_tuples(
             [
                 ("score", "female", False, 0),
                 ("score", "female", True, 0),
