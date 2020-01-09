@@ -50,11 +50,7 @@ from pandas.core.indexes.base import (
     maybe_extract_name,
 )
 from pandas.core.indexes.datetimes import DatetimeIndex, date_range
-from pandas.core.indexes.extension import (
-    ExtensionIndex,
-    inherit_names,
-    make_wrapped_comparison_op,
-)
+from pandas.core.indexes.extension import ExtensionIndex, inherit_names
 from pandas.core.indexes.multi import MultiIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 from pandas.core.ops import get_op_result_name
@@ -1174,14 +1170,20 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
     # TODO: arithmetic operations
 
-    @classmethod
-    def _add_comparison_methods(cls):
-        """ add in comparison methods """
-        cls.__eq__ = make_wrapped_comparison_op("__eq__")
-        cls.__ne__ = make_wrapped_comparison_op("__ne__")
+    # GH#30817 until IntervalArray implements inequalities, get them from Index
+    def __lt__(self, other):
+        return Index.__lt__(self, other)
+
+    def __le__(self, other):
+        return Index.__le__(self, other)
+
+    def __gt__(self, other):
+        return Index.__gt__(self, other)
+
+    def __ge__(self, other):
+        return Index.__ge__(self, other)
 
 
-IntervalIndex._add_comparison_methods()
 IntervalIndex._add_logical_methods_disabled()
 
 

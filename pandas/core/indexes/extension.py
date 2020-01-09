@@ -3,6 +3,8 @@ Shared methods for Index subclasses backed by ExtensionArray.
 """
 from typing import List
 
+import numpy as np
+
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly
 
@@ -99,7 +101,7 @@ def inherit_names(names: List[str], delegate, cache: bool = False, wrap: bool = 
     return wrapper
 
 
-def make_wrapped_comparison_op(opname):
+def _make_wrapped_comparison_op(opname):
     """
     Create a comparison method that dispatches to ``._data``.
     """
@@ -175,6 +177,36 @@ class ExtensionIndex(Index):
     """
 
     _data: ExtensionArray
+
+    __eq__ = _make_wrapped_comparison_op("__eq__")
+    __ne__ = _make_wrapped_comparison_op("__ne__")
+    __lt__ = _make_wrapped_comparison_op("__lt__")
+    __gt__ = _make_wrapped_comparison_op("__gt__")
+    __le__ = _make_wrapped_comparison_op("__le__")
+    __ge__ = _make_wrapped_comparison_op("__ge__")
+
+    def __getitem__(self, key):
+        result = self._data[key]
+        if isinstance(result, type(self._data)):
+            return type(self)(result, name=self.name)
+
+        # Includes cases where we get a 2D ndarray back for MPL compat
+        return result
+
+    def __iter__(self):
+        return self._data.__iter__()
+
+    @property
+    def _ndarray_values(self) -> np.ndarray:
+        return self._data._ndarray_values
+
+    def dropna(self, how="any"):
+        if how not in ("any", "all"):
+            raise ValueError(f"invalid how option: {how}")
+
+        if self.hasnans:
+            return self._shallow_copy(self._data[~self._isnan])
+        return self._shallow_copy()
 
     def repeat(self, repeats, axis=None):
         nv.validate_repeat(tuple(), dict(axis=axis))

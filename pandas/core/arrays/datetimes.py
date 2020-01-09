@@ -70,22 +70,6 @@ def tz_to_dtype(tz):
         return DatetimeTZDtype(tz=tz)
 
 
-def _to_M8(key, tz=None):
-    """
-    Timestamp-like => dt64
-    """
-    if not isinstance(key, Timestamp):
-        # this also converts strings
-        key = Timestamp(key)
-        if key.tzinfo is not None and tz is not None:
-            # Don't tz_localize(None) if key is already tz-aware
-            key = key.tz_convert(tz)
-        else:
-            key = key.tz_localize(tz)
-
-    return np.int64(conversion.pydt_to_i8(key)).view(_NS_DTYPE)
-
-
 def _field_accessor(name, field, docstring=None):
     def f(self):
         values = self.asi8

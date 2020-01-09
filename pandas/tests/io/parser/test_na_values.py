@@ -89,6 +89,7 @@ def test_default_na_values(all_parsers):
         "N/A",
         "n/a",
         "NA",
+        "<NA>",
         "#NA",
         "NULL",
         "null",
