@@ -73,6 +73,10 @@ class NumericIndex(Index):
         else:
             subarr = data
 
+        if subarr.ndim > 1:
+            # GH#13601, GH#20285, GH#27125
+            raise ValueError("Index data must be 1-dimensional")
+
         name = maybe_extract_name(name, data, cls)
         return cls._simple_new(subarr, name=name)
 

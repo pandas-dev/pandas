@@ -706,6 +706,7 @@ Deprecations
 - The ``pandas.util.testing`` module has been deprecated. Use the public API in ``pandas.testing`` documented at :ref:`api.general.testing` (:issue:`16232`).
 - ``pandas.SparseArray`` has been deprecated.  Use ``pandas.arrays.SparseArray`` (:class:`arrays.SparseArray`) instead. (:issue:`30642`)
 - The parameter ``is_copy`` of :meth:`DataFrame.take` has been deprecated and will be removed in a future version. (:issue:`27357`)
+- Support for multi-dimensional indexing (e.g. ``index[:, None]``) on a :class:`Index` is deprecated and will be removed in a future version, convert to a numpy array before indexing instead (:issue:`30588`)
 
 **Selecting Columns from a Grouped DataFrame**
 
@@ -1168,6 +1169,7 @@ Other
 - Bug in :meth:`DataFrame.to_csv` when supplied a series with a ``dtype="string"`` and a ``na_rep``, the ``na_rep`` was being truncated to 2 characters. (:issue:`29975`)
 - Bug where :meth:`DataFrame.itertuples` would incorrectly determine whether or not namedtuples could be used for dataframes of 255 columns (:issue:`28282`)
 - Handle nested NumPy ``object`` arrays in :func:`testing.assert_series_equal` for ExtensionArray implementations (:issue:`30841`)
+- Bug in :class:`Index` constructor incorrectly allowing 2-dimensional input arrays (:issue:`13601`, :issue:`27125`)
 
 .. ---------------------------------------------------------------------------
 
