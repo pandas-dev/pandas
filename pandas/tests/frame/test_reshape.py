@@ -1130,7 +1130,7 @@ def test_stack_timezone_aware_values():
     tm.assert_series_equal(result, expected)
 
 
-def test_unstacking_multi_index_df(self):
+def test_unstacking_multi_index_df():
     # BUG: gh-30740
     df = pd.DataFrame(
         {
