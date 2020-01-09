@@ -220,6 +220,8 @@ Other enhancements
 - The ``pandas.datetime`` class is now deprecated. Import from ``datetime`` instead (:issue:`30296`)
 - Added an experimental :attr:`~DataFrame.attrs` for storing global metadata about a dataset (:issue:`29062`)
 - :meth:`Timestamp.fromisocalendar` is now compatible with python 3.8 and above (:issue:`28115`)
+- :meth:`DataFrame.to_pickle` and :func:`read_pickle` now accept URL (:issue:`30163`)
+
 
 Build Changes
 ^^^^^^^^^^^^^
