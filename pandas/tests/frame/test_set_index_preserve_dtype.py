@@ -21,7 +21,7 @@ def int_series():
     return pd.Series([100, 200, 300, 400, 500])
 
 
-def test_dtypes_between_queries(mixed_series, int_series)
+def test_dtypes_between_queries(mixed_series, int_series):
     df = pd.DataFrame({'item': mixed_series, 'cost': int_series})
 
     orig_dtypes = df.dtypes
