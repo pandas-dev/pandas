@@ -4058,7 +4058,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         f = functools.partial("{prefix}{}".format, prefix=prefix)
 
         mapper = {self._info_axis_name: f}
-        return self.rename(**mapper)
+        return self.rename(**mapper)  # type: ignore
 
     def add_suffix(self: FrameOrSeries, suffix: str) -> FrameOrSeries:
         """
@@ -4117,7 +4117,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         f = functools.partial("{}{suffix}".format, suffix=suffix)
 
         mapper = {self._info_axis_name: f}
-        return self.rename(**mapper)
+        return self.rename(**mapper)  # type: ignore
 
     def sort_values(
         self,
