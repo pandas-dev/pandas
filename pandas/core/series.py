@@ -2642,49 +2642,9 @@ Name: Max Speed, dtype: float64
         3    d     b
         4    e     e
         """
-        from pandas.core.reshape.concat import concat
-
-        mask = ~((self == other) | (self.isna() & other.isna()))
-        keys = ["self", "other"]
-
-        if not keep_values:
-            self = self.where(mask)
-            other = other.where(mask)
-
-        if not keep_indices:
-            self = self[mask]
-            other = other[mask]
-
-        if axis in (1, "columns"):
-            axis = 1
-        else:
-            axis = self._get_axis_number(axis)
-
-        diff = concat([self, other], axis=axis, keys=keys)
-
-        if axis == 1:
-            return diff
-
-        ax = diff._get_axis(axis)
-        ax_names = np.array(ax.names)
-
-        # set index names to positions to avoid confusion
-        ax.names = np.arange(len(ax_names))
-
-        # bring self-other to inner level
-        order = list(range(1, ax.nlevels)) + [0]
-        diff = diff.reorder_levels(order)
-
-        # restore the index names in order
-        diff._get_axis(axis=axis).names = ax_names[order]
-
-        # reorder axis to keep things organized
-        indices = (
-            np.arange(diff.shape[axis]).reshape([2, diff.shape[axis] // 2]).T.flatten()
+        return super().differences(
+            other=other, axis=axis, keep_indices=keep_indices, keep_values=keep_values
         )
-        diff = diff.take(indices, axis=axis)
-
-        return diff
 
     def combine(self, other, func, fill_value=None):
         """
