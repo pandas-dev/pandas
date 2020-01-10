@@ -1590,13 +1590,13 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
             if (PyObject_HasAttrString(item, "value")) {
                 nanosecVal = get_long_attr(item, "value");
             } else {
-              if (PyDelta_Check(item)) {
-                nanosecVal = total_seconds(item) *
-                             1000000000LL; // nanoseconds per second
-              } else {
-                // datetime.* objects don't follow above rules
-                nanosecVal = PyDateTimeToEpoch(item, NPY_FR_ns);
-              }
+                if (PyDelta_Check(item)) {
+                    nanosecVal = total_seconds(item) *
+                                 1000000000LL; // nanoseconds per second
+                } else {
+                    // datetime.* objects don't follow above rules
+                    nanosecVal = PyDateTimeToEpoch(item, NPY_FR_ns);
+                }
             }
         }
 
