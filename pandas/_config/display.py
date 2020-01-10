@@ -1,6 +1,7 @@
 """
 Unopinionated display configuration.
 """
+
 import locale
 import sys
 
@@ -11,7 +12,7 @@ from pandas._config import config as cf
 _initial_defencoding = None
 
 
-def detect_console_encoding():
+def detect_console_encoding() -> str:
     """
     Try to find the most capable encoding supported by the console.
     slightly modified from the way IPython handles the same issue.
