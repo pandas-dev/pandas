@@ -19,6 +19,7 @@ from typing import Callable, Generator, List, Tuple
 
 FILE_EXTENSIONS_TO_CHECK = (".py", ".pyx", ".pyx.ini", ".pxd")
 TYPE: int = 0
+VALUE: int = 1
 
 
 def strings_to_concatenate(
@@ -179,10 +180,10 @@ def bare_pytest_raises(source_path: str) -> Generator[Tuple[str, int, str], None
         tokens: List = list(tokenize.generate_tokens(file_name.readline))
 
     for counter, current_token in enumerate(tokens, start=1):
-        if not (current_token[TYPE] == token.NAME and current_token[1] == "raises"):
+        if not (current_token[TYPE] == token.NAME and current_token[VALUE] == "raises"):
             continue
         for next_token in tokens[counter:]:
-            if next_token[TYPE] == token.NAME and next_token[1] == "match":
+            if next_token[TYPE] == token.NAME and next_token[VALUE] == "match":
                 break
             # token.NEWLINE refers to end of a logical line
             # unlike token.NL or "\n" which represents a newline
