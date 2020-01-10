@@ -127,7 +127,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
     # ------------------------------------------------------------------------
 
-    def equals(self, other):
+    def equals(self, other) -> bool:
         """
         Determines if two Index objects contain the same elements.
         """
@@ -150,7 +150,8 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             # have different timezone
             return False
 
-        return np.array_equal(self.asi8, other.asi8)
+        # explicit bool cast is needed for mypy in GH#30877
+        return bool(np.array_equal(self.asi8, other.asi8))
 
     @Appender(_index_shared_docs["contains"] % _index_doc_kwargs)
     def __contains__(self, key) -> bool:
