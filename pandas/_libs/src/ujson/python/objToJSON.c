@@ -1596,17 +1596,17 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
             // JSON requires a string for the index so write "null"
             // unclear if there is a standard for this
             if (nanosecVal == get_nat()) {
-              len = 5;  // TODO: shouldn't require extra space for terminator
-              cLabel = PyObject_Malloc(len);
-              strncpy(cLabel, "null", len);
+                len = 5; // TODO: shouldn't require extra space for terminator
+                cLabel = PyObject_Malloc(len);
+                strncpy(cLabel, "null", len);
             } else {
-              cLabel = int64ToIsoDuration(nanosecVal, &len);
-              if (cLabel == NULL) {
-                Py_DECREF(item);
-                NpyArr_freeLabels(ret, num);
-                ret = 0;
-                break;
-              }
+                cLabel = int64ToIsoDuration(nanosecVal, &len);
+                if (cLabel == NULL) {
+                    Py_DECREF(item);
+                    NpyArr_freeLabels(ret, num);
+                    ret = 0;
+                    break;
+                }
             }
         } else if (PyTypeNum_ISDATETIME(type_num)) {
             NPY_DATETIMEUNIT base = enc->datetimeUnit;
@@ -1620,9 +1620,9 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
             }
             castfunc(dataptr, &longVal, 1, NULL, NULL);
             if (longVal == get_nat()) {
-              len = 5;  // TODO: shouldn't require extra space for terminator
-              cLabel = PyObject_Malloc(len);
-              strncpy(cLabel, "null", len);
+                len = 5; // TODO: shouldn't require extra space for terminator
+                cLabel = PyObject_Malloc(len);
+                strncpy(cLabel, "null", len);
             } else if (enc->datetimeIso) {
                 cLabel = int64ToIso(longVal, base, &len);
             } else {
@@ -1635,16 +1635,66 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
                 len = strlen(cLabel);
             }
         } else if (PyDateTime_Check(item) || PyDate_Check(item)) {
-            NPY_DATETIMEUNIT base = enc->datetimeUnit;
-
-            // TODO: null check here?
-            if (enc->datetimeIso) {
-                cLabel = PyDateTimeToIso((PyDateTime_Date *)item, base, &len);
+            npy_int64 nanosecVal;
+            if (PyObject_HasAttrString(item, "value")) {
+                PRINTMARK();
+                nanosecVal = get_long_attr(item, "value");
             } else {
-                cLabel = PyObject_Malloc(21); // 21 chars for int64
-                sprintf(cLabel, "%" NPY_DATETIME_FMT,
-                        PyDateTimeToEpoch(item, base));
-                len = strlen(cLabel);
+                PRINTMARK();
+                nanosecVal = total_seconds(item) *
+                             1000000000LL; // nanoseconds per second
+            }
+
+            if (nanosecVal == get_nat()) {
+                len = 5; // TODO: shouldn't require extra space for terminator
+                cLabel = PyObject_Malloc(len);
+                strncpy(cLabel, "null", len);
+            } else {
+                // TODO: null check here?
+                NPY_DATETIMEUNIT base = enc->datetimeUnit;
+                if (enc->datetimeIso) {
+                    cLabel =
+                        PyDateTimeToIso((PyDateTime_Date *)item, base, &len);
+                } else {
+                    cLabel = PyObject_Malloc(21); // 21 chars for int64
+                    sprintf(cLabel, "%" NPY_DATETIME_FMT,
+                            PyDateTimeToEpoch(item, base));
+                    len = strlen(cLabel);
+                }
+            }
+        } else if (PyDelta_Check(item)) {
+            npy_int64 nanosecVal;
+            if (PyObject_HasAttrString(item, "value")) {
+                PRINTMARK();
+                nanosecVal = get_long_attr(item, "value");
+            } else {
+                PRINTMARK();
+                nanosecVal = total_seconds(item) *
+                             1000000000LL; // nanoseconds per second
+            }
+
+            if (nanosecVal == get_nat()) {
+                len = 5; // TODO: shouldn't require extra space for terminator
+                cLabel = PyObject_Malloc(len);
+                strncpy(cLabel, "null", len);
+            } else {
+                if (enc->datetimeIso) {
+                    cLabel = int64ToIsoDuration(nanosecVal, &len);
+                    if (cLabel == NULL) {
+                        Py_DECREF(item);
+                        NpyArr_freeLabels(ret, num);
+                        ret = 0;
+                        break;
+                    }
+                } else {
+                    NPY_DATETIMEUNIT base = enc->datetimeUnit;
+                    cLabel = PyObject_Malloc(21); // 21 chars for int64
+                    if (!scaleNanosecToUnit(&nanosecVal, base)) {
+                        // TODO: error handler
+                    }
+                    sprintf(cLabel, "%" NPY_DATETIME_FMT, nanosecVal);
+                    len = strlen(cLabel);
+                }
             }
         } else { // Fallback to string representation
             PyObject *str = PyObject_Str(item);
@@ -1881,11 +1931,10 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
 
         PRINTMARK();
         if (value == get_nat()) {
-          PRINTMARK();
-          tc->type = JT_NULL;
-          return;
-        }        
-        else if (enc->datetimeIso) {
+            PRINTMARK();
+            tc->type = JT_NULL;
+            return;
+        } else if (enc->datetimeIso) {
             pc->PyTypeToUTF8 = NpyTimeDeltaToIsoCallback;
             tc->type = JT_UTF8;
         } else {
