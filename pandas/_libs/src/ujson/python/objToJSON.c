@@ -1593,13 +1593,20 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
                                  1000000000LL; // nanoseconds per second
                 }
             }
-
-            cLabel = int64ToIsoDuration(nanosecVal, &len);
-            if (cLabel == NULL) {
+            // JSON requires a string for the index so write "null"
+            // unclear if there is a standard for this
+            if (nanosecVal == get_nat()) {
+              len = 5;  // TODO: shouldn't require extra space for terminator
+              cLabel = PyObject_Malloc(len);
+              strncpy(cLabel, "null", len);
+            } else {
+              cLabel = int64ToIsoDuration(nanosecVal, &len);
+              if (cLabel == NULL) {
                 Py_DECREF(item);
                 NpyArr_freeLabels(ret, num);
                 ret = 0;
                 break;
+              }
             }
         } else if (PyTypeNum_ISDATETIME(type_num)) {
             NPY_DATETIMEUNIT base = enc->datetimeUnit;
@@ -1612,7 +1619,11 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
                              enc->npyType);
             }
             castfunc(dataptr, &longVal, 1, NULL, NULL);
-            if (enc->datetimeIso) {
+            if (longVal == get_nat()) {
+              len = 5;  // TODO: shouldn't require extra space for terminator
+              cLabel = PyObject_Malloc(len);
+              strncpy(cLabel, "null", len);
+            } else if (enc->datetimeIso) {
                 cLabel = int64ToIso(longVal, base, &len);
             } else {
                 if (!scaleNanosecToUnit(&longVal, base)) {
@@ -1625,6 +1636,8 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
             }
         } else if (PyDateTime_Check(item) || PyDate_Check(item)) {
             NPY_DATETIMEUNIT base = enc->datetimeUnit;
+
+            // TODO: null check here?
             if (enc->datetimeIso) {
                 cLabel = PyDateTimeToIso((PyDateTime_Date *)item, base, &len);
             } else {
@@ -1867,7 +1880,12 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         GET_TC(tc)->longValue = value;
 
         PRINTMARK();
-        if (enc->datetimeIso) {
+        if (value == get_nat()) {
+          PRINTMARK();
+          tc->type = JT_NULL;
+          return;
+        }        
+        else if (enc->datetimeIso) {
             pc->PyTypeToUTF8 = NpyTimeDeltaToIsoCallback;
             tc->type = JT_UTF8;
         } else {
@@ -1881,12 +1899,6 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
             if (exc && PyErr_ExceptionMatches(PyExc_OverflowError)) {
                 PRINTMARK();
                 goto INVALID;
-            }
-
-            if (value == get_nat()) {
-                PRINTMARK();
-                tc->type = JT_NULL;
-                return;
             }
 
             tc->type = JT_LONG;
