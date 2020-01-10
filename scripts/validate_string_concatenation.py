@@ -119,8 +119,8 @@ def strings_with_wrong_placed_space(
             and second_token[0] == token.NL
         ):
             # Striping the quotes
-            first_string = first_token[1][1:-1]
-            second_string = third_token[1][1:-1]
+            first_string: str = first_token[1][1:-1]
+            second_string: str = third_token[1][1:-1]
 
             is_first_ends_single: bool = first_string.endswith(" ")
             is_first_ends_newline: bool = first_string.endswith("\n")
@@ -252,7 +252,7 @@ def main(
 
 
 if __name__ == "__main__":
-    available_validation_types = [
+    available_validation_types: List[str] = [
         f.__name__
         for f in globals().values()
         if type(f) == type(main) and f.__name__ != "main"
