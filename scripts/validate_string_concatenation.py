@@ -257,9 +257,9 @@ def main(
 
 if __name__ == "__main__":
     available_validation_types: List[str] = [
-        f.__name__
-        for f in globals().values()
-        if type(f) == type(main) and f.__name__ != "main"
+        "strings_to_concatenate",
+        "strings_with_wrong_placed_space",
+        "bare_pytest_raises",
     ]
 
     parser = argparse.ArgumentParser(description="Unwanted patterns checker.")
