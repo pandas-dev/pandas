@@ -1037,48 +1037,32 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
     @pytest.mark.parametrize(
         "date_format,exp_values",
         [
-            ("iso", {"x": "P1DT0H0M0S", "y":"P2DT0H0M0S"}),
-            ("epoch", {"x": 86400000, "y": 172800000}),
+            ("iso", {"x": "P1DT0H0M0S", "y": "P2DT0H0M0S", "z": "null"}),
+            ("epoch", {"x": 86400000, "y": 172800000, "z": "null"}),
         ],
     )
     def test_series_timedelta_to_json(self, as_index, as_object, date_format, exp_values):
         # GH28156: to_json not correctly formatting Timedelta
+        data = [pd.Timedelta(days=1), pd.Timedelta(days=2), pd.NaT]
         if as_index:
-            s = Series(range(2), index=pd.timedelta_range(start="1D", periods=2))
+            s = pd.Series(range(3), index=data)
         else:
-            s = Series(pd.timedelta_range(start="1D", periods=2))
+            s = pd.Series(data)
 
         if as_index:
-            expected = '{{"{x}":0,"{y}":1}}'.format(**exp_values)
+            expected = '{{"{x}":0,"{y}":1,"{z}":2}}'.format(**exp_values)
         else:
             # strings must be quoted as values, integers cannot be
             if date_format == "iso":
-                expected = '{{"0":"{x}","1":"{y}"}}'.format(**exp_values)
+                expected = '{{"0":"{x}","1":"{y}","2":{z}}}'.format(**exp_values)
             else:
-                expected = '{{"0":{x},"1":{y}}}'.format(**exp_values)
+                expected = '{{"0":{x},"1":{y},"2":{z}}}'.format(**exp_values)
 
         if as_object:
             result = s.astype(object).to_json(date_format=date_format)
         else:
             result = s.to_json(date_format=date_format)
         
-        assert result == expected
-
-    @pytest.mark.parametrize(
-        "date_format,expected",
-        [
-            ("iso", '{"0":{"0":"P1DT0H0M0S","1":"P2DT0H0M0S"}}'),
-            ("epoch", '{"0":{"0":86400000,"1":172800000}}'),
-        ],
-    )
-    def test_dataframe_timedelta_to_json(self, date_format, expected):
-        # GH28156: to_json not correctly formatting Timedelta
-        df = DataFrame(pd.timedelta_range(start="1D", periods=2))
-
-        result = df.to_json(date_format=date_format)
-        assert result == expected
-
-        result = df.astype(object).to_json(date_format=date_format)
         assert result == expected
 
     def test_default_handler(self):
