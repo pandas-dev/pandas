@@ -233,7 +233,7 @@ def _to_dt64(dt, dtype='datetime64'):
     # numpy.datetime64('2013-05-01T02:00:00.000000+0200')
     # Thus astype is needed to cast datetime to datetime64[D]
     if getattr(dt, 'tzinfo', None) is not None:
-        i8 = dt.timestamp() * 10**9
+        i8 = np.int64(dt.timestamp() * 10**9)
         dt = tz_convert_single(i8, UTC, dt.tzinfo)
         dt = np.int64(dt).astype('datetime64[ns]')
     else:
