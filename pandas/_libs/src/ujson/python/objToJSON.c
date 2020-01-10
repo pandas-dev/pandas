@@ -1503,7 +1503,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
     npy_intp i, stride;
     char **ret;
     char *dataptr, *cLabel;
-    int type_num;
+    int type_num, ret_val;
     PRINTMARK();
 
     if (!labels) {
@@ -1555,8 +1555,10 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
             castfunc(dataptr, &longVal, 1, NULL, NULL);
 	    pandas_timedeltastruct tds;
 	    pandas_timedelta_to_timedeltastruct(longVal, NPY_FR_ns, &tds);
-	    cLabel = make_iso_8601_timedelta(&tds, &len);
-	    if (cLabel == NULL) {
+
+            cLabel = PyObject_Malloc(100); // TODO: Better bounds
+	    ret_val = make_iso_8601_timedelta(&tds, cLabel, &len);
+	    if (ret_val == -1) {
 	      // Error occurred
 	    }
 	  } else {  // Timedelta-like objects

@@ -907,29 +907,22 @@ string_too_short:
 }
 
 
-char *make_iso_8601_timedelta(pandas_timedeltastruct *tds, size_t *outlen) {
-  char *begin;
-  asprintf(&begin, "P%" NPY_INT64_FMT "DT%" NPY_INT32_FMT "H%" NPY_INT32_FMT "M%" NPY_INT32_FMT,
+int make_iso_8601_timedelta(pandas_timedeltastruct *tds, char *outstr, size_t *outlen) {
+  *outlen = 0;
+  // sprintf returns the number of characters required for formatting, so use that to move buffer
+  *outlen += sprintf(outstr, "P%" NPY_INT64_FMT "DT%" NPY_INT32_FMT "H%" NPY_INT32_FMT "M%" NPY_INT32_FMT,
 	   tds->days, tds->hrs, tds->min, tds->sec);
+  outstr += *outlen;
 
-  char *append;
   if (tds->ns != 0) {
-    asprintf(&append, ".%03" NPY_INT32_FMT "%03" NPY_INT32_FMT "%03" NPY_INT32_FMT "S", tds->ms, tds->us, tds->ns);
+    *outlen += sprintf(outstr, ".%03" NPY_INT32_FMT "%03" NPY_INT32_FMT "%03" NPY_INT32_FMT "S", tds->ms, tds->us, tds->ns);
   } else if (tds->us != 0) {
-    asprintf(&append, ".%03" NPY_INT32_FMT "%03" NPY_INT32_FMT "S", tds->ms, tds->us);
+    *outlen += sprintf(outstr, ".%03" NPY_INT32_FMT "%03" NPY_INT32_FMT "S", tds->ms, tds->us);
   } else if (tds->ms != 0) {
-    asprintf(&append, ".%03" NPY_INT32_FMT "S", tds->ms);
+    *outlen += sprintf(outstr, ".%03" NPY_INT32_FMT "S", tds->ms);
   } else {
-    asprintf(&append, "%s", "S");
+    *outlen += sprintf(outstr, "%s", "S");
   }
 
-  *outlen = strlen(begin) + strlen(append);
-
-  // TODO: we are using builtin malloc calls here but freeing in JSON
-  // with PyObject_Free; that is not ideal
-  char *result = realloc(begin, *outlen);
-  strcat(result, append);
-  free(append);
-
-  return result;
+  return 0;
 }
