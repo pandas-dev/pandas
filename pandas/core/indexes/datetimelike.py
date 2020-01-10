@@ -127,7 +127,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
     # ------------------------------------------------------------------------
 
-    def equals(self, other) -> bool:
+    def equals(self, other):
         """
         Determines if two Index objects contain the same elements.
         """
@@ -159,9 +159,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         except (KeyError, TypeError, ValueError):
             return False
         return (
-            is_scalar(res)
-            or isinstance(res, slice)
-            or (is_list_like(res) and len(res))
+            is_scalar(res) or isinstance(res, slice) or (is_list_like(res) and len(res))
         )
 
     # Try to run function on index first, and then on elements of index
