@@ -19,7 +19,6 @@ from pandas import (
     PeriodIndex,
     RangeIndex,
     Series,
-    Float64Index,
     TimedeltaIndex,
     UInt64Index,
     isna,
