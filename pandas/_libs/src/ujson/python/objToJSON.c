@@ -1543,8 +1543,9 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
 
         if (enc->datetimeIso &&
             (type_num == NPY_TIMEDELTA || PyDelta_Check(item))) {
+          npy_int64 nanosecVal;
 	  if (type_num == NPY_TIMEDELTA) {
-            npy_int64 longVal;
+
             PyArray_VectorUnaryFunc *castfunc =
                 PyArray_GetCastFunc(PyArray_DescrFromType(type_num), NPY_INT64);
             if (!castfunc) {
@@ -1552,37 +1553,29 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
                              "Cannot cast numpy dtype %d to long",
                              enc->npyType);
             }
-            castfunc(dataptr, &longVal, 1, NULL, NULL);
-	    pandas_timedeltastruct tds;
-	    pandas_timedelta_to_timedeltastruct(longVal, NPY_FR_ns, &tds);
-
-            cLabel = PyObject_Malloc(100); // TODO: Better bounds
-	    ret_val = make_iso_8601_timedelta(&tds, cLabel, &len);
-	    if (ret_val == -1) {
-	      // Error occurred
-	    }
-	  } else {  // Timedelta-like objects
-            PyObject *td = PyObject_CallFunction(cls_timedelta, "(O)", item);
-            if (td == NULL) {
+            castfunc(dataptr, &nanosecVal, 1, NULL, NULL);
+          } else {
+            PyObject *total_sec = PyObject_CallMethod(item, "total_seconds", NULL);
+            if (total_sec == NULL) {
                 Py_DECREF(item);
                 NpyArr_freeLabels(ret, num);
                 ret = 0;
                 break;
             }
+            double total_sec_c = PyFloat_AsDouble(total_sec);
+            nanosecVal = (npy_int64)(total_sec_c * 1000000000);
+          }
+          pandas_timedeltastruct tds;
+          pandas_timedelta_to_timedeltastruct(nanosecVal, NPY_FR_ns, &tds);
 
-            PyObject *iso = PyObject_CallMethod(td, "isoformat", NULL);
-            Py_DECREF(td);
-            if (iso == NULL) {
-                Py_DECREF(item);
-                NpyArr_freeLabels(ret, num);
-                ret = 0;
-                break;
-            }
-
-            cLabel = (char *)PyUnicode_AsUTF8(iso);
-            Py_DECREF(iso);
-            len = strlen(cLabel);
-	  }
+          cLabel = PyObject_Malloc(100); // TODO: Better bounds
+          ret_val = make_iso_8601_timedelta(&tds, cLabel, &len);
+          if (ret_val == -1) {
+            Py_DECREF(item);
+            NpyArr_freeLabels(ret, num);
+            ret = 0;
+            break;
+          }
         } else if (PyTypeNum_ISDATETIME(type_num)) {
             NPY_DATETIMEUNIT base = enc->datetimeUnit;
             npy_int64 longVal;
