@@ -18,6 +18,7 @@ import tokenize
 from typing import Callable, Generator, List, Tuple
 
 FILE_EXTENSIONS_TO_CHECK = (".py", ".pyx", ".pyx.ini", ".pxd")
+TYPE: int = 0
 
 
 def strings_to_concatenate(
@@ -64,7 +65,7 @@ def strings_to_concatenate(
         tokens: List = list(tokenize.generate_tokens(file_name.readline))
 
     for current_token, next_token in zip(tokens, tokens[1:]):
-        if current_token[0] == next_token[0] == token.STRING:
+        if current_token[TYPE] == next_token[TYPE] == token.STRING:
             yield (
                 source_path,
                 current_token[2][0],
@@ -115,7 +116,7 @@ def strings_with_wrong_placed_space(
     for first_token, second_token, third_token in zip(tokens, tokens[1:], tokens[2:]):
         # Checking if we are in a block of concated string
         if (
-            first_token[0] == third_token[0] == token.STRING
+            first_token[TYPE] == third_token[TYPE] == token.STRING
             and second_token[0] == token.NL
         ):
             # Striping the quotes
@@ -178,11 +179,11 @@ def bare_pytest_raises(source_path: str) -> Generator[Tuple[str, int, str], None
         tokens: List = list(tokenize.generate_tokens(file_name.readline))
 
     for counter, current_token in enumerate(tokens, start=1):
-        if current_token[0] == token.NAME and current_token[1] == "raises":
+        if current_token[TYPE] == token.NAME and current_token[1] == "raises":
             for next_token in tokens[counter:]:
-                if next_token[0] == token.NAME and next_token[1] == "match":
+                if next_token[TYPE] == token.NAME and next_token[1] == "match":
                     break
-                if next_token[0] == token.NEWLINE:
+                if next_token[TYPE] == token.NEWLINE:
                     yield (
                         source_path,
                         current_token[2][0],
