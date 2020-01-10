@@ -1535,6 +1535,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
     char **ret;
     char *dataptr, *cLabel;
     int type_num;
+    NPY_DATETIMEUNIT base = enc->datetimeUnit;
     PRINTMARK();
 
     if (!labels) {
@@ -1572,114 +1573,59 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
             break;
         }
 
-        if (enc->datetimeIso &&
-            (type_num == NPY_TIMEDELTA || PyDelta_Check(item))) {
-            npy_int64 nanosecVal;
-            if (type_num == NPY_TIMEDELTA) {
+        int is_datetimelike = 0;
+        npy_int64 nanosecVal;
+        if (PyTypeNum_ISDATETIME(type_num)) {
+          is_datetimelike = 1;
+          PyArray_VectorUnaryFunc *castfunc = PyArray_GetCastFunc(
+                                                                  PyArray_DescrFromType(type_num), NPY_INT64);
+          if (!castfunc) {
+            PyErr_Format(PyExc_ValueError,
+                         "Cannot cast numpy dtype %d to long",
+                         enc->npyType);
+          }
+          castfunc(dataptr, &nanosecVal, 1, NULL, NULL);
+        } else if (PyDate_Check(item) || PyDelta_Check(item)) {
+          is_datetimelike = 1;
+          if (PyObject_HasAttrString(item, "value")) {
+            nanosecVal = get_long_attr(item, "value");
+          } else {
+            nanosecVal = total_seconds(item) *
+              1000000000LL; // nanoseconds per second
+          }
+        } 
 
-                PyArray_VectorUnaryFunc *castfunc = PyArray_GetCastFunc(
-                    PyArray_DescrFromType(type_num), NPY_INT64);
-                if (!castfunc) {
-                    PyErr_Format(PyExc_ValueError,
-                                 "Cannot cast numpy dtype %d to long",
-                                 enc->npyType);
-                }
-                castfunc(dataptr, &nanosecVal, 1, NULL, NULL);
-            } else { // Python timedelta
-                if (PyObject_HasAttrString(item, "value")) {
-                    nanosecVal = get_long_attr(item, "value");
-                } else {
-                    nanosecVal = total_seconds(item) *
-                                 1000000000LL; // nanoseconds per second
-                }
-            }
-            // JSON requires a string for the index so write "null"
-            // unclear if there is a standard for this
-            if (nanosecVal == get_nat()) {
-                len = 5; // TODO: shouldn't require extra space for terminator
-                cLabel = PyObject_Malloc(len);
-                strncpy(cLabel, "null", len);
-            } else {
+        if (is_datetimelike) {
+          // JSON requires a string for the index so write "null"
+          // is there is a standard for this?
+          if (nanosecVal == get_nat()) {
+            len = 5; // TODO: shouldn't require extra space for terminator
+            cLabel = PyObject_Malloc(len);
+            strncpy(cLabel, "null", len);
+          } else {
+            if (enc->datetimeIso) {
+              if ((type_num == NPY_TIMEDELTA) || (PyDelta_Check(item))) {
                 cLabel = int64ToIsoDuration(nanosecVal, &len);
-                if (cLabel == NULL) {
-                    Py_DECREF(item);
-                    NpyArr_freeLabels(ret, num);
-                    ret = 0;
-                    break;
-                }
-            }
-        } else if (PyTypeNum_ISDATETIME(type_num)) {
-            NPY_DATETIMEUNIT base = enc->datetimeUnit;
-            npy_int64 longVal;
-            PyArray_VectorUnaryFunc *castfunc =
-                PyArray_GetCastFunc(PyArray_DescrFromType(type_num), NPY_INT64);
-            if (!castfunc) {
-                PyErr_Format(PyExc_ValueError,
-                             "Cannot cast numpy dtype %d to long",
-                             enc->npyType);
-            }
-            castfunc(dataptr, &longVal, 1, NULL, NULL);
-            if (longVal == get_nat()) {
-                len = 5; // TODO: shouldn't require extra space for terminator
-                cLabel = PyObject_Malloc(len);
-                strncpy(cLabel, "null", len);
-            } else if (enc->datetimeIso) {
-                cLabel = int64ToIso(longVal, base, &len);
-            } else {
-                if (!scaleNanosecToUnit(&longVal, base)) {
-                    // TODO: This gets hit but somehow doesn't cause errors
-                    // need to clean up (elsewhere in module as well)
-                }
-                cLabel = PyObject_Malloc(21); // 21 chars for int64
-                sprintf(cLabel, "%" NPY_INT64_FMT, longVal);
-                len = strlen(cLabel);
-            }
-        } else if (PyDateTime_Check(item) || PyDate_Check(item) || PyDelta_Check(item)) {
-            npy_int64 nanosecVal;
-            if (PyObject_HasAttrString(item, "value")) {
-                PRINTMARK();
-                nanosecVal = get_long_attr(item, "value");
-            } else {
-                PRINTMARK();
-                nanosecVal = total_seconds(item) *
-                             1000000000LL; // nanoseconds per second
-            }
-
-            if (nanosecVal == get_nat()) {
-                len = 5; // TODO: shouldn't require extra space for terminator
-                cLabel = PyObject_Malloc(len);
-                strncpy(cLabel, "null", len);
-            } else {
-                NPY_DATETIMEUNIT base = enc->datetimeUnit;
-                if (enc->datetimeIso) {
-                  if (PyDelta_Check(item)) {
-                      cLabel = int64ToIsoDuration(nanosecVal, &len);
-                  } else {
-                    cLabel =
-                        PyDateTimeToIso((PyDateTime_Date *)item, base, &len);
-                  }
-
-                  if (cLabel == NULL) {
-                    Py_DECREF(item);
-                    NpyArr_freeLabels(ret, num);
-                    ret = 0;
-                    break;
-                  }
+              } else {
+                if (type_num == NPY_DATETIME) {
+                  cLabel = int64ToIso(nanosecVal, base, &len);
                 } else {
-                    cLabel = PyObject_Malloc(21); // 21 chars for int64
-
-                    if (PyDelta_Check(item)) {
-                      if (!scaleNanosecToUnit(&nanosecVal, base)) {
-                        // TODO: error handler
-                      }
-                      sprintf(cLabel, "%" NPY_DATETIME_FMT, nanosecVal);
-                    } else {
-                    sprintf(cLabel, "%" NPY_DATETIME_FMT,
-                            PyDateTimeToEpoch(item, base));
-                    }
-                    len = strlen(cLabel);
+                  cLabel = PyDateTimeToIso((PyDateTime_Date *)item, base, &len);
                 }
+              }
+              if (cLabel == NULL) {
+                Py_DECREF(item);
+                NpyArr_freeLabels(ret, num);
+                ret = 0;
+                break;
+              }
+            } else {
+              cLabel = PyObject_Malloc(21); // 21 chars for int64
+              sprintf(cLabel, "%" NPY_DATETIME_FMT,
+                        NpyDateTimeToEpoch(nanosecVal, base));
+              len = strlen(cLabel);
             }
+          }
         } else { // Fallback to string representation
             PyObject *str = PyObject_Str(item);
             if (str == NULL) {
@@ -1698,6 +1644,11 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
         // Add 1 to include NULL terminator
         ret[i] = PyObject_Malloc(len + 1);
         memcpy(ret[i], cLabel, len + 1);
+
+        if (is_datetimelike) {
+          // these were created with PyObject_Malloc so free accordingly
+          PyObject_Free(cLabel);
+        }
 
         if (PyErr_Occurred()) {
             NpyArr_freeLabels(ret, num);
