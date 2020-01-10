@@ -65,35 +65,15 @@ static PyMethodDef ujsonMethods[] = {
     {NULL, NULL, 0, NULL} /* Sentinel */
 };
 
-static struct PyModuleDef moduledef = {
-    PyModuleDef_HEAD_INIT,
-    "_libjson",
-    0,            /* m_doc */
-    -1,           /* m_size */
-    ujsonMethods, /* m_methods */
-    NULL,         /* m_reload */
-    NULL,         /* m_traverse */
-    NULL,         /* m_clear */
-    NULL          /* m_free */
+static PyModuleDef moduledef = {
+    .m_base = PyModuleDef_HEAD_INIT,
+    .m_name = "_libjson",
+    .m_methods = ujsonMethods
 };
 
-#define PYMODINITFUNC PyMODINIT_FUNC PyInit_json(void)
-#define PYMODULE_CREATE() PyModule_Create(&moduledef)
-#define MODINITERROR return NULL
 
-PYMODINITFUNC {
-    PyObject *module;
-    PyObject *version_string;
+PyMODINIT_FUNC PyInit_json(void) {
+  initObjToJSON();  // TODO: clean up, maybe via tp_free?
+  return PyModuleDef_Init(&moduledef);
 
-    initObjToJSON();
-    module = PYMODULE_CREATE();
-
-    if (module == NULL) {
-        MODINITERROR;
-    }
-
-    version_string = PyUnicode_FromString(UJSON_VERSION);
-    PyModule_AddObject(module, "__version__", version_string);
-
-    return module;
 }

@@ -1215,9 +1215,8 @@ class HDFStore:
         """
         if axes is not None:
             raise TypeError(
-                "axes is currently not accepted as a parameter to"
-                " append_to_multiple; you can create the "
-                "tables independently instead"
+                "axes is currently not accepted as a parameter to append_to_multiple; "
+                "you can create the tables independently instead"
             )
 
         if not isinstance(d, dict):
@@ -3548,9 +3547,8 @@ class Table(Fixed):
                 if not v.is_indexed:
                     if v.type.startswith("complex"):
                         raise TypeError(
-                            "Columns containing complex values can be stored "
-                            "but cannot"
-                            " be indexed when using table format. Either use "
+                            "Columns containing complex values can be stored but "
+                            "cannot be indexed when using table format. Either use "
                             "fixed format, set index=False, or do not include "
                             "the columns containing complex values to "
                             "data_columns when initializing the table."

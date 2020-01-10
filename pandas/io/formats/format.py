@@ -579,8 +579,8 @@ class DataFrameFormatter(TableFormatter):
         else:
             raise ValueError(
                 (
-                    "Formatters length({flen}) should match"
-                    " DataFrame number of columns({dlen})"
+                    "Formatters length({flen}) should match "
+                    "DataFrame number of columns({dlen})"
                 ).format(flen=len(formatters), dlen=len(frame.columns))
             )
         self.na_rep = na_rep
@@ -1230,7 +1230,7 @@ class GenericArrayFormatter:
                     if x is None:
                         return "None"
                     elif x is NA:
-                        return "NA"
+                        return str(NA)
                     elif x is NaT or np.isnat(x):
                         return "NaT"
                 except (TypeError, ValueError):

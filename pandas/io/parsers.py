@@ -5,7 +5,7 @@ Module contains tools for processing files into DataFrames or other objects
 from collections import abc, defaultdict
 import csv
 import datetime
-from io import StringIO
+from io import BufferedIOBase, StringIO, TextIOWrapper
 import re
 import sys
 from textwrap import fill
@@ -62,7 +62,6 @@ from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
 
 from pandas.io.common import (
-    UTF8Recoder,
     get_filepath_or_buffer,
     get_handle,
     infer_compression,
@@ -612,9 +611,9 @@ def _make_parser_function(name, default_sep=","):
 
         if delim_whitespace and delimiter != default_sep:
             raise ValueError(
-                "Specified a delimiter with both sep and"
-                " delim_whitespace=True; you can only"
-                " specify one."
+                "Specified a delimiter with both sep and "
+                "delim_whitespace=True; you can only "
+                "specify one."
             )
 
         if engine is not None:
@@ -956,8 +955,8 @@ class TextFileReader(abc.Iterator):
         if sep is None and not delim_whitespace:
             if engine == "c":
                 fallback_reason = (
-                    "the 'c' engine does not support"
-                    " sep=None with delim_whitespace=False"
+                    "the 'c' engine does not support "
+                    "sep=None with delim_whitespace=False"
                 )
                 engine = "python"
         elif sep is not None and len(sep) > 1:
@@ -1120,9 +1119,9 @@ class TextFileReader(abc.Iterator):
                 klass = FixedWidthFieldParser
             else:
                 raise ValueError(
-                    f"Unknown engine: {engine} (valid options are"
-                    ' "c", "python", or'
-                    ' "python-fwf")'
+                    f"Unknown engine: {engine} (valid options are "
+                    '"c", "python", or '
+                    '"python-fwf")'
                 )
             self._engine = klass(self.f, **self.options)
 
@@ -1868,12 +1867,18 @@ class CParserWrapper(ParserBase):
 
         ParserBase.__init__(self, kwds)
 
-        if kwds.get("compression") is None and "utf-16" in (kwds.get("encoding") or ""):
-            # if source is utf-16 plain text, convert source to utf-8
+        encoding = kwds.get("encoding")
+
+        if kwds.get("compression") is None and encoding:
             if isinstance(src, str):
                 src = open(src, "rb")
                 self.handles.append(src)
-            src = UTF8Recoder(src, kwds["encoding"])
+
+            # Handle the file object with universal line mode enabled.
+            # We will handle the newline character ourselves later on.
+            if isinstance(src, BufferedIOBase):
+                src = TextIOWrapper(src, encoding=encoding, newline="")
+
             kwds["encoding"] = "utf-8"
 
         # #2442

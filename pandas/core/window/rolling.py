@@ -872,6 +872,17 @@ class Window(_Window):
     3  NaN
     4  NaN
 
+    Rolling sum with a window length of 2, using the 'gaussian'
+    window type (note how we need to specify std).
+
+    >>> df.rolling(2, win_type='gaussian').sum(std=3)
+              B
+    0       NaN
+    1  0.986207
+    2  2.958621
+    3       NaN
+    4       NaN
+
     Rolling sum with a window length of 2, min_periods defaults
     to the window length.
 
