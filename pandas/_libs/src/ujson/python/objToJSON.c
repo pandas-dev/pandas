@@ -54,7 +54,6 @@ static PyTypeObject *cls_dataframe;
 static PyTypeObject *cls_series;
 static PyTypeObject *cls_index;
 static PyTypeObject *cls_nat;
-PyObject *cls_timedelta;
 
 npy_int64 get_nat(void) { return NPY_MIN_INT64; }
 
@@ -165,7 +164,6 @@ void *initObjToJSON(void) {
         cls_index = (PyTypeObject *)PyObject_GetAttrString(mod_pandas, "Index");
         cls_series =
             (PyTypeObject *)PyObject_GetAttrString(mod_pandas, "Series");
-        cls_timedelta = PyObject_GetAttrString(mod_pandas, "Timedelta");
         Py_DECREF(mod_pandas);
     }
 
