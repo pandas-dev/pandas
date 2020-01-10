@@ -38,7 +38,7 @@ import numpy.ma as ma
 from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, lib
-from pandas._typing import Axes, Dtype, FilePathOrBuffer
+from pandas._typing import Axes, Axis, Dtype, FilePathOrBuffer, Level, Renamer
 from pandas.compat import PY37
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -3986,7 +3986,19 @@ class DataFrame(NDFrame):
         "mapper",
         [("copy", True), ("inplace", False), ("level", None), ("errors", "ignore")],
     )
-    def rename(self, *args, **kwargs):
+    def rename(
+        self,
+        mapper: Optional[Renamer] = None,
+        *,
+        index: Optional[Renamer] = None,
+        columns: Optional[Renamer] = None,
+        axis: Optional[Axis] = None,
+        copy: bool = True,
+        inplace: bool = False,
+        level: Optional[Level] = None,
+        errors: str = "ignore",
+    ) -> Optional["DataFrame"]:
+
         """
         Alter axes labels.
 
@@ -4095,12 +4107,16 @@ class DataFrame(NDFrame):
         2  2  5
         4  3  6
         """
-        axes = validate_axis_style_args(self, args, kwargs, "mapper", "rename")
-        kwargs.update(axes)
-        # Pop these, since the values are in `kwargs` under different names
-        kwargs.pop("axis", None)
-        kwargs.pop("mapper", None)
-        return super().rename(**kwargs)
+        return super().rename(
+            mapper=mapper,
+            index=index,
+            columns=columns,
+            axis=axis,
+            copy=copy,
+            inplace=inplace,
+            level=level,
+            errors=errors,
+        )
 
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.fillna.__doc__)
