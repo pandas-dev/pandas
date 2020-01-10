@@ -428,19 +428,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         codes = self.codes
         return self._engine_type(lambda: codes, len(self))
 
-    # introspection
-    @cache_readonly
-    def is_unique(self) -> bool:
-        return self._engine.is_unique
-
-    @property
-    def is_monotonic_increasing(self):
-        return self._engine.is_monotonic_increasing
-
-    @property
-    def is_monotonic_decreasing(self) -> bool:
-        return self._engine.is_monotonic_decreasing
-
     @Appender(_index_shared_docs["index_unique"] % _index_doc_kwargs)
     def unique(self, level=None):
         if level is not None:
