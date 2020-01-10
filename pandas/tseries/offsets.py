@@ -2222,13 +2222,13 @@ class FY5253(DateOffset):
         suffix = self.get_rule_code_suffix()
         return f"{prefix}-{suffix}"
 
-    def _get_suffix_prefix(self):
+    def _get_suffix_prefix(self) -> str:
         if self.variation == "nearest":
             return "N"
         else:
             return "L"
 
-    def get_rule_code_suffix(self):
+    def get_rule_code_suffix(self) -> str:
         prefix = self._get_suffix_prefix()
         month = ccalendar.MONTH_ALIASES[self.startingMonth]
         weekday = ccalendar.int_to_weekday[self.weekday]
@@ -2434,7 +2434,7 @@ class FY5253Quarter(DateOffset):
 
         return ret
 
-    def year_has_extra_week(self, dt):
+    def year_has_extra_week(self, dt: datetime) -> bool:
         # Avoid round-down errors --> normalize to get
         # e.g. '370D' instead of '360D23H'
         norm = Timestamp(dt).normalize().tz_localize(None)
@@ -2596,7 +2596,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
 
     # This is identical to DateOffset.__hash__, but has to be redefined here
     # for Python 3, because we've redefined __eq__.
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self._params)
 
     def __ne__(self, other):
@@ -2617,7 +2617,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
             return True
 
     @property
-    def delta(self):
+    def delta(self) -> Timedelta:
         return self.n * self._inc
 
     @property
