@@ -1045,9 +1045,13 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         # GH28156: to_json not correctly formatting Timedelta
         data = [pd.Timedelta(days=1), pd.Timedelta(days=2), pd.NaT]
         if as_index:
-            s = pd.Series(range(3), index=data)
+            ser = pd.Series(range(3), index=data)
+            if as_object:
+                ser.index = ser.index.astype(object)
         else:
-            s = pd.Series(data)
+            ser = pd.Series(data)
+            if as_object:
+                ser = ser.astype(object)
 
         if as_index:
             expected = '{{"{x}":0,"{y}":1,"{z}":2}}'.format(**exp_values)
@@ -1058,11 +1062,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
             else:
                 expected = '{{"0":{x},"1":{y},"2":{z}}}'.format(**exp_values)
 
-        if as_object:
-            result = s.astype(object).to_json(date_format=date_format)
-        else:
-            result = s.to_json(date_format=date_format)
-        
+        result = ser.to_json(date_format=date_format)
         assert result == expected
 
     def test_default_handler(self):
