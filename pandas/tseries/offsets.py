@@ -2516,7 +2516,7 @@ class Easter(DateOffset):
         )
         return new
 
-    def is_on_offset(self, dt):
+    def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         return date(dt.year, dt.month, dt.day) == easter(dt.year)
@@ -2652,7 +2652,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
         return False
 
 
-def _delta_to_tick(delta):
+def _delta_to_tick(delta: timedelta) -> Tick:
     if delta.microseconds == 0 and getattr(delta, "nanoseconds", 0) == 0:
         # nanoseconds only for pd.Timedelta
         if delta.seconds == 0:
