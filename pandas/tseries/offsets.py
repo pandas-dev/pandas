@@ -389,7 +389,7 @@ class DateOffset(BaseOffset):
     # TODO: Combine this with BusinessMixin version by defining a whitelisted
     # set of attributes on each object rather than the existing behavior of
     # iterating over internal ``__dict__``
-    def _repr_attrs(self):
+    def _repr_attrs(self) -> str:
         exclude = {"n", "inc", "normalize"}
         attrs = []
         for attr in sorted(self.__dict__):
@@ -460,7 +460,7 @@ class DateOffset(BaseOffset):
         return self._prefix
 
     @cache_readonly
-    def freqstr(self):
+    def freqstr(self) -> str:
         try:
             code = self.rule_code
         except NotImplementedError:
@@ -480,7 +480,7 @@ class DateOffset(BaseOffset):
 
         return fstr
 
-    def _offset_str(self):
+    def _offset_str(self) -> str:
         return ""
 
     @property
@@ -529,11 +529,11 @@ class BusinessMixin:
         # Alias for backward compat
         return self._offset
 
-    def _repr_attrs(self):
+    def _repr_attrs(self) -> str:
         if self.offset:
             attrs = [f"offset={repr(self.offset)}"]
         else:
-            attrs = None
+            attrs = []
         out = ""
         if attrs:
             out += ": " + ", ".join(attrs)
@@ -553,7 +553,7 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
         BaseOffset.__init__(self, n, normalize)
         object.__setattr__(self, "_offset", offset)
 
-    def _offset_str(self):
+    def _offset_str(self) -> str:
         def get_str(td):
             off_str = ""
             if td.days > 0:
