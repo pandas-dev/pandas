@@ -277,6 +277,7 @@ if __name__ == "__main__":
         "--validation-type",
         "-vt",
         choices=available_validation_types,
+        required=True,
         help="Validation test case to check.",
     )
 
