@@ -184,6 +184,8 @@ def bare_pytest_raises(source_path: str) -> Generator[Tuple[str, int, str], None
         for next_token in tokens[counter:]:
             if next_token[TYPE] == token.NAME and next_token[1] == "match":
                 break
+            # token.NEWLINE refers to end of a logical line
+            # unlike token.NL or "\n" which represents a newline
             if next_token[TYPE] == token.NEWLINE:
                 yield (
                     source_path,
