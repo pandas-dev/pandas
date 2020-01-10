@@ -1056,35 +1056,22 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         result = pd.read_json(frame.to_json(date_unit="ns"), dtype={"a": "int64"})
         tm.assert_frame_equal(result, expected, check_index_type=False)
 
-    @pytest.mark.parametrize("as_index", [True, False])
     @pytest.mark.parametrize("as_object", [True, False])
-    @pytest.mark.parametrize(
-        "date_format,exp_values",
-        [
-            ("iso", {"x": "P1DT0H0M0S", "y": "P2DT0H0M0S", "z": "null"}),
-            ("epoch", {"x": 86400000, "y": 172800000, "z": "null"}),
-        ],
-    )
-    def test_series_timedelta_to_json(self, as_index, as_object, date_format, exp_values):
+    @pytest.mark.parametrize("date_format", ["iso", "epoch"])
+    def test_series_timedelta_to_json(self, as_object, date_format):
         # GH28156: to_json not correctly formatting Timedelta
         data = [pd.Timedelta(days=1), pd.Timedelta(days=2), pd.NaT]
-        if as_index:
-            ser = pd.Series(range(3), index=data)
-            if as_object:
-                ser.index = ser.index.astype(object)
-        else:
-            ser = pd.Series(data)
-            if as_object:
-                ser = ser.astype(object)
+        if as_object:
+            data.append("a")
 
-        if as_index:
-            expected = '{{"{x}":0,"{y}":1,"{z}":2}}'.format(**exp_values)
+        ser = pd.Series(data, index=data)
+        if date_format == "iso":
+            expected = '{"P1DT0H0M0S":"P1DT0H0M0S","P2DT0H0M0S":"P2DT0H0M0S","null":null}'
         else:
-            # strings must be quoted as values, integers cannot be
-            if date_format == "iso":
-                expected = '{{"0":"{x}","1":"{y}","2":{z}}}'.format(**exp_values)
-            else:
-                expected = '{{"0":{x},"1":{y},"2":{z}}}'.format(**exp_values)
+            expected = '{"86400000":86400000,"172800000":172800000,"null":null}'
+
+        if as_object:
+            expected = expected.replace("}", ',"a":"a"}')
 
         result = ser.to_json(date_format=date_format)
         assert result == expected
