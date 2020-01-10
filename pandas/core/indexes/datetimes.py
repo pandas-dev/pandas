@@ -16,7 +16,6 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 from pandas.core.accessor import delegate_names
 from pandas.core.arrays.datetimes import (
     DatetimeArray,
-    _to_M8,
     tz_to_dtype,
     validate_tz_from_dtype,
 )
@@ -294,7 +293,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
 
     # --------------------------------------------------------------------
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None) -> np.ndarray:
         return np.asarray(self._data, dtype=dtype)
 
     @cache_readonly
@@ -830,20 +829,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
                     return indexer
             else:
                 raise
-
-    # --------------------------------------------------------------------
-    # Wrapping DatetimeArray
-
-    def __getitem__(self, key):
-        result = self._data.__getitem__(key)
-        if is_scalar(result):
-            return result
-        elif result.ndim > 1:
-            # To support MPL which performs slicing with 2 dim
-            # even though it only has 1 dim by definition
-            assert isinstance(result, np.ndarray), result
-            return result
-        return type(self)(result, name=self.name)
 
     # --------------------------------------------------------------------
 
