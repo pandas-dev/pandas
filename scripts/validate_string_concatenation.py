@@ -111,6 +111,30 @@ def strings_with_wrong_placed_space(
     msg : str
         Explenation of the error.
     """
+
+    def idk_how_to_call_this_function(first_line: str, second_line: str) -> bool:
+        """
+        Checking if the two lines are mattching the unwanted pattern.
+
+        Parameters
+        ----------
+        first_line : str
+            First line to check.
+        second_line : str
+            Second line to check.
+
+        Returns
+        -------
+        bool
+            True if the two recived string match, an unwanted pattern.
+        """
+        return (
+            (not first_line.endswith(" "))
+            and second_line.startswith(" ")
+            and (not second_line.startswith("  "))
+            and (not first_line.endswith("\n"))
+        ) or ((first_line.endswith(" ") and second_line.startswith(" ")))
+
     with open(source_path, "r") as file_name:
         tokens: List = list(tokenize.generate_tokens(file_name.readline))
 
@@ -124,16 +148,7 @@ def strings_with_wrong_placed_space(
             first_string: str = first_token[1][1:-1]
             second_string: str = third_token[1][1:-1]
 
-            is_first_ends_single: bool = first_string.endswith(" ")
-            is_first_ends_newline: bool = first_string.endswith("\n")
-            is_second_starts_single: bool = second_string.startswith(" ")
-            is_second_starts_double: bool = second_string.startswith("  ")
-
-            if (
-                (not is_first_ends_single)
-                and is_second_starts_single
-                and (not is_second_starts_double)
-            ) and (not is_first_ends_newline):
+            if idk_how_to_call_this_function(first_string, second_string):
                 yield (
                     source_path,
                     third_token[2][0],
