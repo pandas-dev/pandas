@@ -377,11 +377,11 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             else:
                 return key.ordinal in self._engine
         else:
+            hash(key)
             try:
                 self.get_loc(key)
                 return True
-            except (TypeError, KeyError):
-                # TypeError can be reached if we pass a tuple that is not hashable
+            except KeyError:
                 return False
 
     @cache_readonly

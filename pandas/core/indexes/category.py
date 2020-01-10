@@ -390,6 +390,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         if is_scalar(key) and isna(key):
             return self.hasnans
 
+        hash(key)
         return contains(self, key, container=self._engine)
 
     def __array__(self, dtype=None) -> np.ndarray:

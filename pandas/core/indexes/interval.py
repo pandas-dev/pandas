@@ -385,6 +385,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
         -------
         bool
         """
+        hash(key)
         if not isinstance(key, Interval):
             return False
 

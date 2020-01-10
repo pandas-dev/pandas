@@ -19,6 +19,7 @@ from pandas import (
     PeriodIndex,
     RangeIndex,
     Series,
+    Float64Index,
     TimedeltaIndex,
     UInt64Index,
     isna,
@@ -883,3 +884,11 @@ class Base:
             res = idx[:, None]
 
         assert isinstance(res, np.ndarray), type(res)
+
+    def test_contains_requires_hashable(self):
+        idx = self.create_index()
+        with pytest.raises(TypeError, match="unhashable type"):
+            [] in idx
+
+        with pytest.raises(TypeError):
+            {} in idx._engine

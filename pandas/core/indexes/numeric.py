@@ -474,6 +474,7 @@ class Float64Index(NumericIndex):
             return False
 
     def __contains__(self, other) -> bool:
+        hash(other)
         if super().__contains__(other):
             return True
 
