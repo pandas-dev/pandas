@@ -1634,7 +1634,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
                 sprintf(cLabel, "%" NPY_INT64_FMT, longVal);
                 len = strlen(cLabel);
             }
-        } else if (PyDateTime_Check(item) || PyDate_Check(item)) {
+        } else if (PyDateTime_Check(item) || PyDate_Check(item) || PyDelta_Check(item)) {
             npy_int64 nanosecVal;
             if (PyObject_HasAttrString(item, "value")) {
                 PRINTMARK();
@@ -1650,49 +1650,33 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
                 cLabel = PyObject_Malloc(len);
                 strncpy(cLabel, "null", len);
             } else {
-                // TODO: null check here?
                 NPY_DATETIMEUNIT base = enc->datetimeUnit;
                 if (enc->datetimeIso) {
+                  if (PyDelta_Check(item)) {
+                      cLabel = int64ToIsoDuration(nanosecVal, &len);
+                  } else {
                     cLabel =
                         PyDateTimeToIso((PyDateTime_Date *)item, base, &len);
+                  }
+
+                  if (cLabel == NULL) {
+                    Py_DECREF(item);
+                    NpyArr_freeLabels(ret, num);
+                    ret = 0;
+                    break;
+                  }
                 } else {
                     cLabel = PyObject_Malloc(21); // 21 chars for int64
+
+                    if (PyDelta_Check(item)) {
+                      if (!scaleNanosecToUnit(&nanosecVal, base)) {
+                        // TODO: error handler
+                      }
+                      sprintf(cLabel, "%" NPY_DATETIME_FMT, nanosecVal);
+                    } else {
                     sprintf(cLabel, "%" NPY_DATETIME_FMT,
                             PyDateTimeToEpoch(item, base));
-                    len = strlen(cLabel);
-                }
-            }
-        } else if (PyDelta_Check(item)) {
-            npy_int64 nanosecVal;
-            if (PyObject_HasAttrString(item, "value")) {
-                PRINTMARK();
-                nanosecVal = get_long_attr(item, "value");
-            } else {
-                PRINTMARK();
-                nanosecVal = total_seconds(item) *
-                             1000000000LL; // nanoseconds per second
-            }
-
-            if (nanosecVal == get_nat()) {
-                len = 5; // TODO: shouldn't require extra space for terminator
-                cLabel = PyObject_Malloc(len);
-                strncpy(cLabel, "null", len);
-            } else {
-                if (enc->datetimeIso) {
-                    cLabel = int64ToIsoDuration(nanosecVal, &len);
-                    if (cLabel == NULL) {
-                        Py_DECREF(item);
-                        NpyArr_freeLabels(ret, num);
-                        ret = 0;
-                        break;
                     }
-                } else {
-                    NPY_DATETIMEUNIT base = enc->datetimeUnit;
-                    cLabel = PyObject_Malloc(21); // 21 chars for int64
-                    if (!scaleNanosecToUnit(&nanosecVal, base)) {
-                        // TODO: error handler
-                    }
-                    sprintf(cLabel, "%" NPY_DATETIME_FMT, nanosecVal);
                     len = strlen(cLabel);
                 }
             }
