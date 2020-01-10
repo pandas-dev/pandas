@@ -392,7 +392,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
         return contains(self, key, container=self._engine)
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None) -> np.ndarray:
         """ the array interface, return my values """
         return np.array(self._data, dtype=dtype)
 
@@ -427,19 +427,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         # `self` is not passed into the lambda.
         codes = self.codes
         return self._engine_type(lambda: codes, len(self))
-
-    # introspection
-    @cache_readonly
-    def is_unique(self) -> bool:
-        return self._engine.is_unique
-
-    @property
-    def is_monotonic_increasing(self):
-        return self._engine.is_monotonic_increasing
-
-    @property
-    def is_monotonic_decreasing(self) -> bool:
-        return self._engine.is_monotonic_decreasing
 
     @Appender(_index_shared_docs["index_unique"] % _index_doc_kwargs)
     def unique(self, level=None):

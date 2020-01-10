@@ -86,7 +86,9 @@ class TestGetItem:
 
     def test_dti_business_getitem_matplotlib_hackaround(self):
         rng = pd.bdate_range(START, END)
-        values = rng[:, None]
+        with tm.assert_produces_warning(DeprecationWarning):
+            # GH#30588 multi-dimensional indexing deprecated
+            values = rng[:, None]
         expected = rng.values[:, None]
         tm.assert_numpy_array_equal(values, expected)
 
@@ -110,7 +112,9 @@ class TestGetItem:
 
     def test_dti_custom_getitem_matplotlib_hackaround(self):
         rng = pd.bdate_range(START, END, freq="C")
-        values = rng[:, None]
+        with tm.assert_produces_warning(DeprecationWarning):
+            # GH#30588 multi-dimensional indexing deprecated
+            values = rng[:, None]
         expected = rng.values[:, None]
         tm.assert_numpy_array_equal(values, expected)
 

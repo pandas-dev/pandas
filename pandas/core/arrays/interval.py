@@ -500,8 +500,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         # scalar
         if not isinstance(left, ABCIndexClass):
-            if isna(left):
+            if is_scalar(left) and isna(left):
                 return self._fill_value
+            if np.ndim(left) > 1:
+                # GH#30588 multi-dimensional indexer disallowed
+                raise ValueError("multi-dimensional indexing not allowed")
             return Interval(left, right, self.closed)
 
         return self._shallow_copy(left, right)
@@ -1063,7 +1066,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         )
 
     # Conversion
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None) -> np.ndarray:
         """
         Return the IntervalArray's data as a numpy array of Interval
         objects (with dtype='object')
