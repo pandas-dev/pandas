@@ -814,9 +814,9 @@ default 'raise'
                                'shift_backward')
         if nonexistent not in nonexistent_options and not isinstance(
             nonexistent, timedelta):
-            raise ValueError("The nonexistent argument must be one of 'raise',"
-                             " 'NaT', 'shift_forward', 'shift_backward' or"
-                             " a timedelta object")
+            raise ValueError("The nonexistent argument must be one of 'raise', "
+                             "'NaT', 'shift_forward', 'shift_backward' or "
+                             "a timedelta object")
 
         if self.tzinfo is None:
             # tz naive, localize

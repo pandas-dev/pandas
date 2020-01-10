@@ -66,8 +66,11 @@ ignore_natural_naming_warning = pytest.mark.filterwarnings(
 class TestHDFStore:
     def test_format_kwarg_in_constructor(self, setup_path):
         # GH 13291
+
+        msg = "format is not a defined argument for HDFStore"
+
         with ensure_clean_path(setup_path) as path:
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match=msg):
                 HDFStore(path, format="table")
 
     def test_context(self, setup_path):
@@ -203,21 +206,27 @@ class TestHDFStore:
             # Invalid.
             df = tm.makeDataFrame()
 
-            with pytest.raises(ValueError):
+            msg = "Can only append to Tables"
+
+            with pytest.raises(ValueError, match=msg):
                 df.to_hdf(path, "df", append=True, format="f")
 
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match=msg):
                 df.to_hdf(path, "df", append=True, format="fixed")
 
-            with pytest.raises(TypeError):
+            msg = r"invalid HDFStore format specified \[foo\]"
+
+            with pytest.raises(TypeError, match=msg):
                 df.to_hdf(path, "df", append=True, format="foo")
 
-            with pytest.raises(TypeError):
-                df.to_hdf(path, "df", append=False, format="bar")
+            with pytest.raises(TypeError, match=msg):
+                df.to_hdf(path, "df", append=False, format="foo")
 
         # File path doesn't exist
         path = ""
-        with pytest.raises(FileNotFoundError):
+        msg = f"File {path} does not exist"
+
+        with pytest.raises(FileNotFoundError, match=msg):
             read_hdf(path, "df")
 
     def test_api_default_format(self, setup_path):
@@ -230,7 +239,10 @@ class TestHDFStore:
             _maybe_remove(store, "df")
             store.put("df", df)
             assert not store.get_storer("df").is_table
-            with pytest.raises(ValueError):
+
+            msg = "Can only append to Tables"
+
+            with pytest.raises(ValueError, match=msg):
                 store.append("df2", df)
 
             pd.set_option("io.hdf.default_format", "table")
@@ -251,7 +263,7 @@ class TestHDFStore:
             df.to_hdf(path, "df")
             with HDFStore(path) as store:
                 assert not store.get_storer("df").is_table
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match=msg):
                 df.to_hdf(path, "df2", append=True)
 
             pd.set_option("io.hdf.default_format", "table")
@@ -384,7 +396,10 @@ class TestHDFStore:
             # this is an error because its table_type is appendable, but no
             # version info
             store.get_node("df2")._v_attrs.pandas_version = None
-            with pytest.raises(Exception):
+
+            msg = "'NoneType' object has no attribute 'startswith'"
+
+            with pytest.raises(Exception, match=msg):
                 store.select("df2")
 
     def test_mode(self, setup_path):
@@ -428,7 +443,11 @@ class TestHDFStore:
 
                 # conv read
                 if mode in ["w"]:
-                    with pytest.raises(ValueError):
+                    msg = (
+                        "mode w is not allowed while performing a read. "
+                        r"Allowed modes are r, r\+ and a."
+                    )
+                    with pytest.raises(ValueError, match=msg):
                         read_hdf(path, "df", mode=mode)
                 else:
                     result = read_hdf(path, "df", mode=mode)
