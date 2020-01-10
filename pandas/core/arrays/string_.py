@@ -131,7 +131,7 @@ class StringArray(PandasArray):
     --------
     >>> pd.array(['This is', 'some text', None, 'data.'], dtype="string")
     <StringArray>
-    ['This is', 'some text', NA, 'data.']
+    ['This is', 'some text', <NA>, 'data.']
     Length: 4, dtype: string
 
     Unlike ``object`` dtype arrays, ``StringArray`` doesn't allow non-string
@@ -146,7 +146,7 @@ class StringArray(PandasArray):
 
     >>> pd.array(["a", None, "c"], dtype="string") == "a"
     <BooleanArray>
-    [True, NA, False]
+    [True, <NA>, False]
     Length: 3, dtype: boolean
     """
 
@@ -253,7 +253,7 @@ class StringArray(PandasArray):
     def value_counts(self, dropna=False):
         from pandas import value_counts
 
-        return value_counts(self._ndarray, dropna=dropna)
+        return value_counts(self._ndarray, dropna=dropna).astype("Int64")
 
     # Overrride parent because we have different return types.
     @classmethod

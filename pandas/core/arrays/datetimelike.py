@@ -40,6 +40,7 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core import missing, nanops, ops
 from pandas.core.algorithms import checked_add_with_arr, take, unique1d, value_counts
+from pandas.core.arrays.base import ExtensionArray, ExtensionOpsMixin
 import pandas.core.common as com
 from pandas.core.indexers import check_bool_array_indexer
 from pandas.core.ops.common import unpack_zerodim_and_defer
@@ -47,8 +48,6 @@ from pandas.core.ops.invalid import invalid_comparison, make_invalid_op
 
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import DateOffset, Tick
-
-from .base import ExtensionArray, ExtensionOpsMixin
 
 
 def _datetimelike_array_cmp(cls, op):
@@ -482,7 +481,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
     def nbytes(self):
         return self._data.nbytes
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None) -> np.ndarray:
         # used for Timedelta/DatetimeArray, overwritten by PeriodArray
         if is_object_dtype(dtype):
             return np.array(list(self), dtype=object)
@@ -544,8 +543,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         if result.ndim > 1:
             # To support MPL which performs slicing with 2 dim
             # even though it only has 1 dim by definition
-            if is_period:
-                return self._simple_new(result, dtype=self.dtype, freq=freq)
             return result
 
         return self._simple_new(result, dtype=self.dtype, freq=freq)

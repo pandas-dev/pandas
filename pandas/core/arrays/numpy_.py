@@ -17,12 +17,11 @@ from pandas.core.dtypes.missing import isna
 from pandas import compat
 from pandas.core import nanops
 from pandas.core.algorithms import searchsorted, take, unique
+from pandas.core.arrays.base import ExtensionArray, ExtensionOpsMixin
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_bool_array_indexer
 from pandas.core.missing import backfill_1d, pad_1d
-
-from .base import ExtensionArray, ExtensionOpsMixin
 
 
 class PandasDtype(ExtensionDtype):
@@ -183,7 +182,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
     # ------------------------------------------------------------------------
     # NumPy Array Interface
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None) -> np.ndarray:
         return np.asarray(self._ndarray, dtype=dtype)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
