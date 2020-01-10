@@ -365,7 +365,7 @@ class DateOffset(BaseOffset):
                 "applied vectorized"
             )
 
-    def is_anchored(self):
+    def is_anchored(self) -> bool:
         # TODO: Does this make sense for the general case?  It would help
         # if there were a canonical docstring for what is_anchored means.
         return self.n == 1
@@ -378,7 +378,7 @@ class DateOffset(BaseOffset):
         )
         return self.is_on_offset(dt)
 
-    def isAnchored(self):
+    def isAnchored(self) -> bool:
         warnings.warn(
             "isAnchored is a deprecated, use is_anchored instead",
             FutureWarning,
@@ -1556,7 +1556,7 @@ class Week(DateOffset):
             if self.weekday < 0 or self.weekday > 6:
                 raise ValueError(f"Day must be 0<=day<=6, got {self.weekday}")
 
-    def is_anchored(self):
+    def is_anchored(self) -> bool:
         return self.n == 1 and self.weekday is not None
 
     @apply_wraps
@@ -1842,7 +1842,7 @@ class QuarterOffset(DateOffset):
             startingMonth = self._default_startingMonth
         object.__setattr__(self, "startingMonth", startingMonth)
 
-    def is_anchored(self):
+    def is_anchored(self) -> bool:
         return self.n == 1 and self.startingMonth is not None
 
     @classmethod
@@ -2117,7 +2117,7 @@ class FY5253(DateOffset):
         if self.variation not in ["nearest", "last"]:
             raise ValueError(f"{self.variation} is not a valid variation")
 
-    def is_anchored(self):
+    def is_anchored(self) -> bool:
         return (
             self.n == 1 and self.startingMonth is not None and self.weekday is not None
         )
@@ -2346,7 +2346,7 @@ class FY5253Quarter(DateOffset):
             variation=self.variation,
         )
 
-    def is_anchored(self):
+    def is_anchored(self) -> bool:
         return self.n == 1 and self._offset.is_anchored()
 
     def _rollback_to_year(self, other):
@@ -2648,7 +2648,7 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
 
         raise ApplyTypeError(f"Unhandled type: {type(other).__name__}")
 
-    def is_anchored(self):
+    def is_anchored(self) -> bool:
         return False
 
 
