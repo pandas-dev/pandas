@@ -1864,28 +1864,33 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
             value = total_seconds(obj) * 1000000000LL; // nanoseconds per second
         }
 
-        unit = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
-        if (scaleNanosecToUnit(&value, unit) != 0) {
+        GET_TC(tc)->longValue = value;        
+
+        PRINTMARK();
+        if (enc->datetimeIso) {
+          pc->PyTypeToUTF8 = NpyTimeDeltaToIsoCallback;
+          tc->type = JT_UTF8;
+        } else {
+          unit = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
+          if (scaleNanosecToUnit(&(GET_TC(tc)->longValue), unit) != 0) {
             // TODO: Add some kind of error handling here
-        }
+          }
 
-        exc = PyErr_Occurred();
+          exc = PyErr_Occurred();
 
-        if (exc && PyErr_ExceptionMatches(PyExc_OverflowError)) {
+          if (exc && PyErr_ExceptionMatches(PyExc_OverflowError)) {
             PRINTMARK();
             goto INVALID;
-        }
+          }
 
-        if (value == get_nat()) {
+          if (value == get_nat()) {
             PRINTMARK();
             tc->type = JT_NULL;
             return;
+          }
+          
+          tc->type = JT_LONG;
         }
-
-        GET_TC(tc)->longValue = value;
-
-        PRINTMARK();
-        tc->type = JT_LONG;
         return;
     } else if (PyArray_IsScalar(obj, Integer)) {
         PRINTMARK();
