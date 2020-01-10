@@ -907,17 +907,28 @@ string_too_short:
 }
 
 
-int make_iso_8601_timedelta(pandas_timedeltastruct *tds, char *outstr, size_t *outlen) {
+int make_iso_8601_timedelta(pandas_timedeltastruct *tds,
+                            char *outstr, size_t *outlen) {
   *outlen = 0;
-  // sprintf returns the number of characters required for formatting, so use that to move buffer
-  *outlen += sprintf(outstr, "P%" NPY_INT64_FMT "DT%" NPY_INT32_FMT "H%" NPY_INT32_FMT "M%" NPY_INT32_FMT,
-	   tds->days, tds->hrs, tds->min, tds->sec);
+  *outlen += sprintf(outstr,
+                     "P%" NPY_INT64_FMT
+                     "DT%" NPY_INT32_FMT
+                     "H%" NPY_INT32_FMT
+                     "M%" NPY_INT32_FMT,
+                     tds->days, tds->hrs, tds->min, tds->sec);
   outstr += *outlen;
 
   if (tds->ns != 0) {
-    *outlen += sprintf(outstr, ".%03" NPY_INT32_FMT "%03" NPY_INT32_FMT "%03" NPY_INT32_FMT "S", tds->ms, tds->us, tds->ns);
+    *outlen += sprintf(outstr,
+                       ".%03" NPY_INT32_FMT
+                       "%03" NPY_INT32_FMT
+                       "%03" NPY_INT32_FMT
+                       "S", tds->ms, tds->us, tds->ns);
   } else if (tds->us != 0) {
-    *outlen += sprintf(outstr, ".%03" NPY_INT32_FMT "%03" NPY_INT32_FMT "S", tds->ms, tds->us);
+    *outlen += sprintf(outstr,
+                       ".%03" NPY_INT32_FMT
+                       "%03" NPY_INT32_FMT
+                       "S", tds->ms, tds->us);
   } else if (tds->ms != 0) {
     *outlen += sprintf(outstr, ".%03" NPY_INT32_FMT "S", tds->ms);
   } else {

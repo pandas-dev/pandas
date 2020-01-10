@@ -87,5 +87,6 @@ make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
  *
  * Returns NULL on error.
  */
-int make_iso_8601_timedelta(pandas_timedeltastruct *tds, char *outstr, size_t *outlen);
+int make_iso_8601_timedelta(pandas_timedeltastruct *tds, char *outstr,
+                            size_t *outlen);
 #endif  // PANDAS__LIBS_TSLIBS_SRC_DATETIME_NP_DATETIME_STRINGS_H_
