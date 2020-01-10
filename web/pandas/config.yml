@@ -50,8 +50,6 @@ navbar:
       target: /community/blog.html
     - name: "Ask a question (StackOverflow)"
       target: https://stackoverflow.com/questions/tagged/pandas
-    - name: "Discuss"
-      target: https://pandas.discourse.group
     - name: "Code of conduct"
       target: /community/coc.html
     - name: "Ecosystem"
