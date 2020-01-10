@@ -237,25 +237,18 @@ class TimedeltaIndex(
         know what you're doing
         """
 
-        if _is_convertible_to_td(key):
+        if isinstance(key, str):
+            try:
+                key = Timedelta(key)
+            except ValueError:
+                raise KeyError(key)
+
+        if isinstance(key, self._data._recognized_scalars) or key is NaT:
             key = Timedelta(key)
             return self.get_value_maybe_box(series, key)
 
-        try:
-            value = Index.get_value(self, series, key)
-        except KeyError:
-            try:
-                loc = self._get_string_slice(key)
-                return series[loc]
-            except (TypeError, ValueError, KeyError):
-                pass
-
-            try:
-                return self.get_value_maybe_box(series, key)
-            except (TypeError, ValueError, KeyError):
-                raise KeyError(key)
-        else:
-            return com.maybe_box(self, value, series, key)
+        value = Index.get_value(self, series, key)
+        return com.maybe_box(self, value, series, key)
 
     def get_value_maybe_box(self, series, key: Timedelta):
         values = self._engine.get_value(com.values_from_object(series), key)
@@ -288,19 +281,7 @@ class TimedeltaIndex(
             key = Timedelta(key)
             return Index.get_loc(self, key, method, tolerance)
 
-        try:
-            return Index.get_loc(self, key, method, tolerance)
-        except (KeyError, ValueError, TypeError):
-            try:
-                return self._get_string_slice(key)
-            except (TypeError, KeyError, ValueError):
-                pass
-
-            try:
-                stamp = Timedelta(key)
-                return Index.get_loc(self, stamp, method, tolerance)
-            except (KeyError, ValueError):
-                raise KeyError(key)
+        return Index.get_loc(self, key, method, tolerance)
 
     def _maybe_cast_slice_bound(self, label, side, kind):
         """
@@ -330,18 +311,9 @@ class TimedeltaIndex(
 
         return label
 
-    def _get_string_slice(self, key):
-        if is_integer(key) or is_float(key) or key is NaT:
-            self._invalid_indexer("slice", key)
-        loc = self._partial_td_slice(key)
-        return loc
-
-    def _partial_td_slice(self, key):
-
+    def _get_string_slice(self, key: str):
+        assert isinstance(key, str), type(key)
         # given a key, try to figure out a location for a partial slice
-        if not isinstance(key, str):
-            return key
-
         raise NotImplementedError
 
     @Substitution(klass="TimedeltaIndex")
