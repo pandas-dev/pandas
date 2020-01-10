@@ -127,3 +127,42 @@ For example:
 
     value = str
     f"Unknown recived type, got: '{type(value).__name__}'"
+
+
+Imports (aim for absolute)
+==========================
+
+In Python 3, absolute imports are recommended. In absolute import doing something
+like ``import string`` will import the string module rather than ``string.py``
+in the same directory. As much as possible, you should try to write out
+absolute imports that show the whole import chain from toplevel pandas.
+
+For example:
+
+**Good:**
+
+.. code-block:: python
+
+    import pandas.core.common as com
+
+Explicit relative imports are also supported in Python 3. In test code, it might
+be easier to just reference local variables with explicit relative imports
+(that start with ``.``) for clarity, but in other code better to be absolute.
+
+For example:
+
+**Good (Test Code Only):**
+
+.. code-block:: python
+
+    from .common import test_base
+
+Implicit relative imports should never be used and is removed in Python 3.
+
+For example:
+
+**Wrong:**
+
+.. code-block:: python
+
+    from common import test_base
