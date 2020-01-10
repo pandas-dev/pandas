@@ -7062,6 +7062,8 @@ Wild         185.0
         """
         if isinstance(other, (Series, dict)):
             if isinstance(other, dict):
+                if not ignore_index:
+                    raise TypeError("Can only append a dict if ignore_index=True")
                 other = Series(other)
             if other.name is None and not ignore_index:
                 raise TypeError(

@@ -1189,6 +1189,8 @@ Other
 - Bug where :meth:`DataFrame.itertuples` would incorrectly determine whether or not namedtuples could be used for dataframes of 255 columns (:issue:`28282`)
 - Handle nested NumPy ``object`` arrays in :func:`testing.assert_series_equal` for ExtensionArray implementations (:issue:`30841`)
 - Bug in :class:`Index` constructor incorrectly allowing 2-dimensional input arrays (:issue:`13601`, :issue:`27125`)
+- Appending a dictionary to a :class:`DataFrame` without passing ``ignore_index=True`` will raise ``TypeError: Can only append a dict if ignore_index=True``
+  instead of ``TypeError: Can only append a Series if ignore_index=True or if the Series has a name`` (:issue`30871`)
 
 .. ---------------------------------------------------------------------------
 
