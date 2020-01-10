@@ -1717,7 +1717,7 @@ class WeekOfMonth(_WeekOfMonthMixin, DateOffset):
         if self.week < 0 or self.week > 3:
             raise ValueError(f"Week must be 0<=week<=3, got {self.week}")
 
-    def _get_offset_day(self, other):
+    def _get_offset_day(self, other: datetime) -> int:
         """
         Find the day in the same month as other that has the same
         weekday as self.weekday and is the self.week'th such day in the month.
@@ -1785,7 +1785,7 @@ class LastWeekOfMonth(_WeekOfMonthMixin, DateOffset):
         if self.weekday < 0 or self.weekday > 6:
             raise ValueError(f"Day must be 0<=day<=6, got {self.weekday}")
 
-    def _get_offset_day(self, other):
+    def _get_offset_day(self, other: datetime) -> int:
         """
         Find the day in the same month as other that has the same
         weekday as self.weekday and is the last such day in the month.
@@ -1953,7 +1953,7 @@ class YearOffset(DateOffset):
     _adjust_dst = True
     _attributes = frozenset(["n", "normalize", "month"])
 
-    def _get_offset_day(self, other):
+    def _get_offset_day(self, other: datetime) -> int:
         # override BaseOffset method to use self.month instead of other.month
         # TODO: there may be a more performant way to do this
         return liboffsets.get_day_of_month(
