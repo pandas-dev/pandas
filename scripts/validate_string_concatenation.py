@@ -179,17 +179,18 @@ def bare_pytest_raises(source_path: str) -> Generator[Tuple[str, int, str], None
         tokens: List = list(tokenize.generate_tokens(file_name.readline))
 
     for counter, current_token in enumerate(tokens, start=1):
-        if current_token[TYPE] == token.NAME and current_token[1] == "raises":
-            for next_token in tokens[counter:]:
-                if next_token[TYPE] == token.NAME and next_token[1] == "match":
-                    break
-                if next_token[TYPE] == token.NEWLINE:
-                    yield (
-                        source_path,
-                        current_token[2][0],
-                        "Bare pytests raise have been found.",
-                    )
-                    break
+        if not (current_token[TYPE] == token.NAME and current_token[1] == "raises"):
+            continue
+        for next_token in tokens[counter:]:
+            if next_token[TYPE] == token.NAME and next_token[1] == "match":
+                break
+            if next_token[TYPE] == token.NEWLINE:
+                yield (
+                    source_path,
+                    current_token[2][0],
+                    "Bare pytests raise have been found.",
+                )
+                break
 
 
 def main(
