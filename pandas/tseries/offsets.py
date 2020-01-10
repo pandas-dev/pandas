@@ -649,7 +649,7 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
         result = shifted.to_timestamp() + time
         return result
 
-    def is_on_offset(self, dt):
+    def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         return dt.weekday() < 5
@@ -1087,7 +1087,7 @@ class CustomBusinessDay(_CustomMixin, BusinessDay):
     def apply_index(self, i):
         raise NotImplementedError
 
-    def is_on_offset(self, dt):
+    def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         day64 = _to_dt64(dt, "datetime64[D]")
@@ -1141,7 +1141,7 @@ class MonthOffset(SingleConstructorOffset):
             month = ccalendar.MONTH_ALIASES[self.n]
             return f"{self.code_rule}-{month}"
 
-    def is_on_offset(self, dt):
+    def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         return dt.day == self._get_offset_day(dt)
@@ -1429,7 +1429,7 @@ class SemiMonthEnd(SemiMonthOffset):
     _prefix = "SM"
     _min_day_of_month = 1
 
-    def is_on_offset(self, dt):
+    def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         days_in_month = ccalendar.get_days_in_month(dt.year, dt.month)
@@ -1487,7 +1487,7 @@ class SemiMonthBegin(SemiMonthOffset):
 
     _prefix = "SMS"
 
-    def is_on_offset(self, dt):
+    def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         return dt.day in (1, self.day_of_month)
@@ -1632,7 +1632,7 @@ class Week(DateOffset):
 
         return base + off + Timedelta(1, "ns") - Timedelta(1, "D")
 
-    def is_on_offset(self, dt):
+    def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         elif self.weekday is None:
@@ -1874,7 +1874,7 @@ class QuarterOffset(DateOffset):
         months = qtrs * 3 - months_since
         return shift_month(other, months, self._day_opt)
 
-    def is_on_offset(self, dt):
+    def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         mod_month = (dt.month - self.startingMonth) % 3
@@ -1977,7 +1977,7 @@ class YearOffset(DateOffset):
             shifted, freq=dtindex.freq, dtype=dtindex.dtype
         )
 
-    def is_on_offset(self, dt):
+    def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         return dt.month == self.month and dt.day == self._get_offset_day(dt)
@@ -2122,7 +2122,7 @@ class FY5253(DateOffset):
             self.n == 1 and self.startingMonth is not None and self.weekday is not None
         )
 
-    def is_on_offset(self, dt):
+    def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         dt = datetime(dt.year, dt.month, dt.day)
@@ -2445,7 +2445,7 @@ class FY5253Quarter(DateOffset):
         assert weeks_in_year in [52, 53], weeks_in_year
         return weeks_in_year == 53
 
-    def is_on_offset(self, dt):
+    def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         if self._offset.is_on_offset(dt):
