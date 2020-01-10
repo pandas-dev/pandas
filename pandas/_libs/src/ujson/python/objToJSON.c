@@ -1554,16 +1554,12 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
                              enc->npyType);
             }
             castfunc(dataptr, &nanosecVal, 1, NULL, NULL);
-          } else {
-            PyObject *total_sec = PyObject_CallMethod(item, "total_seconds", NULL);
-            if (total_sec == NULL) {
-                Py_DECREF(item);
-                NpyArr_freeLabels(ret, num);
-                ret = 0;
-                break;
-            }
-            double total_sec_c = PyFloat_AsDouble(total_sec);
-            nanosecVal = (npy_int64)(total_sec_c * 1000000000);
+          } else {  // Python timedelta
+            if (PyObject_HasAttrString(item, "value")) {
+              nanosecVal = get_long_attr(item, "value");
+            } else {
+              nanosecVal = total_seconds(item) * 1000000000LL; // nanoseconds per second
+            }            
           }
           pandas_timedeltastruct tds;
           pandas_timedelta_to_timedeltastruct(nanosecVal, NPY_FR_ns, &tds);
@@ -1574,7 +1570,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
             Py_DECREF(item);
             NpyArr_freeLabels(ret, num);
             ret = 0;
-            break;
+            break;            
           }
         } else if (PyTypeNum_ISDATETIME(type_num)) {
             NPY_DATETIMEUNIT base = enc->datetimeUnit;
