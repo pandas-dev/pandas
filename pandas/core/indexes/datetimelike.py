@@ -150,8 +150,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             # have different timezone
             return False
 
-        # explicit bool cast is needed for mypy in GH#30877
-        return bool(np.array_equal(self.asi8, other.asi8))
+        return np.array_equal(self.asi8, other.asi8)
 
     @Appender(_index_shared_docs["contains"] % _index_doc_kwargs)
     def __contains__(self, key) -> bool:
@@ -159,7 +158,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             res = self.get_loc(key)
         except (KeyError, TypeError, ValueError):
             return False
-        return (
+        return bool(
             is_scalar(res) or isinstance(res, slice) or (is_list_like(res) and len(res))
         )
 
