@@ -399,12 +399,37 @@ static char *int64ToIso(int64_t value, NPY_DATETIMEUNIT base, size_t *len) {
         PyErr_SetString(PyExc_ValueError,
                         "Could not convert datetime value to string");
         PyObject_Free(result);
+        return NULL;
     }
 
     // Note that get_datetime_iso_8601_strlen just gives a generic size
     // for ISO string conversion, not the actual size used
     *len = strlen(result);
     return result;
+}
+
+/* Converts the int64_t representation of a duration to ISO; mutates len */
+static char *int64ToIsoDuration(int64_t value, size_t *len) {
+  pandas_timedeltastruct tds;
+  int ret_code;
+  
+  pandas_timedelta_to_timedeltastruct(value, NPY_FR_ns, &tds);
+
+  char *result = PyObject_Malloc(100); // TODO: Better bounds
+  if (result == NULL) {
+    PyErr_NoMemory();
+    return NULL;
+  }
+
+  ret_code = make_iso_8601_timedelta(&tds, result, len);
+  if (ret_code == -1) {
+    PyErr_SetString(PyExc_ValueError,
+                        "Could not convert timedelta value to string");
+    PyObject_Free(result);
+    return NULL;
+  }
+
+  return result;
 }
 
 /* JSON callback. returns a char* and mutates the pointer to *len */
@@ -418,6 +443,13 @@ static npy_datetime NpyDateTimeToEpoch(npy_datetime dt, NPY_DATETIMEUNIT base) {
     scaleNanosecToUnit(&dt, base);
     return dt;
 }
+
+/* JSON callback. returns a char* and mutates the pointer to *len */
+static char *NpyTimeDeltaToIsoCallback(JSOBJ Py_UNUSED(unused),
+                                      JSONTypeContext *tc, size_t *len) {
+    return int64ToIsoDuration(GET_TC(tc)->longValue, len);
+}
+
 
 /* Convert PyDatetime To ISO C-string. mutates len */
 static char *PyDateTimeToIso(PyDateTime_Date *obj, NPY_DATETIMEUNIT base,
@@ -1503,7 +1535,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
     npy_intp i, stride;
     char **ret;
     char *dataptr, *cLabel;
-    int type_num, ret_val;
+    int type_num;
     PRINTMARK();
 
     if (!labels) {
@@ -1561,12 +1593,9 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
               nanosecVal = total_seconds(item) * 1000000000LL; // nanoseconds per second
             }            
           }
-          pandas_timedeltastruct tds;
-          pandas_timedelta_to_timedeltastruct(nanosecVal, NPY_FR_ns, &tds);
-
-          cLabel = PyObject_Malloc(100); // TODO: Better bounds
-          ret_val = make_iso_8601_timedelta(&tds, cLabel, &len);
-          if (ret_val == -1) {
+          
+          cLabel = int64ToIsoDuration(nanosecVal, &len);
+          if (cLabel == NULL) {
             Py_DECREF(item);
             NpyArr_freeLabels(ret, num);
             ret = 0;
@@ -1711,7 +1740,11 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
 
             if (enc->datetimeIso) {
                 PRINTMARK();
-                pc->PyTypeToUTF8 = NpyDateTimeToIsoCallback;
+                if (enc->npyType == NPY_TIMEDELTA) {
+                  pc->PyTypeToUTF8 = NpyTimeDeltaToIsoCallback;
+                } else {
+                  pc->PyTypeToUTF8 = NpyDateTimeToIsoCallback;
+                }
                 // Currently no way to pass longVal to iso function, so use
                 // state management
                 GET_TC(tc)->longValue = longVal;
