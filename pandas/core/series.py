@@ -3124,7 +3124,7 @@ Name: Max Speed, dtype: float64
 
         Parameters
         ----------
-        axis : int
+        axis : {0 or "index"}
             Has no effect but is accepted for compatibility with numpy.
         kind : {'mergesort', 'quicksort', 'heapsort'}, default 'quicksort'
             Choice of sorting algorithm. See np.sort for more
@@ -3893,7 +3893,16 @@ Name: Max Speed, dtype: float64
             broadcast_axis=broadcast_axis,
         )
 
-    def rename(self, index=None, **kwargs):
+    def rename(
+        self,
+        index=None,
+        *,
+        axis=None,
+        copy=True,
+        inplace=False,
+        level=None,
+        errors="ignore",
+    ):
         """
         Alter Series index labels or name.
 
@@ -3907,6 +3916,8 @@ Name: Max Speed, dtype: float64
 
         Parameters
         ----------
+        axis : {0 or "index"}
+            Unused. Accepted for compatability with DataFrame method only.
         index : scalar, hashable sequence, dict-like or function, optional
             Functions or dict-like are transformations to apply to
             the index.
@@ -3924,6 +3935,7 @@ Name: Max Speed, dtype: float64
 
         See Also
         --------
+        DataFrame.rename : Corresponding DataFrame method.
         Series.rename_axis : Set the name of the axis.
 
         Examples
@@ -3950,12 +3962,12 @@ Name: Max Speed, dtype: float64
         5    3
         dtype: int64
         """
-        kwargs["inplace"] = validate_bool_kwarg(kwargs.get("inplace", False), "inplace")
-
         if callable(index) or is_dict_like(index):
-            return super().rename(index=index, **kwargs)
+            return super().rename(
+                index, copy=copy, inplace=inplace, level=level, errors=errors
+            )
         else:
-            return self._set_name(index, inplace=kwargs.get("inplace"))
+            return self._set_name(index, inplace=inplace)
 
     @Substitution(**_shared_doc_kwargs)
     @Appender(generic.NDFrame.reindex.__doc__)

@@ -2007,9 +2007,10 @@ class Categorical(ExtensionArray, PandasObject):
         if com.is_bool_indexer(key):
             key = check_bool_array_indexer(self, key)
 
-        return self._constructor(
-            values=self._codes[key], dtype=self.dtype, fastpath=True
-        )
+        result = self._codes[key]
+        if result.ndim > 1:
+            return result
+        return self._constructor(result, dtype=self.dtype, fastpath=True)
 
     def __setitem__(self, key, value):
         """

@@ -1039,6 +1039,17 @@ def test_stat_method(pandasmethname, kwargs):
     assert expected == result
 
 
+def test_value_counts_na():
+    arr = pd.array([1, 2, 1, pd.NA], dtype="Int64")
+    result = arr.value_counts(dropna=False)
+    expected = pd.Series([2, 1, 1], index=[1, 2, pd.NA], dtype="Int64")
+    tm.assert_series_equal(result, expected)
+
+    result = arr.value_counts(dropna=True)
+    expected = pd.Series([2, 1], index=[1, 2], dtype="Int64")
+    tm.assert_series_equal(result, expected)
+
+
 # TODO(jreback) - these need testing / are broken
 
 # shift
