@@ -405,7 +405,7 @@ class DateOffset(BaseOffset):
         return out
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self.rule_code
 
     def rollback(self, dt):
@@ -452,11 +452,11 @@ class DateOffset(BaseOffset):
 
     # way to get around weirdness with rule_code
     @property
-    def _prefix(self):
+    def _prefix(self) -> str:
         raise NotImplementedError("Prefix not defined")
 
     @property
-    def rule_code(self):
+    def rule_code(self) -> str:
         return self._prefix
 
     @cache_readonly
@@ -1134,7 +1134,7 @@ class MonthOffset(SingleConstructorOffset):
     __init__ = BaseOffset.__init__
 
     @property
-    def name(self):
+    def name(self) -> str:
         if self.is_anchored:
             return self.rule_code
         else:
@@ -1333,7 +1333,7 @@ class SemiMonthOffset(DateOffset):
         return cls(day_of_month=suffix)
 
     @property
-    def rule_code(self):
+    def rule_code(self) -> str:
         suffix = f"-{self.day_of_month}"
         return self._prefix + suffix
 
@@ -1640,7 +1640,7 @@ class Week(DateOffset):
         return dt.weekday() == self.weekday
 
     @property
-    def rule_code(self):
+    def rule_code(self) -> str:
         suffix = ""
         if self.weekday is not None:
             weekday = ccalendar.int_to_weekday[self.weekday]
@@ -1736,7 +1736,7 @@ class WeekOfMonth(_WeekOfMonthMixin, DateOffset):
         return 1 + shift_days + self.week * 7
 
     @property
-    def rule_code(self):
+    def rule_code(self) -> str:
         weekday = ccalendar.int_to_weekday.get(self.weekday, "")
         return f"{self._prefix}-{self.week + 1}{weekday}"
 
@@ -1805,7 +1805,7 @@ class LastWeekOfMonth(_WeekOfMonthMixin, DateOffset):
         return dim - shift_days
 
     @property
-    def rule_code(self):
+    def rule_code(self) -> str:
         weekday = ccalendar.int_to_weekday.get(self.weekday, "")
         return f"{self._prefix}-{weekday}"
 
@@ -1856,7 +1856,7 @@ class QuarterOffset(DateOffset):
         return cls(**kwargs)
 
     @property
-    def rule_code(self):
+    def rule_code(self) -> str:
         month = ccalendar.MONTH_ALIASES[self.startingMonth]
         return f"{self._prefix}-{month}"
 
@@ -1999,7 +1999,7 @@ class YearOffset(DateOffset):
         return cls(**kwargs)
 
     @property
-    def rule_code(self):
+    def rule_code(self) -> str:
         month = ccalendar.MONTH_ALIASES[self.month]
         return f"{self._prefix}-{month}"
 
@@ -2217,7 +2217,7 @@ class FY5253(DateOffset):
                 return target_date + timedelta(days_forward - 7)
 
     @property
-    def rule_code(self):
+    def rule_code(self) -> str:
         prefix = self._prefix
         suffix = self.get_rule_code_suffix()
         return f"{prefix}-{suffix}"
@@ -2463,7 +2463,7 @@ class FY5253Quarter(DateOffset):
         return False
 
     @property
-    def rule_code(self):
+    def rule_code(self) -> str:
         suffix = self._offset.get_rule_code_suffix()
         qtr = self.qtr_with_extra_week
         return f"{self._prefix}-{suffix}-{qtr}"
