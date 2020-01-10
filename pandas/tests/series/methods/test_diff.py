@@ -75,3 +75,9 @@ class TestSeriesDiff:
         result = s.diff()
         expected = s - s.shift(1)
         tm.assert_series_equal(result, expected)
+
+    def test_nullable_integer(self, any_nullable_int_dtype):
+        # GH 30889
+        dtype = any_nullable_int_dtype
+        result = Series([1, 2, 3], dtype=dtype).diff().dtype
+        assert result == dtype
