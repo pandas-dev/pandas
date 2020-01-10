@@ -437,22 +437,8 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
         # so return the bytes here
         return self.left.memory_usage(deep=deep) + self.right.memory_usage(deep=deep)
 
-    @cache_readonly
-    def is_monotonic(self) -> bool:
-        """
-        Return True if the IntervalIndex is monotonic increasing (only equal or
-        increasing values), else False
-        """
-        return self.is_monotonic_increasing
-
-    @cache_readonly
-    def is_monotonic_increasing(self) -> bool:
-        """
-        Return True if the IntervalIndex is monotonic increasing (only equal or
-        increasing values), else False
-        """
-        return self._engine.is_monotonic_increasing
-
+    # IntervalTree doesn't have a is_monotonic_decreasing, so have to override
+    #  the Index implemenation
     @cache_readonly
     def is_monotonic_decreasing(self) -> bool:
         """
