@@ -1058,9 +1058,10 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
     @pytest.mark.parametrize("as_object", [True, False])
     @pytest.mark.parametrize("date_format", ["iso", "epoch"])
-    def test_series_timedelta_to_json(self, as_object, date_format):
+    @pytest.mark.parametrize("timedelta_typ", [pd.Timedelta, timedelta])
+    def test_timedelta_to_json(self, as_object, date_format, timedelta_typ):
         # GH28156: to_json not correctly formatting Timedelta
-        data = [pd.Timedelta(days=1), pd.Timedelta(days=2), pd.NaT]
+        data = [timedelta_typ(days=1), timedelta_typ(days=2), pd.NaT]
         if as_object:
             data.append("a")
 
