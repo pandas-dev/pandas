@@ -1,5 +1,5 @@
-import operator
 from typing import Any, List
+import warnings
 
 import numpy as np
 
@@ -8,8 +8,6 @@ from pandas._config import get_option
 from pandas._libs import index as libindex
 from pandas._libs.hashtable import duplicated_int64
 from pandas._typing import AnyArrayLike
-import pandas.compat as compat
-from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -29,6 +27,7 @@ from pandas.core.arrays.categorical import Categorical, _recode_for_categories, 
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
+from pandas.core.indexes.extension import ExtensionIndex
 import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name
 
@@ -65,7 +64,7 @@ _index_doc_kwargs.update(dict(target_klass="CategoricalIndex"))
     typ="method",
     overwrite=True,
 )
-class CategoricalIndex(Index, accessor.PandasDelegate):
+class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
     """
     Index based on an underlying :class:`Categorical`.
 
@@ -132,7 +131,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     Notes
     -----
     See the `user guide
-    <http://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html#categoricalindex>`_
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html#categoricalindex>`_
     for more.
 
     Examples
@@ -189,13 +188,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     # Constructors
 
     def __new__(
-        cls,
-        data=None,
-        categories=None,
-        ordered=None,
-        dtype=None,
-        copy=False,
-        name=None,
+        cls, data=None, categories=None, ordered=None, dtype=None, copy=False, name=None
     ):
 
         dtype = CategoricalDtype._from_values_or_dtype(data, categories, ordered, dtype)
@@ -268,16 +261,15 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         return data
 
     @classmethod
-    def _simple_new(cls, values, name=None, dtype=None, **kwargs):
+    def _simple_new(cls, values, name=None, dtype=None):
         result = object.__new__(cls)
 
         values = cls._create_categorical(values, dtype=dtype)
         result._data = values
         result.name = name
-        for k, v in kwargs.items():
-            setattr(result, k, v)
 
         result._reset_identity()
+        result._no_setting_name = False
         return result
 
     # --------------------------------------------------------------------
@@ -388,6 +380,8 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     def _wrap_setop_result(self, other, result):
         name = get_op_result_name(self, other)
+        # We use _shallow_copy rather than the Index implementation
+        #  (which uses _constructor) in order to preserve dtype.
         return self._shallow_copy(result, name=name)
 
     @Appender(_index_shared_docs["contains"] % _index_doc_kwargs)
@@ -398,7 +392,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         return contains(self, key, container=self._engine)
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None) -> np.ndarray:
         """ the array interface, return my values """
         return np.array(self._data, dtype=dtype)
 
@@ -414,7 +408,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             if dtype == self.dtype:
                 return self.copy() if copy else self
 
-        return super().astype(dtype=dtype, copy=copy)
+        return Index.astype(self, dtype=dtype, copy=copy)
 
     @cache_readonly
     def _isnan(self):
@@ -433,19 +427,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         # `self` is not passed into the lambda.
         codes = self.codes
         return self._engine_type(lambda: codes, len(self))
-
-    # introspection
-    @cache_readonly
-    def is_unique(self) -> bool:
-        return self._engine.is_unique
-
-    @property
-    def is_monotonic_increasing(self):
-        return self._engine.is_monotonic_increasing
-
-    @property
-    def is_monotonic_decreasing(self) -> bool:
-        return self._engine.is_monotonic_decreasing
 
     @Appender(_index_shared_docs["index_unique"] % _index_doc_kwargs)
     def unique(self, level=None):
@@ -722,20 +703,14 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def _convert_index_indexer(self, keyarr):
         return self._shallow_copy(keyarr)
 
-    @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
-    def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
-        nv.validate_take(tuple(), kwargs)
-        indices = ensure_platform_int(indices)
-        taken = self._assert_take_fillable(
-            self.codes,
-            indices,
-            allow_fill=allow_fill,
-            fill_value=fill_value,
-            na_value=-1,
+    def take_nd(self, *args, **kwargs):
+        """Alias for `take`"""
+        warnings.warn(
+            "CategoricalIndex.take_nd is deprecated, use CategoricalIndex.take instead",
+            FutureWarning,
+            stacklevel=2,
         )
-        return self._create_from_codes(taken)
-
-    take_nd = take
+        return self.take(*args, **kwargs)
 
     @Appender(_index_shared_docs["_maybe_cast_slice_bound"])
     def _maybe_cast_slice_bound(self, label, side, kind):
@@ -868,31 +843,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         result.name = name
         return result
 
-    @classmethod
-    def _add_comparison_methods(cls):
-        """ add in comparison methods """
-
-        def _make_compare(op):
-            opname = f"__{op.__name__}__"
-
-            def _evaluate_compare(self, other):
-                with np.errstate(all="ignore"):
-                    result = op(self.array, other)
-                if isinstance(result, ABCSeries):
-                    # Dispatch to pd.Categorical returned NotImplemented
-                    # and we got a Series back; down-cast to ndarray
-                    result = result._values
-                return result
-
-            return compat.set_function_name(_evaluate_compare, opname, cls)
-
-        cls.__eq__ = _make_compare(operator.eq)
-        cls.__ne__ = _make_compare(operator.ne)
-        cls.__lt__ = _make_compare(operator.lt)
-        cls.__gt__ = _make_compare(operator.gt)
-        cls.__le__ = _make_compare(operator.le)
-        cls.__ge__ = _make_compare(operator.ge)
-
     def _delegate_property_get(self, name, *args, **kwargs):
         """ method delegation to the ._values """
         prop = getattr(self._values, name)
@@ -912,4 +862,3 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 CategoricalIndex._add_numeric_methods_add_sub_disabled()
 CategoricalIndex._add_numeric_methods_disabled()
 CategoricalIndex._add_logical_methods_disabled()
-CategoricalIndex._add_comparison_methods()

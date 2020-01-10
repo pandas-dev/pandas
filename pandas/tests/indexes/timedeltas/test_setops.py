@@ -3,7 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import Int64Index, TimedeltaIndex, timedelta_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.tseries.offsets import Hour
 
@@ -21,6 +21,22 @@ class TestTimedeltaIndex:
         i2 = timedelta_range(start="1 day", periods=10, freq="D")
         i1.union(i2)  # Works
         i2.union(i1)  # Fails with "AttributeError: can't set attribute"
+
+    def test_union_sort_false(self):
+        tdi = timedelta_range("1day", periods=5)
+
+        left = tdi[3:]
+        right = tdi[:3]
+
+        # Check that we are testing the desired code path
+        assert left._can_fast_union(right)
+
+        result = left.union(right)
+        tm.assert_index_equal(result, tdi)
+
+        result = left.union(right, sort=False)
+        expected = pd.TimedeltaIndex(["4 Days", "5 Days", "1 Days", "2 Day", "3 Days"])
+        tm.assert_index_equal(result, expected)
 
     def test_union_coverage(self):
 
@@ -61,6 +77,21 @@ class TestTimedeltaIndex:
         result = left.union(right)
         exp = TimedeltaIndex(sorted(set(left) | set(right)))
         tm.assert_index_equal(result, exp)
+
+    def test_union_freq_infer(self):
+        # When taking the union of two TimedeltaIndexes, we infer
+        #  a freq even if the arguments don't have freq.  This matches
+        #  DatetimeIndex behavior.
+        tdi = pd.timedelta_range("1 Day", periods=5)
+        left = tdi[[0, 1, 3, 4]]
+        right = tdi[[2, 3, 1]]
+
+        assert left.freq is None
+        assert right.freq is None
+
+        result = left.union(right)
+        tm.assert_index_equal(result, tdi)
+        assert result.freq == "D"
 
     def test_intersection_bug_1708(self):
         index_1 = timedelta_range("1 day", periods=4, freq="h")

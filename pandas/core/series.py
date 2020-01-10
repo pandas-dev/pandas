@@ -159,7 +159,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     _typ = "series"
 
-    _metadata: List[str] = []
+    _name: Optional[Hashable]
+    _metadata: List[str] = ["name"]
     _accessors = {"dt", "cat", "str", "sparse"}
     _deprecations = (
         base.IndexOpsMixin._deprecations
@@ -425,13 +426,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @property
     def name(self) -> Optional[Hashable]:
-        return self.attrs.get("name", None)
+        return self._name
 
     @name.setter
     def name(self, value: Optional[Hashable]) -> None:
         if not is_hashable(value):
             raise TypeError("Series.name must be a hashable type")
-        self.attrs["name"] = value
+        object.__setattr__(self, "_name", value)
 
     @property
     def values(self):
@@ -669,7 +670,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         else:
             return construct_return(result)
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None) -> np.ndarray:
         """
         Return the values as a NumPy array.
 
@@ -1418,7 +1419,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     @Substitution(klass="Series")
     @Appender(generic._shared_docs["to_markdown"])
     def to_markdown(
-        self, buf: Optional[IO[str]] = None, mode: Optional[str] = None, **kwargs,
+        self, buf: Optional[IO[str]] = None, mode: Optional[str] = None, **kwargs
     ) -> Optional[str]:
         return self.to_frame().to_markdown(buf, mode, **kwargs)
 
@@ -2948,6 +2949,7 @@ Name: Max Speed, dtype: float64
         kind="quicksort",
         na_position="last",
         sort_remaining=True,
+        ignore_index: bool = False,
     ):
         """
         Sort Series by index labels.
@@ -2976,6 +2978,10 @@ Name: Max Speed, dtype: float64
         sort_remaining : bool, default True
             If True and sorting by level and index is multilevel, sort by other
             levels too (in order) after sorting by specified level.
+        ignore_index : bool, default False
+            If True, the resulting axis will be labeled 0, 1, …, n - 1.
+
+            .. versionadded:: 1.0.0
 
         Returns
         -------
@@ -3103,6 +3109,9 @@ Name: Max Speed, dtype: float64
         new_values = self._values.take(indexer)
         result = self._constructor(new_values, index=new_index)
 
+        if ignore_index:
+            result.index = ibase.default_index(len(result))
+
         if inplace:
             self._update_inplace(result)
         else:
@@ -3115,7 +3124,7 @@ Name: Max Speed, dtype: float64
 
         Parameters
         ----------
-        axis : int
+        axis : {0 or "index"}
             Has no effect but is accepted for compatibility with numpy.
         kind : {'mergesort', 'quicksort', 'heapsort'}, default 'quicksort'
             Choice of sorting algorithm. See np.sort for more
@@ -3884,7 +3893,16 @@ Name: Max Speed, dtype: float64
             broadcast_axis=broadcast_axis,
         )
 
-    def rename(self, index=None, **kwargs):
+    def rename(
+        self,
+        index=None,
+        *,
+        axis=None,
+        copy=True,
+        inplace=False,
+        level=None,
+        errors="ignore",
+    ):
         """
         Alter Series index labels or name.
 
@@ -3898,6 +3916,8 @@ Name: Max Speed, dtype: float64
 
         Parameters
         ----------
+        axis : {0 or "index"}
+            Unused. Accepted for compatability with DataFrame method only.
         index : scalar, hashable sequence, dict-like or function, optional
             Functions or dict-like are transformations to apply to
             the index.
@@ -3915,6 +3935,7 @@ Name: Max Speed, dtype: float64
 
         See Also
         --------
+        DataFrame.rename : Corresponding DataFrame method.
         Series.rename_axis : Set the name of the axis.
 
         Examples
@@ -3941,12 +3962,12 @@ Name: Max Speed, dtype: float64
         5    3
         dtype: int64
         """
-        kwargs["inplace"] = validate_bool_kwarg(kwargs.get("inplace", False), "inplace")
-
         if callable(index) or is_dict_like(index):
-            return super().rename(index=index, **kwargs)
+            return super().rename(
+                index, copy=copy, inplace=inplace, level=level, errors=errors
+            )
         else:
-            return self._set_name(index, inplace=kwargs.get("inplace"))
+            return self._set_name(index, inplace=inplace)
 
     @Substitution(**_shared_doc_kwargs)
     @Appender(generic.NDFrame.reindex.__doc__)
@@ -4463,9 +4484,7 @@ Name: Max Speed, dtype: float64
     hist = pandas.plotting.hist_series
 
 
-Series._setup_axes(
-    ["index"], docs={"index": "The index (axis labels) of the Series."},
-)
+Series._setup_axes(["index"], docs={"index": "The index (axis labels) of the Series."})
 Series._add_numeric_operations()
 Series._add_series_or_dataframe_operations()
 
