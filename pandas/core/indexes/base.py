@@ -96,6 +96,7 @@ _index_doc_kwargs = dict(
     duplicated="np.ndarray",
 )
 _index_shared_docs = dict()
+str_t = str
 
 
 def _make_comparison_op(op, cls):
@@ -4630,7 +4631,7 @@ class Index(IndexOpsMixin, PandasObject):
             self._validate_index_level(level)
         return algos.isin(self, values)
 
-    def _get_string_slice(self, key: str, use_lhs: bool = True, use_rhs: bool = True):
+    def _get_string_slice(self, key: str_t, use_lhs: bool = True, use_rhs: bool = True):
         # this is for partial string indexing,
         # overridden in DatetimeIndex, TimedeltaIndex and PeriodIndex
         raise NotImplementedError
