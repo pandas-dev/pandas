@@ -441,7 +441,7 @@ class RangeIndex(Int64Index):
         else:
             return np.arange(len(self) - 1, -1, -1)
 
-    def equals(self, other):
+    def equals(self, other) -> bool:
         """
         Determines if two Index objects contain the same elements.
         """
