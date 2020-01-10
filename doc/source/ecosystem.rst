@@ -386,12 +386,16 @@ A directory of projects providing
 :ref:`extension accessors <extending.register-accessors>`. This is for users to
 discover new accessors and for library authors to coordinate on the namespace.
 
-============== ========== =========================
-Library        Accessor   Classes
-============== ========== =========================
-`cyberpandas`_ ``ip``     ``Series``
-`pdvega`_      ``vgplot`` ``Series``, ``DataFrame``
-============== ========== =========================
+=============== ========== ========================= ===============================================================
+Library         Accessor   Classes                   Description
+=============== ========== ========================= ===============================================================
+`cyberpandas`_  ``ip``     ``Series``                Provides common operations for working with IP addresses.
+`pdvega`_       ``vgplot`` ``Series``, ``DataFrame`` Provides plotting functions from the Altair_ library.
+`pandas_path`_  ``path``   ``Index``, ``Series``     Provides `pathlib.Path`_ functions for Series.
+=============== ========== ========================= ===============================================================
 
 .. _cyberpandas: https://cyberpandas.readthedocs.io/en/latest
 .. _pdvega: https://altair-viz.github.io/pdvega/
+.. _Altair: https://altair-viz.github.io/
+.. _pandas_path: https://github.com/drivendataorg/pandas-path/
+.. _pathlib.Path: https://docs.python.org/3/library/pathlib.html
