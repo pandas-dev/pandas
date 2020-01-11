@@ -884,7 +884,7 @@ class Base:
 
         assert isinstance(res, np.ndarray), type(res)
 
-    def test_contains_requires_hashable(self):
+    def test_contains_requires_hashable_raises(self):
         idx = self.create_index()
         with pytest.raises(TypeError, match="unhashable type"):
             [] in idx
