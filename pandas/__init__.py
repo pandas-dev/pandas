@@ -115,7 +115,7 @@ from pandas.core.api import (
     DataFrame,
 )
 
-from pandas.core.arrays.sparse import SparseArray, SparseDtype
+from pandas.core.arrays.sparse import SparseDtype
 
 from pandas.tseries.api import infer_freq
 from pandas.tseries import offsets
@@ -246,6 +246,19 @@ if pandas.compat.PY37:
 
             return type(name, (), {})
 
+        elif name == "SparseArray":
+
+            warnings.warn(
+                "The pandas.SparseArray class is deprecated "
+                "and will be removed from pandas in a future version. "
+                "Use pandas.arrays.SparseArray instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            from pandas.core.arrays.sparse import SparseArray as _SparseArray
+
+            return _SparseArray
+
         raise AttributeError(f"module 'pandas' has no attribute '{name}'")
 
 
@@ -284,13 +297,25 @@ else:
 
     np = __numpy()
 
-    class __Datetime:
-        def __init__(self):
-            from datetime import datetime as dt
+    class __Datetime(type):
 
-            self.datetime = dt
+        from datetime import datetime as dt
 
-        def __getattr__(self, item):
+        datetime = dt
+
+        def __getattr__(cls, item):
+            cls.emit_warning()
+
+            try:
+                return getattr(cls.datetime, item)
+            except AttributeError:
+                raise AttributeError(f"module datetime has no attribute {item}")
+
+        def __instancecheck__(cls, other):
+            return isinstance(other, cls.datetime)
+
+    class __DatetimeSub(metaclass=__Datetime):
+        def emit_warning(dummy=0):
             import warnings
 
             warnings.warn(
@@ -298,15 +323,45 @@ else:
                 "and will be removed from pandas in a future version. "
                 "Import from datetime instead.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=3,
             )
 
-            try:
-                return getattr(self.datetime, item)
-            except AttributeError:
-                raise AttributeError(f"module datetime has no attribute {item}")
+        def __new__(cls, *args, **kwargs):
+            cls.emit_warning()
+            from datetime import datetime as dt
 
-    datetime = __Datetime().datetime
+            return dt(*args, **kwargs)
+
+    datetime = __DatetimeSub
+
+    class __SparseArray(type):
+
+        from pandas.core.arrays.sparse import SparseArray as sa
+
+        SparseArray = sa
+
+        def __instancecheck__(cls, other):
+            return isinstance(other, cls.SparseArray)
+
+    class __SparseArraySub(metaclass=__SparseArray):
+        def emit_warning(dummy=0):
+            import warnings
+
+            warnings.warn(
+                "The pandas.SparseArray class is deprecated "
+                "and will be removed from pandas in a future version. "
+                "Use pandas.arrays.SparseArray instead.",
+                FutureWarning,
+                stacklevel=3,
+            )
+
+        def __new__(cls, *args, **kwargs):
+            cls.emit_warning()
+            from pandas.core.arrays.sparse import SparseArray as sa
+
+            return sa(*args, **kwargs)
+
+    SparseArray = __SparseArraySub
 
 
 # module level doc-string

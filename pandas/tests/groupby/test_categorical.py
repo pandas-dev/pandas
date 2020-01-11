@@ -497,10 +497,10 @@ def test_dataframe_categorical_ordered_observed_sort(ordered, observed, sort):
         aggr[aggr.isna()] = "missing"
     if not all(label == aggr):
         msg = (
-            "Labels and aggregation results not consistently sorted\n"
-            + "for (ordered={}, observed={}, sort={})\n"
-            + "Result:\n{}"
-        ).format(ordered, observed, sort, result)
+            f"Labels and aggregation results not consistently sorted\n"
+            + "for (ordered={ordered}, observed={observed}, sort={sort})\n"
+            + "Result:\n{result}"
+        )
         assert False, msg
 
 
@@ -805,7 +805,7 @@ def test_sort():
     # self.cat.groupby(['value_group'])['value_group'].count().plot(kind='bar')
 
     df = DataFrame({"value": np.random.randint(0, 10000, 100)})
-    labels = ["{0} - {1}".format(i, i + 499) for i in range(0, 10000, 500)]
+    labels = [f"{i} - {i+499}" for i in range(0, 10000, 500)]
     cat_labels = Categorical(labels, labels)
 
     df = df.sort_values(by=["value"], ascending=True)

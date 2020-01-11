@@ -457,9 +457,9 @@ class TestSeriesMissingData:
 
     def test_where_sparse(self):
         # GH#17198 make sure we dont get an AttributeError for sp_index
-        ser = pd.Series(pd.SparseArray([1, 2]))
+        ser = pd.Series(pd.arrays.SparseArray([1, 2]))
         result = ser.where(ser >= 2, 0)
-        expected = pd.Series(pd.SparseArray([0, 2]))
+        expected = pd.Series(pd.arrays.SparseArray([0, 2]))
         tm.assert_series_equal(result, expected)
 
     def test_datetime64tz_fillna_round_issue(self):
@@ -1180,8 +1180,8 @@ class TestSeriesInterpolateData:
     def test_interpolate_non_ts(self):
         s = Series([1, 3, np.nan, np.nan, np.nan, 11])
         msg = (
-            "time-weighted interpolation only works on Series or DataFrames"
-            " with a DatetimeIndex"
+            "time-weighted interpolation only works on Series or DataFrames "
+            "with a DatetimeIndex"
         )
         with pytest.raises(ValueError, match=msg):
             s.interpolate(method="time")
