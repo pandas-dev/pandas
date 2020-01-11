@@ -1,8 +1,10 @@
 from datetime import datetime
 
 import numpy as np
-import pandas.util.testing as tm
-from pandas import Series, date_range, NaT
+
+from pandas import NaT, Series, date_range
+
+from .pandas_vb_common import tm
 
 
 class SeriesConstructor:
@@ -275,4 +277,4 @@ class NanOps:
         self.func()
 
 
-from .pandas_vb_common import setup  # noqa: F401
+from .pandas_vb_common import setup  # noqa: F401 isort:skip

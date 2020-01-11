@@ -6,7 +6,7 @@ import pytest
 from pandas._libs import hashtable
 
 from pandas import DatetimeIndex, MultiIndex
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize("names", [None, ["first", "second"]])
@@ -251,15 +251,12 @@ def test_duplicated_large(keep):
     tm.assert_numpy_array_equal(result, expected)
 
 
-def test_get_duplicates():
+def test_duplicated2():
+    # TODO: more informative test name
     # GH5873
     for a in [101, 102]:
         mi = MultiIndex.from_arrays([[101, a], [3.5, np.nan]])
         assert not mi.has_duplicates
-
-        with tm.assert_produces_warning(FutureWarning):
-            # Deprecated - see GH20239
-            assert mi.get_duplicates().equals(MultiIndex.from_arrays([[], []]))
 
         tm.assert_numpy_array_equal(mi.duplicated(), np.zeros(2, dtype="bool"))
 
@@ -273,10 +270,6 @@ def test_get_duplicates():
             )
             assert len(mi) == (n + 1) * (m + 1)
             assert not mi.has_duplicates
-
-            with tm.assert_produces_warning(FutureWarning):
-                # Deprecated - see GH20239
-                assert mi.get_duplicates().equals(MultiIndex.from_arrays([[], []]))
 
             tm.assert_numpy_array_equal(
                 mi.duplicated(), np.zeros(len(mi), dtype="bool")

@@ -9,12 +9,12 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame, Index, MultiIndex, Series, date_range
+import pandas._testing as tm
 from pandas.core.groupby.base import (
     groupby_other_methods,
     reduction_kernels,
     transformation_kernels,
 )
-from pandas.util import testing as tm
 
 AGG_FUNCTIONS = [
     "sum",
@@ -236,16 +236,23 @@ def test_groupby_blacklist(df_letters):
 
     blacklist.extend(to_methods)
 
-    # e.g., to_csv
-    defined_but_not_allowed = "(?:^Cannot.+{0!r}.+{1!r}.+try using the 'apply' method$)"
-
-    # e.g., query, eval
-    not_defined = "(?:^{1!r} object has no attribute {0!r}$)"
-    fmt = defined_but_not_allowed + "|" + not_defined
     for bl in blacklist:
         for obj in (df, s):
             gb = obj.groupby(df.letters)
-            msg = fmt.format(bl, type(gb).__name__)
+
+            # e.g., to_csv
+            defined_but_not_allowed = (
+                f"(?:^Cannot.+{repr(bl)}.+'{type(gb).__name__}'.+try "
+                f"using the 'apply' method$)"
+            )
+
+            # e.g., query, eval
+            not_defined = (
+                f"(?:^'{type(gb).__name__}' object has no attribute {repr(bl)}$)"
+            )
+
+            msg = f"{defined_but_not_allowed}|{not_defined}"
+
             with pytest.raises(AttributeError, match=msg):
                 getattr(gb, bl)
 
@@ -397,7 +404,7 @@ def test_all_methods_categorized(mframe):
 
     # new public method?
     if new_names:
-        msg = """
+        msg = f"""
 There are uncatgeorized methods defined on the Grouper class:
 {names}.
 
@@ -411,19 +418,19 @@ following three lists defined in pandas.core.groupby.base:
 see the comments in pandas/core/groupby/base.py for guidance on
 how to fix this test.
         """
-        raise AssertionError(msg.format(names=names))
+        raise AssertionError(msg)
 
     # removed a public method?
     all_categorized = reduction_kernels | transformation_kernels | groupby_other_methods
     print(names)
     print(all_categorized)
     if not (names == all_categorized):
-        msg = """
+        msg = f"""
 Some methods which are supposed to be on the Grouper class
 are missing:
-{names}.
+{all_categorized - names}.
 
 They're still defined in one of the lists that live in pandas/core/groupby/base.py.
 If you removed a method, you should update them
 """
-        raise AssertionError(msg.format(names=all_categorized - names))
+        raise AssertionError(msg)

@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.io.sas.sasreader import read_sas
 
@@ -104,7 +104,7 @@ class TestXport:
 
         reader = read_sas(self.file01, index="SEQN", chunksize=1000)
 
-        all_data = [x for x in reader]
+        all_data = list(reader)
         data = pd.concat(all_data, axis=0)
 
         tm.assert_frame_equal(data, data_csv, check_index_type=False)

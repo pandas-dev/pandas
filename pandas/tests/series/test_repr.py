@@ -8,20 +8,17 @@ from pandas import (
     Categorical,
     DataFrame,
     Index,
+    MultiIndex,
     Series,
     date_range,
     option_context,
     period_range,
     timedelta_range,
 )
-from pandas.core.base import StringMixin
-from pandas.core.index import MultiIndex
-import pandas.util.testing as tm
-
-from .common import TestData
+import pandas._testing as tm
 
 
-class TestSeriesRepr(TestData):
+class TestSeriesRepr:
     def test_multilevel_name_print(self):
         index = MultiIndex(
             levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
@@ -65,27 +62,27 @@ class TestSeriesRepr(TestData):
         s.name = None
         assert "Name:" not in repr(s)
 
-        s = Series(index=date_range("20010101", "20020101"), name="test")
+        s = Series(index=date_range("20010101", "20020101"), name="test", dtype=object)
         assert "Name: test" in repr(s)
 
-    def test_repr(self):
-        str(self.ts)
-        str(self.series)
-        str(self.series.astype(int))
-        str(self.objSeries)
+    def test_repr(self, datetime_series, string_series, object_series):
+        str(datetime_series)
+        str(string_series)
+        str(string_series.astype(int))
+        str(object_series)
 
         str(Series(tm.randn(1000), index=np.arange(1000)))
         str(Series(tm.randn(1000), index=np.arange(1000, 0, step=-1)))
 
         # empty
-        str(self.empty)
+        str(Series(dtype=object))
 
         # with NaNs
-        self.series[5:7] = np.NaN
-        str(self.series)
+        string_series[5:7] = np.NaN
+        str(string_series)
 
         # with Nones
-        ots = self.ts.astype("O")
+        ots = datetime_series.astype("O")
         ots[::2] = None
         repr(ots)
 
@@ -103,8 +100,8 @@ class TestSeriesRepr(TestData):
             ("\u03B1", "\u03B2", "\u03B3"),
             ("\u03B1", "bar"),
         ]:
-            self.series.name = name
-            repr(self.series)
+            string_series.name = name
+            repr(string_series)
 
         biggie = Series(
             tm.randn(1000), index=np.arange(1000), name=("foo", "bar", "baz")
@@ -226,11 +223,11 @@ class TestCategoricalRepr:
     def test_categorical_repr_unicode(self):
         # see gh-21002
 
-        class County(StringMixin):
+        class County:
             name = "San Sebastián"
             state = "PR"
 
-            def __str__(self):
+            def __repr__(self) -> str:
                 return self.name + ", " + self.state
 
         cat = pd.Categorical([County() for _ in range(61)])

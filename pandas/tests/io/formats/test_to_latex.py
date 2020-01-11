@@ -5,7 +5,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Series
-from pandas.util import testing as tm
+import pandas._testing as tm
 
 
 class TestToLatex:
@@ -388,8 +388,7 @@ b &       b &     b \\
 """
         assert escaped_result == escaped_expected
 
-    def test_to_latex_longtable(self, float_frame):
-        float_frame.to_latex(longtable=True)
+    def test_to_latex_longtable(self):
 
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
         withindex_result = df.to_latex(longtable=True)
@@ -438,6 +437,141 @@ b &       b &     b \\
         df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]})
         with3columns_result = df.to_latex(index=False, longtable=True)
         assert r"\multicolumn{3}" in with3columns_result
+
+    def test_to_latex_caption_label(self):
+        # GH 25436
+        the_caption = "a table in a \\texttt{table/tabular} environment"
+        the_label = "tab:table_tabular"
+
+        df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+
+        # test when only the caption is provided
+        result_c = df.to_latex(caption=the_caption)
+
+        expected_c = r"""\begin{table}
+\centering
+\caption{a table in a \texttt{table/tabular} environment}
+\begin{tabular}{lrl}
+\toprule
+{} &  a &   b \\
+\midrule
+0 &  1 &  b1 \\
+1 &  2 &  b2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+"""
+        assert result_c == expected_c
+
+        # test when only the label is provided
+        result_l = df.to_latex(label=the_label)
+
+        expected_l = r"""\begin{table}
+\centering
+\label{tab:table_tabular}
+\begin{tabular}{lrl}
+\toprule
+{} &  a &   b \\
+\midrule
+0 &  1 &  b1 \\
+1 &  2 &  b2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+"""
+        assert result_l == expected_l
+
+        # test when the caption and the label are provided
+        result_cl = df.to_latex(caption=the_caption, label=the_label)
+
+        expected_cl = r"""\begin{table}
+\centering
+\caption{a table in a \texttt{table/tabular} environment}
+\label{tab:table_tabular}
+\begin{tabular}{lrl}
+\toprule
+{} &  a &   b \\
+\midrule
+0 &  1 &  b1 \\
+1 &  2 &  b2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+"""
+        assert result_cl == expected_cl
+
+    def test_to_latex_longtable_caption_label(self):
+        # GH 25436
+        the_caption = "a table in a \\texttt{longtable} environment"
+        the_label = "tab:longtable"
+
+        df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+
+        # test when only the caption is provided
+        result_c = df.to_latex(longtable=True, caption=the_caption)
+
+        expected_c = r"""\begin{longtable}{lrl}
+\caption{a table in a \texttt{longtable} environment}\\
+\toprule
+{} &  a &   b \\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r}{{Continued on next page}} \\
+\midrule
+\endfoot
+
+\bottomrule
+\endlastfoot
+0 &  1 &  b1 \\
+1 &  2 &  b2 \\
+\end{longtable}
+"""
+        assert result_c == expected_c
+
+        # test when only the label is provided
+        result_l = df.to_latex(longtable=True, label=the_label)
+
+        expected_l = r"""\begin{longtable}{lrl}
+\label{tab:longtable}\\
+\toprule
+{} &  a &   b \\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r}{{Continued on next page}} \\
+\midrule
+\endfoot
+
+\bottomrule
+\endlastfoot
+0 &  1 &  b1 \\
+1 &  2 &  b2 \\
+\end{longtable}
+"""
+        assert result_l == expected_l
+
+        # test when the caption and the label are provided
+        result_cl = df.to_latex(longtable=True, caption=the_caption, label=the_label)
+
+        expected_cl = r"""\begin{longtable}{lrl}
+\caption{a table in a \texttt{longtable} environment}\label{tab:longtable}\\
+\toprule
+{} &  a &   b \\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r}{{Continued on next page}} \\
+\midrule
+\endfoot
+
+\bottomrule
+\endlastfoot
+0 &  1 &  b1 \\
+1 &  2 &  b2 \\
+\end{longtable}
+"""
+        assert result_cl == expected_cl
 
     def test_to_latex_escape_special_chars(self):
         special_characters = ["&", "%", "$", "#", "_", "{", "}", "~", "^", "\\"]

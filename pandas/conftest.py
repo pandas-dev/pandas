@@ -1,3 +1,4 @@
+from collections import abc
 from datetime import date, time, timedelta, timezone
 from decimal import Decimal
 import operator
@@ -14,8 +15,8 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame
+import pandas._testing as tm
 from pandas.core import ops
-import pandas.util.testing as tm
 
 hypothesis.settings.register_profile(
     "ci",
@@ -88,7 +89,7 @@ def spmatrix(request):
     return getattr(sparse, request.param + "_matrix")
 
 
-@pytest.fixture(params=[0, 1, "index", "columns"], ids=lambda x: "axis {!r}".format(x))
+@pytest.fixture(params=[0, 1, "index", "columns"], ids=lambda x: f"axis {repr(x)}")
 def axis(request):
     """
      Fixture for returning the axis numbers of a DataFrame.
@@ -99,7 +100,7 @@ def axis(request):
 axis_frame = axis
 
 
-@pytest.fixture(params=[0, "index"], ids=lambda x: "axis {!r}".format(x))
+@pytest.fixture(params=[0, "index"], ids=lambda x: f"axis {repr(x)}")
 def axis_series(request):
     """
      Fixture for returning the axis numbers of a Series.
@@ -123,18 +124,22 @@ def ip():
 
 @pytest.fixture(params=[True, False, None])
 def observed(request):
-    """ pass in the observed keyword to groupby for [True, False]
+    """
+    Pass in the observed keyword to groupby for [True, False]
     This indicates whether categoricals should return values for
     values which are not in the grouper [False / None], or only values which
     appear in the grouper [True]. [None] is supported for future compatibility
     if we decide to change the default (and would need to warn if this
-    parameter is not passed)"""
+    parameter is not passed).
+    """
     return request.param
 
 
 @pytest.fixture(params=[True, False, None])
 def ordered_fixture(request):
-    """Boolean 'ordered' parameter for Categorical."""
+    """
+    Boolean 'ordered' parameter for Categorical.
+    """
     return request.param
 
 
@@ -159,7 +164,7 @@ _all_arithmetic_operators = [
 @pytest.fixture(params=_all_arithmetic_operators)
 def all_arithmetic_operators(request):
     """
-    Fixture for dunder names for common arithmetic operations
+    Fixture for dunder names for common arithmetic operations.
     """
     return request.param
 
@@ -186,7 +191,9 @@ def all_arithmetic_functions(request):
     """
     Fixture for operator and roperator arithmetic functions.
 
-    Note: This includes divmod and rdivmod, whereas all_arithmetic_operators
+    Notes
+    -----
+    This includes divmod and rdivmod, whereas all_arithmetic_operators
     does not.
     """
     return request.param
@@ -209,7 +216,7 @@ _all_numeric_reductions = [
 @pytest.fixture(params=_all_numeric_reductions)
 def all_numeric_reductions(request):
     """
-    Fixture for numeric reduction names
+    Fixture for numeric reduction names.
     """
     return request.param
 
@@ -220,7 +227,7 @@ _all_boolean_reductions = ["all", "any"]
 @pytest.fixture(params=_all_boolean_reductions)
 def all_boolean_reductions(request):
     """
-    Fixture for boolean reduction names
+    Fixture for boolean reduction names.
     """
     return request.param
 
@@ -234,7 +241,8 @@ def cython_table_items(request):
 
 
 def _get_cython_table_params(ndframe, func_names_and_expected):
-    """combine frame, functions from SelectionMixin._cython_table
+    """
+    Combine frame, functions from SelectionMixin._cython_table
     keys and expected result.
 
     Parameters
@@ -242,11 +250,11 @@ def _get_cython_table_params(ndframe, func_names_and_expected):
     ndframe : DataFrame or Series
     func_names_and_expected : Sequence of two items
         The first item is a name of a NDFrame method ('sum', 'prod') etc.
-        The second item is the expected return value
+        The second item is the expected return value.
 
     Returns
     -------
-    results : list
+    list
         List of three items (DataFrame, function, expected result)
     """
     results = []
@@ -288,10 +296,24 @@ def compare_operators_no_eq_ne(request):
     return request.param
 
 
+@pytest.fixture(
+    params=["__and__", "__rand__", "__or__", "__ror__", "__xor__", "__rxor__"]
+)
+def all_logical_operators(request):
+    """
+    Fixture for dunder names for common logical operations
+
+    * |
+    * &
+    * ^
+    """
+    return request.param
+
+
 @pytest.fixture(params=[None, "gzip", "bz2", "zip", "xz"])
 def compression(request):
     """
-    Fixture for trying common compression types in compression tests
+    Fixture for trying common compression types in compression tests.
     """
     return request.param
 
@@ -300,7 +322,7 @@ def compression(request):
 def compression_only(request):
     """
     Fixture for trying common compression types in compression tests excluding
-    uncompressed case
+    uncompressed case.
     """
     return request.param
 
@@ -308,7 +330,7 @@ def compression_only(request):
 @pytest.fixture(params=[True, False])
 def writable(request):
     """
-    Fixture that an array is writable
+    Fixture that an array is writable.
     """
     return request.param
 
@@ -321,7 +343,7 @@ def datetime_tz_utc():
 @pytest.fixture(params=["utc", "dateutil/UTC", utc, tzutc(), timezone.utc])
 def utc_fixture(request):
     """
-    Fixture to provide variants of UTC timezone strings and tzinfo objects
+    Fixture to provide variants of UTC timezone strings and tzinfo objects.
     """
     return request.param
 
@@ -329,7 +351,7 @@ def utc_fixture(request):
 @pytest.fixture(params=["inner", "outer", "left", "right"])
 def join_type(request):
     """
-    Fixture for trying all types of join operations
+    Fixture for trying all types of join operations.
     """
     return request.param
 
@@ -341,7 +363,8 @@ def strict_data_files(pytestconfig):
 
 @pytest.fixture
 def datapath(strict_data_files):
-    """Get the path to a data file.
+    """
+    Get the path to a data file.
 
     Parameters
     ----------
@@ -350,7 +373,7 @@ def datapath(strict_data_files):
 
     Returns
     -------
-    path : path including ``pandas/tests``.
+    path including ``pandas/tests``.
 
     Raises
     ------
@@ -363,11 +386,11 @@ def datapath(strict_data_files):
         path = os.path.join(BASE_PATH, *args)
         if not os.path.exists(path):
             if strict_data_files:
-                msg = "Could not find file {} and --strict-data-files is set."
-                raise ValueError(msg.format(path))
+                raise ValueError(
+                    f"Could not find file {path} and --strict-data-files is set."
+                )
             else:
-                msg = "Could not find {}."
-                pytest.skip(msg.format(path))
+                pytest.skip(f"Could not find {path}.")
         return path
 
     return deco
@@ -375,14 +398,16 @@ def datapath(strict_data_files):
 
 @pytest.fixture
 def iris(datapath):
-    """The iris dataset as a DataFrame."""
+    """
+    The iris dataset as a DataFrame.
+    """
     return pd.read_csv(datapath("data", "iris.csv"))
 
 
 @pytest.fixture(params=["nlargest", "nsmallest"])
 def nselect_method(request):
     """
-    Fixture for trying all nselect methods
+    Fixture for trying all nselect methods.
     """
     return request.param
 
@@ -390,7 +415,7 @@ def nselect_method(request):
 @pytest.fixture(params=["left", "right", "both", "neither"])
 def closed(request):
     """
-    Fixture for trying all interval closed parameters
+    Fixture for trying all interval closed parameters.
     """
     return request.param
 
@@ -398,7 +423,7 @@ def closed(request):
 @pytest.fixture(params=["left", "right", "both", "neither"])
 def other_closed(request):
     """
-    Secondary closed fixture to allow parametrizing over all pairs of closed
+    Secondary closed fixture to allow parametrizing over all pairs of closed.
     """
     return request.param
 
@@ -406,7 +431,7 @@ def other_closed(request):
 @pytest.fixture(params=[None, np.nan, pd.NaT, float("nan"), np.float("NaN")])
 def nulls_fixture(request):
     """
-    Fixture for each null type in pandas
+    Fixture for each null type in pandas.
     """
     return request.param
 
@@ -417,7 +442,7 @@ nulls_fixture2 = nulls_fixture  # Generate cartesian product of nulls_fixture
 @pytest.fixture(params=[None, np.nan, pd.NaT])
 def unique_nulls_fixture(request):
     """
-    Fixture for each null type in pandas, each null type exactly once
+    Fixture for each null type in pandas, each null type exactly once.
     """
     return request.param
 
@@ -504,7 +529,8 @@ ALL_NUMPY_DTYPES = (
 
 @pytest.fixture(params=STRING_DTYPES)
 def string_dtype(request):
-    """Parametrized fixture for string dtypes.
+    """
+    Parametrized fixture for string dtypes.
 
     * str
     * 'str'
@@ -515,7 +541,8 @@ def string_dtype(request):
 
 @pytest.fixture(params=BYTES_DTYPES)
 def bytes_dtype(request):
-    """Parametrized fixture for bytes dtypes.
+    """
+    Parametrized fixture for bytes dtypes.
 
     * bytes
     * 'bytes'
@@ -525,7 +552,8 @@ def bytes_dtype(request):
 
 @pytest.fixture(params=OBJECT_DTYPES)
 def object_dtype(request):
-    """Parametrized fixture for object dtypes.
+    """
+    Parametrized fixture for object dtypes.
 
     * object
     * 'object'
@@ -535,7 +563,8 @@ def object_dtype(request):
 
 @pytest.fixture(params=DATETIME64_DTYPES)
 def datetime64_dtype(request):
-    """Parametrized fixture for datetime64 dtypes.
+    """
+    Parametrized fixture for datetime64 dtypes.
 
     * 'datetime64[ns]'
     * 'M8[ns]'
@@ -545,7 +574,8 @@ def datetime64_dtype(request):
 
 @pytest.fixture(params=TIMEDELTA64_DTYPES)
 def timedelta64_dtype(request):
-    """Parametrized fixture for timedelta64 dtypes.
+    """
+    Parametrized fixture for timedelta64 dtypes.
 
     * 'timedelta64[ns]'
     * 'm8[ns]'
@@ -562,7 +592,6 @@ def float_dtype(request):
     * 'float32'
     * 'float64'
     """
-
     return request.param
 
 
@@ -575,7 +604,6 @@ def complex_dtype(request):
     * 'complex64'
     * 'complex128'
     """
-
     return request.param
 
 
@@ -590,7 +618,6 @@ def sint_dtype(request):
     * 'int32'
     * 'int64'
     """
-
     return request.param
 
 
@@ -604,7 +631,6 @@ def uint_dtype(request):
     * 'uint32'
     * 'uint64'
     """
-
     return request.param
 
 
@@ -622,6 +648,23 @@ def any_int_dtype(request):
     * 'uint32'
     * 'int64'
     * 'uint64'
+    """
+    return request.param
+
+
+@pytest.fixture(params=ALL_EA_INT_DTYPES)
+def any_nullable_int_dtype(request):
+    """
+    Parameterized fixture for any nullable integer dtype.
+
+    * 'UInt8'
+    * 'Int8'
+    * 'UInt16'
+    * 'Int16'
+    * 'UInt32'
+    * 'Int32'
+    * 'UInt64'
+    * 'Int64'
     """
 
     return request.param
@@ -645,7 +688,6 @@ def any_real_dtype(request):
     * 'float32'
     * 'float64'
     """
-
     return request.param
 
 
@@ -683,7 +725,6 @@ def any_numpy_dtype(request):
     * object
     * 'object'
     """
-
     return request.param
 
 
@@ -841,3 +882,51 @@ def float_frame():
     [30 rows x 4 columns]
     """
     return DataFrame(tm.getSeriesData())
+
+
+@pytest.fixture(params=[pd.Index, pd.Series], ids=["index", "series"])
+def index_or_series(request):
+    """
+    Fixture to parametrize over Index and Series, made necessary by a mypy
+    bug, giving an error:
+
+    List item 0 has incompatible type "Type[Series]"; expected "Type[PandasObject]"
+
+    See GH#29725
+    """
+    return request.param
+
+
+@pytest.fixture
+def dict_subclass():
+    """
+    Fixture for a dictionary subclass.
+    """
+
+    class TestSubDict(dict):
+        def __init__(self, *args, **kwargs):
+            dict.__init__(self, *args, **kwargs)
+
+    return TestSubDict
+
+
+@pytest.fixture
+def non_mapping_dict_subclass():
+    """
+    Fixture for a non-mapping dictionary subclass.
+    """
+
+    class TestNonDictMapping(abc.Mapping):
+        def __init__(self, underlying_dict):
+            self._data = underlying_dict
+
+        def __getitem__(self, key):
+            return self._data.__getitem__(key)
+
+        def __iter__(self):
+            return self._data.__iter__()
+
+        def __len__(self):
+            return self._data.__len__()
+
+    return TestNonDictMapping

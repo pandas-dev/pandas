@@ -4,8 +4,7 @@ import pytest
 from pandas.errors import PerformanceWarning
 
 from pandas import DataFrame
-from pandas.util import testing as tm
-from pandas.util.testing import assert_frame_equal
+import pandas._testing as tm
 
 
 @pytest.fixture
@@ -62,7 +61,7 @@ def test_sort_index_level_and_column_label(df_none, df_idx, sort_names, ascendin
     # Compute result sorting on mix on columns and index levels
     result = df_idx.sort_values(by=sort_names, ascending=ascending, axis=0)
 
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_sort_column_level_and_index_label(df_none, df_idx, sort_names, ascending):
@@ -88,6 +87,6 @@ def test_sort_column_level_and_index_label(df_none, df_idx, sort_names, ascendin
         # Accessing multi-level columns that are not lexsorted raises a
         # performance warning
         with tm.assert_produces_warning(PerformanceWarning, check_stacklevel=False):
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
     else:
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
