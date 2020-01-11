@@ -198,6 +198,10 @@ def cut(
     [NaN, (0, 1], NaN, (2, 3], (4, 5]]
     Categories (3, interval[int64]): [(0, 1] < (2, 3] < (4, 5]]
     """
+
+    # for handling nan data
+    x = x.dropna()
+
     # NOTE: this binning code is changed a bit from histogram for var(x) == 0
 
     # for handling the cut for datetime and timedelta objects
