@@ -16,6 +16,8 @@ Customarily, we import as follows:
    import numpy as np
    import pandas as pd
 
+Note: In case you encounter an import error, :ref:`Handling ImportErrors` section of installation documentation.
+
 Object creation
 ---------------
 

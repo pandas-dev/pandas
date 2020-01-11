@@ -164,6 +164,35 @@ To install pandas for Python 2, you may need to use the ``python-pandas`` packag
 to get the newest version of pandas, it's recommended to install using the ``pip`` or ``conda``
 methods described above.
 
+Handling ImportErrors
+----------------------
+
+If you encounter an ImportError,it usually means that Python couldn't find pandas in the list of available
+libraries. Python internally has a list of directories it searched through, to find packages. You can
+obtain these directories with:
+            import sys
+            sys.path
+
+One way you could be encountering this error is if you have multiple Python installations on your system
+and you don't have pandas installed in the Python installation you're currently using.
+In Linux/Mac you can run "which python" on your terminal and it will tell you which is the Python you're
+using. If it's something like "/usr/bin/python", you're using the Python from the system.(Not recommended)
+
+If you used Python before you may have used virtual environments and pip. While this is fine for many
+Python projects (e.g. Django), when using data projects (pandas, numpy, tensorflow, etc.) this is discouraged.
+It's easily susceptible to installation errors and the libraries can run slower while using pip to perform
+installations.
+The widely used solution to this problem is to use conda. You can find simple installation instructions
+for pandas in this document: https://dev.pandas.io/getting_started.html.
+
+Another possible way of fixing the error is by first finding the version of your python installation with:
+            python --version
+
+If you get Python 2.7.x, then try the following command to install pandas:
+            sudo pip2 install pandas
+
+If you get Python 3.7.x, then try the following command to install pandas:
+            sudo pip3 install pandas
 
 Installing from source
 ~~~~~~~~~~~~~~~~~~~~~~
