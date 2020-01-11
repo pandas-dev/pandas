@@ -5811,13 +5811,13 @@ Wild         185.0
         index : str or object or a list of the previous, optional
             Column to use to make new frame's index. If None, uses
             existing index.
-            
+
             .. versionchanged:: 1.0.0
                Also accept list of index names.
 
         columns : str or object or a list of the previous
             Column to use to make new frame's columns.
-            
+
             .. versionchanged:: 1.0.0
                Also accept list of columns names.
 
