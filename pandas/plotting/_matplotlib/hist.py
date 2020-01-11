@@ -93,6 +93,8 @@ class HistPlot(LinePlot):
 
             kwds = self._make_plot_keywords(kwds, y)
 
+            # the bins is multi-dimension array now and each plot need only 1-d and
+            # when by is applied, label should be columns that are grouped
             if self.by is not None:
                 kwds["bins"] = kwds["bins"][i]
                 kwds["label"] = self.column
