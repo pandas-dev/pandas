@@ -413,7 +413,9 @@ static char *int64ToIsoDuration(int64_t value, size_t *len) {
 
     pandas_timedelta_to_timedeltastruct(value, NPY_FR_ns, &tds);
 
-    char *result = PyObject_Malloc(100); // TODO: Better bounds
+    // Max theoretical length of ISO Duration with 64 bit day
+    // as the largest unit is 70 characters + 1 for a null terminator
+    char *result = PyObject_Malloc(71);
     if (result == NULL) {
         PyErr_NoMemory();
         return NULL;
