@@ -427,6 +427,9 @@ def _convert_by(by):
 @Substitution("\ndata : DataFrame")
 @Appender(_shared_docs["pivot"], indents=1)
 def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFrame":
+    if columns is None:
+        raise ValueError("`columns` is not optional.")
+
     if values is None:
         cols = [columns] if index is None else [index, columns]
         append = index is None
