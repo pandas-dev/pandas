@@ -141,7 +141,7 @@ For example:
 
 **Good:**
 
-.. code-block:: python
+::
 
     import pandas.core.common as com
 
@@ -153,7 +153,7 @@ For example:
 
 **Good (Test Code Only):**
 
-.. code-block:: python
+::
 
     from .common import test_base
 
@@ -163,6 +163,6 @@ For example:
 
 **Wrong:**
 
-.. code-block:: python
+::
 
     from common import test_base
