@@ -1185,6 +1185,8 @@ class _Rolling_and_Expanding(_Rolling):
 
         window = self._get_window()
         window = min(window, len(obj)) if not self.center else window
+        min_periods = self.min_periods if self.min_periods is not None else 0
+        min_periods = min(min_periods, len(obj)) if not self.center else min_periods
 
         results = []
         for b in blocks:
@@ -1192,7 +1194,7 @@ class _Rolling_and_Expanding(_Rolling):
             result = self._constructor(
                 result,
                 window=window,
-                min_periods=0,
+                min_periods=min_periods,
                 center=self.center,
                 axis=self.axis,
                 closed=self.closed,

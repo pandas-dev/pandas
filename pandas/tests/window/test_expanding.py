@@ -113,3 +113,10 @@ class TestExpanding(Base):
 
         result = df.expanding(3, axis=axis_frame).sum()
         tm.assert_frame_equal(result, expected)
+
+
+def test_expanding_count_with_min_periods():
+    # GH 26996
+    result = Series(range(5)).expanding(min_periods=3).count()
+    expected = Series([np.nan, np.nan, 3.0, 4.0, 5.0])
+    tm.assert_series_equal(result, expected)
