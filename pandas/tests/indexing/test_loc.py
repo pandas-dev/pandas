@@ -915,8 +915,8 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         with pytest.raises(KeyError, match=msg):
             df.loc[[0, 1], "x"] = data
 
-        msg = "cannot copy sequence with size 2 to array axis with dimension 0"
-        with pytest.raises(ValueError, match=msg):
+        msg = "cannot do slice indexing on .* with these indexers"
+        with pytest.raises(TypeError, match=msg):
             df.loc[0:2, "x"] = data
 
     def test_indexing_zerodim_np_array(self):
@@ -983,6 +983,19 @@ def test_loc_setitem_float_intindex():
     result = pd.DataFrame(rand_data)
     result.loc[:, 0.5] = np.nan
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("test_series", [False, True])
+def test_loc_setitem_missing_integer_slice(test_series):
+    # GH 26412
+    df = DataFrame({"col1": [1, 2, 3]}, index=["a", "b", "c"])
+    msg = "cannot do slice indexing on .* with these indexers"
+    with pytest.raises(TypeError, match=msg):
+        if test_series:
+            s = df["col1"]
+            s.loc[0:2] = 10
+        else:
+            df.loc[0:2] = 10
 
 
 def test_loc_axis_1_slice():
