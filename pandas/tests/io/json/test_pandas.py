@@ -826,7 +826,7 @@ class TestPandasContainer:
             expected = '{"1577836800000":1577836800000,"null":null}'
         else:
             expected = (
-                '{"2020-01-01T00:00:00.000Z":"2020-01-01T00:00:00.000Z"' ',"null":null}'
+                '{"2020-01-01T00:00:00.000Z":"2020-01-01T00:00:00.000Z","null":null}'
             )
 
         if as_object:
