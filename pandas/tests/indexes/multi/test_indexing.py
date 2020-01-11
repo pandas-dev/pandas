@@ -525,33 +525,3 @@ def test_slice_locs_with_missing_value(index_arr, expected, start_idx, end_idx):
     idx = MultiIndex.from_arrays(index_arr)
     result = idx.slice_locs(start=start_idx, end=end_idx)
     assert result == expected
-
-
-def test_multiindex_loc_order():
-    # GH 22797
-    # Try to respect order of keys given for MultiIndex.loc
-    df = pd.DataFrame(
-        np.arange(12).reshape((4, 3)),
-        index=[["a", "a", "b", "b"], [1, 2, 1, 2]],
-        columns=[["Ohio", "Ohio", "Colorado"], ["Green", "Red", "Green"]],
-    )
-
-    res = df.loc[["b", "a"], :]
-    exp_index = pd.MultiIndex.from_arrays([["b", "b", "a", "a"], [1, 2, 1, 2]])
-    tm.assert_index_equal(res.index, exp_index)
-
-    res = df.loc[(["b", "a"], [2, 1]), :]
-    exp_index = pd.MultiIndex.from_arrays([["b", "b", "a", "a"], [2, 1, 2, 1]])
-    tm.assert_index_equal(res.index, exp_index)
-
-    res = df.loc[:, ["Colorado", "Ohio"]]
-    exp_columns = pd.MultiIndex.from_arrays(
-        [["Colorado", "Ohio", "Ohio"], ["Green", "Green", "Red"]]
-    )
-    tm.assert_index_equal(res.columns, exp_columns)
-
-    res = df.loc[:, (["Colorado", "Ohio"], ["Red", "Green"])]
-    exp_columns = pd.MultiIndex.from_arrays(
-        [["Colorado", "Ohio", "Ohio"], ["Green", "Red", "Green"]]
-    )
-    tm.assert_index_equal(res.columns, exp_columns)
