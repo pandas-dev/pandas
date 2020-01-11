@@ -3283,7 +3283,7 @@ class TestDataFramePlots(TestPlotBase):
     )
     def test_hist_plot_layout_with_by(self, by, column, layout, axes_num):
         # GH 15079
-        np.random.randn(2020)
+        np.random.seed(0)
         df = DataFrame(np.random.randn(30, 2), columns=["A", "B"])
         df["C"] = np.random.choice(["a", "b", "c"], 30)
         df["D"] = np.random.choice(["a", "b", "c"], 30)
@@ -3294,7 +3294,7 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_hist_plot_invalid_layout_with_by(self):
         # GH 15079, test if error is raised when invalid layout is given
-        np.random.randn(2020)
+        np.random.seed(0)
         df = DataFrame(np.random.randn(30, 2), columns=["A", "B"])
         df["C"] = np.random.choice(["a", "b", "c"], 30)
         df["D"] = np.random.choice(["a", "b", "c"], 30)
@@ -3312,7 +3312,7 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.slow
     def test_axis_share_x_with_by(self):
         # GH 15079
-        np.random.randn(2020)
+        np.random.seed(0)
         df = DataFrame(np.random.randn(30, 2), columns=["A", "B"])
         df["C"] = np.random.choice(["a", "b", "c"], 30)
         df["D"] = np.random.choice(["a", "b", "c"], 30)
@@ -3334,7 +3334,7 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.slow
     def test_axis_share_y_with_by(self):
         # GH 15079
-        np.random.randn(2020)
+        np.random.seed(0)
         df = DataFrame(np.random.randn(30, 2), columns=["A", "B"])
         df["C"] = np.random.choice(["a", "b", "c"], 30)
         df["D"] = np.random.choice(["a", "b", "c"], 30)
@@ -3356,7 +3356,6 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.parametrize("figsize", [(12, 8), (20, 10)])
     def test_figure_shape_hist_with_by(self, figsize):
         # GH 15079
-        np.random.randn(2020)
         df = DataFrame(np.random.randn(30, 2), columns=["A", "B"])
         df["C"] = np.random.choice(["a", "b", "c"], 30)
         df["D"] = np.random.choice(["a", "b", "c"], 30)
