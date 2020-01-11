@@ -137,32 +137,19 @@ like ``import string`` will import the string module rather than ``string.py``
 in the same directory. As much as possible, you should try to write out
 absolute imports that show the whole import chain from toplevel pandas.
 
-For example:
+Explicit relative imports are also supported in Python 3. But it is not
+recommended to use it. Implicit relative imports should never be used
+and is removed in Python 3.
 
-**Good:**
+For example:
 
 ::
 
+    # preferred
     import pandas.core.common as com
 
-Explicit relative imports are also supported in Python 3. In test code, it might
-be easier to just reference local variables with explicit relative imports
-(that start with ``.``) for clarity, but in other code better to be absolute.
-
-For example:
-
-**Good (Test Code Only):**
-
-::
-
+    # not preferred
     from .common import test_base
 
-Implicit relative imports should never be used and is removed in Python 3.
-
-For example:
-
-**Wrong:**
-
-::
-
+    # wrong
     from common import test_base
