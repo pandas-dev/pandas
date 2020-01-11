@@ -68,7 +68,6 @@ class HistPlot(LinePlot):
     ):
         if column_num == 0:
             cls._initialize_stacker(ax, stacking_id, len(bins) - 1)
-        y = y[~isna(y)]
 
         base = np.zeros(len(bins) - 1)
         bottom = bottom + cls._get_stacked_values(ax, stacking_id, base, kwds["label"])
@@ -77,75 +76,45 @@ class HistPlot(LinePlot):
         cls._update_stacker(ax, stacking_id, n)
         return patches
 
-    @classmethod
-    def _group_plot(
-        cls,
-        axes,
-        data,
-        fig,
-        labels,
-        bins=None,
-        rot=90,
-        xrot=None,
-        xlabelsize=None,
-        ylabelsize=None,
-        yrot=None,
-        **kwds,
-    ):
-        if "figure" in kwds:
-            raise ValueError(
-                "Cannot pass 'figure' when using the "
-                "'by' argument, since a new 'Figure' instance "
-                "will be created"
-            )
-
-        xrot = xrot or rot
-
-        for i, (label, y) in enumerate(data):
-            ax = axes[i]
-            if len(y.shape) > 1:
-                notna = [col[~isna(col)] for col in y.T]
-                y_notna = np.array(np.array(notna).T)
-            else:
-                y_notna = y[~isna(y)]
-            ax.hist(y_notna, bins[i], label=labels, **kwds)
-            ax.set_title(pprint_thing(label))
-
-        _set_ticks_props(
-            axes, xlabelsize=xlabelsize, xrot=xrot, ylabelsize=ylabelsize, yrot=yrot
-        )
-
-        fig.subplots_adjust(
-            bottom=0.15, top=0.9, left=0.1, right=0.9, hspace=0.8, wspace=0.3
-        )
-        return axes
-
     def _make_plot(self):
         colors = self._get_colors()
         stacking_id = self._get_stacking_id()
-        if self.by is None:
-            for i, (label, y) in enumerate(self._iter_data()):
-                ax = self._get_ax(i)
+        for i, (label, y) in enumerate(self._iter_data()):
+            ax = self._get_ax(i)
 
-                kwds = self.kwds.copy()
-                label = pprint_thing(label)
-                kwds["label"] = label
-
-                style, kwds = self._apply_style_colors(colors, kwds, i, label)
-                if style is not None:
-                    kwds["style"] = style
-
-                kwds = self._make_plot_keywords(kwds, y)
-                artists = self._plot(
-                    ax, y, column_num=i, stacking_id=stacking_id, **kwds
-                )
-                self._add_legend_handle(artists[0], label, index=i)
-
-        else:
             kwds = self.kwds.copy()
-            kwds = self._make_plot_keywords(kwds, None)
-            data = self._iter_data()
-            self._group_plot(self.axes, data, self.fig, self.column, **kwds)
+            label = pprint_thing(label)
+            kwds["label"] = label
+
+            style, kwds = self._apply_style_colors(colors, kwds, i, label)
+            if style is not None:
+                kwds["style"] = style
+
+            kwds = self._make_plot_keywords(kwds, y)
+
+            if self.by is not None:
+                kwds["bins"] = kwds["bins"][i]
+                kwds["label"] = self.column
+                kwds.pop("color")
+
+            y = self._reformat_y(y)
+            artists = self._plot(ax, y, column_num=i, stacking_id=stacking_id, **kwds)
+
+            # when by is applied, show title for subplots to know which group it is
+            if self.by is not None:
+                ax.set_title(pprint_thing(label))
+
+            self._add_legend_handle(artists[0], label, index=i)
+
+    def _reformat_y(self, y):
+        """Internal function to reformat y given `by` is applied or not.
+        """
+        if self.by is not None and len(y.shape) > 1:
+            notna = [col[~isna(col)] for col in y.T]
+            y = np.array(np.array(notna).T)
+        else:
+            y = y[~isna(y)]
+        return y
 
     def _make_plot_keywords(self, kwds, y):
         """merge BoxPlot/KdePlot properties to passed kwds"""
