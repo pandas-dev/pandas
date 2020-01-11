@@ -261,6 +261,11 @@ class BaseMethodsTests(BaseExtensionTests):
         expected = data.take([2, 3, 0, 0])
         self.assert_extension_array_equal(result, expected)
 
+    def test_not_hashable(self, data):
+        # We are in general mutable, so not hashable
+        with pytest.raises(TypeError, match="unhashable type"):
+            hash(data)
+
     def test_hash_pandas_object_works(self, data, as_frame):
         # https://github.com/pandas-dev/pandas/issues/23066
         data = pd.Series(data)

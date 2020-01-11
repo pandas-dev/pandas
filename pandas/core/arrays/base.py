@@ -1073,6 +1073,9 @@ class ExtensionArray:
         """
         raise TypeError(f"cannot perform {name} with type {self.dtype}")
 
+    def __hash__(self):
+        raise TypeError(f"unhashable type: {repr(type(self).__name__)}")
+
 
 class ExtensionOpsMixin:
     """
