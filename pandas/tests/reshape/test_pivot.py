@@ -991,7 +991,8 @@ class TestPivotTable:
         tm.assert_frame_equal(table, expected)
 
     @pytest.mark.parametrize(
-        "input_index, input_columns, input_values, expected_values, expected_columns, expected_index",
+        "input_index, input_columns, input_values, "
+        "expected_values, expected_columns, expected_index",
         [
             (
                 ["lev4"],
@@ -1089,7 +1090,8 @@ class TestPivotTable:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "input_index, input_columns, input_values, expected_values, expected_columns, expected_index",
+        "input_index, input_columns, input_values, "
+        "expected_values, expected_columns, expected_index",
         [
             (
                 "lev4",
