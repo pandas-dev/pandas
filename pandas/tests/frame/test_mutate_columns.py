@@ -3,11 +3,8 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import PY36
-
 from pandas import DataFrame, Index, MultiIndex, Series
-import pandas.util.testing as tm
-from pandas.util.testing import assert_frame_equal
+import pandas._testing as tm
 
 # Column add, remove, delete.
 
@@ -19,34 +16,34 @@ class TestDataFrameMutateColumns:
         result = df.assign(C=df.B / df.A)
         expected = df.copy()
         expected["C"] = [4, 2.5, 2]
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         # lambda syntax
         result = df.assign(C=lambda x: x.B / x.A)
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         # original is unmodified
-        assert_frame_equal(df, original)
+        tm.assert_frame_equal(df, original)
 
         # Non-Series array-like
         result = df.assign(C=[4, 2.5, 2])
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
         # original is unmodified
-        assert_frame_equal(df, original)
+        tm.assert_frame_equal(df, original)
 
         result = df.assign(B=df.B / df.A)
         expected = expected.drop("B", axis=1).rename(columns={"C": "B"})
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         # overwrite
         result = df.assign(A=df.A + df.B)
         expected = df.copy()
         expected["A"] = [5, 7, 9]
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         # lambda
         result = df.assign(A=lambda x: x.A + x.B)
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_assign_multiple(self):
         df = DataFrame([[1, 4], [2, 5], [3, 6]], columns=["A", "B"])
@@ -54,23 +51,20 @@ class TestDataFrameMutateColumns:
         expected = DataFrame(
             [[1, 4, 7, 1, 4], [2, 5, 8, 2, 5], [3, 6, 9, 3, 6]], columns=list("ABCDE")
         )
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_assign_order(self):
         # GH 9818
         df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
         result = df.assign(D=df.A + df.B, C=df.A - df.B)
 
-        if PY36:
-            expected = DataFrame([[1, 2, 3, -1], [3, 4, 7, -1]], columns=list("ABDC"))
-        else:
-            expected = DataFrame([[1, 2, -1, 3], [3, 4, -1, 7]], columns=list("ABCD"))
-        assert_frame_equal(result, expected)
+        expected = DataFrame([[1, 2, 3, -1], [3, 4, 7, -1]], columns=list("ABDC"))
+        tm.assert_frame_equal(result, expected)
         result = df.assign(C=df.A - df.B, D=df.A + df.B)
 
         expected = DataFrame([[1, 2, -1, 3], [3, 4, -1, 7]], columns=list("ABCD"))
 
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_assign_bad(self):
         df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
@@ -81,35 +75,16 @@ class TestDataFrameMutateColumns:
         with pytest.raises(AttributeError):
             df.assign(C=df.A, D=df.A + df.C)
 
-    @pytest.mark.skipif(
-        PY36,
-        reason="""Issue #14207: valid for python
-                        3.6 and above""",
-    )
-    def test_assign_dependent_old_python(self):
-        df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-
-        # Key C does not exist at definition time of df
-        with pytest.raises(KeyError, match="^'C'$"):
-            df.assign(C=lambda df: df.A, D=lambda df: df["A"] + df["C"])
-        with pytest.raises(KeyError, match="^'C'$"):
-            df.assign(C=df.A, D=lambda x: x["A"] + x["C"])
-
-    @pytest.mark.skipif(
-        not PY36,
-        reason="""Issue #14207: not valid for
-                        python 3.5 and below""",
-    )
     def test_assign_dependent(self):
         df = DataFrame({"A": [1, 2], "B": [3, 4]})
 
         result = df.assign(C=df.A, D=lambda x: x["A"] + x["C"])
         expected = DataFrame([[1, 3, 1, 2], [2, 4, 2, 4]], columns=list("ABCD"))
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         result = df.assign(C=lambda df: df.A, D=lambda df: df["A"] + df["C"])
         expected = DataFrame([[1, 3, 1, 2], [2, 4, 2, 4]], columns=list("ABCD"))
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_insert_error_msmgs(self):
 
@@ -140,7 +115,7 @@ class TestDataFrameMutateColumns:
         for i in range(K):
             df[i] = new_col
         expected = DataFrame(np.repeat(new_col, K).reshape(N, K), index=range(N))
-        assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
 
     def test_insert(self):
         df = DataFrame(
@@ -199,7 +174,7 @@ class TestDataFrameMutateColumns:
         df["X"] = df.index
         df["X"] = ["x", "y", "z"]
         exp = DataFrame(data={"X": ["x", "y", "z"]}, index=["A", "B", "C"])
-        assert_frame_equal(df, exp)
+        tm.assert_frame_equal(df, exp)
 
     def test_delitem(self, float_frame):
         del float_frame["A"]
@@ -277,11 +252,11 @@ class TestDataFrameMutateColumns:
         result = df.rename(columns={})
         str(result)
         expected = DataFrame([[1, 1.1], [2, 2.2]], columns=["a", "b"])
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
         df.insert(0, "c", [1.3, 2.3])
 
         result = df.rename(columns={})
         str(result)
 
         expected = DataFrame([[1.3, 1, 1.1], [2.3, 2, 2.2]], columns=["c", "a", "b"])
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)

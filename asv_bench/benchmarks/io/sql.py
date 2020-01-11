@@ -1,9 +1,11 @@
 import sqlite3
 
 import numpy as np
-import pandas.util.testing as tm
-from pandas import DataFrame, date_range, read_sql_query, read_sql_table
 from sqlalchemy import create_engine
+
+from pandas import DataFrame, date_range, read_sql_query, read_sql_table
+
+from ..pandas_vb_common import tm
 
 
 class SQL:
@@ -18,7 +20,7 @@ class SQL:
             "sqlite": sqlite3.connect(":memory:"),
         }
         self.table_name = "test_type"
-        self.query_all = "SELECT * FROM {}".format(self.table_name)
+        self.query_all = f"SELECT * FROM {self.table_name}"
         self.con = con[connection]
         self.df = DataFrame(
             {
@@ -57,7 +59,7 @@ class WriteSQLDtypes:
             "sqlite": sqlite3.connect(":memory:"),
         }
         self.table_name = "test_type"
-        self.query_col = "SELECT {} FROM {}".format(dtype, self.table_name)
+        self.query_col = f"SELECT {dtype} FROM {self.table_name}"
         self.con = con[connection]
         self.df = DataFrame(
             {
@@ -141,4 +143,4 @@ class ReadSQLTableDtypes:
         read_sql_table(self.table_name, self.con, columns=[dtype])
 
 
-from ..pandas_vb_common import setup  # noqa: F401
+from ..pandas_vb_common import setup  # noqa: F401 isort:skip

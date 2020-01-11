@@ -7,11 +7,10 @@ from pytz import utc
 
 from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.frequencies import INVALID_FREQ_ERR_MSG
-from pandas.compat import PY36
 import pandas.util._test_decorators as td
 
 from pandas import NaT, Timestamp
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.tseries.frequencies import to_offset
 
@@ -375,7 +374,6 @@ class TestTimestampUnaryOps:
         expected = Timestamp("2013-11-3 03:00:00", tz="America/Chicago")
         assert result == expected
 
-    @pytest.mark.skipif(not PY36, reason="Fold not available until PY3.6")
     @pytest.mark.parametrize("fold", [0, 1])
     @pytest.mark.parametrize("tz", ["dateutil/Europe/London", "Europe/London"])
     def test_replace_dst_fold(self, fold, tz):

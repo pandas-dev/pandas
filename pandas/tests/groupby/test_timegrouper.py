@@ -4,16 +4,14 @@ from datetime import datetime
 from io import StringIO
 
 import numpy as np
-from numpy import nan
 import pytest
 import pytz
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range
+import pandas._testing as tm
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.groupby.ops import BinGrouper
-from pandas.util import testing as tm
-from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
 class TestGroupBy:
@@ -51,14 +49,14 @@ class TestGroupBy:
             expected.iloc[[0, 6, 18], 0] = np.array([24, 6, 9], dtype="int64")
 
             result1 = df.resample("5D").sum()
-            assert_frame_equal(result1, expected)
+            tm.assert_frame_equal(result1, expected)
 
             df_sorted = df.sort_index()
             result2 = df_sorted.groupby(pd.Grouper(freq="5D")).sum()
-            assert_frame_equal(result2, expected)
+            tm.assert_frame_equal(result2, expected)
 
             result3 = df.groupby(pd.Grouper(freq="5D")).sum()
-            assert_frame_equal(result3, expected)
+            tm.assert_frame_equal(result3, expected)
 
     @pytest.mark.parametrize("should_sort", [True, False])
     def test_groupby_with_timegrouper_methods(self, should_sort):
@@ -132,7 +130,7 @@ class TestGroupBy:
             ).set_index(["Date", "Buyer"])
 
             result = df.groupby([pd.Grouper(freq="A"), "Buyer"]).sum()
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
             expected = DataFrame(
                 {
@@ -147,7 +145,7 @@ class TestGroupBy:
                 }
             ).set_index(["Date", "Buyer"])
             result = df.groupby([pd.Grouper(freq="6MS"), "Buyer"]).sum()
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
         df_original = DataFrame(
             {
@@ -185,7 +183,7 @@ class TestGroupBy:
             ).set_index(["Date", "Buyer"])
 
             result = df.groupby([pd.Grouper(freq="1D"), "Buyer"]).sum()
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
             result = df.groupby([pd.Grouper(freq="1M"), "Buyer"]).sum()
             expected = DataFrame(
@@ -199,12 +197,12 @@ class TestGroupBy:
                     ],
                 }
             ).set_index(["Date", "Buyer"])
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
             # passing the name
             df = df.reset_index()
             result = df.groupby([pd.Grouper(freq="1M", key="Date"), "Buyer"]).sum()
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
             with pytest.raises(KeyError, match="'The grouper name foo is not found'"):
                 df.groupby([pd.Grouper(freq="1M", key="foo"), "Buyer"]).sum()
@@ -212,9 +210,9 @@ class TestGroupBy:
             # passing the level
             df = df.set_index("Date")
             result = df.groupby([pd.Grouper(freq="1M", level="Date"), "Buyer"]).sum()
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
             result = df.groupby([pd.Grouper(freq="1M", level=0), "Buyer"]).sum()
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
             with pytest.raises(ValueError):
                 df.groupby([pd.Grouper(freq="1M", level="foo"), "Buyer"]).sum()
@@ -234,7 +232,7 @@ class TestGroupBy:
                     ],
                 }
             ).set_index(["Date", "Buyer"])
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
             # error as we have both a level and a name!
             with pytest.raises(ValueError):
@@ -247,19 +245,19 @@ class TestGroupBy:
                 {"Quantity": [31], "Date": [datetime(2013, 10, 31, 0, 0)]}
             ).set_index("Date")
             result = df.groupby(pd.Grouper(freq="1M")).sum()
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
             result = df.groupby([pd.Grouper(freq="1M")]).sum()
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
             expected = DataFrame(
                 {"Quantity": [31], "Date": [datetime(2013, 11, 30, 0, 0)]}
             ).set_index("Date")
             result = df.groupby(pd.Grouper(freq="1M", key="Date")).sum()
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
             result = df.groupby([pd.Grouper(freq="1M", key="Date")]).sum()
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("freq", ["D", "M", "A", "Q-APR"])
     def test_timegrouper_with_reg_groups_freq(self, freq):
@@ -317,10 +315,10 @@ class TestGroupBy:
             .groupby([pd.Grouper(freq=freq), "user_id"])["whole_cost"]
             .sum()
         )
-        assert_series_equal(result1, expected)
+        tm.assert_series_equal(result1, expected)
 
         result2 = df.groupby([pd.Grouper(freq=freq), "user_id"])["whole_cost"].sum()
-        assert_series_equal(result2, expected)
+        tm.assert_series_equal(result2, expected)
 
     def test_timegrouper_get_group(self):
         # GH 6914
@@ -354,7 +352,7 @@ class TestGroupBy:
             for t, expected in zip(dt_list, expected_list):
                 dt = pd.Timestamp(t)
                 result = grouped.get_group(dt)
-                assert_frame_equal(result, expected)
+                tm.assert_frame_equal(result, expected)
 
         # multiple grouping
         expected_list = [
@@ -369,7 +367,7 @@ class TestGroupBy:
             for (b, t), expected in zip(g_list, expected_list):
                 dt = pd.Timestamp(t)
                 result = grouped.get_group((b, dt))
-                assert_frame_equal(result, expected)
+                tm.assert_frame_equal(result, expected)
 
         # with index
         df_original = df_original.set_index("Date")
@@ -386,7 +384,7 @@ class TestGroupBy:
             for t, expected in zip(dt_list, expected_list):
                 dt = pd.Timestamp(t)
                 result = grouped.get_group(dt)
-                assert_frame_equal(result, expected)
+                tm.assert_frame_equal(result, expected)
 
     def test_timegrouper_apply_return_type_series(self):
         # Using `apply` with the `TimeGrouper` should give the
@@ -401,7 +399,7 @@ class TestGroupBy:
 
         expected = df.groupby(pd.Grouper(key="date")).apply(sumfunc_series)
         result = df_dt.groupby(pd.Grouper(freq="M", key="date")).apply(sumfunc_series)
-        assert_frame_equal(
+        tm.assert_frame_equal(
             result.reset_index(drop=True), expected.reset_index(drop=True)
         )
 
@@ -418,7 +416,7 @@ class TestGroupBy:
 
         expected = df.groupby(pd.Grouper(key="date")).apply(sumfunc_value)
         result = df_dt.groupby(Grouper(freq="M", key="date")).apply(sumfunc_value)
-        assert_series_equal(
+        tm.assert_series_equal(
             result.reset_index(drop=True), expected.reset_index(drop=True)
         )
 
@@ -494,7 +492,7 @@ class TestGroupBy:
         )
 
         result = df.groupby(["datetime", "label"]).sum()
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         # by level
         didx = pd.DatetimeIndex(dates, tz="Asia/Tokyo")
@@ -514,7 +512,7 @@ class TestGroupBy:
         )
 
         result = df.groupby(level=0).sum()
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_frame_datetime64_handling_groupby(self):
         # it works!
@@ -551,7 +549,7 @@ class TestGroupBy:
             name="date",
             dtype=object,
         )
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         tz = "America/Chicago"
         res_values = df.groupby("tz").date.get_group(tz)
@@ -562,7 +560,7 @@ class TestGroupBy:
             name="date",
         )
         expected = pd.to_datetime(exp_values).dt.tz_localize(tz)
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_groupby_groups_periods(self):
         dates = [
@@ -603,7 +601,7 @@ class TestGroupBy:
         )
 
         result = df.groupby(["period", "label"]).sum()
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         # by level
         didx = pd.PeriodIndex(dates, freq="H")
@@ -623,7 +621,7 @@ class TestGroupBy:
         )
 
         result = df.groupby(level=0).sum()
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_groupby_first_datetime64(self):
         df = DataFrame([(1, 1351036800000000000), (2, 1351036800000000000)])
@@ -645,7 +643,7 @@ class TestGroupBy:
         df = DataFrame(dict(A=Timestamp("20130101"), B=np.arange(5)))
         expected = df.groupby("A")["A"].apply(lambda x: x.max())
         result = df.groupby("A")["A"].max()
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_groupby_datetime64_32_bit(self):
         # GH 6410 / numpy 4328
@@ -654,7 +652,7 @@ class TestGroupBy:
         df = DataFrame({"A": range(2), "B": [pd.Timestamp("2000-01-1")] * 2})
         result = df.groupby("A")["B"].transform(min)
         expected = Series([pd.Timestamp("2000-01-1")] * 2, name="B")
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_groupby_with_timezone_selection(self):
         # GH 11616
@@ -699,13 +697,13 @@ class TestGroupBy:
         df_test = DataFrame(
             {
                 "dt": [
-                    nan,
+                    np.nan,
                     "2015-07-24 10:10",
                     "2015-07-25 11:11",
                     "2015-07-23 12:12",
-                    nan,
+                    np.nan,
                 ],
-                "td": [nan, td(days=1), td(days=2), td(days=3), nan],
+                "td": [np.nan, td(days=1), td(days=2), td(days=3), np.nan],
             }
         )
         df_test.dt = pd.to_datetime(df_test.dt)
@@ -715,10 +713,10 @@ class TestGroupBy:
         grouped_test = df_test.groupby("group")
         grouped_ref = df_ref.groupby("group")
 
-        assert_frame_equal(grouped_ref.max(), grouped_test.max())
-        assert_frame_equal(grouped_ref.min(), grouped_test.min())
-        assert_frame_equal(grouped_ref.first(), grouped_test.first())
-        assert_frame_equal(grouped_ref.last(), grouped_test.last())
+        tm.assert_frame_equal(grouped_ref.max(), grouped_test.max())
+        tm.assert_frame_equal(grouped_ref.min(), grouped_test.min())
+        tm.assert_frame_equal(grouped_ref.first(), grouped_test.first())
+        tm.assert_frame_equal(grouped_ref.last(), grouped_test.last())
 
     def test_nunique_with_timegrouper_and_nat(self):
         # GH 17575
@@ -756,4 +754,4 @@ class TestGroupBy:
         grouped = data_frame.groupby([grouper])
         expected = grouped.count()
 
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)

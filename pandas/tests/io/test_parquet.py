@@ -1,5 +1,6 @@
 """ test parquet compat """
 import datetime
+from distutils.version import LooseVersion
 import os
 from warnings import catch_warnings
 
@@ -9,7 +10,7 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas.util import testing as tm
+import pandas._testing as tm
 
 from pandas.io.parquet import (
     FastParquetImpl,
@@ -32,6 +33,10 @@ try:
     _HAVE_FASTPARQUET = True
 except ImportError:
     _HAVE_FASTPARQUET = False
+
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:RangeIndex.* is deprecated:DeprecationWarning"
+)
 
 
 # setup engines & skips
@@ -162,6 +167,7 @@ def check_round_trip(
             df.to_parquet(path, **write_kwargs)
             with catch_warnings(record=True):
                 actual = read_parquet(path, **read_kwargs)
+
             tm.assert_frame_equal(expected, actual, check_names=check_names)
 
     if path is None:
@@ -233,6 +239,15 @@ def test_cross_engine_pa_fp(df_cross_compat, pa, fp):
 
 def test_cross_engine_fp_pa(df_cross_compat, pa, fp):
     # cross-compat with differing reading/writing engines
+
+    if (
+        LooseVersion(pyarrow.__version__) < "0.15"
+        and LooseVersion(pyarrow.__version__) >= "0.13"
+    ):
+        pytest.xfail(
+            "Reading fastparquet with pyarrow in 0.14 fails: "
+            "https://issues.apache.org/jira/browse/ARROW-6492"
+        )
 
     df = df_cross_compat
     with tm.ensure_clean() as path:
@@ -390,7 +405,7 @@ class TestBasic(Base):
             ["one", "two", "one", "two", "one", "two", "one", "two"],
         ]
         df = pd.DataFrame(
-            {"one": [i for i in range(8)], "two": [-i for i in range(8)]}, index=arrays
+            {"one": list(range(8)), "two": [-i for i in range(8)]}, index=arrays
         )
 
         expected = df.reset_index(drop=True)
@@ -408,8 +423,6 @@ class TestParquetPyArrow(Base):
 
         check_round_trip(df, pa)
 
-    # TODO: This doesn't fail on all systems; track down which
-    @pytest.mark.xfail(reason="pyarrow fails on this (ARROW-1883)", strict=False)
     def test_basic_subset_columns(self, pa, df_full):
         # GH18628
 
@@ -430,11 +443,12 @@ class TestParquetPyArrow(Base):
         self.check_error_on_write(df, pa, ValueError)
 
     def test_unsupported(self, pa):
-        # period
-        df = pd.DataFrame({"a": pd.period_range("2013", freq="M", periods=3)})
-        # pyarrow 0.11 raises ArrowTypeError
-        # older pyarrows raise ArrowInvalid
-        self.check_error_on_write(df, pa, Exception)
+        if LooseVersion(pyarrow.__version__) < LooseVersion("0.15.1.dev"):
+            # period - will be supported using an extension type with pyarrow 1.0
+            df = pd.DataFrame({"a": pd.period_range("2013", freq="M", periods=3)})
+            # pyarrow 0.11 raises ArrowTypeError
+            # older pyarrows raise ArrowInvalid
+            self.check_error_on_write(df, pa, Exception)
 
         # timedelta
         df = pd.DataFrame({"a": pd.timedelta_range("1 day", periods=3)})
@@ -449,11 +463,26 @@ class TestParquetPyArrow(Base):
     def test_categorical(self, pa):
 
         # supported in >= 0.7.0
-        df = pd.DataFrame({"a": pd.Categorical(list("abc"))})
+        df = pd.DataFrame()
+        df["a"] = pd.Categorical(list("abcdef"))
 
-        # de-serialized as object
-        expected = df.assign(a=df.a.astype(object))
-        check_round_trip(df, pa, expected=expected)
+        # test for null, out-of-order values, and unobserved category
+        df["b"] = pd.Categorical(
+            ["bar", "foo", "foo", "bar", None, "bar"],
+            dtype=pd.CategoricalDtype(["foo", "bar", "baz"]),
+        )
+
+        # test for ordered flag
+        df["c"] = pd.Categorical(
+            ["a", "b", "c", "a", "c", "b"], categories=["b", "c", "d"], ordered=True
+        )
+
+        if LooseVersion(pyarrow.__version__) >= LooseVersion("0.15.0"):
+            check_round_trip(df, pa)
+        else:
+            # de-serialized as object for pyarrow < 0.15
+            expected = df.astype(object)
+            check_round_trip(df, pa, expected=expected)
 
     def test_s3_roundtrip(self, df_compat, s3_resource, pa):
         # GH #19134
@@ -471,14 +500,73 @@ class TestParquetPyArrow(Base):
             assert len(dataset.partitions.partition_names) == 2
             assert dataset.partitions.partition_names == set(partition_cols)
 
+    def test_partition_cols_string(self, pa, df_full):
+        # GH #27117
+        partition_cols = "bool"
+        partition_cols_list = [partition_cols]
+        df = df_full
+        with tm.ensure_clean_dir() as path:
+            df.to_parquet(path, partition_cols=partition_cols, compression=None)
+            import pyarrow.parquet as pq
+
+            dataset = pq.ParquetDataset(path, validate_schema=False)
+            assert len(dataset.partitions.partition_names) == 1
+            assert dataset.partitions.partition_names == set(partition_cols_list)
+
     def test_empty_dataframe(self, pa):
         # GH #27339
         df = pd.DataFrame()
         check_round_trip(df, pa)
 
+    def test_write_with_schema(self, pa):
+        import pyarrow
+
+        df = pd.DataFrame({"x": [0, 1]})
+        schema = pyarrow.schema([pyarrow.field("x", type=pyarrow.bool_())])
+        out_df = df.astype(bool)
+        check_round_trip(df, pa, write_kwargs={"schema": schema}, expected=out_df)
+
+    @td.skip_if_no("pyarrow", min_version="0.15.0")
+    def test_additional_extension_arrays(self, pa):
+        # test additional ExtensionArrays that are supported through the
+        # __arrow_array__ protocol
+        df = pd.DataFrame(
+            {
+                "a": pd.Series([1, 2, 3], dtype="Int64"),
+                "b": pd.Series(["a", None, "c"], dtype="string"),
+            }
+        )
+        if LooseVersion(pyarrow.__version__) >= LooseVersion("0.15.1.dev"):
+            expected = df
+        else:
+            # de-serialized as plain int / object
+            expected = df.assign(a=df.a.astype("int64"), b=df.b.astype("object"))
+        check_round_trip(df, pa, expected=expected)
+
+        df = pd.DataFrame({"a": pd.Series([1, 2, 3, None], dtype="Int64")})
+        if LooseVersion(pyarrow.__version__) >= LooseVersion("0.15.1.dev"):
+            expected = df
+        else:
+            # if missing values in integer, currently de-serialized as float
+            expected = df.assign(a=df.a.astype("float64"))
+        check_round_trip(df, pa, expected=expected)
+
+    @td.skip_if_no("pyarrow", min_version="0.15.1.dev")
+    def test_additional_extension_types(self, pa):
+        # test additional ExtensionArrays that are supported through the
+        # __arrow_array__ protocol + by defining a custom ExtensionType
+        df = pd.DataFrame(
+            {
+                # Arrow does not yet support struct in writing to Parquet (ARROW-1644)
+                # "c": pd.arrays.IntervalArray.from_tuples([(0, 1), (1, 2), (3, 4)]),
+                "d": pd.period_range("2012-01-01", periods=3, freq="D"),
+            }
+        )
+        check_round_trip(df, pa)
+
 
 class TestParquetFastParquet(Base):
-    @td.skip_if_no("fastparquet", min_version="0.2.1")
+    @td.skip_if_no("fastparquet", min_version="0.3.2")
     def test_basic(self, fp, df_full):
         df = df_full
 
@@ -540,6 +628,23 @@ class TestParquetFastParquet(Base):
 
             actual_partition_cols = fastparquet.ParquetFile(path, False).cats
             assert len(actual_partition_cols) == 2
+
+    def test_partition_cols_string(self, fp, df_full):
+        # GH #27117
+        partition_cols = "bool"
+        df = df_full
+        with tm.ensure_clean_dir() as path:
+            df.to_parquet(
+                path,
+                engine="fastparquet",
+                partition_cols=partition_cols,
+                compression=None,
+            )
+            assert os.path.exists(path)
+            import fastparquet  # noqa: F811
+
+            actual_partition_cols = fastparquet.ParquetFile(path, False).cats
+            assert len(actual_partition_cols) == 1
 
     def test_partition_on_supported(self, fp, df_full):
         # GH #23283

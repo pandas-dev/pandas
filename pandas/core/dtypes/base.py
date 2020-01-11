@@ -1,5 +1,5 @@
 """Extend pandas with custom array types"""
-from typing import List, Optional, Tuple, Type
+from typing import Any, List, Optional, Tuple, Type
 
 import numpy as np
 
@@ -63,19 +63,32 @@ class ExtensionDtype:
        Added ``_metadata``, ``__hash__``, and changed the default definition
        of ``__eq__``.
 
+    For interaction with Apache Arrow (pyarrow), a ``__from_arrow__`` method
+    can be implemented: this method receives a pyarrow Array or ChunkedArray
+    as only argument and is expected to return the appropriate pandas
+    ExtensionArray for this dtype and the passed values::
+
+        class ExtensionDtype:
+
+            def __from_arrow__(
+                self, array: pyarrow.Array/ChunkedArray
+            ) -> ExtensionArray:
+                ...
+
     This class does not inherit from 'abc.ABCMeta' for performance reasons.
     Methods and properties required by the interface raise
     ``pandas.errors.AbstractMethodError`` and no ``register`` method is
     provided for registering virtual subclasses.
     """
 
-    _metadata = ()  # type: Tuple[str, ...]
+    _metadata: Tuple[str, ...] = ()
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
 
-    def __eq__(self, other):
-        """Check whether 'other' is equal to self.
+    def __eq__(self, other: Any) -> bool:
+        """
+        Check whether 'other' is equal to self.
 
         By default, 'other' is considered equal if either
 
@@ -103,10 +116,10 @@ class ExtensionDtype:
             )
         return False
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(tuple(getattr(self, attr) for attr in self._metadata))
 
-    def __ne__(self, other):
+    def __ne__(self, other) -> bool:
         return not self.__eq__(other)
 
     @property
@@ -159,7 +172,8 @@ class ExtensionDtype:
 
     @property
     def names(self) -> Optional[List[str]]:
-        """Ordered list of field names, or None if there are no fields.
+        """
+        Ordered list of field names, or None if there are no fields.
 
         This is for compatibility with NumPy arrays, and may be removed in the
         future.
@@ -169,7 +183,7 @@ class ExtensionDtype:
     @classmethod
     def construct_array_type(cls):
         """
-        Return the array type associated with this dtype
+        Return the array type associated with this dtype.
 
         Returns
         -------
@@ -217,20 +231,23 @@ class ExtensionDtype:
         ...     if match:
         ...         return cls(**match.groupdict())
         ...     else:
-        ...         raise TypeError("Cannot construct a '{}' from "
-        ...                         "'{}'".format(cls.__name__, string))
+        ...         raise TypeError(f"Cannot construct a '{cls.__name__}' from
+        ...             " "'{string}'")
         """
         if not isinstance(string, str):
-            raise TypeError("Expects a string, got {}".format(type(string)))
+            raise TypeError(f"Expects a string, got {type(string).__name__}")
+
+        # error: Non-overlapping equality check (left operand type: "str", right
+        #  operand type: "Callable[[ExtensionDtype], str]")  [comparison-overlap]
+        assert isinstance(cls.name, str), (cls, type(cls.name))
         if string != cls.name:
-            raise TypeError(
-                "Cannot construct a '{}' from '{}'".format(cls.__name__, string)
-            )
+            raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
         return cls()
 
     @classmethod
     def is_dtype(cls, dtype) -> bool:
-        """Check if we match 'dtype'.
+        """
+        Check if we match 'dtype'.
 
         Parameters
         ----------
@@ -263,10 +280,12 @@ class ExtensionDtype:
             return False
         elif isinstance(dtype, cls):
             return True
-        try:
-            return cls.construct_from_string(dtype) is not None
-        except TypeError:
-            return False
+        if isinstance(dtype, str):
+            try:
+                return cls.construct_from_string(dtype) is not None
+            except TypeError:
+                return False
+        return False
 
     @property
     def _is_numeric(self) -> bool:

@@ -142,16 +142,6 @@ class TestArithmeticOps(BaseDatetimeTests, base.BaseArithmeticOpsTests):
         # skipping because it is not implemented
         pass
 
-    @pytest.mark.xfail(reason="different implementation", strict=False)
-    def test_direct_arith_with_series_returns_not_implemented(self, data):
-        # Right now, we have trouble with this. Returning NotImplemented
-        # fails other tests like
-        # tests/arithmetic/test_datetime64::TestTimestampSeriesArithmetic::
-        # test_dt64_seris_add_intlike
-        return super(
-            TestArithmeticOps, self
-        ).test_direct_arith_with_series_returns_not_implemented(data)
-
 
 class TestCasting(BaseDatetimeTests, base.BaseCastingTests):
     pass
@@ -162,12 +152,6 @@ class TestComparisonOps(BaseDatetimeTests, base.BaseComparisonOpsTests):
         # the base test is not appropriate for us. We raise on comparison
         # with (some) integers, depending on the value.
         pass
-
-    @pytest.mark.xfail(reason="different implementation", strict=False)
-    def test_direct_arith_with_series_returns_not_implemented(self, data):
-        return super(
-            TestComparisonOps, self
-        ).test_direct_arith_with_series_returns_not_implemented(data)
 
 
 class TestMissing(BaseDatetimeTests, base.BaseMissingTests):

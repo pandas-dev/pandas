@@ -312,14 +312,13 @@ Timezone handling improvements
   previously this resulted in ``Exception`` or ``TypeError`` (:issue:`7812`)
 
   .. ipython:: python
-     :okwarning:
 
      ts = pd.Timestamp('2014-08-01 09:00', tz='US/Eastern')
      ts
      ts.tz_localize(None)
 
-     didx = pd.DatetimeIndex(start='2014-08-01 09:00', freq='H',
-                             periods=10, tz='US/Eastern')
+     didx = pd.date_range(start='2014-08-01 09:00', freq='H',
+                          periods=10, tz='US/Eastern')
      didx
      didx.tz_localize(None)
 
@@ -853,7 +852,7 @@ Other notable API changes:
      A value is trying to be set on a copy of a slice from a DataFrame.
      Try using .loc[row_indexer,col_indexer] = value instead
 
-     See the caveats in the documentation: http://pandas.pydata.org/pandas-docs/stable/indexing.html#indexing-view-versus-copy
+     See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/indexing.html#indexing-view-versus-copy
 
 - ``merge``, ``DataFrame.merge``, and ``ordered_merge`` now return the same type
   as the ``left`` argument (:issue:`7737`).

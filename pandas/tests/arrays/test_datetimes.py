@@ -9,18 +9,23 @@ import pytest
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray
 from pandas.core.arrays.datetimes import sequence_to_dt64ns
-import pandas.util.testing as tm
 
 
 class TestDatetimeArrayConstructor:
+    def test_from_sequence_invalid_type(self):
+        mi = pd.MultiIndex.from_product([np.arange(5), np.arange(5)])
+        with pytest.raises(TypeError, match="Cannot create a DatetimeArray"):
+            DatetimeArray._from_sequence(mi)
+
     def test_only_1dim_accepted(self):
         arr = np.array([0, 1, 2, 3], dtype="M8[h]").astype("M8[ns]")
 
         with pytest.raises(ValueError, match="Only 1-dimensional"):
-            # 2-dim
-            DatetimeArray(arr.reshape(2, 2))
+            # 3-dim, we allow 2D to sneak in for ops purposes GH#29853
+            DatetimeArray(arr.reshape(2, 2, 1))
 
         with pytest.raises(ValueError, match="Only 1-dimensional"):
             # 0-dim
@@ -168,7 +173,7 @@ class TestDatetimeArray:
     def test_setitem_different_tz_raises(self):
         data = np.array([1, 2, 3], dtype="M8[ns]")
         arr = DatetimeArray(data, copy=False, dtype=DatetimeTZDtype(tz="US/Central"))
-        with pytest.raises(ValueError, match="None"):
+        with pytest.raises(TypeError, match="Cannot compare tz-naive and tz-aware"):
             arr[0] = pd.Timestamp("2000")
 
         with pytest.raises(ValueError, match="US/Central"):
@@ -178,6 +183,22 @@ class TestDatetimeArray:
         a = DatetimeArray(pd.date_range("2000", periods=2, freq="D", tz="US/Central"))
         a[0] = pd.Timestamp("2000", tz="US/Central")
         assert a.freq is None
+
+    @pytest.mark.parametrize(
+        "obj",
+        [
+            pd.Timestamp.now(),
+            pd.Timestamp.now().to_datetime64(),
+            pd.Timestamp.now().to_pydatetime(),
+        ],
+    )
+    def test_setitem_objects(self, obj):
+        # make sure we accept datetime64 and datetime in addition to Timestamp
+        dti = pd.date_range("2000", periods=2, freq="D")
+        arr = dti._data
+
+        arr[0] = obj
+        assert arr[0] == obj
 
     def test_repeat_preserves_tz(self):
         dti = pd.date_range("2000", periods=2, freq="D", tz="US/Central")
@@ -260,6 +281,77 @@ class TestDatetimeArray:
             dtype=object,
         )
         tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize("index", [True, False])
+    def test_searchsorted_different_tz(self, index):
+        data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
+        arr = DatetimeArray(data, freq="D").tz_localize("Asia/Tokyo")
+        if index:
+            arr = pd.Index(arr)
+
+        expected = arr.searchsorted(arr[2])
+        result = arr.searchsorted(arr[2].tz_convert("UTC"))
+        assert result == expected
+
+        expected = arr.searchsorted(arr[2:6])
+        result = arr.searchsorted(arr[2:6].tz_convert("UTC"))
+        tm.assert_equal(result, expected)
+
+    @pytest.mark.parametrize("index", [True, False])
+    def test_searchsorted_tzawareness_compat(self, index):
+        data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
+        arr = DatetimeArray(data, freq="D")
+        if index:
+            arr = pd.Index(arr)
+
+        mismatch = arr.tz_localize("Asia/Tokyo")
+
+        msg = "Cannot compare tz-naive and tz-aware datetime-like objects"
+        with pytest.raises(TypeError, match=msg):
+            arr.searchsorted(mismatch[0])
+        with pytest.raises(TypeError, match=msg):
+            arr.searchsorted(mismatch)
+
+        with pytest.raises(TypeError, match=msg):
+            mismatch.searchsorted(arr[0])
+        with pytest.raises(TypeError, match=msg):
+            mismatch.searchsorted(arr)
+
+    @pytest.mark.parametrize(
+        "other",
+        [
+            1,
+            np.int64(1),
+            1.0,
+            np.timedelta64("NaT"),
+            pd.Timedelta(days=2),
+            "invalid",
+            np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9,
+            np.arange(10).view("timedelta64[ns]") * 24 * 3600 * 10 ** 9,
+            pd.Timestamp.now().to_period("D"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "index",
+        [
+            True,
+            pytest.param(
+                False,
+                marks=pytest.mark.xfail(
+                    reason="Raises ValueError instead of TypeError", raises=ValueError
+                ),
+            ),
+        ],
+    )
+    def test_searchsorted_invalid_types(self, other, index):
+        data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
+        arr = DatetimeArray(data, freq="D")
+        if index:
+            arr = pd.Index(arr)
+
+        msg = "searchsorted requires compatible dtype or scalar"
+        with pytest.raises(TypeError, match=msg):
+            arr.searchsorted(other)
 
 
 class TestSequenceToDT64NS:

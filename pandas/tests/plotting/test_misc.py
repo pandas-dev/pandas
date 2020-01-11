@@ -10,8 +10,8 @@ import pytest
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame, Series
+import pandas._testing as tm
 from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
-import pandas.util.testing as tm
 
 import pandas.plotting as plotting
 
@@ -21,7 +21,7 @@ def test_import_error_message():
     # GH-19810
     df = DataFrame({"A": [1, 2]})
 
-    with pytest.raises(ImportError, match="No module named 'matplotlib'"):
+    with pytest.raises(ImportError, match="matplotlib is required for plotting"):
         df.plot()
 
 
@@ -32,14 +32,9 @@ def test_get_accessor_args():
     with pytest.raises(TypeError, match=msg):
         func(backend_name="", data=[], args=[], kwargs={})
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        x, y, kind, kwargs = func(
-            backend_name="", data=Series(), args=["line", None], kwargs={}
-        )
-    assert x is None
-    assert y is None
-    assert kind == "line"
-    assert kwargs == {"ax": None}
+    msg = "should not be called with positional arguments"
+    with pytest.raises(TypeError, match=msg):
+        func(backend_name="", data=Series(dtype=object), args=["line", None], kwargs={})
 
     x, y, kind, kwargs = func(
         backend_name="",
@@ -53,7 +48,10 @@ def test_get_accessor_args():
     assert kwargs == {"grid": False}
 
     x, y, kind, kwargs = func(
-        backend_name="pandas.plotting._matplotlib", data=Series(), args=[], kwargs={}
+        backend_name="pandas.plotting._matplotlib",
+        data=Series(dtype=object),
+        args=[],
+        kwargs={},
     )
     assert x is None
     assert y is None
@@ -204,9 +202,6 @@ class TestDataFramePlots(TestPlotBase):
         handles, labels = ax.get_legend_handles_labels()
         self._check_colors(handles, linecolors=colors)
 
-        with tm.assert_produces_warning(FutureWarning):
-            andrews_curves(data=df, class_column="Name")
-
     @pytest.mark.slow
     def test_parallel_coordinates(self, iris):
         from pandas.plotting import parallel_coordinates
@@ -253,11 +248,6 @@ class TestDataFramePlots(TestPlotBase):
         handles, labels = ax.get_legend_handles_labels()
         self._check_colors(handles, linecolors=colors)
 
-        with tm.assert_produces_warning(FutureWarning):
-            parallel_coordinates(data=df, class_column="Name")
-        with tm.assert_produces_warning(FutureWarning):
-            parallel_coordinates(df, "Name", colors=colors)
-
     # not sure if this is indicative of a problem
     @pytest.mark.filterwarnings("ignore:Attempting to set:UserWarning")
     def test_parallel_coordinates_with_sorted_labels(self):
@@ -266,7 +256,7 @@ class TestDataFramePlots(TestPlotBase):
 
         df = DataFrame(
             {
-                "feat": [i for i in range(30)],
+                "feat": list(range(30)),
                 "class": [2 for _ in range(10)]
                 + [3 for _ in range(10)]
                 + [1 for _ in range(10)],
@@ -279,8 +269,7 @@ class TestDataFramePlots(TestPlotBase):
         )
         ordered_color_label_tuples = sorted(color_label_tuples, key=lambda x: x[1])
         prev_next_tupels = zip(
-            [i for i in ordered_color_label_tuples[0:-1]],
-            [i for i in ordered_color_label_tuples[1:]],
+            list(ordered_color_label_tuples[0:-1]), list(ordered_color_label_tuples[1:])
         )
         for prev, nxt in prev_next_tupels:
             # labels and colors are ordered strictly increasing

@@ -95,7 +95,10 @@ class TestGrouping(BaseInterval, base.BaseGroupbyTests):
 
 
 class TestInterface(BaseInterval, base.BaseInterfaceTests):
-    pass
+    def test_view(self, data):
+        # __setitem__ incorrectly makes a copy (GH#27147), so we only
+        #  have a smoke-test
+        data.view()
 
 
 class TestReduce(base.BaseNoReduceTests):
@@ -144,7 +147,9 @@ class TestReshaping(BaseInterval, base.BaseReshapingTests):
 
 
 class TestSetitem(BaseInterval, base.BaseSetitemTests):
-    pass
+    @pytest.mark.xfail(reason="GH#27147 setitem changes underlying index")
+    def test_setitem_preserves_views(self, data):
+        super().test_setitem_preserves_views(data)
 
 
 class TestPrinting(BaseInterval, base.BasePrintingTests):

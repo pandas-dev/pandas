@@ -11,7 +11,7 @@ from pandas._libs.tslibs import parsing
 from pandas._libs.tslibs.parsing import parse_time_string
 import pandas.util._test_decorators as td
 
-from pandas.util import testing as tm
+import pandas._testing as tm
 
 
 def test_parse_time_string():
@@ -21,6 +21,12 @@ def test_parse_time_string():
     assert date == date_lower
     assert reso == reso_lower
     assert parsed == parsed_lower
+
+
+def test_parse_time_string_invalid_type():
+    # Raise on invalid input, don't just return it
+    with pytest.raises(TypeError):
+        parse_time_string((4, 5))
 
 
 @pytest.mark.parametrize(
@@ -209,3 +215,13 @@ def test_try_parse_dates():
 
     expected = np.array([parse(d, dayfirst=True) for d in arr])
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_parse_time_string_check_instance_type_raise_exception():
+    # issue 20684
+    with pytest.raises(TypeError):
+        parse_time_string((1, 2, 3))
+
+    result = parse_time_string("2019")
+    expected = (datetime(2019, 1, 1), datetime(2019, 1, 1), "year")
+    assert result == expected

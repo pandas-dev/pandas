@@ -1,6 +1,8 @@
 import numpy as np
-import pandas.util.testing as tm
-from pandas import DataFrame, Series, MultiIndex, Timestamp, date_range
+
+from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range
+
+from .pandas_vb_common import tm
 
 try:
     from pandas.tseries.offsets import Nano, Hour
@@ -98,10 +100,22 @@ class FromLists:
     def setup(self):
         N = 1000
         M = 100
-        self.data = [[j for j in range(M)] for i in range(N)]
+        self.data = [list(range(M)) for i in range(N)]
 
     def time_frame_from_lists(self):
         self.df = DataFrame(self.data)
 
 
-from .pandas_vb_common import setup  # noqa: F401
+class FromRange:
+
+    goal_time = 0.2
+
+    def setup(self):
+        N = 1_000_000
+        self.data = range(N)
+
+    def time_frame_from_range(self):
+        self.df = DataFrame(self.data)
+
+
+from .pandas_vb_common import setup  # noqa: F401 isort:skip

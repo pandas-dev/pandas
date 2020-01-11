@@ -21,8 +21,8 @@ from pandas import (
     timedelta_range,
     to_timedelta,
 )
+import pandas._testing as tm
 from pandas.core import nanops
-import pandas.util.testing as tm
 
 
 def get_objs():
@@ -79,7 +79,7 @@ class TestReductions:
                 assert pd.isna(getattr(obj, opname)())
                 assert pd.isna(getattr(obj, opname)(skipna=False))
 
-                obj = klass([])
+                obj = klass([], dtype=object)
                 assert pd.isna(getattr(obj, opname)())
                 assert pd.isna(getattr(obj, opname)(skipna=False))
 
@@ -179,8 +179,8 @@ class TestIndexReductions:
         [
             (0, 400, 3),
             (500, 0, -6),
-            (-10 ** 6, 10 ** 6, 4),
-            (10 ** 6, -10 ** 6, -4),
+            (-(10 ** 6), 10 ** 6, 4),
+            (10 ** 6, -(10 ** 6), -4),
             (0, 10, 20),
         ],
     )
@@ -299,12 +299,6 @@ class TestIndexReductions:
         result = td.to_frame().std()
         assert result[0] == expected
 
-        # invalid ops
-        for op in ["skew", "kurt", "sem", "prod"]:
-            msg = "reduction operation '{}' not allowed for this dtype"
-            with pytest.raises(TypeError, match=msg.format(op)):
-                getattr(td, op)()
-
         # GH#10040
         # make sure NaT is properly handled by median()
         s = Series([Timestamp("2015-02-03"), Timestamp("2015-02-07")])
@@ -314,6 +308,22 @@ class TestIndexReductions:
             [Timestamp("2015-02-03"), Timestamp("2015-02-07"), Timestamp("2015-02-15")]
         )
         assert s.diff().median() == timedelta(days=6)
+
+    @pytest.mark.parametrize("opname", ["skew", "kurt", "sem", "prod", "var"])
+    def test_invalid_td64_reductions(self, opname):
+        s = Series(
+            [Timestamp("20130101") + timedelta(seconds=i * i) for i in range(10)]
+        )
+        td = s.diff()
+
+        msg = "reduction operation '{op}' not allowed for this dtype"
+        msg = msg.format(op=opname)
+
+        with pytest.raises(TypeError, match=msg):
+            getattr(td, opname)()
+
+        with pytest.raises(TypeError, match=msg):
+            getattr(td.to_frame(), opname)(numeric_only=False)
 
     def test_minmax_tz(self, tz_naive_fixture):
         tz = tz_naive_fixture
@@ -518,7 +528,7 @@ class TestSeriesReductions:
         with pd.option_context("use_bottleneck", use_bottleneck):
             # GH#9422 / GH#18921
             # Entirely empty
-            s = Series([])
+            s = Series([], dtype=object)
             # NA by default
             result = getattr(s, method)()
             assert result == unit
@@ -636,8 +646,13 @@ class TestSeriesReductions:
         assert pd.isna(result)
 
         # timedelta64[ns]
-        result = getattr(Series(dtype="m8[ns]"), method)()
-        assert result is pd.NaT
+        tdser = Series([], dtype="m8[ns]")
+        if method == "var":
+            with pytest.raises(TypeError, match="operation 'var' not allowed"):
+                getattr(tdser, method)()
+        else:
+            result = getattr(tdser, method)()
+            assert result is pd.NaT
 
     def test_nansum_buglet(self):
         ser = Series([1.0, np.nan], index=[0, 1])
@@ -680,52 +695,40 @@ class TestSeriesReductions:
             assert Series([], dtype=dtype).min(skipna=False) is pd.NaT
             assert Series([], dtype=dtype).max(skipna=False) is pd.NaT
 
-    def test_numpy_argmin_deprecated(self):
+    def test_numpy_argmin(self):
         # See GH#16830
         data = np.arange(1, 11)
 
         s = Series(data, index=data)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            # The deprecation of Series.argmin also causes a deprecation
-            # warning when calling np.argmin. This behavior is temporary
-            # until the implementation of Series.argmin is corrected.
-            result = np.argmin(s)
+        result = np.argmin(s)
 
-        assert result == 1
+        expected = np.argmin(data)
+        assert result == expected
 
-        with tm.assert_produces_warning(FutureWarning):
-            # argmin is aliased to idxmin
-            result = s.argmin()
+        result = s.argmin()
 
-        assert result == 1
+        assert result == expected
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            msg = "the 'out' parameter is not supported"
-            with pytest.raises(ValueError, match=msg):
-                np.argmin(s, out=data)
+        msg = "the 'out' parameter is not supported"
+        with pytest.raises(ValueError, match=msg):
+            np.argmin(s, out=data)
 
-    def test_numpy_argmax_deprecated(self):
+    def test_numpy_argmax(self):
         # See GH#16830
         data = np.arange(1, 11)
 
         s = Series(data, index=data)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            # The deprecation of Series.argmax also causes a deprecation
-            # warning when calling np.argmax. This behavior is temporary
-            # until the implementation of Series.argmax is corrected.
-            result = np.argmax(s)
-        assert result == 10
+        result = np.argmax(s)
+        expected = np.argmax(data)
+        assert result == expected
 
-        with tm.assert_produces_warning(FutureWarning):
-            # argmax is aliased to idxmax
-            result = s.argmax()
+        result = s.argmax()
 
-        assert result == 10
+        assert result == expected
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            msg = "the 'out' parameter is not supported"
-            with pytest.raises(ValueError, match=msg):
-                np.argmax(s, out=data)
+        msg = "the 'out' parameter is not supported"
+        with pytest.raises(ValueError, match=msg):
+            np.argmax(s, out=data)
 
     def test_idxmin(self):
         # test idxmin
@@ -885,7 +888,7 @@ class TestSeriesReductions:
     @pytest.mark.parametrize(
         "test_input,error_type",
         [
-            (pd.Series([]), ValueError),
+            (pd.Series([], dtype="float64"), ValueError),
             # For strings, or any Series with dtype 'O'
             (pd.Series(["foo", "bar", "baz"]), TypeError),
             (pd.Series([(1,), (2,)]), TypeError),
@@ -1028,7 +1031,7 @@ class TestCategoricalSeriesReductions:
         )
         _min = cat.min()
         _max = cat.max()
-        assert np.isnan(_min)
+        assert _min == "c"
         assert _max == "b"
 
         cat = Series(
@@ -1038,30 +1041,24 @@ class TestCategoricalSeriesReductions:
         )
         _min = cat.min()
         _max = cat.max()
-        assert np.isnan(_min)
+        assert _min == 2
         assert _max == 1
 
-    def test_min_max_numeric_only(self):
-        # TODO deprecate numeric_only argument for Categorical and use
-        # skipna as well, see GH25303
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_min_max_skipna(self, skipna):
+        # GH 25303
         cat = Series(
             Categorical(["a", "b", np.nan, "a"], categories=["b", "a"], ordered=True)
         )
+        _min = cat.min(skipna=skipna)
+        _max = cat.max(skipna=skipna)
 
-        _min = cat.min()
-        _max = cat.max()
-        assert np.isnan(_min)
-        assert _max == "a"
-
-        _min = cat.min(numeric_only=True)
-        _max = cat.max(numeric_only=True)
-        assert _min == "b"
-        assert _max == "a"
-
-        _min = cat.min(numeric_only=False)
-        _max = cat.max(numeric_only=False)
-        assert np.isnan(_min)
-        assert _max == "a"
+        if skipna is True:
+            assert _min == "b"
+            assert _max == "a"
+        else:
+            assert np.isnan(_min)
+            assert np.isnan(_max)
 
 
 class TestSeriesMode:

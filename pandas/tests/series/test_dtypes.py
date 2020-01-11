@@ -8,7 +8,7 @@ import pytest
 
 from pandas._libs.tslibs import iNaT
 
-from pandas.core.dtypes.dtypes import CategoricalDtype, ordered_sentinel
+from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
 from pandas import (
@@ -20,7 +20,7 @@ from pandas import (
     Timestamp,
     date_range,
 )
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestSeriesDtypes:
@@ -44,29 +44,10 @@ class TestSeriesDtypes:
         assert as_typed.dtype == dtype
         assert as_typed.name == s.name
 
-    def test_asobject_deprecated(self):
-        s = Series(np.random.randn(5), name="foo")
-        with tm.assert_produces_warning(FutureWarning):
-            o = s.asobject
-        assert isinstance(o, np.ndarray)
-
     def test_dtype(self, datetime_series):
 
         assert datetime_series.dtype == np.dtype("float64")
         assert datetime_series.dtypes == np.dtype("float64")
-
-        # GH 26705 - Assert .ftype is deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            assert datetime_series.ftype == "float64:dense"
-
-        # GH 26705 - Assert .ftypes is deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            assert datetime_series.ftypes == "float64:dense"
-        # GH18243 - Assert .get_ftype_counts is deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            tm.assert_series_equal(
-                datetime_series.get_ftype_counts(), Series(1, ["float64:dense"])
-            )
 
     @pytest.mark.parametrize("value", [np.nan, np.inf])
     @pytest.mark.parametrize("dtype", [np.int32, np.int64])
@@ -224,27 +205,19 @@ class TestSeriesDtypes:
 
         # GH16717
         # if dtypes provided is empty, it should error
-        dt5 = dtype_class({})
+        if dtype_class is Series:
+            dt5 = dtype_class({}, dtype=object)
+        else:
+            dt5 = dtype_class({})
+
         with pytest.raises(KeyError, match=msg):
             s.astype(dt5)
 
-    def test_astype_categories_deprecation_raises(self):
-
-        # deprecated 17636
+    def test_astype_categories_raises(self):
+        # deprecated 17636, removed in GH-27141
         s = Series(["a", "b", "a"])
-        with pytest.raises(ValueError, match="Got an unexpected"):
+        with pytest.raises(TypeError, match="got an unexpected"):
             s.astype("category", categories=["a", "b"], ordered=True)
-
-    @pytest.mark.parametrize(
-        "none, warning", [(None, None), (ordered_sentinel, FutureWarning)]
-    )
-    def test_astype_category_ordered_none_deprecated(self, none, warning):
-        # GH 26336: only warn if None is not explicitly passed
-        cdt1 = CategoricalDtype(categories=list("cdab"), ordered=True)
-        cdt2 = CategoricalDtype(categories=list("cedafb"), ordered=none)
-        s = Series(list("abcdaba"), dtype=cdt1)
-        with tm.assert_produces_warning(warning, check_stacklevel=False):
-            s.astype(cdt2)
 
     def test_astype_from_categorical(self):
         items = ["a", "b", "c", "a"]
@@ -300,7 +273,7 @@ class TestSeriesDtypes:
         expected = s
         tm.assert_series_equal(s.astype("category"), expected)
         tm.assert_series_equal(s.astype(CategoricalDtype()), expected)
-        msg = r"could not convert string to float|" r"invalid literal for float\(\)"
+        msg = r"could not convert string to float|invalid literal for float\(\)"
         with pytest.raises(ValueError, match=msg):
             s.astype("float64")
 
@@ -378,6 +351,15 @@ class TestSeriesDtypes:
             result = s.astype("category")
             tm.assert_series_equal(result, expected)
 
+    def test_astype_bool_missing_to_categorical(self):
+        # GH-19182
+        s = Series([True, False, np.nan])
+        assert s.dtypes == np.object_
+
+        result = s.astype(CategoricalDtype(categories=[True, False]))
+        expected = Series(Categorical([True, False, np.nan], categories=[True, False]))
+        tm.assert_series_equal(result, expected)
+
     def test_astype_categoricaldtype(self):
         s = Series(["a", "b", "a"])
         result = s.astype(CategoricalDtype(["a", "b"], ordered=True))
@@ -419,28 +401,9 @@ class TestSeriesDtypes:
             "m",  # Generic timestamps raise a ValueError. Already tested.
         ):
             init_empty = Series([], dtype=dtype)
-            as_type_empty = Series([]).astype(dtype)
+            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+                as_type_empty = Series([]).astype(dtype)
             tm.assert_series_equal(init_empty, as_type_empty)
-
-    @pytest.mark.filterwarnings("ignore::FutureWarning")
-    def test_complex(self):
-        # see gh-4819: complex access for ndarray compat
-        a = np.arange(5, dtype=np.float64)
-        b = Series(a + 4j * a)
-
-        tm.assert_numpy_array_equal(a, np.real(b))
-        tm.assert_numpy_array_equal(4 * a, np.imag(b))
-
-        b.real = np.arange(5) + 5
-        tm.assert_numpy_array_equal(a + 5, np.real(b))
-        tm.assert_numpy_array_equal(4 * a, np.imag(b))
-
-    def test_real_imag_deprecated(self):
-        # GH 18262
-        s = pd.Series([1])
-        with tm.assert_produces_warning(FutureWarning):
-            s.imag
-            s.real
 
     def test_arg_for_errors_in_astype(self):
         # see gh-14878
@@ -502,11 +465,6 @@ class TestSeriesDtypes:
         assert actual.dtype == "object"
         tm.assert_series_equal(actual, expected)
 
-    def test_is_homogeneous_type(self):
-        assert Series()._is_homogeneous_type
-        assert Series([1, 2])._is_homogeneous_type
-        assert Series(pd.Categorical([1, 2]))._is_homogeneous_type
-
     @pytest.mark.parametrize(
         "data",
         [
@@ -519,3 +477,13 @@ class TestSeriesDtypes:
         result = pd.Series(data).values
         expected = np.array(data.astype(object))
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_reindex_astype_order_consistency(self):
+        # GH 17444
+        s = Series([1, 2, 3], index=[2, 0, 1])
+        new_index = [0, 1, 2]
+        temp_dtype = "category"
+        new_dtype = str
+        s1 = s.reindex(new_index).astype(temp_dtype).astype(new_dtype)
+        s2 = s.astype(temp_dtype).reindex(new_index).astype(new_dtype)
+        tm.assert_series_equal(s1, s2)
