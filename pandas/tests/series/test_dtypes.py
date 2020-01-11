@@ -491,7 +491,9 @@ class TestSeriesDtypes:
     @pytest.mark.parametrize(
         "stup",
         [
-            (Series([1, 2, 3], dtype=np.dtype("int")), pd.Int64Dtype()),
+            (Series([1, 2, 3], dtype=np.dtype("int")), "infer"),
+            (Series([1, 2, 3], dtype=np.dtype("int32")), "Int32"),
+            (Series([1, 2, 3], dtype=np.dtype("int64")), "Int64"),
             (Series(["x", "y", "z"], dtype=np.dtype("O")), pd.StringDtype()),
             (Series([True, False, np.nan], dtype=np.dtype("O")), pd.BooleanDtype()),
             (Series(["h", "i", np.nan], dtype=np.dtype("O")), pd.StringDtype()),
@@ -502,5 +504,11 @@ class TestSeriesDtypes:
     def test_as_nullable_types(self, stup):
         s = stup[0]
         expected_dtype = stup[1]
+        if isinstance(expected_dtype, str) and expected_dtype == "infer":
+            # Find default int type
+            td = Series([1], dtype=np.dtype("int")).dtype
+            expected_dtype =  pd.Int64Dtype()
+            if td == np.dtype("int32"):
+                expected_dtype = pd.Int32Dtype()
         ns = s.as_nullable_types()
         assert ns.dtype == expected_dtype

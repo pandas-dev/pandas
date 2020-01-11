@@ -5914,7 +5914,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def _as_nullable_type(self: ABCSeries) -> ABCSeries:
         """
         Handle one Series
-        
+
         Rules:
         If an object, see if we can infer string, boolean or integer, otherwise leave
         alone
@@ -5922,7 +5922,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         (platform dependent)
         If numeric, see if we can infer integer, otherwise try to use astype() to make
         it integer.
-        
+
         """
         dtype = self.dtype
         new_dtype = dtype
@@ -5948,7 +5948,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 changeit = True
         elif is_numeric_dtype(dtype):
             new_dtype = lib.infer_dtype(list(self))
-            if "integer" in new_dtype and not "mixed" in new_dtype:
+            if "integer" in new_dtype and "mixed" not in new_dtype:
                 new_dtype = "integer"
                 changeit = True
             else:
@@ -5962,7 +5962,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         if changeit:
             if new_dtype == "integer":
-                new_dtype = target_int_dtype
+                if dtype == np.dtype("int32"):
+                    new_dtype = "Int32"
+                elif dtype == np.dtype("int64"):
+                    new_dtype = "Int64"
+                else:
+                    new_dtype = target_int_dtype
             result = self.astype(new_dtype)
 
         return result
@@ -5970,13 +5975,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def as_nullable_types(self: FrameOrSeries) -> FrameOrSeries:
         """
         Convert columns of DataFrame or a Series to types supporting ``pd.NA``.
-        
+
         If the dtype is "object", convert to "string", "boolean" or an appropriate integer type.
-        
+
         If the dtype is "integer", convert to an appropriate integer type.
-        
-        If the dtype is numeric, and consists of all integers, convert to an appropriate type.
-        
+
+        If the dtype is numeric, and consists of all integers, convert to an
+        appropriate type.
+
         Returns
         -------
         converted : same type as caller
@@ -5985,7 +5991,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         --------
         >>> df = pd.DataFrame(
         ...     {
-        ...         "a": pd.Series([1, 2, 3], dtype=np.dtype("int")),
+        ...         "a": pd.Series([1, 2, 3], dtype=np.dtype("int32")),
         ...         "b": pd.Series(["x", "y", "z"], dtype=np.dtype("O")),
         ...         "c": pd.Series([True, False, np.nan], dtype=np.dtype("O")),
         ...         "d": pd.Series(["h", "i", np.nan], dtype=np.dtype("O")),
@@ -5993,13 +5999,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ...         "f": pd.Series([np.nan, 100.5, 200], dtype=np.dtype("float")),
         ...     }
         ... )
-        
+
         >>> df
            a  b      c    d     e      f
         0  1  x   True    h  10.0    NaN
         1  2  y  False    i   NaN  100.5
         2  3  z    NaN  NaN  20.0  200.0
-        
+
         >>> df.dtypes
         a      int32
         b     object
@@ -6008,14 +6014,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         e    float64
         f    float64
         dtype: object
-        
+
         >>> dfn = df.as_nullable_types()
         >>> dfn
            a  b      c     d     e      f
         0  1  x   True     h    10    NaN
         1  2  y  False     i  <NA>  100.5
         2  3  z   <NA>  <NA>    20  200.0
-        
+
         >>> dfn.dtypes
         a      Int64
         b     string
@@ -6023,7 +6029,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         d     string
         e      Int64
         f    float64
-        dtype: object                
+        dtype: object
         """
         if self.ndim == 1:
             return self._as_nullable_type()
