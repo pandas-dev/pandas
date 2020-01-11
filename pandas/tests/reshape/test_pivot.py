@@ -1141,17 +1141,8 @@ class TestPivotTable:
                     [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, 6.0, 7.0],
                 ],
                 MultiIndex.from_tuples(
-                    [
-                        ("values", 1, 1),
-                        ("values", 2, 2),
-                        ("values", 1, 3),
-                        ("values", 2, 4),
-                        ("values", 1, 5),
-                        ("values", 2, 6),
-                        ("values", 1, 7),
-                        ("values", 2, 8),
-                    ],
-                    names=[None, "lev3", "lev4"],
+                    [(1, 1), (2, 2), (1, 3), (2, 4), (1, 5), (2, 6), (1, 7), (2, 8),],
+                    names=["lev3", "lev4"],
                 ),
                 MultiIndex.from_tuples(
                     [(1, 1), (1, 2), (2, 1), (2, 2)], names=["lev1", "lev2"]
