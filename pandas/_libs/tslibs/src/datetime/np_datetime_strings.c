@@ -910,7 +910,7 @@ string_too_short:
 int make_iso_8601_timedelta(pandas_timedeltastruct *tds,
                             char *outstr, size_t *outlen) {
   *outlen = 0;
-  *outlen += snprintf(outstr, 60,  // max length for first part of str
+  *outlen += snprintf(outstr, 60,  // NOLINT
                      "P%" NPY_INT64_FMT
                      "DT%" NPY_INT32_FMT
                      "H%" NPY_INT32_FMT
@@ -919,20 +919,22 @@ int make_iso_8601_timedelta(pandas_timedeltastruct *tds,
   outstr += *outlen;
 
   if (tds->ns != 0) {
-    *outlen += snprintf(outstr, 12,
+    *outlen += snprintf(outstr, 12,  // NOLINT
                        ".%03" NPY_INT32_FMT
                        "%03" NPY_INT32_FMT
                        "%03" NPY_INT32_FMT
                        "S", tds->ms, tds->us, tds->ns);
   } else if (tds->us != 0) {
-    *outlen += snprintf(outstr, 9,
+    *outlen += snprintf(outstr, 9,  // NOLINT
                        ".%03" NPY_INT32_FMT
                        "%03" NPY_INT32_FMT
                        "S", tds->ms, tds->us);
   } else if (tds->ms != 0) {
-    *outlen += snprintf(outstr, 6, ".%03" NPY_INT32_FMT "S", tds->ms);
+    *outlen += snprintf(outstr, 6,  // NOLINT
+                        ".%03" NPY_INT32_FMT "S", tds->ms);
   } else {
-    *outlen += snprintf(outstr, 2, "%s", "S");
+    *outlen += snprintf(outstr, 2,  // NOLINT
+                        "%s", "S");
   }
 
   return 0;
