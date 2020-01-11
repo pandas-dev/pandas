@@ -433,7 +433,7 @@ def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFram
         if index is None:
             cols = []
         elif is_list_like(index):
-            cols = [column for column in index]
+            cols = [idx for idx in index]
         else:
             cols = [index]
         cols.extend(columns)
@@ -444,7 +444,7 @@ def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFram
         if index is None:
             index = [Series(data.index, name=data.index.name)]
         elif is_list_like(index):
-            index = [data[column] for column in index]
+            index = [data[idx] for idx in index]
         else:
             index = [data[index]]
 
