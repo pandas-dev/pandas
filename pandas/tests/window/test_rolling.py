@@ -426,3 +426,10 @@ def test_min_periods1():
     result = df["a"].rolling(3, center=True, min_periods=1).max()
     expected = pd.Series([1.0, 2.0, 2.0, 2.0, 1.0], name="a")
     tm.assert_series_equal(result, expected)
+
+
+def test_rolling_count_with_min_periods():
+    # GH 26996
+    result = Series(range(5)).rolling(3, min_periods=3).count()
+    expected = Series([np.nan, np.nan, 3.0, 3.0, 3.0])
+    tm.assert_series_equal(result, expected)
