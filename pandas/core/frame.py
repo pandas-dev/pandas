@@ -5808,11 +5808,19 @@ Wild         185.0
 
         Parameters
         ----------%s
-        index : str or object, optional
+        index : str or object or a list of the previous, optional
             Column to use to make new frame's index. If None, uses
             existing index.
-        columns : str or object
+            
+            .. versionchanged:: 1.0.0
+               Also accept list of index names.
+
+        columns : str or object or a list of the previous
             Column to use to make new frame's columns.
+            
+            .. versionchanged:: 1.0.0
+               Also accept list of columns names.
+
         values : str, object or a list of the previous, optional
             Column(s) to use for populating new frame's values. If not
             specified, all remaining columns will be used and the result will
