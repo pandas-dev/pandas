@@ -487,3 +487,20 @@ class TestSeriesDtypes:
         s1 = s.reindex(new_index).astype(temp_dtype).astype(new_dtype)
         s2 = s.astype(temp_dtype).reindex(new_index).astype(new_dtype)
         tm.assert_series_equal(s1, s2)
+
+    @pytest.mark.parametrize(
+        "stup",
+        [
+            (Series([1, 2, 3], dtype=np.dtype("int")), pd.Int64Dtype()),
+            (Series(["x", "y", "z"], dtype=np.dtype("O")), pd.StringDtype()),
+            (Series([True, False, np.nan], dtype=np.dtype("O")), pd.BooleanDtype()),
+            (Series(["h", "i", np.nan], dtype=np.dtype("O")), pd.StringDtype()),
+            (Series([10, np.nan, 20], dtype=np.dtype("float")), pd.Int64Dtype()),
+            (Series([np.nan, 100.5, 200], dtype=np.dtype("float")), np.dtype("float")),
+        ],
+    )
+    def test_as_nullable_types(self, stup):
+        s = stup[0]
+        expected_dtype = stup[1]
+        ns = s.as_nullable_types()
+        assert ns.dtype == expected_dtype

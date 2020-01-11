@@ -39,7 +39,7 @@ from pandas._typing import (
     Level,
     Renamer,
 )
-from pandas.compat import set_function_name
+from pandas.compat import is_platform_32bit, set_function_name
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -62,6 +62,7 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_float,
     is_integer,
+    is_integer_dtype,
     is_list_like,
     is_number,
     is_numeric_dtype,
@@ -5906,6 +5907,131 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 datetime=True, numeric=False, timedelta=True, coerce=False, copy=True
             )
         ).__finalize__(self)
+
+    # ----------------------------------------------------------------------
+    # Convert to types that support pd.NA
+
+    def _as_nullable_type(self: ABCSeries) -> ABCSeries:
+        """
+        Handle one Series
+        
+        Rules:
+        If an object, see if we can infer string, boolean or integer, otherwise leave
+        alone
+        If an integer and not an extension type, convert to the Int64/Int32 type
+        (platform dependent)
+        If numeric, see if we can infer integer, otherwise try to use astype() to make
+        it integer.
+        
+        """
+        dtype = self.dtype
+        new_dtype = dtype
+        changeit = False
+        result = self
+        target_int_dtype = "Int64"
+        if is_platform_32bit():
+            target_int_dtype = "Int32"
+
+        if is_object_dtype(dtype):
+            new_dtype = lib.infer_dtype(self)
+            if (
+                new_dtype != "string"
+                and new_dtype != "boolean"
+                and new_dtype != "integer"
+            ):
+                new_dtype = dtype
+            else:
+                changeit = True
+        elif is_integer_dtype(dtype):
+            if not is_extension_array_dtype(dtype):
+                new_dtype = "integer"
+                changeit = True
+        elif is_numeric_dtype(dtype):
+            new_dtype = lib.infer_dtype(list(self))
+            if "integer" in new_dtype and not "mixed" in new_dtype:
+                new_dtype = "integer"
+                changeit = True
+            else:
+                new_dtype = dtype
+                try:
+                    result = self.astype(target_int_dtype)
+                    new_dtype = target_int_dtype
+                    changeit = False
+                except TypeError:
+                    pass
+
+        if changeit:
+            if new_dtype == "integer":
+                new_dtype = target_int_dtype
+            result = self.astype(new_dtype)
+
+        return result
+
+    def as_nullable_types(self: FrameOrSeries) -> FrameOrSeries:
+        """
+        Convert columns of DataFrame or a Series to types supporting ``pd.NA``.
+        
+        If the dtype is "object", convert to "string", "boolean" or an appropriate integer type.
+        
+        If the dtype is "integer", convert to an appropriate integer type.
+        
+        If the dtype is numeric, and consists of all integers, convert to an appropriate type.
+        
+        Returns
+        -------
+        converted : same type as caller
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "a": pd.Series([1, 2, 3], dtype=np.dtype("int")),
+        ...         "b": pd.Series(["x", "y", "z"], dtype=np.dtype("O")),
+        ...         "c": pd.Series([True, False, np.nan], dtype=np.dtype("O")),
+        ...         "d": pd.Series(["h", "i", np.nan], dtype=np.dtype("O")),
+        ...         "e": pd.Series([10, np.nan, 20], dtype=np.dtype("float")),
+        ...         "f": pd.Series([np.nan, 100.5, 200], dtype=np.dtype("float")),
+        ...     }
+        ... )
+        
+        >>> df
+           a  b      c    d     e      f
+        0  1  x   True    h  10.0    NaN
+        1  2  y  False    i   NaN  100.5
+        2  3  z    NaN  NaN  20.0  200.0
+        
+        >>> df.dtypes
+        a      int32
+        b     object
+        c     object
+        d     object
+        e    float64
+        f    float64
+        dtype: object
+        
+        >>> dfn = df.as_nullable_types()
+        >>> dfn
+           a  b      c     d     e      f
+        0  1  x   True     h    10    NaN
+        1  2  y  False     i  <NA>  100.5
+        2  3  z   <NA>  <NA>    20  200.0
+        
+        >>> dfn.dtypes
+        a      Int64
+        b     string
+        c    boolean
+        d     string
+        e      Int64
+        f    float64
+        dtype: object                
+        """
+        if self.ndim == 1:
+            return self._as_nullable_type()
+        else:
+            results = [col._as_nullable_type() for col_name, col in self.items()]
+            result = pd.concat(results, axis=1, copy=False)
+            result.columns = self.columns
+            return result
 
     # ----------------------------------------------------------------------
     # Filling NA's

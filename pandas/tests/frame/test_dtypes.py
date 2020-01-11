@@ -1072,6 +1072,24 @@ class TestDataFrameDataTypes:
         expected = pd.DataFrame(col_data, columns=["A"], dtype=float)
         tm.assert_frame_equal(result, expected)
 
+    def test_as_nullable_types(self):
+        # Specific types are tested in tests/series/test_dtypes.py
+        # Just check that it works for DataFrame here
+        df = pd.DataFrame(
+            {
+                "a": pd.Series([1, 2, 3], dtype=np.dtype("int")),
+                "b": pd.Series(["x", "y", "z"], dtype=np.dtype("O")),
+            }
+        )
+        result = df.as_nullable_types()
+        expected = pd.DataFrame(
+            {
+                "a": pd.Series([1, 2, 3], dtype="Int64"),
+                "b": pd.Series(["x", "y", "z"], dtype="string"),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 class TestDataFrameDatetimeWithTZ:
     def test_interleave(self, timezone_frame):
