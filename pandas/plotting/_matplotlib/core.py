@@ -112,9 +112,7 @@ class MPLPlot:
 
         self.data = data
         self.by = by
-        if isinstance(column, str):
-            column = [column]
-        self.column = column
+        self.column = [column] if isinstance(column, str) else column
 
         self.kind = kind
 
