@@ -123,8 +123,8 @@ def round_trip_pickle(
     if _path is None:
         _path = f"__{rands(10)}__.pickle"
     with ensure_clean(_path) as path:
-        pd.to_pickle(obj, _path)
-        return pd.read_pickle(_path)
+        pd.to_pickle(obj, path)
+        return pd.read_pickle(path)
 
 
 def round_trip_pathlib(writer, reader, path: Optional[str] = None):
