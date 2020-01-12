@@ -1749,7 +1749,7 @@ class _LocationIndexer(_NDFrameIndexer):
             if self._is_scalar_access(key):
                 try:
                     return self._getitem_scalar(key)
-                except (IndexError, AttributeError):
+                except (KeyError, IndexError, AttributeError):
                     # AttributeError for IntervalTree get_value
                     pass
             return self._getitem_tuple(key)
