@@ -165,11 +165,12 @@ to get the newest version of pandas, it's recommended to install using the ``pip
 methods described above.
 
 Handling ImportErrors
-----------------------
+~~~~~~~~~~~~~~~~~~~~~~
 
 If you encounter an ImportError,it usually means that Python couldn't find pandas in the list of available
 libraries. Python internally has a list of directories it searched through, to find packages. You can
-obtain these directories with:
+obtain these directories with::
+
             import sys
             sys.path
 
@@ -185,13 +186,16 @@ installations.
 The widely used solution to this problem is to use conda. You can find simple installation instructions
 for pandas in this document: https://dev.pandas.io/getting_started.html.
 
-Another possible way of fixing the error is by first finding the version of your python installation with:
+Another possible way of fixing the error is by first finding the version of your python installation with::
+
             python --version
 
-If you get Python 2.7.x, then try the following command to install pandas:
+If you get Python 2.7.x, then try the following command to install pandas::
+
             sudo pip2 install pandas
 
-If you get Python 3.7.x, then try the following command to install pandas:
+If you get Python 3.7.x, then try the following command to install pandas::
+
             sudo pip3 install pandas
 
 Installing from source
