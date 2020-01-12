@@ -51,7 +51,18 @@ Implementation
 from collections import namedtuple
 from contextlib import contextmanager
 import re
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Type, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    TypeVar,
+    cast,
+)
 import warnings
 
 DeprecatedOption = namedtuple("DeprecatedOption", "key msg rkey removal_ver")
@@ -416,8 +427,8 @@ def register_option(
     key: str,
     defval: object,
     doc: str = "",
-    validator: Optional[Union[Callable[..., None], Type[str]]] = None,
-    cb: Optional[Callable[[str], None]] = None,
+    validator: Optional[Callable[[Any], Any]] = None,
+    cb: Optional[Callable[[str], Any]] = None,
 ) -> None:
     """
     Register an option in the package-wide pandas config object
@@ -702,6 +713,9 @@ def pp_options_list(keys: Iterable[str], width=80, _print: bool = False):
 #
 # helpers
 
+FuncType = Callable[..., Any]
+F = TypeVar("F", bound=FuncType)
+
 
 @contextmanager
 def config_prefix(prefix):
@@ -733,12 +747,12 @@ def config_prefix(prefix):
 
     global register_option, get_option, set_option, reset_option
 
-    def wrap(func):
-        def inner(key: str, *args, **kwds) -> Callable[[str], Any]:
+    def wrap(func: F) -> F:
+        def inner(key: str, *args, **kwds):
             pkey = f"{prefix}.{key}"
             return func(pkey, *args, **kwds)
 
-        return inner
+        return cast(F, inner)
 
     _register_option = register_option
     _get_option = get_option
@@ -756,7 +770,7 @@ def config_prefix(prefix):
 # arg in register_option
 
 
-def is_type_factory(_type) -> Callable[..., None]:
+def is_type_factory(_type: Type[Any]) -> Callable[[Any], None]:
     """
 
     Parameters
@@ -777,7 +791,7 @@ def is_type_factory(_type) -> Callable[..., None]:
     return inner
 
 
-def is_instance_factory(_type) -> Callable[..., None]:
+def is_instance_factory(_type) -> Callable[[Any], None]:
     """
 
     Parameters
@@ -804,7 +818,7 @@ def is_instance_factory(_type) -> Callable[..., None]:
     return inner
 
 
-def is_one_of_factory(legal_values) -> Callable[..., None]:
+def is_one_of_factory(legal_values) -> Callable[[Any], None]:
 
     callables = [c for c in legal_values if callable(c)]
     legal_values = [c for c in legal_values if not callable(c)]
