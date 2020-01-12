@@ -558,25 +558,24 @@ class TestDataFrameSubclassing:
         assert not isinstance(result, tm.SubclassedDataFrame)
         tm.assert_series_equal(result, expected)
 
-    def test_subclassed_df_reduce_functions(self):
+    def test_subclassed_numeric_reductions(self, all_numeric_reductions):
         # GH 25596
+
+        op = all_numeric_reductions
 
         df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
 
-        expected = tm.SubclassedSeries([6, 15, 24], index=["A", "B", "C"])
+        result = getattr(df, op)()
 
-        result = df.sum()
         assert isinstance(result, tm.SubclassedSeries)
-        tm.assert_series_equal(result, expected)
 
-        expected = tm.SubclassedSeries([2.0, 5.0, 8.0], index=["A", "B", "C"])
+    def test_subclassed_boolean_reductions(self, all_boolean_reductions):
+        # GH 25596
 
-        result = df.mean()
+        op = all_boolean_reductions
+
+        df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
+
+        result = getattr(df, op)()
+
         assert isinstance(result, tm.SubclassedSeries)
-        tm.assert_series_equal(result, expected)
-
-        expected = tm.SubclassedSeries([True, True, True], index=["A", "B", "C"])
-
-        result = df.all()
-        assert isinstance(result, tm.SubclassedSeries)
-        tm.assert_series_equal(result, expected)
