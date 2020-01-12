@@ -436,7 +436,6 @@ def dataclasses_to_dicts(data):
     Parameters
     ----------
     data : List[Type[dataclass]]
-    
 
     Returns
     --------

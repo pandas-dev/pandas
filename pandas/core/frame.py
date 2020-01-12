@@ -111,8 +111,8 @@ from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexing import check_bool_indexer, convert_to_index_sliceable
 from pandas.core.internals import BlockManager
 from pandas.core.internals.construction import (
-    dataclasses_to_dicts,
     arrays_to_mgr,
+    dataclasses_to_dicts,
     get_names_from_index,
     init_dict,
     init_ndarray,
