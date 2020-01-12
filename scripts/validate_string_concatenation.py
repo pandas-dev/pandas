@@ -133,7 +133,7 @@ def strings_with_wrong_placed_space(
             and second_line.startswith(" ")
             and (not second_line.startswith("  "))
             and (not first_line.endswith("\n"))
-        ) or ((first_line.endswith(" ") and second_line.startswith(" ")))
+        ) or (first_line.endswith(" ") and second_line.startswith(" "))
 
     with open(source_path, "r") as file_name:
         tokens: List = list(tokenize.generate_tokens(file_name.readline))
