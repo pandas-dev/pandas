@@ -66,11 +66,11 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Linting .pyx code' ; echo $MSG
-    flake8 --format="$FLAKE8_FORMAT" pandas --append-config=.flake8.cython
+    flake8 --format="$FLAKE8_FORMAT" pandas --append-config=flake8/cython.cfg
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Linting .pxd and .pxi.in' ; echo $MSG
-    flake8 --format="$FLAKE8_FORMAT" pandas/_libs --append-config=.flake8.cython-header
+    flake8 --format="$FLAKE8_FORMAT" pandas/_libs --append-config=flake8/cython-header.cfg
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     echo "flake8-rst --version"
