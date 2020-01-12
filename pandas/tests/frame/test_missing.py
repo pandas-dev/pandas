@@ -670,8 +670,8 @@ class TestDataFrameMissingData:
             float_frame.fillna((1, 2))
         # frame with series
         msg = (
-            '"value" parameter must be a scalar, dict or Series, but you'
-            ' passed a "DataFrame"'
+            '"value" parameter must be a scalar, dict or Series, but you '
+            'passed a "DataFrame"'
         )
         with pytest.raises(TypeError, match=msg):
             float_frame.iloc[:, 0].fillna(float_frame)

@@ -725,10 +725,7 @@ class TestGetGroup:
             g.get_group("foo")
         with pytest.raises(ValueError, match=msg):
             g.get_group(("foo"))
-        msg = (
-            "must supply a same-length tuple to get_group with multiple"
-            " grouping keys"
-        )
+        msg = "must supply a same-length tuple to get_group with multiple grouping keys"
         with pytest.raises(ValueError, match=msg):
             g.get_group(("foo", "bar", "baz"))
 
