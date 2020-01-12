@@ -4,12 +4,15 @@ import pandas as pd
 
 
 class TestDatetimeEngine:
-    @pytest.mark.parametrize("scalar", [
-        pd.Timedelta(pd.Timestamp("2016-01-01").asm8.view("m8[ns]")),
-        pd.Timestamp("2016-01-01").value,
-        pd.Timestamp("2016-01-01").to_pydatetime(),
-        pd.Timestamp("2016-01-01").to_datetime64(),
-    ])
+    @pytest.mark.parametrize(
+        "scalar",
+        [
+            pd.Timedelta(pd.Timestamp("2016-01-01").asm8.view("m8[ns]")),
+            pd.Timestamp("2016-01-01").value,
+            pd.Timestamp("2016-01-01").to_pydatetime(),
+            pd.Timestamp("2016-01-01").to_datetime64(),
+        ],
+    )
     def test_not_contains_requires_timestamp(self, scalar):
         dti1 = pd.date_range("2016-01-01", periods=3)
         dti2 = dti1.insert(1, pd.NaT)  # non-monotonic
@@ -26,18 +29,21 @@ class TestDatetimeEngine:
 
 
 class TestTimedeltaEngine:
-    @pytest.mark.parametrize("scalar", [
-        pd.Timestamp(pd.Timedelta(days=42).asm8.view("datetime64[ns]")),
-        pd.Timedelta(days=42).value,
-        pd.Timedelta(days=42).to_pytimedelta(),
-        pd.Timedelta(days=42).to_timedelta64()
-    ])
+    @pytest.mark.parametrize(
+        "scalar",
+        [
+            pd.Timestamp(pd.Timedelta(days=42).asm8.view("datetime64[ns]")),
+            pd.Timedelta(days=42).value,
+            pd.Timedelta(days=42).to_pytimedelta(),
+            pd.Timedelta(days=42).to_timedelta64(),
+        ],
+    )
     def test_not_contains_requires_timestamp(self, scalar):
         tdi1 = pd.timedelta_range("42 days", freq="9h", periods=1234)
         tdi2 = tdi1.insert(1, pd.NaT)  # non-monotonic
         tdi3 = tdi1.insert(3, tdi1[0])  # non-unique
         tdi4 = pd.timedelta_range("42 days", freq="ns", periods=2_000_000)
-        tdi5 = tdi4.insert(0, tdi4[0])    # over size threshold, not unique
+        tdi5 = tdi4.insert(0, tdi4[0])  # over size threshold, not unique
 
         for tdi in [tdi1, tdi2, tdi3, tdi4, tdi5]:
             with pytest.raises(TypeError):
