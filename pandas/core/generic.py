@@ -346,13 +346,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         d.update(kwargs)
         return d
 
-    @staticmethod
-    def _construct_axes_dict_from(self, axes, **kwargs):
-        """Return an axes dictionary for the passed axes."""
-        d = {a: ax for a, ax in zip(self._AXIS_ORDERS, axes)}
-        d.update(kwargs)
-        return d
-
     def _construct_axes_from_arguments(
         self, args, kwargs, require_all: bool = False, sentinel=None
     ):
@@ -380,18 +373,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         axes = {a: kwargs.pop(a, sentinel) for a in self._AXIS_ORDERS}
         return axes, kwargs
-
-    @classmethod
-    def _from_axes(cls: Type[FrameOrSeries], data, axes, **kwargs) -> FrameOrSeries:
-        # for construction from BlockManager
-        if isinstance(data, BlockManager):
-            return cls(data, **kwargs)
-        else:
-            if cls._AXIS_REVERSED:
-                axes = axes[::-1]
-            d = cls._construct_axes_dict_from(cls, axes, copy=False)
-            d.update(kwargs)
-            return cls(data, **d)
 
     @classmethod
     def _get_axis_number(cls, axis):
@@ -908,23 +889,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ]
 
     def swaplevel(self: FrameOrSeries, i=-2, j=-1, axis=0) -> FrameOrSeries:
-        """
-        Swap levels i and j in a MultiIndex on a particular axis
-
-        Parameters
-        ----------
-        i, j : int, str (can be mixed)
-            Level of index to be swapped. Can pass level name as string.
-
-        Returns
-        -------
-        swapped : same type as caller (new object)
-        """
-        axis = self._get_axis_number(axis)
-        result = self.copy()
-        labels = result._data.axes[axis]
-        result._data.set_axis(axis, labels.swaplevel(i, j))
-        return result
+        raise AbstractMethodError(self)
 
     # ----------------------------------------------------------------------
     # Rename
@@ -4268,22 +4233,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         sorted_obj : DataFrame or None
             DataFrame with sorted index if inplace=False, None otherwise.
         """
-        inplace = validate_bool_kwarg(inplace, "inplace")
-        axis = self._get_axis_number(axis)
-        axis_name = self._get_axis_name(axis)
-        labels = self._get_axis(axis)
-
-        if level is not None:
-            raise NotImplementedError("level is not implemented")
-        if inplace:
-            raise NotImplementedError("inplace is not implemented")
-
-        sort_index = labels.argsort()
-        if not ascending:
-            sort_index = sort_index[::-1]
-
-        new_axis = labels.take(sort_index)
-        return self.reindex(**{axis_name: new_axis})
+        raise AbstractMethodError(self)
 
     def reindex(self: FrameOrSeries, *args, **kwargs) -> FrameOrSeries:
         """
@@ -5367,11 +5317,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         f = lambda: self._data.is_numeric_mixed_type
         return self._protect_consolidate(f)
 
-    @property
-    def _is_datelike_mixed_type(self):
-        f = lambda: self._data.is_datelike_mixed_type
-        return self._protect_consolidate(f)
-
     def _check_inplace_setting(self, value) -> bool_t:
         """ check whether we allow in-place setting with this type of value """
 
@@ -5478,11 +5423,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     @property
     def _values(self) -> np.ndarray:
         """internal implementation"""
-        return self.values
-
-    @property
-    def _get_values(self) -> np.ndarray:
-        # compat
         return self.values
 
     def _internal_get_values(self) -> np.ndarray:
