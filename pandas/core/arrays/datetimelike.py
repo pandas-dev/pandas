@@ -920,7 +920,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
     @property
     def freqstr(self):
         """
-        Return the frequency object as a string if its set, otherwise None
+        Return the frequency object as a string if its set, otherwise None.
         """
         if self.freq is None:
             return None
