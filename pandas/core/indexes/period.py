@@ -507,6 +507,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         Fast lookup of value from 1-dimensional ndarray. Only use this if you
         know what you're doing
         """
+        if is_integer(key):
+            return series.iat[key]
+
         s = com.values_from_object(series)
         try:
             value = super().get_value(s, key)
@@ -604,6 +607,10 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             except DateParseError:
                 # A string with invalid format
                 raise KeyError(f"Cannot interpret '{key}' as period")
+
+        elif is_integer(key):
+            # Period constructor will cast to string, which we dont want
+            raise KeyError(key)
 
         try:
             key = Period(key, freq=self.freq)
