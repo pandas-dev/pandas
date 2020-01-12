@@ -1,18 +1,21 @@
 import codecs
+import json
 import locale
 import os
 import platform
 import struct
 import subprocess
 import sys
+from typing import List, Optional, Tuple, Union
 
 from pandas.compat._optional import VERSIONS, _get_version, import_optional_dependency
 
 
-def get_sys_info():
-    "Returns system information as a dict"
-
-    blob = []
+def get_sys_info() -> List[Tuple[str, Optional[Union[str, int]]]]:
+    """
+    Returns system information as a list
+    """
+    blob: List[Tuple[str, Optional[Union[str, int]]]] = []
 
     # get full commit hash
     commit = None
@@ -28,12 +31,7 @@ def get_sys_info():
             pass
         else:
             if pipe.returncode == 0:
-                commit = so
-                try:
-                    commit = so.decode("utf-8")
-                except ValueError:
-                    pass
-                commit = commit.strip().strip('"')
+                commit = so.decode("utf-8").strip().strip('"')
 
     blob.append(("commit", commit))
 
@@ -43,14 +41,14 @@ def get_sys_info():
             [
                 ("python", ".".join(map(str, sys.version_info))),
                 ("python-bits", struct.calcsize("P") * 8),
-                ("OS", "{sysname}".format(sysname=sysname)),
-                ("OS-release", "{release}".format(release=release)),
+                ("OS", f"{sysname}"),
+                ("OS-release", f"{release}"),
                 # ("Version", "{version}".format(version=version)),
-                ("machine", "{machine}".format(machine=machine)),
-                ("processor", "{processor}".format(processor=processor)),
-                ("byteorder", "{byteorder}".format(byteorder=sys.byteorder)),
-                ("LC_ALL", "{lc}".format(lc=os.environ.get("LC_ALL", "None"))),
-                ("LANG", "{lang}".format(lang=os.environ.get("LANG", "None"))),
+                ("machine", f"{machine}"),
+                ("processor", f"{processor}"),
+                ("byteorder", f"{sys.byteorder}"),
+                ("LC_ALL", f"{os.environ.get('LC_ALL', 'None')}"),
+                ("LANG", f"{os.environ.get('LANG', 'None')}"),
                 ("LOCALE", ".".join(map(str, locale.getlocale()))),
             ]
         )
@@ -98,6 +96,7 @@ def show_versions(as_json=False):
         mod = import_optional_dependency(
             modname, raise_on_missing=False, on_version="ignore"
         )
+        ver: Optional[str]
         if mod:
             ver = _get_version(mod)
         else:
@@ -105,11 +104,6 @@ def show_versions(as_json=False):
         deps_blob.append((modname, ver))
 
     if as_json:
-        try:
-            import json
-        except ImportError:
-            import simplejson as json
-
         j = dict(system=dict(sys_info), dependencies=dict(deps_blob))
 
         if as_json is True:
@@ -130,7 +124,7 @@ def show_versions(as_json=False):
             print(tpl.format(k=k, stat=stat))
 
 
-def main():
+def main() -> int:
     from optparse import OptionParser
 
     parser = OptionParser()
@@ -139,7 +133,7 @@ def main():
         "--json",
         metavar="FILE",
         nargs=1,
-        help="Save output as JSON into file, pass in " "'-' to output to stdout",
+        help="Save output as JSON into file, pass in '-' to output to stdout",
     )
 
     (options, args) = parser.parse_args()

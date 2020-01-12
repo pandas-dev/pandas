@@ -5,21 +5,20 @@ from pandas.core.dtypes.common import is_integer
 
 import pandas as pd
 from pandas import Index, Series, Timestamp, date_range, isna
+import pandas._testing as tm
 from pandas.core.indexing import IndexingError
-import pandas.util.testing as tm
-from pandas.util.testing import assert_series_equal
 
 from pandas.tseries.offsets import BDay
 
 
-def test_getitem_boolean(test_data):
-    s = test_data.series
+def test_getitem_boolean(string_series):
+    s = string_series
     mask = s > s.median()
 
     # passing list is OK
     result = s[list(mask)]
     expected = s[mask]
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
     tm.assert_index_equal(result.index, s.index[mask])
 
 
@@ -35,12 +34,12 @@ def test_getitem_boolean_empty():
     s = Series(["A", "B"])
     expected = Series(np.nan, index=["C"], dtype=object)
     result = s[Series(["C"], dtype=object)]
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     s = Series(["A", "B"])
     expected = Series(dtype=object, index=Index([], dtype="int64"))
     result = s[Series([], dtype=object)]
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     # invalid because of the boolean indexer
     # that's empty or not-aligned
@@ -55,36 +54,36 @@ def test_getitem_boolean_empty():
         s[Series([True], dtype=bool)]
 
 
-def test_getitem_boolean_object(test_data):
+def test_getitem_boolean_object(string_series):
     # using column from DataFrame
 
-    s = test_data.series
+    s = string_series
     mask = s > s.median()
     omask = mask.astype(object)
 
     # getitem
     result = s[omask]
     expected = s[mask]
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     # setitem
     s2 = s.copy()
     cop = s.copy()
     cop[omask] = 5
     s2[mask] = 5
-    assert_series_equal(cop, s2)
+    tm.assert_series_equal(cop, s2)
 
     # nans raise exception
     omask[5:10] = np.nan
-    msg = "cannot index with vector containing NA / NaN values"
+    msg = "cannot mask with array containing NA / NaN values"
     with pytest.raises(ValueError, match=msg):
         s[omask]
     with pytest.raises(ValueError, match=msg):
         s[omask] = 5
 
 
-def test_getitem_setitem_boolean_corner(test_data):
-    ts = test_data.ts
+def test_getitem_setitem_boolean_corner(datetime_series):
+    ts = datetime_series
     mask_shifted = ts.shift(1, freq=BDay()) > ts.median()
 
     # these used to raise...??
@@ -104,39 +103,39 @@ def test_getitem_setitem_boolean_corner(test_data):
         ts.loc[mask_shifted] = 1
 
 
-def test_setitem_boolean(test_data):
-    mask = test_data.series > test_data.series.median()
+def test_setitem_boolean(string_series):
+    mask = string_series > string_series.median()
 
     # similar indexed series
-    result = test_data.series.copy()
-    result[mask] = test_data.series * 2
-    expected = test_data.series * 2
-    assert_series_equal(result[mask], expected[mask])
+    result = string_series.copy()
+    result[mask] = string_series * 2
+    expected = string_series * 2
+    tm.assert_series_equal(result[mask], expected[mask])
 
     # needs alignment
-    result = test_data.series.copy()
-    result[mask] = (test_data.series * 2)[0:5]
-    expected = (test_data.series * 2)[0:5].reindex_like(test_data.series)
-    expected[-mask] = test_data.series[mask]
-    assert_series_equal(result[mask], expected[mask])
+    result = string_series.copy()
+    result[mask] = (string_series * 2)[0:5]
+    expected = (string_series * 2)[0:5].reindex_like(string_series)
+    expected[-mask] = string_series[mask]
+    tm.assert_series_equal(result[mask], expected[mask])
 
 
-def test_get_set_boolean_different_order(test_data):
-    ordered = test_data.series.sort_values()
+def test_get_set_boolean_different_order(string_series):
+    ordered = string_series.sort_values()
 
     # setting
-    copy = test_data.series.copy()
+    copy = string_series.copy()
     copy[ordered > 0] = 0
 
-    expected = test_data.series.copy()
+    expected = string_series.copy()
     expected[expected > 0] = 0
 
-    assert_series_equal(copy, expected)
+    tm.assert_series_equal(copy, expected)
 
     # getting
-    sel = test_data.series[ordered > 0]
-    exp = test_data.series[test_data.series > 0]
-    assert_series_equal(sel, exp)
+    sel = string_series[ordered > 0]
+    exp = string_series[string_series > 0]
+    tm.assert_series_equal(sel, exp)
 
 
 def test_where_unsafe_int(sint_dtype):
@@ -146,7 +145,7 @@ def test_where_unsafe_int(sint_dtype):
     s[mask] = range(2, 7)
     expected = Series(list(range(2, 7)) + list(range(5, 10)), dtype=sint_dtype)
 
-    assert_series_equal(s, expected)
+    tm.assert_series_equal(s, expected)
 
 
 def test_where_unsafe_float(float_dtype):
@@ -157,7 +156,7 @@ def test_where_unsafe_float(float_dtype):
     data = list(range(2, 7)) + list(range(5, 10))
     expected = Series(data, dtype=float_dtype)
 
-    assert_series_equal(s, expected)
+    tm.assert_series_equal(s, expected)
 
 
 @pytest.mark.parametrize(
@@ -178,7 +177,7 @@ def test_where_unsafe_upcast(dtype, expected_dtype):
     mask = s < 5
     expected = Series(values + list(range(5, 10)), dtype=expected_dtype)
     s[mask] = values
-    assert_series_equal(s, expected)
+    tm.assert_series_equal(s, expected)
 
 
 def test_where_unsafe():
@@ -190,21 +189,21 @@ def test_where_unsafe():
     expected = Series(list(range(6)) + values, dtype="float64")
 
     s[mask] = values
-    assert_series_equal(s, expected)
+    tm.assert_series_equal(s, expected)
 
     # see gh-3235
     s = Series(np.arange(10), dtype="int64")
     mask = s < 5
     s[mask] = range(2, 7)
     expected = Series(list(range(2, 7)) + list(range(5, 10)), dtype="int64")
-    assert_series_equal(s, expected)
+    tm.assert_series_equal(s, expected)
     assert s.dtype == expected.dtype
 
     s = Series(np.arange(10), dtype="int64")
     mask = s > 5
     s[mask] = [0] * 4
     expected = Series([0, 1, 2, 3, 4, 5] + [0] * 4, dtype="int64")
-    assert_series_equal(s, expected)
+    tm.assert_series_equal(s, expected)
 
     s = Series(np.arange(10))
     mask = s > 5
@@ -220,7 +219,7 @@ def test_where_unsafe():
     s = Series([1, 2, 3, 4])
     result = s.where(s > 2, np.nan)
     expected = Series([np.nan, np.nan, 3, 4])
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     # GH 4667
     # setting with None changes dtype
@@ -233,7 +232,7 @@ def test_where_unsafe():
     s[s > 8] = None
     result = s[isna(s)]
     expected = Series(np.nan, index=[9])
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_where():
@@ -242,10 +241,10 @@ def test_where():
 
     rs = s.where(cond).dropna()
     rs2 = s[cond]
-    assert_series_equal(rs, rs2)
+    tm.assert_series_equal(rs, rs2)
 
     rs = s.where(cond, -s)
-    assert_series_equal(rs, s.abs())
+    tm.assert_series_equal(rs, s.abs())
 
     rs = s.where(cond)
     assert s.shape == rs.shape
@@ -257,12 +256,12 @@ def test_where():
 
     expected = s2[cond].reindex(s2.index[:3]).reindex(s2.index)
     rs = s2.where(cond[:3])
-    assert_series_equal(rs, expected)
+    tm.assert_series_equal(rs, expected)
 
     expected = s2.abs()
     expected.iloc[0] = s2[0]
     rs = s2.where(cond[:3], -s2)
-    assert_series_equal(rs, expected)
+    tm.assert_series_equal(rs, expected)
 
 
 def test_where_error():
@@ -279,15 +278,15 @@ def test_where_error():
     s = Series([1, 2])
     s[[True, False]] = [0, 1]
     expected = Series([0, 2])
-    assert_series_equal(s, expected)
+    tm.assert_series_equal(s, expected)
 
     # failures
     msg = "cannot assign mismatch length to masked array"
     with pytest.raises(ValueError, match=msg):
         s[[True, False]] = [0, 2, 3]
     msg = (
-        "NumPy boolean array indexing assignment cannot assign 0 input"
-        " values to the 1 output values where the mask is true"
+        "NumPy boolean array indexing assignment cannot assign 0 input "
+        "values to the 1 output values where the mask is true"
     )
     with pytest.raises(ValueError, match=msg):
         s[[True, False]] = []
@@ -301,7 +300,7 @@ def test_where_array_like(klass):
     expected = Series([np.nan, 2, 3])
 
     result = s.where(klass(cond))
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -363,7 +362,7 @@ def test_where_setitem_invalid():
 
     s[0:3] = list(range(3))
     expected = Series([0, 1, 2])
-    assert_series_equal(s.astype(np.int64), expected)
+    tm.assert_series_equal(s.astype(np.int64), expected)
 
     # slice with step
     s = Series(list("abcdef"))
@@ -374,7 +373,7 @@ def test_where_setitem_invalid():
     s = Series(list("abcdef"))
     s[0:4:2] = list(range(2))
     expected = Series([0, "b", 1, "d", "e", "f"])
-    assert_series_equal(s, expected)
+    tm.assert_series_equal(s, expected)
 
     # neg slices
     s = Series(list("abcdef"))
@@ -384,7 +383,7 @@ def test_where_setitem_invalid():
 
     s[-3:-1] = list(range(2))
     expected = Series(["a", "b", "c", 0, 1, "f"])
-    assert_series_equal(s, expected)
+    tm.assert_series_equal(s, expected)
 
     # list
     s = Series(list("abc"))
@@ -401,7 +400,7 @@ def test_where_setitem_invalid():
     s = Series(list("abc"))
     s[0] = list(range(10))
     expected = Series([list(range(10)), "b", "c"])
-    assert_series_equal(s, expected)
+    tm.assert_series_equal(s, expected)
 
 
 @pytest.mark.parametrize("size", range(2, 6))
@@ -429,15 +428,15 @@ def test_broadcast(size, mask, item, box):
 
     s = Series(data)
     s[selection] = box(item)
-    assert_series_equal(s, expected)
+    tm.assert_series_equal(s, expected)
 
     s = Series(data)
     result = s.where(~selection, box(item))
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     s = Series(data)
     result = s.mask(selection, box(item))
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_where_inplace():
@@ -447,12 +446,12 @@ def test_where_inplace():
     rs = s.copy()
 
     rs.where(cond, inplace=True)
-    assert_series_equal(rs.dropna(), s[cond])
-    assert_series_equal(rs, s.where(cond))
+    tm.assert_series_equal(rs.dropna(), s[cond])
+    tm.assert_series_equal(rs, s.where(cond))
 
     rs = s.copy()
     rs.where(cond, -s, inplace=True)
-    assert_series_equal(rs, s.where(cond, -s))
+    tm.assert_series_equal(rs, s.where(cond, -s))
 
 
 def test_where_dups():
@@ -463,17 +462,17 @@ def test_where_dups():
     comb = pd.concat([s1, s2])
     result = comb.where(comb < 2)
     expected = Series([0, 1, np.nan, 0, 1, np.nan], index=[0, 1, 2, 0, 1, 2])
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     # GH 4548
     # inplace updating not working with dups
     comb[comb < 1] = 5
     expected = Series([5, 1, 2, 5, 1, 2], index=[0, 1, 2, 0, 1, 2])
-    assert_series_equal(comb, expected)
+    tm.assert_series_equal(comb, expected)
 
     comb[comb < 2] += 10
     expected = Series([5, 11, 2, 5, 11, 2], index=[0, 1, 2, 0, 1, 2])
-    assert_series_equal(comb, expected)
+    tm.assert_series_equal(comb, expected)
 
 
 def test_where_numeric_with_string():
@@ -508,20 +507,20 @@ def test_where_timedelta_coerce():
     mask = np.array([False, False])
 
     rs = s.where(mask, [10, 10])
-    assert_series_equal(rs, expected)
+    tm.assert_series_equal(rs, expected)
 
     rs = s.where(mask, 10)
-    assert_series_equal(rs, expected)
+    tm.assert_series_equal(rs, expected)
 
     rs = s.where(mask, 10.0)
-    assert_series_equal(rs, expected)
+    tm.assert_series_equal(rs, expected)
 
     rs = s.where(mask, [10.0, 10.0])
-    assert_series_equal(rs, expected)
+    tm.assert_series_equal(rs, expected)
 
     rs = s.where(mask, [10.0, np.nan])
     expected = Series([10, None], dtype="object")
-    assert_series_equal(rs, expected)
+    tm.assert_series_equal(rs, expected)
 
 
 def test_where_datetime_conversion():
@@ -530,27 +529,27 @@ def test_where_datetime_conversion():
     mask = np.array([False, False])
 
     rs = s.where(mask, [10, 10])
-    assert_series_equal(rs, expected)
+    tm.assert_series_equal(rs, expected)
 
     rs = s.where(mask, 10)
-    assert_series_equal(rs, expected)
+    tm.assert_series_equal(rs, expected)
 
     rs = s.where(mask, 10.0)
-    assert_series_equal(rs, expected)
+    tm.assert_series_equal(rs, expected)
 
     rs = s.where(mask, [10.0, 10.0])
-    assert_series_equal(rs, expected)
+    tm.assert_series_equal(rs, expected)
 
     rs = s.where(mask, [10.0, np.nan])
     expected = Series([10, None], dtype="object")
-    assert_series_equal(rs, expected)
+    tm.assert_series_equal(rs, expected)
 
     # GH 15701
     timestamps = ["2016-12-31 12:00:04+00:00", "2016-12-31 12:00:04.010000+00:00"]
     s = Series([pd.Timestamp(t) for t in timestamps])
     rs = s.where(Series([False, True]))
     expected = Series([pd.NaT, s[1]])
-    assert_series_equal(rs, expected)
+    tm.assert_series_equal(rs, expected)
 
 
 def test_where_dt_tz_values(tz_naive_fixture):
@@ -565,7 +564,7 @@ def test_where_dt_tz_values(tz_naive_fixture):
     exp = pd.Series(
         pd.DatetimeIndex(["20150101", "20150102", "20160516"], tz=tz_naive_fixture)
     )
-    assert_series_equal(exp, result)
+    tm.assert_series_equal(exp, result)
 
 
 def test_mask():
@@ -574,25 +573,25 @@ def test_mask():
     cond = s > 0
 
     rs = s.where(~cond, np.nan)
-    assert_series_equal(rs, s.mask(cond))
+    tm.assert_series_equal(rs, s.mask(cond))
 
     rs = s.where(~cond)
     rs2 = s.mask(cond)
-    assert_series_equal(rs, rs2)
+    tm.assert_series_equal(rs, rs2)
 
     rs = s.where(~cond, -s)
     rs2 = s.mask(cond, -s)
-    assert_series_equal(rs, rs2)
+    tm.assert_series_equal(rs, rs2)
 
     cond = Series([True, False, False, True, False], index=s.index)
     s2 = -(s.abs())
     rs = s2.where(~cond[:3])
     rs2 = s2.mask(cond[:3])
-    assert_series_equal(rs, rs2)
+    tm.assert_series_equal(rs, rs2)
 
     rs = s2.where(~cond[:3], -s2)
     rs2 = s2.mask(cond[:3], -s2)
-    assert_series_equal(rs, rs2)
+    tm.assert_series_equal(rs, rs2)
 
     msg = "Array conditional must be same shape as self"
     with pytest.raises(ValueError, match=msg):
@@ -604,7 +603,7 @@ def test_mask():
     s = Series([1, 2, 3, 4])
     result = s.mask(s > 2, np.nan)
     expected = Series([1, 2, np.nan, np.nan])
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     # see gh-21891
     s = Series([1, 2])
@@ -620,9 +619,9 @@ def test_mask_inplace():
 
     rs = s.copy()
     rs.mask(cond, inplace=True)
-    assert_series_equal(rs.dropna(), s[~cond])
-    assert_series_equal(rs, s.mask(cond))
+    tm.assert_series_equal(rs.dropna(), s[~cond])
+    tm.assert_series_equal(rs, s.mask(cond))
 
     rs = s.copy()
     rs.mask(cond, -s, inplace=True)
-    assert_series_equal(rs, s.mask(cond, -s))
+    tm.assert_series_equal(rs, s.mask(cond, -s))

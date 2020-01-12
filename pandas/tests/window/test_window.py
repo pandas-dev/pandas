@@ -6,7 +6,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import Series
-import pandas.core.window as rwindow
+from pandas.core.window import Window
 from pandas.tests.window.common import Base
 
 
@@ -50,7 +50,7 @@ class TestWindow(Base):
     @pytest.mark.parametrize("method", ["sum", "mean"])
     def test_numpy_compat(self, method):
         # see gh-12811
-        w = rwindow.Window(Series([2, 4, 6]), window=[0, 2])
+        w = Window(Series([2, 4, 6]), window=[0, 2])
 
         msg = "numpy operations are not valid with window objects"
 
@@ -60,12 +60,12 @@ class TestWindow(Base):
             getattr(w, method)(dtype=np.float64)
 
     @td.skip_if_no_scipy
-    @pytest.mark.parametrize("arg", ["median", "var", "std", "kurt", "skew"])
+    @pytest.mark.parametrize("arg", ["median", "kurt", "skew"])
     def test_agg_function_support(self, arg):
         df = pd.DataFrame({"A": np.arange(5)})
         roll = df.rolling(2, win_type="triang")
 
-        msg = "'{arg}' is not a valid function for " "'Window' object".format(arg=arg)
+        msg = f"'{arg}' is not a valid function for 'Window' object"
         with pytest.raises(AttributeError, match=msg):
             roll.agg(arg)
 

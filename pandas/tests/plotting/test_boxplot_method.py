@@ -9,9 +9,9 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, MultiIndex, Series
+from pandas import DataFrame, MultiIndex, Series, date_range, timedelta_range
+import pandas._testing as tm
 from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
-import pandas.util.testing as tm
 
 import pandas.plotting as plotting
 
@@ -159,6 +159,49 @@ class TestDataFramePlots(TestPlotBase):
         self._check_ticks_props(
             df.boxplot("a", fontsize=16), xlabelsize=16, ylabelsize=16
         )
+
+    def test_boxplot_numeric_data(self):
+        # GH 22799
+        df = DataFrame(
+            {
+                "a": date_range("2012-01-01", periods=100),
+                "b": np.random.randn(100),
+                "c": np.random.randn(100) + 2,
+                "d": date_range("2012-01-01", periods=100).astype(str),
+                "e": date_range("2012-01-01", periods=100, tz="UTC"),
+                "f": timedelta_range("1 days", periods=100),
+            }
+        )
+        ax = df.plot(kind="box")
+        assert [x.get_text() for x in ax.get_xticklabels()] == ["b", "c"]
+
+    @pytest.mark.parametrize(
+        "colors_kwd, expected",
+        [
+            (
+                dict(boxes="r", whiskers="b", medians="g", caps="c"),
+                dict(boxes="r", whiskers="b", medians="g", caps="c"),
+            ),
+            (dict(boxes="r"), dict(boxes="r")),
+            ("r", dict(boxes="r", whiskers="r", medians="r", caps="r")),
+        ],
+    )
+    def test_color_kwd(self, colors_kwd, expected):
+        # GH: 26214
+        df = DataFrame(random.rand(10, 2))
+        result = df.boxplot(color=colors_kwd, return_type="dict")
+        for k, v in expected.items():
+            assert result[k][0].get_color() == v
+
+    @pytest.mark.parametrize(
+        "dict_colors, msg",
+        [(dict(boxes="r", invalid_key="r"), "invalid key 'invalid_key'")],
+    )
+    def test_color_kwd_errors(self, dict_colors, msg):
+        # GH: 26214
+        df = DataFrame(random.rand(10, 2))
+        with pytest.raises(ValueError, match=msg):
+            df.boxplot(color=dict_colors, return_type="dict")
 
 
 @td.skip_if_no_mpl

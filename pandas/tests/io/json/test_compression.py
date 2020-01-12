@@ -3,8 +3,7 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-import pandas.util.testing as tm
-from pandas.util.testing import assert_frame_equal
+import pandas._testing as tm
 
 
 def test_compression_roundtrip(compression):
@@ -16,12 +15,12 @@ def test_compression_roundtrip(compression):
 
     with tm.ensure_clean() as path:
         df.to_json(path, compression=compression)
-        assert_frame_equal(df, pd.read_json(path, compression=compression))
+        tm.assert_frame_equal(df, pd.read_json(path, compression=compression))
 
         # explicitly ensure file was compressed.
         with tm.decompress_file(path, compression) as fh:
             result = fh.read().decode("utf8")
-        assert_frame_equal(df, pd.read_json(result))
+        tm.assert_frame_equal(df, pd.read_json(result))
 
 
 def test_read_zipped_json(datapath):
@@ -31,7 +30,7 @@ def test_read_zipped_json(datapath):
     compressed_path = datapath("io", "json", "data", "tsframe_v012.json.zip")
     compressed_df = pd.read_json(compressed_path, compression="zip")
 
-    assert_frame_equal(uncompressed_df, compressed_df)
+    tm.assert_frame_equal(uncompressed_df, compressed_df)
 
 
 @td.skip_if_not_us_locale
@@ -46,7 +45,7 @@ def test_with_s3_url(compression, s3_resource):
             s3_resource.Bucket("pandas-test").put_object(Key="test-1", Body=f)
 
     roundtripped_df = pd.read_json("s3://pandas-test/test-1", compression=compression)
-    assert_frame_equal(df, roundtripped_df)
+    tm.assert_frame_equal(df, roundtripped_df)
 
 
 def test_lines_with_compression(compression):
@@ -55,7 +54,7 @@ def test_lines_with_compression(compression):
         df = pd.read_json('{"a": [1, 2, 3], "b": [4, 5, 6]}')
         df.to_json(path, orient="records", lines=True, compression=compression)
         roundtripped_df = pd.read_json(path, lines=True, compression=compression)
-        assert_frame_equal(df, roundtripped_df)
+        tm.assert_frame_equal(df, roundtripped_df)
 
 
 def test_chunksize_with_compression(compression):
@@ -66,7 +65,7 @@ def test_chunksize_with_compression(compression):
 
         res = pd.read_json(path, lines=True, chunksize=1, compression=compression)
         roundtripped_df = pd.concat(res)
-        assert_frame_equal(df, roundtripped_df)
+        tm.assert_frame_equal(df, roundtripped_df)
 
 
 def test_write_unsupported_compression_type():
@@ -91,10 +90,7 @@ def test_to_json_compression(compression_only, read_infer, to_infer):
     compression = compression_only
 
     if compression == "zip":
-        pytest.skip(
-            "{compression} is not supported "
-            "for to_csv".format(compression=compression)
-        )
+        pytest.skip(f"{compression} is not supported for to_csv")
 
     # We'll complete file extension subsequently.
     filename = "test."

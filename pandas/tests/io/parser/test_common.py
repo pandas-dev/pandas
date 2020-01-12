@@ -2,15 +2,14 @@
 Tests that work on both the Python and C engines but do not have a
 specific classification into the other test modules.
 """
-
 import codecs
-from collections import OrderedDict
 import csv
 from datetime import datetime
-from io import BytesIO, StringIO
+from io import StringIO
 import os
 import platform
 from tempfile import TemporaryFile
+from urllib.error import URLError
 
 import numpy as np
 import pytest
@@ -19,9 +18,8 @@ from pandas._libs.tslib import Timestamp
 from pandas.errors import DtypeWarning, EmptyDataError, ParserError
 
 from pandas import DataFrame, Index, MultiIndex, Series, compat, concat
-import pandas.util.testing as tm
+import pandas._testing as tm
 
-from pandas.io.common import URLError
 from pandas.io.parsers import CParserWrapper, TextFileReader, TextParser
 
 
@@ -68,17 +66,6 @@ def test_override_set_noconvert_columns():
     parser._engine = MyCParserWrapper(StringIO(data), **parser.options)
 
     result = parser.read()
-    tm.assert_frame_equal(result, expected)
-
-
-def test_bytes_io_input(all_parsers):
-    encoding = "cp1255"
-    parser = all_parsers
-
-    data = BytesIO("שלום:1234\n562:123".encode(encoding))
-    result = parser.read_csv(data, sep=":", encoding=encoding)
-
-    expected = DataFrame([[562, 123]], columns=["שלום", "1234"])
     tm.assert_frame_equal(result, expected)
 
 
@@ -315,15 +302,6 @@ def test_read_csv_no_index_name(all_parsers, csv_dir_path):
             ]
         ),
     )
-    tm.assert_frame_equal(result, expected)
-
-
-def test_read_csv_unicode(all_parsers):
-    parser = all_parsers
-    data = BytesIO("\u0141aski, Jan;1".encode("utf-8"))
-
-    result = parser.read_csv(data, sep=";", encoding="utf-8", header=None)
-    expected = DataFrame([["\u0141aski, Jan", 1]])
     tm.assert_frame_equal(result, expected)
 
 
@@ -978,15 +956,15 @@ def test_path_local_path(all_parsers):
 def test_nonexistent_path(all_parsers):
     # gh-2428: pls no segfault
     # gh-14086: raise more helpful FileNotFoundError
+    # GH#29233 "File foo" instead of "File b'foo'"
     parser = all_parsers
     path = "{}.csv".format(tm.rands(10))
 
-    msg = "does not exist" if parser.engine == "c" else r"\[Errno 2\]"
+    msg = f"File {path} does not exist" if parser.engine == "c" else r"\[Errno 2\]"
     with pytest.raises(FileNotFoundError, match=msg) as e:
         parser.read_csv(path)
 
         filename = e.value.filename
-        filename = filename.decode() if isinstance(filename, bytes) else filename
 
         assert path == filename
 
@@ -1066,59 +1044,6 @@ def test_skip_initial_space(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("sep", [",", "\t"])
-@pytest.mark.parametrize("encoding", ["utf-16", "utf-16le", "utf-16be"])
-def test_utf16_bom_skiprows(all_parsers, sep, encoding):
-    # see gh-2298
-    parser = all_parsers
-    data = """skip this
-skip this too
-A,B,C
-1,2,3
-4,5,6""".replace(
-        ",", sep
-    )
-    path = "__{}__.csv".format(tm.rands(10))
-    kwargs = dict(sep=sep, skiprows=2)
-    utf8 = "utf-8"
-
-    with tm.ensure_clean(path) as path:
-        from io import TextIOWrapper
-
-        bytes_data = data.encode(encoding)
-
-        with open(path, "wb") as f:
-            f.write(bytes_data)
-
-        bytes_buffer = BytesIO(data.encode(utf8))
-        bytes_buffer = TextIOWrapper(bytes_buffer, encoding=utf8)
-
-        result = parser.read_csv(path, encoding=encoding, **kwargs)
-        expected = parser.read_csv(bytes_buffer, encoding=utf8, **kwargs)
-
-        bytes_buffer.close()
-        tm.assert_frame_equal(result, expected)
-
-
-def test_utf16_example(all_parsers, csv_dir_path):
-    path = os.path.join(csv_dir_path, "utf16_ex.txt")
-    parser = all_parsers
-    result = parser.read_csv(path, encoding="utf-16", sep="\t")
-    assert len(result) == 50
-
-
-def test_unicode_encoding(all_parsers, csv_dir_path):
-    path = os.path.join(csv_dir_path, "unicode_series.csv")
-    parser = all_parsers
-
-    result = parser.read_csv(path, header=None, encoding="latin-1")
-    result = result.set_index(0)
-    got = result[1][1632]
-
-    expected = "\xc1 k\xf6ldum klaka (Cold Fever) (1994)"
-    assert got == expected
-
-
 def test_trailing_delimiters(all_parsers):
     # see gh-2442
     data = """A,B,C
@@ -1133,7 +1058,7 @@ def test_trailing_delimiters(all_parsers):
 
 
 def test_escapechar(all_parsers):
-    # http://stackoverflow.com/questions/13824840/feature-request-for-
+    # https://stackoverflow.com/questions/13824840/feature-request-for-
     # pandas-read-csv
     data = '''SEARCH_TERM,ACTUAL_URL
 "bra tv bord","http://www.ikea.com/se/sv/catalog/categories/departments/living_room/10475/?se%7cps%7cnonbranded%7cvardagsrum%7cgoogle%7ctv_bord"
@@ -1145,9 +1070,8 @@ def test_escapechar(all_parsers):
         StringIO(data), escapechar="\\", quotechar='"', encoding="utf-8"
     )
 
-    assert result["SEARCH_TERM"][2] == (
-        'SLAGBORD, "Bergslagen", ' "IKEA:s 1700-tals serie"
-    )
+    assert result["SEARCH_TERM"][2] == 'SLAGBORD, "Bergslagen", IKEA:s 1700-tals serie'
+
     tm.assert_index_equal(result.columns, Index(["SEARCH_TERM", "ACTUAL_URL"]))
 
 
@@ -1318,9 +1242,7 @@ def test_float_parser(all_parsers):
 
 def test_scientific_no_exponent(all_parsers):
     # see gh-12215
-    df = DataFrame.from_dict(
-        OrderedDict([("w", ["2e"]), ("x", ["3E"]), ("y", ["42e"]), ("z", ["632E"])])
-    )
+    df = DataFrame.from_dict({"w": ["2e"], "x": ["3E"], "y": ["42e"], "z": ["632E"]})
     data = df.to_csv(index=False)
     parser = all_parsers
 
@@ -1865,6 +1787,23 @@ j,-inF"""
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("na_filter", [True, False])
+def test_infinity_parsing(all_parsers, na_filter):
+    parser = all_parsers
+    data = """\
+,A
+a,Infinity
+b,-Infinity
+c,+Infinity
+"""
+    expected = DataFrame(
+        {"A": [float("infinity"), float("-infinity"), float("+infinity")]},
+        index=["a", "b", "c"],
+    )
+    result = parser.read_csv(StringIO(data), index_col=0, na_filter=na_filter)
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("nrows", [0, 1, 2, 3, 4, 5])
 def test_raise_on_no_columns(all_parsers, nrows):
     parser = all_parsers
@@ -1903,39 +1842,6 @@ def test_null_byte_char(all_parsers):
             parser.read_csv(StringIO(data), names=names)
 
 
-@pytest.mark.parametrize(
-    "data,kwargs,expected",
-    [
-        # Basic test
-        ("a\n1", dict(), DataFrame({"a": [1]})),
-        # "Regular" quoting
-        ('"a"\n1', dict(quotechar='"'), DataFrame({"a": [1]})),
-        # Test in a data row instead of header
-        ("b\n1", dict(names=["a"]), DataFrame({"a": ["b", "1"]})),
-        # Test in empty data row with skipping
-        ("\n1", dict(names=["a"], skip_blank_lines=True), DataFrame({"a": [1]})),
-        # Test in empty data row without skipping
-        (
-            "\n1",
-            dict(names=["a"], skip_blank_lines=False),
-            DataFrame({"a": [np.nan, 1]}),
-        ),
-    ],
-)
-def test_utf8_bom(all_parsers, data, kwargs, expected):
-    # see gh-4793
-    parser = all_parsers
-    bom = "\ufeff"
-    utf8 = "utf-8"
-
-    def _encode_data_with_bom(_data):
-        bom_data = (bom + _data).encode(utf8)
-        return BytesIO(bom_data)
-
-    result = parser.read_csv(_encode_data_with_bom(data), encoding=utf8, **kwargs)
-    tm.assert_frame_equal(result, expected)
-
-
 def test_temporary_file(all_parsers):
     # see gh-13398
     parser = all_parsers
@@ -1950,20 +1856,6 @@ def test_temporary_file(all_parsers):
     new_file.close()
 
     expected = DataFrame([[0, 0]])
-    tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize("byte", [8, 16])
-@pytest.mark.parametrize("fmt", ["utf-{0}", "utf_{0}", "UTF-{0}", "UTF_{0}"])
-def test_read_csv_utf_aliases(all_parsers, byte, fmt):
-    # see gh-13549
-    expected = DataFrame({"mb_num": [4.8], "multibyte": ["test"]})
-    parser = all_parsers
-
-    encoding = fmt.format(byte)
-    data = "mb_num,multibyte\n4.8,test".encode(encoding)
-
-    result = parser.read_csv(BytesIO(data), encoding=encoding)
     tm.assert_frame_equal(result, expected)
 
 
@@ -2020,9 +1912,10 @@ def test_file_handles_with_open(all_parsers, csv1):
     # Don't close user provided file handles.
     parser = all_parsers
 
-    with open(csv1, "r") as f:
-        parser.read_csv(f)
-        assert not f.closed
+    for mode in ["r", "rb"]:
+        with open(csv1, mode) as f:
+            parser.read_csv(f)
+            assert not f.closed
 
 
 def test_invalid_file_buffer_class(all_parsers):
@@ -2118,11 +2011,7 @@ def test_suppress_error_output(all_parsers, capsys):
     assert captured.err == ""
 
 
-@pytest.mark.skipif(
-    compat.is_platform_windows() and not compat.PY36,
-    reason="On Python < 3.6 won't pass on Windows",
-)
-@pytest.mark.parametrize("filename", ["sé-es-vé.csv", "ru-sй.csv"])
+@pytest.mark.parametrize("filename", ["sé-es-vé.csv", "ru-sй.csv", "中文文件名.csv"])
 def test_filename_with_special_chars(all_parsers, filename):
     # see gh-15086.
     parser = all_parsers
@@ -2171,3 +2060,13 @@ def test_first_row_bom(all_parsers):
     result = parser.read_csv(StringIO(data), delimiter="\t")
     expected = DataFrame(columns=["Head1", "Head2", "Head3"])
     tm.assert_frame_equal(result, expected)
+
+
+def test_integer_precision(all_parsers):
+    # Gh 7072
+    s = """1,1;0;0;0;1;1;3844;3844;3844;1;1;1;1;1;1;0;0;1;1;0;0,,,4321583677327450765
+5,1;0;0;0;1;1;843;843;843;1;1;1;1;1;1;0;0;1;1;0;0,64.0,;,4321113141090630389"""
+    parser = all_parsers
+    result = parser.read_csv(StringIO(s), header=None)[4]
+    expected = Series([4321583677327450765, 4321113141090630389], name=4)
+    tm.assert_series_equal(result, expected)

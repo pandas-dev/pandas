@@ -105,13 +105,11 @@ cdef const uint8_t[:] rle_decompress(int result_length,
                 result[rpos] = 0x00
                 rpos += 1
         else:
-            raise ValueError("unknown control byte: {byte}"
-                             .format(byte=control_byte))
+            raise ValueError(f"unknown control byte: {control_byte}")
 
     # In py37 cython/clang sees `len(outbuff)` as size_t and not Py_ssize_t
     if <Py_ssize_t>len(result) != <Py_ssize_t>result_length:
-        raise ValueError("RLE: {got} != {expect}".format(got=len(result),
-                                                         expect=result_length))
+        raise ValueError(f"RLE: {len(result)} != {result_length}")
 
     return np.asarray(result)
 
@@ -194,8 +192,7 @@ cdef const uint8_t[:] rdc_decompress(int result_length,
 
     # In py37 cython/clang sees `len(outbuff)` as size_t and not Py_ssize_t
     if <Py_ssize_t>len(outbuff) != <Py_ssize_t>result_length:
-        raise ValueError("RDC: {got} != {expect}\n"
-                         .format(got=len(outbuff), expect=result_length))
+        raise ValueError(f"RDC: {len(outbuff)} != {result_length}\n")
 
     return np.asarray(outbuff)
 
@@ -271,8 +268,7 @@ cdef class Parser:
                 self.column_types[j] = column_type_string
             else:
                 raise ValueError("unknown column type: "
-                                 "{typ}"
-                                 .format(typ=self.parser.columns[j].ctype))
+                                 f"{self.parser.columns[j].ctype}")
 
         # compression
         if parser.compression == const.rle_compression:
@@ -392,8 +388,7 @@ cdef class Parser:
                         return True
                 return False
             else:
-                raise ValueError("unknown page type: {typ}"
-                                 .format(typ=self.current_page_type))
+                raise ValueError(f"unknown page type: {self.current_page_type}")
 
     cdef void process_byte_array_with_data(self, int offset, int length):
 

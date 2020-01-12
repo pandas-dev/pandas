@@ -11,8 +11,6 @@ The full license is in the LICENSE file, distributed with this software.
 #define PANDAS__LIBS_SRC_PARSE_HELPER_H_
 
 #include <float.h>
-#include "inline_helper.h"
-#include "headers/portable.h"
 #include "parser/tokenizer.h"
 
 int to_double(char *item, double *p_value, char sci, char decimal,
@@ -24,11 +22,6 @@ int to_double(char *item, double *p_value, char sci, char decimal,
 
     return (error == 0) && (!*p_end);
 }
-
-#if PY_VERSION_HEX < 0x02060000
-#define PyBytes_Check PyString_Check
-#define PyBytes_AS_STRING PyString_AS_STRING
-#endif  // PY_VERSION_HEX
 
 int floatify(PyObject *str, double *result, int *maybe_int) {
     int status;
@@ -50,7 +43,7 @@ int floatify(PyObject *str, double *result, int *maybe_int) {
     status = to_double(data, result, sci, dec, maybe_int);
 
     if (!status) {
-        /* handle inf/-inf */
+        /* handle inf/-inf infinity/-infinity */
         if (strlen(data) == 3) {
             if (0 == strcasecmp(data, "inf")) {
                 *result = HUGE_VAL;
@@ -68,6 +61,23 @@ int floatify(PyObject *str, double *result, int *maybe_int) {
             } else {
                 goto parsingerror;
             }
+        } else if (strlen(data) == 8) {
+            if (0 == strcasecmp(data, "infinity")) {
+                *result = HUGE_VAL;
+                *maybe_int = 0;
+            } else {
+                goto parsingerror;
+            }
+        } else if (strlen(data) == 9) {
+            if (0 == strcasecmp(data, "-infinity")) {
+                *result = -HUGE_VAL;
+                *maybe_int = 0;
+            } else if (0 == strcasecmp(data, "+infinity")) {
+                *result = HUGE_VAL;
+                *maybe_int = 0;
+            } else {
+                goto parsingerror;
+            }
         } else {
             goto parsingerror;
         }
@@ -80,14 +90,6 @@ parsingerror:
     PyErr_Format(PyExc_ValueError, "Unable to parse string \"%s\"", data);
     Py_XDECREF(tmp);
     return -1;
-}
-
-PANDAS_INLINE void lowercase(char *p) {
-    for (; *p; ++p) *p = tolower_ascii(*p);
-}
-
-PANDAS_INLINE void uppercase(char *p) {
-    for (; *p; ++p) *p = toupper_ascii(*p);
 }
 
 #endif  // PANDAS__LIBS_SRC_PARSE_HELPER_H_

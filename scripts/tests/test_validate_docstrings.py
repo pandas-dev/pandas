@@ -1,12 +1,14 @@
+import functools
 import io
 import random
 import string
 import textwrap
-import pytest
-import numpy as np
-import pandas as pd
 
+import numpy as np
+import pytest
 import validate_docstrings
+
+import pandas as pd
 
 validate_one = validate_docstrings.validate_one
 
@@ -38,6 +40,21 @@ class GoodDocStrings:
         """
         pass
 
+    def swap(self, arr, i, j, *args, **kwargs):
+        """
+        Swap two indicies on an array.
+
+        Parameters
+        ----------
+        arr : list
+            The list having indexes swapped.
+        i, j : int
+            The indexes being swapped.
+        *args, **kwargs
+            Extraneous parameters are being permitted.
+        """
+        pass
+
     def sample(self):
         """
         Generate and return a random number.
@@ -51,6 +68,23 @@ class GoodDocStrings:
             Random number generated.
         """
         return random.random()
+
+    @functools.lru_cache(None)
+    def decorated_sample(self, max):
+        """
+        Generate and return a random integer between 0 and max.
+
+        Parameters
+        ----------
+        max : int
+            The maximum value of the random number.
+
+        Returns
+        -------
+        int
+            Random number generated.
+        """
+        return random.randint(0, max)
 
     def random_letters(self):
         """
@@ -200,7 +234,7 @@ class GoodDocStrings:
 
     def mode(self, axis, numeric_only):
         """
-        Ensure sphinx directives don't affect checks for trailing periods.
+        Ensure reST directives don't affect checks for leading periods.
 
         Parameters
         ----------
@@ -254,6 +288,21 @@ class GoodDocStrings:
             return
         else:
             return None
+
+    def multiple_variables_on_one_line(self, matrix, a, b, i, j):
+        """
+        Swap two values in a matrix.
+
+        Parameters
+        ----------
+        matrix : list of list
+            A double list that represents a matrix.
+        a, b : int
+            The indicies of the first value.
+        i, j : int
+            The indicies of the second value.
+        """
+        pass
 
 
 class BadGenericDocStrings:
@@ -447,6 +496,27 @@ class BadGenericDocStrings:
     def method_wo_docstrings(self):
         pass
 
+    def directives_without_two_colons(self, first, second):
+        """
+        Ensure reST directives have trailing colons.
+
+        Parameters
+        ----------
+        first : str
+            Sentence ending in period, followed by single directive w/o colons.
+
+            .. versionchanged 0.1.2
+
+        second : bool
+            Sentence ending in period, followed by multiple directives w/o
+            colons.
+
+            .. versionadded 0.1.2
+            .. deprecated 0.00.0
+
+        """
+        pass
+
 
 class BadSummaries:
     def wrong_line(self):
@@ -612,6 +682,17 @@ class BadParameters:
         """
         pass
 
+    def bad_parameter_spacing(self, a, b):
+        """
+        The parameters on the same line have an extra space between them.
+
+        Parameters
+        ----------
+        a,  b : int
+            Foo bar baz.
+        """
+        pass
+
 
 class BadReturns:
     def return_not_documented(self):
@@ -638,7 +719,7 @@ class BadReturns:
 
     def no_description(self):
         """
-        Provides type but no descrption.
+        Provides type but no description.
 
         Returns
         -------
@@ -805,7 +886,9 @@ class TestValidator:
         "func",
         [
             "plot",
+            "swap",
             "sample",
+            "decorated_sample",
             "random_letters",
             "sample_values",
             "head",
@@ -815,6 +898,7 @@ class TestValidator:
             "good_imports",
             "no_returns",
             "empty_returns",
+            "multiple_variables_on_one_line",
         ],
     )
     def test_good_functions(self, capsys, func):
@@ -840,6 +924,7 @@ class TestValidator:
             "plot",
             "method",
             "private_classes",
+            "directives_without_two_colons",
         ],
     )
     def test_bad_generic_functions(self, capsys, func):
@@ -878,6 +963,14 @@ class TestValidator:
                 "BadGenericDocStrings",
                 "deprecation_in_wrong_order",
                 ("Deprecation warning should precede extended summary",),
+            ),
+            (
+                "BadGenericDocStrings",
+                "directives_without_two_colons",
+                (
+                    "reST directives ['versionchanged', 'versionadded', "
+                    "'deprecated'] must be followed by two colons",
+                ),
             ),
             (
                 "BadSeeAlso",
@@ -971,6 +1064,11 @@ class TestValidator:
                 "list_incorrect_parameter_type",
                 ('Parameter "kind" type should use "str" instead of "string"',),
             ),
+            (
+                "BadParameters",
+                "bad_parameter_spacing",
+                ("Parameters {b} not documented", "Unknown parameters { b}"),
+            ),
             pytest.param(
                 "BadParameters",
                 "blank_lines",
@@ -998,7 +1096,7 @@ class TestValidator:
             (
                 "BadReturns",
                 "no_capitalization",
-                ("Return value description should start with a capital " "letter",),
+                ("Return value description should start with a capital letter",),
             ),
             (
                 "BadReturns",
@@ -1202,7 +1300,7 @@ class TestDocstringClass:
 
     @pytest.mark.parametrize("invalid_name", ["panda", "panda.DataFrame"])
     def test_raises_for_invalid_module_name(self, invalid_name):
-        msg = 'No module can be imported from "{}"'.format(invalid_name)
+        msg = f'No module can be imported from "{invalid_name}"'
         with pytest.raises(ImportError, match=msg):
             validate_docstrings.Docstring(invalid_name)
 
@@ -1212,7 +1310,7 @@ class TestDocstringClass:
     def test_raises_for_invalid_attribute_name(self, invalid_name):
         name_components = invalid_name.split(".")
         obj_name, invalid_attr_name = name_components[-2], name_components[-1]
-        msg = "'{}' has no attribute '{}'".format(obj_name, invalid_attr_name)
+        msg = f"'{obj_name}' has no attribute '{invalid_attr_name}'"
         with pytest.raises(AttributeError, match=msg):
             validate_docstrings.Docstring(invalid_name)
 

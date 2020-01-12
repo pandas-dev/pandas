@@ -3,6 +3,7 @@
 """ Test cases for DataFrame.plot """
 
 from datetime import date, datetime
+import itertools
 import string
 import warnings
 
@@ -16,9 +17,9 @@ from pandas.core.dtypes.api import is_list_like
 
 import pandas as pd
 from pandas import DataFrame, MultiIndex, PeriodIndex, Series, bdate_range, date_range
+import pandas._testing as tm
 from pandas.core.arrays import integer_array
 from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
-import pandas.util.testing as tm
 
 from pandas.io.formats.printing import pprint_thing
 import pandas.plotting as plotting
@@ -554,14 +555,14 @@ class TestDataFramePlots(TestPlotBase):
             period:
                 since period isn't yet implemented in ``select_dtypes``
                 and because it will need a custom value converter +
-                tick formater (as was done for x-axis plots)
+                tick formatter (as was done for x-axis plots)
 
             categorical:
                  because it will need a custom value converter +
-                 tick formater (also doesn't work for x-axis, as of now)
+                 tick formatter (also doesn't work for x-axis, as of now)
 
             datetime_mixed_tz:
-                because of the way how pandas handels ``Series`` of
+                because of the way how pandas handles ``Series`` of
                 ``datetime`` objects with different timezone,
                 generally converting ``datetime`` objects in a tz-aware
                 form could help with this problem
@@ -1161,6 +1162,36 @@ class TestDataFramePlots(TestPlotBase):
         axes = df.plot(x="x", y="y", kind="scatter", subplots=True)
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
 
+    def test_raise_error_on_datetime_time_data(self):
+        # GH 8113, datetime.time type is not supported by matplotlib in scatter
+        df = pd.DataFrame(np.random.randn(10), columns=["a"])
+        df["dtime"] = pd.date_range(start="2014-01-01", freq="h", periods=10).time
+        msg = "must be a string or a number, not 'datetime.time'"
+
+        with pytest.raises(TypeError, match=msg):
+            df.plot(kind="scatter", x="dtime", y="a")
+
+    def test_scatterplot_datetime_data(self):
+        # GH 30391
+        dates = pd.date_range(start=date(2019, 1, 1), periods=12, freq="W")
+        vals = np.random.normal(0, 1, len(dates))
+        df = pd.DataFrame({"dates": dates, "vals": vals})
+
+        _check_plot_works(df.plot.scatter, x="dates", y="vals")
+        _check_plot_works(df.plot.scatter, x=0, y=1)
+
+    def test_scatterplot_object_data(self):
+        # GH 18755
+        df = pd.DataFrame(dict(a=["A", "B", "C"], b=[2, 3, 4]))
+
+        _check_plot_works(df.plot.scatter, x="a", y="b")
+        _check_plot_works(df.plot.scatter, x=0, y=1)
+
+        df = pd.DataFrame(dict(a=["A", "B", "C"], b=["a", "b", "c"]))
+
+        _check_plot_works(df.plot.scatter, x="a", y="b")
+        _check_plot_works(df.plot.scatter, x=0, y=1)
+
     @pytest.mark.slow
     def test_if_scatterplot_colorbar_affects_xaxis_visibility(self):
         # addressing issue #10611, to ensure colobar does not
@@ -1215,24 +1246,15 @@ class TestDataFramePlots(TestPlotBase):
         colorbar_distance = axes_x_coords[3, :] - axes_x_coords[2, :]
         assert np.isclose(parent_distance, colorbar_distance, atol=1e-7).all()
 
+    @pytest.mark.parametrize("x, y", [("x", "y"), ("y", "x"), ("y", "y")])
     @pytest.mark.slow
-    def test_plot_scatter_with_categorical_data(self):
-        # GH 16199
+    def test_plot_scatter_with_categorical_data(self, x, y):
+        # after fixing GH 18755, should be able to plot categorical data
         df = pd.DataFrame(
             {"x": [1, 2, 3, 4], "y": pd.Categorical(["a", "b", "a", "c"])}
         )
 
-        with pytest.raises(ValueError) as ve:
-            df.plot(x="x", y="y", kind="scatter")
-        ve.match("requires y column to be numeric")
-
-        with pytest.raises(ValueError) as ve:
-            df.plot(x="y", y="x", kind="scatter")
-        ve.match("requires x column to be numeric")
-
-        with pytest.raises(ValueError) as ve:
-            df.plot(x="y", y="y", kind="scatter")
-        ve.match("requires x column to be numeric")
+        _check_plot_works(df.plot.scatter, x=x, y=y)
 
     @pytest.mark.slow
     def test_plot_scatter_with_c(self):
@@ -1880,6 +1902,31 @@ class TestDataFramePlots(TestPlotBase):
         ax = df5.plot(y="c", label="LABEL_c", ax=ax)
         self._check_legend_labels(ax, labels=["LABEL_b", "LABEL_c"])
         assert df5.columns.tolist() == ["b", "c"]
+
+    def test_missing_marker_multi_plots_on_same_ax(self):
+        # GH 18222
+        df = pd.DataFrame(
+            data=[[1, 1, 1, 1], [2, 2, 4, 8]], columns=["x", "r", "g", "b"]
+        )
+        fig, ax = self.plt.subplots(nrows=1, ncols=3)
+        # Left plot
+        df.plot(x="x", y="r", linewidth=0, marker="o", color="r", ax=ax[0])
+        df.plot(x="x", y="g", linewidth=1, marker="x", color="g", ax=ax[0])
+        df.plot(x="x", y="b", linewidth=1, marker="o", color="b", ax=ax[0])
+        self._check_legend_labels(ax[0], labels=["r", "g", "b"])
+        self._check_legend_marker(ax[0], expected_markers=["o", "x", "o"])
+        # Center plot
+        df.plot(x="x", y="b", linewidth=1, marker="o", color="b", ax=ax[1])
+        df.plot(x="x", y="r", linewidth=0, marker="o", color="r", ax=ax[1])
+        df.plot(x="x", y="g", linewidth=1, marker="x", color="g", ax=ax[1])
+        self._check_legend_labels(ax[1], labels=["b", "r", "g"])
+        self._check_legend_marker(ax[1], expected_markers=["o", "o", "x"])
+        # Right plot
+        df.plot(x="x", y="g", linewidth=1, marker="x", color="g", ax=ax[2])
+        df.plot(x="x", y="b", linewidth=1, marker="o", color="b", ax=ax[2])
+        df.plot(x="x", y="r", linewidth=0, marker="o", color="r", ax=ax[2])
+        self._check_legend_labels(ax[2], labels=["g", "b", "r"])
+        self._check_legend_marker(ax[2], expected_markers=["x", "o", "o"])
 
     def test_legend_name(self):
         multi = DataFrame(
@@ -2579,12 +2626,6 @@ class TestDataFramePlots(TestPlotBase):
             ax = _check_plot_works(df.plot, yerr=np.ones((2, 12)) * 0.4)
             self._check_has_errorbars(ax, xerr=0, yerr=2)
 
-            # yerr is iterator
-            import itertools
-
-            ax = _check_plot_works(df.plot, yerr=itertools.repeat(0.1, len(df)))
-            self._check_has_errorbars(ax, xerr=0, yerr=2)
-
             # yerr is column name
             for yerr in ["yerr", "誤差"]:
                 s_df = df.copy()
@@ -2600,6 +2641,17 @@ class TestDataFramePlots(TestPlotBase):
             df_err = DataFrame({"x": ["zzz"] * 12, "y": ["zzz"] * 12})
             with pytest.raises((ValueError, TypeError)):
                 df.plot(yerr=df_err)
+
+    @pytest.mark.xfail(reason="Iterator is consumed", raises=ValueError)
+    @pytest.mark.slow
+    def test_errorbar_plot_iterator(self):
+        with warnings.catch_warnings():
+            d = {"x": np.arange(12), "y": np.arange(12, 0, -1)}
+            df = DataFrame(d)
+
+            # yerr is iterator
+            ax = _check_plot_works(df.plot, yerr=itertools.repeat(0.1, len(df)))
+            self._check_has_errorbars(ax, xerr=0, yerr=2)
 
     @pytest.mark.slow
     def test_errorbar_with_integer_column_names(self):
@@ -3151,6 +3203,101 @@ class TestDataFramePlots(TestPlotBase):
         assert labels_position["(2012, 2)"] == 1.0
         assert labels_position["(2013, 1)"] == 2.0
         assert labels_position["(2013, 2)"] == 3.0
+
+    @pytest.mark.parametrize("kind", ["line", "area"])
+    def test_xlim_plot_line(self, kind):
+        # test if xlim is set correctly in plot.line and plot.area
+        # GH 27686
+        df = pd.DataFrame([2, 4], index=[1, 2])
+        ax = df.plot(kind=kind)
+        xlims = ax.get_xlim()
+        assert xlims[0] < 1
+        assert xlims[1] > 2
+
+    def test_xlim_plot_line_correctly_in_mixed_plot_type(self):
+        # test if xlim is set correctly when ax contains multiple different kinds
+        # of plots, GH 27686
+        fig, ax = self.plt.subplots()
+
+        indexes = ["k1", "k2", "k3", "k4"]
+        df = pd.DataFrame(
+            {
+                "s1": [1000, 2000, 1500, 2000],
+                "s2": [900, 1400, 2000, 3000],
+                "s3": [1500, 1500, 1600, 1200],
+                "secondary_y": [1, 3, 4, 3],
+            },
+            index=indexes,
+        )
+        df[["s1", "s2", "s3"]].plot.bar(ax=ax, stacked=False)
+        df[["secondary_y"]].plot(ax=ax, secondary_y=True)
+
+        xlims = ax.get_xlim()
+        assert xlims[0] < 0
+        assert xlims[1] > 3
+
+        # make sure axis labels are plotted correctly as well
+        xticklabels = [t.get_text() for t in ax.get_xticklabels()]
+        assert xticklabels == indexes
+
+    def test_subplots_sharex_false(self):
+        # test when sharex is set to False, two plots should have different
+        # labels, GH 25160
+        df = pd.DataFrame(np.random.rand(10, 2))
+        df.iloc[5:, 1] = np.nan
+        df.iloc[:5, 0] = np.nan
+
+        figs, axs = self.plt.subplots(2, 1)
+        df.plot.line(ax=axs, subplots=True, sharex=False)
+
+        expected_ax1 = np.arange(4.5, 10, 0.5)
+        expected_ax2 = np.arange(-0.5, 5, 0.5)
+
+        tm.assert_numpy_array_equal(axs[0].get_xticks(), expected_ax1)
+        tm.assert_numpy_array_equal(axs[1].get_xticks(), expected_ax2)
+
+    def test_plot_no_rows(self):
+        # GH 27758
+        df = pd.DataFrame(columns=["foo"], dtype=int)
+        assert df.empty
+        ax = df.plot()
+        assert len(ax.get_lines()) == 1
+        line = ax.get_lines()[0]
+        assert len(line.get_xdata()) == 0
+        assert len(line.get_ydata()) == 0
+
+    def test_plot_no_numeric_data(self):
+        df = pd.DataFrame(["a", "b", "c"])
+        with pytest.raises(TypeError):
+            df.plot()
+
+    def test_missing_markers_legend(self):
+        # 14958
+        df = pd.DataFrame(np.random.randn(8, 3), columns=["A", "B", "C"])
+        ax = df.plot(y=["A"], marker="x", linestyle="solid")
+        df.plot(y=["B"], marker="o", linestyle="dotted", ax=ax)
+        df.plot(y=["C"], marker="<", linestyle="dotted", ax=ax)
+
+        self._check_legend_labels(ax, labels=["A", "B", "C"])
+        self._check_legend_marker(ax, expected_markers=["x", "o", "<"])
+
+    def test_missing_markers_legend_using_style(self):
+        # 14563
+        df = pd.DataFrame(
+            {
+                "A": [1, 2, 3, 4, 5, 6],
+                "B": [2, 4, 1, 3, 2, 4],
+                "C": [3, 3, 2, 6, 4, 2],
+                "X": [1, 2, 3, 4, 5, 6],
+            }
+        )
+
+        fig, ax = self.plt.subplots()
+        for kind in "ABC":
+            df.plot("X", kind, label=kind, ax=ax, style=".")
+
+        self._check_legend_labels(ax, labels=["A", "B", "C"])
+        self._check_legend_marker(ax, expected_markers=[".", ".", "."])
 
 
 def _generate_4_axes_via_gridspec():

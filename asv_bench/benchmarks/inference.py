@@ -1,8 +1,8 @@
 import numpy as np
-import pandas.util.testing as tm
+
 from pandas import DataFrame, Series, to_numeric
 
-from .pandas_vb_common import numeric_dtypes, lib
+from .pandas_vb_common import lib, numeric_dtypes, tm
 
 
 class NumericInferOps:
@@ -120,4 +120,4 @@ class MaybeConvertNumeric:
         lib.maybe_convert_numeric(data, set(), coerce_numeric=False)
 
 
-from .pandas_vb_common import setup  # noqa: F401
+from .pandas_vb_common import setup  # noqa: F401 isort:skip

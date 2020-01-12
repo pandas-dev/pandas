@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame, Series, Timedelta, Timestamp, date_range
+import pandas._testing as tm
 from pandas.tests.indexing.common import Base
-from pandas.util import testing as tm
 
 
 class TestScalar(Base):
@@ -16,12 +16,12 @@ class TestScalar(Base):
                 indicies = self.generate_indices(f, values)
                 for i in indicies:
                     result = getattr(f, func)[i]
-                    expected = self.get_value(f, i, values)
+                    expected = self.get_value(func, f, i, values)
                     tm.assert_almost_equal(result, expected)
 
-        for o in self._objs:
+        for kind in self._kinds:
 
-            d = getattr(self, o)
+            d = getattr(self, kind)
 
             # iat
             for f in [d["ints"], d["uints"]]:
@@ -44,12 +44,12 @@ class TestScalar(Base):
                 indicies = self.generate_indices(f, values)
                 for i in indicies:
                     getattr(f, func)[i] = 1
-                    expected = self.get_value(f, i, values)
+                    expected = self.get_value(func, f, i, values)
                     tm.assert_almost_equal(expected, 1)
 
-        for t in self._objs:
+        for kind in self._kinds:
 
-            d = getattr(self, t)
+            d = getattr(self, kind)
 
             # iat
             for f in [d["ints"], d["uints"]]:
@@ -132,8 +132,8 @@ class TestScalar(Base):
         result = s.at["a"]
         assert result == 1
         msg = (
-            "At based indexing on an non-integer index can only have"
-            " non-integer indexers"
+            "At based indexing on an non-integer index can only have "
+            "non-integer indexers"
         )
         with pytest.raises(ValueError, match=msg):
             s.at[0]

@@ -154,6 +154,8 @@ enum JSTYPES {
   JT_ARRAY,    // Array structure
   JT_OBJECT,   // Key/Value structure
   JT_INVALID,  // Internal, do not return nor expect
+  JT_POS_INF,  // Positive infinity
+  JT_NEG_INF,  // Negative infinity
 };
 
 typedef void * JSOBJ;
@@ -245,6 +247,10 @@ typedef struct __JSONObjectEncoder {
   int encodeHTMLChars;
 
   /*
+  Configuration for spaces of indent */
+  int indent;
+
+  /*
   Set to an error message if error occurred */
   const char *errorMsg;
   JSOBJ errorObj;
@@ -286,6 +292,8 @@ typedef struct __JSONObjectDecoder {
   JSOBJ (*newTrue)(void *prv);
   JSOBJ (*newFalse)(void *prv);
   JSOBJ (*newNull)(void *prv);
+  JSOBJ (*newPosInf)(void *prv);
+  JSOBJ (*newNegInf)(void *prv);
   JSOBJ (*newObject)(void *prv, void *decoder);
   JSOBJ (*endObject)(void *prv, JSOBJ obj);
   JSOBJ (*newArray)(void *prv, void *decoder);
@@ -306,12 +314,5 @@ typedef struct __JSONObjectDecoder {
 EXPORTFUNCTION JSOBJ JSON_DecodeObject(JSONObjectDecoder *dec,
                                        const char *buffer, size_t cbBuffer);
 EXPORTFUNCTION void encode(JSOBJ, JSONObjectEncoder *, const char *, size_t);
-
-#define Buffer_Reserve(__enc, __len)                                  \
-    if ((size_t)((__enc)->end - (__enc)->offset) < (size_t)(__len)) { \
-        Buffer_Realloc((__enc), (__len));                             \
-    }
-
-void Buffer_Realloc(JSONObjectEncoder *enc, size_t cbNeeded);
 
 #endif  // PANDAS__LIBS_SRC_UJSON_LIB_ULTRAJSON_H_

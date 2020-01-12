@@ -1,7 +1,8 @@
-import os
 from importlib import import_module
+import os
 
 import numpy as np
+
 import pandas as pd
 
 # Compatibility import for lib
@@ -11,6 +12,13 @@ for imp in ["pandas._libs.lib", "pandas.lib"]:
         break
     except (ImportError, TypeError, ValueError):
         pass
+
+# Compatibility import for the testing module
+try:
+    import pandas._testing as tm  # noqa
+except ImportError:
+    import pandas.util.testing as tm  # noqa
+
 
 numeric_dtypes = [
     np.int64,
