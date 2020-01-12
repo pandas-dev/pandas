@@ -430,10 +430,11 @@ def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFram
 
     columns = columns if is_list_like(columns) else [columns]
     if values is None:
+        cols: List[str] = []
         if index is None:
-            cols = []
+            pass
         elif is_list_like(index):
-            cols = [idx for idx in index]
+            cols = list(index)
         else:
             cols = [index]
         cols.extend(columns)
