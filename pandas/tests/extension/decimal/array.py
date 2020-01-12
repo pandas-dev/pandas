@@ -8,7 +8,7 @@ import numpy as np
 from pandas.core.dtypes.base import ExtensionDtype
 
 import pandas as pd
-from pandas.api.extensions import register_extension_dtype
+from pandas.api.extensions import no_default, register_extension_dtype
 from pandas.core.arrays import ExtensionArray, ExtensionScalarOpsMixin
 
 
@@ -83,6 +83,12 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
         return cls(values)
 
     _HANDLED_TYPES = (decimal.Decimal, numbers.Number, np.ndarray)
+
+    def to_numpy(self, dtype=None, copy=False, na_value=no_default, decimals=None):
+        result = np.asarray(self, dtype=dtype)
+        if decimals is not None:
+            result = np.asarray([round(x, decimals) for x in result])
+        return result
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         #

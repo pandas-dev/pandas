@@ -12,7 +12,7 @@ from pandas._config.config import options
 
 
 @contextmanager
-def set_locale(new_locale, lc_var=locale.LC_ALL):
+def set_locale(new_locale, lc_var: int = locale.LC_ALL):
     """
     Context manager for temporarily setting a locale.
 
@@ -44,7 +44,7 @@ def set_locale(new_locale, lc_var=locale.LC_ALL):
         locale.setlocale(lc_var, current_locale)
 
 
-def can_set_locale(lc, lc_var=locale.LC_ALL):
+def can_set_locale(lc: str, lc_var: int = locale.LC_ALL) -> bool:
     """
     Check to see if we can set a locale, and subsequently get the locale,
     without raising an Exception.
@@ -58,7 +58,7 @@ def can_set_locale(lc, lc_var=locale.LC_ALL):
 
     Returns
     -------
-    is_valid : bool
+    bool
         Whether the passed locale can be set
     """
 

@@ -11,12 +11,11 @@ from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes.common import _NS_DTYPE, is_float, is_integer, is_scalar
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core.accessor import delegate_names
 from pandas.core.arrays.datetimes import (
     DatetimeArray,
-    _to_M8,
     tz_to_dtype,
     validate_tz_from_dtype,
 )
@@ -294,7 +293,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
 
     # --------------------------------------------------------------------
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None) -> np.ndarray:
         return np.asarray(self._data, dtype=dtype)
 
     @cache_readonly
@@ -319,47 +318,12 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
         d.update(self._get_attributes_dict())
         return _new_DatetimeIndex, (type(self), d), None
 
-    def __setstate__(self, state):
-        """
-        Necessary for making this object picklable.
-        """
-        if isinstance(state, dict):
-            super().__setstate__(state)
-
-        elif isinstance(state, tuple):
-
-            # < 0.15 compat
-            if len(state) == 2:
-                nd_state, own_state = state
-                data = np.empty(nd_state[1], dtype=nd_state[2])
-                np.ndarray.__setstate__(data, nd_state)
-
-                freq = own_state[1]
-                tz = timezones.tz_standardize(own_state[2])
-                dtype = tz_to_dtype(tz)
-                dtarr = DatetimeArray._simple_new(data, freq=freq, dtype=dtype)
-
-                self.name = own_state[0]
-
-            else:  # pragma: no cover
-                data = np.empty(state)
-                np.ndarray.__setstate__(data, state)
-                dtarr = DatetimeArray(data)
-
-            self._data = dtarr
-            self._reset_identity()
-
-        else:
-            raise Exception("invalid pickle state")
-
-    _unpickle_compat = __setstate__
-
     def _convert_for_op(self, value):
         """
         Convert value to be insertable to ndarray.
         """
         if self._has_same_tz(value):
-            return _to_M8(value)
+            return Timestamp(value).asm8
         raise ValueError("Passed item and index have different timezone")
 
     # --------------------------------------------------------------------
@@ -421,7 +385,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
             values = self._data._local_timestamps()
         return fields.get_time_micros(values)
 
-    def to_series(self, keep_tz=lib._no_default, index=None, name=None):
+    def to_series(self, keep_tz=lib.no_default, index=None, name=None):
         """
         Create a Series with both index and values equal to the index keys
         useful with map for returning an indexer based on an index.
@@ -466,7 +430,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
         if name is None:
             name = self.name
 
-        if keep_tz is not lib._no_default:
+        if keep_tz is not lib.no_default:
             if keep_tz:
                 warnings.warn(
                     "The 'keep_tz' keyword in DatetimeIndex.to_series "
@@ -676,15 +640,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
         know what you're doing
         """
 
-        if isinstance(key, datetime):
-
-            # needed to localize naive datetimes
-            if self.tz is not None:
-                if key.tzinfo is not None:
-                    key = Timestamp(key).tz_convert(self.tz)
-                else:
-                    key = Timestamp(key).tz_localize(self.tz)
-
+        if isinstance(key, (datetime, np.datetime64)):
             return self.get_value_maybe_box(series, key)
 
         if isinstance(key, time):
@@ -692,7 +648,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
             return series.take(locs)
 
         try:
-            return com.maybe_box(self, Index.get_value(self, series, key), series, key)
+            value = Index.get_value(self, series, key)
         except KeyError:
             try:
                 loc = self._get_string_slice(key)
@@ -704,6 +660,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
                 return self.get_value_maybe_box(series, key)
             except (TypeError, ValueError, KeyError):
                 raise KeyError(key)
+        else:
+            return com.maybe_box(self, value, series, key)
 
     def get_value_maybe_box(self, series, key):
         # needed to localize naive datetimes
@@ -873,30 +831,30 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
                 raise
 
     # --------------------------------------------------------------------
-    # Wrapping DatetimeArray
-
-    def __getitem__(self, key):
-        result = self._data.__getitem__(key)
-        if is_scalar(result):
-            return result
-        elif result.ndim > 1:
-            # To support MPL which performs slicing with 2 dim
-            # even though it only has 1 dim by definition
-            assert isinstance(result, np.ndarray), result
-            return result
-        return type(self)(result, name=self.name)
-
-    # --------------------------------------------------------------------
 
     @Substitution(klass="DatetimeIndex")
     @Appender(_shared_docs["searchsorted"])
     def searchsorted(self, value, side="left", sorter=None):
         if isinstance(value, (np.ndarray, Index)):
-            value = np.array(value, dtype=_NS_DTYPE, copy=False)
-        else:
-            value = _to_M8(value, tz=self.tz)
+            if not type(self._data)._is_recognized_dtype(value):
+                raise TypeError(
+                    "searchsorted requires compatible dtype or scalar, "
+                    f"not {type(value).__name__}"
+                )
+            value = type(self._data)(value)
+            self._data._check_compatible_with(value)
 
-        return self.values.searchsorted(value, side=side)
+        elif isinstance(value, self._data._recognized_scalars):
+            self._data._check_compatible_with(value)
+            value = self._data._scalar_type(value)
+
+        elif not isinstance(value, DatetimeArray):
+            raise TypeError(
+                "searchsorted requires compatible dtype or scalar, "
+                f"not {type(value).__name__}"
+            )
+
+        return self._data.searchsorted(value, side=side)
 
     def is_type_compatible(self, typ) -> bool:
         return typ == self.inferred_type or typ == "datetime"
@@ -922,16 +880,20 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
         -------
         new_index : Index
         """
-        if is_scalar(item) and isna(item):
+        if isinstance(item, self._data._recognized_scalars):
+            item = self._data._scalar_type(item)
+        elif is_valid_nat_for_dtype(item, self.dtype):
             # GH 18295
             item = self._na_value
+        elif is_scalar(item) and isna(item):
+            # i.e. timedeltat64("NaT")
+            raise TypeError(
+                f"cannot insert {type(self).__name__} with incompatible label"
+            )
 
         freq = None
-
-        if isinstance(item, (datetime, np.datetime64)):
-            self._assert_can_do_op(item)
-            if not self._has_same_tz(item) and not isna(item):
-                raise ValueError("Passed item and index have different timezone")
+        if isinstance(item, self._data._scalar_type) or item is NaT:
+            self._data._check_compatible_with(item, setitem=True)
 
             # check freq can be preserved on edge cases
             if self.size and self.freq is not None:
@@ -941,19 +903,21 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
                     freq = self.freq
                 elif (loc == len(self)) and item - self.freq == self[-1]:
                     freq = self.freq
-            item = _to_M8(item, tz=self.tz)
+            item = item.asm8
 
         try:
-            new_dates = np.concatenate(
+            new_i8s = np.concatenate(
                 (self[:loc].asi8, [item.view(np.int64)], self[loc:].asi8)
             )
-            return self._shallow_copy(new_dates, freq=freq)
+            return self._shallow_copy(new_i8s, freq=freq)
         except (AttributeError, TypeError):
 
             # fall back to object index
             if isinstance(item, str):
                 return self.astype(object).insert(loc, item)
-            raise TypeError("cannot insert DatetimeIndex with incompatible label")
+            raise TypeError(
+                f"cannot insert {type(self).__name__} with incompatible label"
+            )
 
     def indexer_at_time(self, time, asof=False):
         """
@@ -1043,7 +1007,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
         return mask.nonzero()[0]
 
 
-DatetimeIndex._add_comparison_ops()
 DatetimeIndex._add_numeric_methods_disabled()
 DatetimeIndex._add_logical_methods_disabled()
 

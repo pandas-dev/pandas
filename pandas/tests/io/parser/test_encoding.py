@@ -5,6 +5,7 @@ for all of the parsers defined in parsers.py
 
 from io import BytesIO
 import os
+import tempfile
 
 import numpy as np
 import pytest
@@ -119,14 +120,12 @@ def test_utf8_bom(all_parsers, data, kwargs, expected):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("byte", [8, 16])
-@pytest.mark.parametrize("fmt", ["utf-{0}", "utf_{0}", "UTF-{0}", "UTF_{0}"])
-def test_read_csv_utf_aliases(all_parsers, byte, fmt):
+def test_read_csv_utf_aliases(all_parsers, utf_value, encoding_fmt):
     # see gh-13549
     expected = DataFrame({"mb_num": [4.8], "multibyte": ["test"]})
     parser = all_parsers
 
-    encoding = fmt.format(byte)
+    encoding = encoding_fmt.format(utf_value)
     data = "mb_num,multibyte\n4.8,test".encode(encoding)
 
     result = parser.read_csv(BytesIO(data), encoding=encoding)
@@ -155,3 +154,19 @@ def test_binary_mode_file_buffers(all_parsers, csv_dir_path, fname, encoding):
     with open(fpath, mode="rb") as fb:
         result = parser.read_csv(fb, encoding=encoding)
     tm.assert_frame_equal(expected, result)
+
+
+@pytest.mark.parametrize("pass_encoding", [True, False])
+def test_encoding_temp_file(all_parsers, utf_value, encoding_fmt, pass_encoding):
+    # see gh-24130
+    parser = all_parsers
+    encoding = encoding_fmt.format(utf_value)
+
+    expected = DataFrame({"foo": ["bar"]})
+
+    with tempfile.TemporaryFile(mode="w+", encoding=encoding) as f:
+        f.write("foo\nbar")
+        f.seek(0)
+
+        result = parser.read_csv(f, encoding=encoding if pass_encoding else None)
+        tm.assert_frame_equal(result, expected)

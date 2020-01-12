@@ -298,8 +298,11 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
         -k"-from_arrays -from_breaks -from_intervals -from_tuples -set_closed -to_tuples -interval_range"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Doctests arrays/string_.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/arrays/string_.py
+    MSG='Doctests arrays'; echo $MSG
+    pytest -q --doctest-modules \
+        pandas/core/arrays/string_.py \
+        pandas/core/arrays/integer.py \
+        pandas/core/arrays/boolean.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests arrays/boolean.py' ; echo $MSG
