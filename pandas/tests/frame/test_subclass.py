@@ -561,27 +561,21 @@ class TestDataFrameSubclassing:
     def test_subclassed_df_reduce_functions(self):
         # GH 25596
 
-        df = tm.SubclassedDataFrame(
-            {
-                'A': [1, 2, 3],
-                'B': [4, 5, 6],
-                'C': [7, 8, 9]
-            }
-        )
+        df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
 
-        expected = tm.SubclassedSeries([6, 15, 24], index=['A', 'B', 'C'])
+        expected = tm.SubclassedSeries([6, 15, 24], index=["A", "B", "C"])
 
         result = df.sum()
         assert isinstance(result, tm.SubclassedSeries)
         tm.assert_series_equal(result, expected)
 
-        expected = tm.SubclassedSeries([2.0, 5.0, 8.0], index=['A', 'B', 'C'])
+        expected = tm.SubclassedSeries([2.0, 5.0, 8.0], index=["A", "B", "C"])
 
         result = df.mean()
         assert isinstance(result, tm.SubclassedSeries)
         tm.assert_series_equal(result, expected)
 
-        expected = tm.SubclassedSeries([True, True, True], index=['A', 'B', 'C'])
+        expected = tm.SubclassedSeries([True, True, True], index=["A", "B", "C"])
 
         result = df.all()
         assert isinstance(result, tm.SubclassedSeries)
