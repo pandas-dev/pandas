@@ -1491,8 +1491,7 @@ cdef ndarray[float64_t] _roll_weighted_sum_mean(float64_t[:] values,
         tot_wgt = np.zeros(in_n, dtype=np.float64)
 
     if minp > win_n:
-        raise ValueError(f"min_periods (minp) must be <= "
-                         f"window (win)")
+        raise ValueError(f"min_periods {minp} must be <= window {win_n}")
     elif minp > in_n:
         minp = in_n + 1
     elif minp < 0:
@@ -1871,8 +1870,7 @@ def ewmcov(float64_t[:] input_x, float64_t[:] input_y,
         bint is_observation
 
     if <Py_ssize_t>len(input_y) != N:
-        raise ValueError(f"arrays are of different lengths "
-                         f"({N} and {len(input_y)})")
+        raise ValueError(f"arrays are of different lengths ({N} and {len(input_y)})")
 
     output = np.empty(N, dtype=float)
     if N == 0:
