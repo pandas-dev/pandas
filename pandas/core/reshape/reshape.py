@@ -317,6 +317,8 @@ def _unstack_multiple(data, clocs, fill_value=None):
 
     index = data.index
 
+    if clocs in index.names:
+        clocs = [clocs]
     clocs = [index._get_level_number(i) for i in clocs]
 
     rlocs = [i for i in range(index.nlevels) if i not in clocs]
