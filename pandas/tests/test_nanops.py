@@ -270,6 +270,10 @@ class TestnanopsDataFrame:
                 value = value.astype("f8")
         return func(value, **kwargs)
 
+    # GH #12863
+    # Disabled until https://github.com/numpy/numpy/issues/4352
+    # is fixed
+    @pytest.mark.xfail(reason="disabled")
     @pytest.mark.parametrize(
         "nan_op,np_op", [(nanops.nanany, np.any), (nanops.nanall, np.all)]
     )

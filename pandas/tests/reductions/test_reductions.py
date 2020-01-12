@@ -811,18 +811,23 @@ class TestSeriesReductions:
         assert not bool_series.all()
         assert bool_series.any()
 
-        # Alternative types, with implicit 'object' dtype.
-        s = Series(["abc", True])
-        assert "abc" == s.any()  # 'abc' || True => 'abc'
-
     def test_all_any_params(self):
         # Check skipna, with implicit 'object' dtype.
         s1 = Series([np.nan, True])
         s2 = Series([np.nan, False])
-        assert s1.all(skipna=False)  # nan && True => True
+
+        # GH #12863
         assert s1.all(skipna=True)
-        assert np.isnan(s2.any(skipna=False))  # nan || False => nan
+        assert s1.any(skipna=True)
+
+        assert s1.all(skipna=False)
+        assert s1.any(skipna=False)
+
+        assert not s2.all(skipna=True)
         assert not s2.any(skipna=True)
+
+        assert not s2.all(skipna=False)
+        assert s2.any(skipna=False)
 
         # Check level.
         s = pd.Series([False, False, True, True, False, True], index=[0, 0, 1, 1, 2, 2])
@@ -840,6 +845,18 @@ class TestSeriesReductions:
             s.any(bool_only=True)
         with pytest.raises(NotImplementedError):
             s.all(bool_only=True)
+
+    def test_all_any_object_dtype(self):
+        # GH 12863
+
+        s1 = Series(["abc", True])
+        s2 = Series(["abc", False])
+
+        assert s1.all()
+        assert s1.any()
+
+        assert not s2.all()
+        assert s2.any()
 
     def test_timedelta64_analytics(self):
 

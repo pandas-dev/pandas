@@ -421,8 +421,27 @@ def nanany(values, axis=None, skipna: bool = True, mask=None):
     >>> nanops.nanany(s)
     False
     """
-    values, _, _, _, _ = _get_values(values, skipna, fill_value=False, mask=mask)
-    return values.any(axis)
+    values, _, dtype, _, _ = _get_values(values, skipna, fill_value=False, mask=mask)
+
+    # GH #12863
+    # Checking if the `axis` is None because numpy
+    # doesn't handle ``any`` and ``all`` on
+    # object arrays correctly. see
+    # https://github.com/numpy/numpy/issues/4352
+
+    # TODO: Find a less code-smelly way of doing this
+    if is_object_dtype(dtype) and axis is None:
+        output = values.any()
+    else:
+        output = values.any(axis)
+
+    if isinstance(output, bool):
+        return output
+
+    try:
+        return any(values)
+    except ValueError:
+        return values.any()
 
 
 def nanall(values, axis=None, skipna: bool = True, mask=None):
@@ -453,8 +472,27 @@ def nanall(values, axis=None, skipna: bool = True, mask=None):
     >>> nanops.nanall(s)
     False
     """
-    values, _, _, _, _ = _get_values(values, skipna, fill_value=True, mask=mask)
-    return values.all(axis)
+    values, _, dtype, _, _ = _get_values(values, skipna, fill_value=True, mask=mask)
+
+    # GH #12863
+    # Checking if the `axis` is None because numpy
+    # doesn't handle ``any`` and ``all`` on
+    # object arrays correctly. see
+    # https://github.com/numpy/numpy/issues/4352
+
+    # TODO: Find a less code-smelly way of doing this
+    if is_object_dtype(dtype) and axis is None:
+        output = values.all()
+    else:
+        output = values.all(axis)
+
+    if isinstance(output, bool):
+        return output
+
+    try:
+        return all(values)
+    except ValueError:
+        return values.all()
 
 
 @disallow("M8")
