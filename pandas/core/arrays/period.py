@@ -298,11 +298,11 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
                 if self.freqstr != type.freq:
                     raise TypeError(
                         "Not supported to convert PeriodArray to array with different"
-                        " 'freq' ({0} vs {1})".format(self.freqstr, type.freq)
+                        f" 'freq' ({self.freqstr} vs {type.freq})"
                     )
             else:
                 raise TypeError(
-                    "Not supported to convert PeriodArray to '{0}' type".format(type)
+                    f"Not supported to convert PeriodArray to '{type}' type"
                 )
 
         period_type = ArrowPeriodType(self.freqstr)
