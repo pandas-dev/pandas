@@ -23,6 +23,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import index as libindex, lib, reshape, tslibs
+from pandas._typing import Label
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_bool_kwarg, validate_percentile
@@ -1439,7 +1440,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     # ----------------------------------------------------------------------
 
-    def items(self) -> Iterable[Tuple[Optional[Hashable], Any]]:
+    def items(self) -> Iterable[Tuple[Label, Any]]:
         """
         Lazily iterate over (index, value) tuples.
 
@@ -1469,7 +1470,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return zip(iter(self.index), iter(self))
 
     @Appender(items.__doc__)
-    def iteritems(self) -> Iterable[Tuple[Optional[Hashable], Any]]:
+    def iteritems(self) -> Iterable[Tuple[Label, Any]]:
         return self.items()
 
     # ----------------------------------------------------------------------
