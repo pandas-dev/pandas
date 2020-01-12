@@ -148,8 +148,23 @@ class Expanding(_Rolling_and_Expanding):
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["apply"])
-    def apply(self, func, raw=False, args=(), kwargs={}):
-        return super().apply(func, raw=raw, args=args, kwargs=kwargs)
+    def apply(
+        self,
+        func,
+        raw=False,
+        engine="cython",
+        engine_kwargs=None,
+        args=None,
+        kwargs=None,
+    ):
+        return super().apply(
+            func,
+            raw=raw,
+            engine=engine,
+            engine_kwargs=engine_kwargs,
+            args=args,
+            kwargs=kwargs,
+        )
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["sum"])
