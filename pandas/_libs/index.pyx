@@ -23,7 +23,7 @@ from pandas._libs.tslibs.c_timestamp cimport _Timestamp
 from pandas._libs.hashtable cimport HashTable
 
 from pandas._libs import algos, hashtable as _hash
-from pandas._libs.tslibs import Period, Timestamp, Timedelta, period as periodlib
+from pandas._libs.tslibs import Timestamp, Timedelta, period as periodlib
 from pandas._libs.missing import checknull
 
 cdef int64_t NPY_NAT = util.get_nat()
