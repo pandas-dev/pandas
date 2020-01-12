@@ -541,7 +541,7 @@ class TestDataFrameFormatting:
         df.set_index(["a", "b", "c"])
         assert df.to_string() == (
             "     a    b                                         "
-            "                                                c  d\n"
+            "                                                c  d\n" # how to change?
             "0  foo  bar  let's make this a very VERY long line t"
             "hat is longer than the default 50 character limit  1\n"
             "1  foo  bar                                         "
