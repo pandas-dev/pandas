@@ -8221,7 +8221,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Parameters
         ----------
         other : DataFrame or Series
-        join : {'outer', 'inner', 'left', 'right'}, default 'outer'
+        join : {{'outer', 'inner', 'left', 'right'}}, default 'outer'
         axis : allowed axis of the other object, default None
             Align on index (0), columns (1), or both (None).
         level : int or level name, default None
@@ -8233,7 +8233,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         fill_value : scalar, default np.NaN
             Value to use for missing values. Defaults to NaN, but can be any
             "compatible" value.
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
+        method : {{'backfill', 'bfill', 'pad', 'ffill', None}}, default None
             Method to use for filling holes in reindexed Series:
 
             - pad / ffill: propagate last valid observation forward to next valid.
@@ -8246,19 +8246,19 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             be partially filled. If method is not specified, this is the
             maximum number of entries along the entire axis where NaNs will be
             filled. Must be greater than 0 if not None.
-        fill_axis : %(axes_single_arg)s, default 0
+        fill_axis : {axes_single_arg}, default 0
             Filling axis, method and limit.
-        broadcast_axis : %(axes_single_arg)s, default None
+        broadcast_axis : {axes_single_arg}, default None
             Broadcast values along this axis, if aligning two objects of
             different dimensions.
 
         Returns
         -------
-        (left, right) : (%(klass)s, type of other)
+        (left, right) : ({klass}, type of other)
             Aligned objects.
         """
 
-    @Appender(_shared_docs["align"] % _shared_doc_kwargs)
+    @Appender(_shared_docs["align"].format(**_shared_doc_kwargs))
     def align(
         self,
         other,

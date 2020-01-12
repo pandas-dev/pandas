@@ -3792,7 +3792,7 @@ class DataFrame(NDFrame):
                 fill_value=fill_value,
             )
 
-    @Appender(_shared_docs["align"] % _shared_doc_kwargs)
+    @Appender(_shared_docs["align"].format(**_shared_doc_kwargs))
     def align(
         self,
         other,

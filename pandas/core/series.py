@@ -3866,7 +3866,7 @@ Name: Max Speed, dtype: float64
         """
         return False
 
-    @Appender(generic._shared_docs["align"] % _shared_doc_kwargs)
+    @Appender(generic._shared_docs["align"].format(**_shared_doc_kwargs))
     def align(
         self,
         other,
