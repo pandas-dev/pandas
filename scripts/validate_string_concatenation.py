@@ -18,8 +18,6 @@ import tokenize
 from typing import Callable, Generator, List, Tuple
 
 FILE_EXTENSIONS_TO_CHECK = (".py", ".pyx", ".pyx.ini", ".pxd")
-TYPE: int = 0
-VALUE: int = 1
 
 
 def strings_to_concatenate(
@@ -66,10 +64,10 @@ def strings_to_concatenate(
         tokens: List = list(tokenize.generate_tokens(file_name.readline))
 
     for current_token, next_token in zip(tokens, tokens[1:]):
-        if current_token[TYPE] == next_token[TYPE] == token.STRING:
+        if current_token.type == next_token.type == token.STRING:
             yield (
                 source_path,
-                current_token[2][0],
+                current_token.start[0],
                 (
                     "String unnecessarily split in two by black. "
                     "Please merge them manually."
@@ -141,17 +139,17 @@ def strings_with_wrong_placed_space(
     for first_token, second_token, third_token in zip(tokens, tokens[1:], tokens[2:]):
         # Checking if we are in a block of concated string
         if (
-            first_token[TYPE] == third_token[TYPE] == token.STRING
-            and second_token[0] == token.NL
+            first_token.type == third_token.type == token.STRING
+            and second_token.type == token.NL
         ):
             # Striping the quotes
-            first_string: str = first_token[1][1:-1]
-            second_string: str = third_token[1][1:-1]
+            first_string: str = first_token.string[1:-1]
+            second_string: str = third_token.string[1:-1]
 
             if idk_how_to_call_this_function(first_string, second_string):
                 yield (
                     source_path,
-                    third_token[2][0],
+                    third_token.start[0],
                     (
                         "String has a space at the beginning instead "
                         "of the end of the previous string."
@@ -195,17 +193,17 @@ def bare_pytest_raises(source_path: str) -> Generator[Tuple[str, int, str], None
         tokens: List = list(tokenize.generate_tokens(file_name.readline))
 
     for counter, current_token in enumerate(tokens, start=1):
-        if not (current_token[TYPE] == token.NAME and current_token[VALUE] == "raises"):
+        if not (current_token.type == token.NAME and current_token.string == "raises"):
             continue
         for next_token in tokens[counter:]:
-            if next_token[TYPE] == token.NAME and next_token[VALUE] == "match":
+            if next_token.type == token.NAME and next_token.string == "match":
                 break
             # token.NEWLINE refers to the end of a logical line
             # unlike token.NL or "\n" which represents a newline
-            if next_token[TYPE] == token.NEWLINE:
+            if next_token.type == token.NEWLINE:
                 yield (
                     source_path,
-                    current_token[2][0],
+                    current_token.start[0],
                     "Bare pytests raise have been found.",
                 )
                 break
