@@ -456,11 +456,8 @@ cdef class DatetimeEngine(Int64Engine):
             if not self.is_unique:
                 return self._get_loc_duplicates(conv)
             values = self._get_index_values()
-            
-            try:
-                loc = values.searchsorted(conv, side='left')
-            except TypeError:  # TODO: is this possible?
-                raise KeyError(val)
+
+            loc = values.searchsorted(conv, side='left')
 
             if loc == len(values) or values[loc] != conv:
                 raise KeyError(val)
