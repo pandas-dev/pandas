@@ -8,6 +8,7 @@ import pickle
 import re
 from textwrap import dedent
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -100,6 +101,9 @@ from pandas.io.formats import format as fmt
 from pandas.io.formats.format import DataFrameFormatter, format_percentiles
 from pandas.io.formats.printing import pprint_thing
 from pandas.tseries.frequencies import to_offset
+
+if TYPE_CHECKING:
+    from pandas.core.resample import Resampler
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
@@ -7685,7 +7689,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         base: int = 0,
         on=None,
         level=None,
-    ):
+    ) -> "Resampler":
         """
         Resample time-series data.
 
@@ -7950,10 +7954,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2000-01-04     36      90
         """
 
-        from pandas.core.resample import resample
+        from pandas.core.resample import get_resampler
 
         axis = self._get_axis_number(axis)
-        return resample(
+        return get_resampler(
             self,
             freq=rule,
             label=label,
