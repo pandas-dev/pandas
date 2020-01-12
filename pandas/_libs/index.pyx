@@ -17,13 +17,13 @@ cnp.import_array()
 
 cimport pandas._libs.util as util
 
-from pandas._libs.tslibs.conversion cimport maybe_datetimelike_to_i8
 from pandas._libs.tslibs.nattype cimport c_NaT as NaT
+from pandas._libs.tslibs.c_timestamp cimport _Timestamp
 
 from pandas._libs.hashtable cimport HashTable
 
 from pandas._libs import algos, hashtable as _hash
-from pandas._libs.tslibs import Timestamp, Timedelta, period as periodlib
+from pandas._libs.tslibs import Period, Timestamp, Timedelta, period as periodlib
 from pandas._libs.missing import checknull
 
 cdef int64_t NPY_NAT = util.get_nat()
@@ -409,20 +409,27 @@ cdef class DatetimeEngine(Int64Engine):
     cdef _get_box_dtype(self):
         return 'M8[ns]'
 
+    cdef int64_t _unbox_scalar(self, scalar) except? -1:
+        # NB: caller is responsible for ensuring tzawareness compat
+        #  before we get here
+        if not (isinstance(scalar, _Timestamp) or scalar is NaT):
+            raise TypeError(scalar)
+        return scalar.value
+
     def __contains__(self, object val):
         cdef:
-            int64_t loc
+            int64_t loc, conv
 
+        conv = self._unbox_scalar(val)
         if self.over_size_threshold and self.is_monotonic_increasing:
             if not self.is_unique:
-                return self._get_loc_duplicates(val)
+                return self._get_loc_duplicates(conv)
             values = self._get_index_values()
-            conv = maybe_datetimelike_to_i8(val)
             loc = values.searchsorted(conv, side='left')
             return values[loc] == conv
 
         self._ensure_mapping_populated()
-        return maybe_datetimelike_to_i8(val) in self.mapping
+        return conv in self.mapping
 
     cdef _get_index_values(self):
         return self.vgetter().view('i8')
@@ -431,22 +438,28 @@ cdef class DatetimeEngine(Int64Engine):
         return algos.is_monotonic(values, timelike=True)
 
     cpdef get_loc(self, object val):
+        # NB: the caller is responsible for ensuring that we are called
+        #  with either a Timestamp or NaT (Timedelta or NaT for TimedeltaEngine)
+
         cdef:
             int64_t loc
         if is_definitely_invalid_key(val):
             raise TypeError
 
+        try:
+            conv = self._unbox_scalar(val)
+        except TypeError:
+            raise KeyError(val)
+
         # Welcome to the spaghetti factory
         if self.over_size_threshold and self.is_monotonic_increasing:
             if not self.is_unique:
-                val = maybe_datetimelike_to_i8(val)
-                return self._get_loc_duplicates(val)
+                return self._get_loc_duplicates(conv)
             values = self._get_index_values()
-
+            
             try:
-                conv = maybe_datetimelike_to_i8(val)
                 loc = values.searchsorted(conv, side='left')
-            except TypeError:
+            except TypeError:  # TODO: is this possible?
                 raise KeyError(val)
 
             if loc == len(values) or values[loc] != conv:
@@ -455,20 +468,11 @@ cdef class DatetimeEngine(Int64Engine):
 
         self._ensure_mapping_populated()
         if not self.unique:
-            val = maybe_datetimelike_to_i8(val)
-            return self._get_loc_duplicates(val)
+            return self._get_loc_duplicates(conv)
 
         try:
-            return self.mapping.get_item(val.value)
+            return self.mapping.get_item(conv)
         except KeyError:
-            raise KeyError(val)
-        except AttributeError:
-            pass
-
-        try:
-            val = maybe_datetimelike_to_i8(val)
-            return self.mapping.get_item(val)
-        except (TypeError, ValueError):
             raise KeyError(val)
 
     def get_indexer(self, values):
@@ -495,6 +499,11 @@ cdef class TimedeltaEngine(DatetimeEngine):
 
     cdef _get_box_dtype(self):
         return 'm8[ns]'
+
+    cdef int64_t _unbox_scalar(self, scalar) except? -1:
+        if not (isinstance(scalar, Timedelta) or scalar is NaT):
+            raise TypeError(scalar)
+        return scalar.value
 
 
 cdef class PeriodEngine(Int64Engine):

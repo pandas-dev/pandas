@@ -649,6 +649,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
 
         try:
             value = Index.get_value(self, series, key)
+        #except AttributeError:
+        #    # not a Timestamp or NaT
+        #    if is_integer(key):
+        #        return series[key]
+        #    raise KeyError(key)
         except KeyError:
             try:
                 loc = self._get_string_slice(key)
