@@ -162,7 +162,13 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         result = np.asarray(scalars, dtype=dtype)
         if copy and result is scalars:
             result = result.copy()
+        # Primarily for StringArray
+        result = cls._from_sequence_finalize(result, copy=copy)
         return cls(result)
+
+    @staticmethod
+    def _from_sequence_finalize(values, copy):
+        return values
 
     @classmethod
     def _from_factorized(cls, values, original):

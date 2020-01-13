@@ -201,6 +201,15 @@ def test_constructor_raises():
         pd.arrays.StringArray(np.array(["a", None], dtype=object))
 
 
+def test_from_sequnce_no_mutate():
+    a = np.array(["a", pd.NA], dtype=object)
+    original = a.copy()
+    result = pd.arrays.StringArray._from_sequence(a)
+    expected = pd.arrays.StringArray(np.array(["a", pd.NA], dtype=object))
+    tm.assert_extension_array_equal(result, expected)
+    tm.assert_numpy_array_equal(a, original)
+
+
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.xfail(reason="Not implemented StringArray.sum")
 def test_reduce(skipna):

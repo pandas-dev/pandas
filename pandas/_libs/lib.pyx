@@ -1472,30 +1472,12 @@ cdef class Validator:
         Py_ssize_t n
         dtype dtype
         bint skipna
-        bint na_only
 
     def __cinit__(self, Py_ssize_t n, dtype dtype=np.dtype(np.object_),
-                  bint skipna=False,
-                  bint na_only=False):
-        """
-
-        Parameters
-        ----------
-        n
-        dtype
-        skipna
-        na_only : bool, default False
-            Whether to only treat pandas.NA as NA. Values like None
-            and NaN won't be treated as NA.
-
-        Returns
-        -------
-
-        """
+                  bint skipna=False):
         self.n = n
         self.dtype = dtype
         self.skipna = skipna
-        self.na_only = na_only
 
     cdef bint validate(self, ndarray values) except -1:
         if not self.n:
@@ -1548,10 +1530,7 @@ cdef class Validator:
                                   "must define is_value_typed")
 
     cdef bint is_valid_null(self, object value) except -1:
-        if self.na_only:
-            return value is C_NA
-        else:
-            return value is None or value is C_NA or util.is_nan(value)
+        return value is None or value is C_NA or util.is_nan(value)
 
     cdef bint is_array_typed(self) except -1:
         return False
@@ -1645,13 +1624,16 @@ cdef class StringValidator(Validator):
     cdef inline bint is_array_typed(self) except -1:
         return issubclass(self.dtype.type, np.str_)
 
+    cdef bint is_valid_null(self, object value) except -1:
+        # We deliberately exclude None / NaN here since StringArray uses NA
+        return value is C_NA
 
-cpdef bint is_string_array(ndarray values, bint skipna=False, na_only=False):
+
+cpdef bint is_string_array(ndarray values, bint skipna=False):
     cdef:
         StringValidator validator = StringValidator(len(values),
                                                     values.dtype,
-                                                    skipna=skipna,
-                                                    na_only=na_only)
+                                                    skipna=skipna)
     return validator.validate(values)
 
 

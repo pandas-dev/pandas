@@ -166,9 +166,7 @@ class StringArray(PandasArray):
 
     def _validate(self):
         """Validate that we only store NA or strings."""
-        if len(self._ndarray) and not lib.is_string_array(
-            self._ndarray, skipna=True, na_only=True
-        ):
+        if len(self._ndarray) and not lib.is_string_array(self._ndarray, skipna=True):
             raise ValueError("StringArray requires a sequence of strings or pandas.NA")
         if self._ndarray.dtype != "object":
             raise ValueError(
@@ -181,11 +179,21 @@ class StringArray(PandasArray):
         if dtype:
             assert dtype == "string"
         result = super()._from_sequence(scalars, dtype=object, copy=copy)
+        return result
+
+    @staticmethod
+    def _from_sequence_finalize(values, copy):
         # Standardize all missing-like values to NA
         # TODO: it would be nice to do this in _validate / lib.is_string_array
         # We are already doing a scan over the values there.
-        result[result.isna()] = StringDtype.na_value
-        return result
+        na_values = isna(values)
+        if na_values.any():
+            if not copy:
+                # force a copy now, if we haven't already
+                values = values.copy()
+            values[na_values] = StringDtype.na_value
+
+        return values
 
     @classmethod
     def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
