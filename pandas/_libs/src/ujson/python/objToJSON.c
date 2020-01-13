@@ -457,7 +457,7 @@ static char *PyDateTimeToIsoCallback(JSOBJ obj, JSONTypeContext *tc,
                                      size_t *len) {
 
     if (!PyDate_Check(obj)) {
-        PyErr_SetString(PyExc_TypeError, "Expected datetime object");
+        PyErr_SetString(PyExc_TypeError, "Expected date object");
         return NULL;
     }
 
@@ -469,7 +469,7 @@ static npy_datetime PyDateTimeToEpoch(PyObject *obj, NPY_DATETIMEUNIT base) {
     npy_datetimestruct dts;
     int ret;
 
-    if (!PyDateTime_Check(obj)) {
+    if (!PyDate_Check(obj)) {
         // TODO: raise TypeError
     }
     PyDateTime_Date *dt = (PyDateTime_Date *)obj;
