@@ -1,0 +1,168 @@
+.. _whatsnew_110:
+
+What's new in 1.1.0 (??)
+------------------------
+
+These are the changes in pandas 1.1.0. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+Enhancements
+~~~~~~~~~~~~
+
+.. _whatsnew_110.enhancements.other:
+
+Other enhancements
+^^^^^^^^^^^^^^^^^^
+
+-
+-
+
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_110.deprecations:
+
+Deprecations
+~~~~~~~~~~~~
+
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+
+.. _whatsnew_110.performance:
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_110.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+
+Categorical
+^^^^^^^^^^^
+
+-
+-
+
+Datetimelike
+^^^^^^^^^^^^
+-
+-
+
+Timedelta
+^^^^^^^^^
+
+-
+-
+
+Timezones
+^^^^^^^^^
+
+-
+-
+
+
+Numeric
+^^^^^^^
+-
+-
+
+Conversion
+^^^^^^^^^^
+
+-
+-
+
+Strings
+^^^^^^^
+
+-
+-
+
+
+Interval
+^^^^^^^^
+
+-
+-
+
+Indexing
+^^^^^^^^
+
+-
+-
+
+Missing
+^^^^^^^
+
+-
+-
+
+MultiIndex
+^^^^^^^^^^
+
+-
+-
+
+I/O
+^^^
+
+-
+-
+
+Plotting
+^^^^^^^^
+
+-
+-
+
+Groupby/resample/rolling
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+-
+-
+
+
+Reshaping
+^^^^^^^^^
+
+-
+-
+
+Sparse
+^^^^^^
+
+-
+-
+
+ExtensionArray
+^^^^^^^^^^^^^^
+
+-
+-
+
+
+Other
+^^^^^
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_110.contributors:
+
+Contributors
+~~~~~~~~~~~~
