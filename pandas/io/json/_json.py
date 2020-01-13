@@ -676,7 +676,10 @@ class JsonReader(abc.Iterator):
             data = data.read()
         if not hasattr(data, "read") and self.chunksize:
             if type(data) != "str":
-                    data = str(data)
+                try:
+                    data = data.decode()
+                except Exception as e:
+                    raise e
             data = StringIO(data)
         return data
 
