@@ -428,7 +428,7 @@ def _convert_by(by):
 @Appender(_shared_docs["pivot"], indents=1)
 def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFrame":
     if columns is None:
-        raise ValueError("`columns` is not optional.")
+        raise ValueError("pivot() missing 1 required argument: 'columns'")
 
     if values is None:
         cols = [columns] if index is None else [index, columns]

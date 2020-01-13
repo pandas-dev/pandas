@@ -786,7 +786,7 @@ class TestPivotTable:
         df = pd.DataFrame(
             {"col1": ["a", "b", "c"], "col2": [1, 2, 3], "col3": [1, 2, 3]}
         )
-        msg = "`columns` is not optional."
+        msg = 'pivot["(][")] missing 1 required argument: ["\']columns["\']'
         with pytest.raises(ValueError, match=msg):
             df.pivot(index="col1", values="col3")
 
