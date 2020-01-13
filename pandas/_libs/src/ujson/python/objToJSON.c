@@ -456,7 +456,7 @@ static char *PyDateTimeToIso(PyDateTime_Date *obj, NPY_DATETIMEUNIT base,
 static char *PyDateTimeToIsoCallback(JSOBJ obj, JSONTypeContext *tc,
                                      size_t *len) {
 
-    if (!PyDateTime_Check(obj)) {
+    if (!PyDate_Check(obj)) {
         PyErr_SetString(PyExc_TypeError, "Expected datetime object");
         return NULL;
     }
