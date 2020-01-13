@@ -318,7 +318,11 @@ class TestTesting(Base):
     def test_util_in_top_level(self):
         # in a subprocess to avoid import caching issues
         out = subprocess.check_output(
-            [sys.executable, "-c", "import pandas; pandas.util.testing"],
+            [
+                sys.executable,
+                "-c",
+                "import pandas; pandas.util.testing.assert_series_equal",
+            ],
             stderr=subprocess.STDOUT,
         ).decode()
         assert "pandas.util.testing is deprecated" in out
