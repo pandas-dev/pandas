@@ -2,8 +2,8 @@
 
 {{ header }}
 
-Pandas is table oriented
-------------------------
+What kind of data does Pandas handle?
+=====================================
 
 .. raw:: html
 

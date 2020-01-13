@@ -59,7 +59,7 @@ consists of the following data columns:
     </div>
 
 How do I select a subset of a ``DataFrame``?
-====================================================
+============================================
 
 How do I select specific columns from a ``DataFrame``?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
