@@ -388,10 +388,10 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         Parameters
         ----------
         key : label of the slice bound
-        kind : {'ix', 'loc', 'getitem', 'iloc'} or None
+        kind : {'loc', 'getitem', 'iloc'} or None
         """
 
-        assert kind in ["ix", "loc", "getitem", "iloc", None]
+        assert kind in ["loc", "getitem", "iloc", None]
 
         # we don't allow integer/float indexing for loc
         # we don't allow float indexing for ix/getitem
@@ -400,7 +400,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             is_flt = is_float(key)
             if kind in ["loc"] and (is_int or is_flt):
                 self._invalid_indexer("index", key)
-            elif kind in ["ix", "getitem"] and is_flt:
+            elif kind in ["getitem"] and is_flt:
                 self._invalid_indexer("index", key)
 
         return super()._convert_scalar_indexer(key, kind=kind)
