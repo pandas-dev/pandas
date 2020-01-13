@@ -2549,6 +2549,53 @@ class TestCrosstab:
         result = pd.crosstab(s1, s2)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "s1_data, s1_name, s2_data, s2_name, "
+        "expected_index, expected_column, expected_data",
+        [
+            (
+                [1, 2, 3],
+                ("a", "b"),
+                [1, 2, 3],
+                ("c", "d"),
+                [1, 2, 3],
+                [1, 2, 3],
+                np.eye(3, dtype=int),
+            ),
+            ([1, 1, 1], ("a", "b"), [0, 1, 2], ("c", "d"), [1], [0, 1, 2], [[1, 1, 1]]),
+            (
+                [0, 1, 2],
+                ("a", "b"),
+                [1, 1, 1],
+                ("c", "d"),
+                [0, 1, 2],
+                [1],
+                [[1], [1], [1]],
+            ),
+        ],
+    )
+    def test_crosstab_both_tuple_names(
+        self,
+        s1_data,
+        s1_name,
+        s2_data,
+        s2_name,
+        expected_index,
+        expected_column,
+        expected_data,
+    ):
+        # GH 18321
+        s1 = pd.Series(s1_data, name=s1_name)
+        s2 = pd.Series(s2_data, name=s2_name)
+
+        expected = pd.DataFrame(
+            expected_data,
+            index=pd.Index(expected_index, name=s1_name),
+            columns=pd.Index(expected_column, name=s2_name),
+        )
+        result = crosstab(s1, s2)
+        tm.assert_frame_equal(result, expected)
+
     def test_crosstab_unsorted_order(self):
         df = pd.DataFrame({"b": [3, 1, 2], "a": [5, 4, 6]}, index=["C", "A", "B"])
         result = pd.crosstab(df.index, [df.b, df.a])
