@@ -2829,12 +2829,12 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         key : label of the slice bound
-        kind : {'ix', 'loc', 'getitem', 'iloc'} or None
+        kind : {'loc', 'getitem', 'iloc'} or None
     """
 
     @Appender(_index_shared_docs["_convert_scalar_indexer"])
     def _convert_scalar_indexer(self, key, kind=None):
-        assert kind in ["ix", "loc", "getitem", "iloc", None]
+        assert kind in ["loc", "getitem", "iloc", None]
 
         if kind == "iloc":
             return self._validate_indexer("positional", key, kind)
@@ -2842,11 +2842,11 @@ class Index(IndexOpsMixin, PandasObject):
         if len(self) and not isinstance(self, ABCMultiIndex):
 
             # we can raise here if we are definitive that this
-            # is positional indexing (eg. .ix on with a float)
+            # is positional indexing (eg. .loc on with a float)
             # or label indexing if we are using a type able
             # to be represented in the index
 
-            if kind in ["getitem", "ix"] and is_float(key):
+            if kind in ["getitem"] and is_float(key):
                 if not self.is_floating():
                     return self._invalid_indexer("label", key)
 
@@ -2882,12 +2882,12 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         key : label of the slice bound
-        kind : {'ix', 'loc', 'getitem', 'iloc'} or None
+        kind : {'loc', 'getitem', 'iloc'} or None
     """
 
     @Appender(_index_shared_docs["_convert_slice_indexer"])
     def _convert_slice_indexer(self, key: slice, kind=None):
-        assert kind in ["ix", "loc", "getitem", "iloc", None]
+        assert kind in ["loc", "getitem", "iloc", None]
 
         # validate iloc
         if kind == "iloc":
@@ -3026,7 +3026,7 @@ class Index(IndexOpsMixin, PandasObject):
     @Appender(_index_shared_docs["_convert_list_indexer"])
     def _convert_list_indexer(self, keyarr, kind=None):
         if (
-            kind in [None, "iloc", "ix"]
+            kind in [None, "iloc"]
             and is_integer_dtype(keyarr)
             and not self.is_floating()
             and not isinstance(keyarr, ABCPeriodIndex)
@@ -4704,7 +4704,7 @@ class Index(IndexOpsMixin, PandasObject):
         If we are positional indexer, validate that we have appropriate
         typed bounds must be an integer.
         """
-        assert kind in ["ix", "loc", "getitem", "iloc"]
+        assert kind in ["loc", "getitem", "iloc"]
 
         if key is None:
             pass
@@ -4725,7 +4725,7 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         label : object
         side : {'left', 'right'}
-        kind : {'ix', 'loc', 'getitem'}
+        kind : {'loc', 'getitem'} or None
 
         Returns
         -------
@@ -4738,15 +4738,14 @@ class Index(IndexOpsMixin, PandasObject):
 
     @Appender(_index_shared_docs["_maybe_cast_slice_bound"])
     def _maybe_cast_slice_bound(self, label, side, kind):
-        assert kind in ["ix", "loc", "getitem", None]
+        assert kind in ["loc", "getitem", None]
 
         # We are a plain index here (sub-class override this method if they
         # wish to have special treatment for floats/ints, e.g. Float64Index and
         # datetimelike Indexes
         # reject them
         if is_float(label):
-            if not (kind in ["ix"] and (self.holds_integer() or self.is_floating())):
-                self._invalid_indexer("slice", label)
+            self._invalid_indexer("slice", label)
 
         # we are trying to find integer bounds on a non-integer based index
         # this is rejected (generally .loc gets you here)
@@ -4780,14 +4779,14 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         label : object
         side : {'left', 'right'}
-        kind : {'ix', 'loc', 'getitem'}
+        kind : {'loc', 'getitem'} or None
 
         Returns
         -------
         int
             Index of label.
         """
-        assert kind in ["ix", "loc", "getitem", None]
+        assert kind in ["loc", "getitem", None]
 
         if side not in ("left", "right"):
             raise ValueError(
@@ -4847,7 +4846,7 @@ class Index(IndexOpsMixin, PandasObject):
             If None, defaults to the end.
         step : int, defaults None
             If None, defaults to 1.
-        kind : {'ix', 'loc', 'getitem'} or None
+        kind : {'loc', 'getitem'} or None
 
         Returns
         -------
