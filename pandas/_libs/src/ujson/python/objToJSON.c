@@ -1541,9 +1541,12 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
             break;
         }
 
-        // TODO: vectorized timedelta solution
-        if (enc->datetimeIso &&
-            (type_num == NPY_TIMEDELTA || PyDelta_Check(item))) {
+        if (PyObject_TypeCheck(item, cls_nat)) {
+            len = 5; // TODO: shouldn't require extra space for terminator
+            cLabel = PyObject_Malloc(len);
+            strncpy(cLabel, "null", len);
+        } else if (enc->datetimeIso &&
+                   (type_num == NPY_TIMEDELTA || PyDelta_Check(item))) {
             PyObject *td = PyObject_CallFunction(cls_timedelta, "(O)", item);
             if (td == NULL) {
                 Py_DECREF(item);
@@ -1575,7 +1578,13 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
                              enc->npyType);
             }
             castfunc(dataptr, &longVal, 1, NULL, NULL);
-            if (enc->datetimeIso) {
+
+            if (longVal == get_nat()) {
+                PRINTMARK();
+                len = 5; // TODO: shouldn't require extra space for terminator
+                cLabel = PyObject_Malloc(len);
+                strncpy(cLabel, "null", len);
+            } else if (enc->datetimeIso) {
                 cLabel = int64ToIso(longVal, base, &len);
             } else {
                 if (!scaleNanosecToUnit(&longVal, base)) {
