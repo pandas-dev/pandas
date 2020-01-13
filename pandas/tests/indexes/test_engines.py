@@ -1,3 +1,5 @@
+import re
+
 import pytest
 
 import pandas as pd
@@ -20,11 +22,12 @@ class TestDatetimeEngine:
         dti4 = pd.date_range("2016-01-01", freq="ns", periods=2_000_000)
         dti5 = dti4.insert(0, dti4[0])  # over size threshold, not unique
 
+        msg = "|".join([re.escape(str(scalar)), re.escape(repr(scalar))])
         for dti in [dti1, dti2, dti3, dti4, dti5]:
-            with pytest.raises(TypeError):
+            with pytest.raises(TypeError, match=msg):
                 scalar in dti._engine
 
-            with pytest.raises(KeyError):
+            with pytest.raises(KeyError, match=msg):
                 dti._engine.get_loc(scalar)
 
 
@@ -45,9 +48,10 @@ class TestTimedeltaEngine:
         tdi4 = pd.timedelta_range("42 days", freq="ns", periods=2_000_000)
         tdi5 = tdi4.insert(0, tdi4[0])  # over size threshold, not unique
 
+        msg = "|".join([re.escape(str(scalar)), re.escape(repr(scalar))])
         for tdi in [tdi1, tdi2, tdi3, tdi4, tdi5]:
-            with pytest.raises(TypeError):
+            with pytest.raises(TypeError, match=msg):
                 scalar in tdi._engine
 
-            with pytest.raises(KeyError):
+            with pytest.raises(KeyError, match=msg):
                 tdi._engine.get_loc(scalar)
