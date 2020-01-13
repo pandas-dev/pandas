@@ -510,41 +510,41 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         if is_integer(key):
             return series.iat[key]
 
-        s = com.values_from_object(series)
-        try:
-            value = super().get_value(s, key)
-        except (KeyError, IndexError):
-            if isinstance(key, str):
-                asdt, parsed, reso = parse_time_string(key, self.freq)
-                grp = resolution.Resolution.get_freq_group(reso)
-                freqn = resolution.get_freq_group(self.freq)
+        if isinstance(key, str):
+            asdt, parsed, reso = parse_time_string(key, self.freq)
+            grp = resolution.Resolution.get_freq_group(reso)
+            freqn = resolution.get_freq_group(self.freq)
 
-                vals = self._ndarray_values
+            vals = self._ndarray_values
 
-                # if our data is higher resolution than requested key, slice
-                if grp < freqn:
-                    iv = Period(asdt, freq=(grp, 1))
-                    ord1 = iv.asfreq(self.freq, how="S").ordinal
-                    ord2 = iv.asfreq(self.freq, how="E").ordinal
+            # if our data is higher resolution than requested key, slice
+            if grp < freqn:
+                iv = Period(asdt, freq=(grp, 1))
+                ord1 = iv.asfreq(self.freq, how="S").ordinal
+                ord2 = iv.asfreq(self.freq, how="E").ordinal
 
-                    if ord2 < vals[0] or ord1 > vals[-1]:
-                        raise KeyError(key)
-
-                    pos = np.searchsorted(self._ndarray_values, [ord1, ord2])
-                    key = slice(pos[0], pos[1] + 1)
-                    return series[key]
-                elif grp == freqn:
-                    key = Period(asdt, freq=self.freq)
-                    loc = self.get_loc(key)
-                    return series[loc]
-                else:
+                if ord2 < vals[0] or ord1 > vals[-1]:
                     raise KeyError(key)
 
-            period = Period(key, self.freq)
-            loc = self.get_loc(period)
+                pos = np.searchsorted(self._ndarray_values, [ord1, ord2])
+                key = slice(pos[0], pos[1] + 1)
+                return series[key]
+            elif grp == freqn:
+                key = Period(asdt, freq=self.freq)
+                loc = self.get_loc(key)
+                return series[loc]
+            else:
+                raise KeyError(key)
+
+        elif isinstance(key, Period) or key is NaT:
+            ordinal = key.ordinal if key is not NaT else NaT.value
+            loc = self._engine.get_loc(ordinal)
             return series[loc]
-        else:
+            value = Index.get_value(self, series, key)
             return com.maybe_box(self, value, series, key)
+
+        value = Index.get_value(self, series, key)
+        return com.maybe_box(self, value, series, key)
 
     @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
