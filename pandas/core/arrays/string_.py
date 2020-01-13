@@ -178,22 +178,22 @@ class StringArray(PandasArray):
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         if dtype:
             assert dtype == "string"
-        result = super()._from_sequence(scalars, dtype=object, copy=copy)
-        return result
 
-    @staticmethod
-    def _coerce_from_sequence_values(values: np.ndarray, copy: bool):
+        result = np.asarray(scalars, dtype="object")
+        if copy and result is scalars:
+            result = result.copy()
+
         # Standardize all missing-like values to NA
         # TODO: it would be nice to do this in _validate / lib.is_string_array
         # We are already doing a scan over the values there.
-        na_values = isna(values)
+        na_values = isna(result)
         if na_values.any():
-            if not copy:
+            if result is scalars:
                 # force a copy now, if we haven't already
-                values = values.copy()
-            values[na_values] = StringDtype.na_value
+                result = result.copy()
+            result[na_values] = StringDtype.na_value
 
-        return values
+        return cls(result)
 
     @classmethod
     def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
