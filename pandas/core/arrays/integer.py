@@ -24,7 +24,7 @@ from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import nanops, ops
-from pandas.core.ops import invalid_comparison
+from pandas.core.ops import invalid_comparison, mask_ops
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.tools.numeric import to_numeric
 
@@ -547,6 +547,9 @@ class IntegerArray(BaseMaskedArray):
     def _reduce(self, name, skipna=True, **kwargs):
         data = self._data
         mask = self._mask
+
+        if name == "sum":
+            return mask_ops.sum(data, mask, skipna=skipna)
 
         # coerce to a nan-aware float if needed
         if mask.any():

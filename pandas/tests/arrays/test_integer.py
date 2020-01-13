@@ -887,7 +887,7 @@ def test_preserve_dtypes(op):
 
     # op
     result = getattr(df.C, op)()
-    assert isinstance(result, int)
+    assert isinstance(result, np.int64)
 
     # groupby
     result = getattr(df.groupby("A"), op)()

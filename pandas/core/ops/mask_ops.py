@@ -6,6 +6,7 @@ from typing import Optional, Union
 import numpy as np
 
 from pandas._libs import lib, missing as libmissing
+from pandas.compat.numpy import _np_version_under1p17
 
 
 def kleene_or(
@@ -176,3 +177,31 @@ def kleene_and(
 def raise_for_nan(value, method):
     if lib.is_float(value) and np.isnan(value):
         raise ValueError(f"Cannot perform logical '{method}' with floating NaN")
+
+
+def sum(
+    values: np.ndarray, mask: np.ndarray, skipna: bool,
+):
+    """
+    Sum for 1D masked array.
+
+    Parameters
+    ----------
+    values : np.ndarray
+        Numpy array with the values (can be of any dtype that support the
+        operation).
+    mask : np.ndarray
+        Boolean numpy array (False for missing)
+    skipna: bool, default True
+        Whether to skip NA.
+    """
+    if not skipna:
+        if mask.any():
+            return libmissing.NA
+        else:
+            return np.sum(values)
+    else:
+        if _np_version_under1p17:
+            return np.sum(values[mask])
+        else:
+            return np.sum(values, where=~mask)
