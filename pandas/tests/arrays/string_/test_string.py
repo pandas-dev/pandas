@@ -194,6 +194,12 @@ def test_constructor_raises():
     with pytest.raises(ValueError, match="sequence of strings"):
         pd.arrays.StringArray(np.array([]))
 
+    with pytest.raises(ValueError, match="strings or pandas.NA"):
+        pd.arrays.StringArray(np.array(["a", np.nan], dtype=object))
+
+    with pytest.raises(ValueError, match="strings or pandas.NA"):
+        pd.arrays.StringArray(np.array(["a", None], dtype=object))
+
 
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.xfail(reason="Not implemented StringArray.sum")

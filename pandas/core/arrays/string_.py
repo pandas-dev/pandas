@@ -93,9 +93,6 @@ class StringArray(PandasArray):
        StringArray is considered experimental. The implementation and
        parts of the API may change without warning.
 
-       In particular, the NA value used may change to no longer be
-       ``numpy.nan``.
-
     Parameters
     ----------
     values : array-like
@@ -104,8 +101,11 @@ class StringArray(PandasArray):
         .. warning::
 
            Currently, this expects an object-dtype ndarray
-           where the elements are Python strings. This may
-           change without warning in the future.
+           where the elements are Python strings or :attr:`pandas.NA`.
+           This may change without warning in the future. Use
+           :meth:`pandas.array` with ``dtype="string"`` for a stable way of
+           creating a `StringArray` from any sequence.
+
     copy : bool, default False
         Whether to copy the array of data.
 
@@ -119,6 +119,8 @@ class StringArray(PandasArray):
 
     See Also
     --------
+    pandas.array
+        The recommended function for creating a StringArray.
     Series.str
         The string methods are available on Series backed by
         a StringArray.
@@ -164,13 +166,13 @@ class StringArray(PandasArray):
 
     def _validate(self):
         """Validate that we only store NA or strings."""
-        if len(self._ndarray) and not lib.is_string_array(self._ndarray, skipna=True):
-            raise ValueError(
-                "StringArray requires a sequence of strings or missing values."
-            )
+        if len(self._ndarray) and not lib.is_string_array(
+            self._ndarray, skipna=True, na_only=True
+        ):
+            raise ValueError("StringArray requires a sequence of strings or pandas.NA")
         if self._ndarray.dtype != "object":
             raise ValueError(
-                "StringArray requires a sequence of strings. Got "
+                "StringArray requires a sequence of strings or pandas.NA. Got "
                 f"'{self._ndarray.dtype}' dtype instead."
             )
 

@@ -1472,12 +1472,30 @@ cdef class Validator:
         Py_ssize_t n
         dtype dtype
         bint skipna
+        bint na_only
 
     def __cinit__(self, Py_ssize_t n, dtype dtype=np.dtype(np.object_),
-                  bint skipna=False):
+                  bint skipna=False,
+                  bint na_only=False):
+        """
+
+        Parameters
+        ----------
+        n
+        dtype
+        skipna
+        na_only : bool, default False
+            Whether to only treat pandas.NA as NA. Values like None
+            and NaN won't be treated as NA.
+
+        Returns
+        -------
+
+        """
         self.n = n
         self.dtype = dtype
         self.skipna = skipna
+        self.na_only = na_only
 
     cdef bint validate(self, ndarray values) except -1:
         if not self.n:
@@ -1530,7 +1548,10 @@ cdef class Validator:
                                   "must define is_value_typed")
 
     cdef bint is_valid_null(self, object value) except -1:
-        return value is None or value is C_NA or util.is_nan(value)
+        if self.na_only:
+            return value is C_NA
+        else:
+            return value is None or value is C_NA or util.is_nan(value)
 
     cdef bint is_array_typed(self) except -1:
         return False
@@ -1625,11 +1646,12 @@ cdef class StringValidator(Validator):
         return issubclass(self.dtype.type, np.str_)
 
 
-cpdef bint is_string_array(ndarray values, bint skipna=False):
+cpdef bint is_string_array(ndarray values, bint skipna=False, na_only=False):
     cdef:
         StringValidator validator = StringValidator(len(values),
                                                     values.dtype,
-                                                    skipna=skipna)
+                                                    skipna=skipna,
+                                                    na_only=na_only)
     return validator.validate(values)
 
 
