@@ -1262,7 +1262,7 @@ class TimedeltaIndexResamplerGroupby(_GroupByMixin, TimedeltaIndexResampler):
         return TimedeltaIndexResampler
 
 
-def resample(obj, kind=None, **kwds):
+def get_resampler(obj, kind=None, **kwds):
     """
     Create a TimeGrouper and return our resampler.
     """
@@ -1270,7 +1270,7 @@ def resample(obj, kind=None, **kwds):
     return tg._get_resampler(obj, kind=kind)
 
 
-resample.__doc__ = Resampler.__doc__
+get_resampler.__doc__ = Resampler.__doc__
 
 
 def get_resampler_for_grouping(

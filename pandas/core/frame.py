@@ -102,7 +102,6 @@ from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin as DatetimeLikeArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.generic import NDFrame, _shared_docs
-from pandas.core.groupby import generic as groupby_generic
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import Index, ensure_index, ensure_index_from_sequences
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -129,6 +128,7 @@ from pandas.io.formats.printing import pprint_thing
 import pandas.plotting
 
 if TYPE_CHECKING:
+    from pandas.core.groupby.generic import DataFrameGroupBy
     from pandas.io.formats.style import Styler
 
 # ---------------------------------------------------------------------
@@ -5777,13 +5777,14 @@ Wild         185.0
         group_keys: bool = True,
         squeeze: bool = False,
         observed: bool = False,
-    ) -> "groupby_generic.DataFrameGroupBy":
+    ) -> "DataFrameGroupBy":
+        from pandas.core.groupby.generic import DataFrameGroupBy
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
         axis = self._get_axis_number(axis)
 
-        return groupby_generic.DataFrameGroupBy(
+        return DataFrameGroupBy(
             obj=self,
             keys=by,
             axis=axis,
