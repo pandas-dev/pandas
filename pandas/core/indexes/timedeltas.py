@@ -310,13 +310,13 @@ class TimedeltaIndex(
         ----------
         label : object
         side : {'left', 'right'}
-        kind : {'ix', 'loc', 'getitem'}
+        kind : {'loc', 'getitem'} or None
 
         Returns
         -------
         label : object
         """
-        assert kind in ["ix", "loc", "getitem", None]
+        assert kind in ["loc", "getitem", None]
 
         if isinstance(label, str):
             parsed = Timedelta(label)

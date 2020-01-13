@@ -625,7 +625,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         ----------
         label : object
         side : {'left', 'right'}
-        kind : {'ix', 'loc', 'getitem'}
+        kind : {'loc', 'getitem'}
 
         Returns
         -------
@@ -636,7 +636,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         Value of `side` parameter should be validated in caller.
 
         """
-        assert kind in ["ix", "loc", "getitem"]
+        assert kind in ["loc", "getitem"]
 
         if isinstance(label, datetime):
             return Period(label, freq=self.freq)
