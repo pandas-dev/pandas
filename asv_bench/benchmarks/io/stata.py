@@ -1,8 +1,8 @@
 import numpy as np
-from pandas import DataFrame, date_range, read_stata
-import pandas.util.testing as tm
 
-from ..pandas_vb_common import BaseIO
+from pandas import DataFrame, date_range, read_stata
+
+from ..pandas_vb_common import BaseIO, tm
 
 
 class Stata(BaseIO):
@@ -16,7 +16,7 @@ class Stata(BaseIO):
         C = self.C = 5
         self.df = DataFrame(
             np.random.randn(N, C),
-            columns=["float{}".format(i) for i in range(C)],
+            columns=[f"float{i}" for i in range(C)],
             index=date_range("20000101", periods=N, freq="H"),
         )
         self.df["object"] = tm.makeStringIndex(self.N)
@@ -46,8 +46,8 @@ class StataMissing(Stata):
         for i in range(10):
             missing_data = np.random.randn(self.N)
             missing_data[missing_data < 0] = np.nan
-            self.df["missing_{0}".format(i)] = missing_data
+            self.df[f"missing_{i}"] = missing_data
         self.df.to_stata(self.fname, self.convert_dates)
 
 
-from ..pandas_vb_common import setup  # noqa: F401
+from ..pandas_vb_common import setup  # noqa: F401 isort:skip

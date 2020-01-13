@@ -4,7 +4,7 @@ import pytest
 from pandas.errors import UnsupportedFunctionCall
 
 from pandas import DataFrame, Series
-import pandas.core.window as rwindow
+from pandas.core.window import EWM
 from pandas.tests.window.common import Base
 
 
@@ -60,7 +60,7 @@ class TestEWM(Base):
     @pytest.mark.parametrize("method", ["std", "mean", "var"])
     def test_numpy_compat(self, method):
         # see gh-12811
-        e = rwindow.EWM(Series([2, 4, 6]), alpha=0.5)
+        e = EWM(Series([2, 4, 6]), alpha=0.5)
 
         msg = "numpy operations are not valid with window objects"
 

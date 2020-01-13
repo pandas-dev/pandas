@@ -3,22 +3,20 @@ import pytest
 
 import pandas as pd
 from pandas import Index, MultiIndex
-import pandas.util.testing as tm
-
-
-def check_level_names(index, names):
-    assert [level.name for level in index.levels] == list(names)
+import pandas._testing as tm
 
 
 def test_reindex(idx):
     result, indexer = idx.reindex(list(idx[:4]))
     assert isinstance(result, MultiIndex)
-    check_level_names(result, idx[:4].names)
+    assert result.names == ["first", "second"]
+    assert [level.name for level in result.levels] == ["first", "second"]
 
     result, indexer = idx.reindex(list(idx))
     assert isinstance(result, MultiIndex)
     assert indexer is None
-    check_level_names(result, idx.names)
+    assert result.names == ["first", "second"]
+    assert [level.name for level in result.levels] == ["first", "second"]
 
 
 def test_reindex_level(idx):

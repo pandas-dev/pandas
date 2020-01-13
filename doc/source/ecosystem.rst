@@ -1,3 +1,5 @@
+:orphan:
+
 .. _ecosystem:
 
 {{ header }}
@@ -23,6 +25,21 @@ or `search pypi for pandas <https://pypi.org/search/?q=pandas>`_.
 We'd like to make it easier for users to find these projects, if you know of other
 substantial projects that you feel should be on this list, please let us know.
 
+.. _ecosystem.data_cleaning_and_validation:
+
+Data cleaning and validation
+----------------------------
+
+`pyjanitor <https://github.com/ericmjl/pyjanitor/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Pyjanitor provides a clean API for cleaning data, using method chaining.
+
+`Engarde <https://engarde.readthedocs.io/en/latest/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Engarde is a lightweight library used to explicitly state assumptions about your datasets
+and check that they're *actually* true.
 
 .. _ecosystem.stats:
 
@@ -227,8 +244,8 @@ Pandas DataFrames with timeseries indexes.
 `pydatastream <https://github.com/vfilimonov/pydatastream>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 PyDatastream is a Python interface to the
-`Thomson Dataworks Enterprise (DWE/Datastream) <http://dataworks.thomson.com/Dataworks/Enterprise/1.0/>`__
-SOAP API to return indexed Pandas DataFrames with financial data.
+`Refinitiv Datastream (DWS) <https://www.refinitiv.com/en/products/datastream-macroeconomic-analysis>`__
+REST API to return indexed Pandas DataFrames with financial data.
 This package requires valid credentials for this API (non free).
 
 `pandaSDMX <https://pandasdmx.readthedocs.io>`__
@@ -310,6 +327,21 @@ PyTables, h5py, and pymongo to move data between non pandas formats. Its graph
 based approach is also extensible by end users for custom formats that may be
 too specific for the core of odo.
 
+`Pandarallel <https://github.com/nalepae/pandarallel>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Pandarallel provides a simple way to parallelize your pandas operations on all your CPUs by changing only one line of code.
+If also displays progress bars.
+
+.. code:: python
+
+    from pandarallel import pandarallel
+
+    pandarallel.initialize(progress_bar=True)
+
+    # df.apply(func)
+    df.parallel_apply(func)
+
 `Ray <https://ray.readthedocs.io/en/latest/pandas_on_ray.html>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -328,18 +360,6 @@ Increasingly, packages are being built on top of pandas to address specific need
 
  * vaex.from_pandas
  * vaex.to_pandas_df
-
-
-.. _ecosystem.data_validation:
-
-Data validation
----------------
-
-`Engarde <https://engarde.readthedocs.io/en/latest/>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Engarde is a lightweight library used to explicitly state your assumptions about your datasets
-and check that they're *actually* true.
 
 .. _ecosystem.extensions:
 
@@ -375,4 +395,3 @@ Library        Accessor   Classes
 
 .. _cyberpandas: https://cyberpandas.readthedocs.io/en/latest
 .. _pdvega: https://altair-viz.github.io/pdvega/
-

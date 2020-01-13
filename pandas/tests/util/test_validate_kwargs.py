@@ -1,5 +1,3 @@
-from collections import OrderedDict
-
 import pytest
 
 from pandas.util._validators import validate_bool_kwarg, validate_kwargs
@@ -11,14 +9,10 @@ def test_bad_kwarg():
     good_arg = "f"
     bad_arg = good_arg + "o"
 
-    compat_args = OrderedDict()
-    compat_args[good_arg] = "foo"
-    compat_args[bad_arg + "o"] = "bar"
+    compat_args = {good_arg: "foo", bad_arg + "o": "bar"}
     kwargs = {good_arg: "foo", bad_arg: "bar"}
 
-    msg = r"{fname}\(\) got an unexpected " r"keyword argument '{arg}'".format(
-        fname=_fname, arg=bad_arg
-    )
+    msg = fr"{_fname}\(\) got an unexpected keyword argument '{bad_arg}'"
 
     with pytest.raises(TypeError, match=msg):
         validate_kwargs(_fname, kwargs, compat_args)
@@ -28,14 +22,11 @@ def test_bad_kwarg():
 def test_not_all_none(i):
     bad_arg = "foo"
     msg = (
-        r"the '{arg}' parameter is not supported "
-        r"in the pandas implementation of {func}\(\)".format(arg=bad_arg, func=_fname)
+        fr"the '{bad_arg}' parameter is not supported "
+        fr"in the pandas implementation of {_fname}\(\)"
     )
 
-    compat_args = OrderedDict()
-    compat_args["foo"] = 1
-    compat_args["bar"] = "s"
-    compat_args["baz"] = None
+    compat_args = {"foo": 1, "bar": "s", "baz": None}
 
     kwarg_keys = ("foo", "bar", "baz")
     kwarg_vals = (2, "s", None)
@@ -48,10 +39,7 @@ def test_not_all_none(i):
 
 def test_validation():
     # No exceptions should be raised.
-    compat_args = OrderedDict()
-    compat_args["f"] = None
-    compat_args["b"] = 1
-    compat_args["ba"] = "s"
+    compat_args = {"f": None, "b": 1, "ba": "s"}
 
     kwargs = dict(f=None, b=1)
     validate_kwargs(_fname, kwargs, compat_args)
@@ -60,9 +48,9 @@ def test_validation():
 @pytest.mark.parametrize("name", ["inplace", "copy"])
 @pytest.mark.parametrize("value", [1, "True", [1, 2, 3], 5.0])
 def test_validate_bool_kwarg_fail(name, value):
-    msg = 'For argument "%s" expected type bool, received type %s' % (
-        name,
-        type(value).__name__,
+    msg = (
+        f'For argument "{name}" expected type bool,'
+        f" received type {type(value).__name__}"
     )
 
     with pytest.raises(ValueError, match=msg):

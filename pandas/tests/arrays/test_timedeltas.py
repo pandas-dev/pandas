@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.core.arrays import TimedeltaArray
-import pandas.util.testing as tm
 
 
 class TestTimedeltaArrayConstructor:
@@ -12,8 +12,8 @@ class TestTimedeltaArrayConstructor:
         arr = np.array([0, 1, 2, 3], dtype="m8[h]").astype("m8[ns]")
 
         with pytest.raises(ValueError, match="Only 1-dimensional"):
-            # 2-dim
-            TimedeltaArray(arr.reshape(2, 2))
+            # 3-dim, we allow 2D to sneak in for ops purposes GH#29853
+            TimedeltaArray(arr.reshape(2, 2, 1))
 
         with pytest.raises(ValueError, match="Only 1-dimensional"):
             # 0-dim
@@ -41,13 +41,12 @@ class TestTimedeltaArrayConstructor:
     def test_incorrect_dtype_raises(self):
         # TODO: why TypeError for 'category' but ValueError for i8?
         with pytest.raises(
-            ValueError, match=r"category cannot be converted " r"to timedelta64\[ns\]"
+            ValueError, match=r"category cannot be converted to timedelta64\[ns\]"
         ):
             TimedeltaArray(np.array([1, 2, 3], dtype="i8"), dtype="category")
 
         with pytest.raises(
-            ValueError,
-            match=r"dtype int64 cannot be converted " r"to timedelta64\[ns\]",
+            ValueError, match=r"dtype int64 cannot be converted to timedelta64\[ns\]",
         ):
             TimedeltaArray(np.array([1, 2, 3], dtype="i8"), dtype=np.dtype("int64"))
 
@@ -125,8 +124,72 @@ class TestTimedeltaArray:
         a[0] = pd.Timedelta("1H")
         assert a.freq is None
 
+    @pytest.mark.parametrize(
+        "obj",
+        [
+            pd.Timedelta(seconds=1),
+            pd.Timedelta(seconds=1).to_timedelta64(),
+            pd.Timedelta(seconds=1).to_pytimedelta(),
+        ],
+    )
+    def test_setitem_objects(self, obj):
+        # make sure we accept timedelta64 and timedelta in addition to Timedelta
+        tdi = pd.timedelta_range("2 Days", periods=4, freq="H")
+        arr = TimedeltaArray(tdi, freq=tdi.freq)
+
+        arr[0] = obj
+        assert arr[0] == pd.Timedelta(seconds=1)
+
+    @pytest.mark.parametrize(
+        "other",
+        [
+            1,
+            np.int64(1),
+            1.0,
+            np.datetime64("NaT"),
+            pd.Timestamp.now(),
+            "invalid",
+            np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9,
+            (np.arange(10) * 24 * 3600 * 10 ** 9).view("datetime64[ns]"),
+            pd.Timestamp.now().to_period("D"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "index",
+        [
+            True,
+            pytest.param(
+                False,
+                marks=pytest.mark.xfail(
+                    reason="Raises ValueError instead of TypeError", raises=ValueError
+                ),
+            ),
+        ],
+    )
+    def test_searchsorted_invalid_types(self, other, index):
+        data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
+        arr = TimedeltaArray(data, freq="D")
+        if index:
+            arr = pd.Index(arr)
+
+        msg = "searchsorted requires compatible dtype or scalar"
+        with pytest.raises(TypeError, match=msg):
+            arr.searchsorted(other)
+
 
 class TestReductions:
+    @pytest.mark.parametrize("name", ["sum", "std", "min", "max", "median"])
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reductions_empty(self, name, skipna):
+        tdi = pd.TimedeltaIndex([])
+        arr = tdi.array
+
+        result = getattr(tdi, name)(skipna=skipna)
+        assert result is pd.NaT
+
+        result = getattr(arr, name)(skipna=skipna)
+        assert result is pd.NaT
+
     def test_min_max(self):
         arr = TimedeltaArray._from_sequence(["3H", "3H", "NaT", "2H", "5H", "4H"])
 
@@ -144,11 +207,87 @@ class TestReductions:
         result = arr.max(skipna=False)
         assert result is pd.NaT
 
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_min_max_empty(self, skipna):
-        arr = TimedeltaArray._from_sequence([])
-        result = arr.min(skipna=skipna)
+    def test_sum(self):
+        tdi = pd.TimedeltaIndex(["3H", "3H", "NaT", "2H", "5H", "4H"])
+        arr = tdi.array
+
+        result = arr.sum(skipna=True)
+        expected = pd.Timedelta(hours=17)
+        assert isinstance(result, pd.Timedelta)
+        assert result == expected
+
+        result = tdi.sum(skipna=True)
+        assert isinstance(result, pd.Timedelta)
+        assert result == expected
+
+        result = arr.sum(skipna=False)
         assert result is pd.NaT
 
-        result = arr.max(skipna=skipna)
+        result = tdi.sum(skipna=False)
+        assert result is pd.NaT
+
+        result = arr.sum(min_count=9)
+        assert result is pd.NaT
+
+        result = tdi.sum(min_count=9)
+        assert result is pd.NaT
+
+        result = arr.sum(min_count=1)
+        assert isinstance(result, pd.Timedelta)
+        assert result == expected
+
+        result = tdi.sum(min_count=1)
+        assert isinstance(result, pd.Timedelta)
+        assert result == expected
+
+    def test_npsum(self):
+        # GH#25335 np.sum should return a Timedelta, not timedelta64
+        tdi = pd.TimedeltaIndex(["3H", "3H", "2H", "5H", "4H"])
+        arr = tdi.array
+
+        result = np.sum(tdi)
+        expected = pd.Timedelta(hours=17)
+        assert isinstance(result, pd.Timedelta)
+        assert result == expected
+
+        result = np.sum(arr)
+        assert isinstance(result, pd.Timedelta)
+        assert result == expected
+
+    def test_std(self):
+        tdi = pd.TimedeltaIndex(["0H", "4H", "NaT", "4H", "0H", "2H"])
+        arr = tdi.array
+
+        result = arr.std(skipna=True)
+        expected = pd.Timedelta(hours=2)
+        assert isinstance(result, pd.Timedelta)
+        assert result == expected
+
+        result = tdi.std(skipna=True)
+        assert isinstance(result, pd.Timedelta)
+        assert result == expected
+
+        result = arr.std(skipna=False)
+        assert result is pd.NaT
+
+        result = tdi.std(skipna=False)
+        assert result is pd.NaT
+
+    def test_median(self):
+        tdi = pd.TimedeltaIndex(["0H", "3H", "NaT", "5H06m", "0H", "2H"])
+        arr = tdi.array
+
+        result = arr.median(skipna=True)
+        expected = pd.Timedelta(hours=2)
+        assert isinstance(result, pd.Timedelta)
+        assert result == expected
+
+        result = tdi.median(skipna=True)
+        assert isinstance(result, pd.Timedelta)
+        assert result == expected
+
+        result = arr.std(skipna=False)
+        assert result is pd.NaT
+
+        result = tdi.std(skipna=False)
         assert result is pd.NaT

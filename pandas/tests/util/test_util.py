@@ -1,12 +1,10 @@
 import os
-import sys
 
 import pytest
 
 import pandas.compat as compat
-from pandas.compat import raise_with_traceback
 
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_rands():
@@ -34,23 +32,6 @@ def test_numpy_err_state_is_default():
     assert np.geterr() == expected
 
 
-def test_raise_with_traceback():
-    with pytest.raises(LookupError, match="error_text"):
-        try:
-            raise ValueError("THIS IS AN ERROR")
-        except ValueError:
-            e = LookupError("error_text")
-            raise_with_traceback(e)
-
-    with pytest.raises(LookupError, match="error_text"):
-        try:
-            raise ValueError("This is another error")
-        except ValueError:
-            e = LookupError("error_text")
-            _, _, traceback = sys.exc_info()
-            raise_with_traceback(e, traceback)
-
-
 def test_convert_rows_list_to_csv_str():
     rows_list = ["aaa", "bbb", "ccc"]
     ret = tm.convert_rows_list_to_csv_str(rows_list)
@@ -68,16 +49,6 @@ def test_create_temp_directory():
         assert os.path.exists(path)
         assert os.path.isdir(path)
     assert not os.path.exists(path)
-
-
-def test_assert_raises_regex_deprecated():
-    # see gh-23592
-
-    with tm.assert_produces_warning(FutureWarning):
-        msg = "Not equal!"
-
-        with tm.assert_raises_regex(AssertionError, msg):
-            assert 1 == 2, msg
 
 
 @pytest.mark.parametrize("strict_data_files", [True, False])

@@ -1,5 +1,3 @@
-import warnings
-
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import is_integer, is_list_like
@@ -50,7 +48,7 @@ def get_writer(engine_name):
     try:
         return _writers[engine_name]
     except KeyError:
-        raise ValueError("No Excel writer '{engine}'".format(engine=engine_name))
+        raise ValueError(f"No Excel writer '{engine_name}'")
 
 
 def _excel2num(x):
@@ -78,7 +76,7 @@ def _excel2num(x):
         cp = ord(c)
 
         if cp < ord("A") or cp > ord("Z"):
-            raise ValueError("Invalid column name: {x}".format(x=x))
+            raise ValueError(f"Invalid column name: {x}")
 
         index = index * 26 + cp - ord("A") + 1
 
@@ -136,16 +134,11 @@ def _maybe_convert_usecols(usecols):
         return usecols
 
     if is_integer(usecols):
-        warnings.warn(
-            (
-                "Passing in an integer for `usecols` has been "
-                "deprecated. Please pass in a list of int from "
-                "0 to `usecols` inclusive instead."
-            ),
-            FutureWarning,
-            stacklevel=2,
+        raise ValueError(
+            "Passing an integer for `usecols` is no longer supported.  "
+            "Please pass in a list of int from 0 to `usecols` "
+            "inclusive instead."
         )
-        return list(range(usecols + 1))
 
     if isinstance(usecols, str):
         return _range2cols(usecols)
@@ -161,8 +154,8 @@ def _validate_freeze_panes(freeze_panes):
             return True
 
         raise ValueError(
-            "freeze_panes must be of form (row, column)"
-            " where row and column are integers"
+            "freeze_panes must be of form (row, column) "
+            "where row and column are integers"
         )
 
     # freeze_panes wasn't specified, return False so it won't be applied

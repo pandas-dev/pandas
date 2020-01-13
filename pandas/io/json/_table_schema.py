@@ -18,9 +18,9 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     is_timedelta64_dtype,
 )
+from pandas.core.dtypes.dtypes import CategoricalDtype
 
 from pandas import DataFrame
-from pandas.api.types import CategoricalDtype
 import pandas.core.common as com
 
 loads = json.loads
@@ -76,20 +76,18 @@ def as_json_table_type(x):
 
 def set_default_names(data):
     """Sets index names to 'index' for regular, or 'level_x' for Multi"""
-    if com._all_not_none(*data.index.names):
+    if com.all_not_none(*data.index.names):
         nms = data.index.names
         if len(nms) == 1 and data.index.name == "index":
             warnings.warn("Index name of 'index' is not round-trippable")
         elif len(nms) > 1 and any(x.startswith("level_") for x in nms):
-            warnings.warn(
-                "Index names beginning with 'level_' are not " "round-trippable"
-            )
+            warnings.warn("Index names beginning with 'level_' are not round-trippable")
         return data
 
     data = data.copy()
     if data.index.nlevels > 1:
         names = [
-            name if name is not None else "level_{}".format(i)
+            name if name is not None else f"level_{i}"
             for i, name in enumerate(data.index.names)
         ]
         data.index.names = names
@@ -175,7 +173,7 @@ def convert_json_field_to_pandas_type(field):
         return "timedelta64"
     elif typ == "datetime":
         if field.get("tz"):
-            return "datetime64[ns, {tz}]".format(tz=field["tz"])
+            return f"datetime64[ns, {field['tz']}]"
         else:
             return "datetime64[ns]"
     elif typ == "any":
@@ -186,7 +184,7 @@ def convert_json_field_to_pandas_type(field):
         else:
             return "object"
 
-    raise ValueError("Unsupported or invalid field type: {}".format(typ))
+    raise ValueError(f"Unsupported or invalid field type: {typ}")
 
 
 def build_table_schema(data, index=True, primary_key=None, version=True):
@@ -199,7 +197,7 @@ def build_table_schema(data, index=True, primary_key=None, version=True):
     index : bool, default True
         Whether to include ``data.index`` in the schema.
     primary_key : bool or None, default True
-        column names to designate as the primary key.
+        Column names to designate as the primary key.
         The default `None` will set `'primaryKey'` to the index
         level or levels if the index is unique.
     version : bool, default True
@@ -243,8 +241,10 @@ def build_table_schema(data, index=True, primary_key=None, version=True):
 
     if index:
         if data.index.nlevels > 1:
-            for level in data.index.levels:
-                fields.append(convert_pandas_type_to_json_field(level))
+            for level, name in zip(data.index.levels, data.index.names):
+                new_field = convert_pandas_type_to_json_field(level)
+                new_field["name"] = name
+                fields.append(new_field)
         else:
             fields.append(convert_pandas_type_to_json_field(data.index))
 
@@ -315,12 +315,12 @@ def parse_table_schema(json, precise_float):
 
     # Cannot directly use as_type with timezone data on object; raise for now
     if any(str(x).startswith("datetime64[ns, ") for x in dtypes.values()):
-        raise NotImplementedError('table="orient" can not yet read timezone ' "data")
+        raise NotImplementedError('table="orient" can not yet read timezone data')
 
     # No ISO constructor for Timedelta as of yet, so need to raise
     if "timedelta64" in dtypes.values():
         raise NotImplementedError(
-            'table="orient" can not yet read ' "ISO-formatted Timedelta data"
+            'table="orient" can not yet read ISO-formatted Timedelta data'
         )
 
     df = df.astype(dtypes)

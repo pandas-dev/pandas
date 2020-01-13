@@ -9,7 +9,7 @@ import zipfile
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 @pytest.fixture(params=[True, False])
@@ -123,12 +123,13 @@ def test_infer_compression(all_parsers, csv1, buffer, ext):
     tm.assert_frame_equal(result, expected)
 
 
-def test_compression_utf16_encoding(all_parsers, csv_dir_path):
-    # see gh-18071
+def test_compression_utf_encoding(all_parsers, csv_dir_path, utf_value, encoding_fmt):
+    # see gh-18071, gh-24130
     parser = all_parsers
-    path = os.path.join(csv_dir_path, "utf16_ex_small.zip")
+    encoding = encoding_fmt.format(utf_value)
+    path = os.path.join(csv_dir_path, f"utf{utf_value}_ex_small.zip")
 
-    result = parser.read_csv(path, encoding="utf-16", compression="zip", sep="\t")
+    result = parser.read_csv(path, encoding=encoding, compression="zip", sep="\t")
     expected = pd.DataFrame(
         {
             "Country": ["Venezuela", "Venezuela"],
