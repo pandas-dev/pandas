@@ -24,7 +24,7 @@ from pandas.core.dtypes.generic import ABCExtensionArray, ABCIndexClass, ABCSeri
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
-from pandas.core.algorithms import _factorize_array, unique
+from pandas.core.algorithms import _factorize_array, diff, unique
 from pandas.core.missing import backfill_1d, pad_1d
 from pandas.core.sorting import nargsort
 
@@ -515,6 +515,27 @@ class ExtensionArray:
 
         result = nargsort(self, kind=kind, ascending=ascending, na_position="last")
         return result
+
+    def diff(self, periods: int = 1):
+        """
+        First discrete difference of element.
+
+        Calculates the difference of a ExtensionArray element compared with another
+        element in the ExtensionArray (default is element in previous row).
+
+        Parameters
+        ----------
+        periods : int, default 1
+            Periods to shift for calculating difference, accepts negative
+            values.
+
+        Returns
+        -------
+        ExtensionArray
+            First differences of the ExtensionArray.
+        """
+
+        return self._from_sequence(diff(self, periods), dtype=self.dtype)
 
     def fillna(self, value=None, method=None, limit=None):
         """

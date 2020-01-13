@@ -2316,13 +2316,11 @@ Name: Max Speed, dtype: float64
         5    NaN
         dtype: float64
         """
-        result = algorithms.diff(com.values_from_object(self), periods)
         if is_extension_array_dtype(self.dtype) and not is_datetime64tz_dtype(
             self.dtype
         ):
-            return self._constructor(
-                result, index=self.index, dtype=self.dtype
-            ).__finalize__(self)
+            return self.values.diff(periods=periods)
+        result = algorithms.diff(com.values_from_object(self), periods)
         return self._constructor(result, index=self.index).__finalize__(self)
 
     def autocorr(self, lag=1) -> float:
