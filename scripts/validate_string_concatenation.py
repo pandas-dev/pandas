@@ -110,7 +110,7 @@ def strings_with_wrong_placed_space(
         Explenation of the error.
     """
 
-    def idk_how_to_call_this_function(first_line: str, second_line: str) -> bool:
+    def whitespace_validation(first_line: str, second_line: str) -> bool:
         """
         Checking if the two lines are mattching the unwanted pattern.
 
@@ -189,7 +189,7 @@ def strings_with_wrong_placed_space(
             first_string: str = first_token.string[1:-1]
             second_string: str = third_token.string[1:-1]
 
-            if idk_how_to_call_this_function(first_string, second_string):
+            if whitespace_validation(first_string, second_string):
                 yield (
                     source_path,
                     third_token.start[0],
