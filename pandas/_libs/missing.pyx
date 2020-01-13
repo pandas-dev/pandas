@@ -417,12 +417,12 @@ class NAType(C_NAType):
         if other is C_NA:
             return NA
         elif isinstance(other, (numbers.Number, np.bool_)):
-            if other == 1 or other == -1:
+            if other == 1:
                 return other
             else:
                 return NA
         elif isinstance(other, np.ndarray):
-            return np.where((other == 1) | (other == -1), other, NA)
+            return np.where(other == 1, other, NA)
 
         return NotImplemented
 
