@@ -182,7 +182,7 @@ class StringArray(PandasArray):
         return result
 
     @staticmethod
-    def _from_sequence_finalize(values, copy):
+    def _coerce_from_sequence_values(values: np.ndarray, copy: bool):
         # Standardize all missing-like values to NA
         # TODO: it would be nice to do this in _validate / lib.is_string_array
         # We are already doing a scan over the values there.

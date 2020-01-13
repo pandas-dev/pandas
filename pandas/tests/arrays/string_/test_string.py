@@ -204,10 +204,11 @@ def test_constructor_raises():
         pd.arrays.StringArray(np.array(["a", pd.NaT], dtype=object))
 
 
-def test_from_sequnce_no_mutate():
+@pytest.mark.parametrize("copy", [True, False])
+def test_from_sequnce_no_mutate(copy):
     a = np.array(["a", np.nan], dtype=object)
     original = a.copy()
-    result = pd.arrays.StringArray._from_sequence(a)
+    result = pd.arrays.StringArray._from_sequence(a, copy=copy)
     expected = pd.arrays.StringArray(np.array(["a", pd.NA], dtype=object))
     tm.assert_extension_array_equal(result, expected)
     tm.assert_numpy_array_equal(a, original)

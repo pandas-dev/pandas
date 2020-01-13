@@ -162,12 +162,32 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         result = np.asarray(scalars, dtype=dtype)
         if copy and result is scalars:
             result = result.copy()
-        # Primarily for StringArray
-        result = cls._from_sequence_finalize(result, copy=copy)
+        # _coerce_from_sequence_values is useful for StringArray
+        result = cls._coerce_from_sequence_values(result, copy=copy)
         return cls(result)
 
     @staticmethod
-    def _from_sequence_finalize(values, copy):
+    def _coerce_from_sequence_values(values: np.ndarray, copy: bool):
+        """
+        Coerce the values used in _from_sequence before constructing
+
+        This may mutate `values` inplace.
+
+        Parameters
+        ----------
+        values : ndarray
+            The values to coerce, probably from asarray on the sequence
+            passed to _from_sequence.
+        copy : bool
+            This should be the value of `copy` passed to _from_sequence.
+            It's used to determine if we potentially haven't done a
+            copy, and so a copy will be needed to not mutate the user input.
+
+        Returns
+        -------
+        numpy.ndarray
+            The coerced values.
+        """
         return values
 
     @classmethod
