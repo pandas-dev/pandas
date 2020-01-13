@@ -205,7 +205,7 @@ def test_constructor_raises():
 
 
 def test_from_sequnce_no_mutate():
-    a = np.array(["a", pd.NA], dtype=object)
+    a = np.array(["a", np.nan], dtype=object)
     original = a.copy()
     result = pd.arrays.StringArray._from_sequence(a)
     expected = pd.arrays.StringArray(np.array(["a", pd.NA], dtype=object))
