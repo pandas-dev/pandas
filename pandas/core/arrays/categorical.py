@@ -2279,7 +2279,7 @@ class Categorical(ExtensionArray, PandasObject):
             original.categories.take(uniques), dtype=original.dtype
         )
 
-    def equals(self, other) -> bool:
+    def equals(self, other):
         """
         Returns True if categorical arrays are equal.
 

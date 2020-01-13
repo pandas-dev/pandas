@@ -1347,7 +1347,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             self._get_axis(a).equals(other._get_axis(a)) for a in self._AXIS_ORDERS
         )
 
-    def equals(self, other) -> bool_t:
+    def equals(self, other):
         """
         Test whether two objects contain the same elements.
 

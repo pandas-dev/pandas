@@ -153,7 +153,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         return np.array_equal(self.asi8, other.asi8)
 
     @Appender(_index_shared_docs["contains"] % _index_doc_kwargs)
-    def __contains__(self, key) -> bool:
+    def __contains__(self, key):
         try:
             res = self.get_loc(key)
         except (KeyError, TypeError, ValueError):
