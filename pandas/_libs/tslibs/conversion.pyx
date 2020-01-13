@@ -5,6 +5,8 @@ cimport numpy as cnp
 from numpy cimport int64_t, int32_t, intp_t, ndarray
 cnp.import_array()
 
+from dateutil import zoneinfo
+
 import pytz
 
 # stdlib datetime imports
@@ -362,6 +364,11 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
             obj.tzinfo = tz
     else:
         obj.value = pydatetime_to_dt64(ts, &obj.dts)
+        # GH 24329 Take DST offset into account
+        if isinstance(ts.tzinfo, zoneinfo.tzfile):
+            if ts.tzinfo.is_ambiguous(ts):
+                dst_offset = ts.tzinfo.dst(ts)
+                obj.value += int(dst_offset.total_seconds() * 1e9)
         obj.tzinfo = ts.tzinfo
 
     if obj.tzinfo is not None and not is_utc(obj.tzinfo):
