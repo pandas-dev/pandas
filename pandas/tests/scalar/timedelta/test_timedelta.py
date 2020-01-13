@@ -1,6 +1,5 @@
 """ test the scalar Timedelta """
 from datetime import timedelta
-import re
 
 import numpy as np
 import pytest
@@ -9,7 +8,7 @@ from pandas._libs.tslibs import NaT, Timestamp, iNaT
 
 import pandas as pd
 from pandas import Series, Timedelta, TimedeltaIndex, timedelta_range, to_timedelta
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestTimedeltaArithmetic:
@@ -21,17 +20,11 @@ class TestTimedeltaArithmetic:
             Timestamp("1700-01-01") + timedelta(days=13 * 19999)
 
     def test_array_timedelta_floordiv(self):
-        # https://github.com/pandas-dev/pandas/issues/19761
+        # deprecated GH#19761, enforced GH#29797
         ints = pd.date_range("2012-10-08", periods=4, freq="D").view("i8")
-        msg = r"Use 'array // timedelta.value'"
-        with tm.assert_produces_warning(FutureWarning) as m:
-            result = ints // Timedelta(1, unit="s")
 
-        assert msg in str(m[0].message)
-        expected = np.array(
-            [1349654400, 1349740800, 1349827200, 1349913600], dtype="i8"
-        )
-        tm.assert_numpy_array_equal(result, expected)
+        with pytest.raises(TypeError, match="Invalid dtype"):
+            ints // Timedelta(1, unit="s")
 
     def test_ops_error_str(self):
         # GH 13624
@@ -324,12 +317,9 @@ class TestTimedeltas:
         assert result.dtype.kind == "M"
         assert result.astype("int64") == iNaT
 
-    @pytest.mark.filterwarnings("ignore:M and Y units are deprecated")
     @pytest.mark.parametrize(
         "units, np_unit",
         [
-            (["Y", "y"], "Y"),
-            (["M"], "M"),
             (["W", "w"], "W"),
             (["D", "d", "days", "day", "Days", "Day"], "D"),
             (
@@ -409,7 +399,7 @@ class TestTimedeltas:
                     [np.timedelta64(i, "m") for i in np.arange(5).tolist()]
                 )
 
-            str_repr = ["{}{}".format(x, unit) for x in np.arange(5)]
+            str_repr = [f"{x}{unit}" for x in np.arange(5)]
             result = to_timedelta(wrapper(str_repr))
             tm.assert_index_equal(result, expected)
             result = TimedeltaIndex(wrapper(str_repr))
@@ -426,25 +416,22 @@ class TestTimedeltas:
             if unit == "M":
                 expected = Timedelta(np.timedelta64(2, "m").astype("timedelta64[ns]"))
 
-            result = to_timedelta("2{}".format(unit))
+            result = to_timedelta(f"2{unit}")
             assert result == expected
-            result = Timedelta("2{}".format(unit))
+            result = Timedelta(f"2{unit}")
             assert result == expected
 
     @pytest.mark.parametrize("unit", ["Y", "y", "M"])
-    def test_unit_m_y_deprecated(self, unit):
-        with tm.assert_produces_warning(FutureWarning) as w1:
+    def test_unit_m_y_raises(self, unit):
+        msg = "Units 'M' and 'Y' are no longer supported"
+        with pytest.raises(ValueError, match=msg):
             Timedelta(10, unit)
-        msg = r".* units are deprecated .*"
-        assert re.match(msg, str(w1[0].message))
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False) as w2:
+
+        with pytest.raises(ValueError, match=msg):
             to_timedelta(10, unit)
-        msg = r".* units are deprecated .*"
-        assert re.match(msg, str(w2[0].message))
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False) as w3:
+
+        with pytest.raises(ValueError, match=msg):
             to_timedelta([1, 2], unit)
-        msg = r".* units are deprecated .*"
-        assert re.match(msg, str(w3[0].message))
 
     def test_numeric_conversions(self):
         assert Timedelta(0) == np.timedelta64(0, "ns")
@@ -810,9 +797,13 @@ class TestTimedeltas:
     def test_resolution_deprecated(self):
         # GH#21344
         td = Timedelta(days=4, hours=3)
-        with tm.assert_produces_warning(FutureWarning) as w:
-            td.resolution
-        assert "Use Timedelta.resolution_string instead" in str(w[0].message)
+        result = td.resolution
+        assert result == Timedelta(nanoseconds=1)
+
+        # Check that the attribute is available on the class, mirroring
+        #  the stdlib timedelta behavior
+        result = Timedelta.resolution
+        assert result == Timedelta(nanoseconds=1)
 
 
 @pytest.mark.parametrize(

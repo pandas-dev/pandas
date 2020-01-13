@@ -1,3 +1,5 @@
+import warnings
+
 from pandas.core.indexes.api import (  # noqa:F401
     CategoricalIndex,
     DatetimeIndex,
@@ -19,3 +21,11 @@ from pandas.core.indexes.api import (  # noqa:F401
     get_objs_combined_axis,
 )
 from pandas.core.indexes.multi import _sparsify  # noqa:F401
+
+# GH#30193
+warnings.warn(
+    "pandas.core.index is deprecated and will be removed in a future version.  "
+    "The public classes are available in the top-level namespace.",
+    FutureWarning,
+    stacklevel=2,
+)

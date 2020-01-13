@@ -10,19 +10,11 @@ import pytest
 from pandas._libs.internals import BlockPlacement
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    MultiIndex,
-    Series,
-    SparseArray,
-)
+from pandas import Categorical, DataFrame, DatetimeIndex, Index, MultiIndex, Series
+import pandas._testing as tm
 import pandas.core.algorithms as algos
-from pandas.core.arrays import DatetimeArray, TimedeltaArray
+from pandas.core.arrays import DatetimeArray, SparseArray, TimedeltaArray
 from pandas.core.internals import BlockManager, SingleBlockManager, make_block
-import pandas.util.testing as tm
 
 
 @pytest.fixture
@@ -1268,7 +1260,7 @@ def test_block_shape():
 
 def test_make_block_no_pandas_array():
     # https://github.com/pandas-dev/pandas/pull/24866
-    arr = pd.array([1, 2])
+    arr = pd.arrays.PandasArray(np.array([1, 2]))
 
     # PandasArray, no dtype
     result = make_block(arr, slice(len(arr)))

@@ -17,7 +17,7 @@ from pandas import (
     offsets,
     period_range,
 )
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from ..datetimelike import DatetimeLike
 
@@ -105,28 +105,9 @@ class TestPeriodIndex(DatetimeLike):
         with pytest.raises(AttributeError, match=msg):
             DatetimeIndex([]).millisecond
 
-    @pytest.mark.parametrize("sort", [None, False])
-    def test_difference_freq(self, sort):
-        # GH14323: difference of Period MUST preserve frequency
-        # but the ability to union results must be preserved
-
-        index = period_range("20160920", "20160925", freq="D")
-
-        other = period_range("20160921", "20160924", freq="D")
-        expected = PeriodIndex(["20160920", "20160925"], freq="D")
-        idx_diff = index.difference(other, sort)
-        tm.assert_index_equal(idx_diff, expected)
-        tm.assert_attr_equal("freq", idx_diff, expected)
-
-        other = period_range("20160922", "20160925", freq="D")
-        idx_diff = index.difference(other, sort)
-        expected = PeriodIndex(["20160920", "20160921"], freq="D")
-        tm.assert_index_equal(idx_diff, expected)
-        tm.assert_attr_equal("freq", idx_diff, expected)
-
     def test_hash_error(self):
         index = period_range("20010101", periods=10)
-        msg = "unhashable type: '{}'".format(type(index).__name__)
+        msg = f"unhashable type: '{type(index).__name__}'"
         with pytest.raises(TypeError, match=msg):
             hash(index)
 
@@ -156,17 +137,6 @@ class TestPeriodIndex(DatetimeLike):
         with pytest.raises(IncompatibleFrequency, match=msg):
             pi._shallow_copy(pi, freq="H")
 
-    def test_dtype_str(self):
-        pi = pd.PeriodIndex([], freq="M")
-        with tm.assert_produces_warning(FutureWarning):
-            assert pi.dtype_str == "period[M]"
-            assert pi.dtype_str == str(pi.dtype)
-
-        with tm.assert_produces_warning(FutureWarning):
-            pi = pd.PeriodIndex([], freq="3M")
-            assert pi.dtype_str == "period[3M]"
-            assert pi.dtype_str == str(pi.dtype)
-
     def test_view_asi8(self):
         idx = pd.PeriodIndex([], freq="M")
 
@@ -191,8 +161,7 @@ class TestPeriodIndex(DatetimeLike):
         exp = np.array([], dtype=np.object)
         tm.assert_numpy_array_equal(idx.values, exp)
         tm.assert_numpy_array_equal(idx.to_numpy(), exp)
-        with tm.assert_produces_warning(FutureWarning):
-            tm.assert_numpy_array_equal(idx.get_values(), exp)
+
         exp = np.array([], dtype=np.int64)
         tm.assert_numpy_array_equal(idx._ndarray_values, exp)
 
@@ -254,8 +223,8 @@ class TestPeriodIndex(DatetimeLike):
         i1 = period_range(start=start, end=end_intv)
 
         msg = (
-            "Of the three parameters: start, end, and periods, exactly two"
-            " must be specified"
+            "Of the three parameters: start, end, and periods, exactly two "
+            "must be specified"
         )
         with pytest.raises(ValueError, match=msg):
             period_range(start=start)
@@ -458,8 +427,8 @@ class TestPeriodIndex(DatetimeLike):
 
     def test_periods_number_check(self):
         msg = (
-            "Of the three parameters: start, end, and periods, exactly two"
-            " must be specified"
+            "Of the three parameters: start, end, and periods, exactly two "
+            "must be specified"
         )
         with pytest.raises(ValueError, match=msg):
             period_range("2011-1-1", "2012-1-1", "B")
@@ -482,7 +451,7 @@ class TestPeriodIndex(DatetimeLike):
         idx = PeriodIndex([2000, 2007, 2007, 2009, 2009], freq="A-JUN")
         ts = Series(np.random.randn(len(idx)), index=idx)
 
-        result = ts[2007]
+        result = ts["2007"]
         expected = ts[1:3]
         tm.assert_series_equal(result, expected)
         result[:] = 1
@@ -492,8 +461,8 @@ class TestPeriodIndex(DatetimeLike):
         idx = PeriodIndex([2000, 2007, 2007, 2009, 2007], freq="A-JUN")
         ts = Series(np.random.randn(len(idx)), index=idx)
 
-        result = ts[2007]
-        expected = ts[idx == 2007]
+        result = ts["2007"]
+        expected = ts[idx == "2007"]
         tm.assert_series_equal(result, expected)
 
     def test_index_unique(self):
@@ -540,15 +509,10 @@ class TestPeriodIndex(DatetimeLike):
         assert s["05Q4"] == s[2]
 
     def test_pindex_multiples(self):
-        with tm.assert_produces_warning(FutureWarning):
-            pi = PeriodIndex(start="1/1/11", end="12/31/11", freq="2M")
         expected = PeriodIndex(
             ["2011-01", "2011-03", "2011-05", "2011-07", "2011-09", "2011-11"],
             freq="2M",
         )
-        tm.assert_index_equal(pi, expected)
-        assert pi.freq == offsets.MonthEnd(2)
-        assert pi.freqstr == "2M"
 
         pi = period_range(start="1/1/11", end="12/31/11", freq="2M")
         tm.assert_index_equal(pi, expected)

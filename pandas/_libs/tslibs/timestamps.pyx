@@ -89,23 +89,23 @@ class RoundTo:
            https://en.wikipedia.org/wiki/Rounding#Round_half_to_even
     """
     @property
-    def MINUS_INFTY(self):
+    def MINUS_INFTY(self) -> int:
         return 0
 
     @property
-    def PLUS_INFTY(self):
+    def PLUS_INFTY(self) -> int:
         return 1
 
     @property
-    def NEAREST_HALF_EVEN(self):
+    def NEAREST_HALF_EVEN(self) -> int:
         return 2
 
     @property
-    def NEAREST_HALF_PLUS_INFTY(self):
+    def NEAREST_HALF_PLUS_INFTY(self) -> int:
         return 3
 
     @property
-    def NEAREST_HALF_MINUS_INFTY(self):
+    def NEAREST_HALF_MINUS_INFTY(self) -> int:
         return 4
 
 
@@ -324,7 +324,7 @@ class Timestamp(_Timestamp):
 
         Function is not implemented. Use pd.to_datetime().
         """
-        raise NotImplementedError("Timestamp.strptime() is not implmented."
+        raise NotImplementedError("Timestamp.strptime() is not implemented."
                                   "Use to_datetime() to parse date strings.")
 
     @classmethod
@@ -336,11 +336,22 @@ class Timestamp(_Timestamp):
         """
         return cls(datetime.combine(date, time))
 
-    def __new__(cls, object ts_input=_no_input,
-                object freq=None, tz=None, unit=None,
-                year=None, month=None, day=None,
-                hour=None, minute=None, second=None, microsecond=None,
-                nanosecond=None, tzinfo=None):
+    def __new__(
+        cls,
+        object ts_input=_no_input,
+        object freq=None,
+        tz=None,
+        unit=None,
+        year=None,
+        month=None,
+        day=None,
+        hour=None,
+        minute=None,
+        second=None,
+        microsecond=None,
+        nanosecond=None,
+        tzinfo=None
+    ):
         # The parameter list folds together legacy parameter names (the first
         # four) and positional and keyword parameter names from pydatetime.
         #
@@ -401,9 +412,8 @@ class Timestamp(_Timestamp):
             freq = None
 
         if getattr(ts_input, 'tzinfo', None) is not None and tz is not None:
-            warnings.warn("Passing a datetime or Timestamp with tzinfo and the"
-                          " tz parameter will raise in the future. Use"
-                          " tz_convert instead.", FutureWarning)
+            raise ValueError("Cannot pass a datetime or Timestamp with tzinfo with "
+                             "the tz parameter. Use tz_convert instead.")
 
         ts = convert_to_tsobject(ts_input, tz, unit, 0, 0, nanosecond or 0)
 
@@ -604,7 +614,7 @@ timedelta}, default 'raise'
         """
         return self.weekday()
 
-    def day_name(self, locale=None):
+    def day_name(self, locale=None) -> str:
         """
         Return the day name of the Timestamp with specified locale.
 
@@ -621,7 +631,7 @@ timedelta}, default 'raise'
         """
         return self._get_date_name_field('day_name', locale)
 
-    def month_name(self, locale=None):
+    def month_name(self, locale=None) -> str:
         """
         Return the month name of the Timestamp with specified locale.
 
@@ -639,17 +649,6 @@ timedelta}, default 'raise'
         return self._get_date_name_field('month_name', locale)
 
     @property
-    def weekday_name(self):
-        """
-        .. deprecated:: 0.23.0
-            Use ``Timestamp.day_name()`` instead
-        """
-        warnings.warn("`weekday_name` is deprecated and will be removed in a "
-                      "future version. Use `day_name` instead",
-                      FutureWarning)
-        return self.day_name()
-
-    @property
     def dayofyear(self):
         """
         Return the day of the year.
@@ -657,7 +656,7 @@ timedelta}, default 'raise'
         return ccalendar.get_day_of_year(self.year, self.month, self.day)
 
     @property
-    def week(self):
+    def week(self) -> int:
         """
         Return the week number of the year.
         """
@@ -666,7 +665,7 @@ timedelta}, default 'raise'
     weekofyear = week
 
     @property
-    def quarter(self):
+    def quarter(self) -> int:
         """
         Return the quarter of the year.
         """
@@ -689,7 +688,7 @@ timedelta}, default 'raise'
         return getattr(self.freq, 'freqstr', self.freq)
 
     @property
-    def is_month_start(self):
+    def is_month_start(self) -> bool:
         """
         Return True if date is first day of month.
         """
@@ -699,7 +698,7 @@ timedelta}, default 'raise'
         return self._get_start_end_field('is_month_start')
 
     @property
-    def is_month_end(self):
+    def is_month_end(self) -> bool:
         """
         Return True if date is last day of month.
         """
@@ -709,7 +708,7 @@ timedelta}, default 'raise'
         return self._get_start_end_field('is_month_end')
 
     @property
-    def is_quarter_start(self):
+    def is_quarter_start(self) -> bool:
         """
         Return True if date is first day of the quarter.
         """
@@ -719,7 +718,7 @@ timedelta}, default 'raise'
         return self._get_start_end_field('is_quarter_start')
 
     @property
-    def is_quarter_end(self):
+    def is_quarter_end(self) -> bool:
         """
         Return True if date is last day of the quarter.
         """
@@ -729,7 +728,7 @@ timedelta}, default 'raise'
         return self._get_start_end_field('is_quarter_end')
 
     @property
-    def is_year_start(self):
+    def is_year_start(self) -> bool:
         """
         Return True if date is first day of the year.
         """
@@ -739,7 +738,7 @@ timedelta}, default 'raise'
         return self._get_start_end_field('is_year_start')
 
     @property
-    def is_year_end(self):
+    def is_year_end(self) -> bool:
         """
         Return True if date is last day of the year.
         """
@@ -749,23 +748,13 @@ timedelta}, default 'raise'
         return self._get_start_end_field('is_year_end')
 
     @property
-    def is_leap_year(self):
+    def is_leap_year(self) -> bool:
         """
         Return True if year is a leap year.
         """
         return bool(ccalendar.is_leapyear(self.year))
 
-    @property
-    def resolution(self):
-        """
-        Return resolution describing the smallest difference between two
-        times that can be represented by Timestamp object_state.
-        """
-        # GH#21336, GH#21365
-        return Timedelta(nanoseconds=1)
-
-    def tz_localize(self, tz, ambiguous='raise', nonexistent='raise',
-                    errors=None):
+    def tz_localize(self, tz, ambiguous='raise', nonexistent='raise'):
         """
         Convert naive Timestamp to local time zone, or remove
         timezone from tz-aware Timestamp.
@@ -808,18 +797,6 @@ default 'raise'
               nonexistent times.
 
             .. versionadded:: 0.24.0
-        errors : 'raise', 'coerce', default None
-            Determine how errors should be handled.
-
-            The behavior is as follows:
-
-            * 'raise' will raise a NonExistentTimeError if a timestamp is not
-              valid in the specified timezone (e.g. due to a transition from
-              or to DST time). Use ``nonexistent='raise'`` instead.
-            * 'coerce' will return NaT if the timestamp can not be converted
-              into the specified timezone. Use ``nonexistent='NaT'`` instead.
-
-            .. deprecated:: 0.24.0
 
         Returns
         -------
@@ -833,26 +810,13 @@ default 'raise'
         if ambiguous == 'infer':
             raise ValueError('Cannot infer offset with only one time.')
 
-        if errors is not None:
-            warnings.warn("The errors argument is deprecated and will be "
-                          "removed in a future release. Use "
-                          "nonexistent='NaT' or nonexistent='raise' "
-                          "instead.", FutureWarning)
-            if errors == 'coerce':
-                nonexistent = 'NaT'
-            elif errors == 'raise':
-                nonexistent = 'raise'
-            else:
-                raise ValueError("The errors argument must be either 'coerce' "
-                                 "or 'raise'.")
-
         nonexistent_options = ('raise', 'NaT', 'shift_forward',
                                'shift_backward')
         if nonexistent not in nonexistent_options and not isinstance(
             nonexistent, timedelta):
-            raise ValueError("The nonexistent argument must be one of 'raise',"
-                             " 'NaT', 'shift_forward', 'shift_backward' or"
-                             " a timedelta object")
+            raise ValueError("The nonexistent argument must be one of 'raise', "
+                             "'NaT', 'shift_forward', 'shift_backward' or "
+                             "a timedelta object")
 
         if self.tzinfo is None:
             # tz naive, localize
@@ -1009,7 +973,7 @@ default 'raise'
 
         return base1 + base2
 
-    def _has_time_component(self):
+    def _has_time_component(self) -> bool:
         """
         Returns if the Timestamp has a time component
         in addition to the date part
@@ -1073,3 +1037,4 @@ cdef int64_t _NS_LOWER_BOUND = -9223372036854775000
 # Resolution is in nanoseconds
 Timestamp.min = Timestamp(_NS_LOWER_BOUND)
 Timestamp.max = Timestamp(_NS_UPPER_BOUND)
+Timestamp.resolution = Timedelta(nanoseconds=1)  # GH#21336, GH#21365

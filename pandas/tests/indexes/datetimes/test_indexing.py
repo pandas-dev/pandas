@@ -6,7 +6,7 @@ import pytz
 
 import pandas as pd
 from pandas import DatetimeIndex, Index, Timestamp, date_range, notna
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.tseries.offsets import BDay, CDay
 
@@ -86,7 +86,9 @@ class TestGetItem:
 
     def test_dti_business_getitem_matplotlib_hackaround(self):
         rng = pd.bdate_range(START, END)
-        values = rng[:, None]
+        with tm.assert_produces_warning(DeprecationWarning):
+            # GH#30588 multi-dimensional indexing deprecated
+            values = rng[:, None]
         expected = rng.values[:, None]
         tm.assert_numpy_array_equal(values, expected)
 
@@ -110,7 +112,9 @@ class TestGetItem:
 
     def test_dti_custom_getitem_matplotlib_hackaround(self):
         rng = pd.bdate_range(START, END, freq="C")
-        values = rng[:, None]
+        with tm.assert_produces_warning(DeprecationWarning):
+            # GH#30588 multi-dimensional indexing deprecated
+            values = rng[:, None]
         expected = rng.values[:, None]
         tm.assert_numpy_array_equal(values, expected)
 
@@ -132,8 +136,31 @@ class TestWhere:
 
         i2 = i.copy()
         i2 = Index([pd.NaT, pd.NaT] + i[2:].tolist())
-        result = i.where(notna(i2), i2.values)
+        result = i.where(notna(i2), i2._values)
         tm.assert_index_equal(result, i2)
+
+    def test_where_invalid_dtypes(self):
+        dti = pd.date_range("20130101", periods=3, tz="US/Eastern")
+
+        i2 = dti.copy()
+        i2 = Index([pd.NaT, pd.NaT] + dti[2:].tolist())
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            # passing tz-naive ndarray to tzaware DTI
+            dti.where(notna(i2), i2.values)
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            # passing tz-aware DTI to tznaive DTI
+            dti.tz_localize(None).where(notna(i2), i2)
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            dti.where(notna(i2), i2.tz_localize(None).to_period("D"))
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            dti.where(notna(i2), i2.asi8.view("timedelta64[ns]"))
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            dti.where(notna(i2), i2.asi8)
 
     def test_where_tz(self):
         i = pd.date_range("20130101", periods=3, tz="US/Eastern")
@@ -317,7 +344,9 @@ class TestTake:
 
 
 class TestDatetimeIndex:
-    @pytest.mark.parametrize("null", [None, np.nan, pd.NaT])
+    @pytest.mark.parametrize(
+        "null", [None, np.nan, np.datetime64("NaT"), pd.NaT, pd.NA]
+    )
     @pytest.mark.parametrize("tz", [None, "UTC", "US/Eastern"])
     def test_insert_nat(self, tz, null):
         # GH#16537, GH#18295 (test missing)
@@ -325,6 +354,12 @@ class TestDatetimeIndex:
         expected = pd.DatetimeIndex(["NaT", "2017-01-01"], tz=tz)
         res = idx.insert(0, null)
         tm.assert_index_equal(res, expected)
+
+    @pytest.mark.parametrize("tz", [None, "UTC", "US/Eastern"])
+    def test_insert_invalid_na(self, tz):
+        idx = pd.DatetimeIndex(["2017-01-01"], tz=tz)
+        with pytest.raises(TypeError, match="incompatible label"):
+            idx.insert(0, np.timedelta64("NaT"))
 
     def test_insert(self):
         idx = DatetimeIndex(["2000-01-04", "2000-01-01", "2000-01-02"], name="idx")
@@ -403,9 +438,9 @@ class TestDatetimeIndex:
 
         # see gh-7299
         idx = date_range("1/1/2000", periods=3, freq="D", tz="Asia/Tokyo", name="idx")
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError, match="Cannot compare tz-naive and tz-aware"):
             idx.insert(3, pd.Timestamp("2000-01-04"))
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError, match="Cannot compare tz-naive and tz-aware"):
             idx.insert(3, datetime(2000, 1, 4))
         with pytest.raises(ValueError):
             idx.insert(3, pd.Timestamp("2000-01-04", tz="US/Eastern"))
@@ -457,7 +492,7 @@ class TestDatetimeIndex:
     def test_delete(self):
         idx = date_range(start="2000-01-01", periods=5, freq="M", name="idx")
 
-        # prserve freq
+        # preserve freq
         expected_0 = date_range(start="2000-02-01", periods=4, freq="M", name="idx")
         expected_4 = date_range(start="2000-01-01", periods=4, freq="M", name="idx")
 
@@ -511,7 +546,7 @@ class TestDatetimeIndex:
     def test_delete_slice(self):
         idx = date_range(start="2000-01-01", periods=10, freq="D", name="idx")
 
-        # prserve freq
+        # preserve freq
         expected_0_2 = date_range(start="2000-01-04", periods=7, freq="D", name="idx")
         expected_7_9 = date_range(start="2000-01-01", periods=7, freq="D", name="idx")
 
@@ -581,6 +616,23 @@ class TestDatetimeIndex:
             assert result.name == expected.name
             assert result.freq == expected.freq
             assert result.tz == expected.tz
+
+    def test_get_value(self):
+        # specifically make sure we have test for np.datetime64 key
+        dti = pd.date_range("2016-01-01", periods=3)
+
+        arr = np.arange(6, 8)
+
+        key = dti[1]
+
+        result = dti.get_value(arr, key)
+        assert result == 7
+
+        result = dti.get_value(arr, key.to_pydatetime())
+        assert result == 7
+
+        result = dti.get_value(arr, key.to_datetime64())
+        assert result == 7
 
     def test_get_loc(self):
         idx = pd.date_range("2000-01-01", periods=3)

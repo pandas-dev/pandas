@@ -1,6 +1,5 @@
 import collections
 import textwrap
-import warnings
 
 import cython
 
@@ -1006,56 +1005,6 @@ cdef class _Timedelta(timedelta):
             return "D"
 
     @property
-    def resolution(self):
-        """
-        Return a string representing the lowest timedelta resolution.
-
-        Each timedelta has a defined resolution that represents the lowest OR
-        most granular level of precision. Each level of resolution is
-        represented by a short string as defined below:
-
-        Resolution:     Return value
-
-        * Days:         'D'
-        * Hours:        'H'
-        * Minutes:      'T'
-        * Seconds:      'S'
-        * Milliseconds: 'L'
-        * Microseconds: 'U'
-        * Nanoseconds:  'N'
-
-        Returns
-        -------
-        str
-            Timedelta resolution.
-
-        Examples
-        --------
-        >>> td = pd.Timedelta('1 days 2 min 3 us 42 ns')
-        >>> td.resolution
-        'N'
-
-        >>> td = pd.Timedelta('1 days 2 min 3 us')
-        >>> td.resolution
-        'U'
-
-        >>> td = pd.Timedelta('2 min 3 s')
-        >>> td.resolution
-        'S'
-
-        >>> td = pd.Timedelta(36, unit='us')
-        >>> td.resolution
-        'U'
-        """
-        # See GH#21344
-        warnings.warn("Timedelta.resolution is deprecated, in a future "
-                      "version will behave like the standard library "
-                      "datetime.timedelta.resolution attribute.  "
-                      "Use Timedelta.resolution_string instead.",
-                      FutureWarning)
-        return self.resolution_string
-
-    @property
     def nanoseconds(self):
         """
         Return the number of nanoseconds (n), where 0 <= n < 1 microsecond.
@@ -1254,9 +1203,10 @@ class Timedelta(_Timedelta):
                                  "milliseconds, microseconds, nanoseconds]")
 
         if unit in {'Y', 'y', 'M'}:
-            warnings.warn("M and Y units are deprecated and "
-                          "will be removed in a future version.",
-                          FutureWarning, stacklevel=1)
+            raise ValueError(
+                "Units 'M' and 'Y' are no longer supported, as they do not "
+                "represent unambiguous timedelta values durations."
+            )
 
         if isinstance(value, Timedelta):
             value = value.value
@@ -1509,18 +1459,8 @@ class Timedelta(_Timedelta):
             if other.dtype.kind == 'm':
                 # also timedelta-like
                 return _broadcast_floordiv_td64(self.value, other, _rfloordiv)
-            elif other.dtype.kind == 'i':
-                # Backwards compatibility
-                # GH-19761
-                msg = textwrap.dedent("""\
-                Floor division between integer array and Timedelta is
-                deprecated. Use 'array // timedelta.value' instead.
-                If you want to obtain epochs from an array of timestamps,
-                you can rather use
-                '(array - pd.Timestamp("1970-01-01")) // pd.Timedelta("1s")'.
-                """)
-                warnings.warn(msg, FutureWarning)
-                return other // self.value
+
+            # Includes integer array // Timedelta, disallowed in GH#19761
             raise TypeError(f'Invalid dtype {other.dtype} for __floordiv__')
 
         elif is_float_object(other) and util.is_nan(other):
@@ -1612,3 +1552,4 @@ cdef _broadcast_floordiv_td64(int64_t value, object other,
 # resolution in ns
 Timedelta.min = Timedelta(np.iinfo(np.int64).min + 1)
 Timedelta.max = Timedelta(np.iinfo(np.int64).max)
+Timedelta.resolution = Timedelta(nanoseconds=1)

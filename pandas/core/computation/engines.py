@@ -3,9 +3,10 @@ Engine classes for :func:`~pandas.eval`
 """
 
 import abc
+from typing import Dict, Type
 
 from pandas.core.computation.align import align_terms, reconstruct_object
-from pandas.core.computation.ops import UndefinedVariableError, _mathops, _reductions
+from pandas.core.computation.ops import _mathops, _reductions
 
 import pandas.io.formats.printing as printing
 
@@ -31,8 +32,7 @@ def _check_ne_builtin_clash(expr):
     if overlap:
         s = ", ".join(repr(x) for x in overlap)
         raise NumExprClobberingError(
-            'Variables in expression "{expr}" '
-            "overlap with builtins: ({s})".format(expr=expr, s=s)
+            f'Variables in expression "{expr}" overlap with builtins: ({s})'
         )
 
 
@@ -54,7 +54,7 @@ class AbstractEngine(metaclass=abc.ABCMeta):
         """
         return printing.pprint_thing(self.expr)
 
-    def evaluate(self):
+    def evaluate(self) -> object:
         """
         Run the engine on the expression.
 
@@ -63,7 +63,7 @@ class AbstractEngine(metaclass=abc.ABCMeta):
 
         Returns
         -------
-        obj : object
+        object
             The result of the passed expression.
         """
         if not self._is_aligned:
@@ -102,31 +102,16 @@ class NumExprEngine(AbstractEngine):
 
     has_neg_frac = True
 
-    def __init__(self, expr):
-        super().__init__(expr)
-
-    def convert(self) -> str:
-        return str(super().convert())
-
     def _evaluate(self):
         import numexpr as ne
 
         # convert the expression to a valid numexpr expression
         s = self.convert()
 
-        try:
-            env = self.expr.env
-            scope = env.full_scope
-            truediv = scope["truediv"]
-            _check_ne_builtin_clash(self.expr)
-            return ne.evaluate(s, local_dict=scope, truediv=truediv)
-        except KeyError as e:
-            # python 3 compat kludge
-            try:
-                msg = e.message
-            except AttributeError:
-                msg = str(e)
-            raise UndefinedVariableError(msg)
+        env = self.expr.env
+        scope = env.full_scope
+        _check_ne_builtin_clash(self.expr)
+        return ne.evaluate(s, local_dict=scope)
 
 
 class PythonEngine(AbstractEngine):
@@ -138,14 +123,14 @@ class PythonEngine(AbstractEngine):
 
     has_neg_frac = False
 
-    def __init__(self, expr):
-        super().__init__(expr)
-
     def evaluate(self):
         return self.expr()
 
-    def _evaluate(self):
+    def _evaluate(self) -> None:
         pass
 
 
-_engines = {"numexpr": NumExprEngine, "python": PythonEngine}
+_engines: Dict[str, Type[AbstractEngine]] = {
+    "numexpr": NumExprEngine,
+    "python": PythonEngine,
+}

@@ -24,9 +24,9 @@ from pandas import (
     period_range,
     timedelta_range,
 )
+import pandas._testing as tm
 from pandas.core.arrays import PeriodArray
 import pandas.core.common as com
-import pandas.util.testing as tm
 
 
 class TestSeriesDatetimeValues:
@@ -427,7 +427,6 @@ class TestSeriesDatetimeValues:
         ]
         for day, name, eng_name in zip(range(4, 11), expected_days, english_days):
             name = name.capitalize()
-            assert s.dt.weekday_name[day] == eng_name
             assert s.dt.day_name(locale=time_locale)[day] == name
         s = s.append(Series([pd.NaT]))
         assert np.isnan(s.dt.day_name(locale=time_locale).iloc[-1])

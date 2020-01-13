@@ -3,7 +3,7 @@ from copy import copy, deepcopy
 import pytest
 
 from pandas import MultiIndex
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def assert_multiindex_copied(copy, original):
@@ -33,12 +33,6 @@ def test_shallow_copy(idx):
     i_copy = idx._shallow_copy()
 
     assert_multiindex_copied(i_copy, idx)
-
-
-def test_labels_deprecated(idx):
-    # GH23752
-    with tm.assert_produces_warning(FutureWarning):
-        idx.copy(labels=idx.codes)
 
 
 def test_view(idx):
