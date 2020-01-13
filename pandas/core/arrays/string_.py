@@ -119,7 +119,7 @@ class StringArray(PandasArray):
 
     See Also
     --------
-    pandas.array
+    array
         The recommended function for creating a StringArray.
     Series.str
         The string methods are available on Series backed by
