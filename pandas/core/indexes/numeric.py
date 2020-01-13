@@ -1,3 +1,5 @@
+from typing import Any
+
 import numpy as np
 
 from pandas._libs import index as libindex, lib
@@ -225,7 +227,7 @@ class IntegerIndex(NumericIndex):
     This is an abstract class for Int64Index, UInt64Index.
     """
 
-    def __contains__(self, key) -> bool:
+    def __contains__(self, key: Any) -> bool:
         """
         Check if key is a float and has a decimal. If it has, return False.
         """
@@ -473,7 +475,7 @@ class Float64Index(NumericIndex):
         except (TypeError, ValueError):
             return False
 
-    def __contains__(self, other) -> bool:
+    def __contains__(self, other: Any) -> bool:
         hash(other)
         if super().__contains__(other):
             return True
