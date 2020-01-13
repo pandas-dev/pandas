@@ -200,6 +200,9 @@ def test_constructor_raises():
     with pytest.raises(ValueError, match="strings or pandas.NA"):
         pd.arrays.StringArray(np.array(["a", None], dtype=object))
 
+    with pytest.raises(ValueError, match="strings or pandas.NA"):
+        pd.arrays.StringArray(np.array(["a", pd.NaT], dtype=object))
+
 
 def test_from_sequnce_no_mutate():
     a = np.array(["a", pd.NA], dtype=object)
