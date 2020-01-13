@@ -11,6 +11,7 @@ import pandas._libs.json as json
 from pandas._libs.tslibs import iNaT
 from pandas._typing import JSONSerializable
 from pandas.errors import AbstractMethodError
+from pandas.util._decorators import deprecate_kwarg
 
 from pandas.core.dtypes.common import ensure_str, is_period_dtype
 
@@ -24,10 +25,9 @@ from pandas.io.common import (
     infer_compression,
     stringify_path,
 )
+from pandas.io.json._normalize import convert_to_line_delimits
+from pandas.io.json._table_schema import build_table_schema, parse_table_schema
 from pandas.io.parsers import _validate_integer
-
-from ._normalize import convert_to_line_delimits
-from ._table_schema import build_table_schema, parse_table_schema
 
 loads = json.loads
 dumps = json.dumps
@@ -346,6 +346,7 @@ class JSONTableWriter(FrameWriter):
         return serialized
 
 
+@deprecate_kwarg(old_arg_name="numpy", new_arg_name=None)
 def read_json(
     path_or_buf=None,
     orient=None,
@@ -459,6 +460,8 @@ def read_json(
         non-numeric column and index labels are supported. Note also that the
         JSON ordering MUST be the same for each term if numpy=True.
 
+        .. deprecated:: 1.0.0
+
     precise_float : bool, default False
         Set to enable usage of higher precision (strtod) function when
         decoding string to double values. Default (False) is to use fast but
@@ -479,7 +482,7 @@ def read_json(
     chunksize : int, optional
         Return JsonReader object for iteration.
         See the `line-delimited json docs
-        <http://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#line-delimited-json>`_
+        <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#line-delimited-json>`_
         for more information on ``chunksize``.
         This can only be passed if `lines=True`.
         If this is None, the file will be read into memory all at once.

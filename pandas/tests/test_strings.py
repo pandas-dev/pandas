@@ -8,8 +8,8 @@ import pytest
 from pandas._libs import lib
 
 from pandas import DataFrame, Index, MultiIndex, Series, concat, isna, notna
+import pandas._testing as tm
 import pandas.core.strings as strings
-import pandas.util.testing as tm
 
 
 def assert_series_or_index_equal(left, right):
@@ -3392,8 +3392,8 @@ class TestStringMethods:
         encodeBase = Series(["a", "b", "a\x9d"])
 
         msg = (
-            r"'charmap' codec can't encode character '\\x9d' in position 1:"
-            " character maps to <undefined>"
+            r"'charmap' codec can't encode character '\\x9d' in position 1: "
+            "character maps to <undefined>"
         )
         with pytest.raises(UnicodeEncodeError, match=msg):
             encodeBase.str.encode("cp1252")
@@ -3406,8 +3406,8 @@ class TestStringMethods:
         decodeBase = Series([b"a", b"b", b"a\x9d"])
 
         msg = (
-            "'charmap' codec can't decode byte 0x9d in position 1:"
-            " character maps to <undefined>"
+            "'charmap' codec can't decode byte 0x9d in position 1: "
+            "character maps to <undefined>"
         )
         with pytest.raises(UnicodeDecodeError, match=msg):
             decodeBase.str.decode("cp1252")

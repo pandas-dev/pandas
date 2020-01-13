@@ -27,8 +27,8 @@ from pandas.core.dtypes.dtypes import (
 
 import pandas as pd
 from pandas import Categorical, CategoricalIndex, IntervalIndex, Series, date_range
-from pandas.core.arrays.sparse import SparseDtype
-import pandas.util.testing as tm
+import pandas._testing as tm
+from pandas.core.arrays.sparse import SparseArray, SparseDtype
 
 
 class Base:
@@ -408,6 +408,9 @@ class TestPeriodDtype(Base):
         with pytest.raises(TypeError):
             PeriodDtype.construct_from_string("datetime64[ns, US/Eastern]")
 
+        with pytest.raises(TypeError, match="list"):
+            PeriodDtype.construct_from_string([1, 2, 3])
+
     def test_is_dtype(self):
         assert PeriodDtype.is_dtype(self.dtype)
         assert PeriodDtype.is_dtype("period[D]")
@@ -685,6 +688,10 @@ class TestIntervalDtype(Base):
         tm.round_trip_pickle(dtype)
         assert len(IntervalDtype._cache) == 0
 
+    def test_not_string(self):
+        # GH30568: though IntervalDtype has object kind, it cannot be string
+        assert not is_string_dtype(IntervalDtype())
+
 
 class TestCategoricalDtypeParametrized:
     @pytest.mark.parametrize(
@@ -907,7 +914,7 @@ def test_registry_find(dtype, expected):
         (pd.Series([1, 2]), False),
         (np.array([True, False]), True),
         (pd.Series([True, False]), True),
-        (pd.SparseArray([True, False]), True),
+        (SparseArray([True, False]), True),
         (SparseDtype(bool), True),
     ],
 )
@@ -917,7 +924,7 @@ def test_is_bool_dtype(dtype, expected):
 
 
 def test_is_bool_dtype_sparse():
-    result = is_bool_dtype(pd.Series(pd.SparseArray([True, False])))
+    result = is_bool_dtype(pd.Series(SparseArray([True, False])))
     assert result is True
 
 

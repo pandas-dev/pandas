@@ -6,9 +6,9 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, Series, isna
+import pandas._testing as tm
 from pandas.conftest import _get_cython_table_params
 from pandas.core.base import SpecificationError
-import pandas.util.testing as tm
 
 
 class TestSeriesApply:
@@ -627,6 +627,30 @@ class TestSeriesMap:
         expected = Series([np.nan, np.nan, "three"])
         tm.assert_series_equal(result, expected)
 
+    def test_map_abc_mapping(self, non_mapping_dict_subclass):
+        # https://github.com/pandas-dev/pandas/issues/29733
+        # Check collections.abc.Mapping support as mapper for Series.map
+        s = Series([1, 2, 3])
+        not_a_dictionary = non_mapping_dict_subclass({3: "three"})
+        result = s.map(not_a_dictionary)
+        expected = Series([np.nan, np.nan, "three"])
+        tm.assert_series_equal(result, expected)
+
+    def test_map_abc_mapping_with_missing(self, non_mapping_dict_subclass):
+        # https://github.com/pandas-dev/pandas/issues/29733
+        # Check collections.abc.Mapping support as mapper for Series.map
+        class NonDictMappingWithMissing(non_mapping_dict_subclass):
+            def __missing__(self, key):
+                return "missing"
+
+        s = Series([1, 2, 3])
+        not_a_dictionary = NonDictMappingWithMissing({3: "three"})
+        result = s.map(not_a_dictionary)
+        # __missing__ is a dict concept, not a Mapping concept,
+        # so it should not change the result!
+        expected = Series([np.nan, np.nan, "three"])
+        tm.assert_series_equal(result, expected)
+
     def test_map_box(self):
         vals = [pd.Timestamp("2011-01-01"), pd.Timestamp("2011-01-02")]
         s = pd.Series(vals)
@@ -756,3 +780,10 @@ class TestSeriesMap:
         series = tm.makeTimeSeries(nper=30).tz_localize("UTC")
         result = pd.Series(series.index).apply(lambda x: 1)
         tm.assert_series_equal(result, pd.Series(np.ones(30), dtype="int64"))
+
+    def test_map_float_to_string_precision(self):
+        # GH 13228
+        ser = pd.Series(1 / 3)
+        result = ser.map(lambda val: str(val)).to_dict()
+        expected = {0: "0.3333333333333333"}
+        assert result == expected

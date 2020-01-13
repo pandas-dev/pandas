@@ -7,7 +7,7 @@ from pandas._libs.tslibs import period as libperiod
 
 import pandas as pd
 from pandas import DatetimeIndex, Period, PeriodIndex, Series, notna, period_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestGetItem:
@@ -234,6 +234,21 @@ class TestWhere:
         i2 = pd.PeriodIndex([pd.NaT, pd.NaT] + i[2:].tolist(), freq="D")
         result = i.where(notna(i2), i2.values)
         tm.assert_index_equal(result, i2)
+
+    def test_where_invalid_dtypes(self):
+        pi = period_range("20130101", periods=5, freq="D")
+
+        i2 = pi.copy()
+        i2 = pd.PeriodIndex([pd.NaT, pd.NaT] + pi[2:].tolist(), freq="D")
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            pi.where(notna(i2), i2.asi8)
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            pi.where(notna(i2), i2.asi8.view("timedelta64[ns]"))
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            pi.where(notna(i2), i2.to_timestamp("S"))
 
 
 class TestTake:
@@ -549,6 +564,35 @@ class TestIndexing:
 
         res = idx.get_indexer(target, "nearest", tolerance=pd.Timedelta("1 day"))
         tm.assert_numpy_array_equal(res, np.array([0, 0, 1, -1], dtype=np.intp))
+
+    def test_get_indexer_mismatched_dtype(self):
+        # Check that we return all -1s and do not raise or cast incorrectly
+
+        dti = pd.date_range("2016-01-01", periods=3)
+        pi = dti.to_period("D")
+        pi2 = dti.to_period("W")
+
+        expected = np.array([-1, -1, -1], dtype=np.intp)
+
+        result = pi.get_indexer(dti)
+        tm.assert_numpy_array_equal(result, expected)
+
+        # This should work in both directions
+        result = dti.get_indexer(pi)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = pi.get_indexer(pi2)
+        tm.assert_numpy_array_equal(result, expected)
+
+        # We expect the same from get_indexer_non_unique
+        result = pi.get_indexer_non_unique(dti)[0]
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = dti.get_indexer_non_unique(pi)[0]
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = pi.get_indexer_non_unique(pi2)[0]
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_get_indexer_non_unique(self):
         # GH 17717
