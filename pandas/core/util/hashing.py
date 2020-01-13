@@ -2,6 +2,7 @@
 data hash pandas / numpy objects
 """
 import itertools
+from typing import Optional
 
 import numpy as np
 
@@ -58,7 +59,7 @@ def hash_pandas_object(
     obj,
     index: bool = True,
     encoding: str = "utf8",
-    hash_key: str = _default_hash_key,
+    hash_key: Optional[str] = _default_hash_key,
     categorize: bool = True,
 ):
     """
@@ -81,6 +82,9 @@ def hash_pandas_object(
     Series of uint64, same length as the object
     """
     from pandas import Series
+
+    if hash_key is None:
+        hash_key = _default_hash_key
 
     if isinstance(obj, ABCMultiIndex):
         return Series(hash_tuples(obj, encoding, hash_key), dtype="uint64", copy=False)

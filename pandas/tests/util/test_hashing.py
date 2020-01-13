@@ -374,3 +374,10 @@ def test_hash_with_tuple():
     df3 = pd.DataFrame({"data": [tuple([1, []]), tuple([2, {}])]})
     with pytest.raises(TypeError, match="unhashable type: 'list'"):
         hash_pandas_object(df3)
+
+
+def test_hash_object_none_key():
+    # https://github.com/pandas-dev/pandas/issues/30887
+    result = pd.util.hash_pandas_object(pd.Series(["a", "b"]), hash_key=None)
+    expected = pd.Series([4578374827886788867, 17338122309987883691], dtype="uint64")
+    tm.assert_series_equal(result, expected)
