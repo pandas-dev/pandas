@@ -16,7 +16,7 @@ import git
 
 class ContributorsDirective(Directive):
     required_arguments = 1
-    name = "contributors"
+    name = "contributor"
 
     def run(self):
         range_ = self.arguments[0]
