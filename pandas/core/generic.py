@@ -179,7 +179,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     ]
     _internal_names_set: Set[str] = set(_internal_names)
     _accessors: Set[str] = set()
-    _deprecations: FrozenSet[str] = frozenset(["get_values", "ix"])
+    _deprecations: FrozenSet[str] = frozenset(["get_values"])
     _metadata: List[str] = []
     _is_copy = None
     _data: BlockManager
@@ -4123,7 +4123,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     def sort_values(
         self,
-        by=None,
         axis=0,
         ascending=True,
         inplace: bool_t = False,

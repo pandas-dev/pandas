@@ -832,7 +832,6 @@ Operation        Result
 ================ ======
 ``pd.NA ** 0``   0
 ``1 ** pd.NA``   1
-``-1 ** pd.NA``  -1
 ================ ======
 
 In equality and comparison operations, ``pd.NA`` also propagates. This deviates
