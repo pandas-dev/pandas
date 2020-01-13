@@ -706,7 +706,7 @@ Deprecations
 - The parameter ``is_copy`` of :meth:`DataFrame.take` has been deprecated and will be removed in a future version. (:issue:`27357`)
 - Support for multi-dimensional indexing (e.g. ``index[:, None]``) on a :class:`Index` is deprecated and will be removed in a future version, convert to a numpy array before indexing instead (:issue:`30588`)
 - The ``pandas.np`` submodule is now deprecated. Import numpy directly instead (:issue:`30296`)
-- The ``pandas.datetime`` class is now deprecated. Import from ``datetime`` instead (:issue:`30296`)
+- The ``pandas.datetime`` class is now deprecated. Import from ``datetime`` instead (:issue:`30610`)
 
 **Selecting Columns from a Grouped DataFrame**
 
