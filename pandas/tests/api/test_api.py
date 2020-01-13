@@ -1,6 +1,8 @@
 import sys
 from typing import List
 
+import pytest
+
 import pandas as pd
 from pandas import api, compat
 import pandas._testing as tm
@@ -311,3 +313,16 @@ class TestTesting(Base):
 
         assert "pandas.util.testing is deprecated" in str(m[0].message)
         assert "pandas.testing instead" in str(m[0].message)
+
+    def test_util_in_top_level(self):
+        # in a subprocess to avoid import caching issues
+        import subprocess
+
+        out = subprocess.check_output(
+            ["python", "-c", "import pandas; pandas.util.testing"],
+            stderr=subprocess.STDOUT,
+        ).decode()
+        assert "pandas.util.testing is deprecated" in out
+
+        with pytest.raises(AttributeError, match="foo"):
+            pd.util.foo
