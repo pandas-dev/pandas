@@ -191,3 +191,61 @@ ul.task-bullet > li > p:first-child {
   margin-bottom: 0rem;
   color: #484848;
 }
+
+/* intro to tutorial collapsed cards */
+
+.tutorial-accordion {
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+.tutorial-card .card-header.card-link .btn {
+  margin-right: 12px;
+}
+
+.tutorial-card .card-header.card-link .btn:after {
+  content: "-";
+}
+
+.tutorial-card .card-header.card-link.collapsed .btn:after {
+  content: "+";
+}
+
+.tutorial-card-header-1 {
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tutorial-card-header-2 {
+  justify-content: flex-start;
+  align-items: center;
+  font-size: 1.3rem;
+}
+
+.tutorial-card .card-header {
+  cursor: pointer;
+  background-color: white;
+}
+
+.tutorial-card .card-body {
+  background-color: #F0F0F0;
+}
+
+.tutorial-card .badge {
+  background-color: #130654;
+  margin: 10px 10px 10px 10px;
+  padding: 5px;
+}
+
+.tutorial-card .gs-badge-link p {
+  margin: 0px;
+}
+
+.tutorial-card .gs-badge-link a {
+  color: white;
+  text-decoration: none;
+}
+
+.tutorial-card .badge:hover {
+  background-color: grey;
+}

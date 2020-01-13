@@ -93,7 +93,97 @@ Pandas can be installed via pip from `PyPI <https://pypi.org/project/pandas>`__.
 Intro to pandas
 ---------------
 
-TODO
+.. raw:: html
+
+    <div class="container">
+    <div id="accordion" class="shadow tutorial-accordion"> 
+        <div class="card tutorial-card"> 
+
+            <div class="card-header collapsed card-link" data-toggle="collapse" data-target="#collapseOne"> 
+                <div class="d-flex flex-row tutorial-card-header-1">
+                    <div class="d-flex flex-row tutorial-card-header-2">
+                        <button class="btn btn-dark btn-sm"></button>
+                        What kind of data does Pandas handle?
+                    </div>
+                    <span class="badge gs-badge-link">
+
+:ref:`Straight to tutorial...<10min_tut_01_tableoriented>`
+
+.. raw:: html                    
+                    
+                    </span>
+                </div>        
+            </div> 
+            <div id="collapseOne" class="collapse" data-parent="#accordion"> 
+                <div class="card-body"> 
+
+When working with tabular data, such as data stored in spreadsheets or databases, Pandas is the right tool for you. Pandas will help you 
+to explore, clean and process your data. In Pandas, a data table is called a :class:`DataFrame`.
+
+.. image:: ../../_static/schemas/01_table_dataframe.svg
+   :align: center
+
+.. raw:: html
+
+                    <div class="d-flex flex-row">
+                        <span class="badge gs-badge-link">
+
+:ref:`To introduction tutorial <10min_tut_01_tableoriented>`
+
+.. raw:: html
+
+                        </span>
+                        <span class="badge gs-badge-link">
+
+:ref:`To user guide <dsintro>`
+
+.. raw:: html
+
+                        </span>
+                    </div>
+                </div> 
+            </div> 
+        </div> 
+
+
+        <div class="card tutorial-card"> 
+            <div class="card-header collapsed card-link" data-toggle="collapse" data-target="#collapseTwo"> 
+                <div class="d-flex flex-row tutorial-card-header-1">
+                    <div class="d-flex flex-row tutorial-card-header-2">
+                        <button class="btn btn-dark btn-sm"></button>
+                        How do I read and write tabular data?
+                    </div>
+                    <a href="www.sporza.be" class="badge badge-info">Straight to full tutorial...</a>
+                </div>    
+            </div> 
+            <div id="collapseTwo" class="collapse" data-parent="#accordion"> 
+                <div class="card-body"> 
+                    Reading from and writing to different formats is built-in. 
+                </div> 
+            </div> 
+        </div> 
+
+
+        <div class="card tutorial-card"> 
+            <div class="card-header collapsed card-link" data-toggle="collapse" data-target="#collapseThree"> 
+                <div class="d-flex flex-row tutorial-card-header-1">
+                    <div class="d-flex flex-row tutorial-card-header-2">
+                        <button class="btn btn-dark btn-sm"></button>
+                        How do I select a subset of a table?
+                    </div>
+                    <a href="www.sporza.be" class="badge badge-info">Straight to full tutorial...</a>
+                </div>
+            </div> 
+            <div id="collapseThree"  class="collapse" data-parent="#accordion"> 
+                <div class="card-body"> 
+                    Filtering data based on the position in a table, the index name or a conditional expression.
+                </div> 
+            </div> 
+        </div> 
+
+
+    </div> 
+    </div>
 
 
 .. _comingfrom:
