@@ -156,13 +156,11 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     def __contains__(self, key):
         try:
             res = self.get_loc(key)
-            return (
-                is_scalar(res)
-                or isinstance(res, slice)
-                or (is_list_like(res) and len(res))
-            )
         except (KeyError, TypeError, ValueError):
             return False
+        return bool(
+            is_scalar(res) or isinstance(res, slice) or (is_list_like(res) and len(res))
+        )
 
     # Try to run function on index first, and then on elements of index
     # Especially important for group-by functionality
@@ -875,11 +873,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
 
     def _wrap_joined_index(self, joined, other):
         name = get_op_result_name(self, other)
-        if (
-            isinstance(other, type(self))
-            and self.freq == other.freq
-            and self._can_fast_union(other)
-        ):
+        if self._can_fast_union(other):
             joined = self._shallow_copy(joined)
             joined.name = name
             return joined
