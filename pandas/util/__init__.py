@@ -9,7 +9,9 @@ if compat.PY37:
 
     def __getattr__(name):
         if name == "testing":
-            import pandas.util.testing  # noqa: F401
+            import pandas.util.testing
+
+            return pandas.util.testing
         else:
             raise AttributeError(f"module 'pandas.util' has no attribute '{name}'")
 
