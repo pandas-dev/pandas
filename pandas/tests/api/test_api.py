@@ -1,3 +1,4 @@
+import subprocess
 import sys
 from typing import List
 
@@ -316,8 +317,6 @@ class TestTesting(Base):
 
     def test_util_in_top_level(self):
         # in a subprocess to avoid import caching issues
-        import subprocess
-
         out = subprocess.check_output(
             ["python", "-c", "import pandas; pandas.util.testing"],
             stderr=subprocess.STDOUT,
