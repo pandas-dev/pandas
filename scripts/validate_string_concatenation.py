@@ -125,6 +125,46 @@ def strings_with_wrong_placed_space(
         -------
         bool
             True if the two recived string match, an unwanted pattern.
+
+        Notes
+        -----
+        The unwanted pattern that we are trying to catch is if the spaces in
+        a string that is concatenated over multiple lines are placed at the
+        end of each string, unless this string is ending with a
+        newline character (\n).
+
+        For example, this is bad:
+
+        >>> rule = (
+        ...    "We want the space at the end of the line,"
+        ...    " not at the beginning"
+        ... )
+
+        And what we want is:
+
+        >>> rule = (
+        ...    "We want the space at the end of the line, "
+        ...    "not at the beginning"
+        ... )
+
+        And if the string is ending with a new line character (\n) we
+        do not want any trailing whitespaces after it.
+
+        For example, this is bad:
+
+        >>> rule = (
+        ...    "We want the space at the begging of "
+        ...    "the line if the previous line is ending with a \n "
+        ...    "not at the end, like always"
+        ... )
+
+        And what we do want is:
+
+        >>> rule = (
+        ...    "We want the space at the begging of "
+        ...    "the line if the previous line is ending with a \n"
+        ...    " not at the end, like always"
+        ... )
         """
         if first_line.endswith(r"\n"):
             return False
