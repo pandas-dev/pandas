@@ -675,7 +675,7 @@ class JsonReader(abc.Iterator):
         if hasattr(data, "read") and not self.chunksize:
             data = data.read()
         if not hasattr(data, "read") and self.chunksize:
-            data = StringIO(data)
+            data = StringIO(data.decode())
 
         return data
 
