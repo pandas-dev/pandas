@@ -1340,9 +1340,6 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         }
         return o._reindex_with_indexers(d, copy=True, allow_dups=True)
 
-    def _convert_for_reindex(self, key, axis: int):
-        return key
-
     def _handle_lowerdim_multi_index_axis0(self, tup: Tuple):
         # we have an axis0 multi-index, handle or raise
         axis = self.axis or 0
@@ -1539,10 +1536,6 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             return ax[indexer], indexer
 
         if ax.is_unique and not getattr(ax, "is_overlapping", False):
-            # If we are trying to get actual keys from empty Series, we
-            # patiently wait for a KeyError later on - otherwise, convert
-            if len(ax) or not len(key):
-                key = self._convert_for_reindex(key, axis)
             indexer = ax.get_indexer_for(key)
             keyarr = ax.reindex(keyarr)[0]
         else:
@@ -1757,6 +1750,7 @@ class _LocationIndexer(_NDFrameIndexer):
                 try:
                     return self._getitem_scalar(key)
                 except (KeyError, IndexError, AttributeError):
+                    # AttributeError for IntervalTree get_value
                     pass
             return self._getitem_tuple(key)
         else:
