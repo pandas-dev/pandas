@@ -126,12 +126,11 @@ def strings_with_wrong_placed_space(
         bool
             True if the two recived string match, an unwanted pattern.
         """
-        return (
-            (not first_line.endswith(" "))
-            and second_line.startswith(" ")
+        return ((not first_line.endswith(" ")) and second_line.startswith(" ")) and (
+            (not first_line.endswith("  "))
             and (not second_line.startswith("  "))
             and (not first_line.endswith("\\n"))
-        ) or (first_line.endswith(" ") and second_line.startswith(" "))
+        )
 
     with open(source_path, "r") as file_name:
         tokens: List = list(tokenize.generate_tokens(file_name.readline))
