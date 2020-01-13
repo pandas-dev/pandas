@@ -161,8 +161,7 @@ def round_nsint64(values, mode, freq):
 
     # if/elif above should catch all rounding modes defined in enum 'RoundTo':
     # if flow of control arrives here, it is a bug
-    raise ValueError("round_nsint64 called with an unrecognized "
-                     "rounding mode")
+    raise ValueError("round_nsint64 called with an unrecognized rounding mode")
 
 
 # ----------------------------------------------------------------------
@@ -324,8 +323,10 @@ class Timestamp(_Timestamp):
 
         Function is not implemented. Use pd.to_datetime().
         """
-        raise NotImplementedError("Timestamp.strptime() is not implemented."
-                                  "Use to_datetime() to parse date strings.")
+        raise NotImplementedError(
+            "Timestamp.strptime() is not implemented. "
+            "Use to_datetime() to parse date strings."
+        )
 
     @classmethod
     def combine(cls, date, time):
@@ -381,8 +382,9 @@ class Timestamp(_Timestamp):
         if tzinfo is not None:
             if not PyTZInfo_Check(tzinfo):
                 # tzinfo must be a datetime.tzinfo object, GH#17690
-                raise TypeError(f'tzinfo must be a datetime.tzinfo object, '
-                                f'not {type(tzinfo)}')
+                raise TypeError(
+                    f"tzinfo must be a datetime.tzinfo object, not {type(tzinfo)}"
+                )
             elif tz is not None:
                 raise ValueError('Can provide at most one of tz, tzinfo')
 
@@ -393,8 +395,10 @@ class Timestamp(_Timestamp):
             # User passed a date string to parse.
             # Check that the user didn't also pass a date attribute kwarg.
             if any(arg is not None for arg in _date_attributes):
-                raise ValueError('Cannot pass a date attribute keyword '
-                                 'argument when passing a date string')
+                raise ValueError(
+                    "Cannot pass a date attribute keyword "
+                    "argument when passing a date string"
+                )
 
         elif ts_input is _no_input:
             # User passed keyword arguments.
@@ -578,8 +582,10 @@ timedelta}, default 'raise'
     @tz.setter
     def tz(self, value):
         # GH 3746: Prevent localizing or converting the index by setting tz
-        raise AttributeError("Cannot directly set timezone. Use tz_localize() "
-                             "or tz_convert() as appropriate")
+        raise AttributeError(
+            "Cannot directly set timezone. "
+            "Use tz_localize() or tz_convert() as appropriate"
+        )
 
     def __setstate__(self, state):
         self.value = state[0]
@@ -598,9 +604,10 @@ timedelta}, default 'raise'
 
         if self.tz is not None:
             # GH#21333
-            warnings.warn("Converting to Period representation will "
-                          "drop timezone information.",
-                          UserWarning)
+            warnings.warn(
+                "Converting to Period representation will drop timezone information.",
+                UserWarning,
+            )
 
         if freq is None:
             freq = self.freq
@@ -810,13 +817,13 @@ default 'raise'
         if ambiguous == 'infer':
             raise ValueError('Cannot infer offset with only one time.')
 
-        nonexistent_options = ('raise', 'NaT', 'shift_forward',
-                               'shift_backward')
+        nonexistent_options = ('raise', 'NaT', 'shift_forward', 'shift_backward')
         if nonexistent not in nonexistent_options and not isinstance(
             nonexistent, timedelta):
-            raise ValueError("The nonexistent argument must be one of 'raise', "
-                             "'NaT', 'shift_forward', 'shift_backward' or "
-                             "a timedelta object")
+            raise ValueError(
+                "The nonexistent argument must be one of 'raise', "
+                "'NaT', 'shift_forward', 'shift_backward' or a timedelta object"
+            )
 
         if self.tzinfo is None:
             # tz naive, localize
@@ -833,8 +840,9 @@ default 'raise'
                 value = tz_convert_single(self.value, UTC, self.tz)
                 return Timestamp(value, tz=tz, freq=self.freq)
             else:
-                raise TypeError('Cannot localize tz-aware Timestamp, use '
-                                'tz_convert for conversions')
+                raise TypeError(
+                    "Cannot localize tz-aware Timestamp, use tz_convert for conversions"
+                )
 
     def tz_convert(self, tz):
         """
@@ -857,17 +865,28 @@ default 'raise'
         """
         if self.tzinfo is None:
             # tz naive, use tz_localize
-            raise TypeError('Cannot convert tz-naive Timestamp, use '
-                            'tz_localize to localize')
+            raise TypeError(
+                "Cannot convert tz-naive Timestamp, use tz_localize to localize"
+            )
         else:
             # Same UTC timestamp, different time zone
             return Timestamp(self.value, tz=tz, freq=self.freq)
 
     astimezone = tz_convert
 
-    def replace(self, year=None, month=None, day=None,
-                hour=None, minute=None, second=None, microsecond=None,
-                nanosecond=None, tzinfo=object, fold=0):
+    def replace(
+        self,
+        year=None,
+        month=None,
+        day=None,
+        hour=None,
+        minute=None,
+        second=None,
+        microsecond=None,
+        nanosecond=None,
+        tzinfo=object,
+        fold=0,
+    ):
         """
         implements datetime.replace, handles nanoseconds.
 
@@ -910,8 +929,9 @@ default 'raise'
         def validate(k, v):
             """ validate integers """
             if not is_integer_object(v):
-                raise ValueError(f"value must be an integer, received "
-                                 f"{type(v)} for {k}")
+                raise ValueError(
+                    f"value must be an integer, received {type(v)} for {k}"
+                )
             return v
 
         if year is not None:

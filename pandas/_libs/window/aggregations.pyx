@@ -1871,8 +1871,7 @@ def ewmcov(float64_t[:] input_x, float64_t[:] input_y,
         bint is_observation
 
     if <Py_ssize_t>len(input_y) != N:
-        raise ValueError(f"arrays are of different lengths "
-                         f"({N} and {len(input_y)})")
+        raise ValueError(f"arrays are of different lengths ({N} and {len(input_y)})")
 
     output = np.empty(N, dtype=float)
     if N == 0:

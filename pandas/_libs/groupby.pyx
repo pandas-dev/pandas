@@ -686,8 +686,7 @@ def _group_ohlc(floating[:, :] out,
         raise ValueError('Output array must have 4 columns')
 
     if K > 1:
-        raise NotImplementedError("Argument 'values' must have only "
-                                  "one dimension")
+        raise NotImplementedError("Argument 'values' must have only one dimension")
     out[:] = np.nan
 
     with nogil:
