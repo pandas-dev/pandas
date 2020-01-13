@@ -97,8 +97,8 @@ Intro to pandas
 
     <div class="container">
     <div id="accordion" class="shadow tutorial-accordion"> 
-        <div class="card tutorial-card"> 
 
+        <div class="card tutorial-card"> 
             <div class="card-header collapsed card-link" data-toggle="collapse" data-target="#collapseOne"> 
                 <div class="d-flex flex-row tutorial-card-header-1">
                     <div class="d-flex flex-row tutorial-card-header-2">
@@ -145,7 +145,6 @@ to explore, clean and process your data. In Pandas, a data table is called a :cl
             </div> 
         </div> 
 
-
         <div class="card tutorial-card"> 
             <div class="card-header collapsed card-link" data-toggle="collapse" data-target="#collapseTwo"> 
                 <div class="d-flex flex-row tutorial-card-header-1">
@@ -153,16 +152,45 @@ to explore, clean and process your data. In Pandas, a data table is called a :cl
                         <button class="btn btn-dark btn-sm"></button>
                         How do I read and write tabular data?
                     </div>
-                    <a href="www.sporza.be" class="badge badge-info">Straight to full tutorial...</a>
-                </div>    
+                    <span class="badge gs-badge-link">
+
+:ref:`Straight to tutorial...<10min_tut_02_read_write>`
+
+.. raw:: html                    
+                    
+                    </span>
+                </div>        
             </div> 
             <div id="collapseTwo" class="collapse" data-parent="#accordion"> 
                 <div class="card-body"> 
-                    Reading from and writing to different formats is built-in. 
+
+Pandas supports the integration with many file formats or data sources out of the box (csv, excel, sql, json, parquet,…). Importing data from each of these
+data sources is provided by function with the prefix ``read_*``. Similarly, the ``to_*`` methods are used to store data.
+
+.. image:: ../../_static/schemas/02_io_readwrite.svg
+   :align: center
+
+.. raw:: html
+
+                    <div class="d-flex flex-row">
+                        <span class="badge gs-badge-link">
+
+:ref:`To introduction tutorial <10min_tut_02_read_write>`
+
+.. raw:: html
+
+                        </span>
+                        <span class="badge gs-badge-link">
+
+:ref:`To user guide <io>`
+
+.. raw:: html
+
+                        </span>
+                    </div>
                 </div> 
             </div> 
-        </div> 
-
+        </div>
 
         <div class="card tutorial-card"> 
             <div class="card-header collapsed card-link" data-toggle="collapse" data-target="#collapseThree"> 
@@ -171,15 +199,47 @@ to explore, clean and process your data. In Pandas, a data table is called a :cl
                         <button class="btn btn-dark btn-sm"></button>
                         How do I select a subset of a table?
                     </div>
-                    <a href="www.sporza.be" class="badge badge-info">Straight to full tutorial...</a>
-                </div>
+                    <span class="badge gs-badge-link">
+
+:ref:`Straight to tutorial...<10min_tut_03_subset>`
+
+.. raw:: html                    
+                    
+                    </span>
+                </div>        
             </div> 
-            <div id="collapseThree"  class="collapse" data-parent="#accordion"> 
+            <div id="collapseThree" class="collapse" data-parent="#accordion"> 
                 <div class="card-body"> 
-                    Filtering data based on the position in a table, the index name or a conditional expression.
+
+Selecting or filtering specific rows and/or columns? Filtering the data on a condition? Methods for slicing, selecting, and extracting the 
+data you need are available in Pandas.
+
+.. image:: ../../_static/schemas/03_subset_columns_rows.svg
+   :align: center
+
+.. raw:: html
+
+                    <div class="d-flex flex-row">
+                        <span class="badge gs-badge-link">
+
+:ref:`To introduction tutorial <10min_tut_03_subset>`
+
+.. raw:: html
+
+                        </span>
+                        <span class="badge gs-badge-link">
+
+:ref:`To user guide <indexing>`
+
+.. raw:: html
+
+                        </span>
+                    </div>
                 </div> 
             </div> 
-        </div> 
+        </div>
+
+
 
 
     </div> 
