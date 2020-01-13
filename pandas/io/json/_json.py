@@ -675,8 +675,9 @@ class JsonReader(abc.Iterator):
         if hasattr(data, "read") and not self.chunksize:
             data = data.read()
         if not hasattr(data, "read") and self.chunksize:
-            data = StringIO(data.decode())
-
+            if type(data) != "str":
+                    data = str(data)
+            data = StringIO(data)
         return data
 
     def _get_data_from_filepath(self, filepath_or_buffer):
