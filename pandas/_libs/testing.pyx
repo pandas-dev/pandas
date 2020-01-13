@@ -127,9 +127,9 @@ cpdef assert_almost_equal(a, b,
             # classes can't be the same, to raise error
             assert_class_equal(a, b, obj=obj)
 
-        assert has_length(a) and has_length(b), ("Can't compare objects without "
-                                                 "length, one or both is invalid: "
-                                                 f"({a}, {b})")
+        assert has_length(a) and has_length(b), (
+            f"Can't compare objects without length, one or both is invalid: ({a}, {b})"
+        )
 
         if a_is_ndarray and b_is_ndarray:
             na, nb = a.size, b.size

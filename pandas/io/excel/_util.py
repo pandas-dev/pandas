@@ -136,8 +136,7 @@ def _maybe_convert_usecols(usecols):
     if is_integer(usecols):
         raise ValueError(
             "Passing an integer for `usecols` is no longer supported.  "
-            "Please pass in a list of int from 0 to `usecols` "
-            "inclusive instead."
+            "Please pass in a list of int from 0 to `usecols` inclusive instead."
         )
 
     if isinstance(usecols, str):

@@ -85,7 +85,6 @@ cdef class IndexEngine:
         """
         cdef:
             object loc
-            void* data_ptr
 
         loc = self.get_loc(key)
         if isinstance(loc, slice) or util.is_array(loc):
@@ -101,7 +100,6 @@ cdef class IndexEngine:
         """
         cdef:
             object loc
-            void* data_ptr
 
         loc = self.get_loc(key)
         value = convert_scalar(arr, value)
