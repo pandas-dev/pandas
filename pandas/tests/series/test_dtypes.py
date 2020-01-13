@@ -491,7 +491,6 @@ class TestSeriesDtypes:
     @pytest.mark.parametrize(
         "stup",
         [
-            (Series([1, 2, 3], dtype=np.dtype("int")), "Int32"),
             (Series([1, 2, 3], dtype=np.dtype("int32")), "Int32"),
             (Series([1, 2, 3], dtype=np.dtype("int64")), "Int64"),
             (Series(["x", "y", "z"], dtype=np.dtype("O")), pd.StringDtype()),
@@ -501,7 +500,7 @@ class TestSeriesDtypes:
             (Series([np.nan, 100.5, 200], dtype=np.dtype("float")), np.dtype("float")),
             (Series([3, 4, 5], dtype="Int8"), "Int8"),
             (Series([[1, 2], [3, 4], [5]]), np.dtype("O")),
-            (Series([4, 5, 6], dtype=np.dtype("uint")), "UInt32"),
+            (Series([4, 5, 6], dtype=np.dtype("uint32")), "UInt32"),
             (Series([-10, 12, 13], dtype=np.dtype("i1")), "Int8"),
         ],
     )

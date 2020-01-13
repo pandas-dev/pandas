@@ -5942,19 +5942,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 new_dtype = "integer"
                 changeit = True
         elif is_numeric_dtype(dtype):
-            new_dtype = lib.infer_dtype(list(self))
-            if "integer" in new_dtype and "mixed" not in new_dtype:
-                new_dtype = "integer"
-                changeit = True
-            else:
-                new_dtype = dtype
-                try:
-                    result = self.astype(target_int_dtype)
-                    new_dtype = target_int_dtype
-                    changeit = False
-                    constructit = False
-                except TypeError:
-                    pass
+            new_dtype = dtype
+            try:
+                result = self.astype(target_int_dtype)
+                new_dtype = target_int_dtype
+                changeit = False
+                constructit = False
+            except TypeError:
+                pass
 
         if changeit:
             if new_dtype == "integer":
@@ -5988,7 +5983,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         --------
         >>> df = pd.DataFrame(
         ...     {
-        ...         "a": pd.Series([1, 2, 3], dtype=np.dtype("int")),
+        ...         "a": pd.Series([1, 2, 3], dtype=np.dtype("int32")),
         ...         "b": pd.Series(["x", "y", "z"], dtype=np.dtype("O")),
         ...         "c": pd.Series([True, False, np.nan], dtype=np.dtype("O")),
         ...         "d": pd.Series(["h", "i", np.nan], dtype=np.dtype("O")),

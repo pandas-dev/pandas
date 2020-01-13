@@ -1077,7 +1077,7 @@ class TestDataFrameDataTypes:
         # Just check that it works for DataFrame here
         df = pd.DataFrame(
             {
-                "a": pd.Series([1, 2, 3], dtype=np.dtype("int")),
+                "a": pd.Series([1, 2, 3], dtype=np.dtype("int32")),
                 "b": pd.Series(["x", "y", "z"], dtype=np.dtype("O")),
             }
         )
