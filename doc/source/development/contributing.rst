@@ -6,9 +6,6 @@
 Contributing to pandas
 **********************
 
-.. contents:: Table of contents:
-   :local:
-
 Where to start?
 ===============
 
