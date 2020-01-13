@@ -737,12 +737,8 @@ class DataFrameFormatter(TableFormatter):
                 self.header = cast(List[str], self.header)
                 if len(self.header) != len(self.columns):
                     raise ValueError(
-                        (
-                            "Writing {ncols} cols but got {nalias} "
-                            "aliases".format(
-                                ncols=len(self.columns), nalias=len(self.header)
-                            )
-                        )
+                        f"Writing {len(self.columns)} cols "
+                        f"but got {len(self.header)} aliases"
                     )
                 str_columns = [[label] for label in self.header]
             else:

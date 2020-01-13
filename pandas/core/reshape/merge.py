@@ -600,13 +600,11 @@ class _MergeOperation:
 
         if not is_bool(left_index):
             raise ValueError(
-                "left_index parameter must be of type bool, not "
-                "{left_index}".format(left_index=type(left_index))
+                f"left_index parameter must be of type bool, not {type(left_index)}"
             )
         if not is_bool(right_index):
             raise ValueError(
-                "right_index parameter must be of type bool, not "
-                "{right_index}".format(right_index=type(right_index))
+                f"right_index parameter must be of type bool, not {type(right_index)}"
             )
 
         # warn user when merging between different levels
@@ -1092,8 +1090,7 @@ class _MergeOperation:
                         warnings.warn(
                             "You are merging on int and float "
                             "columns where the float values "
-                            "are not equal to their int "
-                            "representation",
+                            "are not equal to their int representation",
                             UserWarning,
                         )
                     continue
@@ -1103,8 +1100,7 @@ class _MergeOperation:
                         warnings.warn(
                             "You are merging on int and float "
                             "columns where the float values "
-                            "are not equal to their int "
-                            "representation",
+                            "are not equal to their int representation",
                             UserWarning,
                         )
                     continue
@@ -1251,20 +1247,17 @@ class _MergeOperation:
                 )
             elif not left_unique:
                 raise MergeError(
-                    "Merge keys are not unique in left dataset; "
-                    "not a one-to-one merge"
+                    "Merge keys are not unique in left dataset; not a one-to-one merge"
                 )
             elif not right_unique:
                 raise MergeError(
-                    "Merge keys are not unique in right dataset; "
-                    "not a one-to-one merge"
+                    "Merge keys are not unique in right dataset; not a one-to-one merge"
                 )
 
         elif validate in ["one_to_many", "1:m"]:
             if not left_unique:
                 raise MergeError(
-                    "Merge keys are not unique in left dataset; "
-                    "not a one-to-many merge"
+                    "Merge keys are not unique in left dataset; not a one-to-many merge"
                 )
 
         elif validate in ["many_to_one", "m:1"]:
@@ -1833,8 +1826,7 @@ def _left_join_on_index(left_ax: Index, right_ax: Index, join_keys, sort: bool =
             raise AssertionError(
                 "If more than one join key is given then "
                 "'right_ax' must be a MultiIndex and the "
-                "number of join keys must be the number of "
-                "levels in right_ax"
+                "number of join keys must be the number of levels in right_ax"
             )
 
         left_indexer, right_indexer = _get_multiindex_indexer(
@@ -2004,8 +1996,7 @@ def _validate_operand(obj: FrameOrSeries) -> "DataFrame":
             return obj.to_frame()
     else:
         raise TypeError(
-            "Can only merge Series or DataFrame objects, "
-            "a {obj} was passed".format(obj=type(obj))
+            f"Can only merge Series or DataFrame objects, a {type(obj)} was passed"
         )
 
 
@@ -2021,10 +2012,7 @@ def _items_overlap_with_suffix(left: Index, lsuffix, right: Index, rsuffix):
         return left, right
 
     if not lsuffix and not rsuffix:
-        raise ValueError(
-            "columns overlap but no suffix specified: "
-            "{rename}".format(rename=to_rename)
-        )
+        raise ValueError(f"columns overlap but no suffix specified: {to_rename}")
 
     def renamer(x, suffix):
         """
@@ -2043,7 +2031,7 @@ def _items_overlap_with_suffix(left: Index, lsuffix, right: Index, rsuffix):
         x : renamed column name
         """
         if x in to_rename and suffix is not None:
-            return "{x}{suffix}".format(x=x, suffix=suffix)
+            return f"{x}{suffix}"
         return x
 
     lrenamer = partial(renamer, suffix=lsuffix)

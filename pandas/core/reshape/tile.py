@@ -363,8 +363,7 @@ def _bins_to_cuts(
 
     if duplicates not in ["raise", "drop"]:
         raise ValueError(
-            "invalid value for 'duplicates' parameter, "
-            "valid options are: raise, drop"
+            "invalid value for 'duplicates' parameter, valid options are: raise, drop"
         )
 
     if isinstance(bins, IntervalIndex):
