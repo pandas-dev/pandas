@@ -491,7 +491,7 @@ class TestSeriesDtypes:
     @pytest.mark.parametrize(
         "stup",
         [
-            (Series([1, 2, 3], dtype=np.dtype("int")), "infer"),
+            (Series([1, 2, 3], dtype=np.dtype("int")), "Int32"),
             (Series([1, 2, 3], dtype=np.dtype("int32")), "Int32"),
             (Series([1, 2, 3], dtype=np.dtype("int64")), "Int64"),
             (Series(["x", "y", "z"], dtype=np.dtype("O")), pd.StringDtype()),
@@ -499,16 +499,14 @@ class TestSeriesDtypes:
             (Series(["h", "i", np.nan], dtype=np.dtype("O")), pd.StringDtype()),
             (Series([10, np.nan, 20], dtype=np.dtype("float")), pd.Int64Dtype()),
             (Series([np.nan, 100.5, 200], dtype=np.dtype("float")), np.dtype("float")),
+            (Series([3, 4, 5], dtype="Int8"), "Int8"),
+            (Series([[1, 2], [3, 4], [5]]), np.dtype("O")),
+            (Series([4, 5, 6], dtype=np.dtype("uint")), "UInt32"),
+            (Series([-10, 12, 13], dtype=np.dtype("i1")), "Int8"),
         ],
     )
-    def test_as_nullable_types(self, stup):
+    def test_as_nullable_dtypes(self, stup):
         s = stup[0]
         expected_dtype = stup[1]
-        if isinstance(expected_dtype, str) and expected_dtype == "infer":
-            # Find default int type
-            td = Series([1], dtype=np.dtype("int")).dtype
-            expected_dtype =  pd.Int64Dtype()
-            if td == np.dtype("int32"):
-                expected_dtype = pd.Int32Dtype()
-        ns = s.as_nullable_types()
+        ns = s.as_nullable_dtypes()
         assert ns.dtype == expected_dtype

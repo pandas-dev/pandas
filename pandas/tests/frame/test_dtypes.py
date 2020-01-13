@@ -1072,7 +1072,7 @@ class TestDataFrameDataTypes:
         expected = pd.DataFrame(col_data, columns=["A"], dtype=float)
         tm.assert_frame_equal(result, expected)
 
-    def test_as_nullable_types(self):
+    def test_as_nullable_dtypes(self):
         # Specific types are tested in tests/series/test_dtypes.py
         # Just check that it works for DataFrame here
         df = pd.DataFrame(
@@ -1081,10 +1081,10 @@ class TestDataFrameDataTypes:
                 "b": pd.Series(["x", "y", "z"], dtype=np.dtype("O")),
             }
         )
-        result = df.as_nullable_types()
+        result = df.as_nullable_dtypes()
         expected = pd.DataFrame(
             {
-                "a": pd.Series([1, 2, 3], dtype="Int64"),
+                "a": pd.Series([1, 2, 3], dtype="Int32"),
                 "b": pd.Series(["x", "y", "z"], dtype="string"),
             }
         )

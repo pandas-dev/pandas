@@ -39,7 +39,7 @@ from pandas._typing import (
     Level,
     Renamer,
 )
-from pandas.compat import is_platform_32bit, set_function_name
+from pandas.compat import set_function_name
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -73,6 +73,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import registry
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
@@ -5911,7 +5912,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
     # Convert to types that support pd.NA
 
-    def _as_nullable_type(self: ABCSeries) -> ABCSeries:
+    def _as_nullable_dtype(self: ABCSeries) -> ABCSeries:
         """
         Handle one Series
 
@@ -5927,18 +5928,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         dtype = self.dtype
         new_dtype = dtype
         changeit = False
+        constructit = True
         result = self
         target_int_dtype = "Int64"
-        if is_platform_32bit():
-            target_int_dtype = "Int32"
 
         if is_object_dtype(dtype):
             new_dtype = lib.infer_dtype(self)
-            if (
-                new_dtype != "string"
-                and new_dtype != "boolean"
-                and new_dtype != "integer"
-            ):
+            if new_dtype not in {"string", "boolean", "integer"}:
                 new_dtype = dtype
             else:
                 changeit = True
@@ -5957,41 +5953,43 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     result = self.astype(target_int_dtype)
                     new_dtype = target_int_dtype
                     changeit = False
+                    constructit = False
                 except TypeError:
                     pass
 
         if changeit:
             if new_dtype == "integer":
-                if dtype == np.dtype("int32"):
-                    new_dtype = "Int32"
-                elif dtype == np.dtype("int64"):
-                    new_dtype = "Int64"
-                else:
-                    new_dtype = target_int_dtype
+                new_dtype = {
+                    sd.type: sd.name
+                    for sd in registry.dtypes
+                    if isinstance(sd.name, str) and "Int" in sd.name
+                }.get(dtype.type, target_int_dtype)
             result = self.astype(new_dtype)
+        else:
+            if constructit:
+                result = self._constructor(self).__finalize__(self)
 
         return result
 
-    def as_nullable_types(self: FrameOrSeries) -> FrameOrSeries:
+    def as_nullable_dtypes(self: FrameOrSeries) -> FrameOrSeries:
         """
         Convert columns of DataFrame or a Series to types supporting ``pd.NA``.
 
-        If the dtype is "object", convert to "string", "boolean" or an appropriate integer type.
-
-        If the dtype is "integer", convert to an appropriate integer type.
-
-        If the dtype is numeric, and consists of all integers, convert to an
-        appropriate type.
+        | If the dtype is "object", convert to "string", "boolean" or an appropriate
+          integer type.
+        | If the dtype is "integer", convert to an appropriate integer type.
+        | If the dtype is numeric, and consists of all integers, convert to an
+          appropriate type.
 
         Returns
         -------
-        converted : same type as caller
+        converted : a copy of the same type as caller
 
         Examples
         --------
         >>> df = pd.DataFrame(
         ...     {
-        ...         "a": pd.Series([1, 2, 3], dtype=np.dtype("int32")),
+        ...         "a": pd.Series([1, 2, 3], dtype=np.dtype("int")),
         ...         "b": pd.Series(["x", "y", "z"], dtype=np.dtype("O")),
         ...         "c": pd.Series([True, False, np.nan], dtype=np.dtype("O")),
         ...         "d": pd.Series(["h", "i", np.nan], dtype=np.dtype("O")),
@@ -6015,7 +6013,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         f    float64
         dtype: object
 
-        >>> dfn = df.as_nullable_types()
+        >>> dfn = df.as_nullable_dtypes()
         >>> dfn
            a  b      c     d     e      f
         0  1  x   True     h    10    NaN
@@ -6023,7 +6021,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2  3  z   <NA>  <NA>    20  200.0
 
         >>> dfn.dtypes
-        a      Int64
+        a      Int32
         b     string
         c    boolean
         d     string
@@ -6032,9 +6030,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         dtype: object
         """
         if self.ndim == 1:
-            return self._as_nullable_type()
+            return self._as_nullable_dtype()
         else:
-            results = [col._as_nullable_type() for col_name, col in self.items()]
+            results = [col._as_nullable_dtype() for col_name, col in self.items()]
             result = pd.concat(results, axis=1, copy=False)
             result.columns = self.columns
             return result
