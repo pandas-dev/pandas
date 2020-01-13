@@ -2431,7 +2431,7 @@ class DataFrame(NDFrame):
                 dtype = self.dtypes.iloc[i]
                 col = pprint_thing(col)
 
-                line_no = _put_str(" {num}".format(num=i), space_num)
+                line_no = _put_str(f" {i}", space_num)
                 count = ""
                 if show_counts:
                     count = counts.iloc[i]

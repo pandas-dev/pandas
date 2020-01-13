@@ -164,7 +164,7 @@ class Base:
             constructor(dtype="int64", **filler)
 
         # invalid dtype
-        msg = 'data type "invalid" not understood'
+        msg = "data type [\"']invalid[\"'] not understood"
         with pytest.raises(TypeError, match=msg):
             constructor(dtype="invalid", **filler)
 
