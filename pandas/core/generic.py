@@ -62,7 +62,6 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_float,
     is_integer,
-    is_integer_dtype,
     is_list_like,
     is_number,
     is_numeric_dtype,
@@ -73,7 +72,6 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import registry
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
@@ -5908,64 +5906,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             )
         ).__finalize__(self)
 
-    # ----------------------------------------------------------------------
-    # Convert to types that support pd.NA
-
-    def _as_nullable_dtype(self: ABCSeries) -> ABCSeries:
-        """
-        Handle one Series
-
-        Rules:
-        If an object, see if we can infer string, boolean or integer, otherwise leave
-        alone
-        If an integer and not an extension type, convert to the Int64/Int32 type
-        (platform dependent)
-        If numeric, see if we can infer integer, otherwise try to use astype() to make
-        it integer.
-
-        """
-        dtype = self.dtype
-        new_dtype = dtype
-        changeit = False
-        constructit = True
-        result = self
-        target_int_dtype = "Int64"
-
-        if is_object_dtype(dtype):
-            new_dtype = lib.infer_dtype(self)
-            if new_dtype not in {"string", "boolean", "integer"}:
-                new_dtype = dtype
-            else:
-                changeit = True
-        elif is_integer_dtype(dtype):
-            if not is_extension_array_dtype(dtype):
-                new_dtype = "integer"
-                changeit = True
-        elif is_numeric_dtype(dtype):
-            new_dtype = dtype
-            try:
-                result = self.astype(target_int_dtype)
-                new_dtype = target_int_dtype
-                changeit = False
-                constructit = False
-            except TypeError:
-                pass
-
-        if changeit:
-            if new_dtype == "integer":
-                new_dtype = {
-                    sd.type: sd.name
-                    for sd in registry.dtypes
-                    if isinstance(sd.name, str) and "Int" in sd.name
-                }.get(dtype.type, target_int_dtype)
-            result = self.astype(new_dtype)
-        else:
-            if constructit:
-                result = self._constructor(self).__finalize__(self)
-
-        return result
-
-    def as_nullable_dtypes(self: FrameOrSeries) -> FrameOrSeries:
+    def as_nullable_dtypes(
+        self: FrameOrSeries, keep_integer: bool = False
+    ) -> FrameOrSeries:
         """
         Convert columns of DataFrame or a Series to types supporting ``pd.NA``.
 
@@ -5974,6 +5917,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         | If the dtype is "integer", convert to an appropriate integer type.
         | If the dtype is numeric, and consists of all integers, convert to an
           appropriate type.
+
+        Parameters
+        ----------
+        keep_integer : bool, default False
+            Whether ``int`` types should be converted to integer extension types
+
 
         Returns
         -------
@@ -6022,13 +5971,27 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         e      Int64
         f    float64
         dtype: object
+
+        >>> s = pd.Series(["a", "b", np.nan])
+        >>> s
+        0      a
+        1      b
+        2    NaN
+        dtype: object
+
+        >>> s.as_nullable_dtypes()
+        0       a
+        1       b
+        2    <NA>
+        dtype: string
         """
         if self.ndim == 1:
-            return self._as_nullable_dtype()
+            return self._as_nullable_dtype(keep_integer)
         else:
-            results = [col._as_nullable_dtype() for col_name, col in self.items()]
+            results = [
+                col._as_nullable_dtype(keep_integer) for col_name, col in self.items()
+            ]
             result = pd.concat(results, axis=1, copy=False)
-            result.columns = self.columns
             return result
 
     # ----------------------------------------------------------------------

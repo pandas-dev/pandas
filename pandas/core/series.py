@@ -37,12 +37,15 @@ from pandas.core.dtypes.common import (
     is_dict_like,
     is_extension_array_dtype,
     is_integer,
+    is_integer_dtype,
     is_iterator,
     is_list_like,
+    is_numeric_dtype,
     is_object_dtype,
     is_scalar,
     is_timedelta64_dtype,
 )
+from pandas.core.dtypes.dtypes import registry
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeIndex,
@@ -4330,6 +4333,64 @@ Name: Max Speed, dtype: float64
             rmask = self < right
 
         return lmask & rmask
+
+    # ----------------------------------------------------------------------
+    # Convert to types that support pd.NA
+
+    def _as_nullable_dtype(self: ABCSeries, keep_integer: bool = False) -> ABCSeries:
+        """
+        Handle one Series
+
+        Rules:
+        If an object, see if we can infer string, boolean or integer, otherwise leave
+        alone
+        If an integer and not an extension type, convert to the extension Int type
+        If numeric, see if we can infer integer, otherwise try to use astype() to make
+        it integer.
+
+        """
+        dtype = self.dtype
+        new_dtype = dtype
+        changeit = True
+        result = self
+        target_int_dtype = "Int64"
+
+        if is_object_dtype(dtype):
+            new_dtype = lib.infer_dtype(self)
+            if new_dtype.startswith("mixed-integer"):
+                try:
+                    result = self.astype(target_int_dtype)
+                    new_dtype = target_int_dtype
+                    changeit = False
+                except TypeError:
+                    pass
+
+            elif new_dtype not in {"string", "boolean", "integer"}:
+                new_dtype = dtype
+
+        elif is_integer_dtype(dtype):
+            if not keep_integer and not is_extension_array_dtype(dtype):
+                new_dtype = "integer"
+
+        elif is_numeric_dtype(dtype):
+            new_dtype = dtype
+            try:
+                result = self.astype(target_int_dtype)
+                new_dtype = target_int_dtype
+                changeit = False
+            except TypeError:
+                pass
+
+        if changeit:
+            if isinstance(new_dtype, str) and new_dtype == "integer":
+                new_dtype = {
+                    sd.type: sd.name
+                    for sd in registry.dtypes
+                    if isinstance(sd.name, str) and "Int" in sd.name
+                }.get(dtype.type, target_int_dtype)
+            result = self.astype(new_dtype)
+
+        return result
 
     @Appender(generic._shared_docs["isna"] % _shared_doc_kwargs)
     def isna(self) -> "Series":

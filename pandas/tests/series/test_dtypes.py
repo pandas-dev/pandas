@@ -489,7 +489,7 @@ class TestSeriesDtypes:
         tm.assert_series_equal(s1, s2)
 
     @pytest.mark.parametrize(
-        "stup",
+        "series, dtype",
         [
             (Series([1, 2, 3], dtype=np.dtype("int32")), "Int32"),
             (Series([1, 2, 3], dtype=np.dtype("int64")), "Int64"),
@@ -502,10 +502,9 @@ class TestSeriesDtypes:
             (Series([[1, 2], [3, 4], [5]]), np.dtype("O")),
             (Series([4, 5, 6], dtype=np.dtype("uint32")), "UInt32"),
             (Series([-10, 12, 13], dtype=np.dtype("i1")), "Int8"),
+            (Series([1, 2.0], dtype=object), "Int64")
         ],
     )
-    def test_as_nullable_dtypes(self, stup):
-        s = stup[0]
-        expected_dtype = stup[1]
-        ns = s.as_nullable_dtypes()
-        assert ns.dtype == expected_dtype
+    def test_as_nullable_dtypes(self, series, dtype):
+        ns = series.as_nullable_dtypes()
+        assert ns.dtype == dtype
