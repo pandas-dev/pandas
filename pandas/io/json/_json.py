@@ -439,13 +439,12 @@ def read_json(
            Not applicable for ``orient='table'``.
 
     convert_dates : bool or list of str, default True
-        If True then default datelike columns may be converted.
+        If True then default datelike columns may be converted (depending on
+        keep_default_dates).
         If False, no dates will be converted.
         If a list of column names, then those columns will be converted and
-        default datelike columns may also be converted
-
-        When True or list then keep_default_dates determines whether default
-        datelike columns are converted.
+        default datelike columns may also be converted (depending on
+        keep_default_dates).
 
     keep_default_dates : bool, default True
         If parsing dates (convert_dates is not False), then try to parse the
