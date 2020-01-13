@@ -139,7 +139,7 @@ Groupby/resample/rolling
 Reshaping
 ^^^^^^^^^
 
--
+- Correct incorrect error message in :meth:`DataFrame.pivot` when ``columns`` is set to ``None``. (:issue:`30924`)
 -
 
 Sparse
