@@ -43,6 +43,9 @@ matrix:
         - postgresql
 
     - env:
+        # Enabling Deprecations when running tests
+        # You can set the environment variable PANDAS_TESTING_MODE to deprecate to show any DeprecationWarning message. 
+        # This is enabled in the travis builds for numpy 1.9 (and evenutally for the python 3.4 build).
         - JOB="3.6, coverage" ENV_FILE="ci/deps/travis-36-cov.yaml" PATTERN="((not slow and not network) or (single and db))" PANDAS_TESTING_MODE="deprecate" COVERAGE=true SQL="1"
       services:
         - mysql
