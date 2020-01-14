@@ -231,9 +231,7 @@ def _return_parsed_timezone_results(result, timezones, tz, name):
     """
     if tz is not None:
         raise ValueError(
-            "Cannot pass a tz argument when "
-            "parsing strings with timezone "
-            "information."
+            "Cannot pass a tz argument when parsing strings with timezone information."
         )
     tz_results = np.array(
         [Timestamp(res).tz_localize(zone) for res, zone in zip(result, timezones)]
@@ -817,8 +815,7 @@ def _assemble_from_unit_mappings(arg, errors, tz):
         required = ",".join(req)
         raise ValueError(
             "to assemble mappings requires at least that "
-            f"[year, month, day] be specified: [{required}] "
-            "is missing"
+            f"[year, month, day] be specified: [{required}] is missing"
         )
 
     # keys we don't recognize
