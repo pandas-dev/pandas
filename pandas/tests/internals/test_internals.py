@@ -300,7 +300,7 @@ class TestBlock:
 
         msg = "index 3 is out of bounds for axis 0 with size 3"
 
-        with pytest.raises(Exception, match=msg):
+        with pytest.raises(IndexError, match=msg):
             newb.delete(3)
 
 
