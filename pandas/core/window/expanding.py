@@ -1,4 +1,5 @@
 from textwrap import dedent
+from typing import Dict, Optional
 
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
@@ -151,9 +152,9 @@ class Expanding(_Rolling_and_Expanding):
     def apply(
         self,
         func,
-        raw=False,
-        engine="cython",
-        engine_kwargs=None,
+        raw: bool = False,
+        engine: str = "cython",
+        engine_kwargs: Optional[Dict[str, bool]] = None,
         args=None,
         kwargs=None,
     ):
