@@ -140,7 +140,7 @@ Reshaping
 ^^^^^^^^^
 
 -
--
+- Bug in :func:`crosstab` when inputs are two Series and have tuple names, the output will keep dummy MultiIndex as columns. (:issue:`18321`)
 
 Sparse
 ^^^^^^
