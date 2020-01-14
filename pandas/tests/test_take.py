@@ -453,7 +453,7 @@ class TestExtensionTake:
 
         msg = (
             r"cannot do a non-empty take from an empty axes.|"
-            r"indices are out-of-bounds"
+            "indices are out-of-bounds"
         )
         with pytest.raises(IndexError, match=msg):
             algos.take(arr, [0], allow_fill=allow_fill)
