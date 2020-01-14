@@ -205,7 +205,7 @@ def test_constructor_raises():
 
 
 @pytest.mark.parametrize("copy", [True, False])
-def test_from_sequnce_no_mutate(copy):
+def test_from_sequence_no_mutate(copy):
     a = np.array(["a", np.nan], dtype=object)
     original = a.copy()
     result = pd.arrays.StringArray._from_sequence(a, copy=copy)

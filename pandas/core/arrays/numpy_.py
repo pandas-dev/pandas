@@ -162,8 +162,6 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         result = np.asarray(scalars, dtype=dtype)
         if copy and result is scalars:
             result = result.copy()
-        # _coerce_from_sequence_values is useful for StringArray
-        result = cls._coerce_from_sequence_values(result, copy=copy)
         return cls(result)
 
     @classmethod
