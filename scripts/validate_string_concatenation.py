@@ -162,6 +162,37 @@ def strings_with_wrong_placed_whitespace(
         Explenation of the error.
     """
 
+    def get_prefix_len(line: str) -> int:
+        """
+        Get the prefix length from a string literal.
+
+        Parameters
+        ----------
+        line : str
+            Line to check.
+
+        Returns
+        -------
+        int
+            Length of the prefix of the string literal.
+
+        Examples
+        --------
+
+        >>> get_prefix_len('"Hello world"')
+        0
+
+        >>> get_prefix_len('f"Hello world"')
+        1
+
+        >>> get_prefix_len('rf"Hello world"')
+        2
+        """
+        for counter, character in enumerate(line):
+            if character == r'"' or character == r"'":
+                return counter
+        return 0
+
     def whitespace_validation(first_line: str, second_line: str) -> bool:
         """
         Checking if the two lines are mattching the unwanted pattern.
@@ -238,8 +269,12 @@ def strings_with_wrong_placed_whitespace(
             and second_token.type == token.NL
         ):
             # Striping the quotes
-            first_string: str = first_token.string[1:-1]
-            second_string: str = third_token.string[1:-1]
+            first_string: str = first_token.string[
+                get_prefix_len(first_token.string) + 1 : -1
+            ]
+            second_string: str = third_token.string[
+                get_prefix_len(third_token.string) + 1 : -1
+            ]
 
             if whitespace_validation(first_string, second_string):
                 yield (
