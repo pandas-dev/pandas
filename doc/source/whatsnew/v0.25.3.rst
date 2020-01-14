@@ -19,4 +19,4 @@ Groupby/resample/rolling
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v0.25.2..HEAD
+.. contributors:: v0.25.2..v0.25.3
