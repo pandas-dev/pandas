@@ -69,10 +69,32 @@ settings = docutils.frontend.OptionParser(
 document = docutils.utils.new_document('Document', settings)
 parser.parse(input, document)
 
+# print list of all the subtitles/headings that we want.
 # node.tagname = #text, parent.tagname = title (ALL OF THEM)
-listOfMarkers = ['emphasis', 'strong', 'reference']
+listOfMarkers = ['emphasis', 'strong', 'reference', 'literal']
+myText = ""
+markerGrandparent = ""
+beforeMarker = False
 for node in document.traverse(nodes.Text):
-    if (node.tagname == '#text'):
-        if (node.parent.tagname == 'title' or (node.parent.parent.tagname == 'title' and
-        node.parent.tagname in listOfMarkers)):
-            print(node.astext())
+    if (node.parent.tagname == 'title'):
+        if (beforeMarker and markerGrandparent == node.parent):
+            myText = myText + node.astext()
+            beforeMarker = False
+        else:
+            if (myText != ""):
+                print(myText)
+            myText = node.astext()
+            beforeMarker = False
+    elif (node.parent.parent.tagname == 'title' and
+        node.parent.tagname in listOfMarkers):
+        myText = myText + node.astext()
+        beforeMarker = True
+        markerGrandparent = node.parent.parent
+    else:
+        beforeMarker = False
+        if (myText != ""):
+            print(myText)
+            myText = ""
+
+if (myText != ""):
+    print(myText)
