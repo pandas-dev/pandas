@@ -280,6 +280,7 @@ class FrameApply(metaclass=abc.ABCMeta):
             # Disallow complex_internals since libreduction shortcut
             #  cannot handle MultiIndex
             and not isinstance(self.agg_axis, ABCMultiIndex)
+            and len(set(self.dtypes))
         )
         return_result = None
 
