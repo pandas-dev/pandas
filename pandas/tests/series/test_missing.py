@@ -1324,8 +1324,8 @@ class TestSeriesInterpolateData:
         s = Series([1, 3, np.nan, np.nan, np.nan, 11])
 
         msg = (
-            r"Invalid limit_direction: expecting one of \['forward',"
-            r" 'backward', 'both'\], got 'abc'"
+            r"Invalid limit_direction: expecting one of \['forward', "
+            r"'backward', 'both'\], got 'abc'"
         )
         with pytest.raises(ValueError, match=msg):
             s.interpolate(method="linear", limit=2, limit_direction="abc")
