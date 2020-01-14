@@ -4342,15 +4342,6 @@ Name: Max Speed, dtype: float64
         """
         Convert columns of DataFrame or a Series to types supporting ``pd.NA``.
 
-        If the dtype is ``object``, if possible, convert to ``StringDtype``,
-        ``BooleanDtype`` or an appropriate integer extension type, otherwise leave as
-        ``object``.
-
-        If the dtype is "integer", convert to an appropriate integer type.
-
-        If the dtype is numeric, and consists of all integers, convert to an
-        appropriate integer type.
-
         Parameters
         ----------
         convert_integer : bool, default True
@@ -4390,7 +4381,7 @@ Name: Max Speed, dtype: float64
         try:
             result = self.astype(inferred_dtype)
         except TypeError:
-            result = self.astype(self.dtype)
+            result = self.copy()
 
         return result
 

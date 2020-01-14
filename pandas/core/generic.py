@@ -5913,25 +5913,28 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self: FrameOrSeries, convert_integer: bool_t = True
     ) -> FrameOrSeries:
         """
-        Convert columns of DataFrame or a Series to types supporting ``pd.NA``.
-
-        If the dtype is ``object``, if possible, convert to ``StringDtype``,
-        ``BooleanDtype`` or an appropriate integer extension type, otherwise leave as
-        ``object``.
-
-        If the dtype is integer", convert to an appropriate integer type.
-
-        If the dtype is numeric, and consists of all integers, convert to an
-        appropriate integer extension type.
+        Convert columns of DataFrame or a Series to dtypes supporting ``pd.NA``.
 
         Parameters
         ----------
         convert_integer : bool, default True
-            Whether ``int`` types should be converted to integer extension types
+            Whether ``int`` types should be converted to integer extension types.
 
         Returns
         -------
-        converted : same type as input object
+        Series or DataFrame
+            Copy of input object with new dtype.
+
+        Notes
+        -----
+        If the dtype is ``object``, if possible, convert to ``StringDtype``,
+        ``BooleanDtype`` or an appropriate integer extension type, otherwise leave as
+        ``object``.
+
+        If the dtype is integer, convert to an appropriate integer extension type.
+
+        If the dtype is numeric, and consists of all integers, convert to an
+        appropriate integer extension type.
 
         Examples
         --------

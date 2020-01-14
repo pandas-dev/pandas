@@ -531,3 +531,10 @@ class TestSeriesDtypes:
     def test_as_nullable_dtypes(self, series, dtype):
         ns = series.as_nullable_dtypes()
         assert ns.dtype == dtype
+
+        if isinstance(series.dtype, type(ns.dtype)) and series.dtype == ns.dtype:
+            # Test that it is a copy
+            copy = series.copy(deep=True)
+            ns[ns.notna()] = np.nan
+            # Make sure original not changed
+            tm.assert_series_equal(series, copy)
