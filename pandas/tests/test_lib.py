@@ -102,7 +102,7 @@ class TestIndexing:
         tm.assert_numpy_array_equal(maybe_slice, indices)
 
         msg = (
-            "index 100 is out of bounds for axis 0 with size 100|"
+            "index 100 is out of bounds for axis (0|1) with size 100|"
             "index 100 is out of bounds for axis 1 with size 100"
         )
 
