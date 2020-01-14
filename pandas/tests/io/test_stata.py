@@ -21,9 +21,20 @@ from pandas.io.stata import (
     PossiblePrecisionLoss,
     StataMissingValue,
     StataReader,
-    StataWriter118,
+    StataWriterUTF8,
     read_stata,
 )
+
+
+@pytest.fixture()
+def mixed_frame():
+    return pd.DataFrame(
+        {
+            "a": [1, 2, 3, 4],
+            "b": [1.0, 3.0, 27.0, 81.0],
+            "c": ["Atlanta", "Birmingham", "Cincinnati", "Detroit"],
+        }
+    )
 
 
 @pytest.fixture
@@ -112,7 +123,7 @@ class TestStata:
     def read_csv(self, file):
         return read_csv(file, parse_dates=True)
 
-    @pytest.mark.parametrize("version", [114, 117])
+    @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     def test_read_empty_dta(self, version):
         empty_ds = DataFrame(columns=["unit"])
         # GH 7369, make sure can read a 0-obs dta file
@@ -332,7 +343,7 @@ class TestStata:
                 check_index_type=False,
             )
 
-    @pytest.mark.parametrize("version", [114, 117])
+    @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     def test_read_write_dta10(self, version):
         original = DataFrame(
             data=[["string", "object", 1, 1.1, np.datetime64("2003-12-25")]],
@@ -368,7 +379,7 @@ class TestStata:
             df.to_stata(path, write_index=False)
         tm.assert_frame_equal(df, df_copy)
 
-    @pytest.mark.parametrize("version", [114, 117])
+    @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     def test_encoding(self, version):
 
         # GH 4626, proper encoding handling
@@ -409,7 +420,7 @@ class TestStata:
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(written_and_read_again.set_index("index"), formatted)
 
-    @pytest.mark.parametrize("version", [114, 117])
+    @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     def test_read_write_dta12(self, version):
         original = DataFrame(
             [(1, 2, 3, 4, 5, 6)],
@@ -461,7 +472,7 @@ class TestStata:
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(written_and_read_again.set_index("index"), formatted)
 
-    @pytest.mark.parametrize("version", [114, 117])
+    @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     @pytest.mark.parametrize(
         "file", ["dta14_113", "dta14_114", "dta14_115", "dta14_117"]
     )
@@ -504,7 +515,7 @@ class TestStata:
 
         tm.assert_frame_equal(expected, parsed)
 
-    @pytest.mark.parametrize("version", [114, 117])
+    @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     def test_timestamp_and_label(self, version):
         original = DataFrame([(1,)], columns=["variable"])
         time_stamp = datetime(2000, 2, 29, 14, 21)
@@ -518,7 +529,7 @@ class TestStata:
                 assert reader.time_stamp == "29 Feb 2000 14:21"
                 assert reader.data_label == data_label
 
-    @pytest.mark.parametrize("version", [114, 117])
+    @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     def test_invalid_timestamp(self, version):
         original = DataFrame([(1,)], columns=["variable"])
         time_stamp = "01 Jan 2000, 00:00:00"
@@ -542,7 +553,7 @@ class TestStata:
             written_and_read_again.columns = map(convert_col_name, columns)
             tm.assert_frame_equal(original, written_and_read_again)
 
-    @pytest.mark.parametrize("version", [114, 117])
+    @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     def test_nan_to_missing_value(self, version):
         s1 = Series(np.arange(4.0), dtype=np.float32)
         s2 = Series(np.arange(4.0), dtype=np.float64)
@@ -662,7 +673,7 @@ class TestStata:
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(written_and_read_again.set_index("index"), expected)
 
-    @pytest.mark.parametrize("version", [114, 117])
+    @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     @pytest.mark.parametrize("byteorder", [">", "<"])
     def test_bool_uint(self, byteorder, version):
         s0 = Series([0, 1, True], dtype=np.bool)
@@ -908,7 +919,7 @@ class TestStata:
             columns = ["byte_", "int_", "long_", "not_found"]
             read_stata(self.dta15_117, convert_dates=True, columns=columns)
 
-    @pytest.mark.parametrize("version", [114, 117])
+    @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     @pytest.mark.filterwarnings(
         "ignore:\\nStata value:pandas.io.stata.ValueLabelTypeMismatch"
     )
@@ -985,7 +996,7 @@ class TestStata:
             original.to_stata(path)
             # should get a warning for mixed content
 
-    @pytest.mark.parametrize("version", [114, 117])
+    @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     def test_categorical_with_stata_missing_values(self, version):
         values = [["a" + str(i)] for i in range(120)]
         values.append([np.nan])
@@ -1221,20 +1232,13 @@ class TestStata:
                 tm.assert_frame_equal(from_frame, chunk, check_dtype=False)
                 pos += chunksize
 
-    @pytest.mark.parametrize("version", [114, 117])
-    def test_write_variable_labels(self, version):
+    @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
+    def test_write_variable_labels(self, version, mixed_frame):
         # GH 13631, add support for writing variable labels
-        original = pd.DataFrame(
-            {
-                "a": [1, 2, 3, 4],
-                "b": [1.0, 3.0, 27.0, 81.0],
-                "c": ["Atlanta", "Birmingham", "Cincinnati", "Detroit"],
-            }
-        )
-        original.index.name = "index"
+        mixed_frame.index.name = "index"
         variable_labels = {"a": "City Rank", "b": "City Exponent", "c": "City"}
         with tm.ensure_clean() as path:
-            original.to_stata(path, variable_labels=variable_labels, version=version)
+            mixed_frame.to_stata(path, variable_labels=variable_labels, version=version)
             with StataReader(path) as sr:
                 read_labels = sr.variable_labels()
             expected_labels = {
@@ -1247,46 +1251,36 @@ class TestStata:
 
         variable_labels["index"] = "The Index"
         with tm.ensure_clean() as path:
-            original.to_stata(path, variable_labels=variable_labels, version=version)
+            mixed_frame.to_stata(path, variable_labels=variable_labels, version=version)
             with StataReader(path) as sr:
                 read_labels = sr.variable_labels()
             assert read_labels == variable_labels
 
-    @pytest.mark.parametrize("version", [114, 117])
-    def test_invalid_variable_labels(self, version):
-        original = pd.DataFrame(
-            {
-                "a": [1, 2, 3, 4],
-                "b": [1.0, 3.0, 27.0, 81.0],
-                "c": ["Atlanta", "Birmingham", "Cincinnati", "Detroit"],
-            }
-        )
-        original.index.name = "index"
+    @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
+    def test_invalid_variable_labels(self, version, mixed_frame):
+        mixed_frame.index.name = "index"
         variable_labels = {"a": "very long" * 10, "b": "City Exponent", "c": "City"}
         with tm.ensure_clean() as path:
             msg = "Variable labels must be 80 characters or fewer"
             with pytest.raises(ValueError, match=msg):
-                original.to_stata(
+                mixed_frame.to_stata(
                     path, variable_labels=variable_labels, version=version
                 )
 
+    @pytest.mark.parametrize("version", [114, 117])
+    def test_invalid_variable_label_encoding(self, version, mixed_frame):
+        mixed_frame.index.name = "index"
+        variable_labels = {"a": "very long" * 10, "b": "City Exponent", "c": "City"}
         variable_labels["a"] = "invalid character Œ"
         with tm.ensure_clean() as path:
             with pytest.raises(
                 ValueError, match="Variable labels must contain only characters"
             ):
-                original.to_stata(
+                mixed_frame.to_stata(
                     path, variable_labels=variable_labels, version=version
                 )
 
-    def test_write_variable_label_errors(self):
-        original = pd.DataFrame(
-            {
-                "a": [1, 2, 3, 4],
-                "b": [1.0, 3.0, 27.0, 81.0],
-                "c": ["Atlanta", "Birmingham", "Cincinnati", "Detroit"],
-            }
-        )
+    def test_write_variable_label_errors(self, mixed_frame):
         values = ["\u03A1", "\u0391", "\u039D", "\u0394", "\u0391", "\u03A3"]
 
         variable_labels_utf8 = {
@@ -1301,7 +1295,7 @@ class TestStata:
         )
         with pytest.raises(ValueError, match=msg):
             with tm.ensure_clean() as path:
-                original.to_stata(path, variable_labels=variable_labels_utf8)
+                mixed_frame.to_stata(path, variable_labels=variable_labels_utf8)
 
         variable_labels_long = {
             "a": "City Rank",
@@ -1314,7 +1308,7 @@ class TestStata:
         msg = "Variable labels must be 80 characters or fewer"
         with pytest.raises(ValueError, match=msg):
             with tm.ensure_clean() as path:
-                original.to_stata(path, variable_labels=variable_labels_long)
+                mixed_frame.to_stata(path, variable_labels=variable_labels_long)
 
     def test_default_date_conversion(self):
         # GH 12259
@@ -1636,7 +1630,7 @@ The repeated labels are:\n-+\nwolof
             with pytest.raises(ValueError, match=msg):
                 original.to_stata(path, convert_dates={"wrong_name": "tc"})
 
-    @pytest.mark.parametrize("version", [114, 117])
+    @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     def test_nonfile_writing(self, version):
         # GH 21041
         bio = io.BytesIO()
@@ -1699,7 +1693,7 @@ The repeated labels are:\n-+\nwolof
             expected = output.fillna("")
             tm.assert_frame_equal(reread, expected)
 
-    @pytest.mark.parametrize("version", [114, 117])
+    @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     def test_all_none_exception(self, version):
         output = [{"none": "none", "number": 0}, {"none": None, "number": 1}]
         output = pd.DataFrame(output)
@@ -1708,7 +1702,7 @@ The repeated labels are:\n-+\nwolof
             with pytest.raises(ValueError, match="Column `none` cannot be exported"):
                 output.to_stata(path, version=version)
 
-    @pytest.mark.parametrize("version", [114, 117])
+    @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     def test_invalid_file_not_written(self, version):
         content = "Here is one __�__ Another one __·__ Another one __½__"
         df = DataFrame([content], columns=["invalid"])
@@ -1770,7 +1764,8 @@ the string values returned are correct."""
         assert df.iloc[0, -1] == 1
         assert df.iloc[0, 0] == pd.Timestamp(datetime(2012, 12, 21, 21, 12, 21))
 
-    def test_118_writer(self):
+    @pytest.mark.parametrize("version", [118, 119, None])
+    def test_utf8_writer(self, version):
         cat = pd.Categorical(["a", "β", "ĉ"], ordered=True)
         data = pd.DataFrame(
             [
@@ -1791,13 +1786,14 @@ the string values returned are correct."""
         data_label = "ᴅaᵀa-label"
         data["β"] = data["β"].astype(np.int32)
         with tm.ensure_clean() as path:
-            writer = StataWriter118(
+            writer = StataWriterUTF8(
                 path,
                 data,
                 data_label=data_label,
                 convert_strl=["strls"],
                 variable_labels=variable_labels,
                 write_index=False,
+                version=version,
             )
             writer.write_file()
             reread_encoded = read_stata(path)
@@ -1807,3 +1803,16 @@ the string values returned are correct."""
             reader = StataReader(path)
             assert reader.data_label == data_label
             assert reader.variable_labels() == variable_labels
+
+            data.to_stata(path, version=version, write_index=False)
+            reread_to_stata = read_stata(path)
+            tm.assert_frame_equal(data, reread_to_stata)
+
+    def test_writer_118_exceptions(self):
+        df = DataFrame(np.zeros((1, 33000), dtype=np.int8))
+        with tm.ensure_clean() as path:
+            with pytest.raises(ValueError, match="version must be either 118 or 119."):
+                StataWriterUTF8(path, df, version=117)
+        with tm.ensure_clean() as path:
+            with pytest.raises(ValueError, match="You must use version 119"):
+                StataWriterUTF8(path, df, version=118)
