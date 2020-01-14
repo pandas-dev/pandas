@@ -42,7 +42,11 @@ class HeadingCapitalizationValidator(Builder):
 
 def setup(app):
     app.add_builder(HeadingCapitalizationValidator)
-    return
+    return {
+        'version': '0.1',
+        'parallel_read_safe': True,
+        'parallel_write_safe': True,
+    }
 
 
     # return {
