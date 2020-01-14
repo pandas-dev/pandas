@@ -138,7 +138,7 @@ def test_missing_required_dependency():
 
     msg = (
         r"Command '\['python', '-sSE', '-c', 'import pandas'\]' "
-        r"returned non-zero exit status 1."
+        "returned non-zero exit status 1."
     )
 
     with pytest.raises(subprocess.CalledProcessError, match=msg) as exc:
