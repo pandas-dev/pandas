@@ -8,7 +8,7 @@ import sys
 import numpy as np  # noqa
 import pytest
 
-from pandas import DataFrame, Series
+from pandas import DataFrame
 import pandas._testing as tm
 
 
@@ -112,26 +112,6 @@ def test_geopandas():
     geopandas = import_module("geopandas")  # noqa
     fp = geopandas.datasets.get_path("naturalearth_lowres")
     assert geopandas.read_file(fp) is not None
-
-
-def test_geopandas_coordinate_indexer():
-    # this test is included to have coverage of one case in the indexing.py
-    # code that is only kept for compatibility with geopandas, see
-    # https://github.com/pandas-dev/pandas/issues/27258
-    # We should be able to remove this after some time when its usage is
-    # removed in geopandas
-    from pandas.core.indexing import _NDFrameIndexer
-
-    class _CoordinateIndexer(_NDFrameIndexer):
-        def _getitem_tuple(self, tup):
-            obj = self.obj
-            xs, ys = tup
-            return obj[xs][ys]
-
-    Series._create_indexer("cx", _CoordinateIndexer)
-    s = Series(range(5))
-    res = s.cx[:, :]
-    tm.assert_series_equal(s, res)
 
 
 # Cython import warning
