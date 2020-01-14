@@ -690,7 +690,7 @@ class TestDataFrameApply:
         result = df.agg(["min"])
 
         tm.assert_frame_equal(result, expected)
-        
+
     def test_apply_get_dtype(self):
         # GH 28773
         df = DataFrame({"col_1": [1, 2, 3], "col_2": ["hi", "there", "friend"]})
