@@ -110,9 +110,9 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
 
     MSG='Check for strings with wrong placed spaces' ; echo $MSG
     if [[ "$GITHUB_ACTIONS" == "true" ]]; then
-        $BASE_DIR/scripts/validate_string_concatenation.py --validation-type="strings_with_wrong_placed_space" --format="##[error]{source_path}:{line_number}:{msg}" .
+        $BASE_DIR/scripts/validate_string_concatenation.py --validation-type="strings_with_wrong_placed_whitespace" --format="##[error]{source_path}:{line_number}:{msg}" .
     else
-        $BASE_DIR/scripts/validate_string_concatenation.py --validation-type="strings_with_wrong_placed_space" .
+        $BASE_DIR/scripts/validate_string_concatenation.py --validation-type="strings_with_wrong_placed_whitespace" .
     fi
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
