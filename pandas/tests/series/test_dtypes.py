@@ -502,7 +502,7 @@ class TestSeriesDtypes:
             (Series([[1, 2], [3, 4], [5]]), np.dtype("O")),
             (Series([4, 5, 6], dtype=np.dtype("uint32")), "UInt32"),
             (Series([-10, 12, 13], dtype=np.dtype("i1")), "Int8"),
-            (Series([1, 2.0], dtype=object), "Int64")
+            (Series([1, 2.0], dtype=object), "Int64"),
         ],
     )
     def test_as_nullable_dtypes(self, series, dtype):

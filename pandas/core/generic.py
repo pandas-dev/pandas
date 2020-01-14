@@ -5907,11 +5907,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ).__finalize__(self)
 
     def as_nullable_dtypes(
-        self: FrameOrSeries, keep_integer: bool = False
+        self: FrameOrSeries, keep_integer: bool_t = False
     ) -> FrameOrSeries:
         """
         Convert columns of DataFrame or a Series to types supporting ``pd.NA``.
-
         | If the dtype is "object", convert to "string", "boolean" or an appropriate
           integer type.
         | If the dtype is "integer", convert to an appropriate integer type.
