@@ -8,6 +8,7 @@ import warnings
 import numpy as np
 
 import pandas._libs.lib as lib
+import pandas._libs.missing as libmissing
 import pandas._libs.ops as libops
 from pandas._typing import ArrayLike, Dtype
 from pandas.util._decorators import Appender
@@ -118,12 +119,15 @@ def cat_safe(list_of_columns: List, sep: str):
     return result
 
 
-def _na_map(f, arr, na_result=np.nan, dtype=object):
-    # should really _check_ for NA
+def _na_map(f, arr, na_result=None, dtype=object):
     if is_extension_array_dtype(arr.dtype):
+        if na_result is None:
+            na_result = libmissing.NA
         # just StringDtype
         arr = extract_array(arr)
         return _map_stringarray(f, arr, na_value=na_result, dtype=dtype)
+    if na_result is None:
+        na_result = np.nan
     return _map_object(f, arr, na_mask=True, na_value=na_result, dtype=dtype)
 
 
