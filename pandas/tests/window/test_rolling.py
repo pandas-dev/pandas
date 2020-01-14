@@ -32,6 +32,7 @@ class TestRolling(Base):
         c = o.rolling
 
         # valid
+        c(0)
         c(window=2)
         c(window=2, min_periods=1)
         c(window=2, min_periods=1, center=True)
@@ -42,7 +43,6 @@ class TestRolling(Base):
         msg = "window must be non-negative"
 
         with pytest.raises(ValueError, match=msg):
-            c(0)
             c(-1)
 
         # not valid
