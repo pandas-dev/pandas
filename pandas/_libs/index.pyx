@@ -85,7 +85,6 @@ cdef class IndexEngine:
         """
         cdef:
             object loc
-            void* data_ptr
 
         loc = self.get_loc(key)
         if isinstance(loc, slice) or util.is_array(loc):
@@ -101,7 +100,6 @@ cdef class IndexEngine:
         """
         cdef:
             object loc
-            void* data_ptr
 
         loc = self.get_loc(key)
         value = convert_scalar(arr, value)
@@ -447,7 +445,6 @@ cdef class DatetimeEngine(Int64Engine):
                 conv = maybe_datetimelike_to_i8(val)
                 loc = values.searchsorted(conv, side='left')
             except TypeError:
-                self._date_check_type(val)
                 raise KeyError(val)
 
             if loc == len(values) or values[loc] != conv:
@@ -470,12 +467,6 @@ cdef class DatetimeEngine(Int64Engine):
             val = maybe_datetimelike_to_i8(val)
             return self.mapping.get_item(val)
         except (TypeError, ValueError):
-            self._date_check_type(val)
-            raise KeyError(val)
-
-    cdef inline _date_check_type(self, object val):
-        hash(val)
-        if not util.is_integer_object(val):
             raise KeyError(val)
 
     def get_indexer(self, values):

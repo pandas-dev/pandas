@@ -391,7 +391,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     # ------------------------------------------------------------------------
     # Index Methods
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None) -> np.ndarray:
         if is_integer_dtype(dtype):
             return self.asi8
         else:
@@ -469,17 +469,19 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     @Substitution(klass="PeriodIndex")
     @Appender(_shared_docs["searchsorted"])
     def searchsorted(self, value, side="left", sorter=None):
-        if isinstance(value, Period):
-            if value.freq != self.freq:
-                raise raise_on_incompatible(self, value)
-            value = value.ordinal
+        if isinstance(value, Period) or value is NaT:
+            self._data._check_compatible_with(value)
         elif isinstance(value, str):
             try:
-                value = Period(value, freq=self.freq).ordinal
+                value = Period(value, freq=self.freq)
             except DateParseError:
                 raise KeyError(f"Cannot interpret '{value}' as period")
+        elif not isinstance(value, PeriodArray):
+            raise TypeError(
+                "PeriodIndex.searchsorted requires either a Period or PeriodArray"
+            )
 
-        return self._ndarray_values.searchsorted(value, side=side, sorter=sorter)
+        return self._data.searchsorted(value, side=side, sorter=sorter)
 
     @property
     def is_full(self) -> bool:
@@ -507,7 +509,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         """
         s = com.values_from_object(series)
         try:
-            return com.maybe_box(self, super().get_value(s, key), series, key)
+            value = super().get_value(s, key)
         except (KeyError, IndexError):
             if isinstance(key, str):
                 asdt, parsed, reso = parse_time_string(key, self.freq)
@@ -539,6 +541,8 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             period = Period(key, self.freq)
             key = period.value if isna(period) else period.ordinal
             return com.maybe_box(self, self._int64index.get_value(s, key), series, key)
+        else:
+            return com.maybe_box(self, value, series, key)
 
     @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
@@ -621,7 +625,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         ----------
         label : object
         side : {'left', 'right'}
-        kind : {'ix', 'loc', 'getitem'}
+        kind : {'loc', 'getitem'}
 
         Returns
         -------
@@ -632,7 +636,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         Value of `side` parameter should be validated in caller.
 
         """
-        assert kind in ["ix", "loc", "getitem"]
+        assert kind in ["loc", "getitem"]
 
         if isinstance(label, datetime):
             return Period(label, freq=self.freq)
@@ -703,8 +707,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
         t1, t2 = self._parsed_string_to_bounds(reso, parsed)
         return slice(
-            self.searchsorted(t1.ordinal, side="left"),
-            self.searchsorted(t2.ordinal, side="right"),
+            self.searchsorted(t1, side="left"), self.searchsorted(t2, side="right")
         )
 
     def _convert_tolerance(self, tolerance, target):
@@ -837,7 +840,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         return result
 
 
-PeriodIndex._add_comparison_ops()
 PeriodIndex._add_numeric_methods_disabled()
 PeriodIndex._add_logical_methods_disabled()
 
