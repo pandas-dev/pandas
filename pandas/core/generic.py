@@ -8,6 +8,7 @@ import pickle
 import re
 from textwrap import dedent
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -100,6 +101,9 @@ from pandas.io.formats import format as fmt
 from pandas.io.formats.format import DataFrameFormatter, format_percentiles
 from pandas.io.formats.printing import pprint_thing
 from pandas.tseries.frequencies import to_offset
+
+if TYPE_CHECKING:
+    from pandas.core.resample import Resampler
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
@@ -261,8 +265,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             # a compound dtype
             if dtype.kind == "V":
                 raise NotImplementedError(
-                    "compound dtypes are not implemented"
-                    f" in the {type(self).__name__} constructor"
+                    "compound dtypes are not implemented "
+                    f"in the {type(self).__name__} constructor"
                 )
 
         return dtype
@@ -1697,8 +1701,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 multi_message = (
                     "\n"
                     "For a multi-index, the label must be a "
-                    "tuple with elements corresponding to "
-                    "each level."
+                    "tuple with elements corresponding to each level."
                 )
             else:
                 multi_message = ""
@@ -7776,7 +7779,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         base: int = 0,
         on=None,
         level=None,
-    ):
+    ) -> "Resampler":
         """
         Resample time-series data.
 
@@ -8041,10 +8044,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2000-01-04     36      90
         """
 
-        from pandas.core.resample import resample
+        from pandas.core.resample import get_resampler
 
         axis = self._get_axis_number(axis)
-        return resample(
+        return get_resampler(
             self,
             freq=rule,
             label=label,
@@ -9081,11 +9084,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 new_data = self._data.copy()
                 new_data.axes[block_axis] = index.shift(periods)
             elif orig_freq is not None:
-                msg = (
-                    f"Given freq {freq.rule_code} does not match"
-                    f" PeriodIndex freq {orig_freq.rule_code}"
+                raise ValueError(
+                    f"Given freq {freq.rule_code} does not match "
+                    f"PeriodIndex freq {orig_freq.rule_code}"
                 )
-                raise ValueError(msg)
         else:
             new_data = self._data.copy()
             new_data.axes[block_axis] = index.shift(periods, freq)

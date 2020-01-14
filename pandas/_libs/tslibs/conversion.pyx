@@ -99,6 +99,11 @@ def ensure_datetime64ns(arr: ndarray, copy: bool=True):
 
     shape = (<object>arr).shape
 
+    if (<object>arr).dtype.byteorder == ">":
+        # GH#29684 we incorrectly get OutOfBoundsDatetime if we dont swap
+        dtype = arr.dtype
+        arr = arr.astype(dtype.newbyteorder("<"))
+
     ivalues = arr.view(np.int64).ravel()
 
     result = np.empty(shape, dtype=NS_DTYPE)
