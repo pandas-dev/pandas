@@ -179,7 +179,6 @@ def strings_with_wrong_placed_whitespace(
 
         Examples
         --------
-
         >>> get_prefix_len('"Hello world"')
         0
 
