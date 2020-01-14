@@ -45,7 +45,6 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.dtypes import registry
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeIndex,
@@ -65,6 +64,7 @@ from pandas.core import algorithms, base, generic, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import ExtensionArray, try_cast_to_ea
 from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
+from pandas.core.arrays.integer import _dtypes
 from pandas.core.arrays.sparse import SparseAccessor
 import pandas.core.common as com
 from pandas.core.construction import (
@@ -4344,7 +4344,7 @@ Name: Max Speed, dtype: float64
 
         If the dtype is ``object``, if possible, convert to ``StringDtype``,
         ``BooleanDtype`` or an appropriate integer extension type, otherwise leave as
-        ``object``. 
+        ``object``.
 
         If the dtype is "integer", convert to an appropriate integer type.
 
@@ -4381,11 +4381,7 @@ Name: Max Speed, dtype: float64
         # If an integer, then match the size based on the registry
         elif is_integer_dtype(self.dtype):
             if convert_integer and not is_extension_array_dtype(self.dtype):
-                inferred_dtype = {
-                    sd.type: sd.name
-                    for sd in registry.dtypes
-                    if isinstance(sd.name, str) and "Int" in sd.name
-                }.get(self.dtype.type, target_int_dtype)
+                inferred_dtype = _dtypes.get(self.dtype.name, target_int_dtype)
 
         # If it's not integer and numeric try to make it an integer
         elif is_numeric_dtype(self.dtype):

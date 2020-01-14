@@ -807,7 +807,7 @@ dtype, it will use ``pd.NA``:
 Currently, pandas does not yet use those data types by default (when creating
 a DataFrame or Series, or when reading in data), so you need to specify
 the dtype explicitly.  An easy way to convert to those dtypes is explained
-:ref:`here <missing_data.NA.Conversion>`.
+:ref:`here <missing_data.NA.conversion>`.
 
 Propagation in arithmetic and comparison operations
 ---------------------------------------------------
@@ -947,7 +947,7 @@ work with ``NA``, and generally return ``NA``:
 
 See :ref:`dsintro.numpy_interop` for more on ufuncs.
 
-.. _missing_data.NA.Conversion:
+.. _missing_data.NA.conversion:
 
 Conversion
 ----------
