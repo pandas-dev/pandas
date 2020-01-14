@@ -65,7 +65,7 @@ extensions = [
     "sphinx.ext.linkcode",
     "nbsphinx",
     "contributors",  # custom pandas extension
-    "titles", # Tony Wu custom pandas extension
+    "titles", # Tony Wu custom pandas extension, MIGHT NEEDA FIX THIS LOWKEY
 ]
 
 exclude_patterns = ["**.ipynb_checkpoints"]

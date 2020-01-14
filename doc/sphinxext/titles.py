@@ -19,7 +19,7 @@ from sphinx.builders import Builder
 class HeadingCapitalizationValidator(Builder):
 
     name = 'capitalizationValidator'
-    
+
     def init(self):
         self.docnames = []
         self.document_data = []
@@ -40,7 +40,6 @@ class HeadingCapitalizationValidator(Builder):
 
 
 def setup(app):
-    app.info("Initializing capitalization validator")
     app.add_builder(HeadingCapitalizationValidator)
     return
 
