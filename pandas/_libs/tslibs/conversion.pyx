@@ -5,7 +5,8 @@ cimport numpy as cnp
 from numpy cimport int64_t, int32_t, intp_t, ndarray
 cnp.import_array()
 
-from dateutil import zoneinfo
+from dateutil.zoneinfo import tzfile as du_tzfile1
+from dateutil.tz.tz import tzfile as du_tzfile2
 
 import pytz
 
@@ -365,7 +366,10 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
     else:
         obj.value = pydatetime_to_dt64(ts, &obj.dts)
         # GH 24329 Take DST offset into account
-        if isinstance(ts.tzinfo, zoneinfo.tzfile):
+        # Two check in if necessary because class
+        # differs on Windows and Linux
+        if (isinstance(ts.tzinfo, du_tzfile1) or
+                isinstance(ts.tzinfo, du_tzfile2)):
             if ts.tzinfo.is_ambiguous(ts):
                 dst_offset = ts.tzinfo.dst(ts)
                 obj.value += int(dst_offset.total_seconds() * 1e9)
