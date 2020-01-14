@@ -243,8 +243,8 @@ def test_reindex_corner(datetime_series):
     # bad fill method
     ts = datetime_series[::2]
     msg = (
-        r"Invalid fill method\. Expecting pad \(ffill\), backfill"
-        r" \(bfill\) or nearest\. Got foo"
+        r"Invalid fill method\. Expecting pad \(ffill\), backfill "
+        r"\(bfill\) or nearest\. Got foo"
     )
     with pytest.raises(ValueError, match=msg):
         ts.reindex(datetime_series.index, method="foo")

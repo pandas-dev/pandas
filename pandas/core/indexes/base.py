@@ -4790,8 +4790,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         if side not in ("left", "right"):
             raise ValueError(
-                f"Invalid value for side kwarg, must be either"
-                f" 'left' or 'right': {side}"
+                "Invalid value for side kwarg, must be either "
+                f"'left' or 'right': {side}"
             )
 
         original_label = label

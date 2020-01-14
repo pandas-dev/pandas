@@ -1288,8 +1288,8 @@ class MultiIndex(Index):
                 if level < 0:
                     orig_level = level - self.nlevels
                     raise IndexError(
-                        f"Too many levels: Index has only {self.nlevels} levels,"
-                        f" {orig_level} is not a valid level number"
+                        f"Too many levels: Index has only {self.nlevels} levels, "
+                        f"{orig_level} is not a valid level number"
                     )
             # Note: levels are zero-based
             elif level >= self.nlevels:
@@ -2171,8 +2171,8 @@ class MultiIndex(Index):
         order = [self._get_level_number(i) for i in order]
         if len(order) != self.nlevels:
             raise AssertionError(
-                f"Length of order must be same as number of levels ({self.nlevels}),"
-                f" got {len(order)}"
+                f"Length of order must be same as number of levels ({self.nlevels}), "
+                f"got {len(order)}"
             )
         new_levels = [self.levels[i] for i in order]
         new_codes = [self.codes[i] for i in order]
@@ -2527,8 +2527,8 @@ class MultiIndex(Index):
     def _partial_tup_index(self, tup, side="left"):
         if len(tup) > self.lexsort_depth:
             raise UnsortedIndexError(
-                f"Key length ({len(tup)}) was greater than MultiIndex lexsort depth"
-                f" ({self.lexsort_depth})"
+                f"Key length ({len(tup)}) was greater than MultiIndex lexsort depth "
+                f"({self.lexsort_depth})"
             )
 
         n = len(tup)

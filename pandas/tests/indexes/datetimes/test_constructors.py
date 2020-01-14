@@ -644,8 +644,8 @@ class TestDatetimeIndex:
         )
 
         msg = (
-            "cannot supply both a tz and a timezone-naive dtype"
-            r" \(i\.e\. datetime64\[ns\]\)"
+            "cannot supply both a tz and a timezone-naive dtype "
+            r"\(i\.e\. datetime64\[ns\]\)"
         )
         with pytest.raises(ValueError, match=msg):
             DatetimeIndex(idx, dtype="datetime64[ns]")

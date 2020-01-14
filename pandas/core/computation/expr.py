@@ -466,8 +466,8 @@ class BaseExprVisitor(ast.NodeVisitor):
 
         if res.has_invalid_return_type:
             raise TypeError(
-                f"unsupported operand type(s) for {res.op}:"
-                f" '{lhs.type}' and '{rhs.type}'"
+                f"unsupported operand type(s) for {res.op}: "
+                f"'{lhs.type}' and '{rhs.type}'"
             )
 
         if self.engine != "pytables":

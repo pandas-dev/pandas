@@ -447,8 +447,8 @@ class TestDataFrameIndexing:
         tm.assert_series_equal(series, float_frame["col6"], check_names=False)
 
         msg = (
-            r"\"None of \[Float64Index\(\[.*dtype='float64'\)\] are in the"
-            r" \[columns\]\""
+            r"\"None of \[Float64Index\(\[.*dtype='float64'\)\] are in the "
+            r"\[columns\]\""
         )
         with pytest.raises(KeyError, match=msg):
             float_frame[np.random.randn(len(float_frame) + 1)] = 1
@@ -1039,9 +1039,9 @@ class TestDataFrameIndexing:
 
         # positional slicing only via iloc!
         msg = (
-            "cannot do slice indexing on"
-            r" <class 'pandas\.core\.indexes\.numeric\.Float64Index'> with"
-            r" these indexers \[1.0\] of <class 'float'>"
+            "cannot do slice indexing on "
+            r"<class 'pandas\.core\.indexes\.numeric\.Float64Index'> with "
+            r"these indexers \[1.0\] of <class 'float'>"
         )
         with pytest.raises(TypeError, match=msg):
             df.iloc[1.0:5]

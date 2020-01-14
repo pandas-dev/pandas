@@ -737,10 +737,10 @@ class TestStata:
             )
         original = DataFrame(s)
         msg = (
-            r"Fixed width strings in Stata \.dta files are limited to 244"
-            r" \(or fewer\)\ncharacters\.  Column 's500' does not satisfy"
-            r" this restriction\. Use the\n'version=117' parameter to write"
-            r" the newer \(Stata 13 and later\) format\."
+            r"Fixed width strings in Stata \.dta files are limited to 244 "
+            r"\(or fewer\)\ncharacters\.  Column 's500' does not satisfy "
+            r"this restriction\. Use the\n'version=117' parameter to write "
+            r"the newer \(Stata 13 and later\) format\."
         )
         with pytest.raises(ValueError, match=msg):
             with tm.ensure_clean() as path:
@@ -968,8 +968,8 @@ class TestStata:
         )
         with tm.ensure_clean() as path:
             msg = (
-                "Stata value labels for a single variable must have"
-                r" a combined length less than 32,000 characters\."
+                "Stata value labels for a single variable must have "
+                r"a combined length less than 32,000 characters\."
             )
             with pytest.raises(ValueError, match=msg):
                 original.to_stata(path)
@@ -1714,12 +1714,12 @@ The repeated labels are:\n-+\nwolof
         df = DataFrame([content], columns=["invalid"])
         with tm.ensure_clean() as path:
             msg1 = (
-                r"'latin-1' codec can't encode character '\\ufffd'"
-                r" in position 14: ordinal not in range\(256\)"
+                r"'latin-1' codec can't encode character '\\ufffd' "
+                r"in position 14: ordinal not in range\(256\)"
             )
             msg2 = (
-                "'ascii' codec can't decode byte 0xef in position 14:"
-                r" ordinal not in range\(128\)"
+                "'ascii' codec can't decode byte 0xef in position 14: "
+                r"ordinal not in range\(128\)"
             )
             with pytest.raises(UnicodeEncodeError, match=r"{}|{}".format(msg1, msg2)):
                 with tm.assert_produces_warning(ResourceWarning):

@@ -11,8 +11,8 @@ class TestSeriesAlterAxes:
     def test_setindex(self, string_series):
         # wrong type
         msg = (
-            r"Index\(\.\.\.\) must be called with a collection of some"
-            r" kind, None was passed"
+            r"Index\(\.\.\.\) must be called with a collection of some "
+            r"kind, None was passed"
         )
         with pytest.raises(TypeError, match=msg):
             string_series.index = None
