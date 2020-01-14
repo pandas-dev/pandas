@@ -128,7 +128,7 @@ class TestRolling(Base):
         df = DataFrame({"A": [0, 1, 2, 3, 4]})
         # closed only allowed for datetimelike
 
-        msg = "losed only implemented for datetimelike and offset based windows"
+        msg = "closed only implemented for datetimelike and offset based windows"
 
         with pytest.raises(ValueError, match=msg):
             df.rolling(window=3, closed="neither")
