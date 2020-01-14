@@ -67,7 +67,8 @@ def bare_pytest_raises(source_path: str) -> Generator[Tuple[str, int, str], None
                 yield (
                     source_path,
                     current_token.start[0],
-                    "Bare pytests raise have been found.",
+                    "Bare pytests raise have been found. "
+                    "Please pass in the argument 'match' as well the exception.",
                 )
                 break
 
