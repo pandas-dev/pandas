@@ -70,6 +70,9 @@ document = docutils.utils.new_document('Document', settings)
 parser.parse(input, document)
 
 # node.tagname = #text, parent.tagname = title (ALL OF THEM)
+listOfMarkers = ['emphasis', 'strong', 'reference']
 for node in document.traverse(nodes.Text):
-    if (node.tagname == '#text' and node.parent.tagname == 'title'):
-        print(node.astext())
+    if (node.tagname == '#text'):
+        if (node.parent.tagname == 'title' or (node.parent.parent.tagname == 'title' and
+        node.parent.tagname in listOfMarkers)):
+            print(node.astext())
