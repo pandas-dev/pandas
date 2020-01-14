@@ -18,6 +18,11 @@ if [[ "not clipboard" != *"$PATTERN"* ]]; then
     # An X server has to exist, and DISPLAY set, for the clipboard (and its tests) to work
     export DISPLAY=":0"
     echo "xsel path: $(which xsel)"
+    echo "testing xsel from terminal"
+    echo "DISPLAY: $DISPLAY"
+    echo "abc" | xsel -i
+    echo "clipboard content (should be abc): $(xsel -o)"
+    echo "testing xsel from pandas"
     python -c "import pandas.io.clipboard ; pandas.io.clipboard.clipboard_set('123')"
     python -c "import pandas.io.clipboard ; print(f'clipboard content (should be 123): {pandas.io.clipboard.clipboard_get()}')"
 fi
