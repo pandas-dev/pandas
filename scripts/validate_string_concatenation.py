@@ -127,7 +127,7 @@ def strings_to_concatenate(
             )
 
 
-def strings_with_wrong_placed_space(
+def strings_with_wrong_placed_whitespace(
     source_path: str,
 ) -> Generator[Tuple[str, int, str], None, None]:
     """
@@ -316,7 +316,7 @@ if __name__ == "__main__":
     available_validation_types: List[str] = [
         "bare_pytest_raises",
         "strings_to_concatenate",
-        "strings_with_wrong_placed_space",
+        "strings_with_wrong_placed_whitespace",
     ]
 
     parser = argparse.ArgumentParser(description="Unwanted patterns checker.")
