@@ -1073,9 +1073,9 @@ class TestDataFrameDataTypes:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "keep_integer, expected", [(True, np.dtype("int32")), (False, "Int32")]
+        "convert_integer, expected", [(False, np.dtype("int32")), (True, "Int32")]
     )
-    def test_as_nullable_dtypes(self, keep_integer, expected):
+    def test_as_nullable_dtypes(self, convert_integer, expected):
         # Specific types are tested in tests/series/test_dtypes.py
         # Just check that it works for DataFrame here
         df = pd.DataFrame(
@@ -1084,7 +1084,7 @@ class TestDataFrameDataTypes:
                 "b": pd.Series(["x", "y", "z"], dtype=np.dtype("O")),
             }
         )
-        result = df.as_nullable_dtypes(keep_integer)
+        result = df.as_nullable_dtypes(convert_integer)
         expected = pd.DataFrame(
             {
                 "a": pd.Series([1, 2, 3], dtype=expected),

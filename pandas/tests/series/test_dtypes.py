@@ -503,6 +503,29 @@ class TestSeriesDtypes:
             (Series([4, 5, 6], dtype=np.dtype("uint32")), "UInt32"),
             (Series([-10, 12, 13], dtype=np.dtype("i1")), "Int8"),
             (Series([1, 2.0], dtype=object), "Int64"),
+            (Series(["a", "b"], dtype=pd.CategoricalDtype()), pd.CategoricalDtype()),
+            (
+                Series(
+                    pd.to_datetime(["2020-01-14 10:00", "2020-01-15 11:11"]),
+                    dtype=pd.DatetimeTZDtype(tz="UTC"),
+                ),
+                pd.DatetimeTZDtype(tz="UTC"),
+            ),
+            (
+                Series(
+                    pd.to_datetime(["2020-01-14 10:00", "2020-01-15 11:11"]),
+                    dtype="datetime64[ns]",
+                ),
+                np.dtype("datetime64[ns]"),
+            ),
+            (
+                Series(pd.period_range("1/1/2011", freq="M", periods=3)),
+                pd.PeriodDtype("M"),
+            ),
+            (
+                Series(pd.arrays.IntervalArray([pd.Interval(0, 1), pd.Interval(1, 5)])),
+                pd.IntervalDtype("int64"),
+            ),
         ],
     )
     def test_as_nullable_dtypes(self, series, dtype):

@@ -5907,27 +5907,28 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ).__finalize__(self)
 
     def as_nullable_dtypes(
-        self: FrameOrSeries, keep_integer: bool_t = False
+        self: FrameOrSeries, convert_integer: bool_t = True
     ) -> FrameOrSeries:
         """
         Convert columns of DataFrame or a Series to types supporting ``pd.NA``.
 
-        If the dtype is "object", convert to "string", "boolean" or an appropriate
-        integer type.
+        If the dtype is ``object``, if possible, convert to ``StringDtype``,
+        ``BooleanDtype`` or an appropriate integer extension type, otherwise leave as
+        ``object``.
 
-        If the dtype is "integer", convert to an appropriate integer type.
+        If the dtype is integer", convert to an appropriate integer type.
 
         If the dtype is numeric, and consists of all integers, convert to an
-        appropriate type.
+        appropriate integer extension type.
 
         Parameters
         ----------
-        keep_integer : bool, default False
+        convert_integer : bool, default True
             Whether ``int`` types should be converted to integer extension types
 
         Returns
         -------
-        converted : a copy of the same type as caller
+        converted : same type as input object
 
         Examples
         --------
@@ -5987,10 +5988,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         dtype: string
         """
         if self.ndim == 1:
-            return self._as_nullable_dtype(keep_integer)
+            return self._as_nullable_dtype(convert_integer)
         else:
             results = [
-                col._as_nullable_dtype(keep_integer) for col_name, col in self.items()
+                col._as_nullable_dtype(convert_integer)
+                for col_name, col in self.items()
             ]
             result = pd.concat(results, axis=1, copy=False)
             return result

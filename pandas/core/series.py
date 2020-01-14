@@ -4337,58 +4337,63 @@ Name: Max Speed, dtype: float64
     # ----------------------------------------------------------------------
     # Convert to types that support pd.NA
 
-    def _as_nullable_dtype(self: ABCSeries, keep_integer: bool = False) -> ABCSeries:
+    def _as_nullable_dtype(self: ABCSeries, convert_integer: bool = True) -> ABCSeries:
         """
-        Handle one Series
+        Convert columns of DataFrame or a Series to types supporting ``pd.NA``.
 
-        Rules:
-        If an object, see if we can infer string, boolean or integer, otherwise leave
-        alone
-        If an integer and not an extension type, convert to the extension Int type
-        If numeric, see if we can infer integer, otherwise try to use astype() to make
-        it integer.
+        If the dtype is ``object``, if possible, convert to ``StringDtype``,
+        ``BooleanDtype`` or an appropriate integer extension type, otherwise leave as
+        ``object``. 
 
+        If the dtype is "integer", convert to an appropriate integer type.
+
+        If the dtype is numeric, and consists of all integers, convert to an
+        appropriate integer type.
+
+        Parameters
+        ----------
+        convert_integer : bool, default True
+            Whether ``int`` types should be converted to integer extension types
+
+        Returns
+        -------
+        converted : same type as input object
         """
-        dtype = self.dtype
-        new_dtype = dtype
-        changeit = True
-        result = self
         target_int_dtype = "Int64"
 
-        if is_object_dtype(dtype):
-            new_dtype = lib.infer_dtype(self)
-            if new_dtype.startswith("mixed-integer"):
-                try:
-                    result = self.astype(target_int_dtype)
-                    new_dtype = target_int_dtype
-                    changeit = False
-                except TypeError:
-                    pass
+        try:
+            inferred_dtype = lib.infer_dtype(self)
+        except ValueError:
+            inferred_dtype = self.dtype
 
-            elif new_dtype not in {"string", "boolean", "integer"}:
-                new_dtype = dtype
+        # If an object, try to convert to an integer, string or boolean
+        # extension type, otherwise leave it alone
+        if is_object_dtype(self.dtype):
+            if (
+                inferred_dtype == "mixed-integer"
+                or inferred_dtype == "mixed-integer-float"
+            ):
+                inferred_dtype = target_int_dtype
+            elif inferred_dtype not in {"string", "boolean", "integer"}:
+                inferred_dtype = self.dtype
 
-        elif is_integer_dtype(dtype):
-            if not keep_integer and not is_extension_array_dtype(dtype):
-                new_dtype = "integer"
-
-        elif is_numeric_dtype(dtype):
-            new_dtype = dtype
-            try:
-                result = self.astype(target_int_dtype)
-                new_dtype = target_int_dtype
-                changeit = False
-            except TypeError:
-                pass
-
-        if changeit:
-            if isinstance(new_dtype, str) and new_dtype == "integer":
-                new_dtype = {
+        # If an integer, then match the size based on the registry
+        elif is_integer_dtype(self.dtype):
+            if convert_integer and not is_extension_array_dtype(self.dtype):
+                inferred_dtype = {
                     sd.type: sd.name
                     for sd in registry.dtypes
                     if isinstance(sd.name, str) and "Int" in sd.name
-                }.get(dtype.type, target_int_dtype)
-            result = self.astype(new_dtype)
+                }.get(self.dtype.type, target_int_dtype)
+
+        # If it's not integer and numeric try to make it an integer
+        elif is_numeric_dtype(self.dtype):
+            inferred_dtype = target_int_dtype
+
+        try:
+            result = self.astype(inferred_dtype)
+        except TypeError:
+            result = self.astype(self.dtype)
 
         return result
 
