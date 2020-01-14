@@ -18,6 +18,8 @@ from sphinx.builders import Builder
 
 class HeadingCapitalizationValidator(Builder):
 
+    name = 'capitalizationValidator'
+    
     def init(self):
         self.docnames = []
         self.document_data = []
