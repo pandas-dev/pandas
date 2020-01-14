@@ -5925,7 +5925,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         keep_integer : bool, default False
             Whether ``int`` types should be converted to integer extension types
 
-
         Returns
         -------
         converted : a copy of the same type as caller
