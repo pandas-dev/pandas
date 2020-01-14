@@ -23,12 +23,13 @@ class HeadingCapitalizationValidator(Builder):
     def init(self):
         self.docnames = []
         self.document_data = []
+        print("BRO")
         return
 
     def write_doc(self, docname, doctree):
         z = 0
         if z == 0:
-            self.warning("Warning: capitalization not followed")
+            self.error("Warning: capitalization not followed")
 
         for node in doctree.traverse(nodes.Text):
             if (node.tagname == '#subtitle'):
