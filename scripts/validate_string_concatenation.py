@@ -20,6 +20,58 @@ from typing import Callable, Generator, List, Tuple
 FILE_EXTENSIONS_TO_CHECK = (".py", ".pyx", ".pyx.ini", ".pxd")
 
 
+def bare_pytest_raises(source_path: str) -> Generator[Tuple[str, int, str], None, None]:
+    """
+    Test Case for bare pytest raises.
+
+    For example, this is wrong:
+
+    >>> with pytest.raise(ValueError):
+    ...     # Some code that raises ValueError
+
+    And this is what we want instead:
+
+    >>> with pytest.raise(ValueError, match="foo"):
+    ...     # Some code that raises ValueError
+
+    Parameters
+    ----------
+    source_path : str
+        File path pointing to a single file.
+
+    Yields
+    ------
+    source_path : str
+        Source file path.
+    line_number : int
+        Line number of unconcatenated string.
+    msg : str
+        Explenation of the error.
+
+    Notes
+    -----
+    GH #23922
+    """
+    with open(source_path, "r") as file_name:
+        tokens: List = list(tokenize.generate_tokens(file_name.readline))
+
+    for counter, current_token in enumerate(tokens, start=1):
+        if not (current_token.type == token.NAME and current_token.string == "raises"):
+            continue
+        for next_token in tokens[counter:]:
+            if next_token.type == token.NAME and next_token.string == "match":
+                break
+            # token.NEWLINE refers to the end of a logical line
+            # unlike token.NL or "\n" which represents a newline
+            if next_token.type == token.NEWLINE:
+                yield (
+                    source_path,
+                    current_token.start[0],
+                    "Bare pytests raise have been found.",
+                )
+                break
+
+
 def strings_to_concatenate(
     source_path: str,
 ) -> Generator[Tuple[str, int, str], None, None]:
@@ -200,58 +252,6 @@ def strings_with_wrong_placed_space(
                 )
 
 
-def bare_pytest_raises(source_path: str) -> Generator[Tuple[str, int, str], None, None]:
-    """
-    Test Case for bare pytest raises.
-
-    For example, this is wrong:
-
-    >>> with pytest.raise(ValueError):
-    ...     # Some code that raises ValueError
-
-    And this is what we want instead:
-
-    >>> with pytest.raise(ValueError, match="foo"):
-    ...     # Some code that raises ValueError
-
-    Parameters
-    ----------
-    source_path : str
-        File path pointing to a single file.
-
-    Yields
-    ------
-    source_path : str
-        Source file path.
-    line_number : int
-        Line number of unconcatenated string.
-    msg : str
-        Explenation of the error.
-
-    Notes
-    -----
-    GH #23922
-    """
-    with open(source_path, "r") as file_name:
-        tokens: List = list(tokenize.generate_tokens(file_name.readline))
-
-    for counter, current_token in enumerate(tokens, start=1):
-        if not (current_token.type == token.NAME and current_token.string == "raises"):
-            continue
-        for next_token in tokens[counter:]:
-            if next_token.type == token.NAME and next_token.string == "match":
-                break
-            # token.NEWLINE refers to the end of a logical line
-            # unlike token.NL or "\n" which represents a newline
-            if next_token.type == token.NEWLINE:
-                yield (
-                    source_path,
-                    current_token.start[0],
-                    "Bare pytests raise have been found.",
-                )
-                break
-
-
 def main(
     function: Callable[[str], Generator[Tuple[str, int, str], None, None]],
     source_path: str,
@@ -314,9 +314,9 @@ def main(
 
 if __name__ == "__main__":
     available_validation_types: List[str] = [
+        "bare_pytest_raises",
         "strings_to_concatenate",
         "strings_with_wrong_placed_space",
-        "bare_pytest_raises",
     ]
 
     parser = argparse.ArgumentParser(description="Unwanted patterns checker.")
