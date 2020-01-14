@@ -612,8 +612,7 @@ def _make_parser_function(name, default_sep=","):
         if delim_whitespace and delimiter != default_sep:
             raise ValueError(
                 "Specified a delimiter with both sep and "
-                "delim_whitespace=True; you can only "
-                "specify one."
+                "delim_whitespace=True; you can only specify one."
             )
 
         if engine is not None:
@@ -968,8 +967,7 @@ class TextFileReader(abc.Iterator):
                 fallback_reason = (
                     "the 'c' engine does not support "
                     "regex separators (separators > 1 char and "
-                    r"different from '\s+' are "
-                    "interpreted as regex)"
+                    r"different from '\s+' are interpreted as regex)"
                 )
                 engine = "python"
         elif delim_whitespace:
@@ -1000,8 +998,7 @@ class TextFileReader(abc.Iterator):
                 fallback_reason = (
                     "ord(quotechar) > 127, meaning the "
                     "quotechar is larger than one byte, "
-                    "and the 'c' engine does not support "
-                    "such quotechars"
+                    "and the 'c' engine does not support such quotechars"
                 )
                 engine = "python"
 
@@ -1119,9 +1116,8 @@ class TextFileReader(abc.Iterator):
                 klass = FixedWidthFieldParser
             else:
                 raise ValueError(
-                    f"Unknown engine: {engine} (valid options are "
-                    '"c", "python", or '
-                    '"python-fwf")'
+                    f"Unknown engine: {engine} (valid options "
+                    'are "c", "python", or "python-fwf")'
                 )
             self._engine = klass(self.f, **self.options)
 
@@ -1230,8 +1226,7 @@ def _validate_usecols_names(usecols, names):
     missing = [c for c in usecols if c not in names]
     if len(missing) > 0:
         raise ValueError(
-            "Usecols do not match columns, "
-            f"columns expected but not found: {missing}"
+            f"Usecols do not match columns, columns expected but not found: {missing}"
         )
 
     return usecols
@@ -1325,8 +1320,7 @@ def _validate_parse_dates_arg(parse_dates):
     that is the case.
     """
     msg = (
-        "Only booleans, lists, and "
-        "dictionaries are accepted "
+        "Only booleans, lists, and dictionaries are accepted "
         "for the 'parse_dates' parameter"
     )
 
@@ -1680,8 +1674,7 @@ class ParserBase:
                     warnings.warn(
                         (
                             "Both a converter and dtype were specified "
-                            f"for column {c} - only the converter will "
-                            "be used"
+                            f"for column {c} - only the converter will be used"
                         ),
                         ParserWarning,
                         stacklevel=7,
@@ -1826,8 +1819,7 @@ class ParserBase:
             except NotImplementedError:
                 raise NotImplementedError(
                     f"Extension Array: {array_type} must implement "
-                    "_from_sequence_of_strings in order "
-                    "to be used in parser methods"
+                    "_from_sequence_of_strings in order to be used in parser methods"
                 )
 
         else:

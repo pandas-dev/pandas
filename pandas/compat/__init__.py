@@ -110,8 +110,7 @@ def _import_lzma():
         return lzma
     except ImportError:
         msg = (
-            "Could not import the lzma module. "
-            "Your installed Python is incomplete. "
+            "Could not import the lzma module. Your installed Python is incomplete. "
             "Attempting to use lzma compression will result in a RuntimeError."
         )
         warnings.warn(msg)

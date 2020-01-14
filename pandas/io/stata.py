@@ -639,8 +639,7 @@ class StataValueLabel:
         if self.text_len > 32000:
             raise ValueError(
                 "Stata value labels for a single variable must "
-                "have a combined length less than 32,000 "
-                "characters."
+                "have a combined length less than 32,000 characters."
             )
 
         # Ensure int32
@@ -1729,9 +1728,10 @@ the string values returned are correct."""
                 raise ValueError("columns contains duplicate entries")
             unmatched = column_set.difference(data.columns)
             if unmatched:
+                joined = ", ".join(list(unmatched))
                 raise ValueError(
-                    "The following columns were not found in the "
-                    "Stata data set: " + ", ".join(list(unmatched))
+                    "The following columns were not "
+                    f"found in the Stata data set: {joined}"
                 )
             # Copy information for retained columns for later processing
             dtyplist = []

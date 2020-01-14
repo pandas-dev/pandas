@@ -977,8 +977,7 @@ class SQLTable(PandasObject):
         if col_type == "timedelta64":
             warnings.warn(
                 "the 'timedelta' type is not supported, and will be "
-                "written as integer values (ns frequency) to the "
-                "database.",
+                "written as integer values (ns frequency) to the database.",
                 UserWarning,
                 stacklevel=8,
             )
@@ -1413,8 +1412,7 @@ def _get_valid_sqlite_name(name):
 
 _SAFE_NAMES_WARNING = (
     "The spaces in these column names will not be changed. "
-    "In pandas versions < 0.14, spaces were converted to "
-    "underscores."
+    "In pandas versions < 0.14, spaces were converted to underscores."
 )
 
 
@@ -1528,8 +1526,7 @@ class SQLiteTable(SQLTable):
         if col_type == "timedelta64":
             warnings.warn(
                 "the 'timedelta' type is not supported, and will be "
-                "written as integer values (ns frequency) to the "
-                "database.",
+                "written as integer values (ns frequency) to the database.",
                 UserWarning,
                 stacklevel=8,
             )

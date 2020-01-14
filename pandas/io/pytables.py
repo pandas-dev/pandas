@@ -413,8 +413,8 @@ def read_hdf(
             for group_to_check in groups[1:]:
                 if not _is_metadata_of(group_to_check, candidate_only_group):
                     raise ValueError(
-                        "key must be provided when HDF5 file "
-                        "contains multiple datasets."
+                        "key must be provided when HDF5 "
+                        "file contains multiple datasets."
                     )
             key = candidate_only_group._v_pathname
         return store.select(
@@ -1240,8 +1240,7 @@ class HDFStore:
             if v is None:
                 if remain_key is not None:
                     raise ValueError(
-                        "append_to_multiple can only have one value in d that "
-                        "is None"
+                        "append_to_multiple can only have one value in d that is None"
                     )
                 remain_key = k
             else:
@@ -2313,8 +2312,7 @@ class DataCol(IndexCol):
             existing_dtype = getattr(self.attrs, self.dtype_attr, None)
             if existing_dtype is not None and existing_dtype != self.dtype:
                 raise ValueError(
-                    "appended items dtype do not match existing "
-                    "items dtype in table!"
+                    "appended items dtype do not match existing items dtype in table!"
                 )
 
     def convert(self, values: np.ndarray, nan_rep, encoding: str, errors: str):
@@ -2680,14 +2678,12 @@ class GenericFixed(Fixed):
         if columns is not None:
             raise TypeError(
                 "cannot pass a column specification when reading "
-                "a Fixed format store. this store must be "
-                "selected in its entirety"
+                "a Fixed format store. this store must be selected in its entirety"
             )
         if where is not None:
             raise TypeError(
                 "cannot pass a where specification when reading "
-                "from a Fixed format store. this store must be "
-                "selected in its entirety"
+                "from a Fixed format store. this store must be selected in its entirety"
             )
 
     @property
@@ -2908,8 +2904,7 @@ class GenericFixed(Fixed):
 
         if is_categorical_dtype(value):
             raise NotImplementedError(
-                "Cannot store a category dtype in "
-                "a HDF5 dataset that uses format="
+                "Cannot store a category dtype in a HDF5 dataset that uses format="
                 '"fixed". Use format="table".'
             )
         if not empty_array:
