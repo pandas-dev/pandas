@@ -297,7 +297,10 @@ class TestBlock:
         assert (newb.values[1] == 1).all()
 
         newb = self.fblock.copy()
-        with pytest.raises(Exception):
+
+        msg = "index 3 is out of bounds for axis 0 with size 3"
+
+        with pytest.raises(Exception, match=msg):
             newb.delete(3)
 
 
@@ -321,7 +324,12 @@ class TestDatetimeBlock:
 
         val = date(2010, 10, 10)
         assert not block._can_hold_element(val)
-        with pytest.raises(TypeError):
+
+        msg = (
+            "'value' should be a 'Timestamp', 'NaT', "
+            "or array of those. Got 'date' instead."
+        )
+        with pytest.raises(TypeError, match=msg):
             arr[0] = val
 
 
@@ -350,7 +358,10 @@ class TestBlockManager:
         blocks[1].mgr_locs = np.array([0])
 
         # test trying to create block manager with overlapping ref locs
-        with pytest.raises(AssertionError):
+
+        msg = "Gaps in blk ref_locs"
+
+        with pytest.raises(AssertionError, match=msg):
             BlockManager(blocks, axes)
 
         blocks[0].mgr_locs = np.array([0])
@@ -807,8 +818,15 @@ class TestBlockManager:
         invalid_values = [1, "True", [1, 2, 3], 5.0]
         bm1 = create_mgr("a,b,c: i8-1; d,e,f: i8-2")
 
+        msg = (
+            r'For argument "inplace" expected type bool, received type int.|'
+            r'For argument "inplace" expected type bool, received type str.|'
+            r'For argument "inplace" expected type bool, received type list.|'
+            r'For argument "inplace" expected type bool, received type float.'
+        )
+
         for value in invalid_values:
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match=msg):
                 bm1.replace_list([1], [2], inplace=value)
 
 
@@ -1027,9 +1045,11 @@ class TestBlockPlacement:
         assert len(BlockPlacement(slice(1, 0, -1))) == 1
 
     def test_zero_step_raises(self):
-        with pytest.raises(ValueError):
+        msg = "slice step cannot be zero"
+
+        with pytest.raises(ValueError, match=msg):
             BlockPlacement(slice(1, 1, 0))
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             BlockPlacement(slice(1, 2, 0))
 
     def test_unbounded_slice_raises(self):
@@ -1132,9 +1152,11 @@ class TestBlockPlacement:
         assert_add_equals(slice(1, 4), -1, [0, 1, 2])
         assert_add_equals([1, 2, 4], -1, [0, 1, 3])
 
-        with pytest.raises(ValueError):
+        msg = "iadd causes length change"
+
+        with pytest.raises(ValueError, match=msg):
             BlockPlacement(slice(1, 4)).add(-10)
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             BlockPlacement([1, 2, 4]).add(-10)
 
 
@@ -1216,7 +1238,17 @@ class TestCanHoldElement:
         }
 
         if (op, dtype) in invalid:
-            with pytest.raises(TypeError):
+            msg = (
+                "cannot perform __pow__ with this index type: DatetimeArray|"
+                "cannot perform __mod__ with this index type: DatetimeArray|"
+                "cannot perform __truediv__ with this index type: DatetimeArray|"
+                "cannot perform __mul__ with this index type: DatetimeArray|"
+                "cannot perform __pow__ with this index type: TimedeltaArray|"
+                "ufunc 'multiply' cannot use operands with types dtype"
+                r"\('<m8\[ns\]'\) and dtype\('<m8\[ns\]'\)|"
+                "cannot add DatetimeArray and Timestamp"
+            )
+            with pytest.raises(TypeError, match=msg):
                 op(s, e.value)
         else:
             # FIXME: Since dispatching to Series, this test no longer
