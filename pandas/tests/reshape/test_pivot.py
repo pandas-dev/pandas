@@ -896,12 +896,6 @@ class TestPivotTable:
             totals = table.loc[("All", ""), value_col]
             assert totals == self.data[value_col].mean()
 
-        # no rows
-        rtable = self.data.pivot_table(
-            columns=["AA", "BB"], margins=True, aggfunc=np.mean
-        )
-        assert isinstance(rtable, Series)
-
         table = self.data.pivot_table(index=["AA", "BB"], margins=True, aggfunc="mean")
         for item in ["DD", "EE", "FF"]:
             totals = table.loc[("All", ""), item]
