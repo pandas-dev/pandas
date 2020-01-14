@@ -101,7 +101,7 @@ class TestIndexing:
         assert not isinstance(maybe_slice, slice)
         tm.assert_numpy_array_equal(maybe_slice, indices)
 
-        msg = r"index 100 is out of bounds for axis \(0|1\) with size 100"
+        msg = "index 100 is out of bounds for axis (0|1) with size 100"
 
         with pytest.raises(IndexError, match=msg):
             target[indices]
