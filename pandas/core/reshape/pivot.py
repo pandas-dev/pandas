@@ -117,7 +117,6 @@ def pivot_table(
                 agged[v] = maybe_downcast_to_dtype(agged[v], data[v].dtype)
 
     table = agged
-
     if table.index.nlevels > 1:
         # Related GH #17123
         # If index_names are integers, determine whether the integers refer
