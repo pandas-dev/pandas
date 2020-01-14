@@ -423,16 +423,21 @@ class TestExtensionTake:
 
     def test_bounds_check_large(self):
         arr = np.array([1, 2])
-        with pytest.raises(IndexError):
+
+        msg = "indices are out-of-bounds"
+        with pytest.raises(IndexError, match=msg):
             algos.take(arr, [2, 3], allow_fill=True)
 
-        with pytest.raises(IndexError):
+        msg = "index 2 is out of bounds for size 2"
+        with pytest.raises(IndexError, match=msg):
             algos.take(arr, [2, 3], allow_fill=False)
 
     def test_bounds_check_small(self):
         arr = np.array([1, 2, 3], dtype=np.int64)
         indexer = [0, -1, -2]
-        with pytest.raises(ValueError):
+
+        msg = r"'indices' contains values less than allowed \(-2 < -1\)"
+        with pytest.raises(ValueError, match=msg):
             algos.take(arr, indexer, allow_fill=True)
 
         result = algos.take(arr, indexer)
@@ -446,7 +451,11 @@ class TestExtensionTake:
         result = algos.take(arr, [], allow_fill=allow_fill)
         tm.assert_numpy_array_equal(arr, result)
 
-        with pytest.raises(IndexError):
+        msg = (
+            r"cannot do a non-empty take from an empty axes.|"
+            "indices are out-of-bounds"
+        )
+        with pytest.raises(IndexError, match=msg):
             algos.take(arr, [0], allow_fill=allow_fill)
 
     def test_take_na_empty(self):
