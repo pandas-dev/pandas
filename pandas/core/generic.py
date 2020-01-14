@@ -1701,8 +1701,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 multi_message = (
                     "\n"
                     "For a multi-index, the label must be a "
-                    "tuple with elements corresponding to "
-                    "each level."
+                    "tuple with elements corresponding to each level."
                 )
             else:
                 multi_message = ""
