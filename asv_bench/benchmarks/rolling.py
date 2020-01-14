@@ -49,7 +49,7 @@ class Engine:
         ["DataFrame", "Series"],
         ["int", "float"],
         [sum, np.sum, lambda x: np.sum(x) + 5],
-        ["cython", "numba"],
+        ['cython', 'numba'],
     )
     param_names = ["constructor", "dtype", "function", "engine"]
 
@@ -59,10 +59,10 @@ class Engine:
         self.data = getattr(pd, constructor)(arr)
 
     def time_rolling_apply(self, constructor, dtype, function, engine):
-        self.data.rolling(10).apply(function, raw=False, engine=engine)
+        self.data.rolling(10).apply(function, raw=True, engine=engine)
 
     def time_expanding_apply(self, constructor, dtype, function, engine):
-        self.data.expanding().apply(function, raw=False, engine=engine)
+        self.data.expanding().apply(function, raw=True, engine=engine)
 
 
 class ExpandingMethods:
