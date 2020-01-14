@@ -4,7 +4,7 @@ it is not followed.
 
 Usage::
 
-   .. contents::
+   .. contents:: http://code.nabla.net/doc/docutils/api/docutils/docutils.nodes.html
 
 This will be replaced with nothing (or hello world haha)
 """
@@ -54,3 +54,22 @@ def setup(app):
     #     'parallel_read_safe': True,
     #     'parallel_write_safe': True,
     # }
+
+# http://epydoc.sourceforge.net/docutils/public/docutils.nodes.Element-class.html#get_children
+import docutils
+from docutils import nodes
+from docutils.parsers.rst import Parser
+
+parser = Parser()
+f = open("contributing.rst", "r")
+input = f.read()
+settings = docutils.frontend.OptionParser(
+    components=(docutils.parsers.rst.Parser,)
+    ).get_default_values()
+document = docutils.utils.new_document('Document', settings)
+parser.parse(input, document)
+
+# node.tagname = #text, parent.tagname = title (ALL OF THEM)
+for node in document.traverse(nodes.Text):
+    if (node.tagname == '#text' and node.parent.tagname == 'title'):
+        print(node.astext())
