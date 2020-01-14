@@ -15,7 +15,7 @@ from io import BytesIO
 import os
 import struct
 import sys
-from typing import Any
+from typing import Any, Dict, Hashable, Optional, Sequence
 import warnings
 
 from dateutil.relativedelta import relativedelta
@@ -23,6 +23,7 @@ import numpy as np
 
 from pandas._libs.lib import infer_dtype
 from pandas._libs.writers import max_len_string_array
+from pandas._typing import FilePathOrBuffer
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
@@ -47,9 +48,10 @@ from pandas.core.series import Series
 from pandas.io.common import get_filepath_or_buffer, stringify_path
 
 _version_error = (
-    "Version of given Stata file is not 104, 105, 108, "
-    "111 (Stata 7SE), 113 (Stata 8/9), 114 (Stata 10/11), "
-    "115 (Stata 12), 117 (Stata 13), or 118 (Stata 14)"
+    "Version of given Stata file is {version}. pandas supports importing "
+    "versions 104, 105, 108, 111 (Stata 7SE), 113 (Stata 8/9), "
+    "114 (Stata 10/11), 115 (Stata 12), 117 (Stata 13), 118 (Stata 14/15/16),"
+    "and 119 (Stata 15/16, over 32,767 variables)."
 )
 
 _statafile_processing_params1 = """\
@@ -1090,11 +1092,11 @@ class StataReader(StataParser, abc.Iterator):
         self.col_sizes = [self._calcsize(typ) for typ in self.typlist]
 
     def _read_new_header(self, first_char):
-        # The first part of the header is common to 117 and 118.
+        # The first part of the header is common to 117 - 119.
         self.path_or_buf.read(27)  # stata_dta><header><release>
         self.format_version = int(self.path_or_buf.read(3))
         if self.format_version not in [117, 118, 119]:
-            raise ValueError(_version_error)
+            raise ValueError(_version_error.format(version=self.format_version))
         self._set_encoding()
         self.path_or_buf.read(21)  # </release><byteorder>
         self.byteorder = self.path_or_buf.read(3) == b"MSF" and ">" or "<"
@@ -1287,7 +1289,7 @@ class StataReader(StataParser, abc.Iterator):
     def _read_old_header(self, first_char):
         self.format_version = struct.unpack("b", first_char)[0]
         if self.format_version not in [104, 105, 108, 111, 113, 114, 115]:
-            raise ValueError(_version_error)
+            raise ValueError(_version_error.format(version=self.format_version))
         self._set_encoding()
         self.byteorder = (
             struct.unpack("b", self.path_or_buf.read(1))[0] == 0x1 and ">" or "<"
@@ -2695,7 +2697,7 @@ class StataStrLWriter:
 
     def generate_table(self):
         """
-        Generates the GSO lookup table for the DataFRame
+        Generates the GSO lookup table for the DataFrame
 
         Returns
         -------
@@ -2934,9 +2936,9 @@ class StataWriter117(StataWriter):
         bio.write(self._tag(bytes(str(self._dta_version), "utf-8"), "release"))
         # byteorder
         bio.write(self._tag(byteorder == ">" and "MSF" or "LSF", "byteorder"))
-        # number of vars, 2 bytes
-        assert self.nvar < 2 ** 16
-        bio.write(self._tag(struct.pack(byteorder + "H", self.nvar), "K"))
+        # number of vars, 2 bytes in 117 and 118, 4 byte in 119
+        nvar_type = "H" if self._dta_version <= 118 else "I"
+        bio.write(self._tag(struct.pack(byteorder + nvar_type, self.nvar), "K"))
         # 117 uses 4 bytes, 118 uses 8
         nobs_size = "I" if self._dta_version == 117 else "Q"
         bio.write(self._tag(struct.pack(byteorder + nobs_size, self.nobs), "N"))
@@ -3033,7 +3035,8 @@ class StataWriter117(StataWriter):
 
     def _write_sortlist(self):
         self._update_map("sortlist")
-        self._file.write(self._tag(b"\x00\00" * (self.nvar + 1), "sortlist"))
+        sort_size = 2 if self._dta_version < 119 else 4
+        self._file.write(self._tag(b"\x00" * sort_size * (self.nvar + 1), "sortlist"))
 
     def _write_formats(self):
         self._update_map("formats")
@@ -3173,13 +3176,14 @@ class StataWriter117(StataWriter):
             )
 
 
-class StataWriter118(StataWriter117):
+class StataWriterUTF8(StataWriter117):
     """
-    A class for writing Stata binary dta files in Stata 15 format (118)
+    Stata binary dta file writing in Stata 15 (118) and 16 (119) formats
 
-    DTA 118 format files support unicode string data (both fixed and strL)
-    format. Unicode is also supported in value labels, variable labels and
-    the dataset label.
+    DTA 118 and 119 format files support unicode string data (both fixed
+    and strL) format. Unicode is also supported in value labels, variable
+    labels and the dataset label. Format 119 is automatically used if the
+    file contains more than 32,767 variables.
 
     .. versionadded:: 1.0.0
 
@@ -3192,34 +3196,38 @@ class StataWriter118(StataWriter117):
         is written.
     data : DataFrame
         Input to save
-    convert_dates : dict
+    convert_dates : dict, default None
         Dictionary mapping columns containing datetime types to stata internal
         format to use when writing the dates. Options are 'tc', 'td', 'tm',
         'tw', 'th', 'tq', 'ty'. Column can be either an integer or a name.
         Datetime columns that do not have a conversion type specified will be
         converted to 'tc'. Raises NotImplementedError if a datetime column has
         timezone information
-    write_index : bool
+    write_index : bool, default True
         Write the index to Stata dataset.
-    byteorder : str
+    byteorder : str, default None
         Can be ">", "<", "little", or "big". default is `sys.byteorder`
-    time_stamp : datetime
+    time_stamp : datetime, default None
         A datetime to use as file creation date.  Default is the current time
-    data_label : str
+    data_label : str, default None
         A label for the data set.  Must be 80 characters or smaller.
-    variable_labels : dict
+    variable_labels : dict, default None
         Dictionary containing columns as keys and variable labels as values.
         Each label must be 80 characters or smaller.
-    convert_strl : list
+    convert_strl : list, default None
         List of columns names to convert to Stata StrL format.  Columns with
         more than 2045 characters are automatically written as StrL.
         Smaller columns can be converted by including the column name.  Using
         StrLs can reduce output file size when strings are longer than 8
         characters, and either frequently repeated or sparse.
+    version : int, default None
+        The dta version to use. By default, uses the size of data to determine
+        the version. 118 is used if data.shape[1] <= 32767, and 119 is used
+        for storing larger DataFrames.
 
     Returns
     -------
-    StataWriter118
+    StataWriterUTF8
         The instance has a write_file method, which will write the file to the
         given `fname`.
 
@@ -3238,24 +3246,60 @@ class StataWriter118(StataWriter117):
     --------
     Using Unicode data and column names
 
-    >>> from pandas.io.stata import StataWriter118
+    >>> from pandas.io.stata import StataWriterUTF8
     >>> data = pd.DataFrame([[1.0, 1, 'ᴬ']], columns=['a', 'β', 'ĉ'])
-    >>> writer = StataWriter118('./data_file.dta', data)
+    >>> writer = StataWriterUTF8('./data_file.dta', data)
     >>> writer.write_file()
 
     Or with long strings stored in strl format
 
     >>> data = pd.DataFrame([['ᴀ relatively long ŝtring'], [''], ['']],
     ...                     columns=['strls'])
-    >>> writer = StataWriter118('./data_file_with_long_strings.dta', data,
-    ...                         convert_strl=['strls'])
+    >>> writer = StataWriterUTF8('./data_file_with_long_strings.dta', data,
+    ...                          convert_strl=['strls'])
     >>> writer.write_file()
     """
 
     _encoding = "utf-8"
-    _dta_version = 118
 
-    def _validate_variable_name(self, name):
+    def __init__(
+        self,
+        fname: FilePathOrBuffer,
+        data: DataFrame,
+        convert_dates: Optional[Dict[Hashable, str]] = None,
+        write_index: bool = True,
+        byteorder: Optional[str] = None,
+        time_stamp: Optional[datetime.datetime] = None,
+        data_label: Optional[str] = None,
+        variable_labels: Optional[Dict[Hashable, str]] = None,
+        convert_strl: Optional[Sequence[Hashable]] = None,
+        version: Optional[int] = None,
+    ):
+        if version is None:
+            version = 118 if data.shape[1] <= 32767 else 119
+        elif version not in (118, 119):
+            raise ValueError("version must be either 118 or 119.")
+        elif version == 118 and data.shape[1] > 32767:
+            raise ValueError(
+                "You must use version 119 for data sets containing more than"
+                "32,767 variables"
+            )
+
+        super().__init__(
+            fname,
+            data,
+            convert_dates=convert_dates,
+            write_index=write_index,
+            byteorder=byteorder,
+            time_stamp=time_stamp,
+            data_label=data_label,
+            variable_labels=variable_labels,
+            convert_strl=convert_strl,
+        )
+        # Override version set in StataWriter117 init
+        self._dta_version = version
+
+    def _validate_variable_name(self, name: str) -> str:
         """
         Validate variable names for Stata export.
 
@@ -3272,7 +3316,7 @@ class StataWriter118(StataWriter117):
 
         Notes
         -----
-        Stata 118 support most unicode characters. The only limatation is in
+        Stata 118+ support most unicode characters. The only limitation is in
         the ascii range where the characters supported are a-z, A-Z, 0-9 and _.
         """
         # High code points appear to be acceptable
