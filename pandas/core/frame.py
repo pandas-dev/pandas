@@ -1898,14 +1898,22 @@ class DataFrame(NDFrame):
         variable_labels : dict
             Dictionary containing columns as keys and variable labels as
             values. Each label must be 80 characters or smaller.
-        version : {114, 117}, default 114
-            Version to use in the output dta file.  Version 114 can be used
-            read by Stata 10 and later.  Version 117 can be read by Stata 13
-            or later. Version 114 limits string variables to 244 characters or
-            fewer while 117 allows strings with lengths up to 2,000,000
-            characters.
+        version : {114, 117, 118, 119, None}, default 114
+            Version to use in the output dta file. Set to None to let pandas
+            decide between 118 or 119 formats depending on the number of
+            columns in the frame. Version 114 can be read by Stata 10 and
+            later. Version 117 can be read by Stata 13 or later. Version 118
+            is supported in Stata 14 and later. Version 119 is supported in
+            Stata 15 and later. Version 114 limits string variables to 244
+            characters or fewer while versions 117 and later allow strings
+            with lengths up to 2,000,000 characters. Versions 118 and 119
+            support Unicode characters, and version 119 supports more than
+            32,767 variables.
 
             .. versionadded:: 0.23.0
+            .. versionchanged:: 1.0.0
+
+                Added support for formats 118 and 119.
 
         convert_strl : list, optional
             List of column names to convert to string columns to Stata StrL
@@ -1939,20 +1947,24 @@ class DataFrame(NDFrame):
         ...                    'speed': [350, 18, 361, 15]})
         >>> df.to_stata('animals.dta')  # doctest: +SKIP
         """
-        kwargs = {}
-        if version not in (114, 117, 118):
-            raise ValueError("Only formats 114, 117 and 118 are supported.")
+        if version not in (114, 117, 118, 119, None):
+            raise ValueError("Only formats 114, 117, 118 and 119 are supported.")
         if version == 114:
             if convert_strl is not None:
                 raise ValueError("strl is not supported in format 114")
             from pandas.io.stata import StataWriter as statawriter
-        else:
-            if version == 117:
-                from pandas.io.stata import StataWriter117 as statawriter
-            else:
-                from pandas.io.stata import StataWriter118 as statawriter
+        elif version == 117:
+            from pandas.io.stata import StataWriter117 as statawriter
+        else:  # versions 118 and 119
+            from pandas.io.stata import StataWriterUTF8 as statawriter
 
+        kwargs = {}
+        if version is None or version >= 117:
+            # strl conversion is only supported >= 117
             kwargs["convert_strl"] = convert_strl
+        if version is None or version >= 118:
+            # Specifying the version is only supported for UTF8 (118 or 119)
+            kwargs["version"] = version
 
         writer = statawriter(
             path,
