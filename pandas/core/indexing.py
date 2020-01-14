@@ -1743,12 +1743,14 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
 
 class _LocationIndexer(_NDFrameIndexer):
+    _takeable: bool = False
+
     def __getitem__(self, key):
         if type(key) is tuple:
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
             if self._is_scalar_access(key):
                 try:
-                    return self._getitem_scalar(key)
+                    return self.obj._get_value(*key, takeable=self._takeable)
                 except (KeyError, IndexError, AttributeError):
                     # AttributeError for IntervalTree get_value
                     pass
@@ -1761,9 +1763,6 @@ class _LocationIndexer(_NDFrameIndexer):
             return self._getitem_axis(maybe_callable, axis=axis)
 
     def _is_scalar_access(self, key: Tuple):
-        raise NotImplementedError()
-
-    def _getitem_scalar(self, key):
         raise NotImplementedError()
 
     def _getitem_axis(self, key, axis: int):
@@ -1853,12 +1852,6 @@ class _LocIndexer(_LocationIndexer):
                 return False
 
         return True
-
-    def _getitem_scalar(self, key):
-        # a fast-path to scalar access
-        # if not, raise
-        values = self.obj._get_value(*key)
-        return values
 
     def _get_partial_string_timestamp_match_key(self, key, labels):
         """
@@ -1965,6 +1958,7 @@ class _iLocIndexer(_LocationIndexer):
         "point is EXCLUDED), listlike of integers, boolean array"
     )
     _get_slice_axis = _NDFrameIndexer._get_slice_axis
+    _takeable = True
 
     def _validate_key(self, key, axis: int):
         if com.is_bool_indexer(key):
@@ -2028,12 +2022,6 @@ class _iLocIndexer(_LocationIndexer):
                 return False
 
         return True
-
-    def _getitem_scalar(self, key):
-        # a fast-path to scalar access
-        # if not, raise
-        values = self.obj._get_value(*key, takeable=True)
-        return values
 
     def _validate_integer(self, key: int, axis: int) -> None:
         """
