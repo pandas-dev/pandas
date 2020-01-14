@@ -19,16 +19,18 @@ from sphinx.builders import Builder
 class HeadingCapitalizationValidator(Builder):
 
     def init(self):
+        self.docnames = []
+        self.document_data = []
+        return
+
+    def write_doc(self, docname, doctree):
         z = 0
         if z == 0:
             self.warning("Warning: capitalization not followed")
-        paragraph_node = nodes.paragraph(text='Hello World!')
-        return [paragraph_node]
 
-    def write_doc(self, docname, doctree):
         for node in doctree.traverse(nodes.Text):
-            if (node.tagname == '#title'):
-                print("Bro")
+            if (node.tagname == '#subtitle'):
+                print(node.astext())
 
     def finish(self):
         z = 1
@@ -37,10 +39,12 @@ class HeadingCapitalizationValidator(Builder):
 
 def setup(app):
     app.info("Initializing capitalization validator")
-    app.
+    app.add_builder(HeadingCapitalizationValidator)
+    return
 
-    return {
-        'version': '0.1',
-        'parallel_read_safe': True,
-        'parallel_write_safe': True,
-    }
+
+    # return {
+    #     'version': '0.1',
+    #     'parallel_read_safe': True,
+    #     'parallel_write_safe': True,
+    # }
