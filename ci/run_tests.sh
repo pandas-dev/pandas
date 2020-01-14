@@ -14,8 +14,13 @@ if [ "$COVERAGE" ]; then
     COVERAGE="-s --cov=pandas --cov-report=xml:$COVERAGE_FNAME"
 fi
 
-# An X server has to exist, and DISPLAY set, for the clipboard (and its tests) to work
-export DISPLAY=":99.0"
+if [[ "not clipboard" != *"$PATTERN"* ]]; then
+    # An X server has to exist, and DISPLAY set, for the clipboard (and its tests) to work
+    export DISPLAY=":0"
+    echo "xsel path: $(which xsel)"
+    python -c "import pandas.io.clipboard ; pandas.io.clipboard.clipboard_set('123')"
+    python -c "import pandas.io.clipboard ; print(f'clipboard content (should be 123): {pandas.io.clipboard.clipboard_get()}')"
+fi
 
 PYTEST_CMD="pytest -m \"$PATTERN\" -n auto --dist=loadfile -s --strict --durations=10 --junitxml=test-data.xml $TEST_ARGS $COVERAGE pandas/tests/io/test_clipboard.py"
 
@@ -23,15 +28,6 @@ PYTEST_CMD="pytest -m \"$PATTERN\" -n auto --dist=loadfile -s --strict --duratio
 if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
     PYTEST_CMD="xvfb-run -e /dev/stdout $PYTEST_CMD"
 fi
-
-set +e
-echo "Is xsel installed?"
-set -x
-dpkg -l
-echo $PATH
-python -c "import subprocess; print(subprocess.call(['which', 'xsel'], stdout=subprocess.PIPE, stderr=subprocess.PIPE))"
-which xsel
-set -e
 
 echo $PYTEST_CMD
 sh -c "$PYTEST_CMD"
