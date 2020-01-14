@@ -5,9 +5,6 @@ cimport numpy as cnp
 from numpy cimport int64_t, int32_t, intp_t, ndarray
 cnp.import_array()
 
-from dateutil.zoneinfo import tzfile as du_tzfile1
-from dateutil.tz.tz import tzfile as du_tzfile2
-
 import pytz
 
 # stdlib datetime imports
@@ -32,7 +29,7 @@ from pandas._libs.tslibs.util cimport (
 from pandas._libs.tslibs.timedeltas cimport cast_from_unit
 from pandas._libs.tslibs.timezones cimport (
     is_utc, is_tzlocal, is_fixed_offset, get_utcoffset, get_dst_info,
-    get_timezone, maybe_get_tz, tz_compare)
+    get_timezone, maybe_get_tz, tz_compare, treat_tz_as_dateutil)
 from pandas._libs.tslibs.timezones import UTC
 from pandas._libs.tslibs.parsing import parse_datetime_string
 
@@ -366,10 +363,7 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
     else:
         obj.value = pydatetime_to_dt64(ts, &obj.dts)
         # GH 24329 Take DST offset into account
-        # Two check in if necessary because class
-        # differs on Windows and Linux
-        if (isinstance(ts.tzinfo, du_tzfile1) or
-                isinstance(ts.tzinfo, du_tzfile2)):
+        if treat_tz_as_dateutil(ts.tzinfo):
             if ts.tzinfo.is_ambiguous(ts):
                 dst_offset = ts.tzinfo.dst(ts)
                 obj.value += int(dst_offset.total_seconds() * 1e9)
