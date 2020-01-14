@@ -896,6 +896,12 @@ class TestPivotTable:
             totals = table.loc[("All", ""), value_col]
             assert totals == self.data[value_col].mean()
 
+        # no rows
+        rtable = self.data.pivot_table(
+            columns=["AA", "BB"], margins=True, aggfunc=np.mean
+        )
+        assert isinstance(rtable, Series)
+
         table = self.data.pivot_table(index=["AA", "BB"], margins=True, aggfunc="mean")
         for item in ["DD", "EE", "FF"]:
             totals = table.loc[("All", ""), item]
@@ -965,20 +971,6 @@ class TestPivotTable:
         table2 = df2.pivot_table(values="4", index=["0", "1", "3"], columns=["2"])
 
         tm.assert_frame_equal(table, table2, check_names=False)
-
-    @pytest.mark.parametrize("cols", [(1, 2), ("a", "b"), (1, "b"), ("a", 1)])
-    def test_pivot_table_multiindex_only(self, cols):
-        # GH 17038
-        df2 = DataFrame({cols[0]: [1, 2, 3], cols[1]: [1, 2, 3], "v": [4, 5, 6]})
-
-        result = df2.pivot_table(values="v", columns=cols)
-        expected = DataFrame(
-            [[4, 5, 6]],
-            columns=MultiIndex.from_tuples([(1, 1), (2, 2), (3, 3)], names=cols),
-            index=Index(["v"]),
-        )
-
-        tm.assert_frame_equal(result, expected)
 
     def test_pivot_no_level_overlap(self):
         # GH #1181

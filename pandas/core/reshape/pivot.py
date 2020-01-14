@@ -118,8 +118,7 @@ def pivot_table(
 
     table = agged
 
-    # GH 17038, this check should only happen if index is specified
-    if table.index.nlevels > 1 and index:
+    if table.index.nlevels > 1:
         # Related GH #17123
         # If index_names are integers, determine whether the integers refer
         # to the level position or name.
