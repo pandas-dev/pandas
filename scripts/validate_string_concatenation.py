@@ -193,7 +193,7 @@ def strings_with_wrong_placed_whitespace(
                 return counter
         return 0
 
-    def whitespace_validation(first_line: str, second_line: str) -> bool:
+    def has_wrong_whitespace(first_line: str, second_line: str) -> bool:
         """
         Checking if the two lines are mattching the unwanted pattern.
 
@@ -276,7 +276,7 @@ def strings_with_wrong_placed_whitespace(
                 get_prefix_len(third_token.string) + 1 : -1
             ]
 
-            if whitespace_validation(first_string, second_string):
+            if has_wrong_whitespace(first_string, second_string):
                 yield (
                     source_path,
                     third_token.start[0],
