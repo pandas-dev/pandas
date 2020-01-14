@@ -5911,11 +5911,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     ) -> FrameOrSeries:
         """
         Convert columns of DataFrame or a Series to types supporting ``pd.NA``.
-        | If the dtype is "object", convert to "string", "boolean" or an appropriate
-          integer type.
-        | If the dtype is "integer", convert to an appropriate integer type.
-        | If the dtype is numeric, and consists of all integers, convert to an
-          appropriate type.
+
+        If the dtype is "object", convert to "string", "boolean" or an appropriate
+        integer type.
+
+        If the dtype is "integer", convert to an appropriate integer type.
+
+        If the dtype is numeric, and consists of all integers, convert to an
+        appropriate type.
 
         Parameters
         ----------
