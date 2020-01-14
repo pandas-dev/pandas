@@ -26,7 +26,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib
-from pandas._typing import Axis, FrameOrSeries
+from pandas._typing import Axis, FrameOrSeries, FrameOrSeriesUnion
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import Appender
 
@@ -136,7 +136,7 @@ class Styler:
 
     def __init__(
         self,
-        data: FrameOrSeries,
+        data: FrameOrSeriesUnion,
         precision: Optional[int] = None,
         table_styles: Optional[List[Dict[str, List[Tuple[str, str]]]]] = None,
         uuid: Optional[str] = None,
