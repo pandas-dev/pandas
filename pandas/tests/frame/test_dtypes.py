@@ -897,15 +897,15 @@ class TestDataFrameDataTypes:
 
         df = DataFrame(np.array([[1, 2, 3]], dtype=dtype))
         msg = (
-            r"cannot astype a datetimelike from \[datetime64\[ns\]\] to"
-            r" \[timedelta64\[{}\]\]"
+            r"cannot astype a datetimelike from \[datetime64\[ns\]\] to "
+            r"\[timedelta64\[{}\]\]"
         ).format(unit)
         with pytest.raises(TypeError, match=msg):
             df.astype(other)
 
         msg = (
-            r"cannot astype a timedelta from \[timedelta64\[ns\]\] to"
-            r" \[datetime64\[{}\]\]"
+            r"cannot astype a timedelta from \[timedelta64\[ns\]\] to "
+            r"\[datetime64\[{}\]\]"
         ).format(unit)
         df = DataFrame(np.array([[1, 2, 3]], dtype=other))
         with pytest.raises(TypeError, match=msg):

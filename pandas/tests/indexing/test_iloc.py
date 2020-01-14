@@ -437,9 +437,9 @@ class TestiLoc(Base):
 
         # trying to use a label
         msg = (
-            r"Location based indexing can only have \[integer, integer"
-            r" slice \(START point is INCLUDED, END point is EXCLUDED\),"
-            r" listlike of integers, boolean array\] types"
+            r"Location based indexing can only have \[integer, integer "
+            r"slice \(START point is INCLUDED, END point is EXCLUDED\), "
+            r"listlike of integers, boolean array\] types"
         )
         with pytest.raises(ValueError, match=msg):
             df.iloc["j", "D"]
