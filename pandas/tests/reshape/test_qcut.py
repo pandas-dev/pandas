@@ -130,6 +130,38 @@ def test_qcut_return_intervals():
     tm.assert_series_equal(res, exp)
 
 
+@pytest.mark.parametrize("labels", ["foo", 1, True])
+def test_qcut_incorrect_labels(labels):
+    # GH 13318
+    values = range(5)
+    msg = "Bin labels must either be False, None or passed in as a list-like argument"
+    with pytest.raises(ValueError, match=msg):
+        qcut(values, 4, labels=labels)
+
+
+@pytest.mark.parametrize("labels", [["a", "b", "c"], list(range(3))])
+def test_qcut_wrong_length_labels(labels):
+    # GH 13318
+    values = range(10)
+    msg = "Bin labels must be one fewer than the number of bin edges"
+    with pytest.raises(ValueError, match=msg):
+        qcut(values, 4, labels=labels)
+
+
+@pytest.mark.parametrize(
+    "labels, expected",
+    [
+        (["a", "b", "c"], Categorical(["a", "b", "c"], ordered=True)),
+        (list(range(3)), Categorical([0, 1, 2], ordered=True)),
+    ],
+)
+def test_qcut_list_like_labels(labels, expected):
+    # GH 13318
+    values = range(3)
+    result = qcut(values, 3, labels=labels)
+    tm.assert_categorical_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "kwargs,msg",
     [

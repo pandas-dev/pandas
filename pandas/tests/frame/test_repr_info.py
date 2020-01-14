@@ -164,13 +164,13 @@ class TestDataFrameReprInfoEtc:
                 "Id": [7117434],
                 "StringCol": (
                     "Is it possible to modify drop plot code"
-                    " so that the output graph is displayed "
+                    "so that the output graph is displayed "
                     "in iphone simulator, Is it possible to "
                     "modify drop plot code so that the "
                     "output graph is \xe2\x80\xa8displayed "
                     "in iphone simulator.Now we are adding "
-                    "the CSV file externally. I want to Call"
-                    " the File through the code.."
+                    "the CSV file externally. I want to Call "
+                    "the File through the code.."
                 ),
             }
         )
