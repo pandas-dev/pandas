@@ -15,15 +15,10 @@ from pandas import (
     date_range,
     option_context,
 )
+import pandas._testing as tm
 from pandas.core.arrays import IntervalArray, integer_array
 from pandas.core.internals import ObjectBlock
 from pandas.core.internals.blocks import IntBlock
-import pandas.util.testing as tm
-from pandas.util.testing import (
-    assert_almost_equal,
-    assert_frame_equal,
-    assert_series_equal,
-)
 
 # Segregated collection of methods that require the BlockManager internal data
 # structure
@@ -50,11 +45,11 @@ class TestDataFrameBlockInternals:
     def test_cast_internals(self, float_frame):
         casted = DataFrame(float_frame._data, dtype=int)
         expected = DataFrame(float_frame._series, dtype=int)
-        assert_frame_equal(casted, expected)
+        tm.assert_frame_equal(casted, expected)
 
         casted = DataFrame(float_frame._data, dtype=np.int32)
         expected = DataFrame(float_frame._series, dtype=np.int32)
-        assert_frame_equal(casted, expected)
+        tm.assert_frame_equal(casted, expected)
 
     def test_consolidate(self, float_frame):
         float_frame["E"] = 7.0
@@ -101,7 +96,7 @@ class TestDataFrameBlockInternals:
         expected[expected > 1] = 2
 
         float_frame[float_frame > 1] = 2
-        assert_almost_equal(expected, float_frame.values)
+        tm.assert_almost_equal(expected, float_frame.values)
 
     def test_values_numeric_cols(self, float_frame):
         float_frame["foo"] = "bar"
@@ -155,66 +150,66 @@ class TestDataFrameBlockInternals:
         df = DataFrame({"A": [2 ** 63 - 1]})
         result = df["A"]
         expected = Series(np.asarray([2 ** 63 - 1], np.int64), name="A")
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         df = DataFrame({"A": [2 ** 63]})
         result = df["A"]
         expected = Series(np.asarray([2 ** 63], np.uint64), name="A")
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         df = DataFrame({"A": [datetime(2005, 1, 1), True]})
         result = df["A"]
         expected = Series(
             np.asarray([datetime(2005, 1, 1), True], np.object_), name="A"
         )
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         df = DataFrame({"A": [None, 1]})
         result = df["A"]
         expected = Series(np.asarray([np.nan, 1], np.float_), name="A")
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         df = DataFrame({"A": [1.0, 2]})
         result = df["A"]
         expected = Series(np.asarray([1.0, 2], np.float_), name="A")
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         df = DataFrame({"A": [1.0 + 2.0j, 3]})
         result = df["A"]
         expected = Series(np.asarray([1.0 + 2.0j, 3], np.complex_), name="A")
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         df = DataFrame({"A": [1.0 + 2.0j, 3.0]})
         result = df["A"]
         expected = Series(np.asarray([1.0 + 2.0j, 3.0], np.complex_), name="A")
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         df = DataFrame({"A": [1.0 + 2.0j, True]})
         result = df["A"]
         expected = Series(np.asarray([1.0 + 2.0j, True], np.object_), name="A")
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         df = DataFrame({"A": [1.0, None]})
         result = df["A"]
         expected = Series(np.asarray([1.0, np.nan], np.float_), name="A")
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         df = DataFrame({"A": [1.0 + 2.0j, None]})
         result = df["A"]
         expected = Series(np.asarray([1.0 + 2.0j, np.nan], np.complex_), name="A")
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         df = DataFrame({"A": [2.0, 1, True, None]})
         result = df["A"]
         expected = Series(np.asarray([2.0, 1, True, None], np.object_), name="A")
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         df = DataFrame({"A": [2.0, 1, datetime(2006, 1, 1), None]})
         result = df["A"]
         expected = Series(
             np.asarray([2.0, 1, datetime(2006, 1, 1), None], np.object_), name="A"
         )
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_construction_with_mixed(self, float_string_frame):
         # test construction edge cases with mixed types
@@ -245,7 +240,7 @@ class TestDataFrameBlockInternals:
             ],
             index=list("ABCD") + ["foo", "datetime", "timedelta"],
         )
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_construction_with_conversions(self):
 
@@ -256,7 +251,7 @@ class TestDataFrameBlockInternals:
         expected = DataFrame(
             {"A": pd.timedelta_range("00:00:01", periods=3, freq="s")}, index=range(3)
         )
-        assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
 
         expected = DataFrame(
             {
@@ -276,7 +271,7 @@ class TestDataFrameBlockInternals:
         # df['dt3'] = np.array(['2013-01-01 00:00:01','2013-01-01
         # 00:00:02','2013-01-01 00:00:03'],dtype='datetime64[s]')
 
-        assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
 
     def test_constructor_compound_dtypes(self):
         # GH 5191
@@ -308,7 +303,7 @@ class TestDataFrameBlockInternals:
         assert df0._data.blocks[0].dtype != df1._data.blocks[0].dtype
 
         # do the real tests
-        assert_frame_equal(df0, df1)
+        tm.assert_frame_equal(df0, df1)
         assert df0.equals(df1)
         assert df1.equals(df0)
 
@@ -318,10 +313,7 @@ class TestDataFrameBlockInternals:
         column = df.columns[0]
 
         # use the default copy=True, change a column
-
-        # deprecated 0.21.0
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            blocks = df.as_blocks()
+        blocks = df._to_dict_of_blocks(copy=True)
         for dtype, _df in blocks.items():
             if column in _df:
                 _df.loc[:, column] = _df[column] + 1
@@ -335,10 +327,7 @@ class TestDataFrameBlockInternals:
         column = df.columns[0]
 
         # use the copy=False, change a column
-
-        # deprecated 0.21.0
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            blocks = df.as_blocks(copy=False)
+        blocks = df._to_dict_of_blocks(copy=False)
         for dtype, _df in blocks.items():
             if column in _df:
                 _df.loc[:, column] = _df[column] + 1
@@ -359,7 +348,7 @@ class TestDataFrameBlockInternals:
         empty_frame = DataFrame()
 
         unpickled = tm.round_trip_pickle(float_string_frame)
-        assert_frame_equal(float_string_frame, unpickled)
+        tm.assert_frame_equal(float_string_frame, unpickled)
 
         # buglet
         float_string_frame._data.ndim
@@ -370,7 +359,7 @@ class TestDataFrameBlockInternals:
 
         # tz frame
         unpickled = tm.round_trip_pickle(timezone_frame)
-        assert_frame_equal(timezone_frame, unpickled)
+        tm.assert_frame_equal(timezone_frame, unpickled)
 
     def test_consolidate_datetime64(self):
         # numpy vstack bug
@@ -429,7 +418,7 @@ starting,ending,measure
             ],
             index=["a", "b", "c", "f"],
         )
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         df = DataFrame(
             {
@@ -446,22 +435,22 @@ starting,ending,measure
 
         result = df._get_numeric_data()
         expected = df.loc[:, ["a", "b", "d", "e", "f"]]
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         only_obj = df.loc[:, ["c", "g"]]
         result = only_obj._get_numeric_data()
         expected = df.loc[:, []]
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         df = DataFrame.from_dict({"a": [1, 2], "b": ["foo", "bar"], "c": [np.pi, np.e]})
         result = df._get_numeric_data()
         expected = DataFrame.from_dict({"a": [1, 2], "c": [np.pi, np.e]})
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         df = result.copy()
         result = df._get_numeric_data()
         expected = df
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_get_numeric_data_extension_dtype(self):
         # GH 22290
@@ -475,13 +464,13 @@ starting,ending,measure
         )
         result = df._get_numeric_data()
         expected = df.loc[:, ["A", "C"]]
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_convert_objects(self, float_string_frame):
 
         oops = float_string_frame.T.T
         converted = oops._convert(datetime=True)
-        assert_frame_equal(converted, float_string_frame)
+        tm.assert_frame_equal(converted, float_string_frame)
         assert converted["A"].dtype == np.float64
 
         # force numeric conversion
@@ -517,12 +506,12 @@ starting,ending,measure
         df = DataFrame(dict(s=Series([1, "na", 3, 4])))
         result = df._convert(datetime=True, numeric=True)
         expected = DataFrame(dict(s=Series([1, np.nan, 3, 4])))
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_convert_objects_no_conversion(self):
         mixed1 = DataFrame({"a": [1, 2, 3], "b": [4.0, 5, 6], "c": ["x", "y", "z"]})
         mixed2 = mixed1._convert(datetime=True)
-        assert_frame_equal(mixed1, mixed2)
+        tm.assert_frame_equal(mixed1, mixed2)
 
     def test_infer_objects(self):
         # GH 11221
@@ -596,10 +585,6 @@ starting,ending,measure
         df = DataFrame(index=[0, 1])
         df[0] = np.nan
         wasCol = {}
-        # uncommenting these makes the results match
-        # for col in xrange(100, 200):
-        #    wasCol[col] = 1
-        #    df[col] = np.nan
 
         for i, dt in enumerate(df.index):
             for col in range(100, 200):
@@ -626,14 +611,14 @@ starting,ending,measure
     def test_add_column_with_pandas_array(self):
         # GH 26390
         df = pd.DataFrame({"a": [1, 2, 3, 4], "b": ["a", "b", "c", "d"]})
-        df["c"] = pd.array([1, 2, None, 3])
+        df["c"] = pd.arrays.PandasArray(np.array([1, 2, None, 3], dtype=object))
         df2 = pd.DataFrame(
             {
                 "a": [1, 2, 3, 4],
                 "b": ["a", "b", "c", "d"],
-                "c": pd.array([1, 2, None, 3]),
+                "c": pd.arrays.PandasArray(np.array([1, 2, None, 3], dtype=object)),
             }
         )
         assert type(df["c"]._data.blocks[0]) == ObjectBlock
         assert type(df2["c"]._data.blocks[0]) == ObjectBlock
-        assert_frame_equal(df, df2)
+        tm.assert_frame_equal(df, df2)

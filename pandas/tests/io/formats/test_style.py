@@ -9,7 +9,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 jinja2 = pytest.importorskip("jinja2")
 from pandas.io.formats.style import Styler, _get_level_lengths  # noqa  # isort:skip
@@ -24,7 +24,7 @@ class TestStyler:
         self.g = lambda x: x
 
         def h(x, foo="bar"):
-            return pd.Series("color: {foo}".format(foo=foo), index=x.index, name=x.name)
+            return pd.Series(f"color: {foo}", index=x.index, name=x.name)
 
         self.h = h
         self.styler = Styler(self.df)
@@ -278,7 +278,7 @@ class TestStyler:
 
     def test_apply_axis(self):
         df = pd.DataFrame({"A": [0, 0], "B": [1, 1]})
-        f = lambda x: ["val: {max}".format(max=x.max()) for v in x]
+        f = lambda x: [f"val: {x.max()}" for v in x]
         result = df.style.apply(f, axis=1)
         assert len(result._todo) == 1
         assert len(result.ctx) == 0
@@ -362,7 +362,7 @@ class TestStyler:
             strings, black otherwise.
             """
             color = "red" if val < 0 else "black"
-            return "color: {color}".format(color=color)
+            return f"color: {color}"
 
         dic = {
             ("a", "d"): [-1.12, 2.11],
@@ -375,6 +375,25 @@ class TestStyler:
         df = pd.DataFrame(dic, index=[0, 1])
 
         (df.style.applymap(color_negative_red, subset=idx[:, idx["b", "d"]]).render())
+
+    def test_applymap_subset_multiindex_code(self):
+        # https://github.com/pandas-dev/pandas/issues/25858
+        # Checks styler.applymap works with multindex when codes are provided
+        codes = np.array([[0, 0, 1, 1], [0, 1, 0, 1]])
+        columns = pd.MultiIndex(
+            levels=[["a", "b"], ["%", "#"]], codes=codes, names=["", ""]
+        )
+        df = DataFrame(
+            [[1, -1, 1, 1], [-1, 1, 1, 1]], index=["hello", "world"], columns=columns
+        )
+        pct_subset = pd.IndexSlice[:, pd.IndexSlice[:, "%":"%"]]
+
+        def color_negative_red(val):
+            color = "red" if val < 0 else "black"
+            return f"color: {color}"
+
+        df.loc[pct_subset]
+        df.style.applymap(color_negative_red, subset=pct_subset)
 
     def test_where_with_one_style(self):
         # GH 17474
@@ -511,20 +530,17 @@ class TestStyler:
             (1, 0): [
                 "width: 10em",
                 " height: 80%",
-                "background: linear-gradient(90deg,#d65f5f 50.0%,"
-                " transparent 50.0%)",
+                "background: linear-gradient(90deg,#d65f5f 50.0%, transparent 50.0%)",
             ],
             (1, 1): [
                 "width: 10em",
                 " height: 80%",
-                "background: linear-gradient(90deg,#d65f5f 50.0%,"
-                " transparent 50.0%)",
+                "background: linear-gradient(90deg,#d65f5f 50.0%, transparent 50.0%)",
             ],
             (1, 2): [
                 "width: 10em",
                 " height: 80%",
-                "background: linear-gradient(90deg,#d65f5f 50.0%,"
-                " transparent 50.0%)",
+                "background: linear-gradient(90deg,#d65f5f 50.0%, transparent 50.0%)",
             ],
             (2, 0): [
                 "width: 10em",
@@ -553,8 +569,7 @@ class TestStyler:
             (0, 1): [
                 "width: 10em",
                 " height: 80%",
-                "background: linear-gradient(90deg,#d65f5f 50.0%,"
-                " transparent 50.0%)",
+                "background: linear-gradient(90deg,#d65f5f 50.0%, transparent 50.0%)",
             ],
             (0, 2): [
                 "width: 10em",
@@ -990,6 +1005,75 @@ class TestStyler:
         with pytest.raises(ValueError):
             df.style.bar(align="poorly", color=["#d65f5f", "#5fba7d"])
 
+    def test_format_with_na_rep(self):
+        # GH 21527 28358
+        df = pd.DataFrame([[None, None], [1.1, 1.2]], columns=["A", "B"])
+
+        ctx = df.style.format(None, na_rep="-")._translate()
+        assert ctx["body"][0][1]["display_value"] == "-"
+        assert ctx["body"][0][2]["display_value"] == "-"
+
+        ctx = df.style.format("{:.2%}", na_rep="-")._translate()
+        assert ctx["body"][0][1]["display_value"] == "-"
+        assert ctx["body"][0][2]["display_value"] == "-"
+        assert ctx["body"][1][1]["display_value"] == "110.00%"
+        assert ctx["body"][1][2]["display_value"] == "120.00%"
+
+        ctx = df.style.format("{:.2%}", na_rep="-", subset=["B"])._translate()
+        assert ctx["body"][0][2]["display_value"] == "-"
+        assert ctx["body"][1][2]["display_value"] == "120.00%"
+
+    def test_init_with_na_rep(self):
+        # GH 21527 28358
+        df = pd.DataFrame([[None, None], [1.1, 1.2]], columns=["A", "B"])
+
+        ctx = Styler(df, na_rep="NA")._translate()
+        assert ctx["body"][0][1]["display_value"] == "NA"
+        assert ctx["body"][0][2]["display_value"] == "NA"
+
+    def test_set_na_rep(self):
+        # GH 21527 28358
+        df = pd.DataFrame([[None, None], [1.1, 1.2]], columns=["A", "B"])
+
+        ctx = df.style.set_na_rep("NA")._translate()
+        assert ctx["body"][0][1]["display_value"] == "NA"
+        assert ctx["body"][0][2]["display_value"] == "NA"
+
+        ctx = (
+            df.style.set_na_rep("NA")
+            .format(None, na_rep="-", subset=["B"])
+            ._translate()
+        )
+        assert ctx["body"][0][1]["display_value"] == "NA"
+        assert ctx["body"][0][2]["display_value"] == "-"
+
+    def test_format_non_numeric_na(self):
+        # GH 21527 28358
+        df = pd.DataFrame(
+            {
+                "object": [None, np.nan, "foo"],
+                "datetime": [None, pd.NaT, pd.Timestamp("20120101")],
+            }
+        )
+
+        ctx = df.style.set_na_rep("NA")._translate()
+        assert ctx["body"][0][1]["display_value"] == "NA"
+        assert ctx["body"][0][2]["display_value"] == "NA"
+        assert ctx["body"][1][1]["display_value"] == "NA"
+        assert ctx["body"][1][2]["display_value"] == "NA"
+
+        ctx = df.style.format(None, na_rep="-")._translate()
+        assert ctx["body"][0][1]["display_value"] == "-"
+        assert ctx["body"][0][2]["display_value"] == "-"
+        assert ctx["body"][1][1]["display_value"] == "-"
+        assert ctx["body"][1][2]["display_value"] == "-"
+
+    def test_format_with_bad_na_rep(self):
+        # GH 21527 28358
+        df = pd.DataFrame([[None, None], [1.1, 1.2]], columns=["A", "B"])
+        with pytest.raises(TypeError):
+            df.style.format(None, na_rep=-1)
+
     def test_highlight_null(self, null_color="red"):
         df = pd.DataFrame({"A": [0, np.nan]})
         result = df.style.highlight_null()._compute().ctx
@@ -1127,13 +1211,9 @@ class TestStyler:
 
     def test_export(self):
         f = lambda x: "color: red" if x > 0 else "color: blue"
-        g = (
-            lambda x, y, z: "color: {z}".format(z=z)
-            if x > 0
-            else "color: {z}".format(z=z)
-        )
+        g = lambda x, z: f"color: {z}" if x > 0 else f"color: {z}"
         style1 = self.styler
-        style1.applymap(f).applymap(g, y="a", z="b").highlight_max()
+        style1.applymap(f).applymap(g, z="b").highlight_max()
         result = style1.export()
         style2 = self.df.style
         style2.use(result)
@@ -1157,20 +1237,43 @@ class TestStyler:
         with pytest.raises(TypeError):
             df.style.format(True)
 
+    def test_display_set_precision(self):
+        # Issue #13257
+        df = pd.DataFrame(data=[[1.0, 2.0090], [3.2121, 4.566]], columns=["a", "b"])
+        s = Styler(df)
+
+        ctx = s.set_precision(1)._translate()
+
+        assert s.precision == 1
+        assert ctx["body"][0][1]["display_value"] == "1.0"
+        assert ctx["body"][0][2]["display_value"] == "2.0"
+        assert ctx["body"][1][1]["display_value"] == "3.2"
+        assert ctx["body"][1][2]["display_value"] == "4.6"
+
+        ctx = s.set_precision(2)._translate()
+        assert s.precision == 2
+        assert ctx["body"][0][1]["display_value"] == "1.00"
+        assert ctx["body"][0][2]["display_value"] == "2.01"
+        assert ctx["body"][1][1]["display_value"] == "3.21"
+        assert ctx["body"][1][2]["display_value"] == "4.57"
+
+        ctx = s.set_precision(3)._translate()
+        assert s.precision == 3
+        assert ctx["body"][0][1]["display_value"] == "1.000"
+        assert ctx["body"][0][2]["display_value"] == "2.009"
+        assert ctx["body"][1][1]["display_value"] == "3.212"
+        assert ctx["body"][1][2]["display_value"] == "4.566"
+
     def test_display_subset(self):
         df = pd.DataFrame([[0.1234, 0.1234], [1.1234, 1.1234]], columns=["a", "b"])
         ctx = df.style.format(
             {"a": "{:0.1f}", "b": "{0:.2%}"}, subset=pd.IndexSlice[0, :]
         )._translate()
         expected = "0.1"
-        assert ctx["body"][0][1]["display_value"] == expected
-        assert ctx["body"][1][1]["display_value"] == "1.1234"
-        assert ctx["body"][0][2]["display_value"] == "12.34%"
-
-        raw_11 = "1.1234"
-        ctx = df.style.format("{:0.1f}", subset=pd.IndexSlice[0, :])._translate()
+        raw_11 = "1.123400"
         assert ctx["body"][0][1]["display_value"] == expected
         assert ctx["body"][1][1]["display_value"] == raw_11
+        assert ctx["body"][0][2]["display_value"] == "12.34%"
 
         ctx = df.style.format("{:0.1f}", subset=pd.IndexSlice[0, :])._translate()
         assert ctx["body"][0][1]["display_value"] == expected
@@ -1178,7 +1281,7 @@ class TestStyler:
 
         ctx = df.style.format("{:0.1f}", subset=pd.IndexSlice["a"])._translate()
         assert ctx["body"][0][1]["display_value"] == expected
-        assert ctx["body"][0][2]["display_value"] == "0.1234"
+        assert ctx["body"][0][2]["display_value"] == "0.123400"
 
         ctx = df.style.format("{:0.1f}", subset=pd.IndexSlice[0, "a"])._translate()
         assert ctx["body"][0][1]["display_value"] == expected
@@ -1189,8 +1292,8 @@ class TestStyler:
         )._translate()
         assert ctx["body"][0][1]["display_value"] == expected
         assert ctx["body"][1][1]["display_value"] == "1.1"
-        assert ctx["body"][0][2]["display_value"] == "0.1234"
-        assert ctx["body"][1][2]["display_value"] == "1.1234"
+        assert ctx["body"][0][2]["display_value"] == "0.123400"
+        assert ctx["body"][1][2]["display_value"] == raw_11
 
     def test_display_dict(self):
         df = pd.DataFrame([[0.1234, 0.1234], [1.1234, 1.1234]], columns=["a", "b"])
@@ -1534,9 +1637,7 @@ class TestStyler:
 
     def test_pipe(self):
         def set_caption_from_template(styler, a, b):
-            return styler.set_caption(
-                "Dataframe with a = {a} and b = {b}".format(a=a, b=b)
-            )
+            return styler.set_caption(f"Dataframe with a = {a} and b = {b}")
 
         styler = self.df.style.pipe(set_caption_from_template, "A", b="B")
         assert "Dataframe with a = A and b = B" in styler.render()
@@ -1624,6 +1725,23 @@ class TestStylerMatplotlibDep:
         assert result[(0, 1)] == mid
         assert result[(1, 0)] == mid
         assert result[(1, 1)] == high
+
+    def test_background_gradient_vmin_vmax(self):
+        # GH 12145
+        df = pd.DataFrame(range(5))
+        ctx = df.style.background_gradient(vmin=1, vmax=3)._compute().ctx
+        assert ctx[(0, 0)] == ctx[(1, 0)]
+        assert ctx[(4, 0)] == ctx[(3, 0)]
+
+    def test_background_gradient_int64(self):
+        # GH 28869
+        df1 = pd.Series(range(3)).to_frame()
+        df2 = pd.Series(range(3), dtype="Int64").to_frame()
+        ctx1 = df1.style.background_gradient()._compute().ctx
+        ctx2 = df2.style.background_gradient()._compute().ctx
+        assert ctx2[(0, 0)] == ctx1[(0, 0)]
+        assert ctx2[(1, 0)] == ctx1[(1, 0)]
+        assert ctx2[(2, 0)] == ctx1[(2, 0)]
 
 
 def test_block_names():

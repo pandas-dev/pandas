@@ -12,7 +12,7 @@ from pandas import (
     Timestamp,
     interval_range,
 )
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class Base:
@@ -67,7 +67,7 @@ class Base:
             index.astype(dtype)
 
     def test_astype_invalid_dtype(self, index):
-        msg = "data type 'fake_dtype' not understood"
+        msg = "data type [\"']fake_dtype[\"'] not understood"
         with pytest.raises(TypeError, match=msg):
             index.astype("fake_dtype")
 
@@ -143,7 +143,7 @@ class TestFloatSubtype(Base):
         tm.assert_index_equal(result, expected)
 
         # raises with NA
-        msg = "Cannot convert NA to integer"
+        msg = r"Cannot convert non-finite values \(NA or inf\) to integer"
         with pytest.raises(ValueError, match=msg):
             index.insert(0, np.nan).astype(dtype)
 

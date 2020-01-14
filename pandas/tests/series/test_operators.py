@@ -6,18 +6,9 @@ import pytest
 
 import pandas as pd
 from pandas import Categorical, DataFrame, Index, Series, bdate_range, date_range, isna
+import pandas._testing as tm
 from pandas.core import ops
-from pandas.core.indexes.base import InvalidIndexError
 import pandas.core.nanops as nanops
-import pandas.util.testing as tm
-from pandas.util.testing import (
-    assert_almost_equal,
-    assert_frame_equal,
-    assert_index_equal,
-    assert_series_equal,
-)
-
-from .common import TestData
 
 
 class TestSeriesLogicalOps:
@@ -34,16 +25,62 @@ class TestSeriesLogicalOps:
 
         expected = bool_op(filled < filled[9], filled > filled[3])
         expected[mask] = False
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
-    def test_operators_bitwise(self):
+    def test_logical_operators_bool_dtype_with_empty(self):
         # GH#9016: support bitwise op for integer types
         index = list("bca")
 
         s_tft = Series([True, False, True], index=index)
         s_fff = Series([False, False, False], index=index)
-        s_tff = Series([True, False, False], index=index)
-        s_empty = Series([])
+        s_empty = Series([], dtype=object)
+
+        res = s_tft & s_empty
+        expected = s_fff
+        tm.assert_series_equal(res, expected)
+
+        res = s_tft | s_empty
+        expected = s_tft
+        tm.assert_series_equal(res, expected)
+
+    @pytest.mark.parametrize(
+        "left, right, op, expected",
+        [
+            (
+                [True, False, np.nan],
+                [True, False, True],
+                operator.and_,
+                [True, False, False],
+            ),
+            (
+                [True, False, True],
+                [True, False, np.nan],
+                operator.and_,
+                [True, False, False],
+            ),
+            (
+                [True, False, np.nan],
+                [True, False, True],
+                operator.or_,
+                [True, False, False],
+            ),
+            (
+                [True, False, True],
+                [True, False, np.nan],
+                operator.or_,
+                [True, False, True],
+            ),
+        ],
+    )
+    def test_logical_operators_nans(self, left, right, op, expected):
+        # GH 13896
+        result = op(Series(left), Series(right))
+        expected = Series(expected)
+
+        tm.assert_series_equal(result, expected)
+
+    def test_logical_operators_int_dtype_with_int_dtype(self):
+        # GH#9016: support bitwise op for integer types
 
         # TODO: unused
         # s_0101 = Series([0, 1, 0, 1])
@@ -52,93 +89,169 @@ class TestSeriesLogicalOps:
         s_3333 = Series([3] * 4)
         s_4444 = Series([4] * 4)
 
-        res = s_tft & s_empty
-        expected = s_fff
-        assert_series_equal(res, expected)
-
-        res = s_tft | s_empty
-        expected = s_tft
-        assert_series_equal(res, expected)
-
         res = s_0123 & s_3333
         expected = Series(range(4), dtype="int64")
-        assert_series_equal(res, expected)
+        tm.assert_series_equal(res, expected)
 
         res = s_0123 | s_4444
         expected = Series(range(4, 8), dtype="int64")
-        assert_series_equal(res, expected)
-
-        s_a0b1c0 = Series([1], list("b"))
-
-        res = s_tft & s_a0b1c0
-        expected = s_tff.reindex(list("abc"))
-        assert_series_equal(res, expected)
-
-        res = s_tft | s_a0b1c0
-        expected = s_tft.reindex(list("abc"))
-        assert_series_equal(res, expected)
-
-        n0 = 0
-        res = s_tft & n0
-        expected = s_fff
-        assert_series_equal(res, expected)
-
-        res = s_0123 & n0
-        expected = Series([0] * 4)
-        assert_series_equal(res, expected)
-
-        n1 = 1
-        res = s_tft & n1
-        expected = s_tft
-        assert_series_equal(res, expected)
-
-        res = s_0123 & n1
-        expected = Series([0, 1, 0, 1])
-        assert_series_equal(res, expected)
+        tm.assert_series_equal(res, expected)
 
         s_1111 = Series([1] * 4, dtype="int8")
         res = s_0123 & s_1111
         expected = Series([0, 1, 0, 1], dtype="int64")
-        assert_series_equal(res, expected)
+        tm.assert_series_equal(res, expected)
 
         res = s_0123.astype(np.int16) | s_1111.astype(np.int32)
         expected = Series([1, 1, 3, 3], dtype="int32")
-        assert_series_equal(res, expected)
+        tm.assert_series_equal(res, expected)
 
-        with pytest.raises(TypeError):
-            s_1111 & "a"
-        with pytest.raises(TypeError):
-            s_1111 & ["a", "b", "c", "d"]
+    def test_logical_operators_int_dtype_with_int_scalar(self):
+        # GH#9016: support bitwise op for integer types
+        s_0123 = Series(range(4), dtype="int64")
+
+        res = s_0123 & 0
+        expected = Series([0] * 4)
+        tm.assert_series_equal(res, expected)
+
+        res = s_0123 & 1
+        expected = Series([0, 1, 0, 1])
+        tm.assert_series_equal(res, expected)
+
+    def test_logical_operators_int_dtype_with_float(self):
+        # GH#9016: support bitwise op for integer types
+        s_0123 = Series(range(4), dtype="int64")
+
         with pytest.raises(TypeError):
             s_0123 & np.NaN
         with pytest.raises(TypeError):
             s_0123 & 3.14
         with pytest.raises(TypeError):
             s_0123 & [0.1, 4, 3.14, 2]
+        with pytest.raises(TypeError):
+            s_0123 & np.array([0.1, 4, 3.14, 2])
+        with pytest.raises(TypeError):
+            s_0123 & Series([0.1, 4, -3.14, 2])
 
-        # s_0123 will be all false now because of reindexing like s_tft
-        exp = Series([False] * 7, index=[0, 1, 2, 3, "a", "b", "c"])
-        assert_series_equal(s_tft & s_0123, exp)
+    def test_logical_operators_int_dtype_with_str(self):
+        s_1111 = Series([1] * 4, dtype="int8")
 
-        # s_tft will be all false now because of reindexing like s_0123
-        exp = Series([False] * 7, index=[0, 1, 2, 3, "a", "b", "c"])
-        assert_series_equal(s_0123 & s_tft, exp)
+        with pytest.raises(TypeError):
+            s_1111 & "a"
+        with pytest.raises(TypeError):
+            s_1111 & ["a", "b", "c", "d"]
 
-        assert_series_equal(s_0123 & False, Series([False] * 4))
-        assert_series_equal(s_0123 ^ False, Series([False, True, True, True]))
-        assert_series_equal(s_0123 & [False], Series([False] * 4))
-        assert_series_equal(s_0123 & (False), Series([False] * 4))
-        assert_series_equal(
-            s_0123 & Series([False, np.NaN, False, False]), Series([False] * 4)
-        )
+    def test_logical_operators_int_dtype_with_bool(self):
+        # GH#9016: support bitwise op for integer types
+        s_0123 = Series(range(4), dtype="int64")
 
-        s_ftft = Series([False, True, False, True])
-        assert_series_equal(s_0123 & Series([0.1, 4, -3.14, 2]), s_ftft)
+        expected = Series([False] * 4)
+
+        result = s_0123 & False
+        tm.assert_series_equal(result, expected)
+
+        result = s_0123 & [False]
+        tm.assert_series_equal(result, expected)
+
+        result = s_0123 & (False,)
+        tm.assert_series_equal(result, expected)
+
+        result = s_0123 ^ False
+        expected = Series([False, True, True, True])
+        tm.assert_series_equal(result, expected)
+
+    def test_logical_operators_int_dtype_with_object(self):
+        # GH#9016: support bitwise op for integer types
+        s_0123 = Series(range(4), dtype="int64")
+
+        result = s_0123 & Series([False, np.NaN, False, False])
+        expected = Series([False] * 4)
+        tm.assert_series_equal(result, expected)
 
         s_abNd = Series(["a", "b", np.NaN, "d"])
-        res = s_0123 & s_abNd
-        expected = s_ftft
-        assert_series_equal(res, expected)
+        with pytest.raises(TypeError, match="unsupported.* 'int' and 'str'"):
+            s_0123 & s_abNd
+
+    def test_logical_operators_bool_dtype_with_int(self):
+        index = list("bca")
+
+        s_tft = Series([True, False, True], index=index)
+        s_fff = Series([False, False, False], index=index)
+
+        res = s_tft & 0
+        expected = s_fff
+        tm.assert_series_equal(res, expected)
+
+        res = s_tft & 1
+        expected = s_tft
+        tm.assert_series_equal(res, expected)
+
+    def test_logical_ops_bool_dtype_with_ndarray(self):
+        # make sure we operate on ndarray the same as Series
+        left = pd.Series([True, True, True, False, True])
+        right = [True, False, None, True, np.nan]
+
+        expected = pd.Series([True, False, False, False, False])
+        result = left & right
+        tm.assert_series_equal(result, expected)
+        result = left & np.array(right)
+        tm.assert_series_equal(result, expected)
+        result = left & pd.Index(right)
+        tm.assert_series_equal(result, expected)
+        result = left & pd.Series(right)
+        tm.assert_series_equal(result, expected)
+
+        expected = pd.Series([True, True, True, True, True])
+        result = left | right
+        tm.assert_series_equal(result, expected)
+        result = left | np.array(right)
+        tm.assert_series_equal(result, expected)
+        result = left | pd.Index(right)
+        tm.assert_series_equal(result, expected)
+        result = left | pd.Series(right)
+        tm.assert_series_equal(result, expected)
+
+        expected = pd.Series([False, True, True, True, True])
+        result = left ^ right
+        tm.assert_series_equal(result, expected)
+        result = left ^ np.array(right)
+        tm.assert_series_equal(result, expected)
+        result = left ^ pd.Index(right)
+        tm.assert_series_equal(result, expected)
+        result = left ^ pd.Series(right)
+        tm.assert_series_equal(result, expected)
+
+    def test_logical_operators_int_dtype_with_bool_dtype_and_reindex(self):
+        # GH#9016: support bitwise op for integer types
+
+        # with non-matching indexes, logical operators will cast to object
+        #  before operating
+        index = list("bca")
+
+        s_tft = Series([True, False, True], index=index)
+        s_tft = Series([True, False, True], index=index)
+        s_tff = Series([True, False, False], index=index)
+
+        s_0123 = Series(range(4), dtype="int64")
+
+        # s_0123 will be all false now because of reindexing like s_tft
+        expected = Series([False] * 7, index=[0, 1, 2, 3, "a", "b", "c"])
+        result = s_tft & s_0123
+        tm.assert_series_equal(result, expected)
+
+        expected = Series([False] * 7, index=[0, 1, 2, 3, "a", "b", "c"])
+        result = s_0123 & s_tft
+        tm.assert_series_equal(result, expected)
+
+        s_a0b1c0 = Series([1], list("b"))
+
+        res = s_tft & s_a0b1c0
+        expected = s_tff.reindex(list("abc"))
+        tm.assert_series_equal(res, expected)
+
+        res = s_tft | s_a0b1c0
+        expected = s_tft.reindex(list("abc"))
+        tm.assert_series_equal(res, expected)
 
     def test_scalar_na_logical_ops_corners(self):
         s = Series([2, 3, 4, 5, 6, 7, 8, 9, 10])
@@ -152,7 +265,7 @@ class TestSeriesLogicalOps:
         expected = Series(True, index=s.index)
         expected[::2] = False
         result = s & list(s)
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         d = DataFrame({"A": s})
         # TODO: Fix this exception - needs to be fixed! (see GH5035)
@@ -164,12 +277,20 @@ class TestSeriesLogicalOps:
 
         with pytest.raises(TypeError):
             d.__and__(s, axis="columns")
+        with pytest.raises(TypeError):
+            d.__and__(s, axis=1)
 
         with pytest.raises(TypeError):
             s & d
+        with pytest.raises(TypeError):
+            d & s
 
-        # this is wrong as its not a boolean result
-        # result = d.__and__(s,axis='index')
+        expected = (s & s).to_frame("A")
+        result = d.__and__(s, axis="index")
+        tm.assert_frame_equal(result, expected)
+
+        result = d.__and__(s, axis=0)
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
     def test_logical_ops_with_index(self, op):
@@ -181,12 +302,26 @@ class TestSeriesLogicalOps:
         expected = Series([op(ser[n], idx1[n]) for n in range(len(ser))])
 
         result = op(ser, idx1)
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         expected = Series([op(ser[n], idx2[n]) for n in range(len(ser))], dtype=bool)
 
         result = op(ser, idx2)
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
+
+    def test_reversed_xor_with_index_returns_index(self):
+        # GH#22092, GH#19792
+        ser = Series([True, True, False, False])
+        idx1 = Index([True, False, True, False])
+        idx2 = Index([1, 0, 1, 0])
+
+        expected = Index.symmetric_difference(idx1, ser)
+        result = idx1 ^ ser
+        tm.assert_index_equal(result, expected)
+
+        expected = Index.symmetric_difference(idx2, ser)
+        result = idx2 ^ ser
+        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
         "op",
@@ -194,7 +329,7 @@ class TestSeriesLogicalOps:
             pytest.param(
                 ops.rand_,
                 marks=pytest.mark.xfail(
-                    reason="GH#22092 Index implementation returns Index",
+                    reason="GH#22092 Index __and__ returns Index intersection",
                     raises=AssertionError,
                     strict=True,
                 ),
@@ -202,30 +337,26 @@ class TestSeriesLogicalOps:
             pytest.param(
                 ops.ror_,
                 marks=pytest.mark.xfail(
-                    reason="Index.get_indexer with non unique index",
-                    raises=InvalidIndexError,
+                    reason="GH#22092 Index __or__ returns Index union",
+                    raises=AssertionError,
                     strict=True,
                 ),
             ),
-            ops.rxor,
         ],
     )
-    def test_reversed_logical_ops_with_index(self, op):
+    def test_reversed_logical_op_with_index_returns_series(self, op):
         # GH#22092, GH#19792
         ser = Series([True, True, False, False])
         idx1 = Index([True, False, True, False])
         idx2 = Index([1, 0, 1, 0])
 
-        # symmetric_difference is only for rxor, but other 2 should fail
-        expected = idx1.symmetric_difference(ser)
-
+        expected = pd.Series(op(idx1.values, ser.values))
         result = op(ser, idx1)
-        assert_index_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
-        expected = idx2.symmetric_difference(ser)
-
+        expected = pd.Series(op(idx2.values, ser.values))
         result = op(ser, idx2)
-        assert_index_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "op, expected",
@@ -252,15 +383,15 @@ class TestSeriesLogicalOps:
 
         expected = Series([False, True, False], list("abc"))
         result = a & b
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         expected = Series([True, True, False], list("abc"))
         result = a | b
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         expected = Series([True, False, False], list("abc"))
         result = a ^ b
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # rhs is bigger
         a = Series([True, False, True], list("bca"))
@@ -268,46 +399,48 @@ class TestSeriesLogicalOps:
 
         expected = Series([False, True, False, False], list("abcd"))
         result = a & b
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         expected = Series([True, True, False, False], list("abcd"))
         result = a | b
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # filling
 
         # vs empty
-        result = a & Series([])
-        expected = Series([False, False, False], list("bca"))
-        assert_series_equal(result, expected)
+        empty = Series([], dtype=object)
 
-        result = a | Series([])
+        result = a & empty.copy()
+        expected = Series([False, False, False], list("bca"))
+        tm.assert_series_equal(result, expected)
+
+        result = a | empty.copy()
         expected = Series([True, False, True], list("bca"))
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # vs non-matching
         result = a & Series([1], ["z"])
         expected = Series([False, False, False, False], list("abcz"))
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = a | Series([1], ["z"])
         expected = Series([True, True, False, False], list("abcz"))
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # identity
         # we would like s[s|e] == s to hold for any e, whether empty or not
         for e in [
-            Series([]),
+            empty.copy(),
             Series([1], ["z"]),
             Series(np.nan, b.index),
             Series(np.nan, a.index),
         ]:
             result = a[a | e]
-            assert_series_equal(result, a[a])
+            tm.assert_series_equal(result, a[a])
 
         for e in [Series(["z"])]:
             result = a[a | e]
-            assert_series_equal(result, a[a])
+            tm.assert_series_equal(result, a[a])
 
         # vs scalars
         index = list("bca")
@@ -316,7 +449,7 @@ class TestSeriesLogicalOps:
         for v in [True, 1, 2]:
             result = Series([True, False, True], index=index) | v
             expected = Series([True, True, True], index=index)
-            assert_series_equal(result, expected)
+            tm.assert_series_equal(result, expected)
 
         for v in [np.nan, "foo"]:
             with pytest.raises(TypeError):
@@ -325,17 +458,17 @@ class TestSeriesLogicalOps:
         for v in [False, 0]:
             result = Series([True, False, True], index=index) | v
             expected = Series([True, False, True], index=index)
-            assert_series_equal(result, expected)
+            tm.assert_series_equal(result, expected)
 
         for v in [True, 1]:
             result = Series([True, False, True], index=index) & v
             expected = Series([True, False, True], index=index)
-            assert_series_equal(result, expected)
+            tm.assert_series_equal(result, expected)
 
         for v in [False, 0]:
             result = Series([True, False, True], index=index) & v
             expected = Series([False, False, False], index=index)
-            assert_series_equal(result, expected)
+            tm.assert_series_equal(result, expected)
         for v in [np.nan]:
             with pytest.raises(TypeError):
                 t & v
@@ -346,47 +479,44 @@ class TestSeriesLogicalOps:
         s2 = pd.Series([True, True, False], index=list("ABD"), name="x")
 
         exp = pd.Series([True, False, False, False], index=list("ABCD"), name="x")
-        assert_series_equal(s1 & s2, exp)
-        assert_series_equal(s2 & s1, exp)
+        tm.assert_series_equal(s1 & s2, exp)
+        tm.assert_series_equal(s2 & s1, exp)
 
         # True | np.nan => True
-        exp = pd.Series([True, True, True, False], index=list("ABCD"), name="x")
-        assert_series_equal(s1 | s2, exp)
+        exp_or1 = pd.Series([True, True, True, False], index=list("ABCD"), name="x")
+        tm.assert_series_equal(s1 | s2, exp_or1)
         # np.nan | True => np.nan, filled with False
-        exp = pd.Series([True, True, False, False], index=list("ABCD"), name="x")
-        assert_series_equal(s2 | s1, exp)
+        exp_or = pd.Series([True, True, False, False], index=list("ABCD"), name="x")
+        tm.assert_series_equal(s2 | s1, exp_or)
 
         # DataFrame doesn't fill nan with False
-        exp = pd.DataFrame({"x": [True, False, np.nan, np.nan]}, index=list("ABCD"))
-        assert_frame_equal(s1.to_frame() & s2.to_frame(), exp)
-        assert_frame_equal(s2.to_frame() & s1.to_frame(), exp)
+        tm.assert_frame_equal(s1.to_frame() & s2.to_frame(), exp.to_frame())
+        tm.assert_frame_equal(s2.to_frame() & s1.to_frame(), exp.to_frame())
 
         exp = pd.DataFrame({"x": [True, True, np.nan, np.nan]}, index=list("ABCD"))
-        assert_frame_equal(s1.to_frame() | s2.to_frame(), exp)
-        assert_frame_equal(s2.to_frame() | s1.to_frame(), exp)
+        tm.assert_frame_equal(s1.to_frame() | s2.to_frame(), exp_or1.to_frame())
+        tm.assert_frame_equal(s2.to_frame() | s1.to_frame(), exp_or.to_frame())
 
         # different length
         s3 = pd.Series([True, False, True], index=list("ABC"), name="x")
         s4 = pd.Series([True, True, True, True], index=list("ABCD"), name="x")
 
         exp = pd.Series([True, False, True, False], index=list("ABCD"), name="x")
-        assert_series_equal(s3 & s4, exp)
-        assert_series_equal(s4 & s3, exp)
+        tm.assert_series_equal(s3 & s4, exp)
+        tm.assert_series_equal(s4 & s3, exp)
 
         # np.nan | True => np.nan, filled with False
-        exp = pd.Series([True, True, True, False], index=list("ABCD"), name="x")
-        assert_series_equal(s3 | s4, exp)
+        exp_or1 = pd.Series([True, True, True, False], index=list("ABCD"), name="x")
+        tm.assert_series_equal(s3 | s4, exp_or1)
         # True | np.nan => True
-        exp = pd.Series([True, True, True, True], index=list("ABCD"), name="x")
-        assert_series_equal(s4 | s3, exp)
+        exp_or = pd.Series([True, True, True, True], index=list("ABCD"), name="x")
+        tm.assert_series_equal(s4 | s3, exp_or)
 
-        exp = pd.DataFrame({"x": [True, False, True, np.nan]}, index=list("ABCD"))
-        assert_frame_equal(s3.to_frame() & s4.to_frame(), exp)
-        assert_frame_equal(s4.to_frame() & s3.to_frame(), exp)
+        tm.assert_frame_equal(s3.to_frame() & s4.to_frame(), exp.to_frame())
+        tm.assert_frame_equal(s4.to_frame() & s3.to_frame(), exp.to_frame())
 
-        exp = pd.DataFrame({"x": [True, True, True, np.nan]}, index=list("ABCD"))
-        assert_frame_equal(s3.to_frame() | s4.to_frame(), exp)
-        assert_frame_equal(s4.to_frame() | s3.to_frame(), exp)
+        tm.assert_frame_equal(s3.to_frame() | s4.to_frame(), exp_or1.to_frame())
+        tm.assert_frame_equal(s4.to_frame() | s3.to_frame(), exp_or.to_frame())
 
 
 class TestSeriesComparisons:
@@ -400,15 +530,15 @@ class TestSeriesComparisons:
             expected = (left > right).astype("O")
         expected[:3] = np.nan
 
-        assert_almost_equal(result, expected)
+        tm.assert_almost_equal(result, expected)
 
         s = Series(["a", "b", "c"])
         s2 = Series([False, True, False])
 
         # it works!
         exp = Series([False, False, False])
-        assert_series_equal(s == s2, exp)
-        assert_series_equal(s2 == s, exp)
+        tm.assert_series_equal(s == s2, exp)
+        tm.assert_series_equal(s2 == s, exp)
 
     def test_categorical_comparisons(self):
         # GH 8938
@@ -472,35 +602,35 @@ class TestSeriesComparisons:
 
         result = s == (1, 2)
         expected = Series([False, True])
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = s != (1, 2)
         expected = Series([True, False])
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = s == (0, 0)
         expected = Series([False, False])
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = s != (0, 0)
         expected = Series([True, True])
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         s = Series([(1, 1), (1, 1)])
 
         result = s == (1, 1)
         expected = Series([True, True])
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = s != (1, 1)
         expected = Series([False, False])
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         s = Series([frozenset([1]), frozenset([1, 2])])
 
         result = s == frozenset([1])
         expected = Series([True, False])
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_comparison_operators_with_nas(self):
         ser = Series(bdate_range("1/1/2000", periods=10), dtype=object)
@@ -521,12 +651,13 @@ class TestSeriesComparisons:
             else:
                 expected = expected.fillna(False).astype(bool)
 
-            assert_series_equal(result, expected)
+            tm.assert_series_equal(result, expected)
 
+            # FIXME: dont leave commented-out
             # fffffffuuuuuuuuuuuu
             # result = f(val, s)
             # expected = f(val, s.dropna()).reindex(s.index)
-            # assert_series_equal(result, expected)
+            # tm.assert_series_equal(result, expected)
 
     def test_unequal_categorical_comparison_raises_type_error(self):
         # unequal comparison should raise for unordered cats
@@ -596,7 +727,7 @@ class TestSeriesComparisons:
         s = Series(["IntervalA", "IntervalB", "IntervalC"])
         result = s == "IntervalA"
         expected = Series([True, False, False])
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
 
 class TestSeriesFlexComparisonOps:
@@ -605,51 +736,51 @@ class TestSeriesFlexComparisonOps:
         right = Series([2, 2, 2], index=list("bcd"))
 
         exp = pd.Series([False, False, True, False], index=list("abcd"))
-        assert_series_equal(left.eq(right), exp)
+        tm.assert_series_equal(left.eq(right), exp)
 
         exp = pd.Series([True, True, False, True], index=list("abcd"))
-        assert_series_equal(left.ne(right), exp)
+        tm.assert_series_equal(left.ne(right), exp)
 
         exp = pd.Series([False, False, True, False], index=list("abcd"))
-        assert_series_equal(left.le(right), exp)
+        tm.assert_series_equal(left.le(right), exp)
 
         exp = pd.Series([False, False, False, False], index=list("abcd"))
-        assert_series_equal(left.lt(right), exp)
+        tm.assert_series_equal(left.lt(right), exp)
 
         exp = pd.Series([False, True, True, False], index=list("abcd"))
-        assert_series_equal(left.ge(right), exp)
+        tm.assert_series_equal(left.ge(right), exp)
 
         exp = pd.Series([False, True, False, False], index=list("abcd"))
-        assert_series_equal(left.gt(right), exp)
+        tm.assert_series_equal(left.gt(right), exp)
 
     def test_comparison_flex_alignment_fill(self):
         left = Series([1, 3, 2], index=list("abc"))
         right = Series([2, 2, 2], index=list("bcd"))
 
         exp = pd.Series([False, False, True, True], index=list("abcd"))
-        assert_series_equal(left.eq(right, fill_value=2), exp)
+        tm.assert_series_equal(left.eq(right, fill_value=2), exp)
 
         exp = pd.Series([True, True, False, False], index=list("abcd"))
-        assert_series_equal(left.ne(right, fill_value=2), exp)
+        tm.assert_series_equal(left.ne(right, fill_value=2), exp)
 
         exp = pd.Series([False, False, True, True], index=list("abcd"))
-        assert_series_equal(left.le(right, fill_value=0), exp)
+        tm.assert_series_equal(left.le(right, fill_value=0), exp)
 
         exp = pd.Series([False, False, False, True], index=list("abcd"))
-        assert_series_equal(left.lt(right, fill_value=0), exp)
+        tm.assert_series_equal(left.lt(right, fill_value=0), exp)
 
         exp = pd.Series([True, True, True, False], index=list("abcd"))
-        assert_series_equal(left.ge(right, fill_value=0), exp)
+        tm.assert_series_equal(left.ge(right, fill_value=0), exp)
 
         exp = pd.Series([True, True, False, False], index=list("abcd"))
-        assert_series_equal(left.gt(right, fill_value=0), exp)
+        tm.assert_series_equal(left.gt(right, fill_value=0), exp)
 
 
-class TestSeriesOperators(TestData):
+class TestSeriesOperators:
     def test_operators_empty_int_corner(self):
         s1 = Series([], [], dtype=np.int32)
         s2 = Series({"x": 0.0})
-        assert_series_equal(s1 * s2, Series([np.nan], index=["x"]))
+        tm.assert_series_equal(s1 * s2, Series([np.nan], index=["x"]))
 
     def test_ops_datetimelike_align(self):
         # GH 7500
@@ -661,21 +792,19 @@ class TestSeriesOperators(TestData):
         expected = Series([timedelta(0), timedelta(0), pd.NaT])
         # name is reset
         result = dt2 - dt
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         expected = Series(expected, name=0)
         result = (dt2.to_frame() - dt.to_frame())[0]
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
-    def test_operators_corner(self):
-        series = self.ts
+    def test_operators_corner(self, datetime_series):
+        empty = Series([], index=Index([]), dtype=np.float64)
 
-        empty = Series([], index=Index([]))
-
-        result = series + empty
+        result = datetime_series + empty
         assert np.isnan(result).all()
 
-        result = empty + Series([], index=Index([]))
+        result = empty + empty.copy()
         assert len(result) == 0
 
         # TODO: this returned NotImplemented earlier, what to do?
@@ -685,10 +814,12 @@ class TestSeriesOperators(TestData):
         # deltas = deltas + sub_deltas
 
         # float + int
-        int_ts = self.ts.astype(int)[:-5]
-        added = self.ts + int_ts
+        int_ts = datetime_series.astype(int)[:-5]
+        added = datetime_series + int_ts
         expected = Series(
-            self.ts.values[:-5] + int_ts.values, index=self.ts.index[:-5], name="ts"
+            datetime_series.values[:-5] + int_ts.values,
+            index=datetime_series.index[:-5],
+            name="ts",
         )
         tm.assert_series_equal(added[:-5], expected)
 
@@ -731,14 +862,14 @@ class TestSeriesOperators(TestData):
 
             result = meth(a, b, fill_value=fill_value)
             expected = Series(exp_values, exp_index)
-            assert_series_equal(result, expected)
+            tm.assert_series_equal(result, expected)
 
         a = Series([np.nan, 1.0, 2.0, 3.0, np.nan], index=np.arange(5))
         b = Series([np.nan, 1, np.nan, 3, np.nan, 4.0], index=np.arange(6))
 
         result = op(a, b)
         exp = equiv_op(a, b)
-        assert_series_equal(result, exp)
+        tm.assert_series_equal(result, exp)
         _check_fill(op, equiv_op, a, b, fill_value=fv)
         # should accept axis=0 or axis='rows'
         op(a, b, axis=0)
@@ -762,7 +893,7 @@ class TestSeriesOperators(TestData):
         s2 = Series([10, 10], index=[1, 2])
         result = s1 + s2
         expected = pd.Series([11, 12, np.nan], index=[1, 1, 2])
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_divmod(self):
         # GH25557
@@ -771,13 +902,24 @@ class TestSeriesOperators(TestData):
 
         result = a.divmod(b)
         expected = divmod(a, b)
-        assert_series_equal(result[0], expected[0])
-        assert_series_equal(result[1], expected[1])
+        tm.assert_series_equal(result[0], expected[0])
+        tm.assert_series_equal(result[1], expected[1])
 
         result = a.rdivmod(b)
         expected = divmod(b, a)
-        assert_series_equal(result[0], expected[0])
-        assert_series_equal(result[1], expected[1])
+        tm.assert_series_equal(result[0], expected[0])
+        tm.assert_series_equal(result[1], expected[1])
+
+    @pytest.mark.parametrize("index", [None, range(9)])
+    def test_series_integer_mod(self, index):
+        # see gh-24396
+        s1 = Series(range(1, 10))
+        s2 = Series("foo", index=index)
+
+        msg = "not all arguments converted during string formatting"
+
+        with pytest.raises(TypeError, match=msg):
+            s2 % s1
 
 
 class TestSeriesUnaryOps:
@@ -786,9 +928,9 @@ class TestSeriesUnaryOps:
     def test_neg(self):
         ser = tm.makeStringSeries()
         ser.name = "series"
-        assert_series_equal(-ser, -1 * ser)
+        tm.assert_series_equal(-ser, -1 * ser)
 
     def test_invert(self):
         ser = tm.makeStringSeries()
         ser.name = "series"
-        assert_series_equal(-(ser < 0), ~(ser < 0))
+        tm.assert_series_equal(-(ser < 0), ~(ser < 0))

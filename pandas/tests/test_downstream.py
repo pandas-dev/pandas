@@ -8,29 +8,18 @@ import sys
 import numpy as np  # noqa
 import pytest
 
-from pandas.compat import PY36
-
-from pandas import DataFrame, Series
-from pandas.util import testing as tm
+from pandas import DataFrame
+import pandas._testing as tm
 
 
 def import_module(name):
     # we *only* want to skip if the module is truly not available
     # and NOT just an actual import error because of pandas changes
 
-    if PY36:
-        try:
-            return importlib.import_module(name)
-        except ModuleNotFoundError:  # noqa
-            pytest.skip("skipping as {} not available".format(name))
-
-    else:
-        try:
-            return importlib.import_module(name)
-        except ImportError as e:
-            if "No module named" in str(e) and name in str(e):
-                pytest.skip("skipping as {} not available".format(name))
-            raise
+    try:
+        return importlib.import_module(name)
+    except ModuleNotFoundError:  # noqa
+        pytest.skip("skipping as {} not available".format(name))
 
 
 @pytest.fixture
@@ -50,6 +39,7 @@ def test_dask(df):
     assert ddf.compute() is not None
 
 
+@pytest.mark.filterwarnings("ignore:Panel class is removed")
 def test_xarray(df):
 
     xarray = import_module("xarray")  # noqa
@@ -65,6 +55,10 @@ def test_oo_optimizable():
 @tm.network
 # Cython import warning
 @pytest.mark.filterwarnings("ignore:can't:ImportWarning")
+@pytest.mark.filterwarnings(
+    # patsy needs to update their imports
+    "ignore:Using or importing the ABCs from 'collections:DeprecationWarning"
+)
 def test_statsmodels():
 
     statsmodels = import_module("statsmodels")  # noqa
@@ -112,10 +106,7 @@ def test_pandas_datareader():
 
 
 # importing from pandas, Cython import warning
-@pytest.mark.filterwarnings("ignore:The 'warn':DeprecationWarning")
-@pytest.mark.filterwarnings("ignore:pandas.util:DeprecationWarning")
 @pytest.mark.filterwarnings("ignore:can't resolve:ImportWarning")
-@pytest.mark.skip(reason="gh-25778: geopandas stack issue")
 def test_geopandas():
 
     geopandas = import_module("geopandas")  # noqa
@@ -123,28 +114,9 @@ def test_geopandas():
     assert geopandas.read_file(fp) is not None
 
 
-def test_geopandas_coordinate_indexer():
-    # this test is included to have coverage of one case in the indexing.py
-    # code that is only kept for compatibility with geopandas, see
-    # https://github.com/pandas-dev/pandas/issues/27258
-    # We should be able to remove this after some time when its usage is
-    # removed in geopandas
-    from pandas.core.indexing import _NDFrameIndexer
-
-    class _CoordinateIndexer(_NDFrameIndexer):
-        def _getitem_tuple(self, tup):
-            obj = self.obj
-            xs, ys = tup
-            return obj[xs][ys]
-
-    Series._create_indexer("cx", _CoordinateIndexer)
-    s = Series(range(5))
-    res = s.cx[:, :]
-    tm.assert_series_equal(s, res)
-
-
 # Cython import warning
 @pytest.mark.filterwarnings("ignore:can't resolve:ImportWarning")
+@pytest.mark.filterwarnings("ignore:RangeIndex.* is deprecated:DeprecationWarning")
 def test_pyarrow(df):
 
     pyarrow = import_module("pyarrow")  # noqa

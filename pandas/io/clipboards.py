@@ -9,8 +9,7 @@ from pandas import get_option, option_context
 
 def read_clipboard(sep=r"\s+", **kwargs):  # pragma: no cover
     r"""
-    Read text from clipboard and pass to read_csv. See read_csv for the
-    full argument list
+    Read text from clipboard and pass to read_csv.
 
     Parameters
     ----------
@@ -18,9 +17,13 @@ def read_clipboard(sep=r"\s+", **kwargs):  # pragma: no cover
         A string or regex delimiter. The default of '\s+' denotes
         one or more whitespace characters.
 
+    **kwargs
+        See read_csv for the full argument list.
+
     Returns
     -------
-    parsed : DataFrame
+    DataFrame
+        A parsed DataFrame object.
     """
     encoding = kwargs.pop("encoding", "utf-8")
 
@@ -66,8 +69,7 @@ def read_clipboard(sep=r"\s+", **kwargs):  # pragma: no cover
         kwargs["engine"] = "python"
     elif len(sep) > 1 and kwargs.get("engine") == "c":
         warnings.warn(
-            "read_clipboard with regex separator does not work"
-            " properly with c engine"
+            "read_clipboard with regex separator does not work properly with c engine"
         )
 
     return read_csv(StringIO(text), sep=sep, **kwargs)
@@ -121,14 +123,14 @@ def to_clipboard(obj, excel=True, sep=None, **kwargs):  # pragma: no cover
             return
         except TypeError:
             warnings.warn(
-                "to_clipboard in excel mode requires a single " "character separator."
+                "to_clipboard in excel mode requires a single character separator."
             )
     elif sep is not None:
         warnings.warn("to_clipboard with excel=False ignores the sep argument")
 
     if isinstance(obj, ABCDataFrame):
         # str(df) has various unhelpful defaults, like truncation
-        with option_context("display.max_colwidth", 999999):
+        with option_context("display.max_colwidth", None):
             objstr = obj.to_string(**kwargs)
     else:
         objstr = str(obj)

@@ -22,7 +22,7 @@ from pandas import (
     isna,
     to_datetime,
 )
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class FixedOffset(tzinfo):
@@ -323,13 +323,9 @@ class TestDatetimeIndexTimezones:
             index.tz_localize(tz=tz)
 
         with pytest.raises(pytz.NonExistentTimeError):
-            with tm.assert_produces_warning(FutureWarning):
-                index.tz_localize(tz=tz, errors="raise")
+            index.tz_localize(tz=tz, nonexistent="raise")
 
-        with tm.assert_produces_warning(
-            FutureWarning, clear=FutureWarning, check_stacklevel=False
-        ):
-            result = index.tz_localize(tz=tz, errors="coerce")
+        result = index.tz_localize(tz=tz, nonexistent="NaT")
         test_times = ["2015-03-08 01:00-05:00", "NaT", "2015-03-08 03:00-04:00"]
         dti = to_datetime(test_times, utc=True)
         expected = dti.tz_convert("US/Eastern")
@@ -703,20 +699,6 @@ class TestDatetimeIndexTimezones:
         msg = "The provided timedelta will relocalize on a nonexistent time"
         with pytest.raises(ValueError, match=msg):
             dti.tz_localize(tz, nonexistent=timedelta(seconds=offset))
-
-    @pytest.mark.filterwarnings("ignore::FutureWarning")
-    def test_dti_tz_localize_errors_deprecation(self):
-        # GH 22644
-        tz = "Europe/Warsaw"
-        n = 60
-        dti = date_range(start="2015-03-29 02:00:00", periods=n, freq="min")
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            with pytest.raises(ValueError):
-                dti.tz_localize(tz, errors="foo")
-            # make sure errors='coerce' gets mapped correctly to nonexistent
-            result = dti.tz_localize(tz, errors="coerce")
-            expected = dti.tz_localize(tz, nonexistent="NaT")
-            tm.assert_index_equal(result, expected)
 
     # -------------------------------------------------------------
     # DatetimeIndex.normalize

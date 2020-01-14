@@ -138,6 +138,10 @@ cpdef get_freq_code(freqstr):
     -------
     return : tuple of base frequency code and stride (mult)
 
+    Raises
+    ------
+    TypeError : if passed a tuple witth incorrect types
+
     Examples
     --------
     >>> get_freq_code('3D')
@@ -156,16 +160,16 @@ cpdef get_freq_code(freqstr):
         if is_integer_object(freqstr[0]) and is_integer_object(freqstr[1]):
             # e.g., freqstr = (2000, 1)
             return freqstr
+        elif is_integer_object(freqstr[0]):
+            # Note: passing freqstr[1] below will raise TypeError if that
+            #  is not a str
+            code = _period_str_to_code(freqstr[1])
+            stride = freqstr[0]
+            return code, stride
         else:
             # e.g., freqstr = ('T', 5)
-            try:
-                code = _period_str_to_code(freqstr[0])
-                stride = freqstr[1]
-            except:
-                if is_integer_object(freqstr[1]):
-                    raise
-                code = _period_str_to_code(freqstr[1])
-                stride = freqstr[0]
+            code = _period_str_to_code(freqstr[0])
+            stride = freqstr[1]
             return code, stride
 
     if is_integer_object(freqstr):
@@ -177,7 +181,7 @@ cpdef get_freq_code(freqstr):
     return code, stride
 
 
-cpdef _base_and_stride(freqstr):
+cpdef _base_and_stride(str freqstr):
     """
     Return base freq and stride info from string representation
 
@@ -193,7 +197,7 @@ cpdef _base_and_stride(freqstr):
     groups = opattern.match(freqstr)
 
     if not groups:
-        raise ValueError("Could not evaluate {freq}".format(freq=freqstr))
+        raise ValueError(f"Could not evaluate {freqstr}")
 
     stride = groups.group(1)
 
@@ -207,7 +211,7 @@ cpdef _base_and_stride(freqstr):
     return base, stride
 
 
-cpdef _period_str_to_code(freqstr):
+cpdef _period_str_to_code(str freqstr):
     freqstr = _lite_rule_alias.get(freqstr, freqstr)
 
     if freqstr not in _dont_uppercase:
@@ -481,18 +485,18 @@ cdef bint _is_weekly(str rule):
 
 # ----------------------------------------------------------------------
 
-cpdef object get_rule_month(object source, object default='DEC'):
+cpdef str get_rule_month(object source, str default="DEC"):
     """
     Return starting month of given freq, default is December.
 
     Parameters
     ----------
     source : object
-    default : object (default "DEC")
+    default : str, default "DEC"
 
     Returns
     -------
-    rule_month: object (usually string)
+    rule_month: str
 
     Examples
     --------

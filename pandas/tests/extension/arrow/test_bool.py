@@ -2,12 +2,12 @@ import numpy as np
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.tests.extension import base
-import pandas.util.testing as tm
 
-pytest.importorskip("pyarrow", minversion="0.10.0")
+pytest.importorskip("pyarrow", minversion="0.13.0")
 
-from .bool import ArrowBoolArray, ArrowBoolDtype  # isort:skip
+from .arrays import ArrowBoolArray, ArrowBoolDtype  # isort:skip
 
 
 @pytest.fixture
@@ -40,6 +40,10 @@ class TestInterface(BaseArrowTests, base.BaseInterfaceTests):
     def test_copy(self, data):
         # __setitem__ does not work, so we only have a smoke-test
         data.copy()
+
+    def test_view(self, data):
+        # __setitem__ does not work, so we only have a smoke-test
+        data.view()
 
 
 class TestConstructors(BaseArrowTests, base.BaseConstructorsTests):

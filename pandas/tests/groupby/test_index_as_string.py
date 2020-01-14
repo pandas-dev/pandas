@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas.util.testing import assert_frame_equal, assert_series_equal
+import pandas._testing as tm
 
 
 @pytest.fixture(params=[["inner"], ["inner", "outer"]])
@@ -49,7 +49,7 @@ def series():
 def test_grouper_index_level_as_string(frame, key_strs, groupers):
     result = frame.groupby(key_strs).mean()
     expected = frame.groupby(groupers).mean()
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -79,4 +79,4 @@ def test_grouper_index_level_as_string_series(series, levels):
 
     # Compute and check result
     result = series.groupby(levels).mean()
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)

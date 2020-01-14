@@ -3,10 +3,11 @@ import operator
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs import IncompatibleFrequency
+
 import pandas as pd
 from pandas import Series
-from pandas.core.indexes.period import IncompatibleFrequency
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def _permute(obj):
@@ -46,6 +47,22 @@ class TestSeriesFlexArithmetic:
             expected = alt(other, series)
             tm.assert_almost_equal(result, expected)
 
+    def test_flex_method_subclass_metadata_preservation(self, all_arithmetic_operators):
+        # GH 13208
+        class MySeries(Series):
+            _metadata = ["x"]
+
+            @property
+            def _constructor(self):
+                return MySeries
+
+        opname = all_arithmetic_operators
+        op = getattr(Series, opname)
+        m = MySeries([1, 2, 3], name="test")
+        m.x = 42
+        result = op(m, 1)
+        assert result.x == 42
+
 
 class TestSeriesArithmetic:
     # Some of these may end up in tests/arithmetic, but are not yet sorted
@@ -65,6 +82,21 @@ class TestSeriesArithmetic:
         msg = "Input has different freq=D from PeriodIndex\\(freq=A-DEC\\)"
         with pytest.raises(IncompatibleFrequency, match=msg):
             ts + ts.asfreq("D", how="end")
+
+    @pytest.mark.parametrize(
+        "target_add,input_value,expected_value",
+        [
+            ("!", ["hello", "world"], ["hello!", "world!"]),
+            ("m", ["hello", "world"], ["hellom", "worldm"]),
+        ],
+    )
+    def test_string_addition(self, target_add, input_value, expected_value):
+        # GH28658 - ensure adding 'm' does not raise an error
+        a = Series(input_value)
+
+        result = a + target_add
+        expected = Series(expected_value)
+        tm.assert_series_equal(result, expected)
 
 
 # ------------------------------------------------------------------
@@ -155,6 +187,14 @@ class TestSeriesComparison:
         ser = Series(tdi).rename(names[1])
         result = op(ser, tdi)
         assert result.name == names[2]
+
+        # interval dtype
+        if op in [operator.eq, operator.ne]:
+            # interval dtype comparisons not yet implemented
+            ii = pd.interval_range(start=0, periods=5, name=names[0])
+            ser = Series(ii).rename(names[1])
+            result = op(ser, ii)
+            assert result.name == names[2]
 
         # categorical
         if op in [operator.eq, operator.ne]:

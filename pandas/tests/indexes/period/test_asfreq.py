@@ -3,7 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, PeriodIndex, Series, period_range
-from pandas.util import testing as tm
+import pandas._testing as tm
 
 
 class TestPeriodIndex:

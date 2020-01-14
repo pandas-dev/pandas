@@ -4,17 +4,10 @@ frozen (immutable) data structures to support MultiIndexing
 These are used for:
 
 - .names (FrozenList)
-- .levels & .codes (FrozenNDArray)
 
 """
 
-import warnings
-
-import numpy as np
-
-from pandas.util._decorators import deprecate_kwarg
-
-from pandas.core.dtypes.cast import coerce_indexer_dtype
+from typing import Any
 
 from pandas.core.base import PandasObject
 
@@ -22,7 +15,6 @@ from pandas.io.formats.printing import pprint_thing
 
 
 class FrozenList(PandasObject, list):
-
     """
     Container that doesn't allow setting item *but*
     because it's technically non-hashable, will be used
@@ -32,7 +24,7 @@ class FrozenList(PandasObject, list):
     # Side note: This has to be of type list. Otherwise,
     #            it messes up PyTables type checks.
 
-    def union(self, other):
+    def union(self, other) -> "FrozenList":
         """
         Returns a FrozenList with other concatenated to the end of self.
 
@@ -43,14 +35,14 @@ class FrozenList(PandasObject, list):
 
         Returns
         -------
-        diff : FrozenList
+        FrozenList
             The collection difference between self and other.
         """
         if isinstance(other, tuple):
             other = list(other)
         return type(self)(super().__add__(other))
 
-    def difference(self, other):
+    def difference(self, other) -> "FrozenList":
         """
         Returns a FrozenList with elements from other removed from self.
 
@@ -61,7 +53,7 @@ class FrozenList(PandasObject, list):
 
         Returns
         -------
-        diff : FrozenList
+        FrozenList
             The collection difference between self and other.
         """
         other = set(other)
@@ -71,22 +63,17 @@ class FrozenList(PandasObject, list):
     # TODO: Consider deprecating these in favor of `union` (xref gh-15506)
     __add__ = __iadd__ = union
 
-    # Python 2 compat
-    def __getslice__(self, i, j):
-        return self.__class__(super().__getslice__(i, j))
-
     def __getitem__(self, n):
-        # Python 3 compat
         if isinstance(n, slice):
-            return self.__class__(super().__getitem__(n))
+            return type(self)(super().__getitem__(n))
         return super().__getitem__(n)
 
     def __radd__(self, other):
         if isinstance(other, tuple):
             other = list(other)
-        return self.__class__(other + list(self))
+        return type(self)(other + list(self))
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         if isinstance(other, (tuple, FrozenList)):
             other = list(other)
         return super().__eq__(other)
@@ -94,100 +81,27 @@ class FrozenList(PandasObject, list):
     __req__ = __eq__
 
     def __mul__(self, other):
-        return self.__class__(super().__mul__(other))
+        return type(self)(super().__mul__(other))
 
     __imul__ = __mul__
 
     def __reduce__(self):
-        return self.__class__, (list(self),)
+        return type(self), (list(self),)
 
     def __hash__(self):
         return hash(tuple(self))
 
     def _disabled(self, *args, **kwargs):
-        """This method will not function because object is immutable."""
-        raise TypeError(
-            "'%s' does not support mutable operations." % self.__class__.__name__
-        )
+        """
+        This method will not function because object is immutable.
+        """
+        raise TypeError(f"'{type(self).__name__}' does not support mutable operations.")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return pprint_thing(self, quote_strings=True, escape_chars=("\t", "\r", "\n"))
 
-    def __repr__(self):
-        return "%s(%s)" % (self.__class__.__name__, str(self))
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({str(self)})"
 
     __setitem__ = __setslice__ = __delitem__ = __delslice__ = _disabled
     pop = append = extend = remove = sort = insert = _disabled
-
-
-class FrozenNDArray(PandasObject, np.ndarray):
-
-    # no __array_finalize__ for now because no metadata
-    def __new__(cls, data, dtype=None, copy=False):
-        warnings.warn(
-            "\nFrozenNDArray is deprecated and will be removed in a "
-            "future version.\nPlease use `numpy.ndarray` instead.\n",
-            FutureWarning,
-            stacklevel=2,
-        )
-
-        if copy is None:
-            copy = not isinstance(data, FrozenNDArray)
-        res = np.array(data, dtype=dtype, copy=copy).view(cls)
-        return res
-
-    def _disabled(self, *args, **kwargs):
-        """This method will not function because object is immutable."""
-        raise TypeError("'%s' does not support mutable operations." % self.__class__)
-
-    __setitem__ = __setslice__ = __delitem__ = __delslice__ = _disabled
-    put = itemset = fill = _disabled
-
-    def _shallow_copy(self):
-        return self.view()
-
-    def values(self):
-        """returns *copy* of underlying array"""
-        arr = self.view(np.ndarray).copy()
-        return arr
-
-    def __repr__(self):
-        """
-        Return a string representation for this object.
-        """
-        prepr = pprint_thing(self, escape_chars=("\t", "\r", "\n"), quote_strings=True)
-        return "%s(%s, dtype='%s')" % (type(self).__name__, prepr, self.dtype)
-
-    @deprecate_kwarg(old_arg_name="v", new_arg_name="value")
-    def searchsorted(self, value, side="left", sorter=None):
-        """
-        Find indices to insert `value` so as to maintain order.
-
-        For full documentation, see `numpy.searchsorted`
-
-        See Also
-        --------
-        numpy.searchsorted : Equivalent function.
-        """
-
-        # We are much more performant if the searched
-        # indexer is the same type as the array.
-        #
-        # This doesn't matter for int64, but DOES
-        # matter for smaller int dtypes.
-        #
-        # xref: https://github.com/numpy/numpy/issues/5370
-        try:
-            value = self.dtype.type(value)
-        except ValueError:
-            pass
-
-        return super().searchsorted(value, side=side, sorter=sorter)
-
-
-def _ensure_frozen(array_like, categories, copy=False):
-    array_like = coerce_indexer_dtype(array_like, categories)
-    array_like = array_like.view(FrozenNDArray)
-    if copy:
-        array_like = array_like.copy()
-    return array_like
