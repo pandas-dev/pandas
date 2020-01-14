@@ -82,7 +82,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
-
+- Bug in :class:`Series` construction from NumPy array with big-endian ``datetime64`` dtype (:issue:`29684`)
 -
 -
 
