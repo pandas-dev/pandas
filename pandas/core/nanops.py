@@ -1286,7 +1286,7 @@ def _zero_out_fperr(arg):
 def nancorr(
     a: np.ndarray,
     b: np.ndarray,
-    method: str = "pearson",
+    method="pearson",
     min_periods: Optional[int] = None,
 ):
     """
