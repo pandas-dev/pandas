@@ -1239,11 +1239,11 @@ class TestCanHoldElement:
 
         if (op, dtype) in invalid:
             msg = (
-                "cannot perform __pow__ with this index type: DatetimeArray|"
-                "cannot perform __mod__ with this index type: DatetimeArray|"
-                "cannot perform __truediv__ with this index type: DatetimeArray|"
-                "cannot perform __mul__ with this index type: DatetimeArray|"
-                "cannot perform __pow__ with this index type: TimedeltaArray|"
+                r"cannot perform __pow__ with this index type: DatetimeArray|"
+                r"cannot perform __mod__ with this index type: DatetimeArray|"
+                r"cannot perform __truediv__ with this index type: DatetimeArray|"
+                r"cannot perform __mul__ with this index type: DatetimeArray|"
+                r"cannot perform __pow__ with this index type: TimedeltaArray|"
                 "ufunc 'multiply' cannot use operands with types dtype"
                 r"\('<m8\[ns\]'\) and dtype\('<m8\[ns\]'\)|"
                 "cannot add DatetimeArray and Timestamp"
