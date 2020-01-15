@@ -222,40 +222,14 @@ def interpolate_1d(
     # default limit is unlimited GH #16282
     limit = algos._validate_limit(nobs=None, limit=limit)
 
-    # These are sets of index pointers to invalid values... i.e. {0, 1, etc...
-    all_nans = set(np.flatnonzero(invalid))
-    start_nans = set(range(find_valid_index(yvalues, "first")))
-    end_nans = set(range(1 + find_valid_index(yvalues, "last"), len(valid)))
-    mid_nans = all_nans - start_nans - end_nans
-
-    # Like the sets above, preserve_nans contains indices of invalid values,
-    # but in this case, it is the final set of indices that need to be
-    # preserved as NaN after the interpolation.
-
-    # For example if limit_direction='forward' then preserve_nans will
-    # contain indices of NaNs at the beginning of the series, and NaNs that
-    # are more than'limit' away from the prior non-NaN.
-
-    # set preserve_nans based on direction using _interp_limit
-    if limit_direction == "forward":
-        preserve_nans = start_nans | set(_interp_limit(invalid, limit, 0))
-    elif limit_direction == "backward":
-        preserve_nans = end_nans | set(_interp_limit(invalid, 0, limit))
-    else:
-        # both directions... just use _interp_limit
-        preserve_nans = set(_interp_limit(invalid, limit, limit))
-
-    # if limit_area is set, add either mid or outside indices
-    # to preserve_nans GH #16284
-    if limit_area == "inside":
-        # preserve NaNs on the outside
-        preserve_nans |= start_nans | end_nans
-    elif limit_area == "outside":
-        # preserve NaNs on the inside
-        preserve_nans |= mid_nans
-
-    # sort preserve_nans and covert to list
-    preserve_nans = sorted(preserve_nans)
+    preserve_nans = _derive_indices_of_nans_to_preserve(
+        yvalues=yvalues,
+        valid=valid,
+        invalid=invalid,
+        limit=limit,
+        limit_area=limit_area,
+        limit_direction=limit_direction,
+    )
 
     xvalues = getattr(xvalues, "values", xvalues)
     yvalues = getattr(yvalues, "values", yvalues)
@@ -313,6 +287,51 @@ def interpolate_1d(
         result[preserve_nans] = np.nan
         return result
 
+def _derive_indices_of_nans_to_preserve(
+    yvalues, valid, invalid, limit, limit_area, limit_direction,
+):
+    """ Derive the indices of NaNs that shall be preserved after interpolation
+    This function is called by `interpolate_1d` and takes the arguments with
+    the same name from there. In `interpolate_1d`, after performing the
+    interpolation the list of indices of NaNs to preserve is used to put
+    NaNs in the desired locations.
+    """
+
+    # These are sets of index pointers to invalid values... i.e. {0, 1, etc...
+    all_nans = set(np.flatnonzero(invalid))
+    start_nans = set(range(find_valid_index(yvalues, "first")))
+    end_nans = set(range(1 + find_valid_index(yvalues, "last"), len(valid)))
+    mid_nans = all_nans - start_nans - end_nans
+
+    # Like the sets above, preserve_nans contains indices of invalid values,
+    # but in this case, it is the final set of indices that need to be
+    # preserved as NaN after the interpolation.
+
+    # For example if limit_direction='forward' then preserve_nans will
+    # contain indices of NaNs at the beginning of the series, and NaNs that
+    # are more than'limit' away from the prior non-NaN.
+
+    # set preserve_nans based on direction using _interp_limit
+    if limit_direction == "forward":
+        preserve_nans = start_nans | set(_interp_limit(invalid, limit, 0))
+    elif limit_direction == "backward":
+        preserve_nans = end_nans | set(_interp_limit(invalid, 0, limit))
+    else:
+        # both directions... just use _interp_limit
+        preserve_nans = set(_interp_limit(invalid, limit, limit))
+
+    # if limit_area is set, add either mid or outside indices
+    # to preserve_nans GH #16284
+    if limit_area == "inside":
+        # preserve NaNs on the outside
+        preserve_nans |= start_nans | end_nans
+    elif limit_area == "outside":
+        # preserve NaNs on the inside
+        preserve_nans |= mid_nans
+
+    # sort preserve_nans and covert to list
+    preserve_nans = sorted(preserve_nans)
+    return preserve_nans
 
 def _interpolate_scipy_wrapper(
     x, y, new_x, method, fill_value=None, bounds_error=False, order=None, **kwargs
@@ -477,6 +496,65 @@ def _akima_interpolate(xi, yi, x, der=0, axis=0):
     else:
         return [P(x, nu) for nu in der]
 
+def interpolate_1d_fill(
+    values,
+    method="pad",
+    axis=0,
+    limit=None,
+    limit_area=None,
+    fill_value=None,
+    dtype=None,
+):
+    """
+    This is a  1D-versoin of `interpolate_2d`, which is used for methods `pad`
+    and `backfill` when interpolating. This 1D-version is necessary to be
+    able to handle kwarg `limit_area` via the function
+    ` _derive_indices_of_nans_to_preserve`. It is used the same way as the
+    1D-interpolation functions which are based on scipy-interpolation, i.e.
+    via np.apply_along_axis.
+    """
+    if method == "pad":
+        limit_direction = "forward"
+    elif method == "backfill":
+        limit_direction = "backward"
+    else:
+        raise ValueError("`method` must be either 'pad' or 'backfill'.")
+
+    orig_values = values
+
+    yvalues = values
+    invalid = isna(yvalues)
+    valid = ~invalid
+
+    if values.ndim > 1:
+        raise AssertionError("This only works with 1D data.")
+
+    if fill_value is None:
+        mask = None
+    else:  # todo create faster fill func without masking
+        mask = mask_missing(values, fill_value)
+
+    preserve_nans = _derive_indices_of_nans_to_preserve(
+        yvalues=yvalues,
+        valid=valid,
+        invalid=invalid,
+        limit=limit,
+        limit_area=limit_area,
+        limit_direction=limit_direction,
+    )
+
+    method = clean_fill_method(method)
+    if method == "pad":
+        values = pad_1d(values, limit=limit, mask=mask, dtype=dtype)
+    else:
+        values = backfill_1d(values, limit=limit, mask=mask, dtype=dtype)
+
+    if orig_values.dtype.kind == "M":
+        # convert float back to datetime64
+        values = values.astype(orig_values.dtype)
+
+    values[preserve_nans] = fill_value
+    return values
 
 def interpolate_2d(
     values, method="pad", axis=0, limit=None, fill_value=None, dtype=None
