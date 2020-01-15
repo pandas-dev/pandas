@@ -598,29 +598,24 @@ def _convert_object_array(content, columns, coerce_float=False, dtype=None):
 # Series-Based
 
 
-def sanitize_index(data, index, copy=False):
+def sanitize_index(data, index: Index):
     """
     Sanitize an index type to return an ndarray of the underlying, pass
     through a non-Index.
     """
 
-    if index is None:
-        return data
-
     if len(data) != len(index):
         raise ValueError("Length of values does not match length of index")
 
-    if isinstance(data, ABCIndexClass) and not copy:
+    if isinstance(data, ABCIndexClass):
         pass
     elif isinstance(data, (ABCPeriodIndex, ABCDatetimeIndex)):
         data = data._values
-        if copy:
-            data = data.copy()
 
     elif isinstance(data, np.ndarray):
 
         # coerce datetimelike types
         if data.dtype.kind in ["M", "m"]:
-            data = sanitize_array(data, index, copy=copy)
+            data = sanitize_array(data, index, copy=False)
 
     return data
