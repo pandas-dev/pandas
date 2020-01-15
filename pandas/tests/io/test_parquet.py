@@ -178,7 +178,7 @@ def check_round_trip(
 
 
 def test_invalid_engine(df_compat):
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=msg):
         check_round_trip(df_compat, "foo", "bar")
 
 
@@ -667,7 +667,7 @@ class TestParquetFastParquet(Base):
         # GH #23283
         partition_cols = ["bool", "int"]
         df = df_full
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             with tm.ensure_clean_dir() as path:
                 df.to_parquet(
                     path,

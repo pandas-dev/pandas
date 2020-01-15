@@ -1374,7 +1374,7 @@ class TestStata:
                 "dates": dates,
             }
         )
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(NotImplementedError, match=msg):
             with tm.ensure_clean() as path:
                 original.to_stata(path)
 

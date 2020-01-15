@@ -337,7 +337,7 @@ class TestSeriesPlots(TestPlotBase):
             assert t.get_fontsize() == 7
 
         # includes negative value
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             series = Series([1, 2, 0, 4, -1], index=["a", "b", "c", "d", "e"])
             series.plot.pie()
 
@@ -396,7 +396,7 @@ class TestSeriesPlots(TestPlotBase):
         _check_plot_works(self.ts.hist, figure=fig, ax=ax1)
         _check_plot_works(self.ts.hist, figure=fig, ax=ax2)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             self.ts.hist(by=self.ts.index, figure=fig)
 
     @pytest.mark.slow
@@ -408,10 +408,10 @@ class TestSeriesPlots(TestPlotBase):
     @pytest.mark.slow
     def test_hist_layout(self):
         df = self.hist_df
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             df.height.hist(layout=(1, 1))
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             df.height.hist(layout=[1, 1])
 
     @pytest.mark.slow
@@ -586,7 +586,7 @@ class TestSeriesPlots(TestPlotBase):
     @pytest.mark.slow
     def test_plot_fails_with_dupe_color_and_style(self):
         x = Series(randn(2))
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             _, ax = self.plt.subplots()
             x.plot(style="k--", color="k", ax=ax)
 
@@ -719,7 +719,7 @@ class TestSeriesPlots(TestPlotBase):
 
     def test_invalid_kind(self):
         s = Series([1, 2])
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             s.plot(kind="aasdf")
 
     @pytest.mark.slow
@@ -766,11 +766,11 @@ class TestSeriesPlots(TestPlotBase):
         self._check_has_errorbars(ax, xerr=0, yerr=1)
 
         # check incorrect lengths and types
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             s.plot(yerr=np.arange(11))
 
         s_err = ["zzz"] * 10
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             s.plot(yerr=s_err)
 
     def test_table(self):
@@ -929,7 +929,7 @@ class TestSeriesPlots(TestPlotBase):
 
     def test_plot_no_numeric_data(self):
         df = pd.Series(["a", "b", "c"])
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             df.plot()
 
     def test_style_single_ok(self):

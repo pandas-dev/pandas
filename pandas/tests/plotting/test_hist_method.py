@@ -45,7 +45,7 @@ class TestSeriesPlots(TestPlotBase):
         _check_plot_works(self.ts.hist, figure=fig, ax=ax1)
         _check_plot_works(self.ts.hist, figure=fig, ax=ax2)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             self.ts.hist(by=self.ts.index, figure=fig)
 
     @pytest.mark.slow
@@ -57,10 +57,10 @@ class TestSeriesPlots(TestPlotBase):
     @pytest.mark.slow
     def test_hist_layout(self):
         df = self.hist_df
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             df.height.hist(layout=(1, 1))
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             df.height.hist(layout=[1, 1])
 
     @pytest.mark.slow
@@ -128,7 +128,7 @@ class TestSeriesPlots(TestPlotBase):
         fig1 = figure()
         fig2 = figure()
         ax1 = fig1.add_subplot(111)
-        with pytest.raises(AssertionError):
+        with pytest.raises(AssertionError, match=msg):
             self.ts.hist(ax=ax1, figure=fig2)
 
 
@@ -200,7 +200,7 @@ class TestDataFramePlots(TestPlotBase):
         tm.close()
 
         # propagate attr exception from matplotlib.Axes.hist
-        with pytest.raises(AttributeError):
+        with pytest.raises(AttributeError, match=msg):
             ser.hist(foo="bar")
 
     @pytest.mark.slow
@@ -235,13 +235,13 @@ class TestDataFramePlots(TestPlotBase):
             self._check_axes_shape(axes, axes_num=3, layout=expected)
 
         # layout too small for all 4 plots
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             df.hist(layout=(1, 1))
 
         # invalid format for layout
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             df.hist(layout=(1,))
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             df.hist(layout=(-1, -1))
 
     @pytest.mark.slow
@@ -328,7 +328,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
 
         tm.close()
         # propagate attr exception from matplotlib.Axes.hist
-        with pytest.raises(AttributeError):
+        with pytest.raises(AttributeError, match=msg):
             _grouped_hist(df.A, by=df.C, foo="bar")
 
         msg = "Specify figure size by tuple instead"
@@ -419,7 +419,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         tm.assert_numpy_array_equal(returned, axes[1])
         assert returned[0].figure is fig
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             fig, axes = self.plt.subplots(2, 3)
             # pass different number of axes from required
             axes = df.hist(column="height", ax=axes)
