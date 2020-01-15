@@ -72,6 +72,15 @@ def test_length_zero_copy(dtype, copy):
     assert result.base is (None if copy else arr)
 
 
+def test_ensure_datetime64ns_bigendian():
+    # GH#29684
+    arr = np.array([np.datetime64(1, "ms")], dtype=">M8[ms]")
+    result = conversion.ensure_datetime64ns(arr)
+
+    expected = np.array([np.datetime64(1, "ms")], dtype="M8[ns]")
+    tm.assert_numpy_array_equal(result, expected)
+
+
 class SubDatetime(datetime):
     pass
 
