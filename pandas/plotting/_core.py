@@ -1176,6 +1176,8 @@ class PlotAccessor(PandasObject):
             >>> df['two'] = df['one'] + np.random.randint(1, 7, 6000)
             >>> ax = df.plot.hist(bins=12, alpha=0.5)
 
+        If `by` is defined, a grouped hist plot is generated:
+
         .. plot::
             :context: close-figs
 
