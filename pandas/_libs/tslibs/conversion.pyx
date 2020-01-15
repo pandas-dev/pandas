@@ -207,31 +207,6 @@ def datetime_to_datetime64(object[:] values):
     return result, inferred_tz
 
 
-cdef inline maybe_datetimelike_to_i8(object val):
-    """
-    Try to convert to a nanosecond timestamp.  Fall back to returning the
-    input value.
-
-    Parameters
-    ----------
-    val : object
-
-    Returns
-    -------
-    val : int64 timestamp or original input
-    """
-    cdef:
-        npy_datetimestruct dts
-    try:
-        return val.value
-    except AttributeError:
-        if is_datetime64_object(val):
-            return get_datetime64_value(val)
-        elif PyDateTime_Check(val):
-            return convert_datetime_to_tsobject(val, None).value
-        return val
-
-
 # ----------------------------------------------------------------------
 # _TSObject Conversion
 
