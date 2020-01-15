@@ -40,7 +40,7 @@ Deprecations
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
--
+- Performance improvement in :meth:`PeriodIndex.get_loc` using input from user  (:issue:`29038`)
 -
 
 .. ---------------------------------------------------------------------------

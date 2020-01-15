@@ -340,7 +340,7 @@ class Base:
         # RangeIndex, IntervalIndex
         # don't have engines
         if not isinstance(indices, (RangeIndex, IntervalIndex)):
-            assert result2 > result
+            assert result2 >= result
 
         if indices.inferred_type == "object":
             assert result3 > result2

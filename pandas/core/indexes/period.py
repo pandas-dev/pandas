@@ -598,11 +598,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         TypeError
             If key is listlike or otherwise not hashable.
         """
-
         if isinstance(key, str):
             try:
-                asdt, parsed, reso = parse_time_string(key, self.freq)
-                key = asdt
+                key, parsed, reso = parse_time_string(key, self.freq)
             except DateParseError:
                 # A string with invalid format
                 raise KeyError(f"Cannot interpret '{key}' as period")
@@ -613,6 +611,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
         try:
             key = Period(key, freq=self.freq)
+            ordinal = key.ordinal if key is not NaT else key.value
         except ValueError:
             # we cannot construct the Period
             # as we have an invalid type
@@ -620,18 +619,13 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
                 raise TypeError(f"'{key}' is an invalid key")
             raise KeyError(key)
 
-        ordinal = key.ordinal if key is not NaT else key.value
+        if tolerance is not None:
+            tolerance = self._convert_tolerance(tolerance, np.asarray(key))
+
         try:
-            return self._engine.get_loc(ordinal)
+            return self._int64index.get_loc(ordinal, method, tolerance)
         except KeyError:
-
-            try:
-                if tolerance is not None:
-                    tolerance = self._convert_tolerance(tolerance, np.asarray(key))
-                return self._int64index.get_loc(ordinal, method, tolerance)
-
-            except KeyError:
-                raise KeyError(key)
+            raise KeyError(key)
 
     def _maybe_cast_slice_bound(self, label, side, kind):
         """
