@@ -71,6 +71,11 @@ class TestSeriesAppend:
 
         tm.assert_series_equal(expected, result)
 
+        msg = "to_append should be a Series or list/tuple of Series, got " \
+              "<class 'pandas.core.frame.DataFrame'>"
+        with pytest.raises(TypeError, match=msg):
+            df.A.append(df)
+
 class TestSeriesAppendWithDatetimeIndex:
     def test_append(self):
         rng = date_range("5/8/2012 1:45", periods=10, freq="5T")
