@@ -613,8 +613,8 @@ def assert_index_equal(
                 assert_attr_equal("dtype", l, r, obj=obj)
 
             # allow string-like to have different inferred_types
-            if l.inferred_type in ("string", "unicode"):
-                assert r.inferred_type in ("string", "unicode")
+            if l.inferred_type in ("string"):
+                assert r.inferred_type in ("string")
             else:
                 assert_attr_equal("inferred_type", l, r, obj=obj)
 
