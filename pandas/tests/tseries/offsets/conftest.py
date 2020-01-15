@@ -71,7 +71,8 @@ def month_classes(request):
 @pytest.fixture(params=[getattr(offsets, o) for o in DATE_OFFSETS])
 def date_offset_types(request):
     """
-    Fixture for all the datetime offsets available for a time series except business subclasses.
+    Fixture for all the datetime offsets available for a time series except business
+    subclasses.
     """
     return request.param
 
@@ -85,7 +86,8 @@ def date_offset_types(request):
 )
 def date_month_classes(request):
     """
-    Fixture for month based datetime offsets available for a time series except business subclasses.
+    Fixture for month based datetime offsets available for a time series except business
+    subclasses.
     """
     return request.param
 
