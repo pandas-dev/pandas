@@ -66,7 +66,13 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import Categorical, DatetimeArray, PandasDtype, TimedeltaArray
+from pandas.core.arrays import (
+    Categorical,
+    DatetimeArray,
+    ExtensionArray,
+    PandasDtype,
+    TimedeltaArray,
+)
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.construction import extract_array
@@ -192,15 +198,30 @@ class Block(PandasObject):
 
         return False
 
-    def external_values(self, dtype=None):
-        """ return an outside world format, currently just the ndarray """
-        return self.values
+    def external_values(self):
+        """
+        The array that Series.values returns (public attribute).
 
-    def internal_values(self, dtype=None):
-        """ return an internal format, currently just the ndarray
-        this should be the pure internal API format
+        This has some historical constraints, and is overridden in block
+        subclasses to return the correct array (e.g. period returns
+        object ndarray and datetimetz a datetime64[ns] ndarray instead of
+        proper extension array).
         """
         return self.values
+
+    def internal_values(self):
+        """
+        The array that Series._values returns (internal values).
+        """
+        return self.values
+
+    def array_values(self) -> ExtensionArray:
+        """
+        The array that Series.array returns. Always an ExtensionArray.
+        """
+        from pandas.core.arrays.numpy_ import PandasArray
+
+        return PandasArray(self.values)
 
     def get_values(self, dtype=None):
         """
@@ -1771,6 +1792,9 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             values = values.reshape((1,) + values.shape)
         return values
 
+    def array_values(self) -> ExtensionArray:
+        return self.values
+
     def to_dense(self):
         return np.asarray(self.values)
 
@@ -1966,7 +1990,7 @@ class ObjectValuesExtensionBlock(ExtensionBlock):
     Series[T].values is an ndarray of objects.
     """
 
-    def external_values(self, dtype=None):
+    def external_values(self):
         return self.values.astype(object)
 
 
@@ -2228,6 +2252,9 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
     def external_values(self):
         return np.asarray(self.values.astype("datetime64[ns]", copy=False))
 
+    def array_values(self) -> ExtensionArray:
+        return DatetimeArray(self.values)
+
 
 class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     """ implement a datetime64 block with a tz attribute """
@@ -2482,8 +2509,11 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         )
         return rvalues
 
-    def external_values(self, dtype=None):
+    def external_values(self):
         return np.asarray(self.values.astype("timedelta64[ns]", copy=False))
+
+    def array_values(self) -> ExtensionArray:
+        return TimedeltaArray(self.values)
 
 
 class BoolBlock(NumericBlock):

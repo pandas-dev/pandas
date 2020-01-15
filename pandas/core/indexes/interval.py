@@ -405,10 +405,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
         """
         return self._data
 
-    @cache_readonly
-    def _values(self):
-        return self._data
-
     def __array_wrap__(self, result, context=None):
         # we don't want the superclass implementation
         return result
