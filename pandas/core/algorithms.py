@@ -201,7 +201,7 @@ def _ensure_arraylike(values):
     """
     if not is_array_like(values):
         inferred = lib.infer_dtype(values, skipna=False)
-        if inferred in ["mixed", "string", "unicode"]:
+        if inferred in ["mixed", "string"]:
             if isinstance(values, tuple):
                 values = list(values)
             values = construct_1d_object_array_from_listlike(values)

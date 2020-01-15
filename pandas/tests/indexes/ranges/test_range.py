@@ -735,8 +735,9 @@ class TestRangeIndex(Numeric):
 
         assert "_engine" not in idx._cache
 
-        # The engine is still required for lookup of a different dtype scalar:
+        # Different types of scalars can be excluded immediately, no need to
+        #  use the _engine
         with pytest.raises(KeyError, match="'a'"):
-            assert idx.get_loc("a") == -1
+            idx.get_loc("a")
 
-        assert "_engine" in idx._cache
+        assert "_engine" not in idx._cache
