@@ -70,6 +70,7 @@ from pandas.core.arrays import (
     Categorical,
     DatetimeArray,
     ExtensionArray,
+    PandasArray,
     PandasDtype,
     TimedeltaArray,
 )
@@ -219,8 +220,6 @@ class Block(PandasObject):
         """
         The array that Series.array returns. Always an ExtensionArray.
         """
-        from pandas.core.arrays.numpy_ import PandasArray
-
         return PandasArray(self.values)
 
     def get_values(self, dtype=None):
