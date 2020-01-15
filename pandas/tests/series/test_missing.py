@@ -1382,6 +1382,61 @@ class TestSeriesInterpolateData:
         with pytest.raises(ValueError, match=msg):
             s.interpolate(method="linear", limit_area="abc")
 
+    def test_interp_limit_area_with_pad(self):
+        # Test for issue #26796
+        s = Series(
+            [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan])
+
+        expected = Series(
+            [np.nan, np.nan, 3.0, 3.0, 3.0, 3.0, 7.0, np.nan, np.nan])
+        result = s.interpolate(method="pad", limit_area="inside")
+        tm.assert_series_equal(result, expected)
+
+        expected = Series(
+            [np.nan, np.nan, 3.0, 3.0, np.nan, np.nan, 7.0, np.nan, np.nan]
+        )
+        result = s.interpolate(method="pad", limit_area="inside", limit=1)
+        tm.assert_series_equal(result, expected)
+
+        expected = Series(
+            [np.nan, np.nan, 3.0, np.nan, np.nan, np.nan, 7.0, 7.0, 7.0])
+        result = s.interpolate(method="pad", limit_area="outside")
+        tm.assert_series_equal(result, expected)
+
+        expected = Series(
+            [np.nan, np.nan, 3.0, np.nan, np.nan, np.nan, 7.0, 7.0, np.nan]
+        )
+        result = s.interpolate(method="pad", limit_area="outside", limit=1)
+        tm.assert_series_equal(result, expected)
+
+    def test_interp_limit_area_with_backfill(self):
+        # Test for issue #26796
+        s = Series(
+            [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan])
+
+        expected = Series(
+            [np.nan, np.nan, 3.0, 7.0, 7.0, 7.0, 7.0, np.nan, np.nan])
+        result = s.interpolate(method="bfill", limit_area="inside")
+        tm.assert_series_equal(result, expected)
+
+        expected = Series(
+            [np.nan, np.nan, 3.0, np.nan, np.nan, 7.0, 7.0, np.nan, np.nan]
+        )
+        result = s.interpolate(method="bfill", limit_area="inside", limit=1)
+        tm.assert_series_equal(result, expected)
+
+        expected = Series(
+            [3.0, 3.0, 3.0, np.nan, np.nan, np.nan, 7.0, np.nan, np.nan])
+        result = s.interpolate(method="bfill", limit_area="outside")
+        tm.assert_series_equal(result, expected)
+
+        expected = Series(
+            [np.nan, 3.0, 3.0, np.nan, np.nan, np.nan, 7.0, 7.0, np.nan]
+        )
+        result = s.interpolate(method="bfill", limit_area="outside", limit=1)
+        tm.assert_series_equal(result, expected)
+
+
     def test_interp_limit_direction(self):
         # These tests are for issue #9218 -- fill NaNs in both directions.
         s = Series([1, 3, np.nan, np.nan, np.nan, 11])
