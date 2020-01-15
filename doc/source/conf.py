@@ -137,7 +137,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "pandas"
-copyright = "2008-2014, the pandas development team"
+copyright = "2008-2020, the pandas development team"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

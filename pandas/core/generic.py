@@ -350,13 +350,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         d.update(kwargs)
         return d
 
-    @staticmethod
-    def _construct_axes_dict_from(self, axes, **kwargs):
-        """Return an axes dictionary for the passed axes."""
-        d = {a: ax for a, ax in zip(self._AXIS_ORDERS, axes)}
-        d.update(kwargs)
-        return d
-
     def _construct_axes_from_arguments(
         self, args, kwargs, require_all: bool = False, sentinel=None
     ):
@@ -384,18 +377,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         axes = {a: kwargs.pop(a, sentinel) for a in self._AXIS_ORDERS}
         return axes, kwargs
-
-    @classmethod
-    def _from_axes(cls: Type[FrameOrSeries], data, axes, **kwargs) -> FrameOrSeries:
-        # for construction from BlockManager
-        if isinstance(data, BlockManager):
-            return cls(data, **kwargs)
-        else:
-            if cls._AXIS_REVERSED:
-                axes = axes[::-1]
-            d = cls._construct_axes_dict_from(cls, axes, copy=False)
-            d.update(kwargs)
-            return cls(data, **d)
 
     @classmethod
     def _get_axis_number(cls, axis):
@@ -910,25 +891,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 for i, a in enumerate(self.axes)
             )
         ]
-
-    def swaplevel(self: FrameOrSeries, i=-2, j=-1, axis=0) -> FrameOrSeries:
-        """
-        Swap levels i and j in a MultiIndex on a particular axis
-
-        Parameters
-        ----------
-        i, j : int, str (can be mixed)
-            Level of index to be swapped. Can pass level name as string.
-
-        Returns
-        -------
-        swapped : same type as caller (new object)
-        """
-        axis = self._get_axis_number(axis)
-        result = self.copy()
-        labels = result._data.axes[axis]
-        result._data.set_axis(axis, labels.swaplevel(i, j))
-        return result
 
     # ----------------------------------------------------------------------
     # Rename
@@ -4224,69 +4186,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         raise AbstractMethodError(self)
 
-    def sort_index(
-        self,
-        axis=0,
-        level=None,
-        ascending: bool_t = True,
-        inplace: bool_t = False,
-        kind: str = "quicksort",
-        na_position: str = "last",
-        sort_remaining: bool_t = True,
-        ignore_index: bool_t = False,
-    ):
-        """
-        Sort object by labels (along an axis).
-
-        Parameters
-        ----------
-        axis : {0 or 'index', 1 or 'columns'}, default 0
-            The axis along which to sort.  The value 0 identifies the rows,
-            and 1 identifies the columns.
-        level : int or level name or list of ints or list of level names
-            If not None, sort on values in specified index level(s).
-        ascending : bool, default True
-            Sort ascending vs. descending.
-        inplace : bool, default False
-            If True, perform operation in-place.
-        kind : {'quicksort', 'mergesort', 'heapsort'}, default 'quicksort'
-            Choice of sorting algorithm. See also ndarray.np.sort for more
-            information.  `mergesort` is the only stable algorithm. For
-            DataFrames, this option is only applied when sorting on a single
-            column or label.
-        na_position : {'first', 'last'}, default 'last'
-            Puts NaNs at the beginning if `first`; `last` puts NaNs at the end.
-            Not implemented for MultiIndex.
-        sort_remaining : bool, default True
-            If True and sorting by level and index is multilevel, sort by other
-            levels too (in order) after sorting by specified level.
-        ignore_index : bool, default False
-            If True, the resulting axis will be labeled 0, 1, …, n - 1.
-
-            .. versionadded:: 1.0.0
-
-        Returns
-        -------
-        sorted_obj : DataFrame or None
-            DataFrame with sorted index if inplace=False, None otherwise.
-        """
-        inplace = validate_bool_kwarg(inplace, "inplace")
-        axis = self._get_axis_number(axis)
-        axis_name = self._get_axis_name(axis)
-        labels = self._get_axis(axis)
-
-        if level is not None:
-            raise NotImplementedError("level is not implemented")
-        if inplace:
-            raise NotImplementedError("inplace is not implemented")
-
-        sort_index = labels.argsort()
-        if not ascending:
-            sort_index = sort_index[::-1]
-
-        new_axis = labels.take(sort_index)
-        return self.reindex(**{axis_name: new_axis})
-
     def reindex(self: FrameOrSeries, *args, **kwargs) -> FrameOrSeries:
         """
         Conform %(klass)s to new index with optional filling logic.
@@ -5369,11 +5268,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         f = lambda: self._data.is_numeric_mixed_type
         return self._protect_consolidate(f)
 
-    @property
-    def _is_datelike_mixed_type(self):
-        f = lambda: self._data.is_datelike_mixed_type
-        return self._protect_consolidate(f)
-
     def _check_inplace_setting(self, value) -> bool_t:
         """ check whether we allow in-place setting with this type of value """
 
@@ -5480,11 +5374,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     @property
     def _values(self) -> np.ndarray:
         """internal implementation"""
-        return self.values
-
-    @property
-    def _get_values(self) -> np.ndarray:
-        # compat
         return self.values
 
     def _internal_get_values(self) -> np.ndarray:
