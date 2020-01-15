@@ -289,7 +289,7 @@ def interpolate_1d(
 
 
 def _derive_indices_of_nans_to_preserve(
-    yvalues, valid, invalid, limit, limit_area, limit_direction,
+    yvalues, valid, invalid, limit, limit_area, limit_direction
 ):
     """ Derive the indices of NaNs that shall be preserved after interpolation
     This function is called by `interpolate_1d` and takes the arguments with

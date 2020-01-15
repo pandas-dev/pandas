@@ -6724,8 +6724,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         # Set `limit_direction` depending on `method`
         if (method == "pad") or (method == "ffill"):
-            if (limit_direction == "backward") or (
-                limit_direction == "both"):
+            if (limit_direction == "backward") or (limit_direction == "both"):
                 raise ValueError(
                     f"`limit_direction` must not be `{limit_direction}` "
                     f"for method `{method}`"

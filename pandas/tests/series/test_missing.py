@@ -1384,11 +1384,9 @@ class TestSeriesInterpolateData:
 
     def test_interp_limit_area_with_pad(self):
         # Test for issue #26796
-        s = Series(
-            [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan])
+        s = Series([np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan])
 
-        expected = Series(
-            [np.nan, np.nan, 3.0, 3.0, 3.0, 3.0, 7.0, np.nan, np.nan])
+        expected = Series([np.nan, np.nan, 3.0, 3.0, 3.0, 3.0, 7.0, np.nan, np.nan])
         result = s.interpolate(method="pad", limit_area="inside")
         tm.assert_series_equal(result, expected)
 
@@ -1398,8 +1396,7 @@ class TestSeriesInterpolateData:
         result = s.interpolate(method="pad", limit_area="inside", limit=1)
         tm.assert_series_equal(result, expected)
 
-        expected = Series(
-            [np.nan, np.nan, 3.0, np.nan, np.nan, np.nan, 7.0, 7.0, 7.0])
+        expected = Series([np.nan, np.nan, 3.0, np.nan, np.nan, np.nan, 7.0, 7.0, 7.0])
         result = s.interpolate(method="pad", limit_area="outside")
         tm.assert_series_equal(result, expected)
 
@@ -1411,11 +1408,9 @@ class TestSeriesInterpolateData:
 
     def test_interp_limit_area_with_backfill(self):
         # Test for issue #26796
-        s = Series(
-            [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan])
+        s = Series([np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan])
 
-        expected = Series(
-            [np.nan, np.nan, 3.0, 7.0, 7.0, 7.0, 7.0, np.nan, np.nan])
+        expected = Series([np.nan, np.nan, 3.0, 7.0, 7.0, 7.0, 7.0, np.nan, np.nan])
         result = s.interpolate(method="bfill", limit_area="inside")
         tm.assert_series_equal(result, expected)
 
@@ -1425,8 +1420,7 @@ class TestSeriesInterpolateData:
         result = s.interpolate(method="bfill", limit_area="inside", limit=1)
         tm.assert_series_equal(result, expected)
 
-        expected = Series(
-            [3.0, 3.0, 3.0, np.nan, np.nan, np.nan, 7.0, np.nan, np.nan])
+        expected = Series([3.0, 3.0, 3.0, np.nan, np.nan, np.nan, 7.0, np.nan, np.nan])
         result = s.interpolate(method="bfill", limit_area="outside")
         tm.assert_series_equal(result, expected)
 

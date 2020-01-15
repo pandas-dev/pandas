@@ -1176,6 +1176,7 @@ class Block(PandasObject):
         #    works by applying the fill along a certain axis.
         # 2. All other cases: Then, `missing.interpolate_2d()` can be used.
         if limit_area is not None:
+
             def func(x):
                 return missing.interpolate_1d_fill(
                     x,
@@ -1186,7 +1187,8 @@ class Block(PandasObject):
                     fill_value=fill_value,
                     dtype=self.dtype,
                 )
-            # Beware that this also change the input array `values`!
+
+            # Beware that this also changes the input array `values`!
             interp_values = np.apply_along_axis(func, axis, values)
         else:
             interp_values = missing.interpolate_2d(
