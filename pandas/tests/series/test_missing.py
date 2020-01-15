@@ -1324,8 +1324,8 @@ class TestSeriesInterpolateData:
         s = Series([1, 3, np.nan, np.nan, np.nan, 11])
 
         msg = (
-            r"Invalid limit_direction: expecting one of \['forward',"
-            r" 'backward', 'both'\], got 'abc'"
+            r"Invalid limit_direction: expecting one of \['forward', "
+            r"'backward', 'both'\], got 'abc'"
         )
         with pytest.raises(ValueError, match=msg):
             s.interpolate(method="linear", limit=2, limit_direction="abc")
@@ -1347,6 +1347,7 @@ class TestSeriesInterpolateData:
             [np.nan, np.nan, 3.0, 4.0, np.nan, np.nan, 7.0, np.nan, np.nan]
         )
         result = s.interpolate(method="linear", limit_area="inside", limit=1)
+        tm.assert_series_equal(result, expected)
 
         expected = Series([np.nan, np.nan, 3.0, 4.0, np.nan, 6.0, 7.0, np.nan, np.nan])
         result = s.interpolate(
@@ -1362,6 +1363,7 @@ class TestSeriesInterpolateData:
             [np.nan, np.nan, 3.0, np.nan, np.nan, np.nan, 7.0, 7.0, np.nan]
         )
         result = s.interpolate(method="linear", limit_area="outside", limit=1)
+        tm.assert_series_equal(result, expected)
 
         expected = Series([np.nan, 3.0, 3.0, np.nan, np.nan, np.nan, 7.0, 7.0, np.nan])
         result = s.interpolate(
@@ -1371,8 +1373,9 @@ class TestSeriesInterpolateData:
 
         expected = Series([3.0, 3.0, 3.0, np.nan, np.nan, np.nan, 7.0, np.nan, np.nan])
         result = s.interpolate(
-            method="linear", limit_area="outside", direction="backward"
+            method="linear", limit_area="outside", limit_direction="backward"
         )
+        tm.assert_series_equal(result, expected)
 
         # raises an error even if limit type is wrong.
         msg = r"Invalid limit_area: expecting one of \['inside', 'outside'\], got abc"
