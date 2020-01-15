@@ -2334,7 +2334,7 @@ class StataWriter(StataParser):
             dtype = column.dtype
             if dtype.type == np.object_:
                 inferred_dtype = infer_dtype(column, skipna=True)
-                if not ((inferred_dtype in ("string", "unicode")) or len(column) == 0):
+                if not ((inferred_dtype in ("string")) or len(column) == 0):
                     col = column.name
                     raise ValueError(
                         f"""\
