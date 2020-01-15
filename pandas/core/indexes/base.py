@@ -1644,21 +1644,184 @@ class Index(IndexOpsMixin, PandasObject):
 
     @property
     def has_duplicates(self) -> bool:
+        """
+        Check if the Index has duplicate values.
+
+        Returns
+        -------
+        boolean
+            Whether or not the Index has duplicate values.
+
+        Examples
+        --------
+        >>> idx = pd.Index([1, 5, 7, 7])
+        >>> idx.has_duplicates
+        True
+
+        >>> idx = pd.Index([1, 5, 7])
+        >>> idx.has_duplicates
+        False
+
+        >>> idx = pd.Index(["Watermelon", "Orange", "Apple",
+        ...                 "Watermelon"]).astype("category")
+        >>> idx.has_duplicates
+        True
+
+        >>> idx = pd.Index(["Orange", "Apple",
+        ...                 "Watermelon"]).astype("category")
+        >>> idx.has_duplicates
+        False
+        """
         return not self.is_unique
 
     def is_boolean(self) -> bool:
+        """
+        Check if the Index only consists of booleans.
+
+        Returns
+        -------
+        boolean
+            Whether or not the Index only consists of booleans.
+
+        Examples
+        --------
+        >>> idx = pd.Index([True, False, True])
+        >>> idx.is_boolean()
+        True
+
+        >>> idx = pd.Index(["True", "False", "True"])
+        >>> idx.is_boolean()
+        False
+
+        >>> idx = pd.Index([True, False, "True"])
+        >>> idx.is_boolean()
+        False
+        """
         return self.inferred_type in ["boolean"]
 
     def is_integer(self) -> bool:
+        """
+        Check if the Index only consists of integers.
+
+        Returns
+        -------
+        boolean
+            Whether or not the Index only consists of integers.
+
+        Examples
+        --------
+        >>> idx = pd.Index([1, 2, 3, 4])
+        >>> idx.is_integer()
+        True
+
+        >>> idx = pd.Index([1.0, 2.0, 3.0, 4.0])
+        >>> idx.is_integer()
+        False
+
+        >>> idx = pd.Index([1, 2, 3, 4.0])
+        >>> idx.is_integer()
+        False
+        """
         return self.inferred_type in ["integer"]
 
     def is_floating(self) -> bool:
+        """
+        Check if the Index only consists of floats, NaNs, or
+        a mix of floats, integers, or NaNs.
+
+        Returns
+        -------
+        boolean
+            Whether or not the Index only consists of only consists of floats, NaNs, or
+            a mix of floats, integers, or NaNs.
+
+        Examples
+        --------
+        >>> idx = pd.Index([1.0, 2.0, 3.0, 4.0])
+        >>> idx.is_floating()
+        True
+
+        >>> idx = pd.Index([1, 2, 3, 4.0])
+        >>> idx.is_floating()
+        True
+
+        >>> idx = pd.Index([1, 2, 3, 4.0, np.nan])
+        >>> idx.is_floating()
+        True
+
+        >>> idx = pd.Index([1, 2, 3, 4, np.nan])
+        >>> idx.is_floating()
+        True
+
+        >>> idx = pd.Index([1, 2, 3, 4])
+        >>> idx.is_integer()
+        False
+        """
         return self.inferred_type in ["floating", "mixed-integer-float", "integer-na"]
 
     def is_numeric(self) -> bool:
+        """
+        Check if the Index only consists of numeric
+        data.
+
+        Returns
+        -------
+        boolean
+            Whether or not the Index only only consists of numeric
+        data.
+
+        Examples
+        --------
+        >>> idx = pd.Index([1.0, 2.0, 3.0, 4.0])
+        >>> idx.is_numeric()
+        True
+
+        >>> idx = pd.Index([1, 2, 3, 4.0])
+        >>> idx.is_numeric()
+        True
+
+        >>> idx = pd.Index([1, 2, 3, 4])
+        >>> idx.is_numeric()
+        True
+
+        >>> idx = pd.Index([1, 2, 3, 4.0, np.nan])
+        >>> idx.is_numeric()
+        True
+
+        >>> idx = pd.Index([1, 2, 3, 4.0, np.nan, "Apple"])
+        >>> idx.is_numeric()
+        False
+        """
         return self.inferred_type in ["integer", "floating"]
 
     def is_object(self) -> bool:
+        """
+        Check if the Index is of the object dtype.
+
+        Returns
+        -------
+        boolean
+            Whether or not the Index is of the object dtype.
+
+        Examples
+        --------
+        >>> idx = pd.Index(["Apple", "Mango", "Watermelon"])
+        >>> idx.is_object()
+        True
+
+        >>> idx = pd.Index(["Apple", "Mango", 2.0])
+        >>> idx.is_object()
+        True
+
+        >>> idx = pd.Index(["Watermelon", "Orange", "Apple",
+        ...                 "Watermelon"]).astype("category")
+        >>> idx.object()
+        False
+
+        >>> idx = pd.Index([1.0, 2.0, 3.0, 4.0])
+        >>> idx.is_object()
+        False
+        """
         return is_object_dtype(self.dtype)
 
     def is_categorical(self) -> bool:
@@ -1698,9 +1861,50 @@ class Index(IndexOpsMixin, PandasObject):
         return self.inferred_type in ["categorical"]
 
     def is_interval(self) -> bool:
+        """
+        Check if the Index holds Interval objects.
+
+        Returns
+        -------
+        boolean
+            Whether or not the Index holds Interval objects.
+
+        See Also
+        --------
+        IntervalIndex : Index for Interval objects.
+
+        Examples
+        --------
+        >>> idx = pd.Index([pd.Interval(left=0, right=5),
+        ...                 pd.Interval(left=5, right=10)])
+        >>> idx.is_interval()
+        True
+
+        >>> idx = pd.Index([1, 3, 5, 7])
+        >>> idx.is_interval()
+        False
+        """
         return self.inferred_type in ["interval"]
 
     def is_mixed(self) -> bool:
+        """
+        Check if the Index holds data with mixed data types.
+
+        Returns
+        -------
+        boolean
+            Whether or not the Index holds data with mixed data types.
+
+        Examples
+        --------
+        >>> idx = pd.Index(['a', np.nan, 'b'])
+        >>> idx.is_mixed()
+        True
+
+        >>> idx = pd.Index([1.0, 2.0, 3.0, 5.0])
+        >>> idx.is_mixed()
+        False
+        """
         return self.inferred_type in ["mixed"]
 
     def holds_integer(self):
