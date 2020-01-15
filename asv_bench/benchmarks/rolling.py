@@ -48,7 +48,7 @@ class Engine:
     params = (
         ["DataFrame", "Series"],
         ["int", "float"],
-        [sum, np.sum, lambda x: np.sum(x) + 5],
+        [np.sum, lambda x: np.sum(x) + 5],
         ["cython", "numba"],
     )
     param_names = ["constructor", "dtype", "function", "engine"]
