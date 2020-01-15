@@ -287,6 +287,7 @@ def interpolate_1d(
         result[preserve_nans] = np.nan
         return result
 
+
 def _derive_indices_of_nans_to_preserve(
     yvalues, valid, invalid, limit, limit_area, limit_direction,
 ):
@@ -332,6 +333,7 @@ def _derive_indices_of_nans_to_preserve(
     # sort preserve_nans and covert to list
     preserve_nans = sorted(preserve_nans)
     return preserve_nans
+
 
 def _interpolate_scipy_wrapper(
     x, y, new_x, method, fill_value=None, bounds_error=False, order=None, **kwargs
@@ -496,6 +498,7 @@ def _akima_interpolate(xi, yi, x, der=0, axis=0):
     else:
         return [P(x, nu) for nu in der]
 
+
 def interpolate_1d_fill(
     values,
     method="pad",
@@ -555,6 +558,7 @@ def interpolate_1d_fill(
 
     values[preserve_nans] = fill_value
     return values
+
 
 def interpolate_2d(
     values, method="pad", axis=0, limit=None, fill_value=None, dtype=None
