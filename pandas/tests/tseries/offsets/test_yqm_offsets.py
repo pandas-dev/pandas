@@ -24,7 +24,7 @@ from pandas.tseries.offsets import (
 )
 
 from .common import assert_is_on_offset, assert_offset_equal
-from .test_offsets import Base
+from .test_date_offsets import Base
 
 # --------------------------------------------------------------------
 # Misc
