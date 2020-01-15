@@ -540,8 +540,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             ordinal = key.ordinal if key is not NaT else NaT.value
             loc = self._engine.get_loc(ordinal)
             return series[loc]
-            value = Index.get_value(self, series, key)
-            return com.maybe_box(self, value, series, key)
 
         value = Index.get_value(self, series, key)
         return com.maybe_box(self, value, series, key)

@@ -452,7 +452,7 @@ class TestIndexing:
         tm.assert_numpy_array_equal(idx2.get_loc(str(p2)), expected_idx2_p2)
 
     def test_get_loc_integer(self):
-        dti = pd.date_range('2016-01-01', periods=3)
+        dti = pd.date_range("2016-01-01", periods=3)
         pi = dti.to_period("D")
         with pytest.raises(KeyError, match="16801"):
             pi.get_loc(16801)
@@ -462,7 +462,7 @@ class TestIndexing:
             pi2.get_loc(46)
 
     def test_get_value_integer(self):
-        dti = pd.date_range('2016-01-01', periods=3)
+        dti = pd.date_range("2016-01-01", periods=3)
         pi = dti.to_period("D")
         ser = pd.Series(range(3), index=pi)
         with pytest.raises(IndexError, match="is out of bounds for axis 0 with size 3"):
