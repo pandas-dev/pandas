@@ -499,9 +499,7 @@ class _Concatenator:
                 new_data._consolidate_inplace()
 
             cons = self.objs[0]._constructor
-            return cons._from_axes(new_data, self.new_axes).__finalize__(
-                self, method="concat"
-            )
+            return cons(new_data).__finalize__(self, method="concat")
 
     def _get_result_dim(self) -> int:
         if self._is_series and self.axis == 1:

@@ -549,9 +549,6 @@ class Generic:
                 super(DataFrame, df).drop("a", axis=1, inplace=value)
 
             with pytest.raises(ValueError):
-                super(DataFrame, df).sort_index(inplace=value)
-
-            with pytest.raises(ValueError):
                 super(DataFrame, df)._consolidate(inplace=value)
 
             with pytest.raises(ValueError):
