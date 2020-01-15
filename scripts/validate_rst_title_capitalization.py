@@ -7,6 +7,7 @@ http://epydoc.sourceforge.net/docutils/public/docutils.nodes.Element-class.html#
 
 """
 
+import sys
 from docutils.parsers.rst import Parser
 import docutils
 from docutils import nodes
@@ -14,17 +15,20 @@ import re
 import os
 from os import walk
 
+# Keynames that would not follow capitalization convention
+CAPITALIZATION_EXCEPTIONS = {
+    'pandas', 'Python', 'IPython','PyTables', 'Excel', 'JSON',
+    'HTML', 'SAS', 'SQL', 'BigQuery', 'STATA', 'Interval', 'PEP8',
+    'Period', 'Series', 'Index', 'DataFrame', 'C', 'Git', 'GitHub'
+}
+
 
 
 def followCapitalizationConvention(title):
-    # Keynames that would not follow capitalization convention
-    keyNames = {'pandas', 'Python', 'IPython','PyTables', 'Excel', 'JSON',
-    'HTML', 'SAS', 'SQL', 'BigQuery', 'STATA', 'Interval', 'PEP8',
-    'Period', 'Series', 'Index', 'DataFrame', 'C', 'Git', 'GitHub'}
 
     # Lowercase representation of keynames
     keyNamesLower = {'pandas'}
-    for k in keyNames:
+    for k in CAPITALIZATION_EXCEPTIONS:
         keyNamesLower.add(k.lower())
 
     # split with delimiters comma, semicolon and space, parentheses, colon
@@ -36,9 +40,9 @@ def followCapitalizationConvention(title):
         return False
 
     # Dealing with the first word of the title
-    if wordList[0] not in keyNames:
+    if wordList[0] not in CAPITALIZATION_EXCEPTIONS:
         # word is not in keyNames but has different capitalization
-        if wordList[0] in keyNamesLower:
+        if wordList[0].lower() in keyNamesLower:
             return False
         # First letter of first word must be uppercase
         if (not wordList[0][0].isupper()):
@@ -50,9 +54,9 @@ def followCapitalizationConvention(title):
 
     # Remaining letters must not be uppercase letters
     for i in range(1, len(wordList)):
-        if wordList[i] not in keyNames:
+        if wordList[i] not in CAPITALIZATION_EXCEPTIONS:
             # word is not in keyNames but has different capitalization
-            if wordList[i] in keyNamesLower:
+            if wordList[i].lower() in keyNamesLower:
                 return False
             # Remaining letters must not be uppercase
             for j in range(len(wordList[i])):
@@ -107,16 +111,22 @@ def printBadTitles(rstFile):
 
     for text in titleList:
         if not followCapitalizationConvention(text):
-            badTitles.append(text)
+            print(text)
+            # badTitles.append(text)
 
-    print(badTitles)
+    # print(badTitles)
 
-f = []
-for (dirpath, dirnames, filenames) in walk('doc/source'):
-    for file in filenames:
-        if file.endswith(".rst"):
-            f.append(os.path.join(dirpath, file))
+def findBadTitles(directoryAddress):
+    f = []
+    for (dirpath, dirnames, filenames) in walk(directoryAddress):
+        for file in filenames:
+            if file.endswith(".rst"):
+                f.append(os.path.join(dirpath, file))
 
-for filename in f:
-    print(filename)
-    printBadTitles(filename)
+    for filename in f:
+        print(filename)
+        printBadTitles(filename)
+
+if __name__ == "__main__":
+    for i in range(1, len(sys.argv)):
+        findBadTitles(sys.argv[i])
