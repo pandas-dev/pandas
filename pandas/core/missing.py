@@ -5,6 +5,7 @@ Routines for filling missing data.
 import numpy as np
 
 from pandas._libs import algos, lib
+from pandas._typing import Dtype, Hashable, Optional
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import infer_dtype_from_array
@@ -19,7 +20,6 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
 )
 from pandas.core.dtypes.missing import isna
-from pandas._typing import Optional, Hashable, Dtype
 
 
 def mask_missing(arr, values_to_mask):
