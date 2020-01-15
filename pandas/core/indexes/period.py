@@ -4,7 +4,7 @@ import weakref
 import numpy as np
 
 from pandas._libs import index as libindex
-from pandas._libs.tslibs import NaT, frequencies as libfrequencies, iNaT, resolution
+from pandas._libs.tslibs import NaT, frequencies as libfrequencies, resolution
 from pandas._libs.tslibs.period import Period
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
@@ -17,6 +17,7 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer,
     is_integer_dtype,
+    is_list_like,
     is_object_dtype,
     pandas_dtype,
 )
@@ -42,7 +43,6 @@ from pandas.core.indexes.datetimelike import (
 )
 from pandas.core.indexes.datetimes import DatetimeIndex, Index
 from pandas.core.indexes.numeric import Int64Index
-from pandas.core.missing import isna
 from pandas.core.ops import get_op_result_name
 from pandas.core.tools.datetimes import DateParseError, parse_time_string
 
@@ -507,42 +507,43 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         Fast lookup of value from 1-dimensional ndarray. Only use this if you
         know what you're doing
         """
-        s = com.values_from_object(series)
-        try:
-            value = super().get_value(s, key)
-        except (KeyError, IndexError):
-            if isinstance(key, str):
-                asdt, parsed, reso = parse_time_string(key, self.freq)
-                grp = resolution.Resolution.get_freq_group(reso)
-                freqn = resolution.get_freq_group(self.freq)
+        if is_integer(key):
+            return series.iat[key]
 
-                vals = self._ndarray_values
+        if isinstance(key, str):
+            asdt, parsed, reso = parse_time_string(key, self.freq)
+            grp = resolution.Resolution.get_freq_group(reso)
+            freqn = resolution.get_freq_group(self.freq)
 
-                # if our data is higher resolution than requested key, slice
-                if grp < freqn:
-                    iv = Period(asdt, freq=(grp, 1))
-                    ord1 = iv.asfreq(self.freq, how="S").ordinal
-                    ord2 = iv.asfreq(self.freq, how="E").ordinal
+            vals = self._ndarray_values
 
-                    if ord2 < vals[0] or ord1 > vals[-1]:
-                        raise KeyError(key)
+            # if our data is higher resolution than requested key, slice
+            if grp < freqn:
+                iv = Period(asdt, freq=(grp, 1))
+                ord1 = iv.asfreq(self.freq, how="S").ordinal
+                ord2 = iv.asfreq(self.freq, how="E").ordinal
 
-                    pos = np.searchsorted(self._ndarray_values, [ord1, ord2])
-                    key = slice(pos[0], pos[1] + 1)
-                    return series[key]
-                elif grp == freqn:
-                    key = Period(asdt, freq=self.freq).ordinal
-                    return com.maybe_box(
-                        self, self._int64index.get_value(s, key), series, key
-                    )
-                else:
+                if ord2 < vals[0] or ord1 > vals[-1]:
                     raise KeyError(key)
 
-            period = Period(key, self.freq)
-            key = period.value if isna(period) else period.ordinal
-            return com.maybe_box(self, self._int64index.get_value(s, key), series, key)
-        else:
-            return com.maybe_box(self, value, series, key)
+                pos = np.searchsorted(self._ndarray_values, [ord1, ord2])
+                key = slice(pos[0], pos[1] + 1)
+                return series[key]
+            elif grp == freqn:
+                key = Period(asdt, freq=self.freq)
+                loc = self.get_loc(key)
+                return series.iloc[loc]
+            else:
+                raise KeyError(key)
+
+        elif isinstance(key, Period) or key is NaT:
+            ordinal = key.ordinal if key is not NaT else NaT.value
+            loc = self._engine.get_loc(ordinal)
+            return series[loc]
+
+        # slice, PeriodIndex, np.ndarray, List[Period]
+        value = Index.get_value(self, series, key)
+        return com.maybe_box(self, value, series, key)
 
     @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
@@ -579,36 +580,52 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
     def get_loc(self, key, method=None, tolerance=None):
         """
-        Get integer location for requested label
+        Get integer location for requested label.
+
+        Parameters
+        ----------
+        key : Period, NaT, str, or datetime
+            String or datetime key must be parseable as Period.
 
         Returns
         -------
-        loc : int
-        """
-        try:
-            return self._engine.get_loc(key)
-        except KeyError:
-            if is_integer(key):
-                raise
+        loc : int or ndarray[int64]
 
+        Raises
+        ------
+        KeyError
+            Key is not present in the index.
+        TypeError
+            If key is listlike or otherwise not hashable.
+        """
+
+        if isinstance(key, str):
             try:
                 asdt, parsed, reso = parse_time_string(key, self.freq)
                 key = asdt
-            except TypeError:
-                pass
             except DateParseError:
                 # A string with invalid format
                 raise KeyError(f"Cannot interpret '{key}' as period")
 
-            try:
-                key = Period(key, freq=self.freq)
-            except ValueError:
-                # we cannot construct the Period
-                # as we have an invalid type
-                raise KeyError(key)
+        elif is_integer(key):
+            # Period constructor will cast to string, which we dont want
+            raise KeyError(key)
+
+        try:
+            key = Period(key, freq=self.freq)
+        except ValueError:
+            # we cannot construct the Period
+            # as we have an invalid type
+            if is_list_like(key):
+                raise TypeError(f"'{key}' is an invalid key")
+            raise KeyError(key)
+
+        ordinal = key.ordinal if key is not NaT else key.value
+        try:
+            return self._engine.get_loc(ordinal)
+        except KeyError:
 
             try:
-                ordinal = iNaT if key is NaT else key.ordinal
                 if tolerance is not None:
                     tolerance = self._convert_tolerance(tolerance, np.asarray(key))
                 return self._int64index.get_loc(ordinal, method, tolerance)

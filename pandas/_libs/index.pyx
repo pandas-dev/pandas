@@ -498,7 +498,7 @@ cdef class TimedeltaEngine(DatetimeEngine):
 cdef class PeriodEngine(Int64Engine):
 
     cdef _get_index_values(self):
-        return super(PeriodEngine, self).vgetter()
+        return super(PeriodEngine, self).vgetter().view("i8")
 
     cdef void _call_map_locations(self, values):
         # super(...) pattern doesn't seem to work with `cdef`
