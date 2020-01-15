@@ -515,7 +515,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             grp = resolution.Resolution.get_freq_group(reso)
             freqn = resolution.get_freq_group(self.freq)
 
-            vals = self._ndarray_values
+            vals = self.asi8
 
             # if our data is higher resolution than requested key, slice
             if grp < freqn:
@@ -524,9 +524,10 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
                 ord2 = iv.asfreq(self.freq, how="E").ordinal
 
                 if ord2 < vals[0] or ord1 > vals[-1]:
+                    # TODO: are we implicitly assuming monotonicity here?
                     raise KeyError(key)
 
-                pos = np.searchsorted(self._ndarray_values, [ord1, ord2])
+                pos = np.searchsorted(vals, [ord1, ord2])
                 key = slice(pos[0], pos[1] + 1)
                 return series[key]
             elif grp == freqn:
@@ -671,46 +672,13 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
         return label
 
-    def _parsed_string_to_bounds(self, reso, parsed):
-        if reso == "year":
-            t1 = Period(year=parsed.year, freq="A")
-        elif reso == "month":
-            t1 = Period(year=parsed.year, month=parsed.month, freq="M")
-        elif reso == "quarter":
-            q = (parsed.month - 1) // 3 + 1
-            t1 = Period(year=parsed.year, quarter=q, freq="Q-DEC")
-        elif reso == "day":
-            t1 = Period(year=parsed.year, month=parsed.month, day=parsed.day, freq="D")
-        elif reso == "hour":
-            t1 = Period(
-                year=parsed.year,
-                month=parsed.month,
-                day=parsed.day,
-                hour=parsed.hour,
-                freq="H",
-            )
-        elif reso == "minute":
-            t1 = Period(
-                year=parsed.year,
-                month=parsed.month,
-                day=parsed.day,
-                hour=parsed.hour,
-                minute=parsed.minute,
-                freq="T",
-            )
-        elif reso == "second":
-            t1 = Period(
-                year=parsed.year,
-                month=parsed.month,
-                day=parsed.day,
-                hour=parsed.hour,
-                minute=parsed.minute,
-                second=parsed.second,
-                freq="S",
-            )
-        else:
+    def _parsed_string_to_bounds(self, reso: str, parsed: datetime):
+        if reso not in ["year", "month", "quarter", "day", "hour", "minute", "second"]:
             raise KeyError(reso)
-        return (t1.asfreq(self.freq, how="start"), t1.asfreq(self.freq, how="end"))
+
+        grp = resolution.Resolution.get_freq_group(reso)
+        iv = Period(parsed, freq=(grp, 1))
+        return (iv.asfreq(self.freq, how="start"), iv.asfreq(self.freq, how="end"))
 
     def _get_string_slice(self, key):
         if not self.is_monotonic:
