@@ -2859,7 +2859,6 @@ class Index(IndexOpsMixin, PandasObject):
                     "mixed-integer-float",
                     "integer-na",
                     "string",
-                    "unicode",
                     "mixed",
                 ]:
                     self._invalid_indexer("label", key)
