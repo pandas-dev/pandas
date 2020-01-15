@@ -3573,3 +3573,18 @@ def test_string_array_boolean_array(method, expected):
     result = getattr(s.str, method)()
     expected = Series(expected, dtype="boolean")
     tm.assert_series_equal(result, expected)
+
+
+def test_string_array_extract():
+    # https://github.com/pandas-dev/pandas/issues/30969
+    # Only expand=False & multiple groups was failing
+    a = Series(["a1", "b2", "cc"], dtype="string")
+    b = Series(["a1", "b2", "cc"], dtype="object")
+    pat = r"(\w)(\d)"
+
+    result = a.str.extract(pat, expand=False)
+    expected = b.str.extract(pat, expand=False)
+    assert all(result.dtypes == "string")
+
+    result = result.astype(object)
+    tm.assert_equal(result, expected)
