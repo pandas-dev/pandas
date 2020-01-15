@@ -1249,7 +1249,7 @@ class TestCanHoldElement:
             else:
                 msg = (
                     re.escape(
-                        f"cannot perform __{op.__name__}_\_ with this index type: "
+                        f"cannot perform __{op.__name__}__ with this index type: "
                     )
                     + "(DatetimeArray|TimedeltaArray)"
                 )
