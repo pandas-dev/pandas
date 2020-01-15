@@ -29,7 +29,7 @@ from pandas._libs.tslibs.util cimport (
 from pandas._libs.tslibs.timedeltas cimport cast_from_unit
 from pandas._libs.tslibs.timezones cimport (
     is_utc, is_tzlocal, is_fixed_offset, get_utcoffset, get_dst_info,
-    get_timezone, maybe_get_tz, tz_compare)
+    get_timezone, maybe_get_tz, tz_compare, treat_tz_as_dateutil)
 from pandas._libs.tslibs.timezones import UTC
 from pandas._libs.tslibs.parsing import parse_datetime_string
 
@@ -362,6 +362,14 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
             obj.tzinfo = tz
     else:
         obj.value = pydatetime_to_dt64(ts, &obj.dts)
+        # GH 24329 When datetime is ambiguous,
+        # pydatetime_to_dt64 doesn't take DST into account
+        # but with dateutil timezone, get_utcoffset does
+        # so we need to correct for it
+        if treat_tz_as_dateutil(ts.tzinfo):
+            if ts.tzinfo.is_ambiguous(ts):
+                dst_offset = ts.tzinfo.dst(ts)
+                obj.value += int(dst_offset.total_seconds() * 1e9)
         obj.tzinfo = ts.tzinfo
 
     if obj.tzinfo is not None and not is_utc(obj.tzinfo):
