@@ -50,7 +50,7 @@ def bare_pytest_raises(file_obj: IO) -> Generator[Tuple[int, str], None, None]:
     -----
     GH #23922
     """
-    tokens: List = list(tokenize.generate_tokens(file_obj))
+    tokens: List = list(tokenize.generate_tokens(file_obj.readline))
 
     for counter, current_token in enumerate(tokens, start=1):
         if not (current_token.type == token.NAME and current_token.string == "raises"):
@@ -105,7 +105,7 @@ def strings_to_concatenate(file_obj: IO) -> Generator[Tuple[int, str], None, Non
     -----
     GH #30454
     """
-    tokens: List = list(tokenize.generate_tokens(file_obj))
+    tokens: List = list(tokenize.generate_tokens(file_obj.readline))
 
     for current_token, next_token in zip(tokens, tokens[1:]):
         if current_token.type == next_token.type == token.STRING:
@@ -217,7 +217,7 @@ def strings_with_wrong_placed_whitespace(
             return True
         return False
 
-    tokens: List = list(tokenize.generate_tokens(file_obj))
+    tokens: List = list(tokenize.generate_tokens(file_obj.readline))
 
     for first_token, second_token, third_token in zip(tokens, tokens[1:], tokens[2:]):
         # Checking if we are in a block of concated string
@@ -288,9 +288,7 @@ def main(
     if os.path.isfile(source_path):
         file_path: str = source_path
         with open(file_path, "r") as file_obj:
-            file_desc = file_obj.readline
-
-            for line_number, msg in function(file_desc):
+            for line_number, msg in function(file_obj):
                 is_failed = True
                 print(
                     output_format.format(
@@ -307,9 +305,7 @@ def main(
 
             file_path: str = os.path.join(subdir, file_name)
             with open(file_path, "r") as file_obj:
-                file_desc = file_obj.readline
-
-                for line_number, msg in function(file_desc):
+                for line_number, msg in function(file_obj):
                     is_failed = True
                     print(
                         output_format.format(
