@@ -74,7 +74,7 @@ def arrays_to_mgr(arrays, arr_names, index, columns, dtype=None):
     return create_block_manager_from_arrays(arrays, arr_names, axes)
 
 
-def masked_rec_array_to_mgr(data, index, columns, dtype, copy):
+def masked_rec_array_to_mgr(data, index, columns, dtype, copy: bool):
     """
     Extract from a masked rec array and create the manager.
     """
@@ -143,7 +143,7 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
     ):
 
         if not hasattr(values, "dtype"):
-            values = prep_ndarray(values, copy=copy)
+            values = _prep_ndarray(values, copy=copy)
             values = values.ravel()
         elif copy:
             values = values.copy()
@@ -166,7 +166,7 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
 
     # by definition an array here
     # the dtypes will be coerced to a single dtype
-    values = prep_ndarray(values, copy=copy)
+    values = _prep_ndarray(values, copy=copy)
 
     if dtype is not None:
         if not is_dtype_equal(values.dtype, dtype):
@@ -257,7 +257,7 @@ def init_dict(data, index, columns, dtype=None):
 # ---------------------------------------------------------------------
 
 
-def prep_ndarray(values, copy=True) -> np.ndarray:
+def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
     if not isinstance(values, (np.ndarray, ABCSeries, Index)):
         if len(values) == 0:
             return np.empty((0, 0), dtype=object)
