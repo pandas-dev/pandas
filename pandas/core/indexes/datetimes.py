@@ -647,32 +647,24 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
             locs = self.indexer_at_time(key)
             return series.take(locs)
 
-        try:
-            value = Index.get_value(self, series, key)
-        except KeyError:
+        if isinstance(key, str):
             try:
                 loc = self._get_string_slice(key)
                 return series[loc]
             except (TypeError, ValueError, KeyError):
                 pass
-
             try:
-                return self.get_value_maybe_box(series, key)
-            except (TypeError, ValueError, KeyError):
+                stamp = self._maybe_cast_for_get_loc(key)
+                loc = self.get_loc(stamp)
+                return series[loc]
+            except (KeyError, ValueError):
                 raise KeyError(key)
-        else:
-            return com.maybe_box(self, value, series, key)
+
+        value = Index.get_value(self, series, key)
+        return com.maybe_box(self, value, series, key)
 
     def get_value_maybe_box(self, series, key):
-        # needed to localize naive datetimes
-        if self.tz is not None:
-            key = Timestamp(key)
-            if key.tzinfo is not None:
-                key = key.tz_convert(self.tz)
-            else:
-                key = key.tz_localize(self.tz)
-        elif not isinstance(key, Timestamp):
-            key = Timestamp(key)
+        key = self._maybe_cast_for_get_loc(key)
         values = self._engine.get_value(com.values_from_object(series), key, tz=self.tz)
         return com.maybe_box(self, values, series, key)
 
@@ -684,19 +676,30 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
         -------
         loc : int
         """
+        if is_scalar(key) and isna(key):
+            key = NaT  # FIXME: do this systematically
 
         if tolerance is not None:
             # try converting tolerance now, so errors don't get swallowed by
             # the try/except clauses below
             tolerance = self._convert_tolerance(tolerance, np.asarray(key))
 
-        if isinstance(key, datetime):
+        if isinstance(key, (datetime, np.datetime64)):
             # needed to localize naive datetimes
-            if key.tzinfo is None:
-                key = Timestamp(key, tz=self.tz)
-            else:
-                key = Timestamp(key).tz_convert(self.tz)
+            key = self._maybe_cast_for_get_loc(key)
             return Index.get_loc(self, key, method, tolerance)
+
+        elif isinstance(key, str):
+            try:
+                return self._get_string_slice(key)
+            except (TypeError, KeyError, ValueError, OverflowError):
+                pass
+
+            try:
+                stamp = self._maybe_cast_for_get_loc(key)
+                return Index.get_loc(self, stamp, method, tolerance)
+            except (KeyError, ValueError):
+                raise KeyError(key)
 
         elif isinstance(key, timedelta):
             # GH#20464
@@ -711,28 +714,16 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
                 )
             return self.indexer_at_time(key)
 
-        try:
-            return Index.get_loc(self, key, method, tolerance)
-        except (KeyError, ValueError, TypeError):
-            try:
-                return self._get_string_slice(key)
-            except (TypeError, KeyError, ValueError, OverflowError):
-                pass
+        return Index.get_loc(self, key, method, tolerance)
 
-            try:
-                stamp = Timestamp(key)
-                if stamp.tzinfo is not None and self.tz is not None:
-                    stamp = stamp.tz_convert(self.tz)
-                else:
-                    stamp = stamp.tz_localize(self.tz)
-                return Index.get_loc(self, stamp, method, tolerance)
-            except KeyError:
-                raise KeyError(key)
-            except ValueError as e:
-                # list-like tolerance size must match target index size
-                if "list-like" in str(e):
-                    raise e
-                raise KeyError(key)
+    def _maybe_cast_for_get_loc(self, key):
+        # needed to localize naive datetimes
+        key = Timestamp(key)
+        if key.tzinfo is None:
+            key = key.tz_localize(self.tz)
+        else:
+            key = key.tz_convert(self.tz)
+        return key
 
     def _maybe_cast_slice_bound(self, label, side, kind):
         """
