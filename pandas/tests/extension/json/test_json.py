@@ -4,8 +4,8 @@ import operator
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.tests.extension import base
-import pandas.util.testing as tm
 
 from .array import JSONArray, JSONDtype, make_data
 
@@ -162,6 +162,10 @@ class TestReshaping(BaseJSON, base.BaseReshapingTests):
         # The base test has NaN for the expected NA value.
         # this matches otherwise
         return super().test_unstack(data, index)
+
+    @pytest.mark.xfail(reason="Inconsistent sizes.")
+    def test_transpose(self, data):
+        super().test_transpose(data)
 
 
 class TestGetitem(BaseJSON, base.BaseGetitemTests):

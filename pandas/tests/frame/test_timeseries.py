@@ -16,7 +16,7 @@ from pandas import (
     period_range,
     to_datetime,
 )
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 import pandas.tseries.offsets as offsets
 

@@ -354,9 +354,9 @@ About the *pandas* documentation
 --------------------------------
 
 The documentation is written in **reStructuredText**, which is almost like writing
-in plain English, and built using `Sphinx <http://sphinx.pocoo.org/>`__. The
+in plain English, and built using `Sphinx <http://www.sphinx-doc.org/en/master/>`__. The
 Sphinx Documentation has an excellent `introduction to reST
-<http://sphinx.pocoo.org/rest.html>`__. Review the Sphinx docs to perform more
+<https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html>`__. Review the Sphinx docs to perform more
 complex changes to the documentation as well.
 
 Some other important things to know about the docs:
@@ -434,7 +434,7 @@ The utility script ``scripts/validate_docstrings.py`` can be used to get a csv
 summary of the API documentation. And also validate common errors in the docstring
 of a specific class, function or method. The summary also compares the list of
 methods documented in ``doc/source/api.rst`` (which is used to generate
-the `API Reference <http://pandas.pydata.org/pandas-docs/stable/api.html>`_ page)
+the `API Reference <https://pandas.pydata.org/pandas-docs/stable/api.html>`_ page)
 and the actual public methods.
 This will identify methods documented in ``doc/source/api.rst`` that are not actually
 class methods, and existing methods that are not documented in ``doc/source/api.rst``.
@@ -569,8 +569,7 @@ do not make sudden changes to the code that could have the potential to break
 a lot of user code as a result, that is, we need it to be as *backwards compatible*
 as possible to avoid mass breakages.
 
-Additional standards are outlined on the `code style wiki
-page <https://github.com/pandas-dev/pandas/wiki/Code-Style-and-Conventions>`_.
+Additional standards are outlined on the `pandas code style guide <code_style>`_
 
 Optional dependencies
 ---------------------
@@ -636,6 +635,8 @@ many errors as possible, but it may not correct *all* of them. Thus, it is
 recommended that you run ``cpplint`` to double check and make any other style
 fixes manually.
 
+.. _contributing.code-formatting:
+
 Python (PEP8 / black)
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -657,19 +658,8 @@ apply ``black`` as you edit files.
 You should use a ``black`` version >= 19.10b0 as previous versions are not compatible
 with the pandas codebase.
 
-Optionally, you may wish to setup `pre-commit hooks <https://pre-commit.com/>`_
-to automatically run ``black`` and ``flake8`` when you make a git commit. This
-can be done by installing ``pre-commit``::
-
-   pip install pre-commit
-
-and then running::
-
-   pre-commit install
-
-from the root of the pandas repository. Now ``black`` and ``flake8`` will be run
-each time you commit changes. You can skip these checks with
-``git commit --no-verify``.
+If you wish to run these checks automatically, we encourage you to use
+:ref:`pre-commits <contributing.pre-commit>` instead.
 
 One caveat about ``git diff upstream/master -u -- "*.py" | flake8 --diff``: this
 command will catch any stylistic errors in your changes specifically, but
@@ -677,7 +667,7 @@ be beware it may not catch all of them. For example, if you delete the only
 usage of an imported function, it is stylistically incorrect to import an
 unused function. However, style-checking the diff will not catch this because
 the actual import is not part of the diff. Thus, for completeness, you should
-run this command, though it will take longer::
+run this command, though it may take longer::
 
    git diff upstream/master --name-only -- "*.py" | xargs -r flake8
 
@@ -694,6 +684,8 @@ behaviour as follows::
 
 This will get all the files being changed by the PR (and ending with ``.py``),
 and run ``flake8`` on them, one after the other.
+
+Note that these commands can be run analogously with ``black``.
 
 .. _contributing.import-formatting:
 
@@ -716,7 +708,6 @@ A summary of our current import sections ( in order ):
 * Local application/library specific imports
 
 Imports are alphabetically sorted within these sections.
-
 
 As part of :ref:`Continuous Integration <contributing.ci>` checks we run::
 
@@ -741,7 +732,36 @@ to automatically format imports correctly. This will modify your local copy of t
 
 The `--recursive` flag can be passed to sort all files in a directory.
 
+Alternatively, you can run a command similar to what was suggested for ``black`` and ``flake8`` :ref:`right above <contributing.code-formatting>`::
+
+    git diff upstream/master --name-only -- "*.py" | xargs -r isort
+
+Where similar caveats apply if you are on OSX or Windows.
+
 You can then verify the changes look ok, then git :ref:`commit <contributing.commit-code>` and :ref:`push <contributing.push-code>`.
+
+.. _contributing.pre-commit:
+
+Pre-Commit
+~~~~~~~~~~
+
+You can run many of these styling checks manually as we have described above. However,
+we encourage you to use `pre-commit hooks <https://pre-commit.com/>`_ instead
+to automatically run ``black``, ``flake8``, ``isort`` when you make a git commit. This
+can be done by installing ``pre-commit``::
+
+    pip install pre-commit
+
+and then running::
+
+    pre-commit install
+
+from the root of the pandas repository. Now all of the styling checks will be
+run each time you commit changes without your needing to run each one manually.
+In addition, using this pre-commit hook will also allow you to more easily
+remain up-to-date with our code checks as they change.
+
+Note that if needed, you can skip these checks with ``git commit --no-verify``.
 
 Backwards compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -957,7 +977,7 @@ inspiration.  If your test requires working with files or
 network connectivity, there is more information on the `testing page
 <https://github.com/pandas-dev/pandas/wiki/Testing>`_ of the wiki.
 
-The ``pandas.util.testing`` module has many special ``assert`` functions that
+The ``pandas._testing`` module has many special ``assert`` functions that
 make it easier to make statements about whether Series or DataFrame objects are
 equivalent. The easiest way to verify that your code is correct is to
 explicitly construct the result you expect, then compare the actual result to
@@ -1143,7 +1163,7 @@ If your change involves checking that a warning is actually emitted, use
 
 .. code-block:: python
 
-   import pandas.util.testing as tm
+   import pandas._testing as tm
 
 
    df = pd.DataFrame()
@@ -1364,6 +1384,7 @@ some common prefixes along with general guidelines for when to use them:
 * TST: Additions/updates to tests
 * BLD: Updates to the build process/scripts
 * PERF: Performance improvement
+* TYP: Type annotations
 * CLN: Code cleanup
 
 The following defines how a commit message should be structured.  Please reference the

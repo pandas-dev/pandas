@@ -20,9 +20,9 @@ from pandas import (
     to_datetime,
     to_timedelta,
 )
+import pandas._testing as tm
 import pandas.core.algorithms as algorithms
 import pandas.core.nanops as nanops
-import pandas.util.testing as tm
 
 
 def assert_stat_op_calc(
@@ -1247,15 +1247,6 @@ class TestDataFrameAnalytics:
 
     # ---------------------------------------------------------------------
     # Unsorted
-
-    def test_series_nat_conversion(self):
-        # GH 18521
-        # Check rank does not mutate DataFrame
-        df = DataFrame(np.random.randn(10, 3), dtype="float64")
-        expected = df.copy()
-        df.rank()
-        result = df
-        tm.assert_frame_equal(result, expected)
 
     def test_series_broadcasting(self):
         # smoke test for numpy warnings

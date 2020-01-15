@@ -100,6 +100,14 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     cpplint --quiet --extensions=c,h --headers=h --recursive --filter=-readability/casting,-runtime/int,-build/include_subdir pandas/_libs/src/*.h pandas/_libs/src/parser pandas/_libs/ujson pandas/_libs/tslibs/src/datetime pandas/_libs/*.cpp
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Check for use of not concatenated strings' ; echo $MSG
+    if [[ "$GITHUB_ACTIONS" == "true" ]]; then
+        $BASE_DIR/scripts/validate_string_concatenation.py --format="[error]{source_path}:{line_number}:{msg}" .
+    else
+        $BASE_DIR/scripts/validate_string_concatenation.py .
+    fi
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     echo "isort --version-number"
     isort --version-number
 
@@ -131,8 +139,8 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # Checks for test suite
-    # Check for imports from pandas.util.testing instead of `import pandas.util.testing as tm`
-    invgrep -R --include="*.py*" -E "from pandas.util.testing import" pandas/tests
+    # Check for imports from pandas._testing instead of `import pandas._testing as tm`
+    invgrep -R --include="*.py*" -E "from pandas._testing import" pandas/tests
     RET=$(($RET + $?)) ; echo $MSG "DONE"
     invgrep -R --include="*.py*" -E "from pandas.util import testing as tm" pandas/tests
     RET=$(($RET + $?)) ; echo $MSG "DONE"
@@ -290,8 +298,11 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
         -k"-from_arrays -from_breaks -from_intervals -from_tuples -set_closed -to_tuples -interval_range"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Doctests arrays/string_.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/arrays/string_.py
+    MSG='Doctests arrays'; echo $MSG
+    pytest -q --doctest-modules \
+        pandas/core/arrays/string_.py \
+        pandas/core/arrays/integer.py \
+        pandas/core/arrays/boolean.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests arrays/boolean.py' ; echo $MSG

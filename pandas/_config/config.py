@@ -165,8 +165,7 @@ def _reset_option(pat, silent=False):
         raise ValueError(
             "You must specify at least 4 characters when "
             "resetting multiple keys, use the special keyword "
-            '"all" to reset all the options to their default '
-            "value"
+            '"all" to reset all the options to their default value'
         )
 
     for k in keys:
@@ -197,7 +196,7 @@ class DictWrapper:
         else:
             raise OptionError("You can only set the value of existing options")
 
-    def __getattr__(self, key):
+    def __getattr__(self, key: str):
         prefix = object.__getattribute__(self, "prefix")
         if prefix:
             prefix += "."

@@ -20,7 +20,7 @@ from pandas import (
     Timestamp,
     date_range,
 )
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestSeriesDtypes:
@@ -193,8 +193,8 @@ class TestSeriesDtypes:
 
         dt3 = dtype_class({"abc": str, "def": str})
         msg = (
-            "Only the Series name can be used for the key in Series dtype"
-            r" mappings\."
+            "Only the Series name can be used for the key in Series dtype "
+            r"mappings\."
         )
         with pytest.raises(KeyError, match=msg):
             s.astype(dt3)
@@ -410,8 +410,8 @@ class TestSeriesDtypes:
         s = Series([1, 2, 3])
 
         msg = (
-            r"Expected value of kwarg 'errors' to be one of \['raise',"
-            r" 'ignore'\]\. Supplied value is 'False'"
+            r"Expected value of kwarg 'errors' to be one of \['raise', "
+            r"'ignore'\]\. Supplied value is 'False'"
         )
         with pytest.raises(ValueError, match=msg):
             s.astype(np.float64, errors=False)
@@ -464,13 +464,6 @@ class TestSeriesDtypes:
 
         assert actual.dtype == "object"
         tm.assert_series_equal(actual, expected)
-
-    def test_is_homogeneous_type(self):
-        with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
-            empty = Series()
-        assert empty._is_homogeneous_type
-        assert Series([1, 2])._is_homogeneous_type
-        assert Series(pd.Categorical([1, 2]))._is_homogeneous_type
 
     @pytest.mark.parametrize(
         "data",

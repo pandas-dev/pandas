@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.core.arrays import TimedeltaArray
-import pandas.util.testing as tm
 
 
 class TestTimedeltaArrayConstructor:
@@ -12,8 +12,8 @@ class TestTimedeltaArrayConstructor:
         arr = np.array([0, 1, 2, 3], dtype="m8[h]").astype("m8[ns]")
 
         with pytest.raises(ValueError, match="Only 1-dimensional"):
-            # 2-dim
-            TimedeltaArray(arr.reshape(2, 2))
+            # 3-dim, we allow 2D to sneak in for ops purposes GH#29853
+            TimedeltaArray(arr.reshape(2, 2, 1))
 
         with pytest.raises(ValueError, match="Only 1-dimensional"):
             # 0-dim
@@ -139,6 +139,42 @@ class TestTimedeltaArray:
 
         arr[0] = obj
         assert arr[0] == pd.Timedelta(seconds=1)
+
+    @pytest.mark.parametrize(
+        "other",
+        [
+            1,
+            np.int64(1),
+            1.0,
+            np.datetime64("NaT"),
+            pd.Timestamp.now(),
+            "invalid",
+            np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9,
+            (np.arange(10) * 24 * 3600 * 10 ** 9).view("datetime64[ns]"),
+            pd.Timestamp.now().to_period("D"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "index",
+        [
+            True,
+            pytest.param(
+                False,
+                marks=pytest.mark.xfail(
+                    reason="Raises ValueError instead of TypeError", raises=ValueError
+                ),
+            ),
+        ],
+    )
+    def test_searchsorted_invalid_types(self, other, index):
+        data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
+        arr = TimedeltaArray(data, freq="D")
+        if index:
+            arr = pd.Index(arr)
+
+        msg = "searchsorted requires compatible dtype or scalar"
+        with pytest.raises(TypeError, match=msg):
+            arr.searchsorted(other)
 
 
 class TestReductions:
