@@ -220,7 +220,7 @@ class Block(PandasObject):
         """
         The array that Series.array returns. Always an ExtensionArray.
         """
-        return PandasArray._simple_new(self.values)
+        return PandasArray(self.values)
 
     def get_values(self, dtype=None):
         """
