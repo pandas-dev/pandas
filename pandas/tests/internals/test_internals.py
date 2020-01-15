@@ -1248,8 +1248,10 @@ class TestCanHoldElement:
                 )
             else:
                 msg = (
-                    f"cannot perform __{op.__name__}__ with this index type: "
-                    "(DatetimeArray|TimedeltaArray)"
+                    re.escape(
+                        f"cannot perform __{op.__name__}_\_ with this index type: "
+                    )
+                    + "(DatetimeArray|TimedeltaArray)"
                 )
             with pytest.raises(TypeError, match=msg):
                 op(s, e.value)
