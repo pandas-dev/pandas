@@ -2539,7 +2539,8 @@ Name: Max Speed, dtype: float64
             to_concat.extend(to_append)
         else:
             if not isinstance(to_append, type(self)):
-                msg = f"to_append should be a Series or list/tuple of Series, got {type(to_append)}"
+                msg = f"to_append should be a Series or list/tuple of Series, " \
+                      f"got {type(to_append)}"
                 raise TypeError(msg)
             to_concat = [self, to_append]
         return self._ensure_type(
