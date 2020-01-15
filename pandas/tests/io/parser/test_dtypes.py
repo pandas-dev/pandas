@@ -79,7 +79,7 @@ one,two
 3,4.5
 4,5.5"""
 
-    with pytest.raises(TypeError, match='data type "foo" not understood'):
+    with pytest.raises(TypeError, match="data type [\"']foo[\"'] not understood"):
         parser.read_csv(StringIO(data), dtype={"one": "foo", 1: "int"})
 
 
