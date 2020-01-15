@@ -28,7 +28,7 @@ jobs:
           # we should test with encodings different than utf8, but doesn't seem like Ubuntu supports any
           LANG: "zh_CN.utf8"
           LC_ALL: "zh_CN.utf8"
-          EXTRA_APT: "language-pack-zh-hans xsel"
+          EXTRA_APT: "language-pack-zh-hans"
 
         py36_locale:
           ENV_FILE: ci/deps/azure-36-locale.yaml
