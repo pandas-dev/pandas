@@ -670,7 +670,7 @@ def infer_dtype_from_array(arr, pandas_dtype: bool = False):
 
     # don't force numpy coerce with nan's
     inferred = lib.infer_dtype(arr, skipna=False)
-    if inferred in ["string", "bytes", "unicode", "mixed", "mixed-integer"]:
+    if inferred in ["string", "bytes", "mixed", "mixed-integer"]:
         return (np.object_, arr)
 
     arr = np.asarray(arr)
