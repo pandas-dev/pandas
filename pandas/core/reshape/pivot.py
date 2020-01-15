@@ -117,7 +117,9 @@ def pivot_table(
                 agged[v] = maybe_downcast_to_dtype(agged[v], data[v].dtype)
 
     table = agged
-    if table.index.nlevels > 1:
+
+    # GH17038, this check should only happen if index is defined (not None)
+    if table.index.nlevels > 1 and index:
         # Related GH #17123
         # If index_names are integers, determine whether the integers refer
         # to the level position or name.
@@ -428,7 +430,7 @@ def _convert_by(by):
 @Appender(_shared_docs["pivot"], indents=1)
 def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFrame":
     if columns is None:
-        raise ValueError("pivot() missing 1 required argument: 'columns'")
+        raise TypeError("pivot() missing 1 required argument: 'columns'")
 
     if values is None:
         cols = [columns] if index is None else [index, columns]

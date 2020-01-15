@@ -910,7 +910,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         # do we want to justify (only do so for non-objects)
         is_justify = not (
-            self.inferred_type in ("string", "unicode")
+            self.inferred_type in ("string")
             or (
                 self.inferred_type == "categorical" and is_object_dtype(self.categories)
             )
@@ -2860,7 +2860,6 @@ class Index(IndexOpsMixin, PandasObject):
                     "mixed-integer-float",
                     "integer-na",
                     "string",
-                    "unicode",
                     "mixed",
                 ]:
                     self._invalid_indexer("label", key)
@@ -4790,8 +4789,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         if side not in ("left", "right"):
             raise ValueError(
-                f"Invalid value for side kwarg, must be either"
-                f" 'left' or 'right': {side}"
+                "Invalid value for side kwarg, must be either "
+                f"'left' or 'right': {side}"
             )
 
         original_label = label

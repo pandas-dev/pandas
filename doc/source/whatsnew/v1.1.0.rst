@@ -82,7 +82,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
-
+- Bug in :class:`Series` construction from NumPy array with big-endian ``datetime64`` dtype (:issue:`29684`)
 -
 -
 
@@ -139,8 +139,10 @@ Groupby/resample/rolling
 Reshaping
 ^^^^^^^^^
 
-- Correct incorrect error message in :meth:`DataFrame.pivot` when ``columns`` is set to ``None``. (:issue:`30924`)
 -
+- Bug in :meth:`DataFrame.pivot_table` when only MultiIndexed columns is set (:issue:`17038`)
+- Correct incorrect error message in :meth:`DataFrame.pivot` when ``columns`` is set to ``None``. (:issue:`30924`)
+
 
 Sparse
 ^^^^^^
