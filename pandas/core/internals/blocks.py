@@ -2253,7 +2253,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         return np.asarray(self.values.astype("datetime64[ns]", copy=False))
 
     def array_values(self) -> ExtensionArray:
-        return DatetimeArray(self.values)
+        return DatetimeArray._simple_new(self.values)
 
 
 class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
@@ -2513,7 +2513,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         return np.asarray(self.values.astype("timedelta64[ns]", copy=False))
 
     def array_values(self) -> ExtensionArray:
-        return TimedeltaArray(self.values)
+        return TimedeltaArray._simple_new(self.values)
 
 
 class BoolBlock(NumericBlock):
