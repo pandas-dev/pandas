@@ -18,16 +18,16 @@ if [[ "not clipboard" != *"$PATTERN"* ]]; then
     echo "DISPLAY (original): $DISPLAY"
 
     # An X server has to exist, and DISPLAY set, for the clipboard (and its tests) to work
-    if [ -z $DISPLAY ]; then
+    if [[ $(uname) == "Linux" && -z $DISPLAY ]]; then
         export DISPLAY=":0"
-        XVFB="xvfb-run -e /dev/stdout "
+        XVFB="xvfb-run "
     fi
 
     echo "xsel path: $(which xsel)"
     echo "DISPLAY: $DISPLAY"
 
     echo "testing xsel from terminal"
-    xvfb-run -e /dev/stdout "echo \"terminal clipboard works\" | xsel -i ; echo \"clipboard content: $(xsel -o)\""
+    xvfb-run "echo \"terminal clipboard works\" | xsel -i ; echo \"clipboard content: $(xsel -o)\""
 
     echo "testing xsel from pandas"
     python -c "import pandas.io.clipboard ; pandas.io.clipboard.clipboard_set('pandas clipboard works') ; print(f'clipboard content: {pandas.io.clipboard.clipboard_get()}')"
