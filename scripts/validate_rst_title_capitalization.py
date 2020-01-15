@@ -1,8 +1,16 @@
-"""Sphinx extension for collecting the titles in the rst files and validating
-if they follow the capitalization convention.  This sends a warning if
-it is not followed.
+"""Python script for collecting the titles in the rst files and validating
+if they follow the capitalization convention.  Prints the titles that do not
+follow the convention. Particularly used for .rst files in the doc/source folder
 
-Reference:
+NOTE: Run from the root directory of pandas repository
+
+Example:
+python ./scripts/validate_rst_title_capitalization.py doc/source/development/contributing.rst
+
+Folders that have been validated:
+doc/source/development
+
+Reference: doctree elements
 http://epydoc.sourceforge.net/docutils/public/docutils.nodes.Element-class.html#get_children
 
 """
@@ -118,10 +126,13 @@ def printBadTitles(rstFile):
 
 def findBadTitles(directoryAddress):
     f = []
-    for (dirpath, dirnames, filenames) in walk(directoryAddress):
-        for file in filenames:
-            if file.endswith(".rst"):
-                f.append(os.path.join(dirpath, file))
+    if (directoryAddress.endswith(".rst")):
+        f.append(directoryAddress)
+    else:
+        for (dirpath, dirnames, filenames) in walk(directoryAddress):
+            for file in filenames:
+                if file.endswith(".rst"):
+                    f.append(os.path.join(dirpath, file))
 
     for filename in f:
         print(filename)
