@@ -532,7 +532,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             elif grp == freqn:
                 key = Period(asdt, freq=self.freq)
                 loc = self.get_loc(key)
-                return series[loc]
+                return series.iloc[loc]
             else:
                 raise KeyError(key)
 
@@ -541,6 +541,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             loc = self._engine.get_loc(ordinal)
             return series[loc]
 
+        # slice, PeriodIndex, np.ndarray, List[Period]
         value = Index.get_value(self, series, key)
         return com.maybe_box(self, value, series, key)
 
