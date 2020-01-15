@@ -3617,7 +3617,7 @@ class Index(IndexOpsMixin, PandasObject):
     # Uncategorized Methods
 
     @property
-    def values(self):
+    def values(self) -> np.ndarray:
         """
         Return an array representing the data in the Index.
 
@@ -3668,7 +3668,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self._data
 
-    def _internal_get_values(self):
+    def _internal_get_values(self) -> np.ndarray:
         """
         Return `Index` data as an `numpy.ndarray`.
 
@@ -4162,7 +4162,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return result
 
-    def sort_values(self, return_indexer=False, ascending=True):
+    def sort_values(self, return_indexer: bool = False, ascending: bool = True):
         """
         Return a sorted copy of the index.
 
@@ -4628,7 +4628,7 @@ class Index(IndexOpsMixin, PandasObject):
             self._validate_index_level(level)
         return algos.isin(self, values)
 
-    def _get_string_slice(self, key, use_lhs=True, use_rhs=True):
+    def _get_string_slice(self, key: str_t, use_lhs: bool = True, use_rhs: bool = True):
         # this is for partial string indexing,
         # overridden in DatetimeIndex, TimedeltaIndex and PeriodIndex
         raise NotImplementedError
@@ -4697,7 +4697,7 @@ class Index(IndexOpsMixin, PandasObject):
                 pass
         return key
 
-    def _validate_indexer(self, form, key, kind):
+    def _validate_indexer(self, form, key, kind: str_t):
         """
         If we are positional indexer, validate that we have appropriate
         typed bounds must be an integer.
@@ -4931,7 +4931,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self._shallow_copy(np.delete(self._data, loc))
 
-    def insert(self, loc, item):
+    def insert(self, loc: int, item):
         """
         Make new Index inserting new item at location.
 
