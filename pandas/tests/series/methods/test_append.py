@@ -61,6 +61,15 @@ class TestSeriesAppend:
 
         tm.assert_series_equal(expected, result)
 
+    def test_append_dataframe(self):
+        # GH 30975
+        df = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
+        df2 = pd.DataFrame({"C": [5, 6], "D": [7, 8]})
+
+        expected = pd.Series(pd.concat([df.A, df2.D]))
+        result = df.A.append(df2.D)
+
+        tm.assert_series_equal(expected, result)
 
 class TestSeriesAppendWithDatetimeIndex:
     def test_append(self):
