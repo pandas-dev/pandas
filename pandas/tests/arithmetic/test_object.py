@@ -140,7 +140,8 @@ class TestArithmetic:
         msg = (
             "can only concatenate str|"
             "did not contain a loop with signature matching types|"
-            "unsupported operand type"
+            "unsupported operand type|"
+            "must be str"
         )
         with pytest.raises(TypeError, match=msg):
             "foo_" + ser
