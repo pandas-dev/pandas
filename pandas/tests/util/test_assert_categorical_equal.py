@@ -1,7 +1,7 @@
 import pytest
 
 from pandas import Categorical
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize(
@@ -77,13 +77,11 @@ Attribute "ordered" are different
 @pytest.mark.parametrize("obj", ["index", "foo", "pandas"])
 def test_categorical_equal_object_override(obj):
     data = [1, 2, 3, 4]
-    msg = """{obj} are different
+    msg = f"""{obj} are different
 
 Attribute "ordered" are different
 \\[left\\]:  False
-\\[right\\]: True""".format(
-        obj=obj
-    )
+\\[right\\]: True"""
 
     c1 = Categorical(data, ordered=False)
     c2 = Categorical(data, ordered=True)

@@ -35,7 +35,7 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     binary;`SPSS <https://en.wikipedia.org/wiki/SPSS>`__;:ref:`read_spss<io.spss_reader>`;
     binary;`Python Pickle Format <https://docs.python.org/3/library/pickle.html>`__;:ref:`read_pickle<io.pickle>`;:ref:`to_pickle<io.pickle>`
     SQL;`SQL <https://en.wikipedia.org/wiki/SQL>`__;:ref:`read_sql<io.sql>`;:ref:`to_sql<io.sql>`
-    SQL;`Google Big Query <https://en.wikipedia.org/wiki/BigQuery>`__;:ref:`read_gbq<io.bigquery>`;:ref:`to_gbq<io.bigquery>`
+    SQL;`Google BigQuery <https://en.wikipedia.org/wiki/BigQuery>`__;:ref:`read_gbq<io.bigquery>`;:ref:`to_gbq<io.bigquery>`
 
 :ref:`Here <io.perf>` is an informal performance comparison for some of these IO methods.
 
@@ -1153,7 +1153,7 @@ To completely override the default values that are recognized as missing, specif
 .. _io.navaluesconst:
 
 The default ``NaN`` recognized values are ``['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A', 'N/A',
-'n/a', 'NA', '#NA', 'NULL', 'null', 'NaN', '-NaN', 'nan', '-nan', '']``.
+'n/a', 'NA', '<NA>', '#NA', 'NULL', 'null', 'NaN', '-NaN', 'nan', '-nan', '']``.
 
 Let us consider some examples:
 
@@ -1519,7 +1519,7 @@ rows will skip the intervening rows.
 
 .. ipython:: python
 
-   from pandas.util.testing import makeCustomDataframe as mkdf
+   from pandas._testing import makeCustomDataframe as mkdf
    df = mkdf(5, 3, r_idx_nlevels=2, c_idx_nlevels=4)
    df.to_csv('mi.csv')
    print(open('mi.csv').read())
@@ -2066,6 +2066,8 @@ The Numpy parameter
 +++++++++++++++++++
 
 .. note::
+  This param has been deprecated as of version 1.0.0 and will raise a ``FutureWarning``.
+
   This supports numeric data only. Index and columns labels may be non-numeric, e.g. strings, dates etc.
 
 If ``numpy=True`` is passed to ``read_json`` an attempt will be made to sniff
@@ -2088,6 +2090,7 @@ data:
    %timeit pd.read_json(jsonfloats)
 
 .. ipython:: python
+   :okwarning:
 
    %timeit pd.read_json(jsonfloats, numpy=True)
 
@@ -2102,6 +2105,7 @@ The speedup is less noticeable for smaller datasets:
    %timeit pd.read_json(jsonfloats)
 
 .. ipython:: python
+   :okwarning:
 
    %timeit pd.read_json(jsonfloats, numpy=True)
 
@@ -2136,27 +2140,26 @@ into a flat table.
 
 .. ipython:: python
 
-   from pandas.io.json import json_normalize
    data = [{'id': 1, 'name': {'first': 'Coleen', 'last': 'Volk'}},
            {'name': {'given': 'Mose', 'family': 'Regner'}},
            {'id': 2, 'name': 'Faye Raker'}]
-   json_normalize(data)
+   pd.json_normalize(data)
 
 .. ipython:: python
 
    data = [{'state': 'Florida',
             'shortname': 'FL',
             'info': {'governor': 'Rick Scott'},
-            'counties': [{'name': 'Dade', 'population': 12345},
-                         {'name': 'Broward', 'population': 40000},
-                         {'name': 'Palm Beach', 'population': 60000}]},
+            'county': [{'name': 'Dade', 'population': 12345},
+                       {'name': 'Broward', 'population': 40000},
+                       {'name': 'Palm Beach', 'population': 60000}]},
            {'state': 'Ohio',
             'shortname': 'OH',
             'info': {'governor': 'John Kasich'},
-            'counties': [{'name': 'Summit', 'population': 1234},
-                         {'name': 'Cuyahoga', 'population': 1337}]}]
+            'county': [{'name': 'Summit', 'population': 1234},
+                       {'name': 'Cuyahoga', 'population': 1337}]}]
 
-   json_normalize(data, 'counties', ['state', 'shortname', ['info', 'governor']])
+   pd.json_normalize(data, 'county', ['state', 'shortname', ['info', 'governor']])
 
 The max_level parameter provides more control over which level to end normalization.
 With max_level=1 the following snippet normalizes until 1st nesting level of the provided dict.
@@ -2169,7 +2172,7 @@ With max_level=1 the following snippet normalizes until 1st nesting level of the
                                       'Name': 'Name001'}},
              'Image': {'a': 'b'}
              }]
-    json_normalize(data, max_level=1)
+    pd.json_normalize(data, max_level=1)
 
 .. _io.jsonl:
 
@@ -2630,7 +2633,7 @@ that contain URLs.
 
    url_df = pd.DataFrame({
        'name': ['Python', 'Pandas'],
-       'url': ['https://www.python.org/', 'http://pandas.pydata.org']})
+       'url': ['https://www.python.org/', 'https://pandas.pydata.org']})
    print(url_df.to_html(render_links=True))
 
 .. ipython:: python
@@ -3903,6 +3906,8 @@ specified in the format: ``<float>(<unit>)``, where float may be signed (and fra
    store.append('dftd', dftd, data_columns=True)
    store.select('dftd', "C<'-3.5D'")
 
+.. _io.query_multi:
+
 Query MultiIndex
 ++++++++++++++++
 
@@ -4672,10 +4677,10 @@ Several caveats.
 * Index level names, if specified, must be strings.
 * In the ``pyarrow`` engine, categorical dtypes for non-string types can be serialized to parquet, but will de-serialize as their primitive dtype.
 * The ``pyarrow`` engine preserves the ``ordered`` flag of categorical dtypes with string types. ``fastparquet`` does not preserve the ``ordered`` flag.
-* Non supported types include ``Period`` and actual Python object types. These will raise a helpful error message
-  on an attempt at serialization.
+* Non supported types include ``Interval`` and actual Python object types. These will raise a helpful error message
+  on an attempt at serialization. ``Period`` type is supported with pyarrow >= 0.16.0.
 * The ``pyarrow`` engine preserves extension data types such as the nullable integer and string data
-  type (requiring pyarrow >= 1.0.0, and requiring the extension type to implement the needed protocols,
+  type (requiring pyarrow >= 0.16.0, and requiring the extension type to implement the needed protocols,
   see the :ref:`extension types documentation <extending.extension.arrow>`).
 
 You can specify an ``engine`` to direct the serialization. This can be one of ``pyarrow``, or ``fastparquet``, or ``auto``.
@@ -4789,10 +4794,10 @@ Parquet supports partitioning of data based on the values of one or more columns
 .. ipython:: python
 
     df = pd.DataFrame({'a': [0, 0, 1, 1], 'b': [0, 1, 0, 1]})
-    df.to_parquet(fname='test', engine='pyarrow',
+    df.to_parquet(path='test', engine='pyarrow',
                   partition_cols=['a'], compression=None)
 
-The `fname` specifies the parent directory to which data will be saved.
+The `path` specifies the parent directory to which data will be saved.
 The `partition_cols` are the column names by which the dataset will be partitioned.
 Columns are partitioned in the order they are given. The partition splits are
 determined by the unique values in the partition columns.
@@ -4854,7 +4859,6 @@ See also some :ref:`cookbook examples <cookbook.sql>` for some advanced strategi
 The key functions are:
 
 .. autosummary::
-    :toctree: ../reference/api/
 
     read_sql_table
     read_sql_query

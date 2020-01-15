@@ -8,17 +8,8 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import Categorical, DataFrame, Series, Timestamp, date_range
+import pandas._testing as tm
 from pandas.tests.frame.common import _check_mixed_float
-import pandas.util.testing as tm
-
-
-def _skip_if_no_pchip():
-    try:
-        from scipy.interpolate import pchip_interpolate  # noqa
-    except ImportError:
-        import pytest
-
-        pytest.skip("scipy.interpolate.pchip missing")
 
 
 class TestDataFrameMissingData:
@@ -671,7 +662,7 @@ class TestDataFrameMissingData:
 
     def test_fillna_invalid_value(self, float_frame):
         # list
-        msg = '"value" parameter must be a scalar or dict, but you passed' ' a "{}"'
+        msg = '"value" parameter must be a scalar or dict, but you passed a "{}"'
         with pytest.raises(TypeError, match=msg.format("list")):
             float_frame.fillna([1, 2])
         # tuple
@@ -679,8 +670,8 @@ class TestDataFrameMissingData:
             float_frame.fillna((1, 2))
         # frame with series
         msg = (
-            '"value" parameter must be a scalar, dict or Series, but you'
-            ' passed a "DataFrame"'
+            '"value" parameter must be a scalar, dict or Series, but you '
+            'passed a "DataFrame"'
         )
         with pytest.raises(TypeError, match=msg):
             float_frame.iloc[:, 0].fillna(float_frame)
@@ -837,8 +828,6 @@ class TestDataFrameInterpolate:
         expectedk["A"] = expected["A"]
         tm.assert_frame_equal(result, expectedk)
 
-        _skip_if_no_pchip()
-
         result = df.interpolate(method="pchip")
         expected.loc[2, "A"] = 3
         expected.loc[5, "A"] = 6.0
@@ -981,3 +970,16 @@ class TestDataFrameInterpolate:
         # all good
         result = df[["B", "D"]].interpolate(downcast=None)
         tm.assert_frame_equal(result, df[["B", "D"]])
+
+    @pytest.mark.parametrize("axis", [0, 1])
+    def test_interp_time_inplace_axis(self, axis):
+        # GH 9687
+        periods = 5
+        idx = pd.date_range(start="2014-01-01", periods=periods)
+        data = np.random.rand(periods, periods)
+        data[data < 0.5] = np.nan
+        expected = pd.DataFrame(index=idx, columns=idx, data=data)
+
+        result = expected.interpolate(axis=0, method="time")
+        expected.interpolate(axis=0, method="time", inplace=True)
+        tm.assert_frame_equal(result, expected)

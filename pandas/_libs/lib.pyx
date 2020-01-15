@@ -19,7 +19,7 @@ PyDateTime_IMPORT
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport (ndarray, PyArray_GETITEM,
+from numpy cimport (ndarray, PyArray_Check, PyArray_GETITEM,
                     PyArray_ITER_DATA, PyArray_ITER_NEXT, PyArray_IterNew,
                     flatiter, NPY_OBJECT,
                     int64_t, float32_t, float64_t,
@@ -510,7 +510,7 @@ def maybe_booleans_to_slice(ndarray[uint8_t] mask):
 @cython.boundscheck(False)
 def array_equivalent_object(left: object[:], right: object[:]) -> bool:
     """
-    Perform an element by element comparion on 1-d object arrays
+    Perform an element by element comparison on 1-d object arrays
     taking into account nan positions.
     """
     cdef:
@@ -524,8 +524,11 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
         # we are either not equal or both nan
         # I think None == None will be true here
         try:
-            if not (PyObject_RichCompareBool(x, y, Py_EQ) or
-                    (x is None or is_nan(x)) and (y is None or is_nan(y))):
+            if PyArray_Check(x) and PyArray_Check(y):
+                if not array_equivalent_object(x, y):
+                    return False
+            elif not (PyObject_RichCompareBool(x, y, Py_EQ) or
+                      (x is None or is_nan(x)) and (y is None or is_nan(y))):
                 return False
         except TypeError as err:
             # Avoid raising TypeError on tzawareness mismatch
@@ -1259,15 +1262,15 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     # make contiguous
     values = values.ravel()
 
-    if skipna:
-        values = values[~isnaobj(values)]
-
     val = _try_infer_map(values)
     if val is not None:
         return val
 
     if values.dtype != np.object_:
         values = values.astype('O')
+
+    if skipna:
+        values = values[~isnaobj(values)]
 
     n = len(values)
     if n == 0:
@@ -1620,6 +1623,10 @@ cdef class StringValidator(Validator):
 
     cdef inline bint is_array_typed(self) except -1:
         return issubclass(self.dtype.type, np.str_)
+
+    cdef bint is_valid_null(self, object value) except -1:
+        # We deliberately exclude None / NaN here since StringArray uses NA
+        return value is C_NA
 
 
 cpdef bint is_string_array(ndarray values, bint skipna=False):
@@ -2232,13 +2239,14 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
     return objects
 
 
-_no_default = object()
+# Note: no_default is exported to the public API in pandas.api.extensions
+no_default = object()  #: Sentinel indicating the default value.
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=1,
-                   object na_value=_no_default, object dtype=object):
+                   object na_value=no_default, object dtype=object):
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
 
@@ -2269,7 +2277,7 @@ def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=1,
     result = np.empty(n, dtype=dtype)
     for i in range(n):
         if mask[i]:
-            if na_value is _no_default:
+            if na_value is no_default:
                 val = arr[i]
             else:
                 val = na_value

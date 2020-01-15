@@ -8,6 +8,7 @@ dependencies:
   - cython>=0.29.13
   - pytest>=5.0.1
   - pytest-xdist>=1.21
+  - pytest-asyncio
   - hypothesis>=3.58.0
   - pytest-azurepipelines
 

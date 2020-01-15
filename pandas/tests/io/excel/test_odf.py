@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 pytest.importorskip("odf")
 

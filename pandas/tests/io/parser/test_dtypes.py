@@ -14,7 +14,7 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
 from pandas import Categorical, DataFrame, Index, MultiIndex, Series, Timestamp, concat
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize("dtype", [str, object])
@@ -79,7 +79,7 @@ one,two
 3,4.5
 4,5.5"""
 
-    with pytest.raises(TypeError, match='data type "foo" not understood'):
+    with pytest.raises(TypeError, match="data type [\"']foo[\"'] not understood"):
         parser.read_csv(StringIO(data), dtype={"one": "foo", 1: "int"})
 
 

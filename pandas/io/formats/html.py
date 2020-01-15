@@ -2,17 +2,18 @@
 Module for formatting output data in HTML.
 """
 
-from collections import OrderedDict
 from textwrap import dedent
 from typing import IO, Any, Dict, Iterable, List, Mapping, Optional, Tuple, Union, cast
 
 from pandas._config import get_option
 
+from pandas._libs import lib
+
 from pandas.core.dtypes.generic import ABCMultiIndex
 
 from pandas import option_context
 
-from pandas.io.common import _is_url
+from pandas.io.common import is_url
 from pandas.io.formats.format import (
     DataFrameFormatter,
     TableFormatter,
@@ -109,12 +110,12 @@ class HTMLFormatter(TableFormatter):
         ----------
         s : object
             The data to be written inside the cell.
-        header : boolean, default False
+        header : bool, default False
             Set to True if the <th> is for use inside <thead>.  This will
             cause min-width to be set if there is one.
         indent : int, default 0
             The indentation level of the cell.
-        tags : string, default None
+        tags : str, default None
             Tags to include in the cell.
 
         Returns
@@ -138,16 +139,15 @@ class HTMLFormatter(TableFormatter):
         else:
             start_tag = "<{kind}>".format(kind=kind)
 
-        esc: Union[OrderedDict[str, str], Dict]
         if self.escape:
             # escape & first to prevent double escaping of &
-            esc = OrderedDict([("&", r"&amp;"), ("<", r"&lt;"), (">", r"&gt;")])
+            esc = {"&": r"&amp;", "<": r"&lt;", ">": r"&gt;"}
         else:
             esc = {}
 
         rs = pprint_thing(s, escape_chars=esc).strip()
 
-        if self.render_links and _is_url(rs):
+        if self.render_links and is_url(rs):
             rs_unescaped = pprint_thing(s, escape_chars={}).strip()
             start_tag += '<a href="{url}" target="_blank">'.format(url=rs_unescaped)
             end_a = "</a>"
@@ -216,8 +216,8 @@ class HTMLFormatter(TableFormatter):
                 self.classes = self.classes.split()
             if not isinstance(self.classes, (list, tuple)):
                 raise TypeError(
-                    "classes must be a string, list, or tuple, "
-                    "not {typ}".format(typ=type(self.classes))
+                    "classes must be a string, list, "
+                    f"or tuple, not {type(self.classes)}"
                 )
             _classes.extend(self.classes)
 
@@ -247,7 +247,7 @@ class HTMLFormatter(TableFormatter):
 
             if self.fmt.sparsify:
                 # GH3547
-                sentinel = object()
+                sentinel = lib.no_default
             else:
                 sentinel = False
             levels = self.columns.format(sparsify=sentinel, adjoin=False, names=False)
@@ -453,7 +453,7 @@ class HTMLFormatter(TableFormatter):
 
         if self.fmt.sparsify:
             # GH3547
-            sentinel = object()
+            sentinel = lib.no_default
             levels = frame.index.format(sparsify=sentinel, adjoin=False, names=False)
 
             level_lengths = get_level_lengths(levels, sentinel)

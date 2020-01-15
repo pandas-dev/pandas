@@ -4,8 +4,8 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range, isna, notna
+import pandas._testing as tm
 import pandas.core.common as com
-import pandas.util.testing as tm
 
 
 class TestMultiIndexSetItem:
@@ -141,7 +141,7 @@ class TestMultiIndexSetItem:
             df.loc["bar"] *= 2
 
         # from SO
-        # http://stackoverflow.com/questions/24572040/pandas-access-the-level-of-multiindex-for-inplace-operation
+        # https://stackoverflow.com/questions/24572040/pandas-access-the-level-of-multiindex-for-inplace-operation
         df_orig = DataFrame.from_dict(
             {
                 "price": {

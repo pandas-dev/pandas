@@ -19,9 +19,9 @@ import pytest
 from pandas.compat.numpy import _np_version_under1p14
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.core.arrays.boolean import BooleanDtype
 from pandas.tests.extension import base
-import pandas.util.testing as tm
 
 
 def make_data():
@@ -225,6 +225,10 @@ class TestMethods(base.BaseMethodsTests):
         # sorter
         sorter = np.array([1, 0])
         assert data_for_sorting.searchsorted(a, sorter=sorter) == 0
+
+    @pytest.mark.skip(reason="uses nullable integer")
+    def test_value_counts(self, all_data, dropna):
+        return super().test_value_counts(all_data, dropna)
 
 
 class TestCasting(base.BaseCastingTests):
