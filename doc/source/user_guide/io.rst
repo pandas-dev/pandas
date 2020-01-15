@@ -4221,23 +4221,23 @@ all kinds of stores, not just tables. Two parameters are used to
 control compression: ``complevel`` and ``complib``.
 
 complevel : specifies if and how hard data is to be compressed.
-  ``complevel=0`` and ``complevel=None`` disables compression and 
+  ``complevel=0`` and ``complevel=None`` disables compression and
   ``0<complevel<10`` enables compression.
 
-complib : specifies which compression library to use. 
-  If nothing is  specified the default library ``zlib`` is used. A 
+complib : specifies which compression library to use.
+  If nothing is  specified the default library ``zlib`` is used. A
   compression library usually optimizes for either good compression rates
   or speed and the results will depend on the type of data. Which type of
   compression to choose depends on your specific needs and data. The list
   of supported compression libraries:
 
-  - `zlib <https://zlib.net/>`_: The default compression library. 
-    A classic in terms of compression, achieves good compression 
+  - `zlib <https://zlib.net/>`_: The default compression library.
+    A classic in terms of compression, achieves good compression
     rates but is somewhat slow.
-  - `lzo <https://www.oberhumer.com/opensource/lzo/>`_: Fast 
+  - `lzo <https://www.oberhumer.com/opensource/lzo/>`_: Fast
     compression and decompression.
   - `bzip2 <http://bzip.org/>`_: Good compression rates.
-  - `blosc <http://www.blosc.org/>`_: Fast compression and 
+  - `blosc <http://www.blosc.org/>`_: Fast compression and
     decompression.
 
     Support for alternative blosc compressors:
@@ -4261,7 +4261,7 @@ complib : specifies which compression library to use.
       compression ratios among the others above, and at
       reasonably fast speed.
 
-  If ``complib`` is defined as something other than the listed libraries a 
+  If ``complib`` is defined as something other than the listed libraries a
   ``ValueError`` exception is issued.
 
 .. note::
