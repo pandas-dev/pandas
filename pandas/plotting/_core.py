@@ -1182,9 +1182,7 @@ class PlotAccessor(PandasObject):
             >>> np.random.seed(159753)
             >>> df = pd.DataFrame(np.random.randn(30, 2), columns=['A', 'B'])
             >>> df['C'] = np.random.choice(['a', 'b', 'c'], 30)
-            >>> df['D'] = np.random.choice(['a', 'b', 'c'], 30)
             >>> ax = df.plot.hist(column=['A', 'B'], by=['C'], figsize=(8, 10))
-
         """
         return self(kind="hist", by=by, bins=bins, **kwargs)
 
