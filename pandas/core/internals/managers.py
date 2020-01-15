@@ -670,12 +670,6 @@ class BlockManager(PandasObject):
         return all(block.is_numeric for block in self.blocks)
 
     @property
-    def is_datelike_mixed_type(self):
-        # Warning, consolidation needs to get checked upstairs
-        self._consolidate_inplace()
-        return any(block.is_datelike for block in self.blocks)
-
-    @property
     def any_extension_types(self):
         """Whether any of the blocks in this manager are extension blocks"""
         return any(block.is_extension for block in self.blocks)
