@@ -1175,6 +1175,16 @@ class PlotAccessor(PandasObject):
             ...     columns = ['one'])
             >>> df['two'] = df['one'] + np.random.randint(1, 7, 6000)
             >>> ax = df.plot.hist(bins=12, alpha=0.5)
+
+        .. plot::
+            :context: close-figs
+
+            >>> np.random.seed(159753)
+            >>> df = pd.DataFrame(np.random.randn(30, 2), columns=['A', 'B'])
+            >>> df['C'] = np.random.choice(['a', 'b', 'c'], 30)
+            >>> df['D'] = np.random.choice(['a', 'b', 'c'], 30)
+            >>> ax = df.plot.hist(column=['A', 'B'], by=['C'], figsize=(8, 10))
+
         """
         return self(kind="hist", by=by, bins=bins, **kwargs)
 

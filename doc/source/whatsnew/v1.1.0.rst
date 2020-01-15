@@ -127,7 +127,8 @@ Plotting
 ^^^^^^^^
 
 -
--
+- Implement ``by`` argument for :meth:`DataFrame.plot.hist` (:issue:`15079`)
+
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^

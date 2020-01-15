@@ -110,8 +110,7 @@ class HistPlot(LinePlot):
             self._add_legend_handle(artists[0], label, index=i)
 
     def _reformat_y(self, y):
-        """Internal function to reformat y given `by` is applied or not.
-        """
+        """Internal function to reformat y given `by` is applied or not."""
         if self.by is not None and len(y.shape) > 1:
             notna = [col[~isna(col)] for col in y.T]
             y = np.array(np.array(notna).T)

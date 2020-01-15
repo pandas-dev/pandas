@@ -4,6 +4,7 @@
 
 from datetime import date, datetime
 import itertools
+import re
 import string
 import warnings
 
@@ -3300,13 +3301,17 @@ class TestDataFramePlots(TestPlotBase):
         df["D"] = np.random.choice(["a", "b", "c"], 30)
 
         # layout too small for all 3 plots
-        with pytest.raises(ValueError):
+        msg = "larger than required size"
+        with pytest.raises(ValueError, match=msg):
             df.plot.hist(column=["A", "B"], by="C", layout=(1, 1))
 
         # invalid format for layout
-        with pytest.raises(ValueError):
+        msg = re.escape("Layout must be a tuple of (rows, columns)")
+        with pytest.raises(ValueError, match=msg):
             df.plot.hist(column=["A", "B"], by="C", layout=(1,))
-        with pytest.raises(ValueError):
+
+        msg = "At least one dimension of layout must be positive"
+        with pytest.raises(ValueError, match=msg):
             df.plot.hist(column=["A", "B"], by="C", layout=(-1, -1))
 
     @pytest.mark.slow
