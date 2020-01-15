@@ -600,7 +600,8 @@ def crosstab(
         **kwargs,
     )
 
-    # Remove extra level from `[__dummy__]` pivoting
+    # GH18321, after pivoting, an extra top level of column index of `__dummy__` is
+    # created, and this extra level should not be included in the further steps
     if not table.empty:
         cols_diff = df.columns.difference(original_df_cols)[0]
         table = table[cols_diff]
