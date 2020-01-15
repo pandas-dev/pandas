@@ -819,10 +819,8 @@ class TestBlockManager:
         bm1 = create_mgr("a,b,c: i8-1; d,e,f: i8-2")
 
         msg = (
-            r'For argument "inplace" expected type bool, received type int.|'
-            r'For argument "inplace" expected type bool, received type str.|'
-            r'For argument "inplace" expected type bool, received type list.|'
-            r'For argument "inplace" expected type bool, received type float.'
+            'For argument "inplace" expected type bool, '
+            "received type (int|str|list|float)."
         )
 
         for value in invalid_values:
