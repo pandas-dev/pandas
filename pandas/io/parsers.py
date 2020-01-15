@@ -1304,7 +1304,7 @@ def _validate_usecols_arg(usecols):
 
         usecols_dtype = lib.infer_dtype(usecols, skipna=False)
 
-        if usecols_dtype not in ("empty", "integer", "string", "unicode"):
+        if usecols_dtype not in ("empty", "integer", "string"):
             raise ValueError(msg)
 
         usecols = set(usecols)
